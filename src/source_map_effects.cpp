@@ -42,6 +42,8 @@ struct SourceMapEffects::Impl {
     };
     std::map<std::uint32_t,Live> live;
     SourceMapEffectStats counts;std::set<std::string> gaps;
+    std::optional<std::uint64_t> tick;
+    bool complete=true;
     Impl(const Cache &c,std::span<const ScenarioObject> objects,NativeWorldEffects &e):cache(c),effects(e) {
         for(std::size_t index=0;index<objects.size();++index) {
             const auto &object=objects[index];
@@ -114,9 +116,36 @@ struct SourceMapEffects::Impl {
 SourceMapEffects::SourceMapEffects(const Cache &c,std::span<const ScenarioObject> objects,NativeWorldEffects &e)
     :impl_(std::make_unique<Impl>(c,objects,e)){}
 SourceMapEffects::~SourceMapEffects()=default;
+struct SourceMapEffects::Checkpoint::Data {
+    std::shared_ptr<const int> owner;
+    Impl state;
+    Data(std::shared_ptr<const int> token,const Impl &from):owner(std::move(token)),state(from){}
+};
+std::optional<std::uint64_t> SourceMapEffects::Checkpoint::tick()const noexcept {
+    return data_?data_->state.tick:std::nullopt;
+}
+SourceMapEffects::PreparedRestore::PreparedRestore()=default;
+SourceMapEffects::PreparedRestore::~PreparedRestore()=default;
+SourceMapEffects::PreparedRestore::PreparedRestore(PreparedRestore &&)noexcept=default;
+SourceMapEffects::PreparedRestore &SourceMapEffects::PreparedRestore::operator=(PreparedRestore &&)noexcept=default;
+SourceMapEffects::Checkpoint SourceMapEffects::checkpoint()const {
+    if(!impl_->complete)throw FormatError("Map effect checkpoint requires a completed synchronization");
+    Checkpoint result;result.data_=std::make_shared<Checkpoint::Data>(owner_,*impl_);return result;
+}
+SourceMapEffects::PreparedRestore SourceMapEffects::prepare_restore(const Checkpoint &cut)const {
+    if(!cut.data_ || cut.data_->owner!=owner_)throw FormatError("Map effect checkpoint belongs to another owner");
+    PreparedRestore result;result.replacement_=std::make_unique<Impl>(cut.data_->state);result.owner_=owner_;return result;
+}
+bool SourceMapEffects::restore_ready(const PreparedRestore &prepared)const noexcept {
+    return prepared.replacement_ && prepared.owner_==owner_;
+}
+bool SourceMapEffects::commit_restore(PreparedRestore &&prepared)noexcept {
+    if(!restore_ready(prepared))return false;
+    impl_.swap(prepared.replacement_);prepared.owner_.reset();return true;
+}
 void SourceMapEffects::synchronize(std::span<const SourceSceneEffectOwner> owners,std::uint64_t tick,
     std::span<const SourceSceneRoot> source_roots) {
-    auto &i=*impl_;std::set<std::uint32_t> present;
+    auto &i=*impl_;i.complete=false;std::set<std::uint32_t> present;
     std::map<std::uint32_t,const SourceSceneRoot*> source;
     for(const auto &root:source_roots) {
         validate_source_attached_effects(root.attached_effects);
@@ -204,6 +233,7 @@ void SourceMapEffects::synchronize(std::span<const SourceSceneEffectOwner> owner
         if(!present.contains(at->first)){i.effects.remove_object(at->first);at=i.live.erase(at);}
         else ++at;
     }
+    i.tick=tick;i.complete=true;
 }
 SourceMapEffectStats SourceMapEffects::stats()const {
     const auto &i=*impl_;auto out=i.counts;out.live_objects=i.live.size();

@@ -107,10 +107,37 @@ struct QueryMemory final:SourcePhysicsContactMemory {
         return result;
     }
 };
-std::uint32_t word(SourceRuntimeMemory &memory,std::uint32_t address) {return Bytes(memory.view(address,4)).u32(0);}
+std::uint32_t word(const SourceRuntimeMemory &memory,std::uint32_t address) {return Bytes(memory.view(address,4)).u32(0);}
 void put(SourceRuntimeMemory &memory,std::uint32_t address,std::uint32_t value) {
     std::array<std::byte,4> bytes;for(unsigned n=0;n<4;++n)bytes[n]=std::byte(value>>(8*n));memory.write(address,bytes);
 }
+unsigned retirement_count(const SourceRuntimeMemory &memory) {
+    const auto count=word(memory,0x531fbcu);
+    if(count>511)throw FormatError("Original lens retirement count exceeds its request bank");
+    if(count)memory.view(0x52dfdcu,count*32u);
+    (void)memory.view(0x531fc0u,192);
+    return count;
+}
+}
+void source_require_retired_lens_queries(const SourceRuntimeMemory &memory) {
+    const auto count=retirement_count(memory);
+    for(unsigned ring=0;ring<3;++ring)for(unsigned index=0;index<16;++index){
+        const auto first=index*32u;
+        const auto allocated=count>=first+32u?0xffffffffu:count>first?(1u<<(count-first))-1u:0u;
+        if(word(memory,0x531fc0u+ring*64u+index*4u)&allocated)
+            throw FormatError("Incoming original lens ring still owns GPU queries");
+    }
+    std::array<std::byte,32> free{};free[4]=std::byte{0x80};free[5]=std::byte{0xff};
+    for(unsigned n=0;n<count;++n)if(!std::ranges::equal(memory.view(0x52dfdcu+n*32u,32),free))
+        throw FormatError("Incoming original lens request has not been retired");
+}
+unsigned source_retire_lens_queries(PhysicsLiveWorldTu15 &world) {
+    world.require_execution_boundary();
+    const auto count=retirement_count(world.memory());
+    for(unsigned n=0;n<count;++n){
+        auto abi=world.prepare_source_call();abi.gp[0]=n;world.run_actual(0x20e30u,abi);
+    }
+    source_require_retired_lens_queries(world.memory());return count;
 }
 void source_execute_lens_query(PhysicsLiveWorldTu15 &world,std::uint32_t entry,
     SourcePhysicsWorldRuntimeAbi &abi,SourcePhysicsContactMemory *device) {

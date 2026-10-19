@@ -23,6 +23,10 @@ public:
     // its pose owner. Their completed nodes must not blend with standing nodes.
     void capture(std::uint64_t tick,std::span<const SourceWorldPose>,
         std::span<const std::uint32_t> discontinuities);
+    // A newer accepted body can replace this completed tick without a new
+    // simulation step. Retain the earlier endpoint only for surviving owners.
+    void refresh(std::uint64_t tick,std::span<const SourceWorldPose>,
+        std::span<const std::uint32_t> discontinuities={});
     std::vector<Transform> sample(std::uint32_t object,float fraction)const;
 private:
     std::uint64_t tick_{};
@@ -35,6 +39,7 @@ public:
     // reset is required for a checkpoint restore, teleport or BSP replacement.
     void reset(std::uint64_t tick,std::span<const SceneObjects::Object>);
     void capture(std::uint64_t tick,std::span<const SceneObjects::Object>);
+    void refresh(std::uint64_t tick,std::span<const SceneObjects::Object>);
     Transform sample(const SceneObjects::Object &,float fraction)const;
     std::vector<Transform> sample_nodes(const SceneObjects::Object &,float fraction)const;
 private:

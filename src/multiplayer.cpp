@@ -772,6 +772,59 @@ void MultiplayerMatch::retain_unit(Unit &unit) {
   if (unit.source_datum != null_datum)
     retained_units_.insert_or_assign(unit.source_datum, unit);
 }
+void MultiplayerMatch::synchronize_source_weapon_state(WeaponState &state) {
+  if(source_object_world_->object_definition(state.source_datum)!=state.definition)
+    throw FormatError("Source weapon readback changed a live definition");
+  const auto &definition=content_.weapons.at(state.definition);
+  const auto body=source_object_world_->object_body(state.source_datum);
+  const auto &memory=source_object_world_->memory();
+  const auto read=[&]<class T>(unsigned offset,T &value) {
+    static_assert(std::endian::native==std::endian::little);
+    const auto bytes=memory.view(body+offset,sizeof(T));
+    std::memcpy(&value,bytes.data(),sizeof(T));
+  };
+  // The fixed52/12/16-byte runtime banks belong to the original constructor
+  // and1021D0/1030F0 update. Preserve both banks even when only one is used.
+  read(0x1a4,state.source_barrels);read(0x20c,state.source_triggers);
+  read(0x224,state.source_magazines);
+  state.source_runtime_published=true;
+  read(0x12c,state.shader.item_flags);read(0x16c,state.shader.weapon_flags);
+  read(0x184,state.shader.power_fraction);read(0x180,state.shader.heat);
+  state.ready_clock=false;
+  read(0x19e,state.ready_countdown);read(0x188,state.cooling_inhibitor);
+  read(0x175,state.charge_fraction);
+  read(0x244,state.overheat_handle);read(0x17c,state.energy_blocking_ticks);
+  // Actual108607 stores the source game tick here after preparation. The
+  // legacy native producer does not run for an authoritative source weapon.
+  std::uint32_t prepared_tick{};read(0x248,prepared_tick);
+  state.last_shot=prepared_tick;
+  read(0x178,state.smg.weapon_state);read(0x16c,state.smg.weapon_flags);
+  read(0x16e,state.smg.input_flags);
+  state.smg.trigger_state=state.source_triggers[0].mode;
+  state.smg.trigger_ticks=state.source_triggers[0].ticks;
+  state.smg.trigger_flags=state.source_triggers[0].flags;
+  state.smg.trigger_effect_handle=state.source_triggers[0].effect;
+  state.smg.second_trigger_state=state.source_triggers[1].mode;
+  state.loaded=state.reserve=0;
+  if(!definition.triggers.empty() && definition.triggers[0].primary_barrel>=0) {
+    const auto barrel=unsigned(definition.triggers[0].primary_barrel);
+    if(barrel>=state.source_barrels.size() || barrel>=definition.barrel_ammunition.size())
+      throw FormatError("Original primary trigger selects an unavailable barrel");
+    state.smg.barrel=state.source_barrels[barrel];
+    state.alternate_barrel=state.source_barrels[1u-barrel];
+    const auto magazine=definition.barrel_ammunition[barrel].magazine;
+    if(magazine>=0) {
+      if(unsigned(magazine)>=state.source_magazines.size())
+        throw FormatError("Original barrel selects an unavailable magazine");
+      state.magazine=state.source_magazines[unsigned(magazine)];
+      state.loaded=state.magazine.loaded;state.reserve=state.magazine.reserve;
+      state.smg.loaded=state.magazine.loaded;state.smg.reserve=state.magazine.reserve;
+      state.smg.magazine_mode=state.magazine.mode;state.smg.magazine_ticks=state.magazine.ticks;
+      state.smg.transfer_ticks=state.magazine.transfer_ticks;
+      state.smg.magazine_other_ticks=state.magazine.other_ticks;
+    }
+  }
+}
 void MultiplayerMatch::synchronize_source_equipment(Unit &unit,const SourcePlayerEquipmentTu15 &source) {
   unit.grenades=source.grenades;
   std::array<std::optional<WeaponState>,4> states;
@@ -788,50 +841,7 @@ void MultiplayerMatch::synchronize_source_equipment(Unit &unit,const SourcePlaye
     if(!states[slot])states[slot]=native_weapon_state(content_.weapons.at(source.definitions[slot]),handle);
     if(states[slot]->definition!=source.definitions[slot])
       throw FormatError("Source inventory changed the definition of a live weapon identity");
-    auto &state=*states[slot];
-    const auto &definition=content_.weapons.at(source.definitions[slot]);
-    const auto body=source_object_world_->object_body(handle);
-    const auto &memory=source_object_world_->memory();
-    const auto read=[&]<class T>(unsigned offset,T &value) {
-      static_assert(std::endian::native==std::endian::little);
-      const auto bytes=memory.view(body+offset,sizeof(T));
-      std::memcpy(&value,bytes.data(),sizeof(T));
-    };
-    // The fixed52/12/16-byte runtime banks belong to the original constructor
-    // and1021D0/1030F0 update. Preserve both banks even when only one is used.
-    read(0x1a4,state.source_barrels);read(0x20c,state.source_triggers);
-    read(0x224,state.source_magazines);
-    state.source_runtime_published=true;
-    state.shader=source.shaders[slot];state.ready_clock=false;
-    read(0x19e,state.ready_countdown);read(0x188,state.cooling_inhibitor);
-    read(0x175,state.charge_fraction);
-    read(0x244,state.overheat_handle);read(0x17c,state.energy_blocking_ticks);
-    read(0x178,state.smg.weapon_state);read(0x16c,state.smg.weapon_flags);
-    read(0x16e,state.smg.input_flags);
-    state.smg.trigger_state=state.source_triggers[0].mode;
-    state.smg.trigger_ticks=state.source_triggers[0].ticks;
-    state.smg.trigger_flags=state.source_triggers[0].flags;
-    state.smg.trigger_effect_handle=state.source_triggers[0].effect;
-    state.smg.second_trigger_state=state.source_triggers[1].mode;
-    state.loaded=state.reserve=0;
-    if(!definition.triggers.empty() && definition.triggers[0].primary_barrel>=0) {
-      const auto barrel=unsigned(definition.triggers[0].primary_barrel);
-      if(barrel>=state.source_barrels.size() || barrel>=definition.barrel_ammunition.size())
-        throw FormatError("Original primary trigger selects an unavailable barrel");
-      state.smg.barrel=state.source_barrels[barrel];
-      state.alternate_barrel=state.source_barrels[1u-barrel];
-      const auto magazine=definition.barrel_ammunition[barrel].magazine;
-      if(magazine>=0) {
-        if(unsigned(magazine)>=state.source_magazines.size())
-          throw FormatError("Original barrel selects an unavailable magazine");
-        state.magazine=state.source_magazines[unsigned(magazine)];
-        state.loaded=state.magazine.loaded;state.reserve=state.magazine.reserve;
-        state.smg.loaded=state.magazine.loaded;state.smg.reserve=state.magazine.reserve;
-        state.smg.magazine_mode=state.magazine.mode;state.smg.magazine_ticks=state.magazine.ticks;
-        state.smg.transfer_ticks=state.magazine.transfer_ticks;
-        state.smg.magazine_other_ticks=state.magazine.other_ticks;
-      }
-    }
+    synchronize_source_weapon_state(*states[slot]);
   }
   int primary=source.current[0];
   if(primary<0)primary=source.requested[0];
@@ -2040,6 +2050,9 @@ void MultiplayerMatch::step(
     item.position=root.position;item.forward=root.basis[0];item.up=root.basis[2];
     item.visible=source_object_world_->object_parent(item.handle)==null_datum;
     if(!item.visible)item.weapon.reset();
+    // Original detach can redistribute reserves. The former held snapshot
+    // no longer owns this world item's ammunition, shader or runtime banks.
+    else if(item.weapon)synchronize_source_weapon_state(*item.weapon);
   }
   for (unsigned i = 0; i < players_.size(); ++i)
     if (players_[i].connected && !unit(i).vitality.dead)
@@ -2525,6 +2538,13 @@ MultiplayerState MultiplayerMatch::state() const {
       if(dynamic.has_world_nodes)result.source_body_poses.push_back({object.object,std::move(nodes),dynamic.sphere});
       result.source_dynamic_objects.push_back(std::move(dynamic));
     }
+  }
+  if(source_object_world_)for(const auto &weapon:result.world_weapons)if(weapon.handle!=null_datum &&
+      std::none_of(result.source_body_poses.begin(),result.source_body_poses.end(),
+          [&](const auto &pose){return pose.object==weapon.handle;})) {
+    auto nodes=source_object_world_->world_nodes(weapon.handle);
+    if(!nodes.empty())result.source_body_poses.push_back({weapon.handle,std::move(nodes),
+        source_object_world_->object_sphere(weapon.handle)});
   }
   journal.complete([&]{return source_execution_state_result(result);});
   return result;

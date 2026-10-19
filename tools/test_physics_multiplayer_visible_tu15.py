@@ -71,10 +71,10 @@ def inspect_mirror(args):
         raise RuntimeError("Mirror source/destination does not match the actual displays")
     capture = Path(f"/proc/{int(info['capture_pid'])}")
     mirror = Path(f"/proc/{int(info['mirror_pid'])}")
-    for process in (capture, mirror):
+    for label, process in (("capture", capture), ("player", mirror)):
         state = process.joinpath("stat").read_text().rpartition(") ")[2].split()[0]
         if state in {"T", "t", "Z", "X"}:
-            raise RuntimeError("Mirror capture/player is stopped or terminated")
+            raise RuntimeError(f"Mirror {label} pid={process.name} state={state} is stopped or terminated")
     capture_command = capture.joinpath("cmdline").read_bytes().split(b"\0")
     mirror_command = mirror.joinpath("cmdline").read_bytes().split(b"\0")
     if not capture_command or Path(os.fsdecode(capture_command[0])).name != "ffmpeg" or b"x11grab" not in capture_command:
@@ -95,8 +95,16 @@ def inspect_mirror(args):
     clients = subprocess.run(["xprop", "-root", "_NET_CLIENT_LIST"], env=env,
         capture_output=True, text=True, check=True).stdout
     for identifier in re.findall(r"0x[0-9a-fA-F]+", clients):
-        owner = subprocess.run(["xprop", "-id", identifier, "_NET_WM_PID"], env=env,
-            capture_output=True, text=True, check=True).stdout
+        try:
+            owner = subprocess.run(["xprop", "-id", identifier, "_NET_WM_PID"], env=env,
+                capture_output=True, text=True, check=True).stdout
+        except subprocess.CalledProcessError as error:
+            # EWMH enumeration and per-window queries are separate requests;
+            # unrelated clients may disappear between them. The owned mirror
+            # must still be found and verified below.
+            if "BadWindow" in (error.stderr or ""):
+                continue
+            raise
         if re.search(r"=\s*" + str(info["mirror_pid"]) + r"\s*$", owner):
             window = capture_window_state(args.visible_mirror_display, int(identifier, 16))
             if window["map_state"] != 2 or window["width"] <= 0 or window["height"] <= 0:
@@ -123,6 +131,7 @@ def run(args, scenario):
     runtime_executed = runtime_before
     mirror_checks = []
     mirror_errors = []
+    mirror_error_observations = []
     mirror_stop = threading.Event()
     if args.visible_mirror_display:
         mirror_checks.append(inspect_mirror(args))
@@ -137,6 +146,9 @@ def run(args, scenario):
                     mirror_checks.append(observed)
                 except Exception as error:
                     mirror_errors.append(str(error))
+                    mirror_error_observations.append({"elapsed_seconds": time.monotonic() - started,
+                        "native_pid": process.pid, "native_exit_code_at_observation": process.poll(),
+                        "error": str(error)})
                     if process.poll() is None:
                         process.terminate()
                     return
@@ -192,6 +204,7 @@ def run(args, scenario):
                 "native_display": env.get("DISPLAY"),
                 "visible_mirror_display": args.visible_mirror_display,
                 "mirror_checks": mirror_checks, "mirror_errors": mirror_errors,
+                "mirror_error_observations": mirror_error_observations,
                 "mirror_continuously_verified": bool(mirror_checks) and not mirror_errors,
                 "tu15_xbe_sha256": digest(args.xbe),
                 "map_sha256": digest(map_path), "visible_x11_window": window,

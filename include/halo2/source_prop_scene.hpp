@@ -57,7 +57,7 @@ public:
     // Completed-frame world adoption: discard handle/pose/light/view history,
     // retaining the prepared geometry/material union. Re-synchronize and pose
     // from the actual imported world before drawing, even for identical IDs.
-    void reset_lifetimes();
+    void reset_lifetimes() noexcept;
     // Actual selected per-view geometry after source pose/LOD selection.
     void observe_draws(std::function<void(unsigned,std::uint32_t,std::uint32_t,std::span<const Vertex>)>);
     // Observe completed authority/client region choices without re-running RNG.

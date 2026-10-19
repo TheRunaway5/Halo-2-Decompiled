@@ -10,7 +10,9 @@ def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--manifest',type=Path,required=True);a=p.parse_args()
  x=Xbe(NEW_DEFAULT);assert hashlib.sha256(x.data).hexdigest()==NEW_PIN
  lines=['// Authenticated TU1.5 literals. Do not read a retail executable at runtime.'];rows=[]
- for address,size in COLD:
+ # Original197741, reached by HUD new-map1976FE, stores the selected hudg
+ # address. This is loader-zeroed destination storage, not a supplied tag.
+ for address,size in [*COLD,(0x50eca8,0x78),(0x51df94,4)]:
   raw=x.read(address,size);assert not any(raw),(hex(address),raw.hex())
   lines.append(f'cold(memory,0x{address:x}u,0x{size:x}u);')
   rows.append(dict(address=address,bytes=size,access='read-write',sha256=hashlib.sha256(raw).hexdigest()))

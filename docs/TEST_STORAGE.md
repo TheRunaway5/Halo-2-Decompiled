@@ -71,6 +71,12 @@ test binaries and duplicate libraries are temporary. Existing assets, reference
 banks, source snapshots, and installed runtimes are never deletion candidates
 of this lifecycle.
 
+Retire one-off test helpers when they are superseded and no remaining check
+uses them. Keep the small result, commands and source hashes needed to explain
+their findings, then remove their disposable builds and duplicate captures.
+Do this as each investigation finishes; do not accumulate obsolete probes for
+a later cleanup. Regression tests still used by the project remain source.
+
 Existing build directories need reconfiguration to pick up the CTest wrapper
 and default-build exclusion. This change does not sweep historical directories.
 On platforms without POSIX process groups, normal completion cleans scratch;

@@ -27,7 +27,7 @@ template<class State>void validate_pair(const State &match,const SourceRuntimeMe
   // 4F3218's game-options owner. Bind the cut to the locally admitted settings,
   // rather than accepting a different source engine behind the same map.
   const auto game=word(bank,0x4f3218u);
-  if(!game||game>UINT32_MAX-0x26cu||word(bank,game+8u)!=2||word(bank,game+0xcu)!=(1u|(30u<<16))||
+  if(!game||game>UINT32_MAX-0x26cu||word(bank,game+8u)!=std::uint32_t(owner.source_game_type())||word(bank,game+0xcu)!=(1u|(30u<<16))||
       word(bank,game+0x18u)!=owner.presentation_seed()||!owner.session_configuration())
     throw FormatError("TU1.5 source world has different admitted session/clock inputs");
   const auto variant=source_game_variant(*owner.session_configuration());

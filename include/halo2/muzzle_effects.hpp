@@ -46,11 +46,46 @@ struct MuzzleEffectView {
 // Authored emitters, RNG, birth and sprite kernels use retained native owners.
 // World views, fluid transitions and the original allocator remain separate work.
 class NativeMuzzleEffects {
+  struct Impl;
 public:
   explicit NativeMuzzleEffects(const Cache &,std::uint32_t visual_seed);
   NativeMuzzleEffects(const Cache &,SourceEffectRandom);
   ~NativeMuzzleEffects();
   NativeMuzzleEffects(const NativeMuzzleEffects &)=delete;
+  // Local completed-frame presentation state, not a network/native-world
+  // checkpoint. The enclosing coordinator must bind its tick to the accepted
+  // world and restore shared visual RNG together with every other consumer.
+  class Checkpoint {
+  public:
+    std::optional<std::uint64_t> tick()const noexcept;
+    std::array<std::uint32_t,2> random()const;
+  private:
+    friend class NativeMuzzleEffects;
+    struct Data;
+    std::shared_ptr<const Data> data_;
+  };
+  class PreparedRestore {
+  public:
+    ~PreparedRestore();
+    PreparedRestore(PreparedRestore &&)noexcept;
+    PreparedRestore &operator=(PreparedRestore &&)noexcept;
+  private:
+    friend class NativeMuzzleEffects;
+    PreparedRestore();
+    std::unique_ptr<Impl> replacement_;
+    std::shared_ptr<const int> owner_;
+  };
+  Checkpoint checkpoint()const;
+  // Same local owner/resident assets only. Preparation allocates privately and
+  // never writes the caller's RNG. Both words must outlive the restored owner;
+  // their captured alias relation must match. Collision callbacks must address
+  // the accepted world, not its predecessor.
+  PreparedRestore prepare_restore(const Checkpoint &,SourceEffectRandom,
+      ParticleCollisionQuery)const;
+  // Caller keeps the owner quiescent from preparation through publication.
+  // Allocation-free single-use publication; foreign/consumed tokens reject.
+  bool commit_restore(PreparedRestore &&)noexcept;
+  bool restore_ready(const PreparedRestore &)const noexcept;
   std::uint32_t request(const WeaponEffectInput &,std::uint32_t tick);
   std::uint32_t request(const WeaponEffectInput &,std::uint32_t tick,SourceEffectColors);
   std::uint32_t request(const WeaponEffectInput &,std::uint32_t tick,SourceEffectColors,Vec3 inherited_velocity);
@@ -85,7 +120,7 @@ public:
   std::size_t particle_count() const;
   std::size_t location_count() const;
 private:
-  struct Impl;
   std::unique_ptr<Impl> impl_;
+  std::shared_ptr<const int> owner_=std::make_shared<const int>(0);
 };
 } // namespace halo2

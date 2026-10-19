@@ -3,6 +3,7 @@
 #include "halo2/object_body_heap.hpp"
 #include "halo2/unit_action_dispatch.hpp"
 #include <array>
+#include <atomic>
 
 namespace halo2 {
 // Persistent native backing composed with complete BD170, BD270 and finite
@@ -19,6 +20,13 @@ public:
     // initial bytes are controlled native allocator inputs, not retail history.
     explicit SourceObjectBodyStorage(std::uint32_t capacity=0x100000,
         std::byte initial_backing=std::byte{0xcd});
+    // An unused native adapter can retain the same logical default storage
+    // without allocating it. The first backing access creates the exact eager bytes.
+    static SourceObjectBodyStorage deferred_default();
+    SourceObjectBodyStorage(const SourceObjectBodyStorage &);
+    SourceObjectBodyStorage &operator=(const SourceObjectBodyStorage &);
+    SourceObjectBodyStorage(SourceObjectBodyStorage &&) = default;
+    SourceObjectBodyStorage &operator=(SourceObjectBodyStorage &&) = default;
     std::uint32_t allocate(NativeObjectLifetimes&,std::int16_t base_extent,
         const UnitActionObserver& = {},const ObjectConstructionObserver& = {});
     bool append(NativeObjectLifetimes&,std::uint32_t full_handle,
@@ -37,14 +45,22 @@ public:
     std::span<std::byte> memory(NativeObjectLifetimes&,std::uint32_t address,std::size_t bytes);
     UnitConstructorObjectPool objects(NativeObjectLifetimes&,
         const ObjectConstructionObserver& = {});
-    std::span<const std::byte> arena() const {return arena_;}
+    std::span<const std::byte> arena() const {materialize_default_backing();return arena_;}
     std::span<const std::byte> scratch() const {return scratch_;}
     std::span<const std::uint32_t> handles() const {return handles_;}
-    std::uint32_t capacity() const {return capacity_;}
+    std::uint32_t capacity() const {
+        const auto value=std::atomic_ref(capacity_).load(std::memory_order_relaxed);
+        return value?value:0x100000u;
+    }
 private:
     friend struct SourceAuthorityArchiveAccess;
-    std::uint32_t capacity_;
-    std::vector<std::byte> arena_;
+    struct DeferredDefault {};
+    explicit SourceObjectBodyStorage(DeferredDefault) noexcept;
+    void materialize_default_backing() const;
+    // Only the deferred-default logical cache changes through const access.
+    // Existing fields and their order stay fixed; no source bank is shared.
+    mutable std::uint32_t capacity_;
+    mutable std::vector<std::byte> arena_;
     std::array<std::byte,64> scratch_{};
     std::array<std::uint32_t,2048> handles_;
     SourceObjectBodyHeapServices services(NativeObjectLifetimes&);

@@ -363,6 +363,20 @@ target_sources(halo2_physics_world_runtime PRIVATE src/source_recorded_animation
 target_sources(halo2_physics_world_runtime PRIVATE src/source_level_handles_new_map_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_havok_static_lifetime_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_shadow_frame_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_transparent_group_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_transparent_collection_tu15_generated.cpp)
+target_sources(halo2_systems PRIVATE src/source_live_transparent_groups_tu15.cpp)
+if(BUILD_TESTING)
+    add_executable(source_transparent_group_tu15_tests EXCLUDE_FROM_ALL
+        tools/compare_transparent_group_tu15.cpp src/source_transparent_group_tu15_generated.cpp)
+    target_include_directories(source_transparent_group_tu15_tests PRIVATE include src)
+    add_test(NAME original_tu15_transparent_group_cpu
+        COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/compare_transparent_group_tu15.py
+            --native $<TARGET_FILE:source_transparent_group_tu15_tests>
+            --manifest ${PROJECT_SOURCE_DIR}/tests/data/source_transparent_group_tu15.json
+            --output ${CMAKE_BINARY_DIR}/transparent-group-cpu)
+    set_tests_properties(original_tu15_transparent_group_cpu PROPERTIES TIMEOUT 210 SKIP_RETURN_CODE 77)
+endif()
 target_sources(halo2_physics_world_runtime PRIVATE src/source_cinematic_shadow_control_tu15_generated.cpp)
 target_sources(halo2_systems PRIVATE src/source_cinematic_shadow_control_tu15.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_effect_light_view_tu15_generated.cpp)
@@ -475,7 +489,7 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/05a_deltaapproach.map"
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps"
         "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
-        "${CMAKE_CURRENT_BINARY_DIR}/campaign-ghost-camera-tu15")
+        "@HALO2_TEST_SCRATCH@/campaign-ghost-camera-tu15")
     set_tests_properties(native_campaign_ghost_camera_tu15 PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77)
     add_executable(shadow_commands_replay_tu15 tools/replay_live_shadow_commands_tu15.cpp
         src/source_renderer_transparent_storage_tu15_generated.cpp)
@@ -1027,4 +1041,30 @@ if(BUILD_TESTING)
     target_link_libraries(fp_inherited_binding_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     add_executable(campaign_multiplayer_world_tu15_tests EXCLUDE_FROM_ALL tests/campaign_multiplayer_world_tu15_tests.cpp)
     target_link_libraries(campaign_multiplayer_world_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+endif()
+
+if(BUILD_TESTING)
+  # These tests retain only their small JSON verdicts; original ABI/RAM captures
+  # and executable scratch are removed by run_test on every exit path.
+  foreach(context IN ITEMS sentinelwalls floodlab)
+    if(context STREQUAL "sentinelwalls")
+      set(child_map "06a_sentinelwalls.map")
+      set(child_placement 69)
+      set(child_bsp 0)
+    else()
+      set(child_map "04b_floodlab.map")
+      set(child_placement 8)
+      set(child_bsp 5)
+    endif()
+    add_test(NAME campaign_model_child_${context}_tu15
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/run_test.py
+        --scratch-root ${CMAKE_CURRENT_BINARY_DIR}/test-scratch --
+        ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/campaign_model_child_runner.py
+        $<TARGET_FILE:campaign_multiplayer_world_tu15_tests>
+        "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/${child_map}
+        ${CMAKE_CURRENT_BINARY_DIR}/campaign-child-${context}.json)
+    set_tests_properties(campaign_model_child_${context}_tu15 PROPERTIES TIMEOUT 240
+      ENVIRONMENT "HALO2_TU15_CAMPAIGN_PLACEMENT=${child_placement};HALO2_TU15_CAMPAIGN_BSP=${child_bsp};HALO2_TU15_CHILD_AUTHORITY_CHECK=1")
+  endforeach()
 endif()

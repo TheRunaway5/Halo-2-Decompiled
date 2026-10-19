@@ -171,6 +171,7 @@ MenuWorldVertexSource emit_vertex_source(const VertexProgram &program,bool skinn
     if(mac && ilu && !((mac==1 && (ilu==1 || ilu==3)) ||
                         (mac==2 && (ilu==3 || ilu==4)) || (mac==5 && (ilu==1 || ilu==3 || ilu==4)) ||
                         (mac==6 && (ilu==3 || ilu==4)) ||
+                        (mac==7 && ilu==1) ||
                         (material_attributes && ((mac==6 && ilu==1) || (mac==13 && ilu==1)))))
       throw UnsupportedVertexProgram("menu source paired opcode is outside proved corridor");
     const auto reg=t[3]>>20&15,mm=t[3]>>24&15,im=t[3]>>16&15,om=t[3]>>12&15;

@@ -2,6 +2,7 @@
 #include "halo2/physics_contact_record.hpp"
 #include "halo2/native_runtime_address.hpp"
 #include "halo2/source_runtime_snapshot_bytes.hpp"
+#include <array>
 #include <map>
 #include <string>
 #include <atomic>
@@ -151,6 +152,15 @@ private:
   std::map<std::uint32_t, Region> regions_;
   std::map<std::uint64_t,std::uint32_t> native_regions_;
   using Position = std::map<std::uint32_t, Region>::const_iterator;
+  // Full source pages have exactly one region owner. Index only those pages;
+  // partial pages and gaps retain the checked interval lookup. Published
+  // entries are read-only between topology changes, so concurrent readers do
+  // not mutate a cache. Map nodes remain stable across bank moves/swaps.
+  using SourcePageBlock = std::array<Position,1024>;
+  using SourcePageIndex = std::array<std::unique_ptr<SourcePageBlock>,1024>;
+  std::unique_ptr<SourcePageIndex> source_pages_;
+  void index_source_region(Position);
+  void unindex_source_region(Position) noexcept;
   Position locate(std::uint32_t) const;
   void check_extent(std::uint32_t, std::size_t) const;
   void validate(std::uint32_t, std::size_t, bool writable) const;

@@ -1,5 +1,6 @@
 #include "halo2/frontend_material.hpp"
 #include <algorithm>
+#include <utility>
 namespace halo2 {
 bool prepare_forward_material(const Cache &cache, Material &m) {
   // A caller that already selected the original LOD/layer implementation
@@ -7,7 +8,8 @@ bool prepare_forward_material(const Cache &cache, Material &m) {
   // first transparent or emissive record during the menu's final sweep.
   if(m.forward_pass)return true;
   const Texture zero{1, 1, 11, std::vector<std::byte>(4), {}};
-    for (const auto &p : m.passes) {
+    for (unsigned pass_index=0;pass_index<m.passes.size();++pass_index) {
+      const auto &p=std::as_const(m).passes[pass_index];
       if (p.implementation != 0)
         continue;
       const bool transparent =
@@ -18,7 +20,7 @@ bool prepare_forward_material(const Cache &cache, Material &m) {
       if (!transparent && !emissive)
         continue;
       m.forward_pass = true;
-      m.forward_pass_index = unsigned(&p - m.passes.data());
+      m.forward_pass_index = pass_index;
       m.forward_vertex = transparent ? 1 : 2;
       m.forward_program = p.program;
       m.vertex_program = p.vertex_code;

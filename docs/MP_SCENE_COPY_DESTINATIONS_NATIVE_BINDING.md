@@ -1,5 +1,19 @@
 # Verified scene-copy destinations and water tap delivery
 
+The opening-cinematic investigation now also supplies a destination-sized
+`scene_copy.frag` and persistent `SourceSceneCopyGpu` resource owner. The former
+covers target19's320x240 dimensions in addition to21/22's512x256. V706 checks74
+host GPU cases against the original emitted attributes; V709 separately checks
+native allocation, ordered snapshots, layout/fence lifetime and discarded-command
+reuse with explicit validation. The existing water path remains unchanged.
+Live group scheduling, source target19 registry publication, extern17 binding
+and final hologram/camouflage pixels remain separate acceptance gates.
+V710 rebuilds the final component and passes both existing original CPU checks
+and both new GPU checks; V711 records source pins and disposable-build removal.
+[Current opening scope and evidence](OPENING_CINEMATIC_STATUS.md),
+[native copy interface](../include/halo2/source_scene_copy_gpu.hpp),
+[native copy implementation](../src/source_scene_copy_gpu.cpp)
+
 The native scene-copy geometry now matches888 original emitted attributes and
 all60 program words across37 complete calls using the captured ready
 target19/21/22 resources. The water helper and renderer now preserve the

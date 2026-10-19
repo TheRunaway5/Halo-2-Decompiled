@@ -464,6 +464,7 @@ Material Cache::load_material(std::uint32_t datum, bool hud) const {
   if (!result.static_lightmap_pass && !result.forward_pass)
     result.rendering_gaps.push_back(
         "material uses an unsupported rendering pass");
+  result.passes.publish();
   return result;
 }
 } // namespace halo2

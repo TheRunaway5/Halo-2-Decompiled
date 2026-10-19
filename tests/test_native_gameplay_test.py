@@ -50,6 +50,17 @@ class NativeGameplayTestCapabilityTests(unittest.TestCase):
     def available(self):
         return native_gameplay_test_available(self.root, self.runtime, self.cache)
 
+    def test_expanded_renderer_inventory_requires_every_added_file_to_be_pinned(self):
+        self.publish()
+        extra=self.shaders/'pstencil/normal_accumulation.frag.spv'
+        extra.parent.mkdir();extra.write_bytes(b'new qualified renderer program')
+        self.assertFalse(self.available())
+        self.report['shaders']['files'][extra.relative_to(self.shaders).as_posix()]=self.digest(extra)
+        self.publish()
+        self.assertTrue(self.available())
+        extra.write_bytes(b'unvalidated program change')
+        self.assertFalse(self.available())
+
     def packaged_capability(self):
         original = os.fsencode(self.shaders)
         payload, relocation = relocate_compiled_shader_default(elf_with_readonly_literal(original), self.shaders)

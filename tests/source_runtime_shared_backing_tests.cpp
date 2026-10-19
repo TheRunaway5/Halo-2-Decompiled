@@ -69,6 +69,11 @@ void admission(){
   Allocation allocation(64);Bank bank;
   rejects([&]{bank.mount(0x1000,allocation.backing,Bank::Access::ReadWrite,"");});
   bank.mount(0x1000,allocation.backing,Bank::Access::ReadWrite,"owner");
+  const auto native=bank.native_address(0x1000,64);
+  auto identical=std::make_shared<SourceRuntimeMemoryBacking>(allocation.bytes,std::span(*allocation.bytes));
+  rejects([&]{bank.mount(0x3000,identical,Bank::Access::ReadWrite,"identical native alias");});
+  check(bank.view(native,64).data()==allocation.bytes->data(),
+      "Rejected identical native alias removed the existing allocation index");
   auto alias=std::make_shared<SourceRuntimeMemoryBacking>(allocation.bytes,std::span(*allocation.bytes).subspan(16));
   rejects([&]{bank.mount(0x2000,alias,Bank::Access::ReadWrite,"native alias");});
   check(bank.checkpoint().regions.size()==1 && bank.has_backing(0x1000,allocation.backing),"Rejected native alias changed owner topology");

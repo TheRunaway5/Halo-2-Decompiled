@@ -47,6 +47,10 @@ public:
     SourceGrenadeScene&operator=(SourceGrenadeScene&&) noexcept;
     SourceGrenadeScene(const SourceGrenadeScene&)=delete;
     SourceGrenadeScene&operator=(const SourceGrenadeScene&)=delete;
+    // Completed-frame world adoption: retire owner light/LOD/pose/draw caches
+    // while keeping both authored material/geometry banks resident. The caller
+    // quiesces borrowers and synchronizes actual incoming released projectiles.
+    void reset_lifetimes() noexcept;
     std::span<const SourceGrenadePreparedBank> banks()const;
     void synchronize(std::span<const NativeGrenadeProjectile>);
     // Actual admitted view/distance/shader producers remain required. This

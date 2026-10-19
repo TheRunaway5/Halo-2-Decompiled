@@ -7,6 +7,7 @@
 #include "halo2/appearance.hpp"
 #include "halo2/object_lighting.hpp"
 #include "halo2/source_shadow.hpp"
+#include "halo2/source_hologram_material.hpp"
 #include "halo2/effect_light.hpp"
 #include "halo2/pstencil/material.hpp"
 #include "halo2/pstencil/projected_light_material.hpp"
@@ -65,7 +66,8 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
                                   const float *camouflage=nullptr,
                                   const EffectLightUniforms *effect_light=nullptr,
                                   const EffectLightDefinition *projected_definition=nullptr,
-                                  bool load_images=true) {
+                                  bool load_images=true,
+                                  bool hologram_copy=false) {
   const auto &p = m.passes.at(selected);
   // No unresolved uniform is silently substituted. Pixel brightness externs
   // 21/22 were resolved from the shader by Cache::load_material (1BBF0).
@@ -157,6 +159,9 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
       continue;
     }
     if(shadow_opacity && binding.external==8 && binding.stage==0)continue;
+    //19530's extern17 is target19. Its typed layer21 caller retains this
+    // dependency separately and must bind an actual produced scene copy.
+    if(hologram_copy && binding.external==17 && binding.stage==0)continue;
     if(effect_light && binding.external==9) {
       *stages[binding.stage]=cache.load_effect_light_attenuation_bitmap();
       continue;
@@ -406,6 +411,32 @@ std::vector<SourceShadowMaterial> prepare_shadow_material(const Cache &cache,
     result.push_back(std::move(pass));
   }
   return result;
+}
+
+SourceHologramMaterial prepare_hologram_material(const Cache &cache,const Material &authored,
+    const MenuWorldSourcePassChoice &choice) {
+  if(choice.layer!=21 || choice.shader_lod!=authored.selected_shader_lod)
+    throw FormatError("hologram material requires its actual selected layer21/LOD");
+  auto selected=load_menu_world_source_pass(cache,authored.source_shader_datum,choice);
+  const auto found=std::find_if(authored.passes.begin(),authored.passes.end(),[&](const auto &p) {
+    return p.template_pass==selected.template_pass() && p.implementation==choice.implementation;
+  });
+  if(found==authored.passes.end())throw FormatError("hologram selected pass is absent from its material");
+  // Require the authored texture contract explicitly. A different layer21
+  // family needs its own resolved externs; never replace them with zero images.
+  unsigned copies=0;
+  for(const auto &texture:found->textures)if(texture.external) {
+    if(texture.external!=17 || texture.stage!=0)
+      throw FormatError("hologram pass has an unresolved external texture");
+    ++copies;
+  }
+  if(copies!=1 || (found->program.words[54]&31u)!=1u ||
+      !found->vertex_externs.empty() || !found->pixel_externs.empty() || !found->state_externs.empty())
+    throw FormatError("hologram pass requires its original PROJECT2D copy and resolved uniforms");
+  auto material=bind_pass(cache,authored,std::size_t(found-authored.passes.begin()),10,false,
+      nullptr,false,nullptr,nullptr,nullptr,nullptr,true,true);
+  if(!material)throw FormatError("hologram scene-copy material binding is unresolved");
+  return {std::move(*material),std::move(selected),{19,0,0,0}};
 }
 
 std::vector<Material> prepare_effect_light_diffuse_material(const Cache &cache,

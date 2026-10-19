@@ -265,6 +265,9 @@ void CampaignSourceRuntime::place_ai(Simulation &simulation,std::uint32_t refere
   else objects_->tu15_world().place_ai(reference);
   adopt(simulation);
 }
+std::uint32_t CampaignSourceRuntime::ai_object(std::uint32_t reference) {
+  return objects_->tu15_world().ai_object(reference);
+}
 std::size_t CampaignSourceRuntime::place_squad(Simulation &simulation,std::size_t squad) {
   const auto before=std::ranges::count_if(simulation.actors_,[](const auto &u){return u.exists;});
   place_ai(simulation,std::uint32_t(squad));

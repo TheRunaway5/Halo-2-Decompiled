@@ -14,6 +14,7 @@ struct Gpu {
   VkImage image{};VkDeviceMemory image_memory{};VkImageView image_view{};VkRenderPass pass{};VkFramebuffer framebuffer{};
   VkBuffer buffer{};VkDeviceMemory buffer_memory{};VkExtent2D extent{};bool initialized{};
   std::uint64_t pixels_checked{};
+  VkExtent2D pattern_extent{640,480};
   unsigned type(unsigned mask,VkMemoryPropertyFlags flags) {
     VkPhysicalDeviceMemoryProperties p;vkGetPhysicalDeviceMemoryProperties(physical,&p);
     for(unsigned i=0;i<p.memoryTypeCount;++i)if((mask&(1u<<i)) && (p.memoryTypes[i].propertyFlags&flags)==flags)return i;
@@ -74,7 +75,7 @@ struct Gpu {
   }
   void frame(CinematicCrossfadeRender &renderer,const CinematicCrossfadeFrame &frame,
       std::array<float,4> scene,std::array<unsigned char,4> expected,
-      bool pattern_scene=false,bool pattern_expected=false) {
+      bool pattern_scene=false,bool pattern_expected=false,bool stripes=false) {
     renderer.reconfigure(VK_FORMAT_B8G8R8A8_UNORM,pass);renderer.prepare(frame);
     check(vkResetCommandBuffer(command,0));VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};check(vkBeginCommandBuffer(command,&begin));
     VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};barrier.image=image;barrier.srcQueueFamilyIndex=barrier.dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;barrier.subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1};
@@ -84,11 +85,17 @@ struct Gpu {
     vkCmdBeginRenderPass(command,&pass_info,VK_SUBPASS_CONTENTS_INLINE);VkClearAttachment clear{};clear.aspectMask=VK_IMAGE_ASPECT_COLOR_BIT;std::copy(scene.begin(),scene.end(),clear.clearValue.color.float32);
     const VkClearRect rect{{{0,0},extent},0,1};vkCmdClearAttachments(command,1,&clear,1,&rect);
     if(pattern_scene) {
-      if(extent.width!=640 || extent.height!=480)
+      pattern_extent=extent;
+      if(!stripes && (extent.width!=640 || extent.height!=480))
         throw FormatError("Pattern source must exercise the original capture dimensions");
       constexpr std::array<std::array<float,4>,4> colors{{
         {1,0,0,1},{0,1,0,1},{0,0,1,1},{1,1,1,1}}};
-      for(unsigned quadrant=0;quadrant<4;++quadrant) {
+      if(stripes)for(unsigned x=0;x<extent.width;++x) {
+        std::copy(colors[x&1].begin(),colors[x&1].end(),clear.clearValue.color.float32);
+        const VkClearRect stripe{{{int(x),0},{1,extent.height}},0,1};
+        vkCmdClearAttachments(command,1,&clear,1,&stripe);
+      }
+      else for(unsigned quadrant=0;quadrant<4;++quadrant) {
         std::copy(colors[quadrant].begin(),colors[quadrant].end(),clear.clearValue.color.float32);
         const VkClearRect part{{{int(quadrant%2)*320,int(quadrant/2)*240},{320,240}},0,1};
         vkCmdClearAttachments(command,1,&clear,1,&part);
@@ -111,9 +118,10 @@ struct Gpu {
     constexpr std::array<std::array<unsigned char,4>,4> pattern{{
       {0,0,255,255},{0,255,0,255},{255,0,0,255},{255,255,255,255}}};
     for(unsigned y=0;y<extent.height;++y)for(unsigned x=0;x<extent.width;++x) {
-      const auto sample_x=(std::uint64_t(2*x+1)*640)/(2*extent.width);
-      const auto sample_y=(std::uint64_t(2*y+1)*480)/(2*extent.height);
-      const auto color=pattern_expected?pattern[(sample_y>=240)*2+(sample_x>=320)]:expected;
+      const auto sample_x=(std::uint64_t(2*x+1)*pattern_extent.width)/(2*extent.width);
+      const auto sample_y=(std::uint64_t(2*y+1)*pattern_extent.height)/(2*extent.height);
+      const auto color=pattern_expected?pattern[stripes?(sample_x&1):
+          (sample_y>=pattern_extent.height/2)*2+(sample_x>=pattern_extent.width/2)]:expected;
       const auto i=(std::uint64_t(y)*extent.width+x)*4;
       for(unsigned c=0;c<4;++c)failures+=pixels[i+c]!=color[c];
     }
@@ -140,6 +148,17 @@ int main(int argc,char **argv) {
     gpu.frame(renderer,{false,cinematic_crossfade_program(1,1)},{1,1,1,1},{},false,true);
     gpu.resize(853,479);
     gpu.frame(renderer,{false,cinematic_crossfade_program(1,1)},{0,0,0,1},{},false,true);
+    // A native-resolution outgoing frame must retain single-pixel details at
+    // capture, throughout the fade, and after a resize or another capture.
+    // The former 640x480 history aliases this actual 2560x1378 input to blocks.
+    gpu.resize(2560,1378);
+    gpu.frame(renderer,{true,cinematic_crossfade_program(1,1)},{0,0,0,1},{},true,true,true);
+    gpu.frame(renderer,{false,cinematic_crossfade_program(1,1)},{1,1,1,1},{},false,true,true);
+    gpu.resize(853,479);
+    gpu.frame(renderer,{false,cinematic_crossfade_program(1,1)},{0,0,0,1},{},false,true,true);
+    gpu.frame(renderer,{true,cinematic_crossfade_program(1,1)},{0,0,0,1},{},true,true,true);
+    gpu.resize(640,480);
+    gpu.frame(renderer,{true,cinematic_crossfade_program(1,1)},{0,0,0,1},{},true,true,true);
     std::cout<<gpu.pixels_checked<<" exact BGRA8 pixels: capture/reuse/recapture, source-alpha quantization, spatial orientation, point sampling, resize history and inactive control passed\n";
   } catch(const std::exception &error){std::cerr<<error.what()<<'\n';return 1;}
 }

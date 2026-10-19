@@ -1,4 +1,5 @@
 #include "halo2/campaign_text.hpp"
+#include "halo2/campaign_text_layout.hpp"
 #include "halo2/frontend_font_sampling.hpp"
 #include "halo2/gameplay_font_source.hpp"
 #include "halo2/frontend_ui_assets.hpp"
@@ -128,64 +129,8 @@ CampaignTextContent load_campaign_text(const Cache &cache,
   return result;
 }
 namespace {
-std::vector<unsigned> characters(const std::string &s) {
-  std::vector<unsigned> out;
-  for (std::size_t i = 0; i < s.size() && out.size() < 255;) {
-    const auto b = std::uint8_t(s[i++]);
-    unsigned c = b, n = 0;
-    if ((b & 0xe0) == 0xc0) {
-      c = b & 31;
-      n = 1;
-    } else if ((b & 0xf0) == 0xe0) {
-      c = b & 15;
-      n = 2;
-    } else if ((b & 0xf8) == 0xf0) {
-      c = b & 7;
-      n = 3;
-    }
-    if (i + n > s.size())
-      break;
-    while (n--)
-      c = (c << 6) | (std::uint8_t(s[i++]) & 63);
-    out.push_back(c);
-  }
-  return out;
-}
-struct Line {
-  std::vector<unsigned> text;
-  float width{};
-};
-std::vector<Line> lines(const RetailFont &font, const std::string &text,
-                        float maximum) {
-  std::vector<Line> result(1);
-  unsigned previous = 0;
-  for (auto c : characters(text)) {
-    if (c == '\r')
-      continue;
-    if (c == '\n') {
-      result.emplace_back();
-      previous = 0;
-      continue;
-    }
-    const auto at = font.glyphs.find(c);
-    if (at == font.glyphs.end())
-      continue;
-    float kern = 0;
-    if (const auto k = font.kerning.find({c, previous});
-        k != font.kerning.end())
-      kern = k->second;
-    const float advance = at->second.advance + at->second.bearing_x;
-    if (result.back().width + kern + advance > maximum &&
-        !result.back().text.empty()) {
-      result.emplace_back();
-      kern = 0;
-    }
-    result.back().text.push_back(c);
-    result.back().width += kern + advance;
-    previous = c;
-  }
-  return result;
-}
+using campaign_text_layout::Line;
+using campaign_text_layout::lines;
 void quad(std::vector<Vertex> &out, UiRect r, unsigned material, Vec3 color,
           float alpha, std::array<float, 4> uv = {0, 0, 1, 1},
           unsigned rotation = 0) {
@@ -388,13 +333,10 @@ std::vector<Vertex> CampaignTextRenderer::draw(
       };
       float top = bounds[0];
       for (const auto &row : rows) {
-        const float center = d.justification == 0 ? bounds[1] + row.width * .5f
-                             : d.justification == 2
-                                 ? bounds[3] - row.width * .5f
-                                 : (bounds[1] + bounds[3]) * .5f;
+        const float center = campaign_text_layout::center(d.justification,bounds[1],bounds[3],row.width);
         text(out, font, material, {row}, center + 1, top + 2, rgb(d.shadow),
              alpha);
-        text(out, font, material, {row}, center, top, rgb(d.color), alpha);
+        text(out, font, material, {row}, center, top, campaign_text_layout::title_color(d.color), alpha);
         top += std::max(1, font.ascent + font.descent + font.leading);
       }
     }

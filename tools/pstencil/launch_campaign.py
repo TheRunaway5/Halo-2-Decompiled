@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 
 ROOT=Path(__file__).resolve().parents[2]
-BUNDLE=ROOT/'analysis/pstencil/campaign-live-v8'
+BUNDLE=ROOT/'analysis/pstencil/campaign-live-v10'
 
 def verify(path,expected):
     with path.open('rb')as stream:actual=hashlib.file_digest(stream,'sha256').hexdigest()

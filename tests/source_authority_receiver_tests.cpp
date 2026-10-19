@@ -153,6 +153,7 @@ void run(int argc,char **argv){
                 check(state.prepared==0&&!state.ready&&receiver->world()->match.simulation().ticks()==0,"Rejected remote identity changed or acknowledged the live candidate");
                 if(cold_from_cut)change_prototype();
                 rejected=true;marker(files/"bad-rejected");std::cout<<"PASS forged nonlocal source identity rejected before candidate mutation or world acknowledgement\n";}
+            check(!state.host_proof,"Native-only receiver fabricated paired host evidence");
             if(state.prepared>prepared){check(rejected&&state.ready&&receiver->world(),"Receiver prepared before rejecting the forged identity");
                 check(state.workspace_constructions==1,"Receiver rebuilt its private workspace between cuts");
                 const auto &seal=state.ready->seal;const auto expected=files/("bodies-"+std::to_string(seal.tick));

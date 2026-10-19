@@ -38,25 +38,30 @@ def export_profile(reference, reformation, comparison, output):
 
 def apply_selected(root, pack):
     from mcc_bitmap_correction_bundle import (BUNDLE_V2, PROFILES_V2, digest,
-                                               reconstruct_v2, validate_profile)
+                                               reconstruct_v2)
     from mcc_bitmap_correction_bundle_v3 import (BUNDLE_V3, MAP_NAME, PROFILES_V3,
                                                 SOURCE_MAP as METROPOLIS_SOURCE_MAP,
                                                 reconstruct_v3)
+    from mcc_bitmap_correction_bundle_v4 import (BUNDLE_V4, MAP_NAME as SACRED_ICON_MAP,
+                                                PROFILES_V4, SOURCE_MAP as SACRED_ICON_SOURCE_MAP,
+                                                reconstruct_v4)
     root, pack = Path(root), Path(pack)
-    registry = root/"assets/graphics-restoration-source.tsv"
-    source = None
-    if registry.is_file():
-        lines = registry.read_text().splitlines()
-        if len(lines)!=2 or lines[0]!="H2_GRAPHICS_CORRECTION_SOURCE_V1" or not lines[1].startswith("profile\t"):
-            raise FormatError("Invalid graphics correction selection")
-        source = Path(lines[1].split("\t",1)[1]).resolve()
+    # Original/reference profiles are offline maintenance inputs only. Normal
+    # import uses the port's qualified deltas and the user's MCC bytes, even
+    # when an old development reference registry is present.
     if not (root/BUNDLE_V2).is_file():
         return dict(complete=False, blocker="Verified graphics correction bundle v2 is missing; update this port installation")
     if not (root/BUNDLE_V3).is_file():
         return dict(complete=False, blocker="Verified graphics correction bundle v3 is missing; update this port installation")
     maps = pack/"halo2/h2_maps_win64_dx11"
-    sources = (("zanzibar.map", SOURCE_MAP, PROFILES_V2, reconstruct_v2),
-               (MAP_NAME, METROPOLIS_SOURCE_MAP, PROFILES_V3, reconstruct_v3))
+    sources = [("zanzibar.map", SOURCE_MAP, PROFILES_V2, reconstruct_v2),
+               (MAP_NAME, METROPOLIS_SOURCE_MAP, PROFILES_V3, reconstruct_v3)]
+    # Older portable tool sets remain valid V3 installations. A complete V4
+    # bundle upgrades fresh imports and the onboarding freshness requirement.
+    version = 3
+    if (root/BUNDLE_V4).is_file():
+        sources.append((SACRED_ICON_MAP, SACRED_ICON_SOURCE_MAP, PROFILES_V4, reconstruct_v4))
+        version = 4
     map_paths = [maps/name for name,_,_,_ in sources]
     bank_path = maps/"textures.dat"
     for name, expected, _, _ in sources:
@@ -68,8 +73,8 @@ def apply_selected(root, pack):
         raise FormatError("Graphics correction output already exists")
     caches, staged, bundles = {}, [], []
     try:
-        # Validate both maps, all five local identities, complete mip chains
-        # and both delta snapshots before changing any map or resource bank.
+        # Validate every selected map, local identity, complete mip chain and
+        # delta snapshot before changing any map or resource bank.
         owners, donors = {}, {}
         with bank_path.open("rb") as stream:
             for name,_,profiles,reconstruct in sources:
@@ -86,11 +91,16 @@ def apply_selected(root, pack):
                     at=rows[0]
                     descriptor=(cache.u16(at+4),cache.u16(at+6),cache.data[at+8],
                                 cache.u16(at+10),cache.u16(at+12),cache.u16(at+20))
-                    if descriptor!=(profile["width"],profile["height"],1,0,profile["format"],profile["mip_count"]-1) or \
+                    if descriptor!=(profile.get("donor_width",profile["width"]),
+                                    profile.get("donor_height",profile["height"]),1,0,
+                                    profile["format"],profile.get("donor_mip_count",profile["mip_count"])-1) or \
                        cache.u32(at+84) or cache.u32(at+88) or (name,at) in owners.values():
                         raise FormatError("Graphics correction bitmap descriptor differs")
+                    if ("donor_registration" in profile and
+                            list(struct.unpack_from("<hh",cache.data,at+16))!=profile["donor_registration"]):
+                        raise FormatError("Graphics correction bitmap registration differs")
                     donor=bytearray(texture_resource(stream,cache.u32(at+56),cache.u32(at+80)))
-                    if len(donor)!=profile["pixel_bytes"]:
+                    if len(donor)!=profile.get("donor_pixel_bytes",profile["pixel_bytes"]):
                         raise FormatError("Graphics correction donor pixel extent differs")
                     if profile["encoding"]=="rgba8":
                         donor[0::4],donor[2::4]=donor[2::4],donor[0::4]
@@ -99,17 +109,9 @@ def apply_selected(root, pack):
                 images,bundle_path,bundled,bundle_bytes=reconstruct(root,donors[name])
                 staged.extend((name,profile,pixels) for profile,pixels in images)
                 bundles.append((bundle_path,bundled,bundle_bytes))
-        manifest_bytes=(json.dumps(dict(schema="H2_MCC_GRAPHICS_CORRECTIONS_V3",
+        manifest_bytes=(json.dumps(dict(schema=f"H2_MCC_GRAPHICS_CORRECTIONS_V{version}",
                                        bundles=[manifest for _,manifest,_ in bundles],
                                        full_graphics_parity=False),indent=2)+"\n").encode()
-        if source is not None:
-            # The explicit development selection can corroborate concrete, but
-            # never substitutes an unverified texture or removes the grey fix.
-            selected=json.loads((source/"profile.json").read_text())
-            validate_profile(selected)
-            rgba=(source/"zanzibar-concrete.rgba").read_bytes()
-            if len(rgba)!=PROFILES_V2[0]["pixel_bytes"] or digest(rgba)!=PROFILES_V2[0]["target_sha256"]:
-                raise FormatError("Selected graphics correction profile differs")
         partitions, pointer = [], bank_path.stat().st_size
         for name, profile, pixels in staged:
             native=bytearray(pixels)
@@ -123,10 +125,17 @@ def apply_selected(root, pack):
         # Every identity, input mip, delta, target mip and output address is
         # validated above. The caller publishes this private pack transactionally.
         with bank_path.open("ab") as stream:
-            for name,_,at,pointer,partition,_ in partitions:
+            for name,profile,at,pointer,partition,native in partitions:
                 stream.write(partition)
                 struct.pack_into("<I",caches[name].data,at+56,pointer)
                 struct.pack_into("<I",caches[name].data,at+80,len(partition))
+                if "donor_width" in profile:
+                    # Preserve MCC format, sampling and linear-packing flags;
+                    # the original swizzled descriptor is never copied here.
+                    struct.pack_into("<H",caches[name].data,at+4,profile["width"])
+                    struct.pack_into("<H",caches[name].data,at+6,profile["height"])
+                    struct.pack_into("<H",caches[name].data,at+20,profile["mip_count"]-1)
+                    struct.pack_into("<hh",caches[name].data,at+16,*profile["registration"])
         from prepare_mcc_gameplay import save_changed_cache
         for cache in caches.values():
             save_changed_cache(cache)
@@ -145,14 +154,14 @@ def apply_selected(root, pack):
             (destination/path.name).write_bytes(data)
             if digest(data)!=file_sha(destination/path.name):
                 raise FormatError("Preserved bitmap correction delta readback differs")
-    report=dict(schema="H2_MCC_APPLIED_GRAPHICS_CORRECTIONS_V3",complete=True,full_graphics_parity=False,
+    report=dict(schema=f"H2_MCC_APPLIED_GRAPHICS_CORRECTIONS_V{version}",complete=True,full_graphics_parity=False,
                 profile_sha256=file_sha(destination/"profile.json"),tag=TAG,
                 restored_mips=sum(p["mip_count"] for _,p,_ in staged),
-                source="bundled MCC pixel delta" if source is None else "selected correction profile and bundled MCC pixel delta",
+                source="bundled MCC pixel delta",
                 profiles=[dict(map=name,tag=p["tag"],restored_mips=p["mip_count"],format=p["format"],
                                target_sha256=p["target_sha256"]) for name,p,_ in staged],
                 changes=[dict(path="halo2/h2_maps_win64_dx11/"+p.name,donor_sha256=before[p.name],converted_sha256=file_sha(p))
                          for p in (*map_paths,bank_path)],
-                scope="Authenticated Zanzibar concrete/matte_grey and three Metropolis bitmaps only; other map references and existing shader programs remain intact")
+                scope="Authenticated Zanzibar concrete/matte_grey, three Metropolis bitmaps and (when bundled) Sacred Icon gradient; other map references and existing shader programs remain intact")
     (pack/"graphics-conversion.json").write_text(json.dumps(report,indent=2)+"\n")
     return report

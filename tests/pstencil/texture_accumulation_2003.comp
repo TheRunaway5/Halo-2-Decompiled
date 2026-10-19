@@ -1,0 +1,22 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=1) in;
+struct Fixture {uvec4 current[15];vec4 samples[4];vec4 v0;vec4 v1;};
+layout(set=0,binding=0,std430) readonly buffer Inputs {Fixture inputs[];};
+layout(set=0,binding=1,std430) writeonly buffer Outputs {vec4 outputs[];};
+#include "pstencil/texture_accumulation_2003_program.glsl"
+uint fixture;
+bool originalPhase=false;
+uint selectedWord(uint index){return originalPhase?originalTextureProgram[index]:inputs[fixture].current[index/4u][index%4u];}
+#define H2_COMBINER_WORD(index) selectedWord(index)
+#include "combiner.glsl"
+void main(){
+    fixture=gl_GlobalInvocationID.x;vec4 samples[4];
+    for(uint s=0u;s<4u;++s)samples[s]=inputs[fixture].samples[s];
+    outputs[fixture*2u]=runCombiners(samples,inputs[fixture].v0,inputs[fixture].v1);
+    vec4 neutral[4];for(uint s=0u;s<4u;++s)neutral[s]=samples[s];
+    neutral[0].rgb=vec3(1);neutral[1].rgb=vec3(.5);
+    vec4 colorFactor=runCombiners(neutral,inputs[fixture].v0,inputs[fixture].v1);
+    originalPhase=true;samples[3]=vec4(1);
+    outputs[fixture*2u+1u]=runCombiners(samples,colorFactor,vec4(0,0,0,1));
+}

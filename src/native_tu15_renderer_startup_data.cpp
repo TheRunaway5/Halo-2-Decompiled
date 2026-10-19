@@ -5,7 +5,7 @@ void mount_native_tu15_renderer_startup_data(SourceRuntimeMemory& m) {
     // Check all exact owners before publishing any destination. In particular,
     // a foreign current-context word must not leave either old bank mounted.
     for(const auto& r:m.checkpoint().regions)
-        for(const auto [address,bytes]:std::array<std::pair<std::uint32_t,std::uint32_t>,110>{{
+        for(const auto [address,bytes]:std::array<std::pair<std::uint32_t,std::uint32_t>,115>{{
                 {0x51df44u,4u},{0x556e18u,0x55c0u},{0x4cd3a0u,4u},{0x492348u,0x1cu},
                 {0x4ce3f4u,4u},{0x4922a0u,4u},{0x474c04u,1u},{0x44a7ccu,72u},{0x1404f8u,20u},{0x474c94u,4u},
                 {0x474c8cu,4u},{0x44ab6cu,12u},{0x44ab4cu,12u},
@@ -14,7 +14,7 @@ void mount_native_tu15_renderer_startup_data(SourceRuntimeMemory& m) {
                 {0x46a1c8u,4u},{0x46a1c4u,4u},{0x46a798u,4u},{0x4c6958u,850u*32u},{0x4cd3a4u,850u},
                 {0x4cd6f6u,850u},{0x4cda48u,192u*4u},{0x4cdd4cu,32u*36u},{0x4cd398u,4u},{0x4cd39cu,4u},
                 {0x4cdd48u,4u},{0x4ce1ccu,4u},{0x41c4e8u,4u},{0x2e6dfcu,92u},{0x2e6e58u,108u},
-                {0x30987cu,80u},{0x3098ccu,108u},{0x309538u,88u},{0x309590u,108u},{0x515f18u,4u},{0x5332c8u,4u*0x484u},{0x474d0cu,4u},{0x474d14u,4u},{0x44ac5cu,12u},{0x46a45cu,4u},{0x46a4c0u,4u},{0x48c530u,0x88u},{0x48c5b8u,0xe4u},{0x4920dcu,1u},{0x4c6838u,1u},{0x4c6834u,4u},{0x4d1828u,4u},{0x492250u,4u},{0x4920e4u,4u},{0x4ecbd4u,1u},{0x46a218u,4u},{0x46a638u,4u},{0x449ea4u,4u},{0x46a26cu,4u},{0x46a498u,4u},{0x46a8dcu,4u},{0x2e78d8u,92u},{0x2e7934u,108u},{0x15e74u,24u},{0x15e8cu,11u},{0x46a6e4u,4u},{0x46a6e0u,4u},{0x44a8a0u,4u},{0x46aa30u,4u},{0x4d044u,20u},{0x4d058u,17u},{0x4d06cu,20u},{0x4d080u,20u},{0x1cb40u,16u},{0x4739c4u,1u},{0x492398u,20u},{0x46a104u,4u},{0x492295u,1u},{0x44a498u,4u},{0x5564c4u,8u},{0xf0d28u,31u},{0x16957bu,164u},{0xcc30cu,64u},{0x46a4bcu,4u},{0x46a4c8u,8u},{0xe9ba8u,12u},{0xe9bb6u,60u},{0xe9bf4u,72u},{0xe9c3eu,60u},{0x478ea8u,1024u},{0x48c7a4u,2u},{0x48c7a6u,1u},{0x48c7a7u,1u},{0x19b9f8u,164u},{0x41c4ccu,4u},{0x100d04u,28u},{0x100d20u,28u},{0x46a7d4u,4u},{0x18aefcu,32u},{0x2c2b30u,16u},{0x56e0e8u,4u},{0x46a784u,4u}}})
+                {0x30987cu,80u},{0x3098ccu,108u},{0x309538u,88u},{0x309590u,108u},{0x515f18u,4u},{0x5332c8u,4u*0x484u},{0x474d0cu,4u},{0x474d14u,4u},{0x44ac5cu,12u},{0x46a45cu,4u},{0x46a4c0u,4u},{0x48c530u,0x88u},{0x48c5b8u,0xe4u},{0x4920dcu,1u},{0x4c6838u,1u},{0x4c6834u,4u},{0x4d1828u,4u},{0x492250u,4u},{0x4920e4u,4u},{0x4ecbd4u,1u},{0x46a218u,4u},{0x46a638u,4u},{0x449ea4u,4u},{0x46a26cu,4u},{0x46a498u,4u},{0x46a8dcu,4u},{0x2e78d8u,92u},{0x2e7934u,108u},{0x15e74u,24u},{0x15e8cu,11u},{0x46a6e4u,4u},{0x46a6e0u,4u},{0x44a8a0u,4u},{0x46aa30u,4u},{0x4d044u,20u},{0x4d058u,17u},{0x4d06cu,20u},{0x4d080u,20u},{0x1cb40u,16u},{0x4739c4u,1u},{0x492398u,20u},{0x46a104u,4u},{0x492295u,1u},{0x44a498u,4u},{0x5564c4u,8u},{0xf0d28u,31u},{0x16957bu,164u},{0xcc30cu,64u},{0x46a4bcu,4u},{0x46a4c8u,8u},{0xe9ba8u,12u},{0xe9bb6u,60u},{0xe9bf4u,72u},{0xe9c3eu,60u},{0x478ea8u,1024u},{0x48c7a4u,2u},{0x48c7a6u,1u},{0x48c7a7u,1u},{0x19b9f8u,164u},{0x41c4ccu,4u},{0x100d04u,28u},{0x100d20u,28u},{0x46a7d4u,4u},{0x18aefcu,32u},{0x2c2b30u,16u},{0x56e0e8u,4u},{0x46a784u,4u},{0x48c488u,12u},{0x46a7c0u,8u},{0x510ef0u,32u},{0x56e6a0u,24u},{0x48c7e0u,16u}}})
             if(std::uint64_t(r.address)<std::uint64_t(address)+bytes&&
                std::uint64_t(r.address)+r.bytes.size()>address)
                 throw std::invalid_argument("Renderer constructor data conflicts with its exact owner");
@@ -546,5 +546,30 @@ void mount_native_tu15_renderer_startup_data(SourceRuntimeMemory& m) {
     m.mount(0x46a784u,encode(std::array<std::uint32_t,1>{0x3ba3d70au}),
         SourceRuntimeMemory::Access::ReadOnly,
         "native TU1.5 authored2C318D particle collision position offset");
+    // Original2839A6 selects this second codec-eight triple when its
+    // Boolean differs. Preserve exact file-backed .data bits and write access;
+    // the preceding variant and following game-engine owner stay independent.
+    m.mount(0x48c488u,encode(std::array<std::uint32_t,3>{0x296240u,0x2962f0u,0x296620u}),
+        SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 file-backed Boolean-selected codec-eight decode triple");
+    // Complete189F9F continuation compares against these two authored words.
+    // Its real SSE division, branches and return are unchanged.
+    m.mount(0x46a7c0u,encode(std::array<std::uint32_t,2>{0x40470d23u,0x3d00adfdu}),
+        SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored189FAB angular comparison bounds");
+    // Complete codec-eight296240/2962F0/296620 publish the real quaternion,
+    // translation and scale into this second32-byte transform. Loader-zeroed
+    // storage is distinct from the existing first transform at510F10.
+    m.mount(0x510ef0u,std::array<std::byte,32>{},SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 loader-zeroed second codec transform destination");
+    // Whole2962F0 stores all six temporary components before reading them.
+    // Preserve its exact two12-byte vectors and later decoder writes.
+    m.mount(0x56e6a0u,std::array<std::byte,24>{},SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 loader-zeroed codec translation temporary vectors");
+    // Complete28B080 uses this exact sixteen-byte .data mask to retain the
+    // dot-product sign before aligning quaternions. Preserve writable access.
+    m.mount(0x48c7e0u,encode(std::array<std::uint32_t,4>{0x80000000u,0u,0u,0u}),
+        SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 authored quaternion alignment sign mask");
 }
 }

@@ -11,8 +11,12 @@ The authority is the user's original English Xbox TU1.5 executable:
 `21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd`.
 The original opening map is build `02.09.27.09809`, SHA-256
 `5093e2f8ef7f0df41c11c6621bac5785a36f78a1cff3b8b2bc6c14b561c02a28`.
-Future MCC imports must be converted to the admitted TU1.5 contracts. MCC/Vista
-presentation does not establish original Xbox visual or audio parity.
+Runtime playback tests use the launcher's selected MCC preparation exclusively,
+with its imported data converted to the admitted TU1.5 contracts. Use
+`tools/preview_opening_cinematic.py` through `tools/run_test.py` to verify the
+MCC map/shared/resource identities before a candidate campaign launch. Original
+map fixtures below are reference-only evidence, not MCC runtime acceptance.
+MCC/Vista presentation does not establish original Xbox visual or audio parity.
 
 `tools/audit_cutscene_source_provenance_tu15.py` regenerates each selected module
 into a fresh evidence directory using the pinned executable and its actual
@@ -38,7 +42,42 @@ compared unchanged. The report always states
 | Object sound | 6 | 332 | Reproducible selected object sound request/cleanup bodies; external audio owners remain open |
 | Audio frame/listeners | 40 | 6,092 | Complete original128650 frame,129F10 listener, elapsed-time/gain ramp,54-class fades, voice processing, sound-driver wrappers and selected routing/SDK callers; actual device ownership remains required |
 | DSP image/upload/scratch CPU | 19 | 782 | Complete object/bootstrap/resource preparation, upload/allocation, scratch constructor/release/table/copy/translation, EP program selector/three-page GP append bridge, pool-release wrapper and decoder bodies; full parent/device composition and live acknowledgement/return remain required |
-| **Selected total** | **187** | **17,401** | **Recovery provenance for these bodies;63,056 original bytes** |
+| Transparent kind3 group | 1 | 245 | Whole423B0 scene-copy/collection/layer ordering and bank restoration; external copy, collector, selector and graphics owners remain required |
+| Transparent group collection | 1 | 153 | Whole44C80 actual section/unit/part command production; existing45CD0/41030 native callees are composed in the live main view, GPU submission remains separate |
+| **Selected total** | **189** | **17,799** | **Recovery provenance for these bodies;64,475 original bytes** |
+
+V714's additional `--module transparent-collection` audit exactly regenerates
+all503 original44C80 bytes and its full generated source. The guarded job peaks
+at54,849,536 bytes. V713/V718 fully link the updated consumers and each passes20
+selected checks plus the guarded camera comparison/negative controls. V716 is
+a visible13-scene V713 continuity run. V719 observes three V718 group frames:
+25 actual commands/28 sorted descriptors per frame, including11 layer21 draws
+and classes1,2,5. The ordered adapter invokes the existing original3BAA0/4CBE0
+metadata owners; it does not execute a GPU pass or the full423B0 graphics chain.
+V717 authenticates its layer/category table inputs. These results supersede the
+older missing-collection/application-link boundary below; live hologram pixels,
+target19 scheduling/extern17 and full runtime acceptance remain open.
+
+The additional V701 `--module transparent-group` audit reproduces all916
+original callback bytes and the whole generated source exactly. Its private
+changed-bank control fails at423D5. V703 (final rerun ofV696) compares2752 CPU-boundary
+cases with unchanged original execution, covering all245 instructions/all42
+external call sites, ordered stores, complete GP/XMM exit, defined flags and
+retained banks. Required callees are declared fixtures in that comparison;
+this does not recover their bodies or establish scene-copy/hologram pixels.
+The native dispatch consumers pass syntax checks (V699); no updated application
+or visible hologram acceptance is claimed. V693's live actual units and V698's
+literal override resources identify the remaining group and target19 consumer
+frontier. All these reports are under `analysis/opening-cinematic-20261015/`.
+
+V710 separately verifies the native destination-sized GPU copy component,
+including actual320x240/512x256 images, ordered snapshots, layouts and frame
+fences. Its shader uses the original60-word combiner program and source-derived
+sampling coordinates. This is native GPU delivery, not another recovered CPU
+body and not live423B0/target19 registry/extern17/layer21 acceptance. It does not
+increase the selected CPU totals above. See the current opening status for the
+explicit host filtering tolerance, final checks, source pins and remaining
+hologram integration.
 
 The fresh v559 audit passes all eleven selections at the current shared-checkout state and compares every emitted instruction line,
 including missing/unexpected sites and changed arithmetic or FP bookkeeping. A
@@ -64,8 +103,11 @@ python3 tools/tag_match_memory_budget.py --output-root NEW_GUARD --timeout 240 -
 The environment must provide the original executable at the repository's pinned
 `NEW_DEFAULT` location and the offline generation dependencies. The guard keeps
 the existing 60 MiB hard limit, independently measured 64 MiB ceiling, zero swap,
-exclusive source-test lock and host reserve. Builds retain their separate
-serial 1 GiB/zero-swap contract; graphics recording retains 3 GiB/zero swap.
+exclusive source-test lock and host reserve. Builds use a separate serial2GiB/
+zero-swap bound following measured compiler exhaustion. AGENTS.md specifies
+owned cleanup, with no compiler RAM cap. Graphics probe bounds are recorded
+per run; v573/v588 used3GiB/8GiB and failed before the first frame. These limits
+do not change the original-data guard.
 
 ## Behavioral comparisons and remaining owners
 
@@ -206,6 +248,28 @@ The latest diagnostic video is v114,198.688seconds, actual1280×720 H.264 plus
 48kHz stereo AAC. Its module predates the provenance-only object-sound refresh.
 It is not the requested finished video. A full current-source build/install,
 visible corrected playback and final video remain required.
+
+## Authored scale reset presentation — v681–v688
+
+The ring's original codec4 channel grows to599.9998168945312 at frame150,
+resets to0.005999996792525053 at151 and holds through193/194. Interpolating
+the two completed WORLD poses sweeps the blast backwards through the camera.
+The actual old-runtime forced0.25 control reproduces that isolated GPU flash;
+using the completed endpoint removes it. The new native presentation metadata
+retains a terminal, one-frame maximum-to-new-minimum reset followed by a hold,
+under an exact model/graph node-name and parent match. Only the reset scale
+steps; expansion, root motion and other nodes continue interpolating.
+
+The real-history regression goes red before the fix and green afterward;
+its old-behavior control remains red. V683 passes20 selected CMake checks and
+the original/native camera comparison under unchanged60/64MiB/zero-swap
+guards. V684's actual new-executable forced-fraction GPU test preserves the
+hidden source endpoint. V686's normal visible run completes all13 scenes
+without script/audio faults, and its required ring excerpt retains the first
+wave without the reset recurrence. This is a reusable native presentation
+correction, not a new recovered original CPU function, full-cutscene parity,
+default-launcher installation or the requested finished video. Audio mix,
+hologram, mouths, transitions and handoff remain separate acceptance gates.
 
 ## Fractional screen presentation — v120–v125
 

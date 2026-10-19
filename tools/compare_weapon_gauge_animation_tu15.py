@@ -61,6 +61,7 @@ def main():
         '-Wl,--start-group',*libraries,'-Wl,--end-group','-o',str(scratch/'native')]
     report.update(compile_command=command,library_files_sha256=library_pins,
         native_test_source_sha256=sha(native_source),snapshot_manifest_sha256=sha(args.validation.parent/'source-manifest.json'))
+    report['original_gauge_fixture_sha256']=sha(ROOT/'tests/fixtures/weapon_gauge_animation_tu15.json')
     save()
     result=subprocess.run(command,capture_output=True,text=True)
     (output/'compile.log').write_text((result.stdout+result.stderr)[-65536:])

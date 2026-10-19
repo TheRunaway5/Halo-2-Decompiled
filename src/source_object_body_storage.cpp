@@ -2,6 +2,7 @@
 #include "halo2/cache.hpp"
 #include <algorithm>
 #include <bit>
+#include <mutex>
 #include <string_view>
 
 namespace halo2 {
@@ -35,6 +36,51 @@ SourceObjectBodyStorage::SourceObjectBodyStorage(std::uint32_t capacity,std::byt
         throw FormatError("source body heap initialization write unavailable");};
     initialize_source_object_body_heap(heap_address,capacity_,name_address,0,s);
 }
+namespace {
+std::mutex &deferred_body_storage_mutex() {
+    static std::mutex gate;
+    return gate;
+}
+}
+SourceObjectBodyStorage::SourceObjectBodyStorage(DeferredDefault) noexcept
+    :capacity_(0) {
+    handles_.fill(none);
+    constexpr std::string_view name="objects";
+    for(std::size_t i=0;i<name.size();++i)scratch_[16+i]=std::byte(name[i]);
+}
+SourceObjectBodyStorage SourceObjectBodyStorage::deferred_default() {
+    return SourceObjectBodyStorage(DeferredDefault{});
+}
+void SourceObjectBodyStorage::materialize_default_backing() const {
+    static_assert(std::atomic_ref<std::uint32_t>::is_always_lock_free);
+    static_assert(std::atomic_ref<std::uint32_t>::required_alignment<=alignof(std::uint32_t));
+    const std::atomic_ref state(capacity_);
+    if(state.load(std::memory_order_acquire))return;
+    // Const first readers and value copies share this publication boundary.
+    // Failed eager allocation leaves the original deferred state intact.
+    const std::lock_guard lock(deferred_body_storage_mutex());
+    if(state.load(std::memory_order_relaxed))return;
+    SourceObjectBodyStorage eager;
+    arena_=std::move(eager.arena_);
+    state.store(eager.capacity_,std::memory_order_release);
+}
+SourceObjectBodyStorage::SourceObjectBodyStorage(const SourceObjectBodyStorage &other)
+    :capacity_(0) {
+    const std::lock_guard lock(deferred_body_storage_mutex());
+    capacity_=std::atomic_ref(other.capacity_).load(std::memory_order_acquire);
+    arena_=other.arena_;scratch_=other.scratch_;handles_=other.handles_;
+}
+SourceObjectBodyStorage &SourceObjectBodyStorage::operator=(const SourceObjectBodyStorage &other) {
+    if(this!=&other) {
+        const std::lock_guard lock(deferred_body_storage_mutex());
+        const auto capacity=std::atomic_ref(other.capacity_).load(std::memory_order_acquire);
+        if(capacity)arena_=other.arena_; // Preserve ordinary vector capacity reuse.
+        else std::vector<std::byte>().swap(arena_); // Deferred assignment releases unused backing.
+        scratch_=other.scratch_;handles_=other.handles_;
+        std::atomic_ref(capacity_).store(capacity,std::memory_order_release);
+    }
+    return *this;
+}
 std::uint32_t SourceObjectBodyStorage::pointer_cell(std::uint32_t handle) const {
     return headers_address+(handle&65535)*12+8;
 }
@@ -46,6 +92,7 @@ void SourceObjectBodyStorage::require_owner(const NativeObjectLifetimes& lifetim
 }
 std::span<std::byte> SourceObjectBodyStorage::memory(NativeObjectLifetimes& lifetimes,
     std::uint32_t address,std::size_t size) {
+    materialize_default_backing();
     const auto fits=[&](std::uint32_t base,std::size_t extent){
         const auto offset=std::uint64_t(address)-base;
         return address>=base && offset<=extent && size<=extent-offset;};
@@ -64,6 +111,7 @@ SourceObjectBodyHeapServices SourceObjectBodyStorage::services(NativeObjectLifet
 }
 std::span<std::byte> SourceObjectBodyStorage::backing(NativeObjectLifetimes& lifetimes,std::uint32_t h) {
     require_owner(lifetimes,h);
+    materialize_default_backing();
     const auto pointer=read(std::as_bytes(lifetimes.header(h)),8);
     if(pointer<heap_address+0x50 || std::uint64_t(pointer)-heap_address>arena_.size())
         throw FormatError("source body pointer unavailable");
@@ -80,6 +128,7 @@ std::span<std::byte> SourceObjectBodyStorage::body(NativeObjectLifetimes& lifeti
 }
 UnitConstructorObjectPool SourceObjectBodyStorage::objects(NativeObjectLifetimes& lifetimes,
     const ObjectConstructionObserver& observer) {
+    materialize_default_backing();
     if(std::size_t(lifetimes.pool().capacity())>handles_.size())
         throw FormatError("source body header capacity exceeds original shared pool");
     return {std::as_writable_bytes(lifetimes.source_headers()),std::uint32_t(lifetimes.pool().capacity()),

@@ -18,7 +18,7 @@ struct CinematicCrossfadeRender::Impl {
   VkSampler sampler{};VkDescriptorSetLayout set_layout{};VkPipelineLayout layout{};
   VkDescriptorPool pool{};VkDescriptorSet descriptor{};VkPipeline pipeline{};
   bool initialized{};
-  static constexpr VkExtent2D capture_extent{640,480};
+  VkExtent2D capture_extent{};
   unsigned memory_type(unsigned bits,VkMemoryPropertyFlags flags)const {
     VkPhysicalDeviceMemoryProperties p;vkGetPhysicalDeviceMemoryProperties(context.physical,&p);
     for(unsigned i=0;i<p.memoryTypeCount;++i)
@@ -33,6 +33,40 @@ struct CinematicCrossfadeRender::Impl {
     if(!file.read(reinterpret_cast<char*>(words.data()),size))throw FormatError("Short cinematic shader");
     VkShaderModuleCreateInfo info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};info.codeSize=std::size_t(size);info.pCode=words.data();
     VkShaderModule module{};check(vkCreateShaderModule(context.device,&info,nullptr,&module),"Cinematic shader module");return module;
+  }
+  void size_history(VkExtent2D extent) {
+    if(history && extent.width==capture_extent.width && extent.height==capture_extent.height)return;
+    VkPhysicalDeviceProperties properties;vkGetPhysicalDeviceProperties(context.physical,&properties);
+    if(!extent.width || !extent.height || extent.width>properties.limits.maxImageDimension2D ||
+       extent.height>properties.limits.maxImageDimension2D)
+      throw FormatError("Cinematic native capture extent unavailable");
+    VkImage replacement{};VkDeviceMemory memory{};VkImageView image_view{};
+    try {
+      VkImageCreateInfo image{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};image.imageType=VK_IMAGE_TYPE_2D;image.format=VK_FORMAT_B8G8R8A8_UNORM;
+      image.extent={extent.width,extent.height,1};image.mipLevels=image.arrayLayers=1;image.samples=VK_SAMPLE_COUNT_1_BIT;image.tiling=VK_IMAGE_TILING_OPTIMAL;
+      image.usage=VK_IMAGE_USAGE_TRANSFER_DST_BIT|VK_IMAGE_USAGE_SAMPLED_BIT;
+      check(vkCreateImage(context.device,&image,nullptr,&replacement),"Cinematic history image");
+      VkMemoryRequirements r;vkGetImageMemoryRequirements(context.device,replacement,&r);
+      VkMemoryAllocateInfo allocation{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};allocation.allocationSize=r.size;allocation.memoryTypeIndex=memory_type(r.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+      check(vkAllocateMemory(context.device,&allocation,nullptr,&memory),"Cinematic history memory");check(vkBindImageMemory(context.device,replacement,memory,0),"Cinematic history binding");
+      VkImageViewCreateInfo vi{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};vi.image=replacement;vi.viewType=VK_IMAGE_VIEW_TYPE_2D;vi.format=image.format;vi.subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1};
+      check(vkCreateImageView(context.device,&vi,nullptr,&image_view),"Cinematic history view");
+    } catch(...) {
+      if(image_view)vkDestroyImageView(context.device,image_view,nullptr);
+      if(replacement)vkDestroyImage(context.device,replacement,nullptr);
+      if(memory)vkFreeMemory(context.device,memory,nullptr);
+      throw;
+    }
+    if(view)vkDestroyImageView(context.device,view,nullptr);
+    if(history)vkDestroyImage(context.device,history,nullptr);
+    if(image_memory)vkFreeMemory(context.device,image_memory,nullptr);
+    history=replacement;image_memory=memory;view=image_view;capture_extent=extent;initialized=false;
+    if(descriptor) {
+      const VkDescriptorImageInfo image{sampler,view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+      VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};write.dstSet=descriptor;write.dstBinding=0;write.descriptorCount=1;
+      write.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;write.pImageInfo=&image;
+      vkUpdateDescriptorSets(context.device,1,&write,0,nullptr);
+    }
   }
   void make_pipeline(VkFormat format,VkRenderPass pass) {
     if(format!=VK_FORMAT_B8G8R8A8_UNORM && format!=VK_FORMAT_R8G8B8A8_UNORM)
@@ -74,19 +108,12 @@ struct CinematicCrossfadeRender::Impl {
   }
   explicit Impl(CinematicCrossfadeRenderContext c):context(std::move(c)) {
     try {
-    VkImageCreateInfo image{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};image.imageType=VK_IMAGE_TYPE_2D;image.format=VK_FORMAT_B8G8R8A8_UNORM;
-    image.extent={640,480,1};image.mipLevels=image.arrayLayers=1;image.samples=VK_SAMPLE_COUNT_1_BIT;image.tiling=VK_IMAGE_TILING_OPTIMAL;
-    image.usage=VK_IMAGE_USAGE_TRANSFER_DST_BIT|VK_IMAGE_USAGE_SAMPLED_BIT;
-    check(vkCreateImage(context.device,&image,nullptr,&history),"Cinematic history image");
-    VkMemoryRequirements r;vkGetImageMemoryRequirements(context.device,history,&r);
-    VkMemoryAllocateInfo allocation{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};allocation.allocationSize=r.size;allocation.memoryTypeIndex=memory_type(r.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    check(vkAllocateMemory(context.device,&allocation,nullptr,&image_memory),"Cinematic history memory");check(vkBindImageMemory(context.device,history,image_memory,0),"Cinematic history binding");
-    VkImageViewCreateInfo vi{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};vi.image=history;vi.viewType=VK_IMAGE_VIEW_TYPE_2D;vi.format=image.format;vi.subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1};
-    check(vkCreateImageView(context.device,&vi,nullptr,&view),"Cinematic history view");
+    size_history(context.extent);
     VkSamplerCreateInfo si{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};si.magFilter=si.minFilter=VK_FILTER_NEAREST;si.mipmapMode=VK_SAMPLER_MIPMAP_MODE_NEAREST;
     si.addressModeU=si.addressModeV=si.addressModeW=VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     check(vkCreateSampler(context.device,&si,nullptr,&sampler),"Cinematic point/clamp sampler");
     VkBufferCreateInfo bi{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};bi.size=240;bi.usage=VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    VkMemoryRequirements r;VkMemoryAllocateInfo allocation{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
     check(vkCreateBuffer(context.device,&bi,nullptr,&uniform),"Cinematic program buffer");vkGetBufferMemoryRequirements(context.device,uniform,&r);
     allocation.allocationSize=r.size;allocation.memoryTypeIndex=memory_type(r.memoryTypeBits,VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     check(vkAllocateMemory(context.device,&allocation,nullptr,&uniform_memory),"Cinematic program memory");check(vkBindBufferMemory(context.device,uniform,uniform_memory,0),"Cinematic program binding");
@@ -129,6 +156,9 @@ struct CinematicCrossfadeRender::Impl {
     if(frame.composite && !initialized && !frame.capture)throw FormatError("Cinematic composite has no captured original scene");
     const auto command=target.command;vkCmdEndRenderPass(command);
     if(frame.capture) {
+      // Startup preallocates the native scene size. Resize only on a new
+      // capture; a window change during a fade must retain the outgoing scene.
+      size_history(target.extent);
       std::array<VkImageMemoryBarrier,2> b{};
       for(auto &barrier:b){barrier.sType=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;barrier.srcQueueFamilyIndex=barrier.dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;barrier.subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1};}
       b[0].image=target.color;b[0].oldLayout=target.layout;b[0].newLayout=VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
@@ -137,7 +167,8 @@ struct CinematicCrossfadeRender::Impl {
       b[1].newLayout=VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;b[1].srcAccessMask=initialized?VK_ACCESS_SHADER_READ_BIT:0;b[1].dstAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;
       vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT|VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,0,0,nullptr,0,nullptr,2,b.data());
       VkImageBlit blit{};blit.srcSubresource=blit.dstSubresource={VK_IMAGE_ASPECT_COLOR_BIT,0,0,1};
-      blit.srcOffsets[1]={int(target.extent.width),int(target.extent.height),1};blit.dstOffsets[1]={640,480,1};
+      blit.srcOffsets[1]={int(target.extent.width),int(target.extent.height),1};
+      blit.dstOffsets[1]={int(capture_extent.width),int(capture_extent.height),1};
       vkCmdBlitImage(command,target.color,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,history,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1,&blit,VK_FILTER_NEAREST);
       b[0].oldLayout=VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;b[0].newLayout=target.layout;b[0].srcAccessMask=VK_ACCESS_TRANSFER_READ_BIT;b[0].dstAccessMask=VK_ACCESS_COLOR_ATTACHMENT_READ_BIT|VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
       b[1].oldLayout=VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;b[1].newLayout=VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;b[1].srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;b[1].dstAccessMask=VK_ACCESS_SHADER_READ_BIT;

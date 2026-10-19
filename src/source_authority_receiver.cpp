@@ -15,6 +15,7 @@ namespace {
 using Clock=std::chrono::steady_clock;
 void need(bool ok){if(!ok)throw std::invalid_argument("Invalid source authority receiver ownership, admission or cut");}
 std::uint64_t micros(Clock::time_point started){return std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-started).count();}
+void clear_ready(SourceAuthorityReceiverState &state){state.ready.reset();state.host_ready=false;state.host_proof.reset();}
 class HostValidationDatagrams final:public MultiplayerDatagrams {
 public:
     void send(std::span<const std::byte>,unsigned)override{throw FormatError("Private host validation cannot send gameplay");}
@@ -22,6 +23,19 @@ public:
 };
 bool delta(std::span<const std::byte> p){constexpr std::array<std::byte,8> magic{std::byte{'H'},std::byte{'2'},std::byte{'D'},std::byte{'L'},std::byte{'T'},std::byte{'0'},std::byte{'0'},std::byte{'1'}};
     return p.size()>=magic.size()&&std::ranges::equal(p.first(magic.size()),magic);}
+}
+struct SourceAuthorityHostProof::Data {
+    ValidatedAuthorityCut cut;
+    LanHost::Continuation host;
+};
+SourceAuthorityHostProof::SourceAuthorityHostProof(ValidatedAuthorityCut cut,LanHost::Continuation host)
+    :data_(std::make_shared<const Data>(Data{std::move(cut),std::move(host)})){}
+const ValidatedAuthorityCut &SourceAuthorityHostProof::cut()const {
+    if(!data_)throw FormatError("Missing validated host cut proof");return data_->cut;
+}
+MultiplayerSnapshotProof SourceAuthorityHostProof::prove_snapshot(const LanClient &client,const MultiplayerSnapshotOrigin &origin)const {
+    if(!data_)throw FormatError("Missing validated host cut proof");
+    return client.prove_snapshot(data_->host,data_->cut,origin);
 }
 MultiplayerOptions source_authority_options(const MultiplayerOptions &input){
     MultiplayerOptions out;out.online_match=input.online_match;out.map=input.map;out.shared_maps=input.shared_maps;out.gameplay_xbe=input.gameplay_xbe;
@@ -60,7 +74,7 @@ struct SourceAuthorityReceiver::Impl {
     }
     ~Impl(){worker.request_stop();condition.notify_all();if(worker.joinable())worker.join();}
     void own()const{need(std::this_thread::get_id()==executor);}
-    void discard(){std::lock_guard lock(mutex);++generation;job.reset();result.reset();base.reset();replay.reset();active_replay.reset();host.reset();paired=false;stats.host_ready=false;stats.ready.reset();authority.reset();target.reset();workspace.reset();stats.warmed=stats.workspace_warmed=false;}
+    void discard(){std::lock_guard lock(mutex);++generation;job.reset();result.reset();base.reset();replay.reset();active_replay.reset();host.reset();paired=false;clear_ready(stats);authority.reset();target.reset();workspace.reset();stats.warmed=stats.workspace_warmed=false;}
     void validate_host(const LanHost::Continuation &saved,const AcceptedSourcePlayers &accepted){
         need(mode==SourceAuthorityStreamMode::Replay&&authority&&target&&context);
         const auto fingerprint=session->loaded_fingerprint();need(fingerprint.has_value());
@@ -174,7 +188,7 @@ void SourceAuthorityReceiver::update(bool advance_replay){
                     s.paired==output->host.has_value());
                 need(s.validated_boundary&&s.authority->execution_boundary()==*s.validated_boundary&&
                     s.validated_boundary->tick==s.replay->previous.tick);
-                s.stats.ready.reset();s.stats.host_ready=false;s.host.reset();s.active_replay.emplace(Impl::ActiveReplay{std::move(*output),0,Clock::now()});
+                clear_ready(s.stats);s.host.reset();s.active_replay.emplace(Impl::ActiveReplay{std::move(*output),0,Clock::now()});
             }catch(const std::exception &e){s.stats.error=e.what();s.session->reject_authority(output->cut.context,output->cut.seal);}
             else {bool commit_attempted=false;try {
                 const auto accepted=s.admissions();need(accepted&&*accepted==output->admitted&&output->checkpoint&&(output->image||output->host)&&s.target&&s.workspace&&
@@ -187,17 +201,21 @@ void SourceAuthorityReceiver::update(bool advance_replay){
                     s.authority->prepare(*output->checkpoint,source_authority_binding(output->cut.context),accepted->players):
                     s.authority->prepare_with_local_views(*output->checkpoint,source_authority_binding(output->cut.context),locals,staging,accepted->players,s.workspace->local_slots);
                 need(s.session->authority_context()==s.context&&s.admissions()==accepted);
-                s.stats.ready.reset();s.stats.host_ready=false;s.host.reset();commit_attempted=true;
+                clear_ready(s.stats);s.host.reset();commit_attempted=true;
                 need(s.authority->commit(std::move(prepared)));s.stats.prepare_microseconds=micros(started);
                 if(output->host)s.validate_host(*output->host,*accepted);
+                const ValidatedAuthorityCut validated{s.session->self(),output->cut.context,output->cut.seal};
+                std::optional<SourceAuthorityHostProof> proof;
+                if(output->host)proof=SourceAuthorityHostProof(validated,*output->host);
+                const auto boundary=s.authority->execution_boundary();
                 need(s.session->authority_context()==s.context&&s.session->acknowledge_authority(output->cut.context,output->cut.seal));
                 s.base=std::move(output->image);s.host=std::move(output->host);s.paired=s.host.has_value();s.stats.host_ready=s.paired;
-                s.stats.ready=ValidatedAuthorityCut{s.session->self(),output->cut.context,output->cut.seal};
-                s.validated_boundary=s.authority->execution_boundary();
+                s.stats.ready=validated;s.stats.host_proof=std::move(proof);
+                s.validated_boundary=boundary;
                 if(s.mode==SourceAuthorityStreamMode::Replay){s.replay=SourceReplayBinding{output->cut.context,output->cut.seal,output->cut.seal,1};s.stats.replay_sequence=0;}
                 ++s.stats.prepared;s.stats.delta=output->delta;s.stats.error.clear();
             }catch(const std::exception &e){s.stats.error=e.what();s.session->reject_authority(output->cut.context,output->cut.seal);
-                if(commit_attempted){s.authority.reset();s.target.reset();s.stats.warmed=false;}}
+                if(commit_attempted){clear_ready(s.stats);s.host.reset();s.authority.reset();s.target.reset();s.stats.warmed=false;}}
             }
         }
     }
@@ -212,17 +230,21 @@ void SourceAuthorityReceiver::update(bool advance_replay){
             if(s.authority->player_admissions(slots)!=active.output.admitted.players)
                 throw FormatError("Replayed source roster differs from independent admission");
             if(active.output.host)s.validate_host(*active.output.host,active.output.admitted);
+            const ValidatedAuthorityCut validated{s.session->self(),active.output.cut.context,active.output.cut.seal};
+            std::optional<SourceAuthorityHostProof> proof;
+            if(active.output.host)proof=SourceAuthorityHostProof(validated,*active.output.host);
+            const auto boundary=s.authority->execution_boundary();
             need(s.session->acknowledge_authority(active.output.cut.context,active.output.cut.seal));
             s.replay->previous=active.output.cut.seal;s.replay->first_sequence+=active.at;
             s.stats.replay_sequence=s.replay->first_sequence-1;s.stats.replay_microseconds=micros(active.started);
             s.host=std::move(active.output.host);s.stats.host_ready=s.host.has_value();
-            s.stats.ready=ValidatedAuthorityCut{s.session->self(),active.output.cut.context,active.output.cut.seal};
-            s.validated_boundary=s.authority->execution_boundary();
+            s.stats.ready=validated;s.stats.host_proof=std::move(proof);
+            s.validated_boundary=boundary;
             ++s.stats.replay_batches;s.stats.error.clear();s.active_replay.reset();
         }
     }catch(const std::exception &e){s.stats.error=e.what();
         if(s.active_replay)s.session->reject_authority(s.active_replay->output.cut.context,s.active_replay->output.cut.seal);
-        s.active_replay.reset();s.replay.reset();s.stats.ready.reset();s.host.reset();s.stats.host_ready=false;
+        s.active_replay.reset();s.replay.reset();clear_ready(s.stats);s.host.reset();
         s.reject_prefetched();
         s.authority.reset();s.target.reset();s.stats.warmed=false;s.stats.replay_sequence=0;}}
     if(s.receiving&&s.decoder_available())if(auto accepted=s.admissions())if(auto cut=s.session->received_authority()){
@@ -269,7 +291,7 @@ std::unique_ptr<MultiplayerPreparedWorld> SourceAuthorityReceiver::take_world_fo
     const auto accepted=s.admissions();need(accepted&&s.target&&s.workspace&&s.authority&&!s.active_replay);
     const auto binding=source_authority_binding(expected.context);const auto cut=s.authority->checkpoint(binding);
     std::vector<SourcePlayerAdmission> locals;for(auto slot:s.locals)locals.push_back(accepted->players.at(slot));
-    s.stats.ready.reset();
+    clear_ready(s.stats);
     try{
         SourceMatchAuthority recipient(s.workspace->match,*s.workspace->source_objects);
         auto prepared=recipient.prepare_with_local_views(cut,binding,locals,*s.authority,accepted->players,s.target->local_slots);
@@ -310,7 +332,7 @@ struct SourceAuthorityReplayWorker::Impl {
     ~Impl(){cancel();if(worker.joinable())worker.join();}
     static std::exception_ptr unavailable(){return std::make_exception_ptr(std::runtime_error("Source replay export is unavailable, stale or cancelled"));}
     void cancel(){
-        {std::lock_guard lock(mutex);cancelled=true;stats.ready.reset();stats.host_ready=false;stats.warmed=stats.workspace_warmed=false;}
+        {std::lock_guard lock(mutex);cancelled=true;clear_ready(stats);stats.warmed=stats.workspace_warmed=false;}
         worker.request_stop();condition.notify_all();
     }
     void run(std::stop_token stop)noexcept {
@@ -353,8 +375,8 @@ struct SourceAuthorityReplayWorker::Impl {
                 {std::unique_lock lock(mutex);if(cancelled)break;stats=std::move(state);
                     condition.wait_for(lock,stop,std::chrono::milliseconds(2),[&]{return bool(request)||bool(retention_request)||cancelled||paused!=replay_paused;});}
             }
-        }catch(const std::exception &e){std::lock_guard lock(mutex);stats.error=e.what();stats.ready.reset();stats.host_ready=false;stats.warmed=stats.workspace_warmed=false;}
-        catch(...){std::lock_guard lock(mutex);stats.error="Source replay executor failed";stats.ready.reset();stats.host_ready=false;stats.warmed=stats.workspace_warmed=false;}
+        }catch(const std::exception &e){std::lock_guard lock(mutex);stats.error=e.what();clear_ready(stats);stats.warmed=stats.workspace_warmed=false;}
+        catch(...){std::lock_guard lock(mutex);stats.error="Source replay executor failed";clear_ready(stats);stats.warmed=stats.workspace_warmed=false;}
         {std::lock_guard lock(mutex);stopped=true;exporting=false;
             if(request){request->result.set_exception(unavailable());request.reset();}
             if(retention){retention->result.set_exception(unavailable());retention.reset();}

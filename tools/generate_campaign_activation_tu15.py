@@ -13,7 +13,7 @@ from oracle_smg_firing_1_1 import Xbe, _Code, _trace
 from research_mp_sandbox_update_functions import NEW_DEFAULT, NEW_PIN
 from generate_physics_live_support_tu15 import generate, sha
 
-ENTRIES=(0x191cf0,0x191df0,0x13a780,0x13a7e0,0x13a8b0,0x13a920,0x11e8e0,0x13a820,0x13a880,
+ENTRIES=(0x2255f0,0x191cf0,0x191df0,0x13a780,0x13a7e0,0x13a8b0,0x13a920,0x11e8e0,0x13a820,0x13a880,
          0x126830,0x22680,0x171f80,0x3f2a0,0x128430,0xd7370,0x1cb220,0x14e1d0,
          0x15b50,0x1e1a0,0x36aa0,0x1a7170,0x11f5d0,0xd7b80,0x191260,0x126730,
          0x1888f0,0x692d0,0x11e550,0x1f38d0,0x22570,0x171f40,0x219300,
@@ -62,6 +62,10 @@ def main():
     for row,target in NEW_MAP_CALLBACKS.items():
         if int.from_bytes(image.read(0x44aed8+row*0x24,4),'little')!=target:
             raise ValueError('Original new-map callback registration differs')
+    if int.from_bytes(image.read(0x45f940+5*8,4),'little')!=0x2255f0:
+        raise ValueError('Original row5 resource release registration differs')
+    if image.read(0x2255f0,20).hex()!='a1fcb8480085c0740ac705fcb8480000000000c3':
+        raise ValueError('Original row5 release complete body differs')
     sites,instructions,addresses,routines={},{},{},[]
     for entry in ENTRIES:
         body=_trace(code,entry,set(ENTRIES))

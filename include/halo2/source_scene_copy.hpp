@@ -26,4 +26,15 @@ PixelProgram source_scene_copy_program();
 // Nearest-even, masked, gradual binary32 is required. Coordinates describe CPU
 // emission; they do not establish GPU raster centers or framebuffer results.
 SourceSceneCopyFrame source_scene_copy_frame(const SourceSceneCopyContext &);
+
+// Native fragment delivery for the same original four-tap program. Coordinate
+// extent is the actual source texture's coordinate space, before any explicit
+// host resolution scaling. It is not inferred from the destination or window.
+struct SourceSceneCopyShaderUniform {
+    std::array<std::uint32_t,60> program;
+    ShaderVector source_rectangle,taps,destination;
+};
+static_assert(sizeof(SourceSceneCopyShaderUniform)==288);
+SourceSceneCopyShaderUniform source_scene_copy_shader_uniform(
+    const SourceSceneCopyContext &,std::array<std::int32_t,2> coordinate_extent);
 } // namespace halo2

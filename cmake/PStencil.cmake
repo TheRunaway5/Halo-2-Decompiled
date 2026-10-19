@@ -68,6 +68,39 @@ target_link_libraries(halo2_renderer PUBLIC halo2_pstencil_render)
 set(PSTENCIL_2003_BUILD "" CACHE PATH "Local May 2003 Halo 2 build for original-code comparisons")
 set(PSTENCIL_REFERENCE_PYTHON "${Python3_EXECUTABLE}" CACHE FILEPATH "Python with Unicorn for the optional pStencil original-code test")
 if(BUILD_TESTING)
+    add_executable(pstencil_texture_accumulation_context_tests tests/pstencil/texture_accumulation_context_tests.cpp src/pstencil/detail.cpp)
+    target_link_libraries(pstencil_texture_accumulation_context_tests PRIVATE halo2_pstencil)
+    if(EXISTS "${PROJECT_SOURCE_DIR}/analysis/pstencil/texture-accumulation-inputs-v1/current-cairo/inputs.json")
+        add_test(NAME pstencil_texture_accumulation_context COMMAND pstencil_texture_accumulation_context_tests
+            ${PROJECT_SOURCE_DIR}/analysis/pstencil/texture-accumulation-inputs-v1/current-cairo/inputs.json)
+    endif()
+    add_executable(pstencil_texture_accumulation_gpu_tests tests/pstencil/texture_accumulation_gpu_tests.cpp)
+    target_link_libraries(pstencil_texture_accumulation_gpu_tests PRIVATE halo2_pstencil Vulkan::Vulkan)
+    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/texture_accumulation_2003.comp.spv
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil
+        COMMAND ${GLSLANG_VALIDATOR} -V -I${PROJECT_SOURCE_DIR}/shaders
+            ${PROJECT_SOURCE_DIR}/tests/pstencil/texture_accumulation_2003.comp
+            -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/texture_accumulation_2003.comp.spv
+        DEPENDS tests/pstencil/texture_accumulation_2003.comp shaders/combiner.glsl
+            shaders/pstencil/texture_accumulation_2003_program.glsl VERBATIM)
+    add_custom_target(pstencil_texture_accumulation_gpu_shader DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/texture_accumulation_2003.comp.spv)
+    add_dependencies(pstencil_texture_accumulation_gpu_tests pstencil_texture_accumulation_gpu_shader)
+    if(EXISTS "${PROJECT_SOURCE_DIR}/analysis/pstencil/texture-accumulation-inputs-v1/current-cairo/inputs.json")
+        add_test(NAME pstencil_texture_accumulation_gpu_composition COMMAND pstencil_texture_accumulation_gpu_tests
+            ${PROJECT_SOURCE_DIR}/analysis/pstencil/texture-accumulation-inputs-v1/current-cairo/inputs.json
+            ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/texture_accumulation_2003.comp.spv)
+        set_tests_properties(pstencil_texture_accumulation_gpu_composition PROPERTIES RUN_SERIAL TRUE)
+    endif()
+    add_executable(pstencil_texture_accumulation_routing_tests tests/pstencil/texture_accumulation_routing_tests.cpp src/pstencil/specular_mask.cpp)
+    target_link_libraries(pstencil_texture_accumulation_routing_tests PRIVATE halo2_pstencil)
+    add_test(NAME pstencil_texture_accumulation_routing COMMAND pstencil_texture_accumulation_routing_tests)
+    add_executable(pstencil_texture_accumulation_2003_tests tests/pstencil/texture_accumulation_2003_tests.cpp)
+    target_link_libraries(pstencil_texture_accumulation_2003_tests PRIVATE halo2_pstencil)
+    if(EXISTS "${PROJECT_SOURCE_DIR}/analysis/pstencil/texture-accumulation-inputs-v1/current-cairo/inputs.json")
+        add_test(NAME pstencil_original_texture_accumulation COMMAND pstencil_texture_accumulation_2003_tests
+            ${PROJECT_SOURCE_DIR}/analysis/pstencil/2003-presentation/accumulation-construction-v1/reference.json
+            ${PROJECT_SOURCE_DIR}/analysis/pstencil/texture-accumulation-inputs-v1/current-cairo/inputs.json)
+    endif()
     add_executable(pstencil_normal_accumulation_2003_tests tests/pstencil/normal_accumulation_2003_tests.cpp)
     target_link_libraries(pstencil_normal_accumulation_2003_tests PRIVATE halo2_pstencil)
     if(EXISTS "${PROJECT_SOURCE_DIR}/analysis/pstencil/2003-presentation/accumulation-bindings-v1/reference.json")

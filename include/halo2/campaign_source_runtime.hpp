@@ -26,6 +26,8 @@ public:
   // The original source actions own placement and the pending reference.
   void place_ai(Simulation &,std::uint32_t reference,
       std::optional<std::int16_t> count={});
+  // Return the source actor unit datum for the unmodified AI reference.
+  std::uint32_t ai_object(std::uint32_t reference);
   std::size_t place_squad(Simulation &,std::size_t);
   MultiplayerState::Player hud_player(const Simulation &);
   MultiplayerObjectRuntime &objects(){return *objects_;}

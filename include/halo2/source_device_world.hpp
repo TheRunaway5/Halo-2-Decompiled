@@ -71,6 +71,11 @@ class NativeDeviceEventCursor {
 public:
     explicit NativeDeviceEventCursor(bool authority):baseline_(authority){}
     std::vector<SourceDeviceWorldEvent> observe(std::span<const SourceDeviceWorldEvent>);
+    // Completed-frame accepted-world replacement. Baseline the validated
+    // incoming journal without replaying its old requests. A later event may
+    // reuse a serial from the discarded future. Rejection preserves this
+    // cursor; authentication and generation agreement belong to the caller.
+    void rebase(std::span<const SourceDeviceWorldEvent>,std::uint64_t tick);
 private:
     bool baseline_{};
     std::uint64_t serial_{};

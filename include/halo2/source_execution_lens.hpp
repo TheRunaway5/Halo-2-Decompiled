@@ -7,6 +7,16 @@
 
 namespace halo2 {
 class PhysicsLiveWorldTu15;
+class SourceRuntimeMemory;
+// Quiescent private incoming-world adoption. GPU identities and samples do
+// not cross PCs. Validate the retained count/bitmap, then execute unchanged
+// original20E30 for each request, as original20700's retirement branch does.
+// This retires only the native presentation ring; it supplies no GPU result.
+// A malformed bank is rejected before mutation. A failed native call leaves
+// the private candidate disposable, never partially publishable.
+unsigned source_retire_lens_queries(PhysicsLiveWorldTu15 &);
+// Read-only prerequisite for binding a new renderer-side query owner.
+void source_require_retired_lens_queries(const SourceRuntimeMemory &);
 // The renderer owns the device ABI, camera/projection inputs and completed
 // GPU query metadata. Replay consumes their recorded reads, executes the
 // original CPU query kernel, and validates every private-device write.

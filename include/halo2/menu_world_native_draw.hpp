@@ -29,7 +29,7 @@ struct MenuWorldNativeDrawInput {
   MenuWorldFragmentUniforms fragment;
   MenuWorldRasterPacket raster;
   ForwardRasterState forward;
-  //0(disabled),3(projected ONE/ONE),5(planar CONSTANT_COLOR),
+  //0(disabled),1(hologram SRC_ALPHA/INV_SRC_ALPHA),3(projected ONE/ONE),5(planar CONSTANT_COLOR),
   //8(projected DST_ALPHA/ONE),9(shadow DST_COLOR/ZERO), and10(sphere
   //diffuse). Pass/receiver admission is caller owned.
   unsigned forward_blend{};

@@ -27,6 +27,8 @@ MODULES = {
     'speech': ('generate_unit_speech_tu15', 'source_unit_speech_tu15_generated.cpp'),
     'object-sound': ('generate_object_sound_tu15', 'source_object_sound_tu15_generated.cpp'),
     'shadow-control': ('generate_cinematic_shadow_control_tu15', 'source_cinematic_shadow_control_tu15_generated.cpp'),
+    'transparent-group': ('generate_transparent_group_tu15', 'source_transparent_group_tu15_generated.cpp'),
+    'transparent-collection': ('generate_transparent_collection_tu15', 'source_transparent_collection_tu15_generated.cpp'),
 }
 
 

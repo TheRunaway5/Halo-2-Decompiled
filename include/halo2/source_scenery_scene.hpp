@@ -70,7 +70,7 @@ public:
     // Completed-frame world adoption: invalidate cached lifetimes/clock/LOD,
     // retaining authored resident resources. New synchronization supplies the
     // actual current source regions, WORLD nodes and creation ticks.
-    void reset_lifetimes();
+    void reset_lifetimes() noexcept;
     void interpolate(const SceneObjects &,const class SceneInterpolation &,float fraction);
     void lighting_query_state(LightingQueryState);
     void animation_time(AnimationTime);

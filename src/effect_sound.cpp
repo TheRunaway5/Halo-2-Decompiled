@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <bit>
 #include <cmath>
+#include <limits>
 
 namespace halo2 {
 namespace {
@@ -73,7 +74,69 @@ std::vector<EffectSoundCue> fixed_effect_sound_cues(const Cache& cache,std::uint
 std::vector<EffectSoundCue> authored_effect_sound_parts(const Cache& cache,std::uint32_t datum){
   return sound_parts(cache,datum,1,1,false);
 }
+struct NativeEffectSounds::Checkpoint::Data {
+  std::shared_ptr<const int> owner;
+  const Cache *cache{};
+  std::thread::id executor;
+  std::vector<Pending> pending;
+};
+struct NativeEffectSounds::PreparedData {
+  std::shared_ptr<const int> owner;
+  const Cache *cache{};
+  std::thread::id executor;
+  std::uint64_t revision{};
+  bool consumed{};
+  std::vector<Pending> pending;
+};
+bool NativeEffectSounds::Checkpoint::valid()const noexcept {return bool(data_);}
+std::size_t NativeEffectSounds::Checkpoint::pending_count()const {
+  if(!data_)throw FormatError("Missing pending effect sound checkpoint");
+  return data_->pending.size();
+}
+NativeEffectSounds::PreparedRestore::PreparedRestore()=default;
+NativeEffectSounds::PreparedRestore::~PreparedRestore()=default;
+NativeEffectSounds::PreparedRestore::PreparedRestore(PreparedRestore &&)noexcept=default;
+NativeEffectSounds::PreparedRestore &NativeEffectSounds::PreparedRestore::operator=(PreparedRestore &&)noexcept=default;
+void NativeEffectSounds::own()const {
+  if(std::this_thread::get_id()!=executor_)
+    throw FormatError("Pending effect sounds require their owning executor");
+}
+void NativeEffectSounds::invalidate()noexcept {
+  if(revision_!=std::numeric_limits<std::uint64_t>::max())++revision_;
+}
+NativeEffectSounds::Checkpoint NativeEffectSounds::checkpoint()const {
+  own();
+  if(advancing_)throw FormatError("Pending effect sound checkpoint requires a completed advance");
+  Checkpoint result;
+  result.data_=std::make_shared<Checkpoint::Data>(Checkpoint::Data{owner_,&cache_,executor_,pending_});
+  return result;
+}
+bool NativeEffectSounds::owns_checkpoint(const Checkpoint &checkpoint)const noexcept {
+  return std::this_thread::get_id()==executor_&&checkpoint.data_&&
+      checkpoint.data_->owner==owner_&&checkpoint.data_->cache==&cache_&&
+      checkpoint.data_->executor==executor_;
+}
+NativeEffectSounds::PreparedRestore NativeEffectSounds::prepare_restore(const Checkpoint &checkpoint)const {
+  own();
+  if(!owns_checkpoint(checkpoint)||advancing_||revision_==std::numeric_limits<std::uint64_t>::max())
+    throw FormatError("Pending effect sound restore lacks its completed owner/cache generation");
+  PreparedRestore result;result.data_=std::make_unique<PreparedData>(PreparedData{
+      owner_,&cache_,executor_,revision_,false,checkpoint.data_->pending});
+  return result;
+}
+bool NativeEffectSounds::restore_ready(const PreparedRestore &prepared)const noexcept {
+  if(std::this_thread::get_id()!=executor_)return false;
+  const auto *p=prepared.data_.get();
+  return p&&!p->consumed&&p->owner==owner_&&p->cache==&cache_&&p->executor==executor_&&
+      !advancing_&&p->revision==revision_&&revision_!=std::numeric_limits<std::uint64_t>::max();
+}
+bool NativeEffectSounds::commit_restore(PreparedRestore &&prepared)noexcept {
+  if(!restore_ready(prepared))return false;
+  pending_.swap(prepared.data_->pending);prepared.data_->consumed=true;invalidate();return true;
+}
 void NativeEffectSounds::spawn(std::uint32_t effect,std::uint32_t owner,Vec3 position,float a,float b){
+  own();invalidate();
+  if(advancing_)throw FormatError("Pending effect sound spawn requires a completed advance");
   if(effect==0xffffffffu)return;
   auto definition=definitions_.find(effect);
   if(definition==definitions_.end()) {
@@ -96,11 +159,19 @@ void NativeEffectSounds::spawn(std::uint32_t effect,std::uint32_t owner,Vec3 pos
   }
 }
 void NativeEffectSounds::advance(float seconds,const Submit& submit){
+  own();invalidate();
+  if(advancing_)throw FormatError("Pending effect sound advance cannot reenter its callback");
   if(!std::isfinite(seconds) || seconds<0)throw FormatError("Invalid native effect sound elapsed");
+  advancing_=true;
+  struct Finish {bool &active;~Finish(){active=false;}} finish{advancing_};
   for(auto i=pending_.begin();i!=pending_.end();){
     i->cue.elapsed-=seconds;
     if(i->cue.elapsed<=0){submit(i->cue,i->owner,i->position);i=pending_.erase(i);}
     else ++i;
   }
+}
+void NativeEffectSounds::retire_pending()noexcept {
+  if(std::this_thread::get_id()!=executor_||advancing_)std::terminate();
+  invalidate();pending_.clear();
 }
 }

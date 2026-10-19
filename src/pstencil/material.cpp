@@ -5,6 +5,7 @@
 #include "halo2/pstencil/light_response_material.hpp"
 #include "halo2/pstencil/normal_accumulation_2003.hpp"
 #include "halo2/pstencil/texture_accumulation_2003.hpp"
+#include "halo2/pstencil/detail.hpp"
 #include "halo2/pstencil/reference_light_materials.hpp"
 #include "halo2/render_program.hpp"
 #include "halo2/object_lighting.hpp"
@@ -124,11 +125,11 @@ void MaterialBank::preload(const Material& authored,std::uint32_t light,const Ef
         if(mapping && texture_mask_pass(*mapping)) {
             mask->second=true;
             bank.mesh.materials.push_back(!std::getenv("HALO2_PSTENCIL_CURRENT_TEXTURE_ACCUMULATION") &&
-                supports_texture_accumulation_2003(*mapping)?adapt_texture_accumulation_2003(*mapping):*mapping);
+                supports_texture_accumulation_2003(*mapping)?adapt_texture_accumulation_2003(*mapping,reference_neutral_detail_stage(*mapping)):*mapping);
         } else if(prepare_dynamic_material(bank.cache,texture,{},true,0.f) && texture_mask_pass(texture)) {
             mask->second=true;
             if(!std::getenv("HALO2_PSTENCIL_CURRENT_TEXTURE_ACCUMULATION") && supports_texture_accumulation_2003(texture))
-                texture=adapt_texture_accumulation_2003(std::move(texture));
+                texture=adapt_texture_accumulation_2003(texture,reference_neutral_detail_stage(texture));
             bank.mesh.materials.push_back(std::move(texture));
         }
     }

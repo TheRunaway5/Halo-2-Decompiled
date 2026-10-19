@@ -36,9 +36,10 @@ std::vector<unsigned> texture_mask_materials(std::span<const Material> materials
     std::vector<unsigned> result(materials.size(),~0u);
     for(unsigned n=0;n<materials.size();++n) {
         const auto& m=materials[n];
-        if(texture_mask_pass(m)){result[n]=n;continue;}
         const auto at=masks.find({m.source_shader_datum,m.world_vertex_input_transform});
-        if(at!=masks.end())result[n]=at->second;
+        if(texture_mask_pass(m) && (at==masks.end() || !texture_accumulation_material_2003(materials[at->second])))
+            result[n]=n;
+        else if(at!=masks.end())result[n]=at->second;
     }
     return result;
 }

@@ -114,6 +114,12 @@ FixedState fixed_state(const MenuWorldNativeDrawInput &input) {
   result.blend.colorBlendOp=result.blend.alphaBlendOp=VK_BLEND_OP_ADD;
   if(input.forward_blend==0) {
     result.blend.blendEnable=VK_FALSE;
+  } else if(input.forward_blend==1) {
+    // Original layer21: SRC_ALPHA/INV_SRC_ALPHA and ADD. D3D uses the
+    // source alpha factor for alpha too (As*As + Ad*(1-As)).
+    result.blend.blendEnable=VK_TRUE;
+    result.blend.srcColorBlendFactor=result.blend.srcAlphaBlendFactor=VK_BLEND_FACTOR_SRC_ALPHA;
+    result.blend.dstColorBlendFactor=result.blend.dstAlphaBlendFactor=VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
   } else if(input.forward_blend==3) {
     // Authored projected-light passes use ONE/ONE for both RGB and alpha.
     result.blend.blendEnable=VK_TRUE;

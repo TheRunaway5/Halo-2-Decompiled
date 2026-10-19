@@ -5,14 +5,14 @@
 #include <unordered_map>
 
 namespace halo2 {
-void capture_multiplayer_body_poses(SourceWorldInterpolation &history,
-    const MultiplayerState &previous,const MultiplayerState &current,bool reset) {
-    if(reset || previous.source_body_poses_authoritative!=current.source_body_poses_authoritative) {
-        history.reset(current.tick,current.source_body_poses);return;
-    }
+namespace {
+std::vector<std::uint32_t> body_cuts(const MultiplayerState &previous,const MultiplayerState &current) {
     std::vector<std::uint32_t> cuts;
     for(unsigned i=0;i<current.players.size();++i) {
         const auto &a=previous.players[i],&b=current.players[i];
+        if(a.source_weapon!=b.source_weapon || a.secondary_weapon.datum!=b.secondary_weapon.datum)
+            for(auto object:{a.source_weapon,b.source_weapon,a.secondary_weapon.datum,b.secondary_weapon.datum})
+                if(object!=null_datum)cuts.push_back(object);
         if(a.connected==b.connected && a.dead==b.dead && a.source_player==b.source_player &&
             a.source_unit==b.source_unit && a.source_parent==b.source_parent && a.source_seat==b.source_seat &&
             length(a.position-b.position)<5)continue;
@@ -21,7 +21,22 @@ void capture_multiplayer_body_poses(SourceWorldInterpolation &history,
         for(auto object:{a.source_unit,b.source_unit,a.source_weapon,b.source_weapon,
             a.secondary_weapon.datum,b.secondary_weapon.datum})if(object!=null_datum)cuts.push_back(object);
     }
-    history.capture(current.tick,current.source_body_poses,cuts);
+    return cuts;
+}
+}
+void capture_multiplayer_body_poses(SourceWorldInterpolation &history,
+    const MultiplayerState &previous,const MultiplayerState &current,bool reset) {
+    if(reset || previous.source_body_poses_authoritative!=current.source_body_poses_authoritative) {
+        history.reset(current.tick,current.source_body_poses);return;
+    }
+    history.capture(current.tick,current.source_body_poses,body_cuts(previous,current));
+}
+void refresh_multiplayer_body_poses(SourceWorldInterpolation &history,
+    const MultiplayerState &previous,const MultiplayerState &current) {
+    if(previous.source_body_poses_authoritative!=current.source_body_poses_authoritative) {
+        history.reset(current.tick,current.source_body_poses);return;
+    }
+    history.refresh(current.tick,current.source_body_poses,body_cuts(previous,current));
 }
 MultiplayerState multiplayer_presentation(const MultiplayerState &previous,
     const MultiplayerState &current,float fraction) {

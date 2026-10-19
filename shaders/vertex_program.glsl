@@ -141,7 +141,17 @@ void runVertexProgram() {
         if(mac==12u)m=vec4(greaterThanEqual(a,b));
         if(ilu==1u)l=c;
         if(ilu==2u)l=vec4(1.0/c.x);
-        if(ilu==3u)l=vec4(sign(c.x)*clamp(abs(1.0/c.x),5.421010862427522e-20,1.8446744073709552e19));
+        if(ilu==3u) {
+            // RCC clamps the reciprocal's signed value, including +/-zero
+            // operands and the signed zero produced by +/-infinity. sign(c.x)
+            // would collapse a camera-plane vertex instead of retaining RCC.
+            float reciprocal=1.0/c.x;
+            if(reciprocal>0.0 || floatBitsToUint(reciprocal)==0u)
+                reciprocal=clamp(reciprocal,5.421010862427522e-20,1.8446744073709552e19);
+            else if(!isnan(reciprocal))
+                reciprocal=clamp(reciprocal,-1.8446744073709552e19,-5.421010862427522e-20);
+            l=vec4(reciprocal);
+        }
         if(ilu==4u)l=vec4(inversesqrt(abs(c.x)));
         if(ilu==5u)l=vec4(exp2(floor(c.x)),fract(c.x),exp2(c.x),1);
         if(ilu==6u){float v=log2(abs(c.x));l=vec4(floor(v),abs(c.x)/exp2(floor(v)),v,1);}

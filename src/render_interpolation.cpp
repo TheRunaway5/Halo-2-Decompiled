@@ -59,21 +59,37 @@ Transform render_transform(const Transform &a,const Transform &b,float f) {
     return out;
 }
 std::vector<Transform> interpolate_model_nodes(const RenderModel &model,
-    std::span<const Transform> before,std::span<const Transform> after,float f) {
+    std::span<const Transform> before,std::span<const Transform> after,float f,
+    std::span<const ModelScaleReset> resets) {
     validate_render_fraction(f);
     if(before.size()!=after.size() || after.size()!=model.bones.size())
         throw FormatError("Completed model interpolation changed its authored hierarchy");
+    for(const auto &reset:resets)
+        if(reset.node>=model.bones.size() || !std::isfinite(reset.visible_min) ||
+           !std::isfinite(reset.visible_max) || !std::isfinite(reset.hidden) ||
+           reset.hidden<0 || reset.hidden>=reset.visible_min || reset.visible_min>reset.visible_max)
+            throw FormatError("Completed model interpolation received invalid scale reset metadata");
     if(f==0)return {before.begin(),before.end()};
     if(f==1 || !std::memcmp(before.data(),after.data(),after.size_bytes()))return {after.begin(),after.end()};
+    const auto blend=[&](unsigned node,const Transform &a,const Transform &b) {
+        auto shown=render_transform(a,b,f);
+        // A terminal authored scale reset hides the geometry. Blending its
+        // completed endpoints would sweep a one-shot blast backwards through
+        // the camera. Only that channel steps; root motion and other nodes
+        // retain their normal render interpolation.
+        for(const auto &reset:resets)
+            if(reset.node==node && model_scale_reset(reset,a.scale,b.scale))shown.scale=b.scale;
+        return shown;
+    };
     std::vector<Transform> result;result.reserve(after.size());
     for(unsigned n=0;n<after.size();++n) {
         const auto parent=model.bones[n].parent;
-        if(parent<0)result.push_back(render_transform(before[n],after[n],f));
+        if(parent<0)result.push_back(blend(n,before[n],after[n]));
         else {
             if(unsigned(parent)>=n)throw FormatError("Completed model has an unordered parent hierarchy");
             const auto a=compose_transform(inverse_transform(before[parent]),before[n]);
             const auto b=compose_transform(inverse_transform(after[parent]),after[n]);
-            result.push_back(compose_transform(result[parent],render_transform(a,b,f)));
+            result.push_back(compose_transform(result[parent],blend(n,a,b)));
         }
     }
     return result;
@@ -99,16 +115,16 @@ void ModelNodeInterpolation::capture_render(std::uint64_t tick,std::span<const T
     capture(tick,nodes,frame,true);
 }
 std::vector<Transform> ModelNodeInterpolation::sample_render(const RenderModel &model,float f,
-    std::optional<Transform> frame)const {
+    std::optional<Transform> frame,std::span<const ModelScaleReset> resets)const {
     validate_render_fraction(f);
     // The presentation clock is one simulation tick behind its current
     // completed endpoint. A slow draw may span several ticks; using f alone
     // would replay that entire interval and then jump at the next endpoint.
     if(paired_ && f!=1)f=float(1.0-(1.0-double(f))/double(tick_-previous_tick_));
-    return sample(model,f,frame);
+    return sample(model,f,frame,resets);
 }
 std::vector<Transform> ModelNodeInterpolation::sample(const RenderModel &model,float f,
-    std::optional<Transform> frame)const {
+    std::optional<Transform> frame,std::span<const ModelScaleReset> resets)const {
     validate_render_fraction(f);
     if(!initialized_ || current_.size()!=model.bones.size() ||
        frame.has_value()!=current_frame_.has_value())
@@ -122,12 +138,12 @@ std::vector<Transform> ModelNodeInterpolation::sample(const RenderModel &model,f
     };
     if(!paired_ || f==1)return frame?reframe(current_,*current_frame_,*frame):current_;
     if(f==0)return frame?reframe(previous_,*previous_frame_,*frame):previous_;
-    if(!frame)return interpolate_model_nodes(model,previous_,current_,f);
+    if(!frame)return interpolate_model_nodes(model,previous_,current_,f,resets);
     // FP animation is relative to its camera. Never blend yesterday's camera
     // into today's mouse input, nor apply interpolated player movement twice.
     const auto a=reframe(previous_,*previous_frame_,Transform{});
     const auto b=reframe(current_,*current_frame_,Transform{});
-    auto result=interpolate_model_nodes(model,a,b,f);
+    auto result=interpolate_model_nodes(model,a,b,f,resets);
     for(auto &node:result)node=compose_transform(*frame,node);
     return result;
 }
@@ -171,6 +187,17 @@ std::vector<Transform> SourceWorldInterpolation::sample(std::uint32_t object,flo
     for(unsigned n=0;n<result.size();++n)result[n]=render_transform(old->nodes[n],now->nodes[n],f);
     return result;
 }
+void SourceWorldInterpolation::refresh(std::uint64_t tick,std::span<const SourceWorldPose> poses,
+    std::span<const std::uint32_t> discontinuities) {
+    if(!initialized_ || tick!=tick_)throw FormatError("WORLD refresh requires the current completed tick");
+    validate_source_world_poses(poses);
+    auto next=std::vector<SourceWorldPose>(poses.begin(),poses.end());
+    std::erase_if(previous_,[&](const auto &pose) {
+        return std::find(discontinuities.begin(),discontinuities.end(),pose.object)!=discontinuities.end() ||
+            std::none_of(next.begin(),next.end(),[&](const auto &now){return now.object==pose.object;});
+    });
+    current_=std::move(next);
+}
 void SceneInterpolation::reset(std::uint64_t tick,std::span<const SceneObjects::Object> objects) {
     tick_=tick;initialized_=true;paired_=false;previous_.clear();
     current_.assign(objects.begin(),objects.end());
@@ -179,6 +206,17 @@ void SceneInterpolation::capture(std::uint64_t tick,std::span<const SceneObjects
     if(!initialized_ || tick<=tick_ || tick-tick_!=1){reset(tick,objects);return;}
     previous_.swap(current_);current_.assign(objects.begin(),objects.end());
     tick_=tick;paired_=true;
+}
+void SceneInterpolation::refresh(std::uint64_t tick,std::span<const SceneObjects::Object> objects) {
+    if(!initialized_ || tick!=tick_)throw FormatError("Scene refresh requires the current completed tick");
+    auto next=std::vector<SceneObjects::Object>(objects.begin(),objects.end());
+    std::erase_if(previous_,[&](const auto &old) {
+        return std::none_of(next.begin(),next.end(),[&](const auto &now) {
+            return old.handle==now.handle && old.placement==now.placement && old.created_tick==now.created_tick &&
+                old.bsp==now.bsp && old.visible && now.visible && !old.bsp_hidden && !now.bsp_hidden;
+        });
+    });
+    current_=std::move(next);
 }
 Transform scene_object_transform(const SceneObjects::Object &o) {
     if(o.solved_transform)return *o.solved_transform;

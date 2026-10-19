@@ -4,6 +4,7 @@
 #include "halo2/world_effects.hpp"
 #include "halo2/source_effect_world_locations.hpp"
 #include <map>
+#include <algorithm>
 
 namespace halo2 {
 struct SourceCombatAttachments::Impl {
@@ -13,6 +14,8 @@ struct SourceCombatAttachments::Impl {
     std::map<std::uint32_t,std::map<unsigned,Attachment>> definitions;
     std::map<std::pair<std::uint32_t,unsigned>,std::uint32_t> instances;
     std::set<std::string> gaps;
+    std::optional<std::uint64_t> tick;
+    bool complete=true;
     Impl(const Cache &c,NativeWorldEffects &e,std::span<const std::uint32_t> objects):cache(c),effects(e) {
         for(const auto datum:objects) {
             if(definitions.contains(datum))continue;
@@ -45,9 +48,41 @@ struct SourceCombatAttachments::Impl {
 SourceCombatAttachments::SourceCombatAttachments(const Cache &c,NativeWorldEffects &e,
     std::span<const std::uint32_t> objects):impl_(std::make_unique<Impl>(c,e,objects)){}
 SourceCombatAttachments::~SourceCombatAttachments()=default;
+struct SourceCombatAttachments::Checkpoint::Data {
+    std::shared_ptr<const int> owner;
+    Impl state;
+    Data(std::shared_ptr<const int> token,const Impl &from):owner(std::move(token)),state(from){}
+};
+std::optional<std::uint64_t> SourceCombatAttachments::Checkpoint::tick()const noexcept {
+    return data_?data_->state.tick:std::nullopt;
+}
+std::size_t SourceCombatAttachments::Checkpoint::active_instances()const noexcept {
+    if(!data_)return 0;
+    return std::count_if(data_->state.instances.begin(),data_->state.instances.end(),[](const auto &row){return row.second!=0xffffffffu;});
+}
+SourceCombatAttachments::PreparedRestore::PreparedRestore()=default;
+SourceCombatAttachments::PreparedRestore::~PreparedRestore()=default;
+SourceCombatAttachments::PreparedRestore::PreparedRestore(PreparedRestore &&)noexcept=default;
+SourceCombatAttachments::PreparedRestore &SourceCombatAttachments::PreparedRestore::operator=(PreparedRestore &&)noexcept=default;
+SourceCombatAttachments::Checkpoint SourceCombatAttachments::checkpoint()const {
+    if(!impl_->complete)throw FormatError("Combat attachment checkpoint requires a completed synchronization");
+    Checkpoint result;result.data_=std::make_shared<Checkpoint::Data>(owner_,*impl_);return result;
+}
+SourceCombatAttachments::PreparedRestore SourceCombatAttachments::prepare_restore(const Checkpoint &cut)const {
+    if(!cut.data_ || cut.data_->owner!=owner_)throw FormatError("Combat attachment checkpoint belongs to another owner");
+    PreparedRestore result;result.replacement_=std::make_unique<Impl>(cut.data_->state);result.owner_=owner_;return result;
+}
+bool SourceCombatAttachments::restore_ready(const PreparedRestore &prepared)const noexcept {
+    return prepared.replacement_ && prepared.owner_==owner_;
+}
+bool SourceCombatAttachments::commit_restore(PreparedRestore &&prepared)noexcept {
+    if(!restore_ready(prepared))return false;
+    impl_.swap(prepared.replacement_);prepared.owner_.reset();return true;
+}
 std::set<std::uint32_t> SourceCombatAttachments::synchronize(MultiplayerObjectRuntime &world,std::uint64_t tick) {
     auto &i=*impl_;
     if(!world.owns_physics())throw FormatError("Combat attachments require the actual source effect owner");
+    i.complete=false;
     std::set<std::uint32_t> present;
     std::set<std::pair<std::uint32_t,unsigned>> slots;
     for(const auto &object:world.live_objects()) {
@@ -86,7 +121,7 @@ std::set<std::uint32_t> SourceCombatAttachments::synchronize(MultiplayerObjectRu
     for(auto at=i.instances.begin();at!=i.instances.end();) {
         if(!slots.contains(at->first))at=i.instances.erase(at);else ++at;
     }
-    return present;
+    i.tick=tick;i.complete=true;return present;
 }
 std::vector<std::string> SourceCombatAttachments::unavailable()const {
     return {impl_->gaps.begin(),impl_->gaps.end()};

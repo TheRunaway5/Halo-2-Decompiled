@@ -65,6 +65,23 @@ std::uint32_t translate(std::span<const MccRuntimeRelocation> ranges,std::uint32
     return address(std::uint64_t(reverse?selected->source:selected->target)+
                    source-(reverse?selected->target:selected->source));
 }
+// Finalized plans retain source-sorted, validated disjoint allocations. Empty
+// aliases may sit inside a payload or at its endpoints, so skip them when they
+// cannot satisfy a nonempty extent. The nearest nonempty predecessor is the
+// only remaining possible owner; earlier disjoint allocations cannot cover it.
+std::uint32_t translate_sorted_source(std::span<const MccRuntimeRelocation> ranges,
+                                    std::uint32_t source,std::size_t bytes) {
+    if(!source || source==0xffffffffu || bytes>address_end-source)
+        throw FormatError("Canonical cache pointer is null or wraps");
+    auto at=std::ranges::upper_bound(ranges,source,{},&MccRuntimeRelocation::source);
+    while(at!=ranges.begin()) {
+        const auto& r=*--at;const auto offset=std::uint64_t(source)-r.source;
+        if(offset<=r.bytes && bytes<=r.bytes-offset)
+            return address(std::uint64_t(r.target)+offset);
+        if(r.bytes)break;
+    }
+    throw FormatError("Canonical cache pointer has no declared allocation owner");
+}
 }
 std::uint32_t relocate_mcc_runtime_address(std::span<const MccRuntimeRelocation> ranges,
                                          std::uint32_t source,std::size_t bytes) {
@@ -401,6 +418,9 @@ MccRuntimeCacheDelivery MccRuntimeCacheDelivery::plan(const Cache& cache,std::ui
     const auto reserved=aligned(cursor-base,4096);
     if(reserved>available || reserved>0xffffffffu)throw FormatError("Canonical MCC reservation exceeds available pages");
     out.reservation_bytes_=std::uint32_t(reserved);
+    // No later allocation is appended. Keep serialized addresses, bytes and
+    // validation unchanged; only the host lookup order is indexed here.
+    std::ranges::sort(out.relocations_,{},&MccRuntimeRelocation::source);
     if(capture_sound) {
         out.require_complete();
         capture_sound(std::move(sound));
@@ -427,6 +447,6 @@ std::uint32_t MccRuntimeCacheDelivery::source_address(std::uint32_t logical,std:
     return translate(relocations_,logical,bytes,true);
 }
 std::uint32_t MccRuntimeCacheDelivery::runtime_address(std::uint32_t source,std::size_t bytes) const {
-    return translate(relocations_,source,bytes,false);
+    return translate_sorted_source(relocations_,source,bytes);
 }
 } // namespace halo2

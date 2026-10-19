@@ -1,11 +1,17 @@
 #include "halo2/pstencil/material.hpp"
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
 using namespace halo2;
 int main(int argc,char** argv)try {
     if(argc!=3)throw FormatError("Supply current map and new evidence directory");
-    const std::filesystem::path out=argv[2];if(std::filesystem::exists(out))throw FormatError("Evidence exists");
+    const std::filesystem::path out=std::filesystem::absolute(argv[2]);
+    const auto* owned=std::getenv("HALO2_TEST_SCRATCH");
+    if(!owned)throw FormatError("Run this probe through tools/run_test.py");
+    const auto relative=out.lexically_relative(std::filesystem::absolute(owned));
+    if(relative.empty() || *relative.begin()=="..")throw FormatError("Probe output must stay under HALO2_TEST_SCRATCH");
+    if(std::filesystem::exists(out))throw FormatError("Evidence exists");
     std::filesystem::create_directories(out);Cache cache(argv[1]);nlohmann::json rows=nlohmann::json::array();
     for(const auto& tag:cache.tags())if(tag.group=="shad" &&
         (tag.name=="objects\\characters\\masterchief\\shaders\\masterchief" ||

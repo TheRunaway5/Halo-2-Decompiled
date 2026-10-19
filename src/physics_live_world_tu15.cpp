@@ -16,6 +16,8 @@
 #include "halo2/source_unit_view_reset_tu15.hpp"
 #include "halo2/source_havok_static_lifetime_tu15.hpp"
 #include "halo2/source_shadow_frame_tu15.hpp"
+#include "halo2/source_transparent_group_tu15.hpp"
+#include "halo2/source_transparent_collection_tu15.hpp"
 #include "halo2/source_cinematic_shadow_control_tu15.hpp"
 #include "halo2/source_effect_light_view_tu15.hpp"
 #include "halo2/pstencil/native_light_update_tu15.hpp"
@@ -50,6 +52,7 @@
 #include "halo2/source_geometry_lod.hpp"
 #include "halo2/source_scene_device_constructor_tu15.hpp"
 #include "halo2/source_map_world_support_tu15.hpp"
+#include "halo2/source_ui_script_startup_tu15.hpp"
 #include "halo2/physics_phantom_world_tu15.hpp"
 #include "halo2/physics_game_arena_native.hpp"
 #include "halo2/physics_early_initializer_runtime.hpp"
@@ -629,6 +632,10 @@ struct PhysicsLiveWorldTu15::Impl {
         // Actual44B350 owns cached object render states and the color/cache
         // records consumed by projectile attachment creation at17E4AA.
         call_actual(0x2b480u);
+        // Actual1410A7 first constructs HUD storage through1976CF, before
+        //1410AC constructs the first-person bank. Drop notifications reach
+        //197F2C/25AA57 and require that original50EECC allocation.
+        call_actual(0x1976cfu);
         call_actual(0x168ba3u); // Actual1410AC first-person view storage owner.
         call_actual(0x168bc5u); // Actual1410C2 resets its real four-view bank.
         call_actual(0x1888a0u); // Original local input/camera storage constructor.
@@ -749,6 +756,7 @@ struct PhysicsLiveWorldTu15::Impl {
         call_actual(0x17e700u); // Actual44B454 effect-instance/location new-map reset.
         call_actual(0x186d30u); // Actual44B3A0 activates breakable-surface effect storage.
         call_actual(0x2b520u); // Actual44B358 activates/resets cached render states.
+        call_actual(0x1976feu); // Actual1410B8 resets HUD storage and selects the resident authored HUD globals.
         install_sound_timing();
         call_actual(0x1378c0u); // Actual44B7D8 row64 new-map environment mixer reset.
     }
@@ -1368,7 +1376,10 @@ struct PhysicsLiveWorldTu15::Impl {
         if(source_combat_action_tu15_owns_entry(c.target)) {
             source_run_combat_action_tu15(m,c.target,a,fp,services(),o);return;
         }
-        if(pstencil_native_light_portal_tu15_owns_entry(c.target)) {
+        // The shared CRT memmove has a complete Process owner below, including
+        // backward alignment/count dispatch. The portal module's private copy
+        // closure must not intercept unrelated CRT callers such as331B79.
+        if(c.target!=0x32a990u && pstencil_native_light_portal_tu15_owns_entry(c.target)) {
             pstencil_run_native_light_portal_tu15(m,c.target,a,fp,services(),o);return;
         }
         // Complete per-view math has no query/cache publication. Keep the
@@ -1401,6 +1412,9 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         if(source_map_world_support_tu15_owns_entry(c.target)) {
             source_run_map_world_support_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(source_ui_script_startup_tu15_owns_entry(c.target)) {
+            source_run_ui_script_startup_tu15(m,c.target,a,fp,services(),o);return;
         }
         if(source_scene_device_constructor_tu15_owns_entry(c.target)) {
             if(c.target==0xf0e70u) {
@@ -1462,6 +1476,12 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         if(source_shadow_frame_tu15_owns_entry(c.target)) {
             source_run_shadow_frame_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(source_transparent_group_tu15_owns_entry(c.target)) {
+            source_run_transparent_group_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(source_transparent_collection_tu15_owns_entry(c.target)) {
+            source_run_transparent_collection_tu15(m,c.target,a,fp,services(),o);return;
         }
         if(source_havok_static_lifetime_tu15_owns_entry(c.target)) {
             source_run_havok_static_lifetime_tu15(m,c.target,a,fp,services(),o);return;
@@ -2851,6 +2871,30 @@ struct PhysicsLiveWorldTu15::Impl {
         session_configured=true;
         detail::release_native_startup_code_pages();
     }
+    std::uint32_t ai_object(std::uint32_t reference) {
+        if(reference==null_datum)return null_datum;
+        if(!session_configured)
+            throw FormatError("AI object query requires its configured source world");
+        // Original 2AEB30 passes ECX=AI and ESI=a caller's 0x30-byte iterator.
+        // The no-argument frame puts scratch above ESP; callees push below it.
+        auto a=frame({});
+        const auto caller_stack=a.gp[4];
+        if(std::uint64_t(caller_stack)+4u+0x30u>0x100000000ull)
+            throw FormatError("AI object iterator frame exceeds the source address space");
+        const auto iterator=caller_stack+4u;
+        bank.view(iterator,0x30u);
+        const auto return_address=word(bank,caller_stack);
+        a.gp[1]=reference;a.gp[6]=iterator;
+        run_actual(0x27caa0u,a);
+        // Retain the original register/flag state between the two calls;
+        // reinstall only the native caller's return frame consumed by RET.
+        a.gp[4]=caller_stack;put(bank,caller_stack,return_address);
+        run_actual(0x27cb30u,a);
+        if(!a.gp[0])return null_datum;
+        if(a.gp[0]>0xffffffffu-0x1bu)
+            throw FormatError("AI object unit field exceeds the source address space");
+        return word(bank,a.gp[0]+0x18u);
+    }
     void place_ai(std::uint32_t reference,std::optional<std::int16_t> count) {
         if(!session_configured)
             throw FormatError("AI placement requires its configured source world");
@@ -3270,6 +3314,7 @@ void PhysicsLiveWorldTu15::destroy_object(std::uint32_t object){Impl::PublicCall
 void PhysicsLiveWorldTu15::configure_session(const SourceGameVariant&v,std::uint16_t m,std::int16_t r,std::uint32_t s){Impl::PublicCall active(*impl_);impl_->configure_session(v,m,r,s);}
 void PhysicsLiveWorldTu15::configure_campaign_session(std::int16_t d,std::uint16_t m,std::int16_t r,std::uint32_t s){Impl::PublicCall active(*impl_);impl_->configure_session(source_game_variant_default(0),m,r,s,1u,d);}
 void PhysicsLiveWorldTu15::place_ai(std::uint32_t r,std::optional<std::int16_t> n){Impl::PublicCall active(*impl_);impl_->place_ai(r,n);}
+std::uint32_t PhysicsLiveWorldTu15::ai_object(std::uint32_t r){Impl::PublicCall active(*impl_);return impl_->ai_object(r);}
 void PhysicsLiveWorldTu15::set_object_position(std::uint32_t o,Vec3 p){Impl::PublicCall active(*impl_);impl_->set_object_position(o,p);}
 void PhysicsLiveWorldTu15::set_kill_volume_enabled(std::int16_t t,bool e){Impl::PublicCall active(*impl_);impl_->set_kill_volume_enabled(t,e);}
 bool PhysicsLiveWorldTu15::object_in_kill_volume(std::uint32_t o){Impl::PublicCall active(*impl_);return impl_->object_in_kill_volume(o);}

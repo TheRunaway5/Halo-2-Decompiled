@@ -8,7 +8,7 @@ namespace halo2 {
 namespace {
 using namespace continuation_wire;
 constexpr std::size_t host_limit=512*1024;
-constexpr std::string_view host_magic="H2HOST01";
+constexpr std::string_view host_magic="H2HOST02";
 void valid_binding(const LanHost::ContinuationBinding &b){
   need(b.context.host<16&&(b.context.peers&(1u<<b.context.host))&&
       std::ranges::any_of(b.context.session,[](auto v){return v!=std::byte{};})&&b.world.id&&b.world.bytes&&
@@ -102,6 +102,9 @@ void valid_data(const auto &s,const LanHost::ContinuationBinding &b){
   for(const auto &p:s.peers){need(p.endpoint<16&&p.endpoint!=b.context.host&&(b.context.peers&(1u<<p.endpoint))&&
       !(endpoints&(1u<<p.endpoint))&&!p.ids.empty()&&p.ids.size()<=4&&p.selected_teams.size()==p.ids.size()&&p.profiles.size()==p.ids.size());
     endpoints|=std::uint16_t(1u<<p.endpoint);std::vector<unsigned> ids;
+    if(p.last_snapshot){const auto &v=*p.last_snapshot;
+      need(v.fingerprint==s.fingerprint&&v.nonce==p.nonce&&v.cookie==p.cookie&&v.sequence==p.snapshot_sequence&&
+          v.tick<=s.tick&&v.bytes>0&&v.bytes<=8u*1024u*1024u);}
     for(const auto &a:s.admissions)if(online_admission_peer(a)==p.endpoint)ids.push_back(a.slot);need(ids==p.ids);
     (void)view_admissions(s,p);
     for(unsigned i=0;i<p.ids.size();++i){const auto slot=p.ids[i];need(!(remote&(1u<<slot))&&!(local&(1u<<slot)));
@@ -125,7 +128,8 @@ auto idle_duration(std::uint64_t count){
 std::vector<std::byte> LanHost::encode_continuation(const Continuation &cut,const ContinuationBinding &bound){
   using namespace continuation_wire;need(bool(cut.data_));const auto &s=*cut.data_;valid_data(s,bound);
   static_assert(boost::pfr::tuple_size_v<Continuation::Data> ==8);
-  static_assert(boost::pfr::tuple_size_v<Continuation::Data::Peer> ==20);
+  static_assert(boost::pfr::tuple_size_v<Continuation::Data::Peer> ==21);
+  static_assert(boost::pfr::tuple_size_v<MultiplayerSnapshotStamp> ==7);
   static_assert(boost::pfr::tuple_size_v<OnlineAdmission> ==6&&boost::pfr::tuple_size_v<SourcePlayerAdmission> ==3);
   Writer w{host_limit,{}};w.u(native_multiplayer_protocol,2);binding(w,bound);w.octets(s.binding);w.u(s.fingerprint,8);w.u(s.tick,8);
   w.blob(s.configuration,65536);for(auto p:s.local_players)w.u(p,4);w.u(s.admissions.size(),1);
@@ -135,7 +139,10 @@ std::vector<std::byte> LanHost::encode_continuation(const Continuation &cut,cons
     w.u(p.endpoint,1);w.u(p.nonce,8);w.u(p.cookie,8);w.u(p.ids.size(),1);for(auto slot:p.ids)w.u(slot,1);
     for(auto team:p.selected_teams)w.u(std::bit_cast<std::uint8_t>(team),1);
     for(const auto &profile:p.profiles){w.boolean(profile.has_value());if(profile)w.octets(*profile);}
-    w.u(p.sequence,4);w.u(p.snapshot_sequence,4);w.boolean(p.seen);w.u(idle_nanoseconds(p.idle),8);
+    w.u(p.sequence,4);w.u(p.snapshot_sequence,4);w.boolean(p.last_snapshot.has_value());
+    if(p.last_snapshot){const auto &v=*p.last_snapshot;w.u(v.fingerprint,8);w.u(v.nonce,8);w.u(v.cookie,8);
+      w.u(v.sequence,4);w.u(v.tick,4);w.u(v.bytes,4);w.octets(v.digest);}
+    w.boolean(p.seen);w.u(idle_nanoseconds(p.idle),8);
     for(const auto &c:p.controls)controls(w,c);
     for(const auto &bank:p.received_presses)for(auto v:bank)w.u(v,4);
     for(const auto &bank:p.delivered_presses)for(auto v:bank)w.u(v,4);
@@ -166,7 +173,10 @@ LanHost::Continuation LanHost::decode_continuation(std::span<const std::byte> by
     p.endpoint=r.u(1);p.nonce=r.u(8);p.cookie=r.u(8);const auto views=r.u(1);need(views>0&&views<=4);p.ids.resize(views);
     for(auto &slot:p.ids)slot=r.u(1);p.selected_teams.resize(views);for(auto &team:p.selected_teams)team=std::bit_cast<std::int8_t>(std::uint8_t(r.u(1)));
     p.profiles.resize(views);for(auto &profile:p.profiles)if(r.boolean()){profile.emplace();r.octets(*profile);}
-    p.sequence=r.u(4);p.snapshot_sequence=r.u(4);p.seen=r.boolean();p.idle=idle_duration(r.u(8));
+    p.sequence=r.u(4);p.snapshot_sequence=r.u(4);
+    if(r.boolean()){auto &v=p.last_snapshot.emplace();v.fingerprint=r.u(8);v.nonce=r.u(8);v.cookie=r.u(8);
+      v.sequence=r.u(4);v.tick=r.u(4);v.bytes=r.u(4);r.octets(v.digest);}
+    p.seen=r.boolean();p.idle=idle_duration(r.u(8));
     for(auto &c:p.controls)c=controls(r);
     for(auto &bank:p.received_presses)for(auto &v:bank)v=r.u(4);
     for(auto &bank:p.delivered_presses)for(auto &v:bank)v=r.u(4);

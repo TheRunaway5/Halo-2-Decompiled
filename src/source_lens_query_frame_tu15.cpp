@@ -9,6 +9,7 @@
 #include <cstring>
 #include <limits>
 #include <map>
+#include <optional>
 #include <thread>
 
 namespace halo2 {
@@ -26,8 +27,11 @@ struct SourceLensQueryFrameTu15::Impl final:SourcePhysicsContactMemory {
     Renderer &renderer;
     RendererDeviceLease lease;
     SourceRuntimeMemory *source{};
+    const SourceRuntimeMemory *expected_source{};
     SourceRuntimeMemory graphics;
     const std::thread::id thread=std::this_thread::get_id();
+    const std::shared_ptr<const int> identity=std::make_shared<const int>(0);
+    std::uint64_t revision{};
     std::map<unsigned,std::uint64_t> pending,staged;
     std::array<std::uint64_t,source_lens_query_capacity> generations{};
     std::vector<SourceLensQueryResult> last_completed;
@@ -43,7 +47,6 @@ struct SourceLensQueryFrameTu15::Impl final:SourcePhysicsContactMemory {
     std::uint32_t prepared_views{},views{},fence{};
     unsigned active_view=~0u;
     explicit Impl(Renderer &r):renderer(r),lease(r.device_lease()) {
-        renderer.retire_lens_queries();
         graphics.mount(driver,std::vector<std::byte>(4096),SourceRuntimeMemory::Access::ReadWrite,"native lens query device ABI");
         graphics.mount(fifo,std::vector<std::byte>(fifo_size),SourceRuntimeMemory::Access::ReadWrite,"native lens query emission storage");
         graphics.mount(pages,std::vector<std::byte>(query_pages*4096),SourceRuntimeMemory::Access::ReadWrite,"actual native GPU query metadata");
@@ -54,8 +57,13 @@ struct SourceLensQueryFrameTu15::Impl final:SourcePhysicsContactMemory {
     void check(PhysicsLiveWorldTu15 &world) {
         if(std::this_thread::get_id()!=thread || !lease.valid())
             throw FormatError("Original lens queries lack their live renderer/thread owner");
+        if(expected_source&&expected_source!=&world.memory())
+            throw FormatError("Original lens query owner received a different prepared world");
         if(source && source!=&world.memory())throw FormatError("Original lens query owner cannot cross source worlds");
-        source=&world.memory();
+        if(!source) {
+            if(revision==std::numeric_limits<std::uint64_t>::max())throw FormatError("Original lens query owner revision exhausted");
+            ++revision;source=&world.memory();
+        }
     }
     static bool contains(std::uint32_t p,std::size_t size,std::uint32_t base,std::size_t count) {
         return p>=base && std::uint64_t(p)+size<=std::uint64_t(base)+count;
@@ -96,16 +104,68 @@ struct SourceLensQueryFrameTu15::Impl final:SourcePhysicsContactMemory {
         }
     }
 };
-SourceLensQueryFrameTu15::SourceLensQueryFrameTu15(Renderer &r):impl_(std::make_unique<Impl>(r)){}
+struct SourceLensQueryFrameTu15::PreparedData {
+    std::shared_ptr<const int> owner;
+    std::uint64_t revision{};
+    std::optional<Renderer::PreparedLensQueryRetirement> retirement;
+    std::unique_ptr<Impl> next;
+};
+SourceLensQueryFrameTu15::PreparedRebind::PreparedRebind()=default;
+SourceLensQueryFrameTu15::PreparedRebind::~PreparedRebind()=default;
+SourceLensQueryFrameTu15::PreparedRebind::PreparedRebind(PreparedRebind &&) noexcept=default;
+SourceLensQueryFrameTu15::PreparedRebind &SourceLensQueryFrameTu15::PreparedRebind::operator=(PreparedRebind &&) noexcept=default;
+SourceLensQueryFrameTu15::SourceLensQueryFrameTu15(Renderer &r):impl_(std::make_unique<Impl>(r)){
+    r.retire_lens_queries();
+}
 SourceLensQueryFrameTu15::~SourceLensQueryFrameTu15(){
     // A renderer handoff can explicitly retire the device before this scene
     // owner leaves scope. Its lease is safe to inspect without the Renderer.
     if(impl_->lease.valid())impl_->renderer.retire_lens_queries();
 }
 std::span<const SourceLensQueryResult> SourceLensQueryFrameTu15::completed()const{return impl_->last_completed;}
+void SourceLensQueryFrameTu15::rebind(const SourceRuntimeMemory &memory) {
+    auto prepared=prepare_rebind(memory);
+    if(!commit_rebind(std::move(prepared),memory))throw FormatError("Original lens query handoff became stale");
+}
+SourceLensQueryFrameTu15::PreparedRebind SourceLensQueryFrameTu15::prepare_rebind(const SourceRuntimeMemory &memory) const {
+    const auto &s=*impl_;
+    if(std::this_thread::get_id()!=s.thread||!s.lease.valid()||s.active||s.source==&memory||s.expected_source==&memory)
+        throw FormatError("Original lens query handoff lacks a new world and completed renderer frame");
+    const auto use=s.lease.acquire();
+    source_require_retired_lens_queries(memory);
+    PreparedRebind prepared;prepared.data_=std::make_unique<PreparedData>();
+    auto &p=*prepared.data_;p.owner=s.identity;p.revision=s.revision;
+    p.next=std::make_unique<Impl>(s.renderer);p.next->expected_source=&memory;
+    p.retirement.emplace(s.renderer.prepare_lens_query_retirement());
+    return prepared;
+}
+bool SourceLensQueryFrameTu15::rebind_ready(const PreparedRebind &prepared,const SourceRuntimeMemory &memory) const noexcept {
+    try {
+        const auto &s=*impl_;const auto *p=prepared.data_.get();
+        if(std::this_thread::get_id()!=s.thread||!p||p->owner!=s.identity||p->revision!=s.revision||
+           s.active||!s.lease.valid()||!p->next||p->next->expected_source!=&memory||
+           s.source==&memory||s.expected_source==&memory)return false;
+        source_require_retired_lens_queries(memory);
+        return p->retirement&&s.renderer.lens_query_retirement_ready(*p->retirement);
+    } catch(...) {return false;}
+}
+Renderer *SourceLensQueryFrameTu15::renderer_owner() const noexcept {return &impl_->renderer;}
+void SourceLensQueryFrameTu15::publish_rebind(PreparedRebind &prepared) noexcept {
+    auto &p=*prepared.data_;
+    if(!impl_->renderer.commit_lens_query_retirement(std::move(*p.retirement)))std::terminate();
+    impl_.swap(p.next);p.owner.reset();
+}
+bool SourceLensQueryFrameTu15::commit_rebind(PreparedRebind &&prepared,const SourceRuntimeMemory &memory) noexcept {
+    if(!rebind_ready(prepared,memory))return false;
+    publish_rebind(prepared);return true;
+}
 void SourceLensQueryFrameTu15::begin(PhysicsLiveWorldTu15 &world) {
-    auto &s=*impl_;s.check(world);
+    auto &s=*impl_;
+    if(std::this_thread::get_id()!=s.thread||!s.lease.valid())
+        throw FormatError("Original lens queries lack their live renderer/thread owner");
     if(s.active)throw FormatError("Original lens query frame already active");
+    if(s.revision==std::numeric_limits<std::uint64_t>::max())throw FormatError("Original lens query owner revision exhausted");
+    ++s.revision;s.check(world);
     s.harvest();
     if(!s.initialized){world.call_actual(0x3803b0u);s.initialized=true;}
     world.call_actual(0x20680u);s.prepared_views=0;s.views=0;s.active_view=~0u;s.active=true;

@@ -152,7 +152,11 @@ public:
         out.node_map_=std::move(layout.node_map);
       } else {
         auto layout=project_mcc_rigid_model_vertex_layout(*out.model_geometry_class_,
-            std::to_integer<unsigned>(meta.slice(at+0x14,1)[0]),model_nodes,out.vertex_count_,out.model_raw_header_,descriptor_bytes,
+            // The stored section width covers opaque and transparent parts.
+            // Transparent-only rigid-boned sections have opaque=0,trans=1;
+            // TU1.5 1CA80/1CB00 still selects their rigid-boned class2.
+            std::max(std::to_integer<unsigned>(meta.slice(at+0x14,1)[0]),
+                std::to_integer<unsigned>(meta.slice(at+0x15,1)[0])),model_nodes,out.vertex_count_,out.model_raw_header_,descriptor_bytes,
             out.resources_[stream_resources[0]].bytes,out.resources_[stream_resources[1]].bytes,
             out.resources_[stream_resources[2]].bytes,node_bytes);
         std::copy(layout.descriptors.begin(),layout.descriptors.end(),descriptor_bytes.begin());

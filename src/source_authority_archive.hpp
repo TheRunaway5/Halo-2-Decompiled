@@ -46,9 +46,15 @@ struct SourceAuthorityArchiveAccess {
                 if(count!=unsigned(v.count_))throw FormatError("Authority archive datum census differs");
             }
         }else if constexpr(std::is_same_v<R,SourceObjectBodyStorage>){
-            a.object(field("capacity",v.capacity_),field("arena",v.arena_),field("scratch",v.scratch_),field("handles",v.handles_));
-            if constexpr(A::reading)if(!v.capacity_||v.capacity_>0x100000||v.arena_.size()!=((v.capacity_+0x53u)&~3u))
-                throw FormatError("Authority archive has invalid native body backing");
+            if constexpr(A::reading){
+                a.object(field("capacity",v.capacity_),field("arena",v.arena_),field("scratch",v.scratch_),field("handles",v.handles_));
+                if(!v.capacity_||v.capacity_>0x100000||v.arena_.size()!=((v.capacity_+0x53u)&~3u))
+                    throw FormatError("Authority archive has invalid native body backing");
+            }else{
+                v.materialize_default_backing();
+                const auto capacity=v.capacity();
+                a.object(field("capacity",capacity),field("arena",v.arena_),field("scratch",v.scratch_),field("handles",v.handles_));
+            }
         }else if constexpr(std::is_same_v<R,SourceHsListBank>){
             a.object(field("headers",v.headers_),field("references",v.references_));
             if constexpr(A::reading){
@@ -83,6 +89,7 @@ enum Tag:std::uint8_t {Boolean,Unsigned,Signed,Float,Double,String,Blob,Sequence
 template<class T>struct Kind {static constexpr int value=0;};
 template<class T,class A>struct Kind<std::vector<T,A>>{static constexpr int value=1;};
 template<>struct Kind<TexturePixels>{static constexpr int value=1;};
+template<>struct Kind<MaterialPassBank>{static constexpr int value=1;};
 template<class T,class A>struct Kind<std::deque<T,A>>{static constexpr int value=1;};
 template<class T,std::size_t N>struct Kind<std::array<T,N>>{static constexpr int value=2;};
 template<class K,class V,class C,class A>struct Kind<std::map<K,V,C,A>>{static constexpr int value=3;};

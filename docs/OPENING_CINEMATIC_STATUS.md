@@ -1,6 +1,585 @@
 # Opening campaign cinematic — 2026-10-15
 
+**2026-10-19 testing source: selected MCC cache only.**
+Opening playback/performance/visual/audio tests now use the launcher's selected
+private MCC preparation from `assets/mcc-source.tsv`. The canonical test entry
+is `tools/preview_opening_cinematic.py`, invoked through `tools/run_test.py`.
+It verifies the opening, mainmenu and shared map headers are MCC version13 and
+checks their complete SHA256 hashes, plus the actual texture and English,
+neutral and remastered audio banks, against the preparation/conversion receipts.
+It supplies both the opening map and shared-resource directory explicitly.
+There is no ISO/Vista cache, external XBE/UI override or asset-viewer fallback.
+TU1.5 remains the behavior reference; reference-only original-data fixtures do
+not count as MCC playback acceptance. Earlier ISO preview results remain
+historical evidence and do not establish MCC cutscene behavior.
+
+V754's pending ISO-backed full build/probe was cancelled before its runtime
+probe started; its owned scratch/build tree is removed. Its probe helper now
+uses the same MCC source guard before any subsequent playback. V756's real MCC
+input verification passes, along with8 synthetic source/argument rejection
+controls. These results verify input ownership, not a completed MCC cutscene.
+V757 attempts one hidden campaign frame with the selected launcher runtime
+(`8e31e561103bb773a5f40b2171e9c6732bfc98846efc42e682a707334fcac2a3`)
+and those verified MCC inputs. It exits1 before rendering with
+`MCC model vertex projection requires verified rigid or one-influence rigid-boned geometry`.
+This is a real startup failure, not a passing cutscene or a reason to use an
+original-cache preview. V758 then builds the current reader and runs the
+MCC-only startup-model test on that same opening map. It fails earlier during
+content preflight with `truncated mulg multiplayer\multiplayer_globals`, before
+the model stream checks. Its test now admits an explicit opening startup
+profile while preserving Lockout's original24-model/131-section assertions;
+no opening model or rendered-frame acceptance is claimed. These two failures
+do not yet distinguish a stale runtime from the current conversion frontier.
+Use a deliberately selected candidate executable for an actual campaign test:
+
+```sh
+python3 tools/run_test.py --scratch-root .local/test-scratch -- \
+  python3 tools/preview_opening_cinematic.py --runtime /absolute/path/to/halo2_native \
+  --report analysis/opening-mcc-preview.json
+```
+
+**2026-10-19 group metadata handoff: component progress; live acceptance pending.**
+The live group now owns the actual post-cull native unit/mask snapshot before
+secondary queries reuse its banks. A typed binding joins each sorted descriptor
+to retained full owner/model/section/part/override identity, exact authored
+pass/implementation and actual compiled vertex class. Shared immutable metadata
+survives frame ownership changes. Stable model/palette/section/context words
+are checked against the post-cull snapshot; cull admission/mask fields are
+allowed to change through their real owner.
+
+V753 passes2 original-reference component checks (group metadata and material).
+Its fixture retains25 commands and28 descriptors from V719's original-cache
+run, including17 ordinary and11 override passes for Regret and the throne.
+It is not an MCC fixture or GPU-rendering result. V755 subsequently catches a
+missing guard: dropping an entire admitted layer is silently accepted. That
+red regression remains open. V754's cancelled coherent app build proves no
+new live frame. Actual body deferral, target19 copy, GPU group scheduling and
+the user's visible hologram/NPC acceptance remain pending.
+
+**2026-10-19 latest user acceptance: four defects remain, including the ring flash.**
+The user reports that a cutscene preview opened by this chat still has incorrect
+NPC rendering, the inaudible/missing Pillar of Autumn reply, lips slightly behind
+audio, and a brief second ring flash. The supplied shots show bright pink council
+props and incorrect foreground character presentation. The preceding forced
+quarter-fraction ring-reset test remains useful bounded evidence; it does not
+close this newer normal-playback report. Keep the ring gate open until the
+reported preview path is reproduced and its complete explosion interval checked.
+The user also supplies a High Charity overlap reference: the city must appear
+in front of the planet. Actual draw/depth ordering and a final captured-frame
+comparison remain required. Do not substitute a scene-name draw-order override.
+
+**2026-10-19 hologram material/copy/raw GPU bridge: checked; live scheduling open.**
+V747 reproduces the actual binder rejection on Regret's original layer21:
+`hologram scene-copy material binding is unresolved`. The new typed material
+binding resolves the caller's exact shader LOD/pass/implementation and retains
+extern17 as a required target19 dependency. It preserves the original program,
+constants, animation, sampler states and RGB-only write mask. Unknown external
+textures/uniforms and mismatched layer/LOD choices remain errors; this pass
+does not become an ordinary object body.
+
+The raw Vulkan packet/pipeline now admits the original SRC_ALPHA/INV_SRC_ALPHA
+blend, including its source-alpha-squared alpha equation. Scene-copy preparation
+returns only descriptor-view/format/extent facts, separate from a produced image.
+The actual copy still requires a reset completion fence and must be recorded
+before consumers. Preparation alone initializes no contents and makes no image
+layout/readiness claim.
+
+V750 passes3 checks: the original material join and4 rejection controls,8 native
+scene-copy resource cases, and the complete raw hologram GPU chain. The latter
+uses Regret's actual rigid section, original programs and bitmaps, the copied
+V719 shader clock and target19, with explicitly declared diagnostic camera,
+identity palette, raster, single-triangle range and background. It exercises
+72,968 translucent pixels /583,744 RGBA comparisons on the RTX5080, with maximum
+error0.498046875 byte levels and0 Khronos validation errors. The original RGB
+mask and a diagnostic alpha-write control both pass. The copy resource check
+again checks6,651,904 channels with maximum error0.890625 and0 validation errors.
+V749 preserves initial fixture compile diagnostics; it is not a GPU failure
+or an additional original-behavior regression. No large artifact is retained.
+
+This verifies a native shader/copy/descriptor/blend bridge, not the live
+423B0 group/body schedule, interpolated character pose, Xbox framebuffer or
+finished cutscene. The visible preview has not been replaced by this work.
+The inaudible Pillar reply remains open: the SDL callback still has one scalar
+voice gain rather than the original direct/effect bus fanout and final mix.
+No line-specific gain substitute is added.
+V748 also completes the current renderer-library build and passes the material
+and native-copy checks under8GiB/zero swap (6,453,321,728-byte complete-job peak).
+V751 pins the11 changed implementation/test inputs, records all4 completed
+units and verifies their4 disposable build/scratch trees are absent. Its own
+wrapper scratch is checked absent after exit. Only small reports/logs are
+newly retained; prior reference captures and preview runtimes are preserved.
+
+**2026-10-19 hologram vertex programs: missing pairing identified and supported.**
+V720/V722 execute the real native lowerer on literal overrideE87406FF:
+all seven class0..6 programs are rejected by the unadmitted DP4+MOV pairing,
+and none is in the embedded catalog. V723 adds the deferred-result/component
+alias regression first and observes the matching rejection. The production
+change admits this one pairing through the existing arithmetic/emission path;
+it retains all output/temporary alias guards. V726 passes the original menu
+and sphere-light semantic checks, including the new controls.
+
+V725 translates all seven original programs without unresolved attributes.
+They consume the actual camera/literal bankc0..11, animated authoredc18..20,
+and, for models, palettec50..169/compressionc170..171. No extra object-function
+or projection-tail constants are consumed. V724 separately runs all seven
+complete arithmetic programs on the RTX5080, comparing512 explicit c192/v16
+fixtures per program against the pinned independent original Xemu emitter:
+229,376 float output words match exactly. Removing the paired MOV changes512
+words. Controlled fixtures keep relative palette reads in range; they are not
+live character poses. This is arithmetic evidence, not physical Xbox precision,
+raw fetch, fragment/render-state or finished hologram image acceptance.
+
+V727 preserves all120 existing catalog entries and imports seven generated MIT
+GLSL translations, with full program/declaration identities and source hashes.
+Original tokens and the reference emitter/helpers are not copied to production.
+Live group GPU scheduling remains open. The raw backend also needs the actual
+hologram SRC_ALPHA/INV_SRC_ALPHA blend admission, its exact pass/material join,
+target19/extern17 binding, and scene-copy-before-body ordering. Adding program
+support alone does not change the visible cutscene runtime.
+
+The broader V728 catalog check catches one additional newly supported mainmenu
+program (`sh_dynamic`, class0). V730 also finds seven opening
+`lightmap_dynamic_tex` variants; V732 checks all eight arithmetic programs on
+the RTX5080 against the same independent emitter, with262,144 exact output
+words. The seven lightmap variants already live in the separate projected
+catalog. V734 correctly rejects duplicate identities after their initial import;
+V736 removes only those newly copied duplicates and retains the existing
+projected sources/modules. The final ordinary catalog has128 entries (the prior
+120, seven hologram variants, one sh_dynamic variant), alongside the unchanged
+33-entry projected catalog. The failed receipts are retained; final catalog
+and semantic validation is recorded separately in V737.
+V737 builds the final128+33 catalog and passes all4 selected checks: original
+menu/sphere semantic emission, the whole supported-mainmenu inventory and all
+seven hologram program identities with changed-token controls. V729 records
+the completed-job limits, source pins and removed scratch/build paths. No new
+runtime binary is delivered by this shader-catalog work.
+
+V738 replays the exact V716 visible-preview executable (SHA256
+`6dbe97b3360a4661f4beb4f6ed71823d6f2ed8a9695b204ea1fa54da76bdb5b2`)
+without a render-fraction override. It captures268 final GPU frames through
+ticks2730..2881 and retains a460,249-byte contact sheet;740,970,688 raw-frame
+bytes are removed by the wrapper. The late2840 reset contains no cyan pulse
+in this capture. The user explicitly identifies a later flash after the
+explosion mostly fades, so this observation does not close the report. V740
+records actual visible-window presentation beyond that fade without GPU
+readback; it is diagnostic evidence, not the requested finished-cutscene video.
+V740/V742 do not verify full client bounds: their1280x720 recording cannot rule
+out a full-frame flash. V744 repeats the ordinary visible preview with actual
+X11 geometry:2560x1378, unchanged throughout capture. It records18.007609 seconds
+and2161 timestamped frames, including the fade and subsequent shots. V746
+analyzes the literal presentation timestamps without decoder frame duplication;
+its contact sheet and per-frame metrics are retained. Capture frequency120Hz
+does not certify unique native FPS. No finished cutscene or late-flash closure
+is claimed from this diagnostic. V745 verifies completed probe units and
+scratch removal and inventories the required window/video/contact references;
+V729 separately records the removed268 raw GPU frames.
+
+**2026-10-19 live hologram group collection and ordering: connected; GPU submission open.**
+Whole TU1.5 `44C80` is recovered and registered in both execution dispatchers.
+V714 regenerates its153 instructions/503 original bytes exactly under the
+unchanged60MiB hard/64MiB measured/zero-swap comparison guard (54,849,536-byte
+peak). The real main-view collector now calls that owner and copies its group
+commands before secondary queries can reuse native storage. The adapter also
+runs the existing whole `3BAA0`/`4CBE0` selection/sorting owners for the layers
+admitted by `423B0`; descriptors retain all24 original bytes, including residue.
+V717 authenticates the layer15/21 category0 table entries from the executable.
+
+V713 and V718 are coherent candidate builds; each passes20 selected checks and
+the guarded camera comparison, with the existing negative controls failing as
+expected. V716 plays V713 visibly with normal audio through all13 scenes in
+196.56 seconds with no script/audio errors. This is playback continuity, not
+an audible Xbox mix comparison. Its partial timing observation covers10,169
+intervals:14.62ms median/30.22ms95th percentile, renderer4.00ms/5.53ms. It does
+not establish uniform60FPS or an isolated performance improvement.
+
+V719 deliberately stops V718 after three real Regret group frames. Each emits
+25 commands and28 sorted descriptors, including11 layer21 hologram descriptors;
+actual vertex classes are1,2,5. The copied shader clocks are36.3058,36.3298 and
+36.3485 seconds. V715 independently checks all32 original override overlays:
+all use clock inputs and none consumes range blending. The published render
+clock can therefore drive this shader without invented object-function values.
+
+These steps supply real group commands, ordered pass metadata and shader time.
+They do not yet defer the ordinary bodies, submit target19/extern17, or render
+the final animated hologram. V718 has bounded live-probe evidence, not a full
+visible playback. V721 verifies nine owned scratch paths absent and records
+completed-job limits before unloading their transient units. The required
+candidate runtime bundles are explicitly retained: V71392,676,023 bytes and
+V71892,704,303 bytes, under `analysis/opening-cinematic-20261015/`; neither is
+installed as the default launcher runtime. Full cutscene acceptance remains open.
+
+**2026-10-19 hologram scene copy: native GPU component added; live group open.**
+The existing water-copy shader hardcodes512x256 and cannot deliver target19's
+320x240 copy. The new `scene_copy.frag` takes the actual destination dimensions;
+its uniform helper projects the existing original four-tap attributes using
+an explicitly supplied source coordinate extent. Source coordinates and host
+image resolution stay distinct. The water path is unchanged.
+
+V706 executes74 destination cases on the NVIDIA RTX5080, checking33,153,024
+RGBA channels against the original emitted attributes with declared host
+images/pixel centers and a two-byte filtering tolerance. Maximum error is
+1.1815033 byte levels. The actual fixed512x256 shader, run at target19's size,
+differs by more than3 bytes in572,851 channels. This distinguishes the missing
+destination-sized path; it does not compare Xbox GPU pixels.
+
+`SourceSceneCopyGpu` now owns persistent native source-snapshot/destination
+images, descriptors, pipeline and per-frame uniform storage. It records copies
+before a group's body, restores the main image layout and leaves the copy
+shader-readable. Repeated groups share immutable view inputs and ordered copy
+writes. Frame fences protect preparation/destruction; a never-submitted reset
+command can be discarded without claiming completion. Recording performs no
+readback, queue-idle wait, image allocation or shader compilation. The source
+copy sampler follows352E0's explicit address3/MIN2/MAG2/MIP0 writes and the
+existing Xbox-to-Vulkan address mapping.
+
+V709 exercises the actual resource owner in8 RGBA/BGRA,640x480/1280x720 source,
+320x240/512x256 destination cases. It checks6,651,904 channels, snapshot ordering
+across an intervening main-image change, pending-fence gates, layout restoration
+and discarded-command reuse. Maximum byte error is0.890625; explicit Khronos
+validation reports0 errors. V707 preserves the initial test-fixture macro
+compile failure. V708 is skipped for missing default validation-layer discovery
+and is not counted as validation; V709 borrows the existing frozen layer
+read-only and records its unchanged hashes. No layer/runtime/media is newly
+retained for these tests.
+
+V710 rebuilds the final sources and passes all4 focused checks: original
+scene-copy geometry, all original destination attributes/programs, the74-case
+host shader comparison, and the8-case validated native resource comparison.
+Both GPU tests select the actual RTX5080. V711 pins current sources and verifies
+all6 private build trees fromV705–V710 were removed. The maximum complete-job
+RAM peak is1,097,158,656 bytes under6GiB/zero swap; the existing validation
+dependency is unchanged. Only small reports/logs are newly retained.
+
+This supplies a native GPU copy component. It does not yet join the live
+423B0 callback/target19 registry, defer the ordinary Regret/throne body draws,
+bind extern17 or execute the animated layer21 override. No updated cutscene
+runtime or visible hologram acceptance is claimed. The full goal remains active.
+
+**2026-10-19 Regret hologram: original group callback recovered; rendering open.**
+The fresh V693 observation reads three completed live Regret frames from the
+V683 runtime. Regret and his throne share section0/kind3, with six ordinary
+units and six override units selecting shaderE87106FC. The ordinary native
+model consumer still omits those overrides. This is a confirmed consumer gap;
+the live observation stops after those frames and is not full playback.
+
+Whole TU1.5 callback423B0 is now native code and is registered in both source
+execution dispatchers. Its authenticated42750 parent publishes the same
+callback. It first copies the scene through352D0(NONE,1), then collects the
+group through44C80, draws its admitted ordinary layers, selects layer15 and
+layer21, and restores the previous mask/bank. Scene copy must precede the
+ordinary body and throne; copying the already-drawn silhouette is incorrect.
+
+V703 (the final rerun ofV696) compares2752 declared CPU-boundary cases against unchanged TU1.5 bytes:
+443141 instructions, all245 distinct instructions/all42 call sites, exact
+ordered stores/callee inputs/exit GP and XMM/flags and24KiB banks.
+AF is explicitly excluded from the flag comparison. The memory-contained job passes
+under60MiB hard/64MiB measured/zero swap. A missing-copy-owner control rejects
+at423E1 with its actual caller and preceding stores intact. V701 reproduces
+the complete generated source byte-for-byte and rejects a private changed-bank
+mutation at423D5. V699 syntax-checks the two dispatch consumers; a full updated
+application link and visible hologram acceptance have not been run.
+
+The declared test callees do not supply production GPU, collection, selector
+or draw services. The current missing owners remain target19 copy/lifetime,
+group collection and pass consumption, and the actual animated shader banks.
+V698 independently reads the correct override's original resources: sole
+layer21/templateE87206FD/passE87306FE/vertexE87406FF, stage0 extern17 and three
+authored bitmap parameters (scanlines, noise, scanlines). It retains32 authored
+overlays. The shared MODE's separate base shader is not this override.
+No new runtime or large media is retained for V692–V701; the last visually
+validated runtime remains V683. CPU recovery does not fix Regret's pixels.
+
+**2026-10-19 repeat ring flash: fixed and verified; overall goal active.**
+The actual source pose resets the blast node from599.9998168945312 to
+0.005999996792525053 at tick2840. Native presentation interpolated that reset
+through large intermediate scales, sweeping the same blast backwards through
+the camera. V673 forces only the native render fraction to0.25 at that actual
+reset: the final GPU image contains the isolated second cyan flash. V675 uses
+the completed endpoint at the same boundary: the flash disappears. Both
+original effect requests and completed source poses remain unchanged. These
+bounded diagnostics stop after tick2852; they are not full-playback runs.
+
+V680 reads the literal original codec4 keys: `halo_07` frame150 has scale
+bits4415FFFD and frame151 has3BC49B9F, held through193/194. Resource SHA256 is
+`0e2eb938e0a506d94e40eb3cd43fa7e499e497c096955db058ee408d7fde7cf6`.
+This corrects the earlier focus on ticks2809–2814: that earlier cyan wash is
+the expanding wave passing the camera, whereas the reported isolated replay
+is produced by interpolation of its later reset. No authored blast geometry,
+event, light or particle is removed.
+
+The native fix derives terminal, one-authored-frame maximum-to-new-minimum
+scale resets followed by a hold, using exact channel values and an exact
+node-name/parent hierarchy match. It steps only the matching scale channel;
+expansion, root motion and other nodes still interpolate. This is a native
+presentation policy justified by the actual source keys and GPU reproduction,
+not another recovered Xbox CPU function or a claim of full shader parity.
+It uses no asset-name, magnitude or ratio threshold. The metadata and
+interpolator are reusable across campaign models; other cutscenes and future
+MCC conversions still require their own acceptance.
+
+The focused real-history regression fails before the fix (V681), passes after
+it (V682), and its explicitly old interpolation control still fails. It checks
+the reset under high-refresh fractions and slow render gaps while preserving
+expansion, root motion and another node. V683 passes all20 selected CMake
+checks and the unchanged original/native camera guard (first admission,
+60MiB hard/64MiB measured/zero swap). Both deliberately old controls fail.
+V684 repeats the forced0.25 reset against the actual new executable: the
+submitted scale stays at the completed hidden endpoint and the second flash
+is absent in final GPU frames. Its reset blue-excess peak is115944, compared
+with554982 in the old forced-fraction control and107407 in the source-endpoint
+reference. The midpoint discriminator is diagnostic only; it is not a
+production rendering threshold.
+
+V686 plays visibly with normal PulseAudio, executes all13 scenes in authored
+order, reports level completion and exits0 in197.12 seconds without script or
+audio faults. The ordinary16-second ring excerpt retains the expanding wave
+and shows no reverse reset pulse (V688 temporal review). This is the ring fix's
+acceptance; dialogue volume, hologram, mouths and complete transitions remain
+open. Full-run1280x720 intervals have median/p95/max19.46/31.13/130.98ms over
+9750 measured intervals. Capture/observer work is disclosed; uniform60FPS and
+an isolated speedup are not claimed.
+
+The retained preview runtime bundle is92,491,255 bytes at
+`analysis/opening-cinematic-20261015/current-cutscene-runtime-v683/runtime/`,
+executable SHA256
+`62f8bbfde2c71739db804b4e37f0864936db4a4f9f84a472fc517cc149d3fc46`.
+It is not installed into a default launcher. The source/build tree is removed.
+V689 verifies69 completed owned temporary paths are absent. Required reset
+references are
+`ring-reset-phase-control-v673/gpu-ring-sequence.jpg` (332,525 bytes) and
+`ring-reset-snap-control-v675/gpu-ring-sequence.jpg` (347,062 bytes), under
+`analysis/opening-cinematic-20261015/`. Their91,238,928 and94,003,744 bytes of
+raw frames are disposable and removed by the owning wrappers.
+V684 additionally retains a309,473-byte GPU contact sheet; its85,709,296 raw
+frame bytes are removed. V686 retains the4,805,952-byte normal-playback excerpt;
+V688 retains a128,159-byte temporal sheet, with24,369,148 bytes of extracted
+frames removed. This excerpt is not the requested finished whole-cutscene
+video. The original campaign MODE census (V687) finds no duplicate bone
+StringIDs in2356 model records across15 maps; this is identity evidence, not
+visual certification of those other cutscenes.
+The complete retained runtime/reference-media path and size inventory,
+including method-isolation sheets V664/V666/V670, is
+`analysis/opening-cinematic-20261015/ring-retained-artifacts-v691/report.json`.
+
+**2026-10-19 current verification:** V651 now passes all18 selected CMake
+checks, its deliberately old surface-material control fails, and its separate
+original/native camera comparison passes with the unchanged60MiB hard,
+64MiB measured, zero-swap limits. The camera guard admits the final attempt
+after572 busy-lock refusals; those refusals are not numerical failures.
+The coherent executable SHA256 is
+`af29005e4d2d45bc73e3c28c4fd2d83e7be2887af7caa4f84d4204ada8532fbf`.
+The private source/build tree is removed. Its retained92,467,575-byte runtime
+bundle is a requested preview/reference input, not an installed launcher or a
+full-parity delivery.
+
+Visible V658 executes all13 scenes in order and completes in202.96 seconds
+without script/audio faults. At1280x720 it records8408 frames, with full-run
+interval median/p95/max21.28/36.52/140.97ms. Two still captures, a16-second
+external reference video and concurrent validation are included, so this is
+not an isolated speedup benchmark. The inspected council closeup now has
+shaded metal helmets instead of the prior white patches. That verifies this
+shot's improvement, not every character or Xbox framebuffer parity. The
+Arbiter reply still consumes all157850 PCM frames but remains around-33dB
+through most of its packet; audible acceptance remains open.
+
+Direct final-GPU V657 readback reproduces a late cyan wash across the ring
+face around ticks2809–2814. It does not reproduce the external recorder's
+isolated flare dropouts. V658's CPU receipt has183 consecutive ring-lens
+packets, ticks2751–2840, without internal gaps or alpha dips. All three
+destruction particles use explicit fixed sprite rectangles (flags0x10007),
+so animated-atlas wrapping is ruled out. V660's counterfactual changes only
+the native final lens draw span to empty; the late cyan wash still appears.
+Neither original-authored effect request is suppressed. The ring has two
+transparent shockwave model materials, no SCEN object functions, no shockwave
+shader overlays, and a195-frame `halo_07` clip. The next read-only probe
+records actual WORLD node transforms around the wash. The later reset
+investigation above identifies the isolated recurrence; duplicate-event and
+guessed fade changes are not used.
+
+Required retained references are in
+`analysis/opening-cinematic-20261015/character-ring-visible-v658/`
+(473,020-byte and637,954-byte stills;4,789,261-byte silent ring excerpt),
+`ring-gpu-readback-v657/gpu-ring-sequence.jpg` (329,227 bytes), and
+`ring-no-lens-control-v660/gpu-ring-sequence.jpg` (303,294 bytes), under the
+same analysis root. The254,363,072 and243,303,808 bytes of raw GPU frames
+were disposable and are removed. The excerpt is diagnostic, not the requested
+finished cutscene video. All-character shaders, hologram, mouths, audio mix,
+transitions, interpolation/pacing and handoff still require acceptance.
+
+**2026-10-18 character shaders / repeat ring flash: active.** Full visible
+v629 executes all13 scenes in order, reports completion and has no script or
+audio faults. Its required space-to-council reference video now shows the
+outgoing space image blending into the chamber, but isolated chamber frames
+still lose the expected composition. The transition is not accepted as fixed.
+The Arbiter reply still traverses its PCM with roughly-33dB native volume for
+most of the packet; final original direct/effect mixing remains unresolved.
+
+The original Regret HLMT has shader override E87106FC, separate from the shared
+Prophet MODE materials. The shader census previously omitted this override
+when deduplicating the shared model. The new inventory regression fails on the
+old census and passes after following HLMT+F4 before model deduplication. All15
+campaign-map inventories complete; the opening census increases from78 to80
+shader definitions, including Regret's hologram and Tartarus's overshield.
+This is coverage, not a live hologram fix. The actual source producer already
+publishes the override; the remaining consumer includes group-kind3/layer21
+and original target19 scene-copy ownership. No substitute blue tint is added.
+
+Forty literal E391021C council props have no baked-lighting reference and use
+the existing dynamic-lighting classification. Their native caller previously
+used independent surface-preview preparation. It now prepares the source
+model's lighting/environment resources and submits actual current class2,
+whole-section ordinary units with their live colors, pose and lighting.
+The v636 coherent build compiles and passes18/19 checks. The new material
+check initially expected42 placements; the literal map census is40, so that
+test assertion is corrected. V636's entire private build is removed and no
+runtime is delivered from that failed validation. V639 compiles but passes
+only17/19 checks: the camera comparison cannot acquire another job's lock,
+and the new material check incorrectly requires a separate environment layer.
+Literal E1FD0088 LOD0 has mask0x13C0A, with reflection integrated in layer3,
+implementation2 and stage1's E283010E cube, rather than a layer8 overlay.
+Texture extern3 requires the layer1 base followed by that lighting child.
+V648/v649 fail early while correcting the test's material-child and stage
+index assumptions; stage2 is the bump image. These failed builds remove their
+private storage and retain no runtime. The test now checks those literal inputs.
+Its target links the cache and model
+consumer directly, avoiding the full simulation dependency. V639's private
+build is removed; it delivers no runtime. V648 uses four compiler jobs under
+the same8GiB/zero-swap bound, with an early material preflight and the unchanged
+guarded camera comparison separately after CMake validation. Required busy
+camera admissions are retried without changing their60/64MiB/zero-swap limits.
+V651 is the corrected coherent build. A read-only v650 observer confirms666
+actual units across three frames and37 visible council props: all use class2,
+override255 and whole-section flags. The inspected source/header ABI is pinned
+equal to the existing runtime. Full native execution ends normally with level
+completion and no script/audio faults. This verifies live admission, not final
+helmet pixels. Material and live-pixel acceptance remain pending.
+
+The original broken-ring effects EA070892 and EA03088E both have loop_start=-1.
+Their authored scripts each request creation once. A read-only native wrapper
+observer across full playback (v638) confirms exactly one request for each,
+with the same actual object and marker. This rules out a duplicate script
+request; it does not rule out a particle/lens/GPU presentation recurrence.
+The v640 full visible run completes all13 scenes and retains a3,719,964-byte
+60Hz ring reference. The v642 frame check reproduces three isolated flare
+dropouts at5.733,5.800 and6.133 seconds into that reference; temporal review
+also shows a late cyan wash. This is a visible failure signal, not proof that
+the effect allocation repeats. V639 has opt-in read-only lens/fade packet
+logging and the current bounded final-GPU capture header, pinned before main
+compiles (v643). Its queued visible v644 run expires before validation finishes;
+the waiting v645 readback is cancelled after validation fails. Neither launches
+that failed cohort. V648 includes the read-only receipt before compilation;
+ordinary presentation/final-GPU comparison remains pending. No authored effect
+event, delay or loop flag is changed.
+
+**2026-10-18 space-to-council capture / CPU follow-up: active.** The user
+clarifies that the reported first fade is the space-to-council crossfade.
+The v616 visible O2 run completes all13 scenes without script/audio faults;
+its required reference video shows an abrupt council cut. A read-only native
+call-boundary observer (v622) finds the first actual capture already using
+the council camera, followed by the expected declining blend alpha. This is
+an ordering failure, not evidence that changing the authored fade curve helps.
+The native caller now yields at the active source capture request before a
+later admitted game tick replaces the outgoing scene. It retains the unused
+tick/elapsed budget, respects pause and discards the carry on timeline restore.
+The old unbounded-loop control fails the exact outgoing-scene regression
+(v625); the revised caller helper and original frame-clock fixtures pass
+ASan/UBSan (v626/v627), the clock comparison under60/64MiB/zero swap.
+This is native render scheduling, not another recovered
+Xbox function or certification of every transition. Actual corrected playback
+requires actual playback acceptance. The coherent v621 build passes16/16
+selected CTests and retains92,323,039 bytes of executable/shaders as the requested
+preview/comparison input; its private source/build tree is removed. Main and
+memory implementation amendments were pinned before their consumer objects
+compiled. The later empty-carry signed-zero refinement was made after main
+compiled and is explicitly absent from this preview. The source clock helper
+itself is unchanged.
+
+The O2 v612 candidate passes15 selected CTests. Its clean hidden v615 sample
+records1507 frames over60.04 playback seconds: median/p95/max interval
+34.76/65.27/133.07ms, renderer CPU median5.19ms,13 intervals above100ms and
+none above250ms. Debugger observations happen afterward. Nine of12 subsequent
+CPU stacks involve translated simulation/address-resolution work; these
+stopped-process samples are not themselves FPS measurements. Full native
+source pages now use a sparse, read-only-between-topology-changes owner index;
+partial pages and holes retain the checked interval lookup. Release, restore,
+move, swap, commitment, guards and failed shared-alias publication remain
+checked. Focused v620 passes7 checks; its12-million-read benchmark has matching
+checksums and100.1ms indexed versus645.4ms interval lookup under concurrent
+work. This does not establish a full-cutscene speedup. The new alias rejection
+control fails v623 and passes v624 after rollback preserves the prior native
+index. V621 rebuilds every consumer of the changed memory-owner layout.
+
+V599 passes14 selected checks; clean v613 starts in12.22s and measures
+42.86ms median frame intervals with about1.87GiB peak under the6GiB bound.
+V614 verifies the corrected title visibly as two right-aligned lines in a
+full2560x1378 client capture. Full font/widescreen fidelity remains open. The
+current v616 trace still consumes the Arbiter reply at roughly-33dB through
+most of the packet: audible acceptance remains failed, and the final original
+direct/effect mix is not connected. No line gain override is added. The user
+accepts recording the exposed Earth backdrop edge for the later MCC import
+pass. The finished cutscene video, installation, next-level handoff and complete
+AV/source parity remain open. Completed probe scratch is verified removed in
+`analysis/opening-cinematic-20261015/scratch-cleanup-v626.json`.
+
 **2026-10-18 NPC interpolation / camera cuts / Arbiter reply follow-up: active.**
+The v574 visible PulseAudio run of the coherent v594 candidate reached all13
+authored scenes in order and reported level completion at about tick5731,
+with status0 and no script/audio faults. This establishes scene execution,
+not next-map handoff or audiovisual parity. The user still hears no Arbiter
+Pillar reply and reports steady15–20FPS. The fresh voice trace starts that
+reply at tick1115 with -3306 hundredths dB and observes all157850 PCM frames
+consumed by tick1212. It remains an audible acceptance failure; no line gain
+override has been added. The progress logger covers21 owned spatial cues;
+absence of its trace does not establish missing nonspatial requests.
+
+The clean hidden v600 sample starts rendering after17.23 seconds under a6GiB
+diagnostic bound, peaks around4.1GiB and records907 frames over60 clean seconds.
+Median interval64.59ms,95th percentile109.85ms and maximum473.56ms remain poor;
+renderer CPU submission median is5.65ms. A concurrent serial rebuild is
+disclosed. Subsequent debugger-only observations confirm16 moving Prophet
+pose samples between their actual completed endpoints, including two-tick
+draw gaps; debugger cadence is excluded from those performance statistics.
+The v5953GiB run still failed before a frame. MaterialPass-bank copies remain
+in all four new startup samples (v596). A real light fan-out test fails before
+the new indexed pass bank (v597) and passes afterward (v598) and under
+ASan/UBSan (v601), preserving selected edits and escaped references. The v599
+coherent rebuild and its actual memory/performance acceptance remain pending.
+
+The user's location-title screenshot is another acceptance failure. Actual
+untouched map title1000087B contains `|n`, bounds350/0/480/595 and justification1.
+Unchanged TU1.51426D0 executes all six recognized escape records plus NUL
+fallback under60/64MiB/zero swap (v607); `|n` produces CR. The source token
+iterator treats CR as a newline and ignores LF. Original justification0/1/2
+means left/right/center; the prior native code swapped right and center.
+The extracted actual layout regression fails on the prior behavior (v606)
+and passes after control decoding and ordinal correction (v608). Its caption
+implementation/header were pinned into v599 before that translation unit
+compiled, recorded in `title-source-amendment.json`. Visible corrected title
+placement, full font/layout parity and subtitle acceptance remain pending.
+
+The coherent v586 executable built successfully and all seven selected checks
+passed, including actual00a/03b camera frames, nested archive round trips and
+three scene08 character-geometry cases. Its19.7-minute serial build peaked at
+1.3GiB under the2GiB compiler bound. Its private source/build tree was removed.
+The retained executable/shaders are97,302,183 bytes under
+`analysis/opening-cinematic-20261015/current-cutscene-runtime-v586/runtime`.
+It has not been installed or shown visibly: startup probes v573/v588 exhausted
+3GiB/8GiB respectively before the first frame, so they establish no FPS or
+visible interpolation result. The v588 samples grew about600MiB per second.
+
+Six bounded startup stack samples v589 locate repeated Material copies and
+bitmap decoding in BSP/model effect-light preparation. The real Material
+fan-out regression fails on the old pixel allocation policy (v590). Shared
+readonly pixel residency with independent writable views passes v591 and
+ASan/UBSan v593, including pre-copy writable pointers, iterators, moves and
+concurrent copies. Native bitmap residency keys include exact palette bytes;
+decoding stays outside the cache lock, and only successful completed images
+are published. PC/MCC decoding paths retain their validation. Focused v592
+passes image residency, actual intro bitmap reads and existing cache/mip bounds.
+The complete v594 rebuild includes these storage changes and ten selected
+checks; startup memory, visible playback, pacing and audible volume acceptance
+remain pending. No authored pass, texel, mip or per-light uniform is removed.
+
 The campaign render collector's previous pose was discarded after any draw
 that spanned multiple simulation ticks. A render-specific history now retains
 the actual endpoint ticks and samples at `current_tick - 1 + fraction`; it
@@ -16,7 +595,7 @@ The actual source observer already supplies scripted campaign rendering.
 `camera_set_animation[_relative]` now avoids also loading/decoding the unused
 legacy presentation camera clip. Source camera calls and authored timing
 remain intact. The actual source-camera fixture now counts legacy loader
-calls. The coherent v586 build and visible acceptance are still pending;
+calls. The coherent v586 build passed; current visible acceptance is pending;
 removing this duplicate work does not prove every reported camera pause gone.
 
 The serial1GiB build initially exhausted its memory limit compiling the20MB

@@ -6,7 +6,7 @@ namespace halo2 {
 MenuWorldNativeDrawInput menu_world_native_packet(const MenuWorldNativePacketInput &input) {
   if(!input.material_set)
     throw FormatError("raw world packet has no actual material descriptor");
-  if(input.forward_blend!=0 && input.forward_blend!=3 && input.forward_blend!=5 && input.forward_blend!=8 && input.forward_blend!=9 && input.forward_blend!=10)
+  if(input.forward_blend!=0 && input.forward_blend!=1 && input.forward_blend!=3 && input.forward_blend!=5 && input.forward_blend!=8 && input.forward_blend!=9 && input.forward_blend!=10)
     throw FormatError("raw world packet has an unsupported source blend mapping");
   if(input.source.draw().topology!=MenuWorldSourceTopology::triangle_list &&
      input.source.draw().topology!=MenuWorldSourceTopology::triangle_strip)

@@ -132,6 +132,41 @@ void body_lifecycle() {
     for(auto &pose:teleported.source_body_poses)pose.nodes.front().position={20,0,0};
     transition(before,teleported,"Teleport blended the old body/weapon across the map");
 }
+void same_tick_refresh() {
+    SceneObjects::Object object;object.handle=0x10001;object.created_tick=1;object.placement=2;
+    SceneInterpolation scene;scene.reset(9,std::span(&object,1));
+    object.position={2,0,0};scene.capture(10,std::span(&object,1));
+    auto joined=object;joined.handle=0x20002;joined.position={4,0,0};
+    auto rows=std::array{object,joined};scene.refresh(10,rows);
+    near(scene.sample(object,.5f).position,{1,0,0},"Same-tick scene join erased a surviving motion endpoint");
+    near(scene.sample(joined,0).position,joined.position,"Same-tick scene join invented an earlier owner");
+    scene.refresh(10,std::span(&joined,1));scene.refresh(10,rows);
+    near(scene.sample(object,0).position,object.position,"Removed scene owner reacquired old history within one tick");
+    bool rejected=false;try{scene.refresh(11,rows);}catch(const FormatError&){rejected=true;}
+    check(rejected,"Scene refresh advanced its completed clock");
+
+    MultiplayerState before;before.tick=9;before.source_body_poses_authoritative=true;
+    before.players[0].connected=true;before.players[0].source_player=0x30001;before.players[0].source_unit=0x40002;
+    SourceWorldPose pose;pose.object=0x40002;pose.nodes.resize(1);before.source_body_poses.push_back(pose);
+    auto current=before;++current.tick;current.source_body_poses[0].nodes[0].position={2,0,0};
+    SourceWorldInterpolation history;capture_multiplayer_body_poses(history,before,before,true);
+    capture_multiplayer_body_poses(history,before,current);
+    auto extra=pose;extra.object=0x50003;extra.nodes[0].position={4,0,0};current.source_body_poses.push_back(extra);
+    refresh_multiplayer_body_poses(history,before,current);
+    near(history.sample(pose.object,.5f)[0].position,{1,0,0},"Same-tick body join erased a surviving skin endpoint");
+    near(history.sample(extra.object,0)[0].position,{4,0,0},"Same-tick body join invented skin history");
+    current.players[0].source_parent=0x60004;refresh_multiplayer_body_poses(history,before,current);
+    near(history.sample(pose.object,0)[0].position,{2,0,0},"Same-tick attachment blended an obsolete pose owner");
+    history.refresh(10,std::span(&extra,1));history.refresh(10,current.source_body_poses);
+    near(history.sample(pose.object,0)[0].position,{2,0,0},"Readded same-tick body revived retired history");
+    for(auto bad:{9u,11u}){rejected=false;try{history.refresh(bad,current.source_body_poses);}catch(const FormatError&){rejected=true;}
+        check(rejected,"Body refresh admitted a different completed tick");}
+    auto duplicate=current.source_body_poses;duplicate.push_back(duplicate.front());
+    rejected=false;try{history.refresh(10,duplicate);}catch(const FormatError&){rejected=true;}
+    check(rejected,"Body refresh admitted duplicate full identities");
+    current.tick=11;current.source_body_poses[0].nodes[0].position={3,0,0};history.capture(11,current.source_body_poses);
+    near(history.sample(pose.object,0)[0].position,{2,0,0},"Next body tick lost its refreshed endpoint");
+}
 void particles_and_phase() {
     ParticleSimulationState a,b;a.salt=b.salt=5;a.position={0,0,0};b.position={4,0,0};
     a.velocity={120,0,0};b.velocity={-120,0,0};a.age=.2f;b.age=.4f;a.phase=1;b.phase=2;
@@ -240,7 +275,7 @@ void completed_model_animations() {
 }
 }
 int main(){try{
-    snapshots();scene_history();body_lifecycle();particles_and_phase();completed_model_animations();
+    snapshots();scene_history();body_lifecycle();same_tick_refresh();particles_and_phase();completed_model_animations();
     for(float bad:{-1.f,2.f,std::numeric_limits<float>::quiet_NaN()}) {
         bool rejected=false;try{multiplayer_presentation({}, {},bad);}catch(const FormatError&){rejected=true;}
         check(rejected,"invalid fraction was admitted");

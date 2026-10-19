@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <bit>
 #include <cstring>
+#include <limits>
 #include <map>
 #include <set>
 #include <thread>
@@ -50,9 +51,12 @@ struct SourceLensDrawFrameTu15::Impl final:SourcePhysicsContactMemory {
     std::map<unsigned,unsigned> alias_header;
     SourceRuntimeMemory graphics;
     SourceRuntimeMemory *source{};
+    const SourceRuntimeMemory *expected_source{};
     Renderer *renderer{};
     RendererDeviceLease lease;
     const std::thread::id thread=std::this_thread::get_id();
+    const std::shared_ptr<const int> identity=std::make_shared<const int>(0);
+    std::uint64_t revision{};
     std::array<std::byte,0x74> camera{};
     SourceViewProjectionBank projection{};
     std::vector<SourceLensDraw> draws;
@@ -141,6 +145,10 @@ struct SourceLensDrawFrameTu15::Impl final:SourcePhysicsContactMemory {
         mesh.materials.reserve(mesh.materials.size()+pending_materials.size());
         for(auto& material:pending_materials)mesh.materials.push_back(std::move(material));
     }
+    Impl(const Impl &resident,const SourceRuntimeMemory &incoming):cache(resident.cache),
+        resources(resident.resources),bitmap_banks(resident.bitmap_banks),
+        header_material(resident.header_material),alias_header(resident.alias_header),
+        expected_source(&incoming),renderer(resident.renderer),lease(resident.lease) {}
     void mount(unsigned p,std::span<const std::byte> bytes,const char *owner,
         SourceRuntimeMemory::Access access=SourceRuntimeMemory::Access::ReadWrite) {
         graphics.mount(p,bytes,access,owner);domains.emplace(p,bytes.size());
@@ -205,6 +213,8 @@ struct SourceLensDrawFrameTu15::Impl final:SourcePhysicsContactMemory {
         }
     }
     void initialize(PhysicsLiveWorldTu15 &world) {
+        if(expected_source && expected_source!=&world.memory())
+            throw FormatError("Original lens draw owner received a different prepared world");
         if(source && source!=&world.memory())throw FormatError("Original lens draw owner cannot cross source worlds");
         if(initialized)return;
         if(source)throw FormatError("Original lens initialization previously failed before publication");
@@ -304,12 +314,56 @@ struct SourceLensDrawFrameTu15::Impl final:SourcePhysicsContactMemory {
 };
 SourceLensDrawFrameTu15::SourceLensDrawFrameTu15(const Cache &c,Mesh &m):impl_(std::make_unique<Impl>(c,m)){}
 SourceLensDrawFrameTu15::~SourceLensDrawFrameTu15()=default;
+struct SourceLensDrawFrameTu15::PreparedData {
+    std::shared_ptr<const int> owner;
+    std::uint64_t revision{};
+    std::unique_ptr<Impl> next;
+};
+SourceLensDrawFrameTu15::PreparedRebind::PreparedRebind()=default;
+SourceLensDrawFrameTu15::PreparedRebind::~PreparedRebind()=default;
+SourceLensDrawFrameTu15::PreparedRebind::PreparedRebind(PreparedRebind &&) noexcept=default;
+SourceLensDrawFrameTu15::PreparedRebind &SourceLensDrawFrameTu15::PreparedRebind::operator=(PreparedRebind &&) noexcept=default;
 void SourceLensDrawFrameTu15::bind(Renderer &r) {
     auto &s=*impl_;if(s.renderer || std::this_thread::get_id()!=s.thread)throw FormatError("Original lens renderer binding is duplicate or foreign");
     for(const auto &resource:s.resources)r.require_lens_bitmap(resource.material,*resource.texture);
     s.renderer=&r;s.lease=r.device_lease();s.check();
 }
-void SourceLensDrawFrameTu15::begin(){auto &s=*impl_;s.check();if(s.active)throw FormatError("Original lens frame already active");s.active=true;s.views=0;}
+void SourceLensDrawFrameTu15::rebind(const SourceRuntimeMemory &memory) {
+    auto prepared=prepare_rebind(memory);
+    if(!commit_rebind(std::move(prepared),memory))throw FormatError("Original lens draw handoff became stale");
+}
+SourceLensDrawFrameTu15::PreparedRebind SourceLensDrawFrameTu15::prepare_rebind(const SourceRuntimeMemory &memory) const {
+    const auto &s=*impl_;s.check();
+    if(s.active || s.source==&memory || s.expected_source==&memory)
+        throw FormatError("Original lens draw handoff requires a new world and completed frame");
+    const auto use=s.lease.acquire();
+    source_require_retired_lens_queries(memory);
+    PreparedRebind prepared;prepared.data_=std::make_unique<PreparedData>();
+    auto &p=*prepared.data_;p.owner=s.identity;p.revision=s.revision;
+    p.next=std::make_unique<Impl>(s,memory);return prepared;
+}
+bool SourceLensDrawFrameTu15::rebind_ready(const PreparedRebind &prepared,const SourceRuntimeMemory &memory) const noexcept {
+    try {
+        const auto &s=*impl_;const auto *p=prepared.data_.get();
+        if(std::this_thread::get_id()!=s.thread||!p||p->owner!=s.identity||p->revision!=s.revision||
+           s.active||!s.renderer||!s.lease.valid()||!p->next||p->next->expected_source!=&memory||
+           s.source==&memory||s.expected_source==&memory)return false;
+        source_require_retired_lens_queries(memory);return true;
+    } catch(...) {return false;}
+}
+Renderer *SourceLensDrawFrameTu15::renderer_owner() const noexcept {return impl_->renderer;}
+void SourceLensDrawFrameTu15::publish_rebind(PreparedRebind &prepared) noexcept {
+    impl_.swap(prepared.data_->next);prepared.data_->owner.reset();
+}
+bool SourceLensDrawFrameTu15::commit_rebind(PreparedRebind &&prepared,const SourceRuntimeMemory &memory) noexcept {
+    if(!rebind_ready(prepared,memory))return false;
+    publish_rebind(prepared);return true;
+}
+void SourceLensDrawFrameTu15::begin(){
+    auto &s=*impl_;s.check();if(s.active)throw FormatError("Original lens frame already active");
+    if(s.revision==std::numeric_limits<std::uint64_t>::max())throw FormatError("Original lens draw owner revision exhausted");
+    ++s.revision;s.active=true;s.views=0;
+}
 std::vector<SourceLensDraw> SourceLensDrawFrameTu15::view(PhysicsLiveWorldTu15 &world,unsigned view,
     Vec3 position,Vec3 forward,Vec3 up,float angle,const SourceViewProjectionBank &projection,
     std::array<std::int16_t,4> rectangle,unsigned width,unsigned height) {

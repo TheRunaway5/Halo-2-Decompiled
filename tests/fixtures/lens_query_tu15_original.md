@@ -13,6 +13,7 @@ They are not native expected outputs used as original inputs.
 | `lens_query_state_tu15_hardware.json` | 172 | Unchanged host i386 execution of the same complete calls |
 | `lens_query_reuse_tu15_original.json` | 18 | Original ready/pending reuse of occupied query identities |
 | `lens_query_reuse_tu15_hardware.json` | 18 | Unchanged host i386 execution of both reuse branches |
+| `lens_query_retirement_tu15_original.json` | 16 | Unchanged TU1.5 `20700 ->20E30` integer retirement; declared counts0/1/2/31/32/33/510/511 and two input seeds |
 
 The quad corpus uses nine actual authored lens definitions from the original
 request fixture, with five declared positions/viewports each. Whole original
@@ -21,10 +22,23 @@ observed GPU samples and declared ratio/pending/view cases. Hardware establishes
 Unicorn's missing x87 precision flag and fixed control-word bit six; native
 tests retain and compare the hardware values without masking those differences.
 
-The 235 query cases reach 930 instruction sites in 16 of the 20 registered
+The 235 quad/state/reuse cases reach 930 instruction sites in 16 of the 20 registered
 complete query bodies. They do not cover every linked-readout, CRT exceptional,
 SDK allocation/flush or retirement branch. GPU acceptance and live map
 scheduling have separate reports.
+
+The separate retirement corpus supplies that original CPU branch. It retains
+input formulas and SHA-256 hashes of each complete16KB output, without copying
+executable bytes or retaining raw banks. It covers all three bitmaps, partial
+32-bit words, full capacity and preservation outside the allocated request set.
+The native world test compares the complete bank and conserves every other
+committed source byte except the declared original-ABI caller stack. These are
+controlled CPU inputs, not captured live GPU completions or a rendered migration.
+The fixture is a required reference input (5,148 bytes); preserve it during
+disposable test cleanup. Generate it only to a new path with
+`tools/oracle_lens_query_retirement_tu15.py`, through `tools/run_test.py`, using
+the same pinned English TU1.5 executable. Its oracle report belongs in the
+selected bounded report directory.
 
 Use fresh output directories and preserve existing fixtures when regenerating.
 The following assumes the destination fixtures do not exist. The request

@@ -1,7 +1,10 @@
+#include <functional>
+#include <string_view>
 #include <ranges>
 #include "shader_constant_compare.hpp"
 #include "frame_vertex_reuse.hpp"
 #include "frame_vertex_upload_plan.hpp"
+#include "material_descriptor_range.hpp"
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "halo2/renderer.hpp"
 #include "halo2/pstencil/light_response_material.hpp"
@@ -206,6 +209,11 @@ struct Renderer::Impl {
     std::unique_ptr<SourceLensQueryGpu> lens_queries;
     std::unique_ptr<SourceLensDrawGpu> lens_reflections;
     std::vector<SourceLensQueryResult> lens_query_results;
+    std::uint64_t lens_query_revision{};
+    const std::thread::id renderer_executor=std::this_thread::get_id();
+    void touch_lens_queries() noexcept {
+        if(lens_query_revision!=std::numeric_limits<std::uint64_t>::max())++lens_query_revision;
+    }
     void harvest_lens_queries() {
         if(!lens_queries)return;
         auto completed=lens_queries->completed();
@@ -361,7 +369,6 @@ struct Renderer::Impl {
 #ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
     std::unique_ptr<ParticleRenderer> particle_renderer;
     std::vector<RendererParticleView::Use> prepared_particle_views;
-    const std::thread::id particle_view_thread=std::this_thread::get_id();
 #endif
 #if HALO2_SOURCE_DECALS_AVAILABLE
     std::unique_ptr<SourceDecalRenderer> decal_renderer;
@@ -388,6 +395,7 @@ struct Renderer::Impl {
         std::optional<SourceBspPartBinding> observed_bsp_binding;
         const SourceBspResidentPart* observed_bsp_part{};
         std::span<const Vertex> observed_bsp_vertices;
+        std::size_t observed_object=std::numeric_limits<std::size_t>::max();
     };
     using DrawKey=std::tuple<std::uint32_t,std::uint32_t,int,std::uint32_t,std::uint32_t>;
     static DrawKey draw_key(const Vertex &vertex) {
@@ -1991,8 +1999,9 @@ struct Renderer::Impl {
         // stages and animated frames. update_image detaches mutable owners.
         std::map<std::uint64_t,std::vector<std::pair<const Texture*,GpuTexture>>> shared_images;
         const auto upload_shared_image=[&](const Texture &source,GpuTexture &target) {
-            std::uint64_t hash=14695981039346656037ull;
-            for(auto byte:source.pixels){hash^=std::to_integer<unsigned char>(byte);hash*=1099511628211ull;}
+            const auto pixels=source.pixels.empty()?std::string_view{}:
+                std::string_view{reinterpret_cast<const char*>(source.pixels.data()),source.pixels.size()};
+            const auto hash=std::hash<std::string_view>{}(pixels);
             auto &candidates=shared_images[hash];
             for(const auto &[other,resident]:candidates) {
                 if(source.width!=other->width || source.height!=other->height || source.format!=other->format ||
@@ -2168,6 +2177,7 @@ struct Renderer::Impl {
         }
     }
     void destroy_swapchain() {
+        touch_lens_queries();
         if(target_generation==std::numeric_limits<std::uint64_t>::max())
             throw FormatError("Native renderer target generation exhausted");
         ++target_generation;last_submitted_color.reset();source_color_written={};
@@ -2792,7 +2802,7 @@ struct Renderer::Impl {
                 write.dstSet=textures[material].descriptor;write.dstBinding=0;write.descriptorCount=1;
                 write.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;write.pImageInfo=&target;
                 {vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
-                for(const auto &[key,descriptor]:geometry_descriptors) if(key.first==material) {
+                for(const auto &[key,descriptor]:material_descriptor_range(geometry_descriptors,material)) {
                     write.dstSet=descriptor;
                     {vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
                 }
@@ -2839,7 +2849,7 @@ struct Renderer::Impl {
                     const VkDescriptorImageInfo image{stage_samplers[m][target+1],target?water_refraction.view:water_reflection.view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
                     write.dstSet=textures[m].descriptor;write.dstBinding=target+1;write.pImageInfo=&image;
                     {vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
-                    for(const auto &[key,descriptor]:geometry_descriptors)if(key.first==m) {
+                    for(const auto &[key,descriptor]:material_descriptor_range(geometry_descriptors,m)) {
                         write.dstSet=descriptor;{vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
                     }
                 }
@@ -2859,7 +2869,7 @@ struct Renderer::Impl {
                     write.dstSet=textures[material].descriptor;write.dstBinding=binding;write.descriptorCount=1;
                     write.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;write.pImageInfo=&image;
                     {vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
-                    for(const auto& [key,descriptor]:geometry_descriptors)if(key.first==material) {
+                    for(const auto& [key,descriptor]:material_descriptor_range(geometry_descriptors,material)) {
                         write.dstSet=descriptor;{vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
                     }
                 }
@@ -3623,6 +3633,7 @@ struct Renderer::Impl {
     }
     bool draw_loading(unsigned base,std::span<const Material> materials,
                       std::span<const Vertex> vertices,const std::filesystem::path& screenshot) {
+        touch_lens_queries();
         if(materials.empty() || base>textures.size() || materials.size()>textures.size()-base ||
            vertices.empty() || vertices.size()%6 || vertices.size()>debug_capacity)
             throw FormatError("invalid resident Vista loading submission");
@@ -3763,6 +3774,7 @@ struct Renderer::Impl {
         return true;
     }
     bool draw(const Camera& camera, const std::filesystem::path& screenshot, std::span<const Vertex> debug, bool reticle, std::span<const Vertex> first_person, ScreenEffects effects, std::span<const Vertex> ui, std::span<const ModelView> views, std::span<const Vertex> background, std::span<const UiBackdrop> backdrops, const BspFogSample *mainmenu_fog, const MainmenuWorldDraw *mainmenu_world, bool ui_full_surface_bounds) {
+        touch_lens_queries();
         // Reject unsupported captured resource/history states before recording
         // commands or resizing any attachments. Admitted plans have no
         // viewport mutation, so their operands do not depend on native scale.
@@ -4159,6 +4171,8 @@ struct Renderer::Impl {
             for(const auto &object:view.objects) {
                 auto &list=view_draws.back();const auto first=list.size();
                 group(object.vertices,list);
+                if(view.completed_object_draw_observer)for(auto &draw:std::span{list}.subspan(first))
+                    draw.observed_object=std::size_t(&object-view.objects.data());
                 object_ranges.push_back({i,std::size_t(&object-view.objects.data()),first,list.size()-first});
             }
         }
@@ -4169,7 +4183,7 @@ struct Renderer::Impl {
             const SourceLightVolumeDraw *light_source{};
             const SourceContrailDraw *contrail_source{};
             bool first_person_projection{};
-            const ObjectLightingState *lighting{};
+            std::optional<ObjectLightingState> lighting;
         };
         light_volume_staging.clear();
         std::vector<std::deque<SourceLightVolumeDraw>> projected_lights(views.size());
@@ -4252,7 +4266,7 @@ struct Renderer::Impl {
                     std::get_if<SourceTransparentGeometryDraw>(&binding);
                 if(geometry) {
                     group(geometry->vertices,step.geometry,true);
-                    step.lighting=geometry->lighting?&*geometry->lighting:nullptr;
+                    step.lighting=geometry->lighting;
                     step.first_person_projection=geometry->render_cache_flags&0x800;
                 } else step.particles=std::get<SourceTransparentParticleRange>(binding);
             }
@@ -4813,7 +4827,7 @@ struct Renderer::Impl {
                 writes[k].pImageInfo=k==2?&volume:k==1?&cube:&image;
             }
             {vkUpdateDescriptorSets(device,3,writes,0,nullptr);observe_descriptor_writes(writes,3);}
-            for(const auto &[key,descriptor]:geometry_descriptors) if(key.first==i) {
+            for(const auto &[key,descriptor]:material_descriptor_range(geometry_descriptors,i)) {
                 for(auto &write:writes)write.dstSet=descriptor;
                 {vkUpdateDescriptorSets(device,3,writes,0,nullptr);observe_descriptor_writes(writes,3);}
             }
@@ -5130,7 +5144,8 @@ struct Renderer::Impl {
         }
         for(std::size_t i=0;i<views.size();++i)for(auto &phase:transparent_views[i])for(auto &step:phase) {
             bind_geometry(step.geometry);
-            if(!step.particles && !step.light_source)alias_owner(views[i],step.geometry,step.lighting);
+            if(!step.particles && !step.light_source)alias_owner(views[i],step.geometry,
+                step.lighting?&*step.lighting:nullptr);
         }
         std::vector<ResidentDrawUpload> object_uploads;object_uploads.reserve(object_uniforms.size());
         for(std::size_t i=0;i<object_uniforms.size();++i)
@@ -5829,6 +5844,12 @@ struct Renderer::Impl {
                 bsp_capture.view->completed_bsp_draw_observer(observed);
             }
             vkCmdDraw(command,draw.count,1,draw.first,0);
+            if(draw.observed_object!=std::numeric_limits<std::size_t>::max() && bsp_capture.view &&
+               bsp_capture.view->completed_object_draw_observer)
+                bsp_capture.view->completed_object_draw_observer({draw.observed_object,phase,
+                    source_material_identities.at(material),material,draw.material,observed_handle(handle),
+                    observed_handle(descriptor),observed_handle(buffer),draw.first,draw.count,
+                    draw.object_alias!=std::numeric_limits<std::size_t>::max()});
         };
         const auto texture_mapping_overlay=[&](unsigned material) {
             return source_material_layers[material]==2;
@@ -7193,11 +7214,12 @@ void Renderer::release_presentation(){
     impl_->destroy_swapchain();impl_->dirty=true;
 }
 bool Renderer::draw(const Camera& camera, const std::filesystem::path& screenshot, std::span<const Vertex> debug, bool reticle, std::span<const Vertex> first_person, ScreenEffects effects, std::span<const Vertex> ui, std::span<const ModelView> views, std::span<const Vertex> background, std::span<const UiBackdrop> backdrops, const BspFogSample *mainmenu_fog, const MainmenuWorldDraw *mainmenu_world, bool ui_full_surface_bounds) {
+    impl_->touch_lens_queries();
     if(impl_->source_coordinate_registers!=renderer_passthrough_registers)
         throw FormatError("Native texture coordinates differ from the retained programmable shader contract");
     return impl_->draw(camera, screenshot, debug, reticle, first_person, effects, ui, views, background, backdrops, mainmenu_fog, mainmenu_world, ui_full_surface_bounds);
 }
-void Renderer::resized() { impl_->dirty = true; }
+void Renderer::resized() { impl_->touch_lens_queries();impl_->dirty = true; }
 DebugPanel& Renderer::debug_panel() {
     if(!impl_->debug_panel)impl_->debug_panel=std::make_unique<DebugPanel>(impl_->window);
     impl_->debug_panel->pstencil_available(impl_->source_world_device.depth_clamp_enabled &&
@@ -7246,11 +7268,53 @@ RendererConstantMode Renderer::constant_mode_control() {
     });
 }
 std::vector<SourceLensQueryResult> Renderer::take_lens_query_results() {
+    impl_->touch_lens_queries();
     impl_->harvest_lens_queries();
     auto out=std::move(impl_->lens_query_results);impl_->lens_query_results.clear();return out;
 }
-void Renderer::retire_lens_queries() {
+void Renderer::retire_lens_queries() noexcept {
+    impl_->touch_lens_queries();
     impl_->lens_queries.reset();impl_->lens_query_results.clear();
+}
+struct Renderer::LensQueryRetirementData {
+    // Keep the actual device alive until after the retired GPU owner dies.
+    RendererDeviceLease lease;
+    RendererDeviceLease::Use use;
+    Impl *owner;
+    std::uint64_t revision;
+    const std::thread::id executor=std::this_thread::get_id();
+    bool committed{};
+    std::unique_ptr<SourceLensQueryGpu> retired;
+    std::vector<SourceLensQueryResult> results;
+    LensQueryRetirementData(RendererDeviceLease l,RendererDeviceLease::Use u,Impl *p):
+        lease(std::move(l)),use(std::move(u)),owner(p),revision(p->lens_query_revision) {}
+    ~LensQueryRetirementData(){if(std::this_thread::get_id()!=executor)std::terminate();}
+};
+Renderer::PreparedLensQueryRetirement::PreparedLensQueryRetirement()=default;
+Renderer::PreparedLensQueryRetirement::~PreparedLensQueryRetirement()=default;
+Renderer::PreparedLensQueryRetirement::PreparedLensQueryRetirement(PreparedLensQueryRetirement &&) noexcept=default;
+Renderer::PreparedLensQueryRetirement &Renderer::PreparedLensQueryRetirement::operator=(PreparedLensQueryRetirement &&) noexcept=default;
+Renderer::PreparedLensQueryRetirement Renderer::prepare_lens_query_retirement() {
+    if(std::this_thread::get_id()!=impl_->renderer_executor||
+       impl_->lens_query_revision==std::numeric_limits<std::uint64_t>::max())
+        throw FormatError("Lens GPU retirement lacks its renderer executor/generation");
+    auto lease=device_lease();auto use=lease.acquire();
+    PreparedLensQueryRetirement prepared;
+    prepared.data_=std::make_unique<LensQueryRetirementData>(std::move(lease),std::move(use),impl_.get());
+    return prepared;
+}
+bool Renderer::lens_query_retirement_ready(const PreparedLensQueryRetirement &prepared) const noexcept {
+    try {
+        const auto *p=prepared.data_.get();
+        return std::this_thread::get_id()==impl_->renderer_executor&&p&&!p->committed&&
+            p->owner==impl_.get()&&p->revision==impl_->lens_query_revision&&
+            p->revision!=std::numeric_limits<std::uint64_t>::max()&&p->lease.valid();
+    } catch(...) {return false;}
+}
+bool Renderer::commit_lens_query_retirement(PreparedLensQueryRetirement &&prepared) noexcept {
+    if(!lens_query_retirement_ready(prepared))return false;
+    auto &p=*prepared.data_;p.retired.swap(impl_->lens_queries);p.results.swap(impl_->lens_query_results);
+    p.committed=true;impl_->touch_lens_queries();return true;
 }
 void Renderer::require_lens_bitmap(unsigned material,const Texture &source)const {
     if(material>=impl_->textures.size())throw FormatError("Native lens bitmap slot is absent");
@@ -7264,7 +7328,7 @@ void Renderer::require_lens_bitmap(unsigned material,const Texture &source)const
 RendererParticleView Renderer::prepare_particle_views(std::span<const RendererParticleViewInput> views) {
     const auto owner=device_lease().acquire();
 #ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
-    if(std::this_thread::get_id()!=impl_->particle_view_thread)
+    if(std::this_thread::get_id()!=impl_->renderer_executor)
         throw FormatError("Particle view preparation requires the renderer's owning thread");
     if(impl_->dirty)throw FormatError("Particle view preparation requires current realized render targets");
     std::array<bool,8> used{};
@@ -7286,7 +7350,7 @@ RendererParticleView Renderer::prepare_particle_views(std::span<const RendererPa
 }
 RendererParticleView Renderer::particle_view_inputs() {
 #ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
-    if(std::this_thread::get_id()!=impl_->particle_view_thread)
+    if(std::this_thread::get_id()!=impl_->renderer_executor)
         throw FormatError("Particle view observation requires the renderer's owning thread");
 #endif
     const std::weak_ptr<Impl> owner=impl_;
@@ -7522,7 +7586,7 @@ void Renderer::campaign_cinematic_crossfade(const CinematicCrossfadeFrame &frame
     if(!impl_->can_capture)throw FormatError("Cinematic crossfade requires readable scene color targets");
     if(!impl_->cinematic_crossfade)
         impl_->cinematic_crossfade=std::make_unique<CinematicCrossfadeRender>(CinematicCrossfadeRenderContext{
-            impl_->device,impl_->physical,impl_->format,impl_->fog_pass,impl_->shader_directory});
+            impl_->device,impl_->physical,impl_->format,impl_->fog_pass,impl_->shader_directory,impl_->extent});
     impl_->campaign_crossfade=frame;
 }
 bool Renderer::cinematic_crossfade_captured()const{return impl_->campaign_capture_completed;}

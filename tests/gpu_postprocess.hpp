@@ -128,6 +128,9 @@ public:
         if(instance)vkDestroyInstance(instance,nullptr);
     }
     Postprocess(const Postprocess &)=delete;Postprocess &operator=(const Postprocess &)=delete;
+    VkPhysicalDeviceProperties physical_properties()const {
+        VkPhysicalDeviceProperties result;vkGetPhysicalDeviceProperties(physical,&result);return result;
+    }
     std::vector<std::byte> render(const std::filesystem::path &vertex,const std::filesystem::path &fragment,
         unsigned uniform_binding,std::span<const std::byte> uniform,std::span<const PostImage> sampled,
         unsigned width,unsigned height,PostBlend blend,std::span<const std::byte> previous={},

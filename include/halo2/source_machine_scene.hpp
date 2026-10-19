@@ -56,7 +56,7 @@ public:
     // imported world. Full salted handles may be unchanged while time rolls
     // back. Resident geometry/material slots and authored definitions remain.
     // synchronize/update_pose must run before drawing the new world.
-    void reset_lifetimes();
+    void reset_lifetimes() noexcept;
     // Finite diagnostic image inputs only. Bind once before advancing the
     // scene. Full definition/placement/render-model identity must match an
     // admitted source machine; unmatched/duplicate entries are rejected.

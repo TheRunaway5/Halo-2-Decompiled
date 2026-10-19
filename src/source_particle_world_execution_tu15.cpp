@@ -1,7 +1,10 @@
 #include "halo2/source_particle_world_execution_tu15.hpp"
 #include "halo2/source_effect_particle_draw_tu15.hpp"
+#include "halo2/source_particle_target_tu15.hpp"
 #include "halo2/source_effect_particle_frame_tu15.hpp"
 #include "halo2/source_shadow_frame_tu15.hpp"
+#include "halo2/source_transparent_group_tu15.hpp"
+#include "halo2/source_transparent_collection_tu15.hpp"
 #include "halo2/source_model_render_tu15.hpp"
 #include "halo2/source_scene_device_constructor_tu15.hpp"
 #include "halo2/source_map_world_support_tu15.hpp"
@@ -19,8 +22,14 @@ bool execute(SourcePhysicsContactMemory &memory,std::uint32_t entry,
     const SourcePhysicsContactRecordObserver &observe) {
     if(source_effect_particle_draw_tu15_owns_entry(entry))
         source_run_effect_particle_draw_tu15(memory,entry,abi,fp,services,observe);
+    else if(source_particle_target_tu15_owns_entry(entry))
+        source_run_particle_target_tu15(memory,entry,abi,fp,services,observe);
     else if(source_shadow_frame_tu15_owns_entry(entry))
         source_run_shadow_frame_tu15(memory,entry,abi,fp,services,observe);
+    else if(source_transparent_group_tu15_owns_entry(entry))
+        source_run_transparent_group_tu15(memory,entry,abi,fp,services,observe);
+    else if(source_transparent_collection_tu15_owns_entry(entry))
+        source_run_transparent_collection_tu15(memory,entry,abi,fp,services,observe);
     else if(source_model_render_tu15_owns_entry(entry))
         source_run_model_render_tu15(memory,entry,abi,fp,services,observe);
     else if(source_effect_particle_frame_tu15_owns_entry(entry))
@@ -43,7 +52,10 @@ bool execute(SourcePhysicsContactMemory &memory,std::uint32_t entry,
 }
 bool source_particle_world_execution_tu15_owns_entry(std::uint32_t entry) {
     return source_effect_particle_draw_tu15_owns_entry(entry) ||
+        source_particle_target_tu15_owns_entry(entry) ||
         source_shadow_frame_tu15_owns_entry(entry) ||
+        source_transparent_group_tu15_owns_entry(entry) ||
+        source_transparent_collection_tu15_owns_entry(entry) ||
         source_model_render_tu15_owns_entry(entry) ||
         source_effect_particle_frame_tu15_owns_entry(entry) ||
         source_physics_live_support_tu15_owns_entry(entry) ||

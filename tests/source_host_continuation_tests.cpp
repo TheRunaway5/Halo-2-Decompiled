@@ -64,7 +64,8 @@ std::size_t first_peer_idle(std::span<const std::byte> bytes){
   const auto roster=u(1);cursor+=roster*(1+4+12);check(u(1)>0,"Fixture host has no peer");
   cursor+=1+8+8;const auto views=u(1);cursor+=views*2;
   for(unsigned i=0;i<views;++i)if(u(1))cursor+=std::tuple_size_v<SourcePlayerConfiguration>;
-  cursor+=4+4+1;check(cursor+8<=bytes.size(),"Fixture host has no idle field");return cursor;
+  cursor+=4+4;if(u(1))cursor+=68;cursor+=1;
+  check(cursor+8<=bytes.size(),"Fixture host has no idle field");return cursor;
 }
 }
 int main(int argc,char **argv)try {

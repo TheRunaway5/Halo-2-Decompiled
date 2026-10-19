@@ -286,6 +286,64 @@ successor must rebuild the31TU union of actual storage/API class consumers,
 retain original startup order and pass the unchanged full campaign query before
 root API/birth application. Full production codec and campaign parity stay open.
 
+The coherent31 main build passes all31 compiles and link, retaining actual
+class definitions and ordered startup. Its observer-free campaign query still
+stops during Simulation construction at67,272,704 aggregateRSS/HWM,
+163,840B above the unchanged64MiB limit, zero swap. No semantic assertion or
+full query success is recorded. The next diagnostic will measure current
+startup and inner-biped Anon/File/heap, since prior-cohort measurements cannot
+locate this peak. Root API/birth application stays gated. New test jobs use
+the repository disposable scratch lifecycle; small failure evidence is retained.
+
+The fresh diagnostic stops before compilation because61 required retained link
+archives are missing. All three source/compiler dependency closures remain
+present. No native test runs in this attempt; both owned scratch directories
+are verified removed and all owned services terminal. Exact archive recovery
+from surviving authenticated objects/source metadata is the next prerequisite.
+
+The source-authority correction resolves eight stale hashes in the recovery
+manifest without changing source behavior. Recovery now completes all405
+selected compiles,61 derived archives and the first relink in302.101 seconds
+under1GiB with zero swap/OOM. The complete executable hash differs from the
+retained reference, so strict admission rejects it before any gameplay run.
+Both owned scratch directories are verified removed, with no new large
+artifacts retained. Bounded ELF and ordered-link forensics are the next step;
+reference equivalence, the campaign query and full campaign parity remain open.
+
+The recovered baseline now passes a distinct, complete metadata-equivalence
+check against the retained reference:19,763 full symbol records and every
+static-string byte agree in meaning;90,809,506 bytes outside the two unallocated
+static tables and20-byte GNU build-ID descriptor are identical. The entire
+normalized linker map agrees, including405member order,8,189input sections and
+initialization. The original full-file SHA remains different. The five-stage
+owned diagnostic then completes its build/admission/analysis lifecycle; its
+native run stops at67,883,008aggregate bytes, before the query assertions.32
+phase records reach source biped call B9B70 after frame/B9960 setup. From the
+earlier paging hint to that boundary, File rises3,895,296bytes with Anon flat;
+the following unobserved peak is not assigned a cause. The private code-page
+hint and paired unused-heap/code-page hint experiments both exceed the strict
+64 MiB aggregate ceiling before the original query assertions complete. Their
+threshold-crossing measurements are incomplete peaks and do not establish an
+improvement. Neither engine patch is applied. Both owned scratch directories
+from each run are independently verified removed; no new large artifacts are
+retained. The next bounded diagnostic measures original calls inside B9B70,
+with every other archive member unchanged. Full query/campaign parity remains
+open.
+
+
+The live checkout now includes the typed AI getter implementation. Campaign
+`ai_get_object`/`ai_get_unit` queries pass the original packed reference through
+one Campaign/World API to the existing actor iterator; those two original
+entries are exported without changing the 686 generated AI bodies. The unused
+native body adapter in a source campaign now allocates backing on first access;
+ordinary construction and the serialized field order stay unchanged. All 24
+reviewed source operations across 11 files are applied, preserving concurrent
+World edits. Fresh targeted compilation and the original reference parsing test
+are in progress. This source implementation does not establish full campaign,
+checkpoint, or gameplay parity. The frozen native query still exceeds its
+strict 64 MiB aggregate ceiling; the failed before-biped paging hints and direct
+route optimization remain unapplied.
+
 ## Opening cinematic audit — 2026-10-15
 
 The opening goal is active. Separate candidates repair relative animation,

@@ -37,11 +37,17 @@ struct MultiplayerRuntimeAuthority::Impl {
     Clock::time_point capture_retry{};
     Clock::time_point receiver_retry{};
     std::string admission_error,receiver_error,publication_error;
-    bool frame{},continuing_input{},recovery_enabled{},restart_receiver{};
+    bool frame{},committing{},continuing_input{},recovery_enabled{},restart_receiver{};
     std::optional<std::uint64_t> continued_input_tick;
     std::array<Controls,4> continued_input;
-    void own()const{need(executor==std::this_thread::get_id());}
+    void own()const{need(executor==std::this_thread::get_id()&&!committing);}
     void quiescent()const{own();need(!frame);}
+    bool presentation_commit(PresentationCommit commit,void *owner) noexcept {
+        // Reject runtime reentrancy before a callback can enter the session
+        // mutex or observe the middle of a coupled owner publication.
+        committing=true;const bool accepted=!commit||commit(owner);committing=false;
+        return accepted;
+    }
     MultiplayerPreparedWorld &world(){return active?active->world():*resident;}
     LanHost *host(){return active?&active->host():initial_host.get();}
     LanClient *client(){return active?nullptr:initial_client.get();}
@@ -90,7 +96,7 @@ MultiplayerRuntimeAuthority::MultiplayerRuntimeAuthority(const MultiplayerOption
 }
 MultiplayerRuntimeAuthority::~MultiplayerRuntimeAuthority(){
     // Native objects and publisher frames must retire on their executor.
-    if(impl_->executor!=std::this_thread::get_id()||impl_->frame)std::terminate();
+    if(impl_->executor!=std::this_thread::get_id()||impl_->frame||impl_->committing)std::terminate();
 }
 MultiplayerPreparedWorld &MultiplayerRuntimeAuthority::world(){impl_->own();return impl_->world();}
 MultiplayerMatch &MultiplayerRuntimeAuthority::match(){return world().match;}
@@ -191,13 +197,15 @@ bool MultiplayerRuntimeAuthority::prepare_takeover(std::shared_ptr<PhysicsLiveCl
     auto candidate=SourcePeerHostTakeover::prepare(s.recovery_options,*retained,*agreement->decision,std::move(clock));
     stage_takeover(std::move(candidate));return true;
 }
-bool MultiplayerRuntimeAuthority::activate_takeover(){
+bool MultiplayerRuntimeAuthority::activate_takeover(PresentationCommit presentation,void *owner){
     auto &s=*impl_;s.quiescent();if(!s.pending)return false;
     need(!s.active&&!s.authority&&!s.initial_host&&!s.publisher&&!s.pending_client&&s.pending_authority);
     receive();need(bool(s.initial_client));s.pending->refresh_local_input(*s.initial_client);
-    struct Adoption {Impl &state;std::unique_ptr<LanClient> retired_client;};Adoption adoption{s,{}};
+    struct Adoption {Impl &state;PresentationCommit presentation;void *owner;std::unique_ptr<LanClient> retired_client;};
+    Adoption adoption{s,presentation,owner,{}};
     const auto commit=[](void *opaque)noexcept{
         auto &a=*static_cast<Adoption *>(opaque);auto &state=a.state;
+        if(!state.presentation_commit(a.presentation,a.owner))return false;
         // Only move into empty owners under the session lock. Destruction of
         // the old client can send a leave and must happen outside that lock.
         a.retired_client=std::move(state.initial_client);
@@ -222,15 +230,21 @@ bool MultiplayerRuntimeAuthority::prepare_client_rebind(){
 std::optional<PeerMigrationDecision> MultiplayerRuntimeAuthority::pending_client_rebind()const{
     auto &s=*impl_;s.own();return s.pending_client?std::optional(s.pending_client->decision):std::nullopt;
 }
-bool MultiplayerRuntimeAuthority::activate_client_rebind(){
+bool MultiplayerRuntimeAuthority::activate_client_rebind(PresentationCommit presentation,void *owner){
     auto &s=*impl_;s.quiescent();if(!s.pending_client)return false;
     need(s.initial_client&&s.initial_client->can_commit_rebind_host(*s.pending_client->native));
     const auto decision=s.pending_client->decision;
-    const auto commit=[](void *owner)noexcept{
-        auto &state=*static_cast<Impl *>(owner);
+    struct Adoption {Impl &state;PresentationCommit presentation;void *owner;};
+    Adoption adoption{s,presentation,owner};
+    const auto commit=[](void *opaque)noexcept{
+        auto &a=*static_cast<Adoption *>(opaque);auto &state=a.state;
+        // No executor/transport mutation can intervene after this preflight:
+        // the presentation callback publishes only its prepared local owners.
+        if(!state.initial_client->can_commit_rebind_host(*state.pending_client->native)||
+            !state.presentation_commit(a.presentation,a.owner))return false;
         return state.initial_client->commit_rebind_host(std::move(state.pending_client->native));
     };
-    if(!s.online->finish_peer_migration(decision,commit,&s))return false;
+    if(!s.online->finish_peer_migration(decision,commit,&adoption))return false;
     s.client_context=decision.next;
     const bool retired=bool(s.recovery)||bool(s.retained)||bool(s.recovery_failure);
     if(retired&&s.receiver)s.receiver->cancel();

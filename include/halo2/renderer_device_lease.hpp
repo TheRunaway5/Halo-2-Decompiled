@@ -21,7 +21,10 @@ public:
         NativeRuntimeAddress address_{};
     };
     RendererDeviceLease()=default;
-    bool valid() const;
+    // Nonblocking eligibility snapshot only; retirement can follow this check.
+    // acquire() serializes admission against retirement, and its Use pins the
+    // actual device allocation for the complete admitted operation.
+    bool valid() const noexcept;
     Use acquire() const;
 private:
     friend class Renderer;

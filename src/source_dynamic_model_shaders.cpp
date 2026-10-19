@@ -9,7 +9,7 @@
 namespace halo2 {
 SourceDynamicModelShaders::SourceDynamicModelShaders(const Cache &cache,RenderModel &model,
     std::uint32_t render_model,unsigned implementation,std::optional<float> camouflage) {
-    if(implementation!=2 && implementation!=3)
+    if(implementation!=1 && implementation!=2 && implementation!=3)
         throw FormatError("model shader bank requires a proved lighting implementation");
     const auto roots=model.mesh.materials;
     std::vector<unsigned> sections;
@@ -38,7 +38,8 @@ SourceDynamicModelShaders::SourceDynamicModelShaders(const Cache &cache,RenderMo
             throw FormatError("dynamic model shader differs from its source LOD bank");
         for(unsigned lod=1;lod<raw.lods.size();++lod) {
             auto material=raw;material.selected_shader_lod=lod;
-            if(!(implementation==3 ? prepare_default_object_material(cache,material,camouflage) :
+            if(!(implementation==1 ? prepare_world_material(cache,material,true) :
+                 implementation==3 ? prepare_default_object_material(cache,material,camouflage) :
                  prepare_dynamic_material(cache,material,{},true,camouflage)))
                 throw FormatError("dynamic model shader LOD requires unresolved source inputs: "+raw.name);
             if(roots[source].object_render_colors)

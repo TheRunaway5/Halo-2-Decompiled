@@ -24,7 +24,10 @@
 #include "halo2/weapon_hud.hpp"
 namespace halo2 {
 class SourceDynamicObjectScene;
+class MultiplayerSnapshotOrigin;
+struct EffectPresentationObservation;
 struct SourceLiveShadowRootTu15;
+struct SourceLiveModelBaseDrawTu15;
 struct SourceShadowRawPlanStats;
 struct RendererCompletedMaterialUpload;
 struct RendererObservedBspDraw;
@@ -602,6 +605,7 @@ private:
   std::uint32_t allocate_object(std::uint8_t type);
   void step_world_weapons(std::uint32_t tick);
   void retain_unit(Unit &);
+  void synchronize_source_weapon_state(WeaponState &);
   void synchronize_source_equipment(Unit &,const SourcePlayerEquipmentTu15 &);
   void damage_event(Unit &, const DamageOwner &, const UnitDamageResult &, std::int16_t damage_class);
   void owner_counter_event(const Unit &, const DamageOwner &, std::int16_t damage_class);
@@ -683,6 +687,15 @@ struct MultiplayerOptions {
   // changes controls; normal interactive sessions leave it unset.
   std::function<void(std::uint32_t, std::span<const Controls>,
                      const MultiplayerState &)> input_observer;
+  // After a complete accepted replica update, before rendering. The owning
+  // receipt identifies this exact body, including same-tick ownership refreshes.
+  // Read-only diagnostics; false means no new game tick was advanced locally.
+  std::function<void(const MultiplayerState &,const MultiplayerSnapshotOrigin &,bool)>
+      replica_observer;
+  // Read-only CPU effect barrier/history observation after each accepted
+  // replica receipt. This does not supply an admission, cut or readiness vote.
+  std::function<void(const MultiplayerSnapshotOrigin &,const EffectPresentationObservation &)>
+      effect_history_observer;
   // Read-only observation after live machine owners update the BSP portal
   // mask. This never supplies door state or changes visibility decisions.
   std::function<void(std::uint32_t,const SourcePortalMaskState&)> world_portal_observer;
@@ -715,6 +728,11 @@ struct MultiplayerOptions {
   std::function<void(std::uint32_t,std::uint32_t,const Material&,
       const ShaderInput&)> weapon_material_observer;
   std::function<void(std::uint32_t,std::uint32_t,std::uint32_t,float)> world_weapon_shader_input_observer;
+  // Submitted loose-weapon nodes/vertices and the retained original main-view
+  // selection. Observes the accepted draw without providing pose or admission.
+  std::function<void(unsigned,unsigned,std::uint32_t,std::uint32_t,
+      std::span<const Transform>,std::span<const Vertex>,
+      std::span<const SourceLiveModelBaseDrawTu15>)> world_weapon_source_draw_observer;
   std::function<void(unsigned,std::uint32_t,std::uint32_t,const ObjectLightingState&,
       bool,unsigned,std::span<const Vertex>)> vehicle_draw_observer;
   // Completed ordinary BLOC source base geometry and its actual light cache.

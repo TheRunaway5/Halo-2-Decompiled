@@ -111,7 +111,17 @@ def inventory(path, *, vehicles_only=False, supplemental_character_roots=False,
                 continue
             _, h = c.tag(hlmt, 'hlmt')
             mode = c.u32(h + 4)
+            # Original4C02A reads this HLMT field independently of MODE's
+            # material table. Regret shares the ordinary Prophet MODE with
+            # Mercy/Truth, but its own HLMT supplies the layer21 hologram.
+            # Read every definition before the render-model de-duplication.
+            override = c.u32(h + 0xF4)
+            if override != NONE:
+                c.shader(override)
             roots.append(dict(datum=d, name=t['name'], group=t['group'], model=mode,
+                              model_definition=hlmt,
+                              shader_override=None if override == NONE else override,
+                              shader_override_function=c.u32(h + 0xF8),
                               default_variant=c.u32(at + 0x30)))
             if mode in models:
                 continue

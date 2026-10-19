@@ -3,11 +3,13 @@
 #include "halo2/particle_render_inputs.hpp"
 #include "halo2/source_particle_graphics_binding_tu15.hpp"
 #include "halo2/source_effect_particle_draw_tu15.hpp"
+#include "halo2/source_particle_target_tu15.hpp"
 #include "halo2/source_view_projection.hpp"
 #include "halo2/menu_world_depth.hpp"
 #include <SDL.h>
 #include <nlohmann/json.hpp>
 #include <fstream>
+#include <cstdlib>
 #include <iostream>
 using namespace halo2;using Json=nlohmann::json;
 namespace {
@@ -18,7 +20,11 @@ void bank(const std::filesystem::path&p,const SourceRuntimeMemory&m,const Source
 int main(int argc,char**argv)try {
  if(argc!=4 && argc!=5)throw FormatError("Supply shaders, Backwash map, shared maps and optional new evidence directory");
  if(!std::filesystem::exists(std::filesystem::path(argv[1])/"particle.vert.spv") || !std::filesystem::exists(argv[2]))return 77;
- const std::filesystem::path out=argc==5?argv[4]:"";if(!out.empty()){if(std::filesystem::exists(out))throw FormatError("Preserve prior camera-order evidence");std::filesystem::create_directories(out);}
+ const std::filesystem::path out=argc==5?argv[4]:"";if(!out.empty()){
+  const char *scratch=std::getenv("HALO2_TEST_SCRATCH");
+  if(!scratch || !std::filesystem::weakly_canonical(out).string().starts_with(std::filesystem::canonical(scratch).string()+"/"))throw FormatError("Raw camera-order evidence requires owned HALO2_TEST_SCRATCH");
+  if(std::filesystem::exists(out))throw FormatError("Preserve prior camera-order evidence");std::filesystem::create_directories(out);
+ }
  Cache cache(argv[2],argv[3]);const auto definition=cache.load_particle_system_render_definition(0xe76105ec,0,0);
  auto material=std::make_shared<const ParticleMaterial>(cache.load_particle_material(definition.particle_datum,15,0,0));
  SDL_SetMainReady();if(SDL_Init(SDL_INIT_VIDEO))throw FormatError(SDL_GetError());auto*window=SDL_CreateWindow("Original camera then view initialization",0,0,640,480,SDL_WINDOW_VULKAN|SDL_WINDOW_HIDDEN);if(!window)throw FormatError(SDL_GetError());
@@ -31,7 +37,11 @@ int main(int argc,char**argv)try {
  unsigned cases=0;
  for(unsigned mode:{0u,1u,2u}) {
   const auto control=renderer.prepare_particle_views(std::span(&input,1));const auto prepared=control.acquire(0);
-  SourceRuntimeMemory memory;mount_source_particle_graphics_layout_data_tu15(memory);
+  SourceRuntimeMemory memory;mount_source_particle_graphics_layout_data_tu15(memory);mount_source_particle_target_data_tu15(memory);
+  memory.mount(0x4c1378,std::vector<std::byte>(0x1728),SourceRuntimeMemory::Access::ReadWrite,"explicit unavailable target-record fixture; no SDK allocation history");
+  memory.mount(0x515e44,std::array<std::byte,4>{},SourceRuntimeMemory::Access::ReadWrite,"explicit null depth target input for required SDK owner");
+  const std::array<unsigned,3> previous_target{0,1,0};
+  memory.mount(0x52dfc4,std::as_bytes(std::span(previous_target)),SourceRuntimeMemory::Access::ReadWrite,"declared different target cache; no native binding supplied");
   for(const auto[p,n]:std::array<std::pair<unsigned,unsigned>,10>{{{0x4920d8,4},{0x4918e4,12},{0x492294,1},{0x4922f4,16},{0x4c2aa0,32},{0x4c4b64,4},{0x4c515c,4},{0x491e7c,4},{0x4c685c,4},{0x60000000,65536}}})memory.mount(p,std::vector<std::byte>(n),SourceRuntimeMemory::Access::ReadWrite,"declared native camera/pass inputs; original startup and live frame history remain separate");
   const auto put=[&](unsigned p,unsigned value){memory.write(p,std::as_bytes(std::span(&value,1)));};const auto word=[&](unsigned p){return Bytes(memory.view(p,4)).u32(0);};
   const std::array<float,2> planes{.015625f,1024};memory.write(0x4922f4,std::as_bytes(std::span(planes)));put(0x491e7c,0x44800000);put(0x4c685c,17);
@@ -59,7 +69,7 @@ int main(int argc,char**argv)try {
   if(!observed || word(0x4c685c)!=18)throw FormatError("Original pass packet did not precede its actual initializer");
   if(!out.empty()){bank(path/"after.bin",memory,binding);std::ofstream(path/"case.json")<<Json{{"entry",0x13430},{"before",state(before)},{"after",state(abi)},{"instructions",trace},{"return_address",mode==2?missing:stop},{"completed",mode!=2},{"missing_owner",missing},{"camera_before_view",true}}.dump(2)<<'\n';}
   if(mode==2){
-   if(error.empty() || missing!=0x14ba0 || packet)throw FormatError("Boundary2 concealed its required target owner");
+   if(error.empty() || missing!=0x401950 || packet)throw FormatError("Boundary2 concealed its required SDK attachment owner");
    rejected([&]{(void)prepared.published_state();});reset_instructions=0;
    rejected([&]{binding.initialize_prepared_view_pass(0,0,abi,blocked);});
    rejected([&]{binding.publish_camera(abi,blocked);});

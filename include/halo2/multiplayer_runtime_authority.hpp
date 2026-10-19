@@ -13,8 +13,9 @@ struct SourceAuthorityRetainedWorld;
 // Executor-local lifetime of the live Match, transport role and native shadow
 // stream. The initial world remains resident for immutable renderer resources.
 // A completed frame is the only place where a staged role may be adopted.
-// Rendering/input adapters must rebind their world-dependent owners before
-// activate_takeover(); staging alone never changes the live world or session.
+// Rendering/input adapters prepare their world-dependent owners before
+// activation, and publish through its commit hook before the transport epoch.
+// Staging alone never changes the live world or session.
 class MultiplayerRuntimeAuthority {
 public:
     MultiplayerRuntimeAuthority(const MultiplayerOptions &,
@@ -66,13 +67,24 @@ public:
     // Does not advertise readiness, elect a host or open gameplay/media.
     bool prepare_takeover(std::shared_ptr<PhysicsLiveClockSource> = {});
     SourcePeerHostTakeover *pending_takeover();
-    bool activate_takeover();
+    // After complete decision/native/admission/audio validation and successor
+    // allocation, publish prepared presentation owners before changing this
+    // runtime's role or opening gameplay/media. A callback returning false
+    // must leave its owners unchanged; rejection preserves native/transport
+    // ownership and the same pending role can retry.
+    // The callback is executor-local and noexcept. Successful publication must
+    // not allocate, block, do device I/O, mutate native/transport state, or call
+    // this runtime/session. Capture every required owner/token beforehand and
+    // preflight all of them before the first irreversible swap. This hook does
+    // not prepare adapters or advertise readiness on the caller's behalf.
+    using PresentationCommit=bool(*)(void *)noexcept;
+    bool activate_takeover(PresentationCommit=nullptr,void *owner=nullptr);
     // Surviving client counterpart. Stage the locally learned decision without
-    // changing its native endpoint; retire presentation borrowers before
-    // activation. Native rebind commits before the session publishes its epoch.
+    // changing its native endpoint. The same presentation hook runs before
+    // native rebind and transport-epoch publication, under the same contract.
     bool prepare_client_rebind();
     std::optional<PeerMigrationDecision> pending_client_rebind()const;
-    bool activate_client_rebind();
+    bool activate_client_rebind(PresentationCommit=nullptr,void *owner=nullptr);
     // Promoted native camera bank; the ordinary initial role keeps its own
     // camera. The returned pointer stays executor-local and world-owned.
     NativeVehicleCamera *promoted_camera();

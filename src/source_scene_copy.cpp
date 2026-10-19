@@ -74,4 +74,24 @@ SourceSceneCopyFrame source_scene_copy_frame(const SourceSceneCopyContext &conte
     }
     return result;
 }
+SourceSceneCopyShaderUniform source_scene_copy_shader_uniform(
+    const SourceSceneCopyContext &context,std::array<std::int32_t,2> extent) {
+    const auto frame=source_scene_copy_frame(context);
+    if(extent[0]<=0 || extent[1]<=0)
+        throw FormatError("Scene-copy shader needs its actual positive source coordinate extent");
+    const float x=float(context.camera_rectangle[1]),y=float(context.camera_rectangle[0]);
+    const float width=float(extent[0]),height=float(extent[1]);
+    SourceSceneCopyShaderUniform result{frame.program.words};
+    result.source_rectangle={div(x,width),div(y,height),
+        div(float(int(context.camera_rectangle[3])-int(context.camera_rectangle[1])),width),
+        div(float(int(context.camera_rectangle[2])-int(context.camera_rectangle[0])),height)};
+    // Preserve independently rounded original coordinates. Neither source
+    // texel spacing nor symmetric offsets can replace the emitted attributes.
+    const auto &t=frame.vertices[0].texture_coordinates;
+    result.taps={div(sub(t[0][0],x),width),div(sub(t[0][1],y),height),
+                 div(sub(t[1][0],x),width),div(sub(t[2][1],y),height)};
+    result.destination={float(context.destination_width),float(context.destination_height),
+        div(1.f,float(context.destination_width)),div(1.f,float(context.destination_height))};
+    return result;
+}
 } // namespace halo2

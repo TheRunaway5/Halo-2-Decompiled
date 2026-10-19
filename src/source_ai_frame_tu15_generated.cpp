@@ -73401,5 +73401,5 @@ case 0x32d9e0u:run_32d9e0(s);break;
     } catch(...) {abi=s.save();throw;}
     abi=s.save();
 }
-bool source_ai_frame_tu15_owns_entry(std::uint32_t p) {return p==0x1d0670u || p==0x20b620u || p==0x20a160u || p==0x272550u || p==0x2063e0u || p==0x1ed450u || p==0x211da0u || p==0x266d30u || p==0x2658b0u || p==0x1d1880u || p==0x26f260u || p==0x1d63c0u || p==0x218020u || p==0x2afa50u || p==0x27fa20u;}
+bool source_ai_frame_tu15_owns_entry(std::uint32_t p) {return p==0x1d0670u || p==0x20b620u || p==0x20a160u || p==0x272550u || p==0x2063e0u || p==0x1ed450u || p==0x211da0u || p==0x266d30u || p==0x2658b0u || p==0x1d1880u || p==0x26f260u || p==0x1d63c0u || p==0x218020u || p==0x2afa50u || p==0x27fa20u || p==0x27caa0u || p==0x27cb30u;}
 } // namespace halo2

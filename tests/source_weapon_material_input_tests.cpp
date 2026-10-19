@@ -94,11 +94,19 @@ int main(int argc,char **argv)try {
     };
     check(animate_forward_material(legacy,.25,legacy_input) && animate_forward_material(source,.25,source_input),"Actual weapon gauge animation was not evaluated");
     const bool changed=words(legacy)!=words(source);
+    std::ifstream original_gauge(std::filesystem::path(argv[2]).parent_path()/"weapon_gauge_animation_tu15.json");
+    check(bool(original_gauge),"Original TU1.5 gauge regression fixture missing");
+    Json gauge;original_gauge>>gauge;
+    check(gauge["original_xbe_sha256"]==fixture["original_xbe_sha256"] && gauge["shader"]==material.name &&
+        gauge["seconds"]==.25 && gauge["heat_bits"]==std::bit_cast<std::uint32_t>(state.heat) &&
+        gauge["age_bits"]==std::bit_cast<std::uint32_t>(state.power_fraction),"Original gauge reference controls differ");
+    check(words(source)==gauge["original_words"].get<std::vector<std::uint32_t>>(),"Actual gauge banks differ from unchanged TU1.5 consumers and callback");
     Json report{{"passed",one_queries>0 && changed},{"original_builtin_cases",builtin_cases},
         {"complete_original_authored_alias_cases",original_alias_cases},
         {"actual_heat_alias_cases",alias_cases},{"aliases",aliases},{"actual_gauge_one_queries",one_queries},
         {"actual_gauge_program_or_constants_changed",changed},{"original_callee_results_supplied",false},
         {"rendered_Xbox_parity_verified",false}};
+    report["original_gauge_words_matched"]=188;
     const auto &pass=material.passes.at(material.forward_pass_index);
     report["gauge_reference_vectors"]={{"shader",material.source_shader_datum},
         {"template_pass",pass.template_pass},{"implementation",pass.implementation},

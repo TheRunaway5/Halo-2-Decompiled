@@ -2,6 +2,7 @@
 #include "halo2/render_program.hpp"
 #include "halo2/shader_animation.hpp"
 #include "halo2/texture_pixels.hpp"
+#include "halo2/material_pass_bank.hpp"
 #include "halo2/tags/directory.hpp"
 #include "halo2/tags/binary.hpp"
 #include <array>
@@ -29,6 +30,7 @@ struct BspContent;
 struct PredictedResource;
 struct EncodedSound;
 struct RenderModel;
+struct ModelScaleReset;
 struct Transform;
 struct ScenarioObject;
 struct SceneryDefinition;
@@ -185,7 +187,7 @@ struct Material {
     std::vector<ShaderVector> vertex_constants;
     std::vector<ShaderLod> lods;
     std::vector<ShaderRange> layers, pass_implementations;
-    std::vector<MaterialPass> passes;
+    MaterialPassBank passes;
     ShaderAnimation animation;
     std::array<std::int32_t,8> shader_switches{};
     float specular_brightness{}, ambient_brightness{};
@@ -600,6 +602,7 @@ public:
     std::optional<FrontendModelGrip> load_frontend_model_grip(std::uint32_t unit) const;
     std::array<std::uint32_t,8> load_frontend_model_deferred_mask(std::uint32_t unit) const;
     AnimationClip load_named_animation(std::uint32_t datum, std::uint32_t name) const;
+    std::vector<ModelScaleReset> load_model_scale_resets(const RenderModel &) const;
     std::optional<unsigned> find_local_animation_index(std::uint32_t graph,std::uint32_t name) const;
     // 1CB0D0's initialized default action, followed by the type6 SCEN
     // 10A3F0 named-idle override. Missing idle/NONE graph or incompatible

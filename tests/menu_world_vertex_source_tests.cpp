@@ -266,6 +266,21 @@ void component_alias_bounds(unsigned &rejections,unsigned &acceptances) {
   deny(p,"pending MAC commit overlaps ILU output x");
   p=single_token(5,1,14,0,14,false,1);temporary_source(p,0,12);
   accept(p,"paired reg1 suppresses the later MAC temporary call");
+  // Original hologram class0..6 pairs DP4 with MOV. Its pending MAC result
+  // must stay deferred while MOV reads the preceding register value.
+  p=single_token(7,1,8,0,1,true,2);temporary_source(p,2,2);
+  accept(p,"paired DP4 retains its old temporary through the MOV output");
+  const auto paired=menu_world_vertex_source(p);
+  require(paired.helper_operations==std::vector<unsigned>{7,17} &&
+      paired.statements.find("h2MenuPending0.x=h2MenuDot4(")<
+          paired.statements.find("vpOut[0].w=h2MenuMove(h2MenuTemp2.xyzw)") &&
+      paired.statements.find("vpOut[0].w=h2MenuMove(h2MenuTemp2.xyzw)")<
+          paired.statements.find("h2MenuTemp2.x=h2MenuPending0.x;"),
+      "paired DP4 committed its result before MOV read the old register");
+  p=single_token(7,1,0,1,14);temporary_source(p,2,12);
+  accept(p,"paired DP4 xyz output and MOV w read are disjoint");
+  p.instructions[0][3]=(p.instructions[0][3]&~(15u<<16))|(8u<<16);
+  deny(p,"paired DP4 output changes the component read by MOV");
 }
 void compare_semantic(const MenuWorldVertexSource &source,const Semantic &reference,const std::string &label) {
   const auto actual=actual_semantic(source.statements);

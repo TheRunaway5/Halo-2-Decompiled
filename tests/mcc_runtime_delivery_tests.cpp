@@ -130,7 +130,12 @@ int main(int argc,char**argv)try{
             const auto logical=relocate_mcc_runtime_address(plan.relocations(),retained.address,retained.size);
             check(plan.source_address(logical,retained.size)==retained.address,"Retained definition lost its declared owner extent");
         }
-        for(const auto& r:plan.relocations())check(plan.source_address(r.target,r.bytes)==r.source,"Canonical reverse resource mapping differs");
+        for(const auto& r:plan.relocations()) {
+            check(plan.source_address(r.target,r.bytes)==r.source,"Canonical reverse resource mapping differs");
+            check(plan.runtime_address(r.source,r.bytes)==r.target,"Canonical forward resource mapping differs");
+            if(r.bytes)check(plan.runtime_address(r.source+r.bytes-1,1)==r.target+r.bytes-1,
+                "Canonical final payload byte lost its declared allocation owner");
+        }
         const auto image=plan.tag_image();std::vector<SourceRuntimeCacheBspImage> bsps;
         for(std::size_t n=0;n<cache.bsps().size();++n)bsps.push_back(plan.bsp_image(n));
         const auto read=[&](std::uint32_t logical,std::size_t bytes) {

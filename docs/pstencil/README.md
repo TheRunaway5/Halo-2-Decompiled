@@ -8,27 +8,33 @@ errors. Original is byte-identical to live-v14. Its manifest verifies 65 SPVs,
 including the unchanged resident environment compute shader omitted from the
 older 64-file manifest; only the volume vertex shader changes.
 
-`./Halo2-pStencil-Campaign` selects **campaign-v8**. It adds the recovered
-[normal accumulation and world-space light response](NORMAL_ACCUMULATION_2003.md)
-to the existing [combined Chief visor response](COMBINED_VISOR.md),
+`./Halo2-pStencil-Campaign` selects **campaign-v10**. It adds the recovered
+[texture accumulation](TEXTURE_ACCUMULATION_2003.md) to the
+[normal accumulation and world-space light response](NORMAL_ACCUMULATION_2003.md),
+[combined Chief visor response](COMBINED_VISOR.md),
 [utility/dependent-light passes](LIGHT_RESPONSE_2003.md) and
 [projected gels/specular masks](PROJECTED_LIGHT_RESPONSE_2003.md). The normal
 target is generated once per view and consumed by the actual lights. Compatible
 Elite, Arbiter and other current assets retain their own bump maps/material values.
+The completed regular-Elite neutral-detail input survives the texture conversion;
+its native blue armor response matches the accepted v8 capture. Compatible
+one/four/seven-combiner texture programs preserve current color-change inputs.
 The complete native opening passes 20 exact Original roundtrips, 20 material
 restores and 14 positive light/shadow pairs with no shadow brightening. Script
-and Vulkan validation errors are zero. The earlier actual F1 selector proof is
-retained from v6. Fresh group and visor photos use 5120×3840 internal targets;
-Original is byte-identical to v5. See [opening presentation](OPENING_CAMPAIGN.md)
+and Vulkan validation errors are zero. Four fresh actual F1/mouse switches pass
+on v10 in140.73 seconds. Fresh group and visor photos use 5120×3840 internal targets;
+Original is byte-identical to v8 (and its prior v5 control). See [opening presentation](OPENING_CAMPAIGN.md)
 for evidence and remaining presentation limits.
 
 The latest actual opening recording is
-`analysis/pstencil/campaign-live-v8/recording-window-native/opening-presentation.mp4`
-(1920×1080,200.47 seconds, actual game audio). The explicit recording-only
-presentation option removes the measured one-second FIFO wait; default game
-presentation remains unchanged. No shaders, simulation or assets change in
-this update. Native hitches, final audio synchronization and full original
-full material/scheduling parity remains open. See [capture evidence](CAPTURE_PRESENTATION.md).
+`analysis/pstencil/campaign-live-v10/recording-window-native/opening-presentation.mp4`
+(1920×1080,200.80 seconds, actual game audio). Its1128 native frames have zero
+script/Vulkan errors and nonzero game-only audio. The explicit recording-only
+immediate presentation option leaves default game presentation unchanged.
+Measured native interval median131.38ms,p95374.25ms,max686.53ms under current
+host load shows remaining hitches. No video interpolation or simulation changes
+are used. Final audio synchronization and full original material/scheduling
+parity remain open. See [capture evidence](CAPTURE_PRESENTATION.md).
 
 Campaign-v3 updates the actual submitted material roots and their shared-pass
 closure. All 20 same-frame images match the previous full-bank upload exactly.

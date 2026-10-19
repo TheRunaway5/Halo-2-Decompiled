@@ -8,14 +8,16 @@ struct CinematicCrossfadeRenderContext {
   VkDevice device{};VkPhysicalDevice physical{};
   VkFormat color_format{};VkRenderPass color_pass{};
   std::filesystem::path shader_directory;
+  VkExtent2D extent{640,480};
 };
 struct CinematicCrossfadeRenderTarget {
   VkCommandBuffer command{};VkImage color{};VkExtent2D extent{};
   VkImageLayout layout{};VkRenderPass color_pass{},continuation_pass{};
   VkFramebuffer color_framebuffer{},continuation_framebuffer{};
 };
-//13B70/35190/22050: one fixed640x480 BGRA8 capture shared by the completed
-// views. Reconfiguring the swapchain preserves this independent history image.
+//13B70/35190/22050: one BGRA8 capture shared by the completed views. The
+// original640x480 grid follows native rendering resolution in the host adapter.
+// Reconfiguring the swapchain preserves the outgoing image until recapture.
 class CinematicCrossfadeRender {
 public:
   explicit CinematicCrossfadeRender(CinematicCrossfadeRenderContext);

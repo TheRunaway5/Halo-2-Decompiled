@@ -68,8 +68,13 @@ display attempt retained all four tick-2800 phase banks but selected an old
 nested profile and failed before final output. That failure is preserved.
 The corrected route/profile now passes 24 isolated route/FIFO/cache controls;
 a fresh original capture and matched framebuffer comparison remain required.
-Private cache-load and resource-release recoveries do not yet change the
-ordinary module or close a shader item.
+The complete row5 resource-release owner now passes 16 original calls and 32
+native comparisons and is promoted with its standalone CMake test. It preserves
+all 49 preceding bodies. The generator reproduces the new module exactly.
+Managed ordinary CMake validation stopped in dependency probes before project
+compilation and cleaned its scratch; full resource lifecycle integration remains
+open. The private cache-load recovery does not yet change the ordinary module
+or close a shader item.
 
 Campaign work starts with actual original visibility, selected sections/LODs
 and completed WORLD poses for actors; the ordinary actor loop previously used

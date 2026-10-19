@@ -3,6 +3,7 @@
 #include "halo2/mcc_physics.hpp"
 #include "halo2/mcc_gameplay_scalar.hpp"
 #include "halo2/mcc_gameplay_reference.hpp"
+#include "halo2/mcc_map_gameplay_vanilla.hpp"
 #include "halo2/mcc_bsp_collision_reference.hpp"
 #include "halo2/mcc_bsp_instance_bounds.hpp"
 #include "halo2/mcc_hud_reference.hpp"
@@ -20,9 +21,57 @@
 #include <cmath>
 #include <fstream>
 #include <zlib.h>
+#include <functional>
+#include <list>
+#include <memory>
+#include <mutex>
 
 namespace halo2 {
 namespace {
+// A content key includes every stored byte, so identical partitions may
+// share decode work across files while edits and malformed inputs stay visible.
+// This owns no Cache/Texture ABI state and never changes returned value ownership.
+class TexturePartitionResidency {
+    struct Entry {
+        std::size_t hash;
+        std::vector<std::byte> stored;
+        std::shared_ptr<const std::vector<std::byte>> decoded;
+    };
+    static constexpr std::size_t budget=128ull*1024*1024,maximum_entries=512;
+    std::mutex mutex_;
+    std::list<Entry> entries_;
+    std::size_t bytes_{};
+    static std::size_t hash(std::span<const std::byte> stored) {
+        return std::hash<std::string_view>{}({reinterpret_cast<const char*>(stored.data()),stored.size()});
+    }
+public:
+    std::shared_ptr<const std::vector<std::byte>> find(std::span<const std::byte> stored) {
+        const auto key=hash(stored);std::lock_guard lock(mutex_);
+        for(auto it=entries_.begin();it!=entries_.end();++it)
+            if(it->hash==key && std::ranges::equal(it->stored,stored)) {
+                auto result=it->decoded;entries_.splice(entries_.begin(),entries_,it);return result;
+            }
+        return {};
+    }
+    void admit(std::span<const std::byte> stored,const std::vector<std::byte>& decoded) {
+        if(decoded.size()>budget || stored.size()>budget-decoded.size())return;
+        // Residency is optional; a successful decode remains usable if its
+        // additional cache allocation cannot be made.
+        try {
+            Entry entry{hash(stored),{stored.begin(),stored.end()},
+                std::make_shared<const std::vector<std::byte>>(decoded)};
+            const auto size=entry.stored.size()+entry.decoded->size();
+            std::lock_guard lock(mutex_);
+            for(const auto& current:entries_)
+                if(current.hash==entry.hash && current.stored==entry.stored)return;
+            // Allocate before eviction so allocation failure preserves residency.
+            entries_.push_front(std::move(entry));bytes_+=size;
+            while(bytes_>budget || entries_.size()>maximum_entries) {
+                const auto& last=entries_.back();bytes_-=last.stored.size()+last.decoded->size();entries_.pop_back();
+            }
+        } catch(const std::bad_alloc&) {}
+    }
+};
 constexpr std::size_t header_size=896,maximum_cache=1024ull*1024*1024;
 std::vector<std::byte> read_range(const std::filesystem::path& path,std::uint64_t at,
     std::uint64_t count=0,bool whole=false) {
@@ -208,15 +257,18 @@ std::vector<std::byte> read_mcc_texture_partition(const std::filesystem::path& p
     const auto count=input.u32(0);
     if(!count || count>4096)throw FormatError("Invalid MCC texture segment count");
     input.require(4,std::size_t(count)*4);
-    std::size_t at=4+std::size_t(count)*4,total=at;
+    std::size_t at=4+std::size_t(count)*4,total=at;bool compressed=false;
     for(std::size_t i=0;i<count;++i) {
         const auto size=std::bit_cast<std::int32_t>(input.u32(4+i*4));
         if(!size)throw FormatError("Empty MCC texture segment");
+        compressed|=size>0;
         const auto extent=std::uint64_t(size<0?-std::int64_t(size):size);
         if(extent>raw.size()-total)throw FormatError("MCC texture segment escapes partition");
         total+=std::size_t(extent);
     }
     if(total!=raw.size())throw FormatError("MCC texture segment extent differs from descriptor");
+    static TexturePartitionResidency residency;
+    if(compressed)if(const auto resident=residency.find(raw))return *resident;
     std::vector<std::byte> result;
     for(std::size_t i=0;i<count;++i) {
         const auto size=std::bit_cast<std::int32_t>(input.u32(4+i*4));
@@ -230,6 +282,7 @@ std::vector<std::byte> read_mcc_texture_partition(const std::filesystem::path& p
             result.insert(result.end(),decoded.begin(),decoded.end());
         }
     }
+    if(compressed)residency.admit(raw,result);
     return result;
 }
 
@@ -417,6 +470,44 @@ void Cache::initialize_mcc() {
     for(const auto& allocation:retained_tag_allocations_)
         retained_regions.emplace_back(allocation.address,allocation.size);
     vista_metadata_regions_=tag_metadata_regions(tags_,retained_regions);
+    // This private load phase owns an immutable directory and stable storage.
+    // Qualify map-specific authoring before the generic converters below alter
+    // its complete donor owners. Converted bytes enter the ordinary directory.
+    const MccMapGameplaySource map_source{
+        .scenario_path=scenario_,.scenario=scenario_tag_,.globals=globals_tag_,
+        .resolve=[&](TagHandle handle)->std::optional<MccMapGameplayIdentity> {
+            const auto* t=find_tag(handle);
+            if(!t || !t->address || !t->size)return {};
+            return MccMapGameplayIdentity{t->handle(),t->type(),t->name,t->address,t->size};
+        },
+        .find=[&](TagGroup group,std::string_view name)->std::optional<MccMapGameplayIdentity> {
+            const Tag* found=nullptr;
+            for(const auto& t:tags_)if(!t.handle().is_null() && t.address && t.size &&
+                t.type()==group && t.name==name) {
+                if(found)return {};
+                found=&t;
+            }
+            if(!found)return {};
+            return MccMapGameplayIdentity{found->handle(),found->type(),found->name,found->address,found->size};
+        },
+        .read=[&](std::uint32_t address,std::size_t bytes) {return read_tag_bytes(address,bytes);}
+    };
+    const auto* material_globals=query_tag({.group=tag_groups::globals});
+    const std::array map_authoring{plan_mcc_map_gameplay_vanilla(map_source),
+        plan_mcc_material_gameplay_vanilla(map_source),
+        plan_mcc_foot_gameplay_vanilla(map_source,material_globals?material_globals->handle():TagHandle{})};
+    for(const auto& plan:map_authoring)if(plan.status==MccMapGameplayStatus::InvalidMetadata)
+        throw FormatError("MCC map gameplay authoring has invalid metadata: "+plan.reason);
+    std::vector<std::pair<std::span<std::byte>,const MccMapGameplayWrite*>> destinations;
+    for(const auto& plan:map_authoring)if(plan.status==MccMapGameplayStatus::Ready)
+        for(const auto& write:plan.writes)
+            destinations.emplace_back(std::span(storage_).subspan(
+                metadata_offset(write.source_token,write.after.size()),write.after.size()),&write);
+    preflight_mcc_map_gameplay_vanilla(map_authoring,map_source.read);
+    // Every component, destination and guard is checked before the first
+    // bounded nonthrowing copy. Directory and storage ownership stay stable.
+    for(const auto& [destination,write]:destinations)
+        std::copy(write->after.begin(),write->after.end(),destination.begin());
     // Exact named retail scalar tuples enter the ordinary internal directory
     // before gameplay or resource-only cache consumers. Unknown authored
     // tuples remain untouched; the pure converter exposes their mismatch

@@ -4162,3 +4162,107 @@ All map/BSP/AI/scripts/frame, Simulation/player/object/frontend, menus/maps/miss
 all102 elements, local/split/LAN and original rendered/audio/full-game gates remain.
 Async/cache/animation and later kernel/GPU work stay open. Component passes do not
 accept a whole element or replace the full requested goal.
+
+
+## v508 — original EP preparation and real descriptor producers (PROGRESS)
+
+Previous v504 was PROGRESS. Revalidated382 tracked source/101 executable/13
+installed fingerprints before edits. Whole goal is uncompleted,0/102 whole elements.
+Final get_goal reports usageLimited; no completion/pause/blocked update or
+attempt to resume that externally controlled status was made.
+All implementation edits stay private v15. Shared root code/MCC/shaders, existing
+reference evidence/frozen snapshots and launcher-selected r6 remain preserved.
+Root goal updates append only; no candidate was accepted or installed.
+
+The command3 reference requires completed program/state installation before its
+acknowledgement. Existing logical graph/output owners cannot certify that native
+action. The authentic CPU callers also reveal the upstream four GP append pages:
+whole38F6F4 ->38F5F3 produces3 actual EP pages, then38851E appends the separate
+391410 descriptor. Continued those actual producers rather than minting an ACK.
+
+Added8 whole original EP preparation CPU routines/242 static instructions:38851E,
+38F544,38F5E2,38F5EF,38F5F3,38F66A,38F692,38F6F4. Shared SDK/GP/download CPU owners
+are reused with unique entry ownership. Whole selector, source object/context
+construction,9 owned source-data block copies and original parameter stores run.
+Data is copied from the existing owned XBE bank; no new opaque processor payload,
+DSP interpreter, runtime opcode executor or processor-ready result was introduced.
+This does not execute those copied GP/EP data words as processor instructions.
+
+The retained native DMA owner supports original mode0 EP table base/count stores
+38DDF4/38DDFB, separately from GP mode1. Actual19 EP page entries resolve into the
+same native64 backing used by CPU preparation. The actual parent page-translation
+frame retains the original context in the saved ESI slot atSP+40; GP/EP prefix
+selection follows that actual mode. The source GP scratch owner routes the EP
+module and restores nested source context across synchronous calls/faults. Unknown
+device reads/commands and original38846E remain unowned; no status bank or ACK0.
+
+The new native composition uses the real SDK owner for its EP manager/context,
+original38F53E and exact38E996 request arithmetic for the13000-byte EP allocation
+and98-byte table, and original38F6F4 for source preparation. Its3 produced pages
+append to GP through38F5F3/38850A; original38851E appends the fourth real descriptor.
+GP prefix goes8->11->12 and accepts the real189-page title pool. No four synthetic
+append descriptors are used in this new composition. The earlier v504 focused
+fixture remains its explicitly declared-input regression. The complete upstream
+38E2E0 hardware/factory caller remains unproved and is not bypassed in live startup.
+Review also corrected the shared GP fixture's declared manager request from24
+to the actual source38E253 request3C, retaining manager24..3B's six-word header
+extent. Production already follows that original allocator caller; this is a
+fixture correction, not a completed header publication or command ACK.
+
+All6 selector blocks plus initial/loader/configuration copies match the actual
+owned source bytes; configuration offsets and FIFO parameters match original
+stores. GP/EP reads and writes alias the exact shared EP pages through their real
+SGEs. Invalid bounds, high words, counts and executor/bank ownership reject.
+The independent original EP CPU suite has26 cases, 639 exact
+instructions, 162 ordered stores and4 stops before unsupplied
+external services. Original registers/defined flags/full final storage and caller
+FP state match. New EP and updated GP generation replay byte-identically. All
+5,090 static instruction sites across10 audio CPU modules match the authenticated
+owned XBE and stopped actual title code. This does not establish DSP/device parity.
+
+Storage policy from current AGENTS.md/docs/TEST_STORAGE.md was incorporated before
+validation. Used tools/run_tests.py with7 focused targets/checks in its own private
+build; all7 pass. One-off generation/replay used tools/run_test.py. New original
+experiment banks live only in an owned temporary-directory context inside
+HALO2_TEST_SCRATCH. The private build/parent and replay scratch were verified gone;
+only6 selected small native reports (2902 bytes total),
+bounded logs, commands, source hashes and diagnostics remain. No new large artifact
+was retained. No operation targeted the existing persistent build, prior
+references, frozen snapshots or installed runtimes. Final audit found
+97 of the prior101 binary paths absent; this
+run did not remove or rebuild them. Their hashes remain historical v504 receipts,
+not current executable evidence. Installed13 file hashes still match exactly.
+Current source validation executables were disposable and are not installed.
+
+Current389 source/13 installed fingerprints and prior101 executable audit
+are recorded in work/sandbox-primary-v15/native-EP-source-progress-v508.json. The
+current focused7 checks do not claim a fresh full114-check run. Prior111/114 and
+its3 campaign FECTL failures remain historical v504 evidence, not re-run this turn.
+Launcher r6 still has SHA5900bf2c7902976132a4eb17a709dd999f8ecaaa1f6904e0bc64b9c1c70b3884.
+No owned build/test/capture jobs remain. No candidate or whole element accepted.
+
+Continue verified MCPX configuration/IRQ semantics, actual native GP install/
+command/ACK and full processing/status/supervisor/clock/voice/GP-EP/codec/PCM.
+The complete hardware factory and asynchronous resource retirement remain required.
+All map/BSP/AI/scripts/frame, Simulation/player/object/frontend, menus/maps/missions,
+102 sandbox elements, local/split/LAN and original rendered/audio/full-game gates
+remain. Async/cache/animation/later kernel/GPU obligations are still open. Bounded
+source/resource checks do not substitute for the requested complete native game.
+
+## Resumed full-game launcher checklist, 2026-10-19
+
+The user explicitly resumed the full game/launcher goal and requested a persistent
+checklist. [Full game launcher checklist](FULL_GAME_LAUNCHER_CHECKLIST.md) is the
+maintained current view: G01-G14, ordered next actions, original owners/acceptance,
+the unchanged 102-element matrix and a bounded evidence ledger to avoid repeating
+completed work. Its private v15 counterpart is kept alongside this goal copy.
+The service still reported `usageLimited` after the explicit resume request;
+available goal tools cannot edit an unfinished objective or change that
+host-controlled status. This attachment records the authorized continuation.
+
+Active work is G02's explicit Xbox menu/launcher path, whose mandatory Vista
+loading/menu dependencies prevent the original-owned menu route. The source
+owners and required actual native/launcher validation are in the checklist.
+Original lifecycle/menu-return, composed map/gameplay, every menu/map/mission,
+all 102 elements and all six gates remain open. Installed r6 does not contain
+source v508. This entry claims no new build, test, delivery or parity result.

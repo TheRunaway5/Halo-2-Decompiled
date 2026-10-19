@@ -12,6 +12,21 @@ class SourcePeerHostTakeover;
 // gameplay selections, without copying renderer/device callbacks, desktop,
 // prepared worlds or other live presentation borrowers.
 MultiplayerOptions source_authority_options(const MultiplayerOptions &);
+// Immutable evidence of one independently admitted, natively validated paired
+// world/host cut. Only the receiver creates this value. It owns the host table,
+// not a native executor or world borrower, so it can outlive worker advancement
+// and destruction. This proves historical snapshot association only: it does
+// not assert current-world readiness, elect a host or authorize activation.
+class SourceAuthorityHostProof {
+public:
+    const ValidatedAuthorityCut &cut()const;
+    MultiplayerSnapshotProof prove_snapshot(const LanClient &,const MultiplayerSnapshotOrigin &)const;
+private:
+    friend class SourceAuthorityReceiver;
+    SourceAuthorityHostProof(ValidatedAuthorityCut,LanHost::Continuation);
+    struct Data;
+    std::shared_ptr<const Data> data_;
+};
 struct SourceAuthorityReceiverState {
     bool decoding{},warmed{},workspace_warmed{};
     std::uint64_t received{},prepared{},decode_microseconds{},warm_microseconds{},prepare_microseconds{};
@@ -21,6 +36,10 @@ struct SourceAuthorityReceiverState {
     std::string error;
     std::uint64_t replay_batches{},replayed_phases{},replay_sequence{},replay_microseconds{};
     bool replaying{},replay_paused{},host_ready{};
+    // Published atomically with ready/host_ready in worker state(). Absent
+    // during unvalidated replay, cancellation and native-only streams. Copies
+    // remain historical evidence; use the live checkpoint API for adoption.
+    std::optional<SourceAuthorityHostProof> host_proof;
 };
 // Owning recovery input only. The source executor validates this exact cut and
 // its independent roster before export. It is not an election certificate or

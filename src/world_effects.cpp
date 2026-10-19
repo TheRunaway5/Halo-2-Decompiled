@@ -108,25 +108,32 @@ struct NativeWorldEffects::Impl {
   std::set<std::uint32_t> source_particle_effects;
   std::vector<WorldEffectSound> sounds;
   std::map<std::uint32_t,EffectLightDefinition> light_definitions;
-  struct LightWorld {
+  struct LightResources {
     BspAtmosphere locations;
     ObjectLightSpatialBsp memberships;
     TerrainCollision terrain;
+    explicit LightResources(const Cache &c)
+        :locations(c.load_bsp_atmosphere(0)),memberships(c.load_object_light_spatial_bsp(0)),
+         terrain(c.load_raw_terrain_collision(0)) {
+      if(terrain.bsps.size()!=1)throw FormatError("World effect light requires actual first BSP collision bank");
+    }
+  };
+  struct LightWorld {
+    // Read-only authored geometry is resident across snapshots/restores.
+    // Runtime identities, spatial links, fades and queries remain value-owned.
+    std::shared_ptr<const LightResources> resources;
     SourceEffectLightDatumPool pool;
     SourceEffectLightSpatialPool spatial;
     struct Delivery {std::uint32_t effect_owner=none;std::uint64_t tick{};std::uint32_t effect_definition=none;};
     std::array<Delivery,SourceEffectLightDatumPool::capacity> deliveries;
     explicit LightWorld(const Cache& c)
-        :locations(c.load_bsp_atmosphere(0)),memberships(c.load_object_light_spatial_bsp(0)),
-         terrain(c.load_raw_terrain_collision(0)),spatial(memberships.clusters.size()) {
-      if(terrain.bsps.size()!=1)throw FormatError("World effect light requires actual first BSP collision bank");
-    }
+        :resources(std::make_shared<const LightResources>(c)),spatial(resources->memberships.clusters.size()) {}
   };
   std::unique_ptr<LightWorld> light_world;
   SourceEffectLightQueryState light_queries;
   std::array<SourceShadowSelectionCache,4> light_selection;
   SourceEffectLightLifetimeWorld light_inputs(std::uint64_t t) const {
-    return {light_world->locations,light_world->memberships,light_world->terrain.bsps[0],
+    return {light_world->resources->locations,light_world->resources->memberships,light_world->resources->terrain.bsps[0],
       cache.original_data()->fade_curve,std::uint32_t(t),light_queries.epoch,30,0,true};
   }
   struct DecalDefinition {
@@ -347,6 +354,34 @@ struct NativeWorldEffects::Impl {
       if(projectile.tag.group!="proj")throw FormatError("Grenade preload is not a projectile");
       const auto effect=projectile.root.u32(0xfc);
       if(effect!=none)definition(effect);
+    }
+  }
+  Impl(const Impl &o,SourceEffectRandom streams,ParticleCollisionQuery query)
+      :cache(o.cache),collision(o.collision),collision_service(std::move(query)),seed{},random_streams(streams),
+       tick(o.tick),identity(o.identity),parents(o.parents),projectiles(o.projectiles),object_markers(o.object_markers),
+       unavailable(o.unavailable),source_particle_effects(o.source_particle_effects),sounds(o.sounds),
+       light_definitions(o.light_definitions),light_world(o.light_world?std::make_unique<LightWorld>(*o.light_world):nullptr),
+       light_queries(o.light_queries),light_selection(o.light_selection),decal_definitions(o.decal_definitions),
+       decal_boundaries(o.decal_boundaries),decal_bank(o.decal_bank),definitions(o.definitions),effects(o.effects) {
+    // Every raw link points into this owner's copied definition graph. A
+    // checkpoint must survive destruction of its intermediate restored owner.
+    for(auto &effect:effects) {
+      const auto *old=effect.definition;
+      if(!old)throw FormatError("World effect checkpoint lacks an authored definition");
+      auto &definition=definitions.at(old->datum);effect.definition=&definition;
+      for(auto &event:effect.events) {
+        const auto old_event=std::find_if(old->events.begin(),old->events.end(),
+            [&](const auto &d){return &d==event.definition;});
+        if(old_event==old->events.end())throw FormatError("World effect checkpoint event escaped its definition");
+        auto &next=definition.events.at(std::size_t(old_event-old->events.begin()));
+        for(auto &system:event.systems) {
+          const auto old_system=std::find_if(old_event->systems.begin(),old_event->systems.end(),
+              [&](const auto &d){return &d==system.definition;});
+          if(old_system==old_event->systems.end())throw FormatError("World effect checkpoint system escaped its event");
+          system.definition=&next.systems.at(std::size_t(old_system-old_event->systems.begin()));
+        }
+        event.definition=&next;
+      }
     }
   }
   std::uint32_t random() {
@@ -784,6 +819,45 @@ NativeWorldEffects::NativeWorldEffects(const Cache &c,Mesh &m,const CollisionWor
                                       SourceEffectRandom streams)
     :impl_(std::make_unique<Impl>(c,m,w,0,streams)) {}
 NativeWorldEffects::~NativeWorldEffects() = default;
+struct NativeWorldEffects::Checkpoint::Data {
+  std::shared_ptr<const int> owner;
+  std::array<std::uint32_t,2> random;
+  bool aliased;
+  std::unique_ptr<Impl> state;
+  Data(const Impl &from,std::shared_ptr<const int> token)
+      :owner(std::move(token)),random{from.random_streams.primary,from.random_streams.auxiliary},
+       aliased(&from.random_streams.primary==&from.random_streams.auxiliary),
+       state(std::make_unique<Impl>(from,SourceEffectRandom{random[0],random[1]},ParticleCollisionQuery{})){}
+};
+std::optional<std::uint64_t> NativeWorldEffects::Checkpoint::tick()const noexcept {
+  return data_ && data_->state->tick?std::optional<std::uint64_t>(data_->state->tick-1):std::nullopt;
+}
+std::array<std::uint32_t,2> NativeWorldEffects::Checkpoint::random()const {
+  if(!data_)throw FormatError("Missing world presentation checkpoint");return data_->random;
+}
+NativeWorldEffects::PreparedRestore::PreparedRestore()=default;
+NativeWorldEffects::PreparedRestore::~PreparedRestore()=default;
+NativeWorldEffects::PreparedRestore::PreparedRestore(PreparedRestore &&)noexcept=default;
+NativeWorldEffects::PreparedRestore &NativeWorldEffects::PreparedRestore::operator=(PreparedRestore &&)noexcept=default;
+NativeWorldEffects::Checkpoint NativeWorldEffects::checkpoint()const {
+  Checkpoint result;result.data_=std::make_shared<Checkpoint::Data>(*impl_,owner_);return result;
+}
+NativeWorldEffects::PreparedRestore NativeWorldEffects::prepare_restore(const Checkpoint &checkpoint,
+    SourceEffectRandom streams,ParticleCollisionQuery collision)const {
+  if(!checkpoint.data_ || checkpoint.data_->owner!=owner_)
+    throw FormatError("World presentation checkpoint belongs to another owner");
+  if(checkpoint.data_->aliased!=(&streams.primary==&streams.auxiliary))
+    throw FormatError("World presentation RNG aliasing changed");
+  PreparedRestore result;result.replacement_=std::make_unique<Impl>(*checkpoint.data_->state,streams,std::move(collision));
+  result.owner_=owner_;return result;
+}
+bool NativeWorldEffects::restore_ready(const PreparedRestore &prepared)const noexcept {
+  return prepared.replacement_ && prepared.owner_==owner_;
+}
+bool NativeWorldEffects::commit_restore(PreparedRestore &&prepared)noexcept {
+  if(!restore_ready(prepared))return false;
+  impl_.swap(prepared.replacement_);prepared.owner_.reset();return true;
+}
 void NativeWorldEffects::preload_attached(std::uint32_t datum) {
   if(datum==none)return;
   // A retained parent may have loaded an incomplete death-effect child.
@@ -1274,8 +1348,8 @@ std::vector<WorldEffectLightReceiver> NativeWorldEffects::light_receivers(
     std::span<const std::uint8_t> containing_fog,const SourceBspAdmission* main_view) {
   auto& i=*impl_;std::vector<WorldEffectLightReceiver> out;
   if(!i.light_world)return out;
-  const SourceEffectLightReceiverWorld world{i.light_world->memberships,geometry,
-      i.light_world->locations,0};
+  const SourceEffectLightReceiverWorld world{i.light_world->resources->memberships,geometry,
+      i.light_world->resources->locations,0};
   const SourceEffectLightDefinitions definition=[&](auto id)->const EffectLightDefinition& {
     return i.light_definitions.at(id);
   };

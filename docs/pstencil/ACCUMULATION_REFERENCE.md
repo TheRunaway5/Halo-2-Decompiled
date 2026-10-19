@@ -1,5 +1,14 @@
 # May2003 accumulation program construction
 
+Current integration: campaign-v10 executes the recovered normal producer and
+normal-space utility, with native/GPU binding and scene controls retained in
+[NORMAL_ACCUMULATION_2003.md](NORMAL_ACCUMULATION_2003.md). The original texture
+constructor and its authenticated initial controls now have an installed
+[current-asset adapter](TEXTURE_ACCUMULATION_2003.md), with native color,
+shadow/specular, Original restoration and complete opening checks.
+The construction receipts below retain their original historical scope; they
+must not be read as evidence of a matched original GPU frame.
+
 The resident pass inventory's single-combiner placeholders are not its runtime
 programs. Reading the original cache's implementation `+10` field gives these
 actual selections:

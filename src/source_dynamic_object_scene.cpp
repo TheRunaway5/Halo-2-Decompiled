@@ -116,6 +116,11 @@ struct SourceDynamicObjectScene::Impl {
 SourceDynamicObjectScene::SourceDynamicObjectScene(const Cache &c,std::size_t bsp,Mesh &m,const CollisionWorld &w)
     :impl_(std::make_unique<Impl>(c,bsp,m,w)){}
 SourceDynamicObjectScene::~SourceDynamicObjectScene()=default;
+void SourceDynamicObjectScene::reset_lifetimes() noexcept {
+    auto &s=*impl_;s.owners.clear();s.order.clear();
+    for(auto &view:s.draws)view.clear();
+    for(auto &[definition,bank]:s.banks)bank.geometry.reset_history();
+}
 void SourceDynamicObjectScene::synchronize(std::span<const SourceDynamicObject> o,std::span<const SourceWorldPose> p){impl_->synchronize(o,p);}
 const SourceDynamicObject &SourceDynamicObjectScene::get(std::uint32_t o)const{return impl_->owners.at(o).state;}
 std::span<const Transform> SourceDynamicObjectScene::nodes(std::uint32_t o)const{return impl_->owners.at(o).nodes;}

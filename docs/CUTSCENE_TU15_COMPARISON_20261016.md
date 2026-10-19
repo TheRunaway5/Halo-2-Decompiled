@@ -4,6 +4,34 @@ This work follows the campaign shader goal and the reported missing fleet/Halo
 backdrops and delayed sounds. OG Xbox TU1.5 is authoritative. Vista is not a
 gameplay visual reference. This is an open comparison, not completed parity.
 
+## October 19 native cache requirement
+
+Native runtime validation and new cutscene captures must use the selected MCC
+private cache from `assets/mcc-source.tsv`. The current selection is
+`assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b`, with campaign maps under
+`halo2/h2_maps_win64_dx11/`. The introduction cache is version 13. Native tests
+must authenticate that selection and use its shared resources, with Original
+graphics and the compiled TU1.5 native constructor. Neither an Xbox ISO/disc
+cache nor a Vista cache qualifies this native test lane. No `--gameplay-xbe`
+or asset-preview mode is supplied to those native runs.
+
+OG Xbox TU1.5 remains the separate authority for original code/oracle fixtures
+and reference frames. Existing Xbox-cache native captures below are historical
+evidence; they do not qualify the newly requested MCC runtime. Required
+same-frame original framebuffer and native camera/effect-phase joins remain
+open. New validation uses the managed test runners; source copies, temporary
+builds, binaries, raw memory and intermediate captures are removed when their
+tests finish. Only required reference inputs, selected requested screenshots
+and small reports/hashes are retained with their paths and sizes.
+
+The selected MCC cache passed the read-only onboarding verification on October
+19: 883 files / 31,297,241,961 bytes, with unchanged registry, provenance,
+conversion, introduction-map hashes and file identities. The introduction map
+hash is `f6916833eedc5efba6250ff2bfd0d0547318572901776069ca043c0c8b4329b8`.
+The run made no cache changes; its scratch was removed. Small verification and
+cleanup receipts are in `analysis/current-root-cutscene-20261019/mcc-input-verification-{v2,terminal-v2}.json`.
+This verifies the test inputs, not native rendering or visual parity.
+
 ## October 18 continuation
 
 The current-root configure attempt for the two standalone activation/resource
@@ -34,10 +62,45 @@ Its actual original VM/GPU run and final output remain open; the cache controls
 do not establish embedded-GDB or rendered-frame behavior. Fresh capture must
 retain the complete original phase, display and final-target join.
 
-Separate private source recovery is in progress for cache-load owner `191890`
-and resource row 5 release owner `2255F0`. Neither candidate is promoted or
-counted as an executed native/original comparison. The ordinary activation
-module remains the qualified 49-body source described below.
+Resource row 5 release owner `2255F0` now passes 16 unchanged original calls and
+32 native observed/unobserved comparisons, including all seven ordered stores,
+14 clear and 18 skip paths. All five negative/positive controls have their
+expected exits. Its complete five-instruction body, generator, caller, oracle
+and standalone CMake target are promoted; all 49 previous bodies and the
+concurrent object-attachment include are preserved. The ordinary activation
+module now contains 50 bodies / 3,143 instructions. This routine clears a
+retained resource word; it supplies no cache readiness or resource allocation.
+The managed current-root CMake attempt was cancelled after 349.556 seconds
+while dependency header probes waited for foreign compiler slots; no project
+build or CTest ran. Its report is
+`build/test-results-campaign-row5-20261018-v1/terminal-cleanup.json`; the private
+scratch tree is confirmed absent. Cache-load owner `191890` remains a separate
+private, unexecuted source recovery. Its historical candidate starts from 49
+bodies and must be rebased onto the new 50-body module before promotion.
+The subsequent managed direct current-root check also stopped before codegen:
+its two-minute compiler-admission deadline expired. Its diagnostic and verified
+scratch cleanup are retained as `campaign-resource-row5-release-owner-v1/managed-current-root-{result,terminal}-v1.json`.
+Neither attempt invalidates the earlier qualified private comparisons, and
+neither qualifies the new ordinary root translation unit or runtime.
+
+The trace parser's 33 focused annotated-result controls pass. The subsequent
+real CMake `LANGUAGES NONE` probe exits zero, but its audit remains failed:
+actual traces contain nested character-device FD annotations and annotated
+`AT_FDCWD` operands outside the parser's admitted grammar. Its eight-process
+causal tree is retained; no full configure or visual gate is closed by that
+probe. The source successor now passes 536 controls, including all 127 observed
+return forms and the actual successful directory operands. Its managed scratch
+is removed; a fresh real probe with that successor remains open.
+
+The current generator reproduces the promoted module byte for byte under the
+managed one-off lifecycle (50 bodies / 3,143 instructions). That generation's
+scratch is removed. Completed private row5 objects and binaries were removed:
+five files / 28,902,624 logical bytes, with hashes retained. Required original
+reference fixtures remain at `campaign-resource-row5-release-owner-v1/UNCREATED-original-v1/`
+(305,406 bytes); ordinary CTest fixture copies total 304,828 bytes. Existing
+captures, source snapshots and launcher-selected runtimes are preserved. Eight
+redundant, unreferenced system-JSON copies were removed with all five retained
+raw paths rehashed; their exclusive extents totaled 1,083,392,000 bytes.
 
 The missing campaign flare is now visible in genuine640×480 and1280×960 Vulkan
 readbacks. The higher-resolution run reaches exact1558/2800, retains the1771

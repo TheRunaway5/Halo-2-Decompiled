@@ -1,8 +1,9 @@
 # Complete source bodies and the real GPU consumer are available to their
 # retained owners. Ordinary scheduling still requires its bitmap publication
 # and parent/view owner; adding bodies does not synthesize a visible request.
+include(cmake/VulkanLensRetirementObserver.cmake)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_lens_draw_tu15_generated.cpp)
-target_sources(halo2_renderer PRIVATE src/source_lens_draw_geometry_tu15.cpp src/source_lens_draw_gpu.cpp src/source_lens_draw_frame_tu15.cpp src/source_lens_cpu_cache_tu15.cpp)
+target_sources(halo2_renderer PRIVATE src/source_lens_draw_geometry_tu15.cpp src/source_lens_draw_gpu.cpp src/source_lens_draw_frame_tu15.cpp src/source_lens_cpu_cache_tu15.cpp src/source_lens_presentation_handoff_tu15.cpp)
 if(MSVC)
     set_property(SOURCE src/source_lens_draw_frame_tu15.cpp src/source_lens_cpu_cache_tu15.cpp
         APPEND PROPERTY COMPILE_OPTIONS /fp:strict)
@@ -26,6 +27,13 @@ endforeach()
 add_custom_target(source_lens_draw_shaders DEPENDS ${lens_draw_shaders})
 add_dependencies(halo2_renderer source_lens_draw_shaders)
 if(BUILD_TESTING)
+    add_executable(lens_draw_handoff_tu15_tests tests/lens_draw_handoff_tu15_tests.cpp)
+    halo2_observe_vulkan_lens_retirement(lens_draw_handoff_tu15_tests)
+    target_link_libraries(lens_draw_handoff_tu15_tests PRIVATE halo2_renderer halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME original_tu15_lens_draw_handoff COMMAND lens_draw_handoff_tu15_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map"
+        "${CMAKE_CURRENT_BINARY_DIR}/lens-draw-handoff.json")
+    set_tests_properties(original_tu15_lens_draw_handoff PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240 RUN_SERIAL TRUE)
     add_executable(mcc_lens_bitmap_layout_tests tests/mcc_lens_bitmap_layout_tests.cpp)
     target_link_libraries(mcc_lens_bitmap_layout_tests PRIVATE halo2_cache halo2_mcc_lens_bitmap_layout)
     add_test(NAME mcc_lens_bitmap_layout_contract COMMAND mcc_lens_bitmap_layout_tests)

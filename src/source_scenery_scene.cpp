@@ -427,7 +427,7 @@ SourceSceneryScene::SourceSceneryScene(const Cache &c,std::span<const ScenarioOb
     Mesh &mesh,const CollisionWorld &cw,InitialSelection selected,OmitUnresolvedSelection omit,bool region_union)
     :impl_(std::make_unique<Impl>(c,objects,bsp,mesh,cw,selected,omit,region_union)){}
 SourceSceneryScene::~SourceSceneryScene()=default;
-void SourceSceneryScene::reset_lifetimes(){
+void SourceSceneryScene::reset_lifetimes() noexcept {
     auto &s=*impl_;s.tick=0;s.render_frame=0;
     for(auto &o:s.scenery){
         o.handle=0xffffffffu;o.created_tick=0;o.active=o.visible=false;

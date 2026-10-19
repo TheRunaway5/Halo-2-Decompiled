@@ -4,6 +4,7 @@
 #include "halo2/model_markers.hpp"
 #include "halo2/simulation.hpp"
 #include "halo2/effect_sound.hpp"
+#include "halo2/original_data.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -17,9 +18,11 @@ void check(bool value,const char *why){if(!value)throw FormatError(why);}
 }
 int main(int argc,char **argv) {
   try {
-    if(argc!=2)throw FormatError("Supply original Lockout map");
+    if(argc!=2 && argc!=3)throw FormatError("Supply original Lockout map and optional TU1.5 XBE");
     if(!std::filesystem::exists(argv[1]))return 77;
-    Cache cache(argv[1],std::filesystem::path(argv[1]).parent_path());
+    const auto original_data=argc==3?OriginalData::load_xbe(argv[2]):nullptr;
+    if(original_data)check(original_data->image==OriginalData::Image::TitleUpdate15,"Handoff requires TU1.5");
+    Cache cache(argv[1],std::filesystem::path(argv[1]).parent_path(),original_data);
     const auto cues=fixed_effect_sound_cues(cache,0xe70a0595u);
     check(cues.size()==1 && cues[0].sound==0xe70f059au && cues[0].gain==1 &&
         cues[0].elapsed==std::bit_cast<float>(0x3d088889u),"Actual fusion-coil sound event/timing changed");
@@ -35,6 +38,16 @@ int main(int argc,char **argv) {
     });
     sounds.advance(2,[&](const auto&,auto,auto){++played;});
     check(played==1,"Actual destruction sound duplicated or never submitted");
+    sounds.spawn(0xe70a0595u,0x20001,{4,5,6});
+    sounds.retire_pending();sounds.retire_pending();
+    sounds.advance(100,[&](const auto&,auto,auto){++played;});
+    check(played==1,"Discarded future effect cue survived presentation retirement");
+    sounds.spawn(0xe70a0595u,0x30001,{7,8,9});
+    sounds.advance(2,[&](const EffectSoundCue &cue,std::uint32_t owner,Vec3 position){
+      check(cue.sound==0xe70f059au&&owner==0x30001&&position.x==7&&position.y==8&&position.z==9,
+        "Retiring pending cues changed the next authored sound or owner");++played;
+    });
+    check(played==2,"Presentation sound retirement lost subsequent authored cues");
     std::ifstream original(std::filesystem::path(__FILE__).parent_path()/"fixtures/sword_ready_sequence_original.tsv");
     check(bool(original),"Missing independent Sword ready fixture");
     SourceWeaponShaderState ready_shader{13,0,0};
@@ -142,6 +155,66 @@ int main(int argc,char **argv) {
           check(borrowed[i].vertex.attributes==draws[i].vertex.attributes &&
               borrowed[i].vertex.constants==draws[i].vertex.constants,
               "Borrowed muzzle stream changed the authored particle birth");
+        auto obsolete=std::make_shared<int>(0);std::weak_ptr<int> retired=obsolete;
+        shared_owner.collision_query([obsolete](auto,auto,auto)->std::optional<ParticleCollisionHit>{return {};});
+        const auto cut=shared_owner.checkpoint();const auto random=cut.random();
+        shared_owner.collision_query({});obsolete.reset();
+        check(retired.expired(),"Muzzle checkpoint retained a predecessor collision closure");
+        check(cut.tick()==tick,"Muzzle checkpoint lost its completed tick");
+        for(unsigned cycle=0;cycle<2;++cycle) {
+          const auto future_weapon=0x90000u+cycle;
+          for(unsigned n=1;n<=4;++n)shared_owner.advance(tick+n,tick_seconds);
+          shared_owner.request({effect,future_weapon,0xffffffffu,0x3f800000,0x3f800000},tick+4);
+          shared_owner.pose(future_weapon,[&](auto){return markers[0].world;},view,tick+4,tick_seconds);
+          check(!shared_owner.draw(future_weapon,view,tick+4,0,tick_seconds).empty(),"Missing discarded-future muzzle control");
+          const std::array future_random{primary,auxiliary};
+          bool refused=false;try{(void)owner.prepare_restore(cut,{primary,auxiliary},{});}catch(const FormatError&){refused=true;}
+          check(refused,"Foreign muzzle checkpoint was admitted");
+          refused=false;try{(void)shared_owner.prepare_restore(cut,{primary,primary},{});}catch(const FormatError&){refused=true;}
+          check(refused && primary==future_random[0] && auxiliary==future_random[1],"Changed muzzle RNG aliasing was admitted or wrote live words");
+          {
+            auto prepared=shared_owner.prepare_restore(cut,{primary,auxiliary},{});
+            check(primary==future_random[0] && auxiliary==future_random[1],"Muzzle preparation wrote shared RNG");
+            check(!owner.commit_restore(std::move(prepared)),"Foreign muzzle restore token was published");
+            check(shared_owner.commit_restore(std::move(prepared)) && !shared_owner.commit_restore(std::move(prepared)),
+                "Muzzle restoration lost or reused its publication token");
+            check(primary==future_random[0] && auxiliary==future_random[1],"Muzzle commit wrote shared RNG");
+          } // Destroy the discarded Impl before using its independent copied graph.
+          check(cut.random()==random,"Muzzle checkpoint borrowed the changing live RNG words");
+          primary=random[0];auxiliary=random[1];
+          check(shared_owner.draw(future_weapon,view,tick,0,tick_seconds).empty(),"Discarded muzzle lifetime survived restore");
+          const auto restored=shared_owner.draw(0x10000u+shot,view,tick,0,tick_seconds);
+          check(restored.size()==draws.size() && shared_owner.particle_count()==owner.particle_count() &&
+              shared_owner.location_count()==owner.location_count(),"Active muzzle allocations were cleared during restore");
+          for(unsigned i=0;i<restored.size();++i)check(restored[i].vertex.attributes==draws[i].vertex.attributes &&
+              restored[i].vertex.constants==draws[i].vertex.constants && restored[i].material==borrowed[i].material,
+              "Restored muzzle differs from untouched control or replaced resident materials");
+        }
+        const auto retained_sounds=shared_owner.take_sounds();
+        check(retained_sounds.size()==1 && retained_sounds[0].cue.sound==weapon.sound && shared_owner.take_sounds().empty(),
+            "Muzzle restoration lost or replayed its unsubmitted accepted sound");
+        for(unsigned n=0;n<12;++n) {
+          owner.advance(++tick,tick_seconds);shared_owner.advance(tick,tick_seconds);
+          if(n==2) {
+            const WeaponEffectInput next{effect,0xa0000u,0xffffffffu,0x3f800000,0x3f800000};
+            check(owner.request(next,tick)==shared_owner.request(next,tick),"Restored muzzle lost its next allocation generation");
+            owner.pose(next.weapon,[&](auto){return markers[0].world;},view,tick,tick_seconds);
+            shared_owner.pose(next.weapon,[&](auto){return markers[0].world;},view,tick,tick_seconds);
+          }
+          for(const auto weapon_id:{0x10000u+shot,0xa0000u}) {
+            const auto expected=owner.draw(weapon_id,view,tick,.5f,tick_seconds);
+            const auto resumed=shared_owner.draw(weapon_id,view,tick,.5f,tick_seconds);
+            check(expected.size()==resumed.size() && owner.particle_count()==shared_owner.particle_count(),
+                "Restored muzzle continuation lost particle retirement");
+            for(unsigned i=0;i<expected.size();++i)check(expected[i].vertex.attributes==resumed[i].vertex.attributes &&
+                expected[i].vertex.constants==resumed[i].vertex.constants,"Muzzle continuation differs from untouched control");
+          }
+          const auto expected_sounds=owner.take_sounds(),resumed_sounds=shared_owner.take_sounds();
+          check(expected_sounds.size()==resumed_sounds.size(),"Restored muzzle continuation lost sound requests");
+          for(unsigned i=0;i<expected_sounds.size();++i)check(expected_sounds[i].cue.sound==resumed_sounds[i].cue.sound &&
+              expected_sounds[i].owner==resumed_sounds[i].owner,"Restored muzzle changed its next sound owner");
+        }
+        std::cout<<"PASS two staged active-muzzle restores, 12 continuation ticks, frozen RNG, pending sound and collision-closure retirement\n";
       }
       // Bound only the regression's wait; each particle's authored lifetime,
       // rather than this bound, controls the production removal decision.

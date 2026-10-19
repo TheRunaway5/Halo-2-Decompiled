@@ -114,9 +114,12 @@ def _check(root, runtime, cache):
     if directory.is_symlink() or directory.resolve(strict=True) != directory:
         raise ValueError("Native test requires the validated compiled default shader owner")
     files = shaders["files"]
-    if (not isinstance(files, dict) or len(files) != 97 or
+    # The original qualified family has 97 files. New renderer programs may
+    # expand it; every added file still needs the passed inventory's exact hash,
+    # and the complete directory must match that inventory below.
+    if (not isinstance(files, dict) or len(files) < 97 or
             not {"world.vert.spv", "world.frag.spv", "hud.frag.spv"} <= files.keys()):
-        raise ValueError("Native test requires the complete existing 97-shader inventory")
+        raise ValueError("Native test requires the complete baseline shader inventory")
     actual = {p.relative_to(directory).as_posix() for p in directory.rglob("*") if p.is_file() or p.is_symlink()}
     if actual != set(files):
         raise ValueError("Native-test shader inventory changed")

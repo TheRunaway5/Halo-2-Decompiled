@@ -56,3 +56,9 @@ The rebuilt application is selected by both installed launchers at `build-multip
 ## Validation limits
 
 Camera-owner and authored-parameter comparisons are complete at the stated boundaries. Physical Xbox behavior, matched framebuffer pixels, exhaustive live obstruction/overlap cases, every ejection prerequisite and a full campaign playthrough remain unverified. Emulator, component, host-CPU and GPU results are kept distinct.
+
+## Storage closeout, October 18
+
+The camera work removed 262 disposable binaries and object files (10.32 GiB). Existing original-reference inputs and capture evidence (12.93 GiB) remain explicitly preserved; their exact paths and sizes are recorded in `analysis/camera/vehicle-tu15-completion-20261015/disposable-output-cleanup.json` and `STORAGE_CLOSEOUT.md`. Scratch deletion was verified. The campaign camera CTest now writes under `HALO2_TEST_SCRATCH`; future CMake validation uses `tools/run_tests.py`, and one-off capture/probe work uses `tools/run_test.py`.
+
+The passing behavior receipts above were produced on October 15–16. They do not automatically certify later changes made by other work in the shared checkout. The final attempted `delivered-ghost` run lacks a completion receipt and is not counted as passing. The completed native SDL/UDP/GPU regression is `relative-look-green/report.json`; the completed 17-test suite is `completed-final-regressions.log`.

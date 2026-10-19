@@ -1,5 +1,41 @@
 # Opening campaign presentation
 
+**2026-10-19 delivery: campaign-v10.** `./Halo2-pStencil-Campaign` now adds
+the recovered [texture accumulation](TEXTURE_ACCUMULATION_2003.md) on compatible
+current material programs. Its native regular-Elite color response matches the
+accepted v8 image while preserving the existing metallic Arbiter and visor paths.
+The complete native opening returns0 in228.54 seconds with1180 main frames,
+zero script faults and zero Vulkan validation messages. All20 Original
+roundtrips and20 full-material restores match;14 light/shadow pairs are positive,
+with no shadow brightening. Four fresh F1/mouse selections on this runtime pass
+in140.73 seconds: Original,pStencil,Original,pStencil. The receipt is
+`analysis/pstencil/campaign-live-v10/live-selector/result.json`.
+
+Fresh group/visor images are under
+`analysis/pstencil/texture-accumulation-native-v10/native-group/` and `native-visor/`.
+They use5120×3840 internal targets; point shadows darken426,394 and472,817 pixels
+respectively. Three actual opening images and their hashes are retained in
+`texture-accumulation-native-v10/opening-result.json`. The earlier v9 texture
+candidate darkened blue Elite armor and was rejected; it was never installed.
+The corrected input-context regression fails before the fix and passes afterward.
+
+The fresh native recording is
+`analysis/pstencil/campaign-live-v10/recording-window-native/opening-presentation.mp4`
+(200.8045 seconds,1920×1080,H264/AAC). Its1128 native frames complete with zero
+script/Vulkan errors and17,926,710 nonzero audio samples. Only12.974301 seconds
+of verified silent startup were removed, with0.5-second preroll; the uncut
+reference is retained. No interpolation or simulation changes are used.
+Native interval median131.381ms,p95374.246ms,max686.525ms under current host
+load remains visibly uneven; final dialogue balance/synchronization is unverified.
+The runtime/shaders, requested native photographs, selected opening frames and
+two encoded recordings are explicitly retained in the v10 storage receipt.
+Its `storage-cleanup.json` verifies removal of owned build/capture workspaces;
+temporary archives, object files, raw frame controls and menu photos are gone.
+
+Full May2003 material/scheduling coverage, original framebuffer comparisons and
+smooth native pacing remain unfinished. The v8 results below retain their
+historical scope and do not certify every opening asset or receiver face.
+
 **2026-10-18 delivery: campaign-v8.** `./Halo2-pStencil-Campaign` now uses the
 [recovered world-normal accumulation path](NORMAL_ACCUMULATION_2003.md), including
 compatible current Elite and Arbiter materials. The complete native opening

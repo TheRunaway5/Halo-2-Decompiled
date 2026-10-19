@@ -235,6 +235,25 @@ int main(){try{
     bad=events;bad[1].tick=4;reject(bad);bad=events;bad[0].handle=0x10800;reject(bad);
     bad=events;bad[0].handle=1;reject(bad);bad=events;bad[0].tag=null_datum;reject(bad);
     bad.assign(65,events[0]);reject(bad);
+    {
+      NativeDeviceEventCursor cursor(true);
+      auto future=events;future.push_back({0x30005,0x30006,3,90});future.push_back({0x40007,0x40008,4,91});
+      require(cursor.observe(future).size()==4,"Device handoff fixture did not reach its later journal");
+      cursor.rebase(events,3);cursor.rebase(events,3);
+      require(cursor.observe(events).empty(),"Device rebase replayed already accepted requests");
+      auto next=events;next.push_back({0x50009,0x5000a,3,4});
+      const auto delivered=cursor.observe(next);
+      require(delivered.size()==1&&delivered[0].handle==0x50009&&cursor.observe(next).empty(),
+        "Device rebase lost or duplicated a successor reusing a discarded-future serial");
+      const auto refuse=[&](const auto &invalid){bool caught=false;try{cursor.rebase(invalid,3);}catch(const FormatError&){caught=true;}
+        require(caught&&cursor.observe(next).empty(),"Invalid device rebase changed its delivered boundary");};
+      bad=events;bad[1].serial=1;refuse(bad);bad=events;bad[1].tick=4;refuse(bad);
+      next.push_back({0x6000b,0x6000c,4,5});
+      require(cursor.observe(next).size()==1,"Rejected device rebase lost the current successor");
+      cursor.rebase({},0);const std::vector<SourceDeviceWorldEvent> first{{0x7000d,0x7000e,1,1}};
+      require(cursor.observe(first).size()==1&&cursor.observe(first).empty(),"Empty accepted device bank lost its next request");
+      std::cout<<"Device event rebase: accepted history silent, future serial reuse, idempotence and rejected-cut conservation passed\n";
+    }
     map("assets/disc/maps/zanzibar.map",1);map("assets/map-pack/maps/containment.map",2);map("assets/map-pack/maps/dune.map",1);
     all_maps();snapshots();
     return 0;

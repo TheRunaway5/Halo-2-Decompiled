@@ -6,8 +6,10 @@ Authority: unchanged English Xbox TU1.5 executable, SHA-256
 from actual map-start calls and the authenticated lifecycle registration table.
 The original fixture recovery selected47 bodies /3078 instructions. The cleanup
 addition previously expanded the module to48 bodies /3093 instructions. The
-current module recovers49 bodies /3138 instructions, including complete15-PC
-cleanup13A7E0 and complete45-PC /152-byte resource-stage191CF0. Their independent
+current module recovers50 bodies /3143 instructions, including complete15-PC
+cleanup13A7E0, complete45-PC /152-byte resource-stage191CF0 and complete5-PC
+/20-byte row5 release2255F0. The separate [row5 release fixtures](campaign_resource_row5_tu15.md)
+cover its original/native state and branch paths. The independent
 [cleanup fixtures](campaign_cleanup_tu15.md) and
 [resource-stage fixtures](campaign_resource_stage_tu15.md) retain the separate
 bounded proofs; the historical activation fixture recovery remains47 bodies. The level-handle

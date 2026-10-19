@@ -157,6 +157,17 @@ struct RendererObservedTargetTransition {
     std::vector<std::array<std::uint32_t,4>> clear_values;
 };
 enum class RendererBspDrawPhase { scene_base,accumulation_base,environment,overlay_before,overlay_after,texture_mapping,decal,planar_fog };
+// Read-only facts from the actual owner-geometry vkCmdDraw. Command submission
+// does not establish visible samples, GPU completion or Xbox pixel parity.
+struct RendererObservedObjectDraw {
+    std::size_t object_index{};
+    RendererBspDrawPhase phase{};
+    std::array<std::uint32_t,2> source_material{};
+    unsigned material_slot{},parent_material{};
+    std::uint64_t pipeline{},descriptor{},vertex_buffer{};
+    std::uint32_t first{},count{};
+    bool owner_constants{};
+};
 struct SourceBspResidentPart;
 struct SourceBspDrawToken;
 struct SourceBspPartBinding;
@@ -267,6 +278,7 @@ struct ModelView {
     // neither supplies a uniform nor adds a draw, visibility or binding.
     std::function<void(const RendererCompletedMaterialUpload&)> completed_material_upload_observer;
     std::function<void(const RendererObservedBspDraw&)> completed_bsp_draw_observer;
+    std::function<void(const RendererObservedObjectDraw&)> completed_object_draw_observer;
     std::span<const pstencil::LightmapCaster> pstencil_lightmap_casters;
     std::span<const pstencil::PointCaster> pstencil_point_casters;
     bool pstencil_native_point_casters=false;
@@ -276,6 +288,7 @@ struct ModelView {
 };
 // SDL owns the platform window/input; only this module knows Vulkan handles.
 class Renderer {
+    struct LensQueryRetirementData;
 public:
     // The optional shadow table names actual root Mesh slots allocated before
     // construction. Its authored records must outlive this Renderer.
@@ -343,7 +356,28 @@ public:
     std::vector<SourceLensQueryResult> take_lens_query_results();
     // Scene/query-owner retirement waits for actual GPU work before releasing
     // identities. Completed results from the retiring scene are discarded.
-    void retire_lens_queries();
+    void retire_lens_queries() noexcept;
+    class PreparedLensQueryRetirement {
+    public:
+        ~PreparedLensQueryRetirement();
+        PreparedLensQueryRetirement(PreparedLensQueryRetirement &&) noexcept;
+        PreparedLensQueryRetirement &operator=(PreparedLensQueryRetirement &&) noexcept;
+    private:
+        friend class Renderer;
+        PreparedLensQueryRetirement();
+        std::unique_ptr<LensQueryRetirementData> data_;
+    };
+    // Executor-local completed-frame staging; exclude rendering/loading and
+    // retain the SDL window through token destruction. Preparation leaves old
+    // query work/results intact. Any intervening draw, resize, harvest or
+    // immediate retirement invalidates readiness, including declined draws.
+    PreparedLensQueryRetirement prepare_lens_query_retirement();
+    bool lens_query_retirement_ready(const PreparedLensQueryRetirement &) const noexcept;
+    // No Vulkan call or allocation: move old GPU ownership/results into this
+    // token and consume its commit eligibility. Keep the token alive across
+    // the enclosing native commit. Destroy/move-assign it afterward, outside
+    // session locks: that later retirement can wait for actual GPU work.
+    bool commit_lens_query_retirement(PreparedLensQueryRetirement &&) noexcept;
     // Admission succeeds only for the requested actual uploaded Mesh bitmap.
     // The caller must retain device_lease() through its source ABI publication.
     void require_lens_bitmap(unsigned material,const Texture &) const;

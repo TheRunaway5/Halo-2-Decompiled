@@ -1,0 +1,179 @@
+{
+  "schema": "H2_MCC_BITMAP_DELTA_V4",
+  "map": "06a_sentinelwalls.map",
+  "source_map_sha256": "8c992ac2aa7ef60748115c7abdd80062ee8a579cd99bef21f50496556e0bdb68",
+  "original_map_sha256": "710e0944c2e4f081e6a7dd5af83db0356242cd275bdb45d29a38489edb249904",
+  "profile": {
+    "tag": "scenarios\\skies\\solo\\sentinelhq\\bitmaps\\sky_shq_gradient_jungle",
+    "encoding": "rgba8",
+    "format": 11,
+    "width": 32,
+    "height": 128,
+    "mip_count": 8,
+    "pixel_bytes": 21852,
+    "donor_width": 64,
+    "donor_height": 256,
+    "donor_mip_count": 9,
+    "donor_pixel_bytes": 87388,
+    "donor_registration": [
+      32,
+      128
+    ],
+    "registration": [
+      16,
+      64
+    ],
+    "donor_sha256": "f1b7831f7f362b907b0219a5b441cd5e4ba342d1233cc4a5ac07aa4c6c503699",
+    "target_sha256": "f47a4549233049c382e0679b2d574febf90cbc37388200a98e237eeff4ad3b64"
+  },
+  "donor_mips": [
+    {
+      "width": 64,
+      "height": 256,
+      "depth": 1,
+      "offset": 0,
+      "size": 65536
+    },
+    {
+      "width": 32,
+      "height": 128,
+      "depth": 1,
+      "offset": 65536,
+      "size": 16384
+    },
+    {
+      "width": 16,
+      "height": 64,
+      "depth": 1,
+      "offset": 81920,
+      "size": 4096
+    },
+    {
+      "width": 8,
+      "height": 32,
+      "depth": 1,
+      "offset": 86016,
+      "size": 1024
+    },
+    {
+      "width": 4,
+      "height": 16,
+      "depth": 1,
+      "offset": 87040,
+      "size": 256
+    },
+    {
+      "width": 2,
+      "height": 8,
+      "depth": 1,
+      "offset": 87296,
+      "size": 64
+    },
+    {
+      "width": 1,
+      "height": 4,
+      "depth": 1,
+      "offset": 87360,
+      "size": 16
+    },
+    {
+      "width": 1,
+      "height": 2,
+      "depth": 1,
+      "offset": 87376,
+      "size": 8
+    },
+    {
+      "width": 1,
+      "height": 1,
+      "depth": 1,
+      "offset": 87384,
+      "size": 4
+    }
+  ],
+  "target_mips": [
+    {
+      "width": 32,
+      "height": 128,
+      "depth": 1,
+      "offset": 0,
+      "size": 16384
+    },
+    {
+      "width": 16,
+      "height": 64,
+      "depth": 1,
+      "offset": 16384,
+      "size": 4096
+    },
+    {
+      "width": 8,
+      "height": 32,
+      "depth": 1,
+      "offset": 20480,
+      "size": 1024
+    },
+    {
+      "width": 4,
+      "height": 16,
+      "depth": 1,
+      "offset": 21504,
+      "size": 256
+    },
+    {
+      "width": 2,
+      "height": 8,
+      "depth": 1,
+      "offset": 21760,
+      "size": 64
+    },
+    {
+      "width": 1,
+      "height": 4,
+      "depth": 1,
+      "offset": 21824,
+      "size": 16
+    },
+    {
+      "width": 1,
+      "height": 2,
+      "depth": 1,
+      "offset": 21840,
+      "size": 8
+    },
+    {
+      "width": 1,
+      "height": 1,
+      "depth": 1,
+      "offset": 21848,
+      "size": 4
+    }
+  ],
+  "base_offset": 65536,
+  "base_sha256": "ef1abebf78b321f113f522be209809312bda9569636daf7259142d5061687e1a",
+  "donor_mip_sha256": [
+    "d8c32b4db00fe610778b435483eded176c52175a28d13f077bb741e7ca25be47",
+    "53e6b39bd23a45ac887f1c51327617e3dc97134b6e9484e24473ad4483a7e47f",
+    "10cccab6039b0aa6b211cca7e43d68591add1d0b532bb80ba7fbcba2eb86ff17",
+    "eb673e8ee8d7a97a29066bd840c5591024c686d8f7d960dde2584574e39e56c3",
+    "7481a504332481a824d4b659127509ea6c04256808aba27919dfad8ce3e8162e",
+    "a2786f80e58207b50a3cb76f2808a26e1ec325223e0619d39867f0c34635457f",
+    "87609a88fb6ec889c5b8d8d7651f91ee5d094951a8c1f243b838f6c8b6c26fea",
+    "a4e61952674e11171835546ccb058f7cc82c1b7b6cf5431d86a5d7642ce6fb55",
+    "b8a37928b195da2ea549b6d5caad2c083a61f0bb4eb91c4e325888d7b8b29e65"
+  ],
+  "target_mip_sha256": [
+    "db2d2b90d45708d6ac3202b787ec9aec32f7f06e3109adc90723d95f4d8178fc",
+    "7f3f7d56a593ebb39e951e27f429b260954ff78c0495fa4c8aca32d829f7d691",
+    "f2acee70a4539a9bdafb3f3b2cd600712041ba97ab517cc26ae01249d7261644",
+    "ed1de53fe4fecb4605f0b11f85a886b2db8b4785bea60c41b04af18851db3778",
+    "fbaf7a2c2a1f706a64b9bdd8bdee512d656dff76b097f6da1dbc7f729c73f165",
+    "20393dc23cbeb402a92fba6313f0cd5393d5c4ac1c4fb0af264eca26ff3554d3",
+    "2f658552401bf84f4477135d393b6534ec7dd9db6422e5faa20713b9888dd91b",
+    "a3b0fb60f42399ff5e8257b08effc0dc09f6f0f26bd3d1b86789af029ad98ef1"
+  ],
+  "delta_bytes": 1178,
+  "delta_sha256": "87364c289aa5e780b444513d4369da94fc8c994a764588fedbfac6f9edf5962f",
+  "full_graphics_parity": false,
+  "scope": "Authenticated Sacred Icon gradient only; original descriptor extent and exact pixels, without resampling or shader changes"
+}

@@ -198,6 +198,10 @@ public:
   // Keep native presentation and all its readbacks within one public-call
   // lifetime. The callback must not retain a world/memory reference.
   void render_model_view(const std::function<void(PhysicsLiveWorldTu15&)>&);
+  // Completed private incoming-world adoption only. Original CPU requests
+  // are retired before a new renderer/PC binds its own GPU query identities.
+  // Does not begin a model view or supply a completed hardware result.
+  unsigned retire_lens_queries();
   // Host observer/read-borrow metadata only: no native view reset is made.
   void completed_main_camera_observer(SourceCompletedMainCameraObserverTu15);
   void inspect_render_memory(const SourceRenderMemoryInspectorTu15&) const;

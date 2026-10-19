@@ -157,6 +157,74 @@ class MccOnboardingTests(unittest.TestCase):
         self.assertEqual(cache, self.cache)
         self.assertEqual(onboarding.selected(self.root)[0], self.cache)
 
+    def enable_current_graphics(self):
+        from mcc_bitmap_correction_bundle import BUNDLE_V2, PROFILES_V2
+        from mcc_bitmap_correction_bundle_v3 import BUNDLE_V3, MAP_NAME, PROFILES_V3
+        for path in (BUNDLE_V2, BUNDLE_V3):
+            target = self.root / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(b"installed bundle sentinel")
+        return dict(schema="H2_MCC_APPLIED_GRAPHICS_CORRECTIONS_V3", complete=True,
+                    restored_mips=40, changes=[],
+                    profiles=[dict(map=name, tag=p["tag"], restored_mips=p["mip_count"],
+                                   format=p["format"], target_sha256=p["target_sha256"])
+                              for name, profiles in (("zanzibar.map", PROFILES_V2), (MAP_NAME, PROFILES_V3))
+                              for p in profiles])
+
+    def test_older_graphics_cache_requires_fresh_import_without_editing_it(self):
+        self.enable_current_graphics()
+        before = (self.cache / 'provenance.json').read_bytes()
+        with patch.object(onboarding, 'prepare', return_value=(self.cache, self.report)) as prepare:
+            onboarding.setup(self.root, self.source, progress=self.messages.append)
+        prepare.assert_called_once_with(self.root, self.source, progress=self.messages.append)
+        self.assertEqual((self.cache / 'provenance.json').read_bytes(), before)
+        self.assertTrue(any('current graphics corrections' in message for message in self.messages))
+
+    def test_complete_current_graphics_cache_reuses_verified_copy(self):
+        self.report['graphics_corrections'] = self.enable_current_graphics()
+        self.write_report()
+        with patch.object(onboarding, 'prepare') as prepare:
+            cache, _ = onboarding.setup(self.root, self.source, progress=self.messages.append)
+        prepare.assert_not_called()
+        self.assertEqual(cache, self.cache)
+
+    def test_available_v4_requires_complete_six_image_profile_before_reuse(self):
+        from mcc_bitmap_correction_bundle_v4 import BUNDLE_V4, MAP_NAME, PROFILES_V4
+        current = self.enable_current_graphics()
+        path = self.root / BUNDLE_V4
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"installed v4 bundle sentinel")
+        self.assertTrue(onboarding._needs_graphics_reimport(self.root, {'graphics_corrections': current}))
+        upgraded = dict(current, schema="H2_MCC_APPLIED_GRAPHICS_CORRECTIONS_V4",
+                        restored_mips=48, profiles=current['profiles'] + [
+                            dict(map=MAP_NAME, tag=p['tag'], restored_mips=p['mip_count'],
+                                 format=p['format'], target_sha256=p['target_sha256'])
+                            for p in PROFILES_V4])
+        self.assertFalse(onboarding._needs_graphics_reimport(self.root, {'graphics_corrections': upgraded}))
+        path.unlink()
+        self.assertFalse(onboarding._needs_graphics_reimport(self.root, {'graphics_corrections': upgraded}))
+        upgraded['profiles'] = upgraded['profiles'][:-1]
+        self.assertTrue(onboarding._needs_graphics_reimport(self.root, {'graphics_corrections': upgraded}))
+
+    def test_incomplete_current_graphics_profile_cannot_reuse_cache(self):
+        self.report['graphics_corrections'] = self.enable_current_graphics()
+        self.report['graphics_corrections']['profiles'].pop()
+        self.write_report()
+        with patch.object(onboarding, 'prepare', return_value=(self.cache, self.report)) as prepare:
+            onboarding.setup(self.root, self.source, progress=self.messages.append)
+        prepare.assert_called_once()
+
+    def test_failed_graphics_upgrade_preserves_previous_selection_and_cache(self):
+        self.select()
+        self.enable_current_graphics()
+        registry = self.root / onboarding.REGISTRY
+        before_registry, before_cache = registry.read_bytes(), (self.cache / 'provenance.json').read_bytes()
+        with patch.object(onboarding, 'prepare', side_effect=FormatError('interrupted graphics import')):
+            with self.assertRaisesRegex(FormatError, 'interrupted graphics import'):
+                onboarding.setup(self.root, self.source, progress=self.messages.append)
+        self.assertEqual(registry.read_bytes(), before_registry)
+        self.assertEqual((self.cache / 'provenance.json').read_bytes(), before_cache)
+
     def test_graphics_correction_hashes_are_checked_after_tag_conversion(self):
         path = self.cache / 'halo2/h2_maps_win64_dx11/textures.dat'
         name = path.relative_to(self.cache / 'halo2').as_posix()

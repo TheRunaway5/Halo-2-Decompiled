@@ -23,6 +23,10 @@ public:
     NativeWeaponProjectileScene(const Cache&,std::size_t bsp,Mesh&,
         const CollisionWorld&,std::span<const std::uint32_t> definitions,std::size_t capacity);
     ~NativeWeaponProjectileScene();
+    // Completed-frame adoption: discard full-owner light/LOD/pose and model/
+    // glow draw history, retaining resident authored resources. Re-synchronize
+    // actual incoming projectiles before drawing. Caller owns world quiescence.
+    void reset_lifetimes() noexcept;
     void synchronize(std::span<const NativeWeaponProjectile>);
     const std::vector<NativeWeaponProjectileDraw>& draw_view(std::int32_t,const SourceObjectViewLod&);
     const std::vector<SourceLightVolumeDraw>& light_volume_view(unsigned,Vec3 actual_camera_forward,

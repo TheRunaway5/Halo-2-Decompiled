@@ -234,6 +234,12 @@ NativeWeaponProjectileScene::NativeWeaponProjectileScene(const Cache &c,std::siz
     const CollisionWorld &world,std::span<const std::uint32_t> definitions,std::size_t capacity)
     :impl_(std::make_unique<Impl>(c,bsp,m,world,definitions,capacity)){}
 NativeWeaponProjectileScene::~NativeWeaponProjectileScene()=default;
+void NativeWeaponProjectileScene::reset_lifetimes() noexcept {
+    auto &s=*impl_;s.owners.clear();s.order.clear();
+    for(auto &view:s.draws)view.clear();
+    for(auto &view:s.light_draws)view.clear();
+    for(auto &[definition,bank]:s.banks)bank.geometry.reset_history();
+}
 void NativeWeaponProjectileScene::synchronize(std::span<const NativeWeaponProjectile> p){impl_->synchronize(p);}
 const std::vector<NativeWeaponProjectileDraw>& NativeWeaponProjectileScene::draw_view(std::int32_t frame,const SourceObjectViewLod &v){return impl_->draw(frame,v);}
 const std::vector<SourceLightVolumeDraw>& NativeWeaponProjectileScene::light_volume_view(unsigned view,Vec3 forward,

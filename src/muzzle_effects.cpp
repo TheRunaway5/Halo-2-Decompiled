@@ -155,6 +155,12 @@ struct NativeMuzzleEffects::Impl {
   ParticleCollisionQuery collision;
   Impl(const Cache &c,std::uint32_t s):cache(c),owned_seed(s),seed(owned_seed),random_streams{seed,seed}{}
   Impl(const Cache &c,SourceEffectRandom streams):cache(c),owned_seed{},seed(streams.auxiliary),random_streams(streams){}
+  Impl(const Impl &o,SourceEffectRandom streams,ParticleCollisionQuery query)
+      :cache(o.cache),owned_seed{},seed(streams.auxiliary),random_streams(streams),
+       effect_pool(o.effect_pool),system_pool(o.system_pool),location_pool(o.location_pool),
+       emitter_pool(o.emitter_pool),particle_pool(o.particle_pool),definitions(o.definitions),
+       sprite_contexts(o.sprite_contexts),effects(o.effects),particles(o.particles),
+       previous_particles(o.previous_particles),advanced(o.advanced),sounds(o.sounds),collision(std::move(query)){}
   std::uint32_t next_random(){seed=seed*1664525u+1013904223u;return seed;}
   float random_fraction(){return float(double(next_random()>>16)*double(1.f/65535.f));}
   Definition &definition(std::uint32_t datum) {
@@ -258,6 +264,46 @@ struct NativeMuzzleEffects::Impl {
 NativeMuzzleEffects::NativeMuzzleEffects(const Cache &cache,std::uint32_t seed):impl_(std::make_unique<Impl>(cache,seed)){}
 NativeMuzzleEffects::NativeMuzzleEffects(const Cache &cache,SourceEffectRandom streams):impl_(std::make_unique<Impl>(cache,streams)){}
 NativeMuzzleEffects::~NativeMuzzleEffects()=default;
+struct NativeMuzzleEffects::Checkpoint::Data {
+  std::shared_ptr<const int> owner;
+  std::array<std::uint32_t,2> random;
+  bool aliased;
+  std::unique_ptr<Impl> state;
+  Data(const Impl &from,std::shared_ptr<const int> token)
+      :owner(std::move(token)),random{from.random_streams.primary,from.random_streams.auxiliary},
+       aliased(&from.random_streams.primary==&from.random_streams.auxiliary),
+       state(std::make_unique<Impl>(from,SourceEffectRandom{random[0],random[1]},ParticleCollisionQuery{})){}
+};
+std::optional<std::uint64_t> NativeMuzzleEffects::Checkpoint::tick()const noexcept {
+  if(!data_ || !data_->state->advanced)return {};
+  return std::uint64_t(*data_->state->advanced);
+}
+std::array<std::uint32_t,2> NativeMuzzleEffects::Checkpoint::random()const {
+  if(!data_)throw FormatError("Missing muzzle presentation checkpoint");return data_->random;
+}
+NativeMuzzleEffects::PreparedRestore::PreparedRestore()=default;
+NativeMuzzleEffects::PreparedRestore::~PreparedRestore()=default;
+NativeMuzzleEffects::PreparedRestore::PreparedRestore(PreparedRestore &&)noexcept=default;
+NativeMuzzleEffects::PreparedRestore &NativeMuzzleEffects::PreparedRestore::operator=(PreparedRestore &&)noexcept=default;
+NativeMuzzleEffects::Checkpoint NativeMuzzleEffects::checkpoint()const {
+  Checkpoint result;result.data_=std::make_shared<Checkpoint::Data>(*impl_,owner_);return result;
+}
+NativeMuzzleEffects::PreparedRestore NativeMuzzleEffects::prepare_restore(const Checkpoint &checkpoint,
+    SourceEffectRandom streams,ParticleCollisionQuery collision)const {
+  if(!checkpoint.data_ || checkpoint.data_->owner!=owner_)
+    throw FormatError("Muzzle presentation checkpoint belongs to another owner");
+  if(checkpoint.data_->aliased!=(&streams.primary==&streams.auxiliary))
+    throw FormatError("Muzzle presentation RNG aliasing changed");
+  PreparedRestore result;result.replacement_=std::make_unique<Impl>(*checkpoint.data_->state,streams,std::move(collision));
+  result.owner_=owner_;return result;
+}
+bool NativeMuzzleEffects::restore_ready(const PreparedRestore &prepared)const noexcept {
+  return prepared.replacement_ && prepared.owner_==owner_;
+}
+bool NativeMuzzleEffects::commit_restore(PreparedRestore &&prepared)noexcept {
+  if(!restore_ready(prepared))return false;
+  impl_.swap(prepared.replacement_);prepared.owner_.reset();return true;
+}
 std::uint32_t NativeMuzzleEffects::request(const WeaponEffectInput &input,std::uint32_t tick) {
   if(impl_->definition(input.effect).flags&0x18u)
     throw FormatError("Muzzle effect requires completed original17E460 lighting colors");

@@ -41,7 +41,9 @@ namespace halo2 {
 //82 carries selected vehicle weapon HUD state and seat-controlled handheld visibility.
 //85 requires source-constrained look and admits the original camera exit
 // handoff after seat release. Older peers reject those native inputs/views.
-inline constexpr unsigned native_multiplayer_protocol = 89;
+//90 admits authoritative WORLD banks for loose weapons. Older snapshot
+// decoders do not recognize those pose owners and must reject this session.
+inline constexpr unsigned native_multiplayer_protocol = 90;
 // Endpoint numbers are authenticated room slots for ONLINE, opaque UDP peers
 // for local transport. Packet contents retain the native host/client protocol.
 class MultiplayerDatagrams {

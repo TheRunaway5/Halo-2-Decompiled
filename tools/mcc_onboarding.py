@@ -373,6 +373,35 @@ def repair_shaders(root, *, progress=print):
     return repair_cache_shaders(Path(root), *value, progress=progress)
 
 
+def _needs_graphics_reimport(root, report):
+    """Old completed copies remain usable; setup upgrades their correction set."""
+    from mcc_bitmap_correction_bundle import BUNDLE_V2, PROFILES_V2
+    from mcc_bitmap_correction_bundle_v3 import BUNDLE_V3, MAP_NAME, PROFILES_V3
+    from mcc_bitmap_correction_bundle_v4 import BUNDLE_V4, MAP_NAME as SACRED_ICON_MAP, PROFILES_V4
+    if not all((root / path).is_file() for path in (BUNDLE_V2, BUNDLE_V3)):
+        return False
+    graphics = report.get("graphics_corrections", {})
+    if not isinstance(graphics, dict) or graphics.get("complete") is not True:
+        return True
+    sources = [("zanzibar.map", PROFILES_V2), (MAP_NAME, PROFILES_V3)]
+    minimum = 4 if (root / BUNDLE_V4).is_file() else 3
+    for version in (3, 4):
+        if version == 4:
+            sources.append((SACRED_ICON_MAP, PROFILES_V4))
+        if version < minimum:
+            continue
+        expected = [dict(map=name, tag=p["tag"], restored_mips=p["mip_count"],
+                         format=p["format"], target_sha256=p["target_sha256"])
+                    for name, profiles in sources for p in profiles]
+        if (graphics.get("schema") == f"H2_MCC_APPLIED_GRAPHICS_CORRECTIONS_V{version}" and
+                graphics.get("restored_mips") == sum(p["restored_mips"] for p in expected) and
+                graphics.get("profiles") == expected):
+            # Reusing an already verified V4 copy needs no reconstruction
+            # delta. A partial/older tool set must not downgrade its assets.
+            return False
+    return True
+
+
 def setup(root, mcc_source=None, *, progress=print):
     root = Path(root).resolve()
     source = directory(mcc_source) if mcc_source is not None else discover()
@@ -384,6 +413,9 @@ def setup(root, mcc_source=None, *, progress=print):
         try:
             report = json.loads(provenance.read_text())
             if Path(report.get("source", "")).resolve() != source:
+                continue
+            if _needs_graphics_reimport(root, report):
+                progress("Existing MCC cache predates the current graphics corrections; preparing a fresh private import. The previous cache is preserved.")
                 continue
             # This validates the entire private copy. Reuse never makes the
             # live MCC installation a normal runtime data source.

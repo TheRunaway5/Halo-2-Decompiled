@@ -1,4 +1,5 @@
 #include "halo2/source_effect_world_locations.hpp"
+#include "halo2/source_effect_location_admission.hpp"
 #include "halo2/source_runtime_memory.hpp"
 #include "halo2/source_combat_action_tu15.hpp"
 #include "halo2/physics_live_support_tu15.hpp"
@@ -65,6 +66,13 @@ std::vector<SourceEffectLocation> source_effect_world_locations_tu15(const Sourc
             throw FormatError("Combat source location chain cycles or exceeds its real pool");
         const auto location=source_raw_datum_lookup(locations,datum,storage);
         if(!location)throw FormatError("Combat location resolver lost a full source location");
+        // Original17D210 dispatches WORLD parts through17DCE0(mode0).
+        // A registered weapon can retain both WORLD and encoded FP records
+        // under one marker name; resolving both as WORLD duplicates parts.
+        const auto node=Bytes(memory.view(location+2,2)).u16(0);
+        if(!source_effect_world_location_admitted_tu15(node)) {
+            datum=word(location+4u);continue;
+        }
         SourcePhysicsWorldRuntimeAbi a{};
         a.gp[3]=location;a.gp[6]=effect;a.gp[7]=LocationCallMemory::base+0x5000u;
         a.gp[4]=LocationCallMemory::base+0xf000u;a.eflags=0x202u;

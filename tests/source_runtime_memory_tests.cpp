@@ -85,10 +85,47 @@ void guarded_topology() {
   check(left_watch.notifications == 3 && left.checkpoint() == left_before,
         "Accepted restore must retain its owner observers and restore exact source bytes");
 }
+void full_page_topology() {
+  using A=SourceRuntimeMemory::Access;
+  SourceRuntimeMemory bank,other;
+  std::vector<std::byte> bytes(0x4203,std::byte{0x37});
+  bank.mount(0x3fefff,bytes,A::ReadWrite,"unaligned region crosses source-index block");
+  bank.mount(0xffffe000,std::span(bytes).first(0x2000),A::ReadOnly,"final source pages");
+  std::array<std::byte,8> sample;
+  for(auto address:{0x3fefffu,0x3ff000u,0x400000u,0x4031fau,0xfffffff8u}) {
+    bank.read(address,sample);
+    check(std::ranges::all_of(sample,[](auto b){return b==std::byte{0x37};}),
+          "Full or partial source page resolved a different region");
+  }
+  sample.fill(std::byte{0x7a});
+  fails([&]{bank.read(0x4031ff,sample);});
+  check(sample.front()==std::byte{0x7a},"Page lookup published a rejected read prefix");
+  const auto saved=bank.checkpoint();
+  bank.release(0x3fefff);
+  fails([&]{bank.read(0x400000,sample);});
+  bytes.assign(bytes.size(),std::byte{0x52});
+  bank.mount(0x3fefff,bytes,A::ReadWrite,"replacement with same source pages");
+  bank.read(0x400000,sample);
+  check(sample.front()==std::byte{0x52},"Page lookup retained a released node");
+  other.mount(0x3fefff,bytes,A::ReadWrite,"different bank with same addresses");
+  bank.restore(saved);
+  bank.swap_backing(other);
+  other.read(0x400000,sample);
+  check(sample.front()==std::byte{0x37},"Swap retained a different bank's page index");
+  SourceRuntimeMemory moved(std::move(other));
+  fails([&]{other.read(0x400000,sample);});
+  moved.read(0x400000,sample);
+  check(sample.front()==std::byte{0x37},"Move lost the actual source page owner");
+  bank=std::move(moved);
+  fails([&]{moved.read(0x400000,sample);});
+  bank.read(0x400000,sample);
+  check(sample.front()==std::byte{0x37},"Move assignment retained discarded page nodes");
+}
 } // namespace
 int main() {
   try {
     guarded_topology();
+    full_page_topology();
     SourceRuntimeMemory m;
     using A = SourceRuntimeMemory::Access;
     const std::array first{std::byte{1}, std::byte{2}, std::byte{3},

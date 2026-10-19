@@ -4,6 +4,8 @@
 #include "halo2/source_bsp_draw_collector.hpp"
 #include "halo2/source_world_particle_draws_tu15.hpp"
 #include "halo2/source_campaign_environment_frame_tu15.hpp"
+#include "halo2/source_live_transparent_groups_tu15.hpp"
+#include "halo2/source_transparent_group_parts.hpp"
 #include <functional>
 #include <map>
 #include <optional>
@@ -49,6 +51,8 @@ struct SourceCampaignViewFrameTu15 {
     std::map<std::uint32_t,SourceObjectDrawCollector> built;
     std::set<std::uint32_t> drawn;
     std::vector<ParticleDraw> world_particles;
+    std::vector<SourceLiveTransparentGroupTu15> transparent_groups;
+    std::vector<SourceTransparentGroupParts> transparent_group_parts;
     std::vector<std::uint32_t> live_effect_definitions;
     unsigned source_particle_commands{};
     bool main_commands_completed{};
@@ -68,6 +72,7 @@ private:
     SourcePortalBsp portals_;
     SourceBspAdmissionBsp geometry_;
     SourceWorldParticleDrawsTu15 particles_;
+    SourceTransparentGroupPartBindings group_parts_;
     std::vector<SourceBspDrawGeometry> clusters_,definitions_;
     std::vector<SourceBspDrawInstance> instances_;
     std::vector<Transform> transforms_;

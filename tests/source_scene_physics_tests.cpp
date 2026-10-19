@@ -4,6 +4,7 @@
 #include "halo2/native_object_lifetimes.hpp"
 #include "halo2/math.hpp"
 #include "halo2/source_world_pose_wire.hpp"
+#include "halo2/multiplayer_presentation.hpp"
 #include <bit>
 #include <cstring>
 #include <iostream>
@@ -82,6 +83,23 @@ void body_history_checks() {
     fresh.nodes[0].position.x=400;history.capture(1,std::span(&fresh,1));
     check(history.sample(fresh.object,0).front().position.x==400,"Source body WORLD poses interpolated across a restored clock");
     history.capture(2,{});rejects([&]{history.sample(fresh.object,1);},"Deleted body pose was retained after capture");
+    MultiplayerState held;held.tick=10;held.source_body_poses_authoritative=true;
+    held.players[0].connected=true;held.players[0].source_unit=parent_id;
+    held.players[0].secondary_weapon.datum=child_id;
+    held.source_body_poses={{child_id,{Transform{}},{}}};
+    capture_multiplayer_body_poses(history,held,held,true);
+    auto released=held;released.tick=11;released.players[0].secondary_weapon.datum=null_datum;
+    released.world_weapons.push_back({child_id,0x12340000u});
+    released.source_body_poses[0].nodes[0].position.x=100;
+    capture_multiplayer_body_poses(history,held,released);
+    check(history.sample(child_id,.5f)[0].position.x==100,"Detached weapon blended its former hand-owned WORLD bank");
+    auto resting=released;resting.tick=12;resting.source_body_poses[0].nodes[0].position.x=104;
+    capture_multiplayer_body_poses(history,released,resting);
+    check(history.sample(child_id,.5f)[0].position.x==102,"Detached source weapon failed to resume normal WORLD interpolation");
+    auto picked=resting;picked.tick=13;picked.world_weapons.clear();picked.players[0].secondary_weapon.datum=child_id;
+    picked.source_body_poses[0].nodes[0].position.x=9;
+    capture_multiplayer_body_poses(history,resting,picked);
+    check(history.sample(child_id,.5f)[0].position.x==9,"Reattached weapon blended its former loose WORLD bank");
 }
 void body_wire_checks() {
     SourceWorldPose pose{child_id,{Transform{},Transform{}},{{-0.f,2,3},1.25f}};

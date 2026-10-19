@@ -31,8 +31,18 @@ bool supports_texture_accumulation_2003(const Material& m) {
     }
     return true;
 }
-Material adapt_texture_accumulation_2003(Material m) {
+Material adapt_texture_accumulation_2003(Material m,std::optional<unsigned> neutral_detail_stage) {
     if(!supports_texture_accumulation_2003(m))throw FormatError("Unsupported current texture accumulation subgraph");
+    if(neutral_detail_stage) {
+        const unsigned stage=*neutral_detail_stage;const auto& w=m.forward_program.words;
+        if(stage>=8 || w[34+stage]!=0x08090000u || w[stage]!=0x18190000u ||
+           w[45+stage]!=0x100c0u || w[26+stage]!=0xc0u)
+            throw FormatError("Texture accumulation lost its completed neutral-detail multiply");
+        // Preserve the existing primary-matched Elite effective sample while
+        // the original constructor owns the final multiply and target alpha.
+        m.detail=Texture{1,1,11,std::vector<std::byte>{std::byte{128},std::byte{128},std::byte{128},std::byte{255}}, {}};
+        m.animated_textures[1].clear();
+    }
     m.forward_blend=texture_accumulation_blend_2003;
     // Primary-matched old materials use their exact default_texture samplers.
     // Later assets keep authored addressing/filtering for their own UV layout.

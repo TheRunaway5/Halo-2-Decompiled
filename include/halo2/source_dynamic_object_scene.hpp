@@ -20,6 +20,11 @@ class SourceDynamicObjectScene {
 public:
     SourceDynamicObjectScene(const Cache &,std::size_t bsp,Mesh &,const CollisionWorld &);
     ~SourceDynamicObjectScene();
+    // Completed-frame world adoption, including a rewind with unchanged full
+    // handles. Retire pose/light/LOD/draw history; keep authored resident banks.
+    // The enclosing adopter owns quiescence; synchronize actual incoming WORLD
+    // inputs before drawing. This does not validate or promote a native world.
+    void reset_lifetimes() noexcept;
     void synchronize(std::span<const SourceDynamicObject>,std::span<const SourceWorldPose>);
     const SourceDynamicObject &get(std::uint32_t) const;
     std::span<const Transform> nodes(std::uint32_t) const;

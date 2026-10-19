@@ -1,6 +1,6 @@
 # MCC-only native gameplay goal checklist
 
-Updated: 2026-10-18. This checklist owns the remaining scope; detailed evidence
+Updated: 2026-10-19. This checklist owns the remaining scope; detailed evidence
 stays in [MCC_GAMEPLAY_CONVERSION.md](MCC_GAMEPLAY_CONVERSION.md).
 Check a box only after its stated acceptance test passes. Component proofs do
 not complete an integration, gameplay, visual or audio acceptance gate.
@@ -35,6 +35,1001 @@ records the verified result here before starting dependent work.
   MCPX material are offline references, never onboarding/runtime dependencies.
 - Reconstruct Xbox hardware or startup initializers only for demonstrated
   dependencies of the reused gameplay path. Preserve unrelated dirty work.
+
+## Weapon runtime cache requirement (October19)
+
+The weapon goal's remaining work and per-weapon completion entries live in
+[WEAPONS_TU15_GOAL_CHECKLIST.md](WEAPONS_TU15_GOAL_CHECKLIST.md). Maintain that
+checklist and its linked goal state when completing weapon milestones.
+
+- [x] Require the prepared MCC cache in weapon snapshot validation. Explicit
+  `--mcc-root` admission checks version13 headers, records file hashes and rejects
+  ISO/Vista controls. Runtime cases use native TU1.5 startup without an Xbox
+  image. The historical ISO-camera case remains reference-only. Probe scratch
+  is removed; no large artifacts are retained.
+  [Input admission](../analysis/weapons-tu15-goal-20261013/mcc-cache-input-admission-v1.json).
+- [x] Inventory the actual prepared MCC directories against the retained Xbox
+  weapon scope. All43 cache files decode, with1,479 authored weapon rows and66
+  distinct paths. All63 Xbox scope paths are present; three additional MCC paths
+  require separate applicability review. This is identity coverage, with no
+  conversion, gameplay or visual certification. Scratch is removed.
+  [MCC weapon inventory](../analysis/weapons-tu15-goal-20261013/mcc-authored-weapon-scope-v1.json).
+- [ ] Verify the campaign weapon/HUD and application cases against these MCC
+  inputs, then complete feature and visual coverage through the real import and
+  runtime path. Tag conversion belongs to import; no reference-tag substitution
+  may be used to pass validation.
+
+## Account usage instruction during this work
+
+The user authorized one existing Codex usage reset at1% or less remaining.
+On2026-10-19, a fresh check moved from2% remaining/two available reset credits
+to100%/one credit, with the account's reset time advancing. This task did not
+call `consume_usage_reset`; all three children also confirmed no reset attempt.
+The account reset therefore occurred elsewhere. Treat the single-reset request
+as fulfilled and do not spend another credit under it. The next fresh check at
+16:26:26UTC shows99% remaining/one available credit. Null/missing usage windows
+remain unavailable, never zero. No credit purchase or additional reset is
+authorized. [Observed account reset](../.local/account-usage-reset-20261019/observed-reset.json).
+
+## Immediate user-reported priority: interactive launch
+
+- [x] Sample the installed V14 startup after the upload-hash correction. Four
+  parent-owned debugger samples find MCC sound-timing relocation at4seconds,
+  original combat startup memory validation at12seconds, repeated gameplay-font
+  source validation at20seconds and texture bucket hashing at28seconds. These
+  are bounded stack observations, not measured phase costs or normal boot timing.
+  The diagnostic intentionally stops its private child; scratch is removed and
+  saves, shaders, installed runtimes and host security settings remain unchanged.
+  [V14 startup samples](../.local/mcc-native-click-crash-20261018/startup-profile-v3/validation.json).
+- [x] Measure ordinary gameplay-font validation before adding a cache. A source
+  load takes6.03ms;32 repeated complete eight-file authentications take52.69ms.
+  The current API sequence for three HUD hands and scoreboard takes0.151943s,
+  with175 digest calls/84,702,617bytes. This CPU-only measurement does not explain
+  a multi-second boot delay or prove installed-provider cost. No persistent
+  font/authentication cache is added; source mutation rejection stays unchanged.
+  Disposable probe scratch is removed, with no large artifacts retained.
+  [Font cost measurement](../.local/mcc-native-click-crash-20261018/font-startup-v1/validation.json).
+- [x] Measure actual MCC Lockout relocation lookup with the coherent V14
+  providers. All41,793 boundary/extent controls match an indexed candidate over
+  6,965 admitted ranges.100,000 lookup queries take0.226813s with the existing
+  scan and0.00258037s with the candidate. Whole sound-timing construction takes
+  9.02226s, which is not yet attributed wholly to lookup. Index and metadata
+  hashes are retained; no source/provider/map bytes change and scratch is
+  removed. Product semantics review and phase comparison remain open.
+  [Actual relocation profile](../.local/mcc-native-click-crash-20261018/runtime-relocation-profile-v1/validation.json).
+- [x] Attribute the sound-timing startup cost with a complete paired build of
+  the same plan.4,184,679 relocation calls take the existing construction from
+  9.23038s to0.503806s with indexed lookup. All exposed fields of4,503 bindings,
+  3,429 gaps,two owners,1,359 stored references and4,506 permutation references
+  match; index/metadata hashes remain exact. This CPU phase result is not a
+  native-launch guarantee. Scratch is removed; no product bytes change yet.
+  [Paired timing construction](../.local/mcc-native-click-crash-20261018/runtime-relocation-profile-v2/validation.json).
+- [x] Independently review sorted lookup against unchanged range admission.
+  Across112,956 bounded tables,8,016 valid/104,940 rejected,960,872 comparisons
+  cover empty aliases, duplicate starts, adjacent allocations, reverse mapping,
+  wrap and maximum-size queries. The disjoint-owner proof passes. Product must
+  sort every finalized plan and preserve validation/error behavior; generic
+  relocation and reverse translation remain unchanged. Scratch is removed.
+  [Independent lookup review](../.local/mcc-native-click-crash-20261018/runtime-relocation-review-v1/validation.json).
+- [x] Implement and independently review the exact product lookup. Only the
+  new sorted-source helper, finalization-time sort and `runtime_address`
+  dispatch change. Last append225, unchanged admission228 and final sort423
+  precede the sole returned plan.960,872 extracted-product controls preserve
+  values, acceptance, exact errors and reverse mapping; no product consumer
+  depends on relocation iteration order. Source/header layout and serialized
+  widths stay unchanged. Scratch is removed; compiled/native acceptance remains
+  separate and the installed V14 runtime is still unchanged.
+  [Exact product review](../.local/mcc-native-click-crash-20261018/runtime-relocation-review-v2/validation.json).
+- [x] Compile the exact new relocation source against ordinary current headers
+  and normal cache-module flags. Compilation is warning-free in2.038s with322
+  dependency pins unchanged. Inverting precisely the helper/sort/dispatch edits
+  reproduces the original source hash. The2,451,704-byte object and scratch are
+  removed. This verifies ordinary compilation, not a current-client ABI link,
+  installed runtime or full64-bit migration.
+  [Current-header compile](../.local/mcc-native-click-crash-20261018/runtime-relocation-source-v1/current-compile.json).
+- [x] Run the new coherent provider through the existing129 address controls
+  and complete owned Lockout/Cairo/Metropolis metadata checks. They verify
+  64,290/112,779/104,548 pointer fields and33,525,954/69,887,237/60,340,131 owned
+  bytes, preserving every unpatched authored byte and required sound admission.
+  All four runs exit0. A subsequent extra profile compile lacks a header in the
+  older frozen include tree; this probe setup issue is recorded separately and
+  being repaired without changing product semantics. Its scratch is removed.
+  [Actual metadata controls](../.local/mcc-native-click-crash-20261018/runtime-relocation-product-v1/metadata-controls.json).
+- [x] Complete coherent-provider compilation and the repaired timing probe.
+  The repeated contract/three-map controls pass; the new public lookup builds
+  the complete timing plan in0.441249s, with the exact prior index/metadata hashes,
+  4,184,679 calls and all exposed timing fields preserved. All315 parent inputs,
+  three maps and provider dependencies remain unchanged. Temporary binaries/maps
+  and scratch are removed. Native acceptance is underway; an initial native
+  comparison checker used the wrong capture-row prefix after a successful V14
+  tick60 baseline, and its retained failure is corrected for retry. No installed
+  runtime is replaced by either probe.
+  [Compiled provider validation](../.local/mcc-native-click-crash-20261018/runtime-relocation-product-v1/validation.json).
+- [x] Compare real V14 and indexed-lookup native firing through fixed tick60.
+  Fire at3/release at4 yields identical decoded image, save outputs and full
+  capture state, including loaded59/reserve120/two detonations. Both exit0;
+  callback audio is finite/nonzero. All315 prior providers,97 shaders, four
+  user saves and installed reference runtime remain exact. Private runtime,
+  link map, raw audio/frame/cache/save scratch is removed; the two small PNGs
+  are retained as actual comparison references. These checks do not certify
+  full audio identity, gameplay coverage or physical-desktop boot speed.
+  [Native firing comparison](../.local/mcc-native-click-crash-20261018/runtime-relocation-firing-v1/validation.json).
+- [x] Retain the accepted coherent V15 candidate for interactive validation and
+  delivery, replacing exactly one leaf while preserving314 providers/97 shaders.
+  Extended actual-map regression checks now verify every declared full forward
+  range and its final payload byte in addition to reverse ownership; all three
+  maps and generic controls pass. Required retained inputs are the2,328,600-byte
+  provider,104,712,264-byte runtime and20,570,809-byte owner map. Generated test
+  binaries and scratch are removed. Installation/full readiness remain separate.
+  [V15 coherent candidate](../.local/mcc-native-client-20261018/client-current-v15-runtime-address-index-v1/cohort.json).
+- [x] Validate V15 with real private-display pointer/focus/click, held fire,
+  mouse look and movement. All nine phases survive15.17s after rendered-frame
+  readiness; live first-person particles reach four draws and no errors occur.
+  Frame5 is observed at20.94s, window at3.27s with copied warm GPU cache and
+  saves. The separate fixed-tick firing pair takes32.55s(V14)/23.78s(V15).
+  These are bounded observations, not guaranteed desktop timing or full parity.
+  The test deliberately terminates only its private child after the sequence;
+  all user saves remain exact and scratch is removed. Installation is next.
+  [V15 real input](../.local/mcc-native-click-crash-20261018/candidate-v9/validation.json).
+- [x] Install the accepted V15 lookup into both active native-test runtimes.
+  All four actual launcher-info routes admit the interim test and retain full
+  readiness false; the user's actual launcher completes eight frames with exit0.
+  Four user save files,97 shaders and315 inputs stay exact. Prior runtimes and
+  capability files are preserved for rollback; generated capture/cache/test
+  scratch is removed. This delivers the measured startup improvement through
+  Play while full map conversion/current-client64-bit/parity remain unfinished.
+  [Installed V15 validation](../.local/mcc-native-click-crash-20261018/indexed-installed-v1/validation.json).
+- [x] Publish the requested compiled V15 ZIP with the installed lookup change.
+  All4,249 archive entries/checksums and both relocated launcher-info routes
+  pass. The real relocated launcher renders eight frames with exit0 in27.35s
+  under tracing;108,603 opens contain no reference/development dependency.
+  All97 bundled shaders and unchanged V14 tools/data remain exact. The43
+  unchanged importer controls are inherited, not repeated. No game cache or
+  saves are distributed. Requested ZIP183,597,745bytes and118-byte checksum
+  are retained; extraction,31,098,642-byte trace, raw frame and scratch are
+  removed. New map-qualified conversions remain outside V15 and full readiness
+  stays false.
+  [V15 package validation](../.local/mcc-native-click-crash-20261018/package-v15/validation.json)
+  · [Compiled V15 ZIP](../dist/Halo2-MCC-Native-Test-Linux-x86_64-20261019-v15.zip).
+- [x] Synchronize the user's existing extracted folder with all4,249 V15
+  archive files. Only five small metadata files change; both launcher-info
+  routes pass and retain native-test admission/full readiness false. Runtime
+  hashes,97 shaders,four saves and45,231 cache-tree stat entries stay exact,
+  with no asset reimport. Rollback metadata totals505,646bytes and is explicitly
+  retained; extraction/staging scratch is removed.
+  [Extracted V15 synchronization](../.local/mcc-native-click-crash-20261018/sync-extracted-v15/validation.json).
+- [x] Identify concrete authored conversion gaps against the retained original
+  comparison and current owned MCC directories. Relic's flag-reset stop distance
+  and Gauss flyby differ by original map generation; tag-name-only changes would
+  damage other maps or mods. Two classic flyby dependencies are absent from all43
+  imported directories. This is an inventory milestone; conversion, original
+  consumer verification and sound reconstruction remain open.
+  [Current tag-gap observations](../.local/mcc-native-click-crash-20261018/cleanup-v14/gameplay-tag-gaps-v14.json).
+- [x] Authenticate the first three map-qualified conversion contexts before
+  implementation: original Lockout uses CTF distance6/Gauss null, Relic uses
+  distance4/Gauss Scorpion flyby, Backwash uses distance6/Gauss Scorpion flyby.
+  Current scenario, mulg and Gauss donor/target banks are hash-pinned against
+  fresh offline original reads. The original `24D5F0` consumer follows
+  globals→mulg→runtime constants, squares field`D8` and compares squared3D
+  distance. Sixteen genuine instruction-block controls preserve the strict
+  near-distance boundary; full caller/team/iterator execution is not claimed.
+  Scratch is removed. Pure planning, atomic integration and broader map
+  contexts remain open; references remain offline only.
+  [Context evidence](../.local/mcc-map-qualified-conversion-20261019/profile-evidence-v1.json)
+  · [Original distance consumer](../.local/mcc-map-qualified-conversion-20261019/original-ctf-radius-v1.json).
+- [x] Implement the separate pure map-qualified planner with guarded before/
+  after writes for those three contexts. Exact scenario/header identity and
+  original primary-globals→salted mulg binding qualify complete owner tuples.
+  Strict compilation and real-context fixtures pass, including idempotence,
+  changed/modded donors, identity/salt/group, absent/ambiguous dependencies,
+  short/stale views, overlapping writes and invalid-width rejection. Scratch
+  is removed and no binaries are retained. This source is not wired into Cache
+  or V15; independent review, sanitizer/actual integration and broader coverage
+  remain open. The current Cache source and active runtimes stay unchanged.
+  [Pure planner controls](../.local/mcc-map-qualified-conversion-20261019/planner-validation-attempt2.json).
+- [x] Run the pure three-context planner under AddressSanitizer and
+  UndefinedBehaviorSanitizer. The same authenticated context and rejection
+  controls pass with strict warnings and no sanitizer findings. Source pins
+  remain unchanged; all generated fixtures/executables/scratch are removed.
+  Independent review and actual Cache integration remain separate gates.
+  [Planner sanitizer controls](../.local/mcc-map-qualified-conversion-20261019/planner-sanitizer-v1.json).
+- [x] Independently review the exact pure planner and extend sanitizer controls.
+  All qualification map-ID reads lie inside the captured scenario bank; target
+  tuples reproduce independently. Forty-six added controls cover custom owner
+  boundaries, individual stale salts, changed guards and overlapping/malformed
+  multi-write publication. No blocking flaw is found within the three-context
+  scope. Integration must retain immutable directory/storage ownership, resolve
+  all destinations before preflight/copies, precede current donor conversions
+  and preserve unknown contexts. All scratch is removed, with no large artifacts.
+  [Independent planner review](../.local/mcc-map-qualified-conversion-20261019/review-v2/validation.json).
+- [x] Integrate the reviewed map planner into normal Cache loading and verify
+  exact intended vanilla writes, custom preservation and current/frozen builds.
+- [x] Deliver the authenticated integrated map conversions through a coherent
+  native runtime after bounded input/render/callback-audio acceptance. V16
+  extends Gauss/Relic coverage to 28 contexts; V18 additionally ships Floodzone's
+  two material indices with fixed-tick, interactive and relocated launcher
+  validation. Further gameplay-tag coverage remains a separate open gate.
+- [x] Wire the pure planner into ordinary build configuration and run its real
+  authenticated three-context fixture through disposable CMake/CTest. The test
+  passes in0.09s; it is not skipped. The public lifetime comment now explicitly
+  requires unchanged directory/storage ownership through publication. Both the
+  generated fixture and private CMake build are removed. The Cache hook is now
+  in source before generic converters; compilation/actual normal Cache readback
+  and coherent native delivery are still open.
+  [CMake planner validation](../.local/mcc-map-qualified-conversion-20261019/cmake-v1/validation.json).
+- [x] Authenticate the active Cache provider before coherent integration. The
+  unchanged44,650-byte preimage plus106 pinned dependencies reproduces all68
+  allocated sections,2,255 semantic relocations and190 nonlocal symbol contracts
+  of the active V15 provider, warning-free. Generated4,472,304-byte object,
+  projected headers and depfile scratch are removed; the small source preimage
+  and reproduction receipts remain. This baseline proof does not admit the
+  new hook or certify the whole current-header client.
+  [Cache baseline compatibility](../.local/mcc-native-click-crash-20261018/map-cache-baseline-v1/validation.json).
+- [x] Independently review and compile the integrated Cache hook with ordinary
+  current headers. Exact source compiles warning-free in5.47s with451 dependency
+  pins unchanged. Full-salt/unique lookup, immutable ownership, destination
+  resolution before all guard checks, custom preservation and bounded copies
+  precede generic conversion. Invalid metadata throws before any map write.
+  The4,781,568-byte generated object and scratch are removed. This proves the
+  source hook/ordinary compilation; actual-map execution and full client ABI
+  acceptance remain separate.
+  [Integrated hook review](../.local/mcc-map-qualified-conversion-20261019/review-v3/validation.json).
+- [x] Execute normal Cache loading with the coherent integrated provider and
+  compare each complete owned backing against V15. Lockout changes exactly its
+  eight flyby-reference bytes; Relic changes exactly the required6.0→4.0 binary32
+  word (one differing byte); Backwash remains byte-identical. The complete
+  70,788,456/75,886,884/75,749,476-byte backings otherwise match, and every tag
+  directory identity stays exact. All host backings exceed4GiB; source maps and
+  315 parent inputs remain unchanged. Snapshot/binary/projected-header scratch
+  is removed. Normal mod/fault controls, coherent native acceptance and broader
+  map conversion remain open.
+  [Normal Cache vanilla readback](../.local/mcc-map-qualified-conversion-20261019/cache-integration-v1/validation.json).
+- [x] Verify normal Cache admission using a renamed stock map and two modified
+  contexts. The renamed stock file receives exactly the intended eight-byte
+  null flyby restoration, proving filename-independent qualification. Modified
+  map-ID and header-path cases remain completely byte-identical to V15 with
+  zero new writes. All backings exceed4GiB and full directory identities match.
+  Source maps/315 parent inputs stay unchanged. The initial probe used a missing
+  reader method; its setup failure is retained, then corrected to the checked
+  pointer API. All generated map copies/snapshots/binaries/scratch are removed.
+  This is focused mod preservation, not full mod-folder/render compatibility.
+  [Normal Cache mod controls](../.local/mcc-map-qualified-conversion-20261019/cache-mod-controls-v1/validation.json).
+- [x] Run the coherent map-conversion candidate through actual native SMG
+  firing beside installed V15. Both complete60frames/ticks with identical
+  complete capture state, decoded image, PNG and save outputs; loaded59,
+  reserve120 and two detonations at tick4 match. Both PCM callbacks are finite/
+  nonzero; sample identity is not claimed. All315 parent providers,106 projection
+  origins,97 shaders,four saves, P libraries/maps and source pins remain exact.
+  Private providers/ELF/link map/header/cache/save/raw-frame/audio scratch is
+  removed. Two340,383-byte actual PNG references are explicitly retained.
+  This accepts the bounded native shot path; installed V15/ZIP are unchanged
+  and expanded map context/current-client/full parity gates remain open.
+  [Native map-conversion firing](../.local/mcc-map-qualified-conversion-20261019/native-firing-v1/validation.json).
+- [x] Authenticate broader Gauss context coverage before expansion. Fresh43
+  MCC directory parses and38 pinned offline Xbox reads find28 paired contexts:
+  five campaign and23 multiplayer, with22 null targets/six retained. All23
+  multiplayer maps share exact mulg/Gauss donor owners, but distinct scenario
+  banks/paths/IDs; only Relic's original CTF distance is4.0, the other22 use6.0.
+  Campaign Gauss definitions have distinct salted handles/root addresses and
+  bank digests, type0, and no resident mulg; do not require multiplayer owners
+  or IDs for those profiles. MCC-only/resource contexts remain unqualified.
+  A superseded audit Type offset is corrected to original schema`+10`. All
+  source ownership pins stay exact; no banks/maps/binaries remain and both
+  audit scratch trees are removed. Product expansion is a separate gate.
+  [All-context authoring inventory](../.local/mcc-map-qualified-conversion-20261019/all-contexts-v2/inventory.json).
+- [x] Expand the pure planner to all28 authenticated paired Gauss contexts.
+  Warning-free controls pass all28 fresh owned fixtures and the prior three
+  retained fixtures, covering exact original targets, all other owner bytes,
+  idempotence, custom preservation, full identity rejection and guard atomicity.
+  Five campaign profiles use exact resident scenario/Gauss identities without
+  reading their zero-extent mulg owners. All23 multiplayer profiles keep full
+  mulg and primary-globals-binding guards. Public source layout/serialized widths
+  stay unchanged; the Cache hook remains exact. The4,289,689-byte private fixture,
+  215,664-byte test ELF and generator/test scratch are removed. Only the13,215
+  byte generated identity/hash/scalar table enters source. Independent expanded
+  review, sanitizer/normal Cache/native acceptance remain open.
+  [Expanded planner controls](../.local/mcc-map-qualified-conversion-20261019/expansion-v1/validation-regular.json).
+- [x] Run the expanded28-context planner and retained three fixtures under
+  AddressSanitizer/UndefinedBehaviorSanitizer, warning-free with no findings.
+  The preflight function remains byte-identical to the reviewed version and
+  the public header's noncomment lines remain exact. Source/table/test pins
+  stay unchanged. The9,183,744-byte sanitized ELF,4,289,689-byte private fixture
+  and scratch are removed; only small source preimages/receipts remain.
+  [Expanded sanitizer controls](../.local/mcc-map-qualified-conversion-20261019/expansion-v1/validation-sanitizers.json).
+- [x] Run all28 fresh owned contexts through the ordinary current-header
+  CMake target/CTest registration. The positive fixture passes in0.39s and is
+  not skipped. Source and donor pins stay exact; the4,289,689-byte generated
+  fixture and private CMake build/scratch are removed. Normal Cache and native
+  acceptance of the expanded table remain separate gates.
+  [Expanded CMake validation](../.local/mcc-map-qualified-conversion-20261019/cmake-v2/validation.json).
+- [x] Independently review every expanded profile against the pinned inventory
+  and re-read79 original Gauss/CTF words. All28 exact identities/hashes/types
+  match:22 null/six retained flybys, Relic-only4.0, campaign isolation and23
+  multiplayer ownership/binding guards. Fourteen additional upper-bound/width/
+  short-read/overlap/no-partial-write/unknown-map controls pass. Header layout,
+  preflight bytes and Cache publication hook remain unchanged. The70,120-byte
+  private probe and scratch are removed. This is expanded source review, not
+  normal Cache/native or full parity acceptance.
+  [Independent expanded review](../.local/mcc-map-qualified-conversion-20261019/independent-expansion-review-v1/validation.json).
+- [x] Verify the expanded planner through all28 authenticated normal Cache
+  constructor pairs plus the two unqualified MCC-only maps. Complete backings
+  compare2,817,874,316bytes in RAM: only177 intended bytes differ, covering22
+  null flyby references and Relic's4.0 stop-distance word. All other backing
+  bytes and tag directories stay exact; five already-equivalent contexts and
+  both unqualified maps stay exact. All60 host backings exercise addresses
+  above4GiB. The315 V15 providers,97 shaders and both43-map inventories stay
+  pinned. Scratch, the104,013,112-byte ELF and all private objects/headers are
+  removed; no backing snapshots or banks were retained. This proves normal
+  constructor/publication behavior, not rendered gameplay or full parity.
+  [Expanded normal Cache acceptance](../.local/mcc-map-qualified-conversion-20261019/cache-all28-v1/validation.json).
+- [x] Verify the expanded28-context provider in the native fixed-tick firing
+  path against V15. Both runs exit0 at60frames/60ticks with exact decoded
+  image, save outputs and full shot/capture state: loaded59/reserve120 and
+  detonation tick4. Callback audio remains finite/nonzero; sample identity and
+  full parity are not claimed. The315 parents,106 dependency origins, maps,
+  four saves,97 bundled shaders, libraries and source pins stay exact. Scratch,
+  private providers/runtime/map, PCM and cache are removed. Two340,383-byte
+  actual PNGs are retained as required references, with identical hashes.
+  [Expanded native firing acceptance](../.local/mcc-map-qualified-conversion-20261019/native-firing-v2/validation.json).
+- [x] Retain a coherent expanded28-context candidate:316 link inputs comprise
+  314 unchanged V15 providers, one replaced Cache and one added planner leaf.
+  The retained104,754,568-byte ELF is byte-identical to the accepted ephemeral
+  expanded candidate and independently passes the same60-tick shot against
+  retained V15 frame/save/capture evidence. Callback PCM is finite/nonzero.
+  Required delivery Cache/planner objects, ELF and owner map total130,543,356
+  bytes; hashes/reasons and small frozen source pins are recorded. Temporary
+  headers, PCM, saves/cache and scratch are removed. Both root/P selections,
+  runtimes, launchers, sidecars, saves, maps, shaders and parent providers stay
+  exact. This is a retained interim candidate, not installation/full parity.
+  [Retained expanded cohort](../.local/mcc-map-qualified-conversion-20261019/cohort-v16/validation.json).
+- [x] Verify interactive input against that exact retained candidate. Its
+  private relocated104,708,392-byte payload survives all nine actual XTest
+  enter/focus/click/release/held-fire/release/look/W/release phases for15.167s
+  after frame readiness, with four live first-person particle draws and no
+  runtime error. The harness intentionally sends SIGTERM after acceptance;
+  this is not a normal-exit or desktop boot-speed claim. All316 providers,
+  106 origins, maps, sources, four saves,97 bundled shaders, libraries, root
+  material-workbench selection/runtime and P installation stay exact. Scratch,
+  copied payload, private saves and caches are removed; no new large artifact
+  is retained. Packaging and guarded P delivery remain separate acceptance.
+  [Expanded actual input acceptance](../.local/mcc-map-qualified-conversion-20261019/native-interactive-v2/validation.json).
+- [x] Package V16 with fresh build/acceptance authority and verify its actual
+  relocated launcher under file tracing. Both info routes pass; the8-frame
+  launch exits0 with no errors, reference-file or development-tree opens among
+  108,605 attempts. All4,249 archive entries/checksums pass, only six runtime/
+  release metadata files differ from V15, and97 shaders/tools/data/libraries
+  stay exact. Root/P runtime metadata and saves stay exact; P cache is not
+  written. Full-ready remains false. Required ZIP183,612,692bytes and118-byte
+  checksum are retained; temporary hardlinks, private saves/cache/frame and
+  31,098,772-byte trace are removed with scratch. Guarded P installation and
+  independent archive review remain separate gates.
+  [Compiled V16 package acceptance](../.local/mcc-map-qualified-conversion-20261019/delivery-v16/package-validation.json).
+- [x] Independently review V16 archive metadata/delta. All4,249 entries and
+  4,248 checksum rows pass: exactly six allowed files change and4,243 stay
+  V15-identical, including97 shaders,2,600 tool files,190 libraries and1,235
+  Python files. Current316-provider/raw/payload/sidecar/source/proof bindings
+  agree; V15 evidence is explicitly historical. No game data/cache/save is
+  bundled. P still matches its V15 preservation guards. Review scratch is
+  removed, with no large artifacts retained or installer/native rerun.
+  [Independent V16 archive review](../.local/mcc-map-qualified-conversion-20261019/archive-review-v1/validation.json).
+- [x] Install only the verified six V16 files in P. All4,249 selected release
+  files match the accepted archive; both P launchers select its updated wrapper
+  with test available/full-ready false. All97 shaders, the entire P cache tree
+  and four saves remain exact. Root's renderer workbench selection, runtimes,
+  launcher/capability metadata and cache are not written. Required rollback
+  copies total105,173,776bytes under P's
+  `.native-rollbacks/map-vanilla-v16-5b411512d9f1/` and preserve the prior V15
+  payload/metadata; installation scratch and
+  staging files are removed. Actual relocated gameplay execution remains the
+  prior accepted package proof; the installer performs no additional game run.
+  [Guarded V16 extracted-folder installation](../.local/mcc-map-qualified-conversion-20261019/delivery-v16/install-validation.json).
+- [x] Close the completed V16 delivery lifecycle. Fifty-one named completed
+  scratch paths and the final verification scratch are absent. Fifteen required
+  retained artifacts total420,351,091bytes: the requested ZIP/checksum, coherent
+  delivery objects/runtime/map, exact V15 rollback files and three actual frame
+  references. Every retained size/hash/reason is recorded. Other active agents
+  and unrelated historical artifacts are excluded; final historical cleanup
+  and the complete MCC/TU1.5 goal remain open.
+  [Delivery artifact/lifecycle receipt](../.local/mcc-map-qualified-conversion-20261019/delivery-v16/delivery-closure.json).
+- [x] Review V16 delivery metadata and evaluate all actual guards before
+  executing package/install code. Fresh paired firing proof61ce and the
+  retained candidate's separate ca00 shot proof have distinct roles; the316
+  providers, all source pins and root/P preservation guards pass. New immutable
+  delivery authority labels V15 ancestry as historical and uses current V16
+  acceptance pins. A read-only private preflight passes and its scratch/temporary
+  handoff are removed; no runtime/package mutation occurred in this step.
+  [Reviewed delivery preflight](../.local/mcc-map-qualified-conversion-20261019/delivery-v16/preflight-validation-v2.json).
+- [x] Resolve the supposedly absent normal visible-window pipeline-cache trace.
+  Independent review and full-log regex extraction find it in both original
+  eight-frame logs: 16,838,148 bytes loaded/exported, 241 graphics and one
+  compute call, 0.037938/0.039212 seconds in pipeline creation. Buffered stdout
+  and stderr interleave the message mid-line; the harness's `startswith` check
+  caused the false negative. Preserve both original reports. No shutdown or
+  atexit change is justified. Actual atomic file replacement remains a separate
+  acceptance gate because the trace does not report IO success.
+  [Corrected log audit](../.local/mcc-native-click-crash-20261018/pipeline-visible-correction-v1/validation.json).
+- [x] Verify actual cache-file persistence in the current installed V13 normal
+  visible route. Two separate eight-frame processes both exit0, replace the
+  scratch-owned 19,233,358-byte cache with a new inode/mtime and mode0600, and
+  consume exactly those saved bytes on the subsequent run. Pipeline creation
+  takes 0.030262/0.028305 seconds. The first window appears at12.58seconds,
+  frame5 at39.02seconds and exit at40.58seconds; the second exits at41.21seconds.
+  These are isolated Xvfb observations, not physical-desktop or fixed speedup
+  claims. All97 shaders and four user save files remain exact. Scratch
+  `halo2-test-moun969j`, both temporary cache copies and copied saves are removed;
+  no generated binary/image/audio artifact is retained.
+  [Visible file persistence and reuse](../.local/mcc-native-click-crash-20261018/pipeline-visible-files-v1/validation.json).
+
+- [x] Complete the twelfth bounded renderer reconstruction probe before changing
+  texture upload hashing. Restoring the authentic particle-view API and removing
+  the later `ModelView::source_w_distance` field reduces the mismatch to six of
+  975 text/constant sections, with no added sections. This remains a rejected
+  replacement: draw/material selection and buffer differences require proof.
+  The ordinary renderer, installed runtime and shaders are unchanged, and
+  scratch `halo2-test-ze5lw65d` is removed.
+  [Probe evidence](../.local/mcc-native-click-crash-20261018/renderer-startup-v12/baseline.json).
+- [x] Narrow that reconstruction to two differing text sections by restoring
+  the retained environment-first accumulation predicate and the particle
+  getter's original declaration order. All other 973 text/constant sections
+  match, including texture creation; no new sections appear. This remains
+  unaccepted for installation pending the draw and allocation-error comparison.
+  Probe scratch `halo2-test-zu4fo4ia` is removed; product files are unchanged.
+  [Thirteenth probe](../.local/mcc-native-click-crash-20261018/renderer-startup-v13/baseline.json).
+- [x] Extend the reconstruction check to all 1,092 allocated ELF sections,
+  normalized relocation targets and nonlocal symbol definitions. This confirms
+  the two remaining functions also account for unwind/exception and relocation
+  differences; raw text equality alone is insufficient for acceptance. No
+  replacement is promoted. Probe scratch `halo2-test-rpo5dqqu` is removed;
+  the small projected source and diagnostic contract remain as reference evidence.
+  [Allocated-section comparison](../.local/mcc-native-click-crash-20261018/renderer-startup-v14/allocated-contract.json).
+- [x] Independently review the remaining accumulation loop and buffer path
+  against retained assembly/DWARF. The environment-first predicate, phase-one
+  `emit_bsp_draw` call, original memory selection and early pStencil setting
+  agree; no further semantic change is justified. The projected public renderer
+  header also matches the original pinned `3fd32d4e...` bytes. Two function
+  differences remain unresolved, so the optimization is not installed. Final
+  checks preserve both installed runtime hashes and the ordinary renderer hash.
+- [x] Review the proposed upload-bucket optimization independently. Replacing
+  only the function-local pixel hash with a binary-length `string_view` hash
+  preserves image-sharing decisions: identical pixels reach the same bucket;
+  complete pixel/shape/mip equality rejects collisions, and candidate insertion
+  order preserves the first exact owner. No bucket order or hash value is
+  persisted or used for rendering order. Source lifetimes and shared GPU ownership
+  remain valid. Keep the separate shadow/texture identity FNV unchanged. This is
+  a design proof, not compiled/runtime acceptance or an installed optimization.
+- [x] Test the source-location/code-generation hypothesis independently. Restoring
+  original logical source paths and known function line numbers leaves the exact
+  same two-function assembly diff as probe13; source-location metadata does not
+  explain the remaining mismatch. Scratch `halo2-test-47vjg2e0` is removed and
+  no product/provider replacement is made.
+  [Source-location control](../.local/mcc-native-click-crash-20261018/renderer-startup-v15/baseline.json).
+- [x] Exercise the reconstructed renderer in the actual coherent native game
+  before optimizing it. With identical MCC Lockout data, original public-header
+  bytes, fixed tick8, RNG seed, interpolation fraction and input, the selected
+  V13 renderer and projection produce byte-identical 640x480 images and save
+  outputs. Both exit0 with eight frames, at36.51/35.24seconds. The image was
+  viewed. All315 parent inputs, all97 shaders, ordinary source and four user
+  saves remain exact. This bounded test does not resolve the two compiled-body
+  differences or certify full parity, and no product replacement is installed.
+  Scratch `halo2-test-tgle3xk3`, projected archive/object/executable and raw frames
+  are removed. Two 340,327-byte lossless PNGs remain as explicit comparison
+  reference inputs.
+  [Actual renderer comparison](../.local/mcc-native-click-crash-20261018/renderer-runtime-baseline-v1/validation.json).
+- [x] Independently review the actual isolated optimized source against that
+  runtime-tested projection. Its complete delta is two explicit standard
+  includes and the local upload-bucket hash replacement; reversing them restores
+  the baseline byte for byte (`9064a1a8...` to candidate `10a4a431...`). All full
+  equality guards, ownership and the separate shadow FNV are unchanged. Compiling
+  adds only the expected upload-lambda text difference alongside the two known
+  baseline differences, with no new text/constant sections. Actual native
+  optimized-frame and performance acceptance remain pending; source/install
+  files are unchanged.
+- [x] Run the optimized hash through the same actual fixed-tick native game.
+  Its tick8 image and save outputs are byte-identical to installed V13; both
+  exit0. This isolated pair takes36.86seconds for V13 and30.29seconds for the
+  candidate, a6.57second observation rather than a guaranteed desktop speedup.
+  Against the directly runtime-tested projection, all allocated code/data and
+  semantic relocations remain exact except the intended upload lambda and its
+  compiler-owned unwind/exception records; both prior differing functions and
+  their exception/relocation records remain exact. All315 parent providers,
+  all97 shaders, source and user saves are unchanged. Scratch
+  `halo2-test-ye6atdon`, test archive/object/executable and raw frames are removed.
+  Two340,327-byte PNGs remain as explicit reference inputs. Full input/firing,
+  ordinary-source integration, installed delivery and wider parity remain open.
+  [Actual optimized frame](../.local/mcc-native-click-crash-20261018/renderer-upload-hash-v1/validation.json)
+  · [Allocated contract delta](../.local/mcc-native-click-crash-20261018/renderer-upload-hash-v1/optimized-contract-comparison.json).
+- [x] Integrate exactly that reviewed local hash into ordinary renderer source,
+  preserving all unrelated renderer work and all shaders. Reversing the two
+  includes and hash replacement reproduces the exact prior `66bb984c...` source;
+  its frozen preimage is retained. New ordinary source is `2daadf68...`. Current
+  header compilation and firing/input delivery checks remain separate gates;
+  installed runtimes and the V13 ZIP are unchanged.
+- [x] Compile the exact ordinary updated renderer with current engine headers
+  and normal configured compiler flags. The first attempt correctly reports the
+  missing generated menu vertex catalog in the configured build directory;
+  preserve that RED report. Supplying only the authenticated retained catalog
+  include produces a warning-free26.04second compile with938 pinned dependencies
+  and no input drift. The24,998,504-byte object and scratch `halo2-test-tapon9_j`
+  are removed. This is current-source compilation, not a current-client link,
+  installed release or full64-bit/parity acceptance.
+  [Current-source compilation](../.local/mcc-native-click-crash-20261018/renderer-upload-source-v1/current-compile.json).
+- [x] Compare real SMG firing through fixed tick60 with the optimized renderer
+  against installed V13. Both render60frames, exit0 and produce byte-identical
+  images, save outputs and complete capture-state rows: fire at3/release at4,
+  loaded ammo59, reserve120 and two detonations. Both production audio callbacks
+  contain finite nonzero samples; callback sample identity is not claimed.
+  The independently rebuilt optimized ELF matches the earlier candidate's exact
+  `23111ca3...` hash. All315 parent inputs,97 shaders and user saves are unchanged.
+  Scratch `halo2-test-h4jf2jjg`, test binaries, archive/object, raw frames/audio
+  and copied saves are removed. Two bounded PNG reference inputs remain.
+  Live window/input, installed delivery and wider renderer/parity gates remain.
+  [Firing/image/audio comparison](../.local/mcc-native-click-crash-20261018/renderer-upload-firing-v1/validation.json)
+  · [Exact shot-state audit](../.local/mcc-native-click-crash-20261018/renderer-upload-firing-v1/firing-state-audit.json).
+- [x] Link a reproducible coherent upload-hash candidate for guarded delivery.
+  Its104,712,152-byte ELF again matches `23111ca3...`;314 other providers and all97
+  shaders remain exact. The required94,403,022-byte renderer archive and
+  20,568,715-byte owner map are explicitly retained with that candidate. All
+  compiler/link scratch `halo2-test-o09an60q` is removed. This is an interim
+  Lockout candidate, with full renderer/current-client64-bit/parity gates still
+  open; installed runtimes remain unchanged pending live input qualification.
+  [Candidate cohort](../.local/mcc-native-client-20261018/client-current-v14-upload-hash-v1/cohort.json).
+- [x] Repeat actual pointer, focus, click, held fire, mouse look and forward
+  movement with the packaged form of the upload-hash candidate. It survives all
+  nine phases and15.16seconds after readiness, with four live first-person
+  particle draws and no runtime errors; copied user saves remain exact. The
+  isolated warm window appears at12.07seconds and frame readiness at32.00seconds.
+  This is bounded Xvfb input acceptance, not a normal-exit or desktop-speed claim.
+  Scratch `halo2-test-2kiwv7ag` and temporary payload/cache/saves are removed.
+  [Live input qualification](../.local/mcc-native-click-crash-20261018/candidate-v8/validation.json).
+- [x] Install the accepted upload-hash runtime into the source launcher and
+  user's existing extracted folder, retaining exact prior binaries/capabilities
+  for rollback. Both launcher variants in both locations report native test
+  available and full readiness false. The actual installed user launcher
+  completes eight frames successfully; all97 shaders,315 coherent inputs and
+  four save files remain exact. Required rollback copies are retained; scratch
+  `halo2-test-_q1rh1ry`, raw frame and temporary package payload are removed.
+  The next compiled ZIP and metadata synchronization are still pending.
+  [Installed upload optimization](../.local/mcc-native-click-crash-20261018/upload-installed-v1/validation.json).
+- [x] Publish the user-requested compiled V14 ZIP with the accepted texture
+  upload optimization. Both relocated launchers, the actual eight-frame route,
+  every checksum across4,249 archive entries and all97 shaders pass. Other V13
+  package files/tools/data remain exact; its43 importer controls are inherited
+  evidence, not needlessly rerun. No original-reference/development-tree opens
+  occur and no game data or saves are shipped. The183,596,975-byte requested ZIP
+  has SHA256 `f31fc997595e3567de998e3acd6fcbaaba321689807efe8126f4e62c8b5034ed`;
+  its118-byte checksum is retained. Scratch `halo2-test-x7ia7q28`, relocated
+  staging, cache/save links, raw frame, trace and temporary ZIP are removed.
+  Full renderer/gameplay/conversion/64-bit/loading/video/TU1.5 parity remains open.
+  [V14 package validation](../.local/mcc-native-click-crash-20261018/package-v14/validation.json)
+  · [Compiled V14 ZIP](../dist/Halo2-MCC-Native-Test-Linux-x86_64-20261019-v14.zip).
+- [x] Synchronize the user's existing extracted folder to every V14 archive
+  checksum. Five validation/capability/manifest/README/checksum files update;
+  the already installed payload and all other package files match. Both actual
+  launcher-info variants pass, full readiness stays false, and the user's MCC
+  cache, saves and unlisted extras remain exact. Required501,563-byte rollback
+  preimages remain; staging scratch `halo2-test-o08je0lx` is removed. No game-data
+  copy or import is repeated.
+  [Extracted-folder V14 synchronization](../.local/mcc-native-click-crash-20261018/sync-extracted-v14/validation.json).
+
+- [x] Establish an automated real-window mouse reproduction on the user's
+  exact V9 payload/cache, with copied saves on a private Xvfb display. Pointer
+  entry and focus survive; live firing exits1 at the same `2839AD/48C488`
+  codec read. The corrected readiness harness observes the delayed failure
+  within 8.73 seconds of its first rendered readiness sample. Its cold test
+  window appears at12.81seconds and frame readiness at97.63seconds; those are
+  isolated Xvfb measurements, not physical-desktop startup certification.
+  User save bytes are preserved and scratch is removed. The prior normal-mode
+  run also reaches the same fault, but its frame-diagnostic readiness assertion
+  was invalid and is retained as such.
+  [Automated mouse RED](../.local/mcc-native-click-crash-20261018/v2/validation.json),
+  [Actual live-input fault](../.local/mcc-native-click-crash-20261018/v2/runtime.log).
+- [x] Authenticate the two live-input data extents against original TU1.5:
+  the12-byte Boolean-selected codec8 decode triple at `48C488` is file-backed
+  writable data; the8-byte comparison bounds at `46A7C0` are read-only.
+  Twenty-four original selector prefixes and twenty-two guard continuations
+  with genuine RET pass. These qualify exact bytes/access and reader selection,
+  not codec children, the complete angular owner or full gameplay parity.
+  Original/scratch inputs remain offline and scratch is removed. Product
+  publication and the corrected live mouse sequence remain open.
+  [Original20-byte authority](../.local/mcc-native-click-crash-20261018/authority-v1/primary-reviewed.json).
+- [x] Publish the exact20-byte live-input compatibility in the ordinary data
+  factory and review its compiled controls. All 2,442 previous tuples remain
+  exact; the new factory has 2,444 regions/479,848 bytes. Original access is
+  preserved: writable codec descriptor with warm writes/restore and read-only
+  angular bounds. Twenty-eight rejecting controls, all twenty foreign overlap
+  bytes before writes, two host pointers above4GiB, dependencies and strong
+  exports pass. The primary-agent second-method review admits only these data
+  owners; real mouse regression remains open. Test/link scratch is removed;
+  the required 1,249,296-byte compatibility object is retained. The first
+  control attempt caught a descriptive authority count error; the reviewed
+  report correctly records24 selector cases and preserves the original report.
+  [Ordinary20-byte compatibility](../.local/mcc-native-click-crash-20261018/product-v1/validation.json),
+  [Source/access/ownership review](../.local/mcc-native-click-crash-20261018/product-v1/review.json).
+- [x] Link the accepted20-byte leaf into coherent candidate v6. All 313 other
+  providers, 43 MCC maps, 97 shaders and prior compatibility records remain
+  exact. The required104,679,728-byte ELF and20,464,860-byte map are retained;
+  link scratch is removed. Installed runtime and the user's V9 package remain
+  unchanged. The actual mouse regression and startup stack sampling are the
+  next gates; no fixed interactive launch is claimed yet.
+  [Coherent live-input candidate](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v6/cohort.json),
+  [Single-leaf link receipt](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v6/link-manifest.json).
+- [x] Verify the missing codec row clears in the actual packaged-dependency
+  mouse run. Candidate v6 reaches real first-person particle submissions and
+  progresses to the codec child's first output store at `2962CF`, requiring
+  `510EF0`; sustained firing still exits1. User saves and V9 remain unchanged,
+  and scratch is removed. Sibling GDB attachment is denied by the host's
+  existing ptrace policy; those attempts provide no startup stack evidence.
+  [Actual v6 live-input boundary](../.local/mcc-native-click-crash-20261018/candidate-v1/validation.json).
+- [x] Authenticate the complete codec8 quaternion, translation and scale
+  producers and both required workspaces. Twenty original controls execute all
+  three bodies through sixty real RETs with no child stubs. They cover every
+  byte of the32-byte transform at `510EF0` and24-byte translation temporary
+  bank at `56E6A0`; every workspace read follows the actual writer. Poisoned
+  prior contents do not affect the complete output. Original writable virtual
+  tails are explicitly loader-zeroed, rather than guessed initialized outputs.
+  Scratch is removed; product ownership and a new live run remain open.
+  [Complete codec workspace authority](../.local/mcc-native-click-crash-20261018/workspace-authority-v1/primary.json).
+- [x] Publish and compile the complete56-byte codec workspace ownership.
+  All2,444 previous factory tuples remain exact; the factory now has2,446
+  regions/479,904bytes. Sixty-one rejecting controls include every one of the56
+  foreign-overlap bytes before publication. Both host pointers exceed4GiB;
+  original writable access, warm writes and memory-subowner restore pass.
+  Strong exports, all314 previous inputs and six ordinary dependencies remain
+  exact, with no reference opens. Scratch is removed; the required1,266,032-byte
+  object is retained. Source review, coherent linking and live mouse acceptance
+  remain separate gates.
+  [Compiled workspace validation](../.local/mcc-native-click-crash-20261018/workspace-product-v1/validation.json).
+- [x] Review the56-byte product by inverse source reconstruction and exact
+  original owner/access comparisons. All prior factory rows, strong exports,
+  dependencies and61 rejection controls remain verified; review scratch is
+  removed. This is a second method by the primary agent, not an independent
+  reviewer or proof of full interactive gameplay.
+  [Workspace review](../.local/mcc-native-click-crash-20261018/workspace-product-v1/review.json).
+- [x] Obtain four real startup stacks with the debugger owning only its private
+  child. At4seconds the main thread is building MCC sound timing; at14 and28
+  seconds it is loading/decompressing MCC textures, and at40seconds uploading
+  textures. These samples identify work to measure; they do not establish its
+  total cost or a startup improvement. The intentionally interrupted diagnostic
+  removes scratch and leaves user saves/processes and security settings intact.
+  [Actual startup samples](../.local/mcc-native-click-crash-20261018/startup-profile-v2/validation.json).
+- [x] Link coherent candidate v7 with only the reviewed56-byte workspace leaf
+  replacing v6's data leaf. All313 other providers,43 maps and97 shaders remain
+  exact. The104,679,728-byte candidate and20,465,237-byte link map are retained;
+  generated link scratch is removed. Installed/V9 bytes remain unchanged until
+  actual interactive acceptance passes.
+  [Coherent workspace candidate](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v7/cohort.json).
+- [x] Run candidate v7 through real pointer/focus/click and held firing with
+  the user's packaged libraries/cache. Both codec workspaces clear and real
+  first-person particle draws reach4. Sustained firing next reaches its parent
+  codec publication table at `28B1B1/48C7E0` and exits1; the full interactive fix
+  remains open. Frame readiness is78.72seconds in this isolated run, without
+  debugger attachment; this data-only change does not establish an optimization.
+  Saves remain exact and generated scratch is removed.
+  [Actual v7 boundary](../.local/mcc-native-click-crash-20261018/candidate-v2/validation.json).
+- [x] Identify the final missing absolute operand in complete immediate parent
+  `28B080`: `48C7E0` is a16-byte quaternion sign mask, not a dispatch pointer.
+  Its original file-backed writable bytes and24 actual ANDPS instruction cases
+  pass, including signed zero, infinity and NaN bit patterns. Other absolute
+  parent operands fall within the existing decoder workspaces. This qualifies
+  bytes/access and the static inventory, not whole-parent gameplay execution.
+  The fixture was corrected to account for Unicorn reporting the16-byte SSE
+  operand as two8-byte reads. Original programs remain offline; scratch removed.
+  [Parent operand authority](../.local/mcc-native-click-crash-20261018/parent-authority-v1/primary.json).
+- [x] Publish and compile the exact16-byte sign mask with its original
+  writable access. All2,446 prior factory tuples remain exact;2,447 regions now
+  own479,920bytes. Nineteen rejecting controls cover all16 foreign-overlap bytes,
+  owner boundaries and warm remount; native pointers and warm writes/restore
+  pass. The required1,274,584-byte leaf is retained and scratch is removed.
+  [Parent-mask product](../.local/mcc-native-click-crash-20261018/parent-product-v1/validation.json).
+- [x] Complete the sign-mask inverse-source/access review. Only its16-byte
+  owner and preflight extent differ; all prior tuples/dependencies/exports and
+  nineteen rejection controls remain exact. Review scratch is removed.
+  [Parent-mask review](../.local/mcc-native-click-crash-20261018/parent-product-v1/review.json).
+- [x] Link coherent candidate v8 with the reviewed parent mask. All313 other
+  providers,43 maps and97 shaders remain exact; the required104,679,728-byte
+  candidate and20,465,138-byte map remain retained. Link scratch is removed;
+  live mouse acceptance and delivery are next.
+  [Parent-mask candidate](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v8/cohort.json).
+- [x] Fix the reproduced V9 click/firing exit in coherent candidate v8.
+  Real SDL pointer/focus/click, one-second held firing, relative mouse look and
+  forward-key press/release all survive, with4 actual first-person particle
+  draws and no runtime error. The earlier user faults and decoder workspaces
+  now clear. User saves,97 shaders,313 unaffected providers and43 maps remain
+  exact; scratch is removed. This qualifies the reproduced input sequence,
+  not all weapons, long sessions or full TU1.5 parity. Delivery remains open.
+  [Actual mouse GREEN](../.local/mcc-native-click-crash-20261018/candidate-v3/validation.json).
+- [x] Install the accepted click fix in both the ordinary source launcher and
+  the user's extracted V9 package. All four launcher-info checks admit the
+  native test and keep full readiness false. The actual user launcher completes
+  eight frames with exit0 in55.61seconds. All existing save files and97 shaders
+  remain exact; four pre-install runtime/capability files are retained for
+  rollback and test scratch is removed. Startup experiments are excluded.
+  The first smoke command used an unsupported save-directory argument; its
+  private dialog was stopped, preimages restored, and the supported launcher
+  command rerun successfully. That dialog wait is not a game boot measurement.
+  [Installed click hotfix](../.local/mcc-native-click-crash-20261018/installed-hotfix-v2/validation.json).
+- [x] Publish compiled version10 with the accepted real-click fix. Both
+  relocated launcher-info checks and the real eight-frame launcher route pass.
+  ZIP integrity and every bundled checksum pass; all97 shaders and unmodified
+  V9 files remain exact, and no game data/save files are distributed. The
+  historical V9 one-shot audio receipt is labeled as baseline evidence. Startup
+  experiments are excluded. Generated package, hard-linked data, frame and trace
+  scratch is removed; only the183,428,804-byte ZIP and checksum are retained.
+  The initial cross-filesystem hard-link harness error is corrected by using
+  the already qualified same-filesystem owned development cache.
+  [Version10 compiled ZIP](../dist/Halo2-MCC-Native-Test-Linux-x86_64-20261018-v10.zip),
+  [SHA256](../dist/Halo2-MCC-Native-Test-Linux-x86_64-20261018-v10.zip.sha256),
+  [Portable hotfix acceptance](../.local/mcc-native-click-crash-20261018/package-v10/validation.json).
+- [x] Locate the sampled renderer bottleneck at the actual full-image FNV
+  byte loop (`19A13A0..19A13B4`) in the user's packaged ELF. An attempted
+  ordinary renderer reconstruction does not match the frozen renderer's text
+  sections, so it is excluded from this hotfix. Its disposable object and
+  generated scratch were removed; shader files and selected renderer remain
+  exact. Startup optimization requires a compatible seam or exact source
+  reconstruction, not substitution of the current renderer body.
+  [Renderer compatibility comparison](../.local/mcc-native-click-crash-20261018/renderer-startup-v1/baseline.json).
+- [x] Minimize repeated MCC texture decompression into a red-capable native
+  regression. Twelve reads of identical stored partition bytes reinflate in the
+  selected runtime; the fixture detects that directly through the real zlib
+  call. The107 selected MCC-cache dependencies are available at their exact
+  recorded hashes, allowing an ABI-compatible leaf build. Reconstructed current
+  and historical renderer bodies are excluded; no renderer is substituted.
+  [Native partition RED](../.local/mcc-native-click-crash-20261018/partition-startup-v1/red.json).
+- [x] Add ABI-compatible content-keyed MCC partition residency. The rebuilt
+  baseline's text/constants match the selected MCC cache exactly, using all106
+  recorded header dependencies. Native controls pass repeated-decode suppression,
+  independent returned writes, same-path changed bytes, malformed rejections,
+  concurrent reads and pressure beyond128MiB. Original partition/file validation
+  and all public engine exports remain unchanged; one additional standard-library
+  unique symbol is recorded. The cache owns at most128MiB and512 entries. The
+  required compiled leaf is retained, scratch removed, and actual startup timing
+  remains open. The first export assertion was corrected to distinguish that
+  STL unique symbol from engine API changes; its receipts remain preserved.
+  [Compatible partition validation](../.local/mcc-native-click-crash-20261018/partition-startup-v1/validation.json).
+- [x] Link the startup candidate with only the accepted MCC-cache leaf changed
+  from click-fixed v8. All313 other providers,43 maps and97 shaders remain
+  exact. The104,684,912-byte ELF and20,477,032-byte map are retained and link
+  scratch is removed. Actual timing and repeated mouse input are next.
+  [Startup candidate](../.local/mcc-native-client-20261018/client-current-v13-startup-v1/cohort.json).
+- [x] Strengthen partition regression with simultaneous first publication
+  and a zlib-call assertion proving eviction actually occurs under pressure.
+  The strengthened test passes along with the existing native MCC Cache suite
+  (chunks, exact shared owners, bounds, spawns, pixel/residency behavior).
+  All generated executables, maps and pressure-test files are removed.
+  [Additional native regressions](../.local/mcc-native-click-crash-20261018/partition-startup-v1/supplemental.json).
+- [x] Verify the combined partition-residency candidate through the same real
+  pointer/focus/click/held-fire/look/movement sequence. It retains4 first-person
+  particle draws, no errors and exact user saves; scratch is removed. Startup
+  readiness is89.72seconds with startup load average13.60, versus75.15seconds
+  at3.61 for the data-only candidate. These differing-load observations do not
+  prove a startup benefit; the optimization is not accepted for delivery on
+  timing evidence alone. Keep the proven click-only candidate available.
+  [Combined real-input result and timing limits](../.local/mcc-native-click-crash-20261018/candidate-v4/validation.json).
+- [x] Measure actual graphics-pipeline creation through transparent same-argument
+  Vulkan wrappers around the unchanged coherent runtime. Before first presentation
+  at147.83seconds,240 calls pass null application caches and spend87.30seconds
+  inside pipeline creation. This probe uses a private empty XDG cache; it is not
+  the installed desktop timing or an improvement result. All call results are
+  passed through unchanged and scratch is removed. Next qualify persistent
+  Vulkan pipeline residency without reconstructing the renderer body or changing
+  shader programs.
+  [Actual pipeline cost](../.local/mcc-native-click-crash-20261018/pipeline-profile-v1/validation.json).
+- [x] Qualify the optional Vulkan cache boundary in17 control groups. Graphics
+  and compute descriptions, counts, allocators, outputs and error results pass
+  through exactly; explicit caller caches and extension chains are preserved.
+  Warm persistence, corrupt UUID/oversize rejection, driver rejection fallback,
+  allocation/I/O failures, concurrent access, opt-out and cache-before-device
+  teardown pass, with opaque handles above4GiB. These are fake-driver contract
+  controls, not actual GPU startup/image acceptance. Scratch is removed.
+  [Pipeline-cache contract controls](../.local/mcc-native-click-crash-20261018/pipeline-cache-v1/controls.json).
+- [x] Link the optional pipeline-cache owner into an isolated coherent candidate:
+  all 314 prior providers, 43 map pins and 97 shader pins remain exact, with
+  one new owner and four Linux Vulkan API wrappers. The renderer object and
+  shader programs are unchanged. Compile/link scratch is removed. This is
+  link qualification; actual GPU cold/warm and input acceptance remain open.
+  [Pipeline-cache candidate](../.local/mcc-native-client-20261018/client-current-v13-pipeline-cache-v1/cohort.json).
+- [x] Pass the matched actual-GPU disabled and cold-cache launches. The disabled
+  control takes 78.65 seconds; cold-cache creation takes 74.08 seconds and
+  persists 8,067,431 driver bytes with the correct device/UUID header. All 97
+  shaders and user saves remain exact. This small cold-launch difference is
+  not an accepted speedup; warm consumption and real input are still pending,
+  and the enclosing benchmark owns live scratch until its final stage exits.
+  [Actual GPU stages](../.local/mcc-native-click-crash-20261018/pipeline-gpu-v1/validation.json).
+- [x] Complete actual-GPU warm disk-cache qualification. The second process
+  consumes exactly the 8,067,431 saved bytes, completes in 44.39 seconds versus
+  74.08 cold / 78.65 disabled, and spends 0.205 seconds in the same 241 graphics
+  plus one compute pipeline calls versus 30.299 cold. Returned cache bytes are
+  unchanged; all launches exit zero, produce native frames and preserve saves
+  and all 97 shader files. Scratch is removed. These are bounded private-display
+  measurements; first-launch compilation, the remaining startup work and actual
+  desktop timing remain distinct. Real-input and ordinary-build wiring follow.
+  [Completed GPU comparison](../.local/mcc-native-click-crash-20261018/pipeline-gpu-v1/validation.json).
+- [x] Wire the optional owner and all four API wrappers into ordinary Linux
+  `halo2_native` builds, with a registered standalone contract CTest. Full source
+  configuration, the focused target build and the managed CTest pass; generated
+  native link commands contain the owner and all wrappers. No engine-wide rebuild
+  is claimed. Scratch is removed; interactive candidate acceptance remains open.
+  [Ordinary build integration](../.local/mcc-native-click-crash-20261018/pipeline-cmake-v1/validation.json).
+- [x] Repeat real-window input against the pipeline-cache candidate and portable
+  shader relocation. Focus, click/release, held fire/release, mouse look and
+  forward movement survive; four actual first-person particle draws confirm
+  firing admission. No runtime errors occur, all user saves remain exact and
+  scratch is removed. Cold rendered-frame readiness is 74.43 seconds; this
+  input run does not claim warm-start or full gameplay/parity acceptance.
+  [Pipeline-cache real input](../.local/mcc-native-click-crash-20261018/candidate-v5/validation.json).
+- [x] Install the verified pipeline-cache candidate into the source launcher
+  runtime and the user's extracted V9 payload, retaining exact previous runtime
+  and capability preimages for rollback. All four launcher-info checks and the
+  actual user launcher eight-frame route pass. Full gameplay-ready stays false;
+  the native test remains available, with exact saves and all 97 shader files.
+  Scratch is removed. Retain the small optional device-specific product cache
+  produced by normal launcher execution to avoid recompilation.
+  [Installed cache update](../.local/mcc-native-click-crash-20261018/pipeline-installed-v1/validation.json).
+- [x] Publish the compiled V11 ZIP with the verified click fix and persistent
+  Vulkan pipeline cache. Both launchers pass from a relocated folder with spaces,
+  the actual eight-frame route passes under a file-open trace, every archive
+  checksum verifies, and no Xbox/Vista/firmware reference opens occur. All 97
+  shaders and unmodified V10 files remain exact; no game data or saves are shipped.
+  Scratch and the large file trace are removed. First-launch and remaining startup
+  costs, full gameplay/conversion and full Xbox parity remain open.
+  [V11 portable validation](../.local/mcc-native-click-crash-20261018/package-v11/validation.json)
+  · [Compiled V11](../dist/Halo2-MCC-Native-Test-Linux-x86_64-20261018-v11.zip).
+- [x] Prepare a coherent combined startup measurement candidate containing the
+  verified Vulkan cache owner and the previously byte-qualified bounded MCC
+  partition residency object. The other 314 providers and all shader pins remain
+  exact; link scratch is removed. This candidate is isolated and is not installed
+  or packaged. Qualify it against identical warm GPU cache bytes before deciding
+  whether partition residency belongs in delivery.
+  [Combined startup link](../.local/mcc-native-client-20261018/client-current-v13-pipeline-partition-v1/cohort.json).
+- [x] Complete two alternating actual-GPU launches per startup variant with
+  identical copied warm GPU cache bytes. V11 measures 53.66 / 53.96 seconds;
+  partition reuse measures 50.07 / 39.00 seconds. Every run exits zero and renders
+  a native frame, with unchanged saves, providers and all 97 shaders. Pipeline
+  calls/counts and warm bytes match. System load falls during the series, so
+  these are bounded observations rather than a fixed speedup guarantee. Scratch
+  is removed. Combined real-input and delivery acceptance remain open.
+  [Alternating texture-partition comparison](../.local/mcc-native-click-crash-20261018/partition-pipeline-v1/benchmark.json).
+- [x] Pass the combined candidate's real focus, click, held fire, mouse look
+  and movement regression, with four actual first-person particle draws and no
+  runtime errors. Copied warm GPU data is used; observed frame readiness is
+  38.43 seconds at startup load average 6.98. User saves remain exact and scratch
+  is removed. This qualifies the combined resource owners for guarded launcher
+  installation; it does not establish a universal startup time or full parity.
+  [Combined real input](../.local/mcc-native-click-crash-20261018/candidate-v6/validation.json).
+- [x] Install the combined resource owners into both active runtimes after exact
+  rollback preflight. Both launcher variants in both locations and the actual user
+  eight-frame launch pass; saves and all shaders remain exact. A rejected hard-link
+  preflight changed no product files; checked copies cover that filesystem and
+  same-filesystem links preserve the other preimages without duplicating data.
+  Scratch is removed. V11 stays available as the preceding compiled release.
+  [Combined installed runtime](../.local/mcc-native-click-crash-20261018/combined-installed-v1/validation.json).
+- [x] Remove this investigation's seven completed benchmark PPMs after checksum,
+  single-link and process-open checks: 6,451,305 logical bytes removed. Keep two
+  pixel-equivalent PNGs (340,909 and 341,049 bytes), small reports, source pins,
+  required coherent providers, rollback files and releases. Cleanup scratch is
+  removed; unrelated/reference assets are untouched. This does not complete the
+  separate final goal-wide obsolete-test inventory.
+  [Owned capture cleanup](../.local/mcc-native-click-crash-20261018/cleanup-startup-captures-v1.json).
+- [x] Verify and select the already imported V3 graphics cache through ordinary
+  cache validation, without another 31 GB source import. All 883 copied source
+  files, five corrections and 40 mip chains qualify; both launcher variants,
+  actual eight-frame gameplay and a fresh-save unmuted shot through tick 60 pass.
+  Ammo reaches 59/120 with two detonations; finite nonzero callback audio and a
+  current PNG are retained (576,044 and 340,817 bytes). Actual traced launches
+  take 228.72 / 171.69 seconds under the current conditions; these are functional
+  results and do not close the slow-startup gate. Rendered frames are observed
+  dynamically (26 here), rather than incorrectly requiring 74. No reference-file
+  opens occur; scratch, traces, raw PCM and disposable frames are removed. Prior
+  cache, saves, shaders, V11 and all 315 providers remain exact. Full readiness
+  and full graphics/audio parity remain false.
+  [Fresh-cache native validation](../.local/mcc-graphics-corrections-v3-20261018/fresh-cache-native-v2/validation.json).
+- [x] Check the refreshed V3 portable importer under the bundled Python: all
+  21 bitmap and 22 onboarding controls pass. The V12 actual portable launch then
+  times out at 240 seconds, so no V12 archive is published. The owned process
+  group/scratch are removed, the failure receipt is kept and V11 is preserved.
+  Retry with a longer diagnostic window; keep portable delivery and slow-startup
+  gates open.
+  [V12 timeout receipt](../.local/mcc-native-click-crash-20261018/package-v12/attempt-1/failure.json).
+- [x] Complete the longer V12 portable check and publish its compiled ZIP. Both
+  relocated launchers and actual eight-frame gameplay pass; all archive checksums
+  verify. The five refreshed importer module/data files include the exact V3
+  corrections, and all 43 bundled-Python controls pass. Existing shaders and other
+  V11 files remain exact; no game data/saves are shipped and no reference or
+  development-checkout file opens occur. All temporary copies, traces and frames
+  are removed. Startup timing remains under investigation; the timeout is retained
+  as diagnostic history rather than hidden by the later passing run.
+  [V12 portable validation](../.local/mcc-native-click-crash-20261018/package-v12/validation.json)
+  · [Compiled V12](../dist/Halo2-MCC-Native-Test-Linux-x86_64-20261018-v12.zip).
+- [x] Separate actual untraced launcher window/frame readiness from complete
+  exit. The visible private-display neutral run creates its window at 18.00
+  seconds, reaches frame 5 at 52.91 and exits zero at 55.90 under high system
+  load. Saves remain exact and scratch is removed. The earlier 315.83-second
+  traced portable run is not ordinary startup timing. No final optional cache
+  trace appears in the visible run; inspect late device teardown before claiming
+  that this route persists or benefits from the application cache.
+  [Actual untraced readiness](../.local/mcc-native-click-crash-20261018/actual-launcher-readiness-v1/validation.json).
+- [x] Reproduce a pipeline-cache registry lifetime defect with a static device
+  owner that retires after the registry's former destructor. The isolated
+  late-teardown control crashes with SIGSEGV before the fix; scratch is removed.
+  This is a demonstrated cache-owner bug, distinct from the previously fixed
+  firing exit. Correct registry lifetime, then requalify ordinary controls and
+  the visible route before promoting another runtime.
+  [Late-teardown RED](../.local/mcc-native-click-crash-20261018/pipeline-lifetime-v1/red.json).
+- [x] Keep the registry available for process-lifetime device lookup while each
+  wrapped device teardown still exports and retires its own driver cache. The
+  original 17 control groups and the new late-static-device CTest pass through
+  the managed focused CMake runner. The exact prior source is preserved as a
+  small reference snapshot, and the private build/scratch are removed. Native
+  visible-route acceptance and promotion of this fix remain pending.
+  [Lifetime controls](../.local/mcc-native-click-crash-20261018/pipeline-lifetime-v1/controls.json).
+- [x] Link the lifetime correction as one replacement cache owner, keeping the
+  other 314 providers and all 97 shaders exact. The prior provider remains intact
+  for older coherent releases. Link scratch is removed; normal visible teardown
+  and subsequent promotion are still pending.
+  [Lifetime candidate](../.local/mcc-native-client-20261018/client-current-v13-pipeline-lifetime-v1/cohort.json).
+- [x] Observe the corrected candidate rendering and returning zero through normal
+  visible eight-frame operation, preserving saves and removing scratch. Its final
+  original checker missed a mid-line cache trace and left the stronger assertion
+  unaccepted at that time. Retain that diagnostic failure; the corrected log audit
+  and subsequent actual-file persistence/reuse acceptance are recorded above.
+  [Visible functional observation and limits](../.local/mcc-native-click-crash-20261018/pipeline-visible-v1/functional-observation.json).
+- [x] Repeat real input with the lifetime-corrected coherent candidate. Focus,
+  clicking, held fire, look and movement survive with four first-person particle
+  draws, no runtime errors and exact user saves. Observed private warm-frame
+  readiness is 42.52 seconds; scratch is removed. This accepts the independent
+  lifetime correction for guarded installation. Visible-route file persistence
+  was separately accepted by the later two-process check recorded above.
+  [Lifetime candidate real input](../.local/mcc-native-click-crash-20261018/candidate-v7/validation.json).
+- [x] Install the fixture-proven registry lifetime correction into both active
+  runtimes after real input qualification. Both launcher variants in both locations
+  and the actual user eight-frame route pass; saves and all shaders remain exact.
+  Rollback preimages are retained and scratch is removed. This installation check
+  did not certify visible/no-screenshot cache export; that separate acceptance
+  now has the actual-file and subsequent-consumption evidence recorded above.
+  [Installed lifetime correction](../.local/mcc-native-click-crash-20261018/lifetime-installed-v1/validation.json).
+- [x] Publish compiled V13 with the lifetime correction and V3 MCC-only importer.
+  Both relocated launchers, actual eight-frame gameplay, all 43 bundled-Python
+  importer controls and every archive checksum pass. No reference or development
+  checkout opens occur; all 97 shaders remain exact. Temporary build/cache links,
+  traces and frames are removed. This supersedes V11/V12's registry lifetime
+  implementation; their artifacts remain historical rollback evidence. Slow
+  startup and full gameplay/parity stay open. The later installed visible-route
+  file persistence and reuse check passes separately, as recorded above.
+  [V13 portable validation](../.local/mcc-native-click-crash-20261018/package-v13/validation.json)
+  · [Compiled V13](../dist/Halo2-MCC-Native-Test-Linux-x86_64-20261019-v13.zip).
+- [x] Synchronize the user's existing extracted V9 folder to the verified V13
+  package files without importing another game-data copy. Eleven tool/data/
+  capability/metadata files update; all V13 archive checksums then match and
+  both launchers retain native-test availability/full-ready false. Existing
+  cache, saves and extra historical evidence remain intact. Checked rollback
+  copies total 526,218 logical bytes, and update scratch is removed.
+  [Extracted-folder V13 synchronization](../.local/mcc-native-click-crash-20261018/sync-extracted-v13/validation.json).
+- [x] Narrow retained-renderer reconstruction from 73 differing sections to 13
+  by restoring only the exact 24-byte private texture-mask vector documented in
+  its own debug layout. No new sections appear; two old sections remain absent.
+  This is a scratch-only baseline probe, not a replacement renderer or startup
+  improvement. Scratch is removed and ordinary renderer/shaders remain unchanged.
+  Inspect the remaining mask-related logic and accept no replacement unless the
+  complete text/constant baseline matches the retained object.
+  [Renderer layout reconstruction control](../.local/mcc-native-click-crash-20261018/renderer-startup-v4/baseline.json).
+- [x] Restore the temporary baseline's existing texture-mask selection uses and
+  the corresponding local graphics-mode definition scope. All 975 retained
+  text/constant sections now exist with no new sections, and remaining mismatches
+  fall to eight. The earlier compile-scope rejection is preserved; both probe
+  scratch directories are removed. This still does not qualify a renderer
+  replacement or hash optimization; compare the remaining code/relocations first.
+  [Mask-logic reconstruction control](../.local/mcc-native-click-crash-20261018/renderer-startup-v6/baseline.json).
+- [x] Reduce the temporary reconstruction to seven differing sections by
+  restoring the independently selected mask material in geometry residency.
+  A bounded diagnostic compares code/relocations and identifies two retained-only
+  particle-subrenderer lifetime messages; the memory-preference substitution is
+  rejected because it increases mismatches. All probes remove their scratch and
+  retain only small diagnostics. No native/shader replacement is promoted.
+  [Seven-section control](../.local/mcc-native-click-crash-20261018/renderer-startup-v9/baseline.json).
+- [ ] Measure and reduce slow native startup through the real launcher/package
+  path while preserving all existing shaders and Xbox TU1.5 behavior. Separate
+  window creation from the first playable frame; do not call a bounded hidden
+  capture a qualified interactive launch.
 
 ## Native gameplay frame compatibility
 
@@ -236,10 +1231,12 @@ their own gates; passing a module test does not complete those gates.
   screen references and shared curves are preserved. Whole-frame acceptance
   remains separate.
   [HUD metadata publication](../.local/mcc-hud-logical-extent-audit-20261018/v2/validation.json).
-- [ ] Complete a visually valid native gameplay frame after source updates,
-  including first-person geometry and HUD presentation. The bounded tick30
-  capture below now passes after the class1 correction; remaining complete
-  material/scene validation stays open. Coherent V13 adoption is verified below.
+- [x] Complete a visually valid bounded native gameplay frame after the
+  compatibility updates, including first-person geometry and HUD presentation.
+  Root inspected V18's complete Lockout frame; its decoded pixels and save
+  outputs match the accepted V16 fixed-tick run. Full material/scene and Xbox
+  framebuffer parity remain separate open gates.
+  [V18 fixed-tick acceptance](../.local/mcc-material-index-audit-20261019/successor-v18-executor-v1/validation.json).
 - [x] Resolve the combined V9 namespace admission failure through the normal
   Cache publication order. Stage the new HUD owners until after the existing
   shader/globals bootstrap, preserving the authenticated sound-class namespace.
@@ -324,6 +1321,266 @@ Component evidence:
 
 ## MCC-only onboarding and asset ownership
 
+- [x] Recover the actual tag1009 dispatch from both authenticated MCC outer
+  frontend dispatchers. Each bounds-checks index9 and uses table`1432DB020`,
+  cell`1432DB068`, to reach`140613CBC`. Its complete181-instruction body
+  identifies `DefineExternalImage` and calls the complete184-instruction child
+  at`140613A18`. Only small static receipts/disassembly are retained; temporary
+  disassembler dependency and scratch are removed. Descriptor fields, active
+  image binding, the missing mask and music resource remain open; this does
+  not justify product wiring or fabricated loading assets.
+  [Checked dispatch table](../.local/mcc-loading-production-20261018/tag1009-static-20261019-v1/case9.json)
+  · [External-image child](../.local/mcc-loading-production-20261018/tag1009-static-20261019-v1/image-child.json).
+- [x] Seal the two actual loading-GFX external-image records against the direct
+  scalar/string readers: resource`90001`, format13,92x92, name
+  `loading_screen_i7.tga`; resource`90002`, format13,1280x720, name
+  `loading_screen_i1.tga`. Both exports are empty. The56-byte owner stores name
+  at`0x20` and export at`0x30`; the later creator's`0x48` field belongs to a
+  different structure. Resource registration`1405F0EFC` and that adapter remain
+  unproved, so no conclusion about the creator's input string or image binding
+  is admitted. All probe/dependency scratch is removed; no asset, executable
+  or shader changes are made.
+  [Raw record and owner evidence](../.local/mcc-loading-production-20261018/tag1009-static-20261019-v1/validation.json).
+- [x] Decode the proved external-image registration owner`1405F0EFC` completely:
+  264bytes/69instructions. Its constructor-consumed factory slots`+8/+10`
+  resolve to`1405A6854`/`1405ABCAC`; later slots and the image-creator adapter
+  are not inferred. Small source/disassembly receipts and the corrected local
+  probe-setup failure are retained; temporary dependency/scratch is removed.
+  [Registration evidence](../.local/mcc-loading-production-20261018/tag1009-registration-20261019-v1/registration.json).
+- [x] Qualify the registration queue without assuming a creator slot. The
+  `+130` search yields only its known writer; proved pending head`+398` instead
+  flows through`1405F36F8` to a new node`+28` while count`+37C` enters`+10`.
+  Frame-like nodes use load-data`+100/+108` and next`+30`. The next missing
+  bridge is that new node's`+28` consumer. No factory create call, creator
+  descriptor, mask or ambience is inferred; extraction stops at this verified
+  boundary. Small receipts remain, and all dependency/probe scratch is removed.
+  [Qualified registration boundary](../.local/mcc-loading-production-20261018/tag1009-registration-20261019-v1/validation.json)
+  · [Pending-head flow](../.local/mcc-loading-production-20261018/tag1009-registration-20261019-v1/pending-xrefs.json).
+- [x] Find the actual queued-frame consumer in the same bounded GFx cohort.
+  Owner`1405F5148` is3,115bytes with a pinned source hash; its reads at
+  `5F51F1/5F5266` take load-data`+100` into r14 and advances at
+  `5F51E3/5F5258` follow node`+30`, matching the proved queue. Nine qualified
+  instruction-aligned read sites span eight functions inside the fixed655,360
+  byte region. Scratch is removed. The node`+28`/factory dispatch and final
+  image descriptor remain unproved; no image role or loading mask is inferred.
+  [Qualified queue consumer](../.local/mcc-loading-production-20261018/tag1009-queued-consumer-20261019-v1/queue-consumers.json).
+- [x] Prove the actual stored-factory dispatch inside that queue consumer.
+  At`5F57E7` queued node`+28` supplies the registration chain; count`+10` and
+  registration next`+18` bound traversal. `5F5829/5831` load its factory/vtable,
+  `5F5840` supplies raw owner`[rbx+8]` in rdx, and`5F5844` calls virtual`+18`.
+  This authenticates that precise factory slot; it is no longer inferred from
+  adjacent entries. Slot target, raw-owner translation and creator descriptor
+  remain the next proof, with no image-role/mask/audio conclusion yet.
+  [Actual factory call](../.local/mcc-loading-production-20261018/tag1009-queued-consumer-20261019-v1/consumer.json).
+- [x] Resolve that precise factory slot to`1405F14B0`, a complete1,722-byte/
+  460-instruction owner with pinned source bytes. Its conditional branch for
+  nonzero raw-owner`+18` creates a descriptor at rsp`+40`, assigns raw`+30` to
+  descriptor`+48`, then calls image-creator virtual`+18`. The zero branch uses
+  another descriptor and virtual`+10`. This proves a conditional structure
+  bridge, not the real loading records' selected branch, assignment semantics
+  or bound image-creator implementation. All three probe scratch trees are
+  removed. Those remaining bindings still precede any image/mask inference.
+  [Actual factory and conditional bridge](../.local/mcc-loading-production-20261018/tag1009-queued-consumer-20261019-v1/factory-dispatch.json).
+- [x] Decode the descriptor assignment helper`140634748` and tag1000 header
+  parser`1405ECE94` completely. Assignment retains destination tag bits and
+  either shares/refcounts matching-allocator source backing or copies its exact
+  length before releasing old backing. The parser reads the actual preceding
+  GFX tag1000 version`0401`, flags, format and strings, then calls metadata
+  setter`1405ECD64` into stream`+2B0`. Header-state flow into data`+80` remains
+  unproved, so the actual loading branch is still open. Scratch is removed;
+  small primary disassembly/receipts remain, with no product or role inference.
+  [Exact header/assignment owners](../.local/mcc-loading-production-20261018/tag1009-field-state-20261019-v1/fields.json).
+- [ ] Resolve the bound image-creator implementation before pixel/resource binding.
+- [x] Seal the canonical real-record branch: actual preceding tag1000 format13
+  flows through parser/setter and copy caller into data`+80`, then constructor
+  raw`+18` and factory nonzero→creator`+18`. Assignment semantics and actual
+  nonnull zero-length backing are proved; empty exports do not imply a null
+  pointer or zero branch. The47-byte parser log leaf preserves the argument on
+  its normal cookie path. All four private environments are removed. This is
+  successful canonical-parse proof for the exact records, not live MCC invocation
+  or final creator/pixel/resource/mask/audio acceptance. Creator binding remains
+  open in the preceding gate.
+  [Sealed real-record branch](../.local/mcc-loading-production-20261018/tag1009-field-state-20261019-v1/validation.json).
+- [x] Prove the exact original load-state identity through context and bind
+  process storage at`+18`, distinct creator-owner construction/publication at
+  state`+10`, and the default owner's seven requested IDs
+  `[12,13,14,18,19,30,31]`. The third returned pointer goes to owner`+20`;
+  explicit copying preserves it with refcounting. Known registered creator
+  vtable slots separately resolve`+18` to`8EC954` and`+10` to`5E9814`.
+  All six private extraction environments are removed. The bulk-state query
+  implementation and source interface remain required before identifying that
+  actual third result with the registered creator; pixels/mask/audio stay open.
+  [Exact load-state/creator ownership](../.local/mcc-loading-production-20261018/tag1009-loadstate-binding-20261019-v1/validation.json).
+- [x] Prove the exact bulk-state lookup and registration chain. Public loader,
+  implementation interface and backing owner forward the same IDs/pointers;
+  lookup matches embedded type, advances IDs4bytes/results8bytes and places
+  ID14's result in the creator field. This conditionally binds the registered
+  type14 creator and its`+18→8EC954` slot for the same successful loader with
+  no override/replacement. The actual format13/empty-export branch then reaches
+  fallback`5E9B98`. All eight extraction environments are removed. Active UI
+  instance ownership and actual external resource bytes remain unproved; no
+  pixels, mask, audio or product wiring are inferred from this static chain.
+  [Bulk query and conditional creator binding](../.local/mcc-loading-production-20261018/tag1009-loadstate-binding-20261019-v1/bulk-validation.json).
+- [x] Qualify canonical UI file-opener setup and the empty-export fallback.
+  Initializer`8AB59C` installs UI-client`+390` as state12; bulk result0 reaches
+  descriptor`+20` and file-opener`+8→8EBBF8`. Fallback`5E9B98` first tries the
+  supplied/rebased name, then a `.dds` alternate only on failure. The exact
+  opener strips directory/final extension before the hash; eight actual-source
+  CPU basename controls pass. Conditional record basenames i7/i1 produce keys
+  `56DBA897/4C5DE525` in namespace`442A39D9`, passed to provider`+60`.
+  Name rebasing, actual provider row/resource bytes and active loading requests
+  still require proof; no pack/image-role/pixel/audio conclusion is inferred.
+  All five private environments are removed, with no large artifact or product
+  edits. [Canonical opener and fallback](../.local/mcc-loading-production-20261018/tag1009-fallback-20261019-v1/validation.json).
+- [x] Qualify the actual namespace registry lookup with a branch-complete
+  source CFG. Getter`889394` lazily returns global`14400C200`;`889444` caches
+  the provider/type at registry`+58/+60` and returns found node minus8.
+  `5A5534` is a tree lookup, with key`+18`, children`+8/+10` and registry
+  sentinel`+20`; its74 reachable bytes are authenticated despite lacking a
+  PE unwind entry. Initial first-return/body assumptions were corrected before
+  certification. All five private environments are removed. Registry provider
+  registration, actual asset rows and active loading invocation stay open.
+  [Exact registry owners](../.local/mcc-loading-production-20261018/tag1009-fallback-20261019-v1/registry-execution.json).
+- [x] Scan exact registry-global references in the authenticated42,370,020-byte
+  text cohort, accepting all nine candidates only at complete primary-fragment
+  instruction boundaries. The two newly reached owners remove providers/drain
+  auxiliary lists and reset state; neither binds an asset provider. Known getter
+  `889394` remains the next direct-call source frontier. This is a bounded
+  initialization/teardown result, not proof that no indirect registration exists.
+  Both scanner/owner private environments are removed, with only small source
+  reports retained. [Exact-global cohort](../.local/mcc-loading-production-20261018/tag1009-fallback-20261019-v1/registry-global-xrefs.json)
+  · [Teardown owners](../.local/mcc-loading-production-20261018/tag1009-fallback-20261019-v1/global-owner-bodies.json).
+- [x] Qualify221 exact direct getter callers at primary instruction boundaries
+  and their bounded successors. Actual insertion owner`8888D0` passes the
+  returned registry/provider to`5A5170`; removal uses`5A52B4`. Of36 qualified
+  constructor callers, only`0E14FC` supplies exact namespace`442A39D9`: it
+  zeroes the same global288-byte owner, registers it and installs a concrete
+  vtable. Constructor owner`+20` matches tree key/node`+18`; lookup returns
+  that same provider. All completed environments are removed. Exact selected
+  provider`+60`, resource rows/bytes and active loading requests remain open.
+  [Getter caller cohort](../.local/mcc-loading-production-20261018/tag1009-fallback-20261019-v1/registry-getter-callers.json)
+  · [Exact namespace constructor](../.local/mcc-loading-production-20261018/tag1009-fallback-20261019-v1/provider-selection.json).
+- [x] Seal the exact provider registration/query bridge: source-labeled
+  `UIScreenInventory`, namespace`442A39D9`, global`143FA4350`, table`143470980`
+  and consumed slot`+60→8891D0`. Resource lookup queries provider`+50`;
+  successful opener reads length`+58` and relative bytes`+60`. The11 private
+  environments are removed. A subsequent exact-global scan finds only three
+  qualified constructor references; three no-pdata/data candidates remain
+  excluded, so no resource-population absence is claimed. Its scanner is
+  removed. Actual rows/bytes and loading invocation remain open; the direct
+  file fallback is another required source path before image/pixel inference.
+  [Sealed provider bridge](../.local/mcc-loading-production-20261018/tag1009-fallback-20261019-v1/registry-binding-validation.json)
+  · [Qualified provider-global references](../.local/mcc-loading-production-20261018/tag1009-fallback-20261019-v1/provider-global-xrefs.json).
+- [x] Qualify the opener's separate direct-file fallback and VFS calls.
+  `8B2954` resolves the supplied/rebased path through VFS`143FA46C0`, creates
+  a file owner and opens through the selected device's virtual`+88`. Actual
+  `8B1C98` expands variables and invokes registered rewrite callbacks;
+  `8B1E84` uses an optional device selector or its source-addressed default.
+  The selected device and resolved path are stored on the file owner. Both
+  private environments are removed. These active rewrite/selector choices,
+  canonical device setup and actual byte reads still require qualification;
+  no filesystem path, inventory contents or pixel role is guessed.
+  [Exact file fallback](../.local/mcc-loading-production-20261018/tag1009-fallback-20261019-v1/file-fallback-owners.json)
+  · [VFS owners](../.local/mcc-loading-production-20261018/tag1009-fallback-20261019-v1/vfs-owners.json).
+- [x] Qualify the canonical default file-device constructor, open method and
+  startup initialization. The exact virtual`+88` target uses the resolved path,
+  UTF-8 conversion and read-existing `CreateFileW`; startup links this device
+  into the VFS list and calls its installed virtual`+8` initializer. Constructor
+  zeroes establish initial callback/selector state only. The bounded52-reference
+  successor audit establishes no active path-hook or image-resource producer;
+  indirect/later hooks remain open. Recorded scratch is removed, with no large
+  artifacts or product changes. Actual loading invocation and image bytes are
+  still required before a reconstruction claim.
+  [Default device proof](../.local/mcc-loading-production-20261018/tag1009-fallback-20261019-v1/default-vfs-validation.json)
+  · [Actual startup dispatch](../.local/mcc-loading-production-20261018/tag1009-fallback-20261019-v1/default-init-owner.json).
+- [x] Check the source-proved basename keys against every qualified stored key
+  in the four known texture packs: neither matches any of2,329 revalidated
+  `NameHash` fields. The shared PCK has7,247 string-tag rows and the cache
+  directory13,661; neither schema has a numeric name-hash field. The ambiguous
+  previous47,247-row label is corrected. This finite negative supplies no image
+  bytes or active loading owner. All three private environments are removed;
+  the distinct `UIScreenInventory` producer remains open.
+  [Qualified key candidates](../.local/mcc-loading-production-20261018/tag1009-key-candidates-20261019-v1/validation.json).
+- [x] Qualify the primary MCC loading-audio service's initializer-linked
+  default provider. Independent review authenticates67 instruction-boundary
+  references, its exact initializer/global publication, vtable`+30` target and
+  actual loading-event caller. Eighteen bounded x64 CPU cases/255 instructions
+  cover success/null allocation, ignored arguments and start/stop dispatch.
+  This exact provider reads no event/parameter payload and supplies no proved
+  resource/PCM binding. Its`RET 0` leaf preserves RAX; it does not return zero.
+  Live service selection, actual MCC music resources and audible loading remain
+  open. Explicit fixture boundaries and extractor failures are preserved; all
+  three review scratch paths are removed, with no large artifacts or engine
+  edits. This negative result justifies no substitute ambience.
+  [Default loading-audio provider review](../.local/mcc-loading-production-20261018/sound-service-binding-20261019-v1/independent-review-v1/validation.json).
+- [x] Inventory exposed Halo2/frontend audio metadata without extracting banks.
+  Twenty-four Halo2 candidates and112 exposed text files supply no exact loading
+  music event. `Data/audio/soundbanks.xml` names the frontend banks; no matching
+  loose banks exist. The packed owner is
+  `MCC/Content/Paks/MCC-WindowsNoEditor.pak`; its4,096-byte footer and4,742,298
+  byte metadata index authenticate by the footer's SHA1. Index strings name13
+  banks and379 media files, including the named Windows banks. These are index
+  strings, not parsed entry/event/resource bindings. All scratch/index copies
+  are removed with no large artifact, cache/import or engine edits. Another
+  game's loading FSB remains outside Halo2 authority.
+  [Packed frontend audio inventory](../.local/mcc-loading-production-20261018/frontend-audio-inventory-20261019-v1/validation.json).
+- [x] Parse all30,667 frontend pak entries from source-qualified version7
+  serialization, consuming the complete4,742,298-byte index with its exact
+  SHA1. The three Windows bank entries match their duplicated53-byte headers:
+  Init1,483bytes, Main_Bank4,008,466bytes and Update1 32bytes; method0/flags0.
+  Localized banks remain separate. Actual index records also identify
+  `SoundbanksInfo.xml`, `Main_Bank.txt` and `Init.txt`, whose payloads remain
+  unread at this gate. No large bank/media file is extracted and larger payload
+  hashes are unverified. All private downloads/scratch and six generated source
+  excerpt copies are removed; only independent format facts/provenance remain.
+  Event/media binding and original loading-audio identity remain open.
+  [Complete index and bank-header proof](../.local/mcc-loading-production-20261018/packed-frontend-banks-20261019-v1/validation.json).
+- [x] Authenticate and parse the three packed Windows audio metadata payloads
+  (285,025bytes) after matching entry headers and SHA1. Authored loading media
+  `236657329` is named `MUS_Menu_Loading_Screen_01` and maps to
+  `236657329.wem`. The separate `Play_Music` event is `2932040671`; XML supplies
+  bank-level membership and no explicit event-to-media selection edge. Names do
+  not prove the active Halo2 request or original loading-audio identity. No bank
+  or WEM payload is read at this gate; scratch is removed without large
+  retention or product changes. The actual bank graph is the next boundary.
+  [Authenticated metadata](../.local/mcc-loading-production-20261018/frontend-event-metadata-20261019-v1/validation.json).
+- [x] Authenticate and parse the actual Windows Main_Bank version132 graph.
+  All286 HIRC record identities/extents and301 relevant numeric fields are
+  independently checked against raw offsets. The directed path is
+  `Play_Music`→Play action→music switch→playlist→segment→track→media236657329,
+  conditional on Switch group2949940656/key1792793154. This establishes an
+  authored conditional path; actual frontend switch publication, audible
+  behavior and OG/Vista identity remain open. Three heuristic display-union
+  meanings are excluded from qualified facts. Bank/source-body scratch is
+  removed with no WEM reads, large retention or product changes.
+  [Actual authored graph](../.local/mcc-loading-production-20261018/frontend-bank-graph-20261019-v1/validation.json).
+- [x] Authenticate the unique packed Windows media`236657329.wem` by exact
+  entry/header and payload SHA1. Its3,356,709bytes contain Wwise custom Vorbis,
+  stereo44,100Hz, with2,744,320 declared samples (62.22948seconds). The header
+  does not uniquely establish the external codebook variant; installed ffprobe
+  cannot decode it. No playback, PCM or audible equivalence is claimed. Media
+  and downloaded source bodies are removed with scratch; no other media payload
+  or product data is read/changed. A qualified decoder is the next boundary.
+  [Exact packed media/header](../.local/mcc-loading-production-20261018/loading-wem-20261019-v1/validation.json).
+- [x] Decode the exact loading WEM using pinned, unpatched upstream vgmstream
+  and existing system Vorbis/Ogg libraries. Its normal initializer admits
+  WWVORBIS_V62/aoTuV603 without a forced variant. Float output has exactly
+  2,744,320 stereo frames at44,100Hz, all5,488,640 samples finite and nonzero
+  output; standalone WEM loop metadata is disabled. Source/decoder/build/input
+  and21.95MB float output are removed with all five scratch paths. No playback,
+  importer/runtime integration, live switch or original-audio identity is
+  claimed. Retained evidence is small provenance, hashes and diagnostics only.
+  [Actual admitted decode](../.local/mcc-loading-production-20261018/loading-wem-decode-20261019-v1/validation.json).
+- [x] Qualify the actual frontend's music name-hash and conditional request
+  publication path. Genuine hash instructions produce the authored group/key
+  and Play_Music/Menu_Music IDs; the numeric receiver publishes command8's
+  group/key and64-bit object ID. Explicit conversion/clock/allocator fixture
+  boundaries are recorded. The producer of selector5, real queue consumption
+  and live service selection remain unproved; seven nearby leaf candidates
+  are excluded rather than called loading callbacks. All14 scratch paths are
+  removed, with only small source/proof diagnostics retained and no playback
+  or product change.
+  [Frontend conditional request owner](../.local/mcc-loading-production-20261018/frontend-audio-owner-20261019-v1/validation.json).
 - [x] Inventory the existing launcher/cache/asset handoffs and their concrete
   remaining hooks. This read-only source/manifest audit does not verify a fresh
   install, decoded UI delivery or cache-only gameplay. The next work is honest
@@ -459,10 +1716,343 @@ Component evidence:
 ## Converted vanilla gameplay and 64-bit integration
 
 - [ ] Finish the gameplay-tag conversion audit; convert every actual TU1.5 difference.
+- [x] Authenticate the exact TU1.5 damage-table consumer before interpreting
+  row-order differences. Complete`D8110` consumer,`1408B0` binary search and
+  `D8100` comparator total112 instructions per version, matched to retail
+  through explicit call/callback/global/literal operands rather than a uniform
+  address delta. Actual calls/callback pushes, identity float`3F800000` and
+  genuine16-instruction publication of matg global`4ECC1C` are pinned. Scratch
+  is removed; only small instruction/proof reports remain. This is source
+  authority, not yet actual MCC-table execution or material-index equivalence.
+  [TU1.5 damage lookup authority](../.local/mcc-damage-table-consumer-20261019/authority-v1/validation.json).
+- [x] Execute the authentic TU1.5 damage-table consumer across all38 paired
+  original/MCC maps. The1,299,092 deduplicated raw-key CPU cases match the exact
+  selected native kernel bit-for-bit;618,010 common name-qualified cases agree
+  across platforms. Authored row order, StringIDs and scalars stay unchanged,
+  with existing Cache owner-pointer rebasing explicitly checked. The all/emp
+  and Mombasa cutting/burning reorders require no mutation for this consumer.
+  Platform-only rows/materials and numeric material-index consumers remain
+  separate open boundaries. The temporary104MB probe, banks and maps are
+  removed; no product/shader/runtime change was needed.
+  [Actual38-map consumer matrix](../.local/mcc-damage-table-consumer-20261019/matrix-v1/validation.json).
+- [x] Re-read and authenticate all38 paired numeric material tables. Every
+  shared material keeps its index/order, parent identity/index and armor name.
+  Twenty-six MCC contexts append only `tough_inorganic_plastic_container` at
+  index182, parent index39; twelve contexts have identical ordered identities.
+  This rules out an insertion/reorder fix for these tables. Reachability of
+  the appended row and actual numeric-index consumers remain open. Both
+  private environments are removed, with no raw banks or product edits.
+  [Paired material inventory](../.local/mcc-material-index-audit-20261019/inventory-v1/validation.json).
+- [x] Demonstrate one actual collision-content mismatch with the selected V16
+  native provider. Floodzone's `door_key_tunnel_rusted` retains identical local
+  material names/order and surface mappings, but two rows bind MCC global
+  material0/default instead of original69/`hard_metal_thick`. Native
+  `ModelCollision` output preserves that difference;592 and360 surfaces select
+  the affected rows. This establishes a required authored mapping correction,
+  separate from the harmless appended global material. Active scene contacts
+  and an original TU1.5 machine-consumer comparison remain open. Probe/link/map
+  scratch is removed and no product patch is applied at this gate.
+  [Actual collision provider comparison](../.local/mcc-material-index-audit-20261019/consumer-v1/door-validation.json).
+- [x] Qualify the minimal collision-material correction and its insertion seam.
+  Fresh43-MCC/38-original inventory finds the owner only in Floodzone. Full
+  scenario/globals/model fingerprints and material69 identity guard exactly
+  two signed16 stores,0→69, at owner offsets`120`/`134`. All other owner bytes
+  stay exact. Floodzone's existing Gauss correction must remain independently
+  composable: preflight both components before publishing either. Unknown or
+  modded component tuples stay unchanged. All seven probe scratch paths are
+  removed; implementation/native post-conversion acceptance remain next.
+  [Authenticated guards](../.local/mcc-material-index-audit-20261019/correction-guards-v1/source-guards.json)
+  · [Insertion seam](../.local/mcc-material-index-audit-20261019/correction-guards-v1/seam-proposal.json).
+- [x] Implement the independent guarded Floodzone material planner and compose
+  it with Gauss before any ordinary internal-data publication. Exact two16-bit
+  stores, full owner/material guards, all-component preflight and overlap checks
+  pass actual-bank fixtures; altered material owners preserve Gauss independently.
+  Strict focused CMake, explicitly instrumented ASan/UBSan and current-header
+  Cache compilation pass. The option-only sanitizer run is excluded from
+  sanitizer evidence. Scratch/build trees are removed; V16 frozen providers,
+  shaders, runtimes and ZIPs stay unchanged. A compatible successor provider
+  pair and actual native post-conversion acceptance remain next.
+  [Implemented/tested source handoff](../.local/mcc-material-index-audit-20261019/implementation-v1/handoff.json).
+- [x] Independently review the Floodzone planner and reopen both authenticated
+  source maps. Original material indices99,69,69 versus MCC99,0,0 require only
+  the two signed16 stores; they reproduce the exact target model-owner hash
+  while preserving every other byte. Full salted owner binding, unknown/modded
+  tuples, idempotence, Gauss independence and atomic composition have no
+  concrete review findings. Both review scratch paths are removed. This adds
+  no native ABI/gameplay acceptance claim; the frozen-provider probe is next.
+  [Independent source/data review](../.local/mcc-material-index-audit-20261019/independent-review-v1/validation.json).
+- [x] Validate the correction through normal Cache and the exact selected
+  collision provider across all43 V16 map inputs. The other42 complete backing
+  stores/directories are identical; Floodzone changes only the two intended
+  halfwords and yields material indices99,69,69 with unchanged592/360 affected
+  surface counts. Its Gauss result stays exact. Three actual modified-data
+  controls preserve their backing and independent Gauss behavior. The two new
+  components and probe reuse106 exact selected header dependencies; all313
+  other linked inputs and original316 files, runtime/maps/97 shaders remain
+  exact. All objects/probe ELFs/maps/banks/snapshots are removed. This closes
+  native content acceptance; a retained successor client and live regression
+  remain next, with V17 still using the unchanged V16 runtime.
+  [Normal native Cache acceptance](../.local/mcc-material-index-audit-20261019/postconversion-v1/handoff.json).
+- [x] Prepare the compatible two-object full-client successor after the 43-map
+  content proof. The exact reviewed V18 plan preserves 314 V16 providers,
+  including Main, and 106 selected dependencies while replacing only Cache and
+  the map planner. Paired tick60 image/save/shot-state and finite/nonzero audio
+  acceptance must precede retention. The planned owned candidate is about 125 MiB
+  of necessary build inputs/runtime/link ownership and source snapshots; no
+  candidate or compiled bytes exist at preparation. Root checkpoints this
+  plan for executor preparation; inspect the executor before running it. The
+  separate nine-phase input test, installation and ZIP remain later gates.
+  [Prepared V18 successor](../.local/mcc-material-index-audit-20261019/successor-v18-preparation-v1/handoff.json).
+- [x] Review the concrete V18 executor and its failure/cancellation ownership.
+  It uses only the two prepared compiler commands and unchanged full-client
+  inputs; all project dependencies must match the selected projection. Exact
+  paired acceptance precedes atomic publication of a complete owned candidate.
+  Mesa/NVIDIA/application caches are private, loader/cache-bypass overrides are
+  cleared, and the wrapper/finish record actual exits and verify scratch
+  removal after either result. Root checkpoints the sealed executor; actual
+  compilation, native acceptance and retention remain the next gate.
+  [Reviewed executor plan](../.local/mcc-material-index-audit-20261019/successor-v18-executor-v1/executor-plan.json).
+- [x] Build and retain the compatible V18 full client after exact paired
+  acceptance. Both clients complete tick 60 with identical decoded frame,
+  complete save hashes and shot/capture state; each emits finite, nonzero
+  stereo callback data. Only Cache/planner change among 316 inputs. The accepted
+  ELF is `09426c7b…7553f`; all original providers, 43 maps, 97 shaders, selected
+  runtimes, saves and warm cache seed remain exact. Required coherent candidate
+  inputs/runtime/link ownership/frozen sources and two small reference PNGs
+  total 132,437,304 bytes. Private objects, raw frames/audio, GPU caches and both
+  runner scratch levels are removed; finish independently verifies the actual
+  exit and candidate inventory. A pre-main Python helper-name collision is
+  preserved and resolved with qualified inherited safe-path configuration;
+  sealed helper bytes stay unchanged. Nine-phase real input and delivery remain
+  separate gates; V17 still ships the accepted V16 runtime.
+  [Accepted retained V18](../.local/mcc-material-index-audit-20261019/successor-v18-executor-v1/finish.json).
+- [x] Prepare and independently review the exact nine-stage V18 input check.
+  Its gate binds the accepted cohort/runtime and fixedtick receipt before any
+  display or subprocess. Pointer/focus/click/held fire/look/movement events
+  keep the existing recipe; held input releases and child cleanup cover failure.
+  Two stale ancestor assumptions are corrected: P uses its actual V16 payload,
+  and maps use the exact selected cohort while P's selector is preserved
+  separately. Private saves/GPU/application caches and all original inputs are
+  checked. Preparation scratch is removed. Root checkpoints actual accepted
+  pins for execution; live survival remains unclaimed until it passes.
+  [Prepared input helper](../.local/mcc-material-index-audit-20261019/successor-v18-interactive-preparation-v1/handoff.json).
+- [x] Execute all nine actual V18 input stages and verify live cleanup. The
+  process survives pointer entry, focus, click/release, held fire/release, look
+  and forward movement/release, with four first-person particle draws after
+  actual fire events and no native error/unmapped/crash logs. Rendered readiness
+  is measured at 28.0 seconds in this run; no speed improvement is inferred.
+  The client exits cleanly after intentional termination. Original/candidate
+  inputs, maps, shaders, saves, selections and warm seed stay exact; children
+  stop and live/closure scratch is removed. No new large artifacts are retained.
+  A mistakenly invoked preparation finalizer is recorded and its original seal
+  restored exactly; the separate live receipt provides this acceptance. This
+  closes bounded Lockout input survival, not full scene/gameplay/audio parity.
+  [Actual input and cleanup](../.local/mcc-material-index-audit-20261019/successor-v18-interactive-closure-v1/validation.json).
+- [x] Prepare and review compiled V18 delivery over the immutable V17 archive.
+  Only six existing paths change: payload, sidecar, validation, manifest,
+  README and checksums. The other 4,246 entries, including all importer/Python
+  tools, 190 libraries, wrapper and 97 shaders, must match V17. Its 46 importer
+  controls are explicitly inherited; new payload acceptance requires fresh
+  relocated launcher-info/eight-frame gameplay and reference/development/cache
+  write audit. Root reviews source/runtime/save preservation and the qualified
+  external-cache inode limit, then checkpoints ZIP-only execution. Preparation
+  scratch is removed; actual publication remains next. P installation is outside
+  this action, and full gameplay-ready stays false.
+  [Sealed V18 package preparation](../.local/mcc-material-index-audit-20261019/delivery-v18-preparation-v1/handoff.json).
+- [x] Preserve the first V18 packaging failure before any ZIP publication.
+  The safe-path setting used by the test runner propagated into the app's
+  Python and prevented its normal sibling import. The relocated capability
+  check rejects this; no eight-frame run or archive follows. Separate review
+  also finds an inherited Tk demo `.ppm` that a blanket capture ban would reject.
+  The minimal retry restores the app's normal child environment and applies the
+  new-capture ban only to changed/new entries while preserving all inherited
+  bytes. The failed receipt and original sealed helper stay intact; scratch is
+  removed. Neither issue changes the accepted native build or its live tests.
+  [Actual failed package attempt](../.local/mcc-material-index-audit-20261019/delivery-v18-preparation-v1/package-validation.json).
+- [x] Qualify the minimal V18 packaging retry. An isolated red/green control
+  reproduces the sibling-import failure and confirms that removing only the
+  child environment flag preserves the packager's safe import mode. The actual
+  inherited Tk image is accepted unchanged while a newly added raw capture is
+  rejected. Original V1 code/metadata/failure remain exact; all preparation and
+  control scratch is removed. Root reviews the two-line policy changes and
+  checkpoints the separately sealed V2 ZIP-only workflow. Actual publication
+  remains next; all runtime/save/source and entry preservation checks stay.
+  [Qualified minimal retry](../.local/mcc-material-index-audit-20261019/delivery-v18-preparation-v2/handoff.json).
+- [x] Publish the compiled V18 ZIP after the minimal retry passes. Both relocated
+  launchers offer the native test with full readiness false; actual eight-frame
+  Lockout gameplay succeeds through the bundled loader. The file audit sees no
+  reference/development opens or private hardlink-cache writes. All 4,251 archive
+  checksums pass; only the six reviewed paths change, preserving 4,246 V17 entries,
+  190 libraries and 97 shaders. Runtime/save/source and qualified cache guards
+  pass. Test scratch is removed; the requested ZIP/checksum are retained.
+  This publishes the accepted V18 runtime, leaving the installed P V17 folder
+  and caches intact. Independent archive review follows.
+  [Actual compiled V18](../.local/mcc-material-index-audit-20261019/delivery-v18-preparation-v2/package-validation.json).
+- [x] Independently stream-verify the published V18 archive without extraction
+  or application execution. All 4,252 members/4,251 checksum rows pass; exactly
+  six existing entries change and the other 4,246 retain their bytes and modes.
+  All 97 shaders, 190 libraries, wrapper, Python and importer remain exact.
+  Runtime authority identifies V18 while the 46 importer controls are explicitly
+  inherited from V17; full readiness remains false. Review scratch is removed
+  and no large review artifacts are retained. P remains installed at V17.
+  [Independent V18 archive review](../.local/mcc-material-index-audit-20261019/delivery-v18-archive-review-v1/validation.json).
+- [x] Finish V18's scoped retention/scratch audit. All 26 recorded completed
+  V18 scratch owners and the audit caller's own scratch are absent. The required
+  coherent 119-file client/input/reference tree retains 132,437,304 bytes;
+  requested ZIP/checksum retain 183,623,403 bytes, totaling 316,060,707 bytes.
+  V17 delivery, P rollback preimages, frozen providers, runtime selections and
+  saves remain exact. Active foot work is outside this audit. No historical
+  deletion or full-cache rehash is performed; prior cache guard qualifications
+  remain explicit. The initial alias-check diagnostic is preserved separately.
+  [V18 retained paths and closure](../.local/mcc-material-index-audit-20261019/closure-v1/validation.json).
+- [x] Authenticate the original material-effect foot lookup before treating
+  ordinal row differences as defects. Five complete retail/TU1.1/TU1.5 owners,
+  359 instructions per version and explicit cross-version operands establish signed 16-bit
+  keys at row offset `0x14`, forward first-match lookup and globals parent traversal.
+  This is source authority only; keyed paired-map execution is next. Probe
+  scratch is removed and no product changes are made.
+  [Foot lookup authority](../.local/mcc-foot-table-key-audit-20261019/authority-v1/validation.json).
+- [x] Complete the bounded keyed foot-table inventory across 38 paired maps.
+  All 76 native Cache views are complete and bind the same primary/first globals
+  owner. Of 2,309 earlier ordinal candidates, 1,162 preserve the original first
+  effective keyed row at a different ordinal, 1,070 need keyed assessment and
+  77 contain an invalid key at one ordinal. A resolved Chief walk case keeps
+  the classic primary sound while MCC adds a remastered secondary `snd!`
+  reference where Xbox has null in 27 maps. That is a data difference; original
+  CPU output and actual native caller group admission must precede any audible
+  defect claim or conversion decision. The modeled variant counters include
+  explicit unresolved/cyclic boundaries and are not CPU/live parity evidence.
+  All recorded scratch is removed, protected inputs stay exact and no product
+  changes or large retained artifacts result.
+  [Keyed inventory and boundaries](../.local/mcc-foot-table-key-audit-20261019/keyed-inventory-v1/summary.json)
+  · [Cleanup](../.local/mcc-foot-table-key-audit-20261019/keyed-inventory-v1/cleanup.json).
+- [x] Confirm the resolved Chief walk case with unchanged original TU1.5 CPU
+  code and exact selected native providers. Both platforms execute 218 original
+  instruction addresses and match all six native selection outputs. Xbox has
+  the eight-byte null reference `FFFFFFFFFFFFFFFF`; MCC's secondary resolves to the remastered `snd!`, with the
+  same named classic primary. The selected gait/audio path admits that secondary
+  without slot/path suppression; catalog decoding and audibility remain open.
+  Backing controls execute code-write rejection before mutation and prove added
+  memory regions disjoint from all original image/default/other regions. Only
+  test backing admission changes, with original instructions/owners unchanged.
+  All recorded scratch is removed; only small proofs/runner inputs remain.
+  This is one Lockout case, not a 27-map CPU matrix or an implemented conversion.
+  [Original/native confirmation](../.local/mcc-foot-table-key-audit-20261019/cpu-v1/summary.json)
+  · [Cleanup](../.local/mcc-foot-table-key-audit-20261019/cpu-v1/cleanup.json).
+- [x] Prepare exact pre-conversion guards for the proven Chief secondary sound
+  reference in 27 stock contexts. Raw scenario/globals/foot owners, first signed
+  material key and full salted support identities qualify a single eight-byte
+  null restoration per context. Already-null targets require active primary
+  metadata, with no dependency on the now-inactive secondary. The proposed
+  independent Cache component shares all-component preflight and leaves Gauss
+  and Floodzone qualification independent. All proposed write intervals are
+  disjoint. A separate census identifies 2,345 physical map-context fields in
+  90 named classes for possible later batching; those fields are not production
+  profiles or additional CPU coverage. Product sources remain unchanged and
+  all recorded scratch is removed. Independent review and implementation follow.
+  [Prepared profiles and seam](../.local/mcc-foot-table-key-audit-20261019/profiles-v2/handoff.json).
+- [x] Root review pins the final profile table, conditional identity policy,
+  raw 27-context qualification and transaction seam. Authorize the narrow
+  one-field-per-context planner and focused validation; broader census fields
+  remain review-only. No existing layouts/signatures, shaders, frozen providers
+  or delivered runtimes change at this checkpoint.
+  [Implementation scope checkpoint](../.local/mcc-foot-table-key-audit-20261019/profiles-v2/root-checkpoint.json).
+- [x] Independently cross-check all 27 prepared compact identities against the
+  retained raw qualification, reconstruct donor/target row digests and verify
+  the serialized eight-byte bounds/full salted references. Source review finds
+  no actionable proposal defect in native selection, conditional dependencies
+  or the transaction seam. This is a bounded proposal review, without fresh
+  raw-map/CPU/runtime execution; implemented behavior still needs validation.
+  Review scratch is removed, with no large artifacts retained.
+  [Independent profile review](../.local/mcc-foot-table-key-audit-20261019/profiles-v2-independent-review-v1/validation.json).
+- [x] Implement and validate the narrow 27-context Chief reference planner and
+  wire its normal Cache component. Complete owner deltas, target idempotence,
+  custom/dependency preservation and shared transaction controls pass below.
+  Actual native Cache readback is deferred to the guarded union continuation,
+  which includes the same seed fields; no seed-only Cache acceptance is claimed.
+- [x] Implement the narrow Chief planner, separate 27-profile include and exact
+  group-first Cache hook without changing existing layouts/signatures or Gauss
+  profiles. Focused disposable CMake/CTest passes all 27 owned foot contexts
+  plus the existing 28 Gauss/one material fixtures, including owner deltas,
+  active/inactive dependencies, custom identities and three-component atomic
+  composition. Root source review finds no actionable defect. Sanitizer and
+  actual normal-Cache readback remain separate gates; delivered V18 is unchanged.
+  [Focused implementation validation](../.local/mcc-foot-table-key-audit-20261019/implementation-v1/validation-regular.json).
+- [x] Freeze the narrow seed implementation after actual instrumented
+  AddressSanitizer/UndefinedBehaviorSanitizer compilation, linkage and execution
+  pass. All 27 foot contexts, existing Gauss/material fixtures and eight
+  three-component donor/target combinations pass with zero errors. Existing
+  conversion/preflight bodies, Gauss include, public layouts and signatures stay
+  exact; the Cache diff adds only group-first selection and its third component.
+  Every recorded build/fixture/scratch path is removed. This is pure-planner
+  acceptance; normal Cache execution and runtime delivery are not claimed.
+  [Frozen source/test handoff](../.local/mcc-foot-table-key-audit-20261019/implementation-v1/handoff.json)
+  · [Cleanup](../.local/mcc-foot-table-key-audit-20261019/implementation-v1/cleanup.json).
+- [x] Prepare coherent guards for the broader authenticated Chief class before
+  expanding conversion scope: full active support metadata, deduplicated owner
+  fields, complete union targets and explicit untouched/seed/union transitions.
+  Reuse generic selector authority while keeping actual CPU coverage bounded.
+  The exact prior census is reconstructed: 27 contexts/2,345 fields, deduplicated
+  into 16 owners/1,355 physical fields and 90 named classes. Exactly three full
+  owner states qualify each profile. Root independently derives every active
+  support set and write-offset set: seed-shared secondary owners remain required
+  until their last active candidate is removed. Direct donor-to-union needs
+  2,345 context writes; seed-to-union needs 2,318; union is idempotent. Unknown
+  partial/custom owners stay unrecognized. Scalar/hash metadata totals 4.22 MB;
+  no banks/binaries/media or new CPU/runtime execution are retained. All recorded
+  preparation and root review scratch is removed. Implementation remains next.
+  [Batch handoff](../.local/mcc-foot-table-key-audit-20261019/batch-profiles-v1/handoff.json)
+  · [Root finite-state/dependency review](../.local/mcc-foot-table-key-audit-20261019/batch-profiles-v1/root-review.json).
+- [x] After the narrow seed's instrumented acceptance, checkpoint the exact
+  finite batch implementation. Replace its private planner/table while keeping
+  the public declaration, Cache hook and shared transaction; do not add a fourth
+  component. Require all 27 untouched/seed/union transitions and state-aware
+  support preservation tests before separately gated normal Cache execution.
+  Full-client rebuild and delivery remain deferred until conversion acceptance.
+  [Batch implementation scope](../.local/mcc-foot-table-key-audit-20261019/batch-profiles-v1/root-implementation-checkpoint.json).
+- [ ] Implement and validate the guarded Chief union conversion, then verify
+  all selected native Cache and direct selector outputs before runtime delivery.
+- [x] Replace the narrow private foot planner/table with the exact guarded
+  union conversion. The existing public hook and Cache component remain
+  unchanged. Focused CMake/CTest passes all 27 complete donor/seed/union owner
+  transitions, exact 2,345/2,318 field sets, all 16 owners' active-support
+  mutation/missing/full-salt controls, inactive preservation, custom partials,
+  alias/key/bounds controls and 12 three-component transaction combinations.
+  The generated 716,757-byte include contains scalar/hash metadata. Actual
+  sanitizer execution, independent final review and native Cache acceptance
+  remain next; no runtime or delivery artifact has been replaced.
+  [Batch focused validation](../.local/mcc-foot-table-key-audit-20261019/implementation-batch-v1/validation-regular.json).
 - [ ] Verify converted definitions load as vanilla internal data, including
   default campaign and multiplayer paths and mod interoperability.
+- [ ] Validate original CTF behavior through its native consumer before calling
+  Relic's converted4.0 word a live gameplay fix. The current handwritten match
+  constructor admits only source engines2/4 (Slayer/King); Cache and original
+  radius-instruction proofs establish data/operand behavior, not a CTF match.
+  Preserve the other original game-mode acceptance gates as well.
 - [ ] Finish native 64-bit host-pointer/ownership integration across gameplay.
 - [ ] Verify required serialized widths, arithmetic, precision and timing remain unchanged.
+- [x] Refresh the selected V16 host-pointer boundary audit before widening or
+  rebuilding anything else. Inspected World native cache/object/player/body
+  APIs already use64-bit host addresses; no new host truncation is demonstrated.
+  Logical tag/CPU addresses and handles stay32-bit. The1.5GiB logical cache
+  budget and128MiB importer metadata cap are capacity policies, not native
+  allocator-address caps. Concurrent voice/interpolation/sound/Memory page-index
+  drift does not by itself require adoption for MCC-only/64-bit support. All
+  inspected selected provider/source/ELF contracts remain pinned; both scratch
+  paths are removed, with no build or product/runtime mutation. This bounded
+  audit does not complete ownership or mod-capacity acceptance.
+  [Selected host-pointer audit](../.local/mcc-host-pointer-frontier-20261019/v1/validation.json).
+- [x] Test selected Memory native-address ownership and rebinding across
+  restore using the exact V16 archives and compatible frozen104-byte Memory
+  layout. All59 controls pass: four actual host addresses exceed4GiB, logical
+  32-bit pointer/datum identities and complete four-region checkpoint bytes
+  stay exact through restore/swap/rebind/remount. Read-only, uncommitted,
+  foreign-owner and overflow checks pass. Stale borrowed pointers are never
+  dereferenced; legitimate allocator reuse is accepted. Only a tiny probe is
+  compiled, with original archive-member witnesses. Its2,469,368bytes of
+  ELF/object/map/deps and scratch are removed. No bug/product change or current
+  page-index/voice-feature adoption is required by this bounded result.
+  [Selected Memory ownership acceptance](../.local/mcc-host-pointer-frontier-20261019/selected-memory-v1/validation.json).
 - [x] Refresh the demonstrated by-value consumers of current checkpoint and scene
   layouts, then validate the coherent private client. Preserve current public fields;
   do not mix old and current object layouts. Main, campaign runtime, Simulation
@@ -474,9 +2064,10 @@ Component evidence:
   88-byte nested ScriptVm thread/deque review pass. V7 combines all 71 owners
   with the V24 World/CRT/data bundle and passes ordinary Main at tick3;
   V8-FP also passes with the corrected model owner. Detailed receipts are above.
-- [ ] Check final delivery compatibility with subsequent additive receiver and
+- [ ] Check compatibility before adopting any required subsequent receiver or
   sound-I/O API/body work. The pinned earlier receiver/World bodies establish
-  the private validation cohort; other active work remains preserved.
+  the internally consistent validation cohort. Adopt a current group only for
+  a demonstrated required path; preserve unrelated active feature work.
 - [x] Inventory current source/header drift beyond the narrow V13 boundaries.
   All 314 coherent inputs and 44 narrow header entries still match. Of the
   1,191 frozen include files, 13 differ, including one comment-only change;
@@ -548,6 +2139,45 @@ Component evidence:
   not captured TU1.5 visual parity or a complete shared-resource inventory.
   [Native bitmap comparison](../.local/mcc-graphics-restoration-audit-20261018/v1/validation.json),
   [Bounded audit handoff and cleanup](../.local/mcc-graphics-restoration-audit-20261018/v1/handoff.json).
+- [x] Implement the separate V3 Metropolis delta bundle and compose it with
+  immutable V2 Zanzibar corrections in ordinary MCC import. All five images
+  and 40 mip chains pass exact native cache readback; the three Metropolis
+  outputs also match freshly decoded original pixels byte-for-byte. The real
+  MCC-only correction child and five native readbacks open no original
+  references. Both maps preserve all decoded metadata except their five local
+  resource pointer/length pairs; the original texture-bank prefix and every
+  other map/resource remain unchanged. Twenty bitmap ownership/rejection,
+  eighteen onboarding and sixteen preparation tests pass, including last-entry
+  failures before any map/bank write. Only 150,118 bytes of required delta and
+  manifest are retained; inspector, raw pixels, copied maps/bank and traces
+  are removed. Installed Play, saves, version9 and all 97 shaders stay exact.
+  The selected older cache and version9 ZIP still use the prior correction set;
+  onboarding reuse/upgrade and a full fresh import are the next integration gate.
+  [Actual V3 conversion and native readback](../.local/mcc-graphics-corrections-v3-20261018/v1/validation.json),
+  [Verified product handoff and cleanup](../.local/mcc-graphics-corrections-v3-20261018/v1/handoff.json).
+- [x] Route setup from older correction sets to a fresh private import, while
+  preserving the prior selection/cache if that import fails. A complete current
+  five-profile cache still reuses its verified copy. Normal graphics import now
+  ignores the old development reference registry entirely and consumes only
+  MCC bytes and the qualified deltas. Twenty-one bitmap and twenty-two
+  onboarding tests pass; scratch is removed. The original forty-mip native
+  readback remains valid for the unchanged delta bytes. Full fresh setup and
+  launcher verification are still the next integration gate.
+  [Graphics upgrade and legacy-reference boundary](../.local/mcc-graphics-corrections-v3-20261018/onboarding-v1/validation.json).
+- [x] Execute a fresh real launcher import with the V3 correction set.
+  Ordinary `--setup-only --mcc-source` copies and verifies 883 MCC files
+  (31,251,040,809 source bytes), prepares all 43 maps and applies all five
+  corrections/40 mips. Both launcher-info checks and the actual eight-frame
+  launcher route pass on the new cache. The subsequent actual shot exits0
+  at tick60 with ammo59 and 64 rendered frames; the integration harness then
+  rejects its obsolete fixed expectation of 74 frames. That is a harness
+  assumption, not a gameplay failure. Raw audio/capture scratch is removed;
+  the prepared cache is explicitly retained for resume without reimporting.
+  The previous asset selection is restored. Finish verification with a
+  timing-independent frame assertion and audio capture after the user's
+  interactive crash/startup priority; this does not complete full integration.
+  [Actual setup, launcher and bounded shot evidence](../.local/mcc-graphics-corrections-v3-20261018/full-setup-v1/validation.json),
+  [Actual new-cache firing log](../.local/mcc-graphics-corrections-v3-20261018/full-setup-v1/actual-new-cache-firing.log).
 - [ ] Validate complete rendered scenes against authenticated TU1.5 captures.
 - [x] Verify the reused MCC sound decoder and native SDL mixer produce genuine
   PCM on the pinned client providers. The actual SMG sound yields one 46,080-frame
@@ -689,8 +2319,11 @@ Component evidence:
   [Combined V13 runtime](../.local/mcc-native-client-20261018/client-current-v13-class1-fire-mcc/run-v1-real-mcc/validation.json),
   [Full file audit](../.local/mcc-native-client-20261018/client-current-v13-class1-fire-mcc/run-v1-real-mcc/file-audit.json),
   [Retention handoff](../.local/mcc-native-client-20261018/client-current-v13-class1-fire-mcc/handoff.json).
-- [ ] Complete ordinary Main's real firing path and verify shot/audio output.
-  Actual step3 fire originally failed at `F0D38`; the data-only rerun clears
+- [ ] Identify weapon-specific callback audio and verify audible shot output
+  beyond the now-passing bounded ordinary Main SMG shot. The successful tick60
+  run and later deliveries below supersede the earlier termination frontier;
+  finite nonzero callback data alone does not identify the shot sound.
+  Historical progression: actual step3 fire originally failed at `F0D38`; the data-only rerun clears
   that exact boundary and reaches the separate `1694A2` read at `16957F`.
   The next table-only run clears that boundary too, then fails at `CC26A`
   reading `CC30C`. The reviewed hand tables clear that dependency; the fourth
@@ -702,8 +2335,8 @@ Component evidence:
   that leaf and reaches `FFF44` reading scalar `41C4CC`, under root `B9180`.
   All eight isolated
   firing runs have silent device output and no
-  captured shot. Actual firing remains
-  a runtime gate.
+  captured shot. Those early failures are retained as history; the actual
+  bounded firing gate passes in the later candidate-v5/V16/V18 records.
   [Actual firing run](../.local/mcc-native-client-20261018/client-current-v8-fp/audio-fire-v1-real-mcc/validation.json).
 - [x] Authenticate and supply the demonstrated `F0BE0` dispatch data: one
   31-byte read-only owner containing four targets and fifteen selectors.
@@ -1329,6 +2962,18 @@ Component evidence:
 
 ## Final cleanup, after validation/delivery
 
+- [x] Audit the11 previously named obsolete factory/lens test executables after
+  V14 delivery, preserving the first three broader native-gameplay probes. The11
+  total1,056,763,768 logical bytes; ten retain every recorded reproduction input,
+  while one superseded probe has a drifted object and remains deferred. No current
+  V14 input or visible active-process reference points to these executables.
+  Six same-UID system processes and foreign processes deny complete `/proc`
+  inspection, and a read-only noninteractive elevated check is unavailable
+  because existing sudo authorization is absent. Therefore no historical
+  executable is deleted and final cleanup gates remain open. Both audit scratch
+  directories are removed; source, objects, references and deliverables remain.
+  [Bounded cleanup audit](../.local/mcc-native-click-crash-20261018/cleanup-v14/audit.json).
+
 - [ ] Inventory confirmed unused, reproducible test executables and temporary outputs.
 - [ ] Check active processes, mapped/open files, current build inputs and launcher selection.
 - [ ] Delete obsolete test/build artifacts; preserve useful test source,
@@ -1347,25 +2992,165 @@ This recovered 22,242,541 bytes while preserving the audit, frozen validation,
 logs and requested images; it does not complete the final cleanup gates.
 [Bounded trace cleanup](../.local/mcc-native-client-20261018/client-current-v10-hud-mcc/run-v1-real-mcc/trace-cleanup.json).
 
+## Latest graphical conversion milestones, 2026-10-19
+
+- [x] Prove Sacred Icon's gradient descriptor/resource correction with the exact
+  selected V16 native loader. Stock MCC is64×256/nine mips; the original is
+  32×128/eight mips. A private MCC map retains its format/packing flags while
+  changing only width, height, mip count and resource pointer/extent. Every
+  decoded mip descriptor and all21,852 output bytes equal the original. The
+  316 selected providers and original/MCC source files remain exact. Probe ELF,
+  object, map, raw pixels and private map/bank are removed with scratch. This
+  establishes the conversion shape; bundled MCC-only reconstruction and rendered
+  sky acceptance remain open.
+  [Native descriptor/resource proof](../.local/mcc-sacred-icon-gradient-20261019/descriptor-v1/validation.json).
+- [x] Add a fingerprint-bound MCC-only Sacred Icon gradient delta and importer
+  integration. All six corrected images/48 mips decode through exact V16 native
+  providers to their original target hashes after real three-map application.
+  A malformed final profile fails before any map/bank write; the entire original
+  bank prefix remains exact. Onboarding distinguishes complete V4 copies from
+  older correction sets. V1/V2/V3 bundles stay immutable. The new product delta
+  and manifest total5,521bytes; all private maps/banks/pixels/probe outputs are
+  removed. Existing active caches and releases are untouched. Focused tests,
+  independent review, installed delivery and rendered sky acceptance remain
+  separate gates. Both focused suites also pass with the already shipped
+  portable Python:46 controls, no failures/errors/skips, with scratch removed.
+  [Actual MCC-only V4 proof](../.local/mcc-sacred-icon-gradient-20261019/bundle-v1/validation.json).
+- [x] Independently review V4 reconstruction and cache reuse. Exact MCC-only
+  reconstruction opens only its product delta/manifest. A reproduced downgrade
+  edge is fixed: a complete V4 cache remains reusable if its local delta is
+  missing; all four freshness controls and46 portable controls pass. The same
+  review authenticates the gradient's signed registration point: MCC32,128
+  versus original16,64. Pixel equality alone did not cover those words; include
+  their exact guarded restoration before V4 delivery. No particular active
+  gradient registration consumer or additional visible defect is claimed.
+  [Independent post-fix review](../.local/mcc-sacred-icon-gradient-20261019/independent-review-v2/validation.json).
+- [x] Finish V4's exact registration-point restoration and repeat real MCC
+  conversion with the final product inputs. Source32,128 is guarded and target
+  16,64 restored. A wrong registration tuple rejects all writes. The complete
+  decoded metadata of all three maps is compared: only the five existing
+  resource bindings and the gradient's resource/dimensions/mips/registration
+  fields change outside cache-publication headers. All six native images/48
+  mips and46 shipped-Python controls still pass. The final delta/manifest total
+  5,624bytes; all probe/map/bank/pixel scratch is removed. V17 packaging and
+  rendered sky acceptance remain open.
+  [Final conversion/metadata proof](../.local/mcc-sacred-icon-gradient-20261019/bundle-v2/validation.json)
+  · [Portable controls](../.local/mcc-sacred-icon-gradient-20261019/bundle-v2/portable-python-tests.json).
+- [x] Prepare and review the importer-only V17 compiled ZIP workflow. Fresh
+  guards verify final V4 inputs/proofs, immutable V16 payload and all97 shaders.
+  Ten named archive paths change/add; all other release bytes must match V16.
+  Historical importer pins are explicitly separated from current V4 authority.
+  Preflight scratch is removed. Root authorizes package-only execution against
+  this concrete sealed handoff; installed folders/caches remain untouched.
+  [Sealed preparation](../.local/mcc-sacred-icon-gradient-20261019/delivery-v17/preparation-v2.json).
+- [x] Record V17's first execution's final preservation-guard failure.
+  Relocated46 tests and the eight-frame launcher
+  path reached the final guard; no ZIP was published and private scratch is
+  removed. The exact beginning snapshot was not retained, so the cause remains
+  unassigned pending a measured diff. Preserve the failed attempt's small
+  diagnostics and add explicit before/after state receipts before any retry.
+- [x] Preserve attempt1 and qualify an instrumented retry. Fresh source/base
+  hashes match; three complete repeated metadata sweeps reproduce no change.
+  The earlier preflight-to-current comparison differs only in P's aggregate
+  cache metadata, and the lost actual initial snapshot prevents a causal claim.
+  Attempt2 keeps every strict check and records actual before/after states,
+  per-field differences and each final operand. Its separate sealed preflight
+  passes; root authorizes this concrete package-only retry without weakening
+  the preservation gate.
+  [Instrumented preparation](../.local/mcc-sacred-icon-gradient-20261019/delivery-v17/preparation-v3.json).
+- [x] Publish compiled V17 after the instrumented attempt passes every original
+  strict preservation check. Actual before/after state, all cached file metadata,
+  runtime/selection/save hashes and every source/base operand agree. Relocated
+  46 controls, both launcher-info routes, eight-frame Lockout launch and all4,251
+  archive checksums pass. Exactly ten archive paths change/add; the V16 payload,
+  wrapper/loader and97 shaders remain exact. No game data or saves are bundled.
+  Scratch is removed; only the requested ZIP/checksum is retained. The initial
+  attempt's cause remains unestablished. Independent archive review and P-only
+  importer installation follow; existing caches are not upgraded by packaging.
+  [Actual compiled V17](../.local/mcc-sacred-icon-gradient-20261019/delivery-v17/package-validation.json).
+- [x] Independently verify V17's4,252 entries/all4,251 checksums, seven changed
+  existing/three added paths and all4,242 remaining V16 entries. Runtime,
+  wrapper/loader,97 shaders, current importer pins and historical authority
+  roles agree; attempt2's strict preservation proof is intact. Review scratch
+  is removed. P-only importer installation remains next.
+  [Independent V17 archive review](../.local/mcc-sacred-icon-gradient-20261019/delivery-v17/archive-review-v1/validation.json).
+- [x] Review and prepare P-only V17 deployment with cancellation-safe rollback.
+  A real queued-SIGTERM control covers rename-before-record cancellation; the
+  mutation is now recorded before signals resume, and rollback restores files
+  before unblocking. Fresh read-only preflight verifies all old release files,
+  three absent new paths and preserved user state. Seven small preimages total
+  571,265bytes; no runtime copy/import/cache conversion is planned. Root
+  authorizes the sealed V2 handoff against the accepted ZIP. Actual staging
+  uses owned scratch on P's filesystem for atomic replacements.
+  [Cancellation-safe installer preparation](../.local/mcc-sacred-icon-gradient-20261019/delivery-v17/install-v2/preparation.json).
+- [x] Install the accepted V17 importer/release files into the existing P
+  folder. All4,252 release paths match the verified ZIP; both P launchers keep
+  the native test available/full readiness false. The runtime,97 shaders,
+  saves, cache metadata, selections, previous rollback trees and root's separate
+  workbench are preserved. Seven required rollback files total571,265bytes;
+  staging scratch on P's filesystem is removed. No new game run was needed
+  after installing the same accepted payload, and existing caches remain at
+  their previous correction levels until a new import.
+  [Actual installed V17](../.local/mcc-sacred-icon-gradient-20261019/delivery-v17/install-v2/install-validation.json).
+- [x] Measure the later read-only closure audit's metadata mismatch without
+  altering the successful package/install receipts. Two immediate scans change
+  only 3,072 P inode IDs; directories/names/device/size/mtime/mode remain equal,
+  including their saved package field hashes. Root's complete metadata and
+  launcher/runtime/save hashes remain exact. The accepted install's original
+  before/after guard passed. Preserve the failed audit and qualify the later
+  storage audit against stable fields with inode identity explicitly excluded;
+  this does not prove full-bank content hashes or the cause of the earlier
+  packaging failure. The diagnostic scratch is removed.
+  [Measured inode-only difference](../.local/mcc-sacred-icon-gradient-20261019/closure-diagnostic-v2/measurement.json).
+- [x] Finish the scoped V4/V17 storage audit and reverify all 4,252 installed
+  release files, 97 shaders, the ZIP/checksum and seven rollback preimages.
+  All 31 recorded completed product/delivery scratch paths and the audit's own
+  scratch are absent; the separate preparation scratch is also removed. The
+  audit preserves the successful original package/install guards and records
+  the measured later inode exclusion explicitly. Newly retained delivery data
+  totals 184,194,863 bytes: the requested ZIP/checksum 183,623,598 bytes and required
+  rollback 571,265 bytes. Active material/foot work, inherited references/cohorts,
+  installed data and historical cleanup stay outside this bounded audit.
+  [Scoped delivery closure](../.local/mcc-sacred-icon-gradient-20261019/closure-v2/validation.json).
+
 ## Next steps, in order
 
-1. Implement and validate the three authenticated Metropolis bitmap
-   restorations as a separate V3 bundle, composing the immutable two-entry V2
-   Zanzibar bundle. Resolve all five local identities and complete mip/delta
-   inputs before any staged cache write. Prove exact native readback and
-   rejection before writes for malformed inputs, while preserving all other
-   map/DLC bindings and all existing shaders. The byte-identical ocean texture
-   needs no pixel correction; the Sacred Icon gradient needs separate
-   descriptor/resource evidence. Keep the now-installed firing candidate and
-   published version9 available as the interim test. Sound identity,
-   sustained/all-weapon firing and full audiovisual parity remain open.
-2. Wire the honest native-test launcher capability and MCC-only loading/menu
+1. Continue gameplay-tag semantic coverage beyond the now-delivered V16
+   map-specific Gauss/Relic conversions. All28 authenticated contexts/two
+   unqualified MCC maps pass complete Cache comparisons, and the retained
+   executable passes firing, real input and relocated package launch. P now
+   matches all4,252 V17 files with the same V16 runtime; root's separate renderer
+   workbench stays selected. The Floodzone material correction passes actual
+   normal Cache checks across all43 maps and is delivered in the independently
+   reviewed V18 ZIP. Its compatible client passes fixed-tick frame/save checks,
+   nine real input stages and relocated launcher gameplay. P remains V17.
+   Review and implement the prepared keyed Chief sound-reference conversion
+   next, then continue the remaining material-effect semantic coverage.
+   Preserve unknown mods, saves,97 bundled shaders, TU1.5 semantics and interim
+   Play. Data conversion does not establish native CTF or all other modes.
+   Distinguish actual host-pointer/ownership limitations from unrelated current
+   feature-body drift before any broader rebuild. Remaining first-launch,
+   complete renderer and live parity acceptance stay open.
+2. Continue rendered acceptance of the now-packaged/installed six-image/48-mip
+   V4 importer. The Sacred Icon gradient's exact descriptor, registration,
+   resource and pixel conversion pass; its live sky still needs acceptance.
+   The fresh MCC-only preparation, resumed cache, actual native shot/audio,
+   selected root V3 cache, compiled V13 importer and extracted-folder tool
+   synchronization are verified above. Do not repeat the 31GB import. The user's
+   extracted folder retains its working older cache; the updated setup can
+   prepare the newer correction set when requested. The ocean texture needs
+   no pixel correction. Preserve the current working caches during delivery.
+3. Wire the honest native-test launcher capability and MCC-only loading/menu
    asset handoffs beyond the now-published interim Lockout route. Verify a fresh
    MCC-only import, remaining loading/menu roles and mod-folder interoperability.
-   The loading-name kernel is sealed; tag1009-to-descriptor ingress, active
-   GFx image binding and the genuine `loading_screen_music` event/resource
-   binding remain open. The three new Metropolis corrections have source/mip
-   evidence and a V3 staging design, but no V3 product or delta is published.
-3. Validate the ordinary client and complete safe product/lifecycle integration.
-4. Continue the remaining onboarding, conversion, parity and delivery gates above.
-5. Perform the final cleanup and record the recovered storage.
+   The loading-name kernel and actual tag1009 branch/descriptor ingress are
+   sealed; actual GFx loading invocation/image bytes and the genuine
+   `loading_screen_music` live-service selection remain open. The separate
+   frontend music graph, exact WEM and stock decoder are authenticated. The
+   selector's live caller, active loading image bytes and presentation remain
+   open; decoded callback data alone does not establish audible equivalence.
+   The V3 product/delta and onboarding delivery are
+   verified; wider rendered scene acceptance remains open.
+4. Validate the ordinary client and complete safe product/lifecycle integration.
+5. Continue the remaining onboarding, conversion, parity and delivery gates above.
+6. Perform the final cleanup and record the recovered storage.

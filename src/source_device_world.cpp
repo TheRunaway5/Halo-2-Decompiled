@@ -29,6 +29,10 @@ std::vector<SourceDeviceWorldEvent> NativeDeviceEventCursor::observe(std::span<c
     for(const auto &e:events)if(e.serial>serial_){serial_=e.serial;if(baseline_)result.push_back(e);}
     baseline_=true;return result;
 }
+void NativeDeviceEventCursor::rebase(std::span<const SourceDeviceWorldEvent> events,std::uint64_t tick){
+    validate_source_device_events(events,tick);
+    serial_=events.empty()?0:events.back().serial;baseline_=true;
+}
 namespace {
 bool finite(Vec3 p){return std::isfinite(p.x)&&std::isfinite(p.y)&&std::isfinite(p.z);}
 bool valid_group(const SourceDeviceGroup&g){return std::isfinite(g.value);}

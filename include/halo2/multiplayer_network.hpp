@@ -4,6 +4,7 @@
 #include "halo2/source_player_admission.hpp"
 #include "halo2/peer_authority_transfer.hpp"
 #include "halo2/native_vehicle_camera.hpp"
+#include "halo2/multiplayer_snapshot_origin.hpp"
 #include <memory>
 #include <chrono>
 namespace halo2 {
@@ -129,13 +130,30 @@ public:
   void receive();
   bool ready() const;
   const MultiplayerState &state() const;
+  // Receipt of the most recently adopted state, retained across empty polls.
+  // A real continuity bind/rebind clears it until another state is accepted;
+  // pre-admission receipts do not own decoded values or prove an ONLINE cut.
+  MultiplayerSnapshotOrigin state_origin() const;
   // Complete accepted snapshots from the most recent receive(), in delivery
   // order. Presentation owners must consume each real tick before rendering
   // the latest state. Empty receives clear this bank; no missing ticks are
   // synthesized and stale/duplicate packets never enter it.
   std::span<const MultiplayerState> received_states() const;
+  // One opaque receipt per accepted state, in the same order. Pre-admission
+  // receipts have no authority context and cannot prove an ONLINE cut.
+  std::span<const MultiplayerSnapshotOrigin> received_origins() const;
+  // The caller supplies the host sidecar from this exact independently
+  // authenticated/natively validated paired cut. Validate the saved local
+  // receipt against its connection, epoch and last sent body/sequence.
+  // Works after host loss and later receives; never changes input or state.
+  MultiplayerSnapshotProof prove_snapshot(const LanHost::Continuation &,
+      const ValidatedAuthorityCut &,const MultiplayerSnapshotOrigin &)const;
   std::span<const unsigned> slots() const;
   std::string error() const;
+  // Read-only diagnostics for ignored malformed/rejected datagrams. They do
+  // not turn an unaccepted snapshot into state or a connection-level failure.
+  std::uint64_t rejected_packet_count()const;
+  std::string last_packet_rejection()const;
   // Bind once from independent session admission after native hello has
   // completed. A cut or an unauthenticated datagram cannot change this context.
   void bind_continuity(const AuthorityTransferContext &,unsigned physical_self,

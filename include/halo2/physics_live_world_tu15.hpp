@@ -317,6 +317,9 @@ public:
     // banks. References retain original packed AI identities; an absent count
     // selects authored placement. Reached missing owners propagate as errors.
     void place_ai(std::uint32_t reference,std::optional<std::int16_t> count={});
+    // Resolve an AI reference through the original actor iterator.
+    // Return its full unit datum, including packed actor/location references.
+    std::uint32_t ai_object(std::uint32_t reference);
     // Original scenario kill-volume state on this world. Containment uses
     // the actual source object pose and clock, one scheduled volume per tick;
     // fatal damage stays in the

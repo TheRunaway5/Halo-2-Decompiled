@@ -589,3 +589,475 @@ absent. No new large artifacts remain. Rendered migration and independent couch
 hardware, full presentation/GPU/device adoption, current native ABI migration
 coverage, default delivery, readiness/false-alarm and remaining full-goal gates
 are still open.
+
+Incoming native preparation now retires the predecessor's CPU lens-query bank
+using original20E30 for each allocated request, following original20700's
+retirement loop. This happens only on the completed private incoming executor,
+before its adoption boundary is sealed. It preserves the original high-water
+count and unused bitmap bits; a malformed count is rejected before a native
+write. No predecessor GPU completion, timestamp or sample is invented.
+
+The renderer-side owner has an explicit completed-frame rebind operation. It
+requires the incoming CPU bank to be retired, allocates its replacement private
+device ABI first, then waits out/retires old GPU query ownership. Only the
+incoming world's identity survives the read-only inspection; the next native
+frame obtains its actual borrower. Old results/generations/source pointers do
+not cross that boundary. Invalid, duplicate and foreign-executor requests reject
+without retiring the live GPU owner. This primitive is not yet the full windowed
+presentation adoption coordinator.
+
+Evidence: `.local/lens-query-handoff-20261018/verification.json`. Sixteen
+unchanged-original CPU differentials and eight current-source native/session
+selected-owner ASan/UBSan/leak CTests pass. Both twelve-player role transitions
+retire33 declared pending CPU requests from their accepted cut before resuming
+the existing native/input/voice checks. RTX5080 query assertions and Khronos
+validation pass, including45 original quads and fresh alias reuse after actual
+GPU retirement. The GPU process remains LSan-failing on shutdown allocations;
+minimal Vulkan controls without any Halo/SDL/query code reproduce those vendor
+allocation families, including glcore/glsi while the device is alive. This is
+not a fully leak-clean GPU qualification. The supervisor removed its1,512,947,527
+byte generated workspace and temporary layer; compiler/control scratch are
+gone. No large artifacts are retained. Other renderer/effects/HUD/device adoption,
+rendered migration, readiness, physical/WAN, default delivery and remaining full
+ONLINE acceptance stay open.
+
+2026-10-18 final lens owner: gated migration clients now prepare authored map
+flare images before renderer creation without running a native producer.
+SourceLensDrawFrameTu15 can bind a retired incoming bank at a completed frame.
+It allocates its replacement private owner before publication, retaining bitmap
+and material identities while discarding SDK/header/FIFO/camera/counter state
+and the predecessor borrower. Invalid bank, active frame, wrong executor,
+duplicate world, mismatched native borrower and expired renderer checks reject.
+Repeated original header initialization over two native worlds retains the
+sealed adoption boundary. A cold owner stands for uploaded client resources;
+this is not an executed ONLINE client-window migration.
+
+The native executable builds and six CPU/reference tests pass in the refreshed
+source cohort. Both GPU functional reports and Vulkan validation pass; the GPU
+processes remain LeakSanitizer failures, with no suppressions or disabled leak
+checks. Evidence: `.local/renderer-lens-adoption-20261018/verification.json`.
+The supervisor removes 1,519,555,707 logical bytes across 34,761 generated files;
+the disk snapshot workspaces are removed separately. No new large artifacts
+remain. The complete adopter must prepare every replacement before irreversible
+GPU retirement, rebase effects/HUD/event/interpolation histories and source
+pointers, then publish the native role. Those integrations, readiness and full
+rendered/physical/WAN acceptance remain open; default migration stays gated.
+
+2026-10-18 HUD/device/cue preparation: MultiplayerHud::reset_lifetimes clears
+private winning, shield, radar and speaker histories at a completed frame,
+preserving resident resources, authored Vista sampling offsets and all local
+prompt bindings. Every view must be observed/animated again, and the enclosing
+runtime must invalidate its radar upload tick even when the accepted world uses
+the same tick and salted unit identity. NativeDeviceEventCursor::rebase validates
+the incoming journal before replacing its delivered boundary. Accepted requests
+stay silent, and later events may reuse serials from a discarded future.
+NativeEffectSounds::retire_pending clears only unsubmitted cues; accepted active
+effects and already playing audio need their own coordinated owners.
+
+Eleven focused selected-owner ASan/UBSan/leak CTests pass in the recorded full
+source freeze plus explicit HUD/test updates. Both artwork paths compare16
+declared replacements and320 full CPU local-view streams to independent fresh
+HUDs, with16 stale-history controls. Shader-only controls initially missed
+geometry differences; the corrected test then caught the erroneous retirement
+of static Vista shield sampling offsets. The original HUD fixture now uses each
+actual biped's authored HUD rather than expecting a profile change to reskin an
+already selected biped. Failure diagnostics remain with the passing reports.
+Evidence: `.local/hud-event-handoff-20261018/verification.json`.
+All owned scratch is removed, including34,163 generated files and1,653,612,981
+logical bytes in the main workspace. These primitives do not activate normal
+runtime migration or establish rendered/GPU acceptance. Complete active-effect,
+interpolation/source/device adoption, readiness/false-alarm lifetime, delivery
+and full ONLINE acceptance remain open. Gameplay and match voice remain direct
+and player-hosted; default migration remains gated.
+
+2026-10-18 active effects: both native presentation adapters now retain owning
+local checkpoints and prepare their complete replacement before publication.
+The world owner rebinds every effect/event/system definition link to its copied
+graph; light pools/spatial lists/query epochs, particles, emitters, decals and
+pending sounds retain their accepted lifetimes. The muzzle owner retains all
+five allocation pools, salted identities, particle histories, event/pose state
+and pending sounds. Both preserve resident material identities, reject foreign
+checkpoint/restore tokens and consume a publication token once. Capture excludes
+collision callbacks and copies RNG values; preparation requires an explicit
+accepted-world callback, long-lived RNG words and the original alias relation.
+Neither preparation nor publication writes shared RNG. The enclosing quiescent
+coordinator must restore it with all consumers and bind the local cuts to the
+agreed authenticated native cut before publication.
+
+Two TU1.5 selected-owner ASan/UBSan/leak regressions pass. An actual contact/
+grenade presentation at tick210 retains24 particles,11 decals and1 light and
+continues40 further match ticks against the independent batched control. Four
+local light-query caches/epochs resume after their own restore. Two active
+muzzle restorations discard later flashes, retain the accepted sound once and
+resume12 ticks, new allocation generations and matching draw/sound outputs.
+The wider600-shot/Sword and60-contact/one-grenade/manual-SDL-audio/localhost-LAN
+regressions remain green. These are local presentation policies and CPU outputs;
+they do not execute an ONLINE role change or prove rendered migration.
+Evidence: `.local/effect-presentation-handoff-20261018/verification.json`.
+All owned source/build/compiler/check scratch is removed, including34,152 files
+and1,078,856,808 logical bytes in the main workspace; no large artifact/runtime
+is retained. Accepted-cut association, map/combat caches, scene/FP interpolation,
+source/device/audio adoption, coordinated GPU retirement, automatic readiness,
+delivery and physical/WAN acceptance remain open. Default migration stays gated.
+
+2026-10-19 grouped effects: SourceMapEffects and SourceCombatAttachments now
+checkpoint their local lifetime caches, last successful synchronization tick
+and completeness. A failed synchronization cannot be captured; an older
+completed checkpoint can repair it. EffectPresentationContinuity captures both
+with muzzle/world effects and visual RNG, then binds that owned state after
+asynchronous native validation without recapturing a later live world. Bound
+peer/context/seal equality, owner and executor checks fence preparation and
+single-use publication. All four private replacements precede publication;
+shared RNG is restored once, with no intervening allocation/callback. The
+enclosing coordinator still owns native/GPU/device readiness and quiescence.
+
+Six selected-owner ASan/UBSan/leak CTests pass, including original TU1.5 Turf
+native import and grouped repair at tick45 (4 map births,4 combat instances,
+88 particles), twenty continuation ticks, faulted caches, late binding and
+rejection of foreign executors/owners, changed cut fields and consumed tokens.
+The combined FP presenter is empty; its separate active restore regression
+passes too. Context is declared fixture metadata, not a quorum certificate.
+Evidence: `.local/effect-cache-cut-20261019/verification.json`. The supervisor
+removed34,272 generated files/1,263,200,521 logical bytes; all owned compiler/
+check/build scratch is absent, with no large artifact or installed runtime.
+
+Source inspection at that checkpoint identified the next proof requirement: the native host
+continuation retains each peer's snapshot_sequence, and the client accepts
+same-tick snapshots that change ownership/roster. Its public received_states
+then omitted sequence association. Binding a local frame to a native cut
+therefore needs the admitted sequence/cookie/epoch and paired host continuation,
+not tick equality alone. The grouped API explicitly leaves this proof to its
+caller. Normal capture/retention, readiness, complete scene/FP/device/source/
+audio/GPU adoption, role activation, delivery and physical/WAN acceptance remain
+open. Default migration stays gated and gameplay/match voice remain direct.
+
+2026-10-19 accepted snapshot origins: each fully decoded accepted state now
+has an owning opaque receipt alongside received_states, in the same order.
+The receipt binds the exact body digest/bytes, transport sequence, fingerprint,
+nonce/cookie, physical owner and current admitted context/rebind revision.
+The host continuation retains the corresponding last sent stamp for each peer.
+LanClient::prove_snapshot checks that receipt against the host sidecar from the
+independently authenticated and natively validated paired cut. It does not
+authenticate/validate the complete world/sidecar pair itself. Older owned
+receipts can await validation after later receives; host rebind retires the old
+generation. Receipt-based effect captures cannot use the raw tick/cut binding
+overload to bypass this proof. The caller must consume the exact associated
+state before capture; an opaque receipt cannot attest arbitrary caller state.
+
+Explicit sidecar bytes are H2HOST02; H2HOST01 rejects. Native gameplay protocol89
+and gameplay packet layout are unchanged in this step. Coherent feature
+negotiation/version delivery is still an activation gate. Four selected-owner
+ASan/UBSan/leak CTests pass with a full current source freeze and the explicit
+allocation update: exact snapshot origins, host continuation, native role
+rebind and grouped effects. The new real TU1.5 cut case covers four couch seats,
+a same-tick late join, an older valid body relabeled with a newer sequence,
+duplicate/stale/foreign/unbound receipts, version rejection and epoch retirement.
+Logical transport, locally validated cuts and empty presenters do not establish
+live DTLS/WAN/quorum/runtime/GPU migration. Evidence:
+`.local/snapshot-origin-20261019/verification.json`. All recorded scratch is
+removed, including34,314 files/1,271,417,932 logical bytes; no large artifact or
+runtime is retained. Runtime bounded history/readiness, same-tick ownership
+refresh without duplicate animation advancement, complete owner adoption,
+GPU/native publication, delivery and physical/WAN acceptance remain open.
+Default migration stays gated; gameplay and match/postgame voice stay direct
+and player-hosted. The full ONLINE goal remains active.
+
+2026-10-19 normal replica adoption: runtime now indexes the accepted state and
+origin banks together and adopts full newer same-tick bodies. It preserves
+the earlier completed-tick endpoint while explicit WORLD/scene refresh retires
+missing or changed owners. Gait lifetimes resolve without advancing a channel,
+aim consumes zero elapsed ticks and same-tick FP channel pairs do not replay
+events. The interpolation interval does not restart. A read-only replica
+observer retains receipt association; actual completed locomotion endpoints
+can be observed independently of render interpolation. No packet, master or
+voice transport behavior changes.
+
+One actual TU1.5 authority and four local viewport views pass the localhost UDP
+same-tick join/departure case on RTX5080 with a private Xvfb display and Khronos
+validation: tick2,39 receipts/36 refreshes,28 frames,192 unchanged gait draws and
+four real local weapon cues without replay. Native departure preserves its
+connected report row with the original leave flag. Five CPU/native component
+checks pass again with selected interpolation-owner ASan/UBSan and leak checks.
+The separate upgraded native late-audio case remains red (10 FP-adapter cues,
+20 WORLD-client submissions, no stale prejoin playback). Its actual effect
+contains two equal-name locations; original TU1.5 WORLD/FP sound admission is
+unresolved. No arbitrary halving/deduplication was applied. Native Match also
+exports complete FP channel pairs only for its producer-local views; this case
+observed zero remote pairs and does not establish remote FP channel audio.
+
+Evidence: `.local/replica-refresh-20261019/verification.json`. All recorded
+scratch, including private displays/validation dependencies, is absent;34,710
+generated files/1,528,119,727 logical bytes are removed from the main workspace.
+No large artifact or installed runtime is retained. Bounded presentation/cut
+history and readiness, authentic remote FP ownership, the sound-admission
+regression, complete device/source/audio/GPU/native publication, timing/memory,
+delivery and physical/WAN acceptance remain open. Default migration remains
+gated and the full goal stays active; match gameplay/voice remain player-hosted.
+
+2026-10-19 WORLD/FP admission: the sound regression above now passes. The source
+WORLD-location export walked both raw WORLD and encoded FP records sharing one
+marker name, whereas original17D210 dispatches parts through17DCE0(mode0).
+Whole unchanged English TU1.5 iterator replay covers all65,536 node words in
+modes0/1/3, mixed chains and source-write fencing, and checks both actual caller
+push0/call instructions. The exporter now applies the exact WORLD/unbound-node
+predicate before original transform resolution. Distinct admitted WORLD nodes
+remain distinct; this is not sound-count or marker-name deduplication.
+
+The live native allocation audit observes one WORLD and one FP node and exactly
+one published WORLD location. Original scheduled firing supplies10 postjoin
+cues and the remote viewport submits10 actual SDL packets, with no stale
+prejoin replay. Eight normal checks and six selected-owner ASan/UBSan/leak
+checks pass. The four-view RTX5080/Xvfb/Khronos-validation case still passes;
+remote FP channel pairs remain absent and are not fabricated. Evidence:
+`.local/world-location-admission-20261019/verification.json`. All recorded
+scratch is removed, including34,792 files/1,553,200,174 logical bytes in the
+main workspace; only one small65,536-byte reference fixture and bounded reports
+remain. No installed runtime is changed. Authentic remote FP ownership,
+bounded presentation/cut readiness, full owner/audio/GPU/native publication,
+delivery and physical/WAN acceptance remain open. Default migration stays gated
+and the full goal remains active; gameplay/match voice remain player-hosted.
+
+
+2026-10-19 foreground host-cut proof: the replay worker can now export an owning,
+immutable `SourceAuthorityHostProof` beside its ready cut. The native receiver
+alone creates it after independently admitted complete world/host validation;
+allocation precedes acknowledgement and status publication uses the existing
+mutex. Its client query checks the exact accepted receipt's connection,
+generation/rebind revision, sequence and body. It exposes no native borrower,
+and the validator peer is not confused with the producer host.
+
+Current proof clears with readiness during incomplete replay, cancellation,
+world consumption and executor failure. Native-only transfers cannot create
+it; a rejected host-stripped downgrade keeps the previous paired proof. Owning
+copies survive later validation and worker destruction, while the old client
+proof fails after rebind. These are historical cut-association facts; a copy
+is not a current-world readiness certificate or permission to elect/activate.
+
+Five normal focused cases pass, with a stream fixture correction to keep normal
+gameplay receiving alive during asynchronous replay (70 accepted snapshots).
+Three native cases pass selected receiver/fixture ASan/UBSan/leak checks and
+two uninstrumented companion controls pass. Local direct-DTLS takeover covers
+both survivor clients, twelve couch seats, receiver/background-retention paths,
+twelve resumed native ticks and encoded direct voice packets. This does not
+establish a rendered handoff, headset/controller or WAN acceptance. Evidence:
+`.local/validated-host-proof-20261019/verification.json`. All recorded scratch
+is removed, including34,386 files/1,358,022,460 logical bytes from the owned
+workspace; no large artifact or installed runtime remains. Concurrent work and
+reference/launcher inputs are preserved. Bounded presentation history, actual
+readiness, authentic remote FP ownership, complete owner/audio/GPU/native
+publication, delivery and physical/WAN acceptance remain open. Default migration
+stays gated and the full goal remains active; match gameplay/voice stay
+player-hosted.
+
+
+2026-10-19 completed CPU effect history: the windowed runtime now retains exact
+accepted receipts with completed grouped effect state under the internal
+migration gate. Independent session context, native modulo32 sequence ordering,
+duplicate idempotence, eviction/replay refusal and failed-capture preservation
+prevent tick-only association or recapturing old receipts. The receiver-only
+paired native proof binds retained state through the actual client connection.
+Current policy is128 entries plus one independently owned matched checkpoint;
+it is not an original Xbox constant, a byte budget or an election certificate.
+No readiness/activation is advertised by this new owner.
+
+Nine normal cases pass across the expanded run and corrected ONLINE fixture.
+The latter captures257 accepted receipts, retains at most128, binds two native
+world/host cuts and renders463 four-view frames over real local DTLS. Synthetic
+identity,30Hz host pacing and10Hz snapshots are declared fixture boundaries;
+no host is promoted in this rendered case. Strict native configuration checking
+caught the fixture's pre-override advertised variant; using the resolved world
+variant fixes it without relaxing validation. Three native/history/group cases
+pass selected ASan/UBSan/leak checks with two uninstrumented companion controls.
+Raw-LAN clock/gait/audio and native late-audio regressions pass.
+
+Whole fixture peak RSS7,408,412 KiB includes collocated native worlds/renderer;
+immutable checkpoint sharing, byte budget, sustained catch-up and all-map/load
+qualification remain open. Evidence: `.local/effect-history-20261019/verification.json`.
+All recorded scratch is absent;34,857 files/1,742,441,803 logical bytes removed,
+no large artifact or installed runtime retained. Concurrent work/reference/
+launcher inputs remain intact. Full readiness, authentic remote FP/event
+ownership, complete owner/audio/GPU/native publication, delivery and rendered-
+migration/physical/WAN acceptance remain open. Default migration stays gated
+and the full goal remains active; gameplay/match voice remain player-hosted.
+
+
+2026-10-19 active-light memory: the effect checkpoint now shares owning immutable
+BSP atmosphere/light geometry/terrain while retaining independent mutable light
+pools, spatial registration, fades and query caches.128 actual active-light
+cuts add40,763,552 live heap bytes versus95,980,784 before (57.53% reduction)
+in a matched normal glibc allocation probe. Four normal cases and three
+selected-owner ASan/UBSan/leak CPU checks pass, including active light identity/
+restore and grouped continuation. The ONLINE fixture exercises256+ receipts,
+128 retained entries and two actual native associations. Whole-process RSS
+shows no reduction, so this does not qualify the full client memory budget or
+sustained catch-up. Evidence:
+`.local/effect-light-residency-20261019/verification.json`.
+
+All recorded scratch is removed:34,871 files/1,358,228,683 logical bytes from
+the owned workspace; only small source/hash/report evidence remains. No large
+artifact or installed runtime is retained. Concurrent work/reference/launcher
+inputs are preserved. Full readiness, remote FP/event provenance, complete
+owner/audio/GPU/native publication, delivery and rendered-migration/physical/
+WAN acceptance remain open. Default migration stays gated and the full goal
+remains active; gameplay and match/postgame voice stay player-hosted.
+
+## Staged lens presentation transaction, 2026-10-19
+
+`SourceLensPresentationHandoffTu15` stages query and final-draw private owners
+before retiring either predecessor. Readiness is bound to the actual owners,
+their common live renderer, incoming retired ring and completed-frame revisions.
+Even an unsubmitted intervening frame invalidates its token. Paired commit
+rechecks both, retires actual old GPU work and swaps both private owners without
+allocation or original-world callbacks. The enclosing native transaction still
+owns world lifetime, authentication and complete adoption-seal validation; this
+local presentation step supplies none of those proofs or election readiness.
+The existing Vulkan device wait remains, so bounded migration time is unproven.
+
+The native executable and 11 normal focused checks pass, including two native
+worlds, five preserved pending-result controls, stale/cancelled/foreign/consumed
+token rejection, original query/final-draw GPU regressions and empty Khronos
+logs. Current-root GCC syntax checks pass. Evidence:
+`.local/lens-transaction-20261019/verification.json`. All private source/build/
+capture/dependency scratch is removed (35,086 files / 1,529,265,786 logical
+bytes); no runtime is installed or retained. Concurrent work and reference
+assets remain intact. Full runtime adoption/readiness, sustained timing/memory,
+visible-flare/rendered migration and physical/WAN/full-ONLINE acceptance remain
+open. Default migration stays gated; gameplay and match voice stay player-hosted.
+
+## Scene lifetime retirement seams, 2026-10-19
+
+The windowed adopter now has explicit retirement seams for six scene owners:
+scenery, machines, props, dynamic objects, weapon projectiles and released
+grenades. The three newly covered owners discard per-world light/pose/LOD and
+model/glow draw history while preserving authored resident resources. All six
+operations and the shared geometry history reset are `noexcept`; caller-owned
+quiescence and complete native adoption remain required. Cold reset is not an
+exact retained lighting-history checkpoint or authority/election proof.
+
+Five normal and five selected-owner ASan/UBSan/leak checks pass, including
+fresh-scene equality across four views with unchanged salted IDs after a
+frame300-to-frame0 rewind. An existing fifth-view prop regression also passes
+after moving its input guard ahead of source-cache access. The private native
+executable builds; current-root GCC syntax and source audits pass. Evidence:
+`.local/scene-retirement-20261019/verification.json`. All private build/source/
+capture/dependency scratch is removed (34,926 files / 1,320,113,892 logical
+bytes). No runtime is installed or retained. Complete runtime owner adoption,
+exact history/FP provenance, readiness, timing/memory and rendered/physical/
+WAN/full-ONLINE acceptance remain open. Default migration stays gated and the
+full goal stays active; gameplay and match voice remain player-hosted.
+
+## Native runtime presentation commit, 2026-10-19
+
+`MultiplayerRuntimeAuthority` host/client activation now accepts one executor-local
+prepared presentation publication callback. The session first validates the
+learned decision, native boundary/admissions and audio generation, and allocates
+successor owners. The callback then runs before runtime host adoption or native
+client endpoint commit, and before transport/voice opens. Refusal retains the
+pending transition; callers must preserve their own owners on false. Successful
+publication cannot allocate, block, do device I/O or call the runtime/session.
+Runtime ownership checks reject reentrancy before entering the session mutex.
+
+Three normal and three selected-owner ASan/UBSan/leak checks pass, including
+both actual twelve-player direct-session variants, a receipt-bound four-owner
+cold CPU effect publication, rejected/retried hooks and continued native ticks/
+encoded voice. Current-root syntax/source audits and the native executable
+build pass. Evidence: `.local/runtime-presentation-commit-20261019/verification.json`.
+All recorded scratch is removed (34,956 files / 1,345,909,397 logical bytes);
+no runtime is retained or installed. Full windowed adoption, deferred GPU
+retirement outside the locked callback, active scene/FP/effect/history, device/
+playing-audio, readiness, timing/memory and rendered/physical/WAN/full-ONLINE
+acceptance remain open. Default migration stays gated and the goal stays active.
+Gameplay and match voice remain player-hosted; Vista ONLINE/clan UI is unchanged.
+
+## Deferred lens GPU ownership and native publication, 2026-10-19
+
+The lens transaction can now detach its old GPU/query-result ownership without
+performing device work inside publication. Preparation acquires the actual
+device lifetime and allocates replacement CPU owners. Readiness rejects other
+executors, retired leases, changed owner/revision/incoming rings, intervening
+renderer work and consumed tokens. Lease eligibility is an atomic snapshot;
+serialized `acquire()` remains the admission operation. The renderer's executor
+exists in both particle-enabled and particle-disabled configurations.
+
+The enclosing adopter must keep the consumed renderer/query/draw/group token
+alive across `activate_takeover()` / `activate_client_rebind()`. Release or
+move-assign that token afterward on the renderer executor, outside the native
+callback/session lock and before destroying the SDL window. Old CPU owners,
+GPU pools and completed results stay in that token; its device use outlives
+the retired GPU destructor. Destruction still performs the existing device
+wait. This is deferred retirement, not a bounded or wait-free migration claim.
+The synchronous `rebind()` convenience still retires at its own return and
+must not be used as the enclosing locked presentation callback.
+
+The private native build and 12 normal focused CTests pass. Two real native
+worlds preserve their sealed boundary/materials and six rejected/cancelled
+preparations preserve old GPU results. Real Vulkan observers record zero
+wait/destruction/query-read calls inside both commits, then one wait/two pool
+destructions and the expected remaining cleanup outside. Original query/draw
+and device contracts pass with empty Khronos logs; nine GCC syntax checks
+include both particle configurations. No new sanitizer, active-flare/rendered
+migration, physical or WAN acceptance is claimed. Evidence:
+`.local/lens-deferred-retirement-20261019/verification.json`.
+
+M01 in the [working checklist](online-completion-goal.md#working-checklist-and-goal-completion-contract)
+is checked. All private scratch/processes are absent after removing 35,248
+generated files / 1,552,133,164 logical bytes; no binary/runtime is retained or
+installed. Complete exact runtime/event, scene/model/FP/camera/HUD/input/audio
+adoption and readiness remain M02 onward. Default migration stays gated and
+the full goal stays active; gameplay and match/postgame voice remain direct
+and player-hosted, with Vista ONLINE/clan UI requirements preserved.
+
+## Exact owning receipt/runtime frontier, 2026-10-19
+
+A continuity-bound accepted `MultiplayerSnapshotOrigin` now owns the immutable
+decoded state and exact local slots, beyond later receive batches or destruction
+of its client. `state_origin()` returns the latest adopted receipt, retains it
+across empty polls and clears it on continuity bind or committed endpoint rebind.
+Unbound receive rows remain unbound. `same_connection()` compares historical
+ownership/context/generation; it does not authorize a currently live endpoint.
+
+Typed effect history publishes one entry containing that authentic receipt,
+the completed grouped CPU effects, and the runtime event/binding/deferred-audio
+frontier. Capture validates exact current and previous receipt ownership and
+slots; the history tracks the completed-tick predecessor internally. The initial
+baseline can be seeded only from the actual client's adopted receipt in the same
+context. A missing first predecessor is left unretained, without fabricating one.
+The caller cannot supply a preexisting pending-cue checkpoint: history captures
+it freshly from the bound sound owner before completing the shared entry.
+All copies/captures precede insertion or eviction, so failed capture preserves
+previous entries. Native proof must bind the exact connection, context, sequence
+and body; a newer same-tick receipt cannot substitute for an evicted receipt.
+
+`MultiplayerRuntimeReceiptFrontier` retains the full-salt firing/object bindings,
+event cursors/serials/baselines, completed muzzle/world ticks, local state and
+undelivered sound/request queues at the accepted CPU-effects boundary. It does
+not advance wall-clock audio once per received snapshot. The enclosing adopter
+must resume the correct frame phase and flush those retained queues once.
+
+Pending effect cues have an executor/owner-bound checkpoint and prepared restore.
+Readiness rejects stale mutations, foreign owners/executors and consumed tokens;
+commit swaps without callbacks or destruction, retaining old pending storage in
+the caller's token until later release. Already-playing SDL voices are separate
+M04 owners and are not checkpointed by this API.
+
+These are capture and preparation contracts. The actual windowed migration fence
+still requires complete borrower/resource/scene/HUD/input/playing-audio adoption
+and survivor readiness before activation. M02 remains unchecked and default
+migration remains disabled; gameplay and match/postgame voice stay direct and
+player-hosted. The [next production dependency](../../.local/runtime-receipt-frontier-20261019/next-adoption.md)
+records the missing owners without treating inspection as completion.
+
+Qualification uses one coherent private native build: six normal CTests, four
+selected-owner ASan/UBSan/leak CTests and nine current-root GCC syntax checks pass.
+An initial collocated-fixture timeout was reproduced by a controlled six-second
+native traffic gap, then fixed by servicing actual direct heartbeats while shadow
+work warms. Both variants retain the unchanged native tick/carried input through
+the six-second regression and continue twelve gameplay ticks/direct voice packets.
+Production timeout policy is unchanged. The rendered history test retains 258
+completed entries (peak128), two exact native bindings and 381 frames; it does not
+activate migration. Four CPU owners/fixture TUs are instrumented; generated native
+interiors, rendered runtime and physical devices are outside sanitizer acceptance.
+Evidence: [verification.json](../../.local/runtime-receipt-frontier-20261019/verification.json).
+All recorded scratch/processes are absent after removing 35,095 generated files /
+1,602,889,260 logical bytes; nine one-off helpers are retired separately. No binary
+is installed or retained. The full ONLINE goal remains active, with M02 unchecked.

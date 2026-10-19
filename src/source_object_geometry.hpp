@@ -61,7 +61,7 @@ public:
     SourceObjectViewSelection select(std::size_t source_object,std::uint32_t handle,
                                     Vec3 sphere_center,float radius,const SourceObjectViewLod &,
                                     std::array<std::int8_t,4> &owner_previous_lod);
-    void reset_history();
+    void reset_history() noexcept;
     const RenderModel &model()const{return lods[5].model;}
     const Lod &at(unsigned lod)const{return lods.at(lod);}
     const ViewDraw &view(unsigned index)const{return views.at(index);}
@@ -97,7 +97,7 @@ private:
         std::vector<unsigned> parts;
     };
     std::array<ViewSelection,4> view_selection;
-    void invalidate_views(){for(auto &selection:view_selection)selection.valid=false;}
+    void invalidate_views() noexcept {for(auto &selection:view_selection)selection.valid=false;}
     bool union_ordinary_lighting{};
     std::array<std::int8_t,4> previous_lod{-1,-1,-1,-1};
 };

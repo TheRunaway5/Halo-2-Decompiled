@@ -9,4 +9,6 @@ MultiplayerState multiplayer_presentation(const MultiplayerState &previous,
 // Share root/skin lifecycle boundaries for local rendering and LAN snapshots.
 void capture_multiplayer_body_poses(SourceWorldInterpolation &,
     const MultiplayerState &previous,const MultiplayerState &current,bool reset=false);
+void refresh_multiplayer_body_poses(SourceWorldInterpolation &,
+    const MultiplayerState &previous,const MultiplayerState &current);
 }

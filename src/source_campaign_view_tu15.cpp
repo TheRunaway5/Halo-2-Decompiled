@@ -11,7 +11,7 @@
 namespace halo2 {
 SourceCampaignViewTu15::SourceCampaignViewTu15(const Cache &cache,std::size_t bsp)
     :portals_(cache.load_source_portal_bsp(bsp)),geometry_(cache.load_source_bsp_admission(bsp)),
-     particles_(cache,std::span<const ScenarioObject>{}),clusters_(geometry_.clusters.size()),
+     particles_(cache,std::span<const ScenarioObject>{}),group_parts_(cache),clusters_(geometry_.clusters.size()),
      definitions_(geometry_.definitions.size()),instances_(geometry_.instances.size()),transforms_(geometry_.instances.size()) {
     // Same authored geometry/instance fields consumed by the existing MP
     // SourceBspEffectLights collector. Actual native130980 still owns each
@@ -170,6 +170,9 @@ SourceCampaignViewFrameTu15 SourceCampaignViewTu15::collect(PhysicsLiveWorldTu15
         // real completed main handoff/cull, never a model-only boolean.
         auto commands=world.prepare_source_call();commands.gp[0]=0;world.run_actual(0x40e80u,commands);
         frame.main_commands_completed=true;
+        frame.transparent_groups=source_live_transparent_groups_tu15(world);
+        for(const auto &group:frame.transparent_groups)
+            frame.transparent_group_parts.push_back(group_parts_.resolve(group,frame.base_draws));
         frame.source_particle_commands=Bytes(memory.view(0x4c2aa0u,4)).u32(0);
         frame.world_particles=particles_.draw(world,frame.visibility,input.particles->camera,0,
             input.particles->projection_angle,input.distance_scale,true,true);

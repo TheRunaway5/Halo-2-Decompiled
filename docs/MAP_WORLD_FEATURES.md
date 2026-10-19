@@ -710,3 +710,18 @@ and seven-draw/77-packet GPU regressions pass with unchanged images and retained
 particle state. Normal-source objects compile, but normal-launcher delivery and
 the full all-map goal remain open. See
 [`SOURCE_PARTICLE_VIEW_CONTEXT_TU15.md`](SOURCE_PARTICLE_VIEW_CONTEXT_TU15.md).
+
+### Original target and viewport selectors, October 19
+
+Five original target owners (`14BA0`, `1CD10`, `1DCD0`, `1DD00`, `25940`) are
+implemented in a separate module and connected to shared particle/World
+execution. All 83 declared-input comparisons match unchanged TU1.5 execution:
+46 complete calls and 37 required SDK prefixes, with 149,912 bytes compared per
+case. Occupied particle queues remain intact. Actual native attachment binding
+still needs the existing framebuffer registry and a prepared pass/completion
+owner; opaque native identities must not be dereferenced as SDK headers.
+Normal CPU/context and GPU camera-order builds are tracked separately in the
+stage reports. The full original parent, live source-depth visibility, all-map
+network/reset acceptance and normal-launcher delivery remain open. See
+[`SOURCE_PARTICLE_TARGET_TU15.md`](SOURCE_PARTICLE_TARGET_TU15.md). New validation
+uses managed scratch and retains no large test artifacts.

@@ -8,6 +8,11 @@
 #include <SDL.h>
 #include <iostream>
 #include <set>
+#include <utility>
+#include <chrono>
+#if defined(__GLIBC__)
+#include <malloc.h>
+#endif
 using namespace halo2;
 namespace {
 void check(bool b, const char *m) {
@@ -99,7 +104,8 @@ int main(int argc, char **argv) {
     std::uint64_t serial{}, detonation{};
     std::size_t peak_particles{}, peak_decals{}, peak_systems{},peak_lights{};
     std::size_t death_sounds{};
-    bool directional_sparks{};std::set<std::uint32_t> impact_spark_bitmaps;
+    bool directional_sparks{},handoff_checked{};unsigned light_handoffs{};
+    std::set<std::uint32_t> impact_spark_bitmaps;
     LanHost host(match, 0, 0x454646454354ull);
     LanClient peer("127.0.0.1:" + std::to_string(host.port()),
                    0x454646454354ull, 1);
@@ -130,6 +136,7 @@ int main(int argc, char **argv) {
                                        e.forward,  e.up, false};
           pending_detonations.push_back(e);
           Mesh isolated_mesh;
+          std::array<std::uint32_t,2> isolated_restore_random{};
           NativeWorldEffects isolated(*cache, isolated_mesh,
                                       match.simulation().collision(),
                                       0x12345678);
@@ -169,6 +176,17 @@ int main(int argc, char **argv) {
                     receivers[0].view.visibility.groups.size()==6 && !receivers[0].view.visibility.clusters.empty(),
                     "Actual frag lost its nested original receiver query or local-view chronology");
             }
+            const auto query_cut=isolated.checkpoint();isolated_restore_random=query_cut.random();
+            (void)isolated.light_view(eye,collection,candidates,2);
+            {
+              check(isolated_restore_random[0]==isolated_restore_random[1],"Owned visual RNG lost its shared word");
+              auto prepared=isolated.prepare_restore(query_cut,{isolated_restore_random[0],isolated_restore_random[0]},{});
+              check(isolated.commit_restore(std::move(prepared)),"Light query state was not restored");
+            }
+            const auto resumed=isolated.light_view(eye,collection,candidates,1);
+            check(resumed.epoch==9 && resumed.visible.size()==1 && resumed.selected.size()==1 &&
+                resumed.selected[0].identity==lights[0].registration.identity && resumed.records[0].fades.overall==1,
+                "Restored light query lost its spatial pool, four local caches or epoch");++light_handoffs;
             check(isolated.lights().size()==1 && isolated.diagnostics().particles==24,
                 "Per-view light queries changed tick-produced grenade effects");
           }
@@ -256,6 +274,76 @@ int main(int argc, char **argv) {
         check(batched.decals(state.tick, 0, tick_seconds).size() ==
                   effects.decals(state.tick, 0, tick_seconds).size(),
               "Render cadence changed actual decals");
+        if(!handoff_checked && d.lights && d.decals && d.particles) {
+          const auto material_count=mesh.materials.size();std::vector<const std::byte*> resident_images;
+          for(const auto &material:std::as_const(mesh).materials)resident_images.push_back(material.diffuse.pixels.data());
+          auto obsolete=std::make_shared<int>(0);std::weak_ptr<int> retired=obsolete;
+          effects.collision_query([obsolete](auto,auto,auto)->std::optional<ParticleCollisionHit>{return {};});
+          const auto cut=effects.checkpoint();const auto random=cut.random();
+#if defined(__GLIBC__)
+          // Explicit normal-build allocator probe. Keep a full history of
+          // actual active-light cuts alive at once; no source state or
+          // implementation-specific resource identity is supplied by the test.
+          if(std::getenv("HALO2_EFFECT_STORAGE_PROBE")) {
+            std::vector<NativeWorldEffects::Checkpoint> retained;retained.reserve(128);
+            const auto heap=[] {const auto m=mallinfo2();return std::uint64_t(m.uordblks)+m.hblkhd;};
+            const auto before=heap();const auto started=std::chrono::steady_clock::now();
+            for(unsigned n=0;n<128;++n)retained.push_back(effects.checkpoint());
+            const auto after=heap();
+            check(after>before,"Active-light storage probe requires a normal glibc allocator build");
+            for(const auto &saved:retained)check(saved.tick()==state.tick&&saved.random()==random,
+                "Retaining active light history changed its cut or RNG");
+            const auto micros=std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()-started).count();
+            std::cout<<"OBSERVED active_light_checkpoints=128 retained_heap_bytes="<<after-before
+                <<" capture_microseconds="<<micros<<" particles="<<d.particles<<" decals="<<d.decals<<" lights="<<d.lights<<'\n';
+          }
+#endif
+          effects.collision_query({});obsolete.reset();
+          check(retired.expired(),"World checkpoint retained a predecessor collision closure");
+          check(cut.tick()==state.tick && random[0]==shared_visual && random[1]==shared_visual,
+              "World checkpoint lost its accepted tick or aliased RNG values");
+          const auto &grenade=state.grenade_detonations.back();
+          // Declared discarded-future presentation request, not a native birth.
+          effects.spawn(grenade.effect,0x98760001,state.tick+1,
+              {grenade.position,grenade.up,grenade.forward,grenade.forward,grenade.up,false});
+          effects.advance(state.tick+3,tick_seconds);
+          bool reversed=false;try{effects.advance(state.tick,tick_seconds);}catch(const FormatError&){reversed=true;}
+          check(reversed,"Discarded-future control did not reach a later visual clock");
+          const auto future_random=shared_visual;
+          bool refused=false;try{(void)batched.prepare_restore(cut,{shared_visual,shared_visual},{});}catch(const FormatError&){refused=true;}
+          check(refused,"Foreign world checkpoint was admitted");
+          std::uint32_t separate=shared_visual;
+          refused=false;try{(void)effects.prepare_restore(cut,{shared_visual,separate},{});}catch(const FormatError&){refused=true;}
+          check(refused && shared_visual==future_random,"Changed world RNG aliasing was admitted or wrote live words");
+          {
+            auto prepared=effects.prepare_restore(cut,{shared_visual,shared_visual},{});
+            check(shared_visual==future_random,"World preparation wrote shared RNG");
+            check(!batched.commit_restore(std::move(prepared)),"Foreign world restore token was published");
+            check(effects.commit_restore(std::move(prepared)) && !effects.commit_restore(std::move(prepared)),
+                "World restoration lost or reused its publication token");
+            check(shared_visual==future_random,"World commit wrote shared RNG");
+          } // Drop the discarded definition graph before observing the clone.
+          check(mesh.materials.size()==material_count,"World restoration changed resident material slots");
+          for(unsigned n=0;n<material_count;++n)check(std::as_const(mesh).materials[n].diffuse.pixels.data()==resident_images[n],
+              "World restoration replaced resident image backing");
+          check(cut.random()==random,"World checkpoint borrowed live RNG");shared_visual=random[0];
+          const auto restored=effects.draw(view,0,tick_seconds);const auto restored_counts=effects.diagnostics();
+          check(restored.size()==slow_draws.size() && restored_counts.particles==d.particles &&
+              restored_counts.decals==d.decals && restored_counts.lights==d.lights && restored_counts.systems==d.systems,
+              "World restoration cleared active particles, decals, lights or systems");
+          for(unsigned n=0;n<restored.size();++n)check(restored[n].vertex.attributes==slow_draws[n].vertex.attributes &&
+              restored[n].vertex.constants==slow_draws[n].vertex.constants && restored[n].effect_owner==slow_draws[n].effect_owner &&
+              restored[n].effect_definition==slow_draws[n].effect_definition,"Restored world draw differs from untouched control");
+          const auto restored_lights=effects.lights();
+          check(restored_lights.size()==b_lights.size() && effects.take_sounds().empty(),"World restore lost lights or replayed submitted sounds");
+          for(unsigned n=0;n<restored_lights.size();++n)check(restored_lights[n].registration.identity==b_lights[n].registration.identity &&
+              restored_lights[n].registration.reference_head==b_lights[n].registration.reference_head &&
+              restored_lights[n].registration.flags==b_lights[n].registration.flags &&
+              restored_lights[n].state.brightness==b_lights[n].state.brightness,"World restore lost light allocation/spatial identity");
+          handoff_checked=true;
+          std::cout<<"PASS staged active-world restore at tick "<<state.tick<<" particles="<<d.particles<<" decals="<<d.decals
+              <<" lights="<<d.lights<<"; independent batched continuation follows\n";
+        }
       }
       // Before the grenade, classification8 comes from actual SMG contacts.
       // Verify the exact authored bitmap and complete decoded texel bank that
@@ -322,6 +410,7 @@ int main(int argc, char **argv) {
           "Actual impact never produced authored particles");
     check(death_sounds>0,"Actual rock particles never dispatched their authored death sounds");
     check(peak_decals > 0, "Actual contact never produced a surface decal");
+    check(handoff_checked && light_handoffs>0,"Active world/light handoff coverage did not run");
     check(detonation > 0, "Actual Q never produced a grenade explosion");
     check(peak_systems >= 6, "Frag explosion lost authored systems");
     check(peak_lights>0,"Actual frag created no source light state");

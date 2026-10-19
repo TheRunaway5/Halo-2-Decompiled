@@ -1,5 +1,101 @@
 # Shared campaign physics in the multiplayer world
 
+## October 19: retained shader bundle and live team/world integration (WIP)
+
+Managed builds v722/v730 pass the actual authored child and coupled Match/world
+checkpoint regressions. v734 repeats those gates and exports an immutable runtime
+with all 54 compiled shaders, then removes its private CMake build. The earlier
+v731/v732 runs failed because exported executables still referenced deleted build
+shaders; those red packaging reports are preserved. The new retained bundle is
+verified independently of its deleted build directory.
+
+Fresh Warthog multiplayer v739 passes 902 exact UDP snapshots, 345 submitted
+seated vehicle-camera frames, 0.599999964-radian look response, 21.114706 units of
+driver horizontal travel and 300 camera frames after exit. All 118 desktop mirror
+checks pass. Actual 8s/26s frames were inspected in `vehicle-camera-review-v742`:
+the driving view uses the third-person vehicle camera and exit restores first
+person. Lower-edge vehicle cropping and Xbox framing/material parity remain open.
+
+High Charity placement1/BSP6 now passes on v734 through the original team-state
+constructor and new-map reset: 2,012 exact UDP snapshots, 1,161 vehicle draw frames
+in each view and 16.757002 units of causal source-controller response. The actual
+Phantom sample was inspected. Independent checks are recorded in
+`integration-execution-verification-v744.json`. The historical aggregate v744 is
+now 27 bounded passes/20 incomplete contexts, across mixed runtime versions;
+`managed-class3-all-v741` is running all 47 contexts on the single v734 runtime.
+
+Fresh lift bodies0/3 pass moving carry (65/45 ticks and 2.596529/0.778250 units).
+Body2 reproduces 66 moving ticks/2.556674 units and native acceptance, but its
+desktop mirror stopped, so that visibility gate stays red pending a fresh run.
+Body1 at phase0 still has zero moving carry. Retained samples show the player
+remaining on the BSP floor while the low paddle moves away. Additional declared
+original device-phase entry cases are queued in v743; this is a hypothesis about
+the missing entry context, not a changed physics result or a waived phase0 gate.
+v746 will repeat body2 and ordinary startup after the serial matrix/phase tests.
+The original v740 startup recording is excluded from uninterrupted visual proof
+because a mirror-only diagnostic briefly overlapped it.
+
+The visible monitor now tolerates only an unrelated destroyed EWMH window while
+still requiring the actual owned capture/player pipe and mapped mirror. The real
+X11 regression v738 is red before the fix and green afterward; missing/stopped
+mirrors remain red. Diagnostics record which process stopped and the native
+process state. Mirror-only probes refuse to open over an existing live mirror.
+
+The launcher remains v678. Coupled validation, a visible native controller pass
+and this 47-context vehicle gate do not establish all player/object/vehicle
+physics, contacts, lifetimes, all maps/classes, campaign activation/AI/HS or
+physical Xbox trajectory/pixel parity. The complete TU1.5 goal remains open.
+
+
+## October 18: authored marker identities and managed validation (WIP)
+
+`class3-latest-context-matrix-v729.json` now records **26 bounded native passes
+and 21 incomplete contexts** across retained runtime versions. All four Floodlab
+contexts and seven other formerly ambiguous-child contexts pass on immutable
+v698; its twelve-case cohort finishes 11 passes/one new owner failure. The
+independent execution check is `model-child-execution-verification-v728.json`.
+The retained Floodlab BSP5 and Sentinel Walls samples were manually inspected;
+Sentinel Walls hull lighting is visibly dark and full material/pixel parity is
+not claimed. This aggregate is not one-current-runtime certification.
+
+Model children now resolve the actual completed C0790/BAF10 parent marker,
+child marker, definition and full parent generation. Actual source tests verify
+the three Sentinel Walls children, including two with identical definitions,
+with exact completed WORLD nodes and UDP state. Checkpoint metadata retains
+these original observed identities. A coupled campaign checkpoint exposed two
+existing multiplayer-only validators and a bodyless native startup weapon;
+those source paths are corrected, with managed CMake regressions v722 still
+running. These checkpoint changes are not claimed passed yet.
+
+The remaining High Charity context advances through the newly ported complete
+158690 unit-view reset and its five callees (397 recovered instructions).
+Its actual whole call matches 95 unchanged original instructions, all 60,084,310
+accessible source bytes and CPU/FP state under the documented host IF boundary;
+see `unit-view-reset-original-v724/report.json`. This is Linux i386 original-code
+execution, not physical Xbox proof. The subsequent fault reads offsetC4 from
+an absent team-relationship owner. Actual retained RAM, the original constructor,
+new-map reset and registration bytes identify this missing owner. Root already
+has the original row18 calls; integration into the physics delivery is queued
+after v722 reaches a terminal safe boundary. No zero-filled replacement bit bank
+or supplied damage/physics result is used.
+
+Fresh source-owned machine rendering also retains passing rides on authored
+`platform`, `platform2` and `platform3`: 65/66/45 moving support ticks and
+2.596529/2.556674/0.778292 units carried. Body 1 (`lowest`) remains red with zero
+moving carry. Literal original cache names and indices are recorded by v703;
+names do not establish retail gameplay roles or justify removing this red gate.
+
+Validation now uses `tools/run_tests.py` and `tools/run_test.py`. v723/v724
+scratch cleanup is verified in `managed-storage-verification-v725/report.json`.
+The explicitly retained v723 recording, frame, reports and required original-call
+input bank total 69,699,616 bytes; replay binaries, objects and generated output
+banks were removed. The queued v730 export retains only the immutable deliverable
+and two acceptance executables after coupled tests pass, then removes its private
+build. v731 will test the affected contexts, actual vehicle camera, all four lift
+bodies and ordinary startup; v732 will attempt all 47 authored vehicle contexts on
+that same candidate, retaining only requested visual proof and small diagnostics.
+The launcher remains v678 until a new candidate completes reviewed delivery gates.
+
 ## October 18: machine WORLD integration and original attachment identity (WIP)
 
 The v692 source regression matches **1,095 original WORLD nodes and 131,700

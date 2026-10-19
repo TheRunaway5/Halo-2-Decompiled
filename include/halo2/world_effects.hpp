@@ -54,12 +54,49 @@ struct WorldEffectLightReceiver {
 // All textures are made resident before Renderer construction. Simulation is
 // once per game tick; per-view drawing is read-only and resolution independent.
 class NativeWorldEffects {
+  struct Impl;
 public:
   NativeWorldEffects(const Cache &, Mesh &, const CollisionWorld &,
                      std::uint32_t visual_seed);
   NativeWorldEffects(const Cache &, Mesh &, const CollisionWorld &,
                      SourceEffectRandom);
   ~NativeWorldEffects();
+  // Owning local presentation cut. No native world, renderer, playing audio or
+  // room/generation proof is implied. Definitions and raw internal links are
+  // copied/rebound; GPU material identities remain resident and unchanged.
+  // Immutable BSP light geometry shares residency; mutable light pools,
+  // spatial registration, fades and query/selection state remain independent.
+  class Checkpoint {
+  public:
+    std::optional<std::uint64_t> tick()const noexcept;
+    std::array<std::uint32_t,2> random()const;
+  private:
+    friend class NativeWorldEffects;
+    struct Data;
+    std::shared_ptr<const Data> data_;
+  };
+  class PreparedRestore {
+  public:
+    ~PreparedRestore();
+    PreparedRestore(PreparedRestore &&)noexcept;
+    PreparedRestore &operator=(PreparedRestore &&)noexcept;
+  private:
+    friend class NativeWorldEffects;
+    PreparedRestore();
+    std::unique_ptr<Impl> replacement_;
+    std::shared_ptr<const int> owner_;
+  };
+  Checkpoint checkpoint()const;
+  // Same local owner/assets only, at a completed frame. Allocate every owner
+  // before publishing any. The enclosing coordinator restores shared visual
+  // RNG atomically with the other consumers; preparation never writes it.
+  // Supplied RNG words outlive the restored owner and preserve their captured
+  // alias relation. Supply accepted-world collision callbacks explicitly, and
+  // keep this owner quiescent until commit.
+  PreparedRestore prepare_restore(const Checkpoint &,SourceEffectRandom,
+      ParticleCollisionQuery)const;
+  bool commit_restore(PreparedRestore &&)noexcept;
+  bool restore_ready(const PreparedRestore &)const noexcept;
   void impact(const BulletImpact &);
   void melee_impact(const MeleeImpact &);
   void spawn(std::uint32_t effect, std::uint32_t owner, std::uint64_t tick,
@@ -128,7 +165,7 @@ public:
   WorldEffectDiagnostics diagnostics() const;
 
 private:
-  struct Impl;
   std::unique_ptr<Impl> impl_;
+  std::shared_ptr<const int> owner_=std::make_shared<const int>(0);
 };
 } // namespace halo2

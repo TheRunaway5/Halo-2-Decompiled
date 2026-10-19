@@ -5,6 +5,7 @@
 #include "halo2/scripts.hpp"
 #include "halo2/source_projectile_effect_observer.hpp"
 #include "halo2/source_execution_inputs.hpp"
+#include "halo2/source_execution_lens.hpp"
 #include <cstring>
 #include "halo2/cache.hpp"
 #include "halo2/native_threads.hpp"
@@ -1461,6 +1462,11 @@ void MultiplayerObjectRuntime::render_model_view(const std::function<void(Physic
   if(!tu15_ || !draw)throw FormatError("Live model view requires its TU1.5 world and completed draw consumer");
   tu15_->begin_model_view();
   draw(*tu15_);
+}
+unsigned MultiplayerObjectRuntime::retire_lens_queries() {
+  Continuation::PublicCall active(*continuation_);
+  if(!tu15_)throw FormatError("Lens retirement requires its completed actual TU1.5 owner");
+  return source_retire_lens_queries(*tu15_);
 }
 void MultiplayerObjectRuntime::completed_main_camera_observer(SourceCompletedMainCameraObserverTu15 observer) {
   std::unique_lock lock(continuation_->gate,std::try_to_lock);continuation_->require_executor();

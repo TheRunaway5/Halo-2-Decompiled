@@ -296,7 +296,7 @@ void SourceMachineScene::interpolate(const SceneObjects &scene,const SceneInterp
     }
 }
 void SourceMachineScene::synchronize(const SceneObjects&scene,const SourceDeviceWorld*devices){impl_->synchronize(scene,devices);}
-void SourceMachineScene::reset_lifetimes(){
+void SourceMachineScene::reset_lifetimes() noexcept {
     auto &s=*impl_;s.last_tick=0;s.render_frame=0;s.lifetimes_bound=false;
     for(auto &m:s.machines){
         m.handle=0xffffffffu;m.created_tick=m.advanced_tick=0;

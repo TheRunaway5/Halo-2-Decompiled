@@ -39,9 +39,195 @@ frames and finite nonzero callback audio. Both existing save files are unchanged
 and prior installed files are retained for rollback. Sound identity,
 sustained/all-weapon firing, campaign, complete menus/loading and full
 audiovisual parity remain unfinished.
+The subsequently reproduced V9 real-window firing exit is now fixed in the
+installed source launcher and the user's extracted V9 package. Authenticated
+codec dispatch data, decoder workspace and quaternion sign-mask storage clear
+that path without changing gameplay arithmetic or shaders. Actual pointer,
+focus, clicking, held firing, look and movement pass; both existing save files
+remain exact. The actual user launcher also passes eight frames. The replacement
+version10 compiled ZIP passes both portable launcher checks and its actual
+eight-frame launcher route, with every archive checksum verified and no game
+data distributed. Slow startup remains open; experimental partition
+residency is not included in this installed hotfix.
+
+The later installed V13 runtime and compiled V13 ZIP include the accepted
+partition cache and optional Vulkan pipeline cache, plus the verified late
+device-teardown correction. Real-window click/held-fire/look/movement checks
+pass. Slow startup remains open. The twelfth renderer reconstruction probe
+leaves six mismatched text/constant sections and is rejected as a replacement;
+its scratch is removed. The installed renderer and all 97 shaders are unchanged.
+See the active checklist for the current evidence and remaining gates.
+
+Normal visible V13 cache persistence is now verified with actual files: two
+separate eight-frame processes each atomically replace a 19,233,358-byte cache,
+and the second consumes the saved bytes. Both exit0; all97 shaders and four
+user save files remain exact. The earlier missing-trace finding was a checker
+error caused by interleaved stdout/stderr. The first frame5 observation is
+39.02seconds and full exit40.58seconds on isolated Xvfb; this does not certify
+physical-desktop startup speed. Temporary cache/save scratch is removed.
+[Visible persistence evidence](../.local/mcc-native-click-crash-20261018/pipeline-visible-files-v1/validation.json).
+
+The texture-upload bottleneck now has a verified local optimization in ordinary
+source and both active runtimes. A faster ephemeral bucket hash retains full
+pixel/shape/mip equality, GPU ownership and the separate shadow identity hash.
+Fixed tick8 and actual SMG firing through tick60 produce byte-identical images,
+saves and shot state against V13, with finite nonzero callback audio. One
+isolated startup comparison improves36.86to30.29seconds; real-window click,
+held fire, look and movement pass, and the installed user launcher completes
+eight frames in37.98seconds. All97 shader files and existing user saves remain
+exact. These bounded checks do not certify desktop boot speed, full renderer
+coverage, current-client64-bit migration or complete TU1.5 parity. The compiled
+V14 ZIP is validated and published locally, and the user's extracted folder
+matches all V14 archive checksums while preserving its MCC cache and saves.
+[Installed optimization](../.local/mcc-native-click-crash-20261018/upload-installed-v1/validation.json).
+
+V15 was installed and packaged. The remaining sound-setup bottleneck made
+4,184,679 address lookups through a linear relocation scan. Sorting each fully
+validated plan once and indexing forward lookup reduces controlled sound-timing
+construction from9.23to0.50seconds while preserving every exposed timing field,
+serialized address, metadata byte, admission rule and reverse mapping. The actual
+V14/V15 fixed-tick firing pair takes32.55/23.78seconds with identical images,
+saves and shot state; callback audio remains finite/nonzero. Real clicking,
+held fire, look and movement pass. Both installed launcher routes and the compiled
+V15 ZIP pass, with all97 bundled shaders and user saves unchanged. These bounded
+results do not establish full conversion, current-client64-bit completion or
+complete Xbox TU1.5 audiovisual parity. Separate map-qualified conversion work
+is not part of that release.
+[Installed V15](../.local/mcc-native-click-crash-20261018/indexed-installed-v1/validation.json),
+[compiled V15 package](../.local/mcc-native-click-crash-20261018/package-v15/validation.json).
+
+The next source change restores map-specific authoring through normal Cache
+loading, before generic converters alter the donor tuples. Exact scenario/owner
+identities now qualify28 authenticated campaign/multiplayer contexts:22 Gauss
+flyby references become null, six retain their original targets, and only Relic
+uses the original4.0 CTF stop distance. All28 planner fixtures pass strict,
+sanitizer, CMake and independent source checks. Thirty normal constructor pairs
+(including two unqualified MCC-only maps) compare2.82GB of complete backings in
+RAM: only177 intended bytes change, all other bytes/directories stay exact, and
+all60 allocations exercise host addresses above4GiB. A renamed stock file still
+qualifies; modified scenario ID/header path is preserved. This source/constructor
+acceptance remains separate from installed V15. The expanded provider also
+passes a V15 fixed60-tick firing comparison with exact decoded image, saves
+and full shot state; callback PCM is finite/nonzero without a sample-identity
+claim. The retained316-provider V16 candidate is byte-identical to that accepted
+expanded executable and passes its own shot check plus nine real focus/click/
+held-fire/look/movement phases. No input error or forced exit occurs during
+acceptance; the harness intentionally stops afterward. The compiled V16 ZIP
+also passes an actual relocated8-frame launcher run under file tracing, with
+no original/reference or development-tree opens. All4,249 entries/checksums,
+97 shaders and unchanged tools/data/libraries pass. Independent archive review
+and guarded extracted-folder installation also pass: P matches V16, with its
+cache/saves preserved. The root launcher continues selecting another task's
+renderer workbench, which this delivery preserves. Full map/tag, visual/audio,
+mod-folder and ownership/current-client compatibility gates remain open.
+[Expanded normal vanilla Cache data](../.local/mcc-map-qualified-conversion-20261019/cache-all28-v1/validation.json),
+[expanded native firing](../.local/mcc-map-qualified-conversion-20261019/native-firing-v2/validation.json),
+[retained V16 input acceptance](../.local/mcc-map-qualified-conversion-20261019/native-interactive-v2/validation.json),
+[compiled V16 package](../.local/mcc-map-qualified-conversion-20261019/delivery-v16/package-validation.json),
+[installed V16](../.local/mcc-map-qualified-conversion-20261019/delivery-v16/install-validation.json),
+[focused mod controls](../.local/mcc-map-qualified-conversion-20261019/cache-mod-controls-v1/validation.json).
+
+The actual API startup probe attributes 87.30 seconds before first presentation
+to 240 graphics-pipeline creation calls with null application caches. An isolated
+candidate adds optional Vulkan cache ownership while retaining all prior 314
+providers and all 97 shader files. Its 17 contract-control groups and link pass.
+Actual GPU launches then pass disabled, cold and warm controls: 78.65, 74.08
+and 44.39 seconds respectively. Warm startup consumes the saved 8.1 MB file and
+reduces measured pipeline creation from 30.30 to 0.21 seconds. First-launch
+compilation and other startup work remain. Ordinary Linux build wiring and
+real-window focus/click/held-fire/look/movement pass. Both installed runtimes
+now include the cache and retain the click fix. The compiled V11 ZIP passes
+both relocated launcher checks, its actual traced eight-frame route and every
+archive checksum; no game data or saves are distributed. The separate MCC
+partition-residency experiment remains excluded from that V11 ZIP. Its later
+combined candidate passes real input, installs successfully in both active
+runtimes, and records 38.43-second private warm-frame readiness. Alternating
+texture-residency observations remain sensitive to changing system load;
+actual traced launcher timings are substantially longer, so slow startup stays
+open. The existing V3 import is now verified and selected in the source tree,
+with actual launcher/fresh-save firing, finite nonzero callback audio and no
+reference-file opens. No second full asset copy was made.
+
 Precompiled packages contain the runtime, existing shaders and onboarding
 dependencies and never enter the source build/update path. Current delivery
 evidence is linked in the goal checklist above.
+
+The ordinary importer now composes the immutable V2 Zanzibar corrections with
+three fingerprinted Metropolis corrections from a separate V3 delta bundle.
+All five images and forty mip chains pass native cache readback, preserving
+unrelated map metadata, the original texture-bank prefix and existing shaders.
+Setup prepares a fresh cache when an older correction set is encountered, and
+normal graphics import ignores legacy reference registries. The source launcher
+has completed a real fresh import and native Lockout validation using that cache.
+The current selected source cache contains all five corrections; V11 and earlier
+ZIPs contain the previous importer. The compiled V12 ZIP now delivers the V3
+importer and combined resource owners: all 43 bundled-Python controls, both
+relocated launchers, actual eight-frame gameplay and every archive checksum pass.
+The file audit finds no reference or development-checkout dependencies. An initial
+240-second timeout is preserved; the longer run passes, while slow startup remains
+open. Rendered acceptance of each corrected scene is still unfinished.
+
+The source importer now additionally includes a separate V4 Sacred Icon
+gradient correction. Its authenticated MCC donor is64×256/nine mips; restoring
+the original32×128/eight-mip descriptor and signed registration point while preserving MCC packing flags
+produces exactly the original21,852 native pixel bytes. All six images/48 mips
+pass real three-map MCC-only conversion and native readback, including an
+all-maps no-write rejection for a malformed final profile. Existing V1/V2/V3
+bundles stay immutable. The final delta/manifest total5,624bytes, and the shipped
+portable Python passes46 focused controls. Compiled V17 now packages this
+importer with the unchanged V16 runtime and97 shaders; its relocated46 controls,
+actual eight-frame Lockout launch and all4,251 checksums pass. The existing P
+folder now matches all4,252 V17 release files, with both launchers available.
+Active caches, saves, root's separate workbench and V16 releases are preserved;
+installing tools does not upgrade cached asset bytes. The requested ZIP and
+seven small rollback files are retained; generated staging is removed. Rendered
+Sacred Icon/full audiovisual acceptance remain open.
+[Descriptor proof](../.local/mcc-sacred-icon-gradient-20261019/descriptor-v1/validation.json),
+[MCC-only conversion](../.local/mcc-sacred-icon-gradient-20261019/bundle-v2/validation.json).
+The scoped delivery audit rechecks all installed files and required retained
+artifacts; its recorded completed scratch paths are removed. A later read-only
+scan reproduces changing inode numbers alone on the external exFAT cache, so
+that audit explicitly compares stable names/device/size/mtime/mode fields and
+preserves the original successful package/install checks. It does not claim a
+new full-cache content rehash or perform historical cleanup.
+[Delivery storage audit](../.local/mcc-sacred-icon-gradient-20261019/closure-v2/validation.json).
+
+The compiled V18 ZIP adds the authenticated Floodzone collision-material
+correction using the compatible selected client; 314 of its 316 link inputs stay
+unchanged. Complete normal Cache comparisons cover all 43 maps. Fixed-tick
+Lockout frame/save comparisons, nine actual focus/click/fire/look/movement stages
+and a relocated eight-frame launcher run pass. Independent archive review
+verifies every checksum, the exact six-entry delta and all 97 unchanged shaders.
+The V4 importer and its 46 controls are inherited unchanged from V17. This is
+an interim native test, with full readiness false; full gameplay/audio/visual
+parity remains open. V18 is downloadable, while the existing P folder and its
+caches remain at their accepted earlier versions.
+[Compiled V18 validation](../.local/mcc-material-index-audit-20261019/delivery-v18-preparation-v2/package-validation.json),
+[independent archive review](../.local/mcc-material-index-audit-20261019/delivery-v18-archive-review-v1/validation.json).
+Its scoped storage audit confirms all 26 recorded completed scratch owners are
+removed. The required coherent client/input/reference tree is 132,437,304 bytes;
+the requested ZIP/checksum add 183,623,403 bytes. Historical cleanup and active
+conversion work remain separate.
+[Retained paths and storage closure](../.local/mcc-material-index-audit-20261019/closure-v1/validation.json).
+
+V13 supersedes V11/V12's pipeline-registry lifetime implementation. A late-static
+device-owner control reproduced a crash; process-lifetime lookup state corrects
+it while wrapped device teardown still retires each cache. Both focused CTests,
+real focus/click/held-fire/look/movement, both installed runtimes and the portable
+V13 route pass. The visible/no-screenshot route still lacks a final cache-export
+trace, so persistence there remains unverified. Its untraced launcher reaches
+frame 5 at 52.91 seconds under high load; traced total duration is a separate
+measurement. All shader programs remain unchanged and full readiness stays false.
+
+The next startup investigation targets the retained renderer's serial image
+fingerprint loop. A private reconstruction restores its documented 24-byte mask
+vector and existing mask selection, reducing mismatched text/constant sections
+from 73 to seven without adding sections. It remains unaccepted: the retained
+object also contains particle-view ownership APIs absent from the committed
+baseline, and code/relocations still differ. All probe binaries are discarded;
+V13 and the ordinary renderer remain unchanged. Image sharing already verifies
+complete bytes and mip descriptors after lookup; any future lookup optimization
+must preserve those checks and leave the separate shadow identity hash intact.
 
 October 17 component validation now admits all 40 gameplay maps through actual
 Cache script preflight with zero unowned MCC calls or clock-getter substitutions.

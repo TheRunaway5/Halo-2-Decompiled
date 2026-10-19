@@ -569,6 +569,12 @@ MultiplayerHud::MultiplayerHud(HudContent content,
 std::optional<unsigned> MultiplayerHud::motion_sensor_material(unsigned view)const {
   return sensors_.at(view).material;
 }
+void MultiplayerHud::reset_lifetimes()noexcept {
+  winning_={};shields_={};seconds_=0;voice_text_.clear();
+  for(auto &sensor:sensors_) {
+    sensor.history={};sensor.tick=~0u;sensor.unit=null_datum;
+  }
+}
 void MultiplayerHud::update_motion_sensor(const MultiplayerState &s,unsigned id,unsigned view) {
   if(id>=s.players.size() || view>=materials_.size())throw FormatError("Invalid radar local player");
   auto &sensor=sensors_[view];const auto &p=s.players[id];

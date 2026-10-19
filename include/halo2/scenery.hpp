@@ -33,4 +33,8 @@ enum class SceneryLightingImplementation {per_vertex=1,dynamic=2,unsupported=3};
 // the separate source object-state override is not inferred.
 SceneryLightingImplementation scenery_lighting_implementation(const BspLighting&,
     const RenderModel&,const ScenarioObject&,const SceneryDefinition&);
+// Original model1 units carry the actual 10A8B0 scenery-reference ordinal.
+// Apply only its authored vertex streams, before WORLD posing. Materials and
+// object colors have separate owners and are not selected by this bridge.
+void apply_scenery_vertex_lighting(RenderModel&,const BspLighting&,unsigned instance);
 } // namespace halo2

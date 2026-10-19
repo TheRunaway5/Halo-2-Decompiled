@@ -68,6 +68,10 @@ SourcePeerHostTakeover::SourcePeerHostTakeover(std::shared_ptr<OnlineMatchSessio
     // not manufacture numeric deaths for the old host's complete couch bank.
     for(const auto &p:session_->roster())if(online_admission_peer(p)==decision_.previous.host)
         world_->match.depart(p.slot);
+    // Original GPU identities belong to the predecessor's renderer/PC. The
+    // private incoming world uses the actual original per-request retirement
+    // routine before sealing its new native adoption boundary.
+    world_->source_objects->retire_lens_queries();
     need(authority.execution_tick()==decision_.value.cut.tick&&current(*session_,decision_,admissions_));
     prepared_=authority.execution_boundary();
 }

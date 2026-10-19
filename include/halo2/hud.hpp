@@ -91,6 +91,13 @@ public:
                  unsigned local_players, std::string variant = "Slayer",
                  std::optional<HudBitmapGeometryConstants> geometry = {},
                  const std::filesystem::path &ui_assets = {},unsigned hand = 0);
+  // Completed-frame presentation replacement. Discard private clocks and
+  // trails before observing the accepted world. Keep uploaded bitmap/font/
+  // material identities, authored donor sampling and local input bindings.
+  // The caller must update/animate every local view and invalidate its radar
+  // upload tick before drawing. This does not change authoritative vitality,
+  // scores or input.
+  void reset_lifetimes()noexcept;
   // Consume each actual accepted simulation snapshot once, before drawing.
   void update_motion_sensor(const MultiplayerState &,unsigned player,unsigned view);
   std::optional<unsigned> motion_sensor_material(unsigned view)const;
@@ -128,6 +135,7 @@ private:
       {"E","X","Mouse 2","Q"},{"E","X","Mouse 2","Q"},{"E","X","Mouse 2","Q"},{"E","X","Mouse 2","Q"}}};
   Mesh &mesh_;
   std::vector<std::vector<std::vector<unsigned>>> materials_;
+  // Authored donor layer placement, independent of simulation/world lifetime.
   std::map<unsigned,std::array<float,2>> sampled_offsets_;
   double seconds_{};
   std::string variant_;

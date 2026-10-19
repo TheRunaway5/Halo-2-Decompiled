@@ -263,6 +263,7 @@ public:
   void request_checkpoint();
   void request_revert();
   std::uint64_t checkpoint_restores() const { return checkpoint_restores_; }
+  std::uint64_t cinematic_camera_discontinuity() const { return cinematic_camera_discontinuity_; }
   void advance_audio(float seconds) {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;sound_classes_.advance(seconds);}
   const SoundClassFades &sound_classes() const { return sound_classes_; }
   const std::array<int,5> &objectives() const { return objectives_; }
@@ -544,6 +545,9 @@ private:
   bool level_finished_{},reset_requested_{};
   std::optional<std::uint64_t> reverted_tick_;
   std::uint64_t checkpoint_restores_{};
+  // Host presentation invalidation only; source camera banks and saved game
+  // state keep their original ownership. Reverts also reset via restore count.
+  std::uint64_t cinematic_camera_discontinuity_{};
   void capture_checkpoint();
   void restore_checkpoint();
   CampaignCinematicState &mutable_cinematic_state();

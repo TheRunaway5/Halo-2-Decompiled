@@ -1,10 +1,29 @@
 # Xbox TU1.5 weapon parity goal
 
+Use [the remaining-work checklist](WEAPONS_TU15_GOAL_CHECKLIST.md) and
+[current goal state](../analysis/weapons-tu15-goal-20261013/goal-current.json)
+to resume this goal. The checklist is part of the completion contract: maintain
+it and the per-weapon matrix after each verified milestone, preserve unresolved
+items, and complete the cleanup obligations before declaring the goal complete.
+The sections below retain the detailed requirements and historical evidence.
+
 Status: **incomplete; work continuing**. The requested end state is feature and visual
 parity for every weapon, including campaign/AI, vehicle/turret, objective and
 otherwise unused authored variants. Passing a component test does not complete
 a weapon. Original executable/disc data and verified original execution remain
 the authority; unresolved owners are not replaced with tuning or artwork.
+
+Runtime acceptance uses the project's prepared **MCC cache only**. Xbox ISO and
+Vista caches are offline references and must not be substituted for runtime
+inputs. Historical ISO-cache checks, including the v69 Cairo application run,
+remain reference evidence and do not establish MCC acceptance. Future tag
+conversion belongs to the MCC import path; validation must use its actual
+output and expose unsupported data rather than inject reference tags.
+`tools/validate_weapon_material_snapshot_tu15.py` requires an explicit
+`--mcc-root`, validates version13 headers and records input hashes. MCC runtime
+cases use compiled TU1.5 startup without an Xbox image constructor. The old
+ISO-camera scenery fixture is excluded from this MCC acceptance route until an
+MCC camera case is established.
 
 The goal also requires removing unused test builds, compiler outputs and scratch
 after each completed validation and before declaring the overall work complete.
@@ -26,12 +45,19 @@ bytes and original image/cache hashes are retained in
 `analysis/weapons-tu15-goal-20261013/authored-scope.json`. Its per-weapon feature
 and visual status remains unverified for all 63 definitions.
 
-`weapon-completion-matrix-v54.json` expands those same63 rows into630 explicit
+`weapon-completion-matrix-v69.json` expands those same63 rows into630 explicit
 completion gates, including owner/applicability audits and complete reference
 sequences. Bounded Hunter and Needler runtime evidence is attached to their
 tested Old Mombasa and Lockout definitions; it certifies neither a whole gate
 nor all authored variants. No weapon
 is fully certified.
+
+The separately retained MCC inventory reads all43 prepared caches and finds
+1,479 weapon rows across66 distinct paths. All63 Xbox reference paths are
+present. The additional MCC `smg_silenced`, `gpmg` and Falcon `rpg` paths need
+applicability review; their presence is not a parity claim. Directory identities
+are recorded in `mcc-authored-weapon-scope-v1.json`. These MCC inputs, rather than
+the original map occurrences, govern new runtime acceptance.
 
 Completion requires each applicable weapon contract to be implemented and
 verified: trigger/barrel selection, burst/release scheduling, ammunition and
@@ -2349,3 +2375,386 @@ and correspondence remain in original-host-weapon-validation-progress-v1.json,
 checkpoint-original-host-weapon-validation-20261018.json and
 post-original-host-weapon-storage-audit-v1.json. Matrixv54 retains all63 weapons,
 1110 authored rows,38 maps and630 gates, with zero fully certified weapons.
+
+
+## Original weapon material inputs and plasma-rifle gauge (October18)
+
+The live held/body and world weapon material callbacks now resolve original
+one/zero builtins and authored object functions through actual bound weapon
+inputs. Enabled zero, age gates, authored curves and optional primary-trigger
+state retain their source ownership; an unavailable producer stays unresolved.
+Whole unchanged TU1.5 handlers substantiate two builtins and25 actual authored
+heat/ammunition cases. Nine additional native cases retain actual heat gates.
+
+The38-map metadata audit finds192 authored one references across five weapon
+paths. The concrete Lockout plasma-rifle gauge comparison executes1789 original
+instructions through the unchanged original shader consumers and callback.
+All188 shader words match native output; the previous callback differs at
+word19,9b6666ff instead of original/native9d6666ff. Its test prepares the actual
+pass with the runtime explicit zero camouflage value. The initial test omitted
+that required context and failed; its diagnostics remain retained.
+The188 unchanged-original words are also retained as a small mandatory native
+regression fixture, so matching only the previous callback is insufficient.
+
+Release application validation, all six selected checks, finite120-tick one/four
+player simulations and four sanitizer checks pass from one disposable coherent
+source snapshot. A separate diagnostic serialization build uses the same copied
+headers/libraries and records the complete gauge banks. All recorded private
+build/probe directories are removed; no new large artifact is retained. The
+focused actual SDL pickup/held-gauge probe passes on a private X11 display,
+observing the corrected one input on live plasma-rifle gauge materials. Its
+fixture delivers placement through original B95D0, rather than changing only
+the simulation position overwritten by source physics readback.
+
+The separate complete firing probe picks up the actual weapon at tick42 and
+submits two attack poses, but fails its combined shot/sound observation gate.
+No published shot_tick transition is observed after the real SDL fire input.
+That failure remains preserved and unresolved; the held-gauge result does not
+certify firing or sound. Source readback also retains the legacy last_shot
+publication field; do not infer actual shot count solely from that field.
+
+Metadata references do not prove all those model variants render correctly.
+Original callback registration, framebuffer, physical Xbox and full audio
+acceptance remain open. Matrixv55 retains all63 weapons and630 gates, with zero
+fully certified weapons. See weapon-material-input-original-native-progress-v1.json,
+checkpoint-weapon-material-input-20261018.json and
+post-weapon-material-input-storage-audit-v1.json in the goal analysis folder.
+
+## Source-authoritative shot publication, October18
+
+The source equipment readback now copies the literal preparation tick at weapon
+offset0x248 into the existing primary/offhand shot publication. OriginalTU1.5
+0x108607 stores the game clock tick loaded through0x51DF54; no tick adjustment
+is applied. The previous SDL plasma-rifle traces contained four actual source
+preparations in each placement mode, with52 sampled publication mismatches.
+After the correction, all64 sampled publications match the actual source banks.
+Both continued source placement and natural movement after pickup were checked.
+
+The four focused material/heat/charge checks pass. The two complete firing
+checks remain failed: four published shots each produce zero observed firing
+sounds. This validates timestamp readback only. Device activation, DSP/output,
+projectiles, complete rendered sequences and the full weapon scope remain open.
+The evidence is in `checkpoint-weapon-shot-publication-20261018.json`; private
+build/source trees are removed and only small reports and diagnostics remain.
+
+## Source plasma-bolt creation observations, October18
+
+Read-only entry/return observations of original B9B70 confirm four successful
+plasma-bolt constructions in each of three live SDL trials. The original
+614-instruction body correspondence and every retained listing byte were
+reverified against the authenticated original images. Each returned object has
+its actual full generation, projectile type, definition, unattached parent and
+initial velocity. Continued placement and natural post-pickup movement agree.
+Empty tick snapshots therefore do not prove failed source projectile creation.
+
+The third trial additionally observes original BA490 retirement requests and
+retains the existing source contact diagnostics. All four bolts complete two
+source contact effects about0.47 units from their birth position and retire
+in the same source tick through original B92B5->BA490. This scene's empty
+projectile snapshots are explained by those contacts. The next flight trial
+must use a clear firing lane. Exact callers and raw state are in
+`weapon-projectile-retirement-analysis-v2.json`. Complete flight/contact/
+retirement and original-render acceptance remain open; zero firing sounds still
+fail the complete firing checks. No generated binary, source copy or raw bank
+is retained. See `checkpoint-weapon-projectile-evidence-20261018.json`.
+
+## Source plasma-bolt flight in a clear authored scene, October18
+
+The actual SDL pickup/fire fixture now supports an authored spawn selected by
+host clearance rays. Those rays only choose scene inputs; original B95D0 owns
+placement and original projectile routines still own all movement and contacts.
+All four constructed bolt handles are observed in sustained flight, with
+monotonic travel read directly from their actual source banks. Each also submits
+its authored glow with valid vertices into the real gameplay viewport. All four
+complete13 source ticks of flight, contact effects and retirement in this scene. Exact
+counts, selected spawn, source hashes and failure diagnostics are preserved in
+`checkpoint-weapon-clear-flight-20261018.json`.
+
+The four focused material/heat/charge checks pass. The complete firing check
+still fails on zero firing sounds. This sequence does not yet compare its glow
+inputs with independent original execution or certify an Xbox framebuffer,
+complete projectile lifecycle, whole weapon or other map variants. Temporary
+build/source trees are removed; no new large reference inputs are retained.
+
+## Original comparison of actual plasma-bolt glow inputs, October19
+
+All52 actual single-view gameplay glow records, over four complete source
+object generations, match the unchanged TU1.5 sprite/projector consumers:
+3744 XYZW/RGBA/UV vertices and every bitmap range are bit-identical. Retail
+and TU1.1 consumers independently agree under the declared same-input ABI.
+The bounded retained input JSON is222739 bytes and reproduces the
+original comparison report byte-for-byte after the private build is removed.
+See `checkpoint-weapon-live-glow-original-20261019.json`.
+
+The full firing test still fails on zero firing sounds and retains its original
+nonzero verdict. Hardware entry/submission boundaries are explicit in the
+original report. Framebuffer, complete producer/lifecycle, other views/species/
+variants and whole-weapon acceptance remain open. Raw captures, binaries and
+private source/build trees are removed; the small required input fixture and
+comparison/failure reports are retained.
+
+## Source species and split-screen glow comparison, October19
+
+The five new cohorts cover two/four Spartan views and one/two/four Elite views.
+Together with the preceding single Spartan view, both species cover all three
+local-view layouts. Each verifies actual source biped tags against the selected authored
+representation and observes all four source bolts in every gameplay view.
+All648 captured glow records and
+46656 vertices per original image, including
+colors/UVs/bitmap ranges, match unchanged TU1.5 consumers exactly. The retained
+four-view fixture independently reproduces the original report after build
+cleanup. See `checkpoint-weapon-glow-species-view-20261019.json`.
+
+The first batch preserved two duplicate-keyboard fixture failures and a parent
+report-directory label error. The corrected fixture uses the existing standalone
+input assignment with one keyboard owner and neutral absent controllers.
+The four focused checks pass; all complete firing tests still fail on
+zero firing sounds. Framebuffer, complete producer/lifecycle
+and remaining weapon/variant acceptance remain open. Only bounded required
+input fixtures and small reports remain; private binaries/raw captures/source
+copies/build trees are removed.
+
+## Live dual-SMG histories and HUD storage, October19
+
+Both actual source species now complete the SDL map pickup, carried switch,
+dual pickup, independent trigger fire, reload, grenade throw and offhand-drop
+sequence. All745 hand identity/ammunition/preparation-tick publications match
+their original source banks. The two datums submit616 animated weapon poses
+across seven clips per species. See `checkpoint-weapon-dual-source-history-20261019.json`.
+
+The first run in each species stopped at original25AA73 reading NULL+82.
+The unchanged original reproduces that exact fault independently. Actual
+25A71C/1976CF allocation and1976FE new-map initialization now own the missing
+50EECC HUD storage;92 new original instructions retain the complete map reset.
+The existing63 routine bodies are unchanged after identity-address normalization.
+The corrected live runs retain a stable nonzero HUD binding through drop.
+
+The four focused checks pass. Both complete tests remain failed on seven
+rounds and zero authored firing-sound submissions each. Full framebuffer/audio,
+all maps/weapon pairs, interruption and drop-world lifetime acceptance remain
+open. Private builds/source/scratch are removed; small reports retain the
+original failures and corrected observations. No large new captures or binaries
+are retained. Full certification remains zero of63 weapons.
+
+## Detached weapon resource readback, October19
+
+The real drop sequence redistributes reserves from116 while held to53 in the
+detached original object. The native world item retained its former held state.
+Held and loose weapons now share the same source-bank readback for both barrels,
+triggers, magazines, preparation clocks and shader fields. Both species match
+all2130 detached identity/inventory/root/ammunition publications, including1024
+neutral headless ticks each. Both objects remain live in that window; no cleanup
+timer or complete retirement policy is inferred. See
+`checkpoint-weapon-dual-drop-lifetime-20261019.json`.
+
+Completed source node banks differ from the local pickup idle sampler in these
+scenes. This is a completed-tick matrix comparison, not an interpolated GPU or
+framebuffer proof. Loose-weapon source pose publication/rendering and LAN pose
+ownership are the next required visual work. The fresh application passes one-
+and four-player finite checks; four focused checks pass. Both complete live
+tests still fail on seven rounds and zero firing sounds. Private source/build/
+scratch trees are removed, including the cancelled fixture setup; only small
+reports and source-node evidence remain. Full certification stays zero of63.
+
+## Loose weapon original poses and native transport, October19
+
+Loose weapons now publish original WORLD nodes, participate in native LAN pose
+ownership, and use original accepted geometry, LOD/regions, rendered nodes and
+cached lighting in local source-owned views. Attach/drop transitions cut the
+pose interpolation across inventory ownership changes. Native LAN protocol90
+rejects older decoders that cannot admit loose owners. Both species match the
+completed-tick nodes and original selected-region palette matrices in actual
+dual-SMG scenarios. See `checkpoint-weapon-loose-source-pose-20261019.json` for
+exact counts, source hashes and retained failures.
+
+The first Elite LAN attempts exposed an existing explosion-location decoder
+restriction to scale1. Original17BA50 preserves all52 WORLD transform bytes;
+the live Elite scene contains scale1.5. The decoder now retains finite source
+scale using the existing firing-location bound. Both species admit with zero
+packet rejections, and every observed source explosion transform survives
+byte-for-byte. All five focused checks and both finite application checks pass.
+Both full live tests still fail on seven rounds and zero firing sounds each.
+Endpoint matrices do not certify intermediate interpolation, split views,
+composed LAN LOD/lighting or an Xbox framebuffer.
+
+The all-map metadata audit also finds94 of1110 authored rows with world models
+excluded by the current first-person-record filter, spanning27 weapon paths.
+Unchanged original3D3D0 returns one world model for all667 authored model
+chains, including those94 rows, without reading a first-person bank. The443
+model-NONE rows are excluded before that original call. These campaign variants
+still require actual owner/render checks; a model count does not authorize
+native pickup or equip behavior. Keep the complete63-path/630-gate scope open.
+All validation source/build/scratch trees are removed after terminal runners;
+only small reports remain. Full weapon certification stays zero.
+
+## Campaign source weapon units, October19
+
+The original campaign collector separately builds actor-held weapon units, but
+the old drawing loop submitted actor bodies and native pickup previews. The new
+campaign weapon scene prepares authored world resources independently of FP or
+pickup eligibility, and submits only completed original main units. It retains
+each unit's section order/LOD, completed WORLD skin, packed colors and cached
+lighting; shader state comes from that actual weapon's source fields and
+magazines. Unknown producers and resource owners remain explicit boundaries.
+Overrides stay separate. BSP material rebases and restored/discontinuous pose
+histories reset without advancing simulation.
+
+The actual Cairo ai_place scenario now submits its original attached weapon.
+It is the authored h_turret_mp_item, whose FP record bank is empty; this is an
+actual source-owned world-only positive, not a synthetic pickup eligibility case.
+Geometry matches independently decoded authored sections skinned by the source
+WORLD bank, material identities/LODs match, cached lighting words match, and
+three actual source magazine/builtin shader inputs pass per submitted unit.
+Source RNG is unchanged; absent original admission emits no stale draw. Exact
+counts and source hashes are in
+`checkpoint-weapon-campaign-source-submission-20261019.json`. Four focused and
+two finite application checks pass, together with the armed CPU scenario.
+The application checks here are multiplayer headless checks; composed campaign
+GPU submission, final pixels, other map/owner variants and full audio remain open.
+
+The earlier94-row result describes the multiplayer body_guns filter, not94
+proved missing campaign pixel cases. Campaign selects its own FP record; the
+new world scene has no FP residency prerequisite. Keep original owner eligibility
+and full visual acceptance separate. Temporary source/build/probe outputs are
+removed after terminal runners; small diagnostics and evidence remain. Full
+certification is still zero of63 weapons.
+
+## Actual campaign application frontier, October19
+
+Two freshly built actual Cairo application runs place the original Johnson
+squad and initialize the RTX5080, then fail before their first frame on a
+scenery lighting-owner guard. Seven companion checks pass in each attempt;
+zero weapon inputs or Vulkan weapon commands submit. A read-only per-object
+vkCmdDraw observer is implemented, but has no positive application case yet.
+The smaller model-only probe does not reproduce this failure and stays red.
+
+The full application identifies dress_cap F9D6179E, placement583, class1,
+no override and a full range. Its original instance146 selects baked bucket4
+with matching checksum336987148. The scene caches its model bank using only
+definition/variant; the first matching placement152 has no BSP0 baked record,
+so a dynamic bank is reused for the later baked placement. The actual source
+packet and untouched cache records establish this ownership mismatch. See
+`checkpoint-weapon-campaign-application-frontier-20261019.json`.
+
+The correction still requires class1 material capability and original per-section
+incident/radiance streams, selected per original unit/current BSP instead of
+the first placement's lighting mode. The guard remains strict; scenery is not
+omitted. GPU/framebuffer and full audio acceptance remain open, with zero of63
+weapons fully certified. All owned builds/source/scratch are removed after
+terminal runs; only small commands, hashes, reports and diagnostics remain.
+
+## Per-instance campaign scenery lighting and first weapon GPU submission, October19
+
+The shared campaign scene bank now prepares class1 and class2 shader capability
+independently of the first placement's lighting mode, sharing immutable geometry.
+Each actual original unit selects its own lighting class and packed scenery
+reference against the current BSP. Class1 consumes its checksum-checked authored
+section offsets, world-space incident directions and RGB vertex streams before
+WORLD posing. Overrides, unsupported classes and partial ranges still reject.
+
+The captured-camera CPU regression reaches the exact earlier dress-cap packet
+at placement583/reference146 despite constructing its resources from placement152.
+It verifies3978 baked vertices,87 dynamic vertices and12 rejection controls.
+Authored emissive/transparent passes keep their independent implementations;
+selected shader payloads are compared against independently prepared originals.
+The smaller CPU collection has58 model units/20 particle commands, versus61/21
+in the application, so complete scene-state equivalence is not claimed.
+
+Eight companion checks pass. The actual Cairo application now submits frame0
+with12 source weapon units and17 Vulkan weapon draws. The original held
+world-only turret item submits834 vertices in two actual draws (438 and396),
+with its full source identity, selected shaders, owner constants, pipeline,
+descriptor and vertex-buffer bindings observed after vkCmdDraw. The required
+four-frame application still fails on its next update at original root1CC8D0,
+call32AB71 ->32ABD8. No return is supplied and this failure remains red.
+
+See `checkpoint-weapon-campaign-scenery-lighting-20261019.json`. These command
+observations do not prove visible samples, Xbox framebuffer parity or complete
+audio. All63 weapons/630 gates remain in scope with zero fully certified.
+Both disposable validation builds/source trees and application scratch are
+verified removed; only small reports, hashes and diagnostics are retained.
+
+## Full bounded Cairo application passes, October19
+
+The shared original32A990 CRT copy entry now reaches its existing complete
+Process owner instead of an incomplete private light-portal copy closure.
+No instruction or return is substituted. All704 declared overlap/alignment/size
+cases pass through the live world, comparing the complete512-byte operand
+buffer and returned destination. Independent Unicorn execution of untouched
+TU1.5 bytes passes the same704 cases, including36 executions of32ABD8, with
+original return stack, callee-saved registers and direction flag checked.
+The original comparison is bounded; it does not establish whole native ABI
+identity. The earlier cold-constructor fixture failed before reaching copy;
+that evidence remains separate from the passing explicit-reference case.
+
+All10 checks pass in the fresh snapshot, including the scenery regression,
+actual actor/weapon source submission and four actual Cairo application frames.
+Each frame submits12 original source weapon units and17 Vulkan weapon draws.
+Eight retained target turret-item commands across four frames have matching
+full owner/shader identities and observed owner constants, pipeline, descriptor
+and vertex-buffer bindings. The application exits0 in282.49sec without timeout.
+These are functional observations under the retained validation compiler flags,
+not a performance benchmark, visible-sample comparison or Xbox framebuffer proof.
+
+See `checkpoint-weapon-campaign-copy-dispatch-20261019.json`. The current renderer
+changed in another workspace task after the validated snapshot; that drift is
+recorded, and unrelated edits remain intact. Full63-weapon/630-gate visual/audio,
+map/owner variants and complete sequences remain open; zero weapons are fully
+certified. All owned generated source/build/application/probe/publisher scratch
+is verified removed, with no new large artifacts retained.
+
+## Expanded campaign BR/SMG/turret world coverage, October19
+
+The exact retained-camera CPU scene now independently verifies all12 admitted
+weapon units/4104 vertices:1 attached turret item (834 vertices),4 loose battle
+rifles (1464),7 loose SMGs (1806). Ordered source sections, completed WORLD
+poses, authored part/shader LODs, cached lighting bytes and written original
+color channels match. The application collector retains every weapon command
+and identity instead of filtering its report to the turret item, and requires
+all three definitions in each submitted frame of the existing four-frame check.
+
+Nine companion checks pass. The fresh application submits only frame0 before
+its300-second timeout. That frame retains12 weapon inputs and17 Vulkan draws:
+2 turret-item,8 battle-rifle and7 SMG commands. Each owner/vertex count and
+observed GPU shader/LOD pair agrees with its independent CPU scene result.
+The full four-frame check remains failed; per-definition coverage is true only
+for the one submitted frame. The previous four-frame checkpoint67 remains a
+separate result against its earlier source snapshot. Current main.cpp changed
+after this validation snapshot; its drift is recorded and preserved.
+
+See `checkpoint-weapon-campaign-scene-weapons-20261019.json`. Startup/renderer/
+update timing and shipping Release optimization are the next investigation;
+no frame requirement is reduced. This is not matched Xbox framebuffer/audio
+or complete weapon certification. All63 paths/630 gates remain open, with zero
+fully certified. Four recorded source/build/application/publisher scratch paths
+are removed and no new large artifacts are retained.
+
+## Release four-frame BR/SMG/turret coverage, October19
+
+The fresh optimized Release snapshot passes all10 checks. Its actual Cairo
+application completes four frames in92.70sec, retaining48 original weapon
+inputs and68 actual Vulkan weapon commands. Every frame contains all three
+definitions:1 attached turret item,4 loose BRs and7 loose SMGs. The independent
+CPU case still matches12 source units/4104 vertices, authored shader LODs,
+WORLD nodes, cached lighting bytes and written original colors. First-frame
+owner/vertex counts and GPU shader/LOD choices agree with that CPU selection.
+
+Opt-in monotonic trace stages separate startup from frame work. Resources reach
+renderer construction at14.73sec; renderer initialization takes69.52sec and
+finishes at84.25sec. This functional run uses-O2 with the existing strict FP
+options; it is not a controlled before/after performance or gameplay FPS
+benchmark. The earlier-O0 timeout remains preserved as a separate failed run.
+
+See `checkpoint-weapon-campaign-scene-weapons-release-20261019.json`. Current
+renderer edits and separately prepared cold-HUD changes differ from the
+validated snapshot and remain explicit. Original197741 writes the selected
+HUD tag address to51DF94; the pinned retail loader supplies four zero bytes,
+but native startup storage lacked that destination. The exporter now adds
+only those four writable bytes, preserving every other generated byte. The
+original routine still produces the real tag address. A cold-world/HUD/copy
+regression is prepared but not yet run; no cold-HUD acceptance is claimed.
+
+All63 paths/630 gates, original matched visual/audio and complete weapon/owner/
+map sequences remain required; zero weapons are fully certified. All recorded
+validation/probe/export/publisher scratch paths are removed and no new large
+artifacts are retained.

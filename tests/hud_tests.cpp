@@ -402,6 +402,7 @@ void species_sprites(const Cache &cache,const LevelContent &level,std::uint32_t 
   unsigned compared{};
   for(unsigned representation:{2u,3u}) {
     const auto content=cache.load_hud(level.player_representations.at(representation).biped.datum,weapon);
+    check(content.unit_representation==representation,"Authored unit HUD lost its actual biped representation");
     for(const auto &widget:content.widgets) {
       if(widget.is_text || widget.special || (widget.flags&0x1c) || widget.bitmap==null_datum)continue;
       const auto &image=content.images.at(widget.bitmap);
@@ -415,7 +416,9 @@ void species_sprites(const Cache &cache,const LevelContent &level,std::uint32_t 
         p.source_configuration=native_selected_player_configuration("HUD",colors,-1);
         const auto vertices=hud.draw(state,0,0,1,640,480,25,14400);
         if(vertices.empty())continue;
-        const auto &sprite=image.sequences[widget.sequence[0]][appearance];
+        // The actual biped's matg representation owns the unit HUD. Changing
+        // a profile appearance cannot reskin this already selected biped.
+        const auto &sprite=image.sequences[widget.sequence[0]][representation==3?1u:0u];
         check(vertices.size()==6,"Authored species sprite did not produce one quad");
         float left=1,right=0,top=1,bottom=0;
         for(const auto &v:vertices){left=std::min(left,v.uv.x);right=std::max(right,v.uv.x);
@@ -479,16 +482,26 @@ void retail(const std::filesystem::path &directory,
   }
   {
     // Original13A163 and13A183 independently set0x1000 and0x2000.
-    // The real Spartan and Elite shield rows both require0x1000. Appearance
-    // must choose the second sprite without disabling the shield/status row.
-    auto isolated=content;
-    std::erase_if(isolated.widgets,[](const auto &w){
-      return w.name!="shield_meter" && w.name!="shield_mask";
-    });
-    check(isolated.widgets.size()==2,"Missing authored shield rows");
-    Mesh shield_mesh;
-    MultiplayerHud shield_hud(std::move(isolated),directory/"fonts",shield_mesh,2,
-                             "Slayer",{},assets);
+    // The real Spartan and Elite shield rows both require0x1000. Each
+    // actual selected biped owns its HUD and species-specific sprite/color.
+    const std::array shield_contents{content,
+        cache.load_hud(level.player_representations.at(3).biped.datum,weapon)};
+    std::array<Mesh,2> shield_meshes;
+    std::array<std::unique_ptr<MultiplayerHud>,2> shield_huds;
+    std::array<HudWidget,2> shield_widgets;
+    for(unsigned id=0;id<2;++id) {
+      check(shield_contents[id].unit_representation==id+2,"Shield HUD lost its actual biped representation");
+      auto isolated=shield_contents[id];
+      std::erase_if(isolated.widgets,[](const auto &w){
+        return w.name!="shield_meter" && w.name!="shield_mask";
+      });
+      check(isolated.widgets.size()==2,"Missing authored shield rows");
+      const auto meter=std::find_if(isolated.widgets.begin(),isolated.widgets.end(),
+          [](const auto &w){return w.name=="shield_meter";});
+      check(meter!=isolated.widgets.end(),"Missing authored species shield meter");shield_widgets[id]=*meter;
+      shield_huds[id]=std::make_unique<MultiplayerHud>(std::move(isolated),directory/"fonts",shield_meshes[id],2,
+                             "Slayer",std::nullopt,assets);
+    }
     auto shield_state=state;
     const std::array<std::uint8_t,9> elite_appearance{10,0,0,10,1,0,0,0,0};
     shield_state.players[1].source_configuration=native_selected_player_configuration(
@@ -496,6 +509,8 @@ void retail(const std::filesystem::path &directory,
     for(const float amount:{1.f,.5f,0.f,.75f,2.5f}) {
       ++shield_state.tick;
       for(unsigned id=0;id<2;++id) {
+        auto &shield_hud=*shield_huds[id];auto &shield_mesh=shield_meshes[id];
+        const auto &shield_widget=shield_widgets[id];
         shield_state.players[id].shield=amount;
         shield_hud.animate(shield_state,id,id,25,14400,shield_state.tick/30.0);
         const auto drawn=shield_hud.draw(shield_state,id,id,2,640,480,25,14400);
@@ -510,10 +525,10 @@ void retail(const std::filesystem::path &directory,
           });
           const auto viewport=hud_viewport(2,id,false);
           const auto mode=hud_screen_mode(unsigned(viewport.outer.right-viewport.outer.left),
-              unsigned(viewport.outer.bottom-viewport.outer.top),shield->anchor,false);
+              unsigned(viewport.outer.bottom-viewport.outer.top),shield_widget.anchor,false);
           check(shield_mesh.materials.at(first->material).diffuse.pixels==
-                    content.images.at(shield->bitmap).images.at(
-                      content.images.at(shield->bitmap).sequences.at(shield->sequence[mode]).at(1).image).pixels || !assets.empty(),
+                    shield_contents[id].images.at(shield_widget.bitmap).images.at(
+                      shield_contents[id].images.at(shield_widget.bitmap).sequences.at(shield_widget.sequence[mode]).at(1).image).pixels || !assets.empty(),
                 "Elite shield did not select its authored split sprite");
           if(amount==1.f) {
             const auto &m=shield_mesh.materials.at(first->material);

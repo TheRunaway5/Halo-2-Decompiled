@@ -1,10 +1,12 @@
 #include "halo2/source_effect_particle_draw_tu15.hpp"
 #include "halo2/source_particle_constant_storage_tu15.hpp"
 #include "halo2/source_particle_world_execution_tu15.hpp"
+#include "halo2/source_particle_target_tu15.hpp"
 #include "halo2/source_view_projection.hpp"
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <cstring>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 
@@ -34,10 +36,12 @@ void bank(const std::filesystem::path &p,const SourceRuntimeMemory &m,
 }
 void inputs(SourceRuntimeMemory &m) {
     mount_source_particle_graphics_layout_data_tu15(m);
-    for(const auto [p,n]:std::array<std::pair<unsigned,unsigned>,13>{{
+    mount_source_particle_target_data_tu15(m);
+    for(const auto [p,n]:std::array<std::pair<unsigned,unsigned>,16>{{
         {device+8,0x1c20},{0x411568,4},{0x4117b8,0x50},{0x473570,4},
         {0x473628,8},{0x491e20,0x298},{0x4920d8,4},{0x4922f4,16},{0x4c2aa0,8},
-        {0x4c4c5c,8},{0x515e94,8},{0x515edc,1},{scratch,65536}}})
+        {0x4c4c5c,8},{0x515e94,8},{0x515edc,1},{scratch,65536},
+        {0x515e3c,0x50},{0x52dfc4,12},{0x4c1378,0x1728}}})
         m.mount(p,std::vector<std::byte>(n,std::byte{0xa5}),SourceRuntimeMemory::Access::ReadWrite,
             "declared CPU view-context/SDK inputs; no original startup, GPU allocation or prior-frame history");
     put(m,0x411568,device);put(m,device+8,0x200);put(m,device+0x1928,1);
@@ -50,6 +54,10 @@ void inputs(SourceRuntimeMemory &m) {
     put(m,0x4922f4,0x3c800000);put(m,0x4922f8,0x44800000);
     put(m,0x4c2aa0,17);put(m,0x4c2aa4,19);
     put(m,0x473628,0x3f000000);put(m,0x47362c,0);
+    // Explicit unavailable target records. The new original target owner
+    // must reach its real SDK attachment service; no callee return supplied.
+    put(m,0x4c1378+18*0x98+0x88,0);
+    put(m,0x52dfc4,0);put(m,0x52dfc8,0);
     const std::byte zero{};m.write(0x515edc,std::span(&zero,1));
     put(m,sp,stop);
 }
@@ -58,6 +66,10 @@ int main(int argc,char **argv)try {
     if(argc>2)throw FormatError("Optional new original view-context evidence directory");
     const std::filesystem::path out=argc==2?argv[1]:"";
     if(!out.empty()) {
+        const char *scratch_env=std::getenv("HALO2_TEST_SCRATCH");
+        if(!scratch_env || !std::filesystem::weakly_canonical(out).string().starts_with(
+            std::filesystem::canonical(scratch_env).string()+"/"))
+            throw FormatError("Raw view-context evidence must use owned HALO2_TEST_SCRATCH");
         if(std::filesystem::exists(out))throw FormatError("Preserve prior original view-context evidence");
         std::filesystem::create_directories(out);
     }
@@ -109,7 +121,7 @@ int main(int argc,char **argv)try {
         bool completed=true;
         try {source_run_particle_world_execution_tu15(storage,entry,a,*a.floating_point,services);}
         catch(const FormatError&){if(!missing)throw;completed=false;}
-        const unsigned expected_missing=context?0x14ba0:selection && mode>=1 && mode<=6?
+        const unsigned expected_missing=context?0x401950:selection && mode>=1 && mode<=6?
             (mode==6?0x222b0:0x3ff720):0;
         if(missing!=expected_missing || completed==bool(missing))
             throw FormatError("Original view-context stopped at an unexpected owner");

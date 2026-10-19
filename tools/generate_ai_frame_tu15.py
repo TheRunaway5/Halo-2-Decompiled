@@ -107,6 +107,7 @@ def main():
                 elif operand.type==3:addresses[operand.mem.disp&0xffffffff]=operand.mem.disp&0xffffffff
     paired=dict(image='English TU1.5',original_sha256=NEW_PIN,entries={f'{p:08x}':p for p in entries},
         body_sites=sites,instruction_map=instructions,address_map={f'{p:08x}':q for p,q in addresses.items()},routines=routines)
+    assert {0x27caa0,0x27cb30} <= entries, 'Original actor iterator bodies missing'
     a.directory.mkdir(parents=True,exist_ok=True);correspondence=a.directory/'bodies.json'
     correspondence.write_text(json.dumps(paired,indent=2,sort_keys=True)+'\n')
     generate(SimpleNamespace(output=a.output,manifest=a.directory/'generation.json',correspondence=correspondence,additional_entries=Path(__file__)),paired)
@@ -121,6 +122,7 @@ def main():
     if 0x218020 in entries:exported_helpers.append(0x218020)
     if 0x2afa50 in entries:exported_helpers.append(0x2afa50)
     if 0x27fa20 in entries:exported_helpers.append(0x27fa20)
+    exported_helpers.extend([0x27caa0,0x27cb30])
     source,n=re.subn(r'bool source_ai_frame_tu15_owns_entry\(std::uint32_t p\) \{[^\n]+',
         'bool source_ai_frame_tu15_owns_entry(std::uint32_t p) {return '+
         ' || '.join(f'p==0x{p:x}u' for p in [0x1d0670,*exported_helpers])+';}',source);assert n==1

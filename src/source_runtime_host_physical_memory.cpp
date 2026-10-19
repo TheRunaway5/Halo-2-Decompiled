@@ -9,6 +9,7 @@
 #include <mutex>
 #include <set>
 #include <cstring>
+#include <cstdlib>
 #if defined(__linux__)
 #include <sys/mman.h>
 #include <unistd.h>
@@ -67,8 +68,15 @@ SourceRuntimeHostPhysicalMemory::SourceRuntimeHostPhysicalMemory(SourceRuntimeMe
     std::lock_guard lock(physical_protection_mutex);physical_protections.emplace(this,state);
   }
   try {
-    source_runtime_register_write_guard(memory_,this,[state](std::uint32_t address,std::size_t bytes) {
+    const auto *reference=std::getenv("HALO2_REFERENCE_ALL_PHYSICAL_WRITE_GUARDS");
+    const bool all_ranges=reference && *reference;
+    source_runtime_register_write_guard(memory_,this,[state,all_ranges](std::uint32_t address,std::size_t bytes) {
       const auto end=std::uint64_t(address)+bytes;
+      // allocate() publishes only upper-half physical tokens; restored
+      // ownership enforces the same namespace. Ordinary writes ending at
+      // that boundary cannot intersect any physical protection row. Keep
+      // spanning writes, native aliases and every physical write checked.
+      if(!all_ranges && end<=0x80000000ull)return;
       std::lock_guard lock(state->mutex);
       const auto first=state->read_only.lower_bound(address&~(page-1));
       if(first!=state->read_only.end() && *first<end)

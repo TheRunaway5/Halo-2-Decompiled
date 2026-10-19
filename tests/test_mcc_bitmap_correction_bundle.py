@@ -14,6 +14,7 @@ from audit_rendering import FormatError
 from mcc_bitmap_correction_bundle import BUNDLE, decode_delta, validate_profile
 import mcc_bitmap_correction_bundle as bundle
 import mcc_bitmap_correction_bundle_v3 as bundle_v3
+import mcc_bitmap_correction_bundle_v4 as bundle_v4
 import mcc_graphics_corrections as graphics
 from mcc_content import MccCache, texture_resource
 
@@ -86,6 +87,30 @@ class BitmapCorrectionBundleTests(unittest.TestCase):
         self.assertEqual(sum(p["profile"]["mip_count"] for p in manifest["profiles"]), 23)
         self.assertEqual([p["profile"]["format"] for p in manifest["profiles"]], [16, 11, 16])
         self.assertEqual(sum(p["delta_bytes"] for p in manifest["profiles"]), len(packed))
+
+    def test_shipped_v4_owns_distinct_complete_donor_and_original_extents(self):
+        root = Path(__file__).resolve().parents[1]
+        path, manifest, packed = bundle_v4.read_v4(root)
+        self.assertEqual(path, root / bundle_v4.BUNDLE_V4)
+        self.assertEqual((len(manifest["donor_mips"]), len(manifest["target_mips"])), (9, 8))
+        self.assertEqual(sum(m["size"] for m in manifest["donor_mips"]), 87388)
+        self.assertEqual(sum(m["size"] for m in manifest["target_mips"]), 21852)
+        self.assertEqual(manifest["base_offset"] + 21852, 87388)
+        self.assertEqual(sha(packed), manifest["delta_sha256"])
+        with self.assertRaisesRegex(FormatError, "donor"):
+            bundle_v4.reconstruct_v4(root, {bundle_v4.PROFILE_V4["tag"]: bytes(87388)})
+
+    def test_v4_rejects_shifted_source_slice_before_reconstruction(self):
+        root = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as temp:
+            dst = Path(temp) / bundle_v4.BUNDLE_V4
+            dst.parent.mkdir(parents=True)
+            dst.write_bytes((root / bundle_v4.BUNDLE_V4).read_bytes())
+            metadata = json.loads((root / bundle_v4.BUNDLE_V4).with_suffix("").read_bytes())
+            metadata["base_offset"] -= 1
+            dst.with_suffix("").write_text(json.dumps(metadata))
+            with self.assertRaisesRegex(FormatError, "identity or extent"):
+                bundle_v4.read_v4(Path(temp))
 
 
 class BitmapCorrectionAtomicApplicationTests(unittest.TestCase):
@@ -343,6 +368,15 @@ class BitmapCorrectionAtomicApplicationTests(unittest.TestCase):
         self.assertFalse(report["complete"])
         self.assertIn("v3", report["blocker"])
         self.assertEqual(before, [p.read_bytes() for p in paths])
+
+    def test_legacy_graphics_reference_registry_is_not_an_import_input(self):
+        registry = self.root / "assets/graphics-restoration-source.tsv"
+        registry.parent.mkdir()
+        registry.write_text("invalid offline reference selection")
+        report = graphics.apply_selected(self.root, self.pack)
+        self.assertTrue(report["complete"])
+        self.assertEqual(report["source"], "bundled MCC pixel delta")
+        self.assertEqual(registry.read_text(), "invalid offline reference selection")
 
     def test_last_metropolis_delta_failure_rejects_both_maps_without_writes(self):
         packed = bytearray(self.bundle_v3_path.read_bytes())

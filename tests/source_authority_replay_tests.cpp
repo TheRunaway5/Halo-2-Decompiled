@@ -183,19 +183,34 @@ void run(int argc,char **argv){
             std::cout<<"PASS production paired publisher: 70 actual native frames, historical end-of-batch host state, bounded two-cut prefetch and exact validated host checkpoint\n";
         }else{
             wait([&]{return session->source_players().has_value();},"Paired stream source admissions did not arrive");
+            lan_client->bind_continuity(context,self,session->roster());
+            MultiplayerSnapshotOrigin origin;unsigned snapshot_receipts{};
+            // Keep the ordinary client pump alive while the other executor
+            // decodes/replays. An immutable receipt survives empty receives;
+            // deferring all gameplay ingress until after 70 fragmented source
+            // snapshots would test the bounded datagram queue instead.
+            const auto pump_receipts=[&]{pump();for(const auto &receipt:lan_client->received_origins()){
+                origin=receipt;++snapshot_receipts;}};
             check(background->pause_replay(true),"Cannot pause paired worker before prefetch");
             wait([&]{return background->state().replay_paused;},"Paired replay pause was not acknowledged");marker(files/"paired-stream-ready");
-            wait([&]{const auto s=background->state();check(s.error.empty(),s.error.c_str());
+            wait([&]{pump_receipts();const auto s=background->state();check(s.error.empty(),s.error.c_str());
                 return s.received>=3&&s.replaying;},"Paired worker did not receive full baseline and two replay cuts");
-            check(!background->state().host_ready&&!background->state().ready,"Partially applied paired stream exported readiness");
+            {const auto s=background->state();check(!s.host_ready&&!s.ready&&!s.host_proof,"Partially applied paired stream exported readiness or proof");}
             check(background->pause_replay(false),"Cannot resume paired native replay");
-            wait([&]{const auto s=background->state();check(s.error.empty(),s.error.c_str());
+            wait([&]{pump_receipts();const auto s=background->state();check(s.error.empty(),s.error.c_str());
                 return s.host_ready&&s.ready&&!s.replaying&&s.replayed_phases==70&&std::filesystem::exists(files/"paired-stream-complete");},
                 "Paired worker did not validate all native phases and host owners");
             const auto good=background->state();marker(files/"paired-stream-downgrade-ready");
+            check(good.host_proof&&good.host_proof->cut().peer==self&&good.host_proof->cut().context==context&&
+                good.host_proof->cut().seal==good.ready->seal,"Paired replay worker omitted its exact validated host proof");
+            wait([&]{if(origin.tick()!=good.ready->seal.tick)pump_receipts();
+                return origin.context()==context&&origin.tick()==good.ready->seal.tick;},"Paired replay snapshot receipt did not reach native client");
+            check(good.host_proof->prove_snapshot(*lan_client,origin).matches(origin),"Native replay proof lost its exact received snapshot");
+            rejects([&]{good.host_proof->prove_snapshot(*lan_client,MultiplayerSnapshotOrigin{});});
             wait([&]{const auto s=background->state();return s.received>good.received&&!s.decoding&&!s.error.empty();},"Paired stream did not reject a stripped host owner");
             const auto rejected=background->state();check(rejected.host_ready&&rejected.ready&&rejected.ready->seal==good.ready->seal&&
-                rejected.ready->context==good.ready->context&&!rejected.replaying&&rejected.replayed_phases==70,
+                rejected.ready->context==good.ready->context&&!rejected.replaying&&rejected.replayed_phases==70&&
+                rejected.host_proof&&rejected.host_proof->cut().seal==good.host_proof->cut().seal,
                 "Rejected downgrade replaced the last validated paired world");
             check(encode_source_authority(background->checkpoint(*good.ready).get())==read(files/"paired-stream-world"),
                 "Rejected native-only downgrade mutated the last validated world");
@@ -205,7 +220,9 @@ void run(int argc,char **argv){
             check(encoded==read(files/"paired-stream-world"),"Paired retained native world differs from the producer");
             const LanHost::ContinuationBinding proof{context,{1,retained.checkpoint.match.simulation.ticks,encoded.size(),body_hash(encoded)}};
             check(LanHost::encode_continuation(*retained.host,proof)==read(files/"paired-stream-host"),"Paired retention kept a stale or mismatched host table");
-            background->cancel();check(!background->state().host_ready&&!background->state().ready,"Cancelled paired worker retained readiness");background.reset();
+            background->cancel();{const auto s=background->state();check(!s.host_ready&&!s.ready&&!s.host_proof,"Cancelled paired worker retained readiness or proof");}background.reset();
+            check(good.host_proof->prove_snapshot(*lan_client,origin).matches(origin),"Historical owning proof borrowed the destroyed native worker");
+            std::cout<<"PASS paired stream retains "<<snapshot_receipts<<" accepted gameplay receipts beside native replay; exact host proof survives downgrade rejection and worker destruction\n";
             auto world=MultiplayerPreparedWorld::source_shadow(gameplay,MultiplayerPreparedWorld::SourceShadowViews::IncomingHost,workspace_clock);
             SourceMatchAuthority imported(world->match,*world->source_objects);
             auto prepared=imported.prepare(retained.checkpoint,binding,retained.admissions.players);

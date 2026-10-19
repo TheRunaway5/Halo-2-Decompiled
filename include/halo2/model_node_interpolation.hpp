@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/model.hpp"
+#include "halo2/model_scale_reset.hpp"
 #include <optional>
 #include <span>
 
@@ -16,9 +17,9 @@ public:
     void capture_render(std::uint64_t tick,std::span<const Transform> nodes,
         std::optional<Transform> reference_frame={});
     std::vector<Transform> sample_render(const RenderModel &,float fraction,
-        std::optional<Transform> reference_frame={})const;
+        std::optional<Transform> reference_frame={},std::span<const ModelScaleReset> resets={})const;
     std::vector<Transform> sample(const RenderModel &,float fraction,
-        std::optional<Transform> reference_frame={})const;
+        std::optional<Transform> reference_frame={},std::span<const ModelScaleReset> resets={})const;
     bool paired()const{return paired_;}
 private:
     void capture(std::uint64_t,std::span<const Transform>,std::optional<Transform>,bool render);
@@ -30,5 +31,6 @@ private:
 // Recover parent-local transforms from completed WORLD outputs, interpolate
 // those locals, then rebuild the hierarchy. Endpoints retain their exact words.
 std::vector<Transform> interpolate_model_nodes(const RenderModel &,
-    std::span<const Transform> previous,std::span<const Transform> current,float fraction);
+    std::span<const Transform> previous,std::span<const Transform> current,float fraction,
+    std::span<const ModelScaleReset> resets={});
 }

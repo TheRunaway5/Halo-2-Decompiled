@@ -1,3 +1,4 @@
+#include "native_startup_memory_hints.hpp"
 #include "halo2/simulation.hpp"
 #include "halo2/source_script_sound_admission_tu15.hpp"
 #include "halo2/frontend_model_lighting.hpp"
@@ -511,6 +512,7 @@ Simulation::Simulation(const LevelContent &content, BspContent initial_geometry,
       source_campaign_(std::move(source_campaign)),
       object_lifetimes_(source_campaign_?source_campaign_->lifetimes():
           object_lifetimes ? std::move(*object_lifetimes) : NativeObjectLifetimes{}),
+      object_bodies_(source_campaign_?SourceObjectBodyStorage::deferred_default():SourceObjectBodyStorage{}),
       scene_(content,bsp,source_campaign_?std::optional(SourceSceneGameContext{1,0}):scene_game_context,{},&object_lifetimes_,
           source_campaign_?source_campaign_->scene_owner(content):std::move(source_scene_owner)),devices_(content),props_(content),scenery_collision_(content),
       presentation_(content, loader),animation_loader_(std::move(loader)) {
@@ -537,7 +539,11 @@ Simulation::Simulation(const LevelContent &content, BspContent initial_geometry,
     player_.exists=false;player_.vitality.dead=true;
     player_.body.height=content_.player.height;player_.body.radius=content_.player.radius;
     player_.body.maximum_slope_cosine=content_.player.maximum_slope_cosine;
-  } else respawn(spawn);
+  } else {
+    if(source_campaign_)detail::release_native_startup_code_pages();
+    respawn(spawn);
+    if(source_campaign_)detail::release_native_startup_code_pages();
+  }
   devices_.synchronize(scene_);
   synchronize_props(true);
   synchronize_weapon_pickups();
@@ -2367,7 +2373,11 @@ ScriptValue Simulation::host(const std::string &name,
   }
   if(name=="ai_dialogue_enable") {arity(1);if(args[0].type!=5)throw FormatError("Invalid AI dialogue flag");ai_dialogue_enabled_=args[0].truth();return {};}
   if(name=="ai_get_object" || name=="ai_get_unit") {
-    arity(1);const auto units=ai_units(args[0]);return {std::uint16_t(name=="ai_get_unit"?51:50),units.empty()?null_datum:units.front()->source_datum,{}};
+    arity(1);
+    if(args[0].type!=19)throw FormatError("Unsupported AI actor reference");
+    const auto type=std::uint16_t(name=="ai_get_unit"?51:50);
+    if(source_campaign_)return {type,source_campaign_->ai_object(args[0].bits),{}};
+    const auto units=ai_units(args[0]);return {type,units.empty()?null_datum:units.front()->source_datum,{}};
   }
   if(name=="ai_cannot_die") {
     arity(2);if(args[1].type!=5)throw FormatError("Invalid AI immortality flag");
@@ -2745,6 +2755,7 @@ ScriptValue Simulation::host(const std::string &name,
     if(source_campaign_)source_campaign_camera_control_tu15(
         source_campaign_->objects().tu15_world(),args[0].truth());
     presentation_.control(args[0].truth(), {eye(player_), player_.yaw, 0});
+    ++cinematic_camera_discontinuity_;
     if(args[0].truth() && cinematic_state())mutable_cinematic_state().awaiting_camera=false;
     return {};
   }
@@ -2753,6 +2764,7 @@ ScriptValue Simulation::host(const std::string &name,
     if(source_campaign_)source_campaign_cinematic_control_tu15(
         source_campaign_->objects().tu15_world(),name=="cinematic_start");
     presentation_.cinematic_control(name == "cinematic_start");
+    ++cinematic_camera_discontinuity_;
     if (name == "cinematic_start") {
       ambience_details_enabled_=true;
       if(cinematic_state())mutable_cinematic_state().awaiting_camera=false;
@@ -2787,6 +2799,7 @@ ScriptValue Simulation::host(const std::string &name,
     if(source_campaign_)source_campaign_camera_field_of_view_tu15(
         source_campaign_->objects().tu15_world(),float(args[0].number()),std::int16_t(args[1].bits));
     presentation_.field_of_view(float(args[0].number()), int(args[1].number()));
+    ++cinematic_camera_discontinuity_;
     return {};
   }
   if (name == "camera_set") {
@@ -2795,6 +2808,7 @@ ScriptValue Simulation::host(const std::string &name,
                                int(args[1].number()));
     if(source_campaign_)source_campaign_camera_point_tu15(
         source_campaign_->objects().tu15_world(),std::int16_t(args[0].bits),std::int16_t(args[1].bits));
+    ++cinematic_camera_discontinuity_;
     return {};
   }
   if (name == "camera_set_animation_relative" ||
@@ -2808,6 +2822,7 @@ ScriptValue Simulation::host(const std::string &name,
     else presentation_.camera_animation(args[0].bits, args[1].bits,
                                    args.size() == 4 ? std::int16_t(args[3].bits)
                                                     : -1);
+    ++cinematic_camera_discontinuity_;
     return {};
   }
   if (name == "camera_time") {

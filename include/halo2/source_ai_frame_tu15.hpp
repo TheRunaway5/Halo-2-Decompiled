@@ -11,6 +11,7 @@ namespace halo2 {
 // same caller and existing tag/actor lookup owners.
 // Shared placement helpers, actual204553/204589 post-object notifications
 // and the actualCC9CD damage notification reuse these AI bodies and owners.
+// Original actor iterator entries are also exported for campaign AI queries.
 bool source_ai_frame_tu15_owns_entry(std::uint32_t);
 void source_run_ai_frame_tu15(SourcePhysicsContactMemory &,std::uint32_t,
     SourcePhysicsWorldRuntimeAbi &,SourcePhysicsFactoryFloatingPoint,

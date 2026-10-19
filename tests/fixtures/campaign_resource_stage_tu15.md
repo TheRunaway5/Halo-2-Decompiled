@@ -3,8 +3,10 @@
 Authority: unchanged English OG Xbox TU1.5 XBE, SHA256
 `21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd`.
 The activation generator adds exactly the complete191CF0 resource-stage owner:
-45 static PCs /152 unchanged original bytes. The shared module now has49
-complete bodies /3138 instructions; all48 prior complete bodies are preserved.
+45 static PCs /152 unchanged original bytes. That addition expanded the shared
+module to49 complete bodies /3138 instructions, preserving all48 prior bodies.
+The later [row5 release owner](campaign_resource_row5_tu15.md) expands it to50
+bodies /3143 instructions while preserving all49 bodies from this recovery.
 The actual191CA0 selector remains a separate required owner.
 
 Generate fresh local fixtures with the owned original executable and the local

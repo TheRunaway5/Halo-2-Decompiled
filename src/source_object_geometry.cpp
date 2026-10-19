@@ -340,7 +340,7 @@ SourceObjectViewSelection SourceObjectGeometry::select(std::size_t object,std::u
     if(!draw.vertices.empty())owner_previous_lod[view.view_index]=std::int8_t(lod);
     return {object,lod,choice.transition,draw.vertices.size(),input.draw_metric};
 }
-void SourceObjectGeometry::reset_history(){invalidate_views();previous_lod.fill(-1);for(auto&v:views){v.vertices.clear();v.ordinary_lighting=false;}}
+void SourceObjectGeometry::reset_history() noexcept {invalidate_views();previous_lod.fill(-1);for(auto&v:views){v.vertices.clear();v.ordinary_lighting=v.prt_lighting=false;}}
 bool SourceObjectGeometry::ordinary_lighting()const{
     return union_ordinary_lighting;
 }

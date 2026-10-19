@@ -2,6 +2,10 @@
 #include "halo2/animation_presentation.hpp"
 #include "halo2/multiplayer.hpp"
 #include "halo2/multiplayer_world.hpp"
+#include "halo2/multiplayer_object_runtime.hpp"
+#include "halo2/physics_live_world_tu15.hpp"
+#include "halo2/source_physics_entry_observation.hpp"
+#include "halo2/collision.hpp"
 #include "halo2/desktop_session.hpp"
 #include "halo2/multiplayer_audio.hpp"
 #include "halo2/source_light_volume_draw.hpp"
@@ -13,6 +17,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <nlohmann/json.hpp>
 #include <set>
 using namespace halo2;
 namespace {
@@ -31,6 +36,7 @@ void fire(Uint32 window,bool down) {
 }
 int main(int argc,char **argv)try {
   check(argc==5 || argc==6 || argc==7,"Supply MAP SHARED XBE WEAPON [CAPTURE [idle|ready|ignite|lit|world|fire]]");
+  const bool mcc=std::string(argv[3])=="native-mcc";
   if(!std::getenv("DISPLAY") || !std::filesystem::exists(argv[1]))return 77;
   const auto *representation_option=std::getenv("HALO2_TEST_REPRESENTATION");
   const unsigned representation=representation_option?unsigned(std::stoul(representation_option)):2u;
@@ -46,6 +52,12 @@ int main(int argc,char **argv)try {
   check(!charge_cycle || plasma_pistol,"Charge probe requires plasma pistol");
   check(!pistol_tap || plasma_pistol,"Tap probe requires plasma pistol");
   const bool needler=std::string(argv[4])=="needler";
+  const bool material_only=std::getenv("HALO2_TEST_WEAPON_MATERIAL_ONLY")!=nullptr;
+  const bool native_motion=std::getenv("HALO2_TEST_ALLOW_NATIVE_MOTION")!=nullptr;
+  const auto *source_trace_path=std::getenv("HALO2_TEST_WEAPON_STATE_REPORT");
+  const bool verify_source_shot_tick=std::getenv("HALO2_TEST_VERIFY_SOURCE_SHOT_TICK")!=nullptr;
+  const bool clear_firing_lane=std::getenv("HALO2_TEST_CLEAR_FIRING_LANE")!=nullptr;
+  nlohmann::json source_trace=nlohmann::json::array();
   const std::set<std::string> ordinary{"magnum","battle_rifle","covenant_carbine",
       "sniper_rifle","brute_shot","rocket_launcher","plasma_pistol","plasma_rifle","brute_plasma_rifle","beam_rifle"};
   check(sword||shotgun||needler||ordinary.contains(argv[4]),"Unknown weapon probe");
@@ -63,20 +75,24 @@ int main(int argc,char **argv)try {
   // This probe supplies keyboard/mouse events. Physical controller input is
   // independent host activity and must not switch/fire the tested inventory.
   SDL_SetHintWithPriority(SDL_HINT_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT,"0xffff/0xffff",SDL_HINT_OVERRIDE);
-  SDL_SetMainReady();MultiplayerOptions o;o.map=argv[1];o.shared_maps=argv[2];o.gameplay_xbe=argv[3];
+  SDL_SetMainReady();MultiplayerOptions o;o.map=argv[1];o.shared_maps=argv[2];
+  if(!mcc)o.gameplay_xbe=argv[3];
   o.width=800;o.height=600;o.local_players=local_players;o.starting_weapon=5;o.mute=false;
   // Finite native SDL probe: one game tick and a declared mid-tick sample
   // per rendered frame. Short authored clips must not depend on host load.
   o.frames=heat_cycle?700u:ammunition?450u:charge_cycle?320u:240u;
   o.reference_tick_cadence=true;o.reference_render_fraction=.5f;
-  o.input_instances.assign(local_players,-1); // This SDL input probe has no controller owner.
+  // The standalone multi-view path assigns keyboard input to view0 and
+  // leaves absent controllers neutral. Only one view may own the keyboard.
+  if(local_players==1)o.input_instances={-1};
   o.validation=std::getenv("HALO2_ANIMATION_VALIDATION");
   if(const auto *ui=std::getenv("HALO2_TEST_HUD_UI_ASSETS"))o.ui_assets=ui;
   if(representation==3) {
     auto profile=source_default_player_configuration();profile[0x44]=1;o.selected_profiles.assign(local_players,profile);
   }
-  if(local_players>1) {
-    Cache placements(o.map,o.shared_maps,OriginalData::load_xbe(o.gameplay_xbe));
+  {
+    Cache placements(o.map,o.shared_maps,mcc?std::shared_ptr<const OriginalData>{}:OriginalData::load_xbe(o.gameplay_xbe));
+    check(!mcc || placements.is_mcc(),"Weapon runtime testing requires an MCC cache");
     o.native_spawn_inputs=placements.spawns();
     for(auto &spawn:o.native_spawn_inputs)spawn.facing=0; // Declared stationary multi-view input, before birth.
   }
@@ -96,6 +112,67 @@ int main(int argc,char **argv)try {
       (charge_cycle || (w.barrel_timing && w.barrel_timing->index==1))?0x06000007u:0x06000006u;
   const auto firing_sound=charge_cycle?w.barrel_views.at(1)->sound:w.sound;
   const auto fired_projectile=charge_cycle?w.barrel_views.at(1)->projectile:w.projectile;
+  nlohmann::json projectile_births=nlohmann::json::array();
+  nlohmann::json projectile_retirements=nlohmann::json::array();
+  std::set<std::uint32_t> traced_projectiles;
+  std::vector<std::size_t> projectile_birth_pending;
+  std::optional<SourcePhysicsEntryObserverBinding> projectile_birth_observer;
+  if(std::getenv("HALO2_TEST_TRACE_PROJECTILE_BIRTHS")) {
+    auto *source=o.prepared_world->match.source_object_runtime();
+    check(source && source->owns_physics(),"Projectile birth trace requires actual source storage");
+    const auto &memory=source->memory();
+    const auto word=[&memory](std::uint32_t at){return Bytes(memory.view(at,4)).u32(0);};
+    // Actual B9B70 takes its original C4-byte object request at ESP+4 and
+    // returns the created full datum in EAX. The private validation snapshot
+    // adds read-only entry/return observation inside its existing owners.
+    projectile_birth_observer.emplace(memory,[&,word](bool before,std::uint32_t entry,const auto &abi) {
+      if(entry==0xba490u) {
+        if(!before)return;
+        const auto object=word(abi.gp[4]+4u);if(!traced_projectiles.contains(object))return;
+        const auto pool=word(0x4ecbd0u),headers=word(pool+0x44u),stride=word(pool+0x24u);
+        check(stride==12,"Actual retirement pool stride changed");
+        const auto header=headers+(object&65535u)*stride,body=word(header+8u);
+        check((word(header)&65535u)==(object>>16) && body,
+            "Actual retirement request lost its full projectile generation");
+        projectile_retirements.push_back({{"source_tick",word(word(0x51df54u)+8u)},
+            {"object",object},{"caller_return",word(abi.gp[4])},{"parent",word(body+0x14u)},
+            {"definition",word(body)},{"flags",word(body+0x12cu)},
+            {"timer_bits",word(body+0x158u)},{"arming_bits",word(body+0x160u)},
+            {"traveled_bits",word(body+0x168u)}});
+        return;
+      }
+      if(entry!=0xb9b70u)return;
+      if(before) {
+        const auto request=word(abi.gp[4]+4u);
+        if(word(request)!=fired_projectile){projectile_birth_pending.push_back(SIZE_MAX);return;}
+        std::array<std::uint32_t,49> descriptor{};
+        const auto bytes=memory.view(request,sizeof(descriptor));
+        std::memcpy(descriptor.data(),bytes.data(),bytes.size());
+        projectile_birth_pending.push_back(projectile_births.size());
+        projectile_births.push_back({{"source_tick",word(word(0x51df54u)+8u)},
+            {"caller_return",word(abi.gp[4])},{"request_words",descriptor},{"completed",false}});
+      }else {
+        check(!projectile_birth_pending.empty(),"Unpaired actual object construction return");
+        const auto index=projectile_birth_pending.back();projectile_birth_pending.pop_back();if(index==SIZE_MAX)return;
+        auto &row=projectile_births.at(index);row["completed"]=true;row["returned_object"]=abi.gp[0];
+        if(abi.gp[0]==null_datum)return;
+        traced_projectiles.insert(abi.gp[0]);
+        const auto pool=word(0x4ecbd0u),stride=word(pool+0x24u),headers=word(pool+0x44u);
+        check(stride==12,"Actual object constructor pool stride changed");
+        const auto header=headers+(abi.gp[0]&65535u)*stride,body=word(header+8u);
+        check((word(header)&65535u)==(abi.gp[0]>>16) && body,
+            "Completed actual object constructor returned an uncommitted full datum");
+        row["definition"]=word(body);row["parent"]=word(body+0x14u);
+        row["type"]=std::to_integer<unsigned>(memory.view(header+3u,1)[0]);
+        std::array<std::uint32_t,3> position{},velocity{};
+        const auto position_bytes=memory.view(body+0x64u,sizeof(position));
+        const auto velocity_bytes=memory.view(body+0x88u,sizeof(velocity));
+        std::memcpy(position.data(),position_bytes.data(),position_bytes.size());
+        std::memcpy(velocity.data(),velocity_bytes.data(),velocity_bytes.size());
+        row["position_words"]=position;row["velocity_words"]=velocity;
+      }
+    });
+  }
   const auto action=std::find_if(definition.clock_clips.begin(),definition.clock_clips.end(),
       [&](const auto &clip){return clip.activity==activity;});
   check(action!=definition.clock_clips.end(),"Authored attack clip absent");
@@ -109,6 +186,24 @@ int main(int argc,char **argv)try {
   // Isolate the weapon/renderer loop from the still-unfinished native mover.
   // This is explicit diagnostic placement; no original physics is claimed.
   Spawn at;at.position=row->position;at.position.x-=.2f;at.bsp=0;at.facing=0;
+  std::optional<Spawn> clear_spawn;unsigned clear_spawn_index{};float selected_clearance{};
+  if(clear_firing_lane) {
+    check(std::string(argv[4])=="plasma_rifle","Clear-lane acceptance currently owns the plasma-rifle fixture");
+    const CollisionWorld selection_geometry(c.collision);const auto spawns=cache.spawns();
+    // Host rays select an input scene only. Original object/projectile owners
+    // still decide actual birth, movement, contacts and retirement.
+    for(unsigned n=0;n<spawns.size();++n) {
+      const auto &candidate=spawns[n];if(candidate.bsp!=0)continue;
+      float clearance=20.f;
+      for(float side:{-c.player.radius,0.f,c.player.radius})
+        for(float height:{c.player.height*.25f,c.player.height*.5f,c.player.camera_height,c.player.height})
+          if(const auto hit=selection_geometry.raycast(candidate.position+Vec3{0,side,height},{1,0,0},20.f))
+            clearance=std::min(clearance,hit->distance);
+      if(clearance>selected_clearance){selected_clearance=clearance;clear_spawn=candidate;clear_spawn_index=n;}
+    }
+    check(clear_spawn && selected_clearance>=8.f,"No authored spawn has the requested clear firing lane");
+    clear_spawn->facing=0;
+  }
   std::optional<unsigned> requested,picked,empty_tick;bool refilled{};unsigned tick{},draws{},materials{},sounds{};
   unsigned ignition_particles{},ready_sounds{},hidden_blade_draws{},lit_blade_draws{};
   unsigned firing_particles{},firing_sounds{},fired_rounds{};
@@ -123,8 +218,23 @@ int main(int argc,char **argv)try {
   }
   unsigned charged_pose_draws{},charged_live_samples{};std::set<std::uint32_t> charged_live_owners;
   unsigned projectile_draws{};std::set<std::uint32_t> projectile_owners;
+  std::set<std::uint32_t> flight_owners;unsigned live_flight_samples{},maximum_live_bolts{};
+  float maximum_projectile_travel{};
+  unsigned gauge_input_observations{};
+  unsigned focus_samples{},pickup_input_samples{},maximum_pickup_milliseconds{};
+  std::array<std::uint32_t,4> actual_unit_definitions{null_datum,null_datum,null_datum,null_datum};
   std::uint32_t owner=null_datum;bool posed{},shader{},blade{},carried_pose{};
   std::set<float> frames;MultiplayerState state;
+  const auto place=[&](unsigned player,const Spawn &pose) {
+    o.prepared_world->match.debug_request({DebugGameRequest::Teleport,player},&pose);
+    if(auto *source=o.prepared_world->match.source_object_runtime();source && source->owns_physics() && (!native_motion || !picked)) {
+      const auto object=state.players.at(player).source_unit;
+      check(object!=null_datum,"Native fixture placement has no actual source unit");
+      // B95D0 owns the original pose/physics mutation. Updating only the
+      // presentation unit is overwritten by the next authoritative readback.
+      source->tu15_world().set_object_position(object,pose.position);
+    }
+  };
   std::set<std::uint64_t> pose_hashes;
   std::set<float> ammunition_frames;float full_needle_scale=-1,used_needle_scale=-1;
   const auto weapon_model=cache.load_model(definition.weapon_model,false);
@@ -143,10 +253,25 @@ int main(int argc,char **argv)try {
   if(heat_cycle)check(vent_clip!=definition.clock_clips.end(),"Actual vent clip absent");
   o.input_observer=[&](unsigned t,std::span<const Controls> controls,const MultiplayerState &s){
     if(SDL_GetKeyboardFocus()!=window){SDL_RaiseWindow(window);SDL_SetWindowInputFocus(window);}
+    focus_samples+=unsigned(SDL_GetKeyboardFocus()==window);
+    pickup_input_samples+=unsigned(controls[0].pickup);
+    maximum_pickup_milliseconds=std::max(maximum_pickup_milliseconds,unsigned(controls[0].pickup_milliseconds));
     tick=t;state=s;const auto &p=s.players[slot];
+    if(clear_firing_lane && picked) {
+      auto *source=o.prepared_world->match.source_object_runtime();
+      check(source && source->owns_physics(),"Species acceptance requires actual source objects");
+      for(unsigned view=0;view<local_players;++view) {
+        const auto unit=s.players.at(o.prepared_world->local_slots.at(view)).source_unit;
+        check(unit!=null_datum,"Local view has no actual source unit");
+        const auto body=source->object_body(unit);
+        actual_unit_definitions[view]=Bytes(source->memory().view(body,4)).u32(0);
+        check(actual_unit_definitions[view]==c.player_representations.at(representation).biped.datum,
+            "Local view's source biped differs from its selected authored representation");
+      }
+    }
     if(local_players>1 && picked)for(unsigned view=1;view<local_players;++view) {
       auto spectator=at;spectator.position.x-=.6f*float(view);
-      o.prepared_world->match.debug_request({DebugGameRequest::Teleport,o.prepared_world->local_slots.at(view)},&spectator);
+      place(o.prepared_world->local_slots.at(view),spectator);
     }
     if(charge_cycle || pistol_tap)for(const auto &projectile:s.weapon_projectiles)if(projectile.definition==fired_projectile) {
       check(projectile.datum!=null_datum,"Actual charged projectile lost its full live owner");
@@ -155,15 +280,15 @@ int main(int argc,char **argv)try {
     if(world) {
       at.position.x=row->position.x;at.position.y=row->position.y-1.2f;at.facing=1.5707963267948966f;
       at.position.z=row->position.z-c.player.camera_height;
-      o.prepared_world->match.debug_request({DebugGameRequest::Teleport,slot},&at);
+      place(slot,at);
       return;
     }
     if(!requested && t>=35 && SDL_GetKeyboardFocus()==window) {
       requested=t;
-      o.prepared_world->match.debug_request({DebugGameRequest::Teleport,slot},&at);key(window_id,SDL_SCANCODE_E,true);
+      place(slot,at);key(window_id,SDL_SCANCODE_E,true);
     }
     if(requested && !picked)
-      o.prepared_world->match.debug_request({DebugGameRequest::Teleport,slot},&at);
+      place(slot,at);
     if(!picked && p.weapon==target) {picked=t;owner=p.source_weapon;key(window_id,SDL_SCANCODE_E,false);
       std::cout<<"Pickup observation: tick="<<t<<" loaded="<<p.loaded<<" shot_tick="<<p.shot_tick
           <<" rate="<<w.rounds_per_second<<" recovery="<<w.fire_recovery<<" trigger="<<w.trigger_behavior
@@ -184,8 +309,48 @@ int main(int argc,char **argv)try {
         std::cout<<"Shot observation: tick="<<t<<" shot_tick="<<p.shot_tick<<" loaded="<<p.loaded
             <<" fire="<<controls[0].fire<<'\n';
       }
-      o.prepared_world->match.debug_request({DebugGameRequest::Teleport,slot},&at);
       const auto elapsed=t-*picked;
+      if(clear_spawn && elapsed==20) {
+        at=*clear_spawn;
+        auto *source=o.prepared_world->match.source_object_runtime();
+        check(source && source->owns_physics(),"Clear-lane placement requires the actual source pose owner");
+        source->tu15_world().set_object_position(p.source_unit,at.position);
+      }
+      place(slot,at);
+      unsigned live_bolts{};
+      for(const auto &projectile:s.weapon_projectiles)if(projectile.definition==fired_projectile) {
+        ++live_bolts;++live_flight_samples;flight_owners.insert(projectile.datum);
+        maximum_projectile_travel=std::max(maximum_projectile_travel,projectile.traveled);
+      }
+      maximum_live_bolts=std::max(maximum_live_bolts,live_bolts);
+      if(source_trace_path && (elapsed==0 || (elapsed>=56 && elapsed<=86))) {
+        auto *source=o.prepared_world->match.source_object_runtime();
+        check(source && source->owns_physics(),"Weapon-state trace needs the actual source bank");
+        const auto body=source->object_body(owner);
+        std::array<std::uint32_t,57> words{};
+        const auto bytes=source->memory().view(body+0x16c,sizeof(words));
+        std::memcpy(words.data(),bytes.data(),bytes.size());
+        if(verify_source_shot_tick)
+          check(p.shot_tick==words[55],"Published shot tick differs from original108607 source store");
+        const auto motion=source->biped_motion(p.source_unit);
+        nlohmann::json live_projectiles=nlohmann::json::array();
+        for(const auto &projectile:s.weapon_projectiles)if(projectile.definition==fired_projectile) {
+          const auto projectile_body=source->object_body(projectile.datum);
+          const auto source_travel=Bytes(source->memory().view(projectile_body+0x168u,4)).u32(0);
+          check(std::bit_cast<std::uint32_t>(projectile.traveled)==source_travel,
+              "Published projectile travel differs from its actual source bank");
+          live_projectiles.push_back({{"object",projectile.datum},{"definition",projectile.definition},
+              {"position",{projectile.position.x,projectile.position.y,projectile.position.z}},
+              {"velocity",{projectile.velocity.x,projectile.velocity.y,projectile.velocity.z}},
+              {"traveled_bits",source_travel}});
+        }
+        source_trace.push_back({{"tick",t},{"elapsed",elapsed},{"fire",controls[0].fire},
+            {"legacy_shot_tick",p.shot_tick},{"weapon",owner},{"effect_serial",p.weapon_effect.serial},
+            {"effect",p.weapon_effect.effect},{"projectiles",s.weapon_projectiles.size()},
+            {"live_projectiles",live_projectiles},
+            {"source_position",{motion.position.x,motion.position.y,motion.position.z}},
+            {"weapon_16c_words",words}});
+      }
       if(energy) {
         maximum_heat=std::max(maximum_heat,p.weapon_shader.heat);
         maximum_spent=std::max(maximum_spent,p.weapon_shader.power_fraction);
@@ -222,7 +387,7 @@ int main(int argc,char **argv)try {
       if(ammunition && empty_tick && t>*empty_tick+70 && p.loaded==w.capacity) {
         refilled=true;SDL_Event q{};q.type=SDL_QUIT;check(SDL_PushEvent(&q)==1,"Exit completed Needler refill probe");
       }
-      if(!ammunition && !heat_cycle && elapsed==(charge_cycle?160u:110u)){SDL_Event q{};q.type=SDL_QUIT;check(SDL_PushEvent(&q)==1,"Exit weapon probe");}
+      if(!ammunition && !heat_cycle && elapsed==(material_only?30u:charge_cycle?160u:110u)){SDL_Event q{};q.type=SDL_QUIT;check(SDL_PushEvent(&q)==1,"Exit weapon probe");}
     }
     check(t<(heat_cycle?700u:ammunition?450u:charge_cycle?320u:240u),"Actual SDL covenant pickup/attack timed out");
   };
@@ -277,6 +442,10 @@ int main(int argc,char **argv)try {
       if(on)++lit_blade_draws;else ++hidden_blade_draws;
       shader=true;blade|=m.forward_program.words[43]!=0;
     }
+    if(energy && m.name.ends_with("\\plasma_rifle_gauge")) {
+      check(input(0x030005a6u)==1.f,"Actual live gauge lost the original one input");
+      ++gauge_input_observations;
+    }
     if(energy) {
       const auto &source=state.players[slot].weapon_shader;
       check(input(0x04000567u)==std::clamp(source.heat,0.f,1.f),"Carried energy material lost its actual heat input");
@@ -323,7 +492,7 @@ int main(int argc,char **argv)try {
     ++projectile_draws;projectile_owners.insert(handle);
   };
   o.weapon_light_volume_observer=[&](unsigned view,std::uint32_t rendered_tick,const SourceLightVolumeDraw &draw) {
-    if(!charge_cycle && !pistol_tap)return;
+    if(!charge_cycle && !pistol_tap && !clear_firing_lane)return;
     const auto projectile=std::find_if(state.weapon_projectiles.begin(),state.weapon_projectiles.end(),
         [&](const auto &p){return p.datum==draw.object && p.definition==fired_projectile;});
     if(projectile==state.weapon_projectiles.end())return;
@@ -369,6 +538,42 @@ int main(int argc,char **argv)try {
   };
   if(argc>=6 && *argv[5]){o.frames=0;o.screenshot=argv[5];o.capture_tick=(idle||world)?90:115;}
   check(run_multiplayer(o)==0,"Actual covenant weapon runtime failed");
+  std::cout<<"Pickup gate observations: requested="<<requested.value_or(0)<<" picked="<<picked.value_or(0)
+      <<" focus="<<focus_samples<<" pickup_inputs="<<pickup_input_samples
+      <<" maximum_pickup_ms="<<maximum_pickup_milliseconds<<'\n';
+  if(source_trace_path) {
+    nlohmann::json trace{{"render_loop_completed",true},{"native_motion_after_pickup",native_motion},
+        {"source_shot_tick_equality_checked",verify_source_shot_tick},
+        {"picked_tick",picked.value_or(0)},{"legacy_fired_rounds",fired_rounds},
+        {"firing_sound_submissions",firing_sounds},{"maximum_heat",maximum_heat},
+        {"maximum_spent",maximum_spent},{"actual_gauge_material_observations",gauge_input_observations},
+        {"original_source_position_owner",true},{"samples",source_trace}};
+    trace["projectile_births"]=projectile_births;
+    trace["projectile_retirements"]=projectile_retirements;
+    trace["live_flight_samples"]=live_flight_samples;
+    trace["flight_owners"]=flight_owners;
+    trace["maximum_live_bolts"]=maximum_live_bolts;
+    trace["maximum_projectile_travel"]=maximum_projectile_travel;
+    trace["glow_draws"]=glow_draws;trace["glow_vertices"]=glow_vertices;
+    trace["glow_owners"]=glow_owners;trace["glow_views"]=glow_views;
+    trace["glow_screen_views"]=glow_screen_views;
+    trace["local_players"]=local_players;trace["selected_representation"]=representation;
+    trace["input_assignment"]="keyboard_view0; other views have no controller owner";
+    trace["expected_unit_definition"]=c.player_representations.at(representation).biped.datum;
+    trace["actual_unit_definitions"]=std::vector(actual_unit_definitions.begin(),actual_unit_definitions.begin()+local_players);
+    if(clear_spawn)trace["clear_firing_lane"]={{"authored_spawn_index",clear_spawn_index},
+        {"position",{clear_spawn->position.x,clear_spawn->position.y,clear_spawn->position.z}},
+        {"facing",clear_spawn->facing},{"host_selection_ray_minimum_clearance",selected_clearance},
+        {"host_geometry_used_only_for_scene_selection",true},{"original_position_owner",true}};
+    trace["published_source_contacts"]=nlohmann::json::array();
+    for(const auto &event:state.grenade_detonations)if(traced_projectiles.contains(event.projectile))
+      trace["published_source_contacts"].push_back({{"tick",event.tick},{"serial",event.serial},
+          {"projectile",event.projectile},{"definition",event.definition},{"effect",event.effect},
+          {"source_effect_instance",event.source_effect_instance},
+          {"position",{event.position.x,event.position.y,event.position.z}}});
+    std::ofstream report(source_trace_path);report<<trace.dump(2)<<'\n';
+    check(bool(report),"Cannot retain bounded source weapon-state trace");
+  }
   if(!o.screenshot.empty())check(std::filesystem::exists(o.screenshot),"Requested weapon capture was not written");
   if(world) {
     check(shader && materials>10,"World sword never received its own source shader input");
@@ -376,6 +581,29 @@ int main(int argc,char **argv)try {
   }
   check(picked&&carried_pose,"Actual pickup did not submit its carried pose");
   check(shader&&materials>10,"Actual carried materials did not receive source inputs");
+  if(clear_firing_lane) {
+    check(flight_owners.size()==4 && live_flight_samples>4 && maximum_projectile_travel>2.f,
+        "Clear firing lane did not expose all four source bolts in sustained flight");
+    check(glow_draws>0 && glow_owners==flight_owners && glow_screen_views==((1u<<local_players)-1u),
+        "Live source bolts did not submit their authored glow into the actual gameplay view");
+    std::cout<<"Clear-lane observations: "<<live_flight_samples<<" live samples, "<<maximum_projectile_travel
+        <<" maximum travel, "<<glow_draws<<" glow draws / "<<glow_owners.size()<<" owners\n";
+  }
+  if(std::string(argv[4])=="plasma_rifle" || std::string(argv[4])=="brute_plasma_rifle") {
+    check(gauge_input_observations>0,"Actual live gauge material was never observed");
+    std::cout<<"Gauge one observations: "<<gauge_input_observations<<'\n';
+    if(const auto *path=std::getenv("HALO2_GAUGE_ACCEPTANCE_REPORT")) {
+      std::ofstream report(path);
+      report<<"{\"passed\":true,\"component_scope\":\"held_gauge_input\",\"actual_gauge_material_observations\":"<<gauge_input_observations
+          <<",\"rendered_Xbox_parity_verified\":false,\"full_weapon_sequence_verified\":false}\n";
+      check(bool(report),"Cannot retain live gauge acceptance report");
+    }
+  }
+  if(material_only) {
+    check(gauge_input_observations>0,"Material-only fixture requires its actual held gauge");
+    std::cout<<"PASS actual SDL pickup,carried pose and original one input on held gauge\n";
+    return 0;
+  }
   if(idle) {
     if(sword)check(blade,"Actual idle sword blade combiner remained zero");
     std::cout<<"PASS "<<argv[4]<<" idle: actual SDL pickup, carried vertices, "
@@ -420,6 +648,7 @@ int main(int argc,char **argv)try {
   }
   if(!sword && !needler) {
     check(w.barrel_timing.has_value(),"Actual ordinary firing timing is unavailable");
+    std::cout<<"Ordinary firing observations: "<<fired_rounds<<" rounds, "<<firing_sounds<<" owned sounds\n";
     check(fired_rounds>0 && firing_sounds==fired_rounds,"Ordinary weapon did not submit one owned firing sound per shot");
     if(!energy)check(fired_rounds==unsigned(std::max<std::int16_t>(1,w.barrel_timing->definition.burst_minimum)),
         "Actual held SDL trigger repeated or interrupted its authored burst");

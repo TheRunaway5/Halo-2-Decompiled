@@ -4,6 +4,8 @@
 #include "halo2/source_host_continuation_codec.hpp"
 #include "halo2/source_authority_binding.hpp"
 #include "halo2/native_player_profile.hpp"
+#include "halo2/source_execution_lens.hpp"
+#include "halo2/effect_presentation_history.hpp"
 #include <nlohmann/json.hpp>
 #include <chrono>
 #include <cstdlib>
@@ -96,6 +98,7 @@ int main(int argc,char **argv)try{
     std::array<Controls,4> neutral{};std::array<Controls,16> controls{};
     wait([&]{promoted->send(neutral);survivor.send(neutral);lan_host->receive(controls);lan_host->broadcast();promoted->receive();survivor.receive();
         healthy();return lan_host->peers()==2&&promoted->ready()&&survivor.ready();},"Twelve actual native player/profile admissions timed out");
+    const auto unbound_origin=promoted->received_origins().back();
     auto original=std::make_unique<SourceMatchAuthority>(producer->match,*producer->source_objects);
     std::vector<unsigned> slots;for(const auto &p:roster)slots.push_back(p.slot);
     const auto admitted=original->player_admissions(slots);
@@ -123,6 +126,19 @@ int main(int argc,char **argv)try{
     for(auto slot:sessions[candidate]->local_slots())check(controls[slot].switch_grenade,"Predecessor lost the first real couch pulse");
     producer->match.step(controls);lan_host->broadcast();
     stage="capture paired native cut";
+    // Declared CPU-only pending presentation records. They cross the actual
+    // authenticated cut, but their absent predecessor GPU identities cannot
+    // become completed samples on this replacement PC.
+    producer->source_objects->render_model_view([](auto &source){
+        auto &memory=source.memory();std::array<std::byte,33*32> records{};
+        for(unsigned n=0;n<records.size();++n)records[n]=std::byte((n*17u+7u)&255u);
+        memory.write(0x52dfdcu,records);
+        const std::array<std::byte,4> count{std::byte{33},std::byte{},std::byte{},std::byte{}};
+        memory.write(0x531fbcu,count);
+        std::array<std::byte,192> pending{};
+        for(unsigned ring=0;ring<3;++ring){pending[ring*64]=std::byte{1};pending[ring*64+3]=std::byte{0x80};pending[ring*64+4]=std::byte{1};}
+        memory.write(0x531fc0u,pending);
+    });
     const auto paired=capture_source_host_continuation(*lan_host,before,1);
     stage="encode native world";
     const auto complete=encode_source_authority(paired.world);
@@ -150,6 +166,13 @@ int main(int argc,char **argv)try{
     if(worker_retention)background=std::make_unique<SourceAuthorityReplayWorker>(recipient_options,std::make_shared<Clock>(),std::make_shared<Clock>());
     else receiver=std::make_unique<SourceAuthorityReceiver>(recipient_options,SourceAuthorityStreamMode::Replay,std::make_shared<Clock>(),std::make_shared<Clock>());
     MultiplayerRuntimeAuthority runtime(recipient_options,resident,{},std::move(promoted),std::move(background));resident.reset();
+    runtime.receive();
+    MultiplayerSnapshotOrigin candidate_origin,remote_origin;
+    wait([&]{runtime.client()->receive();survivor.receive();
+        for(const auto &origin:runtime.client()->received_origins())if(origin.tick()==paired.world.match.simulation.ticks)candidate_origin=origin;
+        for(const auto &origin:survivor.received_origins())if(origin.tick()==paired.world.match.simulation.ticks)remote_origin=origin;
+        return candidate_origin.context()==before&&remote_origin.context()==before;
+    },"Exact paired snapshot origins did not arrive through admitted DTLS clients");
     recipient_options.menu_audio_update={};presentation_borrower.reset();
     check(borrowed_lifetime.expired(),"Native recovery recipe retained a presentation borrower");
     check(!runtime.prepare_takeover(),"Healthy runtime prepared an uncertified replacement");
@@ -173,6 +196,117 @@ int main(int argc,char **argv)try{
     wait([&]{update();const auto s=state();check(s.error.empty(),s.error.c_str());
         return s.ready&&s.ready->seal==seal&&s.host_ready;},"Paired native UDP cut did not validate");
     auto ready=*state().ready;
+    const auto first_host_proof=state().host_proof;
+    check(first_host_proof&&first_host_proof->cut().peer==candidate&&first_host_proof->cut().context==before&&
+        first_host_proof->cut().seal==ready.seal,"Native receiver published an absent or mismatched paired proof");
+    const auto check_origins=[&](const SourceAuthorityHostProof &proof){
+        check(proof.prove_snapshot(*runtime.client(),candidate_origin).matches(candidate_origin)&&
+            proof.prove_snapshot(survivor,remote_origin).matches(remote_origin),"Validated cut lost an exact native peer snapshot");
+        rejects([&]{proof.prove_snapshot(*runtime.client(),unbound_origin);});
+        rejects([&]{proof.prove_snapshot(*runtime.client(),remote_origin);});
+        rejects([&]{proof.prove_snapshot(survivor,candidate_origin);});
+    };
+    check_origins(*first_host_proof);
+    Mesh effect_mesh;std::uint32_t effect_primary=0x713719u,effect_auxiliary=0x511599u;
+    const SourceEffectRandom effect_random{effect_primary,effect_auxiliary};
+    NativeWorldEffects cpu_world(*runtime.world().cache,effect_mesh,runtime.match().simulation().collision(),effect_random);
+    NativeMuzzleEffects cpu_muzzle(*runtime.world().cache,effect_random);
+    SourceMapEffects cpu_map(*runtime.world().cache,runtime.world().content.objects,cpu_world);
+    SourceCombatAttachments cpu_combat(*runtime.world().cache,cpu_world,{});
+    EffectPresentationContinuity cpu_effects(cpu_muzzle,cpu_world,cpu_map,cpu_combat,effect_random);
+    NativeEffectSounds pending_sounds(*runtime.world().cache);
+    pending_sounds.spawn(0xe4e0036bu,0x71370009u,{1,2,3});
+    EffectPresentationHistory history(cpu_effects,pending_sounds,2),longer(cpu_effects,pending_sounds,4);
+    rejects([&]{EffectPresentationHistory invalid(cpu_effects,0);});
+    rejects([&]{history.remember(candidate_origin);});
+    history.context(before);longer.context(before);
+    history.begin_runtime(*runtime.client());longer.begin_runtime(*runtime.client());
+    rejects([&]{history.remember(unbound_origin);});
+    const auto effect_tick=*candidate_origin.tick();cpu_world.advance(effect_tick,tick_seconds);cpu_muzzle.advance(effect_tick,tick_seconds);
+    const auto frontier_for=[&](const MultiplayerSnapshotOrigin &origin){
+        MultiplayerRuntimeReceiptFrontier frontier;
+        frontier.previous=candidate_origin;frontier.local_slots.assign(origin.local_slots().begin(),origin.local_slots().end());
+        frontier.client_state_bound=frontier.joined=true;
+        frontier.world_effect_tick=origin.tick();frontier.muzzle_pose_tick=origin.tick();
+        frontier.world_impact_serial=71;frontier.world_voice_serial=37;frontier.client_effect_serial=19;
+        frontier.world_effect_baseline=frontier.client_effect_baseline=true;
+        frontier.device_events=NativeDeviceEventCursor(true);
+        frontier.heard_prop_effects.insert(0x71370009u);frontier.attached_effect_objects.insert(0x51150009u);
+        frontier.firing_instances.emplace(std::pair<std::uint16_t,std::uint32_t>{9,0xe4e0036bu},
+            MultiplayerRuntimeFiringOwner{0x71370009u,0x51150009u,0x927a0009u});
+        frontier.heard_shots[0]=origin.accepted_state().players[0].shot_tick;
+        frontier.muzzle_pose_owners.push_back({0x71370009u,0x51150009u,0x927a0009u});
+        frontier.sounds.push_back({0xe4e1036cu,{4,5,6}});
+        frontier.weapon_sounds.emplace_back(0xe4e1036cu,0x71370009u);
+        return frontier;
+    };
+    auto initial_frontier=frontier_for(candidate_origin);
+    check(history.remember(candidate_origin,initial_frontier)&&longer.remember(candidate_origin,initial_frontier)&&
+        !history.remember(candidate_origin,initial_frontier),
+        "Exact presentation receipt was not retained idempotently");
+    const auto bound_effect=history.bind(*first_host_proof,*runtime.client());
+    check(bound_effect&&bound_effect->cut().seal==ready.seal&&!history.bind(*first_host_proof,survivor),
+        "History admitted a foreign connection or lost its exact paired native cut");
+    const auto bound_runtime=history.bind_runtime(*first_host_proof,*runtime.client());
+    check(bound_runtime&&bound_runtime->origin().same(candidate_origin)&&bound_runtime->cut().seal==ready.seal&&
+        !history.bind_runtime(*first_host_proof,survivor),"Runtime frontier lost exact native receipt binding");
+    // These are declared frontend boundary controls beside actual native
+    // receipts, not a rendered or playing-audio adoption fixture.
+    initial_frontier.sounds.clear();initial_frontier.firing_instances.clear();initial_frontier.local_slots.clear();
+    check(bound_runtime->current().tick==effect_tick&&bound_runtime->previous().tick==effect_tick&&
+        bound_runtime->frontier().local_slots.size()==4&&bound_runtime->frontier().sounds.size()==1&&
+        bound_runtime->frontier().weapon_sounds.size()==1&&
+        bound_runtime->frontier().firing_instances.begin()->second.source==0x927a0009u&&
+        bound_runtime->frontier().pending_effect_sounds.pending_count()==1,
+        "Retained runtime frontier borrowed later caller values or lost pending work/full salts");
+    const auto fresh_receipt=[&]{const auto prior=runtime.client()->received_origins().empty()?candidate_origin:runtime.client()->received_origins().back();
+        lan_host->broadcast();MultiplayerSnapshotOrigin next;
+        wait([&]{runtime.client()->receive();for(const auto &origin:runtime.client()->received_origins())
+            if(origin.tick()==effect_tick&&!origin.same(prior))next=origin;
+            return next.context()==before;},"Later same-tick native receipt did not arrive");return next;};
+    const auto later=fresh_receipt();
+    auto invalid_frontier=frontier_for(later);invalid_frontier.previous=remote_origin;
+    rejects([&]{history.remember(later,invalid_frontier);});
+    invalid_frontier=frontier_for(later);invalid_frontier.local_slots.clear();
+    rejects([&]{history.remember(later,invalid_frontier);});
+    NativeEffectSounds wrong_sounds(*runtime.world().cache);
+    invalid_frontier=frontier_for(later);invalid_frontier.pending_effect_sounds=wrong_sounds.checkpoint();
+    rejects([&]{history.remember(later,invalid_frontier);});
+    invalid_frontier=frontier_for(later);invalid_frontier.pending_effect_sounds=pending_sounds.checkpoint();
+    rejects([&]{history.remember(later,invalid_frontier);});
+    check(history.state().captured==1&&history.bind_runtime(*first_host_proof,*runtime.client()),
+        "Rejected runtime frontier consumed or evicted the completed native cut");
+    check(history.remember(later,frontier_for(later))&&longer.remember(later,frontier_for(later))&&history.bind(*first_host_proof,*runtime.client()),
+        "History failed to find the older exact receipt behind a same-tick refresh");
+    const auto newest=fresh_receipt();
+    invalid_frontier=frontier_for(newest);invalid_frontier.previous=later;
+    rejects([&]{history.remember(newest,invalid_frontier);});
+    check(history.remember(newest,frontier_for(newest))&&longer.remember(newest,frontier_for(newest))&&
+        !history.bind(*first_host_proof,*runtime.client())&&longer.bind(*first_host_proof,*runtime.client()),
+        "Evicted exact receipt was replaced by a different body/sequence at the same tick");
+    check(!history.bind_runtime(*first_host_proof,*runtime.client())&&longer.bind_runtime(*first_host_proof,*runtime.client()),
+        "Runtime history rebound an evicted cut to a same-tick replacement receipt");
+    check(history.state().retained==2&&history.state().captured==3&&history.state().evicted==1,
+        "Completed receipt history exceeded its explicit retention policy");
+    rejects([&]{history.remember(candidate_origin);});
+    const auto after_failure=fresh_receipt();cpu_world.advance(effect_tick+1,tick_seconds);
+    rejects([&]{longer.remember(after_failure,frontier_for(after_failure));});
+    check(longer.state().captured==3&&longer.bind(*first_host_proof,*runtime.client())&&
+        longer.bind_runtime(*first_host_proof,*runtime.client()),
+        "Failed presentation capture evicted a previously completed cut");
+    auto restored_effects=cpu_effects.prepare_restore(*bound_effect,ready,{},{});
+    check(cpu_effects.commit_restore(std::move(restored_effects),ready)&&longer.remember(after_failure,frontier_for(after_failure)),
+        "Completed effect cut could not restore after later invalid work");
+    bool foreign_history_rejected{};std::thread history_foreign([&]{try{history.state();}catch(const FormatError &){foreign_history_rejected=true;}});history_foreign.join();
+    check(foreign_history_rejected,"History exported executor-local state to another thread");
+    auto retired_context=before;++retired_context.epoch;history.context(retired_context);
+    rejects([&]{history.remember(candidate_origin);});
+    check(history.state().retained==0&&!history.bind(*first_host_proof,*runtime.client())&&bound_effect->cut().seal==ready.seal,
+        "Context retirement retained stale history or invalidated the caller's owning checkpoint");
+    check(!history.bind_runtime(*first_host_proof,*runtime.client())&&bound_runtime->current().tick==effect_tick&&
+        bound_runtime->frontier().pending_effect_sounds.pending_count()==1,
+        "Context retirement discarded a caller-owned runtime cut or retained stale binding eligibility");
+    std::cout<<"PASS atomic native receipt/runtime frontier: owned states/slots, full-salt bindings, deferred sound queues, exact proof, rejection/eviction/context controls\n";
     if(receiver)check(encode_source_authority(checkpoint(ready))==complete,"Native receiver differs from complete source world");
     // Same bytes and tick still count as unrecorded native mutation. A receipt
     // cannot silently certify later private executor work. Repair from the
@@ -187,7 +321,13 @@ int main(int argc,char **argv)try{
             "Native receiver did not repair its mutated private world");
         ready=*state().ready;
         check(encode_source_authority(checkpoint(ready))==complete,"Repaired native cut differs from its producer");
+        check(state().host_proof&&state().host_proof->cut().seal==ready.seal&&
+            first_host_proof->cut().seal!=ready.seal,"Later validation overwrote the owning historical proof");
+        check_origins(*state().host_proof);check_origins(*first_host_proof);
     }
+    const auto migration_effect_cut=longer.bind(*state().host_proof,*runtime.client());
+    check(migration_effect_cut&&migration_effect_cut->cut().seal==ready.seal,
+        "Migration lost its exact receipt-bound effect cut before receiver retirement");
     PeerMigrationDecision invented;invented.previous=before;invented.value={candidate,seal};
     if(receiver)rejects([&]{receiver->prepare_peer_host_takeover(invented);});
     check(state().ready.has_value(),"Premature takeover consumed the validated native world");
@@ -201,6 +341,7 @@ int main(int argc,char **argv)try{
         retained=*value;check(encode_source_authority(retained->checkpoint)==complete,"Retired native receiver differs from complete source world");
     }else wait([&]{retained=receiver->retain_validated_world();return bool(retained);},"Native receiver did not quiesce");
     check(retained->host.has_value(),"Actual retained native cut omitted its host sidecar");
+    check_origins(*first_host_proof);
     stage="old host shutdown and peer agreement";
     lan_host.reset();original.reset();producer.reset();
     held_datagrams.reset();producer_options.online_match.reset();sessions[old_host].reset();
@@ -249,10 +390,17 @@ int main(int argc,char **argv)try{
         rejects([&]{runtime.stage_takeover(std::move(takeover));});
         check(bool(takeover)&&&runtime.match()==resident_match&&runtime.client()&&!runtime.host(),
             "Rejected staging changed the runtime's borrowed world or transport");
-        rejects([&]{runtime.activate_takeover();});check(frame->finish()&&frame->finish(),"Runtime frame did not close exactly once");frame.reset();
+        unsigned frame_hooks{};const auto unexpected=[](void *count)noexcept{++*static_cast<unsigned *>(count);return false;};
+        rejects([&]{runtime.activate_takeover(unexpected,&frame_hooks);});
+        check(!frame_hooks,"Outstanding native frame invoked a presentation hook");
+        check(frame->finish()&&frame->finish(),"Runtime frame did not close exactly once");frame.reset();
     }
     check(!runtime.begin_frame(),"Fenced runtime admitted another native frame");
     auto *const staged=prepared_owner;if(takeover)runtime.stage_takeover(std::move(takeover));
+    staged->world().source_objects->inspect_render_memory([](const auto &,const auto &memory){
+        check(Bytes(memory.view(0x531fbcu,4)).u32(0)==33,"Native promotion lost its query high-water count");
+        source_require_retired_lens_queries(memory);
+    });
     check(!runtime.promoted_camera()&&!runtime.local_input_pending(),"Staging exposed promoted camera/input ownership");
     check(!takeover&&runtime.pending_takeover()==staged&&&runtime.match()==resident_match&&runtime.client(),
         "Staging exposed a private native owner before adapter rebinding");
@@ -280,22 +428,104 @@ int main(int argc,char **argv)try{
         sessions[candidate]->phase()==OnlineMatchSession::Phase::Migrating,
         "Refused native adoption published an epoch or consumed the old runtime owner");
     rejects([&]{staged->host().broadcast();});
-    check(runtime.activate_takeover()&&!runtime.activate_takeover(),"Native activation was rejected or committed twice");
+    SourceMatchAuthority pending_native(staged->world().match,*staged->world().source_objects);
+    const auto pending_boundary=pending_native.execution_boundary();
+    struct PresentationAdoption {
+        MultiplayerRuntimeAuthority &runtime;EffectPresentationContinuity &effects;
+        EffectPresentationContinuity::PreparedRestore prepared;ValidatedAuthorityCut cut;
+        unsigned calls{},published{};bool allow{},reentrancy_rejected{};
+    } presentation{runtime,cpu_effects,cpu_effects.prepare_restore(*migration_effect_cut,ready,{},{}),ready};
+    const auto adopt_presentation=[](void *opaque)noexcept{
+        auto &p=*static_cast<PresentationAdoption *>(opaque);++p.calls;
+        if(!p.allow){
+            // A forbidden runtime call must fail before it can reenter the
+            // locked session. Only the deliberately rejected path probes it.
+            try{(void)p.runtime.world();}catch(const FormatError &){p.reentrancy_rejected=true;}
+            return false;
+        }
+        if(!p.effects.commit_restore(std::move(p.prepared),p.cut))return false;
+        ++p.published;return true;
+    };
+    check(!runtime.activate_takeover(adopt_presentation,&presentation)&&presentation.calls==1&&
+        !presentation.published&&presentation.reentrancy_rejected&&
+        cpu_effects.restore_ready(presentation.prepared,ready)&&runtime.pending_takeover()==staged&&
+        runtime.client()&&&runtime.match()==resident_match&&!runtime.host()&&
+        sessions[candidate]->phase()==OnlineMatchSession::Phase::Migrating,
+        "Rejected runtime presentation published native ownership, consumed preparation or allowed reentrancy");
+    bool foreign_activation_rejected{};std::thread foreign_activation([&]{
+        try{runtime.activate_takeover(adopt_presentation,&presentation);}catch(const FormatError &){foreign_activation_rejected=true;}
+    });foreign_activation.join();
+    check(foreign_activation_rejected&&presentation.calls==1,"Foreign executor invoked a presentation hook");
+    presentation.allow=true;
+    check(runtime.activate_takeover(adopt_presentation,&presentation)&&presentation.calls==2&&presentation.published==1&&
+        !runtime.activate_takeover(adopt_presentation,&presentation)&&presentation.calls==2,
+        "Native activation omitted/repeated prepared presentation or committed twice");
+    check(!cpu_effects.restore_ready(presentation.prepared,ready)&&pending_native.execution_boundary()==pending_boundary,
+        "Runtime presentation was not consumed once or changed the sealed native world");
     check(runtime.promoted_camera()==&staged->camera()&&runtime.local_input_pending(),"Runtime lost the restored local camera/input bank");
     check(!runtime.prepare_takeover(),"Active host prepared a second replacement");
     rejects([&]{runtime.continue_local_input(controls);});
     check(!runtime.client()&&runtime.host()&&runtime.host()->peers()==1&&!runtime.pending_takeover(),"Replacement host lost its runtime role or surviving four-seat native peer");
     check(&runtime.match()==&staged->world().match&&&runtime.match()!=resident_match&&resident_cache->path()==runtime.world().cache->path(),
         "Runtime adoption changed immutable map resources or retained the old live Match");
-    check(remote_runtime.activate_client_rebind()&&!remote_runtime.activate_client_rebind()&&
+    struct ClientPresentationAdoption {
+        MultiplayerRuntimeAuthority &runtime;LanClient &client;LanClient::PreparedRebind &old;
+        unsigned calls{},published{};bool allow{},reentrancy_rejected{},old_endpoint_observed{};
+    } client_presentation{remote_runtime,survivor,*old_prepared};
+    const auto adopt_client_presentation=[](void *opaque)noexcept{
+        auto &p=*static_cast<ClientPresentationAdoption *>(opaque);++p.calls;
+        if(!p.client.can_commit_rebind_host(p.old))return false;
+        p.old_endpoint_observed=true;
+        if(!p.allow){
+            try{(void)p.runtime.world();}catch(const FormatError &){p.reentrancy_rejected=true;}
+            return false;
+        }
+        ++p.published;return true;
+    };
+    check(!remote_runtime.activate_client_rebind(adopt_client_presentation,&client_presentation)&&
+        client_presentation.calls==1&&!client_presentation.published&&client_presentation.reentrancy_rejected&&
+        client_presentation.old_endpoint_observed&&remote_runtime.pending_client_rebind()==remote_decision&&
+        survivor.can_commit_rebind_host(*old_prepared)&&survivor.received_states().size()==old_receive_count&&
+        remote_runtime.client()==&survivor&&&remote_runtime.match()==remote_match&&
+        sessions[remote]->phase()==OnlineMatchSession::Phase::Rebinding,
+        "Rejected client presentation changed endpoint/receive bank/world, consumed preparation or allowed reentrancy");
+    client_presentation.allow=true;
+    check(remote_runtime.activate_client_rebind(adopt_client_presentation,&client_presentation)&&
+        client_presentation.calls==2&&client_presentation.published==1&&
+        !remote_runtime.activate_client_rebind(adopt_client_presentation,&client_presentation)&&client_presentation.calls==2&&
         !remote_runtime.pending_client_rebind()&&!remote_runtime.prepare_client_rebind()&&survivor.received_states().empty(),
         "Existing native client did not commit exactly once and clear old receive assemblies");
     check(remote_runtime.client()==&survivor&&&remote_runtime.match()==remote_match,"Client rebind replaced its admitted native owner or resident world");
+    rejects([&]{first_host_proof->prove_snapshot(survivor,remote_origin);});
     check(!survivor.can_commit_rebind_host(*old_prepared)&&!survivor.commit_rebind_host(std::move(old_prepared))&&old_prepared,
         "A stale prepared endpoint committed twice or was consumed on rejection");
-    wait([&]{remote_runtime.service();const auto shadow=remote_runtime.shadow_state();return shadow&&shadow->error.empty()&&shadow->warmed&&shadow->workspace_warmed;},
+    // The three PCs share this fixture executor. Continue their real native
+    // traffic while the restarted background shadow warms; otherwise this
+    // fixture itself stands the successor by long enough to expire its peer.
+    // Hold the wait beyond the ordinary five-second host timeout so this
+    // remains a regression even when the shadow warms quickly.
+    stage="post-rebind native heartbeat during shadow warmup";
+    const auto warm_start=std::chrono::steady_clock::now();
+    const auto warm_tick=runtime.match().simulation().ticks();
+    const auto warm_received=staged->local().received_presses,warm_delivered=staged->local().delivered_presses;
+    const auto heartbeat=[&]{
+        std::array<Controls,16> idle_controls{};
+        survivor.send(neutral);runtime.host()->receive(idle_controls);runtime.host()->broadcast();survivor.receive();
+        check(runtime.host()->peers()==1&&survivor.error().empty(),"Native peer expired during serviced background warmup");
+        check(runtime.match().simulation().ticks()==warm_tick&&staged->local().received_presses==warm_received&&
+            staged->local().delivered_presses==warm_delivered,"Background heartbeat stepped the world or consumed carried local input");
+        for(auto slot:survivor.slots()){const auto &c=idle_controls[slot];
+            check(!c.jump&&!c.fire&&!c.reload&&!c.fire_secondary&&!c.pickup&&!c.dual_wield&&!c.grenade&&
+                !c.switch_weapon&&!c.melee&&!c.switch_grenade,"Neutral background heartbeat injected an action");}
+    };
+    wait([&]{heartbeat();remote_runtime.service();heartbeat();const auto shadow=remote_runtime.shadow_state();
+        return std::chrono::steady_clock::now()-warm_start>=6s&&shadow&&shadow->error.empty()&&shadow->warmed&&shadow->workspace_warmed;},
         "Rebound survivor did not restart its failed old shadow on the new generation");
-    runtime.service();
+    heartbeat();const auto publish_start=std::chrono::steady_clock::now();runtime.service();
+    const auto publish_elapsed=std::chrono::steady_clock::now()-publish_start;heartbeat();
+    std::cout<<"PASS native post-rebind background heartbeat beyond five-second timeout: unchanged native tick/carried input; warm_ms="
+        <<std::chrono::duration_cast<std::chrono::milliseconds>(publish_start-warm_start).count()
+        <<" publish_ms="<<std::chrono::duration_cast<std::chrono::milliseconds>(publish_elapsed).count()<<'\n';
     stage="resumed native snapshots and encoded voice";
     auto &world=runtime.world();const auto start=world.match.simulation().ticks();unsigned voice_packets{};
     for(unsigned tick=0;tick<12;++tick){auto scope=runtime.begin_frame();check(bool(scope),"Adopted runtime remained fenced");
@@ -334,8 +564,12 @@ int main(int argc,char **argv)try{
     std::cout<<"PASS actual paired native UDP cut, independent twelve-player allocation admission, two-survivor majority after host session shutdown, transactional four-seat view/input/camera promotion, retained departures/results, existing four-seat client rebind, twelve connected native ticks and twelve encoded direct voice packets\n";
     std::cout<<(worker_retention?"PASS foreground runtime retires the replay executor, prepares/stages its owning native value once, rejects wrong profiles/views, preserves its gameplay recipe across menu changes and retains no presentation borrower\n":"PASS same-tick unrecorded native mutation rejected and repaired before readiness\n");
     std::cout<<"PASS runtime completed-frame lease, rejection without ownership loss, private staging, atomic Match/transport adoption and resident cache lifetime\n";
+    std::cout<<"PASS runtime prepared presentation hooks: host refusal/retry, exact receipt-bound four-owner cold CPU effect publication, unchanged native seal, client callback before endpoint rebind, once-only publication and rejected runtime reentrancy/foreign executor\n";
     std::cout<<"PASS restored runtime camera ownership, three pre-cut and two post-cut owning couch pulses, four retained native input ticks, latest movement/look/zoom, one completed interaction, same-tick idempotence and fresh-input ownership after stepping\n";
     std::cout<<"PASS surviving runtime staged its local decision without changing the native endpoint, committed client rebind before transport publication, retained the same client/world and restarted a failed old shadow\n";
+    std::cout<<"PASS 33 declared pending CPU lens requests cross the paired cut and retire through original20E30 before native adoption; no predecessor GPU samples are fabricated\n";
+    std::cout<<"PASS receiver-only owning paired proof, exact four-seat client receipts, foreign/pre-admission rejection, later-cut/worker-retirement lifetime and old-generation rejection after rebind\n";
+    std::cout<<"PASS bounded completed CPU effect history: exact old receipt behind same-tick refreshes, eviction refusal, duplicate idempotence, failed-capture preservation, restored group, executor confinement and independent context retirement\n";
     std::cout<<"LIMIT in-process executors with three real direct sessions; internal migration gate, automatic measured candidate choice, explicit native activation, no renderer/controller/headset/WAN or default runtime acceptance\n";
     return 0;
 }catch(const std::exception &e){std::cerr<<stage<<": "<<e.what()<<'\n';return 1;}

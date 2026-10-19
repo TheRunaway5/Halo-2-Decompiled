@@ -247,7 +247,7 @@ struct SourcePropScene::Impl {
 SourcePropScene::SourcePropScene(const Cache&c,std::span<const ScenarioObject>objects,std::size_t bsp,Mesh&mesh,
     const CollisionWorld&collision,bool source_regions):impl_(std::make_unique<Impl>(c,objects,bsp,mesh,collision,source_regions)){}
 SourcePropScene::~SourcePropScene()=default;
-void SourcePropScene::reset_lifetimes(){
+void SourcePropScene::reset_lifetimes() noexcept {
     auto &s=*impl_;s.render_frame=0;
     for(auto &p:s.props){
         p.handle=0xffffffffu;p.created_tick=0;p.active=p.visible=false;
@@ -278,6 +278,7 @@ void SourcePropScene::append(std::vector<Vertex>&out,std::vector<ObjectLightingB
 }
 void SourcePropScene::append_view(std::vector<Vertex>&out,std::vector<ObjectLightingBinding>&bindings,
     const SourceObjectViewLod&view,std::vector<SourceObjectViewSelection>*selections){
+    if(view.view_index>=4)throw FormatError("source prop view exceeds the original four views");
     for(auto&p:impl_->props)if(p.active && p.visible){
         if(const auto& source=p.source_views.at(view.view_index);source) {
             if(!source->submitted)throw FormatError("retained source prop base was not submitted before legacy view");

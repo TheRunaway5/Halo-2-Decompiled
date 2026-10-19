@@ -165,6 +165,11 @@ struct SourceGrenadeScene::Impl {
 SourceGrenadeScene::SourceGrenadeScene(const Cache&c,std::size_t bsp,Mesh&mesh,const CollisionWorld&world,
     std::size_t capacity,std::uint32_t one):impl_(std::make_unique<Impl>(c,bsp,mesh,world,capacity,one)){}
 SourceGrenadeScene::~SourceGrenadeScene()=default;
+void SourceGrenadeScene::reset_lifetimes() noexcept {
+    auto &s=*impl_;s.owners.clear();s.order.clear();
+    for(auto &view:s.draws)view.clear();
+    for(auto &bank:s.templates)bank.geometry.reset_history();
+}
 SourceGrenadeScene::SourceGrenadeScene(SourceGrenadeScene&&)noexcept=default;
 SourceGrenadeScene&SourceGrenadeScene::operator=(SourceGrenadeScene&&)noexcept=default;
 std::span<const SourceGrenadePreparedBank>SourceGrenadeScene::banks()const{return impl_->banks;}

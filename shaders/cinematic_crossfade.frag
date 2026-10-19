@@ -8,7 +8,7 @@ layout(location=0) out vec4 pixel;
 void main() {
     // Original point/clamp fullscreen sampling. Integer pixel centers keep
     // odd native window sizes from selecting a neighbor due to interpolated
-    // UV roundoff at an exact texel boundary. The retained target is640x480.
+    // UV roundoff at an exact texel boundary. History retains its capture grid.
     ivec2 at=((2*ivec2(gl_FragCoord.xy)+1)*textureSize(capturedScene,0))/(2*frame.extent);
     vec4 samples[4];samples[0]=texelFetch(capturedScene,at,0);
     for(int i=1;i<4;++i)samples[i]=vec4(0);

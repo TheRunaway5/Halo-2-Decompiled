@@ -92,22 +92,14 @@ SceneryLightingImplementation scenery_lighting_implementation(const BspLighting&
       SceneryLightingImplementation::unsupported:SceneryLightingImplementation::per_vertex;
 }
 
-bool Cache::apply_scenery_lighting(RenderModel& model,const BspLighting& lighting,
-                                   const ScenarioObject& object) const {
-  if(!lighting.structure_matches)return false;
-  const auto definition=load_scenery_definition(object.definition);
-  // Original 10A8B0 uses the complete object identifier plus render-model
-  // checksum. Only structure-origin objects compare the origin BSP ordinal.
-  const auto* record=scenery_record(lighting,model,object,
-      definition?definition->lightmapping_policy:0);
-  if(!record)return false;
-  const auto& ref=record->reference;
+namespace {
+void apply_vertex_lighting(RenderModel& model,const BspLighting& lighting,
+                           const BspLightingReference& ref) {
   if(ref.bucket<0 || std::size_t(ref.bucket)>=lighting.buckets.size())
     throw FormatError("scenery references missing baked lighting bucket");
   if(model.vertex_origins.size()!=model.mesh.vertices.size())
     throw FormatError("scenery model lost source vertex ordinals");
   const auto& bucket=lighting.buckets[std::size_t(ref.bucket)];
-  std::set<std::uint32_t> materials;
   for(std::size_t i=0;i<model.mesh.vertices.size();++i) {
     const auto& origin=model.vertex_origins[i];
     if(origin.section>=ref.section_offsets.size())
@@ -125,8 +117,31 @@ bool Cache::apply_scenery_lighting(RenderModel& model,const BspLighting& lightin
     vertex.incident=bsp_incident(bucket,source);
     vertex.color=decode_bsp_radiance(bucket.radiance[source]);
     vertex.lightmap=0;
-    materials.insert(vertex.material);
   }
+}
+}
+void apply_scenery_vertex_lighting(RenderModel& model,const BspLighting& lighting,unsigned instance) {
+  if(!lighting.structure_matches || lighting.bitmap_datum==null_datum ||
+      instance==0x7ffu || instance>=lighting.scenery.size())
+    throw FormatError("campaign scenery unit lost its admitted baked reference");
+  const auto& record=lighting.scenery[instance];
+  if(record.checksum!=model.checksum)
+    throw FormatError("campaign scenery baked reference changed its model checksum");
+  apply_vertex_lighting(model,lighting,record.reference);
+}
+
+bool Cache::apply_scenery_lighting(RenderModel& model,const BspLighting& lighting,
+                                   const ScenarioObject& object) const {
+  if(!lighting.structure_matches)return false;
+  const auto definition=load_scenery_definition(object.definition);
+  // Original 10A8B0 uses the complete object identifier plus render-model
+  // checksum. Only structure-origin objects compare the origin BSP ordinal.
+  const auto* record=scenery_record(lighting,model,object,
+      definition?definition->lightmapping_policy:0);
+  if(!record)return false;
+  apply_vertex_lighting(model,lighting,record->reference);
+  std::set<std::uint32_t> materials;
+  for(const auto& vertex:model.mesh.vertices)materials.insert(vertex.material);
   const auto colors=load_object_colors(object.definition,object.variant);
   for(const auto slot:materials) {
     auto& material=model.mesh.materials.at(slot);
