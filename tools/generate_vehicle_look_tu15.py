@@ -11,7 +11,7 @@ ENTRIES=(0x18a300,0x11f7e0,0x18a2a0)
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--output',type=Path,default=Path('src/source_vehicle_look_tu15_generated.cpp'))
+    p.add_argument('--output',type=Path,default=Path('src/gameplay/vehicles/source_vehicle_look_tu15_generated.cpp'))
     p.add_argument('--directory',type=Path,required=True)
     a=p.parse_args();assert sha(NEW_DEFAULT)==NEW_PIN
     image=Xbe(NEW_DEFAULT);code=_Code(image,'.text')

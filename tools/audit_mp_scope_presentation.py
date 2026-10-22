@@ -58,7 +58,7 @@ def main():
  for name,digest in {**old_pins['source_files'],**old_pins['verified_prior_pins']}.items():assert sha(ROOT/name)==digest,('prior_pin_changed',name)
  copies=json.loads((BASE/'prior-native-unit-zoom/pins.json').read_text())
  for name,digest in copies.items():assert sha(BASE/'prior-native-unit-zoom'/Path(name).name)==digest
- for path in [BASE/'controls-measured/fixtures.tsv',BASE/'prior-native-unit-zoom/pins.json',ROOT/'include/halo2/unit_zoom.hpp',ROOT/'src/unit_zoom.cpp',ROOT/'tests/unit_zoom_hud_tests.cpp']:
+ for path in [BASE/'controls-measured/fixtures.tsv',BASE/'prior-native-unit-zoom/pins.json',ROOT/'include/halo2/unit_zoom.hpp',ROOT/'src/gameplay/units/unit_zoom.cpp',ROOT/'tests/unit_zoom_hud_tests.cpp']:
   files[str(path.relative_to(ROOT))]=sha(path)
  report=dict(schema=1,original_xbe_sha256=PIN,later_xbe_sha256=NEW_PIN,source_instruction_rows=rows,
   independently_identical_original_reports=True,source_frames=frames,authored_hud_mask_bytes=assets,

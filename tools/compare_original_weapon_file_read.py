@@ -41,10 +41,10 @@ def main():
         declared_chunk_limit=request['bytes'],file_binding_authority='Explicit procedure binding selected by unique exact original exit-buffer content match')
     (scratch/'input.json').write_text(json.dumps(entry)+'\n')
     cpp=ROOT/'tools/probe_original_weapon_file_read.cpp'
-    sources=[cpp,ROOT/'src/source_async_jobs.cpp',ROOT/'src/source_bitmap_async_read.cpp']
+    sources=[cpp,ROOT/'src/platform/source_async_jobs.cpp',ROOT/'src/rendering/source_bitmap_async_read.cpp']
     headers=[ROOT/'include/halo2/source_async_jobs.hpp',ROOT/'include/halo2/source_bitmap_async_read.hpp']
     source_hashes={str(path):sha(path)for path in sources+headers}
-    command=['c++','-std=c++20','-O2','-I'+str(ROOT/'include'),*[str(path)for path in sources],'-o',str(scratch/'native-read')]
+    command=['c++','-std=c++20','-O2','-I'+str(ROOT/'include'), '-I'+str(ROOT/'src'),*[str(path)for path in sources],'-o',str(scratch/'native-read')]
     build=subprocess.run(command,capture_output=True,text=True)
     (output/'compile.log').write_text((build.stdout+build.stderr)[-65536:])
     assert build.returncode==0,build.stderr[-3000:]

@@ -53,9 +53,9 @@ def main():
         assert any(s['tick']==peak['tick'] and s['view']==peak['view'] and s['first_person']==peak['first_person']
                    and s['changed_pixels']==peak['changed_pixels'] for s in report['samples'])
         for path in (image,repeat):images[path.name]=file_sha(path)
-    module=[r for r in build['override_sources'].values() if r['source']==str(ROOT/'src/particle_renderer.cpp')]
+    module=[r for r in build['override_sources'].values() if r['source']==str(ROOT/'src/rendering/effects/particle_renderer.cpp')]
     assert len(module)==1
-    assert file_sha(ROOT/'src/particle_renderer.cpp')==module[0]['source_sha256']
+    assert file_sha(ROOT/'src/rendering/effects/particle_renderer.cpp')==module[0]['source_sha256']
     for name,digest in shaders['original_source_sha256'].items():
         if Path(name).name!='CMakeLists.txt':assert file_sha(Path(name))==digest,name
     assert all(file_sha(args.shaders/name)==digest for name,digest in shaders['shader_files_sha256'].items())

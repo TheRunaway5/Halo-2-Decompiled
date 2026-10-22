@@ -1,14 +1,14 @@
 # Source-proven bounded value proposals require an explicit FP mode.
 # Definitions retain their actual MCC Cache; these supply no install receipt.
 add_library(halo2_native_tu15_sound_mono_parameters STATIC
-    src/native_tu15_sound_mono_parameters.cpp)
+    src/audio/dsp/native_tu15_sound_mono_parameters.cpp)
 target_include_directories(halo2_native_tu15_sound_mono_parameters PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_native_tu15_sound_mono_parameters PUBLIC cxx_std_20)
 target_compile_options(halo2_native_tu15_sound_mono_parameters PRIVATE
     -frounding-math -fno-fast-math -ffp-contract=off)
 add_library(halo2_mcc_mono_distortion_definition STATIC
-    src/mcc_mono_distortion_definition.cpp)
+    src/audio/mcc_mono_distortion_definition.cpp)
 target_include_directories(halo2_mcc_mono_distortion_definition PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_mcc_mono_distortion_definition PUBLIC cxx_std_20)

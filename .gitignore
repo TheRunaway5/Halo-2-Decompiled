@@ -21,11 +21,17 @@
 # Generated reference captures and oracle payloads can contain original bytes.
 # Keep the fixture documentation and Python generators with the tests.
 /tests/fixtures/*
+!/tests/fixtures/shadow_array_swap_tu15_original.json
+!/tests/fixtures/mcc_action_prompt_templates.json
 !/tests/fixtures/*.md
 !/tests/fixtures/*.py
 !/tests/fixtures/mcc_scoreboard_hud_metadata.json
+!/tests/fixtures/bundled_loading_ambience_original.json
+!/tests/fixtures/player_screen_flash_tu15/
 
 # Builds, downloaded tools/references, and local analysis workspaces.
+# Launcher-selected engine builds stay local, including their runtime resources.
+/bin/engine-builds/
 /build*/
 /cmake-build*/
 /out/
@@ -94,3 +100,12 @@ Thumbs.db
 
 # Authored custom Slayer release definitions are shipped with the repository.
 !releases/halo2-custom-slayer-*.zip
+
+# Rebuildable, verified lossless playback payload; keep its small receipt.
+/resources/movie-playback/*.mp4
+
+# Requested precompiled temporal-upscaling runtimes and NGX link inputs.
+!external/upscaling/**/*.so*
+!external/upscaling/**/*.a
+!external/upscaling/**/*.dll
+!external/upscaling/**/*.lib

@@ -31,7 +31,7 @@ def main():
     comparison = json.loads((OUT / 'scene-comparison.json').read_text())
     assert comparison['adapted']['alpha_equal'] and comparison['adapted']['differing_RGBA_pixels'] == 729
     paths = [ROOT / path for path in (
-        'include/halo2/source_weather_point_render.hpp', 'src/source_weather_point_render.cpp',
+        'include/halo2/source_weather_point_render.hpp', 'src/rendering/weather/source_weather_point_render.cpp',
         'shaders/source_weather_point.vert', 'shaders/source_weather_point.frag',
         'shaders/source_weather_point_program.glsl', 'shaders/vertex_program.glsl',
         'shaders/combiner.glsl', 'shaders/particle_depth.glsl',

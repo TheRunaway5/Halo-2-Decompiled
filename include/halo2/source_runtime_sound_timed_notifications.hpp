@@ -33,7 +33,7 @@ public:
     void source_notification(std::uint32_t entry,SourcePhysicsWorldRuntimeAbi&,
         SourcePhysicsFactoryFloatingPoint,const SourcePhysicsWorldRuntimeServices&,
         const SourcePhysicsContactRecordObserver& = {},const PlatformObserver& = {});
-    // Nonblocking real timerfd expiration consumption. This enqueues its
+    // Nonblocking real native timer expiration consumption. This enqueues its
     // actual registered DPC in the existing frontend queue; it does not run it.
     bool collect_due();
     bool dispatch_dpc(SourcePhysicsWorldRuntimeAbi&,SourcePhysicsFactoryFloatingPoint,

@@ -3,16 +3,16 @@
 if(BUILD_TESTING)
     add_executable(native_tu15_late_startup_storage_tests
         tests/native_tu15_late_startup_storage_tests.cpp
-        src/source_startup_sound_storage_tu15_generated.cpp
-        src/native_tu15_startup_sound_storage_data.cpp
-        src/source_render_object_startup_tu15_generated.cpp
-        src/source_ui_script_startup_tu15_generated.cpp
-        src/native_tu15_ui_script_startup_data.cpp
-        src/native_tu15_storage_formatting.cpp
-        src/source_final_startup_storage_tu15_generated.cpp
-        src/native_tu15_final_startup_storage_data.cpp
-        src/source_runtime_memory.cpp src/source_runtime_host_storage.cpp
-        src/physics_pool_host_storage.cpp)
+        src/audio/source_startup_sound_storage_tu15_generated.cpp
+        src/audio/native_tu15_startup_sound_storage_data.cpp
+        src/rendering/renderer/source_render_object_startup_tu15_generated.cpp
+        src/ui/source_ui_script_startup_tu15_generated.cpp
+        src/ui/native_tu15_ui_script_startup_data.cpp
+        src/core/native_tu15_storage_formatting.cpp
+        src/platform/source_final_startup_storage_tu15_generated.cpp
+        src/platform/native_tu15_final_startup_storage_data.cpp
+        src/runtime/source_runtime_memory.cpp src/runtime/source_runtime_host_storage.cpp
+        src/physics/physics_pool_host_storage.cpp)
     target_include_directories(native_tu15_late_startup_storage_tests PRIVATE src)
     target_compile_features(native_tu15_late_startup_storage_tests PRIVATE cxx_std_20)
     target_link_libraries(native_tu15_late_startup_storage_tests PRIVATE

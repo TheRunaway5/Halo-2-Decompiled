@@ -3,6 +3,9 @@
 #include "halo2/online_service.hpp"
 #include "halo2/frontend_ui_assets.hpp"
 #include "halo2/frontend_font_sampling.hpp"
+#include "halo2/gameplay_font_source.hpp"
+#include "ui/mcc_frontend_string_ids.hpp"
+#include "ui/frontend_mcc_logical_layout.hpp"
 #include "halo2/frontend_vista.hpp"
 #include "halo2/frontend_canvas.hpp"
 #include "halo2/desktop_session.hpp"
@@ -127,9 +130,10 @@ int main(int argc, char **argv) {
         (!sampled.empty() && !std::filesystem::exists(sampled / "pack.tsv"))) return 77;
     Cache cache(maps / "mainmenu.map");
     auto content = cache.load_frontend();
+    if(cache.is_mcc()) content.vista=load_vista_settings(maps/"mainmenu.map");
     if (!sampled.empty() && std::filesystem::exists(sampled / "maps/mainmenu.map"))
       content.vista = load_vista_settings(sampled / "maps/mainmenu.map");
-    if(content.vista) {
+    if(content.vista && !cache.is_mcc()) {
       const auto &progress=content.vista->screen(210);
       check(progress.panes.size()==3,"Vista progress lost its three authored panes");
       for(unsigned pane=0;pane<3;++pane) {
@@ -143,6 +147,8 @@ int main(int argc, char **argv) {
           "Vista progress title bounds changed");
       }
     }
+    const auto logical_layout = detail::mcc_logical_layout::make_view(content);
+    const auto &native_layout = logical_layout ? logical_layout->content : content;
     const auto selected=selected_menu_assets.empty()?sampled:selected_menu_assets;
     const auto ui_assets = load_frontend_ui_assets(content, selected);
     // Provenance assertions always compare ONLINE against the Vista bank,
@@ -157,7 +163,7 @@ int main(int argc, char **argv) {
     check(menu.frame().screen == 6 && menu.signed_in_profile() == "Pilot", "Local screen name fixture did not sign in");
     check(menu.frame().entries[1].label == "ONLINE", "Main menu does not use uppercase ONLINE");
     Mesh mesh;
-    FrontendPainter painter(content, maps / "fonts", mesh, maps / "ui/frame_edges", ui_assets,
+    FrontendPainter painter(content, cache.is_mcc()?maps.parent_path()/"h2_fonts":maps/"fonts", mesh, maps / "ui/frame_edges", ui_assets,
                             selected.empty() ? std::filesystem::path{} : selected / "fonts");
     // Bounded renderer evidence: use the game's actual scenery idle and pose,
     // not a synthetic circle. Xbox model/material provenance remains explicit
@@ -218,6 +224,34 @@ int main(int argc, char **argv) {
             if (image.name==material.name && std::any_of(image.images.begin(),image.images.end(),same))
               vista_bitmaps[i]=true;
       }
+    if (cache.is_mcc()) {
+      const auto font_source = load_gameplay_font_source(content.source_fonts);
+      check(font_source.domain == GameplayFontDomain::Mcc, "ONLINE selected legacy fonts");
+      const auto prompts = font_prompt_asset_directory(content.source_fonts);
+      std::vector<Texture> atlases;
+      for (unsigned role = 0; role < font_source.names.size(); ++role) {
+        auto font = load_retail_font(content.source_fonts / font_source.names[role]);
+        apply_vista_prompt_sampling(font, prompts, role);
+        atlases.push_back(std::move(font.atlas));
+      }
+      for (unsigned role = 0; role < 11; ++role) {
+        auto font = load_gameplay_font(font_source, role);
+        apply_vista_prompt_sampling(font, prompts, role);
+        atlases.push_back(std::move(font.atlas));
+      }
+      for (std::size_t i = 0; i < mesh.materials.size(); ++i) {
+        const auto &material = mesh.materials[i];
+        const auto same = [&](const Texture &texture) {
+          return texture.width == material.diffuse.width && texture.height == material.diffuse.height &&
+              texture.format == material.diffuse.format && texture.pixels == material.diffuse.pixels;
+        };
+        if (material.name.starts_with("font/"))
+          vista_fonts[i] = std::any_of(atlases.begin(), atlases.end(), same);
+        for (const auto &[id, image] : content.images)
+          if (image.name == material.name && std::any_of(image.images.begin(), image.images.end(), same))
+            vista_bitmaps[i] = true;
+      }
+    }
     std::set<std::pair<unsigned,unsigned>> audited_panels;
     constexpr std::pair<unsigned,unsigned> viewports[]{
         {640,480},{1280,720},{1280,800},{1920,1080},{2560,1080},
@@ -225,7 +259,7 @@ int main(int argc, char **argv) {
     unsigned bounded_glyphs{}, pointer_projections{};
     auto audit_vista = [&](const MenuState &state, const UiDraw &draw,
                            std::array<unsigned,2> viewport = {640,480}) {
-      if (sampled.empty()) return;
+      if (sampled.empty() && !cache.is_mcc()) return;
       const auto surface=frontend_canvas(viewport[0],viewport[1]);
       const float surface_left=draw.full_surface_bounds?-surface.left/surface.scale:0;
       const float surface_top=draw.full_surface_bounds?-surface.top/surface.scale:0;
@@ -246,7 +280,7 @@ int main(int argc, char **argv) {
         if(state.frame().screen==26)
           check(name.find("rank_icons")==std::string::npos,"Social screen rendered an unowned placeholder rank");
         if (name.starts_with("font/")) {
-          check(vista_fonts.at(v.material), "ONLINE text fell back from the imported Vista font atlas");
+          check(vista_fonts.at(v.material), "ONLINE text fell back from the selected imported font atlas");
           if(!std::isfinite(v.position.x) || !std::isfinite(v.position.y) ||
              v.position.x<surface_left-.001f || v.position.x>surface_right+.001f ||
              v.position.y<surface_top-.001f || v.position.y>surface_bottom+.001f)
@@ -262,13 +296,31 @@ int main(int argc, char **argv) {
         }
       }
       if(!missing.empty()) {
-        std::string message="ONLINE bitmaps missing Vista sampling:";
+        std::string message="ONLINE bitmaps missing selected imported sampling:";
         for(const auto &name:missing)message+='\n'+name;
         throw std::runtime_error(message);
       }
       check(font && bitmap, "ONLINE panel has no imported Vista font/bitmap drawing");
       sampled_online_font |= font; sampled_online_bitmap |= bitmap;
       audited_panels.emplace(state.frame().screen,state.frame().context);
+      if(cache.is_mcc() && state.screen_layout(state.frame())==vista_menu(13)) {
+        const auto fonts=load_gameplay_font_source(content.source_fonts);
+        const auto column_font="font/"+fonts.names.at(5);
+        float first_column_ink=480;
+        for(const auto &v:draw.vertices)
+          if(mesh.materials.at(v.material).name==column_font)
+            first_column_ink=std::min(first_column_ink,v.position.y);
+        check(first_column_ink>=60,
+              "ONLINE browser columns overlap the original shell title bar");
+      }
+      if(cache.is_mcc() && state.frame().screen==186) {
+        const auto &bank=content.images.at(content.screen(186).panes.front().bitmaps.at(1).datum);
+        check(bank.images.size()>4,"MCC Bungie artwork page is missing");
+        check(std::any_of(draw.vertices.begin(),draw.vertices.end(),[&](const auto &v) {
+          const auto &m=mesh.materials.at(v.material);
+          return m.name==bank.name && m.diffuse.pixels==bank.images.at(4).pixels;
+        }),"Imported Bungie.net message panel is hidden on ONLINE");
+      }
       if(state.frame().screen==210 && content.vista && !state.frame().entries.empty() &&
           !state.frame().entries.front().label.empty()) {
         const auto &pane=content.vista->screen(210).panes.at(state.online_matchmaking_pane());
@@ -290,8 +342,9 @@ int main(int argc, char **argv) {
               std::to_string(ink_top)+","+std::to_string(ink_bottom)+"; box="+
               std::to_string(top)+","+std::to_string(bottom)+"; name="+state.frame().entries.front().label);
       }
-      if(state.frame().screen==26 && state.frame().context==1) {
-        check(draw.full_surface_bounds,"Clan page is still restricted to the centered canvas");
+      if(state.frame().screen==26 && (state.frame().context==1 ||
+          (cache.is_mcc() && state.frame().context==0))) {
+        check(draw.full_surface_bounds,"Friends/Clans page is still restricted to the centered canvas");
         const auto &pane=content.screen(26).panes.at(1);
         const auto &header=content.images.at(pane.bitmaps.at(1).datum);
         float header_left=surface_right,header_right=surface_left,header_top=surface_bottom;
@@ -323,16 +376,16 @@ int main(int argc, char **argv) {
         check(std::abs(header_left-surface_left)<.001f &&
               std::abs(header_right-surface_right)<.001f &&
               std::abs(header_top-surface_top)<.001f,
-              "Clan panel does not extend from the top left to the right edge");
+              "Friends/Clans panel does not extend from the top left to the right edge");
         check(opaque_body,"Clan full-surface backing was not audited");
       }
       if(state.frame().screen==14)if(const auto lobby=state.lobby_view();lobby &&
           lobby->party_names && !lobby->party_names->empty()) {
-        const auto &pane=content.screen(14).panes.at(2);
+        const auto &pane=native_layout.screen(14).panes.at(2);
         const auto &grid=pane.grids.front();
-        const auto &skin=content.skin_groups.at(grid.skin);
+        const auto &skin=native_layout.skin_groups.at(grid.skin);
         const auto name=std::find_if(skin.texts.begin(),skin.texts.end(),
-            [](const auto &t){return t.string==0x0b000698;});
+            [&](const auto &t){return detail::frontend_compiled_string_id(content,0x0b000698)==t.string;});
         check(name!=skin.texts.end(),"Party roster name field is missing");
         const float left=320+grid.position.x+name->bounds.left;
         const float top=240-grid.position.y-name->bounds.top;
@@ -434,8 +487,22 @@ int main(int argc, char **argv) {
       const auto pane_count=pc_progress?3u:id==210?2u:unsigned(content.screen(id).panes.size());
       for (unsigned pane=first_pane;pane<pane_count;++pane) {
         try {
-          for(const auto [width,height]:viewports)
-            audit_vista(sample,painter.draw(sample,5,int(pane),10000,{width,height}),{width,height});
+          for(const auto [width,height]:viewports) {
+            const auto draw=painter.draw(sample,5,int(pane),10000,{width,height});
+            audit_vista(sample,draw,{width,height});
+            if(cache.is_mcc() && pc_progress) {
+              unsigned rings=0;
+              const auto &source=content.vista->screen(210).panes.at(pane).scenes.at(0);
+              for(const auto &scene:draw.scenes) {
+                if(scene.definition->objects!=source.objects)continue;
+                ++rings;const auto &a=scene.definition->viewport, &b=source.viewport;
+                check(scene.vista_viewport && a.top==b.top && a.left==b.left &&
+                    a.bottom==b.bottom && a.right==b.right,
+                    "Matchmaking ring uses a different canvas/anchor from its PC progress widgets");
+              }
+              check(rings==1,"Matchmaking pane lost its one authored spinning ring");
+            }
+          }
         }
         catch(const std::exception &e) { throw std::runtime_error("ONLINE screen "+
             std::to_string(id)+" pane "+std::to_string(pane)+": "+e.what()); }
@@ -524,7 +591,9 @@ int main(int argc, char **argv) {
               {"context",menu.frame().context},{"width",dimensions.first},{"height",dimensions.second},
               {"vertices",ui.vertices.size()},{"file",path.filename().string()},
               {"ring_tick",tick},{"ring_views",views.size()},{"ring_physical_rectangles",rectangles},
-              {"ring_model_source",has_ring?"Xbox mainmenu cache; Vista material parity unresolved":"none"}});
+              {"ring_model_source",has_ring
+                  ? cache.is_mcc()?"Selected imported MCC mainmenu cache":"Xbox mainmenu cache; Vista material parity unresolved"
+                  : "none"}});
         }
       }
       if(capture_gpu)std::ofstream(captures/"report.json")<<capture_report.dump(2)<<'\n';
@@ -567,7 +636,7 @@ int main(int argc, char **argv) {
       painter.draw(menu,5,-1,10000);
       const auto &friends_list=content.screen(26).panes.at(0).lists.front();
       const auto last_friend=painter.pointer_hit(320+friends_list.position.x+20,
-          240-friends_list.position.y-41+7*41+20);
+          240-friends_list.position.y-41+7*41+20-(cache.is_mcc()?36:0));
       check(last_friend && last_friend->action==FrontendPointerAction::Entry && last_friend->index==7,
           "Friends two-line rows lost the original nonoverlapping pitch");
       menu.select(1);std::swap(friends->state.friends[0],friends->state.friends[1]);
@@ -722,11 +791,15 @@ int main(int argc, char **argv) {
           "Network Browser columns do not reflect advertised metadata");
     const auto browser_geometry = [&] {
       if (!content.vista) return;
-      const auto &pane = content.vista->screen(13).panes.at(0);
+      const auto &authored = content.vista->screen(13).panes.at(0).lists.at(0);
+      check(authored.visible == 19 && authored.skin == 5 && authored.position.x == -670 &&
+            authored.position.y == 412, "Network Browser source list was mutated");
+      const auto &pane = logical_layout && logical_layout->browser
+          ? logical_layout->browser->panes.at(0) : content.vista->screen(13).panes.at(0);
       const auto &list = pane.lists.at(0);
       const auto &skin = content.vista->skins.at(list.skin);
-      check(list.visible == 19 && list.skin == 5 && list.position.x == -670 &&
-            list.position.y == 412 && skin.texts.size() == 7,
+      check(list.visible == (cache.is_mcc()?16:19) && list.skin == 5 && list.position.x == -670 &&
+            list.position.y == (cache.is_mcc()?367:412) && skin.texts.size() == 7,
             "Network Browser no longer uses its source list definition");
       const auto draw = painter.draw(menu, 5, -1, 10000);
       const auto has = [&](const std::string &name) {
@@ -912,7 +985,7 @@ int main(int argc, char **argv) {
         while(menu.frame().screen!=14)menu.back();capture("party-full-lobby");
         auto click_party_prompt=[&](unsigned text,FrontendPointerAction action,unsigned destination) {
           painter.draw(menu,5,-1,10000);
-          const auto &bounds=content.screen(14).panes.at(2).texts.at(text).bounds;
+          const auto &bounds=native_layout.screen(14).panes.at(2).texts.at(text).bounds;
           std::optional<FrontendPointerTarget> target;
           for(float y=240-bounds.top;y<240-bounds.bottom && !target;y+=1)
             for(float x=320+bounds.left;x<320+bounds.right && !target;x+=1)
@@ -1057,13 +1130,20 @@ int main(int argc, char **argv) {
     }
     check(menu.frame().entries[0].label == "Continue as Custom Pilot" && menu.online_identity()->username == "verified_user" && menu.online_identity()->id == "123456789012345678", "Screen name edit altered verified Discord identity");
     check(MenuState(content, preferences.path).profile_name() == "Custom Pilot", "Chosen screen name was not saved");
+    menu.select(2);menu.accept();
+    check(menu.frame().screen==167,"Service tag entry is not reachable");
+    menu.text("a117");menu.commit_text();
+    check(menu.frame().screen==20 && menu.profile_service_tag()=="A117","Service tag did not normalize separately from the player name");
+    check(MenuState(content,preferences.path).profile_service_tag()=="A117","Service tag was not persisted");
+    menu.select(2);menu.accept();menu.text("S002");menu.back();
+    check(menu.profile_service_tag()=="A117","Cancelling service tag entry changed the profile");
     private_identity(menu);
     menu.select(1); menu.accept(); menu.text("Cancelled"); menu.back();
     check(menu.profile_name() == "Custom Pilot", "Cancelling name entry changed the screen name");
     menu.select(0); menu.accept();
     check(menu.frame().screen == 186 && menu.frame().description.starts_with("Custom Pilot | "), "ONLINE service retained the old screen name");
     menu.select(3); menu.accept();
-    menu.select(2); menu.accept();
+    menu.select(3); menu.accept();
     check(!menu.online_identity() && menu.frame().screen == 20, "Sign-out retained Online access");
     menu.open(210);
     check(menu.frame().screen == 20, "Sign-out bypassed matchmaking gate");
@@ -1077,7 +1157,7 @@ int main(int argc, char **argv) {
     }
     MenuState password(content); password.open(21);
     check(password.frame().screen == 20 && password.frame().entries[0].label == "Sign in with Discord", "Legacy password screen survived the service replacement");
-    check(sampled.empty() || (sampled_online_font && sampled_online_bitmap), "ONLINE did not draw higher-resolution imported fonts and UI bitmaps");
+    check((sampled.empty() && !cache.is_mcc()) || (sampled_online_font && sampled_online_bitmap), "ONLINE did not draw higher-resolution imported fonts and UI bitmaps");
     // The primary login changes provider without changing chosen Halo names,
     // private-ID treatment, Vista artwork, or widescreen menu bounds.
     const std::string device(43,'d');
@@ -1108,12 +1188,12 @@ int main(int argc, char **argv) {
     check(menu.frame().entries.back().label=="Sign out of Steam"&&!has_logo(menu),"Steam account action or panel overlap regressed");
     private_identity(menu);capture("steam-account");
     for(const auto &[width,height]:viewports)audit_vista(menu,painter.draw(menu,5,-1,10000,{width,height}),{width,height});
-    menu.select(2);menu.accept();check(!menu.online_identity(),"Native Steam sign-out retained ONLINE identity");
-    if (!sampled.empty()) std::cout << "Vista texture/font byte comparison passed on " << audited_panels.size() << " ONLINE panel/context pairs.\n";
-    if (!sampled.empty()) std::cout << bounded_glyphs << " bounded HD text vertices; " << pointer_projections
+    menu.select(3);menu.accept();check(!menu.online_identity(),"Native Steam sign-out retained ONLINE identity");
+    if (!sampled.empty() || cache.is_mcc()) std::cout << "Selected imported texture/font byte comparison passed on " << audited_panels.size() << " ONLINE panel/context pairs.\n";
+    if (!sampled.empty() || cache.is_mcc()) std::cout << bounded_glyphs << " bounded HD text vertices; " << pointer_projections
         << " mouse target projections across " << std::size(viewports) << " aspect ratios.\n";
     std::cout << "PASS native Quickmatch/Optimatch/playlists when configured, ONLINE discovery/details/refresh/scroll/expiry/failure/recovery, private Discord identity, chosen name, unobstructed panels, cancellation, sign-out and offline access"
-              << (sampled.empty() ? " using original menu assets\n" : " using launcher-selected Vista HD fonts and UI bitmaps\n");
+              << (cache.is_mcc() ? " using selected MCC-only assets and native MCC font prompts\n" : sampled.empty() ? " using original menu assets\n" : " using launcher-selected Vista HD fonts and UI bitmaps\n");
     return 0;
   } catch (const std::exception &e) { std::cerr << e.what() << '\n'; return 1; }
 }

@@ -108,10 +108,17 @@ int main(int argc,char**argv)try {
    if(isolated.materials.size()!=1 || isolated.materials.front().name!="retained material sentinel" || deferred.stats().deferred_resources!=1)
      throw FormatError("Deferred machine preparation leaked partial material slots");
    SceneObjects lifetimes(native,0,SourceSceneGameContext{1,0});deferred.synchronize(lifetimes);
-   lifetimes.switch_bsp(2);rejected=false;
-   try {deferred.synchronize(lifetimes);}catch(const FormatError &e){rejected=std::string(e.what()).find("requires original source resources: missing/truncated bitmap tag")!=std::string::npos;}
-   if(!rejected)throw FormatError("Newly visible original machine bypassed its retained resource boundary");
-   row["visible_bsp2_lifetime_rejected"]=true;row["partial_material_rollback_verified"]=true;row["legacy_eager_admission_preserved"]=true;
+   lifetimes.switch_bsp(2);deferred.synchronize(lifetimes);deferred.update_pose(0,0,isolated);
+   std::vector<Vertex> culled;std::vector<ObjectLightingBinding> culled_lighting;
+   SourceObjectViewLod outside;outside.in_frustum=[](Vec3,float){return false;};
+   deferred.append_view(culled,culled_lighting,outside);
+   if(!culled.empty() || !culled_lighting.empty() || isolated.materials.size()!=1)
+     throw FormatError("Outside-frustum deferred machine changed geometry/material submission");
+   rejected=false;SourceObjectViewLod visible;visible.in_frustum=[](Vec3,float){return true;};
+   try {deferred.append_view(culled,culled_lighting,visible);}catch(const FormatError &e){rejected=std::string(e.what()).find("requires original source resources: missing/truncated bitmap tag")!=std::string::npos;}
+   if(!rejected)throw FormatError("In-frustum original machine bypassed its retained resource boundary");
+   row["visible_bsp2_draw_rejected"]=true;row["outside_frustum_draw_culled"]=true;
+   row["partial_material_rollback_verified"]=true;row["legacy_eager_admission_preserved"]=true;
   }
   report["contexts"].push_back(row);
  }

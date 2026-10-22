@@ -32,7 +32,7 @@ def main():
                     archives[key]=sha(path)
         shutil.copy2(build/'CMakeCache.txt',dest/'CMakeCache.txt')
     before={rel:sha(out/'source'/rel)for rel in sources};after={rel:sha(ROOT/rel)for rel in sources};drift={rel:dict(before=before[rel],after=after[rel])for rel in sources if before[rel]!=after[rel]}
-    assert not any(rel in drift for rel in('include/halo2/sound_admission.hpp','src/sound_admission.cpp','tests/sound_admission_tests.cpp'))
+    assert not any(rel in drift for rel in('include/halo2/sound_admission.hpp','src/audio/sound_admission.cpp','tests/sound_admission_tests.cpp'))
     save(out/'commands.json',encoded(dict(schema='sound-admission-production-validation-v1',tool_sha256=sha(__file__),commands=commands,source_snapshot=before,source_after=after,source_drift=drift,observed_archives=archives,scope='Actual focused CMake production targets and original fixtures, existing actual sanitizer flags preserved. Exact observed archives/source snapshots are pinned, not a reproducible whole-tree or active-device/playback claim.')))
     print(dict(commands_sha256=sha(out/'commands.json'),archives=len(archives),source_drift=drift))
 if __name__=='__main__':main()

@@ -29,8 +29,8 @@ def main():
                       'owned_current_files','evidence_files','original_inputs','prior_pins']:
             for path,value in manifest.get(group,{}).items():add(prior,path,value)
     verify(prior)
-    sources=['CMakeLists.txt','include/halo2/original_data.hpp','src/original_data.cpp',
-        'include/halo2/sound_driver_startup.hpp','src/sound_driver_startup.cpp',
+    sources=['CMakeLists.txt','include/halo2/original_data.hpp','src/assets/original_data.cpp',
+        'include/halo2/sound_driver_startup.hpp','src/audio/sound_driver_startup.cpp',
         'include/halo2/sound_driver_startup_operands.hpp','tests/sound_driver_startup_tests.cpp',
         'tests/sound_driver_startup_operands_tests.cpp','tools/export_mp_sound_driver_startup_operands.py',
         'tools/export_mp_unit_constructor_constants.py','tools/freeze_mp_native_sound_storage.py',

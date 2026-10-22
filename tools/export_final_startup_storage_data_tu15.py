@@ -10,11 +10,36 @@ import argparse, hashlib, json
 from pathlib import Path
 from oracle_smg_firing_1_1 import Xbe
 from research_mp_sandbox_update_functions import NEW_DEFAULT, NEW_PIN
-COLD=[(0x48605c,4),(0x486070,4),(0x4f3010,4),(0x4fd538,0x20fc),(0x4ff798,131*20*4),
- (0x5020a4,8),(0x5020c8,4),(0x502240,2),(0x505e70,0x10),(0x50eedc,8),
+COLD=[(0x48605c,4),(0x486070,4),(0x4f3010,4),
+ # Original1B08B0 gathering: one context word,3*131 packed24-byte records,
+ #131 byte counts and131 validity bits. Its actual source phase writes
+ #before reading; record padding remains original prior storage.
+ (0x4fafc0,4),(0x4fafc8,3*131*24),(0x4fd4a0,131),(0x4fd524,5*4),
+ (0x4fd538,0x20fc),(0x4ff798,131*20*4),
+ # Original1D2D90/1D2E30 produce two12-byte AI scratch leases, their
+ # heap-use DWORD and initialization byte; padding retains prior contents.
+ (0x5020a4,8),(0x50208c,24),(0x5020c8,4),
+ # Original203C00 clears ceil(cluster_count/32) DWORDs, then publishes
+ # the cluster key separately. BSP clusters are bounded to512. Original
+ # constructor1CFB79 initializes the key toFFFF; never seed a cached result.
+ (0x502200,0x40),(0x502240,2),(0x505e70,0x10),(0x50eedc,8),
+ # Original262590 publishes actor/script context before211840 and clears it
+ # after the callback. Preserve the eight loader-zero bytes, not live IDs.
+ (0x50eee4,8),
  (0x50eeec,0x14),(0x510fa4,0x10),(0x510fb8,0x320),(0x51df48,1),(0x52be44,4),
- (0x52be5c,4),(0x52be70,4),(0x52be7c,8),(0x52d688,12),(0x52d87c,4),
- (0x52d88c,4),(0x56aeb0,4),(0x56aeb8,0x14),(0x56e080,12)]
+ (0x52be5c,4),(0x52be54,4),(0x52be58,1),(0x52be70,4),(0x52be7c,8),(0x52d688,12),(0x52d87c,4),
+ #26A380 publishes this query kind and retained-call context before140910
+ # invokes the original269DF0 callback. Their two-byte gap stays unowned.
+ (0x52d874,2),(0x52d878,4),(0x52d88c,4),
+ # Actual1B08D9/1B08F1 supplies this loader-zeroed20-byte destination to
+ # whole1B0720. Original poisoned-input runs prove all words precede reads.
+ (0x56ae84,0x14),(0x56aeb0,4),(0x56aeb8,0x14),(0x56e080,12),
+ # Original3826F0 publishes this separate AI geometry scalar before AI storage.
+ (0x56e08c,4),
+ # Whole164EF0 writes this one-byte time-extension announcement latch at
+ #164FAF/164FBB. Startup's aligned read also covers it; that read does not
+ # make this loader-zeroed mutable field an immutable literal.
+ (0x56e224,1)]
 SHARED=[(0x4f2950,8),(0x4f295c,4),(0x51df2c,4),(0x51df44,4),(0x56e225,1),(0x56e258,0x400)]
 
 def regions(points):

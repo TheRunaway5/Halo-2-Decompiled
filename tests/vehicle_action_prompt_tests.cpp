@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #include "halo2/native_unit_interaction.hpp"
 #include "halo2/simulation.hpp"
 #include "halo2/math.hpp"
@@ -16,7 +17,7 @@ int main(int argc,char **argv)try{
   for(float r:{.2f,.5f,.8f,1.1f,1.5f,2.f,2.5f})for(unsigned angle=0;angle<32;++angle) {
    const float theta=float(angle)*6.2831853f/32;Spawn at;at.position=o.position+direction(theta)*r;at.position.z=o.position.z;at.facing=theta+3.14159265f;at.bsp=0;
    const auto floor=sim.collision().raycast(at.position+Vec3{0,0,2},{0,0,-1},4);if(!floor)continue;at.position.z=floor->position.z+.01f;
-   sim.debug_teleport(0,at);
+   test::place_player(sim,at);
    const auto p=sim.unit_action_prompt(sim.player());if(p.target.object!=o.handle || p.target.action<4 || p.target.action>6)continue;
    std::cout<<"ADMITTED vehicle="<<cache.query_tag({.handle=TagHandle{p.definition}})->name<<" action="<<p.target.action<<" seat="<<p.target.index<<" position="<<at.position.x<<','<<at.position.y<<','<<at.position.z<<" yaw="<<at.facing<<'\n';
    if(!sim.take_unit_action(const_cast<Unit&>(sim.player()),p))throw FormatError("Displayed vehicle prompt not executable");

@@ -16,8 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 E = ROOT / 'analysis/multiplayer/sandbox-source/vehicle-motion-20261011'
 OWNED = (
     'include/halo2/physics_vehicle_motion.hpp',
-    'src/physics_vehicle_motion_internal.hpp',
-    'src/physics_vehicle_motion_generated.cpp',
+    'src/physics/vehicles/physics_vehicle_motion_internal.hpp',
+    'src/physics/vehicles/physics_vehicle_motion_generated.cpp',
     'tests/physics_vehicle_motion_tests.cpp',
     'cmake/PhysicsVehicleMotion.cmake',
     'tools/research_vehicle_motion_20261011.py',
@@ -42,9 +42,9 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-EXPLICIT_SUPPORT = ('src/physics_vehicle_runtime_generated.cpp',
+EXPLICIT_SUPPORT = ('src/physics/vehicles/physics_vehicle_runtime_generated.cpp',
     'tests/physics_vehicle_runtime_tests.cpp', 'cmake/PhysicsVehicleRuntime.cmake',
-    'src/physics_vehicle_update_generated.cpp', 'tests/physics_vehicle_update_tests.cpp', 'cmake/PhysicsVehicleUpdate.cmake',
+    'src/physics/vehicles/physics_vehicle_update_generated.cpp', 'tests/physics_vehicle_update_tests.cpp', 'cmake/PhysicsVehicleUpdate.cmake',
     'tests/physics_world_runtime_tests.cpp')
 PARENT = ROOT / 'analysis/multiplayer/sandbox-source/vehicle-update-20261011'
 PARENT_MANIFEST_PIN = 'f90f1f92fecac38d3ec6279c0c9945da18a851d914033c66db6fae89a246f6c2'
@@ -53,7 +53,7 @@ PARENT_MANIFEST_PIN = 'f90f1f92fecac38d3ec6279c0c9945da18a851d914033c66db6fae89a
 def verify_parent():
     assert sha(PARENT / 'source-manifest-v1.json') == PARENT_MANIFEST_PIN
     parent = json.loads((PARENT / 'source-manifest-v1.json').read_text())
-    independent_world='src/physics_world_runtime_generated.cpp'
+    independent_world='src/physics/runtime/physics_world_runtime_generated.cpp'
     for relative,pin in parent['files'].items():
         assert sha(PARENT/'source-v1'/relative)==pin,relative
         # The independently evolving world implementation is not linked by
@@ -144,7 +144,7 @@ def validate():
     generator = json.loads(generated.read_text())
     assert generator['generator_sha256'] == sha(ROOT / 'tools/generate_vehicle_motion_20261011.py')
     assert generator['correspondence_sha256'] == sha(correspondence)
-    assert generator['generated_cpp_sha256'] == sha(ROOT / 'src/physics_vehicle_motion_generated.cpp')
+    assert generator['generated_cpp_sha256'] == sha(ROOT / 'src/physics/vehicles/physics_vehicle_motion_generated.cpp')
     assert generator['generated_cpp_sha256'] == sha(E / 'generated-repeat/physics_vehicle_motion_generated.cpp')
     assert len(generator['lowered_instructions']) == 8019
     assert set(generator['lowered_instructions']) < set(paired['instruction_map'])
@@ -271,7 +271,7 @@ def validate():
         retained_parent_manifest_sha256=PARENT_MANIFEST_PIN,
         retained_parent_sources=manifest['retained_parent_sources'],
         production_world_binary_sha256=sha(ROOT / 'build-vehicle-control-20261011/physics_world_runtime_tests'),
-        production_world_source_sha256=sha(ROOT/'src/physics_world_runtime_generated.cpp'),
+        production_world_source_sha256=sha(ROOT/'src/physics/runtime/physics_world_runtime_generated.cpp'),
         original_state_builder_complete_cases_per_image=576, state_builder_then_motion_cases_per_image=432,
         x87_undefined_status_bits_excluded_by_architecture=True, instruction_patches=[], original_code_executed_by_production=False,
         live_vehicle_driving_integrated=False, full_physics_parity=False,

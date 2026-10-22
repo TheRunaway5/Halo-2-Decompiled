@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #define SDL_MAIN_HANDLED
 #include "halo2/multiplayer_audio.hpp"
 #include "halo2/multiplayer_network.hpp"
@@ -42,13 +43,14 @@ struct Host {
     spawn.facing=std::atan2(aim.y,aim.x);
     // Only the test's location is supplied. Actual Match controls still run
     // the recovered SMG, collision, health, response delay and blast owners.
-    DebugGameSettings settings;settings.players[0].noclip=true;match.debug_settings(settings);
-    match.debug_request({DebugGameRequest::Teleport,0},&spawn);
+
+    test::place_player(match,0,spawn);
     shooter.yaw=spawn.facing;shooter.pitch=std::atan2(aim.z,std::hypot(aim.x,aim.y));
-    worker=std::jthread([this](std::stop_token stop){try {
+    worker=std::jthread([this,spawn](std::stop_token stop){try {
       std::array<Controls,16> commands{};auto next=std::chrono::steady_clock::now();
       while(!stop.stop_requested()) {
         host.receive(commands);commands[0]=shooter;commands[0].fire=fire.load()&&!removed.load();
+        test::place_player(match,0,spawn);
         match.step(commands);
         for(const auto &event:match.take_prop_events())if(event.handle==module) {
           check(event.effect==0xe70a0595u&&event.remove,"Actual power response lost its authored effect");

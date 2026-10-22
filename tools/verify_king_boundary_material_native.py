@@ -10,12 +10,12 @@ import argparse,concurrent.futures,datetime,hashlib,json,os,re,shutil,subprocess
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'analysis/multiplayer/game-variants/king-boundary-material-native-20261012'
-OWNED=('include/halo2/cache.hpp','src/material.cpp','include/halo2/source_vertex_inputs.hpp',
- 'src/source_vertex_declaration.cpp','include/halo2/world_material.hpp','src/world_material.cpp',
+OWNED=('include/halo2/cache.hpp','src/rendering/material.cpp','include/halo2/source_vertex_inputs.hpp',
+ 'src/rendering/source_vertex_declaration.cpp','include/halo2/world_material.hpp','src/rendering/world/world_material.cpp',
  'shaders/world_vertex.glsl','shaders/vertex_program.glsl','shaders/source_vertex_declaration.comp',
- 'src/renderer.cpp','tests/king_boundary_material_tests.cpp','tools/verify_king_boundary_material_native.py',
- 'include/halo2/source_transparent_draw.hpp','include/halo2/source_transparent_queue.hpp','src/source_transparent_queue.cpp',
- 'include/halo2/source_king_draw.hpp','src/source_king_draw.cpp','tests/king_boundary_renderer_tests.cpp','tests/king_queue_submission_tests.cpp')
+ 'src/rendering/renderer/renderer.cpp','tests/king_boundary_material_tests.cpp','tools/verify_king_boundary_material_native.py',
+ 'include/halo2/source_transparent_draw.hpp','include/halo2/source_transparent_queue.hpp','src/rendering/source_transparent_queue.cpp',
+ 'include/halo2/source_king_draw.hpp','src/gameplay/multiplayer/source_king_draw.cpp','tests/king_boundary_renderer_tests.cpp','tests/king_queue_submission_tests.cpp')
 TARGETS=('halo2_renderer','king_boundary_material_tests','source_vertex_declaration_tests',
  'king_boundary_tests','king_visual_tests','king_runtime_tests','world_material_tests',
  'renderer_material_residency_tests','king_boundary_renderer_tests','king_queue_submission_tests','source_transparent_queue_tests')
@@ -81,8 +81,8 @@ def main():
  assert re.search(r'100% tests passed.*out of 2',(run/'renderer-checks.log').read_text())
  sanitized=run/'king_queue_submission_tests_asan'
  execute('sanitizer-build',['/usr/bin/c++','-std=c++20','-O1','-g','-Wall','-Wextra','-Werror',
-  '-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-fast-math','-ffp-contract=off','-I'+str(source/'include'),
-  source/'tests/king_queue_submission_tests.cpp',source/'src/source_transparent_queue.cpp',source/'src/source_transparent_sort.cpp','-o',sanitized])
+  '-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-fast-math','-ffp-contract=off','-I'+str(source/'include'), '-I'+str(source/'src'),
+  source/'tests/king_queue_submission_tests.cpp',source/'src/rendering/source_transparent_queue.cpp',source/'src/rendering/source_transparent_sort.cpp','-o',sanitized])
  execute('sanitizer-test',[sanitized,source/'analysis/multiplayer/game-variants'/REPORTS[3]],
   extra={'ASAN_OPTIONS':'detect_leaks=1:halt_on_error=1','UBSAN_OPTIONS':'halt_on_error=1'})
  assert all(sha(p)==pin for p,pin in inputs.items())

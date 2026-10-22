@@ -11,8 +11,8 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'analysis/multiplayer/game-variants/shader-texture-reference-native-20261011'
 BASE=ROOT/'analysis/multiplayer/game-variants/camouflage-material-native-20261011/verify-20261011T225019.485728Z'
-FILES=('include/halo2/source_shader_texture.hpp','src/source_shader_texture.cpp',
-       'src/world_material.cpp','tests/shader_texture_reference_tests.cpp',
+FILES=('include/halo2/source_shader_texture.hpp','src/rendering/source_shader_texture.cpp',
+       'src/rendering/world/world_material.cpp','tests/shader_texture_reference_tests.cpp',
        'tests/camouflage_material_gpu_tests.cpp','tools/inspect_camouflage_pass_contract.py')
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def link_command(build,target):
@@ -25,7 +25,7 @@ def main():
  ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--output',type=Path)
  ap.add_argument('--vertex-extern',action='store_true',help='Include the native19BE0 remapper, its ordinary RGB consumer and original fixture')
  a=ap.parse_args()
- vertex=a.vertex_extern or 'halo2/source_vertex_extern.hpp'in(ROOT/'src/world_material.cpp').read_text()
+ vertex=a.vertex_extern or 'halo2/source_vertex_extern.hpp'in(ROOT/'src/rendering/world/world_material.cpp').read_text()
  if a.output is None:a.output=(ROOT/'analysis/multiplayer/game-variants/vertex-extern-native-20261011'if vertex else OUT)/'verification.json'
  run=a.output.parent/('verify-'+datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ'))
  source=run/'frozen-source';source.mkdir(parents=True);build=BASE/'build';base_source=BASE/'frozen-source'
@@ -41,7 +41,7 @@ def main():
  for folder in ('cmake','external','resources','shaders','assets','analysis'):
   (source/folder).symlink_to(base_source/folder,target_is_directory=True)
  overlay_pins={}
- selected_files=FILES+(('include/halo2/source_vertex_extern.hpp','src/source_vertex_extern.cpp',
+ selected_files=FILES+(('include/halo2/source_vertex_extern.hpp','src/rendering/source_vertex_extern.cpp',
                       'tests/source_vertex_extern_tests.cpp','tests/fixtures/camouflage_vertex_extern_original.json',
                       'tools/oracle_camouflage_vertex_extern.py')if vertex else())
  for name in selected_files:
@@ -49,8 +49,8 @@ def main():
   if q.is_symlink():q.unlink()
   q.parent.mkdir(parents=True,exist_ok=True);q.write_bytes((ROOT/name).read_bytes());overlay_pins[name]=sha(q)
  current=(ROOT/'CMakeLists.txt').read_text();cmake=(base_source/'CMakeLists.txt').read_text()
- added_source='target_sources(halo2_cache PRIVATE src/source_shader_texture.cpp)\n'
- if vertex:added_source+='target_sources(halo2_cache PRIVATE src/source_vertex_extern.cpp)\n'
+ added_source='target_sources(halo2_cache PRIVATE src/rendering/source_shader_texture.cpp)\n'
+ if vertex:added_source+='target_sources(halo2_cache PRIVATE src/rendering/source_vertex_extern.cpp)\n'
  start=current.index('    add_executable(shader_texture_reference_tests ')
  end=current.index('assets.json)',start)+len('assets.json)\n')
  added_test=current[start:end]
@@ -59,7 +59,7 @@ def main():
   end=current.index('camouflage-pass-20261011/report.json)',start)+len('camouflage-pass-20261011/report.json)\n')
   added_test+=current[start:end]
  assert added_source in current and added_source not in cmake and added_test not in cmake
- anchor='target_sources(halo2_cache PRIVATE src/world_material.cpp src/bsp_atmosphere.cpp src/bsp_patchy_fog.cpp src/water.cpp src/scenery_lighting.cpp src/object_lighting.cpp)\n'
+ anchor='target_sources(halo2_cache PRIVATE src/rendering/world/world_material.cpp src/rendering/world/bsp_atmosphere.cpp src/rendering/world/bsp_patchy_fog.cpp src/rendering/world/water.cpp src/gameplay/objects/scenery_lighting.cpp src/gameplay/objects/object_lighting.cpp)\n'
  cmake=cmake.replace(anchor,anchor+added_source,1)
  anchor='        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/camouflage_material_animation_original.json)\n'
  assert anchor in cmake;cmake=cmake.replace(anchor,anchor+added_test,1)
@@ -91,9 +91,9 @@ def main():
   if sanitized:command.extend(['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer'])
   execute(('asan-'if sanitized else'compile-')+Path(name).stem,command,Path(entry['directory']))
   return obj
- world=compile_owner('src/world_material.cpp');texture=compile_owner('src/source_shader_texture.cpp')
+ world=compile_owner('src/rendering/world/world_material.cpp');texture=compile_owner('src/rendering/source_shader_texture.cpp')
  test=compile_owner('tests/shader_texture_reference_tests.cpp');gpu=compile_owner('tests/camouflage_material_gpu_tests.cpp')
- vertex_owner=compile_owner('src/source_vertex_extern.cpp')if vertex else None
+ vertex_owner=compile_owner('src/rendering/source_vertex_extern.cpp')if vertex else None
  vertex_test=compile_owner('tests/source_vertex_extern_tests.cpp')if vertex else None
  archive=run/'libhalo2_cache.a';shutil.copy2(build/'libhalo2_cache.a',archive)
  # Object member names deliberately match the original CMake archive names.
@@ -146,10 +146,10 @@ def main():
   prior=ROOT/'analysis/multiplayer/game-variants/camouflage-binder-20261011'
   vertex_original_hashes={p.name:sha(p)for p in vertex_original.iterdir()if p.is_file()}
   assert all(sha(prior/name)==digest for name,digest in vertex_original_hashes.items()if name!='fixture.json')
- asan_world=compile_owner('src/world_material.cpp',True)
- asan_texture=compile_owner('src/source_shader_texture.cpp',True)
+ asan_world=compile_owner('src/rendering/world/world_material.cpp',True)
+ asan_texture=compile_owner('src/rendering/source_shader_texture.cpp',True)
  asan_test=compile_owner('tests/shader_texture_reference_tests.cpp',True)
- asan_vertex=compile_owner('src/source_vertex_extern.cpp',True)if vertex else None
+ asan_vertex=compile_owner('src/rendering/source_vertex_extern.cpp',True)if vertex else None
  asan_owners=[asan_world,asan_texture]+([asan_vertex]if vertex else[])
  sanitized=link('shader_texture_reference_tests',asan_test,asan_owners)
  execute('sanitizer-test',[sanitized,*args],extra={'ASAN_OPTIONS':'detect_leaks=1:halt_on_error=1','UBSAN_OPTIONS':'halt_on_error=1'})

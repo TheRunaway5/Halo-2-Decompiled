@@ -3,7 +3,7 @@
 import argparse,os,re,shutil,subprocess
 from pathlib import Path
 from oracle_mp_title_update_display import ROOT,sha,save,encoded
-ROOTS=('include/halo2/sound_driver_update.hpp','src/sound_driver_update.cpp','tests/sound_driver_update_tests.cpp','src/native_sound_storage.cpp')
+ROOTS=('include/halo2/sound_driver_update.hpp','src/audio/sound_driver_update.cpp','tests/sound_driver_update_tests.cpp','src/audio/native_sound_storage.cpp')
 def source_files():
     found=set(ROOTS);pending=list(ROOTS)
     while pending:
@@ -19,7 +19,7 @@ def main():
     def run(argv,label,env=None):
         r=subprocess.run(argv,cwd=ROOT,env=env,capture_output=True,text=True);save(native/(label+'.stdout'),r.stdout.encode());save(native/(label+'.stderr'),r.stderr.encode())
         commands.append(dict(argv=argv,cwd=str(ROOT),exit_code=r.returncode,label=label,environment_overrides={k:env[k]for k in('ASAN_OPTIONS','UBSAN_OPTIONS')}if env else{},stdout_sha256=sha(native/(label+'.stdout')),stderr_sha256=sha(native/(label+'.stderr'))));assert r.returncode==0,(label,r.stdout,r.stderr);return r.stdout
-    version=run(['g++','--version'],'compiler-version');inputs=[str(native/'source'/q)for q in sources if q.endswith('.cpp')];common=['g++','-std=c++20','-pthread','-Wall','-Wextra','-Wpedantic','-I'+str(native/'source/include')];normal=native/'sound_driver_update_tests';san=native/'sound_driver_update_tests_asan'
+    version=run(['g++','--version'],'compiler-version');inputs=[str(native/'source'/q)for q in sources if q.endswith('.cpp')];common=['g++','-std=c++20','-pthread','-Wall','-Wextra','-Wpedantic','-I'+str(native/'source/include'), '-I'+str(native/'source/src')];normal=native/'sound_driver_update_tests';san=native/'sound_driver_update_tests_asan'
     run([*common,'-O2',*inputs,'-o',str(normal)],'normal-build');run([str(normal),str(fixture/'fixtures.tsv')],'normal')
     run([*common,'-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer',*inputs,'-o',str(san)],'sanitizer-build');run([str(san),str(fixture/'fixtures.tsv')],'sanitizer',dict(os.environ,ASAN_OPTIONS='detect_leaks=1:halt_on_error=1',UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1'))
     for rel in sources:assert(ROOT/rel).read_bytes()==(native/'source'/rel).read_bytes(),rel

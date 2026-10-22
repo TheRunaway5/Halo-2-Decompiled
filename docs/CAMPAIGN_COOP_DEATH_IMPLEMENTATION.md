@@ -99,8 +99,14 @@ the source-options implementation passes. Logs and source manifests are under
 
 ## Remaining live integration
 
-- `Simulation` still owns one campaign player. Its script players list returns
-  that single player, and `game_is_cooperative` truthfully returns false.
+The active [campaign AI/co-op goal checklist](CAMPAIGN_AI_COOP_GOAL_CHECKLIST.md)
+tracks the shared-world, script, participant, safe-respawn and network work.
+
+- `Simulation` still owns one campaign player. The October20 source-backed
+  `players` query now snapshots every occupied source player's non-NONE current
+  unit in original list order, and `game_is_cooperative` reads the actual source
+  campaign/options byte. Normal setup still creates a solo session; the query
+  increment does not create additional players or cooperative readiness.
 - Campaign input and rendering in `main.cpp` still consume one local player
   and one view. Frontend co-op presentation does not launch a native session.
 - A cooperative owner must retain both players, their detached corpses,

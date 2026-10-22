@@ -25,7 +25,7 @@ def main():
   actual=_Code(selected,'.text').at(row['later']);assert actual.mnemonic=='call'
   frames.append(dict(site=i.address,target=actual.operands[0].imm,return_address=actual.address+actual.size,module=module,entry=entry))
  assert len(frames)==8
- h=ROOT/'src/physics_early_initializer_call_frames.hpp'
+ h=ROOT/'src/physics/physics_early_initializer_call_frames.hpp'
  s='#pragma once\n#include <array>\n#include <cstdint>\nnamespace halo2::physics_early_initializer_frames {\nenum class Module { Arena, Pool, MainHeap, Renderer, Required };\nstruct Frame {std::uint32_t site,target,return_address,entry;Module module;};\ninline constexpr std::array<Frame,8> frames{{\n'
  for f in frames:s+=f'{{0x{f["site"]:x}u,0x{f["target"]:x}u,0x{f["return_address"]:x}u,0x{f["entry"]:x}u,Module::{f["module"]}}},\n'
  s+='}};\n} // namespace halo2::physics_early_initializer_frames\n';h.write_text(s)

@@ -18,7 +18,7 @@ class NativeShaderSourcesTests(unittest.TestCase):
         shutil.copytree(ROOT / 'shaders/native-programs', self.root / 'sources')
         tools = self.root / 'tools'
         tools.mkdir()
-        for name in ('compile_menu_world_vertex_catalog.py', 'generate_particle_graphics_program.py'):
+        for name in ('compile_menu_world_vertex_catalog.py', 'generate_particle_graphics_program.py', 'world_triangle_vertex.py'):
             shutil.copyfile(ROOT / 'tools' / name, tools / name)
 
     def run_tool(self, tool, *args, passed=True):

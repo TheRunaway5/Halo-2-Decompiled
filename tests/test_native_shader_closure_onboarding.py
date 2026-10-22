@@ -154,7 +154,13 @@ class NativeShaderClosureOnboardingTests(unittest.TestCase):
         _, report = self.repair()
         (destination / 'function-tables.bin').unlink()
         before = snapshot(self.cache)
-        with patch.object(onboarding.os, 'link', side_effect=PermissionError('fixture publication failure')):
+        import mcc_native_map_owner_publication as publication
+        publish = publication._publish_absent
+        def fail_scalar(source, target):
+            if Path(target) == destination / 'function-tables.bin':
+                raise PermissionError('fixture publication failure')
+            return publish(source, target)
+        with patch.object(publication, '_publish_absent', side_effect=fail_scalar):
             with self.assertRaisesRegex(PermissionError, 'fixture publication failure'):
                 onboarding.repair_cache_shaders(self.root, self.cache, report, progress=lambda _: None)
         self.assertEqual(snapshot(self.cache), before)

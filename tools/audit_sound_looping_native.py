@@ -21,7 +21,7 @@ def main():
  for mode in('normal','sanitizer'):
   for log in('test.stdout','test.stderr'):
    left=d/'validation-v2'/mode/log;right=d/'validation-repeat'/mode/log;assert left.read_bytes()==right.read_bytes();equal.append([str(left.relative_to(ROOT)),str(right.relative_to(ROOT)),sha(left)])
- for rel in('include/halo2/sound_looping.hpp','src/sound_looping.cpp','tests/sound_looping_tests.cpp'):
+ for rel in('include/halo2/sound_looping.hpp','src/audio/sound_looping.cpp','tests/sound_looping_tests.cpp'):
   for folder in('validation-v2','validation-repeat','production'):assert(ROOT/rel).read_bytes()==(d/folder/'source'/rel).read_bytes(),rel
  original=json.loads((d/'measured-v5/report.json').read_text());assert not original['source_success_returns_supplied']and not original['instruction_patches'];assert sum(len(b['cases'])for b in original['banks'])==2467
  assert sum(len(c['stores'])for b in original['banks']for c in b['cases'])==55376
@@ -39,7 +39,7 @@ def main():
  meta=json.loads((d/'fixtures-v3/report.json').read_text());assert meta['calls']==2467 and meta['stores']==55376 and not meta['expected_from_native']
  for folder in('validation-v2','validation-repeat'):
   commands=json.loads((d/folder/'commands.json').read_text());assert all(q['exit_code']==0 for q in commands);assert '-fsanitize=address,undefined'in commands[2]['argv']
- production=json.loads((d/'production/commands.json').read_text());assert all(q['exit_code']==0 for q in production['commands']);assert not any(k in production['source_drift']for k in('include/halo2/sound_looping.hpp','src/sound_looping.cpp','tests/sound_looping_tests.cpp'))
+ production=json.loads((d/'production/commands.json').read_text());assert all(q['exit_code']==0 for q in production['commands']);assert not any(k in production['source_drift']for k in('include/halo2/sound_looping.hpp','src/audio/sound_looping.cpp','tests/sound_looping_tests.cpp'))
  for tag in('normal','sanitizer'):
   assert '100% tests passed'in(d/'production'/(tag+'-ctest.stdout')).read_text();assert 'PASS 2467 original controls'in(d/'production'/(tag+'-ctest.stdout')).read_text()
  assert '-fsanitize=address,undefined'in(d/'production/sanitizer/sound_looping_tests-flags.make').read_text()

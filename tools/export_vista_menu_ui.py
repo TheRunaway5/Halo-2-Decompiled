@@ -38,7 +38,7 @@ class VistaCache(Cache):
                 raise FormatError("unsupported PC build or truncated map")
             self.index = self.u32(16)
             self.require(self.index, 32)
-            # src/vista_cache.cpp: directory table pointers are index-relative;
+            # src/ui/vista/vista_cache.cpp: directory table pointers are index-relative;
             # resident metadata additionally subtracts the header's VA bias.
             # Multiplayer caches use 0x1400000 here, unlike mainmenu/solo.
             self.magic = self.u32(32)-self.index

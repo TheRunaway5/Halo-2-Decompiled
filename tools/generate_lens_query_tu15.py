@@ -39,7 +39,7 @@ class QueryCode:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path,
-                        default=Path('src/source_lens_query_tu15_generated.cpp'))
+                        default=Path('src/rendering/effects/source_lens_query_tu15_generated.cpp'))
     parser.add_argument('--directory', type=Path, required=True)
     args = parser.parse_args()
     assert sha(NEW_DEFAULT) == NEW_PIN

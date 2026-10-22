@@ -203,10 +203,10 @@ def main():
     for name in ('round_lifecycle_tests', 'game_end_native_tests'):
         binary = ROOT/'build'/name
         relevant = {p for p in sanitizers['instrumented_sources']
-                    if not p.startswith('tests/') and p != 'src/multiplayer.cpp'}
+                    if not p.startswith('tests/') and p != 'src/gameplay/multiplayer/multiplayer.cpp'}
         relevant.add('tests/'+name+'.cpp')
         if name == 'game_end_native_tests':
-            relevant.add('src/multiplayer.cpp')
+            relevant.add('src/gameplay/multiplayer/multiplayer.cpp')
         assert all((ROOT/p).stat().st_mtime_ns <= binary.stat().st_mtime_ns for p in relevant)
         paths.add(str(binary.relative_to(ROOT)))
     metrics = dict(original_wrapper_records=wrappers, original_preparation_records=phases,

@@ -16,7 +16,7 @@ SPEC.loader.exec_module(MODULE)
 class NativeLibraryClosureGeneratorTests(unittest.TestCase):
     def test_checked_generated_policy(self):
         raw = (ROOT / "tools/reference/mcc-native-library-closure.json").read_bytes()
-        self.assertEqual(MODULE.generate(raw), (ROOT / "src/mcc_native_library_closure.inc").read_text())
+        self.assertEqual(MODULE.generate(raw), (ROOT / "src/runtime/mcc_native_library_closure.inc").read_text())
         self.assertEqual(raw, (ROOT / "tools/data/mcc-native-library-closure.json").read_bytes())
 
     def test_unowned_or_partial_policy_is_rejected(self):
@@ -32,6 +32,10 @@ class NativeLibraryClosureGeneratorTests(unittest.TestCase):
         changed(lambda d: d["closure"].pop())
         changed(lambda d: d["closure"].__setitem__(0,d["closure"][1]))
         changed(lambda d: d["closure"].__setitem__(0,["shad","unknown"]))
+        changed(lambda d: d["scoped_closure"].pop())
+        changed(lambda d: d["scoped_closure"].__setitem__(0,d["scoped_closure"][1]))
+        changed(lambda d: d["scoped_closure"][0].__setitem__(0,"mainmenu"))
+        changed(lambda d: d["scoped_closure"][0].__setitem__(2,"ui\\hud\\shaders\\unknown"))
         changed(lambda d: d["libraries"].pop())
         changed(lambda d: d["libraries"].__setitem__(0,d["libraries"][1]))
         changed(lambda d: d["libraries"][0].update(map="../unknown"))

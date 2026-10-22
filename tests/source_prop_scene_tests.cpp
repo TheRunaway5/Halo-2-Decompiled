@@ -112,6 +112,36 @@ void checkpoint_roundtrip(const Cache &cache,const LevelContent &content,const C
  check(same(view_vertices,restored),"Ordinary prop pose/draw failed after actual lighting COW");
  const auto after_cow=scene.checkpoint();check(scene.owns_checkpoint(after_cow),"Fresh prop capture was permanently invalid after material COW");
  auto fresh=scene.prepare_restore(after_cow);check(scene.restore_ready(fresh)&&scene.commit_restore(fresh),"Fresh actual material graph could not prepare/restore");
+ // An enclosing material owner can restore a historical graph even after the
+ // real lighting producer detached that pass through its normal COW path.
+ MaterialPresentationContinuity materials(mesh);
+ const auto material_cut=materials.checkpoint();const auto scene_cut=scene.checkpoint();
+ const auto paired_pass=resident.environment_pass;const auto paired_bank=paired_pass->vertex_bank;
+ std::vector<Vertex> paired_vertices;std::vector<ObjectLightingBinding> paired_light;scene.append(paired_vertices,paired_light);
+ scene.synchronize(changed);
+ {auto batch=materials.begin_mutation();apply_object_lighting(resident,lighting->state);scene.update_pose(19,mesh);}
+ check(resident.environment_pass!=paired_pass&&!scene.owns_checkpoint(scene_cut),"Actual second lighting COW did not detach historical prop material graph");
+ std::vector<Vertex> paired_future;std::vector<ObjectLightingBinding> paired_future_light;scene.append(paired_future,paired_future_light);
+ check(!same(paired_vertices,paired_future),"Paired prop/material future did not change actual geometry");
+ const auto future_unchanged=[&]{std::vector<Vertex> actual;std::vector<ObjectLightingBinding> light;scene.append(actual,light);
+  return same(paired_future,actual)&&same(paired_future_light,light);};
+ {auto wrong=materials.prepare_restore(materials.checkpoint());
+  rejects([&]{(void)scene.prepare_restore(scene_cut,wrong.target_graph());},"Prop accepted a different historical material graph");}
+ {auto cancelled_material=materials.prepare_restore(material_cut);
+  auto cancelled_scene=scene.prepare_restore(scene_cut,cancelled_material.target_graph());
+  check(materials.restore_ready(cancelled_material)&&scene.restore_ready(cancelled_scene),"Paired prop/material cancellation was not ready");}
+ check(future_unchanged(),"Cancelled paired prop/material preparation changed live geometry");
+ {auto stale_material=materials.prepare_restore(material_cut);auto stale_scene=scene.prepare_restore(scene_cut,stale_material.target_graph());
+  scene.begin_source_frame();check(!scene.restore_ready(stale_scene)&&!scene.commit_restore(stale_scene)&&future_unchanged(),"Paired prop/material preparation survived scene mutation");}
+ auto material_restore=materials.prepare_restore(material_cut);const auto target=material_restore.target_graph();
+ auto scene_restore=scene.prepare_restore(scene_cut,target);
+ check(target.ready()&&!target.applied()&&scene.restore_ready(scene_restore)&&!scene.commit_restore(scene_restore)&&future_unchanged(),"Prop published before its prepared material graph");
+ check(materials.commit_restore(material_restore)&&target.applied()&&scene.restore_ready(scene_restore),"Material publication did not enable its exact prop target");
+ check(scene.commit_restore(scene_restore)&&!scene.commit_restore(scene_restore),"Paired prop/material restore failed exact single publication");
+ restored.clear();restored_light.clear();scene.append(restored,restored_light);
+ check(same(paired_vertices,restored)&&same(paired_light,restored_light)&&resident.environment_pass==paired_pass&&
+  resident.environment_pass->vertex_bank==paired_bank&&mesh.materials.size()==material_count,"Paired prop/material restore changed exact geometry/light/PRT graph");
+ std::cout<<"PASS exact prop material target: real lighting COW, wrong target, cancellation, stale scene, material-first publication and historical PRT graph\n";
  std::cout<<"PASS exact prop checkpoint: salted lifetimes, posed/view/light caches, PRT links, cancellation, stale/foreign/executor/callback guards\n";
 }
 void crane_bank(const Mesh &mesh,std::span<const Vertex> submitted){

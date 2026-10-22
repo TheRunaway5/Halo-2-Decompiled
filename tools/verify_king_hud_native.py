@@ -12,8 +12,8 @@ ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'analysis/multiplayer/game-variants/king-hud-native-20261012'
 TARGETS=('hud_score_tests','king_objective_network_tests','king_runtime_tests','multiplayer_tests','camouflage_runtime_tests',
  'king_recording_runtime_tests','score_event_tests','multiplayer_fp_network_tests','multiplayer_scope_network_tests')
-OWNED=('include/halo2/multiplayer.hpp','include/halo2/multiplayer_datagrams.hpp','src/multiplayer.cpp','src/multiplayer_network.cpp',
- 'src/multiplayer_hud.cpp','tests/hud_score_tests.cpp','tests/king_objective_network_tests.cpp','tools/verify_king_hud_native.py')
+OWNED=('include/halo2/multiplayer.hpp','include/halo2/multiplayer_datagrams.hpp','src/gameplay/multiplayer/multiplayer.cpp','src/network/multiplayer_network.cpp',
+ 'src/ui/hud/multiplayer_hud.cpp','tests/hud_score_tests.cpp','tests/king_objective_network_tests.cpp','tools/verify_king_hud_native.py')
 U5='/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe'
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def main():
@@ -55,7 +55,7 @@ def main():
  for target in('multiplayer_fp_network_tests','multiplayer_scope_network_tests'):
   execute(target,[build/target,source/'assets/disc/maps/lockout.map',source/'assets/disc/maps',U5])
  entries=json.loads((build/'compile_commands.json').read_text());objects=[]
- owners=('src/multiplayer.cpp','src/multiplayer_network.cpp','src/multiplayer_hud.cpp','src/source_hud_score.cpp','tests/king_objective_network_tests.cpp')
+ owners=('src/gameplay/multiplayer/multiplayer.cpp','src/network/multiplayer_network.cpp','src/ui/hud/multiplayer_hud.cpp','src/ui/hud/source_hud_score.cpp','tests/king_objective_network_tests.cpp')
  for index,name in enumerate(owners):
   row=next(e for e in entries if Path(e['file'])==source/name);cmd=shlex.split(row['command']);obj=run/f'sanitized-{index}.o'
   cmd[cmd.index('-o')+1]=str(obj);cmd.extend(['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer'])

@@ -67,7 +67,7 @@ def main():
     for folder in ('measured','repeat','paired','paired-repeat','fixtures','validation','production-normal','production-sanitizer'):
         for path in sorted((BASE/folder).rglob('*')):
             if path.is_file():copy(path,FROZEN/'evidence'/folder/path.relative_to(BASE/folder))
-    source_names=['include/halo2/object_creation_request.hpp','src/object_creation_request.cpp',
+    source_names=['include/halo2/object_creation_request.hpp','src/gameplay/objects/object_creation_request.cpp',
         'tests/object_creation_request_tests.cpp','tools/research_object_creation_request_u5.py',
         'tools/oracle_object_creation_request_native.py','tools/export_object_creation_request_fixtures.py',
         'tools/validate_object_creation_request_native.py','tools/validate_object_creation_request_production.py',

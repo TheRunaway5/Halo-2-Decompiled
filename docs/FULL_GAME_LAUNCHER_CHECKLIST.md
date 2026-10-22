@@ -42,8 +42,10 @@ is attached through the maintained goal document and continuation record.
 2. Prove runtime provenance for each test: pin the selected MCC import/conversion
    manifest, menu/map/dependency paths and hashes, actual runtime/launcher, and
    opened-file evidence. Reject Xbox/Vista reference banks and an original-XBE
-   runtime requirement. Bundled intro/credits retain the user's explicit movie
-   exception recorded by the MCC checklist; other assets follow MCC authority.
+   runtime requirement. The October21 reaffirmation supersedes the earlier
+   supplied movie, custom prompt and loading-tone exceptions. Preserve those
+   inputs as references; new runtime assets must come from MCC imports, with
+   missing roles left as explicit open delivery gates.
 3. Enumerate menus, campaign and MP maps from the actual imported MCC inventory.
    Validate converted tags against original Xbox data offline; then test normal
    menu/map/gameplay/lifecycle paths with MCC data. The old 23-Xbox-map inventory

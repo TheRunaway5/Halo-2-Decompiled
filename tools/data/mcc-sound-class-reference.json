@@ -1473,7 +1473,115 @@
     "class_names": "96600c7bb262812a4a2acbc89369a9ebb17fbcc5dbb8d459bf5063381ae27708",
     "contexts": "51fa02b5b755c628af99c6b6bbcc154d64ffa40f23688e63d74d5fcd732b404f",
     "original_schema": "83001bf7fd4cf1d8a2c5bf267e7b412484e3cb60f693fd476a7d96614956c1a0",
-    "mcc_schema": "069128ca594ee5fa0cd85f682839a1d1630533068b59fb4d83e12f862841eacb"
+    "mcc_schema": "069128ca594ee5fa0cd85f682839a1d1630533068b59fb4d83e12f862841eacb",
+    "armory_hud_publication_context_proof_sha256": "a6e63852134297213c9395643a4bcf64dff76d0178d427e234022329c76ed587",
+    "intro_luminous_publication": "23e04ffe8f8fe2e3b96d21b1706d51f7787a04438b671349a8586667820d6da3"
   },
-  "scope": "48 exact functional words in25 primary-named class rows only; six repurposed/unproved slots stay complete MCC rows. No full54-class semantic equivalence claim; no pixel/audio payload or runtime Original dependency."
+  "scope": "48 exact functional words in25 primary-named class rows only; six repurposed/unproved slots stay complete MCC rows. No full54-class semantic equivalence claim; no pixel/audio payload or runtime Original dependency.",
+  "published_contexts": [
+    {
+      "globals": {
+        "datum": 3782541312,
+        "address": 23433552,
+        "size": 50016,
+        "group": "matg",
+        "name": "globals\\globals"
+      },
+      "legacy": {
+        "datum": 3782672386,
+        "address": 118024,
+        "size": 6528,
+        "group": "sncl",
+        "name": "sound\\sound_classes"
+      },
+      "sound_block": "0100000024946501",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b7866738408fae9786d6e7399080fea216b7073030078e1f20d69ef",
+      "class_root": "3600000010cd0100",
+      "source_bank_sha256": "3daa64e129ed6c78e9a2a943c3f97e26aa460030e98b368358bd93b2b8f1f5fb",
+      "source_maps": [
+        {
+          "map": "01a_tutorial",
+          "sha256": "f71460e42eb43ea1d74a67af2589e8bccea645f62d921a430f94e946ac4bf08e"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000184d0100",
+      "globals": {
+        "group": "matg",
+        "name": "globals\\globals",
+        "datum": 3782541312,
+        "address": 31138032,
+        "size": 17264
+      },
+      "legacy": {
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "datum": 3782672386,
+        "address": 85264,
+        "size": 6528
+      },
+      "sound_block": "01000000c423db01",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673ff0a8eec786d6e732a0ba3ec216b7073030078e1960e10f0",
+      "source_bank_sha256": "4fcaa17e18acffdeb5c3d80922d82a8c364aafbdd2a1df684517a88ed93bd0e4",
+      "source_maps": [
+        {
+          "map": "00a_introduction",
+          "sha256": "f6916833eedc5efba6250ff2bfd0d0547318572901776069ca043c0c8b4329b8"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000184d0100",
+      "globals": {
+        "address": 31139712,
+        "datum": 3782541312,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 17264
+      },
+      "legacy": {
+        "address": 85264,
+        "datum": 3782672386,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000542adb01",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673ff0a8eec786d6e732a0ba3ec216b7073030078e1960e10f0",
+      "source_bank_sha256": "4fcaa17e18acffdeb5c3d80922d82a8c364aafbdd2a1df684517a88ed93bd0e4",
+      "source_maps": [
+        {
+          "map": "00a_introduction",
+          "sha256": "f6916833eedc5efba6250ff2bfd0d0547318572901776069ca043c0c8b4329b8"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000184d0100",
+      "globals": {
+        "address": 31141984,
+        "datum": 3782541312,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 17264
+      },
+      "legacy": {
+        "address": 85264,
+        "datum": 3782672386,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "010000003433db01",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673ff0a8eec786d6e732a0ba3ec216b7073030078e1960e10f0",
+      "source_bank_sha256": "4fcaa17e18acffdeb5c3d80922d82a8c364aafbdd2a1df684517a88ed93bd0e4",
+      "source_maps": [
+        {
+          "map": "00a_introduction",
+          "sha256": "f6916833eedc5efba6250ff2bfd0d0547318572901776069ca043c0c8b4329b8"
+        }
+      ]
+    }
+  ]
 }

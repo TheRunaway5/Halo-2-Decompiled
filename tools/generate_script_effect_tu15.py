@@ -12,7 +12,7 @@ ENTRIES=(0x2aa360,0x179700,0x1791c0)
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--output',type=Path,default=Path('src/source_script_effect_tu15_generated.cpp'))
+    parser.add_argument('--output',type=Path,default=Path('src/campaign/scripting/source_script_effect_tu15_generated.cpp'))
     parser.add_argument('--directory',type=Path,required=True)
     a=parser.parse_args()
     if a.output.exists() or a.directory.exists():raise ValueError('Preserve existing generated evidence')

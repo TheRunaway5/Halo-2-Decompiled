@@ -28,7 +28,7 @@ def main():
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     frozen = args.output / 'source'
-    pending = [Path('src/sound_sdk_spatial.cpp'), Path('tests/sound_sdk_calculate_tests.cpp')]
+    pending = [Path('src/audio/sound_sdk_spatial.cpp'), Path('tests/sound_sdk_calculate_tests.cpp')]
     pins = {}
     while pending:
         path = pending.pop()
@@ -58,9 +58,9 @@ def main():
         assert (result.returncode == 0) == success, (label, result.stdout, result.stderr)
         return result
 
-    owner = frozen / 'src/sound_sdk_spatial.cpp'
+    owner = frozen / 'src/audio/sound_sdk_spatial.cpp'
     common = ['c++', '-std=c++20', '-fno-fast-math', '-ffp-contract=off', '-frounding-math',
-              '-fno-associative-math', '-Wall', '-Wextra', '-I' + str(frozen / 'include'),
+              '-fno-associative-math', '-Wall', '-Wextra', '-I' + str(frozen / 'include'), '-I'+str(frozen /'src'),
               str(owner), str(frozen / 'tests/sound_sdk_calculate_tests.cpp')]
     for name, flags in [('normal', ['-O2']), ('sanitizers', ['-O1', '-g',
                         '-fsanitize=address,undefined', '-fno-omit-frame-pointer'])]:

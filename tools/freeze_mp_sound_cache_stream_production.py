@@ -48,10 +48,10 @@ def main():
   for path in sorted((STREAM/folder).rglob('*')):
    if path.is_file():copy(path,FROZEN/'stream-evidence'/folder/path.relative_to(STREAM/folder))
  for path in sorted(STREAM.glob('fixtures.*')):copy(path,FROZEN/'stream-evidence'/path.name)
- names=['CMakeLists.txt','include/halo2/original_data.hpp','src/original_data.cpp',
- 'include/halo2/sound_driver_stream.hpp','src/sound_driver_stream.cpp',
+ names=['CMakeLists.txt','include/halo2/original_data.hpp','src/assets/original_data.cpp',
+ 'include/halo2/sound_driver_stream.hpp','src/audio/sound_driver_stream.cpp',
  'tests/sound_driver_stream_tests.cpp','tests/sound_driver_stream_constants_tests.cpp',
- 'include/halo2/sound_cache_request.hpp','src/sound_cache_request.cpp','tests/sound_cache_request_tests.cpp',
+ 'include/halo2/sound_cache_request.hpp','src/audio/sound_cache_request.cpp','tests/sound_cache_request_tests.cpp',
  'tools/research_sound_driver_stream_u5.py','tools/research_sound_driver_stream_abi.py',
  'tools/oracle_sound_driver_stream_native.py','tools/export_sound_driver_stream_fixtures.py',
  'tools/export_mp_sound_driver_stream_constants.py','tools/validate_sound_driver_stream_native.py',

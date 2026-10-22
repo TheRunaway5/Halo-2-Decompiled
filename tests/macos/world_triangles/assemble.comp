@@ -1,0 +1,26 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "world_depth_geometry.glsl"
+layout(local_size_x=1) in;
+layout(set=0,binding=0,std430) readonly buffer NativeVertices {uint words[];} nativeVertices;
+layout(set=0,binding=1,std430) readonly buffer OrderedIndices {uint words[];} orderedIndices;
+layout(set=0,binding=2,std430) writeonly buffer AssembledTriangles {uint words[];} assembled;
+vec4 screen(uint index) {
+    uint at=index*51u+38u;
+    return uintBitsToFloat(uvec4(nativeVertices.words[at],nativeVertices.words[at+1u],
+                                nativeVertices.words[at+2u],nativeVertices.words[at+3u]));
+}
+void main() {
+    uint ordinal=gl_GlobalInvocationID.x;
+    uint first=(ordinal/3u)*3u;
+    uint selected=orderedIndices.words[ordinal];
+    for(uint word=0u;word<38u;++word)
+        assembled.words[ordinal*51u+word]=nativeVertices.words[selected*51u+word];
+    mat4 triangle=world_depth_triangle(screen(orderedIndices.words[first]),
+        screen(orderedIndices.words[first+1u]),screen(orderedIndices.words[first+2u]));
+    for(uint corner=0u;corner<3u;++corner) {
+        uvec4 bits=floatBitsToUint(triangle[corner]);
+        for(uint lane=0u;lane<4u;++lane)assembled.words[ordinal*51u+38u+corner*4u+lane]=bits[lane];
+    }
+    assembled.words[ordinal*51u+50u]=floatBitsToUint(world_depth_finite_slope(triangle));
+}

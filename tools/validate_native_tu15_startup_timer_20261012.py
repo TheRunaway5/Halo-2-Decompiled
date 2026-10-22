@@ -44,7 +44,7 @@ def main():
   if d['boundary']:assert d['boundary']['target']==0x80000168 and d['boundary']['frame']=='ac002e00'
  g=read(E/'generated-v1.json');assert g==read(E/'generated-repeat.json')
  assert g['generator_sha256']==sha(ROOT/'tools/generate_native_tu15_power_dpc_20261012.py')
- assert g['generated_sha256']==sha(ROOT/'src/native_tu15_power_dpc_generated.cpp')==sha(E/'power-dpc-repeat.cpp')
+ assert g['generated_sha256']==sha(ROOT/'src/platform/native_tu15_power_dpc_generated.cpp')==sha(E/'power-dpc-repeat.cpp')
  assert g['sites']==4 and not g['production_decoder'] and not g['production_original_code_execution']
  builds={};expected={'native_tu15_startup_without_bios','native_tu15_startup_timer','original_runtime_image_tu15'}
  for mode in ('release','sanitizer'):

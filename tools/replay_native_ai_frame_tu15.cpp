@@ -38,7 +38,7 @@
 #include "halo2/physics_live_support_tu15.hpp"
 #include "halo2/physics_phantom_world_tu15.hpp"
 #include "halo2/death_cycle_runtime_tu15.hpp"
-#include "physics_live_entries_tu15.hpp"
+#include "physics/physics_live_entries_tu15.hpp"
 #endif
 #include <algorithm>
 #include <bit>

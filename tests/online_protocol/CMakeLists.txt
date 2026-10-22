@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.24)
+project(Halo2OnlineProtocol LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+option(HALO2_SANITIZERS "Enable C++ bridge address/undefined sanitizers" OFF)
+include(CTest)
+include(../../cmake/TestStorage.cmake)
+include(../../cmake/OnlineProtocolRust.cmake)

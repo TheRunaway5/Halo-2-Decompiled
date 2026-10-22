@@ -1,0 +1,801 @@
+{
+  "schema": "H2_MACOS_NATIVE_WORLD_FRAGMENT_EVIDENCE_V1",
+  "date": "2026-10-21",
+  "component_passed": true,
+  "full_macos_engine_complete": false,
+  "scope": "Actual root cache/material/animation-table/texture/raw-model/packet/storage/scene-copy/vertex+fragment chain with an explicit diagnostic camera/palette and original Regret triangle. Canonical D32S8 flat-W depth-state controls. No live Renderer, cinematic pose, generic-Z/bias/nonflat-W or original GPU framebuffer acceptance.",
+  "effective_mac_source_manifest": {
+    "path": "docs/macos/native-world-source-20261021.json.xz",
+    "compressed_bytes": 353916,
+    "compressed_sha256": "8fe1c9f329ef3d5a9ced3c3c5578b41ae51c4ee14ca7b7464ccde2ff417df44d",
+    "decoded_bytes": 967742,
+    "decoded_sha256": "4eeeafa5c1c58a9b578328a9c31f5f82e0b88127ff3c5d288fbf5ee0df4dba96",
+    "files": 8812,
+    "source_hashes": {
+      "tests/hologram_draw_gpu_tests.cpp": "5d42c962666aba8ec4e39b5c6ada2c7b7c364a69da18f21814826eba93f5e001",
+      "tests/source_effect_light_gpu_fixture.hpp": "6a106f7dfabe3ae0baeebc39efef52b6be7e95b5925d76b1e97071a40e74a6e1",
+      "tests/macos/native_world_draw/CMakeLists.txt": "dff4e710029dec5a78e0f4096d4f6217b4464bd76968ff5460ab19ad0f74f910",
+      "src/menu_world_native_draw.cpp": "2a4914aac5e2607f5c41d2d0cc4674a6c80a0333fc7b061a1fab7ed3c137448a",
+      "src/menu_world_source_storage.cpp": "b5c80246e5083a3ddda7ca867f14caedd5afa7d60bf7776eff0a697044c01b5c",
+      "src/menu_world_triangle_storage.cpp": "e380c1800e27c1cb173dcf49fd1837b006c1bcd332695f0bec7f73d1ae0531e6",
+      "src/menu_world_native_packet.cpp": "32f48df51aa83b2f022bc23cdeee8244a086e81a99d68f982dd91264fdfe5d73",
+      "src/source_scene_copy_gpu.cpp": "a0a8235623e82155cd5695d8b6e21fcd2178d1c20816ee02de6b58c704083cd5",
+      "shaders/menu_world.frag": "566e7aa4987fad4715656d4fba6be46f600d77612d6d9c025db5ec6ffb2c23ec",
+      "shaders/menu_world_fragment.glsl": "8b83d25f5faf7752cda7149cfcd3feba740d80ddf263a71e157149add51582a3",
+      "shaders/world_depth_fragment.glsl": "26066a1a3670fbf127ac26c76d7a4e20b80bd83325eca294b361e364ef53bccc",
+      "shaders/source_depth_storage.glsl": "6e70c788519bc02d1184ebec9141a319d14880fde61ff4b8b255a15aef3bc111",
+      "include/halo2/macos/vulkan_math.hpp": "a5e18abd15f008eb5c0aaf4419ebb40ddf0bbc018eff1924fc5b172087e0004a"
+    }
+  },
+  "reference_admission": {
+    "source_manifest_sha256": "925ce7f97d0259440288c6c5479ec2f50f687aec1499a91bf44197b2a9fa1f81",
+    "sources": 8812,
+    "references": {
+      "assets/disc/default.xbe": {
+        "bytes": 4861952,
+        "sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d"
+      },
+      "assets/disc/maps/00a_introduction.map": {
+        "bytes": 113031168,
+        "sha256": "5093e2f8ef7f0df41c11c6621bac5785a36f78a1cff3b8b2bc6c14b561c02a28"
+      }
+    },
+    "scratch_owner": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw"
+  },
+  "reference_refresh": {
+    "tests/source_effect_light_gpu_fixture.hpp": {
+      "before": "99008272cd1376039f1a6ab36ffdf5a3199f67e89c5e8bf12f9d894c8ff8cf8c",
+      "after": "6a106f7dfabe3ae0baeebc39efef52b6be7e95b5925d76b1e97071a40e74a6e1"
+    },
+    "tests/hologram_draw_gpu_tests.cpp": {
+      "before": "05891001bf4eb161f510b3672738b1b049a240bd79f14ab4646b15224640f371",
+      "after": "5d42c962666aba8ec4e39b5c6ada2c7b7c364a69da18f21814826eba93f5e001"
+    }
+  },
+  "macos": {
+    "runner": {
+      "passed": true,
+      "status": "passed",
+      "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/Users/eric/Developer/Halo2-macos-port",
+            "-B",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-GNinja",
+            "-DSDL2_DIR=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/sdk/cmake/SDL2",
+            "-DHALO2_MOLTENVK_LIBRARY=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib",
+            "-DHALO2_MOLTENVK_LICENSE=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/sdk/MoltenVK/LICENSE",
+            "-DHALO2_SDL_LICENSE=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/SDL2-LICENSE.txt",
+            "-DHALO2_MACOS_NATIVE_WORLD_SOURCE=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/reference/assets/disc/maps/00a_introduction.map",
+            "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+            "-DHALO2_BUNDLE_MOVIES=OFF"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-session/phase2/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "hologram_draw_gpu_tests",
+            "vulkan_portability_tests"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-session/phase2/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "1",
+            "--tests-regex",
+            "^(macos_native_world_draw_arm64|macos_native_world_draw_x86_64|vulkan_portability)$"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-session/phase2/tests.log",
+          "exit_code": 0
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "macos-native-world-arm64.json",
+          "status": "retained",
+          "bytes": 855,
+          "sha256": "439ebfdf5b67451712d14eb3d7c178719874796b623fce9c268739849cee94ee",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-session/phase2/evidence/macos-native-world-arm64.json"
+        },
+        {
+          "path": "macos-native-world-x86_64.json",
+          "status": "retained",
+          "bytes": 854,
+          "sha256": "5ca9b2001253d58a5092c9c64515a107d3589e56c1c7617144b90685004218ad",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-session/phase2/evidence/macos-native-world-x86_64.json"
+        },
+        {
+          "path": "macos-dependencies/openssl/manifest.json",
+          "status": "retained",
+          "bytes": 31459,
+          "sha256": "8d135dc6eaa45138f720753fa10878559cc8a677ecb01cdc61dbb852c5dbf74c",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-session/phase2/evidence/macos-dependencies/openssl/manifest.json"
+        },
+        {
+          "path": "macos-dependencies/opus/manifest.json",
+          "status": "retained",
+          "bytes": 3427,
+          "sha256": "afa81be9c15689defd68907e33c2ea7f984e1bd6b00b1436b909f604046cd074",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-session/phase2/evidence/macos-dependencies/opus/manifest.json"
+        },
+        {
+          "path": "macos-dependencies/libdeflate/manifest.json",
+          "status": "retained",
+          "bytes": 3402,
+          "sha256": "2774003ec4f7b7e346f73586be664b6562fcc09b3e40bd0980ac878bdedacdb6",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-session/phase2/evidence/macos-dependencies/libdeflate/manifest.json"
+        },
+        {
+          "path": "macos-dependencies/sdl/manifest.json",
+          "status": "retained",
+          "bytes": 27890,
+          "sha256": "c03842670b22e2cb5b0ffa950e44d3b654016e3c0423f7f7bd9a3deb0f1a4b95",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-session/phase2/evidence/macos-dependencies/sdl/manifest.json"
+        }
+      ]
+    },
+    "tests_log": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/build\n    Start  192: vulkan_portability\n1/3 Test  #192: vulkan_portability ...............   Passed    0.11 sec\n    Start 1923: macos_native_world_draw_arm64\n2/3 Test #1923: macos_native_world_draw_arm64 ....   Passed    2.10 sec\n    Start 1924: macos_native_world_draw_x86_64\n3/3 Test #1924: macos_native_world_draw_x86_64 ...   Passed    2.09 sec\n\n100% tests passed out of 3\n\nTotal Test time (real) =   4.33 sec\n",
+    "arm64": {
+      "checked_channels": 583744,
+      "color_fnv64": [
+        10418588853711155742,
+        9956760749514595925,
+        6558041487914304742
+      ],
+      "covered_pixels": 72968,
+      "depth_comparison_cases": 64,
+      "depth_coverage_pixels": 72968,
+      "depth_format": 130,
+      "device": "Apple M2 Pro",
+      "geometry_shader_enabled": false,
+      "large_artifacts_retained": [],
+      "maximum_byte_error": 0.8784332275390625,
+      "partial_alpha_pixels": 72968,
+      "passed": true,
+      "scope": "Actual original rigid Regret resource/program/material through native scene-copy and raw draw; explicit diagnostic camera/palette/raster/background, not live group/body ordering or Xbox GPU pixels",
+      "strict_shader_math_enabled": true,
+      "target19_prebound_then_produced": true,
+      "triangle_only": true,
+      "triangle_vertices_exact": null,
+      "validation_errors": 0,
+      "validation_layer_active": false
+    },
+    "x86_64": {
+      "checked_channels": 583744,
+      "color_fnv64": [
+        10418588853711155742,
+        9956760749514595925,
+        6558041487914304742
+      ],
+      "covered_pixels": 72968,
+      "depth_comparison_cases": 64,
+      "depth_coverage_pixels": 72968,
+      "depth_format": 130,
+      "device": "Apple M2 Pro",
+      "geometry_shader_enabled": false,
+      "large_artifacts_retained": [],
+      "maximum_byte_error": 0.878448486328125,
+      "partial_alpha_pixels": 72968,
+      "passed": true,
+      "scope": "Actual original rigid Regret resource/program/material through native scene-copy and raw draw; explicit diagnostic camera/palette/raster/background, not live group/body ordering or Xbox GPU pixels",
+      "strict_shader_math_enabled": true,
+      "target19_prebound_then_produced": true,
+      "triangle_only": true,
+      "triangle_vertices_exact": null,
+      "validation_errors": 0,
+      "validation_layer_active": false
+    },
+    "binary_contract": {
+      "files": {
+        "hologram_draw_gpu_tests": {
+          "architectures": "x86_64 arm64",
+          "bytes": 29563608,
+          "sha256": "d23c43c8d1b76444699f32515d16e43f5d56f15bfc748f649706a7d48ba0c716"
+        },
+        "libhalo2_cache.a": {
+          "architectures": "x86_64 arm64",
+          "bytes": 46696952,
+          "sha256": "76254c9ce6ef80a4c654495d7ed73a93eb9af4937f467d7ed93d0848cc808415"
+        },
+        "libhalo2_menu_world_storage.a": {
+          "architectures": "x86_64 arm64",
+          "bytes": 105176,
+          "sha256": "61787d19b27f9379a4a698ef63afaca298c0bcf395b17ae14473b7334ee6fc66"
+        }
+      },
+      "dependencies": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/build/hologram_draw_gpu_tests (architecture x86_64):\n\t/usr/lib/libz.1.dylib (compatibility version 1.0.0, current version 1.2.12)\n\t@rpath/libdeflate.0.dylib (compatibility version 0.0.0, current version 0.0.0)\n\t@rpath/libSDL2-2.0.0.dylib (compatibility version 3201.0.0, current version 3201.10.0)\n\t@rpath/libcrypto.3.dylib (compatibility version 3.0.0, current version 3.0.0)\n\t@rpath/libopus.0.dylib (compatibility version 0.0.0, current version 0.11.1)\n\t@rpath/libMoltenVK.dylib (compatibility version 1.0.0, current version 1.0.0)\n\t/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 2200.27.0)\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1359.0.0)\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/build/hologram_draw_gpu_tests (architecture arm64):\n\t/usr/lib/libz.1.dylib (compatibility version 1.0.0, current version 1.2.12)\n\t@rpath/libdeflate.0.dylib (compatibility version 0.0.0, current version 0.0.0)\n\t@rpath/libSDL2-2.0.0.dylib (compatibility version 3201.0.0, current version 3201.10.0)\n\t@rpath/libcrypto.3.dylib (compatibility version 3.0.0, current version 3.0.0)\n\t@rpath/libopus.0.dylib (compatibility version 0.0.0, current version 0.11.1)\n\t@rpath/libMoltenVK.dylib (compatibility version 1.0.0, current version 1.0.0)\n\t/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 2200.27.0)\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1359.0.0)\n"
+    },
+    "color_digests_match": true,
+    "report_differences": {
+      "maximum_byte_error": {
+        "arm64": 0.8784332275390625,
+        "x86_64": 0.878448486328125
+      }
+    }
+  },
+  "linux": {
+    "runner": {
+      "passed": true,
+      "status": "passed",
+      "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-sh4rxlf_/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/home/eric/Developer/Halo-2-Decompiled",
+            "-B",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-sh4rxlf_/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-world-depth-linux/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-sh4rxlf_/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "hologram_draw_gpu_tests",
+            "menu_world_source_storage_tests"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-world-depth-linux/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-sh4rxlf_/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "1",
+            "--tests-regex",
+            "^(original_hologram_raw_gpu|original_hologram_triangle_carrier_gpu|retail_menu_world_source_storage)$"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-world-depth-linux/tests.log",
+          "exit_code": 0
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "hologram-draw/report.json",
+          "status": "retained",
+          "bytes": 854,
+          "sha256": "b173f5e1838f0afb64498b3467db33e49eb8f056230a56981591f6119b6ef83e",
+          "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-world-depth-linux/evidence/hologram-draw/report.json"
+        },
+        {
+          "path": "hologram-carrier/report.json",
+          "status": "retained",
+          "bytes": 859,
+          "sha256": "1342ac46affb836c6d19f1735af4a582b1f0a35ceae5654576c48d74f0fd42fc",
+          "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-world-depth-linux/evidence/hologram-carrier/report.json"
+        }
+      ]
+    },
+    "tests_log": "Test project /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-sh4rxlf_/build\n    Start 646: original_hologram_raw_gpu\n1/3 Test #646: original_hologram_raw_gpu ................   Passed    0.69 sec\n    Start 647: original_hologram_triangle_carrier_gpu\n2/3 Test #647: original_hologram_triangle_carrier_gpu ...   Passed   18.88 sec\n    Start 870: retail_menu_world_source_storage\n3/3 Test #870: retail_menu_world_source_storage .........   Passed    0.32 sec\n\n100% tests passed out of 3\n\nTotal Test time (real) =  19.94 sec\n",
+    "carrier": {
+      "checked_channels": 583744,
+      "color_fnv64": [
+        3145997318604125459,
+        14985541538357578924,
+        1602652659808042774
+      ],
+      "covered_pixels": 72968,
+      "depth_comparison_cases": 64,
+      "depth_coverage_pixels": 72968,
+      "depth_format": 130,
+      "device": "NVIDIA GeForce RTX 5080",
+      "geometry_shader_enabled": false,
+      "large_artifacts_retained": [],
+      "maximum_byte_error": 0.498046875,
+      "partial_alpha_pixels": 72968,
+      "passed": true,
+      "scope": "Actual original rigid Regret resource/program/material through native scene-copy and raw draw; explicit diagnostic camera/palette/raster/background, not live group/body ordering or Xbox GPU pixels",
+      "strict_shader_math_enabled": false,
+      "target19_prebound_then_produced": true,
+      "triangle_only": true,
+      "triangle_vertices_exact": null,
+      "validation_errors": 0,
+      "validation_layer_active": true
+    },
+    "native_geometry_and_triangle_control": {
+      "checked_channels": 583744,
+      "color_fnv64": [
+        3145997318604125459,
+        14985541538357578924,
+        1602652659808042774
+      ],
+      "covered_pixels": 72968,
+      "depth_comparison_cases": 0,
+      "depth_coverage_pixels": 0,
+      "depth_format": 129,
+      "device": "NVIDIA GeForce RTX 5080",
+      "geometry_shader_enabled": true,
+      "large_artifacts_retained": [],
+      "maximum_byte_error": 0.498046875,
+      "partial_alpha_pixels": 72968,
+      "passed": true,
+      "scope": "Actual original rigid Regret resource/program/material through native scene-copy and raw draw; explicit diagnostic camera/palette/raster/background, not live group/body ordering or Xbox GPU pixels",
+      "strict_shader_math_enabled": false,
+      "target19_prebound_then_produced": true,
+      "triangle_only": false,
+      "triangle_vertices_exact": true,
+      "validation_errors": 0,
+      "validation_layer_active": true
+    }
+  },
+  "depth_controls": {
+    "source_w": 1,
+    "source_w_producer": "Explicit c3 row {0,0,0,1}; zero source factor/offset; original vertex body and shared plane/fragment calculation unchanged.",
+    "clear_integers": [
+      0,
+      1,
+      2,
+      16777215
+    ],
+    "comparison_codes": [
+      512,
+      513,
+      514,
+      515,
+      516,
+      517,
+      518,
+      519
+    ],
+    "write_policies": [
+      false,
+      true
+    ],
+    "cases_per_execution": 64,
+    "pixels_per_case": 307200,
+    "checks": [
+      "Canonical depth DWORD at every pixel",
+      "Source comparison color admission at every RGBA lane",
+      "Stencil A7 preservation at every pixel"
+    ],
+    "coverage_reference": "Production ALWAYS/write draw with clear integer2; component control only, not an independent original coverage oracle."
+  },
+  "final_ctests_passed": 6,
+  "cross_device_color_digests_match": false,
+  "diagnostics": {
+    "missing_xbe_attempt": {
+      "runner": {
+        "passed": false,
+        "status": "failed",
+        "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8fxo8kz9/build",
+        "steps": [
+          {
+            "name": "configure",
+            "command": [
+              "cmake",
+              "-S",
+              "/Users/eric/Developer/Halo2-macos-port",
+              "-B",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8fxo8kz9/build",
+              "-DBUILD_TESTING=ON",
+              "-DCMAKE_BUILD_TYPE=Release",
+              "-GNinja",
+              "-DSDL2_DIR=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-k7k5zp4a/sdk/cmake/SDL2",
+              "-DHALO2_MOLTENVK_LIBRARY=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-k7k5zp4a/sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib",
+              "-DHALO2_MOLTENVK_LICENSE=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-k7k5zp4a/sdk/MoltenVK/LICENSE",
+              "-DHALO2_SDL_LICENSE=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-k7k5zp4a/SDL2-LICENSE.txt",
+              "-DHALO2_MACOS_NATIVE_WORLD_SOURCE=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-k7k5zp4a/reference/00a_introduction.map",
+              "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+              "-DHALO2_BUNDLE_MOVIES=OFF"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-draw/configure.log",
+            "exit_code": 0
+          },
+          {
+            "name": "build",
+            "command": [
+              "cmake",
+              "--build",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8fxo8kz9/build",
+              "--config",
+              "Release",
+              "--parallel",
+              "2",
+              "--target",
+              "vulkan_portability_tests",
+              "hologram_draw_gpu_tests"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-draw/build.log",
+            "exit_code": 0
+          },
+          {
+            "name": "tests",
+            "command": [
+              "ctest",
+              "--test-dir",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8fxo8kz9/build",
+              "--build-config",
+              "Release",
+              "--output-on-failure",
+              "--no-tests=error",
+              "--parallel",
+              "1",
+              "--tests-regex",
+              "^(macos_native_world_draw_arm64|macos_native_world_draw_x86_64|vulkan_portability)$"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-draw/tests.log",
+            "exit_code": 8
+          }
+        ],
+        "retained_small_reports": [
+          {
+            "path": "macos-native-world-arm64.json",
+            "status": "not produced"
+          },
+          {
+            "path": "macos-native-world-x86_64.json",
+            "status": "not produced"
+          },
+          {
+            "path": "macos-dependencies/openssl/manifest.json",
+            "status": "retained",
+            "bytes": 31459,
+            "sha256": "f98b01cf1d1b5c5c1d7309d9df0549a3556497ed45d7a1bb9a918b9f3ee7a3f0",
+            "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-draw/evidence/macos-dependencies/openssl/manifest.json"
+          },
+          {
+            "path": "macos-dependencies/opus/manifest.json",
+            "status": "retained",
+            "bytes": 3427,
+            "sha256": "3399322008a037635e719d249956c667ebcb35b59cc0974a148859cb0f53242a",
+            "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-draw/evidence/macos-dependencies/opus/manifest.json"
+          },
+          {
+            "path": "macos-dependencies/libdeflate/manifest.json",
+            "status": "retained",
+            "bytes": 3402,
+            "sha256": "994f37d82c5e1fc717786c6c3b43c9e31267b7b03bb8c4a51ce62b58df8547d5",
+            "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-draw/evidence/macos-dependencies/libdeflate/manifest.json"
+          },
+          {
+            "path": "macos-dependencies/sdl/manifest.json",
+            "status": "retained",
+            "bytes": 27890,
+            "sha256": "ab4e06720c796235db9f3b34ba3e207a70ed23095d17abddbede31a54dac8d41",
+            "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-draw/evidence/macos-dependencies/sdl/manifest.json"
+          }
+        ]
+      },
+      "tests_log": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8fxo8kz9/build\n    Start  192: vulkan_portability\n1/3 Test  #192: vulkan_portability ...............   Passed    0.39 sec\n    Start 1923: macos_native_world_draw_arm64\n2/3 Test #1923: macos_native_world_draw_arm64 ....***Failed    1.22 sec\nshader function tables require retail default.xbe\n\n    Start 1924: macos_native_world_draw_x86_64\n3/3 Test #1924: macos_native_world_draw_x86_64 ...***Failed    3.80 sec\nshader function tables require retail default.xbe\n\n\n33% tests passed, 2 tests failed out of 3\n\nTotal Test time (real) =   5.45 sec\n\nThe following tests FAILED:\n\t1923 - macos_native_world_draw_arm64 (Failed)\n\t1924 - macos_native_world_draw_x86_64 (Failed)\nErrors while running CTest\n",
+      "resolution": "Supply the authentic original default.xbe beside the owned maps directory. Original shader-function table checks remain intact."
+    },
+    "overbroad_fixture_attempt": {
+      "runner": {
+        "passed": false,
+        "status": "failed",
+        "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/build",
+        "steps": [
+          {
+            "name": "configure",
+            "command": [
+              "cmake",
+              "-S",
+              "/Users/eric/Developer/Halo2-macos-port",
+              "-B",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/build",
+              "-DBUILD_TESTING=ON",
+              "-DCMAKE_BUILD_TYPE=Release",
+              "-GNinja",
+              "-DSDL2_DIR=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/sdk/cmake/SDL2",
+              "-DHALO2_MOLTENVK_LIBRARY=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib",
+              "-DHALO2_MOLTENVK_LICENSE=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/sdk/MoltenVK/LICENSE",
+              "-DHALO2_SDL_LICENSE=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/SDL2-LICENSE.txt",
+              "-DHALO2_MACOS_NATIVE_WORLD_SOURCE=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/reference/assets/disc/maps/00a_introduction.map",
+              "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+              "-DHALO2_BUNDLE_MOVIES=OFF"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-session/first/configure.log",
+            "exit_code": 0
+          },
+          {
+            "name": "build",
+            "command": [
+              "cmake",
+              "--build",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/build",
+              "--config",
+              "Release",
+              "--parallel",
+              "2",
+              "--target",
+              "vulkan_portability_tests",
+              "hologram_draw_gpu_tests"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-session/first/build.log",
+            "exit_code": 0
+          },
+          {
+            "name": "tests",
+            "command": [
+              "ctest",
+              "--test-dir",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/build",
+              "--build-config",
+              "Release",
+              "--output-on-failure",
+              "--no-tests=error",
+              "--parallel",
+              "1",
+              "--tests-regex",
+              "^(macos_native_world_draw_arm64|macos_native_world_draw_x86_64|vulkan_portability)$"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-session/first/tests.log",
+            "exit_code": 8
+          }
+        ],
+        "retained_small_reports": [
+          {
+            "path": "macos-native-world-arm64.json",
+            "status": "not produced"
+          },
+          {
+            "path": "macos-native-world-x86_64.json",
+            "status": "not produced"
+          },
+          {
+            "path": "macos-dependencies/openssl/manifest.json",
+            "status": "retained",
+            "bytes": 31459,
+            "sha256": "8d135dc6eaa45138f720753fa10878559cc8a677ecb01cdc61dbb852c5dbf74c",
+            "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-session/first/evidence/macos-dependencies/openssl/manifest.json"
+          },
+          {
+            "path": "macos-dependencies/opus/manifest.json",
+            "status": "retained",
+            "bytes": 3427,
+            "sha256": "afa81be9c15689defd68907e33c2ea7f984e1bd6b00b1436b909f604046cd074",
+            "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-session/first/evidence/macos-dependencies/opus/manifest.json"
+          },
+          {
+            "path": "macos-dependencies/libdeflate/manifest.json",
+            "status": "retained",
+            "bytes": 3402,
+            "sha256": "2774003ec4f7b7e346f73586be664b6562fcc09b3e40bd0980ac878bdedacdb6",
+            "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-session/first/evidence/macos-dependencies/libdeflate/manifest.json"
+          },
+          {
+            "path": "macos-dependencies/sdl/manifest.json",
+            "status": "retained",
+            "bytes": 27890,
+            "sha256": "c03842670b22e2cb5b0ffa950e44d3b654016e3c0423f7f7bd9a3deb0f1a4b95",
+            "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/native-world-session/first/evidence/macos-dependencies/sdl/manifest.json"
+          }
+        ]
+      },
+      "tests_log_tail": "33% tests passed, 2 tests failed out of 3\n\nTotal Test time (real) =   5.53 sec\n\nThe following tests FAILED:\n\t1923 - macos_native_world_draw_arm64 (Failed)\n\t1924 - macos_native_world_draw_x86_64 (Failed)\nErrors while running CTest",
+      "feature_probe": {
+        "command": [
+          "clang++",
+          "-std=c++20",
+          "-arch",
+          "arm64",
+          "-arch",
+          "x86_64",
+          "-I.",
+          "-Iinclude",
+          "-I/opt/homebrew/include",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/feature-probe.cpp",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib",
+          "-Wl,-rpath,/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS",
+          "-o",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/feature-probe"
+        ],
+        "source_sha256": "e0057abc2c7294a29da6e732807b2729fb7c2e168f7e6e71843e8196a44a82ab",
+        "runs": {
+          "arm64": {
+            "exit_code": 0,
+            "output": "FEATURES depthClamp=1 bc=1 anisotropy=1 demote=1 nonSeamlessCubeMap=0\n",
+            "stderr_tail": "D_shader_image_load_store_lod v1\n\tVK_AMD_shader_trinary_minmax v1\n\tVK_GOOGLE_display_timing v1\n\tVK_IMG_format_pvrtc v1\n\tVK_INTEL_shader_integer_functions2 v1\n\tVK_MVK_macos_surface v3\n\tVK_MVK_moltenvk v37\n\tVK_NV_fragment_shader_barycentric v1\n[mvk-info] GPU device:\n\tmodel: Apple M2 Pro\n\ttype: Integrated\n\tvendorID: 0x106b\n\tdeviceID: 0x1b020208\n\tpipelineCacheUUID: DB660224-1B02-0208-0000-000100000000\n\tGPU memory available: 12124 MB\n\tGPU memory used: 0 MB\n\tMetal Shading Language 4.0\n\tsupports the following GPU Features:\n\t\tGPU Family Metal 4\n\t\tGPU Family Apple 8\n\t\tGPU Family Mac 1\n\t\tGPU Family Mac 2\n\t\tRead-Write Texture Tier 2\n[mvk-info] Created VkInstance for Vulkan version 1.3.357, as requested by app, with the following 2 Vulkan extensions enabled:\n\tVK_EXT_debug_utils v2\n\tVK_EXT_layer_settings v2\n[mvk-info] Destroyed VkPhysicalDevice for GPU Apple M2 Pro with 0 MB of GPU memory still allocated.\n[mvk-info] Destroying VkInstance for Vulkan version 1.3.357 with 2 Vulkan extensions enabled.\n"
+          },
+          "x86_64": {
+            "exit_code": 0,
+            "output": "FEATURES depthClamp=1 bc=1 anisotropy=1 demote=1 nonSeamlessCubeMap=0\n",
+            "stderr_tail": "D_shader_image_load_store_lod v1\n\tVK_AMD_shader_trinary_minmax v1\n\tVK_GOOGLE_display_timing v1\n\tVK_IMG_format_pvrtc v1\n\tVK_INTEL_shader_integer_functions2 v1\n\tVK_MVK_macos_surface v3\n\tVK_MVK_moltenvk v37\n\tVK_NV_fragment_shader_barycentric v1\n[mvk-info] GPU device:\n\tmodel: Apple M2 Pro\n\ttype: Integrated\n\tvendorID: 0x106b\n\tdeviceID: 0x1b020208\n\tpipelineCacheUUID: DB660224-1B02-0208-0000-000100000000\n\tGPU memory available: 12124 MB\n\tGPU memory used: 0 MB\n\tMetal Shading Language 4.0\n\tsupports the following GPU Features:\n\t\tGPU Family Metal 4\n\t\tGPU Family Apple 8\n\t\tGPU Family Mac 1\n\t\tGPU Family Mac 2\n\t\tRead-Write Texture Tier 2\n[mvk-info] Created VkInstance for Vulkan version 1.3.357, as requested by app, with the following 2 Vulkan extensions enabled:\n\tVK_EXT_debug_utils v2\n\tVK_EXT_layer_settings v2\n[mvk-info] Destroyed VkPhysicalDevice for GPU Apple M2 Pro with 0 MB of GPU memory still allocated.\n[mvk-info] Destroying VkInstance for Vulkan version 1.3.357 with 2 Vulkan extensions enabled.\n"
+          }
+        }
+      },
+      "resolution": "The original 2D hologram samples no cube image and creates no non-seamless cube sampler. Its triangle fixture no longer requires that unsupported unused feature; legacy effect-light fixture requirements remain strict."
+    },
+    "cross_device_limit": "Mac/NVIDIA color digests differ. The unchanged blend equation bound is2 bytes; maximum errors remain below1 on both GPUs. This does not certify source pixel or cross-device numerical parity.",
+    "host_statistic_limit": "The two Mac slices have matching color digests; only the host-computed maximum_byte_error field differs in the summary. Exact source CPU numerical conversion remains deferred."
+  },
+  "owned_session": {
+    "scratch_owner": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw",
+    "pid": 51626,
+    "commands": [
+      {
+        "argv": [
+          "python3",
+          "-B",
+          "-c",
+          "from pathlib import Path\nimport hashlib,json,lzma,os\noutput=Path('build/test-results/native-world-session')\ndata=lzma.decompress((output/'source-hashes.json.xz').read_bytes());expected=json.loads(data)\ndifferent=[p for p,h in expected.items() if not Path(p).is_file() or hashlib.sha256(Path(p).read_bytes()).hexdigest()!=h]\nassert not different,different[:20]\nreferences=json.loads((output/'references.json').read_text());owner=Path(os.environ['HALO2_TEST_SCRATCH'])\nfor name,item in references.items():\n path=owner/'reference'/name\n assert path.stat().st_size==item['bytes']\n with path.open('rb') as stream:assert hashlib.file_digest(stream,'sha256').hexdigest()==item['sha256']\nreceipt={'source_manifest_sha256':hashlib.sha256(data).hexdigest(),'sources':len(expected),'references':references,'scratch_owner':str(owner)}\n(output/'admission.json').write_text(json.dumps(receipt,indent=2)+'\\n');print('Source and reference admission passed',len(expected))"
+        ],
+        "started": 1792602136.400585,
+        "exit_code": 0,
+        "finished": 1792602138.209375
+      },
+      {
+        "argv": [
+          "python3",
+          "-B",
+          "tools/macos/test_port.py",
+          "--owned-build-worker",
+          "--engine-configure-check",
+          "--engine-target",
+          "hologram_draw_gpu_tests",
+          "--engine-test-filter",
+          "^(macos_native_world_draw_arm64|macos_native_world_draw_x86_64|vulkan_portability)$",
+          "--cmake-arg=-DHALO2_MACOS_NATIVE_WORLD_SOURCE=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw/reference/assets/disc/maps/00a_introduction.map",
+          "--retain-report",
+          "macos-native-world-arm64.json",
+          "--retain-report",
+          "macos-native-world-x86_64.json",
+          "--retain-report",
+          "macos-dependencies/openssl/manifest.json",
+          "--retain-report",
+          "macos-dependencies/opus/manifest.json",
+          "--retain-report",
+          "macos-dependencies/libdeflate/manifest.json",
+          "--retain-report",
+          "macos-dependencies/sdl/manifest.json",
+          "--output",
+          "build/test-results/native-world-session/first"
+        ],
+        "started": 1792602154.3146071,
+        "exit_code": 8,
+        "finished": 1792602671.803982
+      },
+      {
+        "argv": [
+          "python3",
+          "-B",
+          "-c",
+          "from pathlib import Path\nimport os,subprocess,json,hashlib\nowner=Path(os.environ['HALO2_TEST_SCRATCH']);source=owner/'feature-probe.cpp';binary=owner/'feature-probe'\nsource.write_text('#include \"tests/source_effect_light_gpu_fixture.hpp\"\\nint main(){halo2_effect_light_fixture::Gpu g;g.initialize(true);VkPhysicalDeviceFeatures f{};vkGetPhysicalDeviceFeatures(g.physical,&f);VkPhysicalDeviceNonSeamlessCubeMapFeaturesEXT c{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_NON_SEAMLESS_CUBE_MAP_FEATURES_EXT};VkPhysicalDeviceVulkan13Features v{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};v.pNext=&c;VkPhysicalDeviceFeatures2 q{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};q.pNext=&v;vkGetPhysicalDeviceFeatures2(g.physical,&q);std::cout<<\"FEATURES depthClamp=\"<<f.depthClamp<<\" bc=\"<<f.textureCompressionBC<<\" anisotropy=\"<<f.samplerAnisotropy<<\" demote=\"<<v.shaderDemoteToHelperInvocation<<\" nonSeamlessCubeMap=\"<<c.nonSeamlessCubeMap<<\"\\\\n\";}\\n')\nlibrary=owner/'sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib'\ncommand=['clang++','-std=c++20','-arch','arm64','-arch','x86_64','-I.','-Iinclude','-I/opt/homebrew/include',str(source),str(library),'-Wl,-rpath,'+str(library.parent),'-o',str(binary)]\nsubprocess.run(command,check=True)\nruns={}\nfor arch in ['arm64','x86_64']:\n result=subprocess.run(['/usr/bin/arch','-'+arch,str(binary)],capture_output=True,text=True);runs[arch]={'exit_code':result.returncode,'output':result.stdout,'stderr_tail':result.stderr[-1000:]};print(arch,result.stdout)\nPath('build/test-results/native-world-session/features.json').write_text(json.dumps({'command':command,'source_sha256':hashlib.sha256(source.read_bytes()).hexdigest(),'runs':runs},indent=2)+'\\n')\n"
+        ],
+        "started": 1792602873.402956,
+        "exit_code": 0,
+        "finished": 1792602875.524208
+      },
+      {
+        "argv": [
+          "python3",
+          "-B",
+          "-c",
+          "from pathlib import Path\nimport hashlib,json,lzma,subprocess,sys\noutput=Path('build/test-results/native-world-session')\nexpected=json.loads(lzma.decompress((output/'phase2-source-hashes.json.xz').read_bytes()))\nbad=[p for p,h in expected.items() if not Path(p).is_file() or hashlib.sha256(Path(p).read_bytes()).hexdigest()!=h]\nassert not bad,bad[:20]\nprevious=json.loads((output/'first/report.json').read_text());configuration=previous['steps'][0]['command']\ncommand=[sys.executable,'-B','tools/run_tests.py','--build-worker','--target','hologram_draw_gpu_tests','--target','vulkan_portability_tests','--filter','^(macos_native_world_draw_arm64|macos_native_world_draw_x86_64|vulkan_portability)$','--test-jobs','1','--output',str(output/'phase2')]\nfor name in ['macos-native-world-arm64.json','macos-native-world-x86_64.json','macos-dependencies/openssl/manifest.json','macos-dependencies/opus/manifest.json','macos-dependencies/libdeflate/manifest.json','macos-dependencies/sdl/manifest.json']:command += ['--retain-report',name]\ncommand += ['--cmake-arg='+arg for arg in configuration if arg.startswith(('-D','-G')) and not arg.startswith(('-DBUILD_TESTING=','-DCMAKE_BUILD_TYPE='))]\nstatus=subprocess.run(command).returncode\nbuild=Path(previous['build']);artifacts={}\nfor name in ['hologram_draw_gpu_tests','libhalo2_cache.a','libhalo2_menu_world_storage.a']:\n path=build/name;architectures=subprocess.check_output(['lipo',str(path),'-archs'],text=True).strip()\n assert set(['arm64','x86_64']).issubset(architectures.split())\n with path.open('rb') as stream:actual=hashlib.file_digest(stream,'sha256').hexdigest()\n artifacts[name]={'architectures':architectures,'bytes':path.stat().st_size,'sha256':actual}\n(output/'phase2/binary-contract.json').write_text(json.dumps({'files':artifacts,'dependencies':subprocess.check_output(['otool','-L',str(build/'hologram_draw_gpu_tests')],text=True)},indent=2)+'\\n')\nraise SystemExit(status)\n"
+        ],
+        "started": 1792602996.566186,
+        "exit_code": 0,
+        "finished": 1792603011.925932
+      }
+    ],
+    "status": "closed"
+  },
+  "cleanup": {
+    "linux_owned_paths_present": {
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-afzdh7v_": false,
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-e913ivf9": false,
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-sh4rxlf_": false,
+      "/tmp/halo2-test-9pgpo9zd": false,
+      "/tmp/halo2-test-w4aqxmn3": false,
+      "/tmp/halo2-test-zxib5la3": false
+    },
+    "macos": {
+      "owned_paths_present": {
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-k7k5zp4a": false,
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8fxo8kz9": false,
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8gza2dmw": false
+      },
+      "owned_mounts": [],
+      "owned_test_processes": [],
+      "mcc_source_preserved": "/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12",
+      "lockout_sha256": "97d034dca2109adde65e56c0ab78ee56f72045b56bf9b3200f304d5e1ff4c61e"
+    },
+    "large_test_artifacts_retained": []
+  },
+  "current_test_tools_sha256": {
+    "tools/macos/test_native_world_draw.py": "973cf714a72f83b0396cc72d5f400b46a88605f4b2d2a4d0129bb0d6088925d8",
+    "tools/macos/test_session.py": "4cdee6e7a0278b928a0747fd05ca23402de7c30dd03a84efa7dbd7444f627feb",
+    "tools/macos/test_port.py": "fd53222612ed6f37bcf110428fa99b1966fe190985f2d3742242938aac461137",
+    "tools/macos/test_world_triangles.py": "65f569af55fcc90fee71ea1d6fff42189d5c95769e15bc23b10a211fd124dd32"
+  },
+  "remaining": [
+    "Full Renderer selection, original depth history, other depth writers and geometry producers.",
+    "Non-seamless cube filtering on the measured Mac GPU, source GPU arithmetic and original pixel acceptance.",
+    "Loading PCM admission, deferred exact source CPU numerical backend and complete playable universal engine/launcher acceptance."
+  ],
+  "checklist": {
+    "checked": 55,
+    "total": 67,
+    "incomplete": 12,
+    "count_is_not_effort_percentage": true
+  },
+  "test_session_lifecycle": {
+    "passed": true,
+    "purpose": "Queued argv commands and quit drain while stdin remains open; no idle-timeout retention.",
+    "command": [
+      "/usr/bin/python3",
+      "-B",
+      "tools/macos/test_session.py",
+      "--output",
+      "/tmp/halo2-test-zxib5la3/session",
+      "--idle-seconds",
+      "30"
+    ],
+    "stdout": "1\n{\"command_finished\": 1, \"exit_code\": 0}\n2\n{\"command_finished\": 2, \"exit_code\": 0}\n",
+    "stderr": "",
+    "journal": {
+      "scratch_owner": "/tmp/halo2-test-zxib5la3",
+      "pid": 4105536,
+      "commands": [
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-c",
+            "print(1)"
+          ],
+          "started": 1792604184.1651847,
+          "exit_code": 0,
+          "finished": 1792604184.1720603
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-c",
+            "print(2)"
+          ],
+          "started": 1792604184.1721451,
+          "exit_code": 0,
+          "finished": 1792604184.1797194
+        }
+      ],
+      "status": "closed"
+    }
+  }
+}

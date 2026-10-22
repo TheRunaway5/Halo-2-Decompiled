@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/effect_presentation_continuity.hpp"
 #include "halo2/multiplayer_runtime_receipt.hpp"
+#include "halo2/peer_snapshot_candidate.hpp"
 #include <deque>
 
 namespace halo2 {
@@ -30,6 +31,19 @@ struct EffectPresentationObservation {
     bool runtime_frontier_retained{},runtime_frontier_bound{};
     std::size_t pending_sounds{},pending_weapon_sounds{},pending_effect_sounds{};
     SourceResources source_resources;
+    // Actual scene graph capture in the same owning history entry. This is
+    // receipt/storage evidence, never complete adopter or election readiness.
+    bool scene_frontier_retained{},scene_frontier_bound{};
+    std::optional<MultiplayerSceneContinuity::Statistics> scene_statistics;
+    // CPU registry history only. Generated radar pixels/materials, GPU upload
+    // and complete runtime adoption remain separately qualified owners.
+    bool hud_frontier_retained{},hud_frontier_bound{};
+    std::optional<MultiplayerHudContinuity::Statistics> hud_statistics;
+    // Actual CPU gait group only; no physical locomotion, input/audio or full
+    // readiness claim. The unavailable mask observes current runtime flags.
+    bool locomotion_frontier_retained{},locomotion_frontier_bound{};
+    std::optional<MultiplayerLocomotionContinuity::Statistics> locomotion_statistics;
+    std::uint16_t current_locomotion_unavailable{};
 };
 // Completed CPU presentation and exact accepted receipts on the game executor.
 // Capacity is a native retention policy, not an original Xbox constant or a
@@ -93,6 +107,30 @@ public:
     RuntimeReservation reserve_runtime(const AuthorityTransferContext &,const AuthorityCutSeal &);
     std::optional<RuntimeCheckpoint> bind_runtime(const SourceAuthorityHostProof &,const LanClient &,
         const RuntimeReservation &)const;
+    // One provisional foreground owner, armed before the host chooses its
+    // future snapshot/native seal. Only the client's privately marked receipt
+    // can fill it. This is not a native checkpoint or migration readiness.
+    class RuntimeCandidate {
+    public:
+        bool valid()const;
+        bool captured()const;
+        std::size_t retained()const;
+        const PeerSnapshotToken &token()const;
+    private:
+        friend class EffectPresentationHistory;
+        struct Data;std::shared_ptr<Data> data_;
+    };
+    // Call only after the complete current accepted batch has been projected.
+    // The actual tail must already own a full typed history entry. All local
+    // allocation precedes the client's adoption fence/Armed acknowledgement.
+    RuntimeCandidate arm_runtime(LanClient &,std::shared_ptr<PeerSnapshotCandidate>,const PeerSnapshotToken &);
+    // Failed closing-state preflight keeps the entry/delivery untouched. Once
+    // preflight succeeds, release the actual provisional entry before emitting
+    // Retired. A later refusal keeps the delivery/fence owned and the token
+    // ineligible for binding, so explicit retirement can be retried safely.
+    bool retire_runtime_candidate(const RuntimeCandidate &);
+    std::optional<RuntimeCheckpoint> bind_runtime(const SourceAuthorityHostProof &,const LanClient &,
+        const RuntimeCandidate &)const;
     EffectPresentationHistoryState state()const;
 private:
     void own()const;
@@ -111,5 +149,6 @@ private:
     std::deque<Entry> entries_;
     const std::shared_ptr<const void> reservation_owner_=std::make_shared<unsigned char>(0);
     std::vector<std::weak_ptr<RuntimeReservation::Data>> reservations_;
+    std::shared_ptr<RuntimeCandidate::Data> candidate_;
 };
 }

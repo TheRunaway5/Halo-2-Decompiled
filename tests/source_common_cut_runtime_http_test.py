@@ -6,6 +6,7 @@ login, enable migration, or qualify renderer/device/headset/WAN continuity.
 import sys
 sys.dont_write_bytecode = True
 
+import argparse
 import asyncio
 import json
 import os
@@ -20,6 +21,7 @@ from multiplayer.master_server.service import Settings, create_app
 from multiplayer.master_server.player_identity import VerifiedOwner
 from multiplayer.master_server.protocol import Problem
 from multiplayer.master_server.tests.test_matchmaking_http import catalog
+from multiplayer_effect_history_http_test import selected_mcc_inputs, unchanged_inputs
 
 LOG_LIMIT = 1024 * 1024
 
@@ -34,8 +36,8 @@ async def bounded_output(stream):
     return bytes(tail), total
 
 
-async def native(binary, origin, descriptor, xbe, map_path):
-    process = await asyncio.create_subprocess_exec(str(binary), origin, str(descriptor), str(xbe), str(map_path),
+async def native(binary, origin, descriptor, gameplay, map_path, *, mcc=False):
+    process = await asyncio.create_subprocess_exec(str(binary), origin, str(descriptor), gameplay, str(map_path),
         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
         env=os.environ | dict(HTTP_PROXY='http://127.0.0.1:1', NO_PROXY='', no_proxy=''))
     readers = [asyncio.create_task(bounded_output(stream)) for stream in (process.stdout, process.stderr)]
@@ -64,18 +66,50 @@ async def native(binary, origin, descriptor, xbe, map_path):
         'PASS native common-cut delayed association survives history eviction:',
         'PASS native common-cut rejection/Abort repair preserves prior native/foreground owners',
         'PASS native common-cut two released rounds retain exact proofs without live activation',
+        'PASS native common-cut composed receipt adoption:',
+        'PASS native common-cut peer audio envelopes:',
     ):
         assert text.count(marker) == 1, 'Missing/duplicated native control: ' + marker
+    if mcc:
+        marker = 'PASS selected-MCC-native common-cut receipt route:'
+        assert text.count(marker) == 1, 'Missing/duplicated selected MCC route: ' + marker
 
 
 async def main():
-    assert len(sys.argv) in (2, 4), 'Supply BINARY [XBE MAP]'
-    binary = Path(sys.argv[1]).resolve()
-    xbe = Path(sys.argv[2] if len(sys.argv) == 4 and sys.argv[2] else
-        '/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe')
-    map_path = Path(sys.argv[3]) if len(sys.argv) == 4 else ROOT/'assets/disc/maps/lockout.map'
-    if not xbe.is_file() or not map_path.is_file():
-        return 77
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('binary', type=Path)
+    parser.add_argument('reference', nargs='*', metavar='REFERENCE_XBE_MAP',
+        help='Optional offline Xbox reference XBE and map; never used by the MCC route')
+    parser.add_argument('--mcc-root', type=Path,
+        help='Explicit selected prepared MCC cache; no Xbox/Vista fallback or import')
+    parser.add_argument('--map', type=Path,
+        help='Explicit selected MCC Lockout map, within --mcc-root')
+    args = parser.parse_args()
+    if args.reference and len(args.reference) != 2:
+        parser.error('the reference route takes both XBE and MAP')
+    if args.mcc_root is not None and args.reference:
+        parser.error('--mcc-root cannot use reference XBE/MAP arguments')
+    if args.map is not None and args.mcc_root is None:
+        parser.error('--map requires --mcc-root')
+    pins = []
+    if args.mcc_root is not None:
+        map_path, pins = selected_mcc_inputs(args.mcc_root)
+        if args.map is not None:
+            if args.map.is_symlink() or args.map.resolve(strict=True) != map_path:
+                parser.error('--map must be the selected prepared MCC Lockout map')
+        gameplay = '--mcc'
+        print('SELECTED MCC INPUT ' + json.dumps(dict(route='selected-MCC-native-common-cut', inputs=pins,
+            external_xbe=False, full_payload_hash_verified=False, import_or_conversion_performed=False,
+            complete_payload_provenance_or_release_acceptance=False), sort_keys=True), flush=True)
+    else:
+        xbe = Path(args.reference[0] if args.reference and args.reference[0] else
+            '/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe')
+        map_path = Path(args.reference[1]) if args.reference else ROOT/'assets/disc/maps/lockout.map'
+        if not xbe.is_file() or not map_path.is_file():
+            return 77
+        gameplay = str(xbe)
+        print('REFERENCE offline Xbox TU1.5 common-cut route; not MCC runtime acceptance', flush=True)
+    binary = args.binary.resolve(strict=True)
     scratch = os.environ.get('HALO2_TEST_SCRATCH')
     assert scratch and Path(scratch).is_dir(), 'Run through tools/run_test.py to own disposable storage'
     assert binary.is_file(), 'Native common-cut test executable is missing'
@@ -117,7 +151,11 @@ async def main():
             descriptor = path/'descriptors.json'
             descriptor.write_text(json.dumps(descriptors))
             descriptor.chmod(0o600)
-            await native(binary, str(client.make_url('/')).rstrip('/'), descriptor, xbe, map_path)
+            try:
+                await native(binary, str(client.make_url('/')).rstrip('/'), descriptor, gameplay, map_path,
+                    mcc=args.mcc_root is not None)
+            finally:
+                unchanged_inputs(pins)
             assert set(verified) == set(owners), 'Not all three physical identities authenticated independently'
             directory = next(iter(app.values()))
             rooms = tuple(directory.match_transport.rooms.values())

@@ -11,7 +11,7 @@ ENTRIES=(0x158290,0x157fe0,0x158450,0x158900,0x158790,0x171ff0,0x245400,0x245060
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--output',type=Path,default=Path('src/source_vehicle_director_tu15_generated.cpp'))
+    p.add_argument('--output',type=Path,default=Path('src/gameplay/vehicles/source_vehicle_director_tu15_generated.cpp'))
     p.add_argument('--directory',type=Path,required=True)
     a=p.parse_args();assert sha(NEW_DEFAULT)==NEW_PIN
     image=Xbe(NEW_DEFAULT);code=_Code(image,'.text')

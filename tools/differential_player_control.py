@@ -29,7 +29,7 @@ def main():
    assert p.returncode==0,(label,scope,p.returncode)
    runs.append(dict(kind=label,scope=scope,binary_sha256=sha(binary),returncode=p.returncode,stdout=p.stdout,stderr=p.stderr))
  result=dict(schema=1,driver_sha256=sha(__file__),passed=True,source_pins={str(p.relative_to(ROOT)):pin for p,pin in PINS.items()},
-  native_sources={str(p.relative_to(ROOT)):sha(p)for p in [ROOT/'include/halo2/player_command.hpp',ROOT/'src/player_command.cpp',ROOT/'tests/player_command_tests.cpp']},
+  native_sources={str(p.relative_to(ROOT)):sha(p)for p in [ROOT/'include/halo2/player_command.hpp',ROOT/'src/gameplay/units/player_command.cpp',ROOT/'tests/player_command_tests.cpp']},
   independent_original_files_byte_identical=len(repeated),full_control_packet_comparisons=75,source_target134_and_admission_compared=True,
   normal_and_sanitizer_runs=runs,limits='Stored outputs in measured masked/nearest FP scope; unmeasured positive CCC60 seat transform unavailable. No live device/codec/deadzone/physical-request/animation/current-pose integration or Xbox hardware parity asserted.')
  save(a.output,enc(result));print(json.dumps(dict(output=str(a.output),sha256=sha(a.output))))

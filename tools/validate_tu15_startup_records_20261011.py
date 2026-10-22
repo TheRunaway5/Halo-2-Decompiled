@@ -4,14 +4,14 @@ import argparse,ast,hashlib,json,re,shutil
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 E=ROOT/'analysis/multiplayer/sandbox-source/tu15-startup-records-20261011'
-OWNED=('include/halo2/source_tu15_startup_records.hpp','src/source_tu15_startup_records.cpp',
+OWNED=('include/halo2/source_tu15_startup_records.hpp','src/platform/source_tu15_startup_records.cpp',
     'tests/source_tu15_startup_records_tests.cpp','cmake/SourceTu15StartupRecords.cmake',
     'tools/oracle_tu15_startup_records_20261011.py','tools/validate_tu15_startup_records_20261011.py',
     'docs/PHYSICS_TU15_STARTUP_RECORDS_20261011.md')
-SOURCES=('tests/source_tu15_startup_records_tests.cpp','src/source_tu15_startup_records.cpp',
-    'src/source_process_heap_runtime_generated.cpp','src/source_process_heap_platform.cpp',
-    'src/source_process_shutdown.cpp','src/physics_platform_call.cpp','src/physics_platform_locks.cpp',
-    'src/source_runtime_memory.cpp','src/source_runtime_image.cpp','src/source_runtime_host_virtual_memory.cpp')
+SOURCES=('tests/source_tu15_startup_records_tests.cpp','src/platform/source_tu15_startup_records.cpp',
+    'src/platform/source_process_heap_runtime_generated.cpp','src/platform/source_process_heap_platform.cpp',
+    'src/platform/source_process_shutdown.cpp','src/physics/physics_platform_call.cpp','src/physics/physics_platform_locks.cpp',
+    'src/runtime/source_runtime_memory.cpp','src/runtime/source_runtime_image.cpp','src/runtime/source_runtime_host_virtual_memory.cpp')
 REGISTRATION='include(cmake/SourceTu15StartupRecords.cmake)'
 TOP='''cmake_minimum_required(VERSION 3.20)
 project(tu15_fresh_startup_records LANGUAGES CXX)
@@ -94,7 +94,7 @@ def validate():
     assert sha(generated/'manifest.json')==m['parent_generated_manifest_sha256']==f['generated_parent_manifest_sha256']
     assert sha(generated/'normalized-correspondence.json')==m['parent_correspondence_sha256']
     g=read(generated/'manifest.json');pair=read(generated/'normalized-correspondence.json')
-    assert g['generated_cpp_sha256']==sha(ROOT/'src/source_process_heap_runtime_generated.cpp')
+    assert g['generated_cpp_sha256']==sha(ROOT/'src/platform/source_process_heap_runtime_generated.cpp')
     assert pair['later_owned_xbe_sha256']==NEW_PIN
     for p,row in f['source_instructions'].items():assert pair['instruction_map'][f'{row["canonical"]:08x}']==int(p,16)
     for label in ('primary_record_owner','primary_registry_owner'):
@@ -116,7 +116,7 @@ def validate():
         directory=ROOT/'build-vehicle-control-20261011' if mode=='production' else E/('build-'+mode)
         binaries[mode]=sha(directory/'source_tu15_startup_records_tests')
         ninja=(directory/'build.ninja').read_text()
-        for p in ('src/source_tu15_startup_records.cpp','src/source_process_heap_runtime_generated.cpp'):
+        for p in ('src/platform/source_tu15_startup_records.cpp','src/platform/source_process_heap_runtime_generated.cpp'):
             section=ninja.split('/'+p+'.o:')[1].split('\n\n')[0]
             if mode=='sanitizer':assert '-fsanitize=address,undefined' in section
             if p.endswith('_generated.cpp'):

@@ -1,4 +1,4 @@
-add_library(halo2_source_tu15_status STATIC src/source_tu15_status.cpp src/source_tu15_status_runtime_generated.cpp)
+add_library(halo2_source_tu15_status STATIC src/platform/source_tu15_status.cpp src/platform/source_tu15_status_runtime_generated.cpp)
 target_include_directories(halo2_source_tu15_status PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_source_tu15_status PUBLIC cxx_std_20)
 target_link_libraries(halo2_source_tu15_status PUBLIC halo2_source_tu15_settings)
@@ -16,7 +16,7 @@ if(TARGET halo2_systems)
 endif()
 if(BUILD_TESTING)
     add_executable(source_tu15_status_tests tests/source_tu15_status_tests.cpp
-        src/source_runtime_memory.cpp src/source_runtime_image.cpp src/source_runtime_host_virtual_memory.cpp)
+        src/runtime/source_runtime_memory.cpp src/runtime/source_runtime_image.cpp src/runtime/source_runtime_host_virtual_memory.cpp)
     target_link_libraries(source_tu15_status_tests PRIVATE halo2_snapshot_storage)
     target_link_libraries(source_tu15_status_tests PRIVATE halo2_source_tu15_status nlohmann_json::nlohmann_json)
     add_test(NAME original_tu15_fresh_startup_status COMMAND source_tu15_status_tests
@@ -26,7 +26,7 @@ if(BUILD_TESTING)
         ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/sandbox-source/tu15-status-startup-20261012/boot-v3/kernel)
     set_tests_properties(original_tu15_fresh_startup_status PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(source_tu15_status_tables_tests tests/source_tu15_status_tables_tests.cpp
-        src/source_runtime_memory.cpp src/source_runtime_host_virtual_memory.cpp)
+        src/runtime/source_runtime_memory.cpp src/runtime/source_runtime_host_virtual_memory.cpp)
     target_link_libraries(source_tu15_status_tables_tests PRIVATE halo2_snapshot_storage)
     target_link_libraries(source_tu15_status_tables_tests PRIVATE halo2_source_tu15_status nlohmann_json::nlohmann_json)
     add_test(NAME original_tu15_status_tables COMMAND source_tu15_status_tables_tests

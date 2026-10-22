@@ -43,6 +43,7 @@ public:
 private:
   MenuWorldSourceBinding() = default;
   friend MenuWorldSourceBinding menu_world_source_scaled_viewport(const MenuWorldSourceBinding &,unsigned);
+  friend MenuWorldSourceBinding menu_world_source_resized_viewport(const MenuWorldSourceBinding &,Vec2);
   friend MenuWorldSourceBinding menu_world_source_binding(const Cache &,
       MenuWorldSourceOwner,MenuWorldSourceDraw,std::uint32_t,const MenuWorldSourceConstants &);
   friend MenuWorldSourceBinding menu_world_source_binding_class(const Cache &,
@@ -76,4 +77,7 @@ MenuWorldSourceBinding menu_world_source_binding_class(const Cache &,MenuWorldSo
 // Rejects nonstandard source viewport banks. Owner, pose, compression, program
 // and every other constant retain their original bits; scale1 is unchanged.
 MenuWorldSourceBinding menu_world_source_scaled_viewport(const MenuWorldSourceBinding &,unsigned scale);
+// Native temporal input scaling re-evaluates the same12FA0 viewport constants
+// at fractional X/Y sizes. The original half-pixel bias stays unscaled.
+MenuWorldSourceBinding menu_world_source_resized_viewport(const MenuWorldSourceBinding &,Vec2 scale);
 } // namespace halo2

@@ -1,6 +1,6 @@
 #include "halo2/mcc_sound_vanilla_reference.hpp"
 #include "halo2/cache.hpp"
-#include "../src/mcc_sound_vanilla_reference_profile.hpp"
+#include "../src/audio/mcc_sound_vanilla_reference_profile.hpp"
 #include <algorithm>
 #include <iostream>
 #include <map>

@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #include "halo2/multiplayer.hpp"
 #include "halo2/math.hpp"
 #include "halo2/source_shadow.hpp"
@@ -55,7 +56,7 @@ void map(const char *path,unsigned count) {
             unit.definition.crouch_camera_height,0);
         const auto yaw=std::atan2(ray.y,ray.x),pitch=std::atan2(ray.z,std::hypot(ray.x,ray.y));
         Spawn at;at.position=point;at.bsp=0;at.facing=yaw;
-        match.debug_request({DebugGameRequest::Teleport,slot},&at);
+        test::place_player(match,slot,at);
         input[slot].yaw=yaw;input[slot].pitch=pitch;match.step(input);++attempts;
         prompt=match.action_prompt(slot);
         if(prompt.target.object==handle)break;

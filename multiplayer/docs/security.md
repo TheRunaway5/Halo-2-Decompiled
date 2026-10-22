@@ -22,11 +22,22 @@ or global account-consensus protocol.
 - Owner authorization uses the existing Discord OAuth access token, verified
   against fixed Discord HTTPS URLs, application ID, `identify` scope, and user.
   Client-supplied Discord IDs and screen names are never identity evidence.
+- Enrollment proves instance-key possession before binding an owner. Its signed
+  challenge binds the authenticated owner, master, key, requested lifetime and
+  nonce, expires in 120 seconds, and commits once with credential issuance.
+  Pending challenges are limited to eight per owner and 1,000 per master.
 - Server requests bind the credential, instance UUID, origin, HTTP method/path,
   timestamp and monotonic sequence inside the signature. Successful sequence
   updates and listing revisions commit together in SQLite.
 - Credentials default to 30 days, cap at 90 days, and are owner-revocable.
   Instances require no interactive authentication at ordinary startup.
+  Each owner may hold eight active credentials and retain at most 64 enrolled
+  keys over its lifetime. Inactive rows preserve key/replay history but release
+  the shared 1,000-active-credential capacity. SQLite's write transaction covers
+  quota checks and issuance across registry processes.
+- Steam login retains at most four bearer sessions per subject. A successful
+  login rotates that subject's oldest sessions in the issuance transaction;
+  it cannot evict another subject or consume all 1,000 live session slots.
 - Federation uses pinned keys, recipient/nonce binding, durable replay nonces,
   original origin signatures, absolute leases, and durable revision watermarks.
 - Public HTTPS is required by default. Direct TLS uses TLS 1.2 minimum and peer
@@ -49,6 +60,32 @@ Rate limits include health requests; leave headroom for monitoring, especially
 if many users share NAT. Limits are local to each master. Service-level limits
 do not replace a host firewall or optional provider edge protection against
 traffic saturation. No bot detection or global abuse-ban network is claimed.
+
+## Native match transport
+
+Protocol 98 adds a source-bound, request-bound HMAC challenge to raw UDP hello
+and configuration queries. The first reply is smaller than the request envelope
+and allocates no player. A cookie authorizes only the same source IP/port and
+exact request in the current or previous 30-second window. Established gameplay
+continues to require its existing connection cookie; an unverified hello cannot
+refresh a live player's timeout. Per-IP and global byte buckets bound challenge
+and fragmented configuration replies, with at most 256 source bucket entries.
+
+ONLINE audio carries a 64-byte Ed25519 origin proof. The authenticated TLS
+coordinator supplies each physical connection only its own per-room signing
+seed and the roster's public keys. Couch seats share their physical owner's
+key. Both the legacy relay and native direct receivers verify room, authority
+epoch, native header, speaker, sequence and encoded speech before applying
+speaker-based blocks. Host-controlled radio delivery and stereo gains remain
+outside that proof so normal audience mixing preserves the original signature.
+Signing seeds stay in room/process memory and never enter history or logs.
+
+Malformed live direct-UDP coordinator traffic revokes the sender's room
+capability and closes that signaling socket. Other connections remain admitted.
+Loss of the actual running authority still follows the existing complete-world
+handoff requirement; this error policy does not invent a replacement world.
+Result consent remains tied to every originally admitted physical connection,
+including a departed connection's already authenticated vote.
 
 ## Data visibility
 

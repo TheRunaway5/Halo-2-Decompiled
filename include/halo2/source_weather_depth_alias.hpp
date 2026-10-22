@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/cache.hpp"
+#include "halo2/source_depth_storage.hpp"
 #include <filesystem>
 #include <memory>
 #include <vulkan/vulkan.h>
@@ -36,6 +37,10 @@ struct SourceWeatherDepthAliasImage {
     VkImageType type{VK_IMAGE_TYPE_2D};
     VkImageTiling tiling{VK_IMAGE_TILING_OPTIMAL};
     VkImageCreateFlags create_flags{};
+    // Additional caller fact for the D32S8 carrier: every depth word was
+    // produced by source_d24_carrier_word / its GPU equivalent. Unconverted
+    // D32 values and ordinary floating clear/write paths are not admitted.
+    SourceDepthStorageEncoding depth_encoding=SourceDepthStorageEncoding::native_d24;
 };
 struct SourceWeatherDepthAliasRecord {
     SourceWeatherDepthAliasImage source;
@@ -69,9 +74,10 @@ enum class SourceWeatherDepthAliasFormat : std::uint32_t {
     linear_a8r8g8b8 = 0x12,
     linear_a8b8g8r8 = 0x3f,
 };
-// Exact D24S8 current-image producer. Copies integer depth and
+// Exact source-D24S8 current-image producer. Accepts native D24S8 or the
+// explicitly declared canonical D32S8 integer carrier. Copies integer depth and
 // stencil aspects and writes [N>>8, N, stencil, N>>16] low bytes in native row
-// order. No float depth or row flip. Frame history and activation belong to
+// order. No float interpolation/quantization or row flip. Frame history and activation belong to
 // the caller; the native renderer now supplies its actual current attachment.
 // prepare() may resize only after retire(); output handles are borrowed and
 // may not outlive the next prepare() or this object. record() restores the
@@ -117,7 +123,9 @@ public:
     // reflect it from opaque handles. Restores the pre-record layout history.
     void discard_unsubmitted(VkCommandBuffer);
     // Rejects absent, different or unsignaled completion fences. The caller
-    // may reset/reuse/destroy the fence only after this succeeds.
+    // may reset/reuse/destroy the fence only after completion. Noncanonical
+    // D32 carrier words invalidate the production and throw here; consumers
+    // from such a failed submission must not be accepted as a source result.
     void retire(VkFence);
 private:
     struct Impl;

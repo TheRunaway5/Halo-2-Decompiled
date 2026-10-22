@@ -155,7 +155,7 @@ void inspect(const Cache& cache,unsigned biped,unsigned weapon,const std::array<
       // Existing UI behavior keeps its top image and expands BC3 only.
       const auto source=cache.load_bitmap(datum,frame);const auto& top=source.mips.at(0);
       Texture expected{source.width,source.height,source.format,
-          {source.pixels.begin()+top.offset,source.pixels.begin()+top.offset+top.size},{top},source.layers,source.depth};
+          std::vector<std::byte>(source.pixels.begin()+top.offset,source.pixels.begin()+top.offset+top.size),{top},source.layers,source.depth};
       expected.mips[0].offset=0;
       if(source.format==16)expected=prepare_xemu_bc3_texture(expected);
       equal(image.images[frame],expected);++counts.images;
@@ -165,20 +165,22 @@ void inspect(const Cache& cache,unsigned biped,unsigned weapon,const std::array<
   for(const auto& widget:hud.widgets)if(widget.bitmap!=null_datum)
     require(hud.images.contains(widget.bitmap),"HUD widget bitmap lost its full-salt image binding");
 }
-unsigned negatives(Cache& cache,unsigned biped) {
+unsigned negatives(Cache& cache,unsigned biped,const std::filesystem::path& map) {
   const auto* globals=cache.find_tag(cache.globals_tag(),tag_groups::globals);
   const auto interfaces=bank(cache,globals->address+0x110,0x98,16);
   const auto sensor=Bytes(cache.read_tag_bytes(interfaces.first+0x3c,4)).u32(0);
   const auto* bitmap=cache.find_tag({sensor},tag_groups::bitmap);
   require(bitmap && bitmap->address,"No actual negative fixture bitmap");
   const auto images=bank(cache,bitmap->address+0x44,168,256);
-  // This fixture alone mutates its private MCC metadata allocation. Every
-  // word is restored before the next check; no file or public runtime changes.
+  // Published decoded textures memoize immutable metadata. Mutate a fresh
+  // private owner before its first HUD read so every negative reaches the
+  // actual decoder/validator. No file or public runtime storage is changed.
   const auto rejected=[&](unsigned address,unsigned value,unsigned bytes) {
-    const auto view=cache.read_tag_bytes(address,bytes);std::vector<std::byte> before(view.begin(),view.end());
+    Cache probe(map);
+    const auto view=probe.read_tag_bytes(address,bytes);std::vector<std::byte> before(view.begin(),view.end());
     auto* destination=const_cast<std::byte*>(view.data());
     for(unsigned n=0;n<bytes;++n)destination[n]=std::byte(value>>(n*8u));
-    bool failed=false;try{(void)cache.load_hud(biped,null_datum);}catch(const FormatError&){failed=true;}
+    bool failed=false;try{(void)probe.load_hud(biped,null_datum);}catch(const FormatError&){failed=true;}
     std::copy(before.begin(),before.end(),destination);
     require(failed,"Malformed/foreign MCC HUD image was admitted");
   };
@@ -230,6 +232,6 @@ int main(int argc,char** argv)try {
   }
   report["huds"]=counts.huds;report["images"]=counts.images;report["sprites"]=counts.sprites;
   phase="malformed source negatives";
-  report["sensor_images"]=counts.sensor_images;report["negative_cases"]=argc==3?negatives(cache,*bipeds.begin()):0;
+  report["sensor_images"]=counts.sensor_images;report["negative_cases"]=argc==3?negatives(cache,*bipeds.begin(),argv[1]):0;
   std::cout<<report.dump()<<'\n';return 0;
 }catch(const std::exception& e){std::cerr<<phase<<": "<<e.what()<<'\n';return 1;}

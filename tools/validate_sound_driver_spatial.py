@@ -28,8 +28,8 @@ def main():
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     source = args.output / 'source'
-    pending = [Path('src/sound_driver_spatial.cpp'),
-               Path('src/sound_driver_parameters.cpp'),
+    pending = [Path('src/audio/sound_driver_spatial.cpp'),
+               Path('src/audio/sound_driver_parameters.cpp'),
                Path('tests/sound_driver_spatial_tests.cpp')]
     pins = {}
     while pending:
@@ -56,11 +56,11 @@ def main():
         assert (result.returncode == 0) == expected_success, (label, result.stdout, result.stderr)
         return result
 
-    owner = source / 'src/sound_driver_spatial.cpp'
+    owner = source / 'src/audio/sound_driver_spatial.cpp'
     common = ['c++', '-std=c++20', '-fno-fast-math', '-ffp-contract=off',
               '-frounding-math', '-fno-associative-math', '-Wall', '-Wextra',
-              '-I' + str(source / 'include'), str(owner),
-              str(source / 'src/sound_driver_parameters.cpp'),
+              '-I' + str(source / 'include'), '-I'+str(source /'src'), str(owner),
+              str(source / 'src/audio/sound_driver_parameters.cpp'),
               str(source / 'tests/sound_driver_spatial_tests.cpp')]
     for kind, flags in [('normal', ['-O2']),
                         ('sanitizers', ['-O1', '-g', '-fsanitize=address,undefined',

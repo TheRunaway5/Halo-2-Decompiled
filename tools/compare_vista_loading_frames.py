@@ -69,8 +69,8 @@ def main():
     if any(len(value) != 2 for value in offsets):
         parser.error("Offsets must contain exactly x,y")
     pins = [executable, Path(__file__).resolve(), reference/"report.json", reference/"original-commands.json",
-            source_root/"src/renderer.cpp", source_root/"src/native_loading_presentation.cpp",
-            source_root/"src/vista_loading_geometry.cpp", source_root/"src/vista_loading.cpp",
+            source_root/"src/rendering/renderer/renderer.cpp", source_root/"src/platform/media/native_loading_presentation.cpp",
+            source_root/"src/ui/vista/vista_loading_geometry.cpp", source_root/"src/ui/vista/vista_loading.cpp",
             source_root/"include/halo2/cache.hpp", source_root/"tests/native_loading_presentation_capture.cpp",
             source_root/"shaders/vista_loading.vert", source_root/"shaders/vista_loading.frag",
             *sorted(args.assets.resolve().glob("*")),

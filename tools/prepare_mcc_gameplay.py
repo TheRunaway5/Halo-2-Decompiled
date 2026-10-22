@@ -18,12 +18,17 @@ import uuid
 
 from audit_rendering import FormatError, file_sha
 from mcc_content import MccCache, directory, discover, texture_resource
+from mcc_conversion_coverage import validate as validate_conversion_coverage
 from mcc_multiplayer_catalog import apply_catalog_plan, plan_catalog
 from mcc_instant_charge import apply_instant_charge_plan, plan_instant_charge
+from mcc_player_screen_flashes import inventory_maps as inventory_player_screen_flashes
 from mcc_movies import _cancellation
 from vista_tag_conversion import TagGraph, TU15_SHA256, apply_combat, apply_netgame
 
 PROFILE = "H2_MCC_TU15_PREPARATION_V1"
+MAX_BITMAP_BYTES = 32 * 1024**3
+MAX_BITMAP_PARTITIONS = 65536
+BITMAP_DISK_RESERVE = 64 * 1024**2
 EXCLUDED_SUFFIXES = {".dll", ".exe", ".xbe", ".iso", ".flt", ".pdb", ".spv", ".cso", ".fxo"}
 BLOCKERS = [
     "Native world startup must replace executable-backed mutable runtime banks; immutable TU1.5 engine operands are compiled into the port",
@@ -120,6 +125,46 @@ def save_changed_cache(cache):
     check.close()
 
 
+def bitmap_partitions(cache):
+    """Walk bounded bitmap records without decoding their pixel partitions."""
+    for tag in cache.tags.values():
+        if tag["group"] != "bitm" or tag["offset"] is None:
+            continue
+        low, high = tag["offset"], tag["offset"] + tag["size"]
+        if tag["size"] < 76:
+            raise FormatError("Truncated MCC bitmap root")
+        for at in cache.block(low + 68, 168):
+            if not low <= at <= at + 168 <= high:
+                raise FormatError(f"MCC bitmap frame escapes tag: {tag['name']}")
+            for partition in range(3):
+                pointer, size = cache.u32(at + 56 + partition * 4), cache.u32(at + 80 + partition * 4)
+                if size:
+                    yield pointer, size
+
+
+def plan_bitmaps(paths, textures, progress):
+    # Decode one partition at a time to measure compressed resources exactly.
+    # Retain only sizes/hashes; repeated references are charged once.
+    plan, total = {}, 0
+    for path in paths:
+        progress(f"Checking aggregate MCC bitmap budget: {path.name}")
+        cache = MccCache(path)
+        try:
+            for pointer, size in bitmap_partitions(cache):
+                key = f"{pointer & 0x3fffffff:08x}-{size:08x}"
+                if key in plan:
+                    continue
+                if len(plan) >= MAX_BITMAP_PARTITIONS:
+                    raise FormatError("Excessive MCC bitmap partition count")
+                payload = texture_resource(textures, pointer, size, decoded_limit=MAX_BITMAP_BYTES - total)
+                total += len(payload)
+                plan[key] = (len(payload), hashlib.sha256(payload).hexdigest())
+                del payload
+        finally:
+            cache.close()
+    return plan, total
+
+
 def prepare_maps(maps, output, progress):
     paths = sorted(maps.glob("*.map"))
     if not paths or not (maps / "shared.map").is_file():
@@ -137,8 +182,13 @@ def prepare_maps(maps, output, progress):
         catalog_projection["serialized_decoded_sha256"] = hashlib.sha256(menu.data).hexdigest()
     finally:
         menu.close()
+    with (maps / "textures.dat").open("rb") as textures:
+        bitmap_plan, bitmap_bytes = plan_bitmaps(paths, textures, progress)
+    if shutil.disk_usage(output).free < bitmap_bytes + BITMAP_DISK_RESERVE:
+        raise FormatError("Insufficient free space for aggregate decoded MCC bitmaps")
     shared = MccCache(maps / "shared.map")
     resources, banks, results, inventory, instant_charge = {}, [], [], [], []
+    decoded_bytes = 0
     (output / "bitmap-resources").mkdir()
     try:
         with (maps / "textures.dat").open("rb") as textures:
@@ -183,8 +233,16 @@ def prepare_maps(maps, output, progress):
                                     continue
                                 key = f"{pointer & 0x3fffffff:08x}-{size:08x}"
                                 if key not in resources:
-                                    payload = texture_resource(textures, pointer, size)
+                                    if key not in bitmap_plan or len(resources) >= MAX_BITMAP_PARTITIONS:
+                                        raise FormatError("MCC bitmap inventory changed after preflight")
+                                    expected_size, expected_hash = bitmap_plan[key]
+                                    payload = texture_resource(textures, pointer, size,
+                                        decoded_limit=min(expected_size, MAX_BITMAP_BYTES - decoded_bytes))
                                     digest = hashlib.sha256(payload).hexdigest()
+                                    if len(payload) != expected_size or digest != expected_hash:
+                                        raise FormatError("MCC bitmap partition changed after preflight")
+                                    if shutil.disk_usage(output).free < len(payload) + BITMAP_DISK_RESERVE:
+                                        raise FormatError("Insufficient free space for MCC bitmap output")
                                     relative = f"bitmap-resources/{digest}.bin"
                                     destination = output / relative
                                     if not destination.exists():
@@ -193,6 +251,8 @@ def prepare_maps(maps, output, progress):
                                         raise FormatError("MCC decoded bitmap readback differs")
                                     resources[key] = dict(source_pointer=pointer, stored_bytes=size,
                                         decoded_bytes=len(payload), sha256=digest, path=relative)
+                                    decoded_bytes += len(payload)
+                                    del payload
                                 frame["partitions"].append(key)
                             row["frames"].append(frame)
                         banks.append(row)
@@ -240,8 +300,10 @@ def prepare_maps(maps, output, progress):
 
 
 @_cancellation()
-def prepare(root, mcc_source=None, progress=print):
+def prepare(root, mcc_source=None, progress=print, *, presentation=None):
     root = Path(root).resolve()
+    import mcc_presentation
+    presentation = presentation if presentation is not None else mcc_presentation.requirements(root)
     source = directory(mcc_source) if mcc_source is not None else discover()
     imports = root / "assets/imported"
     # Reject importing from inside our own output or recursively copying it.
@@ -249,12 +311,17 @@ def prepare(root, mcc_source=None, progress=print):
         raise FormatError("MCC source and PC-port import directory must be separate")
     files, omitted = source_files(source)
     directories=source_directories(source)
+    presentation_bytes = mcc_presentation.required_bytes(root, presentation)
+    import controller_prompt_assets
+    presentation_bytes += controller_prompt_assets.required_bytes(root)
+    from native_variant_assets import source_bundle, install as install_variants
+    variant_bytes = sum(map(len, source_bundle(root).values()))
     imports.mkdir(parents=True, exist_ok=True)
-    from mcc_movies import required_bytes, prepare as prepare_movies
-    from mcc_prompts import required_bytes as prompt_bytes, prepare as prepare_prompts
-    needed = sum(stat.st_size for _, stat in files) + required_bytes(root) + prompt_bytes(root)
+    from mcc_ui_layout import required_bytes as ui_layout_bytes, prepare as prepare_ui_layout
+    needed = sum(stat.st_size for _, stat in files) + ui_layout_bytes(root) + presentation_bytes + variant_bytes
     if shutil.disk_usage(imports).free < needed + 2 * 1024**3:
         raise FormatError("Insufficient free space for MCC data and decoded bitmap cache")
+    mcc_presentation.preflight(root, source, presentation)
     identifier = "mcc-" + uuid.uuid4().hex
     stage, final = imports / (".staging-" + identifier), imports / identifier
     try:
@@ -272,30 +339,46 @@ def prepare(root, mcc_source=None, progress=print):
         from mcc_loading_assets import prepare as prepare_loading
         progress("Preparing MCC loading resources and retaining authored custom loading textures…")
         loading = prepare_loading(root, stage)
-        movies = prepare_movies(root, stage, progress=progress)
-        prompts = prepare_prompts(root, stage, progress=progress)
+        presentation_report = mcc_presentation.prepare(root, stage, source, presentation, progress=progress)
+        presentation_report['controller_prompts']=controller_prompt_assets.prepare(root,stage,progress=progress)
+        ui_layout = prepare_ui_layout(root, stage, progress=progress)
+        install_variants(root, stage, progress=progress)
         from preserve_native_shaders import copy_selected as preserve_shaders
         progress("Preserving the selected existing native shader library…")
         shaders = preserve_shaders(root, stage)
         from mcc_graphics_corrections import apply_selected as restore_graphics
         progress("Applying verified graphics corrections…")
         graphics = restore_graphics(root, stage, tag_revisions=summary.get("tag_revisions"))
+        # Damage flashes are inline jpt! Player Responses, not a shader-name
+        # closure. Include shared definitions and exact same-address aliases;
+        # a zero-sized directory record does not mean an absent flash.
+        flashes = inventory_player_screen_flashes(stage / "halo2/h2_maps_win64_dx11", progress=progress)
+        write_json(stage / "player-screen-flashes.json", flashes)
         # Refuse to publish an inconsistent mixed-version snapshot after a Steam
         # update changes the set, size or timestamp of any selected source file.
         now, omitted_now = source_files(source)
         identity = lambda rows: [(p.as_posix(), s.st_size, s.st_mtime_ns, s.st_ino) for p, s in rows]
         if identity(now) != identity(files) or omitted_now != omitted or source_directories(source)!=directories:
             raise FormatError("MCC installation changed during preparation; retry after Steam finishes updating")
+        # A successful copy is insufficient: every stock map must retain one
+        # source-bound conversion result, even if that map needed no stores.
+        # Nested/mod owners stay explicit copied inputs, never implied converted
+        # definitions or basename aliases of a stock map.
+        conversion = json.loads((stage / "tag-conversion.json").read_text())
+        _, conversion_coverage = validate_conversion_coverage(record, conversion)
         report = dict(schema=PROFILE, source=str(source), source_files=record, excluded_files=omitted,
+            conversion_coverage=conversion_coverage,
             source_directories=[p.as_posix() for p in directories],
             desired_runtime_role="vanilla Xbox TU1.5 definitions after complete conversion",
             donor_runtime_role="offline import input; never a runtime mod overlay",
             external_installation_requirement="Halo MCC only",
             reference_only_inputs=["OG Xbox Halo 2 ISO", "Xbox TU1.5 patch", "Vista executable loading bank"],
             runtime_active=False, full_tu15_parity=False, summary=summary, blockers=BLOCKERS,
+            player_screen_flashes=dict(path="player-screen-flashes.json", complete=flashes["complete"],
+                sha256=file_sha(stage / "player-screen-flashes.json"), **flashes["summary"]),
             match_loading=loading,
-            port_bundled_movies=movies,
-            port_authored_prompts=prompts,
+            **presentation_report,
+            native_ui_layout=ui_layout,
             menu_resources=dict(path="ui/mcc-menu-assets.json", complete=menu_assets["complete"],
                 frame_owners=menu_assets["frame_owners"], unique_dds_pages=menu_assets["unique_dds_pages"],
                 fonts=len(menu_assets["fonts"]), runtime_activation=False),
@@ -305,9 +388,15 @@ def prepare(root, mcc_source=None, progress=print):
             native_shader_library=shaders,
             graphics_corrections=graphics,
             policy=dict(assets="Private verified MCC copy", shaders="Native port renderer remains selected; MCC binaries/shader cache excluded",
+                prompt_artwork="Port-owned Xbox/PlayStation control rasters per local player; verified MCC fonts retain ordinary text and logical metrics",
                 embedded_material_metadata="Retained in original caches for inspection, never admitted as native shader programs",
                 visuals="No guessed correction; launch and DLC differences require separate reference checks"))
+        if shaders.get("maps"):
+            from mcc_native_map_owner_publication import publish_staged_owner_index
+            progress("Binding final converted map paths to their retained native libraries…")
+            report = publish_staged_owner_index(stage, report)
         write_json(stage / "provenance.json", report)
+        mcc_presentation.recheck(presentation)
         stage.rename(final)
         progress(f"Prepared MCC cache: {final}")
         progress("Native MCC playback/full TU1.5 conversion remain incomplete. The active game-file selection was preserved.")

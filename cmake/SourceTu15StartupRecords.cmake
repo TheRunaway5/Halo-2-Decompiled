@@ -1,4 +1,4 @@
-add_library(halo2_source_tu15_startup_records STATIC src/source_tu15_startup_records.cpp)
+add_library(halo2_source_tu15_startup_records STATIC src/platform/source_tu15_startup_records.cpp)
 target_include_directories(halo2_source_tu15_startup_records PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_source_tu15_startup_records PUBLIC cxx_std_20)
 target_link_libraries(halo2_source_tu15_startup_records PUBLIC halo2_source_process_heap_platform)
@@ -11,7 +11,7 @@ if(TARGET halo2_systems)
 endif()
 if(BUILD_TESTING)
     add_executable(source_tu15_startup_records_tests tests/source_tu15_startup_records_tests.cpp
-        src/source_runtime_memory.cpp src/source_runtime_image.cpp src/source_runtime_host_virtual_memory.cpp)
+        src/runtime/source_runtime_memory.cpp src/runtime/source_runtime_image.cpp src/runtime/source_runtime_host_virtual_memory.cpp)
     target_link_libraries(source_tu15_startup_records_tests PRIVATE halo2_snapshot_storage)
     target_link_libraries(source_tu15_startup_records_tests PRIVATE halo2_source_tu15_startup_records nlohmann_json::nlohmann_json)
     add_test(NAME original_tu15_fresh_startup_records COMMAND source_tu15_startup_records_tests

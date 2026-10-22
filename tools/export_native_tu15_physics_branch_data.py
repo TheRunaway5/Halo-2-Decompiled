@@ -31,7 +31,7 @@ def main():
     parser.add_argument('--report', type=Path, required=True)
     args = parser.parse_args()
     scratch = Path(os.environ['HALO2_TEST_SCRATCH'])
-    graph = ROOT / 'src/physics_live_support_tu15_generated.cpp'
+    graph = ROOT / 'src/physics/physics_live_support_tu15_generated.cpp'
     source = graph.read_bytes()
     assert hashlib.sha256(source).hexdigest() == GRAPH_SHA256
     image = Xbe(args.reference)

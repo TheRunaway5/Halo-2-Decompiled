@@ -13,7 +13,7 @@ def digest(p):
 def encoded(x):return json.dumps(x,sort_keys=True,indent=2)+'\n'
 def main():
  assert not OUT.exists(),OUT
- own=['include/halo2/native_grenade.hpp','include/halo2/native_grenade_constants.hpp','src/native_grenade.cpp',
+ own=['include/halo2/native_grenade.hpp','include/halo2/native_grenade_constants.hpp','src/gameplay/weapons/native_grenade.cpp',
  'tests/multiplayer_grenade_delivery_tests.cpp','tests/native_grenade_timer_tests.cpp',
  'tools/probe_live_grenade_release_20261010.py','tools/probe_native_grenade_timer_20261010.py',
  'tools/freeze_native_grenade_20261010.py','docs/MP_NATIVE_GRENADE_SANDBOX_RESEARCH.md']

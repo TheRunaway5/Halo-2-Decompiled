@@ -1,6 +1,8 @@
 #pragma once
 #include "halo2/source_script_sound_clock_tu15.hpp"
 #include <memory>
+#include <span>
+#include <vector>
 
 namespace halo2 {
 class MultiplayerAudio;
@@ -24,6 +26,7 @@ private:
     bool audio_owner_is(const std::shared_ptr<const void>&,
         const std::shared_ptr<const void>&) const;
     bool voice_record_is(const std::shared_ptr<const void>&) const;
+    std::shared_ptr<const void> voice_record() const;
     friend class MultiplayerAudio;
     friend class SourceScriptSoundClockNative64Tu15;
 };
@@ -84,6 +87,41 @@ public:
 private:
     struct Impl;
     std::shared_ptr<Impl> impl_;
+    // Only the actual Audio aggregate can supply the target Audio epoch and
+    // exact saved-voice mapper. Ordinary script callers cannot mint a branch.
+    struct ContinuationSnapshot;
+    struct ContinuationPrepared;
+    class Checkpoint {
+    public:
+        std::vector<Voice> voices() const;
+    private:
+        std::shared_ptr<const ContinuationSnapshot> data_;
+        friend class SourceScriptSoundClockNative64Tu15;
+    };
+    class PreparedReplacement {
+    public:
+        PreparedReplacement();
+        ~PreparedReplacement();
+        PreparedReplacement(PreparedReplacement&&) noexcept;
+        PreparedReplacement& operator=(PreparedReplacement&&) noexcept;
+        PreparedReplacement(const PreparedReplacement&)=delete;
+        PreparedReplacement& operator=(const PreparedReplacement&)=delete;
+        std::optional<Admission> admission(const Admission&) const;
+        std::optional<Voice> voice(const Voice&) const;
+        std::function<bool()> retirement_callback(const Admission&,const Voice&) const;
+        std::function<void()> close_audio_binding() const;
+    private:
+        std::shared_ptr<ContinuationPrepared> data_;
+        friend class SourceScriptSoundClockNative64Tu15;
+    };
+    Checkpoint checkpoint(std::span<const Admission> actual_record_admissions={},
+        std::span<const Voice> actual_record_voices={}) const;
+    PreparedReplacement prepare_restore(const Checkpoint&,
+        std::shared_ptr<const void> target_audio_owner,
+        std::function<bool()> fresh_audio_alive,
+        const std::function<Voice(const Voice&)>& trusted_saved_voice_mapper) const;
+    bool ready(const PreparedReplacement&) const noexcept;
+    bool commit(PreparedReplacement&) noexcept;
     // Audio restores only source metadata into a fresh, unbound clock. Voice
     // ownership is always established later by actual packet publication.
     void initialize_metadata(const SourceScriptSoundClockRowsTu15&);

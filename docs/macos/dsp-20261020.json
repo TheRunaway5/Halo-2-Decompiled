@@ -1,0 +1,76 @@
+{
+  "schema": "H2_MACOS_UNIVERSAL_DSP_EVIDENCE_V1",
+  "date": "2026-10-20",
+  "architectures": [
+    "arm64",
+    "x86_64_rosetta"
+  ],
+  "passed_tests": 3,
+  "report": "build/test-results/macos-dsp-final/report.json",
+  "retained_output": "build/test-results/macos-dsp-final/evidence/Testing/Temporary/LastTest.log",
+  "toolchain": {
+    "toolchain": "1.99.0",
+    "rustup_version": "1.28.2",
+    "installer_url": "https://static.rust-lang.org/rustup/archive/1.28.2/aarch64-apple-darwin/rustup-init",
+    "installer_sha256": "20ef5516c31b1ac2290084199ba77dbbcaa1406c45c1d978ca68558ef5964ef5",
+    "upstream_checksum_url": "https://static.rust-lang.org/rustup/archive/1.28.2/aarch64-apple-darwin/rustup-init.sha256",
+    "scratch": "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-v61qhiex",
+    "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: aarch64-apple-darwin\nrelease: 1.99.0\nLLVM version: 23.1.1\n"
+  },
+  "source_sha256": {
+    "cmake/macos/Dsp.cmake": "6fada262dcded83977d266534d8598d5c7ced7c958a64a458a37f6a90d3bfad0",
+    "cmake/SoundGpCpuTu15.cmake": "21d6a8ef43909852da8480dbb605f3c97d751dd97abffec123bb0266525ccf45",
+    "tests/macos/dsp/CMakeLists.txt": "ffdb58b038e113446b5270f0967f765128ddf752bef0d8ec1b01d4da8a56d756",
+    "tests/macos/dsp/dsp_tests.c": "39cad4847d00523ccf397c96f1653becf846357410823cffabdc36f6b729e27d",
+    "tests/macos/dsp/archive_tests.py": "5c0862769802b3f49047c148488de9182b1eb627ef1edec84988ced6a194dfd3",
+    "tools/macos/test_dsp.py": "2295357a858b9ff6c383c9a234db27c5d13be156e40ebd432f9d6c22c64d052c",
+    "src/sound_gp_cpu_tu15_ffi.c": "dc73452cf855d2c63c7052cc43b08472bf293a6ea30ccff9db3e015d3b63d556",
+    "src/sound_gp_cpu_tu15_ffi.h": "b219298e788dd7ed8b7f47d1f4bf8d9bd05b24d761c8bed2e0634287436a66e6",
+    "third_party/dsp56300/Cargo.toml": "01ec5ffedbe595e37a997e6b227654f1fc76262c5650608e2fff064217ab7299",
+    "third_party/dsp56300/Cargo.lock": "d75f723b13b64e0fabf4fc9c3e2ea546d9bd53c458ab9069834007166dee825d",
+    "third_party/dsp56300/HALO2_ORIGIN.json": "dfbf392f4fe1dd42db20a42888056bac913686541085d18eda446e74f34008eb"
+  },
+  "vendor_source_inventory": "build/test-results/macos-dsp-final/source-inputs.json",
+  "vendor_source_file_count": 60,
+  "verified": [
+    "separate locked Cargo target builds for aarch64-apple-darwin and x86_64-apple-darwin",
+    "universal static archive merged and each architecture verified before link",
+    "production C bridge executes DSP MOVE/JMP with native translated code",
+    "external program invalidation, actual mix memory aliases, peripheral callback stop boundary",
+    "production prebuilt archive gate admits universal and rejects both thin archives",
+    "generated C header in private source copy matches retained production bindings"
+  ],
+  "engine_cmake_configure": {
+    "passed": true,
+    "portable_test_passed": 1,
+    "report": "build/test-results/macos-events-dsp-engine-configure/report.json"
+  },
+  "initial_failure": {
+    "report": "build/test-results/macos-dsp-initial-failure/report.json",
+    "reason": "Mac lipo rejects multiple architecture names in one -verify_arch call; fixed by separate calls, each verified by actual thin/universal archive tests"
+  },
+  "limits": [
+    "focused DSP core/C bridge execution; full C++ sound GP owner and original GP image playback not executed on Mac",
+    "no audible output, complete engine/gameplay, physical Intel hardware or hardened-runtime JIT entitlement claim",
+    "other universal dependencies and static dependency license closure remain completion gates"
+  ],
+  "cleanup": {
+    "macos-dsp": {
+      "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-zrdcq9lu/build",
+      "removed": true,
+      "private_toolchain_and_cache_removed": "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-h3qrp1tv"
+    },
+    "macos-dsp-final": {
+      "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-wop2advh/build",
+      "removed": true,
+      "private_toolchain_and_cache_removed": "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-v61qhiex"
+    },
+    "macos-events-dsp-engine-configure": {
+      "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-0hhqllh5/build",
+      "removed": true
+    },
+    "sdk_and_archive_probe_scratch_removed": true,
+    "mac_private_build_parent_empty": true
+  },
+  "retained_large_artifacts": []
+}

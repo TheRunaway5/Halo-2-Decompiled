@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 BASE=ROOT/'analysis/multiplayer/game-variants/king-objective-network-native-20261012/verify-20261012T024545.653433Z'
 OUT=BASE.parent
-OWNED=('include/halo2/multiplayer.hpp','include/halo2/multiplayer_datagrams.hpp','src/multiplayer.cpp','src/multiplayer_network.cpp','tests/king_runtime_tests.cpp','tools/verify_king_objective_network.py')
+OWNED=('include/halo2/multiplayer.hpp','include/halo2/multiplayer_datagrams.hpp','src/gameplay/multiplayer/multiplayer.cpp','src/network/multiplayer_network.cpp','tests/king_runtime_tests.cpp','tools/verify_king_objective_network.py')
 TARGETS=('king_objective_network_tests','king_runtime_tests','multiplayer_tests','camouflage_runtime_tests','multiplayer_fp_network_tests','multiplayer_scope_network_tests')
 TEST='tests/king_objective_network_tests.cpp'
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
@@ -69,7 +69,7 @@ def main():
  execute('baseline-ctest',['ctest','--test-dir',build,'--verbose','-R','^(native_king_runtime|native_multiplayer|native_lan_startup|retail_multiplayer|native_camouflage_runtime)$'])
  assert re.search(r'100% tests passed.*out of 5',(run/'baseline-ctest.log').read_text())
  for target in ('multiplayer_fp_network_tests','multiplayer_scope_network_tests'):execute(target,[build/target,*args])
- objects=[compile_owner(p,'sanitizer-compile-'+str(i),True)for i,p in enumerate(('src/multiplayer.cpp','src/multiplayer_network.cpp',TEST))]
+ objects=[compile_owner(p,'sanitizer-compile-'+str(i),True)for i,p in enumerate(('src/gameplay/multiplayer/multiplayer.cpp','src/network/multiplayer_network.cpp',TEST))]
  sanitized=link_test(objects,'king_objective_network_tests_asan',True)
  execute('sanitizer-test',[sanitized,*args],extra={'ASAN_OPTIONS':'detect_leaks=1:halt_on_error=1','UBSAN_OPTIONS':'halt_on_error=1'})
  with concurrent.futures.ThreadPoolExecutor(max_workers=8)as pool:current=list(pool.map(lambda p:sha(source/p),base_pins))
@@ -82,7 +82,7 @@ def main():
   base_commands_sha256=sha(BASE/'commands.json'),base_failure_preserved=True,overlay_hashes_sha256=sha(run/'overlay-hashes.json'),
   base_artifact_hashes_sha256=sha(run/'base-artifact-hashes.json'),commands=commands,live_checkout_drift=drift,
   binaries={str(p.relative_to(a.output.parent)):sha(p)for p in (binary,sanitized)},
-  scoped_sanitized_owners=['src/multiplayer.cpp','src/multiplayer_network.cpp',TEST],ordinary_linked_libraries=True,
+  scoped_sanitized_owners=['src/gameplay/multiplayer/multiplayer.cpp','src/network/multiplayer_network.cpp',TEST],ordinary_linked_libraries=True,
   native_king_objective_delivery=True,normal_king_admission=False,complete_match_flows=False,goal_complete=False)
  (run/'verification.json').write_text(json.dumps(result,sort_keys=True,indent=2)+'\n');shutil.copy2(run/'verification.json',a.output);print(a.output,flush=True)
 if __name__=='__main__':main()

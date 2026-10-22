@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #include "halo2/native_vista_announcer.hpp"
 #include "halo2/multiplayer.hpp"
 #include "halo2/source_score_event.hpp"
@@ -59,7 +60,7 @@ void run(const Cache& cache,const LevelContent& content,
   std::array<float,sound_class_count> gains{};audio->audio_update(1,gains);
   for(unsigned tick=0;tick<1850;++tick) {
     const auto point=interior(*match.source_king_state());Spawn spawn;spawn.position={point[0],point[1],point[2]};
-    match.debug_request({DebugGameRequest::Teleport,0,0,{}},&spawn);match.step({});
+    test::place_player(match,0,spawn);match.step({});
     // Explicit Manual device provider:1600 stereo frames per30Hz game tick.
     for(const auto sample:audio->render_manual(1600)) {
       check(std::isfinite(sample),"Actual score cue emitted nonfinite PCM");peak=std::max(peak,std::abs(double(sample)));

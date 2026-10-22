@@ -49,7 +49,7 @@ def build_runtime(root, build=None, progress=print):
     configure = [cmake, "-S", str(root), "-B", str(build)]
     if fresh:
         configure += ["-G", "Ninja", "-DCMAKE_BUILD_TYPE=RelWithDebInfo", "-DBUILD_TESTING=OFF"]
-    compile_command = [cmake, "--build", str(build), "--target", "halo2_launcher",
+    compile_command = [cmake, "--build", str(build), "--target", "halo2_native", "halo2_launcher",
                        "halo2_title_launcher", "halo2_onboarding", "--parallel"]
     if not os.environ.get("CMAKE_BUILD_PARALLEL_LEVEL"):
         jobs = min(os.cpu_count() or 1, 8)
@@ -74,6 +74,8 @@ def build_runtime(root, build=None, progress=print):
             if status:
                 raise RuntimeError(f"{stage} failed (exit {status}). Full build output: {log_path}")
     progress("Build complete.")
+    if (root / 'gameplay-runtime-selection.json').is_file():
+        progress('Play uses its qualified runtime selection. Build, check and select current engine sources with ./Halo2-Launcher --build-engine.')
     output = root / "dist/builds/linux-x86_64"
     if (output / "build-output.json").is_file():
         progress(f"Latest Linux x86_64 build binaries: {output}")

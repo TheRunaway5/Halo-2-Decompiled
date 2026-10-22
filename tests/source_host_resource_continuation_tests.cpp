@@ -117,7 +117,7 @@ void pool_continuation() {
 }
 }
 int main() try {
-#if !defined(__linux__)
+#if !defined(__linux__) && !defined(__APPLE__)
   return 77;
 #endif
   Bank source,target;
@@ -155,12 +155,33 @@ int main() try {
     const auto saved=source.checkpoint();
     Bank replacement;replacement.restore(saved);
     const auto old_address=target.native_address(old_virtual.base,1);
+    const auto staged_address=replacement.native_address(reserve.base,0);
+    check(old_address.value>0xffffffffull && staged_address.value>0xffffffffull &&
+          replacement.source_address(staged_address,0)==reserve.base,
+          "Virtual staging requires actual native64 identities and unchanged source tokens");
+    static_assert(sizeof(SourceRuntimeHostVirtualMemory::ReservationCheckpoint::base)==4);
+    static_assert(sizeof(SourceRuntimeHostVirtualMemory::ReservationCheckpoint::bytes)==4);
     // Cancellation, wrong-owner commits and moves must not publish a prefix.
     {
-      auto staged_vm=other_vm.prepare_ownership(saved_vm,saved);
+      auto staged_vm=other_vm.prepare_ownership(saved_vm,saved,replacement);
       auto staged_physical=other_physical.prepare_ownership(saved_physical,saved,replacement);
+      check(staged_vm.matches_memory(replacement) && !staged_vm.matches_memory(target) &&
+            !staged_vm.matches_memory(source),
+            "Prepared virtual ownership lost its exact replacement allocation identities");
       check(!vm.commit_ownership(std::move(staged_vm)),"Foreign virtual owner accepted staged resources");
       check(!physical.commit_ownership(std::move(staged_physical)),"Foreign physical owner accepted staged resources");
+      check(!other_vm.commit_ownership(std::move(staged_vm)),
+            "Virtual ownership published before its exact replacement bank");
+      // Equal source bytes and serialized addresses do not grant ownership of
+      // a separately restored bank's host allocations.
+      Bank equivalent;equivalent.restore(saved);
+      check(!staged_vm.matches_memory(equivalent),
+            "Equal bytes admitted foreign virtual native allocations");
+      target.swap_backing(equivalent);
+      check(!other_vm.commit_ownership(std::move(staged_vm)) &&
+            other_vm.ownership_checkpoint()==old_vm,
+            "Foreign restored bank consumed or replaced virtual ownership");
+      target.swap_backing(equivalent);
       auto moved=std::move(staged_vm);
       check(moved.for_owner(other_vm) && !staged_vm.for_owner(other_vm),"Prepared ownership move lost identity");
       check(target.checkpoint()==old_bank,"Staging changed the target byte bank");
@@ -171,16 +192,31 @@ int main() try {
     marker(replacement,physical_base+0x2000,std::byte{0x62});
     check(target.checkpoint()==old_bank,"Cancelled physical page leases altered current memory");
     // Validate malformed topology before publishing any incoming resource.
-    auto bad_vm=saved_vm;bad_vm.version=2;rejects([&]{other_vm.prepare_ownership(bad_vm,saved);});
-    bad_vm=saved_vm;bad_vm.next=reserve.base;rejects([&]{other_vm.prepare_ownership(bad_vm,saved);});
-    bad_vm=saved_vm;bad_vm.reservations[0].committed[0]=2;rejects([&]{other_vm.prepare_ownership(bad_vm,saved);});
-    bad_vm=saved_vm;bad_vm.reservations[0].committed.pop_back();rejects([&]{other_vm.prepare_ownership(bad_vm,saved);});
-    bad_vm=saved_vm;bad_vm.reservations[1]=bad_vm.reservations[0];rejects([&]{other_vm.prepare_ownership(bad_vm,saved);});
-    bad_vm=saved_vm;bad_vm.reservations.pop_back();rejects([&]{other_vm.prepare_ownership(bad_vm,saved);});
+    auto bad_vm=saved_vm;bad_vm.version=2;rejects([&]{other_vm.prepare_ownership(bad_vm,saved,replacement);});
+    rejects([&]{other_vm.prepare_ownership(saved_vm,saved,target);});
+    marker(replacement,reserve.base+0x3010,std::byte{0x8c});
+    rejects([&]{other_vm.prepare_ownership(saved_vm,saved,replacement);});
+    marker(replacement,reserve.base+0x3010,std::byte{0x5e});
+    // Inaccessible reservation bytes and commitment/owner metadata participate
+    // in admission too, even though ordinary source views cannot read holes.
+    auto changed=saved;region(changed,reserve.base).bytes[0x1010]=std::byte{0x7d};
+    Bank changed_replacement;changed_replacement.restore(changed);
+    rejects([&]{other_vm.prepare_ownership(saved_vm,saved,changed_replacement);});
+    changed=saved;region(changed,reserve.base).committed[1]=1;
+    changed_replacement.restore(changed);
+    rejects([&]{other_vm.prepare_ownership(saved_vm,saved,changed_replacement);});
+    changed=saved;region(changed,reserve.base).owner="foreign staged reservation";
+    changed_replacement.restore(changed);
+    rejects([&]{other_vm.prepare_ownership(saved_vm,saved,changed_replacement);});
+    bad_vm=saved_vm;bad_vm.next=reserve.base;rejects([&]{other_vm.prepare_ownership(bad_vm,saved,replacement);});
+    bad_vm=saved_vm;bad_vm.reservations[0].committed[0]=2;rejects([&]{other_vm.prepare_ownership(bad_vm,saved,replacement);});
+    bad_vm=saved_vm;bad_vm.reservations[0].committed.pop_back();rejects([&]{other_vm.prepare_ownership(bad_vm,saved,replacement);});
+    bad_vm=saved_vm;bad_vm.reservations[1]=bad_vm.reservations[0];rejects([&]{other_vm.prepare_ownership(bad_vm,saved,replacement);});
+    bad_vm=saved_vm;bad_vm.reservations.pop_back();rejects([&]{other_vm.prepare_ownership(bad_vm,saved,replacement);});
     auto bad_bank=saved;region(bad_bank,reserve.base).committed[1]=1;
-    rejects([&]{other_vm.prepare_ownership(saved_vm,bad_bank);});
+    rejects([&]{other_vm.prepare_ownership(saved_vm,bad_bank,replacement);});
     bad_bank=saved;region(bad_bank,reserve.base).owner="foreign reservation";
-    rejects([&]{other_vm.prepare_ownership(saved_vm,bad_bank);});
+    rejects([&]{other_vm.prepare_ownership(saved_vm,bad_bank,replacement);});
     auto bad_physical=saved_physical;bad_physical.version=2;
     rejects([&]{other_physical.prepare_ownership(bad_physical,saved,replacement);});
     bad_physical=saved_physical;bad_physical.allocations[0].read_only[0]=2;
@@ -197,13 +233,17 @@ int main() try {
         other_vm.ownership_checkpoint()==old_vm && other_physical.ownership_checkpoint()==old_physical_owner,
         "Rejected staging changed current resources or invalidated views");
     replacement.restore(saved);
-    auto staged_vm=other_vm.prepare_ownership(saved_vm,saved);
+    auto staged_vm=other_vm.prepare_ownership(saved_vm,saved,replacement);
     auto staged_physical=other_physical.prepare_ownership(saved_physical,saved,replacement);
+    check(staged_vm.matches_memory(replacement),"Prepared virtual pages are not bound to the replacement bank");
     check(staged_physical.matches_memory(replacement),"Prepared physical pages are not bound to the replacement bank");
     check(!other_physical.commit_ownership(std::move(staged_physical)),"Physical ownership published before the bank");
     target.swap_backing(replacement);
     check(other_vm.commit_ownership(std::move(staged_vm)) &&
           other_physical.commit_ownership(std::move(staged_physical)),"Admitted owner publication failed");
+    check(!staged_vm.for_owner(other_vm) && !staged_vm.matches_memory(target) &&
+          !other_vm.commit_ownership(std::move(staged_vm)),
+          "Published virtual ownership token was not consumed exactly once");
     check(target.checkpoint()==saved && other_vm.ownership_checkpoint()==saved_vm &&
         other_physical.ownership_checkpoint()==saved_physical,"Resource import differs from uninterrupted owner");
     rejects([&]{target.view(old_address,1);});
@@ -238,7 +278,7 @@ int main() try {
     for(int repeat=0;repeat<3;++repeat) {
       const auto copy=source.checkpoint();
       Bank next;next.restore(copy);
-      auto v=other_vm.prepare_ownership(vm.ownership_checkpoint(),copy);
+      auto v=other_vm.prepare_ownership(vm.ownership_checkpoint(),copy,next);
       auto p=other_physical.prepare_ownership(physical.ownership_checkpoint(),copy,next);
       target.swap_backing(next);
       check(other_vm.commit_ownership(std::move(v)) && other_physical.commit_ownership(std::move(p)),"Repeated handoff failed");

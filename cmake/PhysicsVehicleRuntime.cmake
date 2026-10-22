@@ -1,6 +1,6 @@
 # Keep the original vehicle controller component independently buildable while
 # the live object/body/world ownership graph is still being completed.
-add_library(halo2_physics_vehicle_runtime STATIC src/physics_vehicle_runtime_generated.cpp)
+add_library(halo2_physics_vehicle_runtime STATIC src/physics/vehicles/physics_vehicle_runtime_generated.cpp)
 target_include_directories(halo2_physics_vehicle_runtime PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_physics_vehicle_runtime PUBLIC cxx_std_20)
 if(MSVC)

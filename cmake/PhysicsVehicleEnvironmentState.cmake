@@ -1,5 +1,5 @@
 # TU1.5-only environment state and force-delivery composition.
-add_library(halo2_physics_vehicle_environment_state STATIC src/physics_vehicle_environment_state_tu15_generated.cpp)
+add_library(halo2_physics_vehicle_environment_state STATIC src/physics/vehicles/physics_vehicle_environment_state_tu15_generated.cpp)
 target_include_directories(halo2_physics_vehicle_environment_state PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_physics_vehicle_environment_state PUBLIC cxx_std_20)
 target_link_libraries(halo2_physics_vehicle_environment_state PUBLIC halo2_physics_vehicle_constraint_cleanup)

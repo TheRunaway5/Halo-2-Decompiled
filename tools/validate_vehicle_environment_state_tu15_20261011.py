@@ -9,14 +9,14 @@ CONTACT=ROOT/'analysis/multiplayer/sandbox-source/vehicle-contact-state-tu15-202
 MATH=ROOT/'analysis/multiplayer/sandbox-source/vehicle-motion-math-20261011'
 PARENT_PIN='1778888843a13097e42e6ac6402763b9c7ce4abe9164e629953618e1f546a7b1'
 VALIDATION_PIN='41748ed540d156528c696f472011771673027280757c4445787a6eacf2b53f57'
-OWNED=('include/halo2/physics_vehicle_environment_state.hpp','src/physics_vehicle_environment_state_tu15_generated.cpp',
+OWNED=('include/halo2/physics_vehicle_environment_state.hpp','src/physics/vehicles/physics_vehicle_environment_state_tu15_generated.cpp',
  'cmake/PhysicsVehicleEnvironmentState.cmake','tests/physics_vehicle_environment_state_tests.cpp',
  'tools/research_vehicle_environment_state_tu15_20261011.py','tools/generate_vehicle_environment_state_tu15_20261011.py',
  'tools/oracle_vehicle_environment_state_tu15_20261011.py','tools/validate_vehicle_environment_state_tu15_20261011.py',
  'docs/PHYSICS_VEHICLE_ENVIRONMENT_STATE_TU15_20261011.md')
 REGISTRATION='include(cmake/PhysicsVehicleEnvironmentState.cmake)'
 PARTS=('runtime','update','motion','motion_math','contact_state','constraint_cleanup')
-PARENT_SOURCE_OVERRIDES={'include/halo2/physics_contact_runtime.hpp': '5ed1aff76fc35f461d1a9f382f78d2c211fb97d5c53cf968873f316c4956af89', 'src/physics_contact_runtime_internal.hpp': 'abf6dadd93c8e73a81046819a88ad4453321ea0b955ce73ac5d67203408c36cc', 'src/physics_world_runtime_internal.hpp': '49dc4f92e19d28db4dca6af349d938311641cd2dae75925454eb8735997ac050'}
+PARENT_SOURCE_OVERRIDES={'include/halo2/physics_contact_runtime.hpp': '5ed1aff76fc35f461d1a9f382f78d2c211fb97d5c53cf968873f316c4956af89', 'src/physics/runtime/physics_contact_runtime_internal.hpp': 'abf6dadd93c8e73a81046819a88ad4453321ea0b955ce73ac5d67203408c36cc', 'src/physics/runtime/physics_world_runtime_internal.hpp': '49dc4f92e19d28db4dca6af349d938311641cd2dae75925454eb8735997ac050'}
 PARENT_ARCHIVES={'release':'b4c955e6dc615b1fcfaef8237f8345f44fc0763a88903fa00d9558fcf616e665','sanitizer':'93cb743153f5e97843dc7cb069a4f2219694027d7ba17f73c6eab7809246d186'}
 TOP='''cmake_minimum_required(VERSION 3.20)
 project(halo2_tu15_vehicle_environment_state LANGUAGES CXX)
@@ -127,7 +127,7 @@ def validate():
     address,raw,mnemonic,operand=line.split('\t');i=code.at(int(address,16))
     assert i.bytes.hex()==raw and i.mnemonic==mnemonic and i.op_str==operand
  assert g['generator_sha256']==sha(ROOT/'tools/generate_vehicle_environment_state_tu15_20261011.py') and g['research_sha256']==sha(E/'research-verified/report.json')
- assert g['generated_cpp_sha256']==sha(ROOT/'src/physics_vehicle_environment_state_tu15_generated.cpp')==sha(E/'generated-repeat/physics_vehicle_environment_state_tu15_generated.cpp')
+ assert g['generated_cpp_sha256']==sha(ROOT/'src/physics/vehicles/physics_vehicle_environment_state_tu15_generated.cpp')==sha(E/'generated-repeat/physics_vehicle_environment_state_tu15_generated.cpp')
  assert len(g['lowered_instructions'])==1307 and not g['production_opcode_decoder'] and not g['production_original_code_execution']
  assert o['tool_sha256']==sha(ROOT/'tools/oracle_vehicle_environment_state_tu15_20261011.py') and o['cases']==16381 and o['new_owner_covered_instructions']==1226
  for name in ('u5.json',):assert sha(E/'original-verified'/name)==sha(E/'original-repeat'/name)==o['fixture_sha256']

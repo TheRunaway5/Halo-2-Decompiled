@@ -24,7 +24,7 @@ std::uint32_t native_single_spill(long double value,std::uint16_t &status) {
 }
 '''
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--source',type=Path,default=Path('src/source_map_world_support_tu15_generated.cpp'));p.add_argument('--report',required=True,type=Path);p.add_argument('--canonical-world',action='store_true');a=p.parse_args()
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--source',type=Path,default=Path('src/runtime/source_map_world_support_tu15_generated.cpp'));p.add_argument('--report',required=True,type=Path);p.add_argument('--canonical-world',action='store_true');a=p.parse_args()
  sha=lambda b:hashlib.sha256(b).hexdigest()
  assert sha(NEW_DEFAULT.read_bytes())==NEW_PIN;image=Xbe(NEW_DEFAULT);code=_Code(image,'.text');body=complete_body(code,0x37c5d0)
  before=a.source.read_text();entry=0x378ab0 if a.canonical_world else 0x37c5d0

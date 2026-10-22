@@ -9,7 +9,10 @@ unset(_halo2_stage_default)
 
 if(HALO2_STAGE_BUILD_OUTPUT)
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64)$")
-        foreach(_halo2_output_target halo2_native halo2_launcher halo2_title_launcher halo2_onboarding)
+        foreach(_halo2_output_target halo2_native halo2_launcher halo2_title_launcher halo2_onboarding halo2_mcc_loading_audio)
+            if(NOT TARGET ${_halo2_output_target})
+                continue()
+            endif()
             add_custom_command(TARGET ${_halo2_output_target} POST_BUILD
                 COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/stage_build_output.py
                     --root ${CMAKE_CURRENT_SOURCE_DIR}

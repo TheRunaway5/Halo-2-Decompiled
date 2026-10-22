@@ -24,7 +24,7 @@ def main():
     mismatches = [p for p, pin in captured['files'].items() if sha(SNAP/p) != pin]
     assert not mismatches, mismatches
     generated = json.loads((SNAP/'tests/fixtures/unit_weapon_routing_manifest.json').read_text())
-    assert generated['generated_cpp_sha256'] == sha(SNAP/'src/unit_weapon_routing.cpp')
+    assert generated['generated_cpp_sha256'] == sha(SNAP/'src/gameplay/weapons/unit_weapon_routing.cpp')
     assert len(generated['complete_native_entries']) == 57
     assert len(generated['lowered_instructions']) == 5093
     assert len(generated['external_owners']) == 101
@@ -115,7 +115,7 @@ def main():
                   'unit_weapon_routing_current_headers')],
         build_configuration=artifact(BUILD/'CMakeCache.txt'), build_log=artifact(ROOT/'build/weapon-routing-build.log'),
         final_build_log=artifact(ROOT/'build/weapon-routing-final-build.log'),
-        current_header_observation=[artifact(ROOT/p) for p in ('src/physics_contact_runtime_internal.hpp',
+        current_header_observation=[artifact(ROOT/p) for p in ('src/physics/runtime/physics_contact_runtime_internal.hpp',
                                     'include/halo2/physics_contact_runtime.hpp')],
         whole_concurrent_checkout_freshness_claimed=False,
         preserved_social_sdk=artifact(BUILD/'libdiscord_partner_sdk.so'),

@@ -7,7 +7,7 @@ E=ROOT/'analysis/multiplayer/sandbox-source/phantom-force-tu15-20261011'
 P=ROOT/'analysis/multiplayer/sandbox-source/vehicle-environment-state-tu15-20261011'
 PARENT_MANIFEST='7808ff880faf972e553ac807afc5c01a68a1c98da3a693e9c2b874ae7d73b1b5'
 PARENT_VALIDATION='239bb07c92de97930be7ccb27400982621915e21e1377e8165fd1c48c8a8c50a'
-OWNED=('include/halo2/physics_phantom_force_tu15.hpp','src/physics_phantom_force_tu15_generated.cpp',
+OWNED=('include/halo2/physics_phantom_force_tu15.hpp','src/physics/physics_phantom_force_tu15_generated.cpp',
  'tests/physics_phantom_force_tu15_tests.cpp','cmake/PhysicsPhantomForceTu15.cmake',
  'tools/research_phantom_force_tu15_20261011.py','tools/generate_phantom_force_tu15_20261011.py',
  'tools/oracle_phantom_force_tu15_20261011.py','tools/validate_phantom_force_tu15_20261011.py',

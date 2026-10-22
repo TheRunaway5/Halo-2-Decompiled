@@ -28,15 +28,15 @@ def main():
         return {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
 
     paths = ["build-frontend/halo2_native", "build-frontend/Halo2-Title-Launcher",
-             "src/main.cpp", "src/frontend.cpp", "src/frontend_painter.cpp",
-             "src/frontend_state.cpp", "src/menu_noise_texture.cpp",
+             "src/app/main.cpp", "src/ui/frontend.cpp", "src/ui/frontend_painter.cpp",
+             "src/ui/frontend_state.cpp", "src/ui/menu_noise_texture.cpp",
              "include/halo2/frontend.hpp", "include/halo2/frontend_material.hpp",
-             "include/halo2/frontend_exit_animation.hpp", "src/renderer.cpp",
-             "include/halo2/renderer.hpp", "src/mainmenu_bsp_frame.cpp",
-             "include/halo2/mainmenu_bsp_frame.hpp", "src/mainmenu_portal_state.cpp",
-             "src/bsp_atmosphere.cpp", "include/halo2/bsp_atmosphere.hpp",
-             "src/menu_projection.cpp", "include/halo2/menu_projection.hpp",
-             "src/source_portal_visibility.cpp", "src/source_bsp_admission.cpp",
+             "include/halo2/frontend_exit_animation.hpp", "src/rendering/renderer/renderer.cpp",
+             "include/halo2/renderer.hpp", "src/ui/mainmenu_bsp_frame.cpp",
+             "include/halo2/mainmenu_bsp_frame.hpp", "src/ui/mainmenu_portal_state.cpp",
+             "src/rendering/world/bsp_atmosphere.cpp", "include/halo2/bsp_atmosphere.hpp",
+             "src/ui/menu_projection.cpp", "include/halo2/menu_projection.hpp",
+             "src/rendering/world/source_portal_visibility.cpp", "src/rendering/world/source_bsp_admission.cpp",
              "assets/disc/maps/mainmenu.map", "assets/disc/default.xbe",
              "assets/disc/maps/ui/frame_edges/left-edge.dds",
              "assets/disc/maps/ui/frame_edges/right-edge.dds"]

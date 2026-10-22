@@ -18,7 +18,7 @@ def main():
  assert j['source_sha256']==PIN and j['oracle_sha256']==sha(a.oracle)
  assert not j['instruction_patches'] and not j['supplied_gameplay_results']
  assert b['tool_sha256']==sha(ROOT/'tools/generate_death_world_runtime_bindings_1_1.py')
- assert b['generated_sha256']==sha(ROOT/'src/death_world_runtime_entries.hpp')
+ assert b['generated_sha256']==sha(ROOT/'src/gameplay/units/death_world_runtime_entries.hpp')
  native=set()
  for owner in b['owners'].values():
   assert owner['sha256']==sha(ROOT/owner['source'])

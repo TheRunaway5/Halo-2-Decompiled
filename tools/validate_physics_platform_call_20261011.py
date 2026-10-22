@@ -41,14 +41,14 @@ def main():
     generated=read(generated_path)
     assert generated['generator_sha256']==sha(ROOT/'tools/generate_physics_world_platform_runtime_20261011.py')
     assert generated['correspondence_sha256']==PAIR_PIN
-    assert generated['generated_cpp_sha256']==sha(ROOT/'src/physics_world_runtime_generated.cpp')==sha(E/'generated-repeat/runtime.cpp')
+    assert generated['generated_cpp_sha256']==sha(ROOT/'src/physics/runtime/physics_world_runtime_generated.cpp')==sha(E/'generated-repeat/runtime.cpp')
     assert len(generated['complete_native_entries'])==371 and len(generated['lowered_instructions'])==30717
     assert not generated['production_opcode_decoder'] and not generated['production_original_code_execution']
     binding_path=E/'call-bindings-verified/report.json';assert sha(binding_path)==BINDING_PIN
     bindings=read(binding_path)
     assert bindings['tool_sha256']==sha(ROOT/'tools/research_physics_platform_call_bindings_20261011.py')
     assert bindings['correspondence_sha256']==PAIR_PIN and bindings['all_supported_import_callers_bound']
-    assert bindings['header_sha256']==sha(ROOT/'src/physics_platform_call_bindings.hpp')
+    assert bindings['header_sha256']==sha(ROOT/'src/physics/physics_platform_call_bindings.hpp')
     assert {b['instruction'] for b in bindings['bindings']}=={0x2dacad,0x2db25e,0x2db3d2}
     fixture_path=E/'original-verified/fixture.json'
     assert sha(fixture_path)==FIXTURE_PIN==sha(E/'original-repeat/fixture.json')

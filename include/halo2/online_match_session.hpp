@@ -6,6 +6,8 @@
 #include "halo2/peer_mesh_quality.hpp"
 #include "halo2/peer_host_agreement.hpp"
 #include "halo2/peer_common_cut.hpp"
+#include "halo2/peer_snapshot_candidate.hpp"
+#include "halo2/online_peer_transport.hpp"
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -32,6 +34,10 @@ struct OnlineMatchTransportOptions {
   // use the epoch-prefixed direct protocol. Ordinary matchmaking must leave
   // this gate disabled until native promotion and compatibility negotiate it.
   bool peer_host_migration{};
+  // Separate opt-in native qualification. Default delivery cannot claim the
+  // reserved snapshot contract until every physical peer negotiates it.
+  bool snapshot_candidates{};
+  std::optional<OnlineEosOptions> eos;
 };
 class OnlineMatchSession final : public MultiplayerDatagrams {
 public:
@@ -55,6 +61,12 @@ public:
   const std::vector<OnlineAdmission> &roster() const;
   std::string error() const;
   bool direct_udp() const;
+  // Saturating diagnostic for exceptions rejected by the direct dispatch
+  // loop. Protocol owners which consume/reject internally keep their own
+  // counters. This number grants no admission, readiness or peer authority.
+  std::uint64_t rejected_direct_dispatches() const noexcept;
+  bool snapshot_candidates_enabled()const;
+  std::shared_ptr<PeerSnapshotCandidate> snapshot_candidates()const;
   bool master_connected() const;
   std::optional<OnlineContinuityState> continuity() const;
   std::vector<OnlineWorldSeal> world_seals();

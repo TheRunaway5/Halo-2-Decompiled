@@ -62,7 +62,8 @@ FunctionValue evaluate_object_function(std::span<const ObjectFunction>,
                                        const ShaderFunctionTables &,
                                        std::uint32_t name, float seconds,
                                        const ObjectFunctionInput &,
-                                       const ObjectFunctionHandler & = {});
+                                       const ObjectFunctionHandler & = {},
+                                       bool original_builtin_constants = true);
 // Retail 174D0/17550/176A0/17960. Retains the selected pass and changes only
 // its animated constants. Per-object inputs are supplied by the scene owner.
 bool animate_forward_material(Material &, double seconds, const ShaderInput &);

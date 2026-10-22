@@ -3,6 +3,7 @@
 #include "halo2/source_object_view.hpp"
 #include "halo2/source_portal_mask.hpp"
 #include "halo2/source_scene_effect_owner.hpp"
+#include "halo2/material_presentation_continuity.hpp"
 #include <memory>
 
 namespace halo2 {
@@ -16,7 +17,7 @@ struct SourceMachineSceneStats {
     unsigned placements{},render_models{},position_overlays{};
     unsigned dynamic_materials{},prt_materials{},initial_state_only{};
     unsigned union_dynamic_materials{},union_prt_materials{},union_section_banks{};
-    unsigned deferred_resources{}; // Retained failures, rejected on a visible lifetime.
+    unsigned deferred_resources{}; // Retained failures, rejected on visible draw submission.
 };
 struct SourceMachineResourceBoundary {
     std::size_t source_object{};
@@ -70,6 +71,7 @@ public:
         PreparedRestore();struct Data;std::unique_ptr<Data> data_;
     };
     PreparedRestore prepare_restore(const Checkpoint &)const;
+    PreparedRestore prepare_restore(const Checkpoint &,const MaterialPresentationContinuity::TargetGraph &)const;
     bool restore_ready(const PreparedRestore &)const noexcept;
     // Keep the scene, resident Cache/CollisionWorld/Mesh and all borrowers
     // quiescent through commit. This subowner does not restore material

@@ -10,7 +10,7 @@ ENTRY=0x44c80
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--directory',type=Path,required=True)
-    p.add_argument('--output',type=Path,default=Path('src/source_transparent_collection_tu15_generated.cpp'))
+    p.add_argument('--output',type=Path,default=Path('src/rendering/source_transparent_collection_tu15_generated.cpp'))
     a=p.parse_args();assert sha(NEW_DEFAULT)==NEW_PIN
     image=Xbe(NEW_DEFAULT);code=_Code(image,'.text')
     parent=_trace(code,0x423b0,{0x423b0});call=code.at(0x423f1)

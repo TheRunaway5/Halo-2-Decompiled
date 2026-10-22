@@ -21,8 +21,8 @@ def main():
     assert report['replay']['completed_whole38450'] and report['replay']['nonstack_differing_written_bytes']==0
     assert report['replay']['nonstack_written_bytes']==41120 and all(v['equal'] for v in report['replay']['CPU'].values())
     assert controls['controlled_complete_original_calls']==45 and controls['expected_native_words']==33306
-    paths=[ROOT/x for x in ['include/halo2/source_weather_particle_simulation.hpp','src/source_weather_particle_simulation.cpp',
-        'include/halo2/source_weather_exclusion.hpp','src/source_weather_exclusion.cpp','tests/source_weather_particle_simulation_tests.cpp',
+    paths=[ROOT/x for x in ['include/halo2/source_weather_particle_simulation.hpp','src/rendering/weather/source_weather_particle_simulation.cpp',
+        'include/halo2/source_weather_exclusion.hpp','src/rendering/weather/source_weather_exclusion.cpp','tests/source_weather_particle_simulation_tests.cpp',
         'tools/audit_source_weather_particle_simulation_original.py','tools/freeze_source_weather_particle_simulation_fixture.py',
         'tools/differential_source_weather_particle_simulation.py','tools/build_source_weather_particle_simulation.sh',
         'tests/fixtures/retail_source_weather_particle_simulation.tsv','tests/fixtures/retail_source_weather_particle_simulation.provenance.json',

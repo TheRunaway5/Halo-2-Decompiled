@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'analysis/multiplayer/game-variants/king-damage-native-20261011'
 TARGETS=('player_damage_tests','king_runtime_tests','multiplayer_tests','prop_sandbox_tests','multiplayer_grenade_delivery_tests')
-OWNERS=('src/source_player_damage.cpp','src/damage_amount.cpp','src/source_king.cpp','src/multiplayer.cpp','src/simulation.cpp')
+OWNERS=('src/gameplay/units/source_player_damage.cpp','src/gameplay/units/damage_amount.cpp','src/gameplay/multiplayer/source_king.cpp','src/gameplay/multiplayer/multiplayer.cpp','src/gameplay/simulation.cpp')
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def main():
  ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--output',type=Path,default=OUT/'verification.json')
@@ -71,8 +71,8 @@ def main():
  sanitizer={'ASAN_OPTIONS':'detect_leaks=1:halt_on_error=1','UBSAN_OPTIONS':'halt_on_error=1'}
  execute('sanitizer-test',[binary,source/'assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03'],extra=sanitizer)
  kernel=run/'player_damage_tests_asan'
- execute('kernel-sanitizer-build',['c++','-std=c++20','-O1','-g','-fno-fast-math','-ffp-contract=off','-fsanitize=address,undefined','-fno-omit-frame-pointer','-I'+str(source/'include'),
-     source/'tests/player_damage_tests.cpp',source/'src/source_player_damage.cpp',source/'src/damage_amount.cpp',source/'src/source_king.cpp','-o',kernel])
+ execute('kernel-sanitizer-build',['c++','-std=c++20','-O1','-g','-fno-fast-math','-ffp-contract=off','-fsanitize=address,undefined','-fno-omit-frame-pointer','-I'+str(source/'include'), '-I'+str(source/'src'),
+     source/'tests/player_damage_tests.cpp',source/'src/gameplay/units/source_player_damage.cpp',source/'src/gameplay/units/damage_amount.cpp',source/'src/gameplay/multiplayer/source_king.cpp','-o',kernel])
  execute('kernel-sanitizer-test',[kernel,source/'tests/fixtures/king_trait_consumers_original.json'],extra=sanitizer)
  assert all(sha(source/name)==digest for name,digest in pins.items())
  assert all((source/name).stat().st_size==row['bytes']and sha(source/name)==row['sha256']for name,row in assets.items())

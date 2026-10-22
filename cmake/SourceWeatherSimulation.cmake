@@ -2,12 +2,12 @@
 # No live scheduler or implicitly selected reciprocal-square-root profile.
 function(halo2_add_source_weather_simulation weather_source_root)
     add_library(halo2_weather_simulation
-        "${weather_source_root}/src/source_weather_particle_simulation.cpp"
-        "${weather_source_root}/src/source_weather_rsqrt.cpp"
-        "${weather_source_root}/src/source_weather_execution.cpp"
-        "${weather_source_root}/src/source_weather_plate_program.cpp"
-        "${weather_source_root}/src/source_weather_plate_caller.cpp"
-        "${weather_source_root}/src/source_weather_plate_submission.cpp")
+        "${weather_source_root}/src/rendering/weather/source_weather_particle_simulation.cpp"
+        "${weather_source_root}/src/rendering/weather/source_weather_rsqrt.cpp"
+        "${weather_source_root}/src/rendering/weather/source_weather_execution.cpp"
+        "${weather_source_root}/src/rendering/weather/source_weather_plate_program.cpp"
+        "${weather_source_root}/src/rendering/weather/source_weather_plate_caller.cpp"
+        "${weather_source_root}/src/rendering/weather/source_weather_plate_submission.cpp")
     target_include_directories(halo2_weather_simulation PUBLIC "${weather_source_root}/include")
     target_link_libraries(halo2_weather_simulation PUBLIC halo2_cache)
     if(MSVC)

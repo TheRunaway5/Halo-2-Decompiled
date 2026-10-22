@@ -126,6 +126,16 @@ bool same_color(Vec3 a, Vec3 b) {
   return std::abs(a.x-b.x) < .000001f && std::abs(a.y-b.y) < .000001f && std::abs(a.z-b.z) < .000001f;
 }
 void flow(FrontendContent &content, const std::filesystem::path &maps) {
+  auto defusal_content=content;
+  for(auto &map:defusal_content.multiplayer_maps)map.team_counts.fill(8);
+  defusal_content.variants.push_back({"Bomb Defusal",5,{{2,13},{10,150},{16,1},{89,3},{94,4},{native_defusal_parameter,1}}});
+  auto defusal=selected(defusal_content,unsigned(defusal_content.variants.size()-1),false);
+  check(defusal.lobby_view()->team_count==2 && !defusal.lobby_view()->allow_no_team && defusal.lobby_view()->input.team_mode,
+        "Defusal exposed extra teams from an eight-team map");
+  defusal.auxiliary();defusal.navigate(1,0);defusal.accept();
+  check(defusal.lobby_view()->player_team==1,"Defusal team picker did not select Blue");
+  defusal.auxiliary();defusal.navigate(1,0);defusal.accept();
+  check(defusal.lobby_view()->player_team==0,"Defusal team picker did not wrap Blue to Red");
   const auto team = std::find_if(content.variants.begin(), content.variants.end(),
                                 [](const auto &v) { return v.name.starts_with("Team Slayer "); });
   check(team != content.variants.end(), "original Team Slayer row missing");

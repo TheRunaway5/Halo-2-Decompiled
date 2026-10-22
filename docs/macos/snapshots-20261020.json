@@ -1,0 +1,70 @@
+{
+  "schema": "H2_MACOS_DISK_SNAPSHOT_EVIDENCE_V1",
+  "date": "2026-10-20",
+  "scope": "Darwin independent file snapshot backend, large checkpoint bytes and physical snapshot adoption; standalone production resource owners only",
+  "macos": {
+    "passed_tests": 26,
+    "architectures": [
+      "arm64",
+      "x86_64_rosetta"
+    ],
+    "filesystem": "apfs",
+    "report": "build/test-results/macos-snapshot/report.json",
+    "original_remote_report": "build/test-results/macos-snapshot-fixed/report.json",
+    "native_output": "build/test-results/macos-snapshot/evidence/Testing/Temporary/LastTest.log"
+  },
+  "linux": {
+    "passed_tests": 14,
+    "report": "build/test-results/macos-snapshot-linux-fixed/report.json"
+  },
+  "verified": [
+    "Darwin Library/Caches default and absolute XDG_CACHE_HOME override",
+    "private unlinked0600 regular file, close-on-exec, APFS storage",
+    "source file descriptor cursor unchanged; snapshots independent after source write/truncate/unlink",
+    "complete20MiB live bank plus original-size physical checkpoint",
+    "complete48MiB restore and40MiB snapshot copy with pre-existing mutable borrower isolation",
+    "storage growth at1MiB threshold and atomic unavailable-storage rejection",
+    "aligned physical snapshot adopted without another native copy, canceled/reprepared guards, exact-bank publication",
+    "source4KiB tail not aligned to16KiB native granule uses a complete independent physical mapping fallback",
+    "all26Mac and14Linux resource tests run through managed scratch with cache storage inside their owned directories"
+  ],
+  "limits": [
+    "no claim of whole-engine execution, full source instruction parity or physical Intel hardware validation",
+    "Linux memory-budget cgroup wrapper was not run by this standalone suite; this is byte/ownership correctness evidence",
+    "native mixed-granule physical permissions retain the documented source API guard boundary"
+  ],
+  "mac_validation_source_sha256": {
+    "src/cache_file_snapshot.cpp": "d78ab161fff239560ffa6ce74d225e03dc29e0f3249c35627a5251f2ee4c4a26",
+    "src/macos/cache_file_snapshot_storage.hpp": "d5441991f3bf66c985ce1fdf948e1a0a8e87ca433a2fc541cfa1fe056d4fdf33",
+    "src/source_runtime_snapshot_bytes.cpp": "08d2949cab0aea6c291a202ce036e14db14ba74d6c3f2851b8123b7517ed672b",
+    "src/source_runtime_memory.cpp": "e11c5d27a4ba32514b99935efbcfce383d7013c80681a5ced0376c93353bbd84",
+    "src/source_runtime_host_physical_memory.cpp": "7a3b7ca787d282cb5a5097a070bd71221e42c8a3163d5aeb243c8339c4fe6bd1",
+    "src/macos/source_runtime_host_physical_pages.hpp": "ead703692fca16fef4d724f814455a262e8e339621b0ccda2e79046a331f10c3",
+    "src/source_runtime_host_physical_pages.hpp": "a164d82391447f0425f2cbdab59184466297302edd5c330519abe08db7e4bd57",
+    "include/halo2/cache_file_snapshot.hpp": "fe18e8139d36bd1ae7a299e73985325620394cde0beb311d685df57864ad6292",
+    "include/halo2/source_runtime_snapshot_bytes.hpp": "5d67d95ff670de8cd8a6fc2c9a94204d669aac405031f2a47b2f636e5424d6c5",
+    "tests/macos/CMakeLists.txt": "1a420c9aad4ef3a08233c08f0abafe043c0f673ae7ade0cf721d6482bac97cea",
+    "tests/macos/snapshot_storage_tests.cpp": "9b9acb85e1e1a97b3daf2bcf99c82b60b026e1f3c092e0b91ebc6c8a14883a36",
+    "tests/source_runtime_snapshot_memory_tests.cpp": "c5b059f422c357c442ef8375e19f56915494a4a7a6851fcbdfe0688b9ff52159",
+    "tests/cache_file_snapshot_tests.cpp": "a283439c9d97740818cdb2a4bc6097ed2dc078bdb292b501daa7f0949a35dbda"
+  },
+  "workspace_source_sha256_at_recording": {
+    "src/cache_file_snapshot.cpp": "d78ab161fff239560ffa6ce74d225e03dc29e0f3249c35627a5251f2ee4c4a26",
+    "src/macos/cache_file_snapshot_storage.hpp": "d5441991f3bf66c985ce1fdf948e1a0a8e87ca433a2fc541cfa1fe056d4fdf33",
+    "src/source_runtime_snapshot_bytes.cpp": "08d2949cab0aea6c291a202ce036e14db14ba74d6c3f2851b8123b7517ed672b",
+    "src/source_runtime_memory.cpp": "e11c5d27a4ba32514b99935efbcfce383d7013c80681a5ced0376c93353bbd84",
+    "src/source_runtime_host_physical_memory.cpp": "7a3b7ca787d282cb5a5097a070bd71221e42c8a3163d5aeb243c8339c4fe6bd1",
+    "src/macos/source_runtime_host_physical_pages.hpp": "ead703692fca16fef4d724f814455a262e8e339621b0ccda2e79046a331f10c3",
+    "src/source_runtime_host_physical_pages.hpp": "a164d82391447f0425f2cbdab59184466297302edd5c330519abe08db7e4bd57",
+    "include/halo2/cache_file_snapshot.hpp": "fe18e8139d36bd1ae7a299e73985325620394cde0beb311d685df57864ad6292",
+    "include/halo2/source_runtime_snapshot_bytes.hpp": "5d67d95ff670de8cd8a6fc2c9a94204d669aac405031f2a47b2f636e5424d6c5",
+    "tests/macos/CMakeLists.txt": "1a420c9aad4ef3a08233c08f0abafe043c0f673ae7ade0cf721d6482bac97cea",
+    "tests/macos/snapshot_storage_tests.cpp": "9b9acb85e1e1a97b3daf2bcf99c82b60b026e1f3c092e0b91ebc6c8a14883a36",
+    "tests/source_runtime_snapshot_memory_tests.cpp": "c5b059f422c357c442ef8375e19f56915494a4a7a6851fcbdfe0688b9ff52159",
+    "tests/cache_file_snapshot_tests.cpp": "a283439c9d97740818cdb2a4bc6097ed2dc078bdb292b501daa7f0949a35dbda"
+  },
+  "cleanup": {
+    "owned_failed_and_success_private_builds_removed": true,
+    "retained_large_artifacts": []
+  }
+}

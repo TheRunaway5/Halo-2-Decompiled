@@ -34,12 +34,12 @@ def main():
         sp=initial['gp'][4];stack=struct.unpack('<7I',memory.read(sp,28));assert stack[0]==0x21f4c2
         assert stack[1:]==(request['bytes'],request['buffer'],0,initial['gp'][6],5,4)
         (scratch/'entry-ram.bin').write_bytes(bank[:]);(scratch/'entry-cpu.json').write_text(json.dumps(initial)+'\n')
-    sources=[ROOT/'tests/source_sound_cache_io_tu15_tests.cpp',ROOT/'src/source_sound_cache_io_tu15.cpp']
+    sources=[ROOT/'tests/source_sound_cache_io_tu15_tests.cpp',ROOT/'src/audio/source_sound_cache_io_tu15.cpp']
     header=ROOT/'include/halo2/source_sound_cache_io_tu15.hpp';source_hashes={str(path):sha(path)for path in sources+[header]}
     binary=args.binary.absolute()if args.binary else scratch/'sound-cache-io'
     command=None
     if not args.binary:
-        command=['c++','-std=c++20','-O2','-I'+str(ROOT/'include'),*[str(path)for path in sources],'-o',str(binary)]
+        command=['c++','-std=c++20','-O2','-I'+str(ROOT/'include'), '-I'+str(ROOT/'src'),*[str(path)for path in sources],'-o',str(binary)]
         build=subprocess.run(command,capture_output=True,text=True);(output/'compile.log').write_text((build.stdout+build.stderr)[-65536:]);assert build.returncode==0,build.stderr[-3000:]
     run_command=[str(binary),str(scratch/'entry-cpu.json'),str(scratch/'entry-ram.bin'),str(scratch/'native.json'),str(scratch/'native-ram.bin')]
     run=subprocess.run(run_command,capture_output=True,text=True,timeout=30);(output/'run.log').write_text((run.stdout+run.stderr)[-65536:]);assert run.returncode==0,run.stderr

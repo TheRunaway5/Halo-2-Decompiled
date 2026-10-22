@@ -79,6 +79,26 @@ int main(int argc,char** argv){
         check(std::ranges::any_of(rendered,[](float x){return x!=0;}),"Regression fixture produced no signal");++cases;
       }
     }
+    // MCC's explicit bit11 selects the remastered-only bank (6C9170).
+    // A source-owned TU1.5 caller can encounter these added MCC effect parts;
+    // they must not become extra Classic weapon layers or consume variation.
+    // No remastered DAT is installed: this also checks rejection before decode.
+    auto remastered=fixture(1,0,1);half(remastered,4096+0x300,0x800);
+    save(root/"shared.map",remastered);
+    {
+      Cache cache(root/"shared.map");std::uint32_t shared_seed=0x31415926;unsigned packets{};
+      MultiplayerAudio audio(cache,0x12345678,manual,[&](const auto&){++packets;},&shared_seed);
+      std::array<std::byte,160> request{};
+      const auto control=std::bit_cast<std::uint32_t>(1.f);
+      for(unsigned n=0;n<4;++n)request[0x10+n]=std::byte(control>>(n*8));
+      const auto before=request;
+      check(!audio.source_impulse(sound_id,request,MultiplayerAudioKind::FirstPerson,0),
+            "Remastered-only MCC layer became a TU1.5 source impulse");
+      const auto pcm=audio.render(64);
+      check(!packets&&!audio.voices()&&shared_seed==0x31415926&&request==before&&
+          std::ranges::all_of(pcm,[](float x){return x==0;}),
+          "Remastered-only rejection mutated source backing, variation or actual PCM");
+    }
     auto bad=fixture(1,8,1);save(root/"shared.map",bad);{Cache cache(root/"shared.map");rejects([&]{(void)cache.load_sound_variation(sound_id);});}
     bad=fixture(4,0,1);save(root/"shared.map",bad);{Cache cache(root/"shared.map");rejects([&]{(void)cache.load_sound_variation(sound_id);});}
     bad=fixture(1,0,1);word(bad,4096+0x340,0);save(root/"shared.map",bad);{Cache cache(root/"shared.map");rejects([&]{(void)cache.load_sound_variation(sound_id);});}
@@ -104,6 +124,6 @@ int main(int argc,char** argv){
       }
     }
     if(argc>1)check(imported>=unsigned(argc-1),"Imported MCC fixture did not exercise any selected sounds");
-    std::filesystem::remove_all(root);std::cout<<cases<<" MCC mono/stereo codec-row, semantic-rate and native PCM pitch cases; 3 malformed metadata controls; "<<imported<<" imported sound owners/"<<opus<<" actual Opus decodes passed\n";return 0;
+    std::filesystem::remove_all(root);std::cout<<cases<<" MCC mono/stereo codec-row, semantic-rate and native PCM pitch cases; remastered-only source rejection; 3 malformed metadata controls; "<<imported<<" imported sound owners/"<<opus<<" actual Opus decodes passed\n";return 0;
   }catch(const std::exception& e){std::filesystem::remove_all(root);std::cerr<<e.what()<<'\n';return 1;}
 }

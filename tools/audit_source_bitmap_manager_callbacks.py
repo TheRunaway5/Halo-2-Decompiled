@@ -312,7 +312,7 @@ def main():
         fixture_sha256=sha(fixture.read_bytes()),
         native_binary_sha256=sha(args.binary.read_bytes()) if args.binary else None,
         native_fixture_validation=native_fixture_validation,
-        helper_sha256=sha((ROOT / 'src/source_bitmap_manager_transition.cpp').read_bytes()),
+        helper_sha256=sha((ROOT / 'src/rendering/source_bitmap_manager_transition.cpp').read_bytes()),
         header_sha256=sha((ROOT / 'include/halo2/source_bitmap_manager_transition.hpp').read_bytes()),
         test_sha256=sha((ROOT / 'tests/source_bitmap_manager_transition_tests.cpp').read_bytes()),
         state_registration_scope='12D160 is registered atmanager+28; no call to this state pointer is present in audited13D170..13D9EE. Allocator invokes busy+24 and delete+20, notstate.',

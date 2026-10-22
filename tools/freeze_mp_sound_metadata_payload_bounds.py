@@ -33,8 +33,8 @@ def main():
     verify(prior)
     names = ['CMakeLists.txt', 'include/halo2/cache.hpp',
              'include/halo2/source_tag_metadata.hpp',
-             'include/halo2/source_tag_metadata_store.hpp', 'src/source_tag_metadata_store.cpp',
-             'include/halo2/sound_metadata_store.hpp', 'src/sound_metadata_store.cpp',
+             'include/halo2/source_tag_metadata_store.hpp', 'src/assets/source_tag_metadata_store.cpp',
+             'include/halo2/sound_metadata_store.hpp', 'src/audio/sound_metadata_store.cpp',
              'tests/sound_metadata_store_tests.cpp', 'tests/sound_object_cache_binding_tests.cpp',
              'tests/sound_object_request_tests.cpp',
              'docs/MP_SOUND_METADATA_PAYLOAD_BOUNDS_RESEARCH.md',

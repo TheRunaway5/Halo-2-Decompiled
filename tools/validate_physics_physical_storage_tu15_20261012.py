@@ -33,7 +33,7 @@ def main():
  for row in paired['imports'].values():assert new.read(row['later'],4).hex()==row['hex']
  g=json.loads((E/'generated-v1.json').read_text());assert g==json.loads((E/'generated-repeat.json').read_text())
  assert g['generator_sha256']==sha(ROOT/'tools/generate_physics_physical_storage_tu15_20261012.py') and g['correspondence_sha256']==sha(report)
- assert g['generated_cpp_sha256']==sha(ROOT/'src/physics_physical_storage_runtime_generated.cpp')==sha(E/'runtime-repeat.cpp')
+ assert g['generated_cpp_sha256']==sha(ROOT/'src/physics/physics_physical_storage_runtime_generated.cpp')==sha(E/'runtime-repeat.cpp')
  assert sum(len(s['steps'])for s in original['sequences'])==48 and sum(len(r['stores'])for s in original['sequences']for r in s['steps'])==216
  assert not original['captured_storage'] and not original['source_calls_replaced'] and not original['live_world_startup']
  builds={}

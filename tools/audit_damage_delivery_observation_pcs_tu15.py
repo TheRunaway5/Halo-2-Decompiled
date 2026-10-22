@@ -5,6 +5,7 @@ This emits comparison metadata only. Native arithmetic, public canonical entry
 IDs, observer records and original executable instructions are not modified.
 """
 import argparse,json,re
+import hashlib
 from pathlib import Path
 from audit_rendering import file_sha
 from oracle_smg_firing_1_1 import ROOT,Xbe,_Code,_trace,PIN
@@ -14,8 +15,11 @@ BASELINE='32a7d51b0159e2927cf34a75dcf5d00b6be28c42bd2ae42b3e5465c7f45a6142'
 
 
 def mapping(source):
-    assert file_sha(source)==BASELINE,'Re-audit changed damage delivery source'
     text=source.read_text()
+    if file_sha(source)!=BASELINE:
+        from fix_damage_delivery_observation_tu15 import canonical
+        text=canonical(text)
+    assert hashlib.sha256(text.encode()).hexdigest()==BASELINE,'Re-audit changed damage delivery source'
     selection=re.search(r'std::uint32_t selected\(.*?\n',text).group()
     addresses={int(p,16):int(q,16) for p,q in re.findall(r'case 0x([0-9a-f]+)u:return 0x([0-9a-f]+)u;',selection)}
     bodies={int(p,16):body for p,body in re.findall(r'(?:static )?void run_([0-9a-f]+)\(WorldState &s\) \{\n(.*?)\n\}',text,re.S)}
@@ -42,7 +46,7 @@ def mapping(source):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--source',type=Path,default=ROOT/'src/source_damage_delivery_runtime_generated.cpp')
+    parser.add_argument('--source',type=Path,default=ROOT/'src/gameplay/units/source_damage_delivery_runtime_generated.cpp')
     parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args();assert not args.output.exists()
     pcs,owners,store_sites=mapping(args.source)

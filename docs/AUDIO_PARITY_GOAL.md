@@ -6,6 +6,10 @@ listener selection, authored variation/gain/pitch, looping/stop behavior and
 delivery through local and LAN playback. Existing partial ports and passing
 component tests do not establish completion.
 
+The October22 [weapon/vehicle audit and Coagulation regression](WEAPON_VEHICLE_AUDIO_20261022.md)
+tracks the current reported missing shot/reload delivery, all63 weapon and37
+vehicle reference paths, and the remaining per-event/runtime acceptance gates.
+
 Original executable instructions and owned sound/tag assets are the authority.
 Unknown owners stay unresolved. Native stereo/device adaptation must be
 identified separately from Xbox routing/DSP and physical speaker output.

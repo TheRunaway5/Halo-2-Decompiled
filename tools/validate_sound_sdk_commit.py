@@ -21,7 +21,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=False)
     frozen=args.output/'source';pins={}
-    pending=[Path(p) for p in ('src/sound_sdk_spatial.cpp','src/sound_sdk_device.cpp','src/sound_sdk_commit.cpp','tests/sound_sdk_commit_tests.cpp')]
+    pending=[Path(p) for p in ('src/audio/sound_sdk_spatial.cpp','src/audio/sound_sdk_device.cpp','src/audio/sound_sdk_commit.cpp','tests/sound_sdk_commit_tests.cpp')]
     while pending:
         p=pending.pop()
         if str(p) in pins:continue
@@ -32,10 +32,10 @@ def main():
     arguments=[]
     for i,p in enumerate(fixtures):
         target=args.output/f'original-{i}.json';shutil.copyfile(ROOT/p,target);arguments.append(target)
-    owner=frozen/'src/sound_sdk_commit.cpp'
+    owner=frozen/'src/audio/sound_sdk_commit.cpp'
     common=['c++','-std=c++20','-fno-fast-math','-ffp-contract=off','-frounding-math','-fno-associative-math',
-        '-Wall','-Wextra','-I'+str(frozen/'include'),str(frozen/'src/sound_sdk_spatial.cpp'),
-        str(frozen/'src/sound_sdk_device.cpp'),str(owner),str(frozen/'tests/sound_sdk_commit_tests.cpp')]
+        '-Wall','-Wextra','-I'+str(frozen/'include'), '-I'+str(frozen/'src'),str(frozen/'src/audio/sound_sdk_spatial.cpp'),
+        str(frozen/'src/audio/sound_sdk_device.cpp'),str(owner),str(frozen/'tests/sound_sdk_commit_tests.cpp')]
     commands=[]
     def run(argv,label,success=True):
         argv=[str(p) for p in argv];r=subprocess.run(argv,capture_output=True,text=True)

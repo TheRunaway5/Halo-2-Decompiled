@@ -51,8 +51,8 @@ def main():
     references += ['weapon-world-model-count-original-v1.json','weapon-world-model-scope-v1.json']
     checks=[dict(path=p,removed=not Path(p).exists())for p in sorted(scratch)]
     assert all(r['removed']for r in checks)
-    source_files=['CMakeLists.txt','include/halo2/source_campaign_weapons.hpp','src/source_campaign_weapons.cpp',
-        'src/main.cpp','tests/campaign_model_geometry_runtime_tu15_tests.cpp','tools/validate_weapon_material_snapshot_tu15.py']
+    source_files=['CMakeLists.txt','include/halo2/source_campaign_weapons.hpp','src/campaign/source_campaign_weapons.cpp',
+        'src/app/main.cpp','tests/campaign_model_geometry_runtime_tu15_tests.cpp','tools/validate_weapon_material_snapshot_tu15.py']
     pins=load(final+'/source-manifest.json')['source_files_sha256'];current={n:sha(ROOT/n)for n in source_files}
     # The manifest hashes CMake before private test registrations are appended,
     # so its original root bytes can be compared alongside the source files.

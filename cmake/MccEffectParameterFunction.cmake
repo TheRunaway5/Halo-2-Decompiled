@@ -1,7 +1,7 @@
 # Selected type7 source math with explicit inputs, speaker geometry and FP.
 # Actual MCC ownership is retained; no clock or install receipt is supplied.
 add_library(halo2_mcc_effect_parameter_function STATIC
-    src/mcc_effect_parameter_function.cpp)
+    src/rendering/effects/mcc_effect_parameter_function.cpp)
 target_include_directories(halo2_mcc_effect_parameter_function PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_mcc_effect_parameter_function PUBLIC cxx_std_20)

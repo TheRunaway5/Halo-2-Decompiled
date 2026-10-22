@@ -81,11 +81,12 @@ class MccSandboxLauncherTests(unittest.TestCase):
             validation=dict(passed=True, scope=admission.FRONTEND_SCOPE if frontend else admission.SCOPE,
                             report_sha256="1" * 64))
         if frontend:
+            report["validation"]["mcc_loading_presentation_profile"] = "mcc-logo-glow-mcc-track-oneshot-v1"
+            report["validation"]["mcc_prompt_font_profile"] = "mcc-native-control-fonts-v1"
             resources = ["halo2/h2_maps_win64_dx11/shared.map", "halo2/h2_maps_win64_dx11/textures.dat",
                          "halo2/h2_maps_win64_dx11/sounds_neutral.dat", "halo2/h2_fonts/font_table.txt"]
-            resources += ["presentation/prompts/" + name for name in
-                          ("manifest.json", "prompt-source.tsv", "prompts.tsv")]
-            resources += [f"presentation/prompts/atlases/{index}.dds" for index in range(6)]
+            resources += ["presentation/loading-v3/" + name for name in
+                          ("manifest.json", "glow-mask.dds", "loading.wav")]
             for name in resources:
                 path = self.cache / name
                 if not path.exists():

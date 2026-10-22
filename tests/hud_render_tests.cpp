@@ -1,6 +1,9 @@
 #include "halo2/content.hpp"
 #include "halo2/hud.hpp"
 #include "halo2/renderer.hpp"
+#include "halo2/original_data.hpp"
+#include "halo2/gameplay_font_source.hpp"
+#include "halo2/texture.hpp"
 #include <SDL_vulkan.h>
 #include <algorithm>
 #include <cmath>
@@ -21,6 +24,64 @@ Image read(const std::filesystem::path &path) {
   file.read(reinterpret_cast<char*>(image.pixels.data()),image.pixels.size());
   check(bool(file),"Incomplete HUD framebuffer capture");return image;
 }
+void shield_top_seam(Cache &cache,const std::filesystem::path &fonts,
+                     const std::filesystem::path &directory,SDL_Window *window) {
+  if(!cache.is_mcc())return;
+  const auto *globals=cache.find_tag(cache.globals_tag(),tag_groups::globals);
+  check(globals && globals->address,"Missing shield representation owner");
+  const Bytes representations(cache.read_tag_bytes(globals->address+0x138,8));
+  unsigned columns=0;
+  for(unsigned representation:{2u,3u}) {
+    const Bytes biped(cache.read_tag_bytes(representations.u32(4)+representation*0xbc+0xb4,4));
+    auto content=cache.load_hud(biped.u32(0),cache.slayer_starting_weapon());
+    std::erase_if(content.widgets,[](const auto &w){return w.name!="shield_meter" && w.name!="shield_mask";});
+    check(content.widgets.size()==2,"Missing actual shield fill/outline pair");
+    Mesh mesh;mesh.vertices.resize(3);MultiplayerHud hud(std::move(content),fonts,mesh,1);
+    Renderer renderer(window,mesh,true);renderer.scene_clear_color({0,0,0});
+    MultiplayerState state;auto &player=state.players[0];player.connected=true;player.shield=player.health=1;
+    if(representation==3){player.source_configuration=SourcePlayerConfiguration{};(*player.source_configuration)[0x44]=1;}
+    for(const auto dimensions:std::array<std::array<int,2>,3>{{{640,480},{1280,720},{3840,2160}}}) {
+      SDL_SetWindowSize(window,dimensions[0],dimensions[1]);SDL_PumpEvents();renderer.resized();
+      const auto suffix=std::to_string(representation)+"-"+std::to_string(dimensions[0]);
+      for(float amount:{1.f,2.5f}) {
+        ++state.tick;player.shield=amount;hud.animate(state,0,0,25,14400,state.tick/30.0);
+        const auto ui=hud.draw(state,0,0,1,dimensions[0],dimensions[1],25,14400);
+        renderer.update_material_constants(mesh.materials);
+        const auto path=directory/("shield-seam-"+suffix+"-"+std::to_string(amount)+".ppm");
+        bool drawn=false;for(unsigned retry=0;retry<4 && !drawn;++retry)
+          drawn=renderer.draw(Camera{},path,{},false,{},{},ui);
+        check(drawn,"Shield seam framebuffer was not rendered");const auto image=read(path);
+        check(image.width==unsigned(dimensions[0]) && image.height==unsigned(dimensions[1]),
+              "Shield seam capture has the wrong drawable dimensions");
+        const auto outline=std::find_if(ui.begin(),ui.end(),[&](const auto &v){
+          return !mesh.materials.at(v.material).name.ends_with("shield_test");
+        });
+        check(outline!=ui.end(),"Shield seam lacks its outline");
+        const float left=outline->position.x*image.width/640,
+            top=outline->position.y*image.height/480,
+            width=(outline[1].position.x-outline->position.x)*image.width/640;
+        const float scale=float(image.height)/480;
+        for(unsigned x=unsigned(left+width*.4f);x<unsigned(left+width*.6f);++x) {
+          bool edge=false;unsigned empty=0;
+          for(unsigned y=unsigned(std::ceil(top));y<unsigned(top+8*scale);++y) {
+            const auto at=(y*image.width+x)*3;
+            // The reported seam is the dark outline interior (RGB17/26/36
+            // in the supplied capture), not necessarily zero-alpha padding.
+            const bool lit=std::max({image.pixels.at(at),image.pixels.at(at+1),image.pixels.at(at+2)})>64;
+            if(lit) {
+              check(!edge || empty==0,"Shield fill has a dark gap below its top outline: "+suffix+
+                    " pixel "+std::to_string(x)+","+std::to_string(y)+" empty rows="+std::to_string(empty));
+              edge=true;
+            } else if(edge)++empty;
+          }
+          check(edge,"Shield top outline was not exercised");++columns;
+        }
+      }
+    }
+  }
+  check(columns>100,"Shield seam coverage is incomplete");
+  std::cout<<columns<<" full-shield/overshield columns have no top seam, both species at SD, HD and 4K\n";
+}
 }
 int main(int argc,char **argv) {
   try {
@@ -32,11 +93,12 @@ int main(int argc,char **argv) {
 #endif
     const auto maps=std::filesystem::path(argv[1]),directory=std::filesystem::path(argv[2]);
     std::filesystem::create_directories(directory);
-    Cache cache(maps/"lockout.map");
+    Cache cache(maps/"lockout.map",maps,OriginalData::native_tu15());
+    const auto fonts=gameplay_font_directory(cache);
     auto content=cache.load_hud(cache.load_content(0,true).player.datum,cache.slayer_starting_weapon());
     std::erase_if(content.widgets,[](const auto &w){return w.name!="shield_meter";});
     check(content.widgets.size()==1,"Missing original shield meter");
-    Mesh mesh;MultiplayerHud hud(std::move(content),maps/"fonts",mesh,4,"Slayer",{},
+    Mesh mesh;MultiplayerHud hud(std::move(content),fonts,mesh,4,"Slayer",{},
                                 argc==4?std::filesystem::path(argv[3]):std::filesystem::path{});
     // Keep the world buffer valid without covering the known backdrop.
     mesh.vertices.resize(3);
@@ -53,6 +115,7 @@ int main(int argc,char **argv) {
     auto *window=SDL_CreateWindow("Authored HUD alpha-kill verification",0,0,640,480,
                                   SDL_WINDOW_VULKAN|SDL_WINDOW_HIDDEN);
     check(window,SDL_GetError());unsigned checked=0,changed=0;
+    if(argc==3)shield_top_seam(cache,fonts,directory,window);
     {
       Renderer renderer(window,mesh,true);renderer.scene_clear_color({.4f,.6f,.8f});
       Camera camera;
@@ -87,7 +150,9 @@ int main(int argc,char **argv) {
           const auto image=capture("shield-"+suffix+"-"+std::to_string(shield),ui,views);
           for(unsigned quad=0;quad<ui.size();quad+=6) {
             const auto &a=ui[quad],&b=ui[quad+1],&c=ui[quad+2];
-            const auto &m=mesh.materials[a.material];const auto &texture=m.diffuse;
+            const auto &m=mesh.materials[a.material];
+            const auto texture=m.diffuse.format>=14 && m.diffuse.format<=16?
+                prepare_xemu_bc_texture(m.diffuse):m.diffuse;
             check((m.texture_states[0].alpha_kill&4)!=0 && m.forward_blend==4,
                   "Original shield alpha-kill or ONE/SRC_ALPHA blend changed");
             const float left=a.position.x*image.width/640,right=b.position.x*image.width/640,
@@ -116,15 +181,19 @@ int main(int argc,char **argv) {
       }
     }
     {
-      const auto level=cache.load_content(0,true);
+      const auto *globals=cache.find_tag(cache.globals_tag(),tag_groups::globals);
+      check(globals && globals->address,"Missing shield/radar representation owner");
+      const Bytes representations(cache.read_tag_bytes(globals->address+0x138,8));
+      check(representations.u32(0)>=4,"Missing Spartan/Elite HUD rows");
       Mesh radar_mesh;radar_mesh.vertices.resize(3);
       std::map<unsigned,std::unique_ptr<MultiplayerHud>> huds;
       for(unsigned representation:{2u,3u}) {
-        auto content=cache.load_hud(level.player_representations.at(representation).biped.datum,
+        const Bytes biped(cache.read_tag_bytes(representations.u32(4)+representation*0xbc+0xb4,4));
+        auto content=cache.load_hud(biped.u32(0),
                                     cache.slayer_starting_weapon());
         std::erase_if(content.widgets,[](const auto &w){return w.name!="motion_tracker_background" &&
             w.name!="shield_meter" && w.name!="shield_mask";});
-        huds.emplace(representation,std::make_unique<MultiplayerHud>(std::move(content),maps/"fonts",
+        huds.emplace(representation,std::make_unique<MultiplayerHud>(std::move(content),fonts,
             radar_mesh,4,"Slayer",std::nullopt,argc==4?std::filesystem::path(argv[3]):std::filesystem::path{}));
       }
       Renderer renderer(window,radar_mesh,true);renderer.scene_clear_color({.4f,.6f,.8f});

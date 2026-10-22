@@ -29,7 +29,7 @@ inline void storage(Material &material,std::unordered_set<const Material*> &acti
     if(!active.insert(original).second)throw FormatError("cyclic frontend material storage tree");
     // A selected child can also be referenced by another owner/material bank.
     // Its frontend texture conversion must not mutate that other owner's data.
-    if(!pass.unique())pass=std::make_shared<Material>(*pass);
+    if(pass.use_count()!=1)pass=std::make_shared<Material>(*pass);
     storage(*pass,active);active.erase(original);
   };
   child(material.environment_pass);child(material.planar_fog_pass);

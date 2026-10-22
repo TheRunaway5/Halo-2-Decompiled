@@ -7,7 +7,7 @@ ROOT=Path(__file__).resolve().parents[1]
 E=ROOT/'analysis/multiplayer/sandbox-source/tu15-timer-startup-20261012'
 P=ROOT/'analysis/multiplayer/sandbox-source/tu15-status-startup-20261012'
 P_PIN='060ca30ada87f8e914ae21e808925f01cbf4996e2f1bd60ff5d5ff38de36678f'
-OWN=('include/halo2/source_tu15_timer.hpp','src/source_tu15_timer.cpp','src/source_tu15_timer_runtime_generated.cpp',
+OWN=('include/halo2/source_tu15_timer.hpp','src/platform/source_tu15_timer.cpp','src/platform/source_tu15_timer_runtime_generated.cpp',
  'tests/source_tu15_timer_startup_tests.cpp','tests/source_tu15_timer_procedures_tests.cpp','cmake/SourceTu15Timer.cmake',
  'tools/generate_tu15_timer_runtime_20261012.py','tools/oracle_tu15_timer_startup_20261012.py',
  'tools/oracle_tu15_timer_procedures_20261012.py','tools/validate_tu15_timer_startup_20261012.py',

@@ -1,0 +1,425 @@
+{
+  "schema": "H2_PORT_XBOX_PROMPTS_V1",
+  "files": {
+    "atlases/0.dds": {
+      "bytes": 606336,
+      "sha256": "e9a848df1bbf7a4fdf730a3e961be1ed6ef3ad6b4c7b621c7882851cb61da140"
+    },
+    "atlases/1.dds": {
+      "bytes": 5013632,
+      "sha256": "5d595f770ede8d8feaf2fc2507e8a37cea1db641f559c4b68cb90dd27e410427"
+    },
+    "atlases/2.dds": {
+      "bytes": 5013632,
+      "sha256": "89bdebbd9e134437b4743591ea5bf3acb1eec803767ddb8ac9ac54db2565008b"
+    },
+    "atlases/3.dds": {
+      "bytes": 5013632,
+      "sha256": "26d547ce90e2e0ecb475ac307140499db163c6ddc2e6eec3a295e230d60c5c96"
+    },
+    "atlases/4.dds": {
+      "bytes": 2785408,
+      "sha256": "256763535215c77a08d864d8132d46881603b65d973867303d8e79bb47af7888"
+    },
+    "atlases/5.dds": {
+      "bytes": 909440,
+      "sha256": "5e98e3fc8b4c719adfac2e62c9145a40db634bd9d8e46a22f8505456a94bcfe7"
+    },
+    "buttons.png": {
+      "bytes": 110040,
+      "sha256": "b53ab5ed8c77d8ed22b961bdd84ae47c7b5fb4dde621feadede453505a961375"
+    },
+    "buttons.svg": {
+      "bytes": 44888,
+      "sha256": "c14006e5cc2b3fa2dcab7daf5a5a2619a8927cfd48387370e93f5ae95b85dbfc"
+    },
+    "prompt-source.tsv": {
+      "bytes": 22,
+      "sha256": "342edfcb9f5f3e93d16eb41a7f76e78d103fbec84069b30e6e1234e7572a706f"
+    },
+    "prompts.tsv": {
+      "bytes": 12198,
+      "sha256": "172bb509e8cefc22e5685be742bbebe1761b9fdd8d60154ed6681ef79e664f56"
+    },
+    "reconstruction.json": {
+      "bytes": 231502,
+      "sha256": "fbb8efb232d3fdb4000b9fd8925bbdc0b8fe5c68796975bb9a90508a914a2b16"
+    },
+    "vectors/a-073a69897edd23cf.svg": {
+      "bytes": 3791,
+      "sha256": "c5f37d3a0b744132274230ca45a9143c0128cb0e8ceb0badb8b3b128365b0b64"
+    },
+    "vectors/a-32eb52ce9e54f562.svg": {
+      "bytes": 3796,
+      "sha256": "46ad73a564b63a919d25e0e78dfb70082d6fa3ae9b85270db27935d25fbc1417"
+    },
+    "vectors/a-653dd0875ad1102d.svg": {
+      "bytes": 3793,
+      "sha256": "970d0b6124dcb14456d21a6499c6c38aa702376a376db4fc996599f59b58a58e"
+    },
+    "vectors/b-38518f9e465d984c.svg": {
+      "bytes": 4414,
+      "sha256": "f2930923e456a08d9cb368770ec4ad52f53c719e8a8657eea5ae375494d902a9"
+    },
+    "vectors/b-4463cb3e248fd763.svg": {
+      "bytes": 4417,
+      "sha256": "d77faf55513b6ba5f6f2a85e985b1ad717f85721deb5431a987263a406ad6b82"
+    },
+    "vectors/b-ffd3eeaae3956511.svg": {
+      "bytes": 4412,
+      "sha256": "b51fe98d151326dce9d2a80300a9d43bd105b85eb5c7f197b012c4f6b5cffeb8"
+    },
+    "vectors/back-1af2f7d280a63312.svg": {
+      "bytes": 2106,
+      "sha256": "68044ceb79fadb075a7be121e563e5f00964fd58ac5bdee238f835621bc82fe5"
+    },
+    "vectors/back-5c9bf66c73944681.svg": {
+      "bytes": 2325,
+      "sha256": "790c3fdb8b939f61447e4398ef02ed1ac701310b4bc74cb4b076f7e051627381"
+    },
+    "vectors/back-b769abd66e1f924d.svg": {
+      "bytes": 2326,
+      "sha256": "fef14fd129b92ef77a0fd9c64f45f9c244a46d62dd1f5869c4cc769ab87d86ea"
+    },
+    "vectors/dpad-down-521b2211ef2c2f33.svg": {
+      "bytes": 594,
+      "sha256": "a1a3805750376328894b0d1253d892a957ec1c16f1745bb37fdbf768f6e94f94"
+    },
+    "vectors/dpad-down-a6ac0f411cbaab9c.svg": {
+      "bytes": 606,
+      "sha256": "b34a9c2f0042ef6f8b42172d6543babdf3bbda8c56cdd531523bab6c80e7657f"
+    },
+    "vectors/dpad-down-bea1f360e4c885fb.svg": {
+      "bytes": 612,
+      "sha256": "c28b48fc2eeb36f88ea1437c7ae32094bf61584907dc3bb9acfeb85f2110d23c"
+    },
+    "vectors/dpad-down-ceba15e5398c368f.svg": {
+      "bytes": 596,
+      "sha256": "f1995a4354cad8c39ca91b2c1abf864695724153930818b8339d909797199247"
+    },
+    "vectors/dpad-left-08e22b49966ab7cb.svg": {
+      "bytes": 606,
+      "sha256": "156cb14a5044a81438d8f8df71ce54e865c17522dc2bad27654262c185ffda3e"
+    },
+    "vectors/dpad-left-10d8f39dc919004f.svg": {
+      "bytes": 611,
+      "sha256": "379c8d3cba167c704ac625c7c57d63245dc002288a89170a52698e0e37206af5"
+    },
+    "vectors/dpad-left-20b6fd268c1fdc14.svg": {
+      "bytes": 610,
+      "sha256": "cd0343a712366cc2724d62bfc24a6eeff2e8c3f965555af144b562570a0bfa25"
+    },
+    "vectors/dpad-left-7d8bdfa610068a69.svg": {
+      "bytes": 608,
+      "sha256": "f73c4ce2e0f1e31dd98306f796c750142e247fccd257f89bb4ba104d54a87892"
+    },
+    "vectors/dpad-right-5239b2d9b5dd0148.svg": {
+      "bytes": 611,
+      "sha256": "6feeae77f59de04bfc00538846877f4e0022b9927b2d084a6042e4a78cc22567"
+    },
+    "vectors/dpad-right-9204faeebb6de0e0.svg": {
+      "bytes": 613,
+      "sha256": "75e8f8c6d1b7c21b72bb437d0dc7b852d14c954e1b8634c3191245ff64f2ed2d"
+    },
+    "vectors/dpad-right-94f1989c333e612e.svg": {
+      "bytes": 613,
+      "sha256": "87cd331c9a0e7851d5cf7f755b8d5c0d8b6538919aafc5864814bf93515ab8d6"
+    },
+    "vectors/dpad-right-9735b6957da3df86.svg": {
+      "bytes": 613,
+      "sha256": "2e9de70a853ede5218086d058b7fa9082355fffabe9cdd05b2c26df397f70929"
+    },
+    "vectors/dpad-up-2994b7441a828618.svg": {
+      "bytes": 596,
+      "sha256": "b6c99e3c3908abe8f8f20c147aa80c31f5a710c4a679546026d6340ac348d425"
+    },
+    "vectors/dpad-up-58c5c600cce59a1a.svg": {
+      "bytes": 607,
+      "sha256": "f4d4efa8c51780953870b976b0a4f79283a1dddf72b126f2d8b82d093b91c404"
+    },
+    "vectors/dpad-up-a9aa4c65ebb3869c.svg": {
+      "bytes": 593,
+      "sha256": "34f004e2ca8373d755bf96d2899c1a841ace2e0baa3bb395392d52bc55419b55"
+    },
+    "vectors/dpad-up-b68ddf074b9f1c76.svg": {
+      "bytes": 610,
+      "sha256": "a247a2cf6f33bb71adafd1857ed8d117a266d5fa6ca02150501c33f60c2b1fe7"
+    },
+    "vectors/four-pane-guide-e13c-0cf4392bdbb1b430.svg": {
+      "bytes": 745,
+      "sha256": "6f1e271116b2ade8d5f6874f66ed4662ec88caf0509bb8e37be6d821507443de"
+    },
+    "vectors/four-pane-guide-e13c-8ff9727a7809c967.svg": {
+      "bytes": 1217,
+      "sha256": "5986159126c06f52549a5ee68bbf2bc2be17e6cfd81212d64233f0cc76758831"
+    },
+    "vectors/keyboard-key-frame-e132-03285919e9405c85.svg": {
+      "bytes": 1375,
+      "sha256": "f0219cb1bef83fe10a2811caf9b6a768bfd6005cf099459fbf58981ac7d8f2a4"
+    },
+    "vectors/keyboard-key-frame-e132-a12124a0896b93bc.svg": {
+      "bytes": 1678,
+      "sha256": "e96544d1f055f8c96ed171095525be021da322f14a9db0a3690f35b03549b5a5"
+    },
+    "vectors/keyboard-key-frame-e133-36fe79325cb5b489.svg": {
+      "bytes": 1375,
+      "sha256": "bfed0f33bb1249aea018d4f733dcc04652ad18cde6bc7af568f66c19d946c1b5"
+    },
+    "vectors/keyboard-key-frame-e133-abd64df44d5afce5.svg": {
+      "bytes": 1673,
+      "sha256": "a3d5de3b8eec55b6649b7a06c5f82ffd515c0ef7e714eabcdd0f5229c88ebe12"
+    },
+    "vectors/keyboard-key-frame-e134-2bb7e04d29078aa7.svg": {
+      "bytes": 1384,
+      "sha256": "bf1ae332be28496e733444bdc60aea43eca0c623a4ed977c14a614af42d7baa4"
+    },
+    "vectors/keyboard-key-frame-e134-cb149440683310e9.svg": {
+      "bytes": 1673,
+      "sha256": "ffe6e6557f6c20e73f16770f59d1ac115200c8c8e56ea785d32c3cf25ee22aa2"
+    },
+    "vectors/keyboard-key-frame-e135-6a9f204a2fde6e19.svg": {
+      "bytes": 1506,
+      "sha256": "d4b024d1970b1857507da6f8ff96bd80503a1af34846e9cde866f0cdf18f20b4"
+    },
+    "vectors/keyboard-key-frame-e135-7beeb9f33e48eb37.svg": {
+      "bytes": 1820,
+      "sha256": "c7d9378936b2849c2433e181a2080b27c1251e1e2054a9b445b2fd2dd135bfd1"
+    },
+    "vectors/lb-a2200a9ced1f7c78.svg": {
+      "bytes": 2021,
+      "sha256": "b375a2949c1ce866277c5a636796b2e655fb598c8472221bcfce525972c7fe36"
+    },
+    "vectors/lb-e52a9177dbd81b6d.svg": {
+      "bytes": 2010,
+      "sha256": "69cf80579571847ec6961cec94853a6984e41e8ac9d87d24ff658785fbca6451"
+    },
+    "vectors/lb-f3cf6f6f69be71d4.svg": {
+      "bytes": 2010,
+      "sha256": "48c9947d6f5c6b8a05b4ac3eb42d95ca0227ceba7de86f8b606e3010db9b43c5"
+    },
+    "vectors/left-stick-2c5688ece4f09efb.svg": {
+      "bytes": 2726,
+      "sha256": "b91cadd3bf53c7c6195cd543beb04b895872b8a76e7fe97f4ac5ad411e89ba05"
+    },
+    "vectors/left-stick-942c83b1c3200195.svg": {
+      "bytes": 2294,
+      "sha256": "707f163b050c9bb95ee38d8594a855d603c265c033b6e38e8519133c84ec487d"
+    },
+    "vectors/left-stick-b090d00c4f8c90ca.svg": {
+      "bytes": 2681,
+      "sha256": "6f7ea332b4f4ca0e44b8818def560b72f50c7dc6fc85b634065b075086dd8951"
+    },
+    "vectors/left-stick-fd2a0d98c0cdd026.svg": {
+      "bytes": 2614,
+      "sha256": "e8574a3f2ea0806fb2e5118e3b1cb5f84ebb19040c76a3d0910bbb9b3bc4ef67"
+    },
+    "vectors/left-stick-press-36292421df592047.svg": {
+      "bytes": 2276,
+      "sha256": "446b798993e8af6a3b6479d12b06829aaf26627d0103bbd308291e1a05523217"
+    },
+    "vectors/left-stick-press-4174feb9023e005d.svg": {
+      "bytes": 2609,
+      "sha256": "8059f72a5d9d90bd535b24ccfd83f76485d7a92eb901d67d948407dd24268e1e"
+    },
+    "vectors/left-stick-press-94618073697a398d.svg": {
+      "bytes": 2732,
+      "sha256": "90bea2103300762c00eb486dacc8597a052f634ec0af261361b6a1a71cd32050"
+    },
+    "vectors/left-stick-press-f6e50532a00ae07e.svg": {
+      "bytes": 2667,
+      "sha256": "19f3eaf4c31209533b5a9d1e018b2586e66b34a7352ca4ef81821cf7da79db29"
+    },
+    "vectors/lock-button-e13c-50e018d3fc242dc9.svg": {
+      "bytes": 1896,
+      "sha256": "8e572300bad927384a9b7613756f0cac433b502ae1964946bbd54928dccdf415"
+    },
+    "vectors/lt-1b6dd0d9985356da.svg": {
+      "bytes": 2264,
+      "sha256": "902b3dbae6aac222b5ddfb9d2d242a96c088be0e60ac91ded3a3d90977d2f8d5"
+    },
+    "vectors/lt-c42c3164ce752717.svg": {
+      "bytes": 2264,
+      "sha256": "c0a8a5fb87c8c29d261668645e4909e7145c9f70abfda6f69c77c57af50eff65"
+    },
+    "vectors/lt-cac552d36bede3b6.svg": {
+      "bytes": 1245,
+      "sha256": "ca69dd206ca57ff7cdbb85424effaaf977150f32c45ca8f5429c1d5250276861"
+    },
+    "vectors/lt-f54b9041654be110.svg": {
+      "bytes": 2249,
+      "sha256": "154daeb1303a8c8dc90b5d062811879eed1dbbdc707f8ca769b03e1170550442"
+    },
+    "vectors/rb-14e79bae1e94cd3c.svg": {
+      "bytes": 1908,
+      "sha256": "56b6dd2c517e2f3ed0d261d19f11141f63decf0000cfde1a76d606bf173d275c"
+    },
+    "vectors/rb-3ddb0ddda4dc6e4f.svg": {
+      "bytes": 2161,
+      "sha256": "056708ebb72d240b13842cebd4bfd35b314ec4187cf8d4ceb0578cf45226bfc6"
+    },
+    "vectors/rb-d6e72965acd51364.svg": {
+      "bytes": 2161,
+      "sha256": "fca788dafbd25a845d745c8fc0cb5b3f0157a6341de92f0a61b383fdeb9d9280"
+    },
+    "vectors/rb-e090a2531d7615b7.svg": {
+      "bytes": 1908,
+      "sha256": "fd2a3de270c269fa17fa1d93d3c72e3565455ff4ae54f7d202f1fa2bcb43e4f3"
+    },
+    "vectors/right-stick-1e4363f0bb4fb83e.svg": {
+      "bytes": 2865,
+      "sha256": "545251aca8f5d40b17ec775d0ec7b0f9c7980e08c12e8cf49ec78723c6fa776e"
+    },
+    "vectors/right-stick-708a98eb6e5d6a2e.svg": {
+      "bytes": 2685,
+      "sha256": "3f3b99ad0e6980e535ff12d3263109fd63fe52973cc5b29a98dab98c048e6958"
+    },
+    "vectors/right-stick-a73bcb6bc5655ab5.svg": {
+      "bytes": 2613,
+      "sha256": "24e5c73935e127c35a5d84356ff53825c9dd656cdc7a04fb2282de4fc51dfd4d"
+    },
+    "vectors/right-stick-c3f26f2312e3381d.svg": {
+      "bytes": 2256,
+      "sha256": "82e0038df3f8ef619cf1d8cf77812ebf0383341cb9d548c68ec004af6ba24fb6"
+    },
+    "vectors/right-stick-press-7f1abdaabdb38611.svg": {
+      "bytes": 2671,
+      "sha256": "9a419d78ed828208b2f735326de69fdcc983015fa33bd02d86f981572c642279"
+    },
+    "vectors/right-stick-press-8cf49d2dd5e77ff4.svg": {
+      "bytes": 2608,
+      "sha256": "ba2a2ac0f3578b8fe96f14b7bddfe50e57ec2f5cef15ae37116d0d2acb6d2632"
+    },
+    "vectors/right-stick-press-a91e0ef1c65b9e59.svg": {
+      "bytes": 2238,
+      "sha256": "45e5770cd6c255912529d65b3a1af83086e8e118129198449016a3b8441910c0"
+    },
+    "vectors/right-stick-press-d9a34d043aa15fe6.svg": {
+      "bytes": 2871,
+      "sha256": "4103d252a04aa00534da2bebbbe81288b7f4d8bba1372ff517022d1d0023363c"
+    },
+    "vectors/rt-17afd61081cf30ec.svg": {
+      "bytes": 1354,
+      "sha256": "969354c9913d9d3d3d1a5e098936e56badff4c6174e3b3ab44074d5e3b7eddaa"
+    },
+    "vectors/rt-4a3065506e8ab0b3.svg": {
+      "bytes": 2249,
+      "sha256": "9fb3ebf15d86b25e1eeccb2c5cbcff2d44e9686a30be225806cd386d40208da4"
+    },
+    "vectors/rt-56170c7171c1b674.svg": {
+      "bytes": 2264,
+      "sha256": "97c6cb6e5e82f7269bc9c0d9c9378411f7827215534f43c3bcfee36295cbeb20"
+    },
+    "vectors/rt-ee72ce179c044b7c.svg": {
+      "bytes": 2264,
+      "sha256": "fba36d8094172085ed39761f613d0e2e16e7f7c21603950b3aa8a5f50504bd08"
+    },
+    "vectors/start-43e89d1d11547e1c.svg": {
+      "bytes": 2331,
+      "sha256": "f6d374ea30bca3e8f1db84004712508c30ac930fb929ee8c428ecf8d9c30f817"
+    },
+    "vectors/start-5fc36ec92fe6c63d.svg": {
+      "bytes": 2108,
+      "sha256": "f763457ea5a511778dc803c83cc9abab3c6a4fb6e56cf3d8c74a067cfcb6d524"
+    },
+    "vectors/start-ae94b28a60a198af.svg": {
+      "bytes": 2332,
+      "sha256": "48b7a65fd8b9bc8118821a93d93e4ddd56fe5f28ee4eb3f10e6b7f1593d741da"
+    },
+    "vectors/stick-pair-e12c-1dcd526e077f0696.svg": {
+      "bytes": 2619,
+      "sha256": "8ec8a11f1e16f4be57ff6420ad846c19e0232fa827fff826a06f3cf85dc80efe"
+    },
+    "vectors/stick-pair-e12c-2076c96e31a6c592.svg": {
+      "bytes": 2686,
+      "sha256": "89a770dbcf07219a46b7a5f07e2e178150546699391f0cdbe63cb2ac81ec6cfc"
+    },
+    "vectors/stick-pair-e12c-75ec7b459ef64f28.svg": {
+      "bytes": 2299,
+      "sha256": "44a77a25bf49ff621b8b6e3c3cc47b392b6fa3f944a6bd9bbae874f52a4c15c3"
+    },
+    "vectors/stick-pair-e12d-2139cca56c966845.svg": {
+      "bytes": 2665,
+      "sha256": "a0838e9651e88115136eaefc3419a91670e1177e62ee0df673a51fbb28d90bc8"
+    },
+    "vectors/stick-pair-e12d-392ce62ac0e4c362.svg": {
+      "bytes": 2288,
+      "sha256": "39f40dc592494b32f5d7adb1997cf9ea38ad5706ca6a9e4eb2879a9c44a5f5b6"
+    },
+    "vectors/stick-pair-e12d-da3d5a09fcfe740f.svg": {
+      "bytes": 2607,
+      "sha256": "1e0e9ec04bcd58cff01983a03ee7f86271d1da57d613d6a5175d353a0d28387f"
+    },
+    "vectors/stick-pair-e12e-28e879f36f0e21bc.svg": {
+      "bytes": 2608,
+      "sha256": "c2629ab1a80ffe179697b82e3c0b0c1f0776ea101260438129a1d3b875bde356"
+    },
+    "vectors/stick-pair-e12e-4412322c4ffb9cff.svg": {
+      "bytes": 2666,
+      "sha256": "857bfcd4278b3530ffbb53e9237d2ba16e2984556f2347b8d049670ca86cdc62"
+    },
+    "vectors/stick-pair-e12e-6dce918eefe77ef9.svg": {
+      "bytes": 2275,
+      "sha256": "26688d72b42910e274d2cda4dda4616c6f5c157a01c8a9d6fb9d48efdd56816b"
+    },
+    "vectors/stick-pair-e12f-3aa557473689dcf2.svg": {
+      "bytes": 2617,
+      "sha256": "16c5d70237586defcd913e2bcf99ed209dabd170e86ee32c95cf52351e231143"
+    },
+    "vectors/stick-pair-e12f-b17ff470e36f68c5.svg": {
+      "bytes": 2260,
+      "sha256": "d27d518489003013a834092a6840aaa2e96ee3e5ca476f77751b4b6a75ef16cc"
+    },
+    "vectors/stick-pair-e12f-c005f2b8a8ffbb74.svg": {
+      "bytes": 2689,
+      "sha256": "f23c3df7cd3054a0b29bc8e27d58e2f0cceea1893c49d052629b87aaa8be70cf"
+    },
+    "vectors/stick-pair-e130-210f2aba7a981d57.svg": {
+      "bytes": 2668,
+      "sha256": "39da4b39d6ba26647674c3e6eb2f3273d0eabb6964a79b19908c8c3a5507af84"
+    },
+    "vectors/stick-pair-e130-a2c763c5a9ce6d03.svg": {
+      "bytes": 2249,
+      "sha256": "c16777689a362ed04b61c72cb0bf9879527ee0777a021b6580921342b8d0be2a"
+    },
+    "vectors/stick-pair-e130-c00d53ae8c77fdec.svg": {
+      "bytes": 2605,
+      "sha256": "ddc9a52a2425591aaafe3d6641cb2e3325c4f85ec7a5eb3ea315cd79fe35dc43"
+    },
+    "vectors/stick-pair-e131-2a2fdad3a519afb8.svg": {
+      "bytes": 2606,
+      "sha256": "4ab2a39fe998af0d19a713b567ed45b82acc591d3123e12279f7089b8b2e63a6"
+    },
+    "vectors/stick-pair-e131-2e6635368fbcb5bc.svg": {
+      "bytes": 2669,
+      "sha256": "436a73bf793819f491e56a4451c228bfb7070a1b908015314cf23d82e3e02963"
+    },
+    "vectors/stick-pair-e131-cad995fd5edb4181.svg": {
+      "bytes": 2236,
+      "sha256": "df5ef2014c5aba43a2a90583d48da7b76028584c561418819773025ca527b267"
+    },
+    "vectors/x-2bbf7cae9a421bd6.svg": {
+      "bytes": 3853,
+      "sha256": "e296cbacadd24dbc9d8083d93b141c4d552102a93edb1a66d830d97f4783e26f"
+    },
+    "vectors/x-2d69a3bec6fec0a4.svg": {
+      "bytes": 3856,
+      "sha256": "5fb587fe67a853ec9e40a4be102702d7bb08ea55a4024d1df546296a703cd13c"
+    },
+    "vectors/x-36579a2f4cd5932e.svg": {
+      "bytes": 3851,
+      "sha256": "b5a5d41990fe066875a7f3eb76c892379f9df5568496eed48c4f12ffef70e7e2"
+    },
+    "vectors/y-578d56966e04d13c.svg": {
+      "bytes": 3740,
+      "sha256": "b18a5c2d648d56d8533e44fe2b91649d4484499cdc8419f48f13fa5111e7aeac"
+    },
+    "vectors/y-8e26f28f674ca0f4.svg": {
+      "bytes": 3742,
+      "sha256": "bf46478357c927c447a0b1bccea37a9fbd0904ae4eaed0216dc0093b84d1c401"
+    },
+    "vectors/y-e29c5286a748a4e0.svg": {
+      "bytes": 3745,
+      "sha256": "ade0d2e1cce08f600fdb78b65eea5f658a8a36c33f12537f720d1c46d96add9a"
+    }
+  }
+}

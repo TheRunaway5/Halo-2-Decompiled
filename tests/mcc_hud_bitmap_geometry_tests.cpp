@@ -70,6 +70,14 @@ try {
       const auto extent = mcc_hud_bitmap_logical_extent(physical, frame);
       require(extent && (*extent)[0] == logical.images[frame].width &&
               (*extent)[1] == logical.images[frame].height, "Actual bank did not retain original logical dimensions");
+      require(!mcc_hud_shield_fill_sample_offset(logical, frame),
+              "Original shield artwork acquired an MCC sampling correction");
+      const auto offset = mcc_hud_shield_fill_sample_offset(physical, frame);
+      if (tag.name == "ui\\hud\\bitmaps\\new_hud\\meters\\shield_meter" && frame < 2) {
+        const auto expected = frame == 0 ? std::array{0.f, 3.f / 64}
+                                         : std::array{1.f / 256, 2.f / 64};
+        require(offset && *offset == expected, "Native MCC shield lost its authored fill/outline alignment");
+      } else require(!offset, "MCC alignment moved an outline, split shield or another HUD bank");
       ++frames;
     }
     for (unsigned frame = unsigned(logical.images.size()); frame < physical.images.size(); ++frame)
@@ -77,6 +85,7 @@ try {
     auto reject = [&](auto mutate) {
       auto changed = physical; mutate(changed);
       require(!mcc_hud_bitmap_logical_extent(changed, 0), "Changed or mod-authored bitmap tuple was resized"); ++negatives;
+      require(!mcc_hud_shield_fill_sample_offset(changed, 0), "Changed or mod-authored bitmap acquired a shield correction");
     };
     reject([](auto &v) { v.name += "_custom"; });
     reject([](auto &v) { v.images.pop_back(); });

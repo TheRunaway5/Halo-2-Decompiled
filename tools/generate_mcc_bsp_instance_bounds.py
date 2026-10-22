@@ -27,7 +27,7 @@ def render(data):
     return '\n'.join(lines)
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--check',action='store_true');args=parser.parse_args()
-    src=root/'tools/mcc-bsp-instance-bounds-profile.json';target=root/'src/mcc_bsp_instance_bounds_profile.inc';expected=render(json.loads(src.read_text()))
+    src=root/'tools/mcc-bsp-instance-bounds-profile.json';target=root/'src/rendering/world/mcc_bsp_instance_bounds_profile.inc';expected=render(json.loads(src.read_text()))
     if args.check:
         if not target.exists()or target.read_text()!=expected:sys.exit('Stored BSP sphere profile is stale')
         print('Stored BSP sphere profile is current: 49 words / 35 spheres')

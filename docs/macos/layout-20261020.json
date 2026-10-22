@@ -1,0 +1,37 @@
+{
+  "schema": "H2_MACOS_FOLDER_LAYOUT_V1",
+  "date": "2026-10-20",
+  "scope": "organization and CMake configuration; playable engine checklist remains active",
+  "folders": [
+    "cmake/macos",
+    "include/halo2/macos",
+    "tools/macos",
+    "tests/macos"
+  ],
+  "shared_code": [
+    "include/halo2/vulkan_portability.hpp",
+    "tests/vulkan_portability_tests.cpp"
+  ],
+  "validation": {
+    "macos_graphics_and_packaging": "build/test-results/macos-folder-layout/report.json",
+    "macos_full_engine_configuration_and_portability": "build/test-results/macos-folder-engine-configure/report.json",
+    "linux_shared_object_compilation_and_portability": "build/test-results/macos-folder-layout-linux/report.json"
+  },
+  "source_sha256_at_recording": {
+    "CMakeLists.txt": "59144994ef911af98e520f048d8edd8affcaad6dcde0ea3aacb28af7f7cb265f",
+    "build-macos.sh": "ba793eb8e21ba52ca0f65b22cd000972eadc550037e4dd4343e9654040041302",
+    "cmake/macos/Bringup.cmake": "9e9adfd2cef969c9c065b123713f12b34f0e53c8114627e0084d6dcff5a3d79a",
+    "cmake/macos/Bundle.cmake": "00947f2278e3c8b5ab4bd08964b95b04ec7804239d3bc01d037d15801cfe124e",
+    "cmake/macos/Defaults.cmake": "d42969826a4378ea305593847b5e76929180cfe553ac72cd84063d86bf1c5b90",
+    "cmake/macos/Info.plist.in": "66321bf778b556ee40ac17e438976993907184f370b55d879e42699bd35bf48b",
+    "cmake/macos/Platform.cmake": "c4b760299f52e67e8357fccc01f1aaeb237840115aabddc6b8e43d2d6e8a4ee7",
+    "include/halo2/macos/bundle.hpp": "d7b345d9a7765c288c621b0e57b605f165f706a8c318b810aa6d2612aff839fb",
+    "tests/macos/bundle_tests.py": "4461323998101d71bea4aebe76beb8f9d59b8c33820a2c6a4b4fe90ffbcb6dc1",
+    "tests/macos/graphics_test.py": "f8bc99d539ff79fae5fa8ef617d16f12094ad6bcf0a774790f1bf91ef3020969",
+    "tools/macos/build.sh": "b55ce466e067e98d0933739221947fb06f764a9307e7e54136e258aa909929df",
+    "tools/macos/bundle.py": "3df7356aeb946f2327d04ec0a9f6411c0446cf0bcb3112a3a8186b122588f287",
+    "tools/macos/graphics_probe.cpp": "a00f184255eccb2ea1101779b59042fa7a06405b2a6c1545560489451a668f7f",
+    "tools/macos/test_port.py": "bfdad34fb880abb617486aadbe6ebf22dedce05284b300357c683b87abde4808"
+  },
+  "retained_large_artifacts": []
+}

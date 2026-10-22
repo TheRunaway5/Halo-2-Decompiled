@@ -135,8 +135,21 @@ int main(int argc,char**argv)try{
         for(const auto& r:plan.relocations()) {
             check(plan.source_address(r.target,r.bytes)==r.source,"Canonical reverse resource mapping differs");
             check(plan.runtime_address(r.source,r.bytes)==r.target,"Canonical forward resource mapping differs");
+            check((r.target&15u)==(r.source&15u),
+                "Canonical allocation changed authored embedded SIMD alignment");
             if(r.bytes)check(plan.runtime_address(r.source+r.bytes-1,1)==r.target+r.bytes-1,
                 "Canonical final payload byte lost its declared allocation owner");
+        }
+        for(const auto& tag:cache.tags())if(!tag.handle().is_null()&&tag.type()==tag_groups::biped&&tag.address&&tag.size) {
+            const Bytes root(cache.read_tag_bytes(tag.address,0x29c));
+            // The in-place unit converter preserves each authored shape-bank
+            // offset; original MOVAPS consumers still require its alignment.
+            for(const auto field:{0x284u,0x28cu,0x294u})if(root.u32(field)) {
+                const auto shape=root.u32(field+4);
+                const auto target=plan.runtime_address(shape,0x30);
+                check((target&15u)==(shape&15u),
+                    "Relocated biped shape lost its original SIMD address residue");
+            }
         }
         const auto image=plan.tag_image();std::vector<SourceRuntimeCacheBspImage> bsps;
         for(std::size_t n=0;n<cache.bsps().size();++n)bsps.push_back(plan.bsp_image(n));

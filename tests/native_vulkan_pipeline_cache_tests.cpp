@@ -20,10 +20,12 @@ template<class T>T handle(std::uintptr_t n){return reinterpret_cast<T>((std::uin
 VkPhysicalDeviceProperties properties(){VkPhysicalDeviceProperties p{};p.vendorID=0x10de;p.deviceID=0x2b80;p.driverVersion=531;for(unsigned i=0;i<VK_UUID_SIZE;++i)p.pipelineCacheUUID[i]=0x40+i;return p;}
 std::vector<std::byte> data(){auto p=properties();VkPipelineCacheHeaderVersionOne h{};h.headerSize=sizeof(h);h.headerVersion=VK_PIPELINE_CACHE_HEADER_VERSION_ONE;h.vendorID=p.vendorID;h.deviceID=p.deviceID;std::memcpy(h.pipelineCacheUUID,p.pipelineCacheUUID,VK_UUID_SIZE);std::vector<std::byte>b(64,std::byte{0x63});std::memcpy(b.data(),&h,sizeof(h));return b;}
 std::map<VkPipelineCache,VkDevice> caches;std::map<VkDevice,const VkAllocationCallbacks*> devices;
-std::mutex calls_mutex;unsigned next_device{},next_cache{},cache_creates{},device_destroys{},cache_destroys{};std::atomic<unsigned> calls{};bool fail_device{},fail_cache{},reject_warm{};std::size_t initial_bytes{};VkResult pipeline_result=VK_SUCCESS;VkPipelineCache last_cache{};const void* last_info{};const VkAllocationCallbacks*last_allocator{};VkPipeline*last_output{};unsigned last_count{};
+std::mutex calls_mutex;unsigned next_device{},next_cache{},cache_creates{},device_destroys{},cache_destroys{};std::atomic<unsigned> calls{};bool fail_device{},fail_cache{},reject_warm{};std::size_t initial_bytes{};VkResult pipeline_result=VK_SUCCESS;VkPipelineCache last_cache{},last_merge_source{},last_merge_destination{};const void* last_info{};const VkAllocationCallbacks*last_allocator{};VkPipeline*last_output{};unsigned last_count{};
 VkResult capture(VkDevice d,VkPipelineCache c,unsigned n,const void*i,const VkAllocationCallbacks*a,VkPipeline*out){std::lock_guard lock(calls_mutex);need(devices.contains(d),"Pipeline device ownership changed");if(c && caches.contains(c))need(caches.at(c)==d,"Shared cache crossed devices");last_cache=c;last_info=i;last_allocator=a;last_output=out;last_count=n;++calls;if(pipeline_result==VK_SUCCESS)for(unsigned j=0;j<n;++j)out[j]=handle<VkPipeline>(0x700+j);return pipeline_result;}
 }
 extern "C" {
+void halo2_native_pipeline_cache_merge(VkDevice,VkPipelineCache,bool) noexcept;
+VKAPI_ATTR VkResult VKAPI_CALL vkMergePipelineCaches(VkDevice device,VkPipelineCache destination,std::uint32_t count,const VkPipelineCache* sources){need(count==1 && sources && *sources!=destination && caches.at(destination)==device && caches.at(*sources)==device,"Merge crossed device/cache ownership");last_merge_source=*sources;last_merge_destination=destination;return VK_SUCCESS;}
 VKAPI_ATTR VkResult VKAPI_CALL __wrap_vkCreateDevice(VkPhysicalDevice,const VkDeviceCreateInfo*,const VkAllocationCallbacks*,VkDevice*);
 VKAPI_ATTR void VKAPI_CALL __wrap_vkDestroyDevice(VkDevice,const VkAllocationCallbacks*);
 VKAPI_ATTR VkResult VKAPI_CALL __wrap_vkCreateGraphicsPipelines(VkDevice,VkPipelineCache,unsigned,const VkGraphicsPipelineCreateInfo*,const VkAllocationCallbacks*,VkPipeline*);
@@ -70,11 +72,18 @@ int main(int argc,char** argv)try{
  VkGraphicsPipelineCreateInfo graphic{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};VkComputePipelineCreateInfo compute{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};VkPipeline output{};
  need(__wrap_vkCreateGraphicsPipelines(device,VK_NULL_HANDLE,1,&graphic,&allocator,&output)==VK_SUCCESS && last_cache && reinterpret_cast<std::uintptr_t>(last_cache)>UINT32_MAX && last_info==&graphic && last_allocator==&allocator && last_output==&output && last_count==1,"Graphics arguments or64-bit cache owner changed");const auto owned=last_cache;++checks;
  need(__wrap_vkCreateComputePipelines(device,VK_NULL_HANDLE,1,&compute,nullptr,&output)==VK_SUCCESS && last_cache==owned && last_info==&compute && !last_allocator,"Compute cache/device ownership differs");++checks;
+ VkPipelineCacheCreateInfo caller_info{VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};VkPipelineCache caller_cache{};
+ need(vkCreatePipelineCache(device,&caller_info,nullptr,&caller_cache)==VK_SUCCESS,"Caller cache creation failed");
+ halo2_native_pipeline_cache_merge(device,caller_cache,false);
+ need(last_merge_source==owned && last_merge_destination==caller_cache,"Persisted cache did not seed renderer cache");
+ halo2_native_pipeline_cache_merge(device,caller_cache,true);
+ need(last_merge_source==caller_cache && last_merge_destination==owned,"Renderer cache did not preserve disk cache");
+ vkDestroyPipelineCache(device,caller_cache,nullptr);++checks;
  const auto explicit_cache=handle<VkPipelineCache>(0x9000);need(__wrap_vkCreateGraphicsPipelines(device,explicit_cache,1,&graphic,nullptr,&output)==VK_SUCCESS && last_cache==explicit_cache,"Caller cache was replaced");++checks;
  VkBaseInStructure chain{VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};graphic.pNext=&chain;need(__wrap_vkCreateGraphicsPipelines(device,VK_NULL_HANDLE,1,&graphic,nullptr,&output)==VK_SUCCESS && last_cache==VK_NULL_HANDLE,"Extension chain acquired an unrequested cache");graphic.pNext=nullptr;++checks;
  pipeline_result=VK_ERROR_UNKNOWN;need(__wrap_vkCreateGraphicsPipelines(device,VK_NULL_HANDLE,1,&graphic,nullptr,&output)==VK_ERROR_UNKNOWN,"Pipeline result was hidden");pipeline_result=VK_SUCCESS;++checks;
  std::array<std::thread,4> threads;std::array<bool,4> okay{};for(unsigned i=0;i<4;++i)threads[i]=std::thread([&,i]{VkPipeline out{};okay[i]=__wrap_vkCreateGraphicsPipelines(device,VK_NULL_HANDLE,1,&graphic,nullptr,&out)==VK_SUCCESS;});for(auto&t:threads)t.join();for(bool v:okay)need(v,"Concurrent cache access failed");++checks;
- __wrap_vkDestroyDevice(device,&allocator);need(caches.empty() && cache_destroys==1 && device_destroys==1,"Cache was not retired before device");++checks;
+ __wrap_vkDestroyDevice(device,&allocator);need(caches.empty() && cache_destroys==2 && device_destroys==1,"Cache was not retired before device");++checks;
  std::vector<std::filesystem::path> files;for(const auto&e:std::filesystem::directory_iterator(root))if(e.path().extension()==".bin")files.push_back(e.path());need(files.size()==1 && std::filesystem::file_size(files[0])==64,"Cache did not persist atomically");++checks;
  need(__wrap_vkCreateDevice(physical,&info,nullptr,&device)==VK_SUCCESS && initial_bytes==64,"Warm cache was not reused");__wrap_vkDestroyDevice(device,nullptr);++checks;
  // Driver rejection of an otherwise qualified file retries an empty cache.

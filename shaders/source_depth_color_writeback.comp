@@ -1,4 +1,7 @@
 #version 450
+#extension GL_GOOGLE_include_directive : require
+#include "source_depth_storage.glsl"
+layout(constant_id=0) const uint sourceDepthEncoding=0u;
 layout(local_size_x=64) in;
 layout(set=0,binding=0,std430) writeonly buffer Depth { uint words[]; } depth;
 layout(set=0,binding=1,std430) writeonly buffer Stencil { uint words[]; } stencil;
@@ -15,7 +18,8 @@ void main() {
         uint i=word_index*4u+lane;
         if(i>=count) break;
         uvec4 bytes=imageLoad(alias_image,ivec2(i%extent.width,i/extent.width));
-        depth.words[i]=(bytes.a<<16u)|(bytes.r<<8u)|bytes.g;
+        uint n=(bytes.a<<16u)|(bytes.r<<8u)|bytes.g;
+        depth.words[i]=sourceDepthEncoding==0u ? n : sourceD24CarrierWord(n);
         packed|=bytes.b<<(lane*8u);
     }
     stencil.words[word_index]=packed;

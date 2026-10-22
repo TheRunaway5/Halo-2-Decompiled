@@ -4,7 +4,7 @@ import argparse,json
 from pathlib import Path
 from oracle_mp_title_update_display import ROOT,OLD,NEW,sha,save,encoded
 from audit_sound_driver_update_native import prior_pins
-OWNED=('include/halo2/sound_driver_update.hpp','src/sound_driver_update.cpp','tests/sound_driver_update_tests.cpp','tools/research_sound_driver_update_u5.py','tools/oracle_sound_driver_update_native.py','tools/export_sound_driver_update_fixtures.py','tools/validate_sound_driver_update_native.py','tools/validate_sound_driver_update_production.py','tools/audit_sound_driver_update_native.py','tools/freeze_sound_driver_update_native.py','docs/MP_SOUND_DRIVER_UPDATE_NATIVE_INTEGRATION.md')
+OWNED=('include/halo2/sound_driver_update.hpp','src/audio/sound_driver_update.cpp','tests/sound_driver_update_tests.cpp','tools/research_sound_driver_update_u5.py','tools/oracle_sound_driver_update_native.py','tools/export_sound_driver_update_fixtures.py','tools/validate_sound_driver_update_native.py','tools/validate_sound_driver_update_production.py','tools/audit_sound_driver_update_native.py','tools/freeze_sound_driver_update_native.py','docs/MP_SOUND_DRIVER_UPDATE_NATIVE_INTEGRATION.md')
 SELECTED=('paired','paired-repeat','measured-v2','repeated-v2','validation-v2','validation-v2-repeat','production-v2','export-repeat')
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--directory',type=Path,required=True);a=p.parse_args();d=a.directory.resolve();pins=prior_pins();audit=json.loads((d/'audit.json').read_text());assert audit['prior_pins_verified']==pins

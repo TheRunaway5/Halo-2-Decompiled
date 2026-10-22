@@ -121,7 +121,7 @@ def main():
   bodies.append(f'void run_{entry:x}(MathState &s) {{\n'+'\n'.join(lines)+'\nthrow std::runtime_error("TU1.5 contact state fell outside authenticated CFG");\n}')
  text='''// Generated from complete owned TU1.5 instructions. No runtime decoder.
 #include "halo2/physics_vehicle_environment_state.hpp"
-#include "physics_vehicle_motion_math_internal.hpp"
+#include "physics/vehicles/physics_vehicle_motion_math_internal.hpp"
 namespace halo2 {
 namespace {
 using namespace physics_vehicle_motion_math_detail;

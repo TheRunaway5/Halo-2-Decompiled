@@ -29,7 +29,7 @@ def main():
   'research_mp_scope_update_order.py','freeze_mp_scope_camera_source.py']
  for name in toolnames:files['tools/'+name]=sha(ROOT/'tools'/name)
  for name in ['docs/MP_UNIT_SCOPE_CAMERA_SOURCE_RESEARCH.md','include/halo2/unit_scope_camera.hpp',
-  'src/unit_scope_camera.cpp','tests/unit_scope_camera_tests.cpp']:
+  'src/gameplay/units/unit_scope_camera.cpp','tests/unit_scope_camera_tests.cpp']:
   files[name]=sha(ROOT/name)
  source=json.loads((BASE/'action-flags-measured/report.json').read_text())
  for name,digest in source['source_pins'].items():

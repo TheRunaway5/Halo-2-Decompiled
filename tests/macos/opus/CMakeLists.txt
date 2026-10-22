@@ -1,0 +1,57 @@
+cmake_minimum_required(VERSION 3.24)
+get_filename_component(HALO2_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+include("${HALO2_ROOT}/cmake/macos/Defaults.cmake")
+project(Halo2MacOSOpusTests LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+find_package(SDL2 REQUIRED CONFIG)
+include("${HALO2_ROOT}/cmake/Glm.cmake")
+find_package(nlohmann_json REQUIRED CONFIG)
+include("${HALO2_ROOT}/cmake/TestStorage.cmake")
+include("${HALO2_ROOT}/cmake/macos/Opus.cmake")
+include(CTest)
+halo2_macos_opus_dependency()
+foreach(target mcc_audio_tests macos_opus_dependency_tests)
+    if(target STREQUAL "mcc_audio_tests")
+        set(test_source "${HALO2_ROOT}/tests/mcc_audio_tests.cpp")
+    else()
+        set(test_source dependency_tests.cpp)
+    endif()
+    add_executable(${target} ${test_source} "${HALO2_ROOT}/src/audio/mcc_audio.cpp")
+    target_include_directories(${target} PRIVATE "${HALO2_ROOT}/include" "${HALO2_ROOT}/src"
+        $<TARGET_PROPERTY:SDL2::SDL2,INTERFACE_INCLUDE_DIRECTORIES>)
+    target_link_libraries(${target} PRIVATE PkgConfig::OPUS halo2_glm nlohmann_json::nlohmann_json)
+    if(target STREQUAL "macos_opus_dependency_tests")
+        set_target_properties(${target} PROPERTIES MACOSX_BUNDLE TRUE
+            MACOSX_BUNDLE_GUI_IDENTIFIER net.halo2forever.opus-dependency-check)
+        set(bundle_arches)
+        foreach(arch IN LISTS CMAKE_OSX_ARCHITECTURES)
+            list(APPEND bundle_arches --arch "${arch}")
+        endforeach()
+        add_custom_command(TARGET ${target} POST_BUILD
+            COMMAND ${Python3_EXECUTABLE} -B "${HALO2_ROOT}/tools/macos/bundle.py"
+                --app "$<TARGET_BUNDLE_DIR:${target}>" ${bundle_arches}
+                --license "Opus=${CMAKE_BINARY_DIR}/macos-dependencies/opus/share/licenses/Opus.txt"
+            VERBATIM)
+    endif()
+    foreach(arch IN LISTS CMAKE_OSX_ARCHITECTURES)
+        if(target STREQUAL "mcc_audio_tests")
+            add_test(NAME mcc_opus_${arch} COMMAND /usr/bin/arch -${arch} $<TARGET_FILE:${target}>)
+        else()
+            add_test(NAME macos_opus_dependency_${arch} COMMAND /usr/bin/arch -${arch}
+                $<TARGET_FILE:${target}> "$<TARGET_BUNDLE_CONTENT_DIR:${target}>/Frameworks/libopus.0.dylib")
+        endif()
+    endforeach()
+endforeach()
+add_custom_target(macos_opus_tests DEPENDS mcc_audio_tests macos_opus_dependency_tests)
+add_test(NAME macos_opus_relocation COMMAND ${Python3_EXECUTABLE} -B
+    "${CMAKE_CURRENT_SOURCE_DIR}/relocation_test.py"
+    "$<TARGET_BUNDLE_DIR:macos_opus_dependency_tests>" "${CMAKE_BINARY_DIR}/macos-dependencies/opus"
+    ${CMAKE_OSX_ARCHITECTURES})
+set(relocation_dependencies)
+foreach(arch IN LISTS CMAKE_OSX_ARCHITECTURES)
+    list(APPEND relocation_dependencies mcc_opus_${arch} macos_opus_dependency_${arch})
+endforeach()
+set_tests_properties(macos_opus_relocation PROPERTIES DEPENDS "${relocation_dependencies}" RUN_SERIAL TRUE)

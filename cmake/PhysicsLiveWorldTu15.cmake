@@ -1,53 +1,60 @@
 # Same retained bank and native resource owners for the TU1.5 live world.
-target_sources(halo2_systems PRIVATE src/physics_live_world_tu15.cpp src/source_runtime_cache_tags_tu15.cpp)
-target_sources(halo2_systems PRIVATE src/mcc_script_sound_world_access.cpp src/mcc_script_sound_query_service_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/physics/physics_live_world_tu15.cpp src/runtime/source_runtime_cache_tags_tu15.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/world/source_teleporter_tu15_generated.cpp)
+if(MSVC)
+    set_source_files_properties(src/gameplay/world/source_teleporter_tu15_generated.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
+else()
+    set_source_files_properties(src/gameplay/world/source_teleporter_tu15_generated.cpp PROPERTIES
+        COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
+endif()
+target_sources(halo2_systems PRIVATE src/campaign/scripting/mcc_script_sound_world_access.cpp src/campaign/scripting/mcc_script_sound_query_service_tu15.cpp)
 # Native startup residency hints use the Linux program-header iterator.
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_libraries(halo2_systems PRIVATE ${CMAKE_DL_LIBS})
 endif()
-target_sources(halo2_systems PRIVATE src/source_contrail_snapshot.cpp)
-target_sources(halo2_systems PRIVATE src/source_live_shadow_selection_tu15.cpp)
-target_sources(halo2_systems PRIVATE src/source_live_shadow_roots_tu15.cpp)
-target_sources(halo2_systems PRIVATE src/source_live_shadow_main_draws_tu15.cpp)
-target_sources(halo2_systems PRIVATE src/source_live_shadow_main_inputs_tu15.cpp)
-target_sources(halo2_systems PRIVATE src/source_live_shadow_phase_inputs_tu15.cpp)
-target_sources(halo2_systems PRIVATE src/source_live_shadow_storage_tu15.cpp)
-target_sources(halo2_systems PRIVATE src/source_live_effect_light_commands_tu15.cpp)
-target_sources(halo2_systems PRIVATE src/source_live_shadow_ordered_draws_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/effects/source_contrail_snapshot.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/shadows/source_live_shadow_selection_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/shadows/source_live_shadow_roots_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/shadows/source_live_shadow_main_draws_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/shadows/source_live_shadow_main_inputs_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/shadows/source_live_shadow_phase_inputs_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/shadows/source_live_shadow_storage_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/effects/source_live_effect_light_commands_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/shadows/source_live_shadow_ordered_draws_tu15.cpp)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    set_source_files_properties(src/source_live_shadow_roots_tu15.cpp
-        src/source_live_shadow_phase_inputs_tu15.cpp PROPERTIES
+    set_source_files_properties(src/rendering/shadows/source_live_shadow_roots_tu15.cpp
+        src/rendering/shadows/source_live_shadow_phase_inputs_tu15.cpp PROPERTIES
         COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
 endif()
-target_sources(halo2_systems PRIVATE src/source_execution_inputs.cpp)
-target_sources(halo2_systems PRIVATE src/source_runtime_resources.cpp)
-target_sources(halo2_systems PRIVATE src/source_sound_cache_io_tu15.cpp)
-target_sources(halo2_systems PRIVATE src/source_sound_cache_query_tu15_generated.cpp)
-target_sources(halo2_systems PRIVATE src/source_sound_scalar_tu15_generated.cpp)
-target_sources(halo2_systems PRIVATE src/source_sound_listener_selection_tu15_generated.cpp)
-target_sources(halo2_systems PRIVATE src/source_sound_gain_tu15_generated.cpp
-    src/source_sound_random_scalar_tu15_generated.cpp src/source_sound_properties_tu15_generated.cpp
-    src/source_sound_random_short_tu15_generated.cpp)
-target_sources(halo2_systems PRIVATE src/source_sound_range_selection_tu15_generated.cpp
-    src/source_sound_permutation_tu15_generated.cpp src/source_sound_binding_tu15_generated.cpp)
-target_sources(halo2_systems PRIVATE src/source_sound_chunk_readiness_tu15_generated.cpp)
+target_sources(halo2_systems PRIVATE src/runtime/source_execution_inputs.cpp)
+target_sources(halo2_systems PRIVATE src/runtime/source_runtime_resources.cpp)
+target_sources(halo2_systems PRIVATE src/audio/source_sound_cache_io_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/audio/source_sound_cache_query_tu15_generated.cpp)
+target_sources(halo2_systems PRIVATE src/audio/source_sound_scalar_tu15_generated.cpp)
+target_sources(halo2_systems PRIVATE src/audio/source_sound_listener_selection_tu15_generated.cpp)
+target_sources(halo2_systems PRIVATE src/audio/source_sound_gain_tu15_generated.cpp
+    src/audio/source_sound_random_scalar_tu15_generated.cpp src/audio/source_sound_properties_tu15_generated.cpp
+    src/audio/source_sound_random_short_tu15_generated.cpp)
+target_sources(halo2_systems PRIVATE src/audio/source_sound_range_selection_tu15_generated.cpp
+    src/audio/source_sound_permutation_tu15_generated.cpp src/audio/source_sound_binding_tu15_generated.cpp)
+target_sources(halo2_systems PRIVATE src/audio/source_sound_chunk_readiness_tu15_generated.cpp)
 if(MSVC)
-    set_source_files_properties(src/source_sound_listener_selection_tu15_generated.cpp
-        src/source_sound_gain_tu15_generated.cpp src/source_sound_random_scalar_tu15_generated.cpp
-        src/source_sound_properties_tu15_generated.cpp
-        src/source_sound_random_short_tu15_generated.cpp
-        src/source_sound_range_selection_tu15_generated.cpp src/source_sound_permutation_tu15_generated.cpp
-        src/source_sound_binding_tu15_generated.cpp
-        src/source_sound_chunk_readiness_tu15_generated.cpp
+    set_source_files_properties(src/audio/source_sound_listener_selection_tu15_generated.cpp
+        src/audio/source_sound_gain_tu15_generated.cpp src/audio/source_sound_random_scalar_tu15_generated.cpp
+        src/audio/source_sound_properties_tu15_generated.cpp
+        src/audio/source_sound_random_short_tu15_generated.cpp
+        src/audio/source_sound_range_selection_tu15_generated.cpp src/audio/source_sound_permutation_tu15_generated.cpp
+        src/audio/source_sound_binding_tu15_generated.cpp
+        src/audio/source_sound_chunk_readiness_tu15_generated.cpp
         PROPERTIES COMPILE_OPTIONS "/fp:strict")
 else()
-    set_source_files_properties(src/source_sound_listener_selection_tu15_generated.cpp
-        src/source_sound_gain_tu15_generated.cpp src/source_sound_random_scalar_tu15_generated.cpp
-        src/source_sound_properties_tu15_generated.cpp
-        src/source_sound_random_short_tu15_generated.cpp
-        src/source_sound_range_selection_tu15_generated.cpp src/source_sound_permutation_tu15_generated.cpp
-        src/source_sound_binding_tu15_generated.cpp
-        src/source_sound_chunk_readiness_tu15_generated.cpp
+    set_source_files_properties(src/audio/source_sound_listener_selection_tu15_generated.cpp
+        src/audio/source_sound_gain_tu15_generated.cpp src/audio/source_sound_random_scalar_tu15_generated.cpp
+        src/audio/source_sound_properties_tu15_generated.cpp
+        src/audio/source_sound_random_short_tu15_generated.cpp
+        src/audio/source_sound_range_selection_tu15_generated.cpp src/audio/source_sound_permutation_tu15_generated.cpp
+        src/audio/source_sound_binding_tu15_generated.cpp
+        src/audio/source_sound_chunk_readiness_tu15_generated.cpp
         PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
 endif()
 if(BUILD_TESTING)
@@ -65,7 +72,7 @@ if(BUILD_TESTING)
         endif()
         add_executable(source_sound_${sound_owner}_tu15_tests EXCLUDE_FROM_ALL
             tests/source_sound_${sound_owner}_tu15_tests.cpp
-            src/source_sound_${sound_owner}_tu15_generated.cpp)
+            src/audio/source_sound_${sound_owner}_tu15_generated.cpp)
         target_include_directories(source_sound_${sound_owner}_tu15_tests PRIVATE include src)
         target_link_libraries(source_sound_${sound_owner}_tu15_tests PRIVATE nlohmann_json::nlohmann_json)
         if(HALO2_SANITIZERS AND NOT MSVC)
@@ -77,12 +84,12 @@ if(BUILD_TESTING)
             COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/validate_sound_parameter_cpu_tu15.py
                 --owner ${sound_owner_argument}
                 --binary $<TARGET_FILE:source_sound_${sound_owner}_tu15_tests>
-                --generated-source ${PROJECT_SOURCE_DIR}/src/source_sound_${sound_owner}_tu15_generated.cpp
+                --generated-source ${PROJECT_SOURCE_DIR}/src/audio/source_sound_${sound_owner}_tu15_generated.cpp
                 --output ${CMAKE_BINARY_DIR}/sound-${sound_owner_argument}-acceptance)
         set_tests_properties(original_tu15_sound_${sound_owner} PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
     endforeach()
     add_executable(source_sound_listener_selection_tu15_tests EXCLUDE_FROM_ALL
-        tests/source_sound_listener_selection_tu15_tests.cpp src/source_sound_listener_selection_tu15_generated.cpp)
+        tests/source_sound_listener_selection_tu15_tests.cpp src/audio/source_sound_listener_selection_tu15_generated.cpp)
     target_include_directories(source_sound_listener_selection_tu15_tests PRIVATE include src)
     target_link_libraries(source_sound_listener_selection_tu15_tests PRIVATE nlohmann_json::nlohmann_json)
     if(HALO2_SANITIZERS AND NOT MSVC)
@@ -94,10 +101,10 @@ if(BUILD_TESTING)
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/validate_sound_listener_selection_tu15.py
             --binary $<TARGET_FILE:source_sound_listener_selection_tu15_tests>
             --output ${CMAKE_BINARY_DIR}/sound-listener-selection-acceptance
-            --generated-source ${PROJECT_SOURCE_DIR}/src/source_sound_listener_selection_tu15_generated.cpp)
+            --generated-source ${PROJECT_SOURCE_DIR}/src/audio/source_sound_listener_selection_tu15_generated.cpp)
     set_tests_properties(original_tu15_sound_listener_selection PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
     add_executable(source_sound_scalar_tu15_tests EXCLUDE_FROM_ALL
-        tests/source_sound_scalar_tu15_tests.cpp src/source_sound_scalar_tu15_generated.cpp)
+        tests/source_sound_scalar_tu15_tests.cpp src/audio/source_sound_scalar_tu15_generated.cpp)
     target_include_directories(source_sound_scalar_tu15_tests PRIVATE include src)
     target_link_libraries(source_sound_scalar_tu15_tests PRIVATE nlohmann_json::nlohmann_json)
     if(HALO2_SANITIZERS AND NOT MSVC)
@@ -108,10 +115,10 @@ if(BUILD_TESTING)
     add_test(NAME original_tu15_sound_scalar
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/validate_sound_scalar_tu15.py
             --binary $<TARGET_FILE:source_sound_scalar_tu15_tests>
-            --generated-source ${PROJECT_SOURCE_DIR}/src/source_sound_scalar_tu15_generated.cpp)
+            --generated-source ${PROJECT_SOURCE_DIR}/src/audio/source_sound_scalar_tu15_generated.cpp)
     set_tests_properties(original_tu15_sound_scalar PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)
     add_executable(source_sound_cache_query_tu15_tests EXCLUDE_FROM_ALL
-        tests/source_sound_cache_query_tu15_tests.cpp src/source_sound_cache_query_tu15_generated.cpp)
+        tests/source_sound_cache_query_tu15_tests.cpp src/audio/source_sound_cache_query_tu15_generated.cpp)
     target_include_directories(source_sound_cache_query_tu15_tests PRIVATE include src)
     target_link_libraries(source_sound_cache_query_tu15_tests PRIVATE nlohmann_json::nlohmann_json)
     if(HALO2_SANITIZERS AND NOT MSVC)
@@ -122,10 +129,10 @@ if(BUILD_TESTING)
     add_test(NAME original_tu15_sound_cache_query
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/validate_sound_cache_query_tu15.py
             --binary $<TARGET_FILE:source_sound_cache_query_tu15_tests>
-            --generated-source ${PROJECT_SOURCE_DIR}/src/source_sound_cache_query_tu15_generated.cpp)
+            --generated-source ${PROJECT_SOURCE_DIR}/src/audio/source_sound_cache_query_tu15_generated.cpp)
     set_tests_properties(original_tu15_sound_cache_query PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)
     add_executable(source_sound_cache_io_tu15_tests EXCLUDE_FROM_ALL
-        tests/source_sound_cache_io_tu15_tests.cpp src/source_sound_cache_io_tu15.cpp)
+        tests/source_sound_cache_io_tu15_tests.cpp src/audio/source_sound_cache_io_tu15.cpp)
     target_include_directories(source_sound_cache_io_tu15_tests PRIVATE include)
     target_link_libraries(source_sound_cache_io_tu15_tests PRIVATE nlohmann_json::nlohmann_json)
     if(HALO2_SANITIZERS AND NOT MSVC)
@@ -138,20 +145,20 @@ if(BUILD_TESTING)
             --binary $<TARGET_FILE:source_sound_cache_io_tu15_tests>)
     set_tests_properties(original_tu15_sound_cache_io PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)
 endif()
-target_sources(halo2_systems PRIVATE src/multiplayer_source_devices_tu15.cpp)
-target_sources(halo2_systems PRIVATE src/source_boot_smc_video_mode.cpp)
-target_sources(halo2_systems PRIVATE src/source_boot_smc_video_mode_input.cpp)
-target_sources(halo2_systems PRIVATE src/source_object_velocity_read_only_tu15.cpp)
-target_sources(halo2_systems PRIVATE src/source_runtime_dsp_section.cpp src/source_runtime_sound_output.cpp src/source_runtime_sound_sdk_resources.cpp src/source_sound_sdk_pool.cpp)
-target_sources(halo2_systems PRIVATE src/native_tu15_world_memory.cpp)
-target_sources(halo2_systems PRIVATE src/source_geometry_cache_frame_tu15_generated.cpp)
-target_sources(halo2_systems PRIVATE src/native_tu15_physics_branch_data.cpp)
-target_sources(halo2_systems PRIVATE src/native_tu15_ctf_static_data.cpp)
-target_sources(halo2_systems PRIVATE src/native_tu15_player_result_data.cpp)
-target_sources(halo2_systems PRIVATE src/native_tu15_camera_packet_data.cpp)
-target_sources(halo2_systems PRIVATE src/native_tu15_prt_cache_data.cpp)
-target_sources(halo2_systems PRIVATE src/native_tu15_main_view_data.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/native_mcc_script_builtin.cpp)
+target_sources(halo2_systems PRIVATE src/network/multiplayer_source_devices_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/platform/source_boot_smc_video_mode.cpp)
+target_sources(halo2_systems PRIVATE src/platform/source_boot_smc_video_mode_input.cpp)
+target_sources(halo2_systems PRIVATE src/gameplay/objects/source_object_velocity_read_only_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/runtime/source_runtime_dsp_section.cpp src/audio/runtime/source_runtime_sound_output.cpp src/audio/runtime/source_runtime_sound_sdk_resources.cpp src/audio/source_sound_sdk_pool.cpp)
+target_sources(halo2_systems PRIVATE src/platform/native_tu15_world_memory.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/source_geometry_cache_frame_tu15_generated.cpp)
+target_sources(halo2_systems PRIVATE src/physics/native_tu15_physics_branch_data.cpp)
+target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/native_tu15_ctf_static_data.cpp)
+target_sources(halo2_systems PRIVATE src/gameplay/units/native_tu15_player_result_data.cpp)
+target_sources(halo2_systems PRIVATE src/gameplay/camera/native_tu15_camera_packet_data.cpp)
+target_sources(halo2_systems PRIVATE src/assets/native_tu15_prt_cache_data.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/renderer/native_tu15_main_view_data.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/campaign/scripting/native_mcc_script_builtin.cpp)
 add_executable(verify_mcc_native_world tools/verify_mcc_native_world.cpp)
 target_link_libraries(verify_mcc_native_world PRIVATE halo2_systems)
 add_executable(verify_campaign_activation_tu15 tools/verify_campaign_activation_tu15.cpp)
@@ -242,12 +249,12 @@ if(BUILD_TESTING)
 endif()
 target_link_libraries(halo2_systems PRIVATE OpenSSL::Crypto)
 include(cmake/NativeTranslationUnits.cmake)
-halo2_partition_native_translation(halo2_physics_world_runtime src/physics_live_support_tu15_generated.cpp 32)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_unit_view_reset_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_sound_duration_tu15.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/mcc_sound_duration_tu15.cpp)
-add_library(halo2_script_sound_clock_tu15 STATIC src/source_script_sound_clock_tu15.cpp)
-target_sources(halo2_script_sound_clock_tu15 PRIVATE src/source_script_sound_clock_native64_tu15.cpp)
+halo2_partition_native_translation(halo2_physics_world_runtime src/physics/physics_live_support_tu15_generated.cpp 32)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/units/source_unit_view_reset_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/audio/source_sound_duration_tu15.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/audio/mcc_sound_duration_tu15.cpp)
+add_library(halo2_script_sound_clock_tu15 STATIC src/campaign/scripting/source_script_sound_clock_tu15.cpp)
+target_sources(halo2_script_sound_clock_tu15 PRIVATE src/campaign/scripting/source_script_sound_clock_native64_tu15.cpp)
 target_include_directories(halo2_script_sound_clock_tu15 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_script_sound_clock_tu15 PUBLIC cxx_std_20)
 if(MSVC)
@@ -257,7 +264,7 @@ else()
       -ffp-contract=off -fno-fast-math -frounding-math)
 endif()
 target_link_libraries(halo2_systems PRIVATE halo2_script_sound_clock_tu15)
-target_sources(halo2_systems PRIVATE src/mcc_sound_variation_provider.cpp)
+target_sources(halo2_systems PRIVATE src/audio/mcc_sound_variation_provider.cpp)
 if(BUILD_TESTING)
   add_executable(source_script_sound_clock_tu15_tests tests/source_script_sound_clock_tu15_tests.cpp)
   target_link_libraries(source_script_sound_clock_tu15_tests PRIVATE halo2_script_sound_clock_tu15)
@@ -361,18 +368,19 @@ if(BUILD_TESTING)
   add_test(NAME source_sound_duration_tu15_manifest COMMAND ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_source_sound_duration_tu15.py --check)
 endif()
-target_sources(halo2_physics_world_runtime PRIVATE src/source_object_material_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_damage_feedback_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_recorded_animation_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_level_handles_new_map_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_havok_static_lifetime_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_shadow_frame_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_transparent_group_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_transparent_collection_tu15_generated.cpp)
-target_sources(halo2_systems PRIVATE src/source_live_transparent_groups_tu15.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/objects/source_object_material_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/units/source_damage_feedback_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/campaign/scripting/source_recorded_animation_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/campaign/source_level_handles_new_map_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/physics/source_havok_static_lifetime_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/rendering/shadows/source_shadow_frame_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/units/source_receiver_request_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/rendering/source_transparent_group_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/rendering/source_transparent_collection_tu15_generated.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/renderer/source_live_transparent_groups_tu15.cpp)
 if(BUILD_TESTING)
     add_executable(source_transparent_group_tu15_tests EXCLUDE_FROM_ALL
-        tools/compare_transparent_group_tu15.cpp src/source_transparent_group_tu15_generated.cpp)
+        tools/compare_transparent_group_tu15.cpp src/rendering/source_transparent_group_tu15_generated.cpp)
     target_include_directories(source_transparent_group_tu15_tests PRIVATE include src)
     add_test(NAME original_tu15_transparent_group_cpu
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/compare_transparent_group_tu15.py
@@ -381,68 +389,98 @@ if(BUILD_TESTING)
             --output ${CMAKE_BINARY_DIR}/transparent-group-cpu)
     set_tests_properties(original_tu15_transparent_group_cpu PROPERTIES TIMEOUT 210 SKIP_RETURN_CODE 77)
 endif()
-target_sources(halo2_physics_world_runtime PRIVATE src/source_cinematic_shadow_control_tu15_generated.cpp)
-target_sources(halo2_systems PRIVATE src/source_cinematic_shadow_control_tu15.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_effect_light_view_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_object_sound_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_weapon_hud_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_crt_float_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_player_departure_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_physics_deactivation_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_vehicle_auxiliary_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_cloth_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_constraint_instance_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_collision_instance_storage_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_collision_query_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_conveyor_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_vehicle_occupancy_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_vehicle_look_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_vehicle_director_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_dialogue_admission_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_combat_action_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_effect_particle_frame_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_effect_particle_draw_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_ai_actor_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_ai_frame_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_campaign_runtime_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_ctf_activation_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_ctf_configuration_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/campaign/source_cinematic_shadow_control_tu15_generated.cpp)
+target_sources(halo2_systems PRIVATE src/campaign/source_cinematic_shadow_control_tu15.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/rendering/effects/source_effect_light_view_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/objects/source_object_sound_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/weapons/source_weapon_hud_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/platform/source_crt_float_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/units/source_player_departure_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/physics/source_physics_deactivation_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/vehicles/source_vehicle_auxiliary_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/physics/source_cloth_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/physics/source_constraint_instance_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/physics/source_body_impulse_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/physics/collision/source_collision_instance_storage_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/physics/collision/source_collision_query_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/rendering/world/source_conveyor_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/vehicles/source_vehicle_occupancy_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/vehicles/source_vehicle_look_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/vehicles/source_vehicle_director_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/campaign/ai/source_dialogue_admission_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/units/source_combat_action_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/rendering/effects/source_effect_particle_frame_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/rendering/effects/source_effect_particle_draw_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/campaign/ai/source_ai_actor_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/campaign/ai/source_ai_frame_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/campaign/ai/source_ai_actor_contact_selector_tu15_generated.cpp)
+if(BUILD_TESTING)
+    add_executable(source_ai_actor_contact_selector_tu15_tests
+        tests/source_ai_actor_contact_selector_tu15_tests.cpp
+        src/campaign/ai/source_ai_actor_contact_selector_tu15_generated.cpp
+        src/campaign/ai/source_ai_frame_tu15_generated.cpp
+        src/gameplay/weapons/source_weapon_animation_query_symbols_tu15.cpp
+        src/campaign/scripting/native_mcc_script_builtin.cpp
+        src/runtime/source_runtime_memory.cpp)
+    target_link_libraries(source_ai_actor_contact_selector_tu15_tests PRIVATE
+        halo2_snapshot_storage Threads::Threads)
+    if(MSVC)
+        target_compile_options(source_ai_actor_contact_selector_tu15_tests PRIVATE /fp:strict)
+    else()
+        target_compile_options(source_ai_actor_contact_selector_tu15_tests PRIVATE
+            -fno-fast-math -ffp-contract=off -frounding-math)
+    endif()
+    add_test(NAME source_ai_actor_contact_selector_tu15
+        COMMAND source_ai_actor_contact_selector_tu15_tests)
+endif()
+target_sources(halo2_physics_world_runtime PRIVATE src/campaign/source_campaign_runtime_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/multiplayer/source_ctf_activation_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/multiplayer/source_ctf_configuration_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/multiplayer/source_ctf_player_iterator_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/multiplayer/source_ctf_activation_spawn_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/multiplayer/source_ctf_flag_position_tu15_generated.cpp)
 if(MSVC)
-    set_source_files_properties(src/source_ctf_activation_tu15_generated.cpp
-        src/source_ctf_configuration_tu15_generated.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
+    set_source_files_properties(src/gameplay/multiplayer/source_ctf_activation_tu15_generated.cpp
+        src/gameplay/multiplayer/source_ctf_configuration_tu15_generated.cpp
+        src/gameplay/multiplayer/source_ctf_player_iterator_tu15_generated.cpp
+        src/gameplay/multiplayer/source_ctf_activation_spawn_tu15_generated.cpp
+        src/gameplay/multiplayer/source_ctf_flag_position_tu15_generated.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
 else()
-    set_source_files_properties(src/source_ctf_activation_tu15_generated.cpp
-        src/source_ctf_configuration_tu15_generated.cpp PROPERTIES
+    set_source_files_properties(src/gameplay/multiplayer/source_ctf_activation_tu15_generated.cpp
+        src/gameplay/multiplayer/source_ctf_configuration_tu15_generated.cpp
+        src/gameplay/multiplayer/source_ctf_player_iterator_tu15_generated.cpp
+        src/gameplay/multiplayer/source_ctf_activation_spawn_tu15_generated.cpp
+        src/gameplay/multiplayer/source_ctf_flag_position_tu15_generated.cpp PROPERTIES
         COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
 endif()
-target_sources(halo2_physics_world_runtime PRIVATE src/source_contrail_geometry_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_lens_flare_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_script_effect_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_campaign_cinematic_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_campaign_completion_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_campaign_activation_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_campaign_audio_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_sound_dsp_image_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/rendering/effects/source_contrail_geometry_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/rendering/effects/source_lens_flare_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/campaign/scripting/source_script_effect_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/campaign/source_campaign_cinematic_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/campaign/source_campaign_completion_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/campaign/source_campaign_activation_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/campaign/source_campaign_audio_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/audio/dsp/source_sound_dsp_image_tu15_generated.cpp)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    set_source_files_properties(src/source_campaign_completion_tu15_generated.cpp
-        src/source_level_handles_new_map_tu15_generated.cpp
-        src/source_campaign_activation_tu15_generated.cpp PROPERTIES
+    set_source_files_properties(src/campaign/source_campaign_completion_tu15_generated.cpp
+        src/campaign/source_level_handles_new_map_tu15_generated.cpp
+        src/campaign/source_campaign_activation_tu15_generated.cpp PROPERTIES
         COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
-    set_source_files_properties(src/source_campaign_audio_tu15_generated.cpp
-        src/source_sound_dsp_image_tu15_generated.cpp PROPERTIES
+    set_source_files_properties(src/campaign/source_campaign_audio_tu15_generated.cpp
+        src/audio/dsp/source_sound_dsp_image_tu15_generated.cpp PROPERTIES
         COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
 endif()
-target_sources(halo2_physics_world_runtime PRIVATE src/source_campaign_camera_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_campaign_screen_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_campaign_dof_recipe_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_animation_composition_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_object_functions_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_unit_cinematic_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_unit_speech_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_resource_cache_pressure_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_sandbox_special_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_sound_startup_tu15_generated.cpp src/source_sound_sdk_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_cache_bitmap_view_tu15.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/campaign/source_campaign_camera_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/campaign/source_campaign_screen_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/campaign/source_campaign_dof_recipe_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/animation/source_animation_composition_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/objects/source_object_functions_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/campaign/source_unit_cinematic_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/campaign/ai/source_unit_speech_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/assets/source_resource_cache_pressure_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/objects/source_sandbox_special_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/audio/source_sound_startup_tu15_generated.cpp src/audio/source_sound_sdk_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/assets/source_cache_bitmap_view_tu15.cpp)
 if(BUILD_TESTING)
     # Explicit actual bank/lease probe. Captures are supplied on the command
     # line; no declared camera fixture substitutes for an absent actual bank.
@@ -506,7 +544,7 @@ if(BUILD_TESTING)
         "@HALO2_TEST_SCRATCH@/campaign-ghost-camera-tu15")
     set_tests_properties(native_campaign_ghost_camera_tu15 PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77)
     add_executable(shadow_commands_replay_tu15 tools/replay_live_shadow_commands_tu15.cpp
-        src/source_renderer_transparent_storage_tu15_generated.cpp)
+        src/rendering/renderer/source_renderer_transparent_storage_tu15_generated.cpp)
     target_include_directories(shadow_commands_replay_tu15 PRIVATE src)
     target_link_libraries(shadow_commands_replay_tu15 PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     target_compile_options(shadow_commands_replay_tu15 PRIVATE
@@ -839,7 +877,7 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map"
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps"
         "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe")
-    add_executable(grenade_selection_tu15_tests tests/grenade_selection_tu15_tests.cpp src/inventory.cpp)
+    add_executable(grenade_selection_tu15_tests tests/grenade_selection_tu15_tests.cpp src/gameplay/objects/inventory.cpp)
     target_include_directories(grenade_selection_tu15_tests PRIVATE include)
     target_link_libraries(grenade_selection_tu15_tests PRIVATE nlohmann_json::nlohmann_json)
     add_test(NAME original_tu15_grenade_selection COMMAND grenade_selection_tu15_tests
@@ -940,7 +978,7 @@ if(BUILD_TESTING)
     set_tests_properties(native_tu15_plasma_decal_lifecycle PROPERTIES TIMEOUT 120)
     add_executable(capture_source_weapon_cycle_tu15 tools/capture_source_weapon_cycle_tu15.cpp)
     target_link_libraries(capture_source_weapon_cycle_tu15 PRIVATE halo2_systems)
-    add_executable(capture_source_fp_runtime_tu15 tools/capture_source_weapon_cycle_tu15.cpp src/multiplayer_runtime.cpp)
+    add_executable(capture_source_fp_runtime_tu15 tools/capture_source_weapon_cycle_tu15.cpp src/gameplay/multiplayer/multiplayer_runtime.cpp)
     target_compile_definitions(capture_source_fp_runtime_tu15 PRIVATE HALO2_CAPTURE_SOURCE_FP_RUNTIME=1)
     target_link_libraries(capture_source_fp_runtime_tu15 PRIVATE halo2_renderer halo2_systems SDL2::SDL2)
     add_test(NAME native_tu15_scheduled_weapon_effects COMMAND capture_source_weapon_cycle_tu15
@@ -1042,11 +1080,34 @@ if(BUILD_TESTING)
     set_tests_properties(native_physics_live_world_tu15 PROPERTIES TIMEOUT 120)
 endif()
 
-target_sources(halo2_physics_world_runtime PRIVATE src/source_projectile_effect_observer.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_effect_world_locations.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/weapons/source_projectile_effect_observer.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/rendering/effects/source_effect_compiled_symbols_tu15.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/vehicles/source_vehicle_compiled_symbols_tu15.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/weapons/source_weapon_animation_query_symbols_tu15.cpp)
+if(BUILD_TESTING)
+    add_executable(source_weapon_animation_query_symbols_tu15_tests
+        tests/source_weapon_animation_query_symbols_tu15_tests.cpp
+        src/gameplay/weapons/source_weapon_animation_query_symbols_tu15.cpp)
+    target_include_directories(source_weapon_animation_query_symbols_tu15_tests PRIVATE include)
+    target_link_libraries(source_weapon_animation_query_symbols_tu15_tests PRIVATE Threads::Threads)
+    add_test(NAME source_weapon_animation_query_symbols_tu15 COMMAND source_weapon_animation_query_symbols_tu15_tests)
+    add_executable(source_vehicle_compiled_symbols_tu15_tests
+        tests/source_vehicle_compiled_symbols_tu15_tests.cpp
+        src/gameplay/vehicles/source_vehicle_compiled_symbols_tu15.cpp)
+    target_include_directories(source_vehicle_compiled_symbols_tu15_tests PRIVATE include src)
+    target_link_libraries(source_vehicle_compiled_symbols_tu15_tests PRIVATE Threads::Threads)
+    add_test(NAME source_vehicle_compiled_symbols_tu15 COMMAND source_vehicle_compiled_symbols_tu15_tests)
+    add_executable(source_effect_compiled_symbols_tu15_tests
+        tests/source_effect_compiled_symbols_tu15_tests.cpp
+        src/rendering/effects/source_effect_compiled_symbols_tu15.cpp)
+    target_include_directories(source_effect_compiled_symbols_tu15_tests PRIVATE include)
+    target_link_libraries(source_effect_compiled_symbols_tu15_tests PRIVATE Threads::Threads)
+    add_test(NAME source_effect_compiled_symbols_tu15 COMMAND source_effect_compiled_symbols_tu15_tests)
+endif()
+target_sources(halo2_physics_world_runtime PRIVATE src/rendering/effects/source_effect_world_locations.cpp)
 target_link_libraries(halo2_physics_world_runtime PUBLIC halo2_raw_datum_pool_identity halo2_mcc_sound_tag_layout)
-target_sources(halo2_systems PRIVATE src/source_projectile_presentation.cpp)
-target_sources(halo2_systems PRIVATE src/source_combat_attachments.cpp)
+target_sources(halo2_systems PRIVATE src/gameplay/weapons/source_projectile_presentation.cpp)
+target_sources(halo2_systems PRIVATE src/gameplay/units/source_combat_attachments.cpp)
 
 if(BUILD_TESTING)
     add_executable(replay_contrail_snapshot_tu15 tools/replay_contrail_snapshot_tu15.cpp)
@@ -1066,7 +1127,7 @@ if(BUILD_TESTING)
     target_link_libraries(campaign_vehicle_physics_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
 endif()
 
-target_sources(halo2_systems PRIVATE src/source_effect_light_birth_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/effects/source_effect_light_birth_tu15.cpp)
 
 if(BUILD_TESTING)
     add_executable(source_machine_world_tu15_tests EXCLUDE_FROM_ALL tests/source_machine_world_tu15_tests.cpp)

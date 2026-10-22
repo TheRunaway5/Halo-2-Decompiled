@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="68" height="72" viewBox="0 0 17 18" version="1.1">
+  <title>Xbox rt: custom controller prompt</title>
+  <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+  <defs>
+    <linearGradient id="button-body" gradientUnits="userSpaceOnUse" x1="0" x2="17" y1="0" y2="0">
+      <stop offset="0" stop-color="#000000" />
+      <stop offset="1" stop-color="#807f7f" />
+    </linearGradient>
+    <linearGradient id="button-edge" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="2" y2="18">
+      <stop offset="0" stop-color="#000000" />
+      <stop offset="1" stop-color="#111010" />
+    </linearGradient>
+  </defs>
+  <g transform="scale(1.00000000 1.00000000)" id="legacy-shoulder-letter">
+    <g transform="translate(17 0) scale(-1 1)">
+      <path id="body" d="M16 2 H8 C3 2 .5 5 .5 10 C.5 15 3 17.5 8 17.5 H16 Z" fill="url(#button-body)" stroke="url(#button-edge)" stroke-width=".6" />
+    </g>
+    <path id="letter-R" d="M2 5 H7 C9 5 10 6 10 8 C10 9.5 8.7 10 7.6 10 L10 14 H8 L6 10 H4 V14 H2 Z M4 7 V8.6 H7 C8 8.6 8 8 8 7.8 C8 7.2 7.4 7 7 7 Z" fill-rule="evenodd" fill="#cccccc" />
+  </g>
+</svg>

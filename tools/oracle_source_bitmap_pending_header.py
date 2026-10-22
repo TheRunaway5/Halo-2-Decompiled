@@ -191,7 +191,7 @@ def main():
         original_tables=[dict(address=f'{address:08X}',bytes=length,sha256=sha(image.read(address,length)))
             for address,length in [(0x450768,96),(0x4507c8,96),(0x453550,48)]],
         tool_sha256=sha(Path(__file__).read_bytes()),
-        helper_sha256=sha((ROOT/'src/source_bitmap_pending_header.cpp').read_bytes()),
+        helper_sha256=sha((ROOT/'src/rendering/source_bitmap_pending_header.cpp').read_bytes()),
         header_sha256=sha((ROOT/'include/halo2/source_bitmap_pending_header.hpp').read_bytes()),
         test_sha256=sha((ROOT/'tests/source_bitmap_pending_header_tests.cpp').read_bytes()),
         fixture_sha256=sha(args.write_fixture.read_bytes()),native_binary_sha256=sha(args.binary.read_bytes()),

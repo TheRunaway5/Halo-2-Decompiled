@@ -20,8 +20,8 @@ def main():
   observed=ROOT/'build-sandbox-release-20261010';selected=observed;headers=ROOT/'include'
  if a.bank:
   observed=a.bank.resolve()/'archives';selected=observed;headers=a.bank.resolve()/'include'
- sources=[ROOT/x for x in ('tests/source_grenade_scene_tests.cpp','src/source_grenade_scene.cpp','src/source_object_geometry.cpp')]
- renderer=[observed/x for x in ('libhalo2_renderer.a','libhalo2_imgui.a','libhalo2_shadow_render.a','libhalo2_menu_world_storage.a')]
+ sources=[ROOT/x for x in ('tests/source_grenade_scene_tests.cpp','src/gameplay/weapons/source_grenade_scene.cpp','src/gameplay/objects/source_object_geometry.cpp')]
+ renderer=[observed/x for x in ('libhalo2_renderer.a','libhalo2_shadow_render.a','libhalo2_menu_world_storage.a')]
  middle=[selected/x for x in ('libhalo2_systems.a','libhalo2_sound_platform.a')]
  last=[observed/'libhalo2_particle_renderer.a',selected/'libhalo2_cache.a',selected/'libhalo2_native_synchronization.a']
  deps=renderer+middle+last

@@ -1,0 +1,175 @@
+{
+  "schema": "macos-world-depth-differential-progress-v1",
+  "date": "2026-10-21",
+  "passed": false,
+  "status": "diagnosing reference-test timeout; no equivalence acceptance",
+  "scope": "Same-device original GS/D24 vs triangle/D24 vs triangle/canonical D32 using original Regret programs; diagnostic camera/palette/bias controls, no live renderer activation or Xbox pixels.",
+  "initial_skip": {
+    "reason": "The first frozen Linux cohort omitted the existing validation-layer reference and CTest layer environment. A skip is not acceptance.",
+    "runner": {
+      "passed": true,
+      "status": "passed",
+      "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-yn228df7/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-9p492fgf/source",
+            "-B",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-yn228df7/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DHALO2_BUNDLE_MOVIES=OFF",
+            "-DFETCHCONTENT_SOURCE_DIR_HALO2_DATACHANNEL=/home/eric/Developer/Halo-2-Decompiled/build-multiplayer/_deps/halo2_datachannel-src"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-world-depth-gradient-linux/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-yn228df7/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "hologram_draw_gpu_tests"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-world-depth-gradient-linux/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-yn228df7/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "1",
+            "--tests-regex",
+            "^original_hologram_depth_differential_gpu$"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-world-depth-gradient-linux/tests.log",
+          "exit_code": 0
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "hologram-depth-differential/report.json",
+          "status": "not produced"
+        }
+      ]
+    }
+  },
+  "timeout": {
+    "runner": {
+      "passed": false,
+      "status": "failed",
+      "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-yb6ph5hi/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-h4hgltfl/source",
+            "-B",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-yb6ph5hi/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DHALO2_BUNDLE_MOVIES=OFF",
+            "-DFETCHCONTENT_SOURCE_DIR_HALO2_DATACHANNEL=/home/eric/Developer/Halo-2-Decompiled/build-multiplayer/_deps/halo2_datachannel-src"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-world-depth-gradient-linux/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-yb6ph5hi/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "hologram_draw_gpu_tests"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-world-depth-gradient-linux/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-yb6ph5hi/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "1",
+            "--tests-regex",
+            "^original_hologram_depth_differential_gpu$"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-world-depth-gradient-linux/tests.log",
+          "exit_code": 8
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "hologram-depth-differential/report.json",
+          "status": "not produced"
+        }
+      ]
+    },
+    "tests_log": "Test project /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-yb6ph5hi/build\n    Start 648: original_hologram_depth_differential_gpu\n1/1 Test #648: original_hologram_depth_differential_gpu ...***Timeout 300.13 sec\n\n\n0% tests passed, 1 tests failed out of 1\n\nTotal Test time (real) = 300.17 sec\n\nThe following tests FAILED:\n\t648 - original_hologram_depth_differential_gpu (Timeout)\nErrors while running CTest\n",
+    "input_receipt": {
+      "scratch_owner": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-h4hgltfl",
+      "frozen_source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-h4hgltfl/source",
+      "source_files": 9002,
+      "validation_reference": "/home/eric/Developer/Halo-2-Decompiled/.tools/validation"
+    }
+  },
+  "hypotheses": [
+    "Pipeline creation cost for previously untested depth-enabled format/state variants.",
+    "Validation of replacement shader modules.",
+    "Repeated packet preparation for the full matrix."
+  ],
+  "measurement_change": "Added bounded elapsed-time phase checkpoints; kept matrix, depth oracle and timeout unchanged. Report stores distinct nonflat-depth count rather than an unbounded raw set.",
+  "source_sha256": {
+    "tests/hologram_draw_gpu_tests.cpp": "7ed6743692e50f8d9a1ec56ed103253a4966b3d5434231b1645ad4737674c942",
+    "CMakeLists.txt": "61fed6767a4e1bf3ebd4bd5cc58a793ade8def905d3ef9c7ee853a14dfd76f9c"
+  },
+  "cleanup": {
+    "/tmp/halo2-test-2wn0kbg7": true,
+    ".local/test-scratch/halo2-test-h4hgltfl": true,
+    ".local/test-scratch/halo2-test-yb6ph5hi": true
+  },
+  "active_owner": {
+    "scratch_owner": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-__x1_mgq",
+    "frozen_source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-__x1_mgq/source",
+    "source_files": 9002,
+    "refresh": "Test-only bounded phase/timing checkpoints and bounded distinct-depth count report; depth matrix/oracle and timeout unchanged.",
+    "readonly_references": [
+      "/home/eric/Developer/Halo-2-Decompiled/assets",
+      "/home/eric/Developer/Halo-2-Decompiled/.tools"
+    ],
+    "previous_owners_removed": {
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-h4hgltfl": true,
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-yb6ph5hi": true
+    }
+  },
+  "large_artifacts_retained": []
+}

@@ -22,10 +22,10 @@ function(halo2_add_source_weather_graphics weather_source_root)
     endforeach()
     add_custom_target(source_weather_graphics_shaders DEPENDS ${weather_shader_outputs})
     add_library(halo2_weather_render
-        "${weather_source_root}/src/source_weather_point_render.cpp"
-        "${weather_source_root}/src/source_weather_line_render.cpp"
-        "${weather_source_root}/src/source_weather_plate_render.cpp"
-        "${weather_source_root}/src/source_weather_plate_caller_render.cpp")
+        "${weather_source_root}/src/rendering/weather/source_weather_point_render.cpp"
+        "${weather_source_root}/src/rendering/weather/source_weather_line_render.cpp"
+        "${weather_source_root}/src/rendering/weather/source_weather_plate_render.cpp"
+        "${weather_source_root}/src/rendering/weather/source_weather_plate_caller_render.cpp")
     target_include_directories(halo2_weather_render PUBLIC "${weather_source_root}/include")
     # Typed preparation derives its own complete caller program/projection.
     # The legacy renderer translation unit keeps no builder dependency, so

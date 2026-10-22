@@ -44,7 +44,7 @@ def main():
                    'production-normal','production-sanitizer'):
         for path in sorted((BASE/folder).rglob('*')):
             if path.is_file():copy(path,FROZEN/'evidence'/folder/path.relative_to(BASE/folder))
-    names=['include/halo2/object_model_resources.hpp','src/object_model_resources.cpp',
+    names=['include/halo2/object_model_resources.hpp','src/gameplay/objects/object_model_resources.cpp',
         'tests/object_model_resources_tests.cpp','tools/oracle_object_model_resources_native.py',
         'tools/measure_object_model_resources_native.py','tools/export_object_model_resource_fixtures.py',
         'tools/validate_object_model_resources_native.py','tools/validate_object_model_resources_production.py',

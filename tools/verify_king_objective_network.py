@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'analysis/multiplayer/game-variants/king-objective-network-native-20261012'
 TARGETS=('king_objective_network_tests','king_runtime_tests','multiplayer_tests','camouflage_runtime_tests','multiplayer_fp_network_tests','multiplayer_scope_network_tests')
-OWNED=('include/halo2/multiplayer.hpp','include/halo2/multiplayer_datagrams.hpp','src/multiplayer.cpp','src/multiplayer_network.cpp','tests/king_runtime_tests.cpp','tests/king_objective_network_tests.cpp','tools/verify_king_objective_network.py')
+OWNED=('include/halo2/multiplayer.hpp','include/halo2/multiplayer_datagrams.hpp','src/gameplay/multiplayer/multiplayer.cpp','src/network/multiplayer_network.cpp','tests/king_runtime_tests.cpp','tests/king_objective_network_tests.cpp','tools/verify_king_objective_network.py')
 U5='/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe'
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def main():
@@ -52,7 +52,7 @@ def main():
  for target in('multiplayer_fp_network_tests','multiplayer_scope_network_tests'):
   execute(target,[build/target,source/'assets/disc/maps/lockout.map',source/'assets/disc/maps',U5])
  entries=json.loads((build/'compile_commands.json').read_text());objects=[]
- for index,name in enumerate(('src/multiplayer.cpp','src/multiplayer_network.cpp','tests/king_objective_network_tests.cpp')):
+ for index,name in enumerate(('src/gameplay/multiplayer/multiplayer.cpp','src/network/multiplayer_network.cpp','tests/king_objective_network_tests.cpp')):
   row=next(e for e in entries if Path(e['file'])==source/name);cmd=shlex.split(row['command']);obj=run/f'sanitized-{index}.o'
   cmd[cmd.index('-o')+1]=str(obj);cmd.extend(['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer'])
   execute('sanitizer-compile-'+str(index),cmd,Path(row['directory']));objects.append(obj)
@@ -73,7 +73,7 @@ def main():
  manifest=dict(schema='king-objective-network-native-v1',boundary=__doc__,source=str(source),source_hashes_sha256=sha(run/'source-hashes.json'),
   asset_hashes_sha256=sha(run/'asset-hashes.json'),commands=commands,live_checkout_drift=drift,
   binaries={str(p.relative_to(args.output.parent)):sha(p)for p in(*(build/t for t in TARGETS),sanitized)},
-  scoped_sanitized_owners=['src/multiplayer.cpp','src/multiplayer_network.cpp','tests/king_objective_network_tests.cpp'],
+  scoped_sanitized_owners=['src/gameplay/multiplayer/multiplayer.cpp','src/network/multiplayer_network.cpp','tests/king_objective_network_tests.cpp'],
   ordinary_linked_libraries=True,native_king_objective_delivery=True,normal_king_admission=False,complete_match_flows=False,goal_complete=False)
  (run/'verification.json').write_text(json.dumps(manifest,sort_keys=True,indent=2)+'\n');shutil.copy2(run/'verification.json',args.output);print(args.output,flush=True)
 if __name__=='__main__':main()

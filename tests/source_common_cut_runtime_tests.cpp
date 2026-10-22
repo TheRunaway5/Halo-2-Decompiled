@@ -2,6 +2,7 @@
 #include "halo2/multiplayer_receipt_continuity.hpp"
 #include "halo2/native_player_profile.hpp"
 #include "halo2/peer_common_cut.hpp"
+#include "halo2/cache.hpp"
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <array>
@@ -18,6 +19,15 @@ using namespace std::chrono_literals;
 namespace {
 std::string stage="setup";
 void check(bool value,const char *why){if(!value)throw FormatError(why);}
+bool same_peer_envelopes(const SoundClassFades &a,const SoundClassFades &b){
+    for(std::size_t i=0;i<sound_class_count;++i){
+        const auto &x=a.state()[i],&y=b.state()[i];
+        if(std::bit_cast<std::uint32_t>(x.target)!=std::bit_cast<std::uint32_t>(y.target)||
+            std::bit_cast<std::uint32_t>(x.current)!=std::bit_cast<std::uint32_t>(y.current)||
+            std::bit_cast<std::uint32_t>(x.remaining)!=std::bit_cast<std::uint32_t>(y.remaining))return false;
+    }
+    return true;
+}
 const auto deadline=std::chrono::steady_clock::now()+240s;
 std::function<void(std::string_view)> diagnostic;
 unsigned diagnostic_reports{};
@@ -72,7 +82,13 @@ struct Foreground {
         world(*r.world().cache,mesh,r.match().simulation().collision(),random),muzzle(*r.world().cache,random),
         map(*r.world().cache,r.world().content.objects,world),combat(*r.world().cache,world,{}),
         effects(muzzle,world,map,combat,random),sounds(*r.world().cache),
-        history(effects,sounds,r.match().simulation(),128){}
+        history(effects,sounds,r.match().simulation(),128){
+        // Declared local envelope requests exercise the receipt companion;
+        // they do not claim a native game-over event or alter host classes.
+        values.peer_sound_classes.set("game_event",.25f,3.f);
+        values.peer_sound_classes.set("ambient",.5f,6.f);
+        values.peer_sound_classes.advance(.125f);
+    }
     void offer(){
         if(!current)return;
         const auto common=session->common_cut();if(!common||!common->pending)return;
@@ -96,6 +112,8 @@ struct Foreground {
             world.advance(*origin.tick(),tick_seconds);muzzle.advance(*origin.tick(),tick_seconds);
         }
         MultiplayerRuntimeReceiptFrontier frontier;
+        frontier.peer_sound_classes=values.peer_sound_classes;
+        frontier.peer_game_over_fade_started=values.peer_game_over_fade_started;
         frontier.previous=*previous;frontier.replica=match.replica_checkpoint(origin);
         frontier.local_slots.assign(origin.local_slots().begin(),origin.local_slots().end());
         frontier.client_state_bound=frontier.joined=true;
@@ -133,8 +151,19 @@ struct Foreground {
 }
 
 int main(int argc,char **argv)try{
-    std::cout<<std::unitbuf;check(argc==5,"Supply ORIGIN DESCRIPTORS XBE MAP");
-    if(!std::filesystem::exists(argv[3])||!std::filesystem::exists(argv[4]))return 77;
+    std::cout<<std::unitbuf;check(argc==5,"Supply ORIGIN DESCRIPTORS (XBE | --mcc) MAP");
+    const bool selected_mcc=std::string_view(argv[3])=="--mcc";
+    if(selected_mcc){
+        check(std::filesystem::is_regular_file(argv[4]),"Explicit MCC common-cut map is missing");
+        const auto map=std::filesystem::path(argv[4]);
+        const Cache cache(map,map.parent_path(),std::shared_ptr<const OriginalData>{});
+        check(cache.is_mcc()&&!cache.is_vista()&&cache.original_data()==OriginalData::native_tu15(),
+            "MCC common-cut route requires imported MCC assets and compiled native TU1.5 gameplay");
+        std::cout<<"OBSERVED selected MCC common-cut input; external_xbe=0; no asset import performed\n";
+    }else{
+        if(!std::filesystem::is_regular_file(argv[3])||!std::filesystem::is_regular_file(argv[4]))return 77;
+        std::cout<<"REFERENCE offline Xbox TU1.5 common-cut route; not MCC runtime acceptance\n";
+    }
     nlohmann::json descriptors;{std::ifstream input(argv[2]);input>>descriptors;}
     std::vector<OnlineAdmission> roster;
     for(const auto &row:descriptors.at(0).at("players")){
@@ -162,7 +191,9 @@ int main(int argc,char **argv)try{
     std::array<std::shared_ptr<MultiplayerPreparedWorld>,16> worlds;
     stage="native worlds";
     for(unsigned p=0;p<16;++p)if(sessions[p]){
-        auto &o=options[p];o.gameplay_xbe=argv[3];o.map=argv[4];o.variant=variant;o.local_players=4;o.session_random_seed=0x71;o.online_match=sessions[p];
+        auto &o=options[p];if(!selected_mcc)o.gameplay_xbe=argv[3];
+        o.map=argv[4];o.shared_maps=o.map.parent_path();o.source_object_world=true;
+        o.variant=variant;o.local_players=4;o.session_random_seed=0x71;o.online_match=sessions[p];
         for(const auto &player:roster)if(online_admission_peer(player)==p)o.selected_profiles.push_back(profile(player.name));
         worlds[p]=std::make_shared<MultiplayerPreparedWorld>(o,std::nullopt,std::make_shared<Clock>());
     }
@@ -383,11 +414,23 @@ int main(int argc,char **argv)try{
     stage="composed historical receipt/pose/effect adoption";
     for(unsigned n=0;n<clients.size();++n){auto &f=*foreground[clients[n]];const auto &saved=first_frontiers[n];
         MultiplayerReceiptContinuity continuity({f.values,f.display_current,f.display_previous,f.display_origin},f.effects,f.sounds,f.poses);
+        const auto &names=sound_class_names();const auto event_class=std::ranges::find(names,"game_event");
+        check(event_class!=names.end(),"Peer envelope control has no actual game-event class");
+        check(saved.frontier().peer_sound_classes.state()[std::size_t(event_class-names.begin())].remaining>0,
+            "Saved peer envelope lacks its declared unfinished game-event fade");
+        f.values.peer_sound_classes.set("",.8f,9.f);f.values.peer_sound_classes.advance(.5f);
+        f.values.peer_game_over_fade_started=!saved.frontier().peer_game_over_fade_started;
+        const auto later_peer_classes=f.values.peer_sound_classes;
+        const bool later_peer_game_over=f.values.peer_game_over_fade_started;
+        check(!same_peer_envelopes(later_peer_classes,saved.frontier().peer_sound_classes),
+            "Peer envelope restore lacks a genuinely different live envelope control");
         const auto later=f.display_origin;
         check(!later.same(saved.origin())&&f.display_current.tick>saved.current().tick,
             "Receipt restore did not retain a genuinely later live state control");
         const auto unchanged=[&]{return f.display_origin.same(later)&&f.display_current.tick==later.tick()&&
-            std::as_const(f.poses).state().client_fp_reported_units[0]==later.sequence();};
+            std::as_const(f.poses).state().client_fp_reported_units[0]==later.sequence()&&
+            same_peer_envelopes(f.values.peer_sound_classes,later_peer_classes)&&
+            f.values.peer_game_over_fade_started==later_peer_game_over;};
         {auto cancelled=continuity.prepare(saved,{},{});check(continuity.ready(cancelled,saved.cut()),"Exact saved receipt did not prepare");}
         check(unchanged(),"Cancelled receipt preparation changed live values or pose owners");
         bool foreign_rejected{};try{(void)continuity.prepare(first_frontiers[1-n],{},{});}catch(const FormatError &){foreign_rejected=true;}
@@ -404,11 +447,19 @@ int main(int argc,char **argv)try{
             f.display_origin.same(saved.origin())&&f.display_current.tick==saved.current().tick&&
             f.display_previous.tick==saved.previous().tick&&f.values.previous.same(saved.frontier().previous)&&
             f.values.local_slots==saved.frontier().local_slots&&f.values.world_effect_tick==saved.frontier().world_effect_tick&&
-            std::as_const(f.poses).state().client_fp_reported_units[0]==saved.origin().sequence(),
+            std::as_const(f.poses).state().client_fp_reported_units[0]==saved.origin().sequence()&&
+            same_peer_envelopes(f.values.peer_sound_classes,saved.frontier().peer_sound_classes)&&
+            f.values.peer_game_over_fade_started==saved.frontier().peer_game_over_fade_started,
             "Composed receipt publication did not atomically restore exact historical owners once");
+        auto expected=saved.frontier().peer_sound_classes;expected.advance(.03125f);
+        f.values.peer_sound_classes.advance(.03125f);
+        check(same_peer_envelopes(f.values.peer_sound_classes,expected),
+            "Restored peer envelope did not continue the original fade from its exact historical phase");
     }
     require_live();
     std::cout<<"PASS native common-cut composed receipt adoption: exact effects/pose/frontiers/deferred cues; cancellation, foreign owner, stale mutation, wrong seal and executor controls\n";
+    std::cout<<"PASS native common-cut peer audio envelopes: all54 target/current/remaining triples and game-over latch; continued fade suffix\n";
+    if(selected_mcc)std::cout<<"PASS selected-MCC-native common-cut receipt route: three physical sessions and twelve couch players\n";
     std::cout<<"LIMIT headless CPU/native owner-pin integration; no full renderer/HUD/input/playing-audio adopter, host-loss activation, WAN or physical controller/headset acceptance\n";
     return 0;
 }catch(const std::exception &error){std::cerr<<stage<<": "<<error.what()<<'\n';return 1;}

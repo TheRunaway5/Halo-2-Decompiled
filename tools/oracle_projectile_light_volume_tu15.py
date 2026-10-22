@@ -17,12 +17,12 @@ from unicorn.x86_const import UC_X86_REG_ESP,UC_X86_REG_EIP,UC_X86_REG_ECX,UC_X8
 STATE,STACK,STOP,TABLE=0x2100000,0x21fff00,0x3000000,0x2300000
 def f32(v):return struct.unpack('<f',struct.pack('<f',v))[0]
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--inputs',type=Path,required=True);p.add_argument('--expected',type=Path,required=True);p.add_argument('--native-binary',type=Path);a=p.parse_args()
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--inputs',type=Path,required=True);p.add_argument('--expected',type=Path,required=True);p.add_argument('--native-binary',type=Path);p.add_argument('--ghost-only',action='store_true');a=p.parse_args()
  bank={label:x for label,x,_ in images()};old=bank['retail'];old_code=_Code(old,'.text')
  old_starts={int(r['address'],16) for r in csv.DictReader((ROOT/'analysis/retail/functions.tsv').open(),delimiter='\t')}
- cache=Cache(ROOT/'assets/disc/maps/lockout.map');definitions=[t for t in cache.tags.values() if t['group']=='MGS2' and t['name'] in (
+ cache=Cache(ROOT/'assets/disc/maps/lockout.map');names=('effects\\objects\\vehicles\\ghost\\ghost_bolt',) if a.ghost_only else (
   'effects\\objects\\weapons\\pistol\\plasma_pistol\\plasma_bolt',
-  'effects\\objects\\weapons\\pistol\\plasma_pistol\\plasma_charged_bolt')];assert len(definitions)==2
+  'effects\\objects\\weapons\\pistol\\plasma_pistol\\plasma_charged_bolt');definitions=[t for t in cache.tags.values() if t['group']=='MGS2' and t['name'] in names];assert len(definitions)==len(names)
  controls=[];rng=random.Random(0x4f25a)
  for tag in definitions:
   for distance in (1.,8.,25.,89.,95.,101.):

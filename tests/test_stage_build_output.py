@@ -1,6 +1,7 @@
 """Local-build staging transactions use disposable roots, never live dist/."""
 from pathlib import Path
 import hashlib
+import errno
 import json
 import os
 import platform
@@ -110,6 +111,28 @@ class StageBuildOutputTests(unittest.TestCase):
         result = self.stage(source)
         self.assertTrue(result["binary_changed"])
         self.assertEqual((self.out/"halo2_native").read_bytes(), source.read_bytes())
+        self.assert_no_temporaries()
+
+    def test_drive_without_hard_links_stages_and_preserves_manifest_failure_rollback(self):
+        source = self.binary(payload=b"old build")
+        self.stage(source)
+        previous = (self.out / "halo2_native").read_bytes()
+        metadata = (self.out / staging.MANIFEST).read_bytes()
+        source.write_bytes(elf(b"new build"))
+        replace = staging.os.replace
+        def fail_manifest(src, dst, **kwargs):
+            if dst == staging.MANIFEST:
+                raise OSError("manifest publication failed")
+            return replace(src, dst, **kwargs)
+        with patch.object(staging.os, "link", side_effect=PermissionError(errno.EPERM, "hard links unsupported")):
+            with patch.object(staging.os, "replace", side_effect=fail_manifest):
+                with self.assertRaisesRegex(OSError, "manifest publication failed"):
+                    self.stage(source)
+            self.assertEqual((self.out / "halo2_native").read_bytes(), previous)
+            self.assertEqual((self.out / staging.MANIFEST).read_bytes(), metadata)
+            self.assert_no_temporaries()
+            self.stage(source)
+        self.assertEqual((self.out / "halo2_native").read_bytes(), source.read_bytes())
         self.assert_no_temporaries()
 
     def test_unsupported_platforms_skip_even_missing_source_and_root(self):

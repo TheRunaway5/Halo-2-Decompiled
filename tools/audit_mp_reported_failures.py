@@ -142,10 +142,10 @@ def audit(output):
                 prior[path] = expected
 
     sources = [
-        'include/halo2/unit_animation_constants.hpp', 'include/halo2/original_data.hpp', 'src/original_data.cpp',
-        'include/halo2/unit_animation_metadata_store.hpp', 'src/unit_animation_metadata_store.cpp',
+        'include/halo2/unit_animation_constants.hpp', 'include/halo2/original_data.hpp', 'src/assets/original_data.cpp',
+        'include/halo2/unit_animation_metadata_store.hpp', 'src/gameplay/animation/unit_animation_metadata_store.cpp',
         'tests/unit_animation_metadata_store_tests.cpp', 'include/halo2/multiplayer.hpp',
-        'src/multiplayer.cpp', 'tests/fp_clock_tests.cpp', 'src/content.cpp',
+        'src/gameplay/multiplayer/multiplayer.cpp', 'tests/fp_clock_tests.cpp', 'src/assets/content.cpp',
         'tools/research_mp_sound_size_u5.py', 'tools/export_mp_first_person_sound_resources.py',
         'tools/export_mp_all_sound_resources.py', 'tests/multiplayer_sound_resources_tests.cpp',
         'tests/multiplayer_all_sound_resources_tests.cpp', 'tools/audit_mp_reported_failures.py',

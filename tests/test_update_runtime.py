@@ -416,9 +416,8 @@ class UpdateRuntimeTests(unittest.TestCase):
             "halo2/h2_maps_win64_dx11/sounds_neutral.dat": b"fixture classic audio partition",
             "halo2/h2_fonts/font_table.txt": b"fixture font selector",
             "halo2/h2_fonts/font.bin": b"fixture font pixels"}
-        for name in ["manifest.json", "prompt-source.tsv", "prompts.tsv"] + [
-                f"atlases/{index}.dds" for index in range(6)]:
-            resources["presentation/prompts/" + name] = b"fixture custom prompt bytes"
+        for name in ("manifest.json", "glow-mask.dds", "loading.wav"):
+            resources["presentation/loading-v3/" + name] = b"fixture declared MCC V3 loading owner"
         for name, data in resources.items():
             path = cache / name
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -436,6 +435,8 @@ class UpdateRuntimeTests(unittest.TestCase):
             map=dict(path="halo2/h2_maps_win64_dx11/mainmenu.map", sha256=digest(resources["halo2/h2_maps_win64_dx11/mainmenu.map"])),
             resources={name:digest(data) for name,data in resources.items() if not name.endswith(("lockout.map", "mainmenu.map"))})
         frontend["validation"]["scope"] = "mcc-native-title-menu"
+        frontend["validation"]["mcc_loading_presentation_profile"] = "mcc-logo-glow-mcc-track-oneshot-v1"
+        frontend["validation"]["mcc_prompt_font_profile"] = "mcc-native-control-fonts-v1"
         self.publish(1, metadata={"halo2_native.native-test.json":json.dumps(native).encode(),
                                   "halo2_native.frontend-test.json":json.dumps(frontend).encode()})
         self.update()

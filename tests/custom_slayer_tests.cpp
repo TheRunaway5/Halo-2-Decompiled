@@ -46,7 +46,7 @@ void gameplay(const std::filesystem::path &root,const std::filesystem::path &xbe
   const auto maps=root/"assets/disc/maps";
   const Cache cache(maps/(map+".map"),maps,OriginalData::load_xbe(xbe));
   auto content=cache.load_content(0,true);const auto bank=cache.multiplayer_weapon_choices();
-  const auto variants=load_custom_slayer_variants(root/"data/tags/variants");check(variants.size()==2,"Missing bundled modes");
+  const auto variants=load_custom_slayer_variants(root/"data/tags/variants");check(variants.size()==3,"Missing bundled modes");
   const auto fiesta=*std::find_if(variants.begin(),variants.end(),[](const auto &v){return custom_slayer(v)==CustomSlayer::fiesta;});
   const auto infection=*std::find_if(variants.begin(),variants.end(),[](const auto &v){return custom_slayer(v)==CustomSlayer::infection;});
   check(custom_slayer_fingerprint(7,fiesta)!=custom_slayer_fingerprint(7,infection) && custom_slayer_fingerprint(7,fiesta)!=7,"Custom mode admission not fenced");

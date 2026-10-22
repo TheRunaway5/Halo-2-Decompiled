@@ -31,7 +31,7 @@ def main():
  r=dict(schema=1,passed=run.returncode==0,cases=len(d['cases']),ordered_stores=sum(len(c['stores'])for c in d['cases']),
   tool_sha256=digest(__file__),original_u5_report_sha256=digest(OUT/'report.json'),original_u5_audit_sha256=digest(OUT/'audit.json'),
   fixture_sha256=digest(fixture),instruction_site_adapter_sha256=digest(OUT/'native-site-adapter.json'),
-  native_binary_sha256=digest(a.binary),native_sources={name:digest(ROOT/name)for name in('include/halo2/unit_locomotion.hpp','src/unit_locomotion.cpp','tests/unit_locomotion_tests.cpp')},
+  native_binary_sha256=digest(a.binary),native_sources={name:digest(ROOT/name)for name in('include/halo2/unit_locomotion.hpp','src/gameplay/units/unit_locomotion.cpp','tests/unit_locomotion_tests.cpp')},
   complete_output70_and_store_data_order_compared=True,native_trace_is_1_1_address_space=True,actual_u5_addresses_separately_recorded=True,
   stdout=run.stdout,stderr=run.stderr,returncode=run.returncode,
   limits='Old original packets/physical-state/CPU are explicit inputs. No source-created u5 owner/controller/request/clock/pose/frame producer or CPU hardware parity is established. Other physical-state dispatches remain unavailable.')

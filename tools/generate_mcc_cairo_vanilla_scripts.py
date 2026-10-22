@@ -81,7 +81,7 @@ def generated(p):
 def main():
     a=argparse.ArgumentParser(description=__doc__);a.add_argument('--check',action='store_true');o=a.parse_args()
     result=generated(json.loads((ROOT/'tools/mcc-cairo-vanilla-scripts.json').read_text()))
-    output=ROOT/'src/mcc_cairo_vanilla_scripts.inc'
+    output=ROOT/'src/campaign/mcc_cairo_vanilla_scripts.inc'
     if o.check:
         if output.read_text()!=result:raise SystemExit('compiled Cairo vanilla profile is stale')
     else:output.write_text(result)

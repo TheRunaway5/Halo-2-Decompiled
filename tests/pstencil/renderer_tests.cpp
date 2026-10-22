@@ -1,5 +1,4 @@
 #include "halo2/renderer.hpp"
-#include "halo2/debug_panel.hpp"
 #include "halo2/effect_light.hpp"
 #include "halo2/world_material.hpp"
 #include "halo2/frontend_material.hpp"
@@ -38,7 +37,7 @@ int run(int argc,char** argv){
     while(std::getline(manifest,line)){Row r;std::istringstream f(line);require(bool(f>>r.command>>r.kind>>r.section>>r.instance>>r.part>>r.shader>>r.lod>>r.implementation>>r.vertex>>r.classification>>r.key),"raw light original selection row");if(keys.insert(r.key).second)rows.push_back(r);}
     require(rows.size()==3,"raw renderer needs both source classes and texture families");
     std::ofstream report(output/"measurements.tsv");report<<"program\twidth\theight\tviews\tlit_channels\tblend_error\tisolation_error\traw_packed_different_channels\n";
-    unsigned layouts=0;std::size_t shadowed_total=0;
+    unsigned layouts=0,temporal_cases=0;std::size_t shadowed_total=0;
     for(const auto& row:rows){
         std::vector<Vertex> scene;
         for(auto v:bsp.vertices)if(v.bsp_cluster==(row.kind?-2-int(row.instance):int(row.section))&&v.source_section==row.section&&v.source_part==row.part){v.material=0;v.lightmap=0;v.bsp_cluster=-1;scene.push_back(v);}
@@ -69,9 +68,9 @@ int run(int argc,char** argv){
         if(row.kind){const auto instance=load_menu_world_source_bsp_owner(cache,0,row.instance);owner={MenuWorldSourceOwnerKind::bsp_instance,instance.bsp_datum,row.instance,{}};source=menu_world_source_draw(geometry,row.part,MenuWorldSourceTopology::triangle_list,std::span(&instance.rows,1));}
         else{owner={MenuWorldSourceOwnerKind::bsp_cluster,geometry->owner_datum(),row.section,{}};source=menu_world_source_cluster_draw(geometry,row.part,MenuWorldSourceTopology::triangle_list);}
         Image single_base,single_lit;
-        for(const auto layout:std::array<std::array<unsigned,4>,3>{{{640,480,1,0},{853,479,4,0},{640,480,1,1}}}){
-            const auto [width,height,count,aa]=layout;SDL_SetWindowSize(window.get(),width,height);SDL_PumpEvents();renderer.resized();
-            auto display=renderer.debug_panel().display_settings();display.anti_aliasing=aa;renderer.debug_panel().display_settings(display);
+        for(const auto layout:std::array<std::array<unsigned,3>,3>{{{640,480,1},{853,479,4},{1280,960,1}}}){
+            const auto [width,height,count]=layout;SDL_SetWindowSize(window.get(),width,height);SDL_PumpEvents();renderer.resized();
+            auto display=renderer.display_settings();display.internal_width=display.internal_height=0;renderer.display_settings(display);
             std::array<ModelView,4> views;std::array<std::vector<EffectLightRawDraw>,4> draws;std::array<std::vector<Vertex>,4> packed;
             std::array<EffectLightDraw,4> packed_draws;
             for(unsigned i=0;i<count;++i){auto& v=views[i];const unsigned cols=count==1?1:2;
@@ -95,8 +94,8 @@ int run(int argc,char** argv){
             const auto baseline=capture(renderer,active,output/(stem+"-base.ppm"));
             for(unsigned i=0;i<count;++i)views[i].raw_effect_lights=std::span(draws[i]).first(1);
             const auto once=capture(renderer,active,output/(stem+"-raw.ppm"));
-            if(count==1 && !aa){single_base=baseline;single_lit=once;}
-            if(aa) {
+            if(count==1 && width==640){single_base=baseline;single_lit=once;}
+            if(count==1 && width==1280) {
                 const auto centroid=[](const Image& a,const Image& b) {
                     std::array<double,3> sum{};
                     for(unsigned y=0;y<a.height;++y)for(unsigned x=0;x<a.width;++x) {
@@ -104,15 +103,43 @@ int run(int argc,char** argv){
                         for(unsigned c=0;c<3;++c)weight+=std::max(0,int(b.pixels[p+c])-int(a.pixels[p+c]));
                         sum[0]+=x*weight;sum[1]+=y*weight;sum[2]+=weight;
                     }
-                    require(sum[2]>100,"AA illumination centroid has no positive light");
-                    return std::array{sum[0]/sum[2],sum[1]/sum[2]};
+                    require(sum[2]>100,"High-resolution illumination centroid has no positive light");
+                    return std::array{sum[0]/sum[2]/a.width,sum[1]/sum[2]/a.height};
                 };
                 const auto normal=centroid(single_base,single_lit),sampled=centroid(baseline,once);
-                require(std::abs(normal[0]-sampled[0])<2 && std::abs(normal[1]-sampled[1])<2,
-                    "SSAA moved raw point-light illumination in the output image");
+                require(std::abs(normal[0]-sampled[0])<2./640 && std::abs(normal[1]-sampled[1])<2./480,
+                    "Native resolution moved raw point-light illumination in the output image");
             }
-            auto graphics=renderer.debug_panel().display_settings();
-            graphics.graphics_mode=pstencil::GraphicsMode::pStencil;renderer.debug_panel().display_settings(graphics);
+            if(count==1 && width==640)for(auto method:{Upscaler::FSR31,Upscaler::DLSS45}) {
+                if(method==Upscaler::DLSS45 && renderer.device_name().find("RTX")==std::string::npos)continue;
+                const auto original=renderer.display_settings();auto temporal=original;temporal.upscaler=method;temporal.upscaling_quality=UpscalingQuality::Quality;
+                require(renderer.validate_display_settings(temporal).empty(),"Real-map upscaling unavailable");renderer.display_settings(temporal);
+                views[0].raw_effect_lights={};
+                const auto unlit=capture(renderer,active,output/(stem+"-upscale-"+std::to_string(unsigned(method))+"-base.ppm"));
+                views[0].raw_effect_lights=std::span(draws[0]).first(1);
+                const auto lit=capture(renderer,active,output/(stem+"-upscale-"+std::to_string(unsigned(method))+"-lit.ppm"));
+                require(lit.width==width && lit.height==height,"Real-map upscaling lost output extent");
+                const auto centroid=[](const Image& a,const Image& b) {
+                    std::array<double,3> sum{};
+                    for(unsigned y=0;y<a.height;++y)for(unsigned x=0;x<a.width;++x) {
+                        const auto p=(std::size_t(y)*a.width+x)*3;double weight{};
+                        for(unsigned c=0;c<3;++c)weight+=std::max(0,int(b.pixels[p+c])-int(a.pixels[p+c]));
+                        sum[0]+=x*weight;sum[1]+=y*weight;sum[2]+=weight;
+                    }
+                    require(sum[2]>100,"Upscaling lost the original raw point light");
+                    return std::array{sum[0]/sum[2]/a.width,sum[1]/sum[2]/a.height};
+                };
+                const auto reference=centroid(baseline,once),scaled=centroid(unlit,lit);
+                require(std::abs(reference[0]-scaled[0])<.07 && std::abs(reference[1]-scaled[1])<.07,"Upscaling moved raw point-light illumination");
+                temporal.graphics_mode=pstencil::GraphicsMode::pStencil;renderer.display_settings(temporal);
+                capture(renderer,active,output/(stem+"-upscale-"+std::to_string(unsigned(method))+"-pstencil.ppm"));
+                renderer.display_settings(original);
+                const auto restored=capture(renderer,active,output/(stem+"-upscale-restored.ppm"));
+                require(restored.pixels==once.pixels,"Disabling upscaling changed restored Original pixels");
+                ++temporal_cases;
+            }
+            auto graphics=renderer.display_settings();
+            graphics.graphics_mode=pstencil::GraphicsMode::pStencil;renderer.display_settings(graphics);
             const auto stencil=capture(renderer,active,output/(stem+"-pstencil.ppm"));
             std::size_t shadowed=0;
             for(std::size_t p=0;p<once.pixels.size();++p) {
@@ -120,7 +147,7 @@ int run(int argc,char** argv){
                 shadowed+=int(once.pixels[p])-int(stencil.pixels[p])>1;
             }
             shadowed_total+=shadowed;
-            graphics.graphics_mode=pstencil::GraphicsMode::Original;renderer.debug_panel().display_settings(graphics);
+            graphics.graphics_mode=pstencil::GraphicsMode::Original;renderer.display_settings(graphics);
             const auto restored=capture(renderer,active,output/(stem+"-restored.ppm"));
             require(restored.pixels==once.pixels,"Original pixels changed after live pStencil round trip");
             std::cout<<stem<<" pStencil_shadowed_channels="<<shadowed<<" Original_roundtrip=exact\n";
@@ -143,6 +170,6 @@ int run(int argc,char** argv){
             std::cout<<stem<<" lit_channels="<<lit<<" blend_error="<<blend_error<<" isolation_error="<<isolation_error<<" raw_packed_differences="<<differences<<'\n';
         }
     }
-    require(layouts==9,"pStencil real geometry layout coverage changed");std::cout<<"PASS 9 pStencil real Cache layouts including SSAA with live Original round trips; actual Cache class0/1 geometry, volume and live texture target, additive blend, per-view isolation and resize; controlled service fixture, no original gameplay frame\n";return 0;
+    require(layouts==9 && temporal_cases>=3,"pStencil real geometry layout coverage changed");std::cout<<"Native temporal real-map cases="<<temporal_cases<<"\n";std::cout<<"PASS 9 pStencil real Cache layouts including high native resolution with live Original round trips; actual Cache class0/1 geometry, volume and live texture target, additive blend, per-view isolation and resize; controlled service fixture, no original gameplay frame\n";return 0;
 }
 int main(int argc,char** argv){std::ostringstream validation;auto* old=std::cerr.rdbuf(validation.rdbuf());try{const auto result=run(argc,argv);std::cerr.rdbuf(old);require(validation.str().find("Vulkan validation:")==std::string::npos,"raw source sphere Vulkan validation diagnostics");return result;}catch(const std::exception& e){std::cerr.rdbuf(old);std::cerr<<validation.str()<<e.what()<<'\n';return 1;}}

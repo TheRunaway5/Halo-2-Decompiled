@@ -26,7 +26,7 @@ PAIRS=((0x161790,0x162b70),(0x161a90,0x162e70),(0x161f80,0x163360),(0x162ac0,0x1
  (0x163280,0x164660),(0x37eb40,0x3825d0))
 FROZEN={
  'include/halo2/multiplayer_kbm.hpp':'0f00df7572bf32e17db48cdb7dba430f89a5c46b804b9b1a43e2eb5b2e952028',
- 'src/multiplayer_kbm.cpp':'35940b37504d6efd7ba717cba4ab07f7a98e75a1b6f0e03035f405ef193fc3b9',
+ 'src/input/multiplayer_kbm.cpp':'35940b37504d6efd7ba717cba4ab07f7a98e75a1b6f0e03035f405ef193fc3b9',
  'tests/multiplayer_kbm_tests.cpp':'7c6d1abc6dad1461c144737b435b9e635cace2558364eda8f6016d4df288c88f',
  'analysis/multiplayer/integration/spawn-source/kbm-native-adapter/report.json':'a485d5ffd77ab5fcc7943b4cea37566354c16bc5cc526986d0382dcb4acb24c5'}
 REGS=(('eax',UC_X86_REG_EAX),('ebx',UC_X86_REG_EBX),('ecx',UC_X86_REG_ECX),('edx',UC_X86_REG_EDX),('esi',UC_X86_REG_ESI),('edi',UC_X86_REG_EDI),('ebp',UC_X86_REG_EBP),('esp',UC_X86_REG_ESP),('eflags',UC_X86_REG_EFLAGS),('xmm0',UC_X86_REG_XMM0),('xmm1',UC_X86_REG_XMM1),('xmm2',UC_X86_REG_XMM2),('xmm3',UC_X86_REG_XMM3))

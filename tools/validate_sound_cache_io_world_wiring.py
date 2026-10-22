@@ -19,19 +19,19 @@ def main():
     for line in flags.read_text().splitlines():
         if line.startswith(('CXX_DEFINES =','CXX_INCLUDES =','CXX_FLAGS =')):
             key,value=line.split('=',1);values[key.strip()]=shlex.split(value)
-    source=ROOT/'src/physics_live_world_tu15.cpp'
-    inputs=[source,ROOT/'src/source_sound_cache_io_tu15.cpp',ROOT/'include/halo2/source_sound_cache_io_tu15.hpp',
-        ROOT/'src/source_sound_cache_query_tu15_generated.cpp',ROOT/'include/halo2/source_sound_cache_query_tu15.hpp',
-        ROOT/'src/source_sound_scalar_tu15_generated.cpp',ROOT/'include/halo2/source_sound_scalar_tu15.hpp',
-        ROOT/'src/source_sound_listener_selection_tu15_generated.cpp',ROOT/'include/halo2/source_sound_listener_selection_tu15.hpp',
-        ROOT/'src/source_sound_gain_tu15_generated.cpp',ROOT/'include/halo2/source_sound_gain_tu15.hpp',
-        ROOT/'src/source_sound_random_scalar_tu15_generated.cpp',ROOT/'include/halo2/source_sound_random_scalar_tu15.hpp',
-        ROOT/'src/source_sound_properties_tu15_generated.cpp',ROOT/'include/halo2/source_sound_properties_tu15.hpp',
-        ROOT/'src/source_sound_random_short_tu15_generated.cpp',ROOT/'include/halo2/source_sound_random_short_tu15.hpp',
-        ROOT/'src/source_sound_range_selection_tu15_generated.cpp',ROOT/'include/halo2/source_sound_range_selection_tu15.hpp',
-        ROOT/'src/source_sound_permutation_tu15_generated.cpp',ROOT/'include/halo2/source_sound_permutation_tu15.hpp',
-        ROOT/'src/source_sound_binding_tu15_generated.cpp',ROOT/'include/halo2/source_sound_binding_tu15.hpp',
-        ROOT/'src/source_sound_chunk_readiness_tu15_generated.cpp',ROOT/'include/halo2/source_sound_chunk_readiness_tu15.hpp',
+    source=ROOT/'src/physics/physics_live_world_tu15.cpp'
+    inputs=[source,ROOT/'src/audio/source_sound_cache_io_tu15.cpp',ROOT/'include/halo2/source_sound_cache_io_tu15.hpp',
+        ROOT/'src/audio/source_sound_cache_query_tu15_generated.cpp',ROOT/'include/halo2/source_sound_cache_query_tu15.hpp',
+        ROOT/'src/audio/source_sound_scalar_tu15_generated.cpp',ROOT/'include/halo2/source_sound_scalar_tu15.hpp',
+        ROOT/'src/audio/source_sound_listener_selection_tu15_generated.cpp',ROOT/'include/halo2/source_sound_listener_selection_tu15.hpp',
+        ROOT/'src/audio/source_sound_gain_tu15_generated.cpp',ROOT/'include/halo2/source_sound_gain_tu15.hpp',
+        ROOT/'src/audio/source_sound_random_scalar_tu15_generated.cpp',ROOT/'include/halo2/source_sound_random_scalar_tu15.hpp',
+        ROOT/'src/audio/source_sound_properties_tu15_generated.cpp',ROOT/'include/halo2/source_sound_properties_tu15.hpp',
+        ROOT/'src/audio/source_sound_random_short_tu15_generated.cpp',ROOT/'include/halo2/source_sound_random_short_tu15.hpp',
+        ROOT/'src/audio/source_sound_range_selection_tu15_generated.cpp',ROOT/'include/halo2/source_sound_range_selection_tu15.hpp',
+        ROOT/'src/audio/source_sound_permutation_tu15_generated.cpp',ROOT/'include/halo2/source_sound_permutation_tu15.hpp',
+        ROOT/'src/audio/source_sound_binding_tu15_generated.cpp',ROOT/'include/halo2/source_sound_binding_tu15.hpp',
+        ROOT/'src/audio/source_sound_chunk_readiness_tu15_generated.cpp',ROOT/'include/halo2/source_sound_chunk_readiness_tu15.hpp',
         ROOT/'cmake/PhysicsLiveWorldTu15.cmake']
     pins={str(path):sha(path)for path in inputs}
     command=['c++',*values['CXX_DEFINES'],*values['CXX_INCLUDES'],*values['CXX_FLAGS'],'-fsyntax-only',str(source)]

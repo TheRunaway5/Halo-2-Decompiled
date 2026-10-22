@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #define SDL_MAIN_HANDLED
 #include "halo2/animation_presentation.hpp"
 #include "halo2/desktop_session.hpp"
@@ -60,7 +61,7 @@ int geometry_probe(MultiplayerOptions options,bool roam=false) {
    if(phase==5) {
     key(window_id,SDL_SCANCODE_W,false);
     const auto &at=spawns[(age/180)%spawns.size()];
-    if(!p.dead)options.prepared_world->match.debug_request({DebugGameRequest::Teleport,0},&at);
+    if(!p.dead)test::place_player(options.prepared_world->match,0,at);
     std::cout<<"Roam tick="<<step<<" spawn="<<(age/180)%spawns.size()<<" at="
         <<at.position.x<<','<<at.position.y<<','<<at.position.z<<'\n';
    }
@@ -176,7 +177,7 @@ int main(int argc,char **argv){try {
   const auto &p=state.players[0];
   if(age==154){safe_spawn.position=p.position;safe_spawn.facing=0;}
   if(age>=155 && age<=180 && !picked_up)
-   options.prepared_world->match.debug_request({DebugGameRequest::Teleport,0},&spawn);
+   test::place_player(options.prepared_world->match,0,spawn);
   if(age==156)key(window_id,SDL_SCANCODE_E,true);
   if(age==180)key(window_id,SDL_SCANCODE_E,false);
   if(age==200 || age==265 || age==350)fire(window_id,true);
@@ -187,7 +188,7 @@ int main(int argc,char **argv){try {
   if(age==390)key(window_id,SDL_SCANCODE_LSHIFT,false);
   picked_up|=p.weapon==sword->first;
   if(picked_up && !returned_from_pickup) {
-   options.prepared_world->match.debug_request({DebugGameRequest::Teleport,0},&safe_spawn);returned_from_pickup=true;
+   test::place_player(options.prepared_world->match,0,safe_spawn);returned_from_pickup=true;
   }
   if(melee_key){key(window_id,SDL_SCANCODE_F,false);melee_key=false;}
   else if(age>=420 && ordinary_requests<3 &&

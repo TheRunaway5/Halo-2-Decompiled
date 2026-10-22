@@ -4,7 +4,7 @@ import argparse,json
 from pathlib import Path
 from oracle_mp_title_update_display import ROOT,OLD,NEW,sha,save,encoded
 from audit_sound_cache_lifecycle_native import prior_pins
-OWNED=('include/halo2/sound_cache_lifecycle.hpp','src/sound_cache_lifecycle.cpp','tests/sound_cache_lifecycle_tests.cpp','tools/research_sound_cache_lifecycle_u5.py','tools/oracle_sound_cache_lifecycle_native.py','tools/export_sound_cache_lifecycle_fixtures.py','tools/validate_sound_cache_lifecycle_native.py','tools/audit_sound_cache_lifecycle_native.py','tools/freeze_sound_cache_lifecycle_native.py','docs/MP_SOUND_CACHE_LIFECYCLE_NATIVE_INTEGRATION.md')
+OWNED=('include/halo2/sound_cache_lifecycle.hpp','src/audio/sound_cache_lifecycle.cpp','tests/sound_cache_lifecycle_tests.cpp','tools/research_sound_cache_lifecycle_u5.py','tools/oracle_sound_cache_lifecycle_native.py','tools/export_sound_cache_lifecycle_fixtures.py','tools/validate_sound_cache_lifecycle_native.py','tools/audit_sound_cache_lifecycle_native.py','tools/freeze_sound_cache_lifecycle_native.py','docs/MP_SOUND_CACHE_LIFECYCLE_NATIVE_INTEGRATION.md')
 SELECTED=('paired','paired-repeat','measured','repeated','validation-v2','validation-v2-repeat','export-repeat')
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--directory',type=Path,required=True);a=p.parse_args();d=a.directory.resolve();pins=prior_pins();audit=json.loads((d/'audit.json').read_text());assert audit['prior_pins_verified']==pins

@@ -11,9 +11,14 @@
 #include <bit>
 #include <cstring>
 #include <deque>
+#include <fstream>
 #include <iostream>
 #include <thread>
 #include <utility>
+#include "multiplayer_scene_continuity_fixture.hpp"
+#include "multiplayer_hud_group_fixture.hpp"
+#define HALO2_LOCOMOTION_GROUP_STORAGE_AUDIT
+#include "multiplayer_locomotion_group_fixture.hpp"
 
 using namespace halo2;
 namespace {
@@ -172,10 +177,25 @@ void pose_roundtrip(const Cache &cache,std::span<const SceneObjects::Object> ear
 }
 }
 int main(int argc,char **argv)try {
-    if(argc!=3 || !std::filesystem::is_regular_file(argv[1]) || !std::filesystem::is_regular_file(argv[2]))return 77;
-    MultiplayerOptions options;options.gameplay_xbe=argv[1];options.map=argv[2];options.starting_weapon=5;
+    const bool mcc=argc>=2&&std::string_view(argv[1])=="--mcc";
+    if(mcc)check(argc==3,"Supply --mcc MAP for the requested MCC snapshot/group route");
+    if(!mcc&&(argc!=3 || !std::filesystem::is_regular_file(argv[1]) || !std::filesystem::is_regular_file(argv[2])))return 77;
+    MultiplayerOptions options;options.map=argv[2];options.starting_weapon=5;
+    if(mcc){check(std::filesystem::is_regular_file(options.map),"Requested MCC snapshot/group map is missing");
+        options.shared_maps=options.map.parent_path();
+        // Reject reference caches before creating a native world. The real
+        // Cache decoder still validates the complete MCC input below.
+        std::ifstream input(options.map,std::ios::binary);std::array<std::byte,8> header{};
+        check(bool(input.read(reinterpret_cast<char*>(header.data()),header.size())),"Requested MCC map header is truncated");
+        check(Bytes(header).u32(0)==0x68656164u&&Bytes(header).u32(4)==13,
+            "Requested MCC snapshot/group route rejects non-MCC map inputs");}
+    else {options.gameplay_xbe=argv[1];
+        std::cout<<"REFERENCE authentic snapshot/group component driver uses the explicit offline XBE/map inputs; not MCC runtime qualification\n";}
     options.local_players=1;options.source_object_world=true;
     MultiplayerPreparedWorld world(options,std::nullopt,std::make_shared<FixedClock>());world.bind_source_local_views(world.local_slots);
+    if(mcc){check(options.gameplay_xbe.empty()&&world.cache->is_mcc()&&!world.cache->is_vista()&&
+        world.cache->original_data()==OriginalData::native_tu15(),"MCC snapshot/group route requires imported MCC content and compiled native gameplay");
+        std::cout<<"MCC authentic receipt/full16 gait component route: external_xbe=0; complete fixtures unchanged; logical transport, no runtime role activation\n";}
     SourceMatchAuthority authority(world.match,*world.source_objects);
     auto bus=std::make_shared<Bus>();constexpr std::uint64_t fingerprint=0x15c071900;
     std::vector<OnlineAdmission> roster;
@@ -218,6 +238,9 @@ int main(int argc,char **argv)try {
     };
     const auto early_cut=native_cut(1);const auto early_host=host.checkpoint(binding);
     const auto early_proof=couch.prove_snapshot(early_host,early_cut,early);
+    NativeSceneContinuityFixture scene_fixture(world);scene_fixture.capture(early);
+    NativeHudGroupFixture hud_fixture(world);hud_fixture.capture(early);
+    NativeLocomotionGroupFixture locomotion_fixture(world);locomotion_fixture.capture(early);
     const auto alternate_early_cut=native_cut(5);
     const auto alternate_early_proof=couch.prove_snapshot(early_host,alternate_early_cut,early);
     const std::vector<SceneObjects::Object> early_scene(world.match.simulation().scene().objects().begin(),world.match.simulation().scene().objects().end());
@@ -295,6 +318,9 @@ int main(int argc,char **argv)try {
     couch.receive();const auto later_pose_origin=couch.state_origin();
     const auto later_pose_cut=native_cut(4);const auto later_pose_host=host.checkpoint(binding);
     const auto later_pose_proof=couch.prove_snapshot(later_pose_host,later_pose_cut,later_pose_origin);
+    scene_fixture.restore(early,early_proof,alternate_early_proof,later_pose_origin,later_pose_proof);
+    hud_fixture.restore(early,early_proof,alternate_early_proof,later_pose_origin,later_pose_proof);
+    locomotion_fixture.restore(early,early_proof,alternate_early_proof,later_pose_origin,later_pose_proof);
     pose_roundtrip(*world.cache,early_scene,world.match.simulation().scene().objects(),early,early_proof,alternate_early_proof,later_pose_origin,later_pose_proof);
     check(other->state().tick>tick&&other->state_origin().tick()==other->state().tick,
         "Exact rebind rollback control never consumed a later native snapshot");

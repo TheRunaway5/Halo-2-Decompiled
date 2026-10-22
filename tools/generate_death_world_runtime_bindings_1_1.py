@@ -4,6 +4,7 @@
 These are canonical function identities, never instructions, return values or
 world/pose snapshots. Source body generators authenticate their original XBE.
 """
+from source_layout import source_file
 import argparse,hashlib,json,re
 from pathlib import Path
 from oracle_smg_firing_1_1 import ROOT
@@ -35,7 +36,7 @@ def main():
  rows=['// Generated complete native function identities; no instruction/data replay.','#pragma once','#include <array>','#include <cstdint>','namespace halo2::death_world_runtime_entries {']
  owners={}
  for name,file in FAMILIES.items():
-  p=ROOT/'src'/file
+  p=source_file(ROOT, file)
   entries=sorted({int(q,16)for q in re.findall(r'case 0x([a-f0-9]+)u:run_',p.read_text())})
   assert entries,(name,file)
   rows.append('inline constexpr std::array '+name+'{'+','.join('0x%xu'%q for q in entries)+'};')

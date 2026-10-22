@@ -141,7 +141,7 @@ def main():
         source_instruction_count=len(seen),instruction_sha256=sha(b''.join(packed([pc])+image.read(pc,size)for pc,size in sorted(seen.items()))),
         original_instruction_bytes=184,original_routine_sha256=sha(image.read(0x38390,184)),source_branch_hits=dict(branch_hits),
         assets=assets,tool_sha256=sha(Path(__file__).read_bytes()),
-        helper_sha256=sha((ROOT/'src/source_weather_exclusion.cpp').read_bytes()),
+        helper_sha256=sha((ROOT/'src/rendering/weather/source_weather_exclusion.cpp').read_bytes()),
         header_sha256=sha((ROOT/'include/halo2/source_weather_exclusion.hpp').read_bytes()),
         test_sha256=sha((ROOT/'tests/source_weather_exclusion_tests.cpp').read_bytes()),
         fixture_sha256=sha(args.write_fixture.read_bytes()),native_binary_sha256=sha(args.binary.read_bytes()),

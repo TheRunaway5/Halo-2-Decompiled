@@ -6,6 +6,8 @@
 #include "halo2/source_camera.hpp"
 #include "halo2/source_hud_score.hpp"
 #include "halo2/motion_sensor.hpp"
+#include "halo2/prompt_device.hpp"
+#include <memory>
 namespace halo2 {
 struct HudEffect {
   unsigned flags{};
@@ -38,6 +40,10 @@ struct HudContent {
     struct UnitMessages {std::vector<std::uint32_t> seats;std::uint32_t flip{};};
     std::map<std::uint32_t,UnitMessages> units;
   } action_messages;
+  struct Messages {
+    bool enabled{};
+    float hold_seconds{},fade_seconds{},line_spacing{};
+  } messages;
   float multiplayer_scale = 1;
   int clip_cutoff{}, ammo_cutoff{}, clip_capacity{}, reserve_capacity{};
   unsigned weapon_magazine_count{},weapon_trigger_count{};
@@ -54,8 +60,8 @@ struct HudContent {
 SourceWeaponHudState multiplayer_hud_weapon_state(const MultiplayerState::Player &,const HudContent &,unsigned hand);
 
 // The current match snapshot carries individual/team signed-short scores and
-// source membership/flags. Round-win and saved appearance producers are open;
-// this adapter uses the original default appearance constructor.
+// source membership/flags, round wins and saved appearance. A missing saved
+// profile retains the original default appearance constructor.
 SourceHudScoreDisplay multiplayer_hud_score_display(const MultiplayerState&,
     unsigned player, int score_limit, unsigned time_ticks, const HudContent&);
 struct HudViewport {
@@ -85,12 +91,40 @@ struct HudShieldLayer {
 void update_hud_shield(HudShieldHistory &, float current, std::uint32_t tick);
 HudShieldLayer hud_shield_layer(const HudShieldHistory &, float current,
                                 unsigned layer, bool elite = false);
+class GameplayFontBank;
+class ControllerPromptArtwork;
 class MultiplayerHud {
 public:
   MultiplayerHud(HudContent, const std::filesystem::path &fonts, Mesh &,
                  unsigned local_players, std::string variant = "Slayer",
                  std::optional<HudBitmapGeometryConstants> geometry = {},
-                 const std::filesystem::path &ui_assets = {},unsigned hand = 0);
+                 const std::filesystem::path &ui_assets = {},unsigned hand = 0,
+                 std::shared_ptr<GameplayFontBank> font_bank = {},bool defusal_objectives = false);
+  ~MultiplayerHud();
+  MultiplayerHud(const MultiplayerHud &)=delete;
+  MultiplayerHud &operator=(const MultiplayerHud &)=delete;
+  MultiplayerHud(MultiplayerHud &&)=delete;
+  MultiplayerHud &operator=(MultiplayerHud &&)=delete;
+  class Checkpoint {
+  public:bool valid()const noexcept;
+  private:friend class MultiplayerHud;struct Data;std::shared_ptr<const Data> data_;
+  };
+  class PreparedRestore {
+  public:
+    ~PreparedRestore();PreparedRestore(PreparedRestore &&)noexcept;
+    PreparedRestore &operator=(PreparedRestore &&)noexcept;
+  private:friend class MultiplayerHud;PreparedRestore();struct Data;std::unique_ptr<Data> data_;
+  };
+  Checkpoint checkpoint()const;
+  // Identity/executor only; preparation also admits current resources/bindings.
+  bool owns_checkpoint(const Checkpoint &)const noexcept;
+  // Exact CPU values only. Current resolved key/button bindings must still
+  // match; actual device admission and material/GPU images are separate owners.
+  PreparedRestore prepare_restore(const Checkpoint &)const;
+  bool restore_ready(const PreparedRestore &)const noexcept;
+  // Swap-only, same completed executor. Keep the consumed token until
+  // displaced strings/history may retire outside the enclosing publication.
+  bool commit_restore(PreparedRestore &)noexcept;
   // Completed-frame presentation replacement. Discard private clocks and
   // trails before observing the accepted world. Keep uploaded bitmap/font/
   // material identities, authored donor sampling and local input bindings.
@@ -101,10 +135,11 @@ public:
   // Consume each actual accepted simulation snapshot once, before drawing.
   void update_motion_sensor(const MultiplayerState &,unsigned player,unsigned view);
   std::optional<unsigned> motion_sensor_material(unsigned view)const;
-  void voice_text(std::string text){voice_text_=std::move(text);}
-  void prompt_gamepad(unsigned view,bool enabled){prompt_gamepad_.at(view)=enabled;}
-  void prompt_gamepad_buttons(unsigned view,std::array<std::uint32_t,2> buttons){for(unsigned i=0;i<2;++i)prompt_buttons_.at(view)[i]=buttons[i];}
-  void prompt_keyboard_buttons(unsigned view,std::array<std::string,2> buttons){for(unsigned i=0;i<2;++i)prompt_keyboard_.at(view)[i]=std::move(buttons[i]);}
+  void voice_text(std::string text);
+  void prompt_gamepad(unsigned view,bool enabled);
+  void prompt_device(unsigned view,PromptDevice);
+  void prompt_gamepad_buttons(unsigned view,std::array<std::uint32_t,2> buttons);
+  void prompt_keyboard_buttons(unsigned view,std::array<std::string,2> buttons);
   void prompt_boarding_buttons(unsigned view,const PcKeyboardSettings &,const ControllerSettings &);
   std::string action_text(const MultiplayerState &,unsigned player,unsigned view)const;
   std::vector<Vertex> draw(const MultiplayerState &, unsigned player,
@@ -119,20 +154,24 @@ public:
                int score_limit, unsigned time_ticks, double seconds);
 
 private:
+  struct Continuity;struct Values;class Call;
+  std::string action_text_impl(const MultiplayerState &,unsigned,unsigned)const;
   HudContent content_;
   unsigned hand_{};
   std::string voice_text_;
-  std::array<RetailFont, 2> fonts_;
-  std::array<RetailFont,2> action_fonts_;
+  std::array<std::shared_ptr<const RetailFont>, 2> fonts_;
+  std::array<std::shared_ptr<const RetailFont>,2> action_fonts_;
   std::array<unsigned,2> action_materials_{};
-  std::array<RetailFont,2> action_button_fonts_;
+  bool defusal_objectives_{};
+  std::optional<unsigned> defusal_marker_material_;
+  std::array<std::shared_ptr<const RetailFont>,2> action_button_fonts_;
   std::array<unsigned,2> action_button_materials_{};
   bool vista_action_buttons_{};
   std::array<bool,4> prompt_gamepad_{};
-  std::array<std::array<std::uint32_t,4>,4> prompt_buttons_{{
-      {0xe102,0xe104,0xe106,0xe101},{0xe102,0xe104,0xe106,0xe101},{0xe102,0xe104,0xe106,0xe101},{0xe102,0xe104,0xe106,0xe101}}};
-  std::array<std::array<std::string,4>,4> prompt_keyboard_{{
-      {"E","X","Mouse 2","Q"},{"E","X","Mouse 2","Q"},{"E","X","Mouse 2","Q"},{"E","X","Mouse 2","Q"}}};
+  std::array<PromptDevice,4> prompt_devices_{};
+  std::shared_ptr<ControllerPromptArtwork> prompt_artwork_;
+  std::array<std::array<std::uint32_t,4>,4> prompt_buttons_{};
+  std::array<std::array<std::string,4>,4> prompt_keyboard_{};
   Mesh &mesh_;
   std::vector<std::vector<std::vector<unsigned>>> materials_;
   // Authored donor layer placement, independent of simulation/world lifetime.
@@ -153,5 +192,6 @@ private:
     std::optional<unsigned> material;
   };
   std::array<SensorView,4> sensors_{};
+  std::shared_ptr<Continuity> continuity_;
 };
 } // namespace halo2

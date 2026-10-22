@@ -11,4 +11,11 @@ void source_run_damage_delivery_runtime(SourcePhysicsContactMemory &,
     SourcePhysicsContactImage, SourcePhysicsFactoryFloatingPoint,
     const SourcePhysicsContactRuntimeServices &,
     const SourcePhysicsContactRecordObserver & = {});
+// Live composition reports selected-image instruction/store PCs, preserving
+// the legacy canonical entry and required-owner call-site ABI.
+void source_run_damage_delivery_runtime_selected_observations(SourcePhysicsContactMemory &,
+    std::uint32_t canonical_entry, SourcePhysicsContactRuntimeAbi &,
+    SourcePhysicsContactImage, SourcePhysicsFactoryFloatingPoint,
+    const SourcePhysicsContactRuntimeServices &,
+    const SourcePhysicsContactRecordObserver & = {});
 } // namespace halo2

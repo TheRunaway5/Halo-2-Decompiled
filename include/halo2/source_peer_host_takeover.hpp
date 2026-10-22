@@ -3,6 +3,7 @@
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/online_match_session.hpp"
 #include "halo2/source_match_authority.hpp"
+#include "halo2/source_native_publication.hpp"
 #include <thread>
 
 namespace halo2 {
@@ -13,6 +14,9 @@ struct SourceAuthorityRetainedWorld;
 // This owns simulation/input/camera state, not renderer, controllers or audio
 // devices. Those owners must be rebound before activate() opens session media.
 // Every operation and destruction belongs to the constructing thread.
+// Destruction may close the retained session/voice transport; perform it
+// outside timing, SDL and device holds. A native-only publication can retain
+// the exact target after this wrapper closes, but not arbitrary outer owners.
 class SourcePeerHostTakeover {
 public:
     ~SourcePeerHostTakeover();
@@ -37,6 +41,10 @@ public:
     // Native world/camera state and already-delivered serials stay unchanged.
     void refresh_local_input(const LanClient &);
     NativeVehicleCamera &camera();
+    // Hold the already-imported exact native target after its complete sealed
+    // boundary checks. Separately quiesce Match/Simulation/renderer and raw
+    // ownership-slot writers. This never admits or activates migration.
+    SourceNativePublication hold_native_publication();
     // Rechecks the still-current local decision and independent admissions.
     // False leaves the native owner private and session traffic fenced. A
     // successful activation is one-shot; it never re-admits or respawns seats.
@@ -49,6 +57,18 @@ public:
     bool activate(OnlineMatchSession::NativeCommit native_adopt=nullptr,void *owner=nullptr);
 private:
     friend class SourceAuthorityReceiver;
+    friend class MultiplayerRuntimeAuthority;
+    // Runtime-only same-creator reconstruction after its replay executor has
+    // retired. The resident supplies its private original Cache owner; no
+    // shared Cache is carried by worker options or a public caller override.
+    static std::unique_ptr<SourcePeerHostTakeover> prepare_with_resident_cache(
+        const MultiplayerOptions &,const SourceAuthorityRetainedWorld &,
+        const PeerMigrationDecision &,const MultiplayerPreparedWorld &,
+        std::shared_ptr<PhysicsLiveClockSource>);
+    static std::unique_ptr<SourcePeerHostTakeover> prepare_impl(
+        const MultiplayerOptions &,const SourceAuthorityRetainedWorld &,
+        const PeerMigrationDecision &,std::shared_ptr<PhysicsLiveClockSource>,
+        const MultiplayerPreparedWorld *);
     SourcePeerHostTakeover(std::shared_ptr<OnlineMatchSession>,PeerMigrationDecision,
         AcceptedSourcePlayers,std::unique_ptr<MultiplayerPreparedWorld>,const LanHost::Continuation &);
     void own()const;
@@ -56,7 +76,8 @@ private:
     const std::shared_ptr<OnlineMatchSession> session_;
     const PeerMigrationDecision decision_;
     const AcceptedSourcePlayers admissions_;
-    std::unique_ptr<MultiplayerPreparedWorld> world_;
+    std::shared_ptr<MultiplayerPreparedWorld> world_;
+    std::shared_ptr<SourceNativePublication::Owner> publication_owner_;
     std::unique_ptr<LanHost> host_;
     LanHost::LocalContinuation local_;
     LanHost::Continuation input_cut_;

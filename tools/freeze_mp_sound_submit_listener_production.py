@@ -47,12 +47,12 @@ def main():
  for name in ['fixtures.tsv','fixtures.json']:
   if sha(LISTENER/name)!=sha(LISTENER/'export-repeat'/name):raise ValueError('Independent fixture export differs')
   repeated+=1
- names=['CMakeLists.txt','include/halo2/original_data.hpp','src/original_data.cpp',
-        'include/halo2/cache.hpp','include/halo2/sound_driver_listener.hpp','src/sound_driver_listener.cpp',
+ names=['CMakeLists.txt','include/halo2/original_data.hpp','src/assets/original_data.cpp',
+        'include/halo2/cache.hpp','include/halo2/sound_driver_listener.hpp','src/audio/sound_driver_listener.cpp',
         'include/halo2/sound_driver_owners.hpp','include/halo2/sound_driver_startup.hpp',
         'include/halo2/sound_map_activation.hpp','include/halo2/sound_startup.hpp',
-        'include/halo2/sound_submit.hpp','src/sound_submit.cpp','include/halo2/sound_submit_operands.hpp',
-        'include/halo2/native_sound_storage.hpp','src/native_sound_storage.cpp',
+        'include/halo2/sound_submit.hpp','src/audio/sound_submit.cpp','include/halo2/sound_submit_operands.hpp',
+        'include/halo2/native_sound_storage.hpp','src/audio/native_sound_storage.cpp',
         'tests/sound_driver_listener_tests.cpp','tests/sound_submit_tests.cpp',
         'tests/sound_driver_owner_operands_tests.cpp','tools/run_owned_fixture_test.py',
         'tools/research_sound_driver_remaining_u5.py','tools/research_animation_selection_u5.py',

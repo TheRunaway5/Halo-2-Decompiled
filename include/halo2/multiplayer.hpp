@@ -1,7 +1,10 @@
 #pragma once
+#include "halo2/source_hud_messages.hpp"
+#include "halo2/source_hud_objectives.hpp"
 #include "halo2/source_dynamic_object.hpp"
 #include "halo2/source_effect_random.hpp"
 #include "halo2/custom_slayer.hpp"
+#include "halo2/bomb_defusal.hpp"
 #include "halo2/frontend.hpp"
 #include "halo2/simulation.hpp"
 #include "halo2/datum_pool.hpp"
@@ -18,6 +21,7 @@
 #include "halo2/source_round_lifecycle.hpp"
 #include "halo2/source_result_event.hpp"
 #include "halo2/source_king.hpp"
+#include "halo2/source_multiplayer_engine_entity_tu15.hpp"
 #include "halo2/source_world_pose.hpp"
 #include "halo2/native_death_camera.hpp"
 #include "halo2/native_vehicle_camera.hpp"
@@ -33,6 +37,7 @@ struct RendererCompletedMaterialUpload;
 struct RendererObservedBspDraw;
 struct SourceEffectLightCommandObservationTu15;
 class PhysicsLiveWorldTu15;
+struct SourceTeleporterEventsTu15;
 struct SourceLightVolumeDraw;
 struct SourceContrailDraw;
 struct FullScoreboardLayout;
@@ -54,17 +59,44 @@ struct ShadowCasterSphere;
 struct ObjectLightingState;
 struct MultiplayerFrameTiming {
   struct View {double camera_lighting_ms{},static_world_ms{},objects_ms{},body_ms{},first_person_ms{},hud_ms{};};
+  // Per-frame aggregate observations; no owners or unbounded event history.
+  // A CPU sample requires two successful Linux current-thread clock reads.
+  // Fewer CPU samples than wall samples explicitly means unavailable/partial.
+  struct Work {double wall_ms{},thread_cpu_ms{};unsigned samples{},thread_cpu_samples{};};
+  struct ReceiptCapture {
+    unsigned attempts{},completed{},retained{};
+    Work values,replica,pose,scene,hud,locomotion,sounds,retention,total;
+  };
+  // Passive same-clock boundaries, populated only with frame_observer.
+  // CPU stamps are current-thread observations, never process/GPU clocks.
+  struct Stamp {std::int64_t wall_ns{};double thread_cpu_ms{};bool thread_cpu_available{};};
+  struct Schedule {
+    bool measured{},had_pending{},has_pending{},terminal_drain{};
+    std::uint64_t loop{},first_observer{},last_observer{};
+    Stamp iteration_begin,timed_start,first_command_tail,last_command_tail,input_end,renderer_end;
+    // client_send_calls counts returned send() calls, not emitted/arrived packets.
+    unsigned command_tails{},client_send_calls{},input_observer_calls{},receive_calls{};
+    std::size_t bank_size{},cursor_begin{},cursor_end{},projected_states{};
+    Work receive,projection;
+  };
   unsigned frame{},views{},bodies_drawn{},body_pose_builds{};
+  unsigned vehicle_skin_builds{},vehicle_skin_reuses{};
+  unsigned unit_skin_builds{},unit_skin_reuses{};
   double input_ms{},common_ms{},renderer_ms{},wall_ms{};
   bool submitted{};
   std::array<View,4> view;
   RendererFrameTiming renderer;
+  ReceiptCapture receipt_capture;
+  Schedule schedule;
 };
 constexpr unsigned multiplayer_capacity = 16;
 struct SlayerRules {
   // Validated configuration that produced these rules. Handwritten fixtures
   // can leave it absent; discovery must never invent settings for them.
   std::optional<UiVariant> session_configuration;
+  // These projections require the complete retained source engine, including
+  // settings not implemented by the older native-only adapters.
+  bool requires_source_engine{};
   // Original registered engine type, independent of UI/catalog engine IDs.
   std::int32_t source_engine=2;
   std::string name = "Slayer";
@@ -83,6 +115,8 @@ struct SlayerRules {
   unsigned weapon_set{}; // Source parameter83, variant+D4/options+210.
   unsigned secondary_starting_weapon=1;
   CustomSlayer custom=CustomSlayer::none;
+  std::optional<BombDefusalRules> defusal;
+  std::optional<BombDefusalLayout> defusal_layout;
   std::array<std::uint32_t,18> weapon_choices{};
   int primary_light_vehicle{}; // Original parameter76, variant+CD/options+209.
   int primary_heavy_vehicle{}; // Original parameter78, variant+CF/options+20B.
@@ -98,6 +132,7 @@ struct SlayerRules {
 // Team sessions require explicit selected membership inputs from the profile
 // handoff or another declared session provider.
 SlayerRules slayer_rules(const UiVariant &, bool team_session = false);
+SlayerRules multiplayer_source_rules(const UiVariant &,bool team_session=false);
 // Bounded native binding entry point. Normal menu admission remains separate
 // until the actual King presentation/traits/replication consumers are installed.
 SlayerRules king_rules(const UiVariant &, bool team_session = false);
@@ -129,6 +164,11 @@ struct MultiplayerPlayer {
   std::uint8_t source_ffa_identity{};
   std::int8_t source_membership = -1; // Source player+C0, separate from FFA identity.
   std::uint16_t source_flags = 1; // Original player+2; other flag producers remain open.
+  // Native publication of completed original teleports. Retained across lost
+  // snapshots so clients cut pose/view interpolation even for nearby portals.
+  std::uint32_t source_teleport_serial{};
+  std::uint32_t source_teleport_sound=null_datum;
+  SourceHudMessages source_messages;
   std::int16_t source_lives_remaining=-1; // Original signed player+1AC.
   std::int16_t source_king_inside_ticks{}; // Original King player+1B8.
   std::uint8_t source_strength{}; // Sanitized configuration+7D -> player+C1.
@@ -174,6 +214,8 @@ struct WorldVehiclePresentation {
   std::optional<SourceModelRegionBank> regions;
 };
 struct MultiplayerState {
+  std::optional<BombDefusalState> defusal;
+  std::optional<BombDefusalRules> defusal_rules;
   struct Corpse {
     std::uint32_t object=null_datum,definition=null_datum,player=null_datum,death_tick=null_datum;
     std::optional<SourcePlayerConfiguration> configuration;
@@ -213,6 +255,9 @@ struct MultiplayerState {
     std::string name;
     std::optional<SourcePlayerConfiguration> source_configuration;
     std::uint16_t source_flags{};
+    std::uint32_t source_teleport_serial{};
+    std::uint32_t source_teleport_sound=null_datum;
+    SourceHudMessages source_messages;
     std::int16_t source_membership = -1;
     std::uint8_t source_ffa_identity{};
     UnitZoomState source_zoom;
@@ -228,6 +273,7 @@ struct MultiplayerState {
     std::uint16_t source_hud_zoom_mask = 0x40;
     std::uint32_t source_hud_target_flags{}; //13C8D4/TU1.5 13DC44; original aim mask.
     bool source_hud_autoaimed{}; //13C4B8 selector18: unit+1E4 confidence >=1.
+    SourceHudObjectives source_hud_objectives;
     VehicleWeaponHudStatus source_vehicle_hud;
     // Unit+14A bits0/5 are primary/secondary trigger holds (C6C50), read by
     // 1A20E6. Grenade visibility uses the retained component+0C throw phase.
@@ -258,6 +304,7 @@ struct MultiplayerState {
   std::uint32_t tick{};
   std::int32_t source_game_type=2;
   std::int32_t source_engine=2;
+  std::optional<SourceMultiplayerEngineEntityTu15> source_engine_entity;
   struct KingObjective {
     std::int32_t hill=-1;
     std::uint16_t occupants{};
@@ -321,6 +368,7 @@ struct MultiplayerKingServices {
   std::function<void(const MultiplayerMatch&,const SourceKingNotice&)> notification;
 };
 class MultiplayerMatch {
+  friend class MultiplayerPreparedWorld;
 public:
   MultiplayerMatch(const LevelContent &, std::size_t, std::span<const Spawn>,
                    SlayerRules,MultiplayerKingServices = {},
@@ -365,6 +413,7 @@ public:
   void validate_player_configuration(const SourcePlayerConfiguration&,std::int8_t selected_team)const;
   bool team_mode() const { return rules_.team_mode; }
   std::int32_t source_engine() const { return rules_.source_engine; }
+  bool source_engine_owned() const { return source_engine_owned_; }
   std::int32_t source_game_type() const { return source_game_context_.game_type; }
   const SourceKingState* source_king_state()const {
     return rules_.source_engine==4 ? &king_state_ : nullptr;
@@ -487,16 +536,6 @@ public:
     return {simulation_.source_primary_random(),auxiliary};
   }
   void advance_weather_view(double realtime,std::int16_t view_slot);
-  void debug_settings(DebugGameSettings settings) {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;simulation_.debug_settings(std::move(settings)); }
-  void debug_request(const DebugGameRequest& request,const Spawn* spawn=nullptr) {
-    NativeAuthorityBoundary::Call active(authority_calls_);
-    if(request.player>=players_.size() || !players_[request.player].connected)
-      throw FormatError("debug player is no longer connected");
-    ++authority_calls_.mutations;
-    if(request.kind==DebugGameRequest::Heal)simulation_.debug_heal(request.player);
-    else if(request.kind==DebugGameRequest::Teleport && spawn)simulation_.debug_teleport(request.player,*spawn);
-    else throw FormatError("this debug request needs a campaign state owner");
-  }
   void advance_audio(float seconds);
   std::vector<SoundEvent> take_sounds();
   std::vector<PropSandboxEvent> take_prop_events();
@@ -532,6 +571,7 @@ private:
   void adopt_source_devices();
   std::vector<RumbleJournalEvent> rumble_events_;
   std::uint64_t rumble_serial_{};
+  std::uint8_t source_hud_sequence_{};
   const LevelContent &content_;
   MultiplayerObjectRuntime *source_object_world_{};
   bool source_replica_{};
@@ -575,6 +615,11 @@ private:
   std::uint16_t infection_zombies_{};
   bool infection_started_{};
   std::uint32_t infection_start_tick_{};
+  std::optional<BombDefusalState> defusal_;
+  std::uint32_t defusal_bomb_=null_datum,defusal_definition_=null_datum;
+  BombDefusalPlayer defusal_player(unsigned,const Controls &) const;
+  void update_defusal(const std::array<Controls,multiplayer_capacity> &);
+  void reset_defusal_players();
   void start_infection();
   void infect(unsigned);
   void update_infection();
@@ -591,6 +636,16 @@ private:
   bool prepare_result_clock(PreparedAuthority &) const noexcept;
   void record_result_event(std::uint32_t player,std::uint32_t first,std::uint32_t second);
   SourceRoundLifecycle round_lifecycle_;
+  bool source_engine_owned_{};
+  bool source_engine_started_{};
+  // Prepared source worlds can run a real initial frame before callers attach
+  // presentation definitions. This marks that setup boundary, not game time.
+  std::uint64_t first_person_setup_tick_{};
+  void synchronize_source_engine(bool bindings=false);
+  void consume_source_teleporters(const SourceTeleporterEventsTu15 &);
+  void expire_source_hud_messages();
+  bool source_engine_query(unsigned slot,std::array<std::uint32_t,2> arguments);
+  void adopt_source_player_units();
   std::function<void(const MultiplayerMatch&)> game_engine_presentation_owner_;
   bool defer_initial_player_spawn_{};
   std::function<void(MultiplayerPlayer&,unsigned)> player_birth_owner_;
@@ -605,7 +660,7 @@ private:
   Unit &unit_mutable(unsigned);
   SourceCamouflageServices camouflage_services();
   SourcePlayerConfiguration prepare_player_configuration(const SourcePlayerConfiguration&,std::int8_t)const;
-  bool spawn(unsigned, bool initial);
+  bool spawn(unsigned, bool initial,std::uint32_t completed_source_unit=0xffffffffu);
   void apply_score(unsigned, std::int32_t delta);
   void update_game_engine();
   void game_engine_death(std::uint32_t attacker,std::uint32_t victim,bool relationship);
@@ -621,7 +676,7 @@ private:
   std::uint32_t allocate_object(std::uint8_t type);
   void step_world_weapons(std::uint32_t tick);
   void retain_unit(Unit &);
-  void synchronize_source_weapon_state(WeaponState &);
+  void synchronize_source_weapon_state(WeaponState &) const;
   void synchronize_source_equipment(Unit &,const SourcePlayerEquipmentTu15 &);
   void damage_event(Unit &, const DamageOwner &, const UnitDamageResult &, std::int16_t damage_class);
   void owner_counter_event(const Unit &, const DamageOwner &, std::int16_t damage_class);
@@ -637,7 +692,6 @@ struct MultiplayerOptions {
   std::optional<std::uint32_t> session_random_seed;
   std::shared_ptr<class OnlineMatchSession> online_match;
   bool match_voice{};
-  bool debug_panel{};
   std::shared_ptr<DesktopSession> desktop;
   // Retained frontend music device/state; once per actual world presentation
   // update, independent of the optional source lifecycle/announcer adapters.
@@ -721,7 +775,9 @@ struct MultiplayerOptions {
   // Actual submitted world rectangle in the full 640x480 UI surface.
   // Read-only verification of local-player layout and live setting changes.
   std::function<void(unsigned,const UiRect &)> view_rectangle_observer;
-  // Actual snapshot and submitted camera in the same render frame. Network
+  // Presentation snapshot and submitted camera in the same render frame.
+  // Continuous fields use the render fraction; discrete state and original
+  // source pose banks retain the current authoritative snapshot. Network
   // receive can advance between fixed-rate input observations and rendering.
   std::function<void(unsigned,const MultiplayerState &,const Camera &)> view_state_observer;
   // Read-only observation of actual per-view roster output submitted as UI.
@@ -751,6 +807,10 @@ struct MultiplayerOptions {
       std::span<const SourceLiveModelBaseDrawTu15>)> world_weapon_source_draw_observer;
   std::function<void(unsigned,std::uint32_t,std::uint32_t,const ObjectLightingState&,
       bool,unsigned,std::span<const Vertex>)> vehicle_draw_observer;
+  // Read-only geometric evidence using actual posed WORLD triangles and the
+  // source c0..6 bank submitted to this view. Does not prove surviving pixels.
+  std::function<void(unsigned,std::uint32_t,std::span<const Vertex>,
+      const std::array<ShaderVector,7>&,Vec2)> vehicle_projection_observer;
   // Completed ordinary BLOC source base geometry and its actual light cache.
   std::function<void(unsigned,std::uint32_t,std::uint32_t,const ObjectLightingState&,
       bool,unsigned,std::span<const Vertex>)> prop_source_draw_observer;

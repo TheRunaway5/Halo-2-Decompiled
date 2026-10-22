@@ -13,16 +13,16 @@ def main():
     headers={p:h for p,h in manifest['source_sha256'].items() if p.startswith('include/') or (p.startswith('src/') and p.endswith('.hpp'))}
     for p,h in headers.items():assert file_sha(v4/p)==h,p
     source=out/'source';source.mkdir();(source/'include/halo2').mkdir(parents=True)
-    copies={ROOT/'src/source_effect_particle_frame_tu15_generated.cpp':source/'particle.cpp',ROOT/'tools/replay_native_effect_particle_tu15.cpp':source/'replay.cpp',ROOT/'include/halo2/source_effect_particle_frame_tu15.hpp':source/'include/halo2/source_effect_particle_frame_tu15.hpp'}
+    copies={ROOT/'src/rendering/effects/source_effect_particle_frame_tu15_generated.cpp':source/'particle.cpp',ROOT/'tools/replay_native_effect_particle_tu15.cpp':source/'replay.cpp',ROOT/'include/halo2/source_effect_particle_frame_tu15.hpp':source/'include/halo2/source_effect_particle_frame_tu15.hpp'}
     # The current shared lowerer emits this read-only observer declaration.
     # None of this module's bodies contains its101EA0 contact call site.
     observer=ROOT/'include/halo2/source_projectile_effect_observer.hpp'
-    if 'halo2/source_projectile_effect_observer.hpp' in (ROOT/'src/source_effect_particle_frame_tu15_generated.cpp').read_text():
+    if 'halo2/source_projectile_effect_observer.hpp' in (ROOT/'src/rendering/effects/source_effect_particle_frame_tu15_generated.cpp').read_text():
         copies[observer]=source/'include/halo2/source_projectile_effect_observer.hpp'
     for name in ('physics_contact_runtime_internal.hpp','physics_world_runtime_internal.hpp'):
         copies[ROOT/'.local/weapon-charge-effect-source-20261014'/name]=source/name
     for p,q in copies.items():shutil.copyfile(p,q)
-    common=['c++','-std=c++20']+(['-O3','-DNDEBUG'] if a.release else ['-O1'])+['-fno-fast-math','-ffp-contract=off','-frounding-math','-I'+str(source/'include'),'-I'+str(v4/'include'),'-I'+str(v4/'src'),'-isystem','/usr/include/SDL2']
+    common=['c++','-std=c++20']+(['-O3','-DNDEBUG'] if a.release else ['-O1'])+['-fno-fast-math','-ffp-contract=off','-frounding-math','-I'+str(source/'include'), '-I'+str(source/'src'),'-I'+str(v4/'include'),'-I'+str(v4/'src'),'-isystem','/usr/include/SDL2']
     commands=[common+['-c',str(source/'particle.cpp'),'-o',str(out/'particle.o')],common+['-c',str(source/'replay.cpp'),'-o',str(out/'replay.o')]]
     link=list(pinned['link']);index=next(i for i,p in enumerate(link) if p.endswith('/capture.o'));link[index:index+1]=[str(out/'replay.o'),str(out/'particle.o')];link[link.index('-o')+1]=str(out/'replay-native');commands.append(link)
     with (out/'build.log').open('w') as log:

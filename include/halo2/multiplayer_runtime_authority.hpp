@@ -2,6 +2,7 @@
 #include "halo2/multiplayer_world.hpp"
 #include "halo2/source_authority_receiver.hpp"
 #include "halo2/effect_presentation_history.hpp"
+#include "halo2/peer_snapshot_candidate.hpp"
 #include <future>
 
 namespace halo2 {
@@ -52,6 +53,20 @@ public:
     // publication service and role changes are rejected until finish/destruction.
     // This runtime must outlive every returned Frame, on the same executor.
     std::unique_ptr<Frame> begin_frame();
+    // Replaces a normal gameplay host broadcast. In negotiated candidate mode
+    // the selected genuine broadcast closes this frame, captures its exact
+    // paired native/host values before any further native call, then starts a
+    // new frame. The caller must honor a null replacement generation fence.
+    // Unconfigured/unarmed gameplay keeps its ordinary broadcast behavior.
+    void broadcast_candidate_frame(std::unique_ptr<Frame> &);
+    struct SnapshotCandidateCut {
+        PeerSnapshotToken token;
+        AuthorityCutSeal seal;
+        bool operator==(const SnapshotCandidateCut &)const=default;
+    };
+    // Exact producer-local lineage only. Recipients still need the original
+    // independently decoded HostProof and authentic marked receipt.
+    std::optional<SnapshotCandidateCut> snapshot_candidate_cut()const;
     // One-shot, nonblocking drain. Null means the worker is still completing
     // authenticated phases. The owning result survives worker destruction.
     std::shared_ptr<const SourceAuthorityRetainedWorld> recover();

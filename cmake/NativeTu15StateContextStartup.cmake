@@ -1,4 +1,4 @@
-add_library(halo2_state_context_startup_tu15 STATIC src/source_state_context_startup_tu15_generated.cpp src/native_tu15_state_context_startup_data.cpp)
+add_library(halo2_state_context_startup_tu15 STATIC src/platform/source_state_context_startup_tu15_generated.cpp src/platform/native_tu15_state_context_startup_data.cpp)
 target_include_directories(halo2_state_context_startup_tu15 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_features(halo2_state_context_startup_tu15 PUBLIC cxx_std_20)
 if(MSVC)

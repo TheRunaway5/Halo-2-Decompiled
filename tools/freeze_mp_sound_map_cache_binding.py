@@ -31,9 +31,9 @@ def main():
     sources=[
         'CMakeLists.txt','include/halo2/cache.hpp',
         'include/halo2/source_tag_metadata.hpp','include/halo2/source_tag_metadata_store.hpp',
-        'src/source_tag_metadata_store.cpp','include/halo2/native_sound_storage.hpp',
-        'src/native_sound_storage.cpp','include/halo2/sound_map_activation.hpp',
-        'src/sound_map_activation.cpp','include/halo2/original_data.hpp','src/original_data.cpp',
+        'src/assets/source_tag_metadata_store.cpp','include/halo2/native_sound_storage.hpp',
+        'src/audio/native_sound_storage.cpp','include/halo2/sound_map_activation.hpp',
+        'src/audio/sound_map_activation.cpp','include/halo2/original_data.hpp','src/assets/original_data.cpp',
         'tests/sound_mix_metadata_tests.cpp','tests/sound_map_cache_binding_tests.cpp',
         'tests/sound_map_metadata_tests.cpp','tools/export_mp_sound_mix_metadata.py',
         'tools/inspect_multiplayer.py','tools/freeze_mp_native_sound_storage.py',

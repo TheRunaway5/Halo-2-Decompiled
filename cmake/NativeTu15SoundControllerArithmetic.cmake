@@ -1,7 +1,7 @@
 # Typed controller records11..14 in-place arithmetic only. Source DMA/scratch,
 # producer/clock/PCM, full DSP graph and initializer45 remain required.
 add_library(halo2_native_tu15_sound_controller_arithmetic STATIC
-    src/native_tu15_sound_controller_arithmetic.cpp)
+    src/audio/dsp/native_tu15_sound_controller_arithmetic.cpp)
 target_include_directories(halo2_native_tu15_sound_controller_arithmetic PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_native_tu15_sound_controller_arithmetic PUBLIC cxx_std_20)

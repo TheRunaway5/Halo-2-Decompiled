@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #include "halo2/prop_sandbox.hpp"
 #include "halo2/multiplayer.hpp"
 #include "halo2/multiplayer_network.hpp"
@@ -92,30 +93,40 @@ int main(int argc,char**argv){try{
   check(casts>0 && blocked>0,"Actual prop faces did not block the live collision backend");
   // Public Match controls -> source SMG dispatch -> actual projectile trace
   // -> retained prop health -> pending response -> blast -> Scene removal.
-  // Only the test shooter's location is supplied using the public debug API.
+  // Only the test shooter's location is supplied by the fixture.
   Vec3 firing_origin{},firing_target{};bool vantage=false;
   for(const auto& t:triangles){
     if(t.source.instance!=int(state.placement))continue;
     const auto n=normalized(t.source_normal);if(std::abs(n.z)>.25f)continue;
-    const auto center=(t.a+t.b+t.c)/3.f,origin=center+n*.8f;
-    const auto hit=props.raycast(origin,center-origin);
-    if(!hit || hit->handle!=modules.front() || terrain.raycast(origin,normalized(center-origin),.79f))continue;
-    firing_origin=origin;firing_target=center;vantage=true;break;
+    const auto center=(t.a+t.b+t.c)/3.f;
+    for(const float distance:{.8f,1.2f,1.6f,2.f,2.4f}) {
+      auto feet=center+n*distance-Vec3{0,0,content.player.camera_height};
+      if(const auto floor=terrain.raycast(feet+Vec3{0,0,1.5f},{0,0,-1},4.f))
+        feet.z=std::max(feet.z,floor->position.z+.02f);
+      const auto& body=match.unit(0).body;
+      if(sim.collision().overlaps(feet,body.height,body.radius))continue;
+      const auto origin=feet+Vec3{0,0,content.player.camera_height};
+      const auto delta=center-origin;
+      const auto hit=props.raycast(origin,delta);
+      if(!hit || hit->handle!=modules.front() || terrain.raycast(origin,normalized(delta),length(delta)-.01f))continue;
+      firing_origin=origin;firing_target=center;vantage=true;break;
+    }
+    if(vantage)break;
   }
   check(vantage,"No actual source-authored module face available for Match firing test");
   const auto aim=normalized(firing_target-firing_origin);
   Spawn firing;firing.bsp=0;firing.position=firing_origin-Vec3{0,0,content.player.camera_height};
   firing.facing=std::atan2(aim.y,aim.x);
-  DebugGameSettings settings;settings.players[0].noclip=true;
-  match.debug_settings(settings);
-  match.debug_request({DebugGameRequest::Teleport,0},&firing);
+
+  test::place_player(match,0,firing);
   std::array<Controls,multiplayer_capacity> controls{};
   controls[0].yaw=firing.facing;controls[0].pitch=std::atan2(aim.z,std::hypot(aim.x,aim.y));
-  for(unsigned i=0;i<30;++i)match.step(controls);
+  for(unsigned i=0;i<30;++i){test::place_player(match,0,firing);match.step(controls);}
   controls[0].fire=true;
   bool live_damage=false,live_removed=false,live_blast=false;unsigned fired_ticks=0;
   PropSandboxEvent live_event;std::uint64_t live_event_tick{};
   for(;fired_ticks<240 && !live_removed;++fired_ticks){
+    test::place_player(match,0,firing);
     match.step(controls);
     const auto current=match.simulation().props().states();
     for(const auto& s:current)if(s.handle==modules.front() && s.vitality.body<1)live_damage=true;

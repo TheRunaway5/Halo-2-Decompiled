@@ -104,6 +104,8 @@ class MatchTransportTests(unittest.IsolatedAsyncioTestCase):
         audio = bytearray(23)
         audio[:7] = b"H2N2\x1c\x00\x06"
         audio[8] = descriptors[c]["slot"]
+        from .voice_signing import sign_voice
+        audio = sign_voice(room, bytes(audio))
         for _ in range(76):
             await sockets[c].send_bytes(bytes([host])+audio)
         for queue in queues:

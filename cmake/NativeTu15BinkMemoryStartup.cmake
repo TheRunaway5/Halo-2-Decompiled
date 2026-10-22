@@ -1,4 +1,4 @@
-add_library(halo2_bink_memory_startup_tu15 STATIC src/source_bink_memory_startup_tu15_generated.cpp src/native_tu15_bink_memory_startup_data.cpp)
+add_library(halo2_bink_memory_startup_tu15 STATIC src/platform/media/source_bink_memory_startup_tu15_generated.cpp src/platform/media/native_tu15_bink_memory_startup_data.cpp)
 target_include_directories(halo2_bink_memory_startup_tu15 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_features(halo2_bink_memory_startup_tu15 PUBLIC cxx_std_20)
 if(MSVC)

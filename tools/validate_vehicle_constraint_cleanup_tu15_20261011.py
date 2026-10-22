@@ -8,7 +8,7 @@ P=ROOT/'analysis/multiplayer/sandbox-source/vehicle-contact-state-tu15-20261011'
 MATH=ROOT/'analysis/multiplayer/sandbox-source/vehicle-motion-math-20261011'
 PARENT_PIN='6485e77cf383e2e562e5a07328d1d900d688ab1ec6652e28ddb8f50ffa888dc6'
 VALIDATION_PIN='b6c71f4725c803f9e47f4a39b7627699baf6a34327a722f8908bdb4471040430'
-OWNED=('include/halo2/physics_vehicle_constraint_cleanup.hpp','src/physics_vehicle_constraint_cleanup_tu15_generated.cpp',
+OWNED=('include/halo2/physics_vehicle_constraint_cleanup.hpp','src/physics/vehicles/physics_vehicle_constraint_cleanup_tu15_generated.cpp',
  'cmake/PhysicsVehicleConstraintCleanup.cmake','tests/physics_vehicle_constraint_cleanup_tests.cpp',
  'tools/research_vehicle_constraint_cleanup_tu15_20261011.py','tools/generate_vehicle_constraint_cleanup_tu15_20261011.py',
  'tools/oracle_vehicle_constraint_cleanup_tu15_20261011.py','tools/validate_vehicle_constraint_cleanup_tu15_20261011.py',
@@ -112,7 +112,7 @@ def validate():
     address,raw,mnemonic,operand=line.split('\t');i=code.at(int(address,16))
     assert i.bytes.hex()==raw and i.mnemonic==mnemonic and i.op_str==operand
  assert g['generator_sha256']==sha(ROOT/'tools/generate_vehicle_constraint_cleanup_tu15_20261011.py') and g['research_sha256']==sha(E/'research-verified/report.json')
- assert g['generated_cpp_sha256']==sha(ROOT/'src/physics_vehicle_constraint_cleanup_tu15_generated.cpp')==sha(E/'generated-repeat/physics_vehicle_constraint_cleanup_tu15_generated.cpp')
+ assert g['generated_cpp_sha256']==sha(ROOT/'src/physics/vehicles/physics_vehicle_constraint_cleanup_tu15_generated.cpp')==sha(E/'generated-repeat/physics_vehicle_constraint_cleanup_tu15_generated.cpp')
  assert len(g['lowered_instructions'])==2565 and not g['production_opcode_decoder'] and not g['production_original_code_execution']
  assert o['tool_sha256']==sha(ROOT/'tools/oracle_vehicle_constraint_cleanup_tu15_20261011.py') and o['cases']==15141 and o['new_owner_covered_instructions']==1351
  for name in ('u5.json',):assert sha(E/'original-verified'/name)==sha(E/'original-repeat'/name)==o['fixture_sha256']

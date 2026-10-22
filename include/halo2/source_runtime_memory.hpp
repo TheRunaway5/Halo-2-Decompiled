@@ -9,6 +9,7 @@
 #include <memory>
 #include <functional>
 #include <span>
+#include <optional>
 
 namespace halo2 {
 class SourceRuntimeMemory;
@@ -73,8 +74,14 @@ public:
                std::string owner);
   void commit(std::uint32_t address, std::span<const std::byte> initial);
   void release(std::uint32_t region_address);
+  // First aligned source-token gap in [first, limit). Inspect topology only:
+  // reservations occupy their complete extent, including uncommitted pages.
+  // No backing bytes, checkpoints, storage IO or mutable policies are touched.
+  std::optional<std::uint32_t> find_unowned_range(std::uint32_t first,
+      std::uint64_t limit, std::size_t bytes, std::uint32_t alignment) const;
   void read(std::uint32_t, std::span<std::byte>) const override;
   void write(std::uint32_t, std::span<const std::byte>) override;
+  void read_vector(std::uint32_t,std::span<std::byte,16>) const override;
   // Span adapters for original heap, constructors and packed animation
   // owners. Each view must fit a single real region. Views survive mounting
   // other regions. Releasing/rebinding the region or replacing the bank
@@ -121,6 +128,9 @@ public:
     bool operator==(const Checkpoint &) const = default;
   };
   Checkpoint checkpoint() const;
+  // Allocation-free admission of one complete staged resource region,
+  // including its inaccessible reservation pages and immutable owner policy.
+  bool matches_checkpoint_region(const CheckpointRegion &) const noexcept;
   // Compare only immutable regions after whole-checkpoint structural admission.
   // Checks complete bytes and every region field in source-address order,
   // without allocating snapshots/lists or changing either memory owner.

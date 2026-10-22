@@ -14,7 +14,7 @@ def main():
  for target,body in x['external_direct_calls'].items():
   for call in body['calls']:
    row=rows[call['old_site']];frames.append((call['old_site'],body['later_target'],row['later']+len(bytes.fromhex(row['later_bytes']))))
- frames.sort();p=ROOT/'src/physics_game_arena_call_frames.hpp'
+ frames.sort();p=ROOT/'src/physics/physics_game_arena_call_frames.hpp'
  p.write_text('// Generated from complete TU1.5 source call operands; no runtime decoder.\n#pragma once\n#include <array>\n#include <cstdint>\nnamespace halo2::physics_game_arena_frames {\nstruct Frame {std::uint32_t site,target,return_address;};\ninline constexpr std::array frames{\n'+',\n'.join(f' Frame{{0x{a:x}u,0x{b:x}u,0x{c:x}u}}'for a,b,c in frames)+'\n};\n}\n')
  report=dict(schema=1,tool_sha256=sha(__file__),correspondence_sha256=sha(paired),external_owners_sha256=sha(external),header_sha256=sha(p),frames=len(frames))
  (E/'call-frames.json').write_text(json.dumps(report,sort_keys=True,indent=2)+'\n');print(json.dumps(report))

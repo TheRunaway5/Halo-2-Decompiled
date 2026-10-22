@@ -1,8 +1,8 @@
 # Optional pure CPU component. Native38E8C9/38E75B policy/output admission is
 # deliberately separate and must be supplied before a cold caller can return.
 add_library(halo2_sound_configuration_cpu_tu15 STATIC
-    src/source_sound_configuration_tu15_generated.cpp
-    src/native_tu15_sound_configuration_data.cpp)
+    src/audio/source_sound_configuration_tu15_generated.cpp
+    src/audio/native_tu15_sound_configuration_data.cpp)
 target_include_directories(halo2_sound_configuration_cpu_tu15 PUBLIC include PRIVATE src)
 target_link_libraries(halo2_sound_configuration_cpu_tu15 PUBLIC halo2_physics_world_runtime)
 target_compile_options(halo2_sound_configuration_cpu_tu15 PRIVATE
@@ -10,7 +10,7 @@ target_compile_options(halo2_sound_configuration_cpu_tu15 PRIVATE
 if(BUILD_TESTING)
     add_executable(native_tu15_sound_configuration_cpu_tests
         tests/native_tu15_sound_configuration_cpu_tests.cpp
-        src/source_sound_reset_tu15_generated.cpp src/source_runtime_memory.cpp)
+        src/audio/source_sound_reset_tu15_generated.cpp src/runtime/source_runtime_memory.cpp)
     target_include_directories(native_tu15_sound_configuration_cpu_tests PRIVATE src)
     target_link_libraries(native_tu15_sound_configuration_cpu_tests PRIVATE
         halo2_sound_configuration_cpu_tu15 halo2_snapshot_storage nlohmann_json::nlohmann_json)

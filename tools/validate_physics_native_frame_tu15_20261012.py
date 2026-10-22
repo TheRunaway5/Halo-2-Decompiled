@@ -50,8 +50,8 @@ def main():
     # The shared owner can gain other source paths after this snapshot. The
     # small public frame entry being checked must still be this exact body.
     marker = 'SourcePhysicsWorldRuntimeAbi PhysicsLiveWorldTu15::step_physics('
-    frozen = (S/'src/physics_live_world_tu15.cpp').read_text().split(marker)[1].split('\n}\n')[0]
-    current = (ROOT/'src/physics_live_world_tu15.cpp').read_text().split(marker)[1].split('\n}\n')[0]
+    frozen = (S/'src/physics/physics_live_world_tu15.cpp').read_text().split(marker)[1].split('\n}\n')[0]
+    current = (ROOT/'src/physics/physics_live_world_tu15.cpp').read_text().split(marker)[1].split('\n}\n')[0]
     assert current == frozen
     assert sha(ROOT/'tests/physics_native_frame_tu15_tests.cpp') == m['files']['tests/physics_native_frame_tu15_tests.cpp']
     builds = {}

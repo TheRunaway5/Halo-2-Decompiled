@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 E=ROOT/'analysis/multiplayer/sandbox-source/native-tu15-startup-platform-20261012'
 P=E.parent/'tu15-timer-startup-20261012'
-OWN=('include/halo2/native_tu15_startup_platform.hpp','src/native_tu15_startup_platform.cpp',
+OWN=('include/halo2/native_tu15_startup_platform.hpp','src/platform/native_tu15_startup_platform.cpp',
  'tests/native_tu15_startup_platform_tests.cpp','cmake/NativeTu15StartupPlatform.cmake',
  'cmake/SourceTu15Settings.cmake','cmake/SourceTu15StartupRecords.cmake','cmake/SourceProcessHeapRuntime.cmake',
  'cmake/PhysicsPlatformLocks.cmake','cmake/PhysicsPlatformCall.cmake',
@@ -66,7 +66,7 @@ include(cmake/SourceTu15StartupRecords.cmake)
 include(cmake/SourceTu15Settings.cmake)
 set(BUILD_TESTING ON)
 include(cmake/NativeTu15StartupPlatform.cmake)
-add_executable(source_runtime_image_tests tests/source_runtime_image_tests.cpp src/source_runtime_memory.cpp src/source_runtime_image.cpp)
+add_executable(source_runtime_image_tests tests/source_runtime_image_tests.cpp src/runtime/source_runtime_memory.cpp src/runtime/source_runtime_image.cpp)
 target_include_directories(source_runtime_image_tests PRIVATE include)
 target_compile_features(source_runtime_image_tests PRIVATE cxx_std_20)
 add_test(NAME original_runtime_image_tu15 COMMAND source_runtime_image_tests "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe" 1.5)

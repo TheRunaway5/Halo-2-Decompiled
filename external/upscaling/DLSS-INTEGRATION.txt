@@ -1,0 +1,59 @@
+NVIDIA DLSS SDK integration notes
+
+Source:
+- Official repository cloned from https://github.com/NVIDIA/DLSS.git
+- Headers/link library tag used: v310.6.0
+- Official release payloads audited:
+  - ngx_dlss_demo_linux.zip
+    sha256 da0f267ff96c55329898c29710b24a290563a23a7b7ab7941bcb4a858fc039c2
+  - ngx_dlss_demo_windows.zip
+    sha256 03a706be008a93341351ae8d1f0d727248db63b47d488dc69c9d2015f30af705
+- Linux Super Resolution runtime pinned to v310.5.3. The v310.6.0 Linux
+  `libnvidia-ngx-dlss.so` release currently fails NGX signature validation on
+  native Linux drivers, so the signed v310.5.3 snippet is used until NVIDIA
+  republishes a fixed v310.6.0 Linux runtime.
+
+Bundled runtime assets:
+- minecraft/resources/natives/dlss/linux/x64/libnvidia-ngx-dlss.so.310.5.3
+- minecraft/resources/natives/dlss/windows/x64/nvngx_dlss.dll (DLSS SDK 310.6.0)
+
+The NGX runtime assets are SDK `rel` Super Resolution binaries. The Linux bridge
+also writes an NGX config into its app-data directory and points
+`__NGX_CONF_FILE` at it so NGX has a writable models/cache path instead of
+falling back to `/usr/share/nvidia/ngx`.
+The generated Linux config disables the optional NGX online updater by default;
+Super Resolution uses the bundled runtime/models. This avoids network requests
+during synchronous discovery and first feature creation. An explicit
+`__NGX_CONF_FILE` is preserved. To opt into updates with the generated config,
+use `-Dminecraft.vulkan.dlss45.allowNgxUpdater=true`.
+Use `-Dminecraft.vulkan.dlss45.ngxLog=verbose` to mirror NGX loader messages to
+stderr while diagnosing availability failures.
+Feature creation logs its duration so driver/model setup stalls can be
+distinguished from later DLSS dispatches. Initial driver setup can still pause
+the first DLSS frame even with online updates disabled.
+
+DLSS uses temporal subpixel jitter by default, including at native resolution
+(DLAA). The jitter supplied to NGX matches the rendered scene on the first frame
+and after motion-history resets as well as during normal rendering. Disabling
+it with `-Dminecraft.vulkan.dlss45.temporalJitter=false` is a diagnostic override;
+repeated unjittered input can settle into distorted foliage and thin edges.
+Ultra Quality uses the client's custom 1/1.3 input scale with NGX Quality mode.
+The NGX UltraQuality enum is not a supported execution mode in the bundled
+runtime. The bridge queries Quality's optimal creation size and validates the
+custom input against its dynamic-resolution range before evaluating it.
+DLSS does not use the generic fallback upscale blit by default; that path looks
+like the FSR fallback and can hide that native DLSS failed. For diagnostics only,
+`-Dminecraft.vulkan.dlss45.fallbackUpscaleBlit=true` restores that fallback.
+
+Bundled link assets:
+- native/dlss_bridge/lib/linux/x64/libnvsdk_ngx.a
+- native/dlss_bridge/lib/windows/x64/nvsdk_ngx_s.lib
+
+Build notes:
+- Linux builds with the normal host C++ toolchain.
+- Windows must be built with the MSVC ABI. NVIDIA's nvsdk_ngx_s.lib does not
+  link cleanly with MinGW; use MSVC or clang-cl on Windows to produce
+  resources/natives/dlss/windows/x64/dlssbridge.dll.
+
+The DLSS bridge uses NGX Vulkan Super Resolution only. The upscaler selector
+skips DLSS unless the active graphics adapter reports an NVIDIA vendor/name.

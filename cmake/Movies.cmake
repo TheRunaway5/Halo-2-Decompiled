@@ -1,12 +1,7 @@
-# Release assets are local binary inputs; their portable checksums stay in Git.
+# Optional reference assets are local inputs, outside the MCC-only runtime path.
 set(HALO2_MOVIE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/resources/movies" CACHE PATH
     "Directory containing the supplied intro_60.mp4 and credits_60.mp4")
-set(_halo2_movies_default OFF)
-if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_CONFIGURATION_TYPES OR
-   (EXISTS "${HALO2_MOVIE_SOURCE_DIR}/intro_60.mp4" AND EXISTS "${HALO2_MOVIE_SOURCE_DIR}/credits_60.mp4"))
-    set(_halo2_movies_default ON)
-endif()
-option(HALO2_BUNDLE_MOVIES "Bundle the supplied upscaled intro and credits" ${_halo2_movies_default})
+option(HALO2_BUNDLE_MOVIES "Bundle optional reference upscaled intro and credits" OFF)
 if(HALO2_BUNDLE_MOVIES)
     foreach(_movie intro_60.mp4 credits_60.mp4)
         if(NOT EXISTS "${HALO2_MOVIE_SOURCE_DIR}/${_movie}")
@@ -34,4 +29,24 @@ if(HALO2_BUNDLE_MOVIES)
     add_dependencies(halo2_native halo2_movies)
     install(FILES ${_halo2_movie_files} DESTINATION resources/movies COMPONENT movies)
     install(FILES "${_halo2_movie_metadata_output}" DESTINATION resources COMPONENT movies)
+    # An optional, separately verified lossless playback copy keeps the
+    # original user-supplied movies and their release identities unchanged.
+    set(_halo2_playback_source "${CMAKE_CURRENT_SOURCE_DIR}/resources/movie-playback")
+    if(EXISTS "${_halo2_playback_source}/manifest.json" AND EXISTS "${_halo2_playback_source}/intro.hevc.mp4")
+        set(_halo2_playback_output "${CMAKE_CURRENT_BINARY_DIR}/movie-playback")
+        if(CMAKE_CONFIGURATION_TYPES)
+            set(_halo2_playback_output "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/movie-playback")
+        endif()
+        set(_halo2_playback_files "${_halo2_playback_output}/intro.hevc.mp4" "${_halo2_playback_output}/manifest.json")
+        add_custom_command(OUTPUT ${_halo2_playback_files}
+            COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/tools/prepare_movie_playback.py"
+                --source "${HALO2_MOVIE_SOURCE_DIR}/intro_60.mp4"
+                --stage "${_halo2_playback_source}" --output "${_halo2_playback_output}"
+            DEPENDS tools/prepare_movie_playback.py resources/movie-manifest.json
+                "${_halo2_playback_source}/intro.hevc.mp4" "${_halo2_playback_source}/manifest.json"
+            COMMENT "Staging pixel-exact intro playback cache" VERBATIM)
+        add_custom_target(halo2_movie_playback DEPENDS ${_halo2_playback_files})
+        add_dependencies(halo2_native halo2_movie_playback)
+        install(FILES ${_halo2_playback_files} DESTINATION movie-playback COMPONENT movies)
+    endif()
 endif()

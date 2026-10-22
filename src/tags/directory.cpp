@@ -74,6 +74,24 @@ bool TagQuery::matches(const Tag& tag) const {
 TagRange::Iterator::Iterator(std::span<const Tag> entries, TagQuery query, std::size_t index)
     : entries_(entries), query_(query), index_(index) { advance(); }
 void TagRange::Iterator::advance() {
+    // Metadata readers repeatedly ask which allocation contains an address.
+    // Hoist the inactive directory filters out of that scan; retain the full
+    // query predicate for every other selection and the original table order.
+    if (query_.contains && !query_.handle && !query_.group && !query_.name && !query_.address) {
+        const auto [address, size] = *query_.contains;
+        if (size > (std::uint64_t{1} << 32) - address) {
+            index_ = entries_.size();
+            return;
+        }
+        while (index_ < entries_.size()) {
+            const auto &tag = entries_[index_];
+            if ((!query_.require_address || tag.address) && tag.size >= query_.minimum_size &&
+                size <= tag.size && std::uint64_t(address) - tag.address <= tag.size - size)
+                return;
+            ++index_;
+        }
+        return;
+    }
     while (index_ < entries_.size() && !query_.matches(entries_[index_])) ++index_;
 }
 TagRange::Iterator& TagRange::Iterator::operator++() { ++index_; advance(); return *this; }

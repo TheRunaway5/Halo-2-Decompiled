@@ -15,7 +15,7 @@ def main():
     parser.add_argument('--sanitizer',action='store_true')
     args=parser.parse_args(); build=args.build.resolve(); out=args.output.resolve()
     assert build.is_dir() and not out.exists(); out.mkdir(parents=True)
-    source_names=['include/halo2/object_creation_request.hpp','src/object_creation_request.cpp',
+    source_names=['include/halo2/object_creation_request.hpp','src/gameplay/objects/object_creation_request.cpp',
                   'tests/object_creation_request_tests.cpp']
     observed={}
     for name in source_names+['CMakeLists.txt']:

@@ -9,8 +9,8 @@ def main():
     root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parents[1]
     # These format loaders construct the directory. Original runtime adapters
     # operate on literal source memory, not this host directory container.
-    loaders = {root / "src/cache.cpp", root / "src/vista_cache.cpp",
-               root / "src/mcc_cache.cpp", root / "src/mcc_native_shaders.cpp"}
+    loaders = {root / "src/assets/cache.cpp", root / "src/ui/vista/vista_cache.cpp",
+               root / "src/assets/mcc_cache.cpp", root / "src/rendering/mcc_native_shaders.cpp"}
     forbidden = re.compile(r"\btags_\b|(?:\.|->)tags\s*\(")
     failures = []
     checked = 0

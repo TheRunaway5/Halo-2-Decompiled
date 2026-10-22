@@ -1,0 +1,315 @@
+{
+  "schema": "H2_STEAM_APPINFO_V1",
+  "apps": {
+    "976730": {
+      "change_number": 39802301,
+      "depots": {
+        "hasdepotsindlc": "1",
+        "baselanguages": "english,german,french,italian,koreana,spanish,schinese,tchinese,russian,japanese,polish,brazilian,latam",
+        "228987": {
+          "config": {
+            "oslist": "windows"
+          },
+          "depotfromapp": "228980",
+          "sharedinstall": "1"
+        },
+        "228990": {
+          "config": {
+            "oslist": "windows"
+          },
+          "depotfromapp": "228980",
+          "sharedinstall": "1"
+        },
+        "229005": {
+          "config": {
+            "oslist": "windows"
+          },
+          "depotfromapp": "228980",
+          "sharedinstall": "1"
+        },
+        "976731": {
+          "config": {
+            "language": ""
+          },
+          "manifests": {
+            "public": {
+              "gid": "4956458579120161185",
+              "size": "17126952679",
+              "download": "10431492112"
+            }
+          }
+        },
+        "976732": {
+          "config": {
+            "language": ""
+          }
+        },
+        "976733": {
+          "dlcappid": "1064221",
+          "config": {
+            "language": "",
+            "optionaldlc": "1064221"
+          },
+          "manifests": {
+            "public": {
+              "gid": "886692270880710564",
+              "size": "9896534807",
+              "download": "8485033200"
+            }
+          }
+        },
+        "976734": {
+          "dlcappid": "1080080",
+          "config": {
+            "language": "",
+            "optionaldlc": "1080080"
+          },
+          "manifests": {
+            "public": {
+              "gid": "7232036684651310417",
+              "size": "5374679120",
+              "download": "4488971344"
+            }
+          }
+        },
+        "976735": {
+          "dlcappid": "1064270",
+          "config": {
+            "language": "",
+            "optionaldlc": "1064270"
+          },
+          "manifests": {
+            "public": {
+              "gid": "3171334642139802443",
+              "size": "31293813794",
+              "download": "22003386656"
+            }
+          }
+        },
+        "976736": {
+          "dlcappid": "1097223",
+          "config": {
+            "language": "",
+            "optionaldlc": "1097223"
+          },
+          "manifests": {
+            "public": {
+              "gid": "7615983289011416505",
+              "size": "21105615503",
+              "download": "14010963392"
+            }
+          }
+        },
+        "976737": {
+          "dlcappid": "1097223",
+          "config": {
+            "language": "",
+            "optionaldlc": "1097223"
+          },
+          "manifests": {
+            "public": {
+              "gid": "2116658161440873010",
+              "size": "8474252961",
+              "download": "6646530288"
+            }
+          }
+        },
+        "976738": {
+          "dlcappid": "1064271",
+          "config": {
+            "language": "",
+            "optionaldlc": "1064271"
+          },
+          "manifests": {
+            "public": {
+              "gid": "5942743121382725562",
+              "size": "9007725781",
+              "download": "7449085440"
+            }
+          }
+        },
+        "976739": {
+          "dlcappid": "1097222",
+          "config": {
+            "language": "",
+            "optionaldlc": "1097222"
+          },
+          "manifests": {
+            "public": {
+              "gid": "3902112679418599911",
+              "size": "9332886741",
+              "download": "7434729536"
+            }
+          }
+        },
+        "1064222": {
+          "dlcappid": "1064272",
+          "config": {
+            "language": "",
+            "optionaldlc": "1064272"
+          },
+          "manifests": {
+            "public": {
+              "gid": "4251229898993976945",
+              "size": "8726854712",
+              "download": "6973478688"
+            }
+          }
+        },
+        "1064223": {
+          "dlcappid": "1064273",
+          "config": {
+            "language": "",
+            "optionaldlc": "1064273"
+          },
+          "manifests": {
+            "public": {
+              "gid": "6380080023131513473",
+              "size": "24978838634",
+              "download": "21094649376"
+            }
+          }
+        },
+        "1064224": {
+          "dlcappid": "1097220",
+          "config": {
+            "language": "",
+            "optionaldlc": "1097220"
+          },
+          "manifests": {
+            "public": {
+              "gid": "6517281113684597986",
+              "size": "20681996110",
+              "download": "15951621424"
+            }
+          }
+        },
+        "1064225": {
+          "dlcappid": "1064220",
+          "config": {
+            "language": ""
+          },
+          "manifests": {
+            "public": {
+              "gid": "2839831772411294252",
+              "size": "9743362106",
+              "download": "6664093552"
+            }
+          }
+        },
+        "1064226": {
+          "dlcappid": "1097224",
+          "config": {
+            "language": ""
+          },
+          "manifests": {
+            "public": {
+              "gid": "1185971278520087384",
+              "size": "7824947258",
+              "download": "5627002928"
+            }
+          }
+        },
+        "1064227": {
+          "dlcappid": "1109621",
+          "config": {
+            "language": "",
+            "optionaldlc": "1109621"
+          },
+          "manifests": {
+            "public": {
+              "gid": "2902300282061187148",
+              "size": "1461837440",
+              "download": "1231502528"
+            }
+          }
+        },
+        "1064228": {
+          "dlcappid": "1108760",
+          "config": {
+            "language": "",
+            "optionaldlc": "1108760"
+          },
+          "manifests": {
+            "public": {
+              "gid": "6740673267375754218",
+              "size": "933914112",
+              "download": "818822032"
+            }
+          }
+        },
+        "1064229": {
+          "dlcappid": "1108761",
+          "config": {
+            "language": "",
+            "optionaldlc": "1108761"
+          },
+          "manifests": {
+            "public": {
+              "gid": "4496935266254945644",
+              "size": "564047872",
+              "download": "506286448"
+            }
+          }
+        },
+        "1064274": {
+          "dlcappid": "1108762",
+          "config": {
+            "language": "",
+            "optionaldlc": "1108762"
+          },
+          "manifests": {
+            "public": {
+              "gid": "1012731833906676734",
+              "size": "1895895072",
+              "download": "1635718192"
+            }
+          }
+        },
+        "1064275": {
+          "dlcappid": "1108763",
+          "config": {
+            "language": "",
+            "optionaldlc": "1108763"
+          },
+          "manifests": {
+            "public": {
+              "gid": "7410615082723943400",
+              "size": "1543134784",
+              "download": "1404420576"
+            }
+          }
+        },
+        "1064276": {
+          "dlcappid": "1109620",
+          "config": {
+            "language": "",
+            "optionaldlc": "1109620"
+          },
+          "manifests": {
+            "public": {
+              "gid": "8919231023149142163",
+              "size": "3724939335",
+              "download": "3094921520"
+            }
+          }
+        },
+        "workshopdepot": "976730",
+        "branches": {
+          "public": {
+            "buildid": "19905945",
+            "timeupdated": "1758129270",
+            "timebuildupdated": "1757391267"
+          }
+        },
+        "privatebranches": "1",
+        "appmanagesdlc": "1"
+      }
+    },
+    "1064270": {
+      "change_number": 39222627,
+      "depots": ""
+    }
+  },
+  "anonymous": true
+}

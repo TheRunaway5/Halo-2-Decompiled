@@ -77,7 +77,8 @@ exchange codes, create Discord sessions, or persist access/refresh tokens.
 
 | Method | Path | Request/result |
 |---|---|---|
-| POST | `/v1/credentials` | `{server_public_key, ttl_seconds?}` → credential, 201 |
+| POST | `/v1/credentials/challenge` | `{server_public_key, ttl_seconds?}` → short-lived enrollment payload |
+| POST | `/v1/credentials` | `{server_public_key, ttl_seconds?, proof}` → credential, 201 |
 | GET | `/v1/credentials` | Owner's credential IDs, instance IDs, expiry and revoked flag |
 | DELETE | `/v1/credentials/{credential_id}` | Owner-only revocation → `{"revoked": true}` |
 
@@ -86,9 +87,17 @@ Keys are lowercase 64-character Ed25519 public-key hex. Credential lifetime is
 `credential_id`, `server_id`, `owner_id`, `origin_master_id`, and `expires_at`.
 There is no bearer server secret: signing requires the instance private key.
 An instance key can be enrolled only once per origin; re-enrollment returns 409.
+First request a challenge with the same bearer identity, key and lifetime.
+Sign the returned payload with the instance private key using the directory
+signing envelope (`proof: {payload, signature}`). The `enrollment` payload binds
+the master, authenticated owner, public key, lifetime, random nonce and expiry.
+It expires after 120 seconds and is consumed atomically with enrollment. Each
+owner may hold eight pending challenges; replay and cross-owner proofs fail.
+The CLI performs both requests automatically.
 
 When `H2_MASTER_ADMIN_TOKEN_FILE` is configured, operator bootstrap supports
 `POST /v1/admin/credentials` with an additional optional `owner_label`, and
+`POST /v1/admin/credentials/challenge` using that same label and key proof, plus
 `DELETE /v1/admin/credentials/{credential_id}`. Its bearer token grants master
 administration, not a Discord identity. These routes are unavailable without
 the secret. The production Compose service leaves them disabled.

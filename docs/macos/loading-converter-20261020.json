@@ -1,0 +1,1322 @@
+{
+  "schema": "H2_MACOS_LOADING_CONVERTER_PORT_V1",
+  "date": "2026-10-20",
+  "scope": "Native universal converter delivery in the actual Python/Tk launcher, private signed codec closure and strict portable receipt validation; complete preparation and canonical PCM remain unaccepted.",
+  "source_sha256": {
+    "tools/macos/loading_converter.py": "bd75bd0c3da0fc1e67ddb2959308b61a177344682186aa5ea71574b41ce33ac3",
+    "tools/macos/package_loading_converter.py": "c32c0cbd0c0906654a8fb43555cbd0d255494867dba962d5f0f58db43965cf09",
+    "tools/macos/package_launcher.py": "b20f6aa03685665f2e8445b443c82fd277deeaf084bb9ef835b978e9d460d55e",
+    "tools/macos/bundle.py": "7290b0c1fd63246118b9e0d9f61664f38632f1af88e41ab768da609511ff4e68",
+    "tools/mcc_loading_presentation.py": "eb29c17d849264cd02176cd821ddf9d3cf88ae017c81b496a0bd210df8390ad5",
+    "src/mcc_loading_presentation.cpp": "09d2f1cb7d14ae07a1425d0f88b9a1361900810abd1ba0faca3945e946d37a16",
+    "src/mcc_loading_converter_metadata.cpp": "e3fa81a6d4d55cffda01598ea916789aafb59695adc2a09680bd64f93eb01fdd",
+    "include/halo2/mcc_loading_converter_metadata.hpp": "16c47510d04bf7b0d7186dd4b8f8279582a19e83fa8c63b687ac6b449736b1cd",
+    "include/halo2/macos/loading_converter_metadata.hpp": "65e0777b8ab7f4e5fb5cf71093ad9c08bc80320445632c35caea4e73bc9fc52b",
+    "tests/macos/loading_converter/CMakeLists.txt": "049021b3e49c7d15635c7b567453b246725fa4a066e4da689c70d3d708a2592f",
+    "tests/macos/loading_converter/metadata_tests.cpp": "e619bf4ff11b1eb333923e3ad9a58d820b9ddcaaa5e6e4469abe49980004e2c8",
+    "tests/macos/test_loading_converter.py": "a2b7aa397e67dbbe0ab7ffbd1b4bffbe7caac93b0183e2581ee7324aa537b82b",
+    "tests/macos/vorbis/CMakeLists.txt": "c29ef76a62928fd6361acd28fe9b8538077e2ed1b5f9080db57cce4c340a0aa8",
+    "tests/macos/vorbis/packaging_test.py": "5b98cc3ba83f717c8a73dd4de439516be93c0ab68e6d6b259ee89f74374432b5",
+    "tests/macos/python/CMakeLists.txt": "35b34bef82aa1eef1579b82c7806b2c80d54c4ae3659f16db19a55c9e3a98691",
+    "tests/macos/python/relocation_test.py": "69b501f078967a48ae9944426b5ff9d0c6675f45bbd844d6b3c41f02c3589299"
+  },
+  "runtime_schema": "H2_MACOS_MCC_LOADING_CONVERTER_RUNTIME_V1",
+  "native_package": {
+    "schema": "H2_MACOS_LOADING_CONVERTER_PACKAGE_V1",
+    "architectures": [
+      "arm64",
+      "x86_64"
+    ],
+    "scope": "Native converter packaging and admission; canonical PCM acceptance is separate",
+    "runs": [
+      {
+        "arch": "arm64",
+        "command": [
+          "/usr/bin/arch",
+          "-arm64",
+          "/usr/bin/env",
+          "DYLD_PRINT_LIBRARIES=1",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/Testing/Temporary/scratch/halo2-test-enzddwry/packaged-loading-8f57rq7e/Folder with spaces/Loading setup.app/Contents/Resources/macos/loading-converter/bin/halo2_mcc_loading_audio",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-ggmfepl6/loading.wem",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/Testing/Temporary/scratch/halo2-test-enzddwry/packaged-loading-8f57rq7e/arm64.wav",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/Testing/Temporary/scratch/halo2-test-enzddwry/packaged-loading-8f57rq7e/Folder with spaces/Loading setup.app/Contents/Resources/external/ww2ogg/packed_codebooks_aoTuV_603.bin",
+          "2744320"
+        ],
+        "exit_code": 0,
+        "loaded_libraries": [
+          "dyld[7362]: <490BE43A-48A7-30B2-BFB5-5A6F6E08488E> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/Testing/Temporary/scratch/halo2-test-enzddwry/packaged-loading-8f57rq7e/Folder with spaces/Loading setup.app/Contents/Resources/macos/loading-converter/lib/libvorbis.0.dylib",
+          "dyld[7362]: <8DCC2BED-CE6C-33DA-8CCC-C9C5144359A6> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/Testing/Temporary/scratch/halo2-test-enzddwry/packaged-loading-8f57rq7e/Folder with spaces/Loading setup.app/Contents/Resources/macos/loading-converter/lib/libogg.0.dylib"
+        ],
+        "stdout": "{\"channels\":2,\"rate\":44100,\"frames\":2744320,\"decoded_frames\":2744768,\"silent_tail_frames\":0,\"finite\":true,\"nonzero\":true}\n",
+        "pcm_sha256": "c38968922521e5f031733ab6de5183df92335741591e283b778e33baa173acf7",
+        "canonical_pcm": false,
+        "pcm_gate_error": "MCC loading PCM differs from the authenticated source profile"
+      },
+      {
+        "arch": "x86_64",
+        "command": [
+          "/usr/bin/arch",
+          "-x86_64",
+          "/usr/bin/env",
+          "DYLD_PRINT_LIBRARIES=1",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/Testing/Temporary/scratch/halo2-test-enzddwry/packaged-loading-8f57rq7e/Folder with spaces/Loading setup.app/Contents/Resources/macos/loading-converter/bin/halo2_mcc_loading_audio",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-ggmfepl6/loading.wem",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/Testing/Temporary/scratch/halo2-test-enzddwry/packaged-loading-8f57rq7e/x86_64.wav",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/Testing/Temporary/scratch/halo2-test-enzddwry/packaged-loading-8f57rq7e/Folder with spaces/Loading setup.app/Contents/Resources/external/ww2ogg/packed_codebooks_aoTuV_603.bin",
+          "2744320"
+        ],
+        "exit_code": 0,
+        "loaded_libraries": [
+          "dyld[7363]: <84496091-CF5F-3C23-990D-8DF73A6668BB> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/Testing/Temporary/scratch/halo2-test-enzddwry/packaged-loading-8f57rq7e/Folder with spaces/Loading setup.app/Contents/Resources/macos/loading-converter/lib/libvorbis.0.dylib",
+          "dyld[7363]: <6000FCA0-B75C-3935-9A75-73AD9A601A5E> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/Testing/Temporary/scratch/halo2-test-enzddwry/packaged-loading-8f57rq7e/Folder with spaces/Loading setup.app/Contents/Resources/macos/loading-converter/lib/libogg.0.dylib"
+        ],
+        "stdout": "{\"channels\":2,\"rate\":44100,\"frames\":2744320,\"decoded_frames\":2744768,\"silent_tail_frames\":0,\"finite\":true,\"nonzero\":true}\n",
+        "pcm_sha256": "c38968922521e5f031733ab6de5183df92335741591e283b778e33baa173acf7",
+        "canonical_pcm": false,
+        "pcm_gate_error": "MCC loading PCM differs from the authenticated source profile"
+      }
+    ],
+    "retained_large_artifacts": [],
+    "inputs": {
+      "executable_input_sha256": "bbc348d0e1c17c87fd5d01efffb2a655c3bef559f2436cdae2452e4c1ea074d7",
+      "sdk_input_sha256": "757ab5fa99721f00ad13d16fccc6a488178c952e672abe16cc90a94bb8f5b36b",
+      "architectures": [
+        "arm64",
+        "x86_64"
+      ],
+      "pcm_profile_verified": false
+    },
+    "admitted_runtime": {
+      "converter": {
+        "path": "macos/loading-converter/bin/halo2_mcc_loading_audio",
+        "bytes": 289920,
+        "sha256": "43a49cad6d031f77527e6e8139ef84c5060fbd6355af8ff6196778f9596f589e",
+        "runtime": {
+          "schema": "H2_MACOS_MCC_LOADING_CONVERTER_RUNTIME_V1",
+          "architectures": [
+            "arm64",
+            "x86_64"
+          ],
+          "files": {
+            "macos/loading-converter/bin/halo2_mcc_loading_audio": {
+              "bytes": 289920,
+              "sha256": "43a49cad6d031f77527e6e8139ef84c5060fbd6355af8ff6196778f9596f589e"
+            },
+            "macos/loading-converter/lib/libogg.0.dylib": {
+              "bytes": 119200,
+              "sha256": "895b8cf85f0b694005952523419ad1c7ae5ac670740ba0028e619254b97ff4ce"
+            },
+            "macos/loading-converter/lib/libvorbis.0.dylib": {
+              "bytes": 535664,
+              "sha256": "d6554b2a787b6d792b9c50d72b343e34852396ff0a2997d1ef22b66f41d5fee4"
+            },
+            "macos/loading-converter/licenses/Ogg.txt": {
+              "bytes": 1466,
+              "sha256": "d2ab5758336489da61c12cc5bb757da5339c4ae9001f9bb0562b4370249af814"
+            },
+            "macos/loading-converter/licenses/Vorbis.txt": {
+              "bytes": 1470,
+              "sha256": "ec1815db59fcd302846df949d7424876cb2e2dc5ed1606c5fb0b36787b1cf43a"
+            },
+            "macos/loading-converter/licenses/ww2ogg.txt": {
+              "bytes": 1504,
+              "sha256": "0a12f3490863fa01539f500fc74a0e8efbfeb22852aac087c645fbd7362d6726"
+            },
+            "external/ww2ogg/packed_codebooks_aoTuV_603.bin": {
+              "bytes": 74387,
+              "sha256": "00a93eab267d281401b1efd54e888a2e183299b9e6c446c48d09f701a89d9d27"
+            }
+          },
+          "manifest": {
+            "path": "resources/mcc-loading-converter.json",
+            "bytes": 1293,
+            "sha256": "6049a51b47e153964ef8673c2cff646c073bbe1a17c1adb66d5aa99c09a71003"
+          }
+        }
+      },
+      "codebook": {
+        "path": "external/ww2ogg/packed_codebooks_aoTuV_603.bin",
+        "bytes": 74387,
+        "sha256": "00a93eab267d281401b1efd54e888a2e183299b9e6c446c48d09f701a89d9d27"
+      }
+    },
+    "passed": true,
+    "sdk_absent_during_runs": true,
+    "resources_unchanged": true,
+    "all_actual_codec_images_private": true,
+    "sdk_restored": true
+  },
+  "canonical_pcm_gate": {
+    "schema": "H2_MACOS_LOADING_AUDIO_CHECK_V1",
+    "media_sha256": "7ecbdce187ffda00077a593db8ef65a5e9e5ef72d0cd3d4474c523246f7b1695",
+    "codebooks_sha256": "00a93eab267d281401b1efd54e888a2e183299b9e6c446c48d09f701a89d9d27",
+    "expected_pcm_sha256": "4170c17c50ed19f4fd1fcd292431a78564c139ff6f1324e3ea56fdefcac34d6e",
+    "frames": 2744320,
+    "runs": [
+      {
+        "mode": "original",
+        "arch": "arm64",
+        "command": [
+          "/usr/bin/arch",
+          "-arm64",
+          "/usr/bin/env",
+          "DYLD_PRINT_LIBRARIES=1",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/halo2_mcc_loading_audio.app/Contents/MacOS/halo2_mcc_loading_audio",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-ggmfepl6/loading.wem",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/Testing/Temporary/scratch/halo2-test-i4f8wq_l/loading-audio-rt7y_42y/original-arm64.wav",
+          "/Users/eric/Developer/Halo2-macos-port/external/ww2ogg/packed_codebooks_aoTuV_603.bin",
+          "2744320"
+        ],
+        "exit": 0,
+        "stdout": "{\"channels\":2,\"rate\":44100,\"frames\":2744320,\"decoded_frames\":2744768,\"silent_tail_frames\":0,\"finite\":true,\"nonzero\":true}\n",
+        "loaded_libraries": [
+          "dyld[7374]: <490BE43A-48A7-30B2-BFB5-5A6F6E08488E> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/halo2_mcc_loading_audio.app/Contents/Frameworks/libvorbis.0.dylib",
+          "dyld[7374]: <8DCC2BED-CE6C-33DA-8CCC-C9C5144359A6> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/halo2_mcc_loading_audio.app/Contents/Frameworks/libogg.0.dylib"
+        ],
+        "wav_bytes": 21954604,
+        "pcm_sha256": "c38968922521e5f031733ab6de5183df92335741591e283b778e33baa173acf7",
+        "canonical_pcm": false,
+        "error": "MCC loading PCM differs from the authenticated source profile"
+      },
+      {
+        "mode": "original",
+        "arch": "x86_64",
+        "command": [
+          "/usr/bin/arch",
+          "-x86_64",
+          "/usr/bin/env",
+          "DYLD_PRINT_LIBRARIES=1",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/halo2_mcc_loading_audio.app/Contents/MacOS/halo2_mcc_loading_audio",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-ggmfepl6/loading.wem",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/Testing/Temporary/scratch/halo2-test-i4f8wq_l/loading-audio-rt7y_42y/original-x86_64.wav",
+          "/Users/eric/Developer/Halo2-macos-port/external/ww2ogg/packed_codebooks_aoTuV_603.bin",
+          "2744320"
+        ],
+        "exit": 0,
+        "stdout": "{\"channels\":2,\"rate\":44100,\"frames\":2744320,\"decoded_frames\":2744768,\"silent_tail_frames\":0,\"finite\":true,\"nonzero\":true}\n",
+        "loaded_libraries": [
+          "dyld[7375]: <84496091-CF5F-3C23-990D-8DF73A6668BB> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/halo2_mcc_loading_audio.app/Contents/Frameworks/libvorbis.0.dylib",
+          "dyld[7375]: <6000FCA0-B75C-3935-9A75-73AD9A601A5E> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/halo2_mcc_loading_audio.app/Contents/Frameworks/libogg.0.dylib"
+        ],
+        "wav_bytes": 21954604,
+        "pcm_sha256": "c38968922521e5f031733ab6de5183df92335741591e283b778e33baa173acf7",
+        "canonical_pcm": false,
+        "error": "MCC loading PCM differs from the authenticated source profile"
+      },
+      {
+        "mode": "relocated-sdk-absent",
+        "arch": "arm64",
+        "command": [
+          "/usr/bin/arch",
+          "-arm64",
+          "/usr/bin/env",
+          "DYLD_PRINT_LIBRARIES=1",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/Testing/Temporary/scratch/halo2-test-i4f8wq_l/loading-audio-rt7y_42y/Folder with spaces/halo2_mcc_loading_audio.app/Contents/MacOS/halo2_mcc_loading_audio",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-ggmfepl6/loading.wem",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/Testing/Temporary/scratch/halo2-test-i4f8wq_l/loading-audio-rt7y_42y/relocated-sdk-absent-arm64.wav",
+          "/Users/eric/Developer/Halo2-macos-port/external/ww2ogg/packed_codebooks_aoTuV_603.bin",
+          "2744320"
+        ],
+        "exit": 0,
+        "stdout": "{\"channels\":2,\"rate\":44100,\"frames\":2744320,\"decoded_frames\":2744768,\"silent_tail_frames\":0,\"finite\":true,\"nonzero\":true}\n",
+        "loaded_libraries": [
+          "dyld[7381]: <490BE43A-48A7-30B2-BFB5-5A6F6E08488E> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/Testing/Temporary/scratch/halo2-test-i4f8wq_l/loading-audio-rt7y_42y/Folder with spaces/halo2_mcc_loading_audio.app/Contents/Frameworks/libvorbis.0.dylib",
+          "dyld[7381]: <8DCC2BED-CE6C-33DA-8CCC-C9C5144359A6> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/Testing/Temporary/scratch/halo2-test-i4f8wq_l/loading-audio-rt7y_42y/Folder with spaces/halo2_mcc_loading_audio.app/Contents/Frameworks/libogg.0.dylib"
+        ],
+        "wav_bytes": 21954604,
+        "pcm_sha256": "c38968922521e5f031733ab6de5183df92335741591e283b778e33baa173acf7",
+        "canonical_pcm": false,
+        "error": "MCC loading PCM differs from the authenticated source profile"
+      },
+      {
+        "mode": "relocated-sdk-absent",
+        "arch": "x86_64",
+        "command": [
+          "/usr/bin/arch",
+          "-x86_64",
+          "/usr/bin/env",
+          "DYLD_PRINT_LIBRARIES=1",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/Testing/Temporary/scratch/halo2-test-i4f8wq_l/loading-audio-rt7y_42y/Folder with spaces/halo2_mcc_loading_audio.app/Contents/MacOS/halo2_mcc_loading_audio",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-ggmfepl6/loading.wem",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/Testing/Temporary/scratch/halo2-test-i4f8wq_l/loading-audio-rt7y_42y/relocated-sdk-absent-x86_64.wav",
+          "/Users/eric/Developer/Halo2-macos-port/external/ww2ogg/packed_codebooks_aoTuV_603.bin",
+          "2744320"
+        ],
+        "exit": 0,
+        "stdout": "{\"channels\":2,\"rate\":44100,\"frames\":2744320,\"decoded_frames\":2744768,\"silent_tail_frames\":0,\"finite\":true,\"nonzero\":true}\n",
+        "loaded_libraries": [
+          "dyld[7383]: <84496091-CF5F-3C23-990D-8DF73A6668BB> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/Testing/Temporary/scratch/halo2-test-i4f8wq_l/loading-audio-rt7y_42y/Folder with spaces/halo2_mcc_loading_audio.app/Contents/Frameworks/libvorbis.0.dylib",
+          "dyld[7383]: <6000FCA0-B75C-3935-9A75-73AD9A601A5E> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/Testing/Temporary/scratch/halo2-test-i4f8wq_l/loading-audio-rt7y_42y/Folder with spaces/halo2_mcc_loading_audio.app/Contents/Frameworks/libogg.0.dylib"
+        ],
+        "wav_bytes": 21954604,
+        "pcm_sha256": "c38968922521e5f031733ab6de5183df92335741591e283b778e33baa173acf7",
+        "canonical_pcm": false,
+        "error": "MCC loading PCM differs from the authenticated source profile"
+      }
+    ],
+    "retained_large_artifacts": [],
+    "original_slice_comparison": {
+      "byte_exact": true,
+      "differing_samples": 0
+    },
+    "relocated-sdk-absent_slice_comparison": {
+      "byte_exact": true,
+      "differing_samples": 0
+    },
+    "sdk_restored": true,
+    "passed": false,
+    "errors": [
+      "MCC loading PCM differs from the authenticated source profile",
+      "MCC loading PCM differs from the authenticated source profile",
+      "MCC loading PCM differs from the authenticated source profile",
+      "MCC loading PCM differs from the authenticated source profile"
+    ]
+  },
+  "native_cmake": {
+    "passed": false,
+    "status": "failed",
+    "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build",
+    "steps": [
+      {
+        "name": "configure",
+        "command": [
+          "cmake",
+          "-S",
+          "/Users/eric/Developer/Halo2-macos-port/tests/macos/vorbis",
+          "-B",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build",
+          "-DBUILD_TESTING=ON",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-GNinja",
+          "-DHALO2_MCC_LOADING_TEST_MEDIA=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-ggmfepl6/loading.wem"
+        ],
+        "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-loading-converter-native/configure.log",
+        "exit_code": 0
+      },
+      {
+        "name": "build",
+        "command": [
+          "cmake",
+          "--build",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build",
+          "--config",
+          "Release",
+          "--parallel",
+          "2",
+          "--target",
+          "macos_vorbis_tests"
+        ],
+        "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-loading-converter-native/build.log",
+        "exit_code": 0
+      },
+      {
+        "name": "tests",
+        "command": [
+          "ctest",
+          "--test-dir",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build",
+          "--build-config",
+          "Release",
+          "--output-on-failure",
+          "--no-tests=error",
+          "--parallel",
+          "1",
+          "--tests-regex",
+          "^macos_loading_audio_"
+        ],
+        "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-loading-converter-native/tests.log",
+        "exit_code": 8
+      }
+    ],
+    "retained_small_reports": [
+      {
+        "path": "loading-audio.json",
+        "status": "retained",
+        "bytes": 7955,
+        "sha256": "398f04814dfd6b211b2dab08c548dc24068b57fa115342da1f53d9f7efd0fed4",
+        "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-loading-converter-native/evidence/loading-audio.json"
+      },
+      {
+        "path": "loading-converter-package.json",
+        "status": "retained",
+        "bytes": 7001,
+        "sha256": "b76b5fc23d22500175c95473fff3812f42f8555de6909b3159612b30c6742ec4",
+        "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-loading-converter-native/evidence/loading-converter-package.json"
+      },
+      {
+        "path": "macos-dependencies/vorbis/manifest.json",
+        "status": "retained",
+        "bytes": 9919,
+        "sha256": "757ab5fa99721f00ad13d16fccc6a488178c952e672abe16cc90a94bb8f5b36b",
+        "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-loading-converter-native/evidence/macos-dependencies/vorbis/manifest.json"
+      },
+      {
+        "path": "Testing/Temporary/LastTest.log",
+        "status": "retained",
+        "bytes": 22672,
+        "sha256": "da0abbf5748bae3bf05ed58a966cd65e09ff04d3d9f89b40d683741d4f47d102",
+        "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-loading-converter-native/evidence/Testing/Temporary/LastTest.log"
+      }
+    ]
+  },
+  "native_vorbis_sdk_manifest": {
+    "schema": "H2_MACOS_VORBIS_SDK_V1",
+    "sources": {
+      "ogg": {
+        "version": "1.3.6",
+        "url": "https://downloads.xiph.org/releases/ogg/libogg-1.3.6.tar.xz",
+        "sha256": "5c8253428e181840cd20d41f3ca16557a9cc04bad4a3d04cce84808677fa1061"
+      },
+      "vorbis": {
+        "version": "1.3.7",
+        "url": "https://downloads.xiph.org/releases/vorbis/libvorbis-1.3.7.tar.xz",
+        "sha256": "b33cc4934322bcbf6efcbacf49e3ca01aadbea4114ec9589d1b1e9d20f72954b"
+      }
+    },
+    "architectures": [
+      "arm64",
+      "x86_64"
+    ],
+    "deployment_target": "13.0",
+    "configurations": {
+      "arm64": {
+        "configure": [
+          [
+            "cmake",
+            "-S",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/libogg-1.3.6",
+            "-B",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/arm64-ogg-build",
+            "-G",
+            "Ninja",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DCMAKE_INSTALL_PREFIX=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/arm64-install",
+            "-DCMAKE_TOOLCHAIN_FILE=/Users/eric/Developer/Halo2-macos-port/cmake/macos/DependencyToolchain.cmake",
+            "-DHALO2_DEPENDENCY_ARCH=arm64",
+            "-DCMAKE_OSX_DEPLOYMENT_TARGET=13.0",
+            "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
+            "-DCMAKE_INSTALL_NAME_DIR=@rpath",
+            "-DBUILD_SHARED_LIBS=ON",
+            "-DBUILD_FRAMEWORK=OFF",
+            "-DBUILD_TESTING=OFF",
+            "-DINSTALL_DOCS=OFF"
+          ],
+          [
+            "cmake",
+            "-S",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/libvorbis-1.3.7",
+            "-B",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/arm64-vorbis-build",
+            "-G",
+            "Ninja",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DCMAKE_INSTALL_PREFIX=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/arm64-install",
+            "-DCMAKE_TOOLCHAIN_FILE=/Users/eric/Developer/Halo2-macos-port/cmake/macos/DependencyToolchain.cmake",
+            "-DHALO2_DEPENDENCY_ARCH=arm64",
+            "-DCMAKE_OSX_DEPLOYMENT_TARGET=13.0",
+            "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
+            "-DCMAKE_INSTALL_NAME_DIR=@rpath",
+            "-DBUILD_SHARED_LIBS=ON",
+            "-DBUILD_FRAMEWORK=OFF",
+            "-DBUILD_TESTING=OFF",
+            "-DINSTALL_DOCS=OFF",
+            "-DOGG_INCLUDE_DIR=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/arm64-install/include",
+            "-DOGG_LIBRARY=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/arm64-install/lib/libogg.dylib",
+            "-DCMAKE_C_FLAGS=-ffp-contract=off"
+          ]
+        ],
+        "compiler_flags": {
+          "ogg": [
+            "CMAKE_C_FLAGS:STRING=",
+            "CMAKE_C_FLAGS_RELEASE:STRING=-O3 -DNDEBUG"
+          ],
+          "vorbis": [
+            "CMAKE_C_FLAGS:STRING=-ffp-contract=off",
+            "CMAKE_C_FLAGS_RELEASE:STRING=-O3 -DNDEBUG"
+          ]
+        },
+        "libraries": {
+          "ogg": {
+            "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/arm64-install/lib/libogg.0.8.6.dylib",
+            "sha256": "0bd99b2f5c293481b8e10c94c07fc2d066c6fc3c7fb462b842a5e7e517781955"
+          },
+          "vorbis": {
+            "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/arm64-install/lib/libvorbis.0.4.9.dylib",
+            "sha256": "033f46260485c391532dd1e99400a0105b718aed9ac576491b00d09b7f3df419"
+          },
+          "vorbisenc": {
+            "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/arm64-install/lib/libvorbisenc.2.0.12.dylib",
+            "sha256": "2b0e987a81bd4b7f2a3fa2db6fde2e604ab0ab796d7bac2e76006d067441eb14"
+          },
+          "vorbisfile": {
+            "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/arm64-install/lib/libvorbisfile.3.3.8.dylib",
+            "sha256": "608dbe8cbbd54c76d893153623f07dc6d00e9d7e6fa240412b86ca43f8f7e724"
+          }
+        }
+      },
+      "x86_64": {
+        "configure": [
+          [
+            "cmake",
+            "-S",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/libogg-1.3.6",
+            "-B",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/x86_64-ogg-build",
+            "-G",
+            "Ninja",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DCMAKE_INSTALL_PREFIX=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/x86_64-install",
+            "-DCMAKE_TOOLCHAIN_FILE=/Users/eric/Developer/Halo2-macos-port/cmake/macos/DependencyToolchain.cmake",
+            "-DHALO2_DEPENDENCY_ARCH=x86_64",
+            "-DCMAKE_OSX_DEPLOYMENT_TARGET=13.0",
+            "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
+            "-DCMAKE_INSTALL_NAME_DIR=@rpath",
+            "-DBUILD_SHARED_LIBS=ON",
+            "-DBUILD_FRAMEWORK=OFF",
+            "-DBUILD_TESTING=OFF",
+            "-DINSTALL_DOCS=OFF"
+          ],
+          [
+            "cmake",
+            "-S",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/libvorbis-1.3.7",
+            "-B",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/x86_64-vorbis-build",
+            "-G",
+            "Ninja",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DCMAKE_INSTALL_PREFIX=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/x86_64-install",
+            "-DCMAKE_TOOLCHAIN_FILE=/Users/eric/Developer/Halo2-macos-port/cmake/macos/DependencyToolchain.cmake",
+            "-DHALO2_DEPENDENCY_ARCH=x86_64",
+            "-DCMAKE_OSX_DEPLOYMENT_TARGET=13.0",
+            "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
+            "-DCMAKE_INSTALL_NAME_DIR=@rpath",
+            "-DBUILD_SHARED_LIBS=ON",
+            "-DBUILD_FRAMEWORK=OFF",
+            "-DBUILD_TESTING=OFF",
+            "-DINSTALL_DOCS=OFF",
+            "-DOGG_INCLUDE_DIR=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/x86_64-install/include",
+            "-DOGG_LIBRARY=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/x86_64-install/lib/libogg.dylib",
+            "-DCMAKE_C_FLAGS=-ffp-contract=off"
+          ]
+        ],
+        "compiler_flags": {
+          "ogg": [
+            "CMAKE_C_FLAGS:STRING=",
+            "CMAKE_C_FLAGS_RELEASE:STRING=-O3 -DNDEBUG"
+          ],
+          "vorbis": [
+            "CMAKE_C_FLAGS:STRING=-ffp-contract=off",
+            "CMAKE_C_FLAGS_RELEASE:STRING=-O3 -DNDEBUG"
+          ]
+        },
+        "libraries": {
+          "ogg": {
+            "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/x86_64-install/lib/libogg.0.8.6.dylib",
+            "sha256": "7df719278fd83a80813434fb584030b99fe85cb1f523c007ba479a8a1dcaf295"
+          },
+          "vorbis": {
+            "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/x86_64-install/lib/libvorbis.0.4.9.dylib",
+            "sha256": "087f000732d9fece8ba9a955d6c0b7952ad333485b517b4ca99075076984bd4c"
+          },
+          "vorbisenc": {
+            "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/x86_64-install/lib/libvorbisenc.2.0.12.dylib",
+            "sha256": "b2275ae4cbb33ca1e29c88cc4368acc76d7f3e81e93d32a2e694cd9d5917e0be"
+          },
+          "vorbisfile": {
+            "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis-work/x86_64-install/lib/libvorbisfile.3.3.8.dylib",
+            "sha256": "05c3e68ca1940b9afbc95da2b93eeda2187603703bf5b9876c008935f14dbca7"
+          }
+        }
+      }
+    },
+    "public_headers": {
+      "ogg/config_types.h": "bd424c5670e21bf37fcd039d4e39a9f8f19aa5af7ee720810a07092da6557e60",
+      "ogg/ogg.h": "aad86109c1fdb377738675a63e0b19859e06ada25ae5c59c290ca7263d1dc4ca",
+      "ogg/os_types.h": "3bbab6a5d31e3c25c6080252b042afb87028e3ffff100e3e0285648b250b70f4",
+      "vorbis/codec.h": "1d031e3cbae7defe966426e33802450a56388a1323eec1ec629e6d4095c676c5",
+      "vorbis/vorbisenc.h": "d2aba0527252dc265ffc40bc9b1955d5ac0dc8d5e16d9376fa366c05fa27dc7f",
+      "vorbis/vorbisfile.h": "7d98264e57b0190ef0a2701a0bea5f982e82fc1bedd93cd9408a2fff7790f803"
+    },
+    "libraries": {
+      "libogg.0.dylib": "895b8cf85f0b694005952523419ad1c7ae5ac670740ba0028e619254b97ff4ce",
+      "libvorbis.0.dylib": "655db6e9507b6bf7d4f929adc7a74cc159119c87d3fbbd72f0063cf6d0e1bbf9",
+      "libvorbisenc.2.dylib": "f913a54b9245c7e3cacd210af7e3e8d9010d08fead1e5b4083940a8061955274",
+      "libvorbisfile.3.dylib": "13c911bfb57761012287c43a5ecb0a16a723b3b5feb00baffdf23adf7aec66ec"
+    },
+    "licenses": {
+      "Ogg.txt": "d2ab5758336489da61c12cc5bb757da5339c4ae9001f9bb0562b4370249af814",
+      "Vorbis.txt": "ec1815db59fcd302846df949d7424876cb2e2dc5ed1606c5fb0b36787b1cf43a"
+    },
+    "prefix": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23/build/macos-dependencies/vorbis"
+  },
+  "metadata_mac_cmake": {
+    "passed": true,
+    "status": "passed",
+    "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-pivc0wuj/build",
+    "steps": [
+      {
+        "name": "configure",
+        "command": [
+          "cmake",
+          "-S",
+          "/Users/eric/Developer/Halo2-macos-port/tests/macos/loading_converter",
+          "-B",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-pivc0wuj/build",
+          "-DBUILD_TESTING=ON",
+          "-DCMAKE_BUILD_TYPE=Release"
+        ],
+        "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-loading-converter-policy/configure.log",
+        "exit_code": 0
+      },
+      {
+        "name": "build",
+        "command": [
+          "cmake",
+          "--build",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-pivc0wuj/build",
+          "--config",
+          "Release",
+          "--parallel",
+          "2",
+          "--target",
+          "loading_converter_metadata_tests"
+        ],
+        "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-loading-converter-policy/build.log",
+        "exit_code": 0
+      },
+      {
+        "name": "tests",
+        "command": [
+          "ctest",
+          "--test-dir",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-pivc0wuj/build",
+          "--build-config",
+          "Release",
+          "--output-on-failure",
+          "--no-tests=error",
+          "--parallel",
+          "2",
+          "--tests-regex",
+          "^loading_converter_"
+        ],
+        "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-loading-converter-policy/tests.log",
+        "exit_code": 0
+      }
+    ],
+    "retained_small_reports": [
+      {
+        "path": "Testing/Temporary/LastTest.log",
+        "status": "retained",
+        "bytes": 3499,
+        "sha256": "b79bd0f1da61565a68abfcd493c7ca850704b90db66d3b99ae5e2641fb4a6635",
+        "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-loading-converter-policy/evidence/Testing/Temporary/LastTest.log"
+      }
+    ]
+  },
+  "metadata_mac_output": [
+    "PASS 41 production converter provenance controls (Linux and macOS layouts)",
+    "PASS 41 production converter provenance controls (Linux and macOS layouts)"
+  ],
+  "metadata_linux_cmake": {
+    "passed": true,
+    "status": "passed",
+    "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-erdeiidj/build",
+    "steps": [
+      {
+        "name": "configure",
+        "command": [
+          "cmake",
+          "-S",
+          "/home/eric/Developer/Halo-2-Decompiled/tests/macos/loading_converter",
+          "-B",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-erdeiidj/build",
+          "-DBUILD_TESTING=ON",
+          "-DCMAKE_BUILD_TYPE=Release"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-loading-converter-policy/configure.log",
+        "exit_code": 0
+      },
+      {
+        "name": "build",
+        "command": [
+          "cmake",
+          "--build",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-erdeiidj/build",
+          "--config",
+          "Release",
+          "--parallel",
+          "2",
+          "--target",
+          "loading_converter_metadata_tests"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-loading-converter-policy/build.log",
+        "exit_code": 0
+      },
+      {
+        "name": "tests",
+        "command": [
+          "ctest",
+          "--test-dir",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-erdeiidj/build",
+          "--build-config",
+          "Release",
+          "--output-on-failure",
+          "--no-tests=error",
+          "--parallel",
+          "2",
+          "--tests-regex",
+          "^loading_converter_"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-loading-converter-policy/tests.log",
+        "exit_code": 0
+      }
+    ],
+    "retained_small_reports": []
+  },
+  "linux_graph_cmake": {
+    "passed": true,
+    "status": "passed",
+    "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-w9rc50wn/build",
+    "steps": [
+      {
+        "name": "configure",
+        "command": [
+          "cmake",
+          "-S",
+          "/home/eric/Developer/Halo-2-Decompiled",
+          "-B",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-w9rc50wn/build",
+          "-DBUILD_TESTING=ON",
+          "-DCMAKE_BUILD_TYPE=Release"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-loading-converter-linux-graph/configure.log",
+        "exit_code": 0
+      },
+      {
+        "name": "build",
+        "command": [
+          "cmake",
+          "--build",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-w9rc50wn/build",
+          "--config",
+          "Release",
+          "--parallel",
+          "2",
+          "--target",
+          "vulkan_portability_tests"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-loading-converter-linux-graph/build.log",
+        "exit_code": 0
+      },
+      {
+        "name": "tests",
+        "command": [
+          "ctest",
+          "--test-dir",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-w9rc50wn/build",
+          "--build-config",
+          "Release",
+          "--output-on-failure",
+          "--no-tests=error",
+          "--parallel",
+          "2",
+          "--tests-regex",
+          "^(mcc_loading_presentation_import|macos_loading_converter_policy|vulkan_portability)$"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-loading-converter-linux-graph/tests.log",
+        "exit_code": 0
+      }
+    ],
+    "retained_small_reports": []
+  },
+  "production_caller_syntax": {
+    "passed": true,
+    "command": [
+      "python3",
+      "-B",
+      "tools/run_test.py",
+      "--",
+      "python3",
+      "-B",
+      "-c",
+      "pkg-config sdl2/openssl cflags; c++ -std=c++20 -fsyntax-only -Iinclude src/mcc_loading_presentation.cpp"
+    ]
+  },
+  "launcher_cmake": {
+    "passed": true,
+    "status": "passed",
+    "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4laspwff/build",
+    "steps": [
+      {
+        "name": "configure",
+        "command": [
+          "cmake",
+          "-S",
+          "/Users/eric/Developer/Halo2-macos-port/tests/macos/python",
+          "-B",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4laspwff/build",
+          "-DBUILD_TESTING=ON",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-GNinja",
+          "-DHALO2_MACOS_LOADING_CONVERTER_TEST=ON",
+          "-DHALO2_MACOS_LOADING_TEST_SOURCE=/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12/content/halo2"
+        ],
+        "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-loading-converter-launcher-retry/configure.log",
+        "exit_code": 0
+      },
+      {
+        "name": "build",
+        "command": [
+          "cmake",
+          "--build",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4laspwff/build",
+          "--config",
+          "Release",
+          "--parallel",
+          "2",
+          "--target",
+          "macos_python_tests"
+        ],
+        "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-loading-converter-launcher-retry/build.log",
+        "exit_code": 0
+      },
+      {
+        "name": "tests",
+        "command": [
+          "ctest",
+          "--test-dir",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4laspwff/build",
+          "--build-config",
+          "Release",
+          "--output-on-failure",
+          "--no-tests=error",
+          "--parallel",
+          "1",
+          "--tests-regex",
+          "^macos_python_relocation$"
+        ],
+        "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-loading-converter-launcher-retry/tests.log",
+        "exit_code": 0
+      }
+    ],
+    "retained_small_reports": [
+      {
+        "path": "python-relocation.json",
+        "status": "retained",
+        "bytes": 323736,
+        "sha256": "85b489c969bfd02eb1d339541f45c6ac8db74a4c603c1a5cee01ff42c5773feb",
+        "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-loading-converter-launcher-retry/evidence/python-relocation.json"
+      },
+      {
+        "path": "Testing/Temporary/LastTest.log",
+        "status": "retained",
+        "bytes": 74422,
+        "sha256": "149de279581ee38b6c71e8c30bde64b1dcb9067926b7af466b3f4197acc19746",
+        "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-loading-converter-launcher-retry/evidence/Testing/Temporary/LastTest.log"
+      }
+    ]
+  },
+  "launcher_package": {
+    "schema": "H2_MACOS_PYTHON_RELOCATION_V1",
+    "retained_large_artifacts": [],
+    "launchers": [
+      {
+        "arch": "arm64",
+        "exit": 0,
+        "stdout": "Project: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4laspwff/build/Testing/Temporary/scratch/halo2-test-xqqobf6p/macos-python-kza6alrd/User data arm64\nResources: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4laspwff/build/Testing/Temporary/scratch/halo2-test-xqqobf6p/macos-python-kza6alrd/Relocated launcher \u03a9 with spaces.app/Contents/Resources\nRuntime: not built\nFrontend runtime: unavailable\nDefault: startup intro, title screen and menus\nAsset source: Halo MCC only\nMCC cache prepared: no \u2014 scan MCC with --setup\nMCC cache: \nMCC maps: \nNative MCC gameplay ready: no\nNative MCC gameplay test: unavailable\nNative MCC frontend: unavailable\nPlay: import MCC first\nMCC content preview: import MCC first\nStatus: MCC has not been imported yet. Run --setup.\nShaders: existing native Vulkan shaders\n",
+        "stderr": ""
+      },
+      {
+        "arch": "x86_64",
+        "exit": 0,
+        "stdout": "Project: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4laspwff/build/Testing/Temporary/scratch/halo2-test-xqqobf6p/macos-python-kza6alrd/User data x86_64\nResources: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4laspwff/build/Testing/Temporary/scratch/halo2-test-xqqobf6p/macos-python-kza6alrd/Relocated launcher \u03a9 with spaces.app/Contents/Resources\nRuntime: not built\nFrontend runtime: unavailable\nDefault: startup intro, title screen and menus\nAsset source: Halo MCC only\nMCC cache prepared: no \u2014 scan MCC with --setup\nMCC cache: \nMCC maps: \nNative MCC gameplay ready: no\nNative MCC gameplay test: unavailable\nNative MCC frontend: unavailable\nPlay: import MCC first\nMCC content preview: import MCC first\nStatus: MCC has not been imported yet. Run --setup.\nShaders: existing native Vulkan shaders\n",
+        "stderr": ""
+      }
+    ],
+    "passed": true,
+    "unchanged_runtime": true,
+    "images": 116
+  },
+  "launcher_runs": [
+    {
+      "arch": "arm64",
+      "python_runtime": {
+        "arch": "arm64",
+        "python": "3.14.8 (v3.14.8:8e6e75d9102, Sep 30 2026, 14:34:30) [Clang 21.0.0 (clang-2100.1.1.101)]",
+        "prefix": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4laspwff/build/Testing/Temporary/scratch/halo2-test-xqqobf6p/macos-python-kza6alrd/Relocated launcher \u03a9 with spaces.app/Contents/Resources/python",
+        "executable": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4laspwff/build/Testing/Temporary/scratch/halo2-test-xqqobf6p/macos-python-kza6alrd/Relocated launcher \u03a9 with spaces.app/Contents/Resources/python/bin/python3.real",
+        "ssl": "OpenSSL 3.5.9 29 Sep 2026",
+        "certificates": {
+          "x509": 120,
+          "crl": 0,
+          "x509_ca": 120
+        },
+        "pillow": "13.0.0",
+        "image_tests": {
+          "PNG": "d9aedd1e320efa01545329ebe556546bd7f78b9393d02d38916fa2b969a63dfe",
+          "DDS": "86285104bae26145acfa84da1e705a8029f7e479d36f9953e5f42eb372b9f368",
+          "TIFF": "297abd6413464c55879787fb4fe13f19c332b9ffa1a5bb3ec6d1b119d1a7792e"
+        },
+        "tcl": "9.0.4",
+        "tk": "9.0.4",
+        "tcl_path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4laspwff/build/Testing/Temporary/scratch/halo2-test-xqqobf6p/macos-python-kza6alrd/Relocated launcher \u03a9 with spaces.app/Contents/Resources/python/Frameworks/Tcl.framework/Versions/9.0/Resources/Scripts",
+        "tk_path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4laspwff/build/Testing/Temporary/scratch/halo2-test-xqqobf6p/macos-python-kza6alrd/Relocated launcher \u03a9 with spaces.app/Contents/Resources/python/Frameworks/Tk.framework/Versions/9.0/Resources/Scripts",
+        "actual_setup_and_home_windows": true,
+        "passed": true
+      },
+      "loading_converter": {
+        "exit": 0,
+        "stderr": "",
+        "result": {
+          "arch": "arm64",
+          "owner": {
+            "converter": {
+              "path": "macos/loading-converter/bin/halo2_mcc_loading_audio",
+              "bytes": 289920,
+              "sha256": "2d0a7d2f5cd613794246f51e90756b25af573dcf695e1b58a2a0e671011e9fb7",
+              "runtime": {
+                "schema": "H2_MACOS_MCC_LOADING_CONVERTER_RUNTIME_V1",
+                "architectures": [
+                  "arm64",
+                  "x86_64"
+                ],
+                "files": {
+                  "macos/loading-converter/bin/halo2_mcc_loading_audio": {
+                    "bytes": 289920,
+                    "sha256": "2d0a7d2f5cd613794246f51e90756b25af573dcf695e1b58a2a0e671011e9fb7"
+                  },
+                  "macos/loading-converter/lib/libogg.0.dylib": {
+                    "bytes": 119200,
+                    "sha256": "895b8cf85f0b694005952523419ad1c7ae5ac670740ba0028e619254b97ff4ce"
+                  },
+                  "macos/loading-converter/lib/libvorbis.0.dylib": {
+                    "bytes": 535664,
+                    "sha256": "4bbfc30e272d2af95b43831318112dc6be3f42507c65d556d674c78d5b6c3d00"
+                  },
+                  "macos/loading-converter/licenses/Ogg.txt": {
+                    "bytes": 1466,
+                    "sha256": "d2ab5758336489da61c12cc5bb757da5339c4ae9001f9bb0562b4370249af814"
+                  },
+                  "macos/loading-converter/licenses/Vorbis.txt": {
+                    "bytes": 1470,
+                    "sha256": "ec1815db59fcd302846df949d7424876cb2e2dc5ed1606c5fb0b36787b1cf43a"
+                  },
+                  "macos/loading-converter/licenses/ww2ogg.txt": {
+                    "bytes": 1504,
+                    "sha256": "0a12f3490863fa01539f500fc74a0e8efbfeb22852aac087c645fbd7362d6726"
+                  },
+                  "external/ww2ogg/packed_codebooks_aoTuV_603.bin": {
+                    "bytes": 74387,
+                    "sha256": "00a93eab267d281401b1efd54e888a2e183299b9e6c446c48d09f701a89d9d27"
+                  }
+                },
+                "manifest": {
+                  "path": "resources/mcc-loading-converter.json",
+                  "bytes": 1293,
+                  "sha256": "3d7afbc305054fa3aa3eb52e46d5e215a78f448591e046b580f5cf1535ef0118"
+                }
+              }
+            },
+            "codebook": {
+              "path": "external/ww2ogg/packed_codebooks_aoTuV_603.bin",
+              "bytes": 74387,
+              "sha256": "00a93eab267d281401b1efd54e888a2e183299b9e6c446c48d09f701a89d9d27"
+            }
+          },
+          "source_preflight": {
+            "schema": "H2_MCC_NATIVE_LOADING_V3",
+            "profile": "mcc-logo-glow-mcc-track-oneshot-v1",
+            "source": {
+              "path": "MCC/Content/WwiseAudio/Windows/236657329.wem",
+              "sha256": "7ecbdce187ffda00077a593db8ef65a5e9e5ef72d0cd3d4474c523246f7b1695",
+              "pak_index_sha1": "a2d5179b5e587f75c72d0737a1b3a8e2610027c9",
+              "event": "Play_Music",
+              "switch_group": 2949940656,
+              "switch_key": 1792793154,
+              "media_id": 236657329,
+              "archive": {
+                "path": "MCC/Content/Paks/MCC-WindowsNoEditor.pak",
+                "bytes": 10928289765,
+                "mtime_ns": 1792542137481119839,
+                "index_offset": 10923547406,
+                "index_bytes": 4742298,
+                "index_sha1": "a2d5179b5e587f75c72d0737a1b3a8e2610027c9",
+                "entry_offset": 10590728192,
+                "entry_bytes": 3356709,
+                "entry_sha1": "121ce9dc9b98878e88af112a477c5a2027438521"
+              }
+            },
+            "converter": {
+              "path": "macos/loading-converter/bin/halo2_mcc_loading_audio",
+              "bytes": 289920,
+              "sha256": "2d0a7d2f5cd613794246f51e90756b25af573dcf695e1b58a2a0e671011e9fb7",
+              "runtime": {
+                "schema": "H2_MACOS_MCC_LOADING_CONVERTER_RUNTIME_V1",
+                "architectures": [
+                  "arm64",
+                  "x86_64"
+                ],
+                "files": {
+                  "macos/loading-converter/bin/halo2_mcc_loading_audio": {
+                    "bytes": 289920,
+                    "sha256": "2d0a7d2f5cd613794246f51e90756b25af573dcf695e1b58a2a0e671011e9fb7"
+                  },
+                  "macos/loading-converter/lib/libogg.0.dylib": {
+                    "bytes": 119200,
+                    "sha256": "895b8cf85f0b694005952523419ad1c7ae5ac670740ba0028e619254b97ff4ce"
+                  },
+                  "macos/loading-converter/lib/libvorbis.0.dylib": {
+                    "bytes": 535664,
+                    "sha256": "4bbfc30e272d2af95b43831318112dc6be3f42507c65d556d674c78d5b6c3d00"
+                  },
+                  "macos/loading-converter/licenses/Ogg.txt": {
+                    "bytes": 1466,
+                    "sha256": "d2ab5758336489da61c12cc5bb757da5339c4ae9001f9bb0562b4370249af814"
+                  },
+                  "macos/loading-converter/licenses/Vorbis.txt": {
+                    "bytes": 1470,
+                    "sha256": "ec1815db59fcd302846df949d7424876cb2e2dc5ed1606c5fb0b36787b1cf43a"
+                  },
+                  "macos/loading-converter/licenses/ww2ogg.txt": {
+                    "bytes": 1504,
+                    "sha256": "0a12f3490863fa01539f500fc74a0e8efbfeb22852aac087c645fbd7362d6726"
+                  },
+                  "external/ww2ogg/packed_codebooks_aoTuV_603.bin": {
+                    "bytes": 74387,
+                    "sha256": "00a93eab267d281401b1efd54e888a2e183299b9e6c446c48d09f701a89d9d27"
+                  }
+                },
+                "manifest": {
+                  "path": "resources/mcc-loading-converter.json",
+                  "bytes": 1293,
+                  "sha256": "3d7afbc305054fa3aa3eb52e46d5e215a78f448591e046b580f5cf1535ef0118"
+                }
+              }
+            },
+            "codebook": {
+              "path": "external/ww2ogg/packed_codebooks_aoTuV_603.bin",
+              "bytes": 74387,
+              "sha256": "00a93eab267d281401b1efd54e888a2e183299b9e6c446c48d09f701a89d9d27"
+            }
+          },
+          "loaded_libraries": [
+            "dyld[15165]: <1F750471-D53A-3742-BEA1-C8B9E7E4CC89> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4laspwff/build/Testing/Temporary/scratch/halo2-test-xqqobf6p/macos-python-kza6alrd/Relocated launcher \u03a9 with spaces.app/Contents/Resources/macos/loading-converter/lib/libvorbis.0.dylib",
+            "dyld[15165]: <8DCC2BED-CE6C-33DA-8CCC-C9C5144359A6> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4laspwff/build/Testing/Temporary/scratch/halo2-test-xqqobf6p/macos-python-kza6alrd/Relocated launcher \u03a9 with spaces.app/Contents/Resources/macos/loading-converter/lib/libogg.0.dylib"
+          ],
+          "helper_exit": 0,
+          "user_data_unchanged": true,
+          "pcm_sha256": "c38968922521e5f031733ab6de5183df92335741591e283b778e33baa173acf7",
+          "canonical_pcm": false,
+          "pcm_gate_error": "MCC loading PCM differs from the authenticated source profile",
+          "passed": true
+        }
+      }
+    },
+    {
+      "arch": "x86_64",
+      "python_runtime": {
+        "arch": "x86_64",
+        "python": "3.14.8 (v3.14.8:8e6e75d9102, Sep 30 2026, 14:34:30) [Clang 21.0.0 (clang-2100.1.1.101)]",
+        "prefix": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4laspwff/build/Testing/Temporary/scratch/halo2-test-xqqobf6p/macos-python-kza6alrd/Relocated launcher \u03a9 with spaces.app/Contents/Resources/python",
+        "executable": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4laspwff/build/Testing/Temporary/scratch/halo2-test-xqqobf6p/macos-python-kza6alrd/Relocated launcher \u03a9 with spaces.app/Contents/Resources/python/bin/python3.real",
+        "ssl": "OpenSSL 3.5.9 29 Sep 2026",
+        "certificates": {
+          "x509": 120,
+          "crl": 0,
+          "x509_ca": 120
+        },
+        "pillow": "13.0.0",
+        "image_tests": {
+          "PNG": "d9aedd1e320efa01545329ebe556546bd7f78b9393d02d38916fa2b969a63dfe",
+          "DDS": "86285104bae26145acfa84da1e705a8029f7e479d36f9953e5f42eb372b9f368",
+          "TIFF": "297abd6413464c55879787fb4fe13f19c332b9ffa1a5bb3ec6d1b119d1a7792e"
+        },
+        "tcl": "9.0.4",
+        "tk": "9.0.4",
+        "tcl_path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4laspwff/build/Testing/Temporary/scratch/halo2-test-xqqobf6p/macos-python-kza6alrd/Relocated launcher \u03a9 with spaces.app/Contents/Resources/python/Frameworks/Tcl.framework/Versions/9.0/Resources/Scripts",
+        "tk_path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4laspwff/build/Testing/Temporary/scratch/halo2-test-xqqobf6p/macos-python-kza6alrd/Relocated launcher \u03a9 with spaces.app/Contents/Resources/python/Frameworks/Tk.framework/Versions/9.0/Resources/Scripts",
+        "actual_setup_and_home_windows": true,
+        "passed": true
+      },
+      "loading_converter": {
+        "exit": 0,
+        "stderr": "",
+        "result": {
+          "arch": "x86_64",
+          "owner": {
+            "converter": {
+              "path": "macos/loading-converter/bin/halo2_mcc_loading_audio",
+              "bytes": 289920,
+              "sha256": "2d0a7d2f5cd613794246f51e90756b25af573dcf695e1b58a2a0e671011e9fb7",
+              "runtime": {
+                "schema": "H2_MACOS_MCC_LOADING_CONVERTER_RUNTIME_V1",
+                "architectures": [
+                  "arm64",
+                  "x86_64"
+                ],
+                "files": {
+                  "macos/loading-converter/bin/halo2_mcc_loading_audio": {
+                    "bytes": 289920,
+                    "sha256": "2d0a7d2f5cd613794246f51e90756b25af573dcf695e1b58a2a0e671011e9fb7"
+                  },
+                  "macos/loading-converter/lib/libogg.0.dylib": {
+                    "bytes": 119200,
+                    "sha256": "895b8cf85f0b694005952523419ad1c7ae5ac670740ba0028e619254b97ff4ce"
+                  },
+                  "macos/loading-converter/lib/libvorbis.0.dylib": {
+                    "bytes": 535664,
+                    "sha256": "4bbfc30e272d2af95b43831318112dc6be3f42507c65d556d674c78d5b6c3d00"
+                  },
+                  "macos/loading-converter/licenses/Ogg.txt": {
+                    "bytes": 1466,
+                    "sha256": "d2ab5758336489da61c12cc5bb757da5339c4ae9001f9bb0562b4370249af814"
+                  },
+                  "macos/loading-converter/licenses/Vorbis.txt": {
+                    "bytes": 1470,
+                    "sha256": "ec1815db59fcd302846df949d7424876cb2e2dc5ed1606c5fb0b36787b1cf43a"
+                  },
+                  "macos/loading-converter/licenses/ww2ogg.txt": {
+                    "bytes": 1504,
+                    "sha256": "0a12f3490863fa01539f500fc74a0e8efbfeb22852aac087c645fbd7362d6726"
+                  },
+                  "external/ww2ogg/packed_codebooks_aoTuV_603.bin": {
+                    "bytes": 74387,
+                    "sha256": "00a93eab267d281401b1efd54e888a2e183299b9e6c446c48d09f701a89d9d27"
+                  }
+                },
+                "manifest": {
+                  "path": "resources/mcc-loading-converter.json",
+                  "bytes": 1293,
+                  "sha256": "3d7afbc305054fa3aa3eb52e46d5e215a78f448591e046b580f5cf1535ef0118"
+                }
+              }
+            },
+            "codebook": {
+              "path": "external/ww2ogg/packed_codebooks_aoTuV_603.bin",
+              "bytes": 74387,
+              "sha256": "00a93eab267d281401b1efd54e888a2e183299b9e6c446c48d09f701a89d9d27"
+            }
+          },
+          "source_preflight": {
+            "schema": "H2_MCC_NATIVE_LOADING_V3",
+            "profile": "mcc-logo-glow-mcc-track-oneshot-v1",
+            "source": {
+              "path": "MCC/Content/WwiseAudio/Windows/236657329.wem",
+              "sha256": "7ecbdce187ffda00077a593db8ef65a5e9e5ef72d0cd3d4474c523246f7b1695",
+              "pak_index_sha1": "a2d5179b5e587f75c72d0737a1b3a8e2610027c9",
+              "event": "Play_Music",
+              "switch_group": 2949940656,
+              "switch_key": 1792793154,
+              "media_id": 236657329,
+              "archive": {
+                "path": "MCC/Content/Paks/MCC-WindowsNoEditor.pak",
+                "bytes": 10928289765,
+                "mtime_ns": 1792542137481119839,
+                "index_offset": 10923547406,
+                "index_bytes": 4742298,
+                "index_sha1": "a2d5179b5e587f75c72d0737a1b3a8e2610027c9",
+                "entry_offset": 10590728192,
+                "entry_bytes": 3356709,
+                "entry_sha1": "121ce9dc9b98878e88af112a477c5a2027438521"
+              }
+            },
+            "converter": {
+              "path": "macos/loading-converter/bin/halo2_mcc_loading_audio",
+              "bytes": 289920,
+              "sha256": "2d0a7d2f5cd613794246f51e90756b25af573dcf695e1b58a2a0e671011e9fb7",
+              "runtime": {
+                "schema": "H2_MACOS_MCC_LOADING_CONVERTER_RUNTIME_V1",
+                "architectures": [
+                  "arm64",
+                  "x86_64"
+                ],
+                "files": {
+                  "macos/loading-converter/bin/halo2_mcc_loading_audio": {
+                    "bytes": 289920,
+                    "sha256": "2d0a7d2f5cd613794246f51e90756b25af573dcf695e1b58a2a0e671011e9fb7"
+                  },
+                  "macos/loading-converter/lib/libogg.0.dylib": {
+                    "bytes": 119200,
+                    "sha256": "895b8cf85f0b694005952523419ad1c7ae5ac670740ba0028e619254b97ff4ce"
+                  },
+                  "macos/loading-converter/lib/libvorbis.0.dylib": {
+                    "bytes": 535664,
+                    "sha256": "4bbfc30e272d2af95b43831318112dc6be3f42507c65d556d674c78d5b6c3d00"
+                  },
+                  "macos/loading-converter/licenses/Ogg.txt": {
+                    "bytes": 1466,
+                    "sha256": "d2ab5758336489da61c12cc5bb757da5339c4ae9001f9bb0562b4370249af814"
+                  },
+                  "macos/loading-converter/licenses/Vorbis.txt": {
+                    "bytes": 1470,
+                    "sha256": "ec1815db59fcd302846df949d7424876cb2e2dc5ed1606c5fb0b36787b1cf43a"
+                  },
+                  "macos/loading-converter/licenses/ww2ogg.txt": {
+                    "bytes": 1504,
+                    "sha256": "0a12f3490863fa01539f500fc74a0e8efbfeb22852aac087c645fbd7362d6726"
+                  },
+                  "external/ww2ogg/packed_codebooks_aoTuV_603.bin": {
+                    "bytes": 74387,
+                    "sha256": "00a93eab267d281401b1efd54e888a2e183299b9e6c446c48d09f701a89d9d27"
+                  }
+                },
+                "manifest": {
+                  "path": "resources/mcc-loading-converter.json",
+                  "bytes": 1293,
+                  "sha256": "3d7afbc305054fa3aa3eb52e46d5e215a78f448591e046b580f5cf1535ef0118"
+                }
+              }
+            },
+            "codebook": {
+              "path": "external/ww2ogg/packed_codebooks_aoTuV_603.bin",
+              "bytes": 74387,
+              "sha256": "00a93eab267d281401b1efd54e888a2e183299b9e6c446c48d09f701a89d9d27"
+            }
+          },
+          "loaded_libraries": [
+            "dyld[15587]: <7C06AD4D-E3E6-37FC-B91D-CD875BA08F08> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4laspwff/build/Testing/Temporary/scratch/halo2-test-xqqobf6p/macos-python-kza6alrd/Relocated launcher \u03a9 with spaces.app/Contents/Resources/macos/loading-converter/lib/libvorbis.0.dylib",
+            "dyld[15587]: <6000FCA0-B75C-3935-9A75-73AD9A601A5E> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4laspwff/build/Testing/Temporary/scratch/halo2-test-xqqobf6p/macos-python-kza6alrd/Relocated launcher \u03a9 with spaces.app/Contents/Resources/macos/loading-converter/lib/libogg.0.dylib"
+          ],
+          "helper_exit": 0,
+          "user_data_unchanged": true,
+          "pcm_sha256": "c38968922521e5f031733ab6de5183df92335741591e283b778e33baa173acf7",
+          "canonical_pcm": false,
+          "pcm_gate_error": "MCC loading PCM differs from the authenticated source profile",
+          "passed": true
+        }
+      }
+    }
+  ],
+  "initial_launcher_build_failure": {
+    "reason": "The test SSH PATH omitted /usr/sbin, hiding pkgutil. The corrected standard build PATH passed. No production admission was relaxed.",
+    "cmake": {
+      "passed": false,
+      "status": "failed",
+      "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-1sglmxah/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/Users/eric/Developer/Halo2-macos-port/tests/macos/python",
+            "-B",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-1sglmxah/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-GNinja",
+            "-DHALO2_MACOS_LOADING_CONVERTER_TEST=ON",
+            "-DHALO2_MACOS_LOADING_TEST_SOURCE=/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12/content/halo2"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-loading-converter-launcher/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-1sglmxah/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "macos_python_tests"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-loading-converter-launcher/build.log",
+          "exit_code": 1
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "python-relocation.json",
+          "status": "not produced"
+        },
+        {
+          "path": "Testing/Temporary/LastTest.log",
+          "status": "not produced"
+        }
+      ]
+    }
+  },
+  "cleanup": {
+    "schema": "H2_MACOS_LOADING_CONVERTER_CLEANUP_V1",
+    "owned_paths": [
+      {
+        "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3_5k7g23",
+        "removed": true
+      },
+      {
+        "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-pivc0wuj",
+        "removed": true
+      },
+      {
+        "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4laspwff",
+        "removed": true
+      },
+      {
+        "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-1sglmxah",
+        "removed": true
+      },
+      {
+        "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-ggmfepl6",
+        "removed": true
+      }
+    ],
+    "live_owned_processes": [],
+    "owned_disk_images": [],
+    "retained_generated_artifacts": [],
+    "retained_reference_input": {
+      "path": "/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12",
+      "logical_bytes": 42183170486,
+      "allocated_file_bytes": 42185318400,
+      "preserved": true
+    },
+    "source_sha256": {
+      "tools/macos/loading_converter.py": "bd75bd0c3da0fc1e67ddb2959308b61a177344682186aa5ea71574b41ce33ac3",
+      "tools/macos/package_loading_converter.py": "c32c0cbd0c0906654a8fb43555cbd0d255494867dba962d5f0f58db43965cf09",
+      "tools/macos/package_launcher.py": "b20f6aa03685665f2e8445b443c82fd277deeaf084bb9ef835b978e9d460d55e",
+      "tools/macos/bundle.py": "7290b0c1fd63246118b9e0d9f61664f38632f1af88e41ab768da609511ff4e68",
+      "tools/mcc_loading_presentation.py": "eb29c17d849264cd02176cd821ddf9d3cf88ae017c81b496a0bd210df8390ad5",
+      "src/mcc_loading_presentation.cpp": "09d2f1cb7d14ae07a1425d0f88b9a1361900810abd1ba0faca3945e946d37a16",
+      "src/mcc_loading_converter_metadata.cpp": "e3fa81a6d4d55cffda01598ea916789aafb59695adc2a09680bd64f93eb01fdd",
+      "include/halo2/mcc_loading_converter_metadata.hpp": "16c47510d04bf7b0d7186dd4b8f8279582a19e83fa8c63b687ac6b449736b1cd",
+      "include/halo2/macos/loading_converter_metadata.hpp": "65e0777b8ab7f4e5fb5cf71093ad9c08bc80320445632c35caea4e73bc9fc52b",
+      "tests/macos/loading_converter/CMakeLists.txt": "049021b3e49c7d15635c7b567453b246725fa4a066e4da689c70d3d708a2592f",
+      "tests/macos/loading_converter/metadata_tests.cpp": "e619bf4ff11b1eb333923e3ad9a58d820b9ddcaaa5e6e4469abe49980004e2c8",
+      "tests/macos/test_loading_converter.py": "a2b7aa397e67dbbe0ab7ffbd1b4bffbe7caac93b0183e2581ee7324aa537b82b",
+      "tests/macos/vorbis/CMakeLists.txt": "c29ef76a62928fd6361acd28fe9b8538077e2ed1b5f9080db57cce4c340a0aa8",
+      "tests/macos/vorbis/packaging_test.py": "5b98cc3ba83f717c8a73dd4de439516be93c0ab68e6d6b259ee89f74374432b5",
+      "tests/macos/python/CMakeLists.txt": "35b34bef82aa1eef1579b82c7806b2c80d54c4ae3659f16db19a55c9e3a98691",
+      "tests/macos/python/relocation_test.py": "69b501f078967a48ae9944426b5ff9d0c6675f45bbd844d6b3c41f02c3589299"
+    },
+    "passed": true
+  },
+  "remaining_limits": [
+    "Both actual Mac slices still decode the genuine track to c38968922521e5f031733ab6de5183df92335741591e283b778e33baa173acf7, which fails the unchanged admitted PCM profile.",
+    "The packaged source preflight and direct converter route passed. Complete source preparation/import, native folder-dialog interaction and a playable engine remain unverified.",
+    "Original engine x87/SSE numerical conversion remains explicitly deferred. No release notarization or physical Intel validation occurred."
+  ],
+  "bounded_raw_evidence_sha256": {
+    "native-cohort.json": "2c6037446ee82243e3d4a7573ed6019b201476a53dc4cad74d156858151917b3",
+    "native-package.json": "b76b5fc23d22500175c95473fff3812f42f8555de6909b3159612b30c6742ec4",
+    "canonical-gate.json": "398f04814dfd6b211b2dab08c548dc24068b57fa115342da1f53d9f7efd0fed4",
+    "mac-policy-report.json": "55ded9492aa158218ac09b9bf8f10e0fb717f19a12da7f525298446cbc6d21e6",
+    "mac-policy-tests.log": "b79bd0f1da61565a68abfcd493c7ca850704b90db66d3b99ae5e2641fb4a6635",
+    "launcher-report.json": "eb6a5f99dee6c8fc5966b1b94eeea2c12353ac8479d56f26c0b9fece5703762a",
+    "launcher-relocation.json": "85b489c969bfd02eb1d339541f45c6ac8db74a4c603c1a5cee01ff42c5773feb",
+    "launcher-path-failure-report.json": "35103ff26edbf82ec7b3a554019db09546c88fabb39cee632f6013a1530977f4",
+    "launcher-path-failure-build.log": "3ebd13f9b42091c82fecbf3b855426a595f476d5745b6b3fb16ce040be74df07",
+    "mac-cleanup.json": "b376358419f5df91df4ace4081c51fdb336f8b7a3a5a684660e9302f9cd804ee",
+    "native-vorbis-manifest.json": "757ab5fa99721f00ad13d16fccc6a488178c952e672abe16cc90a94bb8f5b36b"
+  },
+  "linux_private_owners_removed": {
+    "/tmp/halo2-test-3gq0gj8n": true,
+    "/tmp/halo2-test-9l9bpv8k": true,
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-05jsuykf": true,
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-erdeiidj": true,
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-w9rc50wn": true
+  }
+}

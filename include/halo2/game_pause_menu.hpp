@@ -22,6 +22,9 @@ public:
   bool event(const SDL_Event &);
   UiDraw draw(unsigned width,unsigned height);
   bool visible() const { return visible_; }
+  // TU1.5 solo238AC2 pauses the clock/audio; MP14A0D9 leaves them running.
+  // Nested settings/confirmations remain part of the same solo pause owner.
+  bool pauses_game_time() const { return visible_ && campaign_; }
   bool captures_game_input();
   bool quit_requested() const { return quit_; }
   void command(std::function<std::string(GamePauseAction)> value) { command_=std::move(value); }
@@ -40,6 +43,7 @@ private:
   SDL_Cursor *previous_cursor_{},*hand_cursor_{};
   bool campaign_{},visible_{},quit_{};
   bool await_release_{};
+  std::int32_t input_instance_=-1;
   unsigned screen_{};
   std::uint32_t entered_{};
   std::uint32_t axis_repeat_{};

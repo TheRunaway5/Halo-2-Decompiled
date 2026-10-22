@@ -11,7 +11,7 @@ from generate_physics_live_support_tu15 import complete_body, generate, sha
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--output', type=Path, default=Path('src/source_scene_device_constructor_tu15_generated.cpp'))
+    p.add_argument('--output', type=Path, default=Path('src/rendering/renderer/source_scene_device_constructor_tu15_generated.cpp'))
     p.add_argument('--directory', type=Path, required=True)
     a = p.parse_args()
     assert sha(NEW_DEFAULT) == NEW_PIN

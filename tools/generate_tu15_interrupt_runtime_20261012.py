@@ -47,7 +47,7 @@ def main():
   if o.type==3:return f'w(s.memory,s.observe,0x{i.address:x}u,{addr(i,o)},{o.size},{x});'
   r,n=REGS[i.reg_name(o.reg)];return f's.set({r},{x},{n});'
  text='''// Generated complete modified Complex4627 interrupt bodies; no runtime decoder.
-#include "physics_world_runtime_internal.hpp"
+#include "physics/runtime/physics_world_runtime_internal.hpp"
 #include "halo2/source_tu15_interrupt.hpp"
 namespace halo2 { namespace {
 using namespace physics_world_runtime_detail;

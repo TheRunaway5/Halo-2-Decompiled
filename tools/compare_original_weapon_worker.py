@@ -6,6 +6,7 @@ Native mutexes/semaphore/thread and the real file backend own actual outcomes.
 This is a component composition; it does not replace the live world's existing
 resource policy or certify Xbox thread/priority/device scheduling.
 """
+from source_layout import source_file
 import argparse
 import hashlib
 import json
@@ -61,10 +62,10 @@ def main():
             file_token=request['observed_file_handle'],owned_path=str(owned),instruction_map=instruction_map,observed_release_count=stack[2])
     (scratch/'input.json').write_text(json.dumps(entry)+'\n')
     cpp=ROOT/'tools/probe_original_weapon_worker.cpp'
-    sources=[cpp,*[ROOT/'src'/name for name in ('animation_async_worker.cpp','source_async_jobs.cpp','source_bitmap_async_read.cpp','native_synchronization.cpp','native_threads.cpp','native_execution_gate.cpp')]]
+    sources=[cpp,*[source_file(ROOT, name) for name in ('animation_async_worker.cpp','source_async_jobs.cpp','source_bitmap_async_read.cpp','native_synchronization.cpp','native_threads.cpp','native_execution_gate.cpp')]]
     headers=[ROOT/'include/halo2'/name for name in ('animation_async_worker.hpp','animation_async_constructor.hpp','source_async_jobs.hpp','source_bitmap_async_read.hpp','native_synchronization.hpp','native_threads.hpp','native_execution_gate.hpp','unit_animation_resolution.hpp')]
     source_hashes={str(path):sha(path)for path in sources+headers}
-    command=['c++','-std=c++20','-O2','-pthread','-I'+str(ROOT/'include'),*[str(path)for path in sources],'-o',str(scratch/'native-worker')]
+    command=['c++','-std=c++20','-O2','-pthread','-I'+str(ROOT/'include'), '-I'+str(ROOT/'src'),*[str(path)for path in sources],'-o',str(scratch/'native-worker')]
     build=subprocess.run(command,capture_output=True,text=True);(output/'compile.log').write_text((build.stdout+build.stderr)[-65536:]);assert build.returncode==0,build.stderr[-3000:]
     run_command=[str(scratch/'native-worker'),str(scratch/'input.json'),str(scratch/'original-worker-ram.bin'),str(scratch/'native.json'),str(scratch/'native-ram.bin')]
     run=subprocess.run(run_command,capture_output=True,text=True,timeout=30);(output/'run.log').write_text((run.stdout+run.stderr)[-65536:]);assert run.returncode==0,run.stderr

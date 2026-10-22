@@ -1,0 +1,17 @@
+[package]
+name = "halo2-online-protocol"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "MIT"
+
+[dependencies]
+miniz_oxide = { version = "=0.9.1", default-features = false, features = ["with-alloc"] }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[profile.release]
+overflow-checks = true
+

@@ -1,8 +1,8 @@
-target_sources(halo2_systems PRIVATE src/native_tu15_renderer_depth.cpp src/native_tu15_renderer_depth_state_data.cpp src/native_tu15_renderer_output.cpp src/native_tu15_renderer_coordinates.cpp src/native_tu15_renderer_resource_storage_data.cpp src/source_renderer_resource_storage_tu15_generated.cpp src/native_tu15_framebuffer_aliases.cpp src/native_tu15_framebuffer_startup.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/renderer/native_tu15_renderer_depth.cpp src/rendering/renderer/native_tu15_renderer_depth_state_data.cpp src/rendering/renderer/native_tu15_renderer_output.cpp src/rendering/renderer/native_tu15_renderer_coordinates.cpp src/rendering/renderer/native_tu15_renderer_resource_storage_data.cpp src/rendering/renderer/source_renderer_resource_storage_tu15_generated.cpp src/rendering/renderer/native_tu15_framebuffer_aliases.cpp src/rendering/renderer/native_tu15_framebuffer_startup.cpp)
 # The systems-owned framebuffer aliases call the prepared depth producer.
 target_link_libraries(halo2_systems PRIVATE halo2_weather_depth_alias)
 if(BUILD_TESTING)
-    add_executable(renderer_framebuffer_alias_tests tests/renderer_framebuffer_alias_tests.cpp src/native_tu15_framebuffer_aliases.cpp)
+    add_executable(renderer_framebuffer_alias_tests tests/renderer_framebuffer_alias_tests.cpp src/rendering/renderer/native_tu15_framebuffer_aliases.cpp)
     target_link_libraries(renderer_framebuffer_alias_tests PRIVATE halo2_renderer)
     add_test(NAME native_renderer_framebuffer_aliases COMMAND renderer_framebuffer_alias_tests
         ${CMAKE_CURRENT_BINARY_DIR}/renderer-framebuffer-alias-validation)
@@ -19,7 +19,7 @@ if(BUILD_TESTING)
     set_tests_properties(native_renderer_source_color_buffers PROPERTIES TIMEOUT 240)
     foreach(target native_tu15_network_link_tests native_tu15_graphics_startup_tests)
         target_link_libraries(${target} PRIVATE halo2_weather_depth_alias)
-        target_sources(${target} PRIVATE src/native_tu15_renderer_depth.cpp src/native_tu15_renderer_depth_state_data.cpp src/native_tu15_renderer_output.cpp src/native_tu15_renderer_coordinates.cpp src/native_tu15_renderer_resource_storage_data.cpp src/source_renderer_resource_storage_tu15_generated.cpp src/native_tu15_framebuffer_aliases.cpp src/native_tu15_framebuffer_startup.cpp)
+        target_sources(${target} PRIVATE src/rendering/renderer/native_tu15_renderer_depth.cpp src/rendering/renderer/native_tu15_renderer_depth_state_data.cpp src/rendering/renderer/native_tu15_renderer_output.cpp src/rendering/renderer/native_tu15_renderer_coordinates.cpp src/rendering/renderer/native_tu15_renderer_resource_storage_data.cpp src/rendering/renderer/source_renderer_resource_storage_tu15_generated.cpp src/rendering/renderer/native_tu15_framebuffer_aliases.cpp src/rendering/renderer/native_tu15_framebuffer_startup.cpp)
     endforeach()
     add_test(NAME native_tu15_graphics_depth_startup COMMAND native_tu15_graphics_startup_tests --frontier graphics-depth --input-devices none)
     add_test(NAME original_tu15_graphics_depth_startup COMMAND native_tu15_graphics_startup_tests --frontier graphics-depth --input-devices none
@@ -79,4 +79,11 @@ if(BUILD_TESTING)
         add_test(NAME native_tu15_graphics_surfaces${coordinate_suffix}_startup COMMAND native_tu15_graphics_startup_tests --frontier graphics-surfaces --input-devices ${coordinate_input})
         set_tests_properties(native_tu15_graphics_surfaces${coordinate_suffix}_startup PROPERTIES TIMEOUT 240 SKIP_RETURN_CODE 77)
     endforeach()
+endif()
+
+# The repository-bundled validation layer is used by the live renderer probes.
+if(BUILD_TESTING AND EXISTS "${CMAKE_SOURCE_DIR}/.tools/validation/usr/share/vulkan/explicit_layer.d/VkLayer_khronos_validation.json")
+    set_property(TEST native_renderer_target_lifetimes native_renderer_source_color_buffers APPEND PROPERTY ENVIRONMENT
+        "VK_LAYER_PATH=${CMAKE_SOURCE_DIR}/.tools/validation/usr/share/vulkan/explicit_layer.d"
+        "LD_LIBRARY_PATH=${CMAKE_SOURCE_DIR}/.tools/validation/usr/lib:$ENV{LD_LIBRARY_PATH}")
 endif()

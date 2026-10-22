@@ -1,0 +1,501 @@
+{
+  "schema": "H2_MACOS_D24_STORAGE_EVIDENCE_V1",
+  "date": "2026-10-20",
+  "passed": true,
+  "scope": "Exact integer D24 carrier, production weather forward alias and color writeback. Default renderer attachment selection and source numerical backend unchanged.",
+  "source_sha256": {
+    "cmake/SourceWeatherDepthAlias.cmake": "a5d637f73cf823a8241000eeb90538057fcd1c46e1aa3709f42734d5b92b7915",
+    "include/halo2/source_depth_storage.hpp": "711eb36ae9e7b6e9e253635e725b44b8d3d6d3af6b9b9409a0474c738804366e",
+    "include/halo2/source_weather_depth_alias.hpp": "3d89d4ebed523a1bf7e58270895b2d8afeaad438dd79a2cba18bc77ab7c4e929",
+    "shaders/source_depth_color_writeback.comp": "9869c814e3a588475582ebeaafb0627442547811b604066ba9399c531e41ed71",
+    "shaders/source_depth_storage.glsl": "852c6c3a3fb0a842ef6a44934e9f9609f9e8c736986750163009211cb151e869",
+    "shaders/source_weather_depth_alias.comp": "db96552c909797c8d79e3648eadf2cf9c538208cdaf27350b9f15fd3820f8ef2",
+    "src/source_weather_depth_alias.cpp": "0ca931486d993a4f255b7b5ebe192b634cedea6e08e85ed22244531522f6e2c5",
+    "tests/macos/depth_storage/CMakeLists.txt": "fe91665938453c4a84788597dc284045ec36c39a179003ab9da170e436d8881e",
+    "tests/macos/depth_storage/depth_color.frag": "65d8d8a9ba279243e4afa8a847a56d9ba515f0de7a3760a8f5cdec0e6f02c01b",
+    "tests/macos/depth_storage/depth_color.vert": "dd962d61e40f9843b7605ed7d60abbef7273cc03ab288c385029e20cfa94419d",
+    "tests/macos/depth_storage/depth_storage_tests.cpp": "3d2d417f73d40210a3e4ce6ba1a335c4ec91ff1763ef29bc1557dfe48e596e9e",
+    "tests/macos/depth_storage/gpu.hpp": "e23710511bab5a03f0676f1329583a614a8cd0fbbdd097fb40a50cb0084955ba"
+  },
+  "mac_source_hashes_match": true,
+  "macos": {
+    "runner": {
+      "passed": true,
+      "status": "passed",
+      "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-g13w1xug/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/Users/eric/Developer/Halo2-macos-port/tests/macos/depth_storage",
+            "-B",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-g13w1xug/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-GNinja",
+            "-DSDL2_DIR=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-r_mtaotz/sdk/cmake/SDL2",
+            "-DHALO2_MOLTENVK_LIBRARY=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-r_mtaotz/sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib",
+            "-DHALO2_MOLTENVK_LICENSE=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-r_mtaotz/sdk/MoltenVK/LICENSE",
+            "-DHALO2_SDL_LICENSE=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-r_mtaotz/SDL2-LICENSE.txt",
+            "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+            "-DHALO2_BUNDLE_MOVIES=OFF"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-depth-storage-v2/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-g13w1xug/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "vulkan_portability_tests",
+            "depth_storage_tests"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-depth-storage-v2/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-g13w1xug/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "1",
+            "--tests-regex",
+            "^(depth_storage_arm64|depth_storage_x86_64|vulkan_portability)$"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-depth-storage-v2/tests.log",
+          "exit_code": 0
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "depth-storage-arm64.json",
+          "status": "retained",
+          "bytes": 802,
+          "sha256": "f31dcc1d1a57bace625fb4c8b2b0dd4872c4a72666e9e18724af0cea099544b9",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-depth-storage-v2/evidence/depth-storage-arm64.json"
+        },
+        {
+          "path": "depth-storage-x86_64.json",
+          "status": "retained",
+          "bytes": 802,
+          "sha256": "f31dcc1d1a57bace625fb4c8b2b0dd4872c4a72666e9e18724af0cea099544b9",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-depth-storage-v2/evidence/depth-storage-x86_64.json"
+        }
+      ]
+    },
+    "results": {
+      "depth-storage-arm64.json": {
+        "api_version": 4198757,
+        "carrier": {
+          "color_writeback_values": 16777216,
+          "forward_values": 16777216,
+          "metadata_rejections": 1,
+          "noncanonical_physical_rejections": 7,
+          "recovery_after_rejection": true,
+          "source_words_preserved": 16777216,
+          "stencil_byte_patterns": 256,
+          "supported": true,
+          "tile_extent": [
+            1024,
+            1024
+          ]
+        },
+        "cpu": {
+          "binary32_identity": true,
+          "integers": 16777216,
+          "invalid_carriers": 7,
+          "invalid_integers": 2,
+          "strict_order": true
+        },
+        "device": "Apple M2 Pro",
+        "driver_version": 10402,
+        "native_d24": {
+          "supported": false
+        },
+        "passed": true,
+        "schema": "H2_D24_STORAGE_VALIDATION_V1",
+        "synchronization_validation_active": false,
+        "validation_errors": 0,
+        "validation_layer_active": false
+      },
+      "depth-storage-x86_64.json": {
+        "api_version": 4198757,
+        "carrier": {
+          "color_writeback_values": 16777216,
+          "forward_values": 16777216,
+          "metadata_rejections": 1,
+          "noncanonical_physical_rejections": 7,
+          "recovery_after_rejection": true,
+          "source_words_preserved": 16777216,
+          "stencil_byte_patterns": 256,
+          "supported": true,
+          "tile_extent": [
+            1024,
+            1024
+          ]
+        },
+        "cpu": {
+          "binary32_identity": true,
+          "integers": 16777216,
+          "invalid_carriers": 7,
+          "invalid_integers": 2,
+          "strict_order": true
+        },
+        "device": "Apple M2 Pro",
+        "driver_version": 10402,
+        "native_d24": {
+          "supported": false
+        },
+        "passed": true,
+        "schema": "H2_D24_STORAGE_VALIDATION_V1",
+        "synchronization_validation_active": false,
+        "validation_errors": 0,
+        "validation_layer_active": false
+      }
+    },
+    "tests_log": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-g13w1xug/build\n    Start 2: vulkan_portability\n1/3 Test #2: vulkan_portability ...............   Passed    0.75 sec\n    Start 3: depth_storage_arm64\n2/3 Test #3: depth_storage_arm64 ..............   Passed    1.73 sec\n    Start 4: depth_storage_x86_64\n3/3 Test #4: depth_storage_x86_64 .............   Passed    3.85 sec\n\n100% tests passed out of 3\n\nTotal Test time (real) =   6.34 sec\n"
+  },
+  "linux_synchronization_validation": {
+    "runner": {
+      "passed": true,
+      "status": "passed",
+      "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-lkr4g7w1/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/home/eric/Developer/Halo-2-Decompiled/tests/macos/depth_storage",
+            "-B",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-lkr4g7w1/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-depth-storage-linux-validation/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-lkr4g7w1/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "depth_storage_tests",
+            "vulkan_portability_tests",
+            "source_weather_depth_alias_frame_tests"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-depth-storage-linux-validation/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-lkr4g7w1/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "1",
+            "--tests-regex",
+            "^(depth_storage_host|vulkan_portability|source_weather_depth_alias_frame_gpu)$"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-depth-storage-linux-validation/tests.log",
+          "exit_code": 0
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "depth-storage-host.json",
+          "status": "retained",
+          "bytes": 1123,
+          "sha256": "df620a3ce873735c84de8ae15e8cb060b14eb5f4edeeb94f0e0434c13817591e",
+          "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-depth-storage-linux-validation/evidence/depth-storage-host.json"
+        }
+      ]
+    },
+    "results": {
+      "depth-storage-host.json": {
+        "api_version": 4211039,
+        "carrier": {
+          "color_writeback_values": 16777216,
+          "forward_values": 16777216,
+          "metadata_rejections": 1,
+          "noncanonical_physical_rejections": 7,
+          "recovery_after_rejection": true,
+          "source_words_preserved": 16777216,
+          "stencil_byte_patterns": 256,
+          "supported": true,
+          "tile_extent": [
+            1024,
+            1024
+          ]
+        },
+        "cpu": {
+          "binary32_identity": true,
+          "integers": 16777216,
+          "invalid_carriers": 7,
+          "invalid_integers": 2,
+          "strict_order": true
+        },
+        "device": "NVIDIA GeForce RTX 5080",
+        "driver_version": 2580775424,
+        "native_d24": {
+          "color_writeback_values": 16777216,
+          "forward_values": 16777216,
+          "metadata_rejections": 1,
+          "noncanonical_physical_rejections": 0,
+          "recovery_after_rejection": true,
+          "source_words_preserved": 16777216,
+          "stencil_byte_patterns": 256,
+          "supported": true,
+          "tile_extent": [
+            1024,
+            1024
+          ]
+        },
+        "passed": true,
+        "schema": "H2_D24_STORAGE_VALIDATION_V1",
+        "synchronization_validation_active": true,
+        "validation_errors": 0,
+        "validation_layer_active": true
+      }
+    },
+    "tests_log": "Test project /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-lkr4g7w1/build\n    Start 1: source_weather_depth_alias_frame_gpu\n1/3 Test #1: source_weather_depth_alias_frame_gpu ...   Passed    0.29 sec\n    Start 2: vulkan_portability\n2/3 Test #2: vulkan_portability .....................   Passed    0.09 sec\n    Start 3: depth_storage_host\n3/3 Test #3: depth_storage_host .....................   Passed   53.67 sec\n\n100% tests passed out of 3\n\nLabel Time Summary:\ngpu        =   0.29 sec*proc (1 test)\nweather    =   0.29 sec*proc (1 test)\n\nTotal Test time (real) =  54.05 sec\n"
+  },
+  "validation_layer_input": {
+    "vulkan-validation-layers-1.4.363.0-1-x86_64.pkg.tar.zst": {
+      "url": "https://geo.mirror.pkgbuild.com/extra/os/x86_64/vulkan-validation-layers-1.4.363.0-1-x86_64.pkg.tar.zst",
+      "sha256": "904f4eba2e708c9c96579900688a284309cd56dc09b5af3f78c563ffda13df9e",
+      "bytes": 9236457
+    },
+    "vulkan-validation-layers-1.4.363.0-1-x86_64.pkg.tar.zst.sig": {
+      "url": "https://geo.mirror.pkgbuild.com/extra/os/x86_64/vulkan-validation-layers-1.4.363.0-1-x86_64.pkg.tar.zst.sig",
+      "sha256": "e8f686fa461dd25015ea5a93a0cf79e0d98a4d246109e4536eba2900766e889d",
+      "bytes": 566
+    },
+    "signature": {
+      "exit_code": 0,
+      "output": "==> Checking /tmp/halo2-test-lvedt6rw/vulkan-validation-layers-1.4.363.0-1-x86_64.pkg.tar.zst.sig... (detached)\ngpg: Signature made Tue Sep 29 06:06:45 2026 EDT\ngpg:                using RSA key 262A58EC6C51F7EA395B2E2DFDC3040B92ACA748\ngpg: Note: trustdb not writable\ngpg: Good signature from \"Robin Candau <antiz@archlinux.org>\" [full]\n"
+    }
+  },
+  "earlier_attempts": [
+    {
+      "runner": {
+        "passed": false,
+        "status": "failed",
+        "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-chu1qhp6/build",
+        "steps": [
+          {
+            "name": "configure",
+            "command": [
+              "cmake",
+              "-S",
+              "/home/eric/Developer/Halo-2-Decompiled/tests/macos/depth_storage",
+              "-B",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-chu1qhp6/build",
+              "-DBUILD_TESTING=ON",
+              "-DCMAKE_BUILD_TYPE=Release"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-depth-storage-linux/configure.log",
+            "exit_code": 0
+          },
+          {
+            "name": "build",
+            "command": [
+              "cmake",
+              "--build",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-chu1qhp6/build",
+              "--config",
+              "Release",
+              "--parallel",
+              "2",
+              "--target",
+              "depth_storage_tests",
+              "vulkan_portability_tests",
+              "source_weather_depth_alias_frame_tests"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-depth-storage-linux/build.log",
+            "exit_code": 2
+          }
+        ],
+        "retained_small_reports": [
+          {
+            "path": "depth-storage-host.json",
+            "status": "not produced"
+          }
+        ]
+      },
+      "diagnostic": "[ 12%] Generating shaders/depth_color.vert.spv\n[ 25%] Generating shaders/source_weather_depth_alias.comp.spv\n/home/eric/Developer/Halo-2-Decompiled/tests/macos/depth_storage/depth_color.vert\n/home/eric/Developer/Halo-2-Decompiled/shaders/source_weather_depth_alias.comp\n[ 50%] Generating shaders/depth_color.frag.spv\n[ 50%] Generating shaders/source_depth_color_writeback.comp.spv\n/home/eric/Developer/Halo-2-Decompiled/shaders/source_depth_color_writeback.comp\n/home/eric/Developer/Halo-2-Decompiled/tests/macos/depth_storage/depth_color.frag\n[ 50%] Built target source_weather_depth_alias_shader\n[ 50%] Built target depth_storage_probe_shaders\n[ 62%] Building CXX object CMakeFiles/halo2_weather_depth_alias.dir/home/eric/Developer/Halo-2-Decompiled/src/source_weather_depth_alias.cpp.o\n[ 75%] Linking CXX static library libhalo2_weather_depth_alias.a\n[ 75%] Built target halo2_weather_depth_alias\n[ 87%] Building CXX object CMakeFiles/depth_storage_tests.dir/depth_storage_tests.cpp.o\n/home/eric/Developer/Halo-2-Decompiled/tests/macos/depth_storage/depth_storage_tests.cpp: In function \u2018nlohmann::json_abi_v3_12_0::json {anonymous}::gpu_contract(Gpu&, VkFormat, halo2::SourceDepthStorageEncoding)\u2019:\n/home/eric/Developer/Halo-2-Decompiled/tests/macos/depth_storage/depth_storage_tests.cpp:70:170: error: no matching function for call to \u2018halo2::SourceWeatherDepthAlias::end_color()\u2019\n   70 |         check(vkResetFences(g.device,1,&fence.handle));g.begin();{Submission submission{g,alias,fence.handle};alias.begin_color(record);draw.record(base);alias.end_color();readback();submission.finish();}verify(base,true);\n      |                                                                                                                                                           ~~~~~~~~~~~~~~~^~\n  \u2022 there is 1 candidate\nIn file included from /home/eric/Developer/Halo-2-Decompiled/tests/macos/depth_storage/depth_storage_tests.cpp:1:\n    \u2022 candidate 1: \u2018void halo2::SourceWeatherDepthAlias::end_color(VkCommandBuffer)\u2019\n      /home/eric/Developer/Halo-2-Decompiled/include/halo2/source_weather_depth_alias.hpp:111:10:\n        111 |     void end_color(VkCommandBuffer);\n            |          ^~~~~~~~~\n      \u2022 candidate expects 1 argument, 0 provided\n/home/eric/Developer/Halo-2-Decompiled/tests/macos/depth_storage/depth_storage_tests.cpp:80:337: error: expected \u2018}\u2019 before \u2018;\u2019 token\n   80 |     return {{\"supported\",true},{\"forward_values\",16777216},{\"source_words_preserved\",16777216},{\"color_writeback_values\",16777216},{\"stencil_byte_patterns\",256},{\"metadata_rejections\",negative_metadata},{\"noncanonical_physical_rejections\",rejected_physical},{\"recovery_after_rejection\",true},{\"tile_extent\",{extent.width,extent.height}};\n      |            ~                                                                                                                                                                                                                                                                                                                                    ^\nmake[3]: *** [CMakeFiles/depth_storage_tests.dir/build.make:79: CMakeFiles/depth_storage_tests.dir/depth_storage_tests.cpp.o] Error 1\nmake[2]: *** [CMakeFiles/Makefile2:1146: CMakeFiles/depth_storage_tests.dir/all] Error 2\nmake[1]: *** [CMakeFiles/Makefile2:1153: CMakeFiles/depth_storage_tests.dir/rule] Error 2\nmake: *** [Makefile:550: depth_storage_tests] Error 2\n",
+      "correction": "Fixed test end_color command argument and JSON initializer brace; private build removed."
+    },
+    {
+      "runner": {
+        "passed": true,
+        "status": "passed",
+        "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-71ysfmq1/build",
+        "steps": [
+          {
+            "name": "configure",
+            "command": [
+              "cmake",
+              "-S",
+              "/home/eric/Developer/Halo-2-Decompiled/tests/macos/depth_storage",
+              "-B",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-71ysfmq1/build",
+              "-DBUILD_TESTING=ON",
+              "-DCMAKE_BUILD_TYPE=Release"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-depth-storage-linux-v2/configure.log",
+            "exit_code": 0
+          },
+          {
+            "name": "build",
+            "command": [
+              "cmake",
+              "--build",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-71ysfmq1/build",
+              "--config",
+              "Release",
+              "--parallel",
+              "2",
+              "--target",
+              "depth_storage_tests",
+              "vulkan_portability_tests",
+              "source_weather_depth_alias_frame_tests"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-depth-storage-linux-v2/build.log",
+            "exit_code": 0
+          },
+          {
+            "name": "tests",
+            "command": [
+              "ctest",
+              "--test-dir",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-71ysfmq1/build",
+              "--build-config",
+              "Release",
+              "--output-on-failure",
+              "--no-tests=error",
+              "--parallel",
+              "1",
+              "--tests-regex",
+              "^(depth_storage_host|vulkan_portability|source_weather_depth_alias_frame_gpu)$"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-depth-storage-linux-v2/tests.log",
+            "exit_code": 0
+          }
+        ],
+        "retained_small_reports": [
+          {
+            "path": "depth-storage-host.json",
+            "status": "retained",
+            "bytes": 1079,
+            "sha256": "fe5bd873084529abb36fd471689cc652bda33c68225f3e04b7a8f618a1c1c95b",
+            "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-depth-storage-linux-v2/evidence/depth-storage-host.json"
+          }
+        ]
+      },
+      "note": "Full domains passed; older frame test skipped without validation layer. Subsequently rerun with authenticated temporary validation layer and passed."
+    }
+  ],
+  "commands": {
+    "macos": [
+      "ssh -o BatchMode=yes -o ConnectTimeout=15 codex-mac",
+      "PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin caffeinate -i python3 -B tools/run_test.py -- python3 -B tools/macos/test_port.py --engine-configure-check --source tests/macos/depth_storage --engine-target depth_storage_tests --engine-test-filter \"^(depth_storage_arm64|depth_storage_x86_64|vulkan_portability)$\" --retain-report depth-storage-arm64.json --retain-report depth-storage-x86_64.json --output build/test-results/macos-depth-storage-v2"
+    ],
+    "linux_validation_environment": {
+      "VK_LAYER_PATH": "$HALO2_TEST_SCRATCH/usr/share/vulkan/explicit_layer.d",
+      "LD_LIBRARY_PATH": "$HALO2_TEST_SCRATCH/usr/lib"
+    },
+    "linux_layer_lifecycle": "Downloaded exact Arch package and detached signature inside tools/run_test.py; pacman-key verification succeeded. Extracted into owned scratch; no system installation. Enclosed tools/run_tests.py invocation is retained in runner steps. Package, library and nested build removed."
+  },
+  "coverage": {
+    "integer_domain": [
+      0,
+      16777215
+    ],
+    "physical_carrier": "IEEE binary32 N / 16777216, constructed and checked with integer operations",
+    "source_preservation": "All physical depth words and stencil bytes read back unchanged after production forward alias",
+    "color_writeback": "Actual full-screen color draw through RGBA8 alias; production shader writes all source depth integers in reverse order and transformed stencil bytes; physical image and alias readback compared",
+    "invalid_carriers": [
+      "negative zero",
+      "1.0 outside carrier maximum",
+      "NaN",
+      "infinity",
+      "fractional integer grid",
+      "below minimum nonzero integer",
+      "subnormal"
+    ],
+    "recovery": "Each GPU invalid-word submission clears pending ownership, invalidates binding and permits a fresh valid production"
+  },
+  "limits": [
+    "The full renderer still requires D24S8. No global D32 format substitution was made.",
+    "D32 carrier coverage is storage/alias transfer, not original depth rasterization parity. All clears, generic Z and W writers, comparisons, depth bounds/bias, sampling and geometry programs need separate integration.",
+    "Mac tests did not load a validation layer. Linux RTX 5080 ran Khronos core and synchronization validation with zero reported errors.",
+    "Deferred x87/SSE numerical paths, loading PCM gate, full arm64 engine and live gameplay remain open."
+  ],
+  "cleanup": {
+    "linux": {
+      "scratch_exists": {
+        "/tmp/halo2-test-lvedt6rw": false,
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-chu1qhp6": false,
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-71ysfmq1": false,
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-lkr4g7w1": false
+      },
+      "large_test_artifacts_retained": [],
+      "owned_processes": []
+    },
+    "macos": {
+      "scratch_exists": {
+        ".local/test-scratch/halo2-test-94n46sni": false,
+        ".local/test-scratch/halo2-test-g13w1xug": false,
+        "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-lx21uywu": false,
+        "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-r_mtaotz": false
+      },
+      "source_sha256": {
+        "cmake/SourceWeatherDepthAlias.cmake": "a5d637f73cf823a8241000eeb90538057fcd1c46e1aa3709f42734d5b92b7915",
+        "include/halo2/source_depth_storage.hpp": "711eb36ae9e7b6e9e253635e725b44b8d3d6d3af6b9b9409a0474c738804366e",
+        "include/halo2/source_weather_depth_alias.hpp": "3d89d4ebed523a1bf7e58270895b2d8afeaad438dd79a2cba18bc77ab7c4e929",
+        "shaders/source_depth_color_writeback.comp": "9869c814e3a588475582ebeaafb0627442547811b604066ba9399c531e41ed71",
+        "shaders/source_depth_storage.glsl": "852c6c3a3fb0a842ef6a44934e9f9609f9e8c736986750163009211cb151e869",
+        "shaders/source_weather_depth_alias.comp": "db96552c909797c8d79e3648eadf2cf9c538208cdaf27350b9f15fd3820f8ef2",
+        "src/source_weather_depth_alias.cpp": "0ca931486d993a4f255b7b5ebe192b634cedea6e08e85ed22244531522f6e2c5",
+        "tests/macos/depth_storage/CMakeLists.txt": "fe91665938453c4a84788597dc284045ec36c39a179003ab9da170e436d8881e",
+        "tests/macos/depth_storage/depth_color.frag": "65d8d8a9ba279243e4afa8a847a56d9ba515f0de7a3760a8f5cdec0e6f02c01b",
+        "tests/macos/depth_storage/depth_color.vert": "dd962d61e40f9843b7605ed7d60abbef7273cc03ab288c385029e20cfa94419d",
+        "tests/macos/depth_storage/depth_storage_tests.cpp": "3d2d417f73d40210a3e4ce6ba1a335c4ec91ff1763ef29bc1557dfe48e596e9e",
+        "tests/macos/depth_storage/gpu.hpp": "e23710511bab5a03f0676f1329583a614a8cd0fbbdd097fb40a50cb0084955ba"
+      },
+      "owned_processes": [],
+      "owned_mounts": [],
+      "mcc_source_preserved": true,
+      "mcc_lockout_preserved": true,
+      "large_test_artifacts_retained": []
+    },
+    "large_test_artifacts_retained": []
+  }
+}

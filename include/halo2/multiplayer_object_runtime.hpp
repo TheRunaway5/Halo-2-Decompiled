@@ -13,6 +13,7 @@
 #include "halo2/native_melee_animation.hpp"
 #include "halo2/source_unit_interaction_target.hpp"
 #include "halo2/source_attached_effect.hpp"
+#include "halo2/source_hud_objectives.hpp"
 #include <map>
 
 namespace halo2 {
@@ -63,6 +64,7 @@ public:
   MultiplayerObjectRuntime(const MultiplayerObjectRuntime &)=delete;
   MultiplayerObjectRuntime &operator=(const MultiplayerObjectRuntime &)=delete;
   SourceRuntimeMemory &memory();
+  SourceHudObjectives hud_objectives(std::uint32_t player) const;
   NativeRuntimeAddress object_pool() const;
   NativeRuntimeAddress player_pool() const;
   bool owns_physics() const;
@@ -153,9 +155,12 @@ public:
       Vec3 position,Vec3 forward,Vec3 up,const SourceFirstPersonPhaseObserverTu15 & = {});
   void observe_first_person_phase(SourceFirstPersonPhaseObserverTu15);
   void observe_sound_submissions(SourceSoundSubmitObserverTu15);
+  void observe_sound_requests(SourceSoundRequestObserverTu15);
   SourcePlayerEquipmentTu15 initialize_player_equipment(std::uint32_t player,
                                                         std::uint32_t object);
   SourcePlayerEquipmentTu15 player_equipment(std::uint32_t object) const;
+  bool uses_scenario_player_spawns(std::span<const Spawn>) const;
+  std::uint32_t birth_player(std::uint32_t player);
   // Native confirmed-fatal stimulus. D7CD0 produces its actual damage record;
   // D7E00/CBDC0 own the ordinary death transition and player detachment.
   void kill_biped(std::uint32_t object);
@@ -178,13 +183,14 @@ public:
   // phases. Retains the same bank; does not supply contacts or death admission.
   void set_unit_controller_active(std::uint32_t unit,bool requested);
   void deliver_unit_input(std::uint32_t unit,Vec3 throttle,Vec3 facing);
-  void step_objects();
+  void step_objects(SourceEngineFrameOwnerTu15 = SourceEngineFrameOwnerTu15::World);
   // Read-only presentation of the current source WORLD matrices. A stale
   // full handle or unavailable node backing is an error, never an idle pose.
   std::vector<Transform> world_nodes(std::uint32_t object) const;
   //133790 consumes the retained object+30/+3C sphere. Resolve the same full
   //salted owner as WORLD nodes; preview-model bounds are not this bank.
   ShadowCasterSphere object_sphere(std::uint32_t object) const;
+  SourceObjectClusterMemberships render_cluster_memberships()const;
   // Native presentation inputs over this same retained TU1.1 bank. Resources
   // finish through the original queue/read/fixup graph before their first draw.
   void preload_render_model(std::uint32_t render_model);
@@ -270,6 +276,23 @@ public:
   bool commit_authority(PreparedAuthority &&) noexcept;
 private:
   friend class MultiplayerMatch;
+    friend class SourceNativePublication;
+    // Borrowed lower scope. Only the genuine outer target capability mints
+    // this and retains its ObjectRuntime/Physics owners until after release.
+    class NativePublicationHold {
+    public:
+      ~NativePublicationHold();
+      NativePublicationHold(const NativePublicationHold &)=delete;
+      NativePublicationHold(NativePublicationHold &&)=delete;
+      bool matches(const MultiplayerObjectRuntime &)const noexcept;
+    private:
+      friend class MultiplayerObjectRuntime;
+      explicit NativePublicationHold(MultiplayerObjectRuntime &);
+      struct Impl;
+      const std::thread::id executor_=std::this_thread::get_id();
+      std::unique_ptr<Impl> impl_;
+    };
+    std::unique_ptr<NativePublicationHold> hold_native_publication();
   void observe_projectile_effects(std::function<void(const SourceProjectileDetonationTu15 &)>);
   void retire_projectile_effects() noexcept;
   struct Impl;

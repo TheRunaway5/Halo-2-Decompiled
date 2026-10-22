@@ -1,5 +1,5 @@
 # Native platform operations remain separate from original game/Havok owners.
-add_library(halo2_physics_platform_locks STATIC src/physics_platform_locks.cpp src/physics_platform_locks_continuation.cpp)
+add_library(halo2_physics_platform_locks STATIC src/physics/physics_platform_locks.cpp src/physics/physics_platform_locks_continuation.cpp)
 target_include_directories(halo2_physics_platform_locks PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_physics_platform_locks PUBLIC cxx_std_20)
 target_link_libraries(halo2_physics_platform_locks PUBLIC Threads::Threads)
@@ -16,7 +16,7 @@ if(BUILD_TESTING)
     add_test(NAME native_physics_platform_locks COMMAND physics_platform_locks_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/sandbox-source/physics-platform-lock-runtime-20261011/compatibility-verified/fixture.json)
     set_tests_properties(native_physics_platform_locks PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 20)
-    add_executable(physics_platform_lock_continuation_tests tests/physics_platform_lock_continuation_tests.cpp src/source_runtime_memory.cpp)
+    add_executable(physics_platform_lock_continuation_tests tests/physics_platform_lock_continuation_tests.cpp src/runtime/source_runtime_memory.cpp)
     target_link_libraries(physics_platform_lock_continuation_tests PRIVATE halo2_snapshot_storage)
     target_link_libraries(physics_platform_lock_continuation_tests PRIVATE halo2_physics_platform_locks halo2_native_synchronization)
     add_test(NAME native_physics_platform_lock_continuation COMMAND physics_platform_lock_continuation_tests)

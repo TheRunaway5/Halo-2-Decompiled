@@ -3,6 +3,9 @@
 namespace halo2 {
 Texture prepare_cubemap(const Bytes&, std::uint32_t width, std::uint16_t format,
                         bool swizzled, unsigned additional_mips);
+// Existing MCC fragmented mip-major face bank to native face-major storage.
+Texture prepare_mcc_cubemap(const Bytes&,unsigned width,unsigned format,
+                            bool swizzled,unsigned additional_mips);
 // Retail 000359E0: resident mip count; BC chains stop when the largest side
 // reaches 4 texels. Linear and non-power-of-two images have no mip chain.
 unsigned retail_mip_count(unsigned width, unsigned height, unsigned depth,

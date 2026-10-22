@@ -33,9 +33,9 @@ def main():
     raw=bytes.fromhex(row[side+'_bytes']);assert image.read(row[side],len(raw))==raw
  g=json.loads((E/'generated-v1.json').read_text());assert g==json.loads((E/'generated-repeat.json').read_text())
  assert g['generator_sha256']==sha(ROOT/'tools/generate_physics_game_arena_tu15_20261012.py') and g['correspondence_sha256']==sha(report)
- assert g['generated_cpp_sha256']==sha(ROOT/'src/physics_game_arena_runtime_generated.cpp')==sha(E/'runtime-repeat.cpp')
+ assert g['generated_cpp_sha256']==sha(ROOT/'src/physics/physics_game_arena_runtime_generated.cpp')==sha(E/'runtime-repeat.cpp')
  frame=json.loads((E/'call-frames.json').read_text());assert frame['tool_sha256']==sha(ROOT/'tools/export_physics_game_arena_frames_tu15_20261012.py')
- assert frame['correspondence_sha256']==sha(report) and frame['header_sha256']==sha(ROOT/'src/physics_game_arena_call_frames.hpp') and frame['frames']==37
+ assert frame['correspondence_sha256']==sha(report) and frame['header_sha256']==sha(ROOT/'src/physics/physics_game_arena_call_frames.hpp') and frame['frames']==37
  assert len(original['steps'])==13 and original['stores']==1049656 and original['executed_original_instructions']==1065823
  assert original['store_sha256']==sha(E/'original-v2'/original['store_file'])
  builds={}

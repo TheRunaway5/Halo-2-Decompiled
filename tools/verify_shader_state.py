@@ -106,7 +106,7 @@ def main():
   obj=run/(Path(name).stem+'.asan.o');cmd[cmd.index('-o')+1]=str(obj)
   cmd.extend(['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer'])
   execute('asan-compile-'+Path(name).stem,cmd,Path(entry['directory']));return obj
- owners=[sanitized_object(n)for n in('src/source_shader_rgb.cpp','src/source_shader_state.cpp','src/material.cpp','src/world_material.cpp')]
+ owners=[sanitized_object(n)for n in('src/rendering/source_shader_rgb.cpp','src/rendering/source_shader_state.cpp','src/rendering/material.cpp','src/rendering/world/world_material.cpp')]
  sanitized=[]
  args={
   'source_shader_rgb_tests':[source/'tests/fixtures/state_rgb_pack_original.json',ROOT/evidence_paths[2]],

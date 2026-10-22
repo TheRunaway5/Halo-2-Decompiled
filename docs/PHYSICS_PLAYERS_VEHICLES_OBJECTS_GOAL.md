@@ -1,5 +1,211 @@
 # Player, vehicle and object physics: 1:1 port goal
 
+Current counted remainder: [TU1.5 remaining checklist](PHYSICS_TU15_REMAINING_CHECKLIST.md).
+This checklist is part of the goal's completion criteria. Update it after each
+completed build/live acceptance cohort and each material blocker change, with
+current MCC evidence, remaining counts and verified scratch cleanup. Keep a
+group open until its required live integration and visible multiplayer evidence
+pass; historical reference or component tests alone do not close it.
+Focused v1124 restores C05 phase0 Cyclotron boarding with58 moving-support
+ticks,2.3862369 units of passive carry and243 exact LAN comparisons after the
+first-admission facing correction. V01 closes after v1103 passes10/10 actual
+vehicle-camera driver/turret cases. **14 goal groups remain open**. C02 also closes in v1124 with2 verified target impulses changing actual
+linear/angular motion,0.46190089 body travel, retirement and recreation. Full
+v1125 core passes9/9; full
+TU1.5 parity remains incomplete.
+
+Current continuation: source-backed Zanzibar switch/script cases pass. Real MCC
+Elongation/Colossus conveyor tests expose original282170's missing56E6D0 owner.
+Original audits v1395/v1401 authenticate20 mutable loader-zero bytes and the
+44-byte readonly constraint interface. Both source fixes are integrated;
+v1402 visibly carries neutral players2.25427/3.83574 units with183/182 exact
+LAN comparisons. Its exact ELF is immutable v1396-r1. Core9/9, fresh fleet26/26,54 compatibility and3 rendered checks pass.
+Wiring v1420 is complete; actual launcher and object-field acceptance follow. The full current v1381 campaign census is34/47 raw
+passes,13 unavailable observer starts; private scratch is removed and motion
+review stays separate.
+The previous private source/build is removed (v1370:1.903GB observed allocations;
+measured net free change+870.9MB). Warthog/Ghost wall/contact gates remain red;
+ordinary driver/camera qualification is kept separate.
+
+**Current wired physics runtime: v1396-r2.** `Halo2-Physics-TU15` selects
+native SHA `bec211bac82541ac2e8192c1152fb3c9a3e21bdfb6e4ff6a2a9233321669ff68`.
+Qualification passes36 linked checks, three actual-MCC DXT3/ownership/lifecycle
+checks, core v1434 **9/9**, fresh vehicle/seat v1435 **26/26**,54 compatibility
+checks (build1396/iteration14), and3 rendered checks v1436. The26 cases include
+22 allowed seat/camera cases and four genuine Scorpion rider rejections.
+Banshee uses a declared0.3-radian takeoff input with unchanged travel/climb and
+exact source-camera gates. Ordinary native v1437 passes120 frames/178 ticks/
+two players; actual wired launcher v1439 passes120 frames/160 ticks/two players.
+Both opened-file audits contain only imported MCC maps and no foreign caches/XBE.
+
+Occupied Warthog-driver and Spectre restoration v1433 preserves the exact
+physics bank/player bindings and continues471/623 exact LAN comparisons with
+actual source cameras. Both original post-restore1CC8D0 calls independently
+match89,795,481 final source bytes plus captured CPU/FP state. The original
+failure was an omitted DXT3 checkpoint format despite existing64-sample
+original constructor proof; the actual-MCC regression fails before the fix.
+Successful copied banks/replay programs and each completed live scratch are
+removed. Earlier deliveries, exact source archives and required shader paths
+remain preserved. The active private build is still owned for the final
+cross-map contact, vehicle-blast and jump-rearm cases, then will be removed.
+Full1:1 parity is incomplete;14 broad completion groups remain open.
+
+Earlier full delivery v1303 passes33/33 linked checks,
+core v1306 **9/9**, seats v1308 **16/16**, and drivers/turrets v1313 **10/10**.
+The core includes strict nonzero object impulses, Lockout gravity lift and all5
+Cyclotron supports. Actual Warthog camera proof:430 submitted seated frames,
+0.60 radians look,41 after-exit frames and464 exact LAN comparisons. Lower
+Cyclotron phase0:58 support ticks,2.3862386 carry and244 LAN comparisons.
+Both Spectre null-HUD regressions are fixed: moving occupied turret travel is
+5.446917 units, with438 driver/614 gunner source-camera frames and642 LAN
+comparisons. This preserves authored null HUDs as empty weapon interfaces;
+genuinely pruned typed HUDs still fail selected submission.
+
+Ordinary MCC startup v1315 passes120 frames/319 ticks/two players. Actual wired
+launcher v1317 passes120 frames/295 ticks/two players. Opened-file audits have
+zero foreign maps or XBE/disc/Vista inputs. Core, seats, drivers and both startup
+scratch trees are removed. Required executable/shader/source packages and
+requested recordings remain with explicit retention receipts.
+
+**Campaign V03 stays open: current v1381 has34/47 raw passes and13 unavailable observer starts.**
+All47 contexts use one exact v1369-r1 runtime. Its scratch is removed. Latest
+v1418 samples show context33 identifiable in both views, with partial late
+occlusion;42 still loses a readable first view overhead. Full current motion
+review remains open. The earlier v1337 result follows for provenance.
+Consolidated v1337 verifies47 distinct contexts from v1330/v1336, actual MCC
+inputs, stable per-case runtime/map pins and removed private scratch. Thirteen
+contexts lack admitted observer starts; context32 reaches machine355's missing
+native PRT caller. These are raw controller/projection/LAN results; motion
+recording review is a separate gate. All production source matches v1303;
+contexts35/42 explicitly use the v1321 initial-observer fixture. The other45
+use the original first-clear-floor fixture. The v1330 fixture-switch hash
+assertion was a harness bookkeeping failure after saving case35; v1336 runs
+only the remaining11 contexts, preserving every raw receipt.
+
+The bounded floor survey makes context35 readable in both reviewed views.
+Context42 still loses the target during overhead motion. Current v1342-b
+samples at20/50/85 percent show0/1/2 clearly, but33 becomes substantially
+occluded late and stays open. All12 decoded review frames are removed; original
+requested recordings and small assessments remain. Prior combined sampled
+coverage reached at most32/47 across frozen fixtures; a fully reviewed current
+33-context motion cohort is still pending. No raw pass alone closes V03.
+
+Independent original-instruction replay v1311/v1314 matches B8F40, C92C0 and
+1CC8D0 on actual context35 inputs:172,426,725 memory bytes per call, retained
+register/FP state, zero differences, no substituted services/results. Copied
+banks and replay binaries are removed. This is bounded call evidence, not
+continuous trajectories or Xbox hardware proof. Machine355 still needs its
+actual per-view PRT owner; verified cold BSS zero is not a retained incident.
+Raw original/MCC SH audit v1331 confirms both have zero records for FloodZone
+BSP0/1/2, seven atBSP3 and25 atBSP4. This is a caller-lifetime integration gap,
+not missing MCC SH conversion. Native diagnostic v1341 passes the prior450212
+ownership boundary and reaches a duplicate47524E binding inside the authored
+camera-effect table. Current shared source already removes that duplicate;
+v1343 completes both construction fixes and observes actual23670 arguments
+and a real completed one-owner/two-node PRT cache. Actual admission still
+excludes this unregistered, globally instantiated machine atZ790. A declared
+isolated whole-builder call is component evidence only, never a view admission.
+The v1343 private build/source is removed. Candidate v1346 passes the new
+actual-MCC frustum/resource regression and existing machine presentation tests,
+but its linked cohort is29/35: six checks reach the same writable47C1F8
+reaction-name table through an obsolete immutable-scalar declaration. Read-only
+debugger v1355 observes matching bits0600008D in the existing16-byte owner;
+offline TU1.5 audit v1356 confirms all four names and writable .data flags7.
+Both old aliases now borrow the complete owner, and the regression checks all
+four writable entries. The v1346 private build/source is removed; no v1346 live
+case was attempted or counted. The owned v1357 build now passes factory ownership,34/34 linked gates and
+immutable export. Newly reached1EF260 is supplied by the existing shared
+19-table branch provider; independent v1361 verifies all577 original readonly
+bytes and its unsigned0..4 bound. Base v1359 core passes9/9: actual Warthog
+camera320 frames,0.60rad look and481 exact LAN comparisons. Its scratch is gone.
+Live v1358 still rejects machine355: the old presenter recomputes a node0 shadow
+sphere instead of using the retained object+30/+3C bound. Revision v1357-r1
+now consumes that actual bound from the authoritative full-handle WORLD-pose
+snapshot for machine frustum and LOD selection. Its34 linked gates/export pass;
+core v1365 passes9/9, but focused FloodZone v1364 still fails. Read-only
+v1367 shows the real retained sphere enters the ordinary camera frustum during
+vehicle look; frustum bounds alone cannot establish source admission. Candidate
+v1369 reads actual full-generation membership from both original spatial pools,
+transports sorted cluster IDs with each source root under protocol95, and gates
+machine submission against the current portal frustums. Its36 linked checks and
+immutable export pass. Focused FloodZone v1371 now passes:102 submitted
+vehicle frames in both views,16.76 units of causal motion and185 exact LAN
+comparisons. v1374 reviews20/50/85-percent recording samples: the Phantom is
+clearly visible in both views throughout those samples; all3 decoded PNGs are
+removed. This closes the context32 machine355 rejection at this boundary;
+admitted machine PRT ownership remains a separate open path. Core v1372 passes9/9. All5 Cyclotron sampled frames visibly retain their
+machine geometry; support ticks/carry are71/2.38624,72/2.38624,59/2.38638,
+44/2.37445 and15/0.71099. Actual Warthog camera394 frames,0.60rad look and453
+exact LAN comparisons pass. The26-case family v1373 is running. Its Banshee
+camera passes but the first flight reaches only7.47 horizontal units against
+the unchanged10-unit gate. Two unchanged v1378 repeats pass14.71/17.55 units;
+the retained v1303 reference passes14.57. The original red trace stays retained.
+Declared0.3-radian SDL departure look v1380 passes three times at15.84/15.52/
+16.11 horizontal units and18.09/18.19/18.38 climb, without changing flight
+thresholds or production physics. Consolidated v1385 qualifies26 selections:
+25 unchanged-input family cases plus those three Banshee runs; this is not a
+single all-green raw cohort. The observer remains inside the base and loses
+the climbing Banshee behind its ceiling. New47-context v1381 runs on one
+exact r1 binary; v1375 was superseded before running any live case. Existing teleporter/HUD/flash compatibility
+v1376 passes54/54 with no skipped checks before any launcher replacement.
+The old full47 census is not relabeled as current-candidate qualification. The expired v1357 private source/build are removed. The new
+bounded v1369 source/build owner remains active during visible investigation;
+per-case raw outputs retain the managed lifecycle.
+
+**Verified storage:** v1304 removes1,443,106,816 observed allocated private
+CMake bytes; net volume free change+398,135,296 bytes. v1322 retires3 failed
+v1286 executables:291,561,472 allocated bytes removed, measured net free change0.
+Source archive, shader/header dependencies and diagnostics remain. v1312
+archives72 completed helpers from359,852 bytes into26,836 bytes and removes
+standalone originals. v1345/v1347 retire superseded diagnostic executables:
+84,283,392 and84,348,928 allocated bytes respectively; measured net free changes
+are0 and+120,582,144 bytes. Exact source archives and all diagnostic reports
+remain. Latest required v1343 probe/source retention is documented in its
+native-probe/retention.json. All9 v1318 and12 v1342-b review PNGs are removed. v1350 archives43 completed
+helpers from248,348 bytes to27,280 bytes; loose originals are removed. v1352
+verifies v1346 private build/source removal:906,006,528 allocated build bytes
+were observed before cleanup, with measured net free change-20,606,976 bytes
+while packages and concurrent work changed the volume. This is an observed
+removal amount, not a complete build peak or a claim of physical reclamation. Concurrent
+filesystem activity means these allocation/removal observations are not summed
+as physical free-space gains. v1377 retires9 superseded v1346/v1357/r1
+executables:885,324,672 logical and885,350,400 allocated bytes removed, measured
+net volume free change+65,986,560 bytes. Exact source archives, shader inputs,
+reports, requested recordings, v1303 reference, current v1369 candidate and the
+shared launcher-selected delivery remain preserved. v1389 removes22 redundant
+port recordings after preserving current core proof, the original Banshee
+negative, one old-input positive and one takeoff positive:135,434,367 logical /
+135,487,488 allocated bytes, measured net volume free change0. All reports,
+input traces, hashes and original reference evidence remain.
+
+This checklist is part of the goal's completion criteria and is updated after
+material results. The goal tool remains `usageLimited`; its API cannot edit the
+objective or resume that status. Full1:1 physics parity remains incomplete.
+
+Frozen v1095 passes14/14 linked gates, including actual paired original/MCC
+PRT streams and frame sequencing; private build/source trees are removed.
+v1100 passes all16 seats again with actual source cameras. Focused v1096 passes
+human-turret colored-area tracers in both views, exact camera look/exit, and
+visible prop blast/movement/retirement/recreation. Its actual impulse records
+are independently verified in v1108; the source fixture is now stricter and
+requires nonzero target impulses plus original linear/angular motion response,
+travel and retirement; the fresh compiled v1124 strict run passes and closes C02.
+
+Historical v1240 qualification: the dedicated launcher selected v1240 after31/31 linked gates,
+fresh core v1242 passes9/9 and ordinary Coagulation v1246 passes. Actual wired
+MCC startup v1248 passes with two players and no forbidden runtime inputs;
+private scratch is removed. All16 seats v1249 pass on v1240 with actual source cameras and original
+rider rejections. All10 driver/turret cases v1250 pass on the same v1240 with actual source
+cameras, deliberate look, genuine controls and exit.
+The checklist records the active/frozen source and build lifecycle.
+Frozen v1123 passes14/14 gates and its private source/build is removed;
+v1124–v1134 test the focused cases, full core, seats, drivers,
+ordinary launch, dedicated launcher and all47 campaign contexts visibly.
+The checklist is refreshed after every completed cohort or material change.
+Failed v1109 and all dependent unrun gameplay cases remain recorded; its
+private source/build trees are gone. v1135 confirms the current shader-helper
+declaration compiles before the replacement coherent build.
+
 ## October 19: required MCC runtime inputs and disposable tests
 
 Runtime physics acceptance now requires the existing prepared cache at
@@ -1279,3 +1485,32 @@ of verified carried travel and 349 exact UDP snapshots. Actual source biped
 support flags and WORLD-node tracking gate the result. See the machinery
 report/video. This is one rotating carrier case; linear carriers, all support
 branches and full original trajectory parity are still open.
+
+October20 active campaign continuation: v1143 authenticates the original
+introduction material's34-record program dependencies with English TU1.5 as
+the offline authority. The actual captured MCC input fails before the fix in
+v1145 and passes the production conversion plus8 rejection controls in v1146.
+The converter is wired into Cache startup and preserves MCC parameter/bitmap
+banks. v1147 builds16 gates including actual Cache admission; after current
+v1123 vehicle/launcher qualification, v1148 tests introduction live, v1149
+attempts all47 campaign contexts, then v1150 reruns the core. Keep V03 open
+until the actual controller/body/UDP/rendered cases qualify.
+
+October20 current continuation: qualified v1123 is wired and actually launched
+in two-player MCC (v1133), with zero forbidden runtime inputs. The maintained
+checklist now leads with its14 remaining groups and current evidence; historical
+receipts are retained below it. New introduction material admission passes in
+v1147, which exposes a legitimate globals publication shift. Read-only v1160
+proves the1,552-byte relocation with all54 class rows unchanged; the exact new
+context remains authenticated. Phantom diagnostic v1159 reaches F4D1A's missing
+lazy BSS pair; v1162 authenticates its original zero initialization and literal
+operand. Native backing/ownership regression are wired without a computed
+result. v1163's frozen renderer compile fails during concurrent declarations;
+current source already resolves them. v1171 passes frozen-source syntax and
+builds20 gates, then v1172 introduction, v1173 all47 live contexts, v1174 core.
+No prerequisite pass or unrun campaign case closes V03.
+
+Completed retirement v1169 removes855,427,984 logical program/shader bytes and
+measures266,211,328 bytes net free-space increase. v1170 archives40 completed
+helpers (188,841 bytes) into23,972 bytes. All source snapshots, reports, failures,
+needed videos and launcher-selected v1123 remain. These scratch roots are gone.

@@ -14,10 +14,10 @@ OUT=ROOT/'analysis/multiplayer/game-variants/king-recording-native-20261012'
 U5='/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe'
 CORE=ROOT/'analysis/multiplayer/game-variants/result-event-native-20261012/verification.json'
 CORE_PIN='1ea1d9e4d59a284cf0b03d996a2dc2af9874e84359bcb1e883c5b6565b660c72'
-OWNED=('include/halo2/multiplayer.hpp','src/multiplayer.cpp','include/halo2/multiplayer_outcome.hpp','src/multiplayer_outcome.cpp',
- 'src/multiplayer_runtime.cpp','tests/multiplayer_outcome_tests.cpp','tests/multiplayer_outcome_runtime_tests.cpp','tests/king_runtime_tests.cpp',
+OWNED=('include/halo2/multiplayer.hpp','src/gameplay/multiplayer/multiplayer.cpp','include/halo2/multiplayer_outcome.hpp','src/gameplay/multiplayer/multiplayer_outcome.cpp',
+ 'src/gameplay/multiplayer/multiplayer_runtime.cpp','tests/multiplayer_outcome_tests.cpp','tests/multiplayer_outcome_runtime_tests.cpp','tests/king_runtime_tests.cpp',
  'tests/king_objective_network_tests.cpp','tests/king_recording_runtime_tests.cpp','include/halo2/source_result_event.hpp',
- 'src/source_result_event.cpp','tests/result_event_tests.cpp','tools/verify_king_recording_native.py')
+ 'src/gameplay/multiplayer/source_result_event.cpp','tests/result_event_tests.cpp','tools/verify_king_recording_native.py')
 TARGETS=('king_recording_runtime_tests','king_objective_network_tests','king_runtime_tests','multiplayer_tests','camouflage_runtime_tests',
  'multiplayer_outcome_tests','multiplayer_outcome_runtime_tests','result_event_tests','result_statistics_tests','result_capture_tests','result_retention_tests',
  'multiplayer_fp_network_tests','multiplayer_scope_network_tests')
@@ -35,11 +35,11 @@ def main():
    target=source/p;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(ROOT/p,target)
   for p in ('docs/MP_RESULT_EVENT_NATIVE_BINDING.md','docs/MP_KING_RECORDING_EVENT_SOURCE_RESEARCH.md','tools/research_king_recording_event.py'):
    shutil.copy2(ROOT/p,source/p)
-  cmake=(source/'CMakeLists.txt').read_text();live=(ROOT/'CMakeLists.txt').read_text();line='target_sources(halo2_systems PRIVATE src/source_result_event.cpp)\n'
-  assert live.count(line)==1 and line not in cmake;anchor='target_sources(halo2_systems PRIVATE src/source_result_capture.cpp)\n';assert cmake.count(anchor)==1;cmake=cmake.replace(anchor,anchor+line)
+  cmake=(source/'CMakeLists.txt').read_text();live=(ROOT/'CMakeLists.txt').read_text();line='target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/source_result_event.cpp)\n'
+  assert live.count(line)==1 and line not in cmake;anchor='target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/source_result_capture.cpp)\n';assert cmake.count(anchor)==1;cmake=cmake.replace(anchor,anchor+line)
   declarations=[]
   for target,pattern,anchor in (
-   ('result_event_tests',r'        add_executable\(result_event_tests.*?complete/report\.json\)\n','        add_executable(result_retention_tests tests/result_retention_tests.cpp src/source_result_retention.cpp)\n'),
+   ('result_event_tests',r'        add_executable\(result_event_tests.*?complete/report\.json\)\n','        add_executable(result_retention_tests tests/result_retention_tests.cpp src/gameplay/multiplayer/source_result_retention.cpp)\n'),
    ('king_recording_runtime_tests',r'    add_executable\(king_recording_runtime_tests.*?default\.xbe"\)\n','    target_link_libraries(king_objective_network_tests PRIVATE halo2_systems)\n')):
    declaration=re.search(pattern,live,re.S).group();assert target not in cmake and cmake.count(anchor)==1
    cmake=cmake.replace(anchor,anchor+declaration);declarations.append(declaration)
@@ -72,7 +72,7 @@ def main():
  ctest=next(c for c in reversed(commands)if c['label']=='ctest'and c['exit']==0);assert re.search(r'100% tests passed.*out of 13',(a.output.parent/ctest['log']).read_text())
  for target in ('multiplayer_fp_network_tests','multiplayer_scope_network_tests'):execute(target,[build/target,source/'assets/disc/maps/lockout.map',source/'assets/disc/maps',U5])
  entries=json.loads((build/'compile_commands.json').read_text());objects=[]
- owners=('src/multiplayer.cpp','src/source_result_event.cpp','src/multiplayer_outcome.cpp','tests/king_recording_runtime_tests.cpp')
+ owners=('src/gameplay/multiplayer/multiplayer.cpp','src/gameplay/multiplayer/source_result_event.cpp','src/gameplay/multiplayer/multiplayer_outcome.cpp','tests/king_recording_runtime_tests.cpp')
  for i,name in enumerate(owners):
   row=next(e for e in entries if Path(e['file'])==source/name);cmd=shlex.split(row['command']);obj=run/f'sanitized-{i}.o';cmd[cmd.index('-o')+1]=str(obj)
   for option in ('-MF','-MT'):

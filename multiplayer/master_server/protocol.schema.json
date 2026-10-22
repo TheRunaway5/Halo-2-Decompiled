@@ -50,6 +50,18 @@
     },
     {
       "$ref": "#/$defs/error"
+    },
+    {
+      "$ref": "#/$defs/enrollmentChallengeRequest"
+    },
+    {
+      "$ref": "#/$defs/operatorEnrollmentChallengeRequest"
+    },
+    {
+      "$ref": "#/$defs/enrollmentChallenge"
+    },
+    {
+      "$ref": "#/$defs/enrollmentProof"
     }
   ],
   "$defs": {
@@ -376,10 +388,14 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 7776000
+        },
+        "proof": {
+          "$ref": "#/$defs/enrollmentProof"
         }
       },
       "required": [
-        "server_public_key"
+        "server_public_key",
+        "proof"
       ]
     },
     "operatorEnrollment": {
@@ -400,10 +416,14 @@
           "maxLength": 64,
           "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
           "description": "Runtime additionally caps UTF-8 encoding at 64 bytes."
+        },
+        "proof": {
+          "$ref": "#/$defs/enrollmentProof"
         }
       },
       "required": [
-        "server_public_key"
+        "server_public_key",
+        "proof"
       ]
     },
     "credential": {
@@ -963,6 +983,116 @@
       },
       "required": [
         "error"
+      ]
+    },
+    "enrollmentChallengeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "server_public_key": {
+          "$ref": "#/$defs/publicKey"
+        },
+        "ttl_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7776000
+        }
+      },
+      "required": [
+        "server_public_key"
+      ]
+    },
+    "operatorEnrollmentChallengeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "server_public_key": {
+          "$ref": "#/$defs/publicKey"
+        },
+        "ttl_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7776000
+        },
+        "owner_label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "description": "Runtime additionally caps UTF-8 encoding at 64 bytes."
+        }
+      },
+      "required": [
+        "server_public_key"
+      ]
+    },
+    "enrollmentChallenge": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "kind": {
+          "const": "enrollment"
+        },
+        "master_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "provider": {
+          "enum": [
+            "discord",
+            "steam",
+            "operator"
+          ]
+        },
+        "subject": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "server_public_key": {
+          "$ref": "#/$defs/publicKey"
+        },
+        "ttl_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7776000
+        },
+        "nonce": {
+          "$ref": "#/$defs/uuid"
+        },
+        "expires_at": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "v",
+        "kind",
+        "master_id",
+        "provider",
+        "subject",
+        "server_public_key",
+        "ttl_seconds",
+        "nonce",
+        "expires_at"
+      ]
+    },
+    "enrollmentProof": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "payload": {
+          "$ref": "#/$defs/enrollmentChallenge"
+        },
+        "signature": {
+          "$ref": "#/$defs/signature"
+        }
+      },
+      "required": [
+        "payload",
+        "signature"
       ]
     }
   }

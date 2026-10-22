@@ -6,9 +6,9 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PARENT = ROOT / "src/physics_live_support_tu15_generated.cpp"
-OUTPUT = ROOT / "src/source_sound_duration_tu15.cpp"
-PCS_OUTPUT = ROOT / "src/mcc_sound_duration_pcs.inc"
+PARENT = ROOT / "src/physics/physics_live_support_tu15_generated.cpp"
+OUTPUT = ROOT / "src/audio/source_sound_duration_tu15.cpp"
+PCS_OUTPUT = ROOT / "src/audio/mcc_sound_duration_pcs.inc"
 FUNCTIONS = (
     "long double native_fldl2e(",
     "long double native_sound_duration_divide(",
@@ -50,7 +50,7 @@ def generate(source):
         '// Complete original211-byte body SHA256:\n'
         '// 6cab0fba83a56a36f6f934ef61eb96eb2105140cee8ac5c9039574ed918810f7\n'
         f'// Parent lowering and helpers SHA256: {digest}\n'
-        '#include "physics_world_runtime_internal.hpp"\n'
+        '#include "physics/runtime/physics_world_runtime_internal.hpp"\n'
         '#include "halo2/source_sound_duration_tu15.hpp"\n'
         '#include "halo2/mcc_sound_tag_layout.hpp"\n'
         'namespace halo2 {\nnamespace {\n'

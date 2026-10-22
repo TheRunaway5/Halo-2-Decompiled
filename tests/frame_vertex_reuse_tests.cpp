@@ -1,5 +1,5 @@
-#include "frame_vertex_reuse.hpp"
-#include "frame_vertex_upload_plan.hpp"
+#include "rendering/renderer/frame_vertex_reuse.hpp"
+#include "rendering/renderer/frame_vertex_upload_plan.hpp"
 #include <deque>
 #include <iostream>
 #include <ranges>

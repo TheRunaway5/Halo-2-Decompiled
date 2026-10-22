@@ -312,7 +312,7 @@ def main():
  # The actual-ID pool constructor/activation/byte-copy bodies are independently
  # lowered from this authenticated image. Admit only those complete bodies.
  import re
- support=(ROOT/'src/physics_live_support_tu15_generated.cpp').read_text()
+ support=(ROOT/'src/physics/physics_live_support_tu15_generated.cpp').read_text()
  for name in (('16e450','16e4b0','16e600','32a4e0','148d40','32bbae','32c075','33b590','330179','332383','2dc124','32ae00','33a4d3') if a.complete_rng else ('16e450','16e4b0','16e600','32a4e0')) + (('2e0c80',) if a.complete_renderer else ()) + (('149050',) if a.complete_clock else ()) + (('14dfe0',) if a.complete_players else ()) + (('1f3830',) if a.complete_scalar_state else ()) + (('10e3b0','1f4700') if a.complete_aux_object_state else ()) + (('13fc50',) if a.complete_renderer_pool else ()):
   m=re.search(r'static void run_'+name+r'\([^\n]*\)\s*\{',support);assert m
   body=support[m.start():support.index('\n}\n',m.start())+3]

@@ -3,8 +3,8 @@
 #include "halo2/cache.hpp"
 #include "halo2/content.hpp"
 #include "halo2/mcc_sound_permutation_time_reference.hpp"
-#include "../src/mcc_sound_permutation_time_reference_profile.hpp"
-#include "../src/mcc_sound_vanilla_reference_profile.hpp"
+#include "../src/audio/mcc_sound_permutation_time_reference_profile.hpp"
+#include "../src/audio/mcc_sound_vanilla_reference_profile.hpp"
 #include <atomic>
 #include <future>
 #include <thread>

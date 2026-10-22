@@ -176,3 +176,24 @@ original instructions. This is substantially broader than the earlier individual
 force/query/impulse comparisons, while still being three real captured world
 calls rather than every branch or a full original gameplay trajectory. Complete
 occupied-vehicle update and world-solve comparisons are the next check.
+
+## Current imported MCC continuation, October20
+
+Qualified/wired v1396-r1 passes both scripted crate cases in v1422 and all five
+angular cases in v1426. These are current MCC runtime inputs, using TU1.5
+physics. Midship/Turf0/Turf1/Gemini0/Gemini1 record252/172/247/1199/1204
+actual member angular changes and361/361/362/903/903 exact LAN states.
+Source WORLD-node rotation is0.09727/0.27960/1.39469/3.14159/3.14110 radians.
+All five actual1DA750 captures independently match unchanged original i386
+execution, including89.81/92.46/92.46/91.36/91.36MB of final source memory
+and captured CPU/FP state. This establishes finite live interactions and
+force calls; original full trajectories, asset equivalence and hardware
+acceptance remain separate. Required recordings and small reports remain;
+successful copied banks, replay programs and private scratch are removed.
+
+The first five angular attempts in v1422 omitted object-member observations
+and field filters. They visibly moved but reported zero diagnostic deliveries.
+Those receipts remain as harness failures. The visible wrapper now rejects
+missing PHANTOM_TRACE, PHANTOM_OBJECT_TRACE or LIFT_DEFINITION before launch;
+v1427 verifies all three incomplete configurations fail early. The corrected
+v1426 keeps all original motion, input, draw and LAN acceptance thresholds.

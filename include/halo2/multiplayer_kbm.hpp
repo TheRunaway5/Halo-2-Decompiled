@@ -16,6 +16,8 @@ struct MultiplayerKbmActions {
 struct MultiplayerKbmInput {
   Controls controls;
   MultiplayerKbmActions actions;
+  // Resolve mouse actions against the current source unit's actual seat.
+  Controls gameplay_controls(bool dual,bool seated,bool inverted) const;
 };
 
 class MultiplayerKbm {

@@ -20,7 +20,7 @@ def main():
   for p,h in parent['source_inputs'].items():assert sha(ROOT/p)==h,p
  same_tree(E/'original-v2',E/'original-v2-repeat')
  assert sha(E/'original-v2/fixture.json')==m['original_fixture_sha256']
- assert sha(ROOT/'src/physics_main_heap_runtime_generated.cpp')==sha(E/'runtime-repeat.cpp')
+ assert sha(ROOT/'src/physics/physics_main_heap_runtime_generated.cpp')==sha(E/'runtime-repeat.cpp')
  assert json.loads((E/'generated-v1.json').read_text())==json.loads((E/'generated-repeat.json').read_text())
  f=json.loads((E/'original-v2/fixture.json').read_text())
  assert not f['captured_heap'] and not f['source_calls_replaced'] and not f['live_world_startup']

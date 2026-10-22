@@ -9,7 +9,7 @@ def main():
     p.add_argument('--output',type=Path,required=True);p.add_argument('--sanitizer',action='store_true');a=p.parse_args()
     build=a.build.resolve();out=a.output.resolve();assert build.is_dir()and not out.exists();out.mkdir(parents=True)
     target='looping_construction_operands_tests'
-    names=['include/halo2/original_data.hpp','src/original_data.cpp',
+    names=['include/halo2/original_data.hpp','src/assets/original_data.cpp',
         'include/halo2/object_construction.hpp','include/halo2/object_type_construction.hpp',
         'include/halo2/sound_looping.hpp','tests/looping_construction_operands_tests.cpp']
     observed={}

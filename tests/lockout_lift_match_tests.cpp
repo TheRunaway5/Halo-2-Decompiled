@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #include "halo2/math.hpp"
 #include "halo2/multiplayer.hpp"
 #include "halo2/source_shadow.hpp"
@@ -48,7 +49,7 @@ int main(int argc, char **argv) {
     rules.weapon = cache.slayer_starting_weapon(rules.starting_weapon);
     MultiplayerMatch match(content, 0, cache.spawns(), rules);
     const auto slot = match.join("Authored lift interior regression");
-    match.debug_request({DebugGameRequest::Teleport, slot}, &entrance);
+    test::place_player(match,slot,entrance);
     const auto initial = match.unit(slot).body.position;
     std::array<Controls, 16> controls{};
     controls[slot].yaw = match.unit(slot).yaw;

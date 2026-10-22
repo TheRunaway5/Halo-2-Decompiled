@@ -54,7 +54,7 @@ def main():
     assert runtime['component_scope']=='held_gauge_input' and not runtime['full_weapon_sequence_verified']
     live_component=json.loads((runtime_validation/'release/evidence/weapon-material-input-acceptance.json').read_text())
     assert live_component['gauge_reference_vectors']['native']==comparison['original_bank_words']
-    owned_sources=['include/halo2/source_weapon_material_input.hpp','src/source_weapon_material_input.cpp']
+    owned_sources=['include/halo2/source_weapon_material_input.hpp','src/gameplay/weapons/source_weapon_material_input.cpp']
     manifest=json.loads((validation/'source-manifest.json').read_text())['source_files_sha256']
     assert all(sha(ROOT/p)==manifest[p] for p in owned_sources)
     source_pins={p:sha(ROOT/p) for p in owned_sources+['tests/source_weapon_material_input_tests.cpp',
@@ -65,10 +65,10 @@ def main():
     assert source_pins['tests/source_weapon_material_input_tests.cpp']==comparison['native_test_source_sha256']
     live_manifest=json.loads((runtime_validation/'source-manifest.json').read_text())['source_files_sha256']
     assert source_pins['tests/native_covenant_weapon_runtime_tests.cpp']==live_manifest['tests/native_covenant_weapon_runtime_tests.cpp']
-    integration_source=dict(path='src/multiplayer_runtime.cpp',
-        live_validation_sha256=live_manifest['src/multiplayer_runtime.cpp'],
-        current_root_sha256=sha(ROOT/'src/multiplayer_runtime.cpp'),
-        current_root_matches_live_snapshot=sha(ROOT/'src/multiplayer_runtime.cpp')==live_manifest['src/multiplayer_runtime.cpp'])
+    integration_source=dict(path='src/gameplay/multiplayer/multiplayer_runtime.cpp',
+        live_validation_sha256=live_manifest['src/gameplay/multiplayer/multiplayer_runtime.cpp'],
+        current_root_sha256=sha(ROOT/'src/gameplay/multiplayer/multiplayer_runtime.cpp'),
+        current_root_matches_live_snapshot=sha(ROOT/'src/gameplay/multiplayer/multiplayer_runtime.cpp')==live_manifest['src/gameplay/multiplayer/multiplayer_runtime.cpp'])
     paths=set()
     for pattern in ('weapon-material-*','weapon-gauge-*'):
         for directory in BASE.glob(pattern):

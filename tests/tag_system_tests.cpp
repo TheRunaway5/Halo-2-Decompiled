@@ -1,3 +1,4 @@
+#include "../src/assets/tag_owner_index.hpp"
 #include "halo2/tags/system.hpp"
 #include "halo2/cache.hpp"
 #include "halo2/source_mutable_tag_store.hpp"
@@ -7,6 +8,7 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include <random>
 
 namespace {
 using namespace halo2;
@@ -71,6 +73,32 @@ int main() {
     const auto path=std::filesystem::temp_directory_path()/
         ("halo2-tags-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count())+".map");
     try {
+        {
+            // Metadata-owner scans preserve every predicate, boundary and
+            // original directory order, including zero-size aliases.
+            std::mt19937 random(0x20261020);
+            std::vector<Tag> directory;
+            for (unsigned i = 0; i < 512; ++i)
+                directory.push_back({i % 2 ? "bitm" : "weap", "tag", i,
+                    i < 256 ? i * 64 : std::uint32_t(random()), i % 17 ? std::uint32_t(random() % 128) : 0});
+            directory.push_back({"bitm", "edge", 512, 0xffffffffu, 0});
+            directory.push_back({"bitm", "edge", 513, 0xfffffffeu, 2});
+            const detail::TagOwnerIndex ownership(directory);
+            for (unsigned i = 0; i < 4096; ++i) {
+                TagQuery query{.contains=TagAddressRange{
+                    i < 1024 ? i * 17 : i % 3 ? std::uint32_t(random()) : 0xffffffffu,
+                    i % 7 ? random() % 128 : std::numeric_limits<std::size_t>::max()},
+                    .require_address=bool(i % 2), .minimum_size=i % 4 ? 0u : 16u};
+                if (i % 11 == 0) query.group=tag_groups::bitmap;
+                std::vector<std::uint32_t> reference, selected;
+                for (const auto &tag : directory) if (query.matches(tag)) reference.push_back(tag.datum);
+                for (const auto &tag : TagRange(directory,query)) selected.push_back(tag.datum);
+                check(reference==selected,"Containing-address selection changed its predicates or order");
+                selected.clear();
+                for(const auto *tag:ownership.select(query))selected.push_back(tag->datum);
+                check(reference==selected,"Indexed tag ownership changed predicates, ambiguity or directory order");
+            }
+        }
         {
             const std::array<Tag,3> aliases{{
                 {"colo","empty",0xe0000000u,0x1000,0},

@@ -25,6 +25,19 @@ def generate(raw):
             ("stem", r"shaders\shader_templates\opaque\tex_bump_illum_bloom") not in closure or
             any(group not in {"stem", "spas", "vrtx"} or not name or "/" in name for group, name in closure)):
         raise ValueError("Changed native template closure")
+    scoped = tuple(map(tuple, data["scoped_closure"]))
+    expected_scoped = {("01a_tutorial", "shad", "ui\\hud\\shaders\\" + name)
+                       for name in ("widget_gradient_flash_pulse", "plasma_meter", "camo_meter")}
+    expected_scoped.update({
+        ("00a_introduction", "shad", r"objects\weapons\rifle\plasma_rifle\shaders\plasma_rifle_gauge"),
+        ("00a_introduction", "stem", r"shaders\shader_templates\transparent\meter_active_camo"),
+        ("00a_introduction", "spas", r"shaders\shader_passes\transparent\meter_active_camo"),
+        ("00a_introduction", "shad", r"objects\weapons\rifle\plasma_rifle\shaders\plasma_rifle_current"),
+        ("00a_introduction", "stem", r"shaders\shader_templates\transparent\plasma_alpha_active_camo"),
+        ("00a_introduction", "spas", r"shaders\shader_passes\plasma\plasma_alpha_active_camo"),
+    })
+    if len(scoped) != 9 or set(scoped) != expected_scoped:
+        raise ValueError("Changed scoped Armory HUD or introduction weapon-meter closure")
     libraries = data["libraries"]
     if len(libraries) != 39 or len({row["map"] for row in libraries}) != 39:
         raise ValueError("Changed audited native library census")
@@ -40,11 +53,14 @@ def generate(raw):
         if not re.fullmatch(r"[a-z0-9_]+", row["map"]) or not 1 <= row["existing_records"] <= 65536:
             raise ValueError("Invalid retained native library owner")
         missing = tuple(map(tuple, row["missing"]))
-        if len(set(missing)) != len(missing) or not set(missing) <= set(closure):
+        allowed = set(closure) | {(group, name) for owner, group, name in scoped if owner == row["map"]}
+        if len(set(missing)) != len(missing) or not set(missing) <= allowed:
             raise ValueError("Missing definitions escape the audited closure")
         lines.append("    {" + json.dumps(row["map"]) + "," + sha(row["canonical_sha256"]) + "},")
     lines += ["}};", "constexpr std::array<std::pair<std::string_view,std::string_view>,29> closure_identities{{"]
     lines += ["    {" + json.dumps(group) + "," + json.dumps(name) + "}," for group, name in closure]
+    lines += ["}};", "constexpr std::array<std::array<std::string_view,3>,9> scoped_closure_identities{{"]
+    lines += ["    {" + ",".join(map(json.dumps, row)) + "}," for row in scoped]
     lines += ["}};", ""]
     for digest in data["evidence"].values():
         sha(digest)
@@ -55,7 +71,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--data", type=Path, default=ROOT / "tools/reference/mcc-native-library-closure.json")
-    parser.add_argument("--output", type=Path, default=ROOT / "src/mcc_native_library_closure.inc")
+    parser.add_argument("--output", type=Path, default=ROOT / "src/runtime/mcc_native_library_closure.inc")
     parser.add_argument("--runtime-policy", type=Path, default=ROOT / "tools/data/mcc-native-library-closure.json")
     args = parser.parse_args()
     raw = args.data.read_bytes()

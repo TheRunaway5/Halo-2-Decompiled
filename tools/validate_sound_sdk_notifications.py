@@ -11,14 +11,14 @@ ROOT=Path(__file__).resolve().parents[1]
 sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);args=p.parse_args();args.output.mkdir(parents=True,exist_ok=False)
- frozen=args.output/'source';pins={};inputs=['src/sound_sdk_notifications.cpp','src/native_sound_storage.cpp','src/native_synchronization.cpp','tests/sound_sdk_notifications_tests.cpp'];pending=list(map(Path,inputs))
+ frozen=args.output/'source';pins={};inputs=['src/audio/sound_sdk_notifications.cpp','src/audio/native_sound_storage.cpp','src/platform/native_synchronization.cpp','tests/sound_sdk_notifications_tests.cpp'];pending=list(map(Path,inputs))
  while pending:
   path=pending.pop()
   if str(path)in pins:continue
   raw=(ROOT/path).read_bytes();pins[str(path)]=hashlib.sha256(raw).hexdigest();target=frozen/path;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(raw)
   pending.extend(Path('include')/s.decode()for s in re.findall(rb'#include\s+"([^"]+)"',raw))
  fixture=args.output/'original.json';shutil.copy2(ROOT/'tests/fixtures/sound_sdk_notifications.original.json',fixture)
- common=['c++','-std=c++20','-fno-fast-math','-ffp-contract=off','-frounding-math','-fno-associative-math','-Wall','-Wextra','-pthread','-I'+str(frozen/'include'),*[str(frozen/p)for p in inputs]];commands=[]
+ common=['c++','-std=c++20','-fno-fast-math','-ffp-contract=off','-frounding-math','-fno-associative-math','-Wall','-Wextra','-pthread','-I'+str(frozen/'include'), '-I'+str(frozen/'src'),*[str(frozen/p)for p in inputs]];commands=[]
  def run(argv,label,success=True):
   argv=list(map(str,argv));r=subprocess.run(argv,capture_output=True,text=True);(args.output/f'{label}.stdout').write_text(r.stdout);(args.output/f'{label}.stderr').write_text(r.stderr);commands.append(dict(label=label,argv=argv,exit_code=r.returncode));assert(r.returncode==0)==success,(label,r.stdout,r.stderr);return r
  for name,flags in [('normal',['-O2']),('sanitizers',['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer'])]:

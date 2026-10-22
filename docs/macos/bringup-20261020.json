@@ -1,0 +1,130 @@
+{
+  "schema": "H2_MACOS_PORT_INITIAL_EVIDENCE_V1",
+  "date": "2026-10-20",
+  "scope": "universal macOS graphics and bundle bring-up; playable engine unfinished",
+  "host": "Apple M2 Pro",
+  "dependencies": {
+    "MoltenVK-macos.tar": [
+      "https://github.com/KhronosGroup/MoltenVK/releases/download/v1.4.2/MoltenVK-macos.tar",
+      "f95765a6229cb7b915990a2890ce12ebe36a730b021545d3d52ae69ce4c4024e"
+    ],
+    "SDL2.dmg": [
+      "https://github.com/libsdl-org/SDL/releases/download/release-2.32.10/SDL2-2.32.10.dmg",
+      "4a7ac31640d70214e848f994be8a12849c0f97918a7e6c2e27a40036166d1a7f"
+    ],
+    "SDL2-LICENSE.txt": [
+      "https://raw.githubusercontent.com/libsdl-org/SDL/release-2.32.10/LICENSE.txt",
+      "97f35b302b361680ec1e891e95d2d52097bb95abff361434916d99dc1305f127"
+    ]
+  },
+  "graphics": {
+    "arm64": {
+      "schema": "H2_MACOS_GRAPHICS_BRINGUP_V1",
+      "architecture": "arm64",
+      "loaded_moltenvk": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bguupfix/build/Testing/Temporary/scratch/halo2-test-1m4infk0/Relocated Graphics Check.app/Contents/Frameworks/libMoltenVK.dylib",
+      "loaded_sdl": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bguupfix/build/Testing/Temporary/scratch/halo2-test-1m4infk0/Relocated Graphics Check.app/Contents/Frameworks/SDL2",
+      "gpu": "Apple M2 Pro",
+      "presented_frames": 3,
+      "host_page_bytes": 16384,
+      "portability_enumeration": false,
+      "portability_subset": true,
+      "source_d24s8_supported": false,
+      "depth_clamp": true,
+      "geometry_shader": false,
+      "engine_port_complete": false
+    },
+    "x86_64": {
+      "schema": "H2_MACOS_GRAPHICS_BRINGUP_V1",
+      "architecture": "x86_64",
+      "loaded_moltenvk": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bguupfix/build/Testing/Temporary/scratch/halo2-test-491ahgr6/Relocated Graphics Check.app/Contents/Frameworks/libMoltenVK.dylib",
+      "loaded_sdl": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bguupfix/build/Testing/Temporary/scratch/halo2-test-491ahgr6/Relocated Graphics Check.app/Contents/Frameworks/SDL2",
+      "gpu": "Apple M2 Pro",
+      "presented_frames": 3,
+      "host_page_bytes": 4096,
+      "portability_enumeration": false,
+      "portability_subset": true,
+      "source_d24s8_supported": false,
+      "depth_clamp": true,
+      "geometry_shader": false,
+      "engine_port_complete": false
+    }
+  },
+  "bundle": {
+    "schema": "H2_MACOS_BUNDLE_V1",
+    "architectures": [
+      "arm64",
+      "x86_64"
+    ],
+    "signing": "ad-hoc development; not notarized",
+    "files": {
+      "Frameworks/SDL2": {
+        "bytes": 3058928,
+        "sha256": "b030ac4d29499719fef19bbb7d8acbbcbd26b5fb590715ae47619941833b9180"
+      },
+      "Frameworks/libMoltenVK.dylib": {
+        "bytes": 10891168,
+        "sha256": "4c45b91239e3a1d27ebca88ed321a5bdef387bea9ddf983f44416a0bcff7333e"
+      },
+      "MacOS/Halo 2 Graphics Check": {
+        "bytes": 128928,
+        "sha256": "bc515f83ff5a25e363fd250cbdd7852185975fb0efe60a8a47a24283275a1b60"
+      }
+    }
+  },
+  "macos_tests": {
+    "passed": 4,
+    "report": "build/test-results/macos-universal/report.json"
+  },
+  "linux_shared_compile": {
+    "passed": true,
+    "reports": [
+      "build/test-results/macos-linux-shared-compile/report.json",
+      "build/test-results/macos-linux-resource-compile-final/report.json"
+    ]
+  },
+  "engine_compile": {
+    "passed": false,
+    "blocker": "src/physics_step_internal.hpp:6 includes x86-only xmmintrin.h for arm64",
+    "report": "build/test-results/macos-engine-initial/report.json"
+  },
+  "cleanup": {
+    "private_builds_removed": true,
+    "downloaded_sdks_removed": true,
+    "sdl_disk_image_unmounted": true,
+    "retained_large_test_artifacts": []
+  },
+  "workspace_source_sha256_at_recording": {
+    "CMakeLists.txt": "a53e9488d92bf6e695353a2fb880e28a31e79739ff4c51754ca5285c096e9fde",
+    "cmake/MacOSDefaults.cmake": "d42969826a4378ea305593847b5e76929180cfe553ac72cd84063d86bf1c5b90",
+    "cmake/MacOSPlatform.cmake": "aeffc1215445fbc15ac49a2dc38476a68060c1eb69d8f102085ac004532f3cc7",
+    "cmake/MacOSBundle.cmake": "7bdc170d6af3c2ae111fc931e1e88f7a71125b16f2e7ab046d79283b9cb79b96",
+    "cmake/MacOSBringup.cmake": "030967bc320dee96d0a6e0a0ef7d769583efe3ed72fb0b744144d1488642a17e",
+    "cmake/macos/Info.plist.in": "66321bf778b556ee40ac17e438976993907184f370b55d879e42699bd35bf48b",
+    "include/halo2/macos_bundle.hpp": "d7b345d9a7765c288c621b0e57b605f165f706a8c318b810aa6d2612aff839fb",
+    "include/halo2/vulkan_portability.hpp": "e1c393a6183792bfc1d3dfc7e113fe8121bc1b888d9d96b0432422211c0be8bb",
+    "tools/bundle_macos.py": "3df7356aeb946f2327d04ec0a9f6411c0446cf0bcb3112a3a8186b122588f287",
+    "tools/macos_graphics_probe.cpp": "73e7f67811d63701ca166a5f20b63bdab26739799907b222e27b9adff90183c3",
+    "tools/test_macos_port.py": "3740f0c620e17c6777a93ae7e055cd068624d559a6f66e780e8aad3ec779c080",
+    "tests/macos_bundle_tests.py": "ddb7532fe6cfea06ad5b85c687c15c8ff73166b731e9741293298367d4556536",
+    "tests/macos_graphics_test.py": "f8bc99d539ff79fae5fa8ef617d16f12094ad6bcf0a774790f1bf91ef3020969",
+    "tests/vulkan_portability_tests.cpp": "2ed0325fb5592ea2d2ad6582c08f5c1909ba649e301fd5e217fc5721d9c010df",
+    "src/physics_step_internal.hpp": "88b09bc391954d6461c85d0df02c7f327030fedcbc00080d5999033f5affa754"
+  },
+  "mac_validation_source_sha256": {
+    "CMakeLists.txt": "a53e9488d92bf6e695353a2fb880e28a31e79739ff4c51754ca5285c096e9fde",
+    "cmake/MacOSDefaults.cmake": "d42969826a4378ea305593847b5e76929180cfe553ac72cd84063d86bf1c5b90",
+    "cmake/MacOSPlatform.cmake": "aeffc1215445fbc15ac49a2dc38476a68060c1eb69d8f102085ac004532f3cc7",
+    "cmake/MacOSBundle.cmake": "94749f94fbd92ce6492c55e0fdc7afbf08a580b01710717acf51a01602601fc3",
+    "cmake/MacOSBringup.cmake": "030967bc320dee96d0a6e0a0ef7d769583efe3ed72fb0b744144d1488642a17e",
+    "cmake/macos/Info.plist.in": "66321bf778b556ee40ac17e438976993907184f370b55d879e42699bd35bf48b",
+    "include/halo2/macos_bundle.hpp": "d7b345d9a7765c288c621b0e57b605f165f706a8c318b810aa6d2612aff839fb",
+    "include/halo2/vulkan_portability.hpp": "e1c393a6183792bfc1d3dfc7e113fe8121bc1b888d9d96b0432422211c0be8bb",
+    "tools/bundle_macos.py": "3df7356aeb946f2327d04ec0a9f6411c0446cf0bcb3112a3a8186b122588f287",
+    "tools/macos_graphics_probe.cpp": "73e7f67811d63701ca166a5f20b63bdab26739799907b222e27b9adff90183c3",
+    "tools/test_macos_port.py": "3740f0c620e17c6777a93ae7e055cd068624d559a6f66e780e8aad3ec779c080",
+    "tests/macos_bundle_tests.py": "ddb7532fe6cfea06ad5b85c687c15c8ff73166b731e9741293298367d4556536",
+    "tests/macos_graphics_test.py": "f8bc99d539ff79fae5fa8ef617d16f12094ad6bcf0a774790f1bf91ef3020969",
+    "tests/vulkan_portability_tests.cpp": "2ed0325fb5592ea2d2ad6582c08f5c1909ba649e301fd5e217fc5721d9c010df",
+    "src/physics_step_internal.hpp": "88b09bc391954d6461c85d0df02c7f327030fedcbc00080d5999033f5affa754"
+  }
+}

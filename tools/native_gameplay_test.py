@@ -32,6 +32,8 @@ FRONTEND_SCHEMA = "H2_NATIVE_FRONTEND_TEST_V1"
 FRONTEND_CAPABILITY = "mcc-native-frontend"
 FRONTEND_SCOPE = "mcc-native-title-menu"
 FRONTEND_MAP = "halo2/h2_maps_win64_dx11/mainmenu.map"
+FRONTEND_LOADING_PROFILE = "mcc-logo-glow-mcc-track-oneshot-v1"
+FRONTEND_PROMPT_FONT_PROFILE = "mcc-native-control-fonts-v1"
 
 
 def _digest(value):
@@ -70,19 +72,16 @@ def _file_digest(path, *, embedded=None, exact=None, readonly_literal=False):
     return digest
 
 
-def _check(root, runtime, cache, *, frontend=False):
-    root, runtime, cache = Path(root).resolve(), Path(runtime), Path(cache)
+def _runtime_owner(root, runtime, *, frontend=False):
+    """Authenticate executable/capability/shaders without granting cache admission."""
+    root, runtime = Path(root).resolve(), Path(runtime)
     if not runtime.is_absolute() or runtime.is_symlink() or not os.access(runtime, os.X_OK):
         raise ValueError("Native-test executable requires its validated absolute owner")
     runtime = runtime.resolve(strict=True)
-    if cache.is_symlink():
-        raise ValueError("Native-test cache cannot be a symlink")
-    cache = cache.resolve(strict=True)
-    if cache.parent != root / "assets/imported" or cache.name.startswith("."):
-        raise ValueError("Native-test map requires the selected private cache")
     sidecar = runtime.with_name(runtime.name + (".frontend-test.json" if frontend else ".native-test.json"))
     if sidecar.is_symlink() or not sidecar.is_file() or sidecar.stat().st_size > 65536:
         raise ValueError("No bounded native-test validation sidecar")
+    capability_sha = _file_digest(sidecar)
     report = json.loads(sidecar.read_text())
     if (report.get("schema") != (FRONTEND_SCHEMA if frontend else SCHEMA) or
             report.get("capability") != (FRONTEND_CAPABILITY if frontend else CAPABILITY) or
@@ -147,9 +146,15 @@ def _check(root, runtime, cache, *, frontend=False):
     # The original qualified family has 97 files. New renderer programs may
     # expand it; every added file still needs the passed inventory's exact hash,
     # and the complete directory must match that inventory below.
-    if (not isinstance(files, dict) or len(files) < 97 or
-            not {"world.vert.spv", "world.frag.spv", "hud.frag.spv"} <= files.keys()):
-        raise ValueError("Native test requires the complete baseline shader inventory")
+    from native_renderer_shaders import PROFILE, REQUIRED_FILES
+    profile = shaders.get("profile")
+    if profile is None:
+        complete = (isinstance(files, dict) and len(files) >= 97 and
+                    {"world.vert.spv", "world.frag.spv", "hud.frag.spv"} <= files.keys())
+    else:
+        complete = (profile == PROFILE and isinstance(files, dict) and REQUIRED_FILES <= files.keys())
+    if not complete:
+        raise ValueError("Native test requires its complete declared shader family")
     actual = {p.relative_to(directory).as_posix() for p in directory.rglob("*") if p.is_file() or p.is_symlink()}
     if actual != set(files):
         raise ValueError("Native-test shader inventory changed")
@@ -167,6 +172,41 @@ def _check(root, runtime, cache, *, frontend=False):
     expected = owner["payload"]["sha256"] if readonly else owner["sha256"]
     if _file_digest(payload, embedded=compiled, readonly_literal=readonly) != _digest(expected):
         raise ValueError("Native-test executable changed")
+    if _file_digest(sidecar) != capability_sha:
+        raise ValueError("Native-test capability changed during validation")
+    return dict(runtime=runtime, report=report, capability_sha256=capability_sha,
+                runtime_sha256=_digest(owner["sha256"]))
+
+
+def _frontend_contract(report):
+    """One finite resource contract shared by admission and import dispatch."""
+    validation = report["validation"]
+    native_fonts = ("mcc_loading_presentation_profile" in validation or
+                    "mcc_prompt_font_profile" in validation)
+    if native_fonts:
+        if (validation.get("mcc_loading_presentation_profile") != FRONTEND_LOADING_PROFILE or
+                validation.get("original_loading_ambience") is True):
+            raise ValueError("Frontend requires a separately passed MCC V3 loading profile; legacy proofs cannot be upgraded")
+        if validation.get("mcc_prompt_font_profile") != FRONTEND_PROMPT_FONT_PROFILE:
+            raise ValueError("Frontend requires a separately passed native MCC prompt font profile; legacy proofs cannot be upgraded")
+    loading_files = {"presentation/loading-v3/manifest.json", "presentation/loading-v3/glow-mask.dds",
+                     "presentation/loading-v3/loading.wav"}
+    allowed = set(loading_files) if native_fonts else {
+        "presentation/loading/manifest.json", "presentation/loading/glow-mask.dds",
+        "presentation/loading/loading.wav", "presentation/loading-v2/manifest.json",
+        "presentation/loading-v2/glow-mask.dds", "presentation/loading-v2/loading-tone.xbox-adpcm"}
+    return dict(native_fonts=native_fonts, loading_files=loading_files,
+                allowed_presentation=allowed)
+
+
+def _check(root, runtime, cache, *, frontend=False):
+    root, cache = Path(root).resolve(), Path(cache)
+    if cache.is_symlink():
+        raise ValueError("Native-test cache cannot be a symlink")
+    cache = cache.resolve(strict=True)
+    if cache.parent != root / "assets/imported" or cache.name.startswith("."):
+        raise ValueError("Native-test map requires the selected private cache")
+    report = _runtime_owner(root, runtime, frontend=frontend)["report"]
     bitmap = report["map"]
     expected_map = FRONTEND_MAP if frontend else MAP
     if bitmap.get("path") != expected_map:
@@ -175,17 +215,19 @@ def _check(root, runtime, cache, *, frontend=False):
     if not path.resolve(strict=True).is_relative_to(cache) or _file_digest(path) != _digest(bitmap["sha256"]):
         raise ValueError("Native-test Lockout map changed")
     if frontend:
+        contract = _frontend_contract(report)
+        if not contract["native_fonts"]:
+            raise ValueError("Update to an MCC-capable runtime with separately passed MCC V3 loading "
+                             "and native MCC prompt font profiles; the legacy authored presentation "
+                             "contract is reference-only")
         resources = report["resources"]
+        loading_files = contract["loading_files"]
+        allowed_presentation = contract["allowed_presentation"]
         required = {"halo2/h2_maps_win64_dx11/shared.map",
                     "halo2/h2_maps_win64_dx11/textures.dat",
                     "halo2/h2_maps_win64_dx11/sounds_neutral.dat",
                     "halo2/h2_fonts/font_table.txt"}
-        prompts = cache / "presentation/prompts"
-        required.update("presentation/prompts/" + name for name in
-                        ("manifest.json", "prompt-source.tsv", "prompts.tsv"))
-        required.update(f"presentation/prompts/atlases/{index}.dds" for index in range(6))
-        required.update(p.relative_to(cache).as_posix() for p in prompts.rglob("*")
-                        if p.is_file() or p.is_symlink())
+        required.update(loading_files)
         # Every imported font is part of frontend admission, including languages
         # beyond the active selector. A receipt cannot silently omit a font.
         fonts = cache / "halo2/h2_fonts"
@@ -202,7 +244,8 @@ def _check(root, runtime, cache, *, frontend=False):
             if (relative.is_absolute() or str(relative) != name or "\\" in name or
                     not relative.parts or
                     (relative.parts[0] not in ("halo2", "ui") and
-                     not name.startswith("presentation/prompts/")) or
+                     name not in allowed_presentation and
+                     name != "presentation/ui/native-layout.json") or
                     any(part in (".", "..") for part in relative.parts)):
                 raise ValueError("Frontend resource escaped its MCC cache")
             path = cache / name

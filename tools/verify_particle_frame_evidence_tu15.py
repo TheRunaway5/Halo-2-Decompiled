@@ -54,7 +54,7 @@ def main():
         assert [c['particle_location']['count'] for c in counts]==[4,0,0]
         lifetimes.append(dict(case=name,lifetime=l,lifetime_sha256=file_sha(p/'particle-lifetime.json'),pool_counts=counts))
     generated=json.loads((base/'particle-frame-native-functions-v1/generation.json').read_text());assert len(generated['complete_native_entries'])==38 and len(generated['lowered_instructions'])==2016
-    assert generated['generated_cpp_sha256']==file_sha(ROOT/'src/source_effect_particle_frame_tu15_generated.cpp')
+    assert generated['generated_cpp_sha256']==file_sha(ROOT/'src/rendering/effects/source_effect_particle_frame_tu15_generated.cpp')
     report=dict(scope=__doc__,tool_sha256=file_sha(Path(__file__)),generation_report_sha256=file_sha(base/'particle-frame-native-functions-v1/generation.json'),native_kernel_cases=kernel,native_api_cases=api,coupled_lifetimes=lifetimes,empty_system_cleanup_verified=True,live_particle_instances_in_capture=0,live_particle_emission_verified=False,live_particle_drain_verified=False,renderer_frame_integration_verified=False,physical_xbox_verified=False,full_weapon_parity=False,passed=True)
     a.output.write_text(json.dumps(report,indent=2,sort_keys=True)+'\n');print(json.dumps(dict(passed=True,native_kernel_cases=len(kernel),native_api_cases=len(api),coupled_lifetimes=len(lifetimes),live_particle_instances=0)))
 if __name__=='__main__':main()

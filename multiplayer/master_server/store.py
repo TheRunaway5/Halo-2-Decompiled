@@ -7,6 +7,9 @@ from pathlib import Path
 from .protocol import (MAX_RECORDS, MAX_LEASE, SKEW, VERSION, canonical, parse, fields,
                        integer, identifier, master_id, server_id, metadata, require, signed, verified)
 
+MAX_OWNER_ACTIVE_CREDENTIALS = 8
+MAX_OWNER_CREDENTIAL_KEYS = 64
+
 
 class Store:
     def __init__(self, path, key, lease=90, clock=time.time):
@@ -26,6 +29,8 @@ class Store:
           PRIMARY KEY(origin,server));
         CREATE TABLE IF NOT EXISTS nonces(peer TEXT NOT NULL, nonce TEXT NOT NULL,
           expires INTEGER NOT NULL, PRIMARY KEY(peer,nonce));
+        CREATE TABLE IF NOT EXISTS enrollment_challenges(provider TEXT NOT NULL, subject TEXT NOT NULL,
+          payload BLOB PRIMARY KEY, expires INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS clock_floor(id INTEGER PRIMARY KEY CHECK(id=1), value INTEGER NOT NULL);
         INSERT OR IGNORE INTO clock_floor VALUES(1,0);
         CREATE TABLE IF NOT EXISTS master_identity(id INTEGER PRIMARY KEY CHECK(id=1), value TEXT NOT NULL);
@@ -53,18 +58,56 @@ class Store:
         self.db.execute("INSERT INTO owners VALUES(?,?,?)", (value, provider, subject))
         return value
 
-    def enroll(self, provider, subject, key, ttl):
+    def enrollment_challenge(self, provider, subject, key, ttl):
         with self.db:
             now = self.now()
+            self.db.execute("DELETE FROM enrollment_challenges WHERE expires<=?", (now,))
+            require(self.db.execute("SELECT count(*) FROM enrollment_challenges WHERE provider=? AND subject=?",
+                                   (provider, subject)).fetchone()[0] < 8,
+                    "Owner enrollment challenge limit reached", 429)
+            require(self.db.execute("SELECT count(*) FROM enrollment_challenges").fetchone()[0] < MAX_RECORDS,
+                    "Enrollment challenge capacity reached", 503)
+            payload = dict(v=VERSION, kind="enrollment", master_id=self.id, provider=provider, subject=subject,
+                           server_public_key=key, ttl_seconds=ttl, nonce=str(uuid.uuid4()), expires_at=now + 120)
+            self.db.execute("INSERT INTO enrollment_challenges VALUES(?,?,?,?)",
+                            (provider, subject, canonical(payload), now + 120))
+        return payload
+
+    def enroll(self, provider, subject, key, ttl, proof):
+        # Commit observed expiry even if the subsequent proof is rejected.
+        with self.db:
+            now = self.now()
+            self.db.execute("DELETE FROM enrollment_challenges WHERE expires<=?", (now,))
+        # Verify possession before creating any durable owner/key binding.
+        payload = verified(proof, key)
+        with self.db:
+            now = self.now()
+            challenge = self.db.execute("SELECT expires FROM enrollment_challenges WHERE provider=? AND subject=? AND payload=?",
+                                        (provider, subject, canonical(payload))).fetchone()
+            require(challenge and challenge["expires"] > now,
+                    "Enrollment challenge expired or replayed", 401)
+            require(payload["master_id"] == self.id and payload["server_public_key"] == key
+                    and payload["ttl_seconds"] == ttl, "Enrollment proof binding mismatch", 401)
             owner = self.owner(provider, subject)
             sid = server_id(key)
             previous = self.db.execute("SELECT * FROM credentials WHERE server=?", (sid,)).fetchone()
             require(previous is None, "Server key already enrolled; use a fresh instance key", 409)
-            require(self.db.execute("SELECT count(*) FROM credentials").fetchone()[0] < MAX_RECORDS, "Credential capacity reached", 503)
+            # now() has already acquired SQLite's write transaction. The quota
+            # checks and insert therefore serialize across registry processes.
+            require(self.db.execute("SELECT count(*) FROM credentials WHERE owner=?", (owner,)).fetchone()[0]
+                    < MAX_OWNER_CREDENTIAL_KEYS, "Owner credential key limit reached", 429)
+            require(self.db.execute("SELECT count(*) FROM credentials WHERE owner=? AND revoked=0 AND expires>?",
+                                    (owner, now)).fetchone()[0] < MAX_OWNER_ACTIVE_CREDENTIALS,
+                    "Owner active credential limit reached", 429)
+            # Retain inactive keys as replay/ownership history while releasing
+            # their live quota. One owner can retain at most 64 historical keys.
+            require(self.db.execute("SELECT count(*) FROM credentials WHERE revoked=0 AND expires>?", (now,)).fetchone()[0]
+                    < MAX_RECORDS, "Credential capacity reached", 503)
             cid = str(uuid.uuid4())
             expires = now + ttl
             self.db.execute("INSERT INTO credentials(id,server,owner,public_key,expires) VALUES(?,?,?,?,?)",
                             (cid, sid, owner, key, expires))
+            self.db.execute("DELETE FROM enrollment_challenges WHERE payload=?", (canonical(payload),))
         return {"credential_id": cid, "server_id": sid, "owner_id": owner,
                 "origin_master_id": self.id, "expires_at": expires}
 

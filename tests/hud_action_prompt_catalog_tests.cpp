@@ -15,7 +15,7 @@ namespace {
 void check(bool value,const std::string &why) {
   if(!value)throw FormatError(why);
 }
-std::string substitute(std::string text,bool gamepad,std::array<std::uint32_t,2> buttons={0xe102,0xe104}) {
+std::string substitute(std::string text,bool gamepad,std::array<std::uint32_t,2> buttons={0xe102,0xe103}) {
   const auto glyph=[](std::uint32_t c){return std::string("\xee\x84")+char(0x80+c-0xe100);};
   for(const auto &[token,label]:std::array<std::pair<std::string,std::string>,2>{{
       {"\xee\x91\x88",gamepad?glyph(buttons[0]):"\xee\x84\xb2" "E"},

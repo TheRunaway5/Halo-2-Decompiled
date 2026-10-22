@@ -9,6 +9,6 @@ from research_mp_live_combat_updates import main
 
 if __name__ == '__main__':
     main(groups={'recent_damage': (0xda150, 0xd73e0, 0xdac40, 0xdaa90)},
-         source_files=('src/damage_feedback.cpp', 'src/unit_damage.cpp',
-                       'src/simulation.cpp', 'include/halo2/damage_feedback.hpp'),
+         source_files=('src/gameplay/units/damage_feedback.cpp', 'src/gameplay/units/unit_damage.cpp',
+                       'src/gameplay/simulation.cpp', 'include/halo2/damage_feedback.hpp'),
          configuration_tool='tools/research_damage_feedback_updates.py')

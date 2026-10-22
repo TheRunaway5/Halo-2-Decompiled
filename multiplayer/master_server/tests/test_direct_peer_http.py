@@ -95,8 +95,12 @@ class DirectPeerHttpTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.next(qb, 'peer_signal'))['peer_signal']['peer'], low['slot'])
         self.assertFalse(room.closed)
         # Neither native game packets nor Opus frames have a master relay path.
-        await a.send_bytes(bytes([high['slot']]) + b'H2N2\x42\0\x06' + b'x' * 32)
-        self.assertIsNone(await self.next(qb, 'closed'))
+        offender, rejected, survivor = (a, qa, b) if low['slot'] != room.host else (b, qb, a)
+        await offender.send_bytes(bytes([room.host]) + b'H2N2\x42\0\x06' + b'x' * 32)
+        self.assertIsNone(await self.next(rejected, 'closed'))
+        self.assertFalse(room.closed)
+        self.assertFalse(survivor.closed)
+        self.assertEqual(len(room.tokens), 1)
 
     async def test_readiness_cannot_substitute_an_unadmitted_endpoint(self):
         descriptors = await self.descriptors()
@@ -223,7 +227,7 @@ class DirectStarConnectivityTests(unittest.IsolatedAsyncioTestCase):
         host = next(i for i, d in enumerate(descriptors) if d['slot'] == chosen)
         return room, descriptors, connections, host
 
-    async def test_nonhost_explicit_leave_preserves_running_room_and_complete_result(self):
+    async def test_nonhost_explicit_leave_preserves_play_but_cannot_supply_consent(self):
         from .test_match_transport import MatchTransportTests
         room, descriptors, connections, host = await self.running_three()
         leaving = next(i for i in range(3) if i != host)
@@ -247,16 +251,17 @@ class DirectStarConnectivityTests(unittest.IsolatedAsyncioTestCase):
         for i in survivors:
             self.assertEqual((await self.next(connections[i][1], 'postgame'))['postgame'], raw.hex())
             await connections[i][0].send_json({'confirm_result': hashlib.sha256(raw).hexdigest()})
-        for i in survivors:
-            await self.next(connections[i][1], 'completed')
+        async with asyncio.timeout(3):
+            while len(room.confirmations) != len(survivors):
+                await asyncio.sleep(.005)
         departed_owner = room.players[descriptors[leaving]['slot']][0]
         self.assertNotIn(departed_owner, room.pending_signals)
         db = self.api.directory.store.db
-        row = db.execute('SELECT admitted_connections,confirming_connections,departed_slots,authority_epoch '
-                         'FROM match_result_consensus WHERE match=?', (room.id,)).fetchone()
-        self.assertEqual(tuple(row), (3, 2, 1 << descriptors[leaving]['slot'], 0))
+        self.assertEqual(room.phase, 'reviewing')
+        self.assertIsNone(db.execute('SELECT * FROM match_result_consensus WHERE match=?', (room.id,)).fetchone())
+        self.assertEqual(db.execute('SELECT count(*) FROM match_results WHERE id=?', (room.id,)).fetchone()[0], 0)
         self.assertEqual(db.execute('SELECT count(*) FROM match_result_players WHERE match=?',
-                                   (room.id,)).fetchone()[0], 3)
+                                   (room.id,)).fetchone()[0], 0)
 
     async def test_completed_world_host_can_leave_during_result_review(self):
         from .test_match_transport import MatchTransportTests
@@ -266,6 +271,8 @@ class DirectStarConnectivityTests(unittest.IsolatedAsyncioTestCase):
         await connections[host][0].send_json({'postgame': raw.hex()})
         for socket, queue in connections:
             await self.next(queue, 'postgame')
+        # Host departure may preserve a vote it actually cast for this digest.
+        await connections[host][0].send_json({'confirm_result': hashlib.sha256(raw).hexdigest()})
         await connections[survivors[0]][0].send_json({'confirm_result': hashlib.sha256(raw).hexdigest()})
         await connections[host][0].send_json({'leave': True})
         self.assertIsNone(await self.next(connections[host][1], 'closed'))

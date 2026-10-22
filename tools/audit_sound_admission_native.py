@@ -26,7 +26,7 @@ def audit(d):
  for p in(d/'export-repeat').iterdir():q=d/'fixtures'/p.name;assert p.read_bytes()==q.read_bytes();pairs.append([str(p.relative_to(ROOT)),str(q.relative_to(ROOT)),sha(p)])
  for name in('normal.stdout','normal.stderr','sanitizer.stdout','sanitizer.stderr'):
   p=d/'validation-v2/native'/name;q=d/'validation-v2-repeat/native'/name;assert p.read_bytes()==q.read_bytes();pairs.append([str(p.relative_to(ROOT)),str(q.relative_to(ROOT)),sha(p)])
- for rel in('include/halo2/sound_admission.hpp','src/sound_admission.cpp','tests/sound_admission_tests.cpp'):
+ for rel in('include/halo2/sound_admission.hpp','src/audio/sound_admission.cpp','tests/sound_admission_tests.cpp'):
   for group in('validation-v2/native/source','validation-v2-repeat/native/source','production/source'):assert(ROOT/rel).read_bytes()==(d/group/rel).read_bytes(),rel
  images={'old':Xbe(OLD),'u5':Xbe(NEW)};rows=0
  for p in(d/'paired-v2/instructions').glob('*.asm'):
@@ -45,7 +45,7 @@ def audit(d):
  assert '-fsanitize=address,undefined'in(d/'production/sanitizer/sound_admission_tests-flags.make').read_text()
  for tag in('normal','sanitizer'):
   text=(d/'production'/(tag+'-ctest.stdout')).read_text();assert '100% tests passed'in text and 'PASS 3864 original controls'in text and 'PASS 138 original creation prefixes'in text
- registration=(d/'production/source/CMakeLists.txt').read_text();assert 'src/sound_admission.cpp'in registration and 'NAME original_sound_admission'in registration
+ registration=(d/'production/source/CMakeLists.txt').read_text();assert 'src/audio/sound_admission.cpp'in registration and 'NAME original_sound_admission'in registration
  result=dict(schema='sound-admission-audit-v1',auditor_sha256=sha(__file__),prior_pins_verified=pins,exact_repeat_pairs=pairs,original_instruction_rows_checked=rows,cases=3864,ordered_stores=552,full_fixture_bytes=1881423264,full_cold_owner_calls=276,explicit_skip_slices=138,direct_queries=3450,actual_local_table_constructor_stores=57,successful_full_admission=False,production_source_drift=prod['source_drift'],mismatches=[])
  save(d/'audit.json',encoded(result));print(json.dumps(dict(audit_sha256=sha(d/'audit.json'),prior_pins=len(pins),equal_files=len(pairs),instruction_rows=rows,mismatches=0)))
 if __name__=='__main__':

@@ -1,5 +1,5 @@
 #include "capture_live_model_common.hpp"
-#include "../src/source_object_geometry.hpp"
+#include "../src/gameplay/objects/source_object_geometry.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/source_game_variant.hpp"
 #include "halo2/source_bsp_effect_lights.hpp"

@@ -28,7 +28,7 @@ class MaterialPassBank {
     };
     std::vector<Entry> entries_;
     MaterialPass& writable(std::size_t n){auto& e=entries_[n];
-        if(!e.value.unique())e.value=std::make_shared<MaterialPass>(*e.value);
+        if(e.value.use_count()!=1)e.value=std::make_shared<MaterialPass>(*e.value);
         e.exposed=true;return *e.value;}
     friend class Cache;
     // Cache calls this only after its local decoder/binder views expire.

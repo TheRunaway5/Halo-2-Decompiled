@@ -9,7 +9,7 @@ ROOT=Path(__file__).resolve().parents[1]
 E=ROOT/'analysis/multiplayer/sandbox-source/physics-pool-startup-tu15-20261012'
 OWNED=(
  'include/halo2/physics_pool_startup_runtime.hpp','include/halo2/physics_pool_host_storage.hpp',
- 'src/physics_pool_startup_runtime_generated.cpp','src/physics_pool_host_storage.cpp',
+ 'src/physics/physics_pool_startup_runtime_generated.cpp','src/physics/physics_pool_host_storage.cpp',
  'tests/physics_pool_startup_tests.cpp','cmake/PhysicsPoolStartup.cmake',
  'tools/research_physics_pool_startup_tu15_20261012.py',
  'tools/generate_physics_pool_startup_tu15_20261012.py',
@@ -22,8 +22,8 @@ def main():
     source=E/'source-v1';manifest=E/'source-manifest-v1.json'
     assert not source.exists() and not manifest.exists(),'Preserve existing frozen cohort'
     dependencies=sorted(set(re.findall(r'(?:include|src|tests)/[^\s\\]+',(E/'dependencies.d').read_text())))
-    assert 'src/physics_pool_startup_runtime_generated.cpp' in dependencies
-    assert 'src/source_runtime_memory.cpp' in dependencies
+    assert 'src/physics/physics_pool_startup_runtime_generated.cpp' in dependencies
+    assert 'src/runtime/source_runtime_memory.cpp' in dependencies
     files=sorted(set(dependencies)|set(OWNED));pins={p:sha(ROOT/p)for p in files}
     source.mkdir()
     for p in files:
@@ -35,7 +35,7 @@ include(CTest)
 find_package(nlohmann_json REQUIRED)
 option(HALO2_SANITIZERS "Instrument this exact native source cohort" OFF)
 add_library(halo2_physics_world_runtime STATIC)
-add_library(halo2_systems STATIC src/source_runtime_memory.cpp src/source_runtime_image.cpp src/source_runtime_host_storage.cpp)
+add_library(halo2_systems STATIC src/runtime/source_runtime_memory.cpp src/runtime/source_runtime_image.cpp src/runtime/source_runtime_host_storage.cpp)
 target_link_libraries(halo2_systems PUBLIC halo2_physics_world_runtime)
 foreach(target IN ITEMS halo2_systems halo2_physics_world_runtime)
   target_include_directories(${target} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)

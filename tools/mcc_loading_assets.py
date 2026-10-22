@@ -56,7 +56,8 @@ def presentation_inputs(banks):
 
 
 def preserve_custom(root, destination):
-    source = Path(root) / CUSTOM
+    from installation_paths import resource_root
+    source = resource_root(root) / CUSTOM
     if not source.exists():
         return dict(files={}, required=False, runtime_admitted=False)
     profile = source / "profile.json"

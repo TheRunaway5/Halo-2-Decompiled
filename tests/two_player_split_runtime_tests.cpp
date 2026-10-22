@@ -20,7 +20,7 @@ int main(int argc,char **argv)try {
     menu_content.vista=load_vista_settings(argv[3]);MenuState video(menu_content);
     video.adopt_pc_settings({},options.desktop->display_settings,{options.width,options.height,0});
     video.set_pc_display_adapter([&](const DisplaySettings &value){options.desktop->display_settings=value;return std::string{};});
-    video.open(vista_menu(256));video.select(11);
+    video.open(vista_menu(256));video.select(12);
     bool switched=false;
     options.input_observer=[&](unsigned tick,auto,auto &) {
         if(tick>=2 && !switched){video.accept();switched=true;}

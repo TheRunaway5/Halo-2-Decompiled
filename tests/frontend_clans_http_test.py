@@ -7,6 +7,7 @@ import sys
 import tempfile
 import uuid
 from frontend_test_ports import callback_port
+from helpers.mcc_online_ui import ui_arguments
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 try:
@@ -18,8 +19,14 @@ except ImportError:
     sys.exit(77)
 
 async def main():
-    if "--capture" in sys.argv:
-        capture_path=Path(sys.argv[sys.argv.index("--capture")+1])
+    try:
+        assets=ui_arguments(ROOT,sys.argv[2:])
+    except ValueError as error:
+        print("ONLINE UI configuration failed: "+str(error),file=sys.stderr);return 1
+    native_options=assets.forwarded
+    if "--capture" in native_options:
+        capture_path=Path(native_options[native_options.index("--capture")+1])
+        if assets.mcc_cache:capture_path.mkdir(parents=True,exist_ok=True)
         for marker in ("request-full-roster","full-roster-complete"):
             (capture_path/marker).unlink(missing_ok=True)
     with tempfile.TemporaryDirectory(prefix="halo2-clan-ui-") as temp:
@@ -39,7 +46,7 @@ async def main():
                 assert response.status==200,await response.text()
             async def partner():
                 joined=False; reinvited=False
-                capture_path=Path(sys.argv[sys.argv.index("--capture")+1]) if "--capture" in sys.argv else None
+                capture_path=Path(native_options[native_options.index("--capture")+1]) if "--capture" in native_options else None
                 seeded=[];stress_done=False
                 while True:
                     response=await client.get("/v1/clans",headers=peer)
@@ -65,8 +72,8 @@ async def main():
                     await asyncio.sleep(.5)
             task=asyncio.create_task(partner())
             env=os.environ|dict(http_proxy="http://127.0.0.1:1",HTTP_PROXY="http://127.0.0.1:1",NO_PROXY="",no_proxy="",SDL_AUDIODRIVER="dummy")
-            process=await asyncio.create_subprocess_exec(str(Path(sys.argv[1]).resolve()),str(ROOT/"assets/disc/maps"),
-                "--asset-sources",str(ROOT/"assets/asset-sources.tsv"),"--account-url",str(client.make_url("/")).rstrip("/"),"--callback-port",callback_port(),*sys.argv[2:],env=env,
+            process=await asyncio.create_subprocess_exec(str(Path(sys.argv[1]).resolve()),*assets.source,
+                "--account-url",str(client.make_url("/")).rstrip("/"),"--callback-port",callback_port(),*native_options,env=env,
                 stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.PIPE)
             try:
                 out,err=await asyncio.wait_for(process.communicate(),300)
@@ -77,7 +84,8 @@ async def main():
                 assert len(api.sessions)==1,"Native account bearer survived sign-out"
                 await command("leave")
                 assert api.db.execute("SELECT count(*) FROM clans").fetchone()[0]==0
-                print("PASS native Discord account gate, clan create/invite/join/roles/Overlord confirmation/messages/leave, chosen screen name, sign-out, privacy and Vista HD assets")
+                print("PASS native Discord account gate, clan create/invite/join/roles/Overlord confirmation/messages/leave, chosen screen name, sign-out, privacy and "+
+                      ("MCC-only imported UI inputs" if assets.mcc_cache else "Vista HD assets"))
             finally:
                 task.cancel()
                 with contextlib.suppress(asyncio.CancelledError):await task

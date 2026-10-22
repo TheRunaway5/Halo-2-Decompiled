@@ -23,10 +23,10 @@ def main():
    for path,digest in dependency.get(group,{}).items():add(prior,path,digest)
  verify(prior)
  names=['CMakeLists.txt','include/halo2/source_mutable_tag_store.hpp',
- 'src/source_mutable_tag_store.cpp','include/halo2/source_tag_metadata.hpp',
- 'src/source_tag_metadata_store.cpp','include/halo2/source_tag_metadata_store.hpp',
- 'include/halo2/cache.hpp','src/cache.cpp','include/halo2/sound_promotion.hpp',
- 'src/sound_promotion.cpp','tests/sound_promotion_map_owner_tests.cpp',
+ 'src/platform/source_mutable_tag_store.cpp','include/halo2/source_tag_metadata.hpp',
+ 'src/assets/source_tag_metadata_store.cpp','include/halo2/source_tag_metadata_store.hpp',
+ 'include/halo2/cache.hpp','src/assets/cache.cpp','include/halo2/sound_promotion.hpp',
+ 'src/audio/sound_promotion.cpp','tests/sound_promotion_map_owner_tests.cpp',
  'tools/run_owned_fixture_test.py','tools/freeze_mp_sound_promotion_map_owner.py',
  'tools/freeze_mp_native_sound_storage.py','docs/MP_SOUND_PROMOTION_MAP_OWNER_RESEARCH.md']
  for name in names:copy(actual(name),FROZEN/'source'/name)

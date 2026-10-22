@@ -45,7 +45,7 @@ bytes and original image/cache hashes are retained in
 `analysis/weapons-tu15-goal-20261013/authored-scope.json`. Its per-weapon feature
 and visual status remains unverified for all 63 definitions.
 
-`weapon-completion-matrix-v76.json` expands those same63 rows into630 explicit
+`weapon-completion-matrix-v124.json` expands those same63 rows into630 explicit
 completion gates, including owner/applicability audits and complete reference
 sequences. Bounded Hunter and Needler runtime evidence is attached to their
 tested Old Mombasa and Lockout definitions; it certifies neither a whole gate
@@ -2906,3 +2906,884 @@ binding; the original file ordinal cannot replace the relocated clock owner.
 The genuine physics ownership regression passes. All completed owned scratch
 is removed; no new large artifacts are retained. The next full MCC snapshot
 also requires the existing cold-world ownership regression, for11 checks.
+
+On2026-10-20 the original1046C0 magazine-digit reference passes131,116 calls:
+all65,536 signed16 counts for both digits and empty/two-magazine controls.
+The native material helper independently matches all131,072 digit values and
+active flags. It binds nine verified MCC builtin symbols without changing
+authored function input/output/enable/scale IDs. All387 symbol identities pass
+across43 prepared MCC caches. An MCC alias that equals an Xbox one/zero ID
+retains its authored function rather than taking the generic Xbox fallback.
+Campaign, multiplayer and first-person bitmap callbacks use the owning namespace.
+
+The previous campaign source fixture queried three Xbox builtin IDs against
+its MCC callback. Its geometry/lighting/owner evidence remains bounded; those
+queries do not establish actual MCC material-name acceptance. The corrected
+fixture validates cache symbol names and rejects unbound Xbox IDs. V10 was
+intentionally cancelled after finding this flaw, and its private source/build
+trees are removed; its receipt is diagnostic evidence only. The fresh v11
+immutable validation requires12 checks, including exhaustive digits in both
+namespaces, authored alias/gate/scale controls and the corrected campaign source
+fixture, followed by four actually submitted application frames. Consult the
+current goal state for the live session and outcome. No complete weapon or
+visual/audio gate is inferred from these preparation results.
+
+V11 builds successfully and records nine passes, one synthetic alias-control
+failure and two dependent checks not run. The failed control supplied an empty
+curve while expecting identity; the source correctly returns zero for an empty
+curve. The corrected explicit20-byte identity controls pass against the actual
+MCC cache and unchanged v11 compiled libraries:262,232 digit cases in both
+namespaces,524,501 checks and16 controls. This retains authored output/scale
+identities, including Xbox one/zero-token collisions. The full v12 snapshot is
+now active with all12 checks still required. V10 and v11 source/build trees,
+and all completed one-off compiler/probe scratch, are removed; small failure
+diagnostics and hashes remain. No new large artifacts are retained.
+
+An additional all63-path MCC material-input audit covers448 resident contexts
+and158 authored function rows. It identifies three further candidates for
+original-owner and actual-use qualification: energy-blade `alive`, Sentinel
+beam `primary_firing`, and Assault-bomb `random_constant`. Their presence does
+not establish a runtime failure or applicability to every material. The checklist
+preserves these requirements and all630 weapon gates.
+
+
+## Corrected MCC application and object-owned bomb material (2026-10-20)
+
+The immutable v12 MCC run passes all12 selected checks. The real application
+submits frames0–3 with160 weapon GPU draws and48 source units across the turret
+item, BR and SMG. Expected full owners, definitions, constants and vertex buffers
+pass in every frame. The corrected CPU fixture also verifies actual MCC builtin
+names and rejects three foreign Xbox tokens. Source/build scratch is removed.
+Visible pixels, matched Xbox frames, audio and complete63-weapon sequences remain
+unverified; no entire gate or weapon is certified by command submission.
+
+Actual compiled MCC Cache projections identify69 assault-bomb `scrawl` material
+dependencies across140 candidate contexts. The136 unresolved model/shader
+references remain explicit. Unchanged original10DE40 dispatch selects base
+BEC50 before the weapon handler. Its random constant uses the full object handle,
+including its salt, through originalBEE4E–BEE79. All65,599 original calls pass;
+the native helper matches the complete65,536-salt digest and102 reference vectors.
+The producer is wired to actual campaign/world/first-person weapon handles and
+remains unresolved without an object owner. All430 supported symbol identities
+match across43 MCC caches. The fresh v13 snapshot requires13 checks, including
+actual MCC Lockout bomb aliases, before repeating four application frames.
+Consult current goal state for its live handle. Small reports retain commands,
+source/hashes and failed probe diagnostics; completed scratch is removed and no
+new large artifacts are retained.
+
+
+## Current MCC firing frontier after thirteen-check acceptance (2026-10-20)
+
+V13 passes all13 corrected MCC checks, including131,276 native random cases in
+both namespaces and102 actual MCC `scrawl` alias cases. It repeats four genuine
+application frames and all expected owner/definition/constant/vertex bindings.
+The borrowed-library native camera component also passes12 weapon units and
+24,624 independently checked vertices, shaders/LOD, WORLD poses and lighting:
+one attached turret item and11 loose BR/SMG units. That component excludes the
+particle path. Its59 main units must not be reported as the full application's
+62-unit/particle collection. All completed private source/build/probe trees are
+removed, with no new large retained artifacts.
+
+The matrix now records88 partial and542 unverified gates, with zero complete
+and zero certified weapons. BR world pose/material components and the bomb's
+object-owned scalar/alias component now have bounded evidence; none is a whole
+weapon or visible-frame certification. Original lifetime/firing producer data
+passes65,536 alive flag words and3,744 firing controls, with actual MCC
+sound/effect ownership still open. The active v14 snapshot tests actual MCC
+plasma-rifle input/pickup/firing, source-shot equality, owned sounds and gauge
+input with pinned and natural-after-pickup motion. Keep its handle in current
+state, inspect the real outcome, clean owned scratch after exit and continue
+the full63-weapon scope and remaining visual/audio/reference gates.
+
+
+## MCC pickup notification configuration owner (2026-10-20)
+
+V14 builds and records two passing arithmetic checks and three failed MCC
+runtime cases. Each reaches actual14FEC0/B2C9E before reading missing4DB6B0.
+No firing/audio/gauge acceptance is inferred; all source/build scratch is
+removed. A focused actual cold-factory probe reproduces the missing field.
+Authenticated TU1.5 B2C60 uses the value published by complete680C0, called
+from68BE0 at68D50. Its original field value is5000, not loader zero.
+
+The native world now shares the existing6,104-byte cold configuration owner and
+its12 exact immutable operands with the full network startup. The live executor
+runs the unchanged generated680C0 leaf before objects are born. The data owner
+never installs constructed outputs or resets live state. The focused native
+comparison matches all100 instruction positions,84 ordered stores, full bank
+bytes and return ABI; two shared/live-owner preservation controls and two invalid
+owner rejections pass. No instructions are patched and no callee results are supplied.
+Full network startup remains separate. The current17-check v15 snapshot repeats
+all material/application checks and actual MCC firing/audio/gauge cases. Current
+state retains its handle. All completed focused compiler/probe trees are removed;
+small reports, source hashes and the required38,128-byte fixture remain.
+
+
+## MCC gauge, original sound admission and alive owner (2026-10-20)
+
+V16 passes all15 prior non-live checks; V18 additionally passes actual MCC held
+plasma-rifle gauge input. Corrected cache-local material requests retain every
+input/value assertion. Both firing placements produce four rounds, advancing
+poses and111 gauge observations, but zero owned sounds. V19 observes four real
+original108A70 lower/upper-fire requests and valid full effect handles per case.
+V20 then records30/31 original18CEFC/223B20 submissions, all returning NONE.
+Their exact trace takes the valid no-custom-playback branch and stops at the
+ordinary uninitialized sound-system gate. The authored FF field is not a tag
+fault. Complete native audio startup and positive admission remain required;
+reuse the retained initializer prefix and missing-owner research without
+installing readiness or synthesizing sound from shot counters.
+
+The earlier unit-definition trace defaults were unobserved when its separate
+clear-lane option was disabled. They diagnose no live-unit defect. Future MCC
+fixtures now explicitly read and verify the actual source definitions.
+
+The alive material producer matches65,536 unchanged10DE40/BEC50 results. It
+requires a full object identity and that object's actual +10A flags; absent
+flags remain unbound. Campaign, world and carried host callbacks read the
+actual source owner. All43 MCC caches qualify its exact named identifier,
+bringing supported identity coverage to473. The required original fixture is
+493 bytes; all completed probe/build scratch is removed. V21 now requires18
+MCC checks, including actual sword material use and the prior campaign, gauge
+and four-frame regressions. The matrix remains90 partial/540 unverified gates,
+zero complete and zero fully certified weapons.
+
+
+MCC first-person selector follow-up (2026-10-20):V21 is terminal17/18,with both
+namespaces131,072 alive cases,16 authored MCC inputs,gauge,campaign and four
+submitted application frames passing. Sword stops before pickup at the compiled
+melee selector. A bounded direct read confirms both actual MCC sword graphs
+contain0E000613 (`melee_strike_1`),not the original clock token0E000607. The
+prepared39-symbol first-person query adapter uses the exact named join,checks
+the owning MCC cache,and retains canonical clock IDs and authored metadata.
+V22 is active with19 checks,including six independently named sword actions
+for both representations. No full weapon gate is certified; all completed21
+source/build scratch is removed.
+
+
+Latest MCC checkpoint (2026-10-20):V22 is terminal18/19. The compiled-selector
+correction passes48 actual MCC FP bindings/865 canonical clock clips and12
+independently named sword actions across both representations,with both sword
+graph metadata banks unchanged. Sword now reaches pickup/rendering but fails
+the fixture's assumed ready phase. MCC still authors0.7 seconds/21 ticks. V23
+records actual source clock/countdown/flags and checks the original decrement
+sequence and both hidden/lit blade states; no production ready code changed.
+The new primary/secondary firing material producer matches13,520 complete
+unchanged10DE40/1046C0 cases and13,520 native scalar cases. It preserves signed
+recency wrap,negative zero,NaNs,distinct barrel values and authored counts.
+The full weapon owner and source clock now supply campaign/world/carried host
+callbacks; missing owners stay unbound. The required reference is836 bytes.
+Both firing IDs qualify across43 MCC caches,bringing material builtin identity
+coverage to559. V23 is active with20 coherent MCC checks. All completed21/22
+source/build scratch and completed probes are removed. Gate counts remain90
+partial/540 unverified,zero complete and zero certified weapons.
+
+
+Corrected MCC v23 terminal acceptance (2026-10-20):all20 checks pass. The real
+Spartan sword pickup submits its carried pose and retains its full owner across
+31 source-biped observations. Its62 alive material observations include42 hidden
+and20 lit blade draws. Source tick53 has ready_countdown21; source tick74 first
+has countdown0/flag20/on. The input observer's pickup tick52 is a separate phase.
+The earlier v22 elapsed20 assertion was a fixture phase assumption; production
+ready behavior did not change. The legacy TU1.1 countdown and complete static
+1021D0/1030F0 correspondence retain their reference boundaries. The firing
+material component passes27,040 cases across both namespaces and one actual
+MCC authored input,with native full-owner/clock wiring. Natural Sentinel use
+remains unverified. Campaign/four submitted application frames,gauge and prior
+regressions pass. All23 build/source scratch is removed. Three Sword gates
+advance to partial for actual pickup/equip/material/carried-pose evidence; no
+whole gate is certified. Counts:93 partial/537 unverified,zero complete and zero
+certified weapons. Next qualify body melee/dual-hand identifiers,full genuine
+audio startup,natural remaining materials and all-map/species/hand/Xbox visuals.
+
+
+Body/dual namespace preparation (2026-10-20):the checked actual-MCC raw metadata
+probe first rejected an unsigned cast of its negative translation bias. With
+signed64 address subtraction,it reproduces49 missing compiled melee queries
+and39 incorrect dual-class remaps in82 body/weapon contexts. The source graph
+provider now retains the original dual-class default and verifies the MCC owner
+namespace. Native melee,dual_screen/grip and locomotion queries translate only
+compiled selectors; authored class/type IDs and canonical activities stay intact.
+The focused82-context correction passes with49 foreign raw controls and zero
+dual-class changes. All45 named selectors qualify across43 MCC caches. V24 is
+active with21 coherent checks,including actual Cache/body selection and the
+retained original selection fixture. V23's20 passing checks remain retained.
+Natural Sentinel validation concerns the AI beam audio_firing function:8 raw
+resident occurrences/33 resolved Cache contexts,no model/shader dependency in
+the retained audit. Its natural actor/weapon/object-function/looping-audio use
+remains open alongside full device startup. No full weapon gate is certified.
+
+
+MCC body/dual acceptance (2026-10-20):V24 passes all21 checks. The actual Cache
+provider retains MCC dual class in82 body/weapon contexts and resolves49 body
+melee actions. The48 FP bindings/865 canonical clips,12 named Sword actions,
+unchanged Sword metadata,retained original-selector fixture and all prior MCC
+material/ready/gauge/campaign/four-frame checks pass. No natural melee or full
+visual sequence is certified by these cache queries. All24 source/build scratch
+is removed. Continue the full actual MCC Sword attack/source-manager/contact/
+audio sequence; preserve actual tag/function namespace evidence before changing
+any generic source callback. Counts remain93 partial/537 unverified,zero complete
+and zero certified weapons.
+
+
+Strict Sword attack continuation (2026-10-20):V25 is active with22 checks. The
+new actual MCC case preserves advancing authored-pose and owned-audio checks;
+it adds bounded actual activity/animation/vertex-hash observations and read-only
+original108A70 effect plus sound-submit observations. Declared stationary input
+placement remains explicit. V24's21 passing checks are the retained baseline;
+no full melee or weapon gate is certified from its cache queries.
+
+
+Shared cold-start regression (2026-10-20):V25 is terminal11 passed/6 failed/
+5 not run. Original runtime regions overlap prevents startup,so the strict
+Sword attack case did not execute. The frozen24/25 source pins and failure
+are retained;current shared factory source differs and passes259 language cases
+plus owner-preservation/invalid-owner controls. No unrelated work was reverted.
+V26 is active with22 coherent checks from a fresh snapshot. Shader/pipeline
+caches now use each nested test's HALO2_TEST_SCRATCH and are cleaned with its
+builds. Preserve desktop cache ownership and V24's21-check successful baseline.
+Full weapon counts remain93 partial/537 unverified,zero complete/certified.
+
+
+Shared renderer build interruption (2026-10-20):V26 failed before runtime tests
+on undeclared debug_graphics in its frozen renderer. Current shared code differs
+and passes standalone normal-target syntax after privately regenerating the
+actual shader catalog;no unrelated changes were reverted. V27 is active with22
+checks. All26 source/build and completed recovery-probe/catalog scratch is
+removed. The MCC raw pickup audit finds13 of15 handheld paths across25 multiplayer
+maps,only8 on Lockout;resolved Cache/game-mode/runtime qualification remains
+required and the two absent raw-candidate paths stay in the goal. Counts remain
+93 partial/537 unverified,zero complete and zero certified weapons.
+
+## October20 corrected MCC Sword candidate-table owner
+
+V27 passes21 of22 corrected MCC checks. The actual held Sword receives SDL fire
+at tick106 and reaches originalEBF20,then stops atEBF31 because0x44A8E4 has no
+native backing. This is an immutable candidate-table dependency,before the
+strict advancing-pose and owned-audio assertions. All other material,body/FP
+binding,cold-start,gauge,campaign and submitted-frame checks pass. Its source,
+build and renderer-cache scratch are removed; small reports and logs remain.
+
+The complete50-instruction selector and four12-byte records at44A8DC match the
+authenticated English TU1.5 image. EBF4A..EBF51 bounds the four-row scan; EBF57
+throughEBF78 consumes the genuine shared RNG once when candidates exist. Strike1
+is not an unconditional original result. The native cold factory now mounts
+all48 original bytes read-only,passes an independent byte fixture and rejects
+a write. Availability,RNG,selected action and results remain owned by the live
+source. Runtime exceptions retain already observed inputs/poses/effect/sound
+requests before failing. V28/session21839 repeats the same22 MCC checks.
+
+Matrixv94 retains all63 paths/1110 occurrences/38 maps/630 gates:93 partial,
+537 unverified,zero complete or fully certified weapons. Full source attacks,
+contact/damage,lunge,authored audio,all species/hands/maps and matched Xbox
+visual sequences remain open. See weapon-mcc-sword-candidate-table-progress-v1.json
+and checkpoint-weapon-mcc-sword-candidate-table-20261020.json.
+
+## October20 actual MCC Sword selection frontier and all-map Cache checks
+
+V28 passes21/22 corrected MCC checks and clears the candidate-table exception.
+The full application completes160 frames with111 observed Sword poses:52 ready
+and59 idle. Its32 retained source samples publish no attack;12 contain actual
+fire input. No advancing attack pose reaches the renderer,so the strict test
+fails before owned strike audio. Ten observed original sound requests all
+returnNONE. This is not evidence of a legitimate second strike or a reason to
+relax pose/audio requirements. Source/build/cache scratch is removed; the
+91,482-byte failed sequence trace and small reports remain.
+
+The same immutable v28 Cache test also passes all25 multiplayer maps in the
+authored pickup audit:1,200 bindings,21,625 canonical-clock clip occurrences,
+300 named Sword actions,2,056 body contexts and1,225 body melee queries. These
+are repeated map contexts,not unique definitions or natural gameplay. Its
+private executable link and scratch are removed. A separate bounded report
+confirms v16/v23/v24/v27 retain48 source inputs and160 committed campaign
+BR/SMG/turret-item draw commands; the4-input/8-command printout is their
+required turret-item subset. Vertex bytes,pixels and Xbox comparison stay open.
+
+V29/session62314 adds read-only completeEBFA0/EBF20/16B31B/1D3D30 entry/return
+observations to the same22 MCC checks. It preserves candidate data,RNG,authored
+IDs,original results and strict acceptance. The new table fixture is now copied
+and pinned in the private cohort. Qualify the actual failed selection owner
+before changing namespaces. Matrixv95 retains all63 paths/630 gates,93 partial
+and537 unverified,zero complete and zero fully certified weapons. See
+weapon-mcc-sword-selection-frontier-progress-v1.json and
+checkpoint-weapon-mcc-sword-selection-frontier-20261020.json.
+
+## October20 qualified original melee-query namespace boundary
+
+V29 passes21/22. All14 original selection observations complete:EBFA0 and
+EBF20 reject,and six16B31B/1D3D30 query pairs return zero. The first two
+compiled requests use0E000607/608 against actual MCC graphF1D352C6,which
+authors the corresponding named strikes under0E000613/614. Original opcode
+16B3F1=FF7508 and the three source callers are independently authenticated.
+
+The native bank now owns a name-qualified four-strike query namespace. Only
+16B3F1 requests originating atEBF3C/EC14F/EC22B receive their actual MCC lookup
+keys. The original candidate table,canonical caller/action values,other
+callers,raw authored IDs and original/unbound banks stay intact. Fresh full
+generation reproduces the complete16B31B body exactly. V30 passes all5 focused
+checks:12 actual MCC manager-default/fallback matches across both FP graphs,
+48 bindings/865 canonical clips,82 body contexts/49 melee actions,the original
+33-case selector fixture and named/caller/bank/lifetime guards. This is not
+live source attack,contact,audio or Xbox visual acceptance. Scratch is removed.
+
+The strict Sword fixture now derives its expected strike from actual EC450
+action readback and correlates it with the original selected candidate when
+traced. Pose/vertex progression and authored owned audio must match that exact
+selection. It does not assume EBF20s random choice is always strike1. This
+fixture passes syntax; live acceptance remains pending. V31 rejected an
+unrelated network-service test edit during copy before any build. Its source
+scratch is removed. V32/session8040 is a fresh coherent23-check full MCC run.
+
+The goal also verifies retained shared audio prerequisite handoffs without
+adopting device readiness into the weapon world. Eight cold receipts match
+their retained hashes; complete configuration still stops at38E8D3 and
+initializer45 remains open. Matrixv96 preserves all63 paths/630 gates,93
+partial/537 unverified and zero complete or fully certified weapons. See
+weapon-mcc-source-melee-query-progress-v1.json and
+checkpoint-weapon-mcc-source-melee-query-20261020.json.
+
+## October20 live melee query owner correction
+
+V32 finishes22/23. All14 completed Sword selection observations return zero;
+its111 rendered poses are52 ready and59 idle,with no actual source attack.
+The dispatcher selects the death-cycle16B31B copy before physics support;
+only the latter had adopted the qualified MCC query key. Both compiled copies
+now use the same caller/bank/name-qualified boundary. Fresh generation of both
+complete bodies matches after identity-address spelling normalization. The
+shared emitter derives its operand expression for either generated composition.
+Canonical candidate data,source action,RNG and authored graph bytes stay intact.
+
+V33/session36641 is a coherent23-check full MCC run. Its actual selected source
+candidate/action must match advancing rendered geometry and authored owned
+audio. V32s unchanged Cache component also passes all25 multiplayer maps,
+including300 qualified query-key matches. These component results certify no
+live attack,contact,device startup or Xbox framebuffer comparison. All completed
+owned source/build/cache and generation scratch is removed. V33 remains active.
+Matrixv97 retains all63 paths/630 gates,93 partial/537 unverified,zero complete
+and zero fully certified weapons. See weapon-mcc-melee-query-owner-progress-v1.json
+and checkpoint-weapon-mcc-melee-query-owner-20261020.json.
+
+## October20 source-selected Sword strike and remaining rendered channel
+
+V33 completes22/23. Both strike1/strike2 MCC keys resolve through actual original
+1D3D30; the absent strike3/4 keys reject. EBF20 returns the original44A8DC
+record and EBFA0 publishes canonical0E000607; actual action readback agrees.
+A third query for the chosen strike also returns the valid source clip pointer.
+No availability result,candidate,action or ready state was supplied.
+
+Rendering still emits52 ready(index12) and59 idle(index0) poses,with zero
+strike1(index5) poses. The strict test fails advancing authored attack poses.
+The other22 checks,including campaign source/HUD and four submitted frames,
+pass. Audio/contact/full sequence/Xbox visuals remain open. All V33 owned
+source/build/cache files are removed; bounded reports and actual traces remain.
+
+The source-controlled path deliberately reads its original FP managers and
+skips host activity/clock substitutions. V34/session7369 runs10 focused MCC
+checks with read-only E13B0,169863,1D5320,1D46A0 and1D3C80 observations plus
+actual source hand/action samples. Qualify that channel request/result before
+changing its lookup. Matrixv98 retains all63 paths/630 gates,93 partial and
+537 unverified,zero complete and zero fully certified weapons. See
+weapon-mcc-sword-positive-selection-progress-v1.json and
+checkpoint-weapon-mcc-sword-positive-selection-20261020.json.
+
+## October20 qualified original FP record-search boundary
+
+V34 completes9/10 and all40 observed calls return. Actual169A56 passes
+canonical0E000607 to1D5320 against MCC graphF1D352C6. It returns true and
+publishes the requested activity,but packed clip0000FFFF stays at idle.
+Twenty-three actual source samples advance FP frames1–23 while that clip
+stays idle; source melee duration24/impact8/recovery14 are retained. The
+strict pose test remains failed. V34 source/build/cache scratch is removed.
+
+A bank/caller/request scope now qualifies only169A56s four original strikes.
+The copied1E34A3 record-search key resolves the same named MCC identifier;
+canonical request/channel state,source timing,RNG and authored graph bytes
+stay intact. Nested/foreign requests,other banks,other threads,expired leases
+and raw authored identifiers retain their original namespace. The correction
+is present in all three compiled copies of1D5320/1E3420. Six complete function
+bodies match fresh shared generation; all4 guard/AI component regressions pass.
+Their standalone targets link the same namespace helper. All completed probes
+and builds are removed; no new large artifact is retained.
+
+V35/session88809 runs23 full corrected MCC checks. Require actual source-selected
+strike geometry and owned audio. Further reload/chamber/lunge/charge selector
+ownership beyond these four strikes stays explicit on the checklist. Matrixv99
+retains all63 paths/630 gates,93 partial/537 unverified,zero complete and zero
+fully certified weapons. See weapon-mcc-source-FP-query-progress-v1.json and
+checkpoint-weapon-mcc-source-FP-query-20261020.json.
+
+### MCC source strike render checkpoint, 2026-10-20
+
+V35 completes20/23 checks: the actual original source selects canonical Sword
+strike1, publishes packed clip0005FFFF and submits22 advancing frames with22
+distinct skinned vertex hashes. The strict case then fails authored owned audio.
+All13 observed source sound requests return NONE. This clears the observed
+idle fallback only; full sound, lunge, other weapon features and Xbox framebuffer
+comparisons remain open. Cairo native HUD exposes a shared CRT routing regression:
+an incomplete private multiplayer-engine copy preempts the complete Process owner.
+Shared32A990 now routes to existing Process326E20 before private modules; V36
+validates this in the prepared MCC world. V35 temporary source/build trees are
+removed, and only bounded reports remain. All25-map Cache bindings pass
+with100 scoped FP key matches; no whole weapon gate is promoted.
+
+### MCC FP activity families and complete copy routing, 2026-10-20
+
+V36 is terminal22/23: the complete Process copy owner passes the actual MCC
+HUD/shared-copy cases and campaign application. Source Sword strike1 again
+renders22 advancing poses; strict owned audio fails. All completed V36 source
+and build scratch is removed. The scoped FP lookup now admits all12 changed
+named activity keys,covering strikes,dash/lunge and staged reload;24 original
+FP activity IDs are unchanged. EBF20 availability queries remain limited to
+their four original candidate activities. Guard controls and all25 multiplayer
+Cache comparisons pass300 Sword and200 staged-reload key matches. V37 uses
+the frozen current sources for25 MCC checks,including both species through
+natural SDL shotgun reload. It directly observes real source magazine/reserve,
+FP channel/pose transitions,and sound names/source clock/system bytes. Audio,
+all other sequence contexts and matched Xbox visual gates remain open.
+
+The expanded12-key profile also passes all4 standalone guard/AI composition
+checks; their disposable build is removed. Original127EE0 CFG evidence
+authenticates the device call,its AL success guard and1280F5 ready publication.
+This is ownership evidence only; no positive MCC device/admission result is
+supplied. The operational checklist now carries the current V37 work directly,
+with earlier run details retained in this goal and versioned reports.
+
+### MCC shared cold-table repair before live reload, 2026-10-20
+
+V37 passes12 components but6 constructor/application cases fail with shared
+region overlap and7 dependent cases do not run. No Sword/reload sequence
+executes. The new final startup AI dispatch metadata duplicates physical
+opcode tables30B738/108 bytes,30B6B8/128 bytes and unit-response1E16CC/16 bytes.
+The world now verifies and borrows those existing immutable owners. A19-byte
+29AF5C table also overlaps an older word declaration at29AF6C; the helper
+validates every shared byte and maps only its original uncovered padding.
+The entire cold factory completes,252 bytes match the pinned original,and
+all3 table writes reject. Four isolated controls reject mismatched/writable/
+uncommitted owners and preserve fragment lifetimes. All probe artifacts are
+removed. V38 stopped at generation while a new shared test source was absent;
+that source now exists and is included in the coherent V39 snapshot. V39
+checks25 MCC cases,with stronger actual-source per-pose reload observations.
+All63 weapons/630 gates remain in scope; no whole gate is promoted.
+
+### MCC magazine transition and authored sound differences, 2026-10-20
+
+V39 is terminal22/25. Shared cold constructor/HUD/copy/application cases
+recover. Sword strike1 again renders22 moving poses;13 direct sound submits
+read device0/enabled1 and return NONE. Both shotgun species reach a real
+shot/consumed shell,then original102D50 at102E55 lacks102FA8,inside its bounded
+6-entry102F98 table. All24 bytes/targets and guard instructions are
+authenticated; the native cold factory now retains them read-only and rejects
+writes. V40 tests the complete natural transition/reload path. All completed
+source/build/probe artifacts are removed.
+
+The prepared43-cache FP sound-event inventory covers63 paths/1,398 scoped
+weapon rows/2,798 bindings/29,796 event instances with zero unavailable FP
+contexts. Thirty paths have FP sound events; other ownership/applicability
+remains open. Offline Xbox metadata compared by full sound/marker names
+finds equal frames/indices across12 Sword action/species pairs,with13 extra
+MCC event instances across6 rows. Current source strike1 actually submits
+one original and two remastered-tag sounds. No output is accepted. This
+difference must remain open for production import/event semantics and genuine
+original runtime comparison; no test-specific conversion/filter is applied.
+All63 weapons/630 gates remain active,with no whole gate promoted.
+
+### MCC natural staged reload V40 (2026-10-20)
+
+V40 is terminal22/25. The original24-byte102F98 magazine dispatch clears the
+post-shot failure. Both species reload11/24 to12/23 and return idle,with14
+source-owned moving continue poses and18 exit poses each. Neither renders an
+enter phase; strict reload assertions remain failing. V41 adds read-only
+10AB50/16B44A/16B31B/1D3D30 timing diagnostics before changing any runtime or
+fixture behavior. Sword owned audio and MCC authored event differences remain
+open. V40 source/build scratch is absent; bounded reports and hashes remain.
+
+### MCC staged timing query and coherent fixture V41 (2026-10-20)
+
+V41 is terminal19 passed,4 failed,2 dependency skips. Actual original timing
+queries for both species return zero for reload_enter and reload_continue_full;
+enter and continue begin in the same source tick. The canonical keys resolve to
+unrelated MCC names. Independent original/MCC metadata preserves all8 paired
+frames/indices,including19-frame Spartan and12-frame Elite enter clips. Four
+named staged keys now qualify only the16B3F1 copied query from16B45D. The
+focused guard passes; actual runtime fix acceptance remains pending V42.
+
+The cold-memory failure at248E10 came from older private source and an
+unpinned borrowed expected fixture updated during the build. Current source
+already declares the exact original36-byte table. Small regular fixtures now
+freeze with source. An extra all-map probe lost its final library-hash check
+to V41 automatic cleanup and supplies no accepted results. V42 instead runs
+all25 actual MCC multiplayer binding scenarios inside its owned CMake cohort
+(49 checks),retaining bounded per-map reports before automatic deletion.
+
+### MCC all-map timing keys and cold immutable sharing V42 (2026-10-20)
+
+V42 is terminal36 passed,6 failed,7 dependency skips. All25 MCC multiplayer
+binding cases pass:1,200 bindings,21,625 canonical clips,300 Sword keys,200
+staged-pose keys and200 staged-timing keys. A cold-factory overlap prevents
+all live Sword/reload/gauge cases. No positive reload-timing result is claimed.
+
+The overlap is duplicate readonly original operands already retained by startup
+metadata. Existing immutable guards now share21 original word declarations,
+84 exact XBE bytes,without replacing owners or supplying initialized state. The
+whole cold factory passes;4 existing table write controls reject writes and
+all probe source pins are unchanged. The owned compiler/source/build scratch
+is gone. V43 repeats the53-check MCC cohort,including four prepared actual
+plasma-pistol full-charge/early-release cases with strict source pose ownership.
+
+### MCC original writable function row8 V43 (2026-10-20)
+
+V43 is terminal39 passed,13 failed,1 dependency skip. Cold memory,network,
+language and all25 binding maps recover. Material-function binding then rejects
+the multiplayer provider's original writable row8 at4772A8 before gameplay.
+Every one of the20 retained function rows equals original TU1.5 bytes. The
+binder now authenticates that exact full owner and initial bytes,preserving
+writable access and native identity. Production binder plus actual cold factory
+passes;6 invalid/live-changed controls reject atomically,19 rows remain readonly
+and adjacent placement data is preserved. No data/protection is overwritten.
+
+V44 runs54 MCC cases,including a bounded actual224EC0 driver-startup request
+through the genuine native world,with the original455B20 argument and retained
+stack/TLS/FPU owner. Driver completion remains separate from game admission,
+voice playback and full weapon parity. Source/build and both function probes
+are cleaned;their small reports,source code,hashes and commands are retained.
+
+
+### Corrected MCC reload/charge components V44 (2026-10-20)
+
+V44 finishes46 passed,8 failed,no skips. All25 map-binding cases and the cold,
+network,language,material,campaign and application subset pass. Seven live
+render loops complete,then fail strict owned audio. Both shotgun partial
+reloads retain moving enter/continue/exit phases,positive original timing
+and11/24 to12/23 ammunition. Four plasma-pistol full-charge/tap cases retain
+one matching live/glow projectile and0.15/0.004 resource consumption;full
+charge draws40 original overcharged poses per species. See the bounded
+mcc-shotgun-source-staged-reload-live-qualification-v1.json and
+mcc-plasma-pistol-source-charge-live-qualification-v1.json reports.
+
+Matrixv109 advances four gates to partial:shotgun trigger/poses and plasma-pistol
+poses/projectiles. Totals97 partial,533 unverified,zero complete and zero
+certified weapons. Complete audio,other variants and Xbox visual comparison
+remain open. Actual224EC0 startup reaches38780A and misses391278 cold storage.
+The world now composes the existing original sound SDK prefix provider;the
+real cold factory passes without supplied device/refcount/caps/ready results.
+Focused V45/session5861 continues actual startup in one owned temporary build;
+record every declared source refresh/hash,finish the owner when unused and
+verify removal. The full54-check regression remains required. V44 and completed
+probes are removed;only bounded reports/logs/commands/hashes are retained.
+
+
+### MCC sound saved-setting and dual equip frontiers V45 (2026-10-20)
+
+The owned incremental MCC driver run passes the earlier391278 cold global
+and41B6F0 import failures. The latter is the exact original80000018 word
+used by2E101C. Actual224EC0 now reaches the genuine saved-audio-settings
+request;driver/system initialized remain zero and no successful result is
+supplied. Ordinary weapon audio remains open. The actual MCC menu-to-match
+row8 regression passes through startup,player activation and8 firing ticks.
+
+Both dual-SMG cases accept the offhand item into source inventory and request
+slot2,but retain current offhandNONE until timeout. Read-only input,prompt,
+equipment,FP and item-position observations reproduce this for both species.
+The current action18 trace runs in the same owned build with declared source
+refreshes and read-only complete-entry/return instrumentation. No pickup/equip
+result or query is supplied. Matrixv110 retains97 partial/533 unverified gates,
+zero complete and zero certified weapons. See the versioned frontier reports;
+finish the active owner when unused and verify cleanup.
+
+
+### Qualified MCC dual-class equip operands (2026-10-20)
+
+The actual class-query trace records24 failed original1123B0 equip lookups
+per species at callerEAD8A with compiled dual class0400054B. Neighboring
+authored class queries succeed. The existing exact name join identifies MCC
+dual as04000557. Three authenticated literals atEAD6A,1124B7 and1125D6 now
+resolve that compiled name only in a qualified MCC bank. Original/unbound
+banks,other instruction sites and authored keys remain unchanged;the original
+query,setter and equip algorithms produce their own results. Two whole
+original routines freshly regenerate352 instructions with all three hooks
+identical to root. Guards and all25 Cache bindings join both live cases in
+the active28-check trial5734 under owner5861. Matrixv111 retains97 partial,
+533 unverified,zero complete gates and zero certified weapons pending actual
+live results. The same owned build is still active and must be removed when
+unused;bounded reports and source hashes are preserved.
+
+
+### MCC dual mechanical/rendered component completion (2026-10-20)
+
+The28-check trial passes26:namespace guards and all25 binding cases pass.
+Both species now equip/fire the offhand. Two further actual dependencies
+then stop continuation:Spartan1578C9 reads47524E,Elite2503A2 calls22AD20
+through the actual metadata-vtable slot30. The exact two-byte selector1 cell
+is retained readonly without assuming the rest of its indexed table. The
+complete five-instruction22AD20 reader is generated from original code and
+added with dispatch declarations;all71 prior routines and preamble remain
+byte-identical. Both original metadata vtables authenticate slot30.
+
+The next4-check run passes cold ownership and the required namespace guard.
+Both actual SMG render loops complete through independent fire/reload,
+grenade and offhand detach,then fail only strict owned audio. Each fires7
+rounds,compares152 WORLD matrices across38 dropped draws,checks1065 detached
+publications over1024 neutral ticks with no mismatch,and transports13 loose
+weapon poses through native LAN. Actual retirement is unobserved and Xbox
+visual/audio comparison stays open. See mcc-dual-equip-class-live-qualification-v2.json.
+Matrixv112 keeps97 partial/533 unverified,zero complete/certified weapons;
+these strengthen existing partial SMG gates. One owned build continues the
+26-case13-weapon/both-species MCC cohort50515. Finish it when unused and
+verify removal;bounded evidence is preserved.
+
+
+### MCC13 handheld source frontiers (2026-10-20)
+
+The corrected prepared-MCC26-case sweep is terminal:zero pass,26 fail,no skips.
+Twelve loops complete;nine fail only strict audio. Remaining outcomes include
+specific original storage/method/sprite boundaries and legacy overlay or
+expected-variant observations that require source readback. See mcc-handheld13-source-cohort-outcomes-v1.json.
+All failed reports,commands,source/input hashes remain. Matrixv113 leaves all
+63 weapon rows unchecked and97 partial/533 unverified gates. Owner5861 is
+still needed for bounded source diagnostics;remove it immediately when unused.
+
+
+### MCC source observations and original fallback constructor (2026-10-20)
+
+Complete22ACA0 is authenticated at the second metadata object48603C slot1C,
+called by actual250C60/251187. The first object same slot has a different owner;
+no equivalence is inferred. All72 previous module bodies remain unchanged.
+The9-case retry clears three method frontiers and retains the next actual
+particle-census failure. Magnum Elite and both plasma pistols finish with
+actual authored variants;Needler has packed root-graph ammunition clip0 while
+the old observer remains NONE. Source/variant geometry corrections are pending
+13-check correction-v2/session12693. Full380E70 is added from original34
+instructions,with26 stores and all73 older bodies unchanged. Twelve original
+cases and its actual CRT registration qualify88 cold destination bytes;the
+original constructor supplies actual values. Matrixv114 advances no full gate.
+
+
+### MCC original fallback/variant components and typed particle frontier (2026-10-20)
+
+Correction-v2 is terminal1/12:the native cold test passes12 unchanged-original
+constructor cases,408 instruction PCs,312 stores,full caller ABI and88-byte
+destinations. Its intended13th namespace check was not selected;the next run
+names it explicitly. Seven weapon render loops complete. Five fail only audio;
+both Needlers pass needle geometry/variant checks then fail zero shard draw
+observations,which needs real birth/retirement/view evidence. Three cases expose
+valid prt3 parent identities;one reaches515F20. Original metadata methods qualify
+typed +84/+88 child rows. Parent-v1/session79386 and read-only debug57659 are
+active under owner5861. Matrixv115 promotes only Magnum trigger/poses and BR
+trigger to partial:100 partial/530 unverified,zero complete/certified weapons.
+
+
+### MCC typed particle parent and cached-special storage (2026-10-20)
+
+Parent-v1 is terminal2/12. Namespace and native MCC240-tick particle residency,
+empty-bank rejection and repeated-view complete-state/RNG/pool/resource controls
+pass. Both rockets fire one round with29 distinct advancing FP poses,then fail
+strict audio. Six other cases reach515F20;both Brute plasma rifles require real
+sprite-tag ownership. The read-only stack locates the missing source special
+command bank reader. Full3FD60/44AB0 qualify9360 cold bytes;no live cached-frame
+results are installed and that phase remains open. Special-storage/session49077
+continues under owner5861. Matrixv116 promotes only rocket trigger/poses to
+partial:102 partial/528 unverified,zero complete/certified weapons.
+
+
+### MCC special-light continuation and PRTM/Needler frontier (2026-10-20)
+
+Special-storage is terminal2/12. Seven loops complete through actual firing
+and moving poses,then fail strict audio. Six bounded Beam/Carbine/Brute-shot
+gates advance to partial;Elite Carbine remains at22AD30. The complete original
+five-instruction slot34 reader preserves74 older bodies. Actual PRTM urban
+debris is traced into the sprite-only native resource preloader. Typed model
+resource/geometry integration and four source-observed Needler scene cases
+are prepared in nine-check session12802. No source results,ready values or
+model/sprite substitutions are supplied. Matrixv117 is108 partial/522 unverified,
+zero complete/certified weapons. Native audio,full cached frame,retirement and
+Xbox visual comparison remain open. Remove owner5861 when unused.
+
+
+### MCC model resources and Needler color namespace (2026-10-20)
+
+Model/Needler trial2/9:all seven loops complete. Elite Carbine and both Brute
+plasma cases reach only strict audio;four Needler cases retain zero shard draws.
+Real source birth/retirement traces distinguish default flight/retirement from
+four sustained clear-lane objects. Model resources are admitted but no PRTM
+model draws are observed. Focused readonly actual MCC Needler metadata passes:
+flags0/4/32 zero,input12000571 names acceleration_range;the old guard expected
+original12000565. A narrow exact Cache namespace/name guard is under seven-check
+trial34487,with no authored/source-result substitution. The failed broader probe
+is retained. Unused metadata executable/object/source/test declaration are removed
+(4,231,168 allocated bytes);bounded source/commands/hashes/results remain.
+Matrixv118 adds three Brute-plasma partial gates:111 partial/519 unverified,
+zero complete/certified weapons. All final audio/visual/cached-frame gates remain.
+
+### Actual MCC Needler geometry and coherent baseline (2026-10-20)
+
+All four final Needler species/scene cases now pass actual shard geometry:
+four full native owners each,40 default/176 clear-lane draws,each six vertices
+with advancing world-position hashes. All four loops fail strict owned audio.
+The prior seven-case color-key trial passes its guard and all six geometry/pose
+components,then retains six audio failures. No tag conversion/result substitution
+was used. V45 private source/build is deleted (1,487,216,640 allocated bytes);
+only bounded evidence is newly retained. V46 rejected root multiplayer.cpp
+drift before configuration and cleaned scratch. V47/session91428 runs a new
+coherent root82-check MCC baseline,including persistent26 handheld cases and
+both dual-SMG histories. Matrixv119 remains111 partial/519 unverified,zero
+complete/certified weapons;all final audio/Xbox visual/full63-path gates remain.
+
+### MCC model math,real output resource and complete branch data (2026-10-20)
+
+Actual Turf urban_debris metadata produces128 byte-exact original TU1.5/native
+matrix/span results without tag conversion or helper/GPU results. Live model
+GPU/lifecycle/pixels remain open. Real PulseAudio speaker policy/reset/DMA
+owners now carry actual224EC0 through89,459 stores to38E8C9 configuration;
+driver/device readiness stays zero. Three output-owner rejection controls pass.
+The complete424-routine PC audit identifies19 original readonly branch tables
+(577 bytes). Cold bytes/protection,conflicting owners and repeated admission
+pass. Both MCC dual worlds get past missing-table errors,then expose a test
+focus dependency on an animation draw. Real SDL focus is now requested before
+input observation;focused V5/session88005 replays both species with strict
+gameplay assertions preserved. V47's82-case full fixed-snapshot cohort remains
+active. Failed link/mixed-owner assembly diagnostics are retained;corrected
+projections preserve unrelated root changes. Completed private builds are
+removed;no new large artifact is retained. Matrixv120 stays111 partial/519
+unverified,zero complete gates/certified weapons. A coherent updated-root full
+baseline and all original audio/visual/full63-path acceptance remain required.
+
+### Canonical source publication and coherent MCC continuation (2026-10-20)
+
+V47 finishes46/83,37 failures,no skips;all73 small reports retained. Its source/
+build is removed. Thirty-three live weapon loops fail owned audio;campaign/
+dual failures hit the original branch data recovered afterward. A minimal
+diagnostic proves actual SDL focus and real source BR births with zero published
+world weapons. Publication now reads actual loose source identities,roots,
+magazines and material fields. Both canonical headless species regressions fail
+before the change,then pass with six source-owner samples each. Full dual cases
+reach the BR candidate at tick0 but later time out;strict acceptance remains.
+Their1.28MiB histories exceeded the bounded retention limit;logs/commands/hashes
+and rejection receipts remain. Compact reporting/start-only census is now used.
+A partial followup caught unrelated root cluster-header drift before runtime.
+V48/owner84205 is a new coherent source snapshot:87 checks registered,41 focused
+canonical checks running through the official worker. Preparation is explicitly
+not acceptance. Effective post-registration hashes and one reusable owned build
+avoid mixed source and duplicate large builds. Matrixv121 remains111 partial/
+519 unverified,zero complete/certified weapons;all full audio/visual/63-path
+requirements and owned-build cleanup remain part of completion.
+
+### Original target-command handoff (2026-10-20)
+
+V48's first41 MCC checks finish36/41,with five failures and no skips. Both
+canonical dual sequences fail before pickup,two audio startup owners remain
+incomplete,and PRTM's CTest interpreter lacks Capstone before original execution.
+All33 produced reports are retained;compact dual histories are401KB each.
+A real source BR pickup regression fails both species for64 ticks:153BA0
+selects the actual object every time,while the delivered command carries NONE.
+Whole TU1.5 original1898A0 calls that query directly at its command+28.
+Production now carries the complete12-byte result. Both regressions pass in12
+ticks with exact source query/command agreement and actual BR equipment. Native
+admission,ready flags and tag bytes remain untouched. Validated external seat
+inputs keep their existing boundary. The same1.38GB owned V48 context now runs
+the canonical SDL dual followup. Source action prompt publication and corrected
+reference-Python registration remain on the checklist. Matrixv122 keeps111
+partial/519 unverified gates and zero full weapons. No full Xbox visual/audio
+or all63-path acceptance is implied.
+
+### Canonical continuation and full MCC replay (2026-10-20)
+
+After the real target-command handoff fix,both canonical SDL species sequences
+exercise map pickup,switch,dual equip,independent fire/reload,grenade and offhand
+detach. Each fires7 rounds and still has zero owned audio. Both stop at original
+1658FB's read of4D61D8. Whole53240 owns the324-byte saved-session bank at4D6098;
+its loader bytes are zero,and its initialized byte is produced later at532AF.
+The complete existing canonical bank provider is now shared with native world
+memory. The regression is red before/green afterward,preserves live identity/
+bytes,composes with the full network provider,and rejects conflicting owners.
+No network initialized/result flag is supplied. Current V48 full87 MCC replay
+must verify the subsequent sequence. The qualified reference-Python repair
+passes128 PRTM original/native cases byte-exact in the same build with unchanged
+source hashes;its raw outputs/probe are removed. Source prompts,owned audio,
+lifecycle/retirement and full Xbox visual/all63 weapon acceptance remain open.
+Matrixv123 retains111 partial/519 unverified gates,zero complete weapons.
+
+### Source prompts and natural canonical retirement (2026-10-20)
+
+The ongoing full87 V48 cohort has completed both canonical SDL dual cases.
+Each finishes pickup/switch/dual/independent firing/reload/grenade/detach and
+natural offhand retirement,then fails strict audio:7 rounds,zero firing sounds.
+Each compares934 detached source publications with no mismatch,observes
+retirement at tick1054 after893 neutral ticks,and transports14 poses/27 explosion
+locations. World palette comparisons cover156/160 matrices without mismatch.
+Bounded completed-case reports are preserved while the full cohort continues.
+The source prompt gap is independently red/green:both species pick up the BR,
+but8 eligible target frames each lack the prompt. Whole1898A0 identifies the
+original94-byte per-user record and query output at+6C. Native input now retains
+the real query result;the readonly prompt reader checks full player/unit
+generations. Both exact frozen-ABI projections pass8 matched frames and4
+invalid-generation controls each,with zero source writes during observation.
+Their three small probe contexts are removed and existing archives unchanged;
+the9.6KB patch/commands/hashes/reports remain. The running full snapshot predates
+this source prompt correction,so coherent current-source integration follows.
+Matrixv124 advances BR inventory,prompt publication and BR/SMG owning rules
+from unverified to partial:115 partial/515 unverified,zero complete gates or
+weapons. Every all-map/variant,owned audio and full Xbox visual gate remains.
+
+### Retired historical working producer storage (2026-10-20)
+
+The formerly preserved old Needler producer is now superseded by corrected MCC
+validation. Its29 inactive ELF/object working products are removed after process,
+tracking,hard-link and selected-runtime checks. Exact authenticated bytes remain
+recoverable through the existing shared content store/index. Working allocation
+removed:134,598,656 bytes;new compressed evidence:28,512,256;net accounted
+reclamation:106,086,400. Source/captures/commands/hashes and current V48 validation
+remain preserved. This does not claim an exclusive shared-filesystem free-space
+increase. Matrixv124 stays115 partial/515 unverified and the full87 MCC run remains
+active. The new lean working state links prior detailed history explicitly.
+
+### Corrected MCC full87 and canonical vehicle HUD checkpoint (2026-10-20)
+
+V48 completes50/87,37failures,no skips. All35 weapon render loops complete
+and reach strict owned-audio failures;two sound startup checks fail separately.
+All77 small reports are retained and effective source hashes match. Campaign
+application passes. The completed source/build is removed. The newer source
+prompt correction requires coherent current-root integration.
+
+Seven real MCC Coagulation vehicle cases pass original seat admission,actual
+weapon/HUD ownership,authored HUD vertices and normal exit. Banshee's initial
+red was the original relative-speed predicate rejecting repeated fixture
+position inputs;one initial B95D0 placement and60 natural ticks resolves it.
+No source admission/results/ready flags are supplied. All auxiliary builds are
+removed. Firing,audio,GPU/Xbox pixels,other maps/variants remain unverified.
+Matrixv126 advances14 bounded owner/HUD components to partial:129partial,
+501unverified,zero complete gates or certified weapons. Continue all63 paths.
+
+### Coherent MCC integration and vehicle primary firing (2026-10-20)
+
+V49's corrected25-case integration passes25/25 with all19reports retained and
+matching source posthashes. Both source-prompt species,all7vehicle HUDs,campaign
+and split application checks pass. The following5-case refresh passes3;both
+canonical dual loops complete then fail strict owned audio. Root refresh retires
+the unused private BA490 entry observer;prior explicit traces remain retained.
+
+Six vehicle primary firing cases pass in real MCC Coagulation after adding the
+actual native effect-frame phase to the fixture. Wraith's original101BC0 forward/
+backward seed stores now use qualified same-name MCC keys at exactly101CAD and
+101CC5. Both complete121-instruction bodies match fresh generation apart from
+those two namespace operands;all43actual cache name tables and standalone guard
+checks pass. Spectre contacts/retirements occur within their birth ticks and are
+retained through the validated local source contact journal. Machine gun remains
+red with48 preparations and no tick-snapshot projectile/contact;actual constructor
+observation is active. Matrixv129 is141partial/489unverified,zero complete gates
+or certified weapons. No original result/location/ready flag or tag conversion is
+supplied. Continue full63-weapon/map/variant/visual/audio scope and owned cleanup.
+
+### Seven corrected MCC vehicle primary firing cases (2026-10-20)
+
+The final observed cohort passes7/7. Whole B9B70 returns actual full type5
+generations and BA490 retires them:Ghost40,Banshee34,Scorpion1,Wraith1,machine
+gun48,Gauss1,Spectre38. All48machine-gun retirements occur in their birth ticks;
+no end-of-tick projectile or source contact exists for that path. Spectre has38
+completed local source contacts. The permanent MCC profile observes those exact
+entry/returns without changing original instructions/results. Every case uses
+actual native effect frames and normal source exit. All7reports remain;private
+builds are deleted. The complete102-case profile is prepared,not executed.
+
+Matrixv130 is143partial/487unverified,zero complete gates/certified weapons.
+Next authored vehicle inputs are Banshee input2/barrel1 and Scorpion input1/
+barrel1. The required V49 context remains owned for those followups;remove it
+when unused. All audio,Xbox pixels,variants,maps and remaining63weapon gates stay
+open. No tag conversion or synthetic source success/location is supplied.

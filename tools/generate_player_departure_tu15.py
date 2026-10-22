@@ -24,7 +24,7 @@ def departure_instructions(*,get,put,**unused):
     return emit
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--output',type=Path,default=Path('src/source_player_departure_tu15_generated.cpp'))
+    parser.add_argument('--output',type=Path,default=Path('src/gameplay/units/source_player_departure_tu15_generated.cpp'))
     parser.add_argument('--directory',type=Path,default=Path('analysis/multiplayer/player-departure-tu15'))
     args=parser.parse_args();assert sha(NEW_DEFAULT)==NEW_PIN
     image=Xbe(NEW_DEFAULT);code=_Code(image,'.text');sites={};instructions={};addresses={};routines=[]

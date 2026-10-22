@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #include "halo2/multiplayer.hpp"
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/math.hpp"
@@ -59,7 +60,7 @@ SlayerRules rules(GameVariantSettings values={}) {
   auto r=king_rules({"Authored rules",3,values},true);r.weapon=3;return r;
 }
 void teleport(MultiplayerMatch& match,unsigned player,Vec3 position) {
-  Spawn spawn;spawn.position=position;match.debug_request({DebugGameRequest::Teleport,player},&spawn);
+  Spawn spawn;spawn.position=position;test::place_player(match,player,spawn);
 }
 void ticks(MultiplayerMatch& match,unsigned count) {
   std::array<Controls,multiplayer_capacity> controls{};
@@ -235,7 +236,7 @@ void captured_damage_owner() {
   simulation.area_damage(area,match.unit(b).body.position,captured,-1);
   check(std::fabs(match.unit(b).vitality.body-.97f)<0.000001f,
       "Captured damage did not consume departed slot strength and retained King timer");
-  match.debug_request({DebugGameRequest::Heal,b});
+  test::restore_vitality(match,b);
   profile[0x7d]=3;const auto replacement=match.join("Reused slot",-1,profile);
   check(replacement==a && match.player(a).source_datum!=captured.player &&
       !match.player_from_datum(captured.player) && match.player(a).source_strength==3 &&

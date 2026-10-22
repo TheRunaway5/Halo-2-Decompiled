@@ -6,6 +6,7 @@
 #include "halo2/source_object_admission.hpp"
 #include "halo2/source_live_model_draws_tu15.hpp"
 #include "halo2/source_live_model_geometry_tu15.hpp"
+#include "rendering/models/model_frame_pose_cache.hpp"
 #include "halo2/source_effect_light_opaque.hpp"
 #include "halo2/source_bsp_effect_lights.hpp"
 #include "halo2/source_geometry_lod.hpp"
@@ -381,7 +382,22 @@ int main(int argc,char**argv)try {
                 base_lods,base_shaders,main_render_nodes.at(owner),shader_view);}catch(const FormatError&){identity_rejected=true;}
             if(!identity_rejected)throw FormatError("source biped base accepted a stale full definition");
         }
-        std::cout<<"Owned source biped bases: "<<owned_bases.size()<<" real owners, original selected LOD/coverage/render nodes, atomic override rejection\n";
+        ModelFramePoseCache shared_bases;
+        const SourceLiveModelPoseProviderTu15 provide_pose=[&](std::uint32_t owner,unsigned lod,
+            const RenderModel &render_model,std::span<const Transform> nodes) {
+            return shared_bases.update(owner,lod,render_model,nodes);
+        };
+        for(unsigned local_view=0;local_view<4;++local_view)for(const auto &[owner,selection]:selected_owners) {
+            const auto vertices=source_live_model_base_vertices_tu15(owner,biped->datum,model->datum,selection,
+                base_lods,base_shaders,main_render_nodes.at(owner),shader_view,provide_pose);
+            const auto &expected=owned_bases.at(owner);
+            if(!vertices || vertices->size()!=expected.size() ||
+                std::memcmp(vertices->data(),expected.data(),expected.size()*sizeof(Vertex)))
+                throw FormatError("shared biped skin changed complete ordered selected/shaded vertex bytes");
+        }
+        if(shared_bases.builds()!=owned_bases.size() || shared_bases.reuses()!=owned_bases.size()*3)
+            throw FormatError("shared biped bases did not reuse one exact skin per full owner/LOD");
+        std::cout<<"Owned source biped bases: "<<owned_bases.size()<<" real owners, original selected LOD/coverage/render nodes, atomic override rejection; four-view skins exact\n";
         std::set<std::uint32_t> packet_owners;unsigned indices=0;
         for(const auto& packet:packets) {
             if(packet.source.owner().kind!=MenuWorldSourceOwnerKind::dynamic_object || !packet.source.owner().generation)

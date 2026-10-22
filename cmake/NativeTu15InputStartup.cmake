@@ -1,5 +1,5 @@
-add_library(halo2_input_startup_tu15 STATIC src/source_input_startup_tu15_generated.cpp
-    src/native_tu15_input_startup_data.cpp src/native_tu15_input_devices.cpp)
+add_library(halo2_input_startup_tu15 STATIC src/input/source_input_startup_tu15_generated.cpp
+    src/input/native_tu15_input_startup_data.cpp src/input/native_tu15_input_devices.cpp)
 target_include_directories(halo2_input_startup_tu15 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_features(halo2_input_startup_tu15 PUBLIC cxx_std_20)
 target_link_libraries(halo2_input_startup_tu15 PUBLIC SDL2::SDL2)
@@ -15,7 +15,7 @@ endif()
 target_link_libraries(halo2_systems PUBLIC halo2_input_startup_tu15)
 if(BUILD_TESTING)
     add_executable(native_tu15_input_startup_tests tests/native_tu15_input_startup_tests.cpp
-        src/source_runtime_memory.cpp src/source_runtime_image.cpp src/source_runtime_host_virtual_memory.cpp)
+        src/runtime/source_runtime_memory.cpp src/runtime/source_runtime_image.cpp src/runtime/source_runtime_host_virtual_memory.cpp)
     target_link_libraries(native_tu15_input_startup_tests PRIVATE halo2_snapshot_storage)
     target_link_libraries(native_tu15_input_startup_tests PRIVATE halo2_input_startup_tu15 nlohmann_json::nlohmann_json)
     add_test(NAME native_tu15_input_startup_lifecycle COMMAND native_tu15_input_startup_tests)

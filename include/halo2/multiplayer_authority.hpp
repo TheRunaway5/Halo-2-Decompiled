@@ -17,6 +17,7 @@ struct MultiplayerMatch::AuthorityCheckpoint {
   std::map<std::uint32_t,Simulation::AuthorityCheckpoint::UnitRecord> retained_units;
   std::vector<RumbleJournalEvent> rumble_events;
   std::uint64_t rumble_serial{};
+  std::uint8_t source_hud_sequence{};
   SourceKingState king_state;
   SourceKingHills king_hills;
   std::array<MultiplayerPlayer,multiplayer_capacity> players;
@@ -36,12 +37,15 @@ struct MultiplayerMatch::AuthorityCheckpoint {
   std::uint16_t infection_zombies{};
   bool infection_started{};
   std::uint32_t infection_start_tick{};
+  std::optional<BombDefusalState> defusal;
+  std::uint32_t defusal_bomb=null_datum,defusal_definition=null_datum;
   bool finished{},results_finalized{};
   SourceGameEndStats end_stats;
   SourceResultStatistics retained_stats;
   SourceResultRecording retained_recording;
   SourceResultEventState result_events;
   bool result_events_started{};
+  bool source_engine_started{};
   SourceRoundLifecycle round_lifecycle;
   SourceGameOverState game_over;
   int winner=-1,winner_team=-1;

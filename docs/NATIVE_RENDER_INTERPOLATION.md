@@ -12,6 +12,29 @@ removed, respawned, reattached and replaced objects retain current admission.
 The existing player teleport distance cut is preserved. Local view rotation
 still uses the current input.
 
+Vehicle observers use that same presentation clock. Local TU1.5 directors and
+observers run once after each completed game step, including catch-up steps;
+additional render frames do not advance them. Local and received seated
+cameras sample their completed position, rigid orientation, horizontal FOV and
+aim displacement alongside the vehicle/body. This fixes a timing mismatch
+where the vehicle skin interpolated while a received camera jumped straight
+to the current tick, and local cameras integrated against a stepped world on
+each render frame. The original camera producer, authored tracks, observer
+motion, collision queries and input-look owners remain responsible for the
+completed endpoints.
+
+Seat/parent changes, perspective changes, death, respawn, teleports, missing
+ticks and missing camera endpoints keep the current camera without blending
+incompatible history. A stable post-exit observer can still interpolate its
+authored handoff. Endpoint samples preserve the original camera words.
+The same director's death/watch views interpolate only within one retained
+player/death lifetime, so leaving a destroyed vehicle does not restore stepped
+camera motion.
+`native_vehicle_camera_presentation` checks relative vehicle/camera motion,
+parked orbit and roll, FOV/aim channels, four views at 30/60/120/144/240 Hz,
+and those lifecycle cuts. It measures CPU presentation continuity; visible
+gameplay and Xbox framebuffer comparisons are separate acceptance boundaries.
+
 `SceneInterpolation` captures every completed local simulation step, even
 when several steps precede a submitted frame. Scenery and prop rendering
 sample these transforms. Machine rendering samples retained device roots,

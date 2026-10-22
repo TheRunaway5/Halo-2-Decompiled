@@ -136,7 +136,7 @@ def main():
  text='''// Generated static source address bindings; no original code or decoder.
 #include "halo2/physics_phantom_world_tu15.hpp"
 #include "halo2/physics_world_runtime.hpp"
-#include "physics_vehicle_motion_math_internal.hpp"
+#include "physics/vehicles/physics_vehicle_motion_math_internal.hpp"
 #include <algorithm>
 #include <array>
 #include <stdexcept>

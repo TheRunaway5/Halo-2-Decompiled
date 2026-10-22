@@ -9,6 +9,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 import zlib
@@ -20,17 +21,23 @@ import mcc_content as content
 import prepare_mcc_gameplay as preparation
 import mcc_menu_inventory as menu_inventory
 import mcc_loading_assets as loading_assets
+import mcc_loading_presentation as loading_presentation
 import mcc_menu_assets as menu_assets
 from export_vista_menu_ui import dds_image
 import csv
 import hashlib
 from test_mcc_movies import bundle_fixture as movie_fixture
-from test_mcc_prompts import prompt_fixture
+from test_mcc_ui_layout import layout_fixture
+from test_mcc_loading_presentation import v3_summary_fixture
+from native_variant_test_support import variant_fixture
+from native_variant_assets import LAYOUTS, MANIFEST
+from test_controller_prompt_assets import controller_prompt_fixture
 
 
 def bundle_fixture(root):
-    movie_fixture(root)
-    prompt_fixture(root)
+    layout_fixture(root)
+    variant_fixture(root)
+    controller_prompt_fixture(root)
 
 
 def cache_bytes():
@@ -63,7 +70,7 @@ def source(root):
                  "h2_maps_win64_dx11/mainmenu.map", "h2_fonts/font_table.txt"):
         path = halo / name
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(b"donor")
+        path.write_bytes(b"daeh\x0d\0\0\0donor" if name.endswith("mainmenu.map") else b"donor")
     return halo
 
 
@@ -73,7 +80,8 @@ def import_transaction_worker(project, donor, phase):
     def barrier(stage):
         print(json.dumps(dict(stage=str(stage))), flush=True)
         while True:
-            signal.pause()
+            # Always return to Python if SIGTERM lands just before the C wait.
+            time.sleep(0.01)
 
     original_open = Path.open
     original_mkdir = Path.mkdir
@@ -126,7 +134,9 @@ def import_transaction_worker(project, donor, phase):
          patch.object(menu_assets, "prepare", return_value=dict(complete=True,
                       frame_owners=0, unique_dds_pages=0, fonts={})), \
          patch.object(loading_assets, "prepare", return_value=dict(complete=True,
-                      vista_executable_bank_imported=False)):
+                      vista_executable_bank_imported=False)), \
+         patch.object(loading_presentation, "preflight_v3"), \
+         patch.object(loading_presentation, "prepare_v3", side_effect=lambda root, cache, source, **kwargs: v3_summary_fixture(cache)):
         final, report = preparation.prepare(project, donor, progress)
     print(json.dumps(dict(final=str(final), report=report,
                           handler_restored=signal.getsignal(signal.SIGTERM) == previous)), flush=True)
@@ -278,6 +288,14 @@ class CacheTests(unittest.TestCase):
 
 
 class TransactionTests(unittest.TestCase):
+    def setUp(self):
+        # These transaction fixtures replace map conversion and use tiny
+        # non-map bytes. Damage-response content has its own real-map tests.
+        inventory = patch.object(preparation, 'inventory_player_screen_flashes',
+            return_value=dict(complete=True, summary=dict(synthetic_transaction_fixture=True)))
+        inventory.start()
+        self.addCleanup(inventory.stop)
+
     @unittest.skipUnless(os.name == "posix", "POSIX SIGTERM cancellation")
     def test_sigterm_during_copy_removes_stage_preserves_inputs_and_allows_retry(self):
         self.check_sigterm_transaction("copy")
@@ -366,8 +384,10 @@ class TransactionTests(unittest.TestCase):
             self.assertTrue(result["handler_restored"])
             self.assertFalse(result["report"]["runtime_active"])
             self.assertFalse(result["report"]["full_tu15_parity"])
-            self.assertTrue(result["report"]["port_bundled_movies"]["complete"])
-            self.assertTrue(result["report"]["port_authored_prompts"]["complete"])
+            self.assertNotIn("port_bundled_movies", result["report"])
+            self.assertFalse((final / "presentation/movies").exists())
+            self.assertNotIn("port_authored_prompts", result["report"])
+            self.assertFalse((final / "presentation/prompts").exists())
             self.assertEqual(json.loads((final / "provenance.json").read_text()), result["report"])
             self.assertFalse(list(prior.parent.glob(".staging-*")))
             self.assertEqual(set(prior.parent.iterdir()), retained | {final})
@@ -443,29 +463,163 @@ class TransactionTests(unittest.TestCase):
             (project / "assets").mkdir(parents=True)
             registry = project / "assets/asset-sources.tsv"
             registry.write_bytes(b"previous working source")
-            with patch.object(preparation, "prepare_maps", side_effect=FormatError("unsupported graph")):
+            with patch.object(loading_presentation, "preflight_v3"), patch.object(preparation, "prepare_maps", side_effect=FormatError("unsupported graph")):
                 with self.assertRaisesRegex(FormatError, "unsupported graph"):
                     preparation.prepare(project, donor, lambda _: None)
             self.assertEqual(registry.read_bytes(), b"previous working source")
             self.assertEqual(list((project / "assets/imported").iterdir()), [])
             self.assertEqual((donor / "h2_maps_win64_dx11/shared.map").read_bytes(), b"donor")
 
-    def test_success_publishes_inactive_hashed_cache_without_iso_or_registry(self):
+    def test_owner_publication_failure_after_final_graphics_preserves_active_sources(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            donor, project = source(root / 'donor'), root / 'port'
+            bundle_fixture(project)
+            prior = project / 'assets/imported/mcc-prior'
+            prior.mkdir(parents=True)
+            (prior / 'keep.bin').write_bytes(b'previous complete cache')
+            registry = project / 'assets/mcc-source.tsv'
+            registry.write_bytes(b'previous selected cache')
+            active_source = project / 'assets/asset-sources.tsv'
+            active_source.write_bytes(b'previous active game sources')
+            protected = [p for base in (donor, prior) for p in base.rglob('*') if p.is_file()] + [registry, active_source]
+            before = {p: (p.read_bytes(), p.stat().st_ino, p.stat().st_mtime_ns) for p in protected}
+            converted_hashes = {}
+
+            def converted(maps, output, progress):
+                rows = []
+                for path in sorted(maps.glob('*.map')):
+                    source_sha = preparation.file_sha(path)
+                    path.write_bytes(path.read_bytes() + b' synthetic conversion')
+                    converted_hashes[path.name] = preparation.file_sha(path)
+                    rows.append(dict(map=path.name, source_sha256=source_sha,
+                                     output_sha256=converted_hashes[path.name]))
+                preparation.write_json(output / 'tag-conversion.json', dict(profile=preparation.PROFILE, maps=rows))
+                return dict(maps=len(rows))
+
+            def graphics(root, stage, **kwargs):
+                path = stage / 'halo2/h2_maps_win64_dx11/mainmenu.map'
+                donor_sha = preparation.file_sha(path)
+                path.write_bytes(path.read_bytes() + b' final graphics')
+                return dict(changes=[dict(path='halo2/h2_maps_win64_dx11/mainmenu.map',
+                    donor_sha256=donor_sha, converted_sha256=preparation.file_sha(path))])
+
+            def reject_publication(stage, report):
+                self.assertTrue(stage.name.startswith('.staging-mcc-'))
+                self.assertFalse((stage / 'provenance.json').exists())
+                self.assertEqual(report['native_shader_library']['maps'], {'mainmenu': 'a' * 64})
+                change = report['graphics_corrections']['changes'][0]
+                self.assertEqual(change['donor_sha256'], converted_hashes['mainmenu.map'])
+                self.assertEqual(change['converted_sha256'], preparation.file_sha(stage / change['path']))
+                self.assertNotEqual(change['donor_sha256'], change['converted_sha256'])
+                self.assertTrue(report['conversion_coverage']['stock_conversion_results_complete'])
+                for field in ('native_loading_presentation', 'native_ui_layout', 'menu_resources', 'player_screen_flashes'):
+                    self.assertIn(field, report)
+                raise FormatError('injected final owner publication failure')
+
+            # This verifies the fresh producer's failure boundary, not native
+            # conversion or successful publication of a synthetic shader bank.
+            with patch.object(preparation, 'prepare_maps', side_effect=converted), \
+                 patch.object(menu_assets, 'prepare', return_value=dict(complete=True, frame_owners=0, unique_dds_pages=0, fonts={})), \
+                 patch.object(menu_inventory, 'verify', return_value=dict(complete=True, banks=0, frame_owners=0, unique_dds_pages=0, fonts={})), \
+                 patch.object(loading_assets, 'prepare', return_value=dict(complete=True)), \
+                 patch.object(loading_presentation, 'preflight_v3'), \
+                 patch.object(loading_presentation, 'prepare_v3', side_effect=lambda root, cache, source, **kwargs: v3_summary_fixture(cache)), \
+                 patch('preserve_native_shaders.copy_selected', return_value=dict(maps={'mainmenu': 'a' * 64})), \
+                 patch('mcc_graphics_corrections.apply_selected', side_effect=graphics), \
+                 patch('mcc_native_map_owner_publication.publish_staged_owner_index', side_effect=reject_publication) as publish:
+                with self.assertRaisesRegex(FormatError, 'injected final owner publication failure'):
+                    preparation.prepare(project, donor, lambda _: None)
+            publish.assert_called_once()
+            self.assertEqual(list(prior.parent.iterdir()), [prior])
+            self.assertEqual(before, {p: (p.read_bytes(), p.stat().st_ino, p.stat().st_mtime_ns) for p in protected})
+
+    def assert_preparation_without_reference_movie_bank(self, *, invalid_bank=False):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             donor = source(root / "donor")
             project = root / "port"
             bundle_fixture(project)
-            with patch.object(preparation, "prepare_maps", return_value={"maps": 43}), patch.object(menu_assets, "prepare", return_value=dict(complete=True, frame_owners=648, unique_dds_pages=561, fonts={})), patch.object(loading_assets, "prepare", return_value=dict(complete=True, vista_executable_bank_imported=False)), patch.object(menu_inventory, "verify",
+            if invalid_bank:
+                movie_fixture(project)
+                (project / "resources/movies/manifest.json").write_bytes(b"invalid preserved reference metadata")
+                (project / "resources/movies/credits_60.mp4").write_bytes(b"invalid preserved reference payload")
+            sources = list((project / "resources/movies").glob("*"))
+            source_manifest = project / "resources/movie-manifest.json"
+            if source_manifest.exists():
+                sources.append(source_manifest)
+            before = {p: (p.read_bytes(), p.stat().st_ino, p.stat().st_mtime_ns) for p in sources}
+            def converted(maps, output, progress):
+                rows = [dict(map=p.name, source_sha256=preparation.file_sha(p),
+                             output_sha256=preparation.file_sha(p)) for p in sorted(maps.glob('*.map'))]
+                preparation.write_json(output / 'tag-conversion.json', dict(profile=preparation.PROFILE, maps=rows))
+                return dict(maps=len(rows))
+            with patch('mcc_movies.required_bytes', side_effect=AssertionError('Reference movie preflight selected')), \
+                 patch('mcc_movies.prepare', side_effect=AssertionError('Reference movie importer selected')), \
+                 patch('mcc_prompts.required_bytes', side_effect=AssertionError('Reference prompt preflight selected')), \
+                 patch('mcc_prompts.prepare', side_effect=AssertionError('Reference prompt importer selected')), \
+                 patch.object(preparation, "prepare_maps", side_effect=converted), patch.object(menu_assets, "prepare", return_value=dict(complete=True, frame_owners=648, unique_dds_pages=561, fonts={})), patch.object(loading_presentation, "preflight_v3"), patch.object(loading_presentation, "prepare_v3", side_effect=lambda root, cache, source, **kwargs: v3_summary_fixture(cache)), patch.object(loading_assets, "prepare", return_value=dict(complete=True, vista_executable_bank_imported=False)), patch.object(menu_inventory, "verify",
                     return_value=dict(complete=True, banks=287, frame_owners=648, unique_dds_pages=561, fonts={})):
                 final, report = preparation.prepare(project, donor, lambda _: None)
+            self.assertEqual((final / 'data/tags/variants/bomb-defusal-v1.json').read_bytes(),
+                             (project / 'data/tags/variants/bomb-defusal-v1.json').read_bytes())
+            self.assertEqual((final / LAYOUTS).read_bytes(), (project / LAYOUTS).read_bytes())
+            receipt = json.loads((final / MANIFEST).read_bytes())
+            self.assertEqual(receipt['files'][LAYOUTS]['sha256'], preparation.file_sha(project / LAYOUTS))
             self.assertFalse(report["runtime_active"])
             self.assertFalse(report["full_tu15_parity"])
-            self.assertTrue(report["port_bundled_movies"]["complete"])
-            self.assertTrue(report["port_authored_prompts"]["complete"])
+            self.assertEqual(report["native_loading_presentation"]["profile"], loading_presentation.V3_PROFILE)
+            self.assertTrue(report['controller_prompts']['complete'])
+            self.assertEqual(len(report['controller_prompts']['files']),18)
+            self.assertNotIn("port_bundled_loading_ambience", report)
+            self.assertNotIn("port_bundled_movies", report)
+            self.assertEqual((project / "resources/movies").exists(), invalid_bank)
+            self.assertEqual(before, {p: (p.read_bytes(), p.stat().st_ino, p.stat().st_mtime_ns) for p in sources})
+            self.assertFalse((final / "presentation/movies").exists())
+            self.assertNotIn("port_authored_prompts", report)
+            self.assertFalse((project / "resources/presentation/prompts").exists())
+            self.assertFalse((final / "presentation/prompts").exists())
+            self.assertIn("verified MCC fonts", report["policy"]["prompt_artwork"])
+            self.assertTrue(report['conversion_coverage']['stock_conversion_results_complete'])
+            self.assertEqual(report['conversion_coverage']['stock_map_owners'],
+                             ['h2_maps_win64_dx11/mainmenu.map', 'h2_maps_win64_dx11/shared.map'])
+            self.assertFalse(report['conversion_coverage']['full_tu15_semantic_conversion'])
             self.assertEqual(json.loads((final / "provenance.json").read_text()), report)
             self.assertFalse((project / "assets/asset-sources.tsv").exists())
             self.assertFalse(list((project / "assets/imported").glob(".staging-*")))
+
+    def test_success_publishes_inactive_hashed_cache_without_iso_or_registry(self):
+        self.assert_preparation_without_reference_movie_bank()
+
+    def test_fresh_import_preserves_and_ignores_invalid_reference_movie_bank(self):
+        self.assert_preparation_without_reference_movie_bank(invalid_bank=True)
+
+    def test_missing_unchanged_map_conversion_result_prevents_fresh_publication(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            donor, project = source(root / 'donor'), root / 'port'
+            bundle_fixture(project)
+            registry = project / 'assets/mcc-source.tsv'
+            registry.parent.mkdir(parents=True)
+            registry.write_bytes(b'prior selected cache')
+            protected = {p: p.read_bytes() for p in donor.rglob('*') if p.is_file()}
+            def incomplete(maps, output, progress):
+                path = maps / 'shared.map'
+                preparation.write_json(output / 'tag-conversion.json', dict(profile=preparation.PROFILE,
+                    maps=[dict(map=path.name, source_sha256=preparation.file_sha(path),
+                               output_sha256=preparation.file_sha(path))]))
+                return dict(maps=1)
+            with patch.object(preparation, 'prepare_maps', side_effect=incomplete), \
+                 patch.object(menu_assets, 'prepare', return_value=dict(complete=True, frame_owners=0, unique_dds_pages=0, fonts={})), \
+                 patch.object(loading_presentation, 'preflight_v3'), \
+                 patch.object(loading_presentation, 'prepare_v3', side_effect=lambda root, cache, source, **kwargs: v3_summary_fixture(cache)), \
+                 patch.object(loading_assets, 'prepare', return_value=dict(complete=True)), \
+                 patch.object(menu_inventory, 'verify', return_value=dict(complete=True, banks=0, frame_owners=0, unique_dds_pages=0, fonts={})), \
+                 self.assertRaisesRegex(FormatError, 'missing converted map owners.*mainmenu.map'):
+                preparation.prepare(project, donor, lambda _: None)
+            self.assertEqual(list((project / 'assets/imported').iterdir()), [])
+            self.assertEqual(registry.read_bytes(), b'prior selected cache')
+            self.assertEqual(protected, {p: p.read_bytes() for p in protected})
 
     def test_symlink_and_source_changes_are_rejected(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -489,7 +643,7 @@ class TransactionTests(unittest.TestCase):
             def update(*_):
                 (donor / "h2_maps_win64_dx11/new.map").write_bytes(b"new update")
                 return {}
-            with patch.object(preparation, "prepare_maps", side_effect=update), patch.object(menu_assets, "prepare", return_value=dict(complete=True, frame_owners=648, unique_dds_pages=561, fonts={})), patch.object(loading_assets, "prepare", return_value=dict(complete=True, vista_executable_bank_imported=False)), patch.object(menu_inventory, "verify",
+            with patch.object(preparation, "prepare_maps", side_effect=update), patch.object(menu_assets, "prepare", return_value=dict(complete=True, frame_owners=648, unique_dds_pages=561, fonts={})), patch.object(loading_presentation, "preflight_v3"), patch.object(loading_presentation, "prepare_v3", side_effect=lambda root, cache, source, **kwargs: v3_summary_fixture(cache)), patch.object(loading_assets, "prepare", return_value=dict(complete=True, vista_executable_bank_imported=False)), patch.object(menu_inventory, "verify",
                     return_value=dict(complete=True, banks=287, frame_owners=648, unique_dds_pages=561, fonts={})):
                 with self.assertRaisesRegex(FormatError, "installation changed"):
                     preparation.prepare(project, donor, lambda _: None)

@@ -169,7 +169,7 @@ def main():
         directory=a.output/'native-probe';directory.mkdir()
         source=directory/'probe.cpp';source.write_text(PROBE)
         frame=directory/'input.bin';frame.write_bytes(struct.pack('<32I',*row['frame_words'],int(feature),abi['x87_control'],abi['mxcsr']))
-        helper=a.native_source/'src/source_shadow.cpp';header=a.native_source/'include/halo2/source_shadow.hpp'
+        helper=a.native_source/'src/rendering/shadows/source_shadow.cpp';header=a.native_source/'include/halo2/source_shadow.hpp'
         pins={str(path.resolve()):sha(path)for path in (helper,header,source,frame)}
         binary=directory/'probe'
         command=['c++','-std=c++20','-O2','-g0','-ffunction-sections','-fdata-sections','-ffp-contract=off',

@@ -164,7 +164,7 @@ def main():
         instructions=visits,services=sorted(service_names),max_current_native_binary32_delta=max_native_delta,
         floating_environment=dict(x87_control='027F',mxcsr='00001F80',projection_distance=0,widget_depth=0),
         inspected_native_source_pins=[dict(path=f,sha256=sha((ROOT/f).read_bytes())) for f in
-            ('src/frontend_vista.cpp','src/frontend_painter.cpp','include/halo2/frontend.hpp','include/halo2/frontend_canvas.hpp')],
+            ('src/ui/frontend_vista.cpp','src/ui/frontend_painter.cpp','include/halo2/frontend.hpp','include/halo2/frontend_canvas.hpp')],
         limits=__doc__)
     (OUT/'geometry-original.json').write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps(dict(raster_cases=len(raster),button_cases=len(button_rows),grid_cases=len(grid_rows),

@@ -25,9 +25,9 @@ def main():
                 'evidence_files','original_inputs','prior_pins','files','dependency_pins']:
    for path,digest in dependency.get(group,{}).items():add(prior,path,digest)
  verify(prior)
- names=['CMakeLists.txt','include/halo2/native_threads.hpp','src/native_threads.cpp',
+ names=['CMakeLists.txt','include/halo2/native_threads.hpp','src/platform/native_threads.cpp',
  'tests/native_threads_tests.cpp','include/halo2/native_synchronization.hpp',
- 'src/native_synchronization.cpp','tests/native_synchronization_tests.cpp',
+ 'src/platform/native_synchronization.cpp','tests/native_synchronization_tests.cpp',
  'tools/freeze_mp_native_worker_threads.py','tools/freeze_mp_native_sound_storage.py',
  'docs/MP_NATIVE_WORKER_THREADS_RESEARCH.md']
  for name in names:copy(actual(name),FROZEN/'source'/name)

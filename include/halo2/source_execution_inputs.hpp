@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <span>
 #include <stdexcept>
 #include <thread>
@@ -11,6 +12,7 @@
 
 namespace halo2 {
 class SourceRuntimeMemory;
+class SourceRuntimePolicyChange;
 // External operands consumed by the native source executor, never original
 // gameplay function returns. The operand binds the exact estimate request.
 enum class SourceExecutionInputKind:std::uint8_t {
@@ -175,6 +177,7 @@ public:
 private:
     const SourceRuntimeMemory *memory_;
     SourceExecutionInputs *inputs_;
+    std::unique_ptr<SourceRuntimePolicyChange> policy_;
     bool guards_{};
     const std::thread::id executor_=std::this_thread::get_id();
 };

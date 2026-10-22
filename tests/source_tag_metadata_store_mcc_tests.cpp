@@ -58,10 +58,27 @@ int main(int argc,char** argv)try{
     canonical_datum=Bytes(provider.read(shad.u32(0x24),4)).u32(0);canonical=provider.address(canonical_datum);
     const Bytes stem(provider.read(canonical,0x60));const Bytes post(provider.read(stem.u32(0x5c),8));
     check(post.u32(0)>0,"Gauge stem has no actual LOD rows");forwarded=post.u32(4);
+    const bool native_gauge=cache->is_preserved_native_shader(*gauge);
+    if(native_gauge) {
+      // The gauge now owns its authentic original template and LOD bank.
+      // Preserve the general retained-packet coverage below using an actual
+      // moved stem, rather than requiring the repaired gauge to stay uncooked.
+      const auto *native=cache->find_tag({canonical_datum},tag_groups::shader_template);
+      check(native && native->name=="shaders\\shader_templates\\transparent\\meter_active_camo" &&
+          contains(*native,forwarded,10),"Native gauge lost its canonical original LOD bank");
+      (void)provider.read(forwarded,10);
+      const auto retained=std::find_if(cache->retained_tag_allocations().begin(),cache->retained_tag_allocations().end(),[&](const auto& tag) {
+        const auto *current=cache->find_tag(tag.handle(),tag.type());
+        return tag.group=="stem" && tag.address && tag.size>=10 && current && current->address &&
+            std::none_of(cache->tags().begin(),cache->tags().end(),[&](const auto& row){return contains(row,tag.address,10);});
+      });
+      check(retained!=cache->retained_tag_allocations().end(),"Actual cache no longer exercises an uncovered moved stem");
+      forwarded=retained->address;
+    }
     check(std::none_of(cache->tags().begin(),cache->tags().end(),[&](const auto& tag){return contains(tag,forwarded,10);}),"Regression no longer crosses a retained allocation");
     const Tag* owner=nullptr;
     for(const auto& tag:cache->retained_tag_allocations())if(contains(tag,forwarded,10)){check(!owner,"Forwarded LOD has ambiguous retained ownership");owner=&tag;}
-    check(owner&&owner->group=="stem"&&owner->name=="shaders\\shader_templates\\transparent\\sky_two_alpha_clouds","Literal LOD pointer lost its actual retained template owner");
+    check(owner&&owner->group=="stem"&&(native_gauge||owner->name=="shaders\\shader_templates\\transparent\\sky_two_alpha_clouds"),"Literal pointer lost its actual retained template owner");
     const auto bytes=cache->read_tag_bytes(forwarded,10);forwarded_bytes.assign(bytes.begin(),bytes.end());
     check(equal(provider.read(forwarded,10),forwarded_bytes),"Actual gauge forwarded LOD read failed");
     {SourceTagMetadataStore restricted(cache,{"shad"});rejects([&]{(void)restricted.providers().read(forwarded,10);});}

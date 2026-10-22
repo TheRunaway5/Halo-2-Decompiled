@@ -1,5 +1,5 @@
 # Compiled typed original chorus arithmetic; whole DSP/producer/45 remain required.
-add_library(halo2_native_tu15_sound_chorus STATIC src/native_tu15_sound_chorus.cpp)
+add_library(halo2_native_tu15_sound_chorus STATIC src/audio/dsp/native_tu15_sound_chorus.cpp)
 target_include_directories(halo2_native_tu15_sound_chorus PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_native_tu15_sound_chorus PUBLIC cxx_std_20)
 target_link_libraries(halo2_systems PUBLIC halo2_native_tu15_sound_chorus)

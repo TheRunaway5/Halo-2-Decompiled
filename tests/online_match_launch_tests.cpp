@@ -379,6 +379,24 @@ int main(int argc,char **argv)try {
   wait([&]{return session->phase()==OnlineMatchSession::Phase::Running;});
   const auto self=session->self(),other=(self+1)%participants;const bool hosting=self==session->host();
   check(session->direct_udp()==(o.compatibility=="halo2-native-queue-v12"),"Match did not use the admitted transport");
+  if(mode=="blocks"){
+    // Exercise the actual native receiver before any codec worker starts.
+    // A malicious host bypasses voice() and injects an attributed packet with
+    // a bogus origin proof over its authenticated direct transport.
+    barrier("voice-origin-probe-ready");
+    if(hosting){
+      std::vector<std::byte> forged;
+      const auto append=[&](std::uint64_t value,unsigned bytes){for(unsigned i=0;i<bytes;++i)forged.push_back(std::byte(value>>(8*i)));};
+      append(0x324e3248,4);append(native_multiplayer_protocol,2);append(6,1);append(0,1);
+      append(other,1);append(1,4);append(0,1);append(std::bit_cast<std::uint32_t>(1.f),4);append(std::bit_cast<std::uint32_t>(1.f),4);
+      append(0x42,1);forged.resize(forged.size()+64);
+      session->send(forged,other);
+    }
+    std::this_thread::sleep_for(300ms);barrier("voice-origin-probe-delivered");
+    check(session->voice_packets().empty(),"Native receiver accepted forged host microphone origin");
+    check(session->phase()==OnlineMatchSession::Phase::Running,"Invalid host voice ended a healthy native session");
+    std::cout<<"PASS native receiver rejects forged host voice origin over actual direct UDP\n";
+  }
   if(mode=="nonhost-loss"){
     wait([&]{return session->authority_supported(other);});barrier("direct-peer-ready-before-departure");
     if(!hosting){session.reset();std::cout<<"PASS nonhost closed its real direct UDP and signaling session\n";return 0;}

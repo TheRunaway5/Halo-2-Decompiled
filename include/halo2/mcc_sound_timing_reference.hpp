@@ -198,6 +198,30 @@ private:
     explicit MccSoundTimingReadLease(std::shared_ptr<const Impl>);
     friend struct MccSoundTimingOwnedReadAccess;
 };
+// Creator-thread exclusion over an actual current lease's existing mutex,
+// memory and epoch. Acquisition may allocate/lock and must precede SDL holds.
+// matches() is a direct witness: no locks, allocation, callbacks or byte reads.
+// This is only a timing-owner scope. The caller must separately retain and
+// exclude its actual native World before acquisition; invalidate/restore/
+// teardown on this same thread is forbidden while held. Ordinary timing lease
+// operations reject reentry. Release after SDL, before the native exclusion.
+class MccSoundTimingHeldRead final {
+public:
+    ~MccSoundTimingHeldRead();
+    MccSoundTimingHeldRead(const MccSoundTimingHeldRead&)=delete;
+    MccSoundTimingHeldRead(MccSoundTimingHeldRead&&)=delete;
+    bool matches(const MccSoundTimingReadLease&)const noexcept;
+private:
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+    explicit MccSoundTimingHeldRead(std::unique_ptr<Impl>);
+    friend MccSoundTimingHeldRead hold_mcc_sound_timing_read_lease(
+        const MccSoundTimingReadLease&);
+};
+// Throws on a stale owner/epoch, wrong producer or an existing timing scope.
+// Foreign destruction terminates before releasing any lock or retained owner.
+MccSoundTimingHeldRead hold_mcc_sound_timing_read_lease(
+    const MccSoundTimingReadLease&);
 class MccSoundTimingOwnedReader final {
 public:
     MccSoundTimingOwnedReader(const MccSoundTimingOwnedReader&)=default;

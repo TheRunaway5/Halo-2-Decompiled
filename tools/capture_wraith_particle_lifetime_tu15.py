@@ -32,7 +32,7 @@ def main():
     pin=json.loads((base/'charge-effect-source-fixed-v2/build.json').read_text())
     for p,h in {**pin['linked_libraries_sha256'],**pin['override_objects'],**pin['override_source_files']}.items():assert file_sha(Path(p))==h,p
     provenance=json.loads((base/'wraith-source-provenance-v1.json').read_text());cp=Path(provenance['source_checkpoint']);assert file_sha(cp)==provenance['source_checkpoint_sha256'];checkpoint=json.loads(cp.read_text())
-    names=('src/physics_live_world_tu15.cpp','include/halo2/physics_live_world_tu15.hpp')
+    names=('src/physics/physics_live_world_tu15.cpp','include/halo2/physics_live_world_tu15.hpp')
     for name in names:assert file_sha(v4/name)==checkpoint['source_sha256'][name],name
     source=out/'source';(source/'include/halo2').mkdir(parents=True)
     world=(v4/names[0]).read_text();world=replace_once(world,'#include "halo2/source_combat_action_tu15.hpp"','#include "halo2/source_combat_action_tu15.hpp"\n#include "halo2/source_effect_particle_frame_tu15.hpp"')
@@ -64,7 +64,7 @@ def main():
     header=(v4/names[1]).read_text();header=replace_once(header,'    void step_objects();','    void step_objects();\n    void advance_effect_particles(float frame_seconds);');header=replace_once(header,'    void begin_model_frame();','    void begin_model_frame();\n    void publish_render_visibility(const SourcePortalVisibilitySet&);\n    void publish_native_observer_position(unsigned view,Vec3 position);');(source/'include/halo2/physics_live_world_tu15.hpp').write_text(header)
     shutil.copyfile(ROOT/'include/halo2/source_effect_particle_frame_tu15.hpp',source/'include/halo2/source_effect_particle_frame_tu15.hpp');shutil.copyfile(ROOT/'tools/capture_wraith_particle_lifetime_tu15.cpp',source/'capture.cpp')
     (source/'task-api.txt').write_text(METHOD+DISPATCH+visibility_method+current[start:end])
-    common=['c++','-std=c++20','-O1','-fno-fast-math','-ffp-contract=off','-frounding-math','-I'+str(source/'include'),'-I'+str(v4/'include'),'-I'+str(v4/'src'),'-isystem','/usr/include/SDL2']
+    common=['c++','-std=c++20','-O1','-fno-fast-math','-ffp-contract=off','-frounding-math','-I'+str(source/'include'), '-I'+str(source/'src'),'-I'+str(v4/'include'),'-I'+str(v4/'src'),'-isystem','/usr/include/SDL2']
     commands=[common+['-c',str(source/'world.cpp'),'-o',str(out/'world.o')],common+['-c',str(source/'capture.cpp'),'-o',str(out/'capture.o')]]
     link=list(pin['link']);index=next(i for i,p in enumerate(link) if p.endswith('/capture.o'));link[index:index+1]=[str(out/'capture.o'),str(out/'world.o'),str(pbuild/'particle.o'),*draw_object];link[link.index('-o')+1]=str(out/'capture');commands.append(link)
     with (out/'build.log').open('w') as log:

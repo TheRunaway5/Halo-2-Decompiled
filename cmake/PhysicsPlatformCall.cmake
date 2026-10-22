@@ -1,4 +1,4 @@
-add_library(halo2_physics_platform_call STATIC src/physics_platform_call.cpp)
+add_library(halo2_physics_platform_call STATIC src/physics/physics_platform_call.cpp)
 target_include_directories(halo2_physics_platform_call PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_physics_platform_call PUBLIC cxx_std_20)
 target_link_libraries(halo2_physics_platform_call PUBLIC halo2_physics_world_runtime halo2_physics_platform_locks)

@@ -22,7 +22,7 @@ class FontReferenceGeneratorTests(unittest.TestCase):
             command = [sys.executable, str(TOOL), "--output", str(output)]
             subprocess.run(command, check=True)
             expected = output.read_bytes()
-            self.assertEqual(expected, (ROOT / "src/gameplay_font_reference.inc").read_bytes())
+            self.assertEqual(expected, (ROOT / "src/ui/gameplay_font_reference.inc").read_bytes())
             subprocess.run(command, check=True)
             self.assertEqual(output.read_bytes(), expected)
             subprocess.run(command + ["--check"], check=True)

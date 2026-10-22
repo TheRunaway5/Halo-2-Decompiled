@@ -1,14 +1,14 @@
-add_library(halo2_renderer_debug_texture src/renderer_debug_texture.cpp)
+add_library(halo2_renderer_debug_texture src/rendering/renderer/renderer_debug_texture.cpp)
 target_include_directories(halo2_renderer_debug_texture PUBLIC include)
 target_link_libraries(halo2_renderer_debug_texture PUBLIC halo2_renderer_device_lease Vulkan::Vulkan)
 target_link_libraries(halo2_renderer PUBLIC halo2_renderer_debug_texture)
-target_sources(halo2_systems PRIVATE src/native_tu15_debug_texture_startup.cpp
-    src/source_renderer_debug_storage_tu15_generated.cpp src/native_tu15_renderer_cache_pools_data.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/renderer/native_tu15_debug_texture_startup.cpp
+    src/rendering/renderer/source_renderer_debug_storage_tu15_generated.cpp src/rendering/renderer/native_tu15_renderer_cache_pools_data.cpp)
 target_link_libraries(halo2_systems PUBLIC halo2_renderer_debug_texture)
 if(BUILD_TESTING)
     foreach(target native_tu15_network_link_tests native_tu15_graphics_startup_tests)
-        target_sources(${target} PRIVATE src/native_tu15_debug_texture_startup.cpp
-            src/source_renderer_debug_storage_tu15_generated.cpp src/native_tu15_renderer_cache_pools_data.cpp)
+        target_sources(${target} PRIVATE src/rendering/renderer/native_tu15_debug_texture_startup.cpp
+            src/rendering/renderer/source_renderer_debug_storage_tu15_generated.cpp src/rendering/renderer/native_tu15_renderer_cache_pools_data.cpp)
         target_link_libraries(${target} PRIVATE halo2_renderer_debug_texture)
     endforeach()
     foreach(frontier graphics-debug-storage graphics-renderer-complete)

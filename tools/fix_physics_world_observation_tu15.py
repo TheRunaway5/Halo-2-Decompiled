@@ -56,7 +56,7 @@ def canonical(source):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--source',type=Path,default=ROOT/'src/physics_world_runtime_generated.cpp')
+    parser.add_argument('--source',type=Path,default=ROOT/'src/physics/runtime/physics_world_runtime_generated.cpp')
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--manifest',type=Path,required=True)
     args=parser.parse_args();source=canonical(args.source.read_text())

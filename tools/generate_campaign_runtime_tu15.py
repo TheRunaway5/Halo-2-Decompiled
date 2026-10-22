@@ -37,7 +37,7 @@ SHARED_FRAME_HELPERS = (0x20b620, 0x20a160, 0x272550)
 def admit_canonical_owners():
     pattern = r'^static void run_([0-9a-f]+)\(WorldState &s\) \{'
     overlaps = []
-    for file in (ROOT / 'src').glob('*_generated.cpp'):
+    for file in (ROOT / 'src').rglob('*_generated.cpp'):
         if file.name == 'source_campaign_runtime_tu15_generated.cpp':
             continue
         owned = {int(p, 16) for p in re.findall(pattern, file.read_text(), re.M)}
@@ -45,7 +45,7 @@ def admit_canonical_owners():
                         for p in set(ENTRIES) & owned)
     if overlaps:
         raise RuntimeError(f'Original campaign bodies already have owners: {overlaps}')
-    frame = (ROOT / 'src/source_ai_frame_tu15_generated.cpp').read_text()
+    frame = (ROOT / 'src/campaign/ai/source_ai_frame_tu15_generated.cpp').read_text()
     owned_frame = {int(p, 16) for p in re.findall(pattern, frame, re.M)}
     assert set(SHARED_FRAME_HELPERS) <= owned_frame
 

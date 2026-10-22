@@ -1,0 +1,47 @@
+{
+  "schema": "H2_STEAM_DOWNLOADER_INPUTS_V1",
+  "repository": "https://github.com/SteamRE/DepotDownloader",
+  "revision": "6396afe2e34a6c40459bcb6bdafa43c83c9db8cc",
+  "files": {
+    "LICENSE": {
+      "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/LICENSE",
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+    },
+    "DepotDownloader/ContentDownloader.cs": {
+      "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/ContentDownloader.cs",
+      "sha256": "452e17680be99dcef7ceda97646380a42725e84454d07791d0a873e9963df4a5"
+    },
+    "DepotDownloader/Steam3Session.cs": {
+      "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/Steam3Session.cs",
+      "sha256": "8f8409cdd2e513e795992c14f973e6beff4e2d5ef3edccb9d3505e0966de5f99"
+    },
+    "DepotDownloader/CDNClientPool.cs": {
+      "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/CDNClientPool.cs",
+      "sha256": "d1afed81478ae805049bd79c352728835f4df53f37c775aa0670a6d84ce43950"
+    },
+    "DepotDownloader/DepotConfigStore.cs": {
+      "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/DepotConfigStore.cs",
+      "sha256": "e971911fd7c6a4bb0a2d4316edb7e56425a40423bf0a21888e85d72751b87e88"
+    },
+    "DepotDownloader/DownloadConfig.cs": {
+      "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/DownloadConfig.cs",
+      "sha256": "cb630953931100574bffcfd8f6485a7b75d111538f97c6e144c47c94ceac2c72"
+    },
+    "DepotDownloader/HttpClientFactory.cs": {
+      "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/HttpClientFactory.cs",
+      "sha256": "95f902c91cdffbfa32b2fb7a3381b327c0d3ca3789649b1d674c0d09a97cfa12"
+    },
+    "DepotDownloader/ProtoManifest.cs": {
+      "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/ProtoManifest.cs",
+      "sha256": "950206a50706ed54add058f69fd4d80ff5266fec82b9a0ac9a70b9c4ba2ec8c3"
+    },
+    "DepotDownloader/Util.cs": {
+      "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/Util.cs",
+      "sha256": "3a0f61e2c9860c93cec83347ac8eccfccb8f613c78a61a5a05f8f4352c8d8f93"
+    },
+    "DepotDownloader/ConsoleAuthenticator.cs": {
+      "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/ConsoleAuthenticator.cs",
+      "sha256": "1c6fffca83d28a0f78d0dc681ebb81fc4e0a1b4e6e7e3f92b958b87b2f6dd01b"
+    }
+  }
+}

@@ -27,8 +27,9 @@ std::filesystem::path hud_sampled_font_path(const std::filesystem::path &pack,
 std::size_t apply_vista_prompt_sampling(RetailFont &, const std::filesystem::path &pack,
                                       unsigned selector);
 
-// Font owners are authenticated by the caller. Imported MCC uses its separate
-// port-authored cache bank; legacy explicit artwork packs retain their binding.
+// Font owners are authenticated by the caller. Imported MCC uses its native
+// font glyphs, even when an older cache retains an unused authored overlay.
+// Explicit non-MCC reference/custom artwork packs retain their binding.
 std::filesystem::path font_prompt_asset_directory(
     const std::filesystem::path &font_directory,
     const std::filesystem::path &explicit_pack = {});

@@ -41,7 +41,7 @@ def main():
     g = json.loads(generated.read_text())
     assert g['correspondence_sha256'] == PAIR_PIN
     assert g['generator_sha256'] == sha(ROOT / 'tools/generate_physics_world_listener_runtime_20261011.py')
-    assert g['generated_cpp_sha256'] == sha(ROOT / 'src/physics_world_runtime_generated.cpp') == sha(E / 'generated-v9-repeat/runtime.cpp')
+    assert g['generated_cpp_sha256'] == sha(ROOT / 'src/physics/runtime/physics_world_runtime_generated.cpp') == sha(E / 'generated-v9-repeat/runtime.cpp')
     assert len(g['complete_native_entries']) == 226 and len(g['lowered_instructions']) == 22716
     assert not g['production_opcode_decoder'] and not g['production_original_code_execution']
     binding = ROOT / 'analysis/multiplayer/sandbox-source/physics-world-runtime-20261011/input-bindings-extra-v4/report.json'

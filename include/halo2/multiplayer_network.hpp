@@ -3,6 +3,7 @@
 #include "halo2/multiplayer_datagrams.hpp"
 #include "halo2/source_player_admission.hpp"
 #include "halo2/peer_authority_transfer.hpp"
+#include "halo2/peer_snapshot_candidate.hpp"
 #include "halo2/native_vehicle_camera.hpp"
 #include "halo2/multiplayer_snapshot_origin.hpp"
 #include <memory>
@@ -44,7 +45,43 @@ public:
   unsigned port() const;
   void receive(std::array<Controls, multiplayer_capacity> &);
   void broadcast();
+  // Negotiated preparation chooses an actual future native broadcast. The
+  // opaque receipt is valid only while those exact per-peer stamps remain
+  // current; it does not certify a native world or permit migration.
+  class CandidateEmission {
+  public:
+    const PeerSnapshotToken &token()const noexcept;
+    std::uint32_t tick()const noexcept;
+  private:
+    friend class LanHost;
+    struct Data;std::shared_ptr<const Data> data_;
+  };
+  struct CandidateBroadcast {
+    bool emitted{};
+    std::optional<CandidateEmission> candidate;
+  };
+  CandidateBroadcast broadcast_candidate(std::shared_ptr<PeerSnapshotCandidate>,
+      const PeerSnapshotToken &);
+  bool candidate_current(const CandidateEmission &,const std::shared_ptr<PeerSnapshotCandidate> &)const noexcept;
   unsigned peers() const;
+  enum class PeerRemovalReason { authenticated_leave, idle_timeout };
+  // Passive current-host diagnostics only. No address, cookie, nonce or player
+  // identity is retained. Times use steady_clock nanoseconds in this process;
+  // input timestamps remain unknown after resume until a fresh input passes
+  // the normal decoder/serial checks. This row is not a continuation or proof.
+  struct PeerRemoval {
+    PeerRemovalReason reason{};
+    std::uint64_t ordinal{},input_acceptances{};
+    std::uint32_t source_tick{},input_sequence{};
+    std::uint16_t slot_mask{};
+    unsigned local_players{};
+    bool input_seen{};
+    std::int64_t observed_at_ns{},removed_at_ns{},idle_age_ns{};
+    std::optional<std::int64_t> last_accepted_input_at_ns,last_accepted_input_age_ns;
+  };
+  // Copy only on the host's existing native executor. At most one completed
+  // removal is retained; reading it performs no native world operation.
+  std::optional<PeerRemoval> last_peer_removal()const;
 
   class Continuation {
   public:
@@ -156,6 +193,7 @@ public:
   // not turn an unaccepted snapshot into state or a connection-level failure.
   std::uint64_t rejected_packet_count()const;
   std::string last_packet_rejection()const;
+  std::size_t snapshot_buffered_bytes()const;
   // Bind once from independent session admission after native hello has
   // completed. A cut or an unauthenticated datagram cannot change this context.
   void bind_continuity(const AuthorityTransferContext &,unsigned physical_self,
@@ -201,6 +239,15 @@ public:
       const AuthorityCutSeal &accepted_cut);
 
 private:
+  friend class EffectPresentationHistory;
+  struct SnapshotCandidate;
+  std::shared_ptr<SnapshotCandidate> arm_snapshot_candidate(std::shared_ptr<PeerSnapshotCandidate>,const PeerSnapshotToken &);
+  static bool snapshot_candidate_live(const std::shared_ptr<SnapshotCandidate> &)noexcept;
+  static bool snapshot_candidate_matches(const std::shared_ptr<SnapshotCandidate> &,const MultiplayerSnapshotOrigin &)noexcept;
+  static bool capture_snapshot_candidate(const std::shared_ptr<SnapshotCandidate> &)noexcept;
+  static bool can_retire_snapshot_candidate(const std::shared_ptr<SnapshotCandidate> &)noexcept;
+  static bool retire_snapshot_candidate(const std::shared_ptr<SnapshotCandidate> &)noexcept;
+  static void reject_snapshot_candidate(const std::shared_ptr<SnapshotCandidate> &)noexcept;
   struct Impl;
   std::unique_ptr<Impl> impl_;
 };

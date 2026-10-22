@@ -1,11 +1,11 @@
-target_sources(halo2_systems PRIVATE src/native_tu15_static_owners.cpp)
+target_sources(halo2_systems PRIVATE src/core/native_tu15_static_owners.cpp)
 if(BUILD_TESTING)
     add_executable(native_tu15_static_owners_tests tests/native_tu15_static_owners_tests.cpp
-        src/native_tu15_static_owners.cpp src/native_tu15_arena_data.cpp
-        src/native_tu15_arena_bootstrap.cpp src/physics_game_arena_native.cpp
-        src/physics_physical_storage_host.cpp src/source_runtime_memory.cpp
-        src/source_runtime_host_virtual_memory.cpp src/source_runtime_host_storage.cpp
-        src/source_runtime_host_physical_memory.cpp src/source_runtime_image.cpp)
+        src/core/native_tu15_static_owners.cpp src/physics/native_tu15_arena_data.cpp
+        src/physics/native_tu15_arena_bootstrap.cpp src/physics/physics_game_arena_native.cpp
+        src/physics/physics_physical_storage_host.cpp src/runtime/source_runtime_memory.cpp
+        src/runtime/source_runtime_host_virtual_memory.cpp src/runtime/source_runtime_host_storage.cpp
+        src/runtime/source_runtime_host_physical_memory.cpp src/runtime/source_runtime_image.cpp)
     target_link_libraries(native_tu15_static_owners_tests PRIVATE halo2_snapshot_storage)
     target_link_libraries(native_tu15_static_owners_tests PRIVATE halo2_native_tu15_heap_data
         halo2_physics_world_runtime halo2_physics_platform_locks halo2_native_synchronization

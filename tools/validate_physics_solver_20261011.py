@@ -19,7 +19,7 @@ def main():
     generated=E/'generated-manifest-v3.json';g=json.loads(generated.read_text())
     assert g['correspondence_sha256']==sha(correspondence)
     assert g['generator_sha256']==sha(ROOT/'tools/generate_physics_solver_20261011.py')
-    assert g['generated_cpp_sha256']==sha(ROOT/'src/physics_solver_generated.cpp')
+    assert g['generated_cpp_sha256']==sha(ROOT/'src/physics/runtime/physics_solver_generated.cpp')
     assert len(g['lowered_instructions'])==2494
     assert not g['production_opcode_decoder'] and not g['production_original_code_execution']
     fixtures={};totals=[0,0,0,0];instruction_count=0;seen=set()

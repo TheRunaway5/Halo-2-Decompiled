@@ -15,8 +15,8 @@ SOURCES = [
     'tests/source_weather_connected_scene_tests.cpp',
     'tools/build_source_weather_connected_scene.sh',
     'tools/freeze_source_weather_connected_scene.py',
-    'src/source_weather_depth_alias.cpp', 'src/source_weather_plate_render.cpp',
-    'src/source_weather_point_render.cpp', 'shaders/source_weather_depth_alias.comp',
+    'src/rendering/weather/source_weather_depth_alias.cpp', 'src/rendering/weather/source_weather_plate_render.cpp',
+    'src/rendering/weather/source_weather_point_render.cpp', 'shaders/source_weather_depth_alias.comp',
     'shaders/source_weather_plate.vert', 'shaders/source_weather_plate.frag',
     'shaders/source_weather_point.vert', 'shaders/source_weather_point.frag']
 

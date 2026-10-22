@@ -30,7 +30,7 @@ def main():
     accepted=json.loads(accepted_path.read_text())
     assert accepted['passed'] and accepted['live_x87_result_bits_verified']==80
     assert accepted['original_host_successful_cases']==34 and accepted['proven_unreachable_instruction']==0x127e4b
-    assert accepted['native_generated_source_sha256']==sha(ROOT/'src/source_sound_random_short_tu15_generated.cpp')
+    assert accepted['native_generated_source_sha256']==sha(ROOT/'src/audio/source_sound_random_short_tu15_generated.cpp')
     for name in names[:2]:assert all(row['status']=='retained'for row in data[name]['retained_small_reports'])
     native=json.loads((BASE/'smg-baseline-native-firing-frontier-v13/native-observations.json').read_text())
     original=data[names[6]]

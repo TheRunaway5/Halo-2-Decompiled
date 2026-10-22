@@ -4,7 +4,7 @@ import argparse,json
 from pathlib import Path
 from oracle_mp_title_update_display import ROOT,OLD,NEW,sha,save,encoded
 from audit_sound_admission_native import prior_pins
-OWNED=('include/halo2/sound_admission.hpp','src/sound_admission.cpp','tests/sound_admission_tests.cpp','tools/research_sound_admission_u5.py','tools/oracle_sound_admission_native.py','tools/export_sound_admission_fixtures.py','tools/validate_sound_admission_native.py','tools/validate_sound_admission_production.py','tools/audit_sound_admission_native.py','tools/freeze_sound_admission_native.py','docs/MP_SOUND_ADMISSION_NATIVE_INTEGRATION.md')
+OWNED=('include/halo2/sound_admission.hpp','src/audio/sound_admission.cpp','tests/sound_admission_tests.cpp','tools/research_sound_admission_u5.py','tools/oracle_sound_admission_native.py','tools/export_sound_admission_fixtures.py','tools/validate_sound_admission_native.py','tools/validate_sound_admission_production.py','tools/audit_sound_admission_native.py','tools/freeze_sound_admission_native.py','docs/MP_SOUND_ADMISSION_NATIVE_INTEGRATION.md')
 SELECTED=('paired-v2','paired-repeat','measured-v5','measured-repeat','fixtures','export-repeat','validation-v2','validation-v2-repeat','production')
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--directory',type=Path,required=True);a=p.parse_args();d=a.directory.resolve();pins=prior_pins();audit=json.loads((d/'audit.json').read_text());assert audit['prior_pins_verified']==pins

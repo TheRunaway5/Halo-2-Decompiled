@@ -53,6 +53,9 @@ struct MccMapGameplayPlan {
 // This only plans writes. Call before existing scalar/reference/weapon-table
 // conversion changes the donor owners; no Cache layout or host-pointer change.
 MccMapGameplayPlan plan_mcc_map_gameplay_vanilla(const MccMapGameplaySource&);
+// Complete authenticated flag-bank tuples qualify four Beaver Creek position/
+// facing words against actual TU1.5 load-time output. Unknown authoring stays unchanged.
+MccMapGameplayPlan plan_mcc_teleporter_gameplay_vanilla(const MccMapGameplaySource&);
 
 // Independent authenticated Floodzone collision-material component. Unknown
 // model/globals authoring stays unchanged without suppressing the map's Gauss

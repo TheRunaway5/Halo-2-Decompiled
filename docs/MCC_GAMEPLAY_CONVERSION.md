@@ -59,29 +59,45 @@ finite nonzero audio and clean exits. The selected V24 frontend retains the
 corrected V23 prompt helpers while preserving the separate gameplay runtime and
 both existing shader banks. See the
 [installed Play receipt](../.local/mcc-frontend-custom-prompts-20261019/installed-play-validation-v1/closure.json).
-The user's October19 instruction makes the repo's bundled intro and credits
-movies explicit port-supplied inputs. Onboarding now copies and selects those
-movies with recorded provenance. Both are copied into the selected cache's
-`presentation/movies/` bank, with full source/destination hashes verified.
-Actual cached video and finite nonzero stereo audio decode pass. Runtime checks
-the small pinned manifest and file extents, avoiding a2.5GB startup hash scan.
-This does not introduce an Xbox ISO or Vista bank requirement, or change the
-original MCC file tree. V21 displayed the cached intro with sound; the normal
-launcher Play route also uses the exact cached intro and passes a real skip.
-The user's authored SVG button prompts and exported bitmap atlases are also
-required port-supplied artwork. Their exact82 masters/six atlases are restored
-under `resources/presentation/prompts`, authenticated against the earlier
-delivery. The selected cache now contains the nine verified runtime files at
-`presentation/prompts`, with portable binding and separate provenance. The
-existing sampler preserves ordinary MCC text, font ownership and active input
-bindings. Qualified menu selectors 1/7 and action selectors 5/6 project only
-the authenticated controls to their authored metrics. The menu correction
-restores 32x36 A/B ink instead of MCC's 44x50, preserving baselines and source
-anchors while restoring the profile's clipped BACK caption. Component tests,
-independent emitted geometry at 640x480/1280x720 and viewed actual native
-profile/Settings images pass. No external Vista font/cache installation or
-shader change is added. Full menu-tree and Xbox framebuffer parity remain
+The user's October21 reaffirmation makes MCC imports the sole runtime asset
+source, including fonts, prompts, loading audio and movies. Vista and OG TU1.5
+remain references only. Earlier supplied-asset exceptions below are superseded;
+preserve their files and evidence without treating them as requirements for
+normal setup, reuse, packages or launch. Current source requires MCC V3 loading
+and authenticated native MCC prompt fonts. Classic intro/credits/attract roles
+remain unavailable until their actual MCC owners and playback are qualified.
+This source policy does not certify the installed V24 runtime, a fresh complete
+import, whole material/shader provenance or a newly delivered package.
+
+Historical October19 movie exception: onboarding copied and selected the repo's
+bundled intro and credits with recorded provenance. Both were copied into the
+selected cache's `presentation/movies/` bank with full source/destination hashes
+verified. Actual cached video and finite nonzero stereo audio decoding passed.
+That runtime checked the small pinned manifest and file extents, avoiding a2.5GB
+startup hash scan. It did not introduce an Xbox ISO or Vista bank requirement or
+change the original MCC file tree. V21 displayed the cached intro with sound;
+the former normal launcher Play route used it and passed a real skip.
+
+Historical October19 prompt exception: the authored SVG button prompts and
+exported bitmap atlases were required port-supplied artwork. Their exact82
+masters/six atlases were restored under `resources/presentation/prompts` and
+authenticated against the earlier delivery. That selected cache contained nine
+verified runtime files at `presentation/prompts`, with portable binding and
+separate provenance. The sampler preserved ordinary MCC text, font ownership
+and active input bindings. Qualified menu selectors 1/7 and action selectors
+5/6 projected only the authenticated controls to their authored metrics. That
+menu correction restored 32x36 A/B ink instead of MCC's 44x50, preserving
+baselines and source anchors while restoring the profile's clipped BACK caption.
+Component tests, independent emitted geometry at 640x480/1280x720 and viewed
+native profile/Settings images passed. No external Vista font/cache installation
+or shader change was added. Full menu-tree and Xbox framebuffer parity remained
 separate acceptance gates.
+
+These historical copies, decoded frames and custom-atlas captures retain their
+original evidence scope. They neither assign MCC movie roles nor qualify the
+new native-MCC glyph appearance; fresh submitted-screen and delivery checks
+remain open.
+
 After complete fresh/reused import validation, the importer and runtime paths
 must be aligned to MCC's relative file and internal tag structure, including
 loose/mod `tags` and `data` trees. Required conversions must finish before

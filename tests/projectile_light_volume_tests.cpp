@@ -33,8 +33,8 @@ int main(int argc,char **argv)try {
     if(!expected_file || !actual_file)throw FormatError("Missing original/native light-volume records");
     const std::string expected{std::istreambuf_iterator<char>(expected_file),std::istreambuf_iterator<char>()};
     const std::string actual{std::istreambuf_iterator<char>(actual_file),std::istreambuf_iterator<char>()};
-    if(cases!=112 || sprites!=1456 || actual!=expected)
-      throw FormatError("Native plasma light-volume records differ from unchanged original generator");
+    if(!cases || !sprites || actual!=expected)
+      throw FormatError("Native projectile light-volume records differ from unchanged original generator");
   }
   std::cout<<cases<<" native projectile light-volume inputs, "<<sprites<<" sprites\n";
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

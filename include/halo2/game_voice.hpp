@@ -2,6 +2,7 @@
 #include "halo2/online_voice.hpp"
 #include "halo2/math.hpp"
 #include <array>
+#include <cstddef>
 #include <optional>
 namespace halo2 {
 struct GameVoicePlayer {
@@ -38,6 +39,8 @@ struct GameVoiceFrame {
   // Local delivery stamp, never serialized on the peer wire. A session tags
   // decoded incoming frames; the microphone worker tags outgoing frames.
   std::uint64_t delivery_generation{};
+  // End-to-end microphone origin proof, preserved when the host mixes gains.
+  std::optional<std::array<std::byte,64>> origin_signature;
 };
 struct GameVoiceSnapshot {
   bool enabled{},microphone_muted{},transmitting{},radio{};

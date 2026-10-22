@@ -139,7 +139,7 @@ def main():
                     'Private valid D3D push shell; no source arithmetic hooks or hardware precision claim.',
             'sha256':{str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest()
                       for p in (Path(__file__),fixture,ROOT/'tests/fixtures/retail_source_view_projection.tsv',gpu_fixture,
-                                ROOT/'src/source_view_projection.cpp',ROOT/'src/render_view.cpp',
+                                ROOT/'src/gameplay/camera/source_view_projection.cpp',ROOT/'src/rendering/renderer/render_view.cpp',
                                 ROOT/'include/halo2/source_view_projection.hpp')
                       if p.exists()}}
     args.output.parent.mkdir(parents=True,exist_ok=True)

@@ -1,4 +1,4 @@
-#include "mcc_cpu_bitmap_backing.hpp"
+#include "rendering/mcc_cpu_bitmap_backing.hpp"
 #include "halo2/source_runtime_write_protection.hpp"
 #include <algorithm>
 #include <atomic>

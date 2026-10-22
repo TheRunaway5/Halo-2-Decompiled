@@ -13,7 +13,7 @@ import uuid
 from aiohttp.test_utils import TestClient, TestServer
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+sys.path.insert(0, os.environ.get('H2_QUALIFICATION_MASTER_ROOT', str(ROOT)))
 from multiplayer.master_server.service import Settings, create_app
 from multiplayer.master_server.player_identity import VerifiedOwner
 from multiplayer.master_server.protocol import Problem
@@ -21,6 +21,9 @@ from multiplayer.master_server.tests.test_matchmaking_http import catalog
 
 
 async def main():
+    eos = os.environ.get('H2_EOS_MATCH_TEST') == '1'
+    if eos and os.environ.get('H2_EOS_LIVE_TEST') != '1':
+        return 77
     binary = str(Path(sys.argv[1]).resolve())
     output = Path(os.environ.get('HALO2_PEER_QUALITY_OUTPUT',
         str(ROOT / '.local/player-host-continuity-20261015/peer-quality')))
@@ -42,7 +45,7 @@ async def main():
             for owner in ('one', 'two'):
                 response = await client.post('/v1/matchmaking/session', headers={'Authorization': 'Bearer ' + owner},
                     json=dict(screen_name='Pilot ' + owner, maps=['lockout'], language=0,
-                        compatibility='halo2-native-queue-v12',
+                        compatibility='halo2-native-queue-v13' if eos else 'halo2-native-queue-v12',
                         local_players=[dict(screen_name='Guest ' + str(n)) for n in (2, 3, 4)]))
                 assert response.status == 201, await response.text()
                 headers.append({'Authorization': 'Bearer ' + (await response.json())['token']})
@@ -60,16 +63,23 @@ async def main():
                 for d in descriptors:
                     descriptor = path / ('descriptor-' + str(d['slot']) + '.json')
                     descriptor.write_text(json.dumps(d)); descriptor.chmod(0o600)
+                    env=os.environ.copy()
+                    if eos:
+                        device=path/('device-'+str(d['slot']));device.mkdir()
+                        env.update(H2_EOS_DIAGNOSTICS='1',H2_EOS_CACHE_DIR=str(device/'cache'),XDG_CONFIG_HOME=str(device/'config'),
+                            XDG_DATA_HOME=str(device/'data'),XDG_CACHE_HOME=str(device/'xdg-cache'))
+                    else:
+                        env.update(HTTP_PROXY='http://127.0.0.1:1', NO_PROXY='', no_proxy='')
                     processes.append(await asyncio.create_subprocess_exec(binary,
                         str(client.make_url('/')).rstrip('/'), str(descriptor),
                         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-                        env=os.environ | dict(HTTP_PROXY='http://127.0.0.1:1', NO_PROXY='', no_proxy='')))
+                        env=env))
                 async def collect(d, process):
                     out, err = await process.communicate()
                     (output / ('session-' + str(d['slot']) + '.log')).write_bytes(out + err)
                     print(process.returncode, out.decode(), err.decode(), flush=True)
                     assert process.returncode == 0, 'Native direct quality session failed'
-                await asyncio.wait_for(asyncio.gather(*(collect(d, p) for d, p in zip(descriptors, processes))), 50)
+                await asyncio.wait_for(asyncio.gather(*(collect(d, p) for d, p in zip(descriptors, processes))), 90 if eos else 50)
                 api = next(iter(app.values())).matchmaking
                 room = api.transport.rooms[descriptors[0]['id']]
                 measured_hosts = room.measured_hosts()
@@ -81,7 +91,7 @@ async def main():
                 assert all(row['upload_bytes_per_second'] > 0 for reports in ready for row in reports.values())
                 evidence = dict(host=room.host, selected_host_score=list(measured_hosts[min(measured_hosts, key=measured_hosts.__getitem__)]),
                     native=rows, admitted_direct_summaries=ready,
-                    gameplay_master_relay=False, world_promotion=False, discord='fixture')
+                    gameplay_master_relay=False, world_promotion=False, discord='fixture', eos_sessions=eos, eos_force_relay=eos)
                 (output / 'native-session-results.json').write_text(json.dumps(evidence, indent=2) + '\n')
                 print('PASS actual measured setup, physical host selection, eight-seat admission and concurrent direct datagrams')
             finally:
@@ -92,4 +102,4 @@ async def main():
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    sys.exit(asyncio.run(main()) or 0)

@@ -83,6 +83,8 @@ public:
   void update_unit(Unit&,bool pressed,int native_owner,const Allocate&,const Activity&,
       const Constructed& = {});
   void cancel_unit(Unit&);
+  // Custom round reset, after cancelling each unit's held action.
+  void discard_projectiles(const std::function<void(std::uint32_t)> &release);
   // Presentation adoption of completed source physics bodies. Motion, fuse,
   // contact and retirement stay with that world, never this native sandbox.
   struct PresentationOwner {const Unit *unit;int native_owner;};

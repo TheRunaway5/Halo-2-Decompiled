@@ -27,8 +27,9 @@ struct SourceDeathStartupNativeConfiguration {
 // and read/write savegame cache files. The selected image and main call stack
 // remain caller-owned; no game banks, ready flags or construction results are
 // imported. Source requests create each resource at its actual call boundary.
-// Native stack/TLS/scheduling and Linux nice(-1) for the source priority1
-// request are explicit host policies, not Xbox platform equivalence. A real
+// Native stack/TLS/scheduling and the source priority1 adaptation (Linux
+// nice(-1), or one Darwin pthread scheduling-priority step) are explicit host
+// policies, not Xbox platform equivalence. A real
 // priority failure returns false, which the original constructor ignores.
 // Stop/join this owner before releasing its bank or callback captures.
 class SourceDeathStartupNative {

@@ -1,7 +1,7 @@
 # Compiled original records2/3 with explicit entry status and per-operation
 # saturation. Complete source DSP/voice producer and initializer45 remain required.
 add_library(halo2_native_tu15_sound_two_product_accumulator STATIC
-    src/native_tu15_sound_two_product_accumulator.cpp)
+    src/audio/dsp/native_tu15_sound_two_product_accumulator.cpp)
 target_include_directories(halo2_native_tu15_sound_two_product_accumulator PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_native_tu15_sound_two_product_accumulator PUBLIC cxx_std_20)

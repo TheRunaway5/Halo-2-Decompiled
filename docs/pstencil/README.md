@@ -67,10 +67,15 @@ From the repository root:
 ```
 
 This retained, tested runtime starts Lockout with one local player and the
-existing HUD/pause assets. Press **F1 → Graphics → Graphics Mode**, and choose
-**Original** or **pStencil**. The choice applies to the next rendered frame.
-**Video Settings → Graphics Mode** saves the preference as `pc_graphics_mode`
-in the existing `menu.cfg`; Reset restores Original. F1 changes session state.
+existing HUD/pause assets. Open **Settings → Video Settings → Graphics Mode**
+or **Pause → Settings → Video Settings → Graphics Mode**. The first row cycles
+**Original** and **pStencil**, applies immediately, and saves the choice in
+`menu.cfg`; Reset restores Original. Fullscreen Mode follows it, with Windowed,
+Fullscreen, and Borderless Fullscreen choices and the existing preview/rollback.
+The Upscaling submenu replaces SSAA with FSR 3.1 / DLSS 4.5 and Native AA / DLAA
+through Ultra Performance; see [native upscaling](../UPSCALING.md) for binary
+provenance and the remaining vendor validation diagnostics.
+The F1 overlay and debug cheats are removed.
 
 ```sh
 ./Halo2-pStencil --graphics-mode pStencil

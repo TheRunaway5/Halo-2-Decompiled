@@ -29,7 +29,7 @@ def main():
  assert generated==json.loads((E/'generated-repeat.json').read_text())
  assert generated['generator_sha256']==sha(ROOT/'tools/generate_physics_main_heap_tu15_20261012.py')
  assert generated['correspondence_sha256']==sha(paired)
- assert generated['generated_cpp_sha256']==sha(ROOT/'src/physics_main_heap_runtime_generated.cpp')==sha(E/'runtime-repeat.cpp')
+ assert generated['generated_cpp_sha256']==sha(ROOT/'src/physics/physics_main_heap_runtime_generated.cpp')==sha(E/'runtime-repeat.cpp')
  from validate_physics_main_heap_tu15_20261012 import main as validate
  validate()
  for mode in ('release','sanitizer'):

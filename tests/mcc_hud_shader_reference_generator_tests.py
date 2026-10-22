@@ -8,7 +8,7 @@ spec=importlib.util.spec_from_file_location('hud_shader_generator',ROOT/'tools/g
 generator=importlib.util.module_from_spec(spec);spec.loader.exec_module(generator)
 class GeneratorTests(unittest.TestCase):
     def test_exact_output(self):
-        self.assertEqual(generator.generate((ROOT/'tools/data/mcc-hud-shader-reference.json').read_bytes()),(ROOT/'src/mcc_hud_shader_reference.inc').read_text())
+        self.assertEqual(generator.generate((ROOT/'tools/data/mcc-hud-shader-reference.json').read_bytes()),(ROOT/'src/ui/hud/mcc_hud_shader_reference.inc').read_text())
     def test_authored_grey_mutation_rejected(self):
         d=json.loads((ROOT/'tools/data/mcc-hud-shader-reference.json').read_bytes());d['converted_grey_mappings'][0][1]^=1
         with self.assertRaisesRegex(ValueError,'authority'):generator.generate(json.dumps(d).encode())

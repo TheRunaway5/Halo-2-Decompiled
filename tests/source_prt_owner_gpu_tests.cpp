@@ -1,4 +1,4 @@
-#include "../src/source_object_geometry.hpp"
+#include "../src/gameplay/objects/source_object_geometry.hpp"
 #include "halo2/source_character_shaders.hpp"
 #include "halo2/renderer.hpp"
 #include "halo2/math.hpp"

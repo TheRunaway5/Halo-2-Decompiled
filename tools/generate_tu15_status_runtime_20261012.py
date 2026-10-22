@@ -52,7 +52,7 @@ def main():
   else:raise AssertionError((hex(p),mn))
   lines.append(f'L{p:x}: if(s.services.instruction)s.services.instruction(0x{p:x}u);{body}')
  text='''// Complete owned modified Complex4627 kernel301, statically translated.
-#include "physics_world_runtime_internal.hpp"
+#include "physics/runtime/physics_world_runtime_internal.hpp"
 #include "halo2/source_tu15_status.hpp"
 namespace halo2 { namespace {
 using namespace physics_world_runtime_detail;

@@ -1,0 +1,56 @@
+{
+  "repository": "https://github.com/hcs64/ww2ogg",
+  "commit": "14ed9b0dd62e815a38702b5f03c57006cbe2501b",
+  "archive_sha256": "261e87d39cf06d3b698753f48a47d534aef080f003a5165939bbb2ebcb256fa0",
+  "files": {
+    "COPYING": {
+      "bytes": 1504,
+      "sha256": "0a12f3490863fa01539f500fc74a0e8efbfeb22852aac087c645fbd7362d6726"
+    },
+    "README.md": {
+      "bytes": 2107,
+      "sha256": "2aef539636f42d9d450e2697456707479d715d1b86d76313c952cb7a60bc800c"
+    },
+    "packed_codebooks_aoTuV_603.bin": {
+      "bytes": 74387,
+      "sha256": "00a93eab267d281401b1efd54e888a2e183299b9e6c446c48d09f701a89d9d27"
+    },
+    "src/Bit_stream.h": {
+      "bytes": 11084,
+      "sha256": "0b94dc81640d6d3a874261670b76343f8c5254e841ade6d5aca40776d28c4c40"
+    },
+    "src/codebook.cpp": {
+      "bytes": 9202,
+      "sha256": "de1220913fbdeb402a51f4062d37f973232daeba496b66bb46ca7d0ba364a5bc"
+    },
+    "src/codebook.h": {
+      "bytes": 2114,
+      "sha256": "fd05260786111ae68bbfd931ae9505d613c4ab918d26ea706b43572fbba24761"
+    },
+    "src/crc.c": {
+      "bytes": 3307,
+      "sha256": "3615551a20b209cdecca6285b0fbcb2992c89e28fb1e3fef739e18cf3f2c0105"
+    },
+    "src/crc.h": {
+      "bytes": 180,
+      "sha256": "83350f3e4ec7b622b2f60d33ee2efc8cd84b46de5a74d729619147268741f76f"
+    },
+    "src/errors.h": {
+      "bytes": 1722,
+      "sha256": "c4df6ddf06bf3973385186e0105def214b772849bb255ff2f553ed12f45a3a70"
+    },
+    "src/ww2ogg.cpp": {
+      "bytes": 5125,
+      "sha256": "1d75cc5a4deb99a333fd81f72605aa1d64c9c6b7d946332e88ccc79f84a433fe"
+    },
+    "src/wwriff.cpp": {
+      "bytes": 39230,
+      "sha256": "f323fb9b62e35b25dea2b7cb2d44f53fb9c8c470643b19fd9df5ca923cc568dd"
+    },
+    "src/wwriff.h": {
+      "bytes": 1855,
+      "sha256": "3200eaabfebfb67d3f9c1f5186e90f6ada9779079956fe44af3756ce9e3b9934"
+    }
+  },
+  "policy": "Unmodified BSD3 converter and its aoTuV603 codebooks. No game data. Codebook family independently admitted by prior normal vgmstream decode."
+}

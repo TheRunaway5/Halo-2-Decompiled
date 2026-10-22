@@ -17,10 +17,12 @@ class NativeSoundStorage {
 public:
   explicit NativeSoundStorage(const NativeSoundStorageConfiguration &);
   // Explicitly supplied startup/physical backing, zeroed by the OS. Addresses
-  // and rounded extents must fit an unoccupied32-bit page-aligned alias range.
+  // and 4 KiB-rounded extents must fit an unoccupied 32-bit alias range. Each
+  // region has independent OS-page-rounded backing; its padding is not exposed.
   void map_zeroed(std::uint32_t address, std::size_t extent);
   std::span<std::byte> memory(std::uint32_t address, std::size_t extent) const;
-  std::size_t page_size() const;
+  std::size_t page_size() const;       // Actual host OS page size.
+  std::size_t alias_page_size() const; // Private address-translation granularity.
   std::size_t region_count() const;
   // These callbacks retain the real backing even after this facade is gone.
   // The allocator can return0 only when the host OS allocation actually fails;

@@ -1,5 +1,5 @@
 # Compose source CRT remainder, FP-control and vehicle solver dispatch owners.
-add_library(halo2_physics_vehicle_motion_math STATIC src/physics_vehicle_motion_math_generated.cpp)
+add_library(halo2_physics_vehicle_motion_math STATIC src/physics/vehicles/physics_vehicle_motion_math_generated.cpp)
 target_include_directories(halo2_physics_vehicle_motion_math PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_physics_vehicle_motion_math PUBLIC cxx_std_20)
 target_link_libraries(halo2_physics_vehicle_motion_math PUBLIC halo2_physics_vehicle_motion)

@@ -8,10 +8,10 @@ device/manual mixer test, not speaker audibility or the full live world flow.
 import argparse,hashlib,json,os,shlex,subprocess
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-SOURCES=['src/native_vista_announcer.cpp','src/vista_announcer_events.cpp',
- 'src/vista_announcer_assets.cpp','src/vista_announcer_queue.cpp',
- 'src/source_tag_metadata_store.cpp','src/multiplayer_audio.cpp',
- 'src/sound_variation.cpp','src/sound_driver_parameters.cpp','src/original_data.cpp',
+SOURCES=['src/ui/vista/native_vista_announcer.cpp','src/audio/vista_announcer_events.cpp',
+ 'src/audio/vista_announcer_assets.cpp','src/audio/vista_announcer_queue.cpp',
+ 'src/assets/source_tag_metadata_store.cpp','src/audio/multiplayer_audio.cpp',
+ 'src/audio/sound_variation.cpp','src/audio/sound_driver_parameters.cpp','src/assets/original_data.cpp',
  'tests/native_vista_announcer_tests.cpp']
 ARCHIVES=['build-vista-cache-adapter/libhalo2_systems.a',
  'build-vista-cache-adapter/libhalo2_cache.a','build-vista-cache-adapter/libhalo2_sound_platform.a']
@@ -22,7 +22,7 @@ def main():
  target=Path.home()/'.cache'/('native-vista-announcer-tests-asan'if a.asan else'native-vista-announcer-tests')
  command=['c++','-std=c++20','-Wall','-Wextra','-Werror','-pedantic','-fno-fast-math','-ffp-contract=off']
  if a.asan:command+=['-fsanitize=address,undefined','-fno-omit-frame-pointer']
- command+=['-Iinclude']+shlex.split(subprocess.check_output(['pkg-config','--cflags',*PACKAGES],text=True))
+ command+=['-Iinclude', '-Isrc']+shlex.split(subprocess.check_output(['pkg-config','--cflags',*PACKAGES],text=True))
  command+=SOURCES+['-Wl,--start-group',*ARCHIVES,'-Wl,--end-group']
  command+=shlex.split(subprocess.check_output(['pkg-config','--libs',*PACKAGES],text=True))+['-lz','-lglm','-pthread','-o',str(target)]
  compiler_tmp=Path.home()/'.cache'/'native-vista-announcer-compiler-tmp';compiler_tmp.mkdir(parents=True,exist_ok=True)

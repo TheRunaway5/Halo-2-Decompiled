@@ -27,7 +27,7 @@ def main():
     comparison=load(comparison_name)
     assert comparison['passed'] and not comparison['full_weapon_parity']
     assert not comparison['full_firing_sound_sequence_passed']
-    assert comparison['production_source_sha256']==sha(ROOT/'src/multiplayer.cpp')
+    assert comparison['production_source_sha256']==sha(ROOT/'src/gameplay/multiplayer/multiplayer.cpp')
     before='weapon-source-firing-diagnostic-v1'
     after='weapon-source-firing-publication-v2'
     references=[comparison_name,'weapon-preparation-counter-static-v1.json',
@@ -48,7 +48,7 @@ def main():
         references += [folder+'/release/evidence/weapon-source-firing-'+label+'.json'
             for label in ('pinned','native_motion')]
     manifest=load(after+'/source-manifest.json')['source_files_sha256']
-    source_files=['src/multiplayer.cpp','tests/native_covenant_weapon_runtime_tests.cpp',
+    source_files=['src/gameplay/multiplayer/multiplayer.cpp','tests/native_covenant_weapon_runtime_tests.cpp',
         'tools/validate_weapon_material_snapshot_tu15.py']
     for name in source_files:
         assert manifest[name]==sha(ROOT/name),name

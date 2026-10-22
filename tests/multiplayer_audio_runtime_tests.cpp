@@ -64,13 +64,29 @@ struct Host {
 };
 }
 int main(int argc,char **argv){try{
-  check(argc>=4&&argc<=7,"Supply MAP SHARED_MAPS UPDATE_XBE [--split4] [--lan] [--slow-client]");
+  check(argc>=4,"Supply MAP SHARED_MAPS UPDATE_XBE [--split2|--split4] [--lan] [--slow-client] [--shaders PATH]");
   if(!std::getenv("DISPLAY")||!std::filesystem::exists(argv[1])||!std::filesystem::exists(argv[3]))return 77;
+  const auto scratch=std::getenv("HALO2_TEST_SCRATCH");
+  check(scratch && std::filesystem::path(scratch).is_absolute(),"Run live audio validation through tools/run_test.py");
+  const std::filesystem::path test_scratch(scratch);
+  for(const auto &[key,folder]:std::array<std::pair<const char*,const char*>,3>{{
+      {"HALO2_PIPELINE_CACHE_DIRECTORY","vulkan-cache"},
+      {"MESA_SHADER_CACHE_DIR","mesa-cache"},
+      {"__GL_SHADER_DISK_CACHE_PATH","nvidia-cache"}}})
+    check(SDL_setenv(key,(test_scratch/folder).string().c_str(),1)==0,"Could not isolate the live audio GPU cache");
   SDL_SetMainReady();SDL_SetHint(SDL_HINT_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT,"0x0000/0x0000");
   MultiplayerOptions options;options.map=argv[1];options.shared_maps=argv[2];options.gameplay_xbe=argv[3];
-  options.width=640;options.height=480;options.starting_weapon=5;options.mute=false;bool lan=false,slow_client=false;
+  options.width=640;options.height=480;options.starting_weapon=5;options.mute=false;bool lan=false,slow_client=false,weapons=false;unsigned cycles=1;
   for(int at=4;at<argc;++at){const std::string arg=argv[at];if(arg=="--split4")options.local_players=4;
+    else if(arg=="--split2")options.local_players=2;
+    else if(arg=="--weapons")weapons=true;
     else if(arg=="--lan")lan=true;else if(arg=="--slow-client")slow_client=true;
+    else if(arg=="--shaders" && at+1<argc){
+      options.capture_shader_directory=argv[++at];options.capture_tick=10000;
+      options.reference_tick_cadence=true;
+      options.screenshot=test_scratch/"last.ppm";
+    }
+    else if(arg=="--cycles" && at+1<argc){cycles=unsigned(std::stoul(argv[++at]));check(cycles>=1 && cycles<=10,"Audio cycles must be 1..10");}
     else throw FormatError("Unknown live audio option");}
   check(!slow_client||lan,"Slow-client delivery check requires a real independently ticking authority");
   Cache cache(options.map,options.shared_maps,OriginalData::load_xbe(options.gameplay_xbe));
@@ -99,7 +115,7 @@ int main(int argc,char **argv){try{
   };
   for(int i=0;i<SDL_NumJoysticks();++i)check(!SDL_IsGameController(i),"Physical controller contaminated isolated audio test");
   const auto window_id=SDL_GetWindowID(window);SDL_FlushEvents(SDL_FIRSTEVENT,SDL_LASTEVENT);
-  std::optional<unsigned> start;unsigned step=0,ambient=0,reloads=0,impulses=0,footsteps=0;bool fired=false,requested=false;
+  std::optional<unsigned> start;unsigned step=0,ambient=0,reloads=0,impulses=0,footsteps=0,walking_commands=0;bool fired=false,requested=false;
   std::optional<std::uint32_t> client_baseline;
   unsigned client_starting_impulses=0,client_initial_impulses=0,local_effect_requests=0;
   std::uint32_t local_effect_serial{};
@@ -116,20 +132,22 @@ int main(int argc,char **argv){try{
     }
     if(lan&&!client_baseline&&std::any_of(state.players.begin(),state.players.end(),[](const auto&p){return p.connected;}))
       client_baseline=state.tick;
-    if(start&&(tick==*start+6||tick==*start+20||tick==*start+28||tick==*start+55||tick==*start+125))
+    const auto phase=start?(tick-*start)%180:0;
+    if(start&&(phase==6||phase==20||phase==28||phase==55||phase==125))
       focus_window();
-    if(start&&tick==*start+6)fire(window_id,true);
-    if(start&&tick==*start+20)fire(window_id,false);
-    if(start&&tick==*start+28)reload(window_id);
-    if(start&&tick==*start+55)walk(window_id,true);
-    if(start&&tick==*start+125)walk(window_id,false);
+    if(start&&phase==6)fire(window_id,true);
+    if(start&&phase==20)fire(window_id,false);
+    if(start&&phase==28)reload(window_id);
+    if(start&&!weapons&&phase==55)walk(window_id,true);
+    if(start&&!weapons&&phase==125)walk(window_id,false);
     requested|=commands[0].reload;fired|=state.players[0].shot_tick&&state.players[0].loaded<60;
-    if(start&&tick==*start+170){SDL_Event e{};e.type=SDL_QUIT;push(e);}
+    walking_commands+=commands[0].forward!=0;
+    if(start&&tick==*start+cycles*180-10){SDL_Event e{};e.type=SDL_QUIT;push(e);}
   };
   options.audio_observer=[&](const auto &s){check(s.frames>0&&s.voice!=0,"Real SDL voice packet lost resource/handle");
     if(s.kind==MultiplayerAudioKind::Ambient)++ambient;
     if(s.kind==MultiplayerAudioKind::Impulse)++impulses;
-    if(s.kind==MultiplayerAudioKind::Impulse&&s.sound==starting_sound){
+    if(s.sound==starting_sound){
       check(starting_voices.insert(s.voice).second,"Starting SMG impulse submitted twice on one SDL voice");
       if(!lan||client_baseline)++client_starting_impulses;else ++client_initial_impulses;
     }
@@ -153,6 +171,7 @@ int main(int argc,char **argv){try{
   std::cout<<"actual SDL audio: views="<<options.local_players<<" nativeLAN="<<lan<<" ticks="<<state.tick
     <<" fired="<<fired<<" requested_reload="<<requested<<" reload_packets="<<reloads<<" ambient_packets="<<ambient
     <<" impulse_packets="<<impulses<<" footstep_packets="<<footsteps
+    <<" walking_commands="<<walking_commands<<" walking_check="<<!weapons
     <<" source_smg_impulses="<<(lan?source_starting_impulses:local_effect_requests)<<" client_smg_submissions="<<client_starting_impulses
     <<" source_initial_smg="<<source_initial_impulses<<" client_initial_smg="<<client_initial_impulses
     <<" source_unobserved_tail_smg="<<source_unobserved_tail<<'\n';
@@ -167,6 +186,10 @@ int main(int argc,char **argv){try{
   }
   if(!lan)check(local_effect_requests>0&&client_starting_impulses==local_effect_requests,
       "Local firing sound count differs from actual authority weapon effects");
-  check(result==0&&fired&&requested&&reloads==1&&ambient>=2&&impulses>0&&footsteps>0,"Live reload/ambient/footstep SDL symptom regression failed");
-  std::cout<<"PASS actual authored reload, BSP wind and walking footsteps reached real SDL device submission; physical speakers unverified\n";
+  // The independently counted firing-sound identity above covers both native
+  // effect impulses and centered source-owned first-person submissions.
+  check(result==0&&fired&&requested&&reloads==cycles&&ambient>=2,"Live shot/reload/ambient SDL symptom regression failed");
+  if(!weapons)check(footsteps>0,"Live walking footstep SDL symptom regression failed");
+  std::cout<<"PASS actual authored shots, reload and BSP wind reached real SDL device submission; walking="
+    <<(weapons?"separate":"passed")<<"; physical speakers unverified\n";
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}

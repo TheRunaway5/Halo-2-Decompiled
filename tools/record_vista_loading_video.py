@@ -34,9 +34,9 @@ def record(executable, output, assets):
         environment["LD_LIBRARY_PATH"] = os.pathsep.join(filter(None, (
             str(validation / "lib"), environment.get("LD_LIBRARY_PATH"))))
     paths = [executable, Path(__file__).resolve(), ROOT / "tools/capture_vista_loading_video.cpp",
-             ROOT / "src/renderer.cpp", ROOT / "src/native_loading_presentation.cpp",
-             ROOT / "src/vista_loading_geometry.cpp", ROOT / "src/native_vista_loading_audio.cpp",
-             ROOT / "src/vista_loading_audio.cpp", ROOT / "shaders/vista_loading.vert",
+             ROOT / "src/rendering/renderer/renderer.cpp", ROOT / "src/platform/media/native_loading_presentation.cpp",
+             ROOT / "src/ui/vista/vista_loading_geometry.cpp", ROOT / "src/ui/vista/native_vista_loading_audio.cpp",
+             ROOT / "src/ui/vista/vista_loading_audio.cpp", ROOT / "shaders/vista_loading.vert",
              ROOT / "shaders/vista_loading.frag", *sorted(assets.glob("*")),
              executable.parent / "shaders/vista_loading.vert.spv",
              executable.parent / "shaders/vista_loading.frag.spv"]

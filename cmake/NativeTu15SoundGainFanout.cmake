@@ -1,7 +1,7 @@
 # Compiled original record-0 ordered arithmetic. The complete DSP graph,
 # source producer and cold initializer45 remain required.
 add_library(halo2_native_tu15_sound_gain_fanout STATIC
-    src/native_tu15_sound_gain_fanout.cpp)
+    src/audio/native_tu15_sound_gain_fanout.cpp)
 target_include_directories(halo2_native_tu15_sound_gain_fanout PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_native_tu15_sound_gain_fanout PUBLIC cxx_std_20)

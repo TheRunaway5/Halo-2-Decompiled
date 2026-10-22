@@ -21,10 +21,17 @@ modern camera branch:
   through the existing source safe-frustum. The HUD retains its layout.
 - The first-person pass at `7E0C60` saves the world camera and overwrites its
   vertical angle at `7E0F35` / `7E0F3D` with the fixed float
-  `0.8655884265899658`. Hands and weapon geometry therefore retain their framing
-  at 120 degrees. Native ordinary gameplay supplies that independent lens to
+  `0.8655884265899658`. Native single-player hands and weapon geometry retain their framing
+  at 120 degrees. Native ordinary gameplay supplies its independent lens to
   both opaque/deferred geometry and first-person muzzle particles. Native NV2A
   W-depth scaling remains in its original units.
+- Local split-screen uses the authored unzoomed biped lens and the original
+  grid/span factors for hands, weapons and first-person effects. The single-view
+  MCC lens exposed the rocket launcher's rear in wide horizontal panes. The
+  source grid ratio also had its axes reversed: TU1.5 `2F7E0` consumes span in
+  EDX and grid on the stack, and computes `grid.y * span.x / (span.y * grid.x)`.
+  Its factors are 0.5 for horizontal halves, 0.8 for vertical halves and 0.785
+  for square cells. The PC world lens remains controlled by the slider.
 - The 33 weapon definitions shared by MCC's `shared.map` and the Xbox Lockout
   cache have identical first-person offsets, so no replacement model offsets
   are introduced for the wider world view.
@@ -61,3 +68,13 @@ the world lens is deliberately substituted. The gameplay runtime probe also
 renders the real textured scene at both settings. Evidence is recorded under
 `analysis/camera/mcc-first-person-fov-20261014/`; these checks do not establish
 live MCC framebuffer, depth-buffer, or full animation parity.
+
+`tools/oracle_split_first_person_fov_tu15.py` authenticates the English TU1.5
+XBE, uniquely locates the matching instructions and executes unchanged
+`174BF0` and `2F7E0` without hooked math or game services. Twelve authored
+angle/grid/span cases are retained in `tu15_split_first_person_fov.tsv`.
+The FOV unit test and source-shaded weapon framebuffer checks compare against
+those independent outputs. Actual Coagulation split-screen captures at
+2560x1380 and 78/120 degrees are recorded under
+`analysis/rocket-clipping-mcc-20261022/`. These establish the clipping fix and
+the numeric split lens; they do not certify complete OG framebuffer parity.

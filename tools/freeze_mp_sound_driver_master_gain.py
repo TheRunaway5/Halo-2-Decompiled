@@ -64,14 +64,14 @@ def main():
                    'production-normal','production-sanitizer'):
         for path in sorted((BASE/folder).rglob('*')):
             if path.is_file():copy(path,FROZEN/'evidence'/folder/path.relative_to(BASE/folder))
-    names=['include/halo2/sound_driver_master_gain.hpp','src/sound_driver_master_gain.cpp',
+    names=['include/halo2/sound_driver_master_gain.hpp','src/audio/sound_driver_master_gain.cpp',
         'tests/sound_driver_master_gain_tests.cpp','tests/sound_driver_master_gain_constants_tests.cpp',
         'tools/research_sound_driver_master_gain_u5.py','tools/oracle_sound_driver_master_gain_native.py',
         'tools/export_sound_driver_master_gain_fixtures.py','tools/validate_sound_driver_master_gain_native.py',
         'tools/validate_sound_driver_master_gain_production.py','tools/freeze_mp_sound_driver_master_gain.py',
         'docs/MP_SOUND_DRIVER_MASTER_GAIN_RESEARCH.md']
     owned={name:sha(actual(name)) for name in names}
-    for name in names+['CMakeLists.txt','include/halo2/original_data.hpp','src/original_data.cpp']:
+    for name in names+['CMakeLists.txt','include/halo2/original_data.hpp','src/assets/original_data.cpp']:
         copy(actual(name),FROZEN/'source'/name)
     artifacts={relative(path):sha(path) for path in sorted(FROZEN.rglob('*')) if path.is_file()}
     report=dict(schema='sound-driver-master-gain-frozen-v1',artifact_pins=artifacts,

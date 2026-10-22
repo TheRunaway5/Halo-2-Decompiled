@@ -1,0 +1,1981 @@
+{
+  "schema": "macos-engine-x86-progress-v1",
+  "date": "2026-10-21",
+  "updated_utc": "2026-10-21T19:22:58.801320+00:00",
+  "objective": "Build the actual required x86_64 engine slice while keeping exact arm64 numerical conversion deferred; this does not replace the universal goal.",
+  "source": {
+    "initial_receipt": {
+      "source_files": 8981,
+      "source_bytes": 460530602,
+      "manifest_sha256": "c485d009a51b4e5710ca10527d3d10d4acbf10ea5008d37690f951cce02f36c3",
+      "snapshot_owner": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-u6_73jxc",
+      "git_head": "05551e2cd1997e0b0a84acea603627c5ddc0cb29"
+    },
+    "effective_manifest": "docs/macos/engine-x86-source-20261021.json.xz",
+    "effective_manifest_bytes": 361008,
+    "effective_manifest_sha256": "dd15288696194d599e87ca7e0045f584120dba93ca118f0f2931e787f7f32309",
+    "effective_source_files": 8982,
+    "changed_files": {
+      "src/online_directory.cpp": "972ffcb2ae61dd4585b0eaf83a57e9eeb5cdfb3d05b32874498e4a7de9ccb50e",
+      "src/online_matchmaking.cpp": "364143587be5b42c9a416cdbde5c8ee36c594e40c17129e7aad683cb4f789454",
+      "tests/macos/online_directory/CMakeLists.txt": "7201f49b72b9a37b42d1b4c62cc6379284ace8824558541765929fd3089283c4"
+    },
+    "refreshes": [
+      {
+        "reason": "libc++ requires mutable std::stop_source and mutable lambda call operator; add isolated production directory tests without changing cancellation ownership or lock/copy order.",
+        "files": {
+          "src/online_directory.cpp": {
+            "old_sha256": "d98d98a19905debbee71d99f97451554e354f263486b3389d2114ba6c7ba81a1",
+            "sha256": "972ffcb2ae61dd4585b0eaf83a57e9eeb5cdfb3d05b32874498e4a7de9ccb50e",
+            "bytes": 13768
+          },
+          "tests/macos/online_directory/CMakeLists.txt": {
+            "old_sha256": null,
+            "sha256": "7201f49b72b9a37b42d1b4c62cc6379284ace8824558541765929fd3089283c4",
+            "bytes": 1450
+          }
+        }
+      },
+      {
+        "reason": "The second full-engine build reproduced the identical libc++ cancellation capture diagnostic in matchmaking. Preserve copy-before-unlock order and make the copied stop source / callback mutable.",
+        "files": {
+          "src/online_matchmaking.cpp": {
+            "old_sha256": "f385f4b23aba54e3399ff791fa3e99d0af02762b63bdfa34a6b6f966510011a3",
+            "sha256": "364143587be5b42c9a416cdbde5c8ee36c594e40c17129e7aad683cb4f789454",
+            "bytes": 27413
+          }
+        }
+      }
+    ]
+  },
+  "diagnosis": {
+    "first": "Full engine compile stopped at online_directory.cpp:211 because the const stop_source capture cannot call libc++ request_stop().",
+    "second": "The next full engine attempt reproduced the identical failure in online_matchmaking.cpp:288.",
+    "control": "Three isolated const variants fail; a nonconst local source plus mutable callback compiles universally and propagates copied-state cancellation on both slices.",
+    "fix": "Two lines in each production owner: keep the copy before unlock; remove local const and make the lambda call operator mutable. No allocation, cancellation ownership or lock ordering changes."
+  },
+  "probe": {
+    "cases": [
+      {
+        "name": "const-capture",
+        "command": [
+          "/usr/bin/c++",
+          "-std=c++20",
+          "-mmacosx-version-min=13.0",
+          "-arch",
+          "arm64",
+          "-arch",
+          "x86_64",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/stop-source/const-capture.cpp",
+          "-o",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/stop-source/const-capture"
+        ],
+        "exit_code": 1,
+        "diagnostic": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/stop-source/const-capture.cpp:2:130: error: 'this' argument to member function 'request_stop' has type 'const std::stop_source', but function is not marked const\n    2 | int main(){std::stop_source outer,request; const auto source=request; std::stop_callback callback(outer.get_token(),[source]()  {source.request_stop();}); if(request.stop_requested())return 2;outer.request_stop();return request.stop_requested()?0:3;}\n      |                                                                                                                                  ^~~~~~\n/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__stop_token/stop_source.h:77:30: note: 'request_stop' declared here\n   77 |   _LIBCPP_HIDE_FROM_ABI bool request_stop() noexcept { return __state_ && __state_->__request_stop(); }\n      |                              ^\n1 error generated.\n"
+      },
+      {
+        "name": "const-capture-mutable",
+        "command": [
+          "/usr/bin/c++",
+          "-std=c++20",
+          "-mmacosx-version-min=13.0",
+          "-arch",
+          "arm64",
+          "-arch",
+          "x86_64",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/stop-source/const-capture-mutable.cpp",
+          "-o",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/stop-source/const-capture-mutable"
+        ],
+        "exit_code": 1,
+        "diagnostic": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/stop-source/const-capture-mutable.cpp:2:137: error: 'this' argument to member function 'request_stop' has type 'const std::stop_source', but function is not marked const\n    2 | int main(){std::stop_source outer,request; const auto source=request; std::stop_callback callback(outer.get_token(),[source]() mutable {source.request_stop();}); if(request.stop_requested())return 2;outer.request_stop();return request.stop_requested()?0:3;}\n      |                                                                                                                                         ^~~~~~\n/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__stop_token/stop_source.h:77:30: note: 'request_stop' declared here\n   77 |   _LIBCPP_HIDE_FROM_ABI bool request_stop() noexcept { return __state_ && __state_->__request_stop(); }\n      |                              ^\n1 error generated.\n"
+      },
+      {
+        "name": "mutable-source-const-call",
+        "command": [
+          "/usr/bin/c++",
+          "-std=c++20",
+          "-mmacosx-version-min=13.0",
+          "-arch",
+          "arm64",
+          "-arch",
+          "x86_64",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/stop-source/mutable-source-const-call.cpp",
+          "-o",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/stop-source/mutable-source-const-call"
+        ],
+        "exit_code": 1,
+        "diagnostic": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/stop-source/mutable-source-const-call.cpp:2:125: error: 'this' argument to member function 'request_stop' has type 'const std::stop_source', but function is not marked const\n    2 | int main(){std::stop_source outer,request;  auto source=request; std::stop_callback callback(outer.get_token(),[source]()  {source.request_stop();}); if(request.stop_requested())return 2;outer.request_stop();return request.stop_requested()?0:3;}\n      |                                                                                                                             ^~~~~~\n/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__stop_token/stop_source.h:77:30: note: 'request_stop' declared here\n   77 |   _LIBCPP_HIDE_FROM_ABI bool request_stop() noexcept { return __state_ && __state_->__request_stop(); }\n      |                              ^\n1 error generated.\n"
+      },
+      {
+        "name": "mutable-source-mutable-call",
+        "command": [
+          "/usr/bin/c++",
+          "-std=c++20",
+          "-mmacosx-version-min=13.0",
+          "-arch",
+          "arm64",
+          "-arch",
+          "x86_64",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/stop-source/mutable-source-mutable-call.cpp",
+          "-o",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/stop-source/mutable-source-mutable-call"
+        ],
+        "exit_code": 0,
+        "diagnostic": "",
+        "executions": {
+          "arm64": 0,
+          "x86_64": 0
+        }
+      }
+    ]
+  },
+  "matchmaking_universal_compile": {
+    "source_sha256": "364143587be5b42c9a416cdbde5c8ee36c594e40c17129e7aad683cb4f789454",
+    "command": [
+      "/usr/bin/c++",
+      "-std=c++20",
+      "-O3",
+      "-DNDEBUG",
+      "-mmacosx-version-min=13.0",
+      "-arch",
+      "arm64",
+      "-arch",
+      "x86_64",
+      "-Iinclude",
+      "-isystem",
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/macos-dependencies/openssl/include",
+      "-isystem",
+      "/opt/homebrew/include",
+      "-c",
+      "src/online_matchmaking.cpp",
+      "-o",
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/stop-source/online-matchmaking.o"
+    ],
+    "exit_code": 0,
+    "diagnostic": "",
+    "architectures": "x86_64 arm64",
+    "temporary_object_bytes": 723440
+  },
+  "runs": {
+    "full_engine_first": {
+      "passed": false,
+      "status": "failed",
+      "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/Users/eric/Developer/Halo2-macos-port",
+            "-B",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-GNinja",
+            "-DSDL2_DIR=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/sdk/cmake/SDL2",
+            "-DHALO2_MOLTENVK_LIBRARY=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib",
+            "-DHALO2_MOLTENVK_LICENSE=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/sdk/MoltenVK/LICENSE",
+            "-DHALO2_SDL_LICENSE=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/SDL2-LICENSE.txt",
+            "-DCMAKE_OSX_ARCHITECTURES=x86_64",
+            "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+            "-DHALO2_BUNDLE_MOVIES=OFF"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-1/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "halo2_native",
+            "vulkan_portability_tests"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-1/build.log",
+          "exit_code": 1
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "macos-dependencies/sdl/manifest.json",
+          "status": "retained",
+          "bytes": 17812,
+          "sha256": "b316ccb592860acb271d4df22e0af87f7d35c98811fcc6f950ae34cb8dd38be5",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-1/evidence/macos-dependencies/sdl/manifest.json"
+        },
+        {
+          "path": "macos-dependencies/openssl/manifest.json",
+          "status": "retained",
+          "bytes": 18574,
+          "sha256": "6ca488fd1e26d699ea1a8eff948859d15bbbdf1f7c20e347d9a7e9901e1b2d0c",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-1/evidence/macos-dependencies/openssl/manifest.json"
+        },
+        {
+          "path": "macos-dependencies/opus/manifest.json",
+          "status": "retained",
+          "bytes": 2269,
+          "sha256": "e186a487af052afc98bf3253fba152ea0422eae78e46cf7110552bfb00d5cef3",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-1/evidence/macos-dependencies/opus/manifest.json"
+        },
+        {
+          "path": "macos-dependencies/libdeflate/manifest.json",
+          "status": "retained",
+          "bytes": 2070,
+          "sha256": "f00218912f271f1b50491a137943b009dcba3ca63790317df2db29c990fb30dd",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-1/evidence/macos-dependencies/libdeflate/manifest.json"
+        },
+        {
+          "path": "macos-dependencies/ffmpeg/manifest.json",
+          "status": "not produced"
+        },
+        {
+          "path": "macos-dependencies/vorbis/manifest.json",
+          "status": "not produced"
+        },
+        {
+          "path": "menu-world-vertex-catalog/compiled.json",
+          "status": "not produced"
+        },
+        {
+          "path": "Halo 2.app/Contents/Resources/bundle-manifest.json",
+          "status": "not produced"
+        }
+      ],
+      "retained_directory": "build/test-results/macos-engine-x86/mac/run-1",
+      "report_sha256": "ef70a0db2485e10c0cb72af8d19c31acae8cda0c0efc8da9e7a90b03cdb1e74c",
+      "logs": {}
+    },
+    "full_engine_second": {
+      "passed": false,
+      "status": "failed",
+      "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/Users/eric/Developer/Halo2-macos-port",
+            "-B",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-2/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "halo2_native",
+            "vulkan_portability_tests"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-2/build.log",
+          "exit_code": 1
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "macos-dependencies/sdl/manifest.json",
+          "status": "retained",
+          "bytes": 17812,
+          "sha256": "b316ccb592860acb271d4df22e0af87f7d35c98811fcc6f950ae34cb8dd38be5",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-2/evidence/macos-dependencies/sdl/manifest.json"
+        },
+        {
+          "path": "macos-dependencies/openssl/manifest.json",
+          "status": "retained",
+          "bytes": 18574,
+          "sha256": "6ca488fd1e26d699ea1a8eff948859d15bbbdf1f7c20e347d9a7e9901e1b2d0c",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-2/evidence/macos-dependencies/openssl/manifest.json"
+        },
+        {
+          "path": "macos-dependencies/opus/manifest.json",
+          "status": "retained",
+          "bytes": 2269,
+          "sha256": "e186a487af052afc98bf3253fba152ea0422eae78e46cf7110552bfb00d5cef3",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-2/evidence/macos-dependencies/opus/manifest.json"
+        },
+        {
+          "path": "macos-dependencies/libdeflate/manifest.json",
+          "status": "retained",
+          "bytes": 2070,
+          "sha256": "f00218912f271f1b50491a137943b009dcba3ca63790317df2db29c990fb30dd",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-2/evidence/macos-dependencies/libdeflate/manifest.json"
+        },
+        {
+          "path": "macos-dependencies/ffmpeg/manifest.json",
+          "status": "not produced"
+        },
+        {
+          "path": "macos-dependencies/vorbis/manifest.json",
+          "status": "not produced"
+        },
+        {
+          "path": "menu-world-vertex-catalog/compiled.json",
+          "status": "not produced"
+        },
+        {
+          "path": "Halo 2.app/Contents/Resources/bundle-manifest.json",
+          "status": "not produced"
+        }
+      ],
+      "retained_directory": "build/test-results/macos-engine-x86/mac/run-2",
+      "report_sha256": "3c0f43f424dc79e122ec399ee549bc59fb759e95b38c4c8d9ddb4e9371942e3e",
+      "logs": {}
+    },
+    "mac_engine_online_tests": {
+      "passed": true,
+      "status": "passed",
+      "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/Users/eric/Developer/Halo2-macos-port",
+            "-B",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-3-online/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "online_matchmaking_tests",
+            "online_directory_tests",
+            "vulkan_portability_tests"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-3-online/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "1",
+            "--tests-regex",
+            "^(online_matchmaking_client|online_directory_client|vulkan_portability)$"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-3-online/tests.log",
+          "exit_code": 0
+        }
+      ],
+      "retained_small_reports": [],
+      "retained_directory": "build/test-results/macos-engine-x86/mac/run-3-online",
+      "report_sha256": "b1448c103df54602cd5c5695ba3ba6afe460e32f49134c5d1f11ef4a45496ecd",
+      "logs": {
+        "tests.log": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build\n    Start 192: vulkan_portability\n1/3 Test #192: vulkan_portability ...............   Passed    0.38 sec\n    Start 605: online_directory_client\n2/3 Test #605: online_directory_client ..........   Passed    0.42 sec\n    Start 606: online_matchmaking_client\n3/3 Test #606: online_matchmaking_client ........   Passed    3.47 sec\n\n100% tests passed out of 3\n\nTotal Test time (real) =   4.30 sec\n"
+      }
+    },
+    "full_engine_resumed": {
+      "passed": false,
+      "status": "failed",
+      "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/Users/eric/Developer/Halo2-macos-port",
+            "-B",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-4/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "halo2_native",
+            "vulkan_portability_tests"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-4/build.log",
+          "exit_code": 1
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "macos-dependencies/sdl/manifest.json",
+          "status": "retained",
+          "bytes": 17812,
+          "sha256": "b316ccb592860acb271d4df22e0af87f7d35c98811fcc6f950ae34cb8dd38be5",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-4/evidence/macos-dependencies/sdl/manifest.json"
+        },
+        {
+          "path": "macos-dependencies/openssl/manifest.json",
+          "status": "retained",
+          "bytes": 18574,
+          "sha256": "6ca488fd1e26d699ea1a8eff948859d15bbbdf1f7c20e347d9a7e9901e1b2d0c",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-4/evidence/macos-dependencies/openssl/manifest.json"
+        },
+        {
+          "path": "macos-dependencies/opus/manifest.json",
+          "status": "retained",
+          "bytes": 2269,
+          "sha256": "e186a487af052afc98bf3253fba152ea0422eae78e46cf7110552bfb00d5cef3",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-4/evidence/macos-dependencies/opus/manifest.json"
+        },
+        {
+          "path": "macos-dependencies/libdeflate/manifest.json",
+          "status": "retained",
+          "bytes": 2070,
+          "sha256": "f00218912f271f1b50491a137943b009dcba3ca63790317df2db29c990fb30dd",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-4/evidence/macos-dependencies/libdeflate/manifest.json"
+        },
+        {
+          "path": "macos-dependencies/ffmpeg/manifest.json",
+          "status": "retained",
+          "bytes": 33443,
+          "sha256": "9165ec4d02e40e1c8e33c36f5cfa25cd3797cad73034e45d49fc065f5bd6e2bb",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-4/evidence/macos-dependencies/ffmpeg/manifest.json"
+        },
+        {
+          "path": "macos-dependencies/vorbis/manifest.json",
+          "status": "retained",
+          "bytes": 5890,
+          "sha256": "87d116f3e37d1f31deb2ec5a4e1d49ad882cb0693102b9b593bbe38f822101cb",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-4/evidence/macos-dependencies/vorbis/manifest.json"
+        },
+        {
+          "path": "menu-world-vertex-catalog/compiled.json",
+          "status": "retained",
+          "bytes": 662018,
+          "sha256": "bd247032040ac55b8baa575225f5559547a82cf6646c162f00656b62e207d0f4",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86/run-4/evidence/menu-world-vertex-catalog/compiled.json"
+        },
+        {
+          "path": "Halo 2.app/Contents/Resources/bundle-manifest.json",
+          "status": "not produced"
+        }
+      ],
+      "retained_directory": "build/test-results/macos-engine-x86/mac/run-4",
+      "report_sha256": "5c5bcd40521230438184ce19949ffe4373dbd509c9b15387f8fb34fafa284a70"
+    },
+    "mac_universal_directory": {
+      "passed": true,
+      "status": "passed",
+      "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-93astrty/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/Users/eric/Developer/Halo2-macos-port/tests/macos/online_directory",
+            "-B",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-93astrty/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-directory-universal/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-93astrty/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "online_directory_tests"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-directory-universal/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-93astrty/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "2",
+            "--tests-regex",
+            "^online_directory_client_"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-directory-universal/tests.log",
+          "exit_code": 0
+        }
+      ],
+      "retained_small_reports": [],
+      "retained_directory": "build/test-results/macos-engine-directory-universal",
+      "report_sha256": "c10e3b96b1f53410ecbb2ace14c72af7cdd371a025227ef7669ac48d47c0dbd2",
+      "logs": {
+        "tests.log": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-93astrty/build\n    Start 1: online_directory_client_arm64\n    Start 2: online_directory_client_x86_64\n1/2 Test #1: online_directory_client_arm64 ....   Passed    0.63 sec\n2/2 Test #2: online_directory_client_x86_64 ...   Passed    1.05 sec\n\n100% tests passed out of 2\n\nTotal Test time (real) =   1.05 sec\n"
+      }
+    },
+    "linux_directory": {
+      "passed": true,
+      "status": "passed",
+      "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-36ylm9xi/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/home/eric/Developer/Halo-2-Decompiled/tests/macos/online_directory",
+            "-B",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-36ylm9xi/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-engine-directory-linux/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-36ylm9xi/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "online_directory_tests"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-engine-directory-linux/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-36ylm9xi/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "2",
+            "--tests-regex",
+            "^online_directory_client_"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-engine-directory-linux/tests.log",
+          "exit_code": 0
+        }
+      ],
+      "retained_small_reports": [],
+      "retained_directory": "build/test-results/macos-engine-directory-linux",
+      "report_sha256": "e0a553da616e4243808cf2565cb9ce69abfd45feaca3e302650646b8480fe6b8",
+      "logs": {
+        "tests.log": "Test project /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-36ylm9xi/build\n    Start 1: online_directory_client_host\n1/1 Test #1: online_directory_client_host .....   Passed    0.15 sec\n\n100% tests passed out of 1\n\nTotal Test time (real) =   0.15 sec\n"
+      }
+    },
+    "linux_engine_online": {
+      "passed": true,
+      "status": "passed",
+      "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-7bhbwnjg/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/home/eric/Developer/Halo-2-Decompiled",
+            "-B",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-7bhbwnjg/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DHALO2_BUNDLE_MOVIES=OFF",
+            "-DFETCHCONTENT_SOURCE_DIR_HALO2_DATACHANNEL=/home/eric/Developer/Halo-2-Decompiled/build-multiplayer/_deps/halo2_datachannel-src"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-engine-online-linux/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-7bhbwnjg/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "online_matchmaking_tests",
+            "online_directory_tests"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-engine-online-linux/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-7bhbwnjg/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "2",
+            "--tests-regex",
+            "^(online_matchmaking_client|online_directory_client)$"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-engine-online-linux/tests.log",
+          "exit_code": 0
+        }
+      ],
+      "retained_small_reports": [],
+      "retained_directory": "build/test-results/macos-engine-online-linux",
+      "report_sha256": "e0fa1a586fe923bbadad824f8a81e68c5c40e5b04651b9a0ffe83f79034bad8a",
+      "logs": {
+        "tests.log": "Test project /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-7bhbwnjg/build\n    Start 658: online_directory_client\n    Start 659: online_matchmaking_client\n1/2 Test #658: online_directory_client ..........   Passed    0.14 sec\n2/2 Test #659: online_matchmaking_client ........   Passed    0.34 sec\n\n100% tests passed out of 2\n\nTotal Test time (real) =   0.37 sec\n"
+      }
+    }
+  },
+  "verified_component_results": {
+    "mac_universal_directory_tests": 2,
+    "mac_x86_engine_online_and_portability_tests": 3,
+    "linux_engine_online_tests": 2,
+    "linux_isolated_directory_tests": 1,
+    "matchmaking_arm64": "Actual full production translation unit compiles; runtime suite only executed on x86_64 in this checkpoint."
+  },
+  "full_engine": {
+    "status": "Complete x86_64 source graph compiled and linked; post-build signing failed on tag JSON in Contents/MacOS/data/tags.",
+    "terminal_build_exit_code": 1,
+    "terminal_diagnostic": "ntents/Frameworks/libMoltenVK.dylib (for architecture arm64)\n/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libssl.3.dylib (for architecture x86_64)\n/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libssl.3.dylib (for architecture x86_64)\n/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libavutil.61.dylib (for architecture x86_64)\n/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libswresample.7.dylib (for architecture x86_64)\n/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libswresample.7.dylib (for architecture x86_64)\n/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libavcodec.63.dylib (for architecture x86_64)\n/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libavcodec.63.dylib (for architecture x86_64)\n/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libavcodec.63.dylib (for architecture x86_64)\n/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libavcodec.63.dylib (for architecture x86_64)\n/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libavformat.63.dylib (for architecture x86_64)\n/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libavformat.63.dylib (for architecture x86_64)\n/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libavformat.63.dylib (for architecture x86_64)\n/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libavformat.63.dylib (for architecture x86_64)\n/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libavformat.63.dylib (for architecture x86_64)\n/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libswscale.10.dylib (for architecture x86_64)\n/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libswscale.10.dylib (for architecture x86_64)\n/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libSDL2-2.0.0.dylib (for architecture x86_64)\n/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libdeflate.0.dylib (for architecture x86_64)\n/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libcrypto.3.dylib (for architecture x86_64)\n/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libopus.0.dylib (for architecture x86_64)\n/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libdav1d.7.dylib (for architecture x86_64)\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libMoltenVK.dylib: replacing existing signature\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libSDL2-2.0.0.dylib: replacing existing signature\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libavcodec.63.dylib: replacing existing signature\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libavformat.63.dylib: replacing existing signature\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libavutil.61.dylib: replacing existing signature\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libcrypto.3.dylib: replacing existing signature\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libdav1d.7.dylib: replacing existing signature\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libdeflate.0.dylib: replacing existing signature\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libopus.0.dylib: replacing existing signature\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libssl.3.dylib: replacing existing signature\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libswresample.7.dylib: replacing existing signature\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/Frameworks/libswscale.10.dylib: replacing existing signature\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/MacOS/Halo 2: code object is not signed at all\nIn subcomponent: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/MacOS/data/tags/variants/infection-slayer-v1.json\nTraceback (most recent call last):\n  File \"/Users/eric/Developer/Halo2-macos-port/tools/macos/bundle.py\", line 213, in <module>\n    main()\n    ~~~~^^\n  File \"/Users/eric/Developer/Halo2-macos-port/tools/macos/bundle.py\", line 208, in main\n    bundle(args.app, args.arch or ['arm64', 'x86_64'], args.library,\n    ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n           [(v.split('=', 1)[0], Path(v.split('=', 1)[1])) for v in args.license])\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/eric/Developer/Halo2-macos-port/tools/macos/bundle.py\", line 178, in bundle\n    command('codesign', '--force', '--sign', '-', executable)\n    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/eric/Developer/Halo2-macos-port/tools/macos/bundle.py\", line 31, in command\n    return subprocess.check_output([str(a) for a in args], text=True).strip()\n           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.15/3.15.0/Frameworks/Python.framework/Versions/3.15/lib/python3.15/subprocess.py\", line 587, in check_output\n    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,\n           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n               **kwargs).stdout\n               ^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.15/3.15.0/Frameworks/Python.framework/Versions/3.15/lib/python3.15/subprocess.py\", line 692, in run\n    raise CalledProcessError(retcode, process.args,\n                             output=stdout, stderr=stderr)\nsubprocess.CalledProcessError: Command '['codesign', '--force', '--sign', '-', '/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w/build/Halo 2.app/Contents/MacOS/Halo 2']' returned non-zero exit status 1.\nninja: build stopped: subcommand failed.\n",
+    "old_session_closed": true,
+    "old_owner_verified_removed": true,
+    "inference_basis": "The dependent post-link resource commands and Mach-O architecture/dependency traversal executed before codesign rejected the data subcomponent.",
+    "bundle_signature_and_runtime": "Not accepted from this failed full build."
+  },
+  "cleanup": {
+    "verified_absent_linux_owners": [
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-36ylm9xi",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-7bhbwnjg",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-u6_73jxc"
+    ],
+    "mac_universal_directory_build": "Explicit absence verified on the Mac.",
+    "active_mac_owner": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l",
+    "explicit_large_deliverables_retained": [],
+    "metadata_owner": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-qawki7hy",
+    "verified_absent_additional_linux_owners": [
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-7kkg59gj",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-8_b6kth4",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-zl62yjqe"
+    ],
+    "mac": {
+      "removed_owners": [
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-2j_47jbn",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-93astrty",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-98p_xce4",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-_wxuru0k",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-e5rw_cdm",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fud5g1dt",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-nkcmj5iu",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-via9p79w"
+      ],
+      "old_session_closed": true,
+      "active_session": {
+        "scratch_owner": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l",
+        "pid": 42518,
+        "commands": [
+          {
+            "argv": [
+              "python3",
+              "-B",
+              "-c",
+              "import hashlib,json,lzma;from pathlib import Path;data=Path('source-hashes-engine-x86-final.json.xz').read_bytes();assert hashlib.sha256(data).hexdigest()=='dfd087cf6ffc995bc1a9d6f48ccd1ae38b72143520407a614f0cef8d0dafc5c7';files=json.loads(lzma.decompress(data));bad=[n for n,h in files.items() if not Path(n).is_file() or hashlib.sha256(Path(n).read_bytes()).hexdigest()!=h];assert not bad,bad[:12];print('Authenticated',len(files),'current source inputs',flush=True)"
+            ],
+            "started": 1792608260.8760478,
+            "exit_code": 0,
+            "finished": 1792608262.539118
+          },
+          {
+            "argv": [
+              "python3",
+              "-B",
+              "tools/macos/test_port.py",
+              "--engine-check",
+              "--owned-build-worker",
+              "--cmake-arg=-DCMAKE_OSX_ARCHITECTURES=x86_64",
+              "--engine-test-filter",
+              "^(vulkan_portability|macos_engine_cli_x86_64)$",
+              "--output",
+              "build/test-results/macos-engine-x86-final/run-1",
+              "--retain-report",
+              "macos-dependencies/sdl/manifest.json",
+              "--retain-report",
+              "macos-dependencies/openssl/manifest.json",
+              "--retain-report",
+              "macos-dependencies/opus/manifest.json",
+              "--retain-report",
+              "macos-dependencies/libdeflate/manifest.json",
+              "--retain-report",
+              "macos-dependencies/ffmpeg/manifest.json",
+              "--retain-report",
+              "macos-dependencies/vorbis/manifest.json",
+              "--retain-report",
+              "macos-engine-cli-x86_64.json",
+              "--retain-report",
+              "menu-world-vertex-catalog/compiled.json",
+              "--retain-report",
+              "Halo 2.app/Contents/Resources/bundle-manifest.json",
+              "--retain-report",
+              "Halo 2.bundle.json"
+            ],
+            "started": 1792608282.299423,
+            "exit_code": null
+          }
+        ],
+        "status": "active"
+      },
+      "active_processes": [
+        {
+          "pid": 42518,
+          "ppid": 42517,
+          "elapsed": "07:07",
+          "command": "Python"
+        },
+        {
+          "pid": 42646,
+          "ppid": 42518,
+          "elapsed": "06:04",
+          "command": "Python"
+        },
+        {
+          "pid": 42675,
+          "ppid": 42646,
+          "elapsed": "05:57",
+          "command": "Python"
+        },
+        {
+          "pid": 43550,
+          "ppid": 42675,
+          "elapsed": "05:45",
+          "command": "cmake"
+        },
+        {
+          "pid": 43551,
+          "ppid": 43550,
+          "elapsed": "05:45",
+          "command": "ninja"
+        },
+        {
+          "pid": 65717,
+          "ppid": 43551,
+          "elapsed": "00:03",
+          "command": "clang++"
+        },
+        {
+          "pid": 65718,
+          "ppid": 65717,
+          "elapsed": "00:03",
+          "command": "clang"
+        },
+        {
+          "pid": 65719,
+          "ppid": 43551,
+          "elapsed": "00:02",
+          "command": "clang++"
+        },
+        {
+          "pid": 65720,
+          "ppid": 65719,
+          "elapsed": "00:02",
+          "command": "clang"
+        }
+      ],
+      "active_owner_size_du": "807M",
+      "mcc_source_preserved": "/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12",
+      "lockout_sha256": "97d034dca2109adde65e56c0ab78ee56f72045b56bf9b3200f304d5e1ff4c61e"
+    },
+    "active_mac_owner_status": "Closed after complete signed relocated CLI validation; source/build/SDK/app owner verified removed.",
+    "final_revalidation_cleanup": {
+      "owner": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l",
+      "owner_removed": true,
+      "session_pid_absent": true,
+      "owner_processes": [],
+      "lockout_preserved": true,
+      "lockout_bytes": 1820416,
+      "lockout_sha256": "97d034dca2109adde65e56c0ab78ee56f72045b56bf9b3200f304d5e1ff4c61e",
+      "large_artifacts_retained": []
+    }
+  },
+  "acceptance_limits": [
+    "Universal playable engine remains open",
+    "Exact arm64 x87/SSE backend remains deferred",
+    "Full Renderer depth/geometry activation and pixel acceptance remain open",
+    "Loading PCM admission and full MCC preparation remain open",
+    "Full source callback/process/gameplay/audio/input/display acceptance remains open"
+  ],
+  "checklist": {
+    "checked": 57,
+    "total": 69,
+    "broad_open": 12,
+    "goal_status": "active"
+  },
+  "resource_fix": {
+    "owner": "Mac complete data staging remains in cmake/macos/Bundle.cmake; shared standalone staging lives in RuntimeTagData.cmake and delegates on Apple.",
+    "reader": "src/custom_slayer.cpp already selects Contents/Resources/data/tags for an app.",
+    "source_sha256": {
+      "cmake/RuntimeTagData.cmake": "9510a2aac78a582b8ca2a6b53191cbc22d54ade4224617bb0c7396853106ce94",
+      "cmake/macos/Bundle.cmake": "316b981b911658294d70600e23a27c43377644b3125a167bfea9a7686c2e502a",
+      "tests/macos/bundle_tests.py": "2efe4a2cc54bc91bd886e019159908a428fd9a7b5e390ed4082ba9e25307f9f1",
+      "tests/macos/engine_bundle_resources_test.py": "ba9e5b3574f1d643bbbb81781d8b137f3125e3e6a1bfad1adc7b2b21fc0197c5",
+      "cmake/macos/EngineTests.cmake": "825d31a5a71ba26b40df2cef5e0f1993892756264676824eaeacd2c25e1d189b",
+      "tests/macos/engine_cli_test.py": "a6829cced1c4f63bc32e7977a104300f983863c57f0407acce48244364512df2"
+    },
+    "regressions": {
+      "full-suite": {
+        "command": [
+          "/opt/homebrew/opt/python@3.15/bin/python3.15",
+          "-B",
+          "tests/macos/bundle_tests.py"
+        ],
+        "exit_code": 0,
+        "log_sha256": "7c885730dd8752084a265428706711d3d9caa58d542d2a37487b4426f2bf64b5",
+        "scratch_owner": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-_wxuru0k"
+      },
+      "green": {
+        "command": [
+          "/opt/homebrew/opt/python@3.15/bin/python3.15",
+          "-B",
+          "tests/macos/bundle_tests.py",
+          "BundleTests.test_engine_resource_staging_and_signing"
+        ],
+        "exit_code": 0,
+        "log_sha256": "624858a8978fd7bd7a6ff1d45ba903429d901af6c7c58ec9b159fa01562e7964",
+        "scratch_owner": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-e5rw_cdm"
+      },
+      "red-layout": {
+        "command": [
+          "/opt/homebrew/opt/python@3.15/bin/python3.15",
+          "-B",
+          "tests/macos/bundle_tests.py",
+          "BundleTests.test_engine_resource_staging_and_signing"
+        ],
+        "exit_code": 1,
+        "log_sha256": "a536c8f3413b0977fd9ded8bd710fdfeff579f4471be961ee7d34770a5b037e9",
+        "scratch_owner": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-98p_xce4"
+      },
+      "red": {
+        "command": [
+          "/opt/homebrew/opt/python@3.15/bin/python3.15",
+          "-B",
+          "tests/macos/bundle_tests.py",
+          "BundleTests.test_engine_resource_staging_and_signing"
+        ],
+        "exit_code": 1,
+        "log_sha256": "e65a327f49346aae63c808106aa32c2176d1e3b5794e6031c05387b0fd0cb5fd",
+        "scratch_owner": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-nkcmj5iu"
+      }
+    },
+    "red_layout_diagnostic": "F\n======================================================================\nFAIL: test_engine_resource_staging_and_signing (__main__.BundleTests.test_engine_resource_staging_and_signing)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/eric/Developer/Halo2-macos-port/tests/macos/bundle_tests.py\", line 165, in test_engine_resource_staging_and_signing\n    self.assertEqual(result.returncode, 0, result.stdout[-16000:])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 2 != 0 : + cmake -S /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-98p_xce4/tmp9vb6l3_i/source with spaces -B /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fud5g1dt/build -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DHALO2_MOLTENVK_LIBRARY=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-98p_xce4/tmp9vb6l3_i/SDK with spaces/libMoltenVK.dylib -DHALO2_MOLTENVK_LICENSE=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-98p_xce4/tmp9vb6l3_i/license.txt -DHALO2_SDL_LICENSE=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-98p_xce4/tmp9vb6l3_i/license.txt\n-- The CXX compiler identification is AppleClang 21.0.0.21000334\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: /usr/bin/c++ - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Found Python3: /opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15 (found version \"3.15.0\") found components: Interpreter\n-- Configuring done (0.5s)\n-- Generating done (0.0s)\n-- Build files have been written to: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fud5g1dt/build\n+ cmake --build /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fud5g1dt/build --config Release --parallel 2 --target resource_fixture\n[ 50%] Building CXX object CMakeFiles/resource_fixture.dir/main.cpp.o\n[100%] Linking CXX executable \"Halo 2.app/Contents/MacOS/Halo 2\"\nBundling, checking architecture slices and signing Halo 2.app\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fud5g1dt/build/Halo 2.app/Contents/Frameworks/libMoltenVK.dylib: replacing existing signature\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fud5g1dt/build/Halo 2.app/Contents/MacOS/Halo 2: replacing existing signature\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fud5g1dt/build/Halo 2.app/Contents/MacOS/Halo 2: code object is not signed at all\nIn subcomponent: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fud5g1dt/build/Halo 2.app/Contents/MacOS/data/tags/variants/resource-fixture.json\nTraceback (most recent call last):\n  File \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-98p_xce4/tmp9vb6l3_i/source with spaces/tools/macos/bundle.py\", line 213, in <module>\n    main()\n    ~~~~^^\n  File \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-98p_xce4/tmp9vb6l3_i/source with spaces/tools/macos/bundle.py\", line 208, in main\n    bundle(args.app, args.arch or ['arm64', 'x86_64'], args.library,\n    ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n           [(v.split('=', 1)[0], Path(v.split('=', 1)[1])) for v in args.license])\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-98p_xce4/tmp9vb6l3_i/source with spaces/tools/macos/bundle.py\", line 178, in bundle\n    command('codesign', '--force', '--sign', '-', executable)\n    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-98p_xce4/tmp9vb6l3_i/source with spaces/tools/macos/bundle.py\", line 31, in command\n    return subprocess.check_output([str(a) for a in args], text=True).strip()\n           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.15/3.15.0/Frameworks/Python.framework/Versions/3.15/lib/python3.15/subprocess.py\", line 587, in check_output\n    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,\n           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n               **kwargs).stdout\n               ^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.15/3.15.0/Frameworks/Python.framework/Versions/3.15/lib/python3.15/subprocess.py\", line 692, in run\n    raise CalledProcessError(retcode, process.args,\n                             output=stdout, stderr=stderr)\nsubprocess.CalledProcessError: Command '['codesign', '--force', '--sign', '-', '/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fud5g1dt/build/Halo 2.app/Contents/MacOS/Halo 2']' returned non-zero exit status 1.\nmake[3]: *** [Halo 2.app/Contents/MacOS/Halo 2] Error 1\nmake[3]: *** Deleting file `Halo 2.app/Contents/MacOS/Halo 2'\nmake[2]: *** [CMakeFiles/resource_fixture.dir/all] Error 2\nmake[1]: *** [CMakeFiles/resource_fixture.dir/rule] Error 2\nmake: *** [resource_fixture] Error 2\n\n\n----------------------------------------------------------------------\nRan 1 test in 2.128s\n\nFAILED (failures=1)\n",
+    "scope": "Actual CMake production staging functions; synthetic executable/dependency fixture. Strict signatures and resource reads execute on both universal slices before/after relocation; no GPU or gameplay acceptance.",
+    "mac_bundle_tests_passed": 5,
+    "linux_standalone_staging": {
+      "passed": true,
+      "tag_files": 4,
+      "sha256": {
+        "bomb-defusal-sites-v1.json": "153ab0ade67b8b3f13fd6d54053892bb679a275c246a73288f55cc5f4efb9a8b",
+        "variants/fiesta-slayer-v1.json": "eefb10a33449c309522c9d0b95d7b6e6ac52c79af5e30e7e6939fcbc9bd1f2f0",
+        "variants/infection-slayer-v1.json": "fc37b5bd12fb04a446a6b2b599d2f535e6bd8d449b7ff39cca8bc90ec8f596f3",
+        "variants/bomb-defusal-v1.json": "57b33d1cc771e2529e229dfd2c99ee4dd9e2bc7b79044284b08a03ddf64adc27"
+      }
+    }
+  },
+  "actual_engine_revalidation": {
+    "status": "passed CLI / signed relocation; playable gates remain open",
+    "source_manifest": "docs/macos/engine-x86-final-source-20261021.json.xz",
+    "source_manifest_sha256": "3a4d630f354e0b2ecc38aefef335771da4614bf5e3585480abb1a0da13cb3d20",
+    "source_files": 8999,
+    "refresh": {
+      "file": "tests/macos/engine_cli_test.py",
+      "old_sha256": "a6829cced1c4f63bc32e7977a104300f983863c57f0407acce48244364512df2",
+      "sha256": "b0d84f06069debfa291e0f68a3f0df413fa07edccb897f4308eb7db37597a466",
+      "reason": "Measured protected arch strips inherited DYLD variable; arch -e sets the diagnostic for the child without changing the app or signatures."
+    },
+    "dyld_probe": {
+      "executables": "x86_64",
+      "cases": [
+        {
+          "name": "direct",
+          "command": [
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Halo 2.app/Contents/MacOS/Halo 2",
+            "--help"
+          ],
+          "exit_code": 0,
+          "actual_cli": true,
+          "stderr_bytes": 73875,
+          "stderr_sha256": "2ac18917f3f712086dc4c36494fcaaa80bf12ae67c7514ddfd923dae71d4bf1f",
+          "first_stderr_lines": [
+            "dyld[82830]: <588A87CE-8397-33EA-8CA1-FF4A7412F69B> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Halo 2.app/Contents/MacOS/Halo 2",
+            "dyld[82830]: <CF5FD5C2-D744-366C-A684-B21757AADADF> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Halo 2.app/Contents/Frameworks/libssl.3.dylib",
+            "dyld[82830]: <B62B8A4B-2B47-35A1-8195-EBEF2E36DCD6> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Halo 2.app/Contents/Frameworks/libavutil.61.dylib",
+            "dyld[82830]: <99465171-00B7-3546-A441-983FE67D8838> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Halo 2.app/Contents/Frameworks/libswresample.7.dylib",
+            "dyld[82830]: <45D05FAC-BF51-3679-B4E0-845C2CF3043D> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Halo 2.app/Contents/Frameworks/libavcodec.63.dylib",
+            "dyld[82830]: <9A8D8B9E-1A41-3645-B209-822C63FFDA6C> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Halo 2.app/Contents/Frameworks/libavformat.63.dylib",
+            "dyld[82830]: <AEE80E46-FF75-3302-9ABA-D0E558D1BB67> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Halo 2.app/Contents/Frameworks/libswscale.10.dylib",
+            "dyld[82830]: <C178CB05-A1CA-34F9-8ADD-7671DC15A86B> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Halo 2.app/Contents/Frameworks/libMoltenVK.dylib"
+          ]
+        },
+        {
+          "name": "arch-env",
+          "command": [
+            "/usr/bin/arch",
+            "-x86_64",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Halo 2.app/Contents/MacOS/Halo 2",
+            "--help"
+          ],
+          "exit_code": 0,
+          "actual_cli": true,
+          "stderr_bytes": 0,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "first_stderr_lines": []
+        },
+        {
+          "name": "arch-option",
+          "command": [
+            "/usr/bin/arch",
+            "-x86_64",
+            "-e",
+            "DYLD_PRINT_LIBRARIES=1",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Halo 2.app/Contents/MacOS/Halo 2",
+            "--help"
+          ],
+          "exit_code": 0,
+          "actual_cli": true,
+          "stderr_bytes": 73875,
+          "stderr_sha256": "6c16473e264add030ff3f1d4171abf06669ef883f471e9e0bb9b87d43498a11c",
+          "first_stderr_lines": [
+            "dyld[82847]: <588A87CE-8397-33EA-8CA1-FF4A7412F69B> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Halo 2.app/Contents/MacOS/Halo 2",
+            "dyld[82847]: <CF5FD5C2-D744-366C-A684-B21757AADADF> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Halo 2.app/Contents/Frameworks/libssl.3.dylib",
+            "dyld[82847]: <B62B8A4B-2B47-35A1-8195-EBEF2E36DCD6> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Halo 2.app/Contents/Frameworks/libavutil.61.dylib",
+            "dyld[82847]: <99465171-00B7-3546-A441-983FE67D8838> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Halo 2.app/Contents/Frameworks/libswresample.7.dylib",
+            "dyld[82847]: <45D05FAC-BF51-3679-B4E0-845C2CF3043D> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Halo 2.app/Contents/Frameworks/libavcodec.63.dylib",
+            "dyld[82847]: <9A8D8B9E-1A41-3645-B209-822C63FFDA6C> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Halo 2.app/Contents/Frameworks/libavformat.63.dylib",
+            "dyld[82847]: <AEE80E46-FF75-3302-9ABA-D0E558D1BB67> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Halo 2.app/Contents/Frameworks/libswscale.10.dylib",
+            "dyld[82847]: <C178CB05-A1CA-34F9-8ADD-7671DC15A86B> /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Halo 2.app/Contents/Frameworks/libMoltenVK.dylib"
+          ]
+        }
+      ]
+    },
+    "final_receipt": {
+      "source_files_verified": 8999,
+      "source_mismatches": [],
+      "scratch_owner": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l",
+      "allocated_owner_kib": 1607392,
+      "app_apparent_bytes": 156281123,
+      "executable_bytes": 113517120,
+      "app_architectures": "x86_64",
+      "strict_signature_verified": true,
+      "macos_version": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B118\n",
+      "status": "complete; owner ready for cleanup",
+      "scope": "Actual full Intel engine compile/link and signed relocated CLI; MCC preview stopped at unprepared native material metadata before GPU initialization. No playable acceptance."
+    },
+    "official_runner": {
+      "passed": true,
+      "status": "passed",
+      "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/Users/eric/Developer/Halo2-macos-port",
+            "-B",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86-final/run-2/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "halo2_native",
+            "vulkan_portability_tests"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86-final/run-2/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "1",
+            "--tests-regex",
+            "^(vulkan_portability|macos_engine_cli_x86_64)$"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86-final/run-2/tests.log",
+          "exit_code": 0
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "macos-dependencies/sdl/manifest.json",
+          "status": "retained",
+          "bytes": 17812,
+          "sha256": "83ec0dad4af231359af5a17f544cabb64d6501631be77907b4c0d1a418d8e688",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86-final/run-2/evidence/macos-dependencies/sdl/manifest.json"
+        },
+        {
+          "path": "macos-dependencies/openssl/manifest.json",
+          "status": "retained",
+          "bytes": 18574,
+          "sha256": "a889352f3cd450eacb2b15b1f205891246b6a72e078eafe0818939e4bf27e3d5",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86-final/run-2/evidence/macos-dependencies/openssl/manifest.json"
+        },
+        {
+          "path": "macos-dependencies/opus/manifest.json",
+          "status": "retained",
+          "bytes": 2269,
+          "sha256": "8503eedc5e0ec901b16e75a4676fcc145d63e8c0d796d3b40c2769c2f1406fda",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86-final/run-2/evidence/macos-dependencies/opus/manifest.json"
+        },
+        {
+          "path": "macos-dependencies/libdeflate/manifest.json",
+          "status": "retained",
+          "bytes": 2070,
+          "sha256": "8186edbdff9e07e9bb9f3d47963cb46ad5aa7606af060093e448924d983fa85a",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86-final/run-2/evidence/macos-dependencies/libdeflate/manifest.json"
+        },
+        {
+          "path": "macos-dependencies/ffmpeg/manifest.json",
+          "status": "retained",
+          "bytes": 33443,
+          "sha256": "188141b9d33ce3f96fbeb0ab0faaa2e42a35d71a7ab5a31ed9a947578dfef29b",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86-final/run-2/evidence/macos-dependencies/ffmpeg/manifest.json"
+        },
+        {
+          "path": "macos-dependencies/vorbis/manifest.json",
+          "status": "retained",
+          "bytes": 5890,
+          "sha256": "712d9d67a7a488764ba516e49dfc46e54482ccd8f8ae2bbf509b01be29c95e1f",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86-final/run-2/evidence/macos-dependencies/vorbis/manifest.json"
+        },
+        {
+          "path": "macos-engine-cli-x86_64.json",
+          "status": "retained",
+          "bytes": 46828,
+          "sha256": "540cd23a232f5e882895623ceb519fd6e253a079a2457e19e1df57a5c5d34793",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86-final/run-2/evidence/macos-engine-cli-x86_64.json"
+        },
+        {
+          "path": "menu-world-vertex-catalog/compiled.json",
+          "status": "retained",
+          "bytes": 662018,
+          "sha256": "a87da85f2fe7a8c8f6a5fd680a6c62509b44b8399ad5392844d9bbb1a333afe4",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86-final/run-2/evidence/menu-world-vertex-catalog/compiled.json"
+        },
+        {
+          "path": "Halo 2.app/Contents/Resources/bundle-manifest.json",
+          "status": "retained",
+          "bytes": 2000,
+          "sha256": "ac5d5bd1e89d7daec641a638eec08ce9fc44d4c8a18ddc23f6caaee989c727f5",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86-final/run-2/evidence/Halo 2.app/Contents/Resources/bundle-manifest.json"
+        },
+        {
+          "path": "Halo 2.bundle.json",
+          "status": "retained",
+          "bytes": 2138,
+          "sha256": "daa5b8a326f1d1e728fda2e0bf735975249a6eb75bcbe8aa2270df36fa5bb71e",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-engine-x86-final/run-2/evidence/Halo 2.bundle.json"
+        }
+      ]
+    },
+    "cli": {
+      "passed": true,
+      "architecture": "x86_64",
+      "command": [
+        "/usr/bin/arch",
+        "-x86_64",
+        "-e",
+        "DYLD_PRINT_LIBRARIES=1",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Testing/Temporary/scratch/halo2-test-hhsv_aow/Relocated engine \u03a9.app/Contents/MacOS/Halo 2",
+        "--help"
+      ],
+      "exit_code": 0,
+      "strict_signature_verified": true,
+      "relocated": true,
+      "loaded_images": [
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Testing/Temporary/scratch/halo2-test-hhsv_aow/Relocated engine \u03a9.app/Contents/MacOS/Halo 2",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Testing/Temporary/scratch/halo2-test-hhsv_aow/Relocated engine \u03a9.app/Contents/Frameworks/libssl.3.dylib",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Testing/Temporary/scratch/halo2-test-hhsv_aow/Relocated engine \u03a9.app/Contents/Frameworks/libavutil.61.dylib",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Testing/Temporary/scratch/halo2-test-hhsv_aow/Relocated engine \u03a9.app/Contents/Frameworks/libswresample.7.dylib",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Testing/Temporary/scratch/halo2-test-hhsv_aow/Relocated engine \u03a9.app/Contents/Frameworks/libavcodec.63.dylib",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Testing/Temporary/scratch/halo2-test-hhsv_aow/Relocated engine \u03a9.app/Contents/Frameworks/libavformat.63.dylib",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Testing/Temporary/scratch/halo2-test-hhsv_aow/Relocated engine \u03a9.app/Contents/Frameworks/libswscale.10.dylib",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Testing/Temporary/scratch/halo2-test-hhsv_aow/Relocated engine \u03a9.app/Contents/Frameworks/libMoltenVK.dylib",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Testing/Temporary/scratch/halo2-test-hhsv_aow/Relocated engine \u03a9.app/Contents/Frameworks/libSDL2-2.0.0.dylib",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Testing/Temporary/scratch/halo2-test-hhsv_aow/Relocated engine \u03a9.app/Contents/Frameworks/libdeflate.0.dylib",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Testing/Temporary/scratch/halo2-test-hhsv_aow/Relocated engine \u03a9.app/Contents/Frameworks/libcrypto.3.dylib",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Testing/Temporary/scratch/halo2-test-hhsv_aow/Relocated engine \u03a9.app/Contents/Frameworks/libopus.0.dylib",
+        "/usr/lib/libSystem.B.dylib",
+        "/usr/lib/system/libcache.dylib",
+        "/usr/lib/system/libcommonCrypto.dylib",
+        "/usr/lib/system/libcompiler_rt.dylib",
+        "/usr/lib/system/libcopyfile.dylib",
+        "/usr/lib/system/libcorecrypto.dylib",
+        "/usr/lib/system/libdispatch.dylib",
+        "/usr/lib/system/libdyld.dylib",
+        "/usr/lib/system/libkeymgr.dylib",
+        "/usr/lib/system/libmacho.dylib",
+        "/usr/lib/system/libquarantine.dylib",
+        "/usr/lib/system/libremovefile.dylib",
+        "/usr/lib/system/libsystem_asl.dylib",
+        "/usr/lib/system/libsystem_blocks.dylib",
+        "/usr/lib/system/libsystem_c.dylib",
+        "/usr/lib/system/libsystem_collections.dylib",
+        "/usr/lib/system/libsystem_configuration.dylib",
+        "/usr/lib/system/libsystem_containermanager.dylib",
+        "/usr/lib/system/libsystem_coreservices.dylib",
+        "/usr/lib/system/libsystem_darwin.dylib",
+        "/usr/lib/system/libsystem_darwindirectory.dylib",
+        "/usr/lib/system/libsystem_dnssd.dylib",
+        "/usr/lib/system/libsystem_eligibility.dylib",
+        "/usr/lib/system/libsystem_featureflags.dylib",
+        "/usr/lib/system/libsystem_info.dylib",
+        "/usr/lib/system/libsystem_m.dylib",
+        "/usr/lib/system/libsystem_malloc.dylib",
+        "/usr/lib/system/libsystem_networkextension.dylib",
+        "/usr/lib/system/libsystem_notify.dylib",
+        "/usr/lib/system/libsystem_sandbox.dylib",
+        "/usr/lib/system/libsystem_sanitizers.dylib",
+        "/usr/lib/system/libsystem_secinit.dylib",
+        "/usr/lib/system/libsystem_kernel.dylib",
+        "/usr/lib/system/libsystem_platform.dylib",
+        "/usr/lib/system/libsystem_pthread.dylib",
+        "/usr/lib/system/libsystem_symptoms.dylib",
+        "/usr/lib/system/libsystem_trace.dylib",
+        "/usr/lib/system/libsystem_trial.dylib",
+        "/usr/lib/system/libunwind.dylib",
+        "/usr/lib/system/libxpc.dylib",
+        "/usr/lib/libc++abi.dylib",
+        "/usr/lib/libobjc.A.dylib",
+        "/usr/lib/libRosetta.dylib",
+        "/usr/lib/libc++.1.dylib",
+        "/usr/lib/libcurl.4.dylib",
+        "/System/Library/Frameworks/Security.framework/Versions/A/Security",
+        "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+        "/usr/lib/libcrypto.46.dylib",
+        "/usr/lib/libssl.48.dylib",
+        "/System/Library/Frameworks/LDAP.framework/Versions/A/LDAP",
+        "/System/Library/Frameworks/Kerberos.framework/Versions/A/Kerberos",
+        "/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration",
+        "/usr/lib/libapple_nghttp2.dylib",
+        "/usr/lib/libz.1.dylib",
+        "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
+        "/System/Library/PrivateFrameworks/AppleKeyStore.framework/Versions/A/AppleKeyStore",
+        "/usr/lib/libCoreEntitlements.dylib",
+        "/usr/lib/libTLE.dylib",
+        "/System/Library/PrivateFrameworks/MessageSecurity.framework/Versions/A/MessageSecurity",
+        "/System/Library/PrivateFrameworks/ProtocolBuffer.framework/Versions/A/ProtocolBuffer",
+        "/System/Library/PrivateFrameworks/SymptomDiagnosticReporter.framework/Versions/A/SymptomDiagnosticReporter",
+        "/System/Library/PrivateFrameworks/CrashReporterSupport.framework/Versions/A/CrashReporterSupport",
+        "/System/Library/PrivateFrameworks/CoreAnalytics.framework/Versions/A/CoreAnalytics",
+        "/System/Library/Frameworks/CoreServices.framework/Versions/A/CoreServices",
+        "/System/Library/PrivateFrameworks/CoreTime.framework/Versions/A/CoreTime",
+        "/usr/lib/libMobileGestalt.dylib",
+        "/System/Library/PrivateFrameworks/AppleFSCompression.framework/Versions/A/AppleFSCompression",
+        "/usr/lib/libDiagnosticMessagesClient.dylib",
+        "/usr/lib/libbsm.0.dylib",
+        "/usr/lib/libcoretls.dylib",
+        "/usr/lib/libcoretls_cfhelpers.dylib",
+        "/usr/lib/libpam.2.dylib",
+        "/usr/lib/libsqlite3.dylib",
+        "/usr/lib/libxar.1.dylib",
+        "/System/Library/Frameworks/IOKit.framework/Versions/A/IOKit",
+        "/System/Library/PrivateFrameworks/SoftLinking.framework/Versions/A/SoftLinking",
+        "/System/Library/PrivateFrameworks/NSPredicateSecurityPolicy.framework/Versions/A/NSPredicateSecurityPolicy",
+        "/System/Library/PrivateFrameworks/CoreAutoLayout.framework/Versions/A/CoreAutoLayout",
+        "/usr/lib/libcmark-gfm.dylib",
+        "/usr/lib/libfakelink.dylib",
+        "/usr/lib/libcompression.dylib",
+        "/System/Library/Frameworks/CFNetwork.framework/Versions/A/CFNetwork",
+        "/System/Library/Frameworks/DiskArbitration.framework/Versions/A/DiskArbitration",
+        "/usr/lib/libarchive.2.dylib",
+        "/usr/lib/libicucore.A.dylib",
+        "/usr/lib/libxml2.2.dylib",
+        "/usr/lib/liblangid.dylib",
+        "/System/Library/Frameworks/Combine.framework/Versions/A/Combine",
+        "/System/Library/PrivateFrameworks/CollectionsInternal.framework/Versions/A/CollectionsInternal",
+        "/System/Library/PrivateFrameworks/ReflectionInternal.framework/Versions/A/ReflectionInternal",
+        "/System/Library/PrivateFrameworks/RuntimeInternal.framework/Versions/A/RuntimeInternal",
+        "/usr/lib/swift/libswiftCore.dylib",
+        "/usr/lib/swift/libswiftCoreFoundation.dylib",
+        "/usr/lib/swift/libswiftDarwin.dylib",
+        "/usr/lib/swift/libswiftDispatch.dylib",
+        "/usr/lib/swift/libswiftIOKit.dylib",
+        "/usr/lib/swift/libswiftObjectiveC.dylib",
+        "/usr/lib/swift/libswiftObservation.dylib",
+        "/usr/lib/swift/libswiftSynchronization.dylib",
+        "/usr/lib/swift/libswiftSystem.dylib",
+        "/usr/lib/swift/libswiftXPC.dylib",
+        "/usr/lib/swift/libswift_Builtin_float.dylib",
+        "/usr/lib/swift/libswift_Concurrency.dylib",
+        "/usr/lib/swift/libswift_DarwinFoundation1.dylib",
+        "/usr/lib/swift/libswift_StringProcessing.dylib",
+        "/usr/lib/swift/libswiftos.dylib",
+        "/System/Library/PrivateFrameworks/CoreServicesInternal.framework/Versions/A/CoreServicesInternal",
+        "/usr/lib/liboah.dylib",
+        "/System/Library/PrivateFrameworks/DiskImages.framework/Versions/A/DiskImages",
+        "/System/Library/Frameworks/NetFS.framework/Versions/A/NetFS",
+        "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/FSEvents.framework/Versions/A/FSEvents",
+        "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/CarbonCore.framework/Versions/A/CarbonCore",
+        "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Metadata",
+        "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/OSServices.framework/Versions/A/OSServices",
+        "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/SearchKit.framework/Versions/A/SearchKit",
+        "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/AE.framework/Versions/A/AE",
+        "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/LaunchServices",
+        "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/DictionaryServices.framework/Versions/A/DictionaryServices",
+        "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/SharedFileList.framework/Versions/A/SharedFileList",
+        "/System/Library/Frameworks/Network.framework/Versions/A/Network",
+        "/usr/lib/libenergytrace.dylib",
+        "/usr/lib/system/libkxld.dylib",
+        "/System/Library/PrivateFrameworks/AppleSystemInfo.framework/Versions/A/AppleSystemInfo",
+        "/System/Library/Frameworks/SwiftData.framework/Versions/A/SwiftData",
+        "/usr/lib/libboringssl.dylib",
+        "/usr/lib/libdns_services.dylib",
+        "/usr/lib/libquic.dylib",
+        "/usr/lib/libusrtcp.dylib",
+        "/System/Library/PrivateFrameworks/AtomicsInternal.framework/Versions/A/AtomicsInternal",
+        "/System/Library/PrivateFrameworks/InternalSwiftProtobuf.framework/Versions/A/InternalSwiftProtobuf",
+        "/usr/lib/swift/libswiftDistributed.dylib",
+        "/System/Library/Frameworks/CoreData.framework/Versions/A/CoreData",
+        "/System/Library/PrivateFrameworks/FeatureFlags.framework/Versions/A/FeatureFlags",
+        "/usr/lib/liblzma.5.dylib",
+        "/usr/lib/libswiftPrespecialized.dylib",
+        "/System/Library/PrivateFrameworks/IOMobileFramebuffer.framework/Versions/A/IOMobileFramebuffer",
+        "/System/Library/Frameworks/IOSurface.framework/Versions/A/IOSurface",
+        "/usr/lib/swift/libswift_DarwinFoundation2.dylib",
+        "/usr/lib/swift/libswift_DarwinFoundation3.dylib",
+        "/usr/lib/swift/libswift_RegexParser.dylib",
+        "/usr/lib/libCheckFix.dylib",
+        "/System/Library/PrivateFrameworks/AppleSauce.framework/Versions/A/AppleSauce",
+        "/System/Library/PrivateFrameworks/TCC.framework/Versions/A/TCC",
+        "/System/Library/PrivateFrameworks/CoreNLP.framework/Versions/A/CoreNLP",
+        "/System/Library/PrivateFrameworks/MetadataUtilities.framework/Versions/A/MetadataUtilities",
+        "/System/Library/Frameworks/Accelerate.framework/Versions/A/Accelerate",
+        "/usr/lib/libmecab.dylib",
+        "/usr/lib/libCRFSuite.dylib",
+        "/usr/lib/libgermantok.dylib",
+        "/usr/lib/libThaiTokenizer.dylib",
+        "/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vImage.framework/Versions/A/vImage",
+        "/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/vecLib",
+        "/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libvMisc.dylib",
+        "/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vImage.framework/Versions/A/Libraries/libCGInterfaces.dylib",
+        "/System/Library/PrivateFrameworks/AccelerateGPU.framework/Versions/A/AccelerateGPU",
+        "/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib",
+        "/System/Library/Frameworks/ApplicationServices.framework/Versions/A/ApplicationServices",
+        "/System/Library/Frameworks/CoreVideo.framework/Versions/A/CoreVideo",
+        "/System/Library/Frameworks/ColorSync.framework/Versions/A/ColorSync",
+        "/System/Library/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics",
+        "/System/Library/Frameworks/CoreText.framework/Versions/A/CoreText",
+        "/System/Library/Frameworks/ImageIO.framework/Versions/A/ImageIO",
+        "/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework/Versions/A/ATS",
+        "/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/HIServices.framework/Versions/A/HIServices",
+        "/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/PrintCore.framework/Versions/A/PrintCore",
+        "/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/QD.framework/Versions/A/QD",
+        "/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ColorSyncLegacy.framework/Versions/A/ColorSyncLegacy",
+        "/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/SpeechSynthesis.framework/Versions/A/SpeechSynthesis",
+        "/System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/SkyLight",
+        "/System/Library/PrivateFrameworks/TextRecognition.framework/Versions/A/TextRecognition",
+        "/System/Library/PrivateFrameworks/FontServices.framework/libFontParser.dylib",
+        "/System/Library/PrivateFrameworks/BiomeLibrary.framework/Versions/A/BiomeLibrary",
+        "/System/Library/PrivateFrameworks/BaseBoard.framework/Versions/A/BaseBoard",
+        "/System/Library/PrivateFrameworks/BoardServices.framework/Versions/A/BoardServices",
+        "/System/Library/PrivateFrameworks/BackBoardServices.framework/Versions/A/BackBoardServices",
+        "/System/Library/PrivateFrameworks/BackBoardHIDEventFoundation.framework/Versions/A/BackBoardHIDEventFoundation",
+        "/System/Library/Frameworks/CoreDisplay.framework/Versions/A/CoreDisplay",
+        "/System/Library/Frameworks/VideoToolbox.framework/Versions/A/VideoToolbox",
+        "/System/Library/Frameworks/MetalPerformanceShaders.framework/Versions/A/MetalPerformanceShaders",
+        "/System/Library/PrivateFrameworks/ProDisplayLibrary.framework/Versions/A/ProDisplayLibrary",
+        "/System/Library/PrivateFrameworks/IOSurfaceAccelerator.framework/Versions/A/IOSurfaceAccelerator",
+        "/System/Library/PrivateFrameworks/RunningBoardServices.framework/Versions/A/RunningBoardServices",
+        "/System/Library/Frameworks/Metal.framework/Versions/A/Metal",
+        "/System/Library/PrivateFrameworks/IOAccelerator.framework/Versions/A/IOAccelerator",
+        "/System/Library/Frameworks/CoreMedia.framework/Versions/A/CoreMedia",
+        "/usr/lib/libSMC.dylib",
+        "/System/Library/PrivateFrameworks/WatchdogClient.framework/Versions/A/WatchdogClient",
+        "/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore",
+        "/System/Library/PrivateFrameworks/MultitouchSupport.framework/Versions/A/MultitouchSupport",
+        "/System/Library/PrivateFrameworks/BackBoardHIDTouchEventProcessor.framework/Versions/A/BackBoardHIDTouchEventProcessor",
+        "/System/Library/PrivateFrameworks/Gestures.framework/Versions/A/Gestures",
+        "/usr/lib/swift/libswiftAccelerate.dylib",
+        "/usr/lib/swift/libswiftCoreAudio.dylib",
+        "/usr/lib/swift/libswiftMetal.dylib",
+        "/usr/lib/swift/libswiftOSLog.dylib",
+        "/usr/lib/swift/libswiftQuartzCore.dylib",
+        "/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib",
+        "/usr/lib/swift/libswiftsimd.dylib",
+        "/System/Library/PrivateFrameworks/BiomeStreams.framework/Versions/A/BiomeStreams",
+        "/System/Library/PrivateFrameworks/BiomeStorage.framework/Versions/A/BiomeStorage",
+        "/System/Library/PrivateFrameworks/BiomeFoundation.framework/Versions/A/BiomeFoundation",
+        "/System/Library/PrivateFrameworks/IntelligencePlatformLibrary.framework/Versions/A/IntelligencePlatformLibrary",
+        "/System/Library/PrivateFrameworks/PoirotSchematizer.framework/Versions/A/PoirotSchematizer",
+        "/System/Library/PrivateFrameworks/BiomeSync.framework/Versions/A/BiomeSync",
+        "/System/Library/PrivateFrameworks/OSAnalytics.framework/Versions/A/OSAnalytics",
+        "/System/Library/PrivateFrameworks/BiomeDSL.framework/Versions/A/BiomeDSL",
+        "/System/Library/PrivateFrameworks/BiomePubSub.framework/Versions/A/BiomePubSub",
+        "/System/Library/PrivateFrameworks/LoggingSupport.framework/Versions/A/LoggingSupport",
+        "/System/Library/PrivateFrameworks/ProactiveSupport.framework/Versions/A/ProactiveSupport",
+        "/System/Library/PrivateFrameworks/PoirotUDFs.framework/Versions/A/PoirotUDFs",
+        "/System/Library/PrivateFrameworks/MobileAsset.framework/Versions/A/MobileAsset",
+        "/System/Library/PrivateFrameworks/MobileKeyBag.framework/Versions/A/MobileKeyBag",
+        "/System/Library/PrivateFrameworks/InternationalTextSearch.framework/Versions/A/InternationalTextSearch",
+        "/System/Library/PrivateFrameworks/SoftwareUpdateCoreSupport.framework/Versions/A/SoftwareUpdateCoreSupport",
+        "/System/Library/PrivateFrameworks/SoftwareUpdateCoreConnect.framework/Versions/A/SoftwareUpdateCoreConnect",
+        "/System/Library/PrivateFrameworks/StreamingZip.framework/Versions/A/StreamingZip",
+        "/System/Library/PrivateFrameworks/RemoteServiceDiscovery.framework/Versions/A/RemoteServiceDiscovery",
+        "/System/Library/PrivateFrameworks/MSUDataAccessor.framework/Versions/A/MSUDataAccessor",
+        "/usr/lib/libbootpolicy.dylib",
+        "/System/Library/PrivateFrameworks/UserManagement.framework/Versions/A/UserManagement",
+        "/usr/lib/libpartition2_dynamic.dylib",
+        "/System/Library/PrivateFrameworks/RemoteXPC.framework/Versions/A/RemoteXPC",
+        "/usr/lib/libFDR.dylib",
+        "/usr/lib/libamsupport.dylib",
+        "/System/Library/PrivateFrameworks/AppleDeviceQuerySupport.framework/Versions/A/AppleDeviceQuerySupport",
+        "/System/Library/PrivateFrameworks/APFS.framework/Versions/A/APFS",
+        "/usr/lib/libutil.dylib",
+        "/System/Library/PrivateFrameworks/AggregateDictionary.framework/Versions/A/AggregateDictionary",
+        "/System/Library/PrivateFrameworks/SwiftASN1Internal.framework/Versions/A/SwiftASN1Internal",
+        "/usr/lib/libAppleArchive.dylib",
+        "/usr/lib/libbz2.1.0.dylib",
+        "/System/Library/PrivateFrameworks/DeviceRecovery.framework/Versions/A/DeviceRecovery",
+        "/System/Library/PrivateFrameworks/CoreSymbolication.framework/Versions/A/CoreSymbolication",
+        "/System/Library/PrivateFrameworks/Symbolication.framework/Versions/A/Symbolication",
+        "/usr/lib/swift/libswiftAppleArchive.dylib",
+        "/usr/lib/swift/libswiftCompression.dylib",
+        "/System/Library/Frameworks/CryptoKit.framework/Versions/A/CryptoKit",
+        "/System/Library/PrivateFrameworks/CryptoKitCBridging.framework/Versions/A/CryptoKitCBridging",
+        "/System/Library/Frameworks/CryptoTokenKit.framework/Versions/A/CryptoTokenKit",
+        "/System/Library/Frameworks/LocalAuthentication.framework/Versions/A/LocalAuthentication",
+        "/System/Library/PrivateFrameworks/PlugInKit.framework/Versions/A/PlugInKit",
+        "/System/Library/Frameworks/OpenDirectory.framework/Versions/A/OpenDirectory",
+        "/System/Library/PrivateFrameworks/LocalAuthenticationCore.framework/Versions/A/LocalAuthenticationCore",
+        "/System/Library/PrivateFrameworks/LocalAuthenticationCredentialServices.framework/Versions/A/LocalAuthenticationCredentialServices",
+        "/System/Library/Frameworks/LocalAuthentication.framework/Support/SharedUtils.framework/Versions/A/SharedUtils",
+        "/System/Library/PrivateFrameworks/DFRFoundation.framework/Versions/A/DFRFoundation",
+        "/System/Library/PrivateFrameworks/DiskManagement.framework/Versions/A/DiskManagement",
+        "/System/Library/Frameworks/CoreImage.framework/Versions/A/CoreImage",
+        "/System/Library/PrivateFrameworks/FramePacing.framework/Versions/A/FramePacing",
+        "/System/Library/PrivateFrameworks/PhotosensitivityProcessing.framework/Versions/A/PhotosensitivityProcessing",
+        "/System/Library/PrivateFrameworks/TimeSync.framework/Versions/A/TimeSync",
+        "/System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL",
+        "/System/Library/Frameworks/OpenCL.framework/Versions/A/OpenCL",
+        "/System/Library/PrivateFrameworks/GraphVisualizer.framework/Versions/A/GraphVisualizer",
+        "/System/Library/PrivateFrameworks/AppleJPEG.framework/Versions/A/AppleJPEG",
+        "/usr/lib/libexpat.1.dylib",
+        "/System/Library/Frameworks/ImageIO.framework/Versions/A/Resources/libPng.dylib",
+        "/System/Library/Frameworks/ImageIO.framework/Versions/A/Resources/libTIFF.dylib",
+        "/System/Library/Frameworks/ImageIO.framework/Versions/A/Resources/libGIF.dylib",
+        "/System/Library/Frameworks/ImageIO.framework/Versions/A/Resources/libJP2.dylib",
+        "/usr/lib/libate.dylib",
+        "/System/Library/Frameworks/ImageIO.framework/Versions/A/Resources/libJPEG.dylib",
+        "/System/Library/Frameworks/ImageIO.framework/Versions/A/Resources/libRadiance.dylib",
+        "/usr/lib/swift/libswiftRegexBuilder.dylib",
+        "/System/Library/PrivateFrameworks/GPUCompiler.framework/Versions/32023/Libraries/libllvm-flatbuffers.dylib",
+        "/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libCoreFSCache.dylib",
+        "/System/Library/PrivateFrameworks/GPUCompiler.framework/Versions/32023/Libraries/libGPUCompilerUtils.dylib",
+        "/System/Library/Frameworks/UniformTypeIdentifiers.framework/Versions/A/UniformTypeIdentifiers",
+        "/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGLU.dylib",
+        "/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGFXShared.dylib",
+        "/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib",
+        "/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGLImage.dylib",
+        "/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libCVMSPluginSupport.dylib",
+        "/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libCoreVMClient.dylib",
+        "/System/Library/PrivateFrameworks/FontServices.framework/Versions/A/FontServices",
+        "/System/Library/PrivateFrameworks/OTSVG.framework/Versions/A/OTSVG",
+        "/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework/Versions/A/Resources/libFontRegistry.dylib",
+        "/usr/lib/libhvf.dylib",
+        "/System/Library/PrivateFrameworks/ParsingInternal.framework/Versions/A/ParsingInternal",
+        "/System/Library/PrivateFrameworks/FontServices.framework/libXTFontStaticRegistryData.dylib",
+        "/System/Library/Frameworks/MetalPerformanceShaders.framework/Versions/A/Frameworks/MPSCore.framework/Versions/A/MPSCore",
+        "/System/Library/Frameworks/MetalPerformanceShaders.framework/Versions/A/Frameworks/MPSImage.framework/Versions/A/MPSImage",
+        "/System/Library/Frameworks/MetalPerformanceShaders.framework/Versions/A/Frameworks/MPSNeuralNetwork.framework/Versions/A/MPSNeuralNetwork",
+        "/System/Library/Frameworks/MetalPerformanceShaders.framework/Versions/A/Frameworks/MPSMatrix.framework/Versions/A/MPSMatrix",
+        "/System/Library/Frameworks/MetalPerformanceShaders.framework/Versions/A/Frameworks/MPSRayIntersector.framework/Versions/A/MPSRayIntersector",
+        "/System/Library/Frameworks/MetalPerformanceShaders.framework/Versions/A/Frameworks/MPSNDArray.framework/Versions/A/MPSNDArray",
+        "/System/Library/Frameworks/MetalPerformanceShaders.framework/Versions/A/Frameworks/MPSFunctions.framework/Versions/A/MPSFunctions",
+        "/System/Library/Frameworks/MetalPerformanceShaders.framework/Versions/A/Frameworks/MPSBenchmarkLoop.framework/Versions/A/MPSBenchmarkLoop",
+        "/System/Library/Frameworks/MetalPerformanceShaders.framework/Versions/A/Frameworks/MPSHost.framework/Versions/A/MPSHost",
+        "/System/Library/PrivateFrameworks/MetalTools.framework/Versions/A/MetalTools",
+        "/System/Library/PrivateFrameworks/MTL3On4.framework/Versions/A/MTL3On4",
+        "/System/Library/PrivateFrameworks/IOAccelMemoryInfo.framework/Versions/A/IOAccelMemoryInfo",
+        "/System/Library/PrivateFrameworks/kperf.framework/Versions/A/kperf",
+        "/System/Library/PrivateFrameworks/GPURawCounter.framework/Versions/A/GPURawCounter",
+        "/System/Library/PrivateFrameworks/MallocStackLogging.framework/Versions/A/MallocStackLogging",
+        "/System/Library/PrivateFrameworks/DebugSymbols.framework/Versions/A/DebugSymbols",
+        "/System/Library/Frameworks/ExtensionFoundation.framework/Versions/A/ExtensionFoundation",
+        "/System/Library/PrivateFrameworks/AppServerSupport.framework/Versions/A/AppServerSupport",
+        "/System/Library/PrivateFrameworks/OSEligibility.framework/Versions/A/OSEligibility",
+        "/System/Library/Frameworks/LightweightCodeRequirements.framework/Versions/A/LightweightCodeRequirements",
+        "/System/Library/PrivateFrameworks/AssertionServices.framework/Versions/A/AssertionServices",
+        "/System/Library/Frameworks/OSLog.framework/Versions/A/OSLog",
+        "/usr/lib/libiconv.2.dylib",
+        "/usr/lib/libcharset.1.dylib",
+        "/System/Library/PrivateFrameworks/IOKitten.framework/Versions/A/IOKitten",
+        "/usr/lib/libcsfde.dylib",
+        "/usr/lib/libCoreStorage.dylib",
+        "/System/Library/PrivateFrameworks/MediaKit.framework/Versions/A/MediaKit",
+        "/System/Library/Frameworks/DiscRecording.framework/Versions/A/DiscRecording",
+        "/System/Library/PrivateFrameworks/ProtectedCloudStorage.framework/Versions/A/ProtectedCloudStorage",
+        "/System/Library/PrivateFrameworks/EFILogin.framework/Versions/A/EFILogin",
+        "/usr/lib/libheimdal-asn1.dylib",
+        "/System/Library/PrivateFrameworks/AAAFoundation.framework/Versions/A/AAAFoundation",
+        "/System/Library/Frameworks/Accounts.framework/Versions/A/Accounts",
+        "/System/Library/PrivateFrameworks/CloudServices.framework/Versions/A/CloudServices",
+        "/System/Library/PrivateFrameworks/OctagonTrust.framework/Versions/A/OctagonTrust",
+        "/System/Library/PrivateFrameworks/AppleIDAuthSupport.framework/Versions/A/AppleIDAuthSupport",
+        "/System/Library/Frameworks/SecurityFoundation.framework/Versions/A/SecurityFoundation",
+        "/System/Library/PrivateFrameworks/KeychainCircle.framework/Versions/A/KeychainCircle",
+        "/System/Library/PrivateFrameworks/AuthKit.framework/Versions/A/AuthKit",
+        "/System/Library/PrivateFrameworks/CorePhoneNumbers.framework/Versions/A/CorePhoneNumbers",
+        "/System/Library/PrivateFrameworks/MultiverseSupport.framework/Versions/A/MultiverseSupport",
+        "/System/Library/PrivateFrameworks/URLFormatting.framework/Versions/A/URLFormatting",
+        "/System/Library/Frameworks/AudioToolbox.framework/Versions/A/AudioToolbox",
+        "/System/Library/PrivateFrameworks/AudioToolboxCore.framework/Versions/A/AudioToolboxCore",
+        "/System/Library/PrivateFrameworks/AudioSession.framework/Versions/A/AudioSession",
+        "/System/Library/Frameworks/CoreMIDI.framework/Versions/A/CoreMIDI",
+        "/usr/lib/libAudioStatistics.dylib",
+        "/System/Library/PrivateFrameworks/caulk.framework/Versions/A/caulk",
+        "/System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio",
+        "/usr/lib/swift/libswiftCoreMIDI.dylib",
+        "/System/Library/PrivateFrameworks/perfdata.framework/Versions/A/perfdata",
+        "/System/Library/PrivateFrameworks/AudioDSPGraph.framework/Versions/A/AudioDSPGraph",
+        "/System/Library/PrivateFrameworks/SystemPolicy.framework/Versions/A/SystemPolicy",
+        "/usr/lib/libperfcheck.dylib",
+        "/System/Library/PrivateFrameworks/AudioAnalytics.framework/Versions/A/AudioAnalytics",
+        "/usr/lib/libmis.dylib",
+        "/System/Library/PrivateFrameworks/MediaExperience.framework/Versions/A/MediaExperience",
+        "/System/Library/PrivateFrameworks/AudioSession.framework/libSessionUtility.dylib",
+        "/System/Library/PrivateFrameworks/CMCaptureCore.framework/Versions/A/CMCaptureCore",
+        "/usr/lib/libspindump.dylib",
+        "/System/Library/PrivateFrameworks/PowerLog.framework/Versions/A/PowerLog",
+        "/System/Library/PrivateFrameworks/AudioAccessoryServices.framework/Versions/A/AudioAccessoryServices",
+        "/System/Library/Frameworks/CoreBluetooth.framework/Versions/A/CoreBluetooth",
+        "/System/Library/PrivateFrameworks/CoreUtils.framework/Versions/A/CoreUtils",
+        "/System/Library/PrivateFrameworks/HID.framework/Versions/A/HID",
+        "/System/Library/PrivateFrameworks/Sharing.framework/Versions/A/Sharing",
+        "/System/Library/PrivateFrameworks/CoreUtilsExtras.framework/Versions/A/CoreUtilsExtras",
+        "/System/Library/PrivateFrameworks/IO80211.framework/Versions/A/IO80211",
+        "/System/Library/PrivateFrameworks/AutoUnlock.framework/Versions/A/AutoUnlock",
+        "/System/Library/PrivateFrameworks/IDSFoundation.framework/Versions/A/IDSFoundation",
+        "/System/Library/PrivateFrameworks/IconServices.framework/Versions/A/IconServices",
+        "/System/Library/PrivateFrameworks/Apple80211.framework/Versions/A/Apple80211",
+        "/System/Library/PrivateFrameworks/CoreWiFi.framework/Versions/A/CoreWiFi",
+        "/System/Library/Frameworks/CoreWLAN.framework/Versions/A/CoreWLAN",
+        "/System/Library/Frameworks/IOBluetooth.framework/Versions/A/IOBluetooth",
+        "/System/Library/PrivateFrameworks/SharingCore.framework/Versions/A/SharingCore",
+        "/usr/lib/swift/libswiftCoreImage.dylib",
+        "/usr/lib/swift/libswiftCoreLocation.dylib",
+        "/System/Library/PrivateFrameworks/BiometricKit.framework/Versions/A/BiometricKit",
+        "/System/Library/PrivateFrameworks/IMFoundation.framework/Versions/A/IMFoundation",
+        "/System/Library/PrivateFrameworks/Marco.framework/Versions/A/Marco",
+        "/System/Library/PrivateFrameworks/CommonUtilities.framework/Versions/A/CommonUtilities",
+        "/System/Library/PrivateFrameworks/Engram.framework/Versions/A/Engram",
+        "/System/Library/PrivateFrameworks/ApplePushService.framework/Versions/A/ApplePushService",
+        "/System/Library/PrivateFrameworks/XPCDistributed.framework/Versions/A/XPCDistributed",
+        "/usr/lib/libtidy.A.dylib",
+        "/System/Library/PrivateFrameworks/Bom.framework/Versions/A/Bom",
+        "/usr/lib/libParallelCompression.dylib",
+        "/System/Library/PrivateFrameworks/IconFoundation.framework/Versions/A/IconFoundation",
+        "/System/Library/PrivateFrameworks/SiriAvailability.framework/Versions/A/SiriAvailability",
+        "/System/Library/PrivateFrameworks/IconRendering.framework/Versions/A/IconRendering",
+        "/System/Library/PrivateFrameworks/CoreUI.framework/Versions/A/CoreUI",
+        "/System/Library/PrivateFrameworks/SFSymbols.framework/Versions/A/SFSymbols",
+        "/System/Library/Frameworks/DeveloperToolsSupport.framework/Versions/A/DeveloperToolsSupport",
+        "/System/Library/PrivateFrameworks/RenderBox.framework/Versions/A/RenderBox",
+        "/System/Library/PrivateFrameworks/CoreSVG.framework/Versions/A/CoreSVG",
+        "/System/Library/PrivateFrameworks/TextureIO.framework/Versions/A/TextureIO",
+        "/System/Library/PrivateFrameworks/InternationalSupport.framework/Versions/A/InternationalSupport",
+        "/System/Library/PrivateFrameworks/WallpaperServices.framework/Versions/A/WallpaperServices",
+        "/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATSUI.framework/Versions/A/ATSUI",
+        "/usr/lib/libIOReport.dylib",
+        "/System/Library/PrivateFrameworks/WiFiPeerToPeer.framework/Versions/A/WiFiPeerToPeer",
+        "/System/Library/PrivateFrameworks/Lexicon.framework/Versions/A/Lexicon",
+        "/usr/lib/libmrc.dylib",
+        "/System/Library/PrivateFrameworks/IPConfiguration.framework/Versions/A/IPConfiguration",
+        "/System/Library/PrivateFrameworks/Netrb.framework/Versions/A/Netrb",
+        "/System/Library/PrivateFrameworks/FrontBoardServices.framework/Versions/A/FrontBoardServices",
+        "/System/Library/PrivateFrameworks/LinguisticData.framework/Versions/A/LinguisticData",
+        "/System/Library/PrivateFrameworks/GraphicsServices.framework/Versions/A/GraphicsServices",
+        "/System/Library/Frameworks/UserNotifications.framework/Versions/A/UserNotifications",
+        "/System/Library/Frameworks/AudioUnit.framework/Versions/A/AudioUnit",
+        "/System/Library/Frameworks/OpenDirectory.framework/Versions/A/Frameworks/CFOpenDirectory.framework/Versions/A/CFOpenDirectory",
+        "/System/Library/Frameworks/CoreLocation.framework/Versions/A/CoreLocation",
+        "/System/Library/Frameworks/_LocationEssentials.framework/Versions/A/_LocationEssentials",
+        "/System/Library/PrivateFrameworks/GeoServices.framework/Versions/A/GeoServices",
+        "/System/Library/PrivateFrameworks/LocationSupport.framework/Versions/A/LocationSupport",
+        "/System/Library/PrivateFrameworks/GeoServicesCore.framework/Versions/A/GeoServicesCore",
+        "/System/Library/PrivateFrameworks/PhoneNumbers.framework/Versions/A/PhoneNumbers",
+        "/System/Library/PrivateFrameworks/LocationLogEncryption.framework/Versions/A/LocationLogEncryption",
+        "/System/Library/PrivateFrameworks/PoirotSQLite.framework/Versions/A/PoirotSQLite",
+        "/System/Library/PrivateFrameworks/CascadeSets.framework/Versions/A/CascadeSets",
+        "/System/Library/PrivateFrameworks/AppSupport.framework/Versions/A/AppSupport",
+        "/System/Library/PrivateFrameworks/GPUWrangler.framework/Versions/A/GPUWrangler",
+        "/System/Library/PrivateFrameworks/IOPresentment.framework/Versions/A/IOPresentment",
+        "/System/Library/PrivateFrameworks/DSExternalDisplay.framework/Versions/A/DSExternalDisplay",
+        "/System/Library/PrivateFrameworks/VideoToolboxParavirtualizationSupport.framework/Versions/A/VideoToolboxParavirtualizationSupport",
+        "/System/Library/PrivateFrameworks/AppleVA.framework/Versions/A/AppleVA",
+        "/System/Library/PrivateFrameworks/HIDDisplay.framework/Versions/A/HIDDisplay",
+        "/System/Library/PrivateFrameworks/TextInput.framework/Versions/A/TextInput",
+        "/System/Library/PrivateFrameworks/CVNLP.framework/Versions/A/CVNLP",
+        "/System/Library/PrivateFrameworks/LanguageModeling.framework/Versions/A/LanguageModeling",
+        "/System/Library/PrivateFrameworks/DataDetectorsCore.framework/Versions/A/DataDetectorsCore",
+        "/System/Library/PrivateFrameworks/Futhark.framework/Versions/A/Futhark",
+        "/System/Library/PrivateFrameworks/VisionCore.framework/Versions/A/VisionCore",
+        "/System/Library/Frameworks/CoreML.framework/Versions/A/CoreML",
+        "/System/Library/Frameworks/NaturalLanguage.framework/Versions/A/NaturalLanguage",
+        "/System/Library/PrivateFrameworks/Espresso.framework/Versions/A/Espresso",
+        "/System/Library/Frameworks/DataDetection.framework/Versions/A/DataDetection",
+        "/System/Library/PrivateFrameworks/AppleNeuralEngine.framework/Versions/A/AppleNeuralEngine",
+        "/usr/lib/swift/libswiftMLCompute.dylib",
+        "/usr/lib/swift/libswiftNaturalLanguage.dylib",
+        "/System/Library/PrivateFrameworks/CMPhoto.framework/Versions/A/CMPhoto",
+        "/System/Library/Frameworks/MediaToolbox.framework/Versions/A/MediaToolbox",
+        "/System/Library/PrivateFrameworks/Montreal.framework/Versions/A/Montreal",
+        "/System/Library/PrivateFrameworks/ByteMatrixVerification.framework/Versions/A/ByteMatrixVerification",
+        "/usr/lib/libFDRDecode.dylib",
+        "/System/Library/PrivateFrameworks/AppleJPEGXL.framework/Versions/A/AppleJPEGXL",
+        "/System/Library/PrivateFrameworks/CryptoKitPrivate.framework/Versions/A/CryptoKitPrivate",
+        "/System/Library/PrivateFrameworks/CoreAVCHD.framework/Versions/A/CoreAVCHD",
+        "/System/Library/Frameworks/MediaAccessibility.framework/Versions/A/MediaAccessibility",
+        "/System/Library/PrivateFrameworks/Mangrove.framework/Versions/A/Mangrove",
+        "/System/Library/Frameworks/CoreTelephony.framework/Versions/A/CoreTelephony",
+        "/System/Library/PrivateFrameworks/CoreAUC.framework/Versions/A/CoreAUC",
+        "/usr/lib/libTelephonyUtilDynamic.dylib",
+        "/System/Library/PrivateFrameworks/CoreEmoji.framework/Versions/A/CoreEmoji",
+        "/System/Library/PrivateFrameworks/ANECompiler.framework/Versions/A/ANECompiler",
+        "/System/Library/PrivateFrameworks/MIL.framework/Versions/A/MIL",
+        "/System/Library/Frameworks/MetalPerformanceShadersGraph.framework/Versions/A/MetalPerformanceShadersGraph",
+        "/System/Library/PrivateFrameworks/MLCompilerServices.framework/Versions/A/MLCompilerServices",
+        "/System/Library/PrivateFrameworks/ANEServices.framework/Versions/A/ANEServices",
+        "/usr/lib/libncurses.5.4.dylib",
+        "/usr/lib/libsandbox.1.dylib",
+        "/usr/lib/libMatch.1.dylib",
+        "/System/Library/SubFrameworks/CoreAIRuntime.framework/Versions/A/CoreAIRuntime",
+        "/System/Library/SubFrameworks/CoreAICompiler.framework/Versions/A/CoreAICompiler",
+        "/System/Library/SubFrameworks/CoreAICommon.framework/Versions/A/CoreAICommon",
+        "/System/Library/PrivateFrameworks/ODIE.framework/Versions/A/ODIE",
+        "/System/Library/PrivateFrameworks/ODIE.framework/Versions/A/Frameworks/libODIECompiler.dylib",
+        "/System/Library/PrivateFrameworks/MLCompilerRuntime.framework/Versions/A/MLCompilerRuntime",
+        "/System/Library/Frameworks/MLCompute.framework/Versions/A/MLCompute",
+        "/System/Library/PrivateFrameworks/MLAssetIO.framework/Versions/A/MLAssetIO",
+        "/usr/lib/libcmph.dylib",
+        "/System/Library/Frameworks/AVFoundation.framework/Versions/A/AVFoundation",
+        "/System/Library/Frameworks/AVFAudio.framework/Versions/A/AVFAudio",
+        "/System/Library/PrivateFrameworks/AVFCore.framework/Versions/A/AVFCore",
+        "/System/Library/PrivateFrameworks/AVFCapture.framework/Versions/A/AVFCapture",
+        "/System/Library/Frameworks/AVRouting.framework/Versions/A/AVRouting",
+        "/System/Library/PrivateFrameworks/IsolatedCoreAudioClient.framework/Versions/A/IsolatedCoreAudioClient",
+        "/System/Library/PrivateFrameworks/Tightbeam.framework/Versions/A/Tightbeam",
+        "/System/Library/PrivateFrameworks/CoreAudioOrchestration.framework/Versions/A/CoreAudioOrchestration",
+        "/System/Library/PrivateFrameworks/AFKUser.framework/Versions/A/AFKUser",
+        "/usr/lib/libAccessibility.dylib",
+        "/System/Library/PrivateFrameworks/CMCapture.framework/Versions/A/CMCapture",
+        "/System/Library/PrivateFrameworks/CMImaging.framework/Versions/A/CMImaging",
+        "/System/Library/PrivateFrameworks/Quagga.framework/Versions/A/Quagga",
+        "/System/Library/Frameworks/CoreMediaIO.framework/Versions/A/CoreMediaIO",
+        "/System/Library/PrivateFrameworks/CMCaptureDevice.framework/Versions/A/CMCaptureDevice",
+        "/System/Library/PrivateFrameworks/CinematicFraming.framework/Versions/A/CinematicFraming",
+        "/System/Library/PrivateFrameworks/ModelManagerServices.framework/Versions/A/ModelManagerServices",
+        "/System/Library/Frameworks/CoreMotion.framework/Versions/A/CoreMotion",
+        "/System/Library/PrivateFrameworks/DistributedSensing.framework/Versions/A/DistributedSensing",
+        "/System/Library/PrivateFrameworks/MobileBluetooth.framework/Versions/A/MobileBluetooth",
+        "/System/Library/PrivateFrameworks/Rapport.framework/Versions/A/Rapport",
+        "/System/Library/PrivateFrameworks/AppleIntelligenceReporting.framework/Versions/A/AppleIntelligenceReporting",
+        "/usr/lib/libcups.2.dylib",
+        "/System/Library/Frameworks/GSS.framework/Versions/A/GSS",
+        "/usr/lib/libresolv.9.dylib",
+        "/System/Library/PrivateFrameworks/Heimdal.framework/Versions/A/Heimdal",
+        "/System/Library/Frameworks/Kerberos.framework/Versions/A/Libraries/libHeimdalProxy.dylib",
+        "/System/Library/PrivateFrameworks/CommonAuth.framework/Versions/A/CommonAuth",
+        "/System/Library/PrivateFrameworks/AXCoreUtilities.framework/Versions/A/AXCoreUtilities",
+        "/usr/lib/libedit.3.dylib",
+        "/System/Library/PrivateFrameworks/AttributeGraph.framework/Versions/A/AttributeGraph",
+        "/usr/lib/libAXSafeCategoryBundle.dylib",
+        "/System/Library/Frameworks/TabularData.framework/Versions/A/TabularData",
+        "/System/Library/PrivateFrameworks/ArgumentParserInternal.framework/Versions/A/ArgumentParserInternal",
+        "/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libvDSP.dylib",
+        "/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libLAPACK.dylib",
+        "/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libLinearAlgebra.dylib",
+        "/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libSparseBLAS.dylib",
+        "/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libQuadrature.dylib",
+        "/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBNNS.dylib",
+        "/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libSparse.dylib",
+        "/usr/lib/libapp_launch_measurement.dylib",
+        "/System/Library/PrivateFrameworks/InstalledContentLibrary.framework/Versions/A/InstalledContentLibrary",
+        "/System/Library/PrivateFrameworks/CoreServicesStore.framework/Versions/A/CoreServicesStore",
+        "/System/Library/PrivateFrameworks/AppleMobileFileIntegrity.framework/Versions/A/AppleMobileFileIntegrity",
+        "/System/Library/PrivateFrameworks/MobileSystemServices.framework/Versions/A/MobileSystemServices",
+        "/System/Library/PrivateFrameworks/ConfigProfileHelper.framework/Versions/A/ConfigProfileHelper",
+        "/usr/lib/libxslt.1.dylib",
+        "/System/Library/PrivateFrameworks/BackgroundTaskManagement.framework/Versions/A/BackgroundTaskManagement",
+        "/System/Library/PrivateFrameworks/NetAuth.framework/Versions/A/NetAuth",
+        "/System/Library/PrivateFrameworks/login.framework/Versions/A/Frameworks/loginsupport.framework/Versions/A/loginsupport",
+        "/System/Library/PrivateFrameworks/TrustEvaluationAgent.framework/Versions/A/TrustEvaluationAgent",
+        "/usr/lib/libsasl2.2.dylib",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Testing/Temporary/scratch/halo2-test-hhsv_aow/Relocated engine \u03a9.app/Contents/Frameworks/libdav1d.7.dylib",
+        "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit",
+        "/System/Library/PrivateFrameworks/UIFoundation.framework/Versions/A/UIFoundation",
+        "/System/Library/PrivateFrameworks/CollectionViewCore.framework/Versions/A/CollectionViewCore",
+        "/System/Library/PrivateFrameworks/UserActivity.framework/Versions/A/UserActivity",
+        "/System/Library/PrivateFrameworks/XCTTargetBootstrap.framework/Versions/A/XCTTargetBootstrap",
+        "/System/Library/PrivateFrameworks/UIIntelligenceSupport.framework/Versions/A/UIIntelligenceSupport",
+        "/System/Library/PrivateFrameworks/CampoServices.framework/Versions/A/CampoServices",
+        "/System/Library/PrivateFrameworks/FrontBoard.framework/Versions/A/FrontBoard",
+        "/System/Library/Frameworks/SwiftUICore.framework/Versions/A/SwiftUICore",
+        "/System/Library/PrivateFrameworks/WritingTools.framework/Versions/A/WritingTools",
+        "/System/Library/PrivateFrameworks/WindowManagement.framework/Versions/A/WindowManagement",
+        "/System/Library/SubFrameworks/FocusEngine.framework/Versions/A/FocusEngine",
+        "/System/Library/PrivateFrameworks/DesignLibrary.framework/Versions/A/DesignLibrary",
+        "/System/Library/PrivateFrameworks/AnimationKit.framework/Versions/A/AnimationKit",
+        "/System/Library/SubFrameworks/UIUtilities.framework/Versions/A/UIUtilities",
+        "/System/Library/PrivateFrameworks/UpdateCycle.framework/Versions/A/UpdateCycle",
+        "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox",
+        "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/SpeechRecognition.framework/Versions/A/SpeechRecognition",
+        "/System/Library/PrivateFrameworks/PerformanceAnalysis.framework/Versions/A/PerformanceAnalysis",
+        "/System/Library/Frameworks/Accessibility.framework/Versions/A/Accessibility",
+        "/System/Library/Frameworks/CoreTransferable.framework/Versions/A/CoreTransferable",
+        "/System/Library/Frameworks/Symbols.framework/Versions/A/Symbols",
+        "/System/Library/PrivateFrameworks/SceneHosting.framework/Versions/A/SceneHosting",
+        "/usr/lib/swift/libswiftSpatial.dylib",
+        "/usr/lib/swift/libswiftCoreGraphics.dylib",
+        "/usr/lib/swift/libswiftFoundation.dylib",
+        "/usr/lib/swift/libswiftSwiftOnoneSupport.dylib",
+        "/usr/lib/swift/libswiftsys_time.dylib",
+        "/System/Library/PrivateFrameworks/CoreMaterial.framework/Versions/A/CoreMaterial",
+        "/usr/lib/libSpatial.dylib",
+        "/System/Library/PrivateFrameworks/PrototypeTools.framework/Versions/A/PrototypeTools",
+        "/System/Library/Frameworks/Cocoa.framework/Versions/A/Cocoa",
+        "/System/Library/Frameworks/ForceFeedback.framework/Versions/A/ForceFeedback",
+        "/System/Library/Frameworks/Carbon.framework/Versions/A/Carbon",
+        "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/CommonPanels.framework/Versions/A/CommonPanels",
+        "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/Help.framework/Versions/A/Help",
+        "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/ImageCapture.framework/Versions/A/ImageCapture",
+        "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/OpenScripting.framework/Versions/A/OpenScripting",
+        "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/Ink.framework/Versions/A/Ink",
+        "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/SecurityHI.framework/Versions/A/SecurityHI",
+        "/usr/lib/libInterpreterSecurity.dylib",
+        "/System/Library/PrivateFrameworks/XprotectFramework.framework/Versions/A/XprotectFramework",
+        "/System/Library/PrivateFrameworks/yara.framework/Versions/A/yara",
+        "/usr/lib/libEndpointSecuritySystem.dylib",
+        "/System/Library/Frameworks/GameController.framework/Versions/A/GameController",
+        "/System/Library/PrivateFrameworks/GameControllerFoundation.framework/Versions/A/GameControllerFoundation",
+        "/System/Library/Frameworks/ExternalAccessory.framework/ExternalAccessory",
+        "/System/Library/PrivateFrameworks/GameControllerIO.framework/Versions/A/GameControllerIO",
+        "/System/Library/PrivateFrameworks/GameControllerSettings.framework/Versions/A/GameControllerSettings",
+        "/System/Library/Frameworks/CoreHaptics.framework/Versions/A/CoreHaptics",
+        "/System/Library/PrivateFrameworks/IAP.framework/Versions/A/IAP"
+      ],
+      "cli_help_sha256": "6d5dffde13a7f40096945d23c8c70bcf6caf103107b3a8a7e45d4720ec5270ec",
+      "executable_bytes": 113517120,
+      "scope": "Actual engine CLI startup, signed relocation and dylib loading; no renderer, gameplay, audio, input or display acceptance."
+    },
+    "bundle": {
+      "schema": "H2_MACOS_BUNDLE_V1",
+      "architectures": [
+        "x86_64"
+      ],
+      "signing": "ad-hoc development; not notarized",
+      "private_runtimes": {},
+      "files": {
+        "Frameworks/libMoltenVK.dylib": {
+          "bytes": 10891168,
+          "sha256": "4c45b91239e3a1d27ebca88ed321a5bdef387bea9ddf983f44416a0bcff7333e"
+        },
+        "Frameworks/libSDL2-2.0.0.dylib": {
+          "bytes": 1806448,
+          "sha256": "e0164088cdcba79e4a0ad1903a38e66341f4305f275ad1941e39c37317c83f9a"
+        },
+        "Frameworks/libavcodec.63.dylib": {
+          "bytes": 14289280,
+          "sha256": "7c4bb0720aa261cbf0b4a8ad4e18ef67143fa7d6943a82f6fbe87be8debf72a3"
+        },
+        "Frameworks/libavformat.63.dylib": {
+          "bytes": 1737872,
+          "sha256": "45745f9c569f9be12b380749ba70b073d0ae7b37ed53a1f35ef7a62881ff5e48"
+        },
+        "Frameworks/libavutil.61.dylib": {
+          "bytes": 858960,
+          "sha256": "b344c11476bc719117faa8725b18f40a81d1d9666a6e4ff604fd3394ef733ec9"
+        },
+        "Frameworks/libcrypto.3.dylib": {
+          "bytes": 5590960,
+          "sha256": "e0f225e9f731f362e9943ec30e9647083a7316bdbc32667ba716300fc3354962"
+        },
+        "Frameworks/libdav1d.7.dylib": {
+          "bytes": 2531904,
+          "sha256": "0c43dae0d2214a48add10af0bed55de7224585dc83f175d8b4797f96d5935c76"
+        },
+        "Frameworks/libdeflate.0.dylib": {
+          "bytes": 120480,
+          "sha256": "3b5c3fe79b6b589d7210ed24c3321aadbb1874a90b63c496f2a055b442c158d0"
+        },
+        "Frameworks/libopus.0.dylib": {
+          "bytes": 567904,
+          "sha256": "97ddd46598f28ca94ca22d131e611138ff71201505f506c5ee811405b686e9f0"
+        },
+        "Frameworks/libssl.3.dylib": {
+          "bytes": 1039584,
+          "sha256": "5a7d3f3cc84507034f121d1136e5046b5f7dc3903ad7174e9afef37b14523ae8"
+        },
+        "Frameworks/libswresample.7.dylib": {
+          "bytes": 161936,
+          "sha256": "804aed27fb516aa0bc44a5a18a3f28c2f4381897e6f6338435fe6050ea5e27f4"
+        },
+        "Frameworks/libswscale.10.dylib": {
+          "bytes": 1661968,
+          "sha256": "fc39c17721f431b310bb92a24d33f6f9272e8119a602a32e27c0d1074ceb634b"
+        },
+        "MacOS/Halo 2": {
+          "bytes": 113517120,
+          "sha256": "d5991a4341596374acfdb4f0e184c0e6e99d23409d01ef664e9787f76f67689e"
+        }
+      }
+    },
+    "mcc_preview": {
+      "command": [
+        "/usr/bin/arch",
+        "-x86_64",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l/build/Halo 2.app/Contents/MacOS/Halo 2",
+        "--mcc-preview",
+        "--map",
+        "/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12/content/halo2/h2_maps_win64_dx11/lockout.map",
+        "--frames",
+        "1",
+        "--hidden",
+        "--mute"
+      ],
+      "source_sha256": "97d034dca2109adde65e56c0ab78ee56f72045b56bf9b3200f304d5e1ff4c61e",
+      "scope": "Actual engine asset-viewer startup against authenticated acquired source; no native gameplay/setup admission or framebuffer acceptance.",
+      "exit_code": 1,
+      "diagnostic": "Visible retail sky: scenarios\\skies\\multi\\lockout\\lockout\n{\"name\":\"lockout\",\"build\":\"\",\"scenario\":\"scenarios\\\\multi\\\\lockout\\\\lockout\",\"tags\":23131,\"bsps\":1,\"spawns\":66}\nBSP 0: 14443 triangles\nDiffuse textures: 40/69\nStatic retail lightmap passes: 0; baked lightmap images: 65\nRendering gap: scenarios\\shaders\\multi\\lockout\\trim_vents: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: material 1 : Native MCC material library is missing; update the port and repair its cache\nRendering gap: scenarios\\shaders\\multi\\lockout\\composite_block: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\composite_floor: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\composite_block_snow: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\glass_floor: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\floor_grate: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\tech_panels: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\composite_block_snow: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\frozen_panels: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\snow_drifts: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\cliff_rock_snow: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\cables: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: material 13 : Native MCC material library is missing; update the port and repair its cache\nRendering gap: scenarios\\shaders\\multi\\lockout\\center_pad_exterior: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\right_tower_exterior: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\catwalks: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\main_cell_exterior: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: material 18 : Native MCC material library is missing; update the port and repair its cache\nRendering gap: material 19 : Native MCC material library is missing; update the port and repair its cache\nRendering gap: material 20 : Native MCC material library is missing; update the port and repair its cache\nRendering gap: material 21 : Native MCC material library is missing; update the port and repair its cache\nRendering gap: material 22 : Native MCC material library is missing; update the port and repair its cache\nRendering gap: material 23 : Native MCC material library is missing; update the port and repair its cache\nRendering gap: material 24 : Native MCC material library is missing; update the port and repair its cache\nRendering gap: material 25 : Native MCC material library is missing; update the port and repair its cache\nRendering gap: material 26 : Native MCC material library is missing; update the port and repair its cache\nRendering gap: material 27 : Native MCC material library is missing; update the port and repair its cache\nRendering gap: material 28 : Native MCC material library is missing; update the port and repair its cache\nRendering gap: material 29 : Native MCC material library is missing; update the port and repair its cache\nRendering gap: material 30 : Native MCC material library is missing; update the port and repair its cache\nRendering gap: scenarios\\shaders\\multi\\lockout\\tech_panels: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\tech_panels: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\light_fixture_warm_glow: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\tech_panels: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\tech_panels: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\tech_panels: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\tech_panels: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\containment_interior: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\chamber_glass: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: material 40 : Native MCC material library is missing; update the port and repair its cache\nRendering gap: scenarios\\shaders\\multi\\lockout\\tech_panels: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\tech_panels: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\floor_grate: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\tech_panels: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\grate_cover_glass: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\tech_panels: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\chamber_glass: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\tech_panels: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\containment_interior: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\tech_panels: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\light_fixture_warm_glow: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\tech_panels: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nRendering gap: scenarios\\shaders\\multi\\lockout\\light_fixture_cool_glow: MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission\nerror: Native MCC material library is missing; update the port and repair its cache\n"
+    },
+    "mcc_preview_owner_analysis": "The raw Cache constructor supplies no MccPreparedMapOwner. initialize_mcc_native_shaders returns for null owner; authenticated function tables and native material metadata are preparation inputs. This raw-source probe did not reach Vulkan startup and is not evidence of a packaged shader path error or live Metal depth failure. Fresh preparation remains blocked by the existing loading PCM profile mismatch.",
+    "session": {
+      "scratch_owner": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l",
+      "pid": 42518,
+      "commands": [
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "-c",
+            "import hashlib,json,lzma;from pathlib import Path;data=Path('source-hashes-engine-x86-final.json.xz').read_bytes();assert hashlib.sha256(data).hexdigest()=='dfd087cf6ffc995bc1a9d6f48ccd1ae38b72143520407a614f0cef8d0dafc5c7';files=json.loads(lzma.decompress(data));bad=[n for n,h in files.items() if not Path(n).is_file() or hashlib.sha256(Path(n).read_bytes()).hexdigest()!=h];assert not bad,bad[:12];print('Authenticated',len(files),'current source inputs',flush=True)"
+          ],
+          "started": 1792608260.8760478,
+          "exit_code": 0,
+          "finished": 1792608262.539118
+        },
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "tools/macos/test_port.py",
+            "--engine-check",
+            "--owned-build-worker",
+            "--cmake-arg=-DCMAKE_OSX_ARCHITECTURES=x86_64",
+            "--engine-test-filter",
+            "^(vulkan_portability|macos_engine_cli_x86_64)$",
+            "--output",
+            "build/test-results/macos-engine-x86-final/run-1",
+            "--retain-report",
+            "macos-dependencies/sdl/manifest.json",
+            "--retain-report",
+            "macos-dependencies/openssl/manifest.json",
+            "--retain-report",
+            "macos-dependencies/opus/manifest.json",
+            "--retain-report",
+            "macos-dependencies/libdeflate/manifest.json",
+            "--retain-report",
+            "macos-dependencies/ffmpeg/manifest.json",
+            "--retain-report",
+            "macos-dependencies/vorbis/manifest.json",
+            "--retain-report",
+            "macos-engine-cli-x86_64.json",
+            "--retain-report",
+            "menu-world-vertex-catalog/compiled.json",
+            "--retain-report",
+            "Halo 2.app/Contents/Resources/bundle-manifest.json",
+            "--retain-report",
+            "Halo 2.bundle.json"
+          ],
+          "started": 1792608282.299423,
+          "exit_code": 8,
+          "finished": 1792609465.907514
+        },
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "-c",
+            "from pathlib import Path\nimport hashlib,json,os,subprocess\nowner=Path(os.environ['HALO2_TEST_SCRATCH']);exe=owner/'build/Halo 2.app/Contents/MacOS/Halo 2'\nenv={k:v for k,v in os.environ.items() if not k.startswith('DYLD_')}\ncases=[('direct',[str(exe),'--help'],env|{'DYLD_PRINT_LIBRARIES':'1'}),('arch-env',['/usr/bin/arch','-x86_64',str(exe),'--help'],env|{'DYLD_PRINT_LIBRARIES':'1'}),('arch-option',['/usr/bin/arch','-x86_64','-e','DYLD_PRINT_LIBRARIES=1',str(exe),'--help'],env)]\nreport={'executables':subprocess.check_output(['/usr/bin/lipo','-archs',str(exe)],text=True).strip(),'cases':[]}\nfor name,argv,environment in cases:\n    r=subprocess.run(argv,env=environment,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,timeout=30)\n    report['cases'].append({'name':name,'command':argv,'exit_code':r.returncode,'actual_cli': 'halo2_native [--map PATH]' in r.stdout,'stderr_bytes':len(r.stderr.encode()),'stderr_sha256':hashlib.sha256(r.stderr.encode()).hexdigest(),'first_stderr_lines':r.stderr.splitlines()[:8]})\nPath('build/test-results/macos-engine-x86-final/dyld-probe.json').write_text(json.dumps(report,indent=2)+'\\n')\nprint(json.dumps(report),flush=True)\n"
+          ],
+          "started": 1792609725.394279,
+          "exit_code": 0,
+          "finished": 1792609738.372983
+        },
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "-c",
+            "from pathlib import Path;import hashlib,json,lzma;files=json.loads(lzma.decompress(Path('source-hashes-engine-x86-final.json.xz').read_bytes()));old=files['tests/macos/engine_cli_test.py'];files['tests/macos/engine_cli_test.py']='b0d84f06069debfa291e0f68a3f0df413fa07edccb897f4308eb7db37597a466';bad=[n for n,h in files.items() if hashlib.sha256(Path(n).read_bytes()).hexdigest()!=h];assert not bad,bad[:12];out=Path('build/test-results/macos-engine-x86-final');(out/'effective-source-hashes.json.xz').write_bytes(lzma.compress(json.dumps(files,sort_keys=True,separators=(',',':')).encode()));(out/'refresh-cli.json').write_text(json.dumps({'file':'tests/macos/engine_cli_test.py','old_sha256':old,'sha256':files['tests/macos/engine_cli_test.py'],'reason':'Measured protected arch strips inherited DYLD variable; arch -e sets the diagnostic for the child without changing the app or signatures.'},indent=2)+'\\n');print('Authenticated CLI diagnostic refresh; application and all other inputs unchanged',flush=True)"
+          ],
+          "started": 1792609874.523264,
+          "exit_code": 0,
+          "finished": 1792609876.560516
+        },
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "tools/run_tests.py",
+            "--build-worker",
+            "--target",
+            "halo2_native",
+            "--target",
+            "vulkan_portability_tests",
+            "--jobs",
+            "2",
+            "--test-jobs",
+            "1",
+            "--filter",
+            "^(vulkan_portability|macos_engine_cli_x86_64)$",
+            "--output",
+            "build/test-results/macos-engine-x86-final/run-2",
+            "--retain-report",
+            "macos-dependencies/sdl/manifest.json",
+            "--retain-report",
+            "macos-dependencies/openssl/manifest.json",
+            "--retain-report",
+            "macos-dependencies/opus/manifest.json",
+            "--retain-report",
+            "macos-dependencies/libdeflate/manifest.json",
+            "--retain-report",
+            "macos-dependencies/ffmpeg/manifest.json",
+            "--retain-report",
+            "macos-dependencies/vorbis/manifest.json",
+            "--retain-report",
+            "macos-engine-cli-x86_64.json",
+            "--retain-report",
+            "menu-world-vertex-catalog/compiled.json",
+            "--retain-report",
+            "Halo 2.app/Contents/Resources/bundle-manifest.json",
+            "--retain-report",
+            "Halo 2.bundle.json"
+          ],
+          "started": 1792609987.416513,
+          "exit_code": 0,
+          "finished": 1792610003.390656
+        },
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "-c",
+            "from pathlib import Path\nimport hashlib,json,os,subprocess\nowner=Path(os.environ['HALO2_TEST_SCRATCH']);work=owner/'engine-preview';work.mkdir()\nexe=owner/'build/Halo 2.app/Contents/MacOS/Halo 2'\nsource=Path('/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12/content/halo2/h2_maps_win64_dx11/lockout.map')\ndigest=hashlib.sha256(source.read_bytes()).hexdigest();assert digest=='97d034dca2109adde65e56c0ab78ee56f72045b56bf9b3200f304d5e1ff4c61e'\nargv=['/usr/bin/arch','-x86_64',str(exe),'--mcc-preview','--map',str(source),'--frames','1','--hidden','--mute']\nreport={'command':argv,'source_sha256':digest,'scope':'Actual engine asset-viewer startup against authenticated acquired source; no native gameplay/setup admission or framebuffer acceptance.'}\ntry:\n    run=subprocess.run(argv,cwd=work,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=150)\n    report.update(exit_code=run.returncode,diagnostic=run.stdout[-14000:])\nexcept subprocess.TimeoutExpired as error:\n    report.update(exit_code=None,timed_out=True,diagnostic=(error.stdout or b'')[-14000:].decode(errors='replace'))\nPath('build/test-results/macos-engine-x86-final/mcc-preview.json').write_text(json.dumps(report,indent=2)+'\\n')\nprint(json.dumps(report),flush=True)\n"
+          ],
+          "started": 1792610175.243433,
+          "exit_code": 0,
+          "finished": 1792610177.032044
+        },
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "-c",
+            "import hashlib,json,lzma,os,pathlib,subprocess\nroot=pathlib.Path.cwd(); owner=pathlib.Path(os.environ[\"HALO2_TEST_SCRATCH\"]); out=root/\"build/test-results/macos-engine-x86-final\"\nmanifest=json.loads(lzma.decompress((out/\"effective-source-hashes.json.xz\").read_bytes()))\nmismatch=[name for name,digest in manifest.items() if hashlib.sha256((root/name).read_bytes()).hexdigest()!=digest]\nassert not mismatch,mismatch\napp=owner/\"build/Halo 2.app\"; exe=app/\"Contents/MacOS/Halo 2\"\nsubprocess.run([\"codesign\",\"--verify\",\"--deep\",\"--strict\",str(app)],check=True)\nrecord={\"source_files_verified\":len(manifest),\"source_mismatches\":mismatch,\"scratch_owner\":str(owner),\"allocated_owner_kib\":int(subprocess.check_output([\"du\",\"-sk\",str(owner)],text=True).split()[0]),\"app_apparent_bytes\":sum(p.stat().st_size for p in app.rglob(\"*\") if p.is_file()),\"executable_bytes\":exe.stat().st_size,\"app_architectures\":subprocess.check_output([\"lipo\",\"-archs\",str(exe)],text=True).strip(),\"strict_signature_verified\":True,\"macos_version\":subprocess.check_output([\"sw_vers\"],text=True),\"status\":\"complete; owner ready for cleanup\",\"scope\":\"Actual full Intel engine compile/link and signed relocated CLI; MCC preview stopped at unprepared native material metadata before GPU initialization. No playable acceptance.\"}\n(out/\"final-receipt.json\").write_text(json.dumps(record,indent=2)+\"\\n\")\nprint(json.dumps(record))"
+          ],
+          "started": 1792610462.601075,
+          "exit_code": 0,
+          "finished": 1792610465.3080902
+        }
+      ],
+      "status": "closed"
+    },
+    "cleanup": {
+      "owner": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bn_oxg1l",
+      "owner_removed": true,
+      "session_pid_absent": true,
+      "owner_processes": [],
+      "lockout_preserved": true,
+      "lockout_bytes": 1820416,
+      "lockout_sha256": "97d034dca2109adde65e56c0ab78ee56f72045b56bf9b3200f304d5e1ff4c61e",
+      "large_artifacts_retained": []
+    }
+  }
+}

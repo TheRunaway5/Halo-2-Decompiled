@@ -6,7 +6,7 @@
 #include <limits>
 
 int main(int argc,char **argv)try {
-    if(argc!=3)throw std::runtime_error("MCC world and first-person FOV fixtures required");
+    if(argc!=4)throw std::runtime_error("MCC world/first-person and TU1.5 split FOV fixtures required");
     std::ifstream input(argv[1]);
     if(!input)throw std::runtime_error("MCC FOV fixture unavailable");
     std::string line;unsigned cases{};
@@ -35,6 +35,25 @@ int main(int argc,char **argv)try {
         ++foreground_cases;
     }
     if(foreground_cases!=20)throw std::runtime_error("incomplete MCC first-person fixture");
+    std::ifstream split_input(argv[3]);
+    if(!split_input)throw std::runtime_error("TU1.5 split-camera fixture unavailable");
+    unsigned split_cases{};
+    while(std::getline(split_input,line)) {
+        if(line.empty() || line.front()=='#')continue;
+        float authored{},original{};halo2::SourceViewGrid layout;
+        std::istringstream row(line);
+        if(!(row>>authored>>layout.grid[0]>>layout.grid[1]>>layout.span[0]>>layout.span[1]>>original))
+            throw std::runtime_error("Invalid TU1.5 split-camera fixture");
+        if(std::abs(halo2::source_camera_angles(authored,1.3333333730697632f,
+                layout.grid,layout.span).projection_angle-original)>2e-7f)
+            throw std::runtime_error("Source camera swapped the original split grid/span ratio");
+        const float expected=layout.grid==std::array<std::int16_t,2>{1,1}?
+            halo2::gameplay_first_person_projection_angle:original;
+        if(std::abs(halo2::gameplay_first_person_camera_angle(authored,layout)-expected)>2e-7f)
+            throw std::runtime_error("First-person lens bypassed the original split-camera factor");
+        ++split_cases;
+    }
+    if(split_cases!=12)throw std::runtime_error("Incomplete TU1.5 split-camera fixture");
     const float wide=halo2::gameplay_field_of_view(120),normal=halo2::gameplay_field_of_view(78);
     const auto a=halo2::gameplay_camera_angles(wide,wide,16.f/9.f);
     const auto b=halo2::gameplay_camera_angles(wide,wide,32.f/9.f);

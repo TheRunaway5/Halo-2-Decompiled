@@ -7,7 +7,7 @@ ROOT=Path(__file__).resolve().parents[1]
 E=ROOT/'analysis/multiplayer/sandbox-source/tu15-status-startup-20261012'
 P=ROOT/'analysis/multiplayer/sandbox-source/tu15-settings-startup-20261012'
 P_PIN='a3d3e173889e1dbebee59ca60928f613677410240c24e729324e5594e244dcbd'
-OWN=('include/halo2/source_tu15_status.hpp','src/source_tu15_status.cpp','src/source_tu15_status_runtime_generated.cpp',
+OWN=('include/halo2/source_tu15_status.hpp','src/platform/source_tu15_status.cpp','src/platform/source_tu15_status_runtime_generated.cpp',
  'tests/source_tu15_status_tests.cpp','tests/source_tu15_status_tables_tests.cpp','cmake/SourceTu15Status.cmake',
  'tools/generate_tu15_status_runtime_20261012.py','tools/oracle_tu15_status_startup_20261012.py',
  'tools/oracle_tu15_status_tables_20261012.py','tools/validate_tu15_status_startup_20261012.py',

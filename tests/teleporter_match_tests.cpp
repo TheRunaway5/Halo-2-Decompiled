@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #include "halo2/multiplayer.hpp"
 #include <bit>
 #include <iostream>
@@ -21,7 +22,7 @@ int main(int argc, char **argv) {
     entrance.position = {std::bit_cast<float>(0xc18376b3u),
                          std::bit_cast<float>(0xbd89f86bu),
                          std::bit_cast<float>(0x3e19999au)};
-    match.debug_request({DebugGameRequest::Teleport, player}, &entrance);
+    test::place_player(match,player,entrance);
     std::array<Controls, 16> controls{};
     controls[player].yaw = match.unit(player).yaw;
     match.step(controls);

@@ -31,12 +31,12 @@ def main():
     for path,pin in worker['source_files_sha256'].items():assert sha(path)==pin,path
     # Only the world TU and public ABI header participate in its syntax check.
     # The later out-of-line failure-ordering guard has its own final checks.
-    for name in ('src/physics_live_world_tu15.cpp','include/halo2/source_sound_cache_io_tu15.hpp'):
+    for name in ('src/physics/physics_live_world_tu15.cpp','include/halo2/source_sound_cache_io_tu15.hpp'):
         path=ROOT/name;assert sha(path)==world['source_files_sha256'][str(path)]
-    generated=ROOT/'src/physics_live_support_tu15_generated.cpp';source=generated.read_text()
+    generated=ROOT/'src/physics/physics_live_support_tu15_generated.cpp';source=generated.read_text()
     assert 'dispatch(s,target,0x21f4bdu,false);'in source and 'static void run_1a3b70('not in source
-    production=[ROOT/name for name in ('src/source_sound_cache_io_tu15.cpp','include/halo2/source_sound_cache_io_tu15.hpp',
-        'src/physics_live_world_tu15.cpp','cmake/PhysicsLiveWorldTu15.cmake','tests/source_sound_cache_io_tu15_tests.cpp',
+    production=[ROOT/name for name in ('src/audio/source_sound_cache_io_tu15.cpp','include/halo2/source_sound_cache_io_tu15.hpp',
+        'src/physics/physics_live_world_tu15.cpp','cmake/PhysicsLiveWorldTu15.cmake','tests/source_sound_cache_io_tu15_tests.cpp',
         'tools/validate_original_sound_cache_io_tu15.py')]
     policy='Actual bound sound-resource read and retained completed receipt use the existing synchronous native world policy; full original queue/worker/kernel timing remains unverified'
     summary=dict(passed=True,timestamp_utc=now,original_node=0x4ece38,original_job=0x156808,

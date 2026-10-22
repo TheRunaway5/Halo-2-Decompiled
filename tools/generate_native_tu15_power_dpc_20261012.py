@@ -17,7 +17,7 @@ def main():
   rows[f'{pc:08x}']=dict(raw=i.bytes.hex(),mnemonic=i.mnemonic,operand=i.op_str)
  assert image.read(0x41b704,4).hex()=='68010080'
  a.cpp.write_text('''// Complete authenticated TU1.5 power DPC; no production decoder.
-#include "physics_world_runtime_internal.hpp"
+#include "physics/runtime/physics_world_runtime_internal.hpp"
 #include "halo2/native_tu15_startup_timer.hpp"
 namespace halo2 {
 void source_run_tu15_power_dpc(SourcePhysicsContactMemory &memory,SourcePhysicsContactRuntimeAbi &abi,

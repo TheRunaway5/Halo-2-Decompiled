@@ -1,0 +1,25 @@
+{
+  "cache": "assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b",
+  "default_map": "coagulation.map",
+  "inventory": "bin/engine-builds/6c6a9b900ebb46e7ad3fb087d9e70fa4/runtime-files.json",
+  "inventory_sha256": "5375a7ba72c6a68f3288b427628435c41653bb387954e049857fdabbf920b751",
+  "local_players": 2,
+  "maps": {
+    "ascension.map": "04cb69156ed247e12e55e46cbf2364ce4dfdde8b1d7bf29c902f5ed0839464e9",
+    "beavercreek.map": "c30bd1e015ad12c66eaa42243aef26245c45aafedfc9cc1caa9a265e727b210e",
+    "coagulation.map": "a94c4fdac2dee6887e83a1f2555e914aa7ed974d5c466ebabcf013b08f2ef17d",
+    "containment.map": "7d27e2443a8467f89cd3714f07bfe161d5d543b1255823f8649dcf24c293dc95",
+    "dune.map": "9ca3b5889c21a930b44c075ebf4a7ab7a846a48be551acd7cd9e43f868b3a321",
+    "gemini.map": "e6cfd824cbebe87d39cd74fbd5ace2637dbcdd6687f67d30134858b817a0dfc1",
+    "headlong.map": "dba62b65f25146f492258d21beac93d8f97f142a59a4c4ef18f48803f46b9a5c",
+    "lockout.map": "97d034dca2109adde65e56c0ab78ee56f72045b56bf9b3200f304d5e1ff4c61e",
+    "warlock.map": "27f5a813db80776fc2e135101f1c43c9ab20a3ab7d4e132e05f20a183d79171d",
+    "waterworks.map": "ba90e7c53de84dfdbb09c01071f7ca6122fbe1d281ba62b7355ee1be45510bbe"
+  },
+  "qualification": "bin/engine-builds/6c6a9b900ebb46e7ad3fb087d9e70fa4/qualification.json",
+  "qualification_sha256": "d1cf2aa9e9b27041cc54ecf85b3741551920907373c24bb7c6418ebf9866490c",
+  "runtime": "bin/engine-builds/6c6a9b900ebb46e7ad3fb087d9e70fa4/halo2_native",
+  "runtime_sha256": "7db35ababe9ba5e2b351ae5a9ccb96fb5800f66d9e2b3bc14b1dbc37470e7c79",
+  "schema": "H2_LOCAL_GAMEPLAY_RUNTIME_SELECTION_V1",
+  "video_driver": "x11"
+}

@@ -1,10 +1,10 @@
-target_sources(halo2_systems PRIVATE src/source_world_particle_draws_tu15.cpp)
-target_sources(halo2_systems PRIVATE src/source_particle_constant_storage_tu15.cpp)
-target_sources(halo2_systems PRIVATE src/source_particle_graphics_binding_tu15.cpp)
-target_sources(halo2_systems PRIVATE src/source_particle_declaration_tu15.cpp)
-target_sources(halo2_systems PRIVATE src/source_particle_view_pass_tu15.cpp)
-target_sources(halo2_systems PRIVATE src/source_particle_world_execution_tu15.cpp)
-target_sources(halo2_systems PRIVATE src/source_particle_target_tu15_generated.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/effects/source_world_particle_draws_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/effects/source_particle_constant_storage_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/effects/source_particle_graphics_binding_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/effects/source_particle_declaration_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/effects/source_particle_view_pass_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/effects/source_particle_world_execution_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/effects/source_particle_target_tu15_generated.cpp)
 if(BUILD_TESTING)
     add_executable(source_particle_target_tu15_tests tests/source_particle_target_tu15_tests.cpp)
     target_link_libraries(source_particle_target_tu15_tests PRIVATE halo2_systems halo2_renderer nlohmann_json::nlohmann_json)
@@ -206,4 +206,20 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/map-pack/maps/backwash.map"
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps")
     set_tests_properties(native_tu15_source_swarm_frame_draws PROPERTIES SKIP_RETURN_CODE 77)
+    set(HALO2_MCC_PARTICLE_PARENT_TEST_MAP "" CACHE FILEPATH
+        "Prepared MCC Backwash map for native source particle resource/lifetime validation")
+    if(NOT "${HALO2_MCC_PARTICLE_PARENT_TEST_MAP}" STREQUAL "")
+        if(NOT IS_ABSOLUTE "${HALO2_MCC_PARTICLE_PARENT_TEST_MAP}" OR
+           NOT EXISTS "${HALO2_MCC_PARTICLE_PARENT_TEST_MAP}" OR
+           IS_DIRECTORY "${HALO2_MCC_PARTICLE_PARENT_TEST_MAP}")
+            message(FATAL_ERROR "HALO2_MCC_PARTICLE_PARENT_TEST_MAP requires an existing absolute MCC map")
+        endif()
+        get_filename_component(HALO2_MCC_PARTICLE_PARENT_SHARED_MAPS
+            "${HALO2_MCC_PARTICLE_PARENT_TEST_MAP}" DIRECTORY)
+        add_test(NAME native_mcc_source_particle_resources
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/run_test.py" --
+            "$<TARGET_FILE:source_world_particle_draws_tu15_tests>" native-mcc
+            "${HALO2_MCC_PARTICLE_PARENT_TEST_MAP}" "${HALO2_MCC_PARTICLE_PARENT_SHARED_MAPS}")
+        set_tests_properties(native_mcc_source_particle_resources PROPERTIES TIMEOUT 900 RUN_SERIAL TRUE)
+    endif()
 endif()

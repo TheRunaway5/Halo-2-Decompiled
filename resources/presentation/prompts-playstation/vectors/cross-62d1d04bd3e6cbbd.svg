@@ -1,0 +1,52 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="88" height="100" viewBox="0 0 22 25" version="1.1">
+  <title>Playstation cross: custom controller prompt</title>
+  <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+  <defs>
+    <clipPath id="button-edge">
+      <circle cx="16" cy="20" r="15.95" />
+    </clipPath>
+    <linearGradient id="button-body-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="4" y2="36">
+      <stop offset="0" stop-color="#222939" />
+      <stop offset="0.22" stop-color="#343c4e" />
+      <stop offset="0.52" stop-color="#202636" />
+      <stop offset="0.78" stop-color="#30394a" />
+      <stop offset="1" stop-color="#454f62" />
+    </linearGradient>
+    <linearGradient id="button-rim-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="4" y2="36">
+      <stop offset="0" stop-color="#b6c2d4" />
+      <stop offset="0.4" stop-color="#131a28" />
+      <stop offset="1" stop-color="#65748c" />
+    </linearGradient>
+    <radialGradient id="top-sheen-paint" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(15.4 6.5) scale(11.9 6.2)">
+      <stop offset="0" stop-opacity="1" stop-color="#c1cbdf" />
+      <stop offset="0.35" stop-opacity="0.9" stop-color="#c1cbdf" />
+      <stop offset="1" stop-opacity="0" stop-color="#c1cbdf" />
+    </radialGradient>
+    <radialGradient id="left-reflection-paint" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(4.9 17) scale(2.4 8.5)">
+      <stop offset="0" stop-opacity="1" stop-color="#91baff" />
+      <stop offset="0.35" stop-opacity="0.9" stop-color="#91baff" />
+      <stop offset="1" stop-opacity="0" stop-color="#91baff" />
+    </radialGradient>
+    <linearGradient id="letter-shadow-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="30">
+      <stop offset="0" stop-color="#2f3e22" />
+      <stop offset="1" stop-color="#35833b" />
+    </linearGradient>
+    <linearGradient id="letter-bevel-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="30">
+      <stop offset="0" stop-color="#81ce7d" />
+      <stop offset="1" stop-color="#beffb8" />
+    </linearGradient>
+    <linearGradient id="letter-face-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="29">
+      <stop offset="0" stop-color="#edffed" />
+      <stop offset="0.5" stop-color="#bdfcba" />
+      <stop offset="1" stop-color="#d0ffd0" />
+    </linearGradient>
+  </defs>
+  <g id="face-button" transform="translate(0.0 0.25) scale(0.6875)" clip-path="url(#button-edge)">
+    <circle id="button-body" cx="16" cy="20" r="15.7" fill="url(#button-body-paint)" stroke="url(#button-rim-paint)" stroke-width=".5" />
+    <ellipse id="top-sheen" cx="15.4" cy="6.5" rx="11.9" ry="6.2" fill="url(#top-sheen-paint)" />
+    <path id="symbol-shadow" d="M9.2 12.8 L22.8 26.4 M22.8 12.8 L9.2 26.4" fill="none" stroke="#0b1324" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" transform="translate(.25 .65)" />
+    <path id="symbol-bevel" d="M9.2 12.8 L22.8 26.4 M22.8 12.8 L9.2 26.4" fill="none" stroke="#91baff" stroke-width="2.65" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 0)" stroke-opacity=".45" />
+    <path id="symbol-face" d="M9.2 12.8 L22.8 26.4 M22.8 12.8 L9.2 26.4" fill="none" stroke="#91baff" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 0)" />
+  </g>
+</svg>

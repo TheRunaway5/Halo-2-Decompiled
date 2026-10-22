@@ -61,6 +61,24 @@ raise SystemExit(int(os.environ.get('H2_TEST_SHADER_REPAIR_STATUS','0')))
         return subprocess.run([str(self.launcher), *arguments], cwd=self.temporary.name,
                               env=self.environment, capture_output=True, text=True, timeout=10)
 
+    def test_build_engine_dispatches_source_promotion_without_import_or_play(self):
+        (self.root / 'CMakeLists.txt').touch()
+        (self.root / 'tools/build_launcher_engine.py').write_text('''import json, pathlib, sys
+root=pathlib.Path(sys.argv[sys.argv.index('--root')+1])
+(root/'engine-build-call.json').write_text(json.dumps(sys.argv[1:]))
+raise SystemExit(17)
+''')
+        result = self.run_launcher('--build-engine')
+        self.assertEqual(result.returncode, 17, result.stderr)
+        self.assertEqual(self.call('engine-build'), ['--root', str(self.root)])
+        self.assertFalse((self.root / 'setup-call.json').exists())
+        self.assertFalse((self.root / 'runtime-call.json').exists())
+
+    def test_build_engine_rejects_combined_launch_arguments(self):
+        result = self.run_launcher('--build-engine', '--launch-game')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Use --build-engine by itself', result.stderr)
+
     def call(self, name):
         return json.loads((self.root / (name + '-call.json')).read_text())
 
@@ -78,15 +96,20 @@ raise SystemExit(int(os.environ.get('H2_TEST_SHADER_REPAIR_STATUS','0')))
             schema='H2_MCC_TU15_PREPARATION_V1', external_installation_requirement='Halo MCC only',
             runtime_active=playable, full_tu15_parity=playable)))
 
-    def runtime(self):
+    def runtime(self, preview_features=None):
         build = self.root / 'build'
-        (build / 'shaders').mkdir(parents=True)
-        source = (REPO / 'src/launcher.cpp').read_text()
+        (build / 'shaders').mkdir(parents=True, exist_ok=True)
+        source = (REPO / 'src/app/launcher.cpp').read_text()
         block = re.search(r'shader_names\{(.*?)\};', source, re.S).group(1)
         for name in re.findall(r'"([^"\n]+\.spv)"', block):
             (build / 'shaders' / name).touch()
         binary = build / 'halo2_native'
         binary.write_text('#!' + sys.executable + '\n' + '''import json, os, pathlib, sys
+if sys.argv[1:]==['--mcc-preview-capabilities']:
+    response=''' + repr(preview_features) + '''
+    if response is None: raise SystemExit(1)
+    print(response)
+    raise SystemExit(0)
 pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], cwd=os.getcwd(), discord=os.environ.get('H2_DISCORD_LAUNCHER'))))
 ''')
         binary.chmod(0o755)
@@ -118,7 +141,9 @@ pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], 
                       map=dict(path='halo2/h2_maps_win64_dx11/lockout.map', sha256=digest(self.maps / 'lockout.map')),
                       validation=dict(passed=True, scope='mcc-lockout-native-gameplay-test', report_sha256='1' * 64))
         binary.with_name(binary.name + '.native-test.json').write_text(json.dumps(report))
-        shutil.copy2(REPO / 'tools/native_gameplay_test.py', self.root / 'tools/native_gameplay_test.py')
+        for name in ('native_gameplay_test.py', 'frontend_runtime_selection.py', 'packaged_shader_defaults.py',
+                     'native_renderer_shaders.py'):
+            shutil.copy2(REPO / 'tools' / name, self.root / 'tools' / name)
         return binary
 
     def test_native_test_uses_actual_source_world_route_and_owned_storage_without_parity_claim(self):
@@ -157,12 +182,14 @@ pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], 
                                   'halo2/h2_maps_win64_dx11/sounds_neutral.dat',
                                   'halo2/h2_fonts/font_table.txt')})
         report['validation']['scope'] = 'mcc-native-title-menu'
-        prompt_names = ['manifest.json', 'prompt-source.tsv', 'prompts.tsv']
-        prompt_names += [f'atlases/{index}.dds' for index in range(6)]
-        for name in prompt_names:
-            path = self.cache / 'presentation/prompts' / name
+        # This fresh synthetic routing fixture declares the current V3
+        # contract; it does not upgrade or publish any real frontend proof.
+        report['validation']['mcc_loading_presentation_profile'] = 'mcc-logo-glow-mcc-track-oneshot-v1'
+        report['validation']['mcc_prompt_font_profile'] = 'mcc-native-control-fonts-v1'
+        for name in ('manifest.json', 'glow-mask.dds', 'loading.wav'):
+            path = self.cache / 'presentation/loading-v3' / name
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_bytes(b'synthetic authored prompt owner')
+            path.write_bytes(b'synthetic declared MCC V3 loading owner')
             report['resources'][path.relative_to(self.cache).as_posix()] = digest(path)
         binary.with_name(binary.name + '.frontend-test.json').write_text(json.dumps(report))
         return binary
@@ -464,7 +491,7 @@ pathlib.Path(sys.argv[sys.argv.index('--root')+1], 'updated').touch()
 
     def test_preview_preserves_imported_mod_path_and_case(self):
         self.ready_assets()
-        self.runtime()
+        self.runtime(json.dumps(dict(schema='H2_MCC_PREVIEW_CAPABILITIES_V1', prepared_cache_root=True)))
         mod = self.cache/'halo2/mods/My Mod/Custom.map'
         mod.parent.mkdir(parents=True)
         mod.write_text('fixture')
@@ -472,6 +499,94 @@ pathlib.Path(sys.argv[sys.argv.index('--root')+1], 'updated').touch()
         self.assertEqual(result.returncode, 0, result.stderr)
         args = self.call('runtime')['argv']
         self.assertEqual(args[args.index('--map')+1], str(mod))
+        self.assertEqual(args.count('--prepared-mcc-cache-root'), 1)
+        self.assertEqual(args[args.index('--prepared-mcc-cache-root')+1], str(self.cache))
+
+    def test_old_preview_runtime_receives_exact_legacy_stock_arguments(self):
+        self.ready_assets()
+        self.runtime()
+        # Skip the independent old --mcc-preview/--help build check. This fake
+        # rejects only the new feature query and must never receive its option.
+        (self.root/'PRECOMPILED_TEST_BUILD.json').write_text('{}')
+        result = self.run_launcher('--preview-mcc', '--frames', '1', '--hidden')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.call('runtime')['argv'], [
+            '--mcc-preview', '--map', str(self.maps/'lockout.map'),
+            '--shared-maps', str(self.maps), '--frames', '1', '--hidden'])
+
+    def test_supported_preview_keeps_same_leaf_nested_owners_distinct(self):
+        self.ready_assets()
+        self.runtime(json.dumps(dict(schema='H2_MCC_PREVIEW_CAPABILITIES_V1', prepared_cache_root=True)))
+        before = (self.cache/'provenance.json').read_bytes()
+        for owner in ('Mod A', 'Mod B'):
+            mod = self.cache/'halo2/mods'/owner/'Lockout.map'
+            mod.parent.mkdir(parents=True)
+            mod.write_text('Synthetic argv owner only; not converted MCC data')
+            result = self.run_launcher('--preview-mcc', '--map', str(mod))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            args = self.call('runtime')['argv']
+            self.assertEqual(args[args.index('--map')+1], str(mod))
+            self.assertEqual(args[args.index('--prepared-mcc-cache-root')+1], str(self.cache))
+            self.assertEqual(args.count('--prepared-mcc-cache-root'), 1)
+            self.assertEqual(args[args.index('--shared-maps')+1], str(self.maps))
+            self.assertNotIn('--multiplayer', args)
+            self.assertNotIn('--menu-screen', args)
+        self.assertEqual(before, (self.cache/'provenance.json').read_bytes())
+
+    def test_supported_stock_preview_authors_root_without_readiness_promotion(self):
+        self.ready_assets()
+        self.runtime(json.dumps(dict(schema='H2_MCC_PREVIEW_CAPABILITIES_V1', prepared_cache_root=True)))
+        before = (self.cache/'provenance.json').read_bytes()
+        result = self.run_launcher('--preview-mcc', '--frames', '1', '--hidden')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        args = self.call('runtime')['argv']
+        self.assertEqual(args.count('--prepared-mcc-cache-root'), 1)
+        self.assertEqual(args[args.index('--prepared-mcc-cache-root')+1], str(self.cache))
+        self.assertEqual(args[args.index('--map')+1], str(self.maps/'lockout.map'))
+        self.assertEqual(before, (self.cache/'provenance.json').read_bytes())
+        self.assertFalse(json.loads(before)['runtime_active'])
+        self.assertFalse(json.loads(before)['full_tu15_parity'])
+
+    def test_prepared_preview_feature_does_not_change_gameplay_arguments(self):
+        self.ready_assets(True)
+        self.runtime(json.dumps(dict(schema='H2_MCC_PREVIEW_CAPABILITIES_V1', prepared_cache_root=True)))
+        result = self.run_launcher('--launch-game', '--multiplayer', '--map', 'mods/Scene.map',
+                                   '--shared-maps', 'mods/shared')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.call('runtime')['argv'], [
+            '--multiplayer', '--map', 'mods/Scene.map', '--shared-maps', 'mods/shared'])
+
+    def test_nested_preview_rejects_absent_or_malformed_runtime_feature(self):
+        self.ready_assets()
+        (self.root/'PRECOMPILED_TEST_BUILD.json').write_text('{}')
+        mod = self.cache/'halo2/mods/Lockout.map'
+        mod.parent.mkdir(parents=True)
+        mod.write_text('Synthetic argv owner only')
+        for response in (None, 'not JSON', '[]', '{}',
+                         '{"schema":"H2_MCC_PREVIEW_CAPABILITIES_V1","prepared_cache_root":false}',
+                         '{"schema":"H2_MCC_PREVIEW_CAPABILITIES_V1","prepared_cache_root":1}',
+                         '{"schema":"wrong","prepared_cache_root":true}',
+                         '{"schema":"H2_MCC_PREVIEW_CAPABILITIES_V1","prepared_cache_root":true,"extra":1}'):
+            with self.subTest(response=response):
+                self.runtime(response)
+                result = self.run_launcher('--preview-mcc', '--map', str(mod))
+                self.assertEqual(result.returncode, 1)
+                self.assertIn('does not support prepared-cache ownership', result.stderr)
+                self.assertFalse((self.root/'runtime-call.json').exists(),
+                                 'Feature query or rejection fell through to a preview/game invocation')
+
+    def test_preview_root_transport_is_launcher_owned_even_with_feature(self):
+        self.ready_assets()
+        self.runtime(json.dumps(dict(schema='H2_MCC_PREVIEW_CAPABILITIES_V1', prepared_cache_root=True)))
+        for roots in (('--prepared-mcc-cache-root', str(self.cache)),
+                      ('--prepared-mcc-cache-root', str(self.cache), '--prepared-mcc-cache-root', str(self.cache)),
+                      ('--prepared-mcc-cache-root', str(self.cache), '--prepared-mcc-cache-root', str(self.root)),
+                      ('--prepared-mcc-cache-root='+str(self.cache),)):
+            with self.subTest(roots=roots):
+                result = self.run_launcher('--preview-mcc', *roots)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn('authored by the launcher', result.stderr)
+                self.assertFalse((self.root/'runtime-call.json').exists())
 
     def test_preview_rejects_gameplay_options_and_external_maps(self):
         self.ready_assets()

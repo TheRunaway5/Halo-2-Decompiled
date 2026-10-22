@@ -16,7 +16,7 @@ class Code:
  def inside(self,p):return self.text.inside(p)or self.sound.inside(p)
  def at(self,p):return(self.sound if self.sound.lo<=p<self.sound.hi else self.text).at(p)
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,default=Path('src/source_sound_sdk_tu15_generated.cpp'));p.add_argument('--directory',type=Path,required=True);a=p.parse_args();assert sha(NEW_DEFAULT)==NEW_PIN
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,default=Path('src/audio/source_sound_sdk_tu15_generated.cpp'));p.add_argument('--directory',type=Path,required=True);a=p.parse_args();assert sha(NEW_DEFAULT)==NEW_PIN
  x=Xbe(NEW_DEFAULT);code=Code(x);paired=json.loads(Path('analysis/multiplayer/integration/sound-capabilities-native/paired-v2/report.json').read_text())
  entries=sorted(set(CORE)|{int(row['u5'],16)for row in paired['owners']});assert len(paired['owners'])==27
  for row,entry in ((0x46d7e4,0x387baa),(0x46d7e8,0x387bb5),(0x46d7ec,0x38a988),(0x46d7f0,0x38a993)):

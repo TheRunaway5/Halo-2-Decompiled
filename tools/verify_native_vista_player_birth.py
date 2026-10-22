@@ -8,8 +8,8 @@ allocation/spawn; this is not a GPU capture or a complete PC simulation port.
 import argparse,hashlib,json,os,shlex,subprocess
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-SOURCES=['tests/native_vista_player_birth_tests.cpp','src/vista_player_birth.cpp',
- 'src/vista_slayer_publication.cpp','src/multiplayer.cpp','src/multiplayer_world.cpp']
+SOURCES=['tests/native_vista_player_birth_tests.cpp','src/ui/vista/vista_player_birth.cpp',
+ 'src/ui/vista/vista_slayer_publication.cpp','src/gameplay/multiplayer/multiplayer.cpp','src/gameplay/multiplayer/multiplayer_world.cpp']
 PACKAGES=['sdl2','libavcodec','libavformat','libavutil','libswresample','libswscale']
 def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 def main():
@@ -18,7 +18,7 @@ def main():
  archives=[a.build/f'libhalo2_{name}.a'for name in ('systems','cache','sound_platform')]
  target=Path.home()/'.cache'/('native_vista_player_birth_tests_asan'if a.asan else'native_vista_player_birth_tests')
  command=['c++','-std=c++20','-Wall','-Wextra','-Werror','-Wno-missing-field-initializers',
-  '-pedantic','-fno-fast-math','-ffp-contract=off','-Iinclude']
+  '-pedantic','-fno-fast-math','-ffp-contract=off','-Iinclude', '-Isrc']
  if a.asan:command+=['-fsanitize=address,undefined','-fno-omit-frame-pointer']
  command+=shlex.split(subprocess.check_output(['pkg-config','--cflags','sdl2'],text=True))
  command+=SOURCES+['-Wl,--start-group',*[str(x)for x in archives],'-Wl,--end-group']

@@ -27,9 +27,9 @@ def main():
  targets=('round_lifecycle_tests','game_end_native_tests')
  lines=[]
  for target in targets:lines.extend(subprocess.check_output(['ninja','-C',str(build),'-t','commands',target],text=True).splitlines())
- common=['src/source_round_lifecycle.cpp','src/source_game_end.cpp','src/source_result_statistics.cpp',
-  'src/source_player_lives.cpp','src/source_netgame_weapon.cpp','src/source_game_over.cpp','src/sound_classes.cpp']
- sources=common+['src/multiplayer.cpp','tests/round_lifecycle_tests.cpp','tests/game_end_native_tests.cpp']
+ common=['src/gameplay/multiplayer/source_round_lifecycle.cpp','src/gameplay/multiplayer/source_game_end.cpp','src/gameplay/multiplayer/source_result_statistics.cpp',
+  'src/gameplay/units/source_player_lives.cpp','src/gameplay/weapons/source_netgame_weapon.cpp','src/gameplay/multiplayer/source_game_over.cpp','src/audio/sound_classes.cpp']
+ sources=common+['src/gameplay/multiplayer/multiplayer.cpp','tests/round_lifecycle_tests.cpp','tests/game_end_native_tests.cpp']
  objects={};commands=[]
  flags=['-fsanitize=address,undefined','-fno-omit-frame-pointer','-O1']
  with (out/'build.log').open('w')as log:
@@ -47,7 +47,7 @@ def main():
   for target in targets:
    line=next(line for line in reversed(lines)if ' -o '+target+' 'in line)
    command=shlex.split(next(part for part in line.split(' && ')if ' -o '+target+' 'in part))
-   test='tests/'+target+'.cpp';instrumented=common+(['src/multiplayer.cpp']if target=='game_end_native_tests'else[])+[test]
+   test='tests/'+target+'.cpp';instrumented=common+(['src/gameplay/multiplayer/multiplayer.cpp']if target=='game_end_native_tests'else[])+[test]
    filtered=[];n=0
    while n<len(command):
     word=command[n]

@@ -11,6 +11,9 @@
 namespace halo2 {
 class MccSoundVariationProvider;
 class MccScriptSoundWorldAccess;
+class NativeVistaAnnouncer;
+class NativeUnitDamageAudio;
+class EffectAudioAuxiliary;
 // Literal BSP sound palette/paths, not an initialized Xbox sound system.
 struct MultiplayerAudioBsp {
   struct Palette {std::uint32_t sound=0xffffffffu,inside_sound=0xffffffffu,flags{};
@@ -74,17 +77,124 @@ private:
 // clock events feed a genuine SDL device. No Xbox driver, admission flag,
 // object header, listener record, or successful source handle is fabricated.
 class MultiplayerAudio {
+  struct ContinuationSnapshot;
+  struct ContinuationPrepared;
+  struct PublicationHold;
 public:
   using Voice = std::uint64_t;
   using Completion = std::function<void(const SdlSoundCompletion &)>;
+  class VoiceReceipt {
+  public:
+    Voice id() const noexcept { return id_; }
+    bool same(const VoiceReceipt&) const noexcept;
+  private:
+    std::weak_ptr<const void> owner_;
+    const void* owner_pointer_{};
+    std::shared_ptr<const unsigned char> record_;
+    Voice id_{};
+    std::uint64_t epoch_{};
+    friend class MultiplayerAudio;
+  };
+private:
+  struct CompanionCompletion {
+    std::weak_ptr<void> owner;
+    std::shared_ptr<void> branch;
+    std::uint64_t token{};
+    bool queued{};
+    void (*dispatch)(const std::shared_ptr<void>&,const std::shared_ptr<void>&,
+        std::uint64_t,bool,const VoiceReceipt&,const SdlSoundCompletion&){};
+  };
+  struct CompanionVoice { VoiceReceipt voice; CompanionCompletion completion; };
+  using CompanionBinder=std::function<CompanionCompletion(
+      const CompanionCompletion&,const VoiceReceipt&)>;
+public:
+  class Checkpoint {
+  public:
+    Checkpoint() = default;
+    std::optional<std::size_t> voices() const noexcept;
+  private:
+    std::vector<CompanionVoice> companion_completions() const;
+    std::shared_ptr<const ContinuationSnapshot> data_;
+    friend class MultiplayerAudio;
+    friend class NativeVistaAnnouncer;
+  };
+  class PreparationIdentity {
+  public:
+    PreparationIdentity() = default;
+  private:
+    std::weak_ptr<const void> owner_;
+    const void* pointer_{};
+    friend class MultiplayerAudio;
+  };
+  class PreparedReplacement {
+  public:
+    PreparedReplacement() = default;
+    ~PreparedReplacement();
+    PreparedReplacement(PreparedReplacement&&) noexcept;
+    PreparedReplacement& operator=(PreparedReplacement&&) noexcept;
+    PreparedReplacement(const PreparedReplacement&) = delete;
+    std::optional<VoiceReceipt> voice(const VoiceReceipt&) const noexcept;
+    std::optional<std::size_t> voices() const noexcept;
+    bool published() const noexcept;
+    bool for_audio(const MultiplayerAudio&) const noexcept;
+    PreparationIdentity identity() const noexcept;
+    bool matches(const PreparationIdentity&) const noexcept;
+    // Once-only transfer of the captured external pending caller. Before
+    // publication its destruction cancels this preparation; after a reserved
+    // commit intent it queues a request for the published producer to drain.
+    std::optional<MultiplayerPreparedScriptImpulseTu15> script(
+        const MultiplayerPreparedScriptImpulseTu15&);
+  private:
+    bool auxiliary_agrees(const std::uint32_t*,std::uint32_t) const noexcept;
+    std::shared_ptr<ContinuationPrepared> data_;
+    friend class MultiplayerAudio;
+    friend class NativeUnitDamageAudio;
+  };
+  class HeldPublication {
+  public:
+    // Foreign destruction terminates before touching SDL or retained storage.
+    ~HeldPublication();
+    HeldPublication(const HeldPublication&) = delete;
+    HeldPublication(HeldPublication&&) = delete;
+  private:
+    explicit HeldPublication(std::unique_ptr<PublicationHold>);
+    std::unique_ptr<PublicationHold> data_;
+    friend class MultiplayerAudio;
+  };
   // Optional game-thread auxiliary word, retained through all requests.
   // Gain/pitch variation borrows it; impulses copy the post-pitch word into
   // their own permutation stream. The caller must outlive this adapter.
   MultiplayerAudio(const Cache &,std::uint32_t native_secondary_seed,
       const SdlSoundPlatformConfiguration &,MultiplayerAudioObserver={},
       std::uint32_t *shared_variation_random=nullptr);
+  // Retains the actual Cache owner. Ownership alone preserves the legacy
+  // producer policy; it does not enroll playback for continuation.
+  MultiplayerAudio(std::shared_ptr<const Cache>,std::uint32_t native_secondary_seed,
+      const SdlSoundPlatformConfiguration &,MultiplayerAudioObserver={},
+      std::uint32_t *shared_variation_random=nullptr);
   ~MultiplayerAudio();
   MultiplayerAudio(const MultiplayerAudio &)=delete;
+  // Explicit creator-thread, externally quiescent enrollment, before any
+  // voice or script-clock binding. Requires the retaining Cache constructor.
+  // Existing owning/borrowed users keep their prior producer behavior until
+  // this succeeds. Enrolled playback uses exact typed SDL receipts internally;
+  // enrollment supplies no receipt/global runtime readiness.
+  void enroll_continuation();
+  bool continuation_enrolled() const noexcept;
+  // Complete local playback, not a receipt/global adoption proof. External
+  // native/Aux/companion owners must join their genuine aggregate separately.
+  Checkpoint checkpoint() const;
+  PreparedReplacement prepare_restore(const Checkpoint&) const;
+  PreparedReplacement prepare_restore(const Checkpoint&,const EffectAudioAuxiliary&) const;
+  HeldPublication hold_publication(PreparedReplacement&);
+  bool ready(const PreparedReplacement&,const HeldPublication&) const noexcept;
+  // Reserve the exact local transaction before another owner swaps. Pending
+  // wrapper cancellation then queues for the published branch; it cannot
+  // invalidate this reserved image between aggregate commits.
+  // Keep this preparation and all companion wrappers stable until every
+  // aggregate swap completes. Abandoning Held cancels an unpublished intent.
+  bool begin_commit(PreparedReplacement&,HeldPublication&) noexcept;
+  bool commit(PreparedReplacement&,HeldPublication&) noexcept;
   // Bind converted native metadata before playback, or explicitly rebind
   // after all playback, pending admissions and completion dispatch quiesce.
   // Rebinding clears cached definitions and invalidates old script clocks;
@@ -94,6 +204,11 @@ public:
   void prepare(std::uint32_t sound);
   void first_person(unsigned view,const FirstPersonViewBinding &,
                     const FirstPersonAnimationEvent &);
+  // Native stereo delivery of an actual completed source caller's raw
+  // one-shot request (18CEFC ->223B20). Does not change its original admission
+  // result, manufacture a source voice, or implement controller/loop ownership.
+  std::optional<Voice> source_impulse(std::uint32_t sound,
+      std::span<const std::byte,160> request,MultiplayerAudioKind,unsigned view);
   // Source caller control interpolates authored gain and pitch bounds.
   void impulse(std::uint32_t sound,float control=1,
       MultiplayerAudioKind=MultiplayerAudioKind::Impulse,
@@ -111,10 +226,17 @@ public:
   std::optional<Voice> play_impulse(std::uint32_t sound,float control=1,
       MultiplayerAudioKind=MultiplayerAudioKind::Impulse,
       std::uint32_t owner=0xffffffffu,unsigned view=0,Completion={});
+  std::optional<VoiceReceipt> play_impulse_receipt(std::uint32_t sound,float control=1,
+      MultiplayerAudioKind=MultiplayerAudioKind::Impulse,
+      std::uint32_t owner=0xffffffffu,unsigned view=0,Completion={});
   // Native output deadline only: selection and shared RNG still occur at
   // this call, exactly as for play_impulse. This does not evaluate a future
   // script request or create/reserve an Xbox sound handle.
   std::optional<Voice> schedule_impulse(std::uint32_t sound,
+      std::uint64_t presentation_frame,float control=1,
+      MultiplayerAudioKind=MultiplayerAudioKind::Impulse,
+      std::uint32_t owner=0xffffffffu,unsigned view=0,Completion={});
+  std::optional<VoiceReceipt> schedule_impulse_receipt(std::uint32_t sound,
       std::uint64_t presentation_frame,float control=1,
       MultiplayerAudioKind=MultiplayerAudioKind::Impulse,
       std::uint32_t owner=0xffffffffu,unsigned view=0,Completion={});
@@ -166,14 +288,21 @@ public:
   // WORLD point. This changes only spatial parameters, never PCM or selection.
   // Centered voices and retired identities cannot acquire an emitter here.
   void emitter(Voice,Vec3);
+  void emitter(const VoiceReceipt&,Vec3);
   void impulse_at(std::uint32_t sound,Vec3 position,float control=1,
       MultiplayerAudioKind=MultiplayerAudioKind::Impulse,
       std::uint32_t owner=0xffffffffu);
   std::vector<Voice> interface_loop(std::uint32_t looping_sound,
       std::uint32_t owner,unsigned view);
+  std::vector<VoiceReceipt> interface_loop_receipts(std::uint32_t looping_sound,
+      std::uint32_t owner,unsigned view);
   void stop_voice(Voice);
+  void stop_voice(const VoiceReceipt&);
   bool voice_active(Voice) const;
+  bool voice_active(const VoiceReceipt&) const;
   std::optional<Voice> play_impulse_at(std::uint32_t sound,Vec3 position,float control=1,
+      MultiplayerAudioKind=MultiplayerAudioKind::Impulse,std::uint32_t owner=0xffffffffu);
+  std::optional<VoiceReceipt> play_impulse_at_receipt(std::uint32_t sound,Vec3 position,float control=1,
       MultiplayerAudioKind=MultiplayerAudioKind::Impulse,std::uint32_t owner=0xffffffffu);
   std::optional<Voice> schedule_impulse_at(std::uint32_t sound,Vec3 position,
       std::uint64_t presentation_frame,float control=1,
@@ -182,7 +311,9 @@ public:
   void master_volume(float);
   void paused(bool);
   SdlSoundVoiceParameters voice_parameters(Voice) const;
+  SdlSoundVoiceParameters voice_parameters(const VoiceReceipt&) const;
   SdlSoundPlaybackPosition playback_position(Voice) const; // Live native voice only.
+  SdlSoundPlaybackPosition playback_position(const VoiceReceipt&) const;
   std::string speaker_layout(unsigned);
   void class_gains(const std::array<float,sound_class_count> &);
   void update();
@@ -192,6 +323,13 @@ public:
   std::uint64_t mixed_frames() const;
   std::uint64_t presentation_frames() const;
 private:
+  void stop_voice_impl(Voice);
+  void emitter_impl(Voice,Vec3);
+  PreparedReplacement prepare_restore(const Checkpoint&,const CompanionBinder&) const;
+  PreparedReplacement prepare_restore(const Checkpoint&,const CompanionBinder&,const EffectAudioAuxiliary*) const;
+  std::optional<VoiceReceipt> play_companion_impulse(std::uint32_t,float,
+      MultiplayerAudioKind,std::uint32_t,unsigned,CompanionCompletion);
+  friend class NativeVistaAnnouncer;
   std::optional<Voice> play_prepared_script_impulse_impl(
       MultiplayerPreparedScriptImpulseTu15&,const MccScriptSoundWorldAccess*,
       float,MultiplayerAudioKind,std::uint32_t,unsigned,std::optional<Vec3>,

@@ -1,4 +1,4 @@
-target_sources(halo2_cache PRIVATE src/mcc_sound_effect_definitions.cpp)
+target_sources(halo2_cache PRIVATE src/audio/mcc_sound_effect_definitions.cpp)
 if(BUILD_TESTING)
     add_executable(mcc_sound_effect_definitions_tests tests/mcc_sound_effect_definitions_tests.cpp)
     target_link_libraries(mcc_sound_effect_definitions_tests PRIVATE halo2_cache)

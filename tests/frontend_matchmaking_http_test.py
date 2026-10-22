@@ -12,6 +12,7 @@ import sys
 import tempfile
 import time
 from frontend_test_ports import callback_port
+from helpers.mcc_online_ui import ui_arguments
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -27,10 +28,16 @@ except ImportError:
 
 async def main():
     binary = str(Path(sys.argv[1]).resolve())
+    try:
+        assets = ui_arguments(ROOT, sys.argv[2:])
+    except ValueError as error:
+        print("ONLINE UI configuration failed: " + str(error), file=sys.stderr)
+        return 1
+    native_options = assets.forwarded
     with tempfile.TemporaryDirectory(prefix="halo2-native-matchmaking-") as temp:
         path = Path(temp) / "playlists.json"
         fixture = catalog()
-        gathering_run = "--gathering-ui" in sys.argv
+        gathering_run = "--gathering-ui" in native_options
         if gathering_run:
             fixture["playlists"][0].update(candidate_selection="retail-candidates-native-relay-v1",
                 rank_configuration="retail-launch-2004",gathering=dict(retail_hopper=2))
@@ -109,13 +116,12 @@ async def main():
             # Poison ambient proxies: native identity and queue transport must
             # stay on the explicitly pinned endpoint and fixed Discord URLs.
             env = os.environ | dict(http_proxy="http://127.0.0.1:1", HTTP_PROXY="http://127.0.0.1:1", NO_PROXY="", no_proxy="")
-            process = await asyncio.create_subprocess_exec(binary, str(ROOT / "assets/disc/maps"),
-                "--asset-sources", str(ROOT / "assets/asset-sources.tsv"),
-                "--matchmaking-url", str(client.make_url("/")).rstrip("/"), "--callback-port",callback_port(),*sys.argv[2:],
+            process = await asyncio.create_subprocess_exec(binary, *assets.source,
+                "--matchmaking-url", str(client.make_url("/")).rstrip("/"), "--callback-port",callback_port(),*native_options,
                 stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, env=env)
             try:
                 stdout, stderr = await asyncio.wait_for(process.communicate(),
-                    300 if "--capture" in sys.argv else 45)
+                    300 if "--capture" in native_options else 45)
                 print(stdout.decode(), end="")
                 print(stderr.decode(), end="", file=sys.stderr)
                 assert process.returncode in (0, 77), "Native menu/queue integration failed"
@@ -126,7 +132,8 @@ async def main():
                 assert all(t.players[0].screen_name == "Peer Pilot" for t in api.core.tickets.values()), "Native queue survived cancellation or sign-out"
                 assert all(s.screen_name == "Peer Pilot" for s in api.sessions.values()), "Native session survived teardown"
                 assert not api.core.proposals
-                print("PASS real native menus, Discord playlists, Quickmatch, casual roster, measured relay, authenticated gameplay launch, cancel/rejoin/sign-out and Vista assets")
+                print("PASS real native menus, Discord playlists, Quickmatch, casual roster, measured relay, authenticated gameplay launch, cancel/rejoin/sign-out and " +
+                      ("MCC-only imported UI inputs" if assets.mcc_cache else "Vista assets"))
             finally:
                 task.cancel()
                 with contextlib.suppress(asyncio.CancelledError): await task

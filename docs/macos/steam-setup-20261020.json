@@ -1,0 +1,4298 @@
+{
+  "schema": "H2_MACOS_STEAM_SETUP_EVIDENCE_V1",
+  "date": "2026-10-20",
+  "scope": "Universal packaged local Steam setup, real ownership and exact content planning, authenticated native-arm64 download with cancellation/resume and complete file checks; complete preparation remains gated.",
+  "source_sha256": {
+    "tools/steam/ContentProtocol.cs": "1cab0f796b3f64cbcf6af0355aa14687aeae37f5f1890498b06d5f4279bcab12",
+    "tools/steam/ContentRules.cs": "46aafb0be2fb7f4f04d43082a715a98e10b2a986638550cb72a287e34c350e71",
+    "tools/steam/ContentSession.cs": "8a2431d18a82c60bfb57c34259348f9112c76037ec819b3cf1dd07a0d1f568ad",
+    "tools/steam/DownloaderAdapters.cs": "b49f8e9459eb2895bc04910f6a432f14dda542fe526995430c8f42745751b2a2",
+    "tools/steam/Halo2Steam.csproj": "39c2db8959da6941a1d0a13f8c1f860581cf1757e507b6691b48286afe048509",
+    "tools/steam/Program.cs": "6f7425f397d90649e65e0ac9dd9e18605c0705bac921e2d60474d5deb3b5dc9b",
+    "tools/steam/content-profile.json": "cbb9f611704b7c1b4e0c4b00aa6cdf5f6989e2fcda43f74b1bcdd4879ab92b68",
+    "tools/steam/global.json": "12f1cf1c3eef038f55de570dc8f5e321f4ff5306a9281106c43cc60a1f78a371",
+    "tools/steam/package-inputs.json": "7b4d804f50ead307f01c593e9e69de4800d0689328264ddce1acb727fae05bb5",
+    "tools/steam/packages.lock.json": "11a43a8547420fea072fef3c7be4eafa46230a303e32f3a675e0cc473b46ddbf",
+    "tools/steam/upstream.json": "3ee820c7da45d5b6e5affebb66a3a055ae36026049cc6353df8e841b80bb8638",
+    "tools/steam_session.py": "cf1c3a63d1c40e3b4cb6c90c817c1178270ef52b182f0685e32d4e50f3df9543",
+    "tools/setup_assets_ui.py": "6c3973fba3cb0af0482dd159cd8fa19472fa598635d55d3063b80050b65fb868",
+    "tools/macos/build_steam.py": "d1af743030bbb22130bf071e99950784bace108949a9770302c3e8325996ab7f",
+    "tools/macos/verify_steam_sdk.py": "965e355d9ed353aa6584c77c9788d5783754af0857faaa7b7477207297393d91",
+    "tools/macos/bundle.py": "563db8b7cbd962e22d1264f15a19870c2b249a073fba1566da65dd82b86d5382",
+    "tools/macos/package_launcher.py": "6f54e6c772a7e9c0027209b3d1e94733bffbdec61b56d8baf37d007df8802720",
+    "tools/macos/steam_setup.py": "856bb448dd21d0cec3a66fa76634c7c061159dbd087f67900e7e798769155ae0",
+    "cmake/macos/Steam.cmake": "5d02ef55e4d39bbaf5cb1bcdfb9026c8564b65b3fa35e16c0bcf5090960735c0",
+    "tests/test_steam_session.py": "9dcf987e7e2cf803897a9e0095da16083c0c8fe58754e25ba8fa5a614b8ad93a",
+    "tests/test_macos_steam_ui.py": "b9bb3a05d86db9e8a0cb5594adabfd9e9538cc7eb7173b03a8d927d8be753c31",
+    "tests/macos/steam/ContentRulesTests.cs": "1e64c517483e279f3cfa47bba0f30e2a6dad0de43efb21ba21c07b9e4b3c4d43",
+    "tests/macos/python/CMakeLists.txt": "0aec5c5803f5b4b3839e54f772452e5e851914e89b7f0240e4080cb7eb6c6a27",
+    "tests/macos/python/relocation_test.py": "e881173b7ce10d8dcb93aa84c7a3660853755ed55a736a8e697c233e56d60ba1",
+    "tests/macos/python/auth_plan_test.py": "b777660bb7ba0a6c7f51469643d0bcca6702f7c26ae978de073f9a4411ca7621",
+    "tools/steam_content.py": "53cb46ae64f6b7947f614608c428192e377065100300e6d9e0fdfce87a05b25e",
+    "tests/test_steam_content.py": "01cbb7fe5c35cfa4403823cb76c6ce7af5d18d83a26b5bc244a397b451516944",
+    "tests/macos/python/download_resume_test.py": "afb19b85c3576f7efd8134082b275b1ba75fecbee52a1bf93fdb01fcf8164002"
+  },
+  "downloader": {
+    "schema": "H2_STEAM_DOWNLOADER_INPUTS_V1",
+    "repository": "https://github.com/SteamRE/DepotDownloader",
+    "revision": "6396afe2e34a6c40459bcb6bdafa43c83c9db8cc",
+    "files": {
+      "LICENSE": {
+        "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/LICENSE",
+        "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+      },
+      "DepotDownloader/ContentDownloader.cs": {
+        "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/ContentDownloader.cs",
+        "sha256": "452e17680be99dcef7ceda97646380a42725e84454d07791d0a873e9963df4a5"
+      },
+      "DepotDownloader/Steam3Session.cs": {
+        "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/Steam3Session.cs",
+        "sha256": "8f8409cdd2e513e795992c14f973e6beff4e2d5ef3edccb9d3505e0966de5f99"
+      },
+      "DepotDownloader/CDNClientPool.cs": {
+        "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/CDNClientPool.cs",
+        "sha256": "d1afed81478ae805049bd79c352728835f4df53f37c775aa0670a6d84ce43950"
+      },
+      "DepotDownloader/DepotConfigStore.cs": {
+        "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/DepotConfigStore.cs",
+        "sha256": "e971911fd7c6a4bb0a2d4316edb7e56425a40423bf0a21888e85d72751b87e88"
+      },
+      "DepotDownloader/DownloadConfig.cs": {
+        "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/DownloadConfig.cs",
+        "sha256": "cb630953931100574bffcfd8f6485a7b75d111538f97c6e144c47c94ceac2c72"
+      },
+      "DepotDownloader/HttpClientFactory.cs": {
+        "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/HttpClientFactory.cs",
+        "sha256": "95f902c91cdffbfa32b2fb7a3381b327c0d3ca3789649b1d674c0d09a97cfa12"
+      },
+      "DepotDownloader/ProtoManifest.cs": {
+        "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/ProtoManifest.cs",
+        "sha256": "950206a50706ed54add058f69fd4d80ff5266fec82b9a0ac9a70b9c4ba2ec8c3"
+      },
+      "DepotDownloader/Util.cs": {
+        "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/Util.cs",
+        "sha256": "3a0f61e2c9860c93cec83347ac8eccfccb8f613c78a61a5a05f8f4352c8d8f93"
+      },
+      "DepotDownloader/ConsoleAuthenticator.cs": {
+        "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/ConsoleAuthenticator.cs",
+        "sha256": "1c6fffca83d28a0f78d0dc681ebb81fc4e0a1b4e6e7e3f92b958b87b2f6dd01b"
+      }
+    }
+  },
+  "upstream_adapters": {
+    "DepotDownloader/ContentDownloader.cs": {
+      "original_sha256": "452e17680be99dcef7ceda97646380a42725e84454d07791d0a873e9963df4a5",
+      "adapted_sha256": "95f6864b591fb6536cacb584dcbbdf5ba536266816f039ee43accf729fe55126"
+    },
+    "DepotDownloader/Steam3Session.cs": {
+      "original_sha256": "8f8409cdd2e513e795992c14f973e6beff4e2d5ef3edccb9d3505e0966de5f99",
+      "adapted_sha256": "f72d8462a02dbef067711fab05749cfec98a48783e4c370320073286c4f52e22"
+    },
+    "DepotDownloader/CDNClientPool.cs": {
+      "original_sha256": "d1afed81478ae805049bd79c352728835f4df53f37c775aa0670a6d84ce43950",
+      "adapted_sha256": "62d2c97a2b30d6542e9cf067ff6c5895c8d2263812be6169bff21165d43e4c7d"
+    },
+    "DepotDownloader/DepotConfigStore.cs": {
+      "original_sha256": "e971911fd7c6a4bb0a2d4316edb7e56425a40423bf0a21888e85d72751b87e88",
+      "adapted_sha256": "d2c5c52d89bbb76d25d35c268497fe83bc6a8b9c28277309cd1de2b7ae2e0b6a"
+    },
+    "DepotDownloader/DownloadConfig.cs": {
+      "original_sha256": "cb630953931100574bffcfd8f6485a7b75d111538f97c6e144c47c94ceac2c72",
+      "adapted_sha256": "de870f232b1a4663f24f9b5b6b9388017f96ccee92dd3cdddc5381c928597c62"
+    },
+    "DepotDownloader/HttpClientFactory.cs": {
+      "original_sha256": "95f902c91cdffbfa32b2fb7a3381b327c0d3ca3789649b1d674c0d09a97cfa12",
+      "adapted_sha256": "909cc7b39d06eef2801cf1c3fdc803fa2d7ddc370ee07543e1427c37a28a107b"
+    },
+    "DepotDownloader/ProtoManifest.cs": {
+      "original_sha256": "950206a50706ed54add058f69fd4d80ff5266fec82b9a0ac9a70b9c4ba2ec8c3",
+      "adapted_sha256": "576b8eb09ba0fc054464d2b1259d7797140e7828a3d65b930d3c368ddf4361d7"
+    },
+    "DepotDownloader/Util.cs": {
+      "original_sha256": "3a0f61e2c9860c93cec83347ac8eccfccb8f613c78a61a5a05f8f4352c8d8f93",
+      "adapted_sha256": "8aba2a6389a105e6a0e73e4f76f49d862a72da622cce0afa1f3475c5abe5ed2a"
+    },
+    "DepotDownloader/ConsoleAuthenticator.cs": {
+      "original_sha256": "1c6fffca83d28a0f78d0dc681ebb81fc4e0a1b4e6e7e3f92b958b87b2f6dd01b",
+      "adapted_sha256": "dce53d86fa4d7f6af79a336ffa0f1627347a2c7c4ee79717d5437b964aba5458"
+    }
+  },
+  "packages": {
+    "system.drawing.common/6.0.0/system.drawing.common.6.0.0.nupkg": "ffd11a01b11e3a310b452319688992d4ef059947bc8f85ae154c3554eacfc80a",
+    "microsoft.win32.systemevents/6.0.0/microsoft.win32.systemevents.6.0.0.nupkg": "37d11565b979c35567332c065f26955b34fd961f3889a277683e3c848064d730",
+    "zstdsharp.port/0.8.7/zstdsharp.port.0.8.7.nupkg": "5acb834d93afdd382213c355fd35db29130706c64a81607c88374a2abf4ebc0a",
+    "system.io.hashing/10.0.1/system.io.hashing.10.0.1.nupkg": "93c1077319cb8ad5e8d02c680d903116652524974a655b19276fbdcc331807de",
+    "qrcoder/1.8.1/qrcoder.1.8.1.nupkg": "d3fe5c80c742b6a2ef8a31734c06600e2d674806a97f36f4af97b0d2871de309",
+    "protobuf-net/3.2.56/protobuf-net.3.2.56.nupkg": "2a3c111f21b07e54038d56ae753f8d8d19df1a11dbe02a427e7f611d58b123e1",
+    "protobuf-net.core/3.2.56/protobuf-net.core.3.2.56.nupkg": "355bcbade0afbef9d2fecd2cc8be7f2f7991a577acc0fec4ef50ba58ff5fd837",
+    "steamkit2/3.4.0/steamkit2.3.4.0.nupkg": "cd90b5ac507c4eba3ee3439b62b8a5dab17d687dc51dfc81202b69f6c8643153",
+    "microsoft.netcore.app.runtime.osx-arm64/10.0.12/microsoft.netcore.app.runtime.osx-arm64.10.0.12.nupkg": "2f0e72fdf79ead91d0e1ad4960ea3a9bdeba1b7cb08467e3ead0a427d1fd2e08",
+    "microsoft.netcore.app.runtime.osx-x64/10.0.12/microsoft.netcore.app.runtime.osx-x64.10.0.12.nupkg": "ab5c57042afdbadc29d8ddbf7753de2ae9abd983e971da8cf97a2d246ea8f72b",
+    "microsoft.aspnetcore.app.ref/10.0.12/microsoft.aspnetcore.app.ref.10.0.12.nupkg": "b2cb6e55804cc8cc82ab750b07562866088f667994dbc09e9e46df6ee44aa060",
+    "microsoft.aspnetcore.app.runtime.osx-arm64/10.0.12/microsoft.aspnetcore.app.runtime.osx-arm64.10.0.12.nupkg": "8507e0d702bc6451d7cfc4303f7964fc3f97f2234fe530848844c415c102150d",
+    "microsoft.aspnetcore.app.runtime.osx-x64/10.0.12/microsoft.aspnetcore.app.runtime.osx-x64.10.0.12.nupkg": "44c29c66431c2eede507fe48fd39f04585a4f7146c3ab0dad451d5c3d90b4b19",
+    "microsoft.netcore.app.host.osx-arm64/10.0.12/microsoft.netcore.app.host.osx-arm64.10.0.12.nupkg": "adbd6e6ec1911498f431aa97a2d1bba9d159ff60df0d7744cb8f0445744a1e34",
+    "microsoft.netcore.app.host.osx-x64/10.0.12/microsoft.netcore.app.host.osx-x64.10.0.12.nupkg": "17b4a60a181370cc3939d761e765eb60171939ae9dedfed0fe8c67388519c783"
+  },
+  "package_lock": {
+    "version": 1,
+    "dependencies": {
+      "net10.0": {
+        "QRCoder": {
+          "type": "Direct",
+          "requested": "[1.8.1, )",
+          "resolved": "1.8.1",
+          "contentHash": "aGfRFpU/IPexAtEOEXCNxC3fMCAqgn6kqALRvXt6LxVAW0VolSDGHiyrY+o2CJgTITOsMpsrsDi7svMJaJ9Vfg==",
+          "dependencies": {
+            "System.Drawing.Common": "6.0.0"
+          }
+        },
+        "SteamKit2": {
+          "type": "Direct",
+          "requested": "[3.4.0, )",
+          "resolved": "3.4.0",
+          "contentHash": "3UZ5Useeh+5BJ19gazEpeFc3wRasMEUkrdkgzIhwAAK9VXL9sPbQu11bp6E3W7HsPCbm2s262yuyBbYLzA+4AA==",
+          "dependencies": {
+            "System.IO.Hashing": "10.0.1",
+            "ZstdSharp.Port": "0.8.7",
+            "protobuf-net": "3.2.56"
+          }
+        },
+        "Microsoft.Win32.SystemEvents": {
+          "type": "Transitive",
+          "resolved": "6.0.0",
+          "contentHash": "hqTM5628jSsQiv+HGpiq3WKBl2c8v1KZfby2J6Pr7pEPlK9waPdgEO6b8A/+/xn/yZ9ulv8HuqK71ONy2tg67A=="
+        },
+        "protobuf-net": {
+          "type": "Transitive",
+          "resolved": "3.2.56",
+          "contentHash": "4IPJeTYAMNewlN8MDaFkcmR/9hLhJeo9eARnTh104zh7mf+vXT2gu5MUfUnkSQU+CH578Q6vcdU7LQDQPG6eaw==",
+          "dependencies": {
+            "protobuf-net.Core": "3.2.56"
+          }
+        },
+        "protobuf-net.Core": {
+          "type": "Transitive",
+          "resolved": "3.2.56",
+          "contentHash": "d6QOukTpDzs7zZv9tPnBZMtvHDNeHJQXUhMx54g4urUQsXK3oo9U70H9HvklYq7hlQ4A7AHJl7EVEqyCXXIl8Q=="
+        },
+        "System.Drawing.Common": {
+          "type": "Transitive",
+          "resolved": "6.0.0",
+          "contentHash": "NfuoKUiP2nUWwKZN6twGqXioIe1zVD0RIj2t976A+czLHr2nY454RwwXs6JU9Htc6mwqL6Dn/nEL3dpVf2jOhg==",
+          "dependencies": {
+            "Microsoft.Win32.SystemEvents": "6.0.0"
+          }
+        },
+        "System.IO.Hashing": {
+          "type": "Transitive",
+          "resolved": "10.0.1",
+          "contentHash": "Dy6ULPb2S0GmNndjKrEIpfibNsc8+FTOoZnqygtFDuyun8vWboQbfMpQtKUXpgTxokR5E4zFHETpNnGfeWY6NA=="
+        },
+        "ZstdSharp.Port": {
+          "type": "Transitive",
+          "resolved": "0.8.7",
+          "contentHash": "+4VpxvzEKaHpfTjsLRMhQHx6brqGBkIA+fjUM3wUW8ZoWpPFAeKrO2Nf4uZDeBjjzNDNxSRvLQH4b3S9Ku4JJQ=="
+        }
+      },
+      "net10.0/osx-arm64": {
+        "Microsoft.Win32.SystemEvents": {
+          "type": "Transitive",
+          "resolved": "6.0.0",
+          "contentHash": "hqTM5628jSsQiv+HGpiq3WKBl2c8v1KZfby2J6Pr7pEPlK9waPdgEO6b8A/+/xn/yZ9ulv8HuqK71ONy2tg67A=="
+        },
+        "System.Drawing.Common": {
+          "type": "Transitive",
+          "resolved": "6.0.0",
+          "contentHash": "NfuoKUiP2nUWwKZN6twGqXioIe1zVD0RIj2t976A+czLHr2nY454RwwXs6JU9Htc6mwqL6Dn/nEL3dpVf2jOhg==",
+          "dependencies": {
+            "Microsoft.Win32.SystemEvents": "6.0.0"
+          }
+        }
+      },
+      "net10.0/osx-x64": {
+        "Microsoft.Win32.SystemEvents": {
+          "type": "Transitive",
+          "resolved": "6.0.0",
+          "contentHash": "hqTM5628jSsQiv+HGpiq3WKBl2c8v1KZfby2J6Pr7pEPlK9waPdgEO6b8A/+/xn/yZ9ulv8HuqK71ONy2tg67A=="
+        },
+        "System.Drawing.Common": {
+          "type": "Transitive",
+          "resolved": "6.0.0",
+          "contentHash": "NfuoKUiP2nUWwKZN6twGqXioIe1zVD0RIj2t976A+czLHr2nY454RwwXs6JU9Htc6mwqL6Dn/nEL3dpVf2jOhg==",
+          "dependencies": {
+            "Microsoft.Win32.SystemEvents": "6.0.0"
+          }
+        }
+      }
+    }
+  },
+  "sdk": {
+    "files": 456,
+    "regular_file_bytes": 184378843,
+    "architectures": [
+      "arm64",
+      "x86_64"
+    ],
+    "framework": "10.0.12",
+    "steamkit": "3.4.0",
+    "manifest_sha256": "8f47ba95bc2a5435d65e2d4304344eacbff2b0757497b7d56daaebd8e661de9a",
+    "corresponding_sources_included": true
+  },
+  "policy_and_qr_runs": [
+    {
+      "architecture": "arm64",
+      "rules": {
+        "command": [
+          "/usr/bin/arch",
+          "-arm64",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3gkcmcjp/test-sdk/arm64/Halo2Steam",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3gkcmcjp/fixtures/public-appinfo.json",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3gkcmcjp/fixtures/content-profile.json"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "result": {
+          "schema": "H2_STEAM_RULES_TEST_V1",
+          "cases": 44,
+          "source_id": "2cc449324351096178abd078"
+        }
+      },
+      "qr": {
+        "events": [
+          "ready",
+          "authenticating",
+          "qr"
+        ],
+        "confirmed_download": false,
+        "early_download_rejected": true,
+        "png_bytes": 396,
+        "width": 222,
+        "height": 222,
+        "cancel_seconds": 0.012,
+        "exit_code": 2,
+        "reaped": true,
+        "reader_reaped": true
+      },
+      "invalid_root": {
+        "events": [
+          {
+            "event": "ready",
+            "schema": "H2_STEAM_CONTENT_SESSION_V1"
+          },
+          {
+            "event": "error",
+            "code": "invalid_content_or_command"
+          }
+        ],
+        "exit_code": 1
+      }
+    },
+    {
+      "architecture": "x86_64",
+      "rules": {
+        "command": [
+          "/usr/bin/arch",
+          "-x86_64",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3gkcmcjp/test-sdk/x86_64/Halo2Steam",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3gkcmcjp/fixtures/public-appinfo.json",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3gkcmcjp/fixtures/content-profile.json"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "result": {
+          "schema": "H2_STEAM_RULES_TEST_V1",
+          "cases": 44,
+          "source_id": "2cc449324351096178abd078"
+        }
+      },
+      "qr": {
+        "events": [
+          "ready",
+          "authenticating",
+          "qr"
+        ],
+        "confirmed_download": false,
+        "early_download_rejected": true,
+        "png_bytes": 406,
+        "width": 222,
+        "height": 222,
+        "cancel_seconds": 0.035,
+        "exit_code": 2,
+        "reaped": true,
+        "reader_reaped": true
+      },
+      "invalid_root": {
+        "events": [
+          {
+            "event": "ready",
+            "schema": "H2_STEAM_CONTENT_SESSION_V1"
+          },
+          {
+            "event": "error",
+            "code": "invalid_content_or_command"
+          }
+        ],
+        "exit_code": 1
+      }
+    }
+  ],
+  "universal_bundle_boundary": {
+    "passed": true,
+    "harness_only": true,
+    "scoped_native_images": 30
+  },
+  "combined_package": {
+    "passed": true,
+    "cmake": {
+      "passed": true,
+      "status": "passed",
+      "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-9q3m62w_/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/Users/eric/Developer/Halo2-macos-port/tests/macos/python",
+            "-B",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-9q3m62w_/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DHALO2_MACOS_STEAM_SDK_INPUT=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-r25tf2nc/sdk"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-steam-python-package/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-9q3m62w_/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "macos_python_tests"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-steam-python-package/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-9q3m62w_/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "1",
+            "--tests-regex",
+            "^(macos_python_relocation|steam_content_plan|steam_content_session)$"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-steam-python-package/tests.log",
+          "exit_code": 0
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "python-relocation.json",
+          "status": "retained",
+          "bytes": 310236,
+          "sha256": "2e861ed44919effe4397fbbc1a225ae9925c3e36fc7b3c515076ca4ad1d66ea2",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-steam-python-package/evidence/python-relocation.json"
+        },
+        {
+          "path": "macos-dependencies/python/manifest.json",
+          "status": "retained",
+          "bytes": 210959,
+          "sha256": "b197ba68e5764cb565ba0b852c5cc510eebbf9ccc8abb8a0b3aacf309cbe301b",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-steam-python-package/evidence/macos-dependencies/python/manifest.json"
+        }
+      ]
+    },
+    "runs": [
+      {
+        "architecture": "arm64",
+        "python_probe_passed": true,
+        "python": "3.14.8 (v3.14.8:8e6e75d9102, Sep 30 2026, 14:34:30) [Clang 21.0.0 (clang-2100.1.1.101)]",
+        "tcl": "9.0.4",
+        "tk": "9.0.4",
+        "actual_setup_and_home_windows": true,
+        "steam_ui": {
+          "exit": 0,
+          "stderr": "",
+          "result": {
+            "architecture": "arm64",
+            "actual_packaged_qr_window": true,
+            "qr_dimensions": [
+              222,
+              222
+            ],
+            "download_confirmation_disabled": true,
+            "account_authenticated": false,
+            "payload_downloaded": false,
+            "helper_reaped": true,
+            "reader_reaped": true,
+            "cancel_seconds": 0.014,
+            "manual_import_restored": true,
+            "passed": true
+          }
+        },
+        "stderr": ""
+      },
+      {
+        "architecture": "x86_64",
+        "python_probe_passed": true,
+        "python": "3.14.8 (v3.14.8:8e6e75d9102, Sep 30 2026, 14:34:30) [Clang 21.0.0 (clang-2100.1.1.101)]",
+        "tcl": "9.0.4",
+        "tk": "9.0.4",
+        "actual_setup_and_home_windows": true,
+        "steam_ui": {
+          "exit": 0,
+          "stderr": "",
+          "result": {
+            "architecture": "x86_64",
+            "actual_packaged_qr_window": true,
+            "qr_dimensions": [
+              222,
+              222
+            ],
+            "download_confirmation_disabled": true,
+            "account_authenticated": false,
+            "payload_downloaded": false,
+            "helper_reaped": true,
+            "reader_reaped": true,
+            "cancel_seconds": 0.052,
+            "manual_import_restored": true,
+            "passed": true
+          }
+        },
+        "stderr": ""
+      }
+    ],
+    "unchanged_runtime": true,
+    "build_dependency_inputs_hidden": true
+  },
+  "linux_graph": {
+    "passed": true,
+    "status": "passed",
+    "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-iexup4xe/build",
+    "steps": [
+      {
+        "name": "configure",
+        "command": [
+          "cmake",
+          "-S",
+          "/home/eric/Developer/Halo-2-Decompiled",
+          "-B",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-iexup4xe/build",
+          "-DBUILD_TESTING=ON",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+          "-DHALO2_BUNDLE_MOVIES=OFF"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-steam-session-linux-graph/configure.log",
+        "exit_code": 0
+      },
+      {
+        "name": "build",
+        "command": [
+          "cmake",
+          "--build",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-iexup4xe/build",
+          "--config",
+          "Release",
+          "--parallel",
+          "2",
+          "--target",
+          "vulkan_portability_tests"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-steam-session-linux-graph/build.log",
+        "exit_code": 0
+      },
+      {
+        "name": "tests",
+        "command": [
+          "ctest",
+          "--test-dir",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-iexup4xe/build",
+          "--build-config",
+          "Release",
+          "--output-on-failure",
+          "--no-tests=error",
+          "--parallel",
+          "1",
+          "--tests-regex",
+          "^(vulkan_portability|steam_content_plan|steam_content_session|steam_setup_ui|mcc_setup_ui)$"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-steam-session-linux-graph/tests.log",
+        "exit_code": 0
+      }
+    ],
+    "retained_small_reports": []
+  },
+  "human_authentication": {
+    "schema": "H2_MACOS_STEAM_HUMAN_PLAN_TEST_V1",
+    "scratch": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-1ppl9p82/build/Testing/Temporary/scratch/halo2-test-tvdcmg53",
+    "payload_downloaded": false,
+    "retained_large_artifacts": [],
+    "exit_code": 0,
+    "stderr": "",
+    "result": {
+      "schema": "H2_STEAM_AUTHENTICATED_PLAN_V1",
+      "entitlement_verified": true,
+      "source_id": "e46c404c25077cdd5c064c12",
+      "depots": [
+        {
+          "depot_id": 976731,
+          "manifest_id": "4956458579120161185",
+          "role": "shared"
+        },
+        {
+          "depot_id": 976735,
+          "manifest_id": "3171334642139802443",
+          "role": "halo2"
+        },
+        {
+          "depot_id": 976736,
+          "manifest_id": "7615983289011416505",
+          "role": "halo2_multiplayer"
+        },
+        {
+          "depot_id": 976737,
+          "manifest_id": "2116658161440873010",
+          "role": "halo2_multiplayer"
+        }
+      ],
+      "files": 883,
+      "bytes": 42179329726,
+      "download_bytes": 28103673648,
+      "required_free_bytes": 128685472826,
+      "available_free_bytes": 293825794048,
+      "inventory_sha256": "2ca40ce755a565877d65f512d4bea1927d78863cc645c7fdbd40918c5add95a9",
+      "independent_plan_sha256": "89f7c809b2489cb817ba747f33f602d2ed0f6ef649796a345eaff6b59e216bfb",
+      "required_files": [
+        {
+          "path": "MCC/Content/Paks/MCC-WindowsNoEditor.pak",
+          "bytes": 10928289765,
+          "download_bytes": 5298558368,
+          "sha1": "0b08b6b666e242c73d690bcfa9bb9dfdcbf34c62",
+          "depot_id": 976731,
+          "manifest_id": "4956458579120161185"
+        },
+        {
+          "path": "halo2/h2_fonts/font_table.txt",
+          "bytes": 156,
+          "download_bytes": 112,
+          "sha1": "baae20e1c4344c0be5f0f2035067878ae61542c8",
+          "depot_id": 976735,
+          "manifest_id": "3171334642139802443"
+        },
+        {
+          "path": "halo2/h2_maps_win64_dx11/lockout.map",
+          "bytes": 1820416,
+          "download_bytes": 1675328,
+          "sha1": "94ed4873eaa36e560b204a922617f7ea783ea3b5",
+          "depot_id": 976736,
+          "manifest_id": "7615983289011416505"
+        },
+        {
+          "path": "halo2/h2_maps_win64_dx11/mainmenu.map",
+          "bytes": 8331008,
+          "download_bytes": 6454400,
+          "sha1": "e3d47ef46eaab4eaaaf25432a8de1eb5e782a744",
+          "depot_id": 976735,
+          "manifest_id": "3171334642139802443"
+        },
+        {
+          "path": "halo2/h2_maps_win64_dx11/shared.map",
+          "bytes": 27908864,
+          "download_bytes": 23839536,
+          "sha1": "2d81edf6e97f1457ec90bd0e575eb44425912354",
+          "depot_id": 976735,
+          "manifest_id": "3171334642139802443"
+        },
+        {
+          "path": "halo2/h2_maps_win64_dx11/single_player_shared.map",
+          "bytes": 44841472,
+          "download_bytes": 39372528,
+          "sha1": "d0315b150a6835145d0d2a886d90711424d8d063",
+          "depot_id": 976735,
+          "manifest_id": "3171334642139802443"
+        },
+        {
+          "path": "halo2/h2_maps_win64_dx11/textures.dat",
+          "bytes": 564824320,
+          "download_bytes": 478706560,
+          "sha1": "aedd5eee290c4ff4500782ec635ed0ab499c65f5",
+          "depot_id": 976735,
+          "manifest_id": "3171334642139802443"
+        }
+      ],
+      "account_identifier_retained": false,
+      "qr_or_credentials_retained": false,
+      "payload_downloaded": false,
+      "download_command_sent": false,
+      "helper_reaped": true,
+      "reader_reaped": true,
+      "passed": true
+    },
+    "passed": true
+  },
+  "failure_diagnostics": [
+    {
+      "stage": "downloader source adaptation",
+      "diagnostic": "Pinned source uses session.ChallengeURL, not authSession.ChallengeURL; corrected exact-count anchor before compiling."
+    },
+    {
+      "stage": "first restore audit",
+      "diagnostic": "QRCoder adds System.Drawing.Common and Microsoft.Win32.SystemEvents 6.0.0. Matched both restored archives against fresh official NuGet downloads and added SHA256 pins. QR uses PngByteQRCode, with no GDI calls."
+    },
+    {
+      "stage": "first compiler check",
+      "diagnostic": "Nullable SteamKit manifest.Files required an explicit missing-manifest guard; fixed before successful builds."
+    },
+    {
+      "stage": "initial UI fixture cleanup",
+      "diagnostic": "Cancelled the fixture polling/progress callbacks before destroying Tk to remove after-callback warnings. Production UI and final fixture runs passed."
+    },
+    {
+      "stage": "host Python probe",
+      "diagnostic": "Mac Homebrew Python 3.15 has no _tkinter. Combined validation uses bundled Python 3.14.8 and private Tcl/Tk 9.0.4."
+    }
+  ],
+  "limitations": [
+    "Complete fresh MCC preparation remains unaccepted at the unchanged loading-PCM admission gate. Download validation did not start preparation.",
+    "Actual owned-payload transfer and resume were exercised on native arm64. The x86_64 policy, QR, cancellation and relocated package checks passed under Rosetta; its complete payload route and physical Intel hardware remain separate.",
+    "The private .NET helper supports the macOS feature from version 15; this machine runs 27.2. Older supported systems remain unverified.",
+    "Full engine compilation remains blocked at the explicitly deferred x86 numerical backend; graphics and setup evidence do not prove a playable engine."
+  ],
+  "cleanup": {
+    "pending": false,
+    "download_cohort": {
+      "schema": "H2_MACOS_STEAM_DOWNLOAD_CLEANUP_V1",
+      "owned_paths": [
+        {
+          "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-37qm4sfw",
+          "removed": true
+        },
+        {
+          "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-d57y82vp",
+          "removed": true
+        },
+        {
+          "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-37qm4sfw/sdk",
+          "removed": true
+        },
+        {
+          "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-d57y82vp/build/macos-dependencies/python-work",
+          "removed": true
+        },
+        {
+          "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-d57y82vp/build/macos-dependencies/python",
+          "removed": true
+        },
+        {
+          "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-d57y82vp/build/launcher-sdk",
+          "removed": true
+        }
+      ],
+      "live_owned_processes": [],
+      "owned_disk_images": [],
+      "cmake_passed": true,
+      "retained_generated_artifacts": [],
+      "retained_reference_inputs": [
+        {
+          "path": "/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12",
+          "kind": "User-authorized owned MCC source; preserve for port testing",
+          "allocated_file_bytes": 42185318400
+        }
+      ],
+      "passed": true
+    },
+    "linux_download_owner_removed": true,
+    "audit_owner_removed": true,
+    "retained_generated_artifacts": [],
+    "retained_large_artifacts": [
+      {
+        "path": "/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12",
+        "kind": "Explicitly authorized, original Steam-owned MCC game input",
+        "files": 896,
+        "logical_bytes": 42183170486,
+        "allocated_bytes": 42185318400
+      }
+    ]
+  },
+  "authentication_failures": {
+    "initial-auth-report": {
+      "schema": "H2_MACOS_STEAM_HUMAN_PLAN_TEST_V1",
+      "scratch": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-ppmrw8ml/build/Testing/Temporary/scratch/halo2-test-6sx_wk1c",
+      "payload_downloaded": false,
+      "retained_large_artifacts": [],
+      "exit_code": 1,
+      "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 27, in <module>\n    if dialog.process.failure:raise RuntimeError('Steam helper failed: '+dialog.process.failure)\n                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: Steam helper failed: invalid_content_or_command\n"
+    },
+    "diagnostic-auth-report": {
+      "schema": "H2_MACOS_STEAM_HUMAN_PLAN_TEST_V1",
+      "scratch": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-rmn9q90h/build/Testing/Temporary/scratch/halo2-test-yr4cs1tf",
+      "payload_downloaded": false,
+      "retained_large_artifacts": [],
+      "exit_code": 1,
+      "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 29, in <module>\n    raise RuntimeError('Steam helper failed: '+json.dumps(dict(code=dialog.process.failure,\n     reason=dialog.process.failure_reason,details=dialog.process.policy_details)))\nRuntimeError: Steam helper failed: {\"code\": \"invalid_content_or_command\", \"reason\": \"MissingRequiredFile\", \"details\": {\"required_path\": \"halo2/h2_maps_win64_dx11/lockout.map\", \"selected_files\": 858}}\n"
+    },
+    "multiplayer-auth-report": {
+      "schema": "H2_MACOS_STEAM_HUMAN_PLAN_TEST_V1",
+      "scratch": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-iifo5vz9/build/Testing/Temporary/scratch/halo2-test-ea4joj3w",
+      "payload_downloaded": false,
+      "retained_large_artifacts": [],
+      "exit_code": 1,
+      "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 29, in <module>\n    raise RuntimeError('Steam helper failed: '+json.dumps(dict(code=dialog.process.failure,\n     reason=dialog.process.failure_reason,details=dialog.process.policy_details)))\nRuntimeError: Steam helper failed: {\"code\": \"invalid_content_or_command\", \"reason\": \"OverlappingFiles\", \"details\": null}\n"
+    }
+  },
+  "valve_multiplayer_metadata": {
+    "schema": "H2_STEAM_HALO2_DEPOT_DIAGNOSIS_V1",
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-yd4nropi",
+    "source_sha256": "1e915f621625737db3d52dc8a84eaadce41db8f0b8c8b12b8937bb3efb5ce279",
+    "anonymous": true,
+    "account_material_retained": false,
+    "result": {
+      "schema": "H2_STEAM_APPINFO_V1",
+      "apps": {
+        "976730": {
+          "change_number": 39802301,
+          "common": {
+            "name": "Halo: The Master Chief Collection",
+            "type": "Game",
+            "releasestate": "released",
+            "oslist": "windows",
+            "osarch": "64",
+            "clienticon": "a4dce2a0d039a59831020830335e4ba79f9c7f0d",
+            "clienttga": "84f1d1068517a095fb1f7a96bcc7cc88094a6358",
+            "icon": "196a45d8df1981ff6b6b1872a38dc38f6c22875d",
+            "logo": "9c861f652a1b056dd8f60beacae9577ecab59f9f",
+            "logo_small": "9c861f652a1b056dd8f60beacae9577ecab59f9f_thumb",
+            "eulas": {
+              "0": {
+                "id": "976730_eula_0",
+                "name": "Halo: The Master Chief Collection EULA",
+                "url": "https://store.steampowered.com//eula/976730_eula_0",
+                "version": "1"
+              }
+            },
+            "languages": {
+              "english": "1",
+              "german": "1",
+              "french": "1",
+              "italian": "1",
+              "koreana": "1",
+              "spanish": "1",
+              "schinese": "1",
+              "tchinese": "1",
+              "russian": "1",
+              "japanese": "1",
+              "portuguese": "1",
+              "polish": "1",
+              "danish": "1",
+              "dutch": "1",
+              "finnish": "1",
+              "norwegian": "1",
+              "swedish": "1",
+              "turkish": "1",
+              "brazilian": "1",
+              "latam": "1"
+            },
+            "content_descriptors": {
+              "0": "2",
+              "1": "5"
+            },
+            "steam_deck_compatibility": {
+              "category": "2",
+              "steamos_compatibility": "2",
+              "steam_machine_compatibility": "2",
+              "test_timestamp": "1752883200",
+              "tested_build_id": "17508398",
+              "tests": {
+                "0": {
+                  "display": "3",
+                  "token": "#SteamDeckVerified_TestResult_DefaultControllerConfigNotFullyFunctional"
+                },
+                "1": {
+                  "display": "3",
+                  "token": "#SteamDeckVerified_TestResult_TextInputDoesNotAutomaticallyInvokesKeyboard"
+                },
+                "2": {
+                  "display": "3",
+                  "token": "#SteamDeckVerified_TestResult_InterfaceTextIsNotLegible"
+                },
+                "3": {
+                  "display": "4",
+                  "token": "#SteamDeckVerified_TestResult_ControllerGlyphsMatchDeckDevice"
+                },
+                "4": {
+                  "display": "4",
+                  "token": "#SteamDeckVerified_TestResult_DefaultConfigurationIsPerformant"
+                },
+                "5": {
+                  "display": "1",
+                  "token": "#SteamDeckVerified_TestResult_FirstTimeSetupRequiresActiveInternetConnection"
+                }
+              },
+              "steam_machine_tests": {
+                "0": {
+                  "display": "3",
+                  "token": "#SteamMachine_TestResult_DefaultControllerConfigNotFullyFunctional"
+                },
+                "1": {
+                  "display": "3",
+                  "token": "#SteamMachine_TestResult_TextInputDoesNotAutomaticallyInvokesKeyboard"
+                },
+                "2": {
+                  "display": "4",
+                  "token": "#SteamMachine_TestResult_ControllerGlyphsMatchDevice"
+                },
+                "3": {
+                  "display": "4",
+                  "token": "#SteamMachine_TestResult_DefaultConfigurationIsPerformant"
+                },
+                "4": {
+                  "display": "1",
+                  "token": "#SteamMachine_TestResult_FirstTimeSetupRequiresActiveInternetConnection"
+                }
+              },
+              "steamos_tests": {
+                "0": {
+                  "display": "3",
+                  "token": "#SteamOS_TestResult_GameStartupFunctional"
+                },
+                "1": {
+                  "display": "1",
+                  "token": "#SteamOS_TestResult_DefaultControllerConfigNotFullyFunctional"
+                },
+                "2": {
+                  "display": "1",
+                  "token": "#SteamOS_TestResult_TextInputDoesNotAutomaticallyInvokesKeyboard"
+                },
+                "3": {
+                  "display": "1",
+                  "token": "#SteamOS_TestResult_FirstTimeSetupRequiresActiveInternetConnection"
+                }
+              },
+              "configuration": {
+                "supported_input": "gamepad",
+                "requires_manual_keyboard_invoke": "1",
+                "requires_non_controller_launcher_nav": "0",
+                "primary_player_is_controller_slot_0": "0",
+                "non_deck_display_glyphs": "0",
+                "small_text": "1",
+                "requires_internet_for_setup": "1",
+                "requires_internet_for_singleplayer": "0",
+                "recommended_runtime": "proton-experimental",
+                "requires_h264": "0",
+                "requires_voice_files": "0",
+                "gamescope_frame_limiter_not_supported": "0",
+                "hdr_support": "0",
+                "requires_proton_soundfonts": "0"
+              }
+            },
+            "metacritic_name": "Halo: The Master Chief Collection",
+            "controller_support": "full",
+            "small_capsule": {
+              "english": "capsule_231x87.jpg"
+            },
+            "header_image": {
+              "english": "header.jpg"
+            },
+            "library_assets": {
+              "library_capsule": "en",
+              "library_hero": "en",
+              "library_logo": "en",
+              "logo_position": {
+                "pinned_position": "BottomLeft",
+                "width_pct": "53.9431157078216",
+                "height_pct": "100"
+              }
+            },
+            "library_assets_full": {
+              "library_capsule": {
+                "image": {
+                  "english": "library_600x900.jpg"
+                },
+                "image2x": {
+                  "english": "library_600x900_2x.jpg"
+                }
+              },
+              "library_hero": {
+                "image": {
+                  "english": "library_hero.jpg"
+                },
+                "image2x": {
+                  "english": "library_hero_2x.jpg"
+                }
+              },
+              "library_logo": {
+                "image": {
+                  "english": "logo.png"
+                },
+                "image2x": {
+                  "english": "logo_2x.png"
+                },
+                "logo_position": {
+                  "pinned_position": "BottomLeft",
+                  "width_pct": "53.9431157078216",
+                  "height_pct": "100"
+                }
+              }
+            },
+            "store_asset_mtime": "1667946830",
+            "associations": {
+              "0": {
+                "type": "developer",
+                "name": "343 Industries"
+              },
+              "1": {
+                "type": "developer",
+                "name": "Splash Damage"
+              },
+              "2": {
+                "type": "developer",
+                "name": "Ruffian Games"
+              },
+              "3": {
+                "type": "developer",
+                "name": "Bungie"
+              },
+              "4": {
+                "type": "developer",
+                "name": "Saber Interactive"
+              },
+              "5": {
+                "type": "publisher",
+                "name": "Xbox Game Studios"
+              },
+              "6": {
+                "type": "franchise",
+                "name": "Halo"
+              }
+            },
+            "primary_genre": "1",
+            "genres": {
+              "0": "1"
+            },
+            "category": {
+              "category_36": "1",
+              "category_2": "1",
+              "category_38": "1",
+              "category_1": "1",
+              "category_49": "1",
+              "category_9": "1",
+              "category_47": "1",
+              "category_48": "1",
+              "category_22": "1",
+              "category_29": "1",
+              "category_28": "1",
+              "category_41": "1",
+              "category_42": "1",
+              "category_43": "1",
+              "category_27": "1",
+              "category_30": "1",
+              "category_45": "1",
+              "category_46": "1",
+              "category_62": "1"
+            },
+            "supported_languages": {
+              "english": {
+                "supported": "true",
+                "full_audio": "true",
+                "subtitles": "true"
+              },
+              "french": {
+                "supported": "true",
+                "full_audio": "true",
+                "subtitles": "true"
+              },
+              "italian": {
+                "supported": "true",
+                "full_audio": "true",
+                "subtitles": "true"
+              },
+              "german": {
+                "supported": "true",
+                "full_audio": "true",
+                "subtitles": "true"
+              },
+              "spanish": {
+                "supported": "true",
+                "full_audio": "true",
+                "subtitles": "true"
+              },
+              "japanese": {
+                "supported": "true"
+              },
+              "polish": {
+                "supported": "true"
+              },
+              "portuguese": {
+                "supported": "true"
+              },
+              "russian": {
+                "supported": "true"
+              },
+              "schinese": {
+                "supported": "true"
+              },
+              "latam": {
+                "supported": "true"
+              },
+              "tchinese": {
+                "supported": "true"
+              }
+            },
+            "steam_release_date": "1575396000",
+            "community_visible_stats": "1",
+            "workshop_visible": "1",
+            "community_hub_visible": "1",
+            "gameid": "976730",
+            "content_descriptors_including_dlc": {
+              "0": "2",
+              "1": "5"
+            },
+            "store_tags": {
+              "0": "1756",
+              "1": "1663",
+              "2": "1693",
+              "3": "3859",
+              "4": "1742",
+              "5": "3942",
+              "6": "1685",
+              "7": "3839",
+              "8": "3965",
+              "9": "1774",
+              "10": "19",
+              "11": "4182",
+              "12": "1673",
+              "13": "3854",
+              "14": "5411",
+              "15": "1755",
+              "16": "4166",
+              "17": "21",
+              "18": "1667",
+              "19": "3843"
+            },
+            "review_score": "8",
+            "review_percentage": "92"
+          },
+          "depots": {
+            "hasdepotsindlc": "1",
+            "baselanguages": "english,german,french,italian,koreana,spanish,schinese,tchinese,russian,japanese,polish,brazilian,latam",
+            "228987": {
+              "config": {
+                "oslist": "windows"
+              },
+              "depotfromapp": "228980",
+              "sharedinstall": "1"
+            },
+            "228990": {
+              "config": {
+                "oslist": "windows"
+              },
+              "depotfromapp": "228980",
+              "sharedinstall": "1"
+            },
+            "229005": {
+              "config": {
+                "oslist": "windows"
+              },
+              "depotfromapp": "228980",
+              "sharedinstall": "1"
+            },
+            "976731": {
+              "config": {
+                "language": ""
+              },
+              "manifests": {
+                "public": {
+                  "gid": "4956458579120161185",
+                  "size": "17126952679",
+                  "download": "10431492112"
+                }
+              }
+            },
+            "976732": {
+              "config": {
+                "language": ""
+              }
+            },
+            "976733": {
+              "dlcappid": "1064221",
+              "config": {
+                "language": "",
+                "optionaldlc": "1064221"
+              },
+              "manifests": {
+                "public": {
+                  "gid": "886692270880710564",
+                  "size": "9896534807",
+                  "download": "8485033200"
+                }
+              }
+            },
+            "976734": {
+              "dlcappid": "1080080",
+              "config": {
+                "language": "",
+                "optionaldlc": "1080080"
+              },
+              "manifests": {
+                "public": {
+                  "gid": "7232036684651310417",
+                  "size": "5374679120",
+                  "download": "4488971344"
+                }
+              }
+            },
+            "976735": {
+              "dlcappid": "1064270",
+              "config": {
+                "language": "",
+                "optionaldlc": "1064270"
+              },
+              "manifests": {
+                "public": {
+                  "gid": "3171334642139802443",
+                  "size": "31293813794",
+                  "download": "22003386656"
+                }
+              }
+            },
+            "976736": {
+              "dlcappid": "1097223",
+              "config": {
+                "language": "",
+                "optionaldlc": "1097223"
+              },
+              "manifests": {
+                "public": {
+                  "gid": "7615983289011416505",
+                  "size": "21105615503",
+                  "download": "14010963392"
+                }
+              }
+            },
+            "976737": {
+              "dlcappid": "1097223",
+              "config": {
+                "language": "",
+                "optionaldlc": "1097223"
+              },
+              "manifests": {
+                "public": {
+                  "gid": "2116658161440873010",
+                  "size": "8474252961",
+                  "download": "6646530288"
+                }
+              }
+            },
+            "976738": {
+              "dlcappid": "1064271",
+              "config": {
+                "language": "",
+                "optionaldlc": "1064271"
+              },
+              "manifests": {
+                "public": {
+                  "gid": "5942743121382725562",
+                  "size": "9007725781",
+                  "download": "7449085440"
+                }
+              }
+            },
+            "976739": {
+              "dlcappid": "1097222",
+              "config": {
+                "language": "",
+                "optionaldlc": "1097222"
+              },
+              "manifests": {
+                "public": {
+                  "gid": "3902112679418599911",
+                  "size": "9332886741",
+                  "download": "7434729536"
+                }
+              }
+            },
+            "1064222": {
+              "dlcappid": "1064272",
+              "config": {
+                "language": "",
+                "optionaldlc": "1064272"
+              },
+              "manifests": {
+                "public": {
+                  "gid": "4251229898993976945",
+                  "size": "8726854712",
+                  "download": "6973478688"
+                }
+              }
+            },
+            "1064223": {
+              "dlcappid": "1064273",
+              "config": {
+                "language": "",
+                "optionaldlc": "1064273"
+              },
+              "manifests": {
+                "public": {
+                  "gid": "6380080023131513473",
+                  "size": "24978838634",
+                  "download": "21094649376"
+                }
+              }
+            },
+            "1064224": {
+              "dlcappid": "1097220",
+              "config": {
+                "language": "",
+                "optionaldlc": "1097220"
+              },
+              "manifests": {
+                "public": {
+                  "gid": "6517281113684597986",
+                  "size": "20681996110",
+                  "download": "15951621424"
+                }
+              }
+            },
+            "1064225": {
+              "dlcappid": "1064220",
+              "config": {
+                "language": ""
+              },
+              "manifests": {
+                "public": {
+                  "gid": "2839831772411294252",
+                  "size": "9743362106",
+                  "download": "6664093552"
+                }
+              }
+            },
+            "1064226": {
+              "dlcappid": "1097224",
+              "config": {
+                "language": ""
+              },
+              "manifests": {
+                "public": {
+                  "gid": "1185971278520087384",
+                  "size": "7824947258",
+                  "download": "5627002928"
+                }
+              }
+            },
+            "1064227": {
+              "dlcappid": "1109621",
+              "config": {
+                "language": "",
+                "optionaldlc": "1109621"
+              },
+              "manifests": {
+                "public": {
+                  "gid": "2902300282061187148",
+                  "size": "1461837440",
+                  "download": "1231502528"
+                }
+              }
+            },
+            "1064228": {
+              "dlcappid": "1108760",
+              "config": {
+                "language": "",
+                "optionaldlc": "1108760"
+              },
+              "manifests": {
+                "public": {
+                  "gid": "6740673267375754218",
+                  "size": "933914112",
+                  "download": "818822032"
+                }
+              }
+            },
+            "1064229": {
+              "dlcappid": "1108761",
+              "config": {
+                "language": "",
+                "optionaldlc": "1108761"
+              },
+              "manifests": {
+                "public": {
+                  "gid": "4496935266254945644",
+                  "size": "564047872",
+                  "download": "506286448"
+                }
+              }
+            },
+            "1064274": {
+              "dlcappid": "1108762",
+              "config": {
+                "language": "",
+                "optionaldlc": "1108762"
+              },
+              "manifests": {
+                "public": {
+                  "gid": "1012731833906676734",
+                  "size": "1895895072",
+                  "download": "1635718192"
+                }
+              }
+            },
+            "1064275": {
+              "dlcappid": "1108763",
+              "config": {
+                "language": "",
+                "optionaldlc": "1108763"
+              },
+              "manifests": {
+                "public": {
+                  "gid": "7410615082723943400",
+                  "size": "1543134784",
+                  "download": "1404420576"
+                }
+              }
+            },
+            "1064276": {
+              "dlcappid": "1109620",
+              "config": {
+                "language": "",
+                "optionaldlc": "1109620"
+              },
+              "manifests": {
+                "public": {
+                  "gid": "8919231023149142163",
+                  "size": "3724939335",
+                  "download": "3094921520"
+                }
+              }
+            },
+            "workshopdepot": "976730",
+            "branches": {
+              "public": {
+                "buildid": "19905945",
+                "timeupdated": "1758129270",
+                "timebuildupdated": "1757391267"
+              }
+            },
+            "privatebranches": "1",
+            "appmanagesdlc": "1"
+          }
+        },
+        "1064270": {
+          "change_number": 39222627,
+          "common": {
+            "name": "Halo 2: Anniversary",
+            "type": "DLC",
+            "parent": "976730",
+            "releasestate": "released",
+            "oslist": "windows",
+            "osarch": "",
+            "osextended": "",
+            "content_descriptors": {
+              "0": "2",
+              "1": "5"
+            },
+            "controller_support": "full",
+            "small_capsule": {
+              "english": "capsule_231x87.jpg"
+            },
+            "header_image": {
+              "english": "header.jpg"
+            },
+            "library_assets": {
+              "library_logo": "en"
+            },
+            "library_assets_full": {
+              "library_logo": {
+                "image": {
+                  "english": "logo.png"
+                }
+              }
+            },
+            "store_screenshot": "ss_b2f12273fa46c3865ed9af9368f52c94b6756155.jpg",
+            "store_asset_mtime": "1586893459",
+            "associations": {
+              "0": {
+                "type": "developer",
+                "name": "343 Industries"
+              },
+              "1": {
+                "type": "developer",
+                "name": "Saber Interactive"
+              },
+              "2": {
+                "type": "developer",
+                "name": "Bungie"
+              },
+              "3": {
+                "type": "publisher",
+                "name": "Xbox Game Studios"
+              },
+              "4": {
+                "type": "franchise",
+                "name": "Halo"
+              }
+            },
+            "primary_genre": "1",
+            "genres": {
+              "0": "1"
+            },
+            "category": {
+              "category_36": "1",
+              "category_2": "1",
+              "category_38": "1",
+              "category_1": "1",
+              "category_49": "1",
+              "category_9": "1",
+              "category_28": "1",
+              "category_22": "1",
+              "category_29": "1",
+              "category_62": "1"
+            },
+            "supported_languages": {
+              "english": {
+                "supported": "true",
+                "full_audio": "true",
+                "subtitles": "true"
+              },
+              "french": {
+                "supported": "true",
+                "full_audio": "true",
+                "subtitles": "true"
+              },
+              "italian": {
+                "supported": "true",
+                "full_audio": "true",
+                "subtitles": "true"
+              },
+              "german": {
+                "supported": "true",
+                "full_audio": "true",
+                "subtitles": "true"
+              },
+              "spanish": {
+                "supported": "true",
+                "full_audio": "true",
+                "subtitles": "true"
+              },
+              "japanese": {
+                "supported": "true",
+                "subtitles": "true"
+              },
+              "koreana": {
+                "supported": "true",
+                "subtitles": "true"
+              },
+              "tchinese": {
+                "supported": "true",
+                "subtitles": "true"
+              }
+            },
+            "steam_release_date": "1589338740",
+            "gameid": "1064270",
+            "content_descriptors_including_dlc": {
+              "0": "2",
+              "1": "5"
+            },
+            "store_tags": {
+              "0": "19",
+              "1": "1756",
+              "2": "1663",
+              "3": "1693",
+              "4": "3859",
+              "5": "3942",
+              "6": "1742",
+              "7": "4182",
+              "8": "1774",
+              "9": "3839",
+              "10": "3965",
+              "11": "1685",
+              "12": "4166",
+              "13": "4667",
+              "14": "4345",
+              "15": "1673",
+              "16": "3854",
+              "17": "5411",
+              "18": "4026"
+            },
+            "review_score": "8",
+            "review_percentage": "81"
+          },
+          "depots": ""
+        },
+        "1097223": {
+          "change_number": 12579474,
+          "common": {
+            "name": "MCC - H2: Multiplayer",
+            "type": "DLC",
+            "parent": "976730",
+            "releasestate": "released",
+            "oslist": "windows",
+            "osarch": "",
+            "osextended": "",
+            "associations": "",
+            "gameid": "1097223",
+            "store_tags": {
+              "0": "19"
+            }
+          },
+          "depots": ""
+        },
+        "1080080": {
+          "change_number": 34351876,
+          "common": {
+            "name": "MCC - H1: Multiplayer",
+            "section_type": "ownersonly",
+            "type": "DLC",
+            "parent": "976730",
+            "releasestate": "released",
+            "oslist": "windows",
+            "osarch": "",
+            "osextended": "",
+            "associations": "",
+            "gameid": "1080080",
+            "store_tags": {
+              "0": "19"
+            }
+          },
+          "depots": ""
+        },
+        "1097224": {
+          "change_number": 12579458,
+          "common": {
+            "name": "MCC - Reach (Content Pack 2)",
+            "section_type": "ownersonly",
+            "type": "DLC",
+            "parent": "976730",
+            "releasestate": "released",
+            "oslist": "windows",
+            "osarch": "",
+            "osextended": "",
+            "associations": "",
+            "gameid": "1097224",
+            "store_tags": {
+              "0": "19"
+            }
+          },
+          "depots": ""
+        },
+        "1097222": {
+          "change_number": 12579481,
+          "common": {
+            "name": "MCC - H3: Multiplayer",
+            "section_type": "ownersonly",
+            "type": "DLC",
+            "parent": "976730",
+            "releasestate": "released",
+            "oslist": "windows",
+            "osarch": "",
+            "osextended": "",
+            "associations": "",
+            "gameid": "1097222",
+            "store_tags": {
+              "0": "19"
+            }
+          },
+          "depots": ""
+        },
+        "1097220": {
+          "change_number": 12579487,
+          "common": {
+            "name": "MCC - H4: Multiplayer",
+            "type": "DLC",
+            "parent": "976730",
+            "releasestate": "released",
+            "oslist": "windows",
+            "osarch": "",
+            "osextended": "",
+            "associations": "",
+            "gameid": "1097220"
+          },
+          "depots": ""
+        }
+      },
+      "anonymous": true
+    },
+    "passed": true
+  },
+  "existing_linux_reference": {
+    "appmanifest_sha256": "5f58fa6dcbf138dfb8bf8eab968ac0c1f8c28fe1e0341c92ae426f1eeefa10a1",
+    "lockout": {
+      "bytes": 1820416,
+      "sha256": "97d034dca2109adde65e56c0ab78ee56f72045b56bf9b3200f304d5e1ff4c61e"
+    },
+    "installed_depots": {
+      "976731": "4956458579120161185",
+      "976735": "3171334642139802443",
+      "976736": "7615983289011416505",
+      "976737": "2116658161440873010"
+    }
+  },
+  "required_file_reference_match": {
+    "schema": "H2_STEAM_PLAN_LOCAL_REFERENCE_V1",
+    "source": "/home/eric/.local/share/Steam/steamapps/common/Halo The Master Chief Collection",
+    "required_files": [
+      {
+        "path": "MCC/Content/Paks/MCC-WindowsNoEditor.pak",
+        "depot_id": 976731,
+        "manifest_id": "4956458579120161185",
+        "bytes": 10928289765,
+        "sha1": "0b08b6b666e242c73d690bcfa9bb9dfdcbf34c62",
+        "matched_authenticated_plan": true
+      },
+      {
+        "path": "halo2/h2_fonts/font_table.txt",
+        "depot_id": 976735,
+        "manifest_id": "3171334642139802443",
+        "bytes": 156,
+        "sha1": "baae20e1c4344c0be5f0f2035067878ae61542c8",
+        "matched_authenticated_plan": true
+      },
+      {
+        "path": "halo2/h2_maps_win64_dx11/lockout.map",
+        "depot_id": 976736,
+        "manifest_id": "7615983289011416505",
+        "bytes": 1820416,
+        "sha1": "94ed4873eaa36e560b204a922617f7ea783ea3b5",
+        "matched_authenticated_plan": true
+      },
+      {
+        "path": "halo2/h2_maps_win64_dx11/mainmenu.map",
+        "depot_id": 976735,
+        "manifest_id": "3171334642139802443",
+        "bytes": 8331008,
+        "sha1": "e3d47ef46eaab4eaaaf25432a8de1eb5e782a744",
+        "matched_authenticated_plan": true
+      },
+      {
+        "path": "halo2/h2_maps_win64_dx11/shared.map",
+        "depot_id": 976735,
+        "manifest_id": "3171334642139802443",
+        "bytes": 27908864,
+        "sha1": "2d81edf6e97f1457ec90bd0e575eb44425912354",
+        "matched_authenticated_plan": true
+      },
+      {
+        "path": "halo2/h2_maps_win64_dx11/single_player_shared.map",
+        "depot_id": 976735,
+        "manifest_id": "3171334642139802443",
+        "bytes": 44841472,
+        "sha1": "d0315b150a6835145d0d2a886d90711424d8d063",
+        "matched_authenticated_plan": true
+      },
+      {
+        "path": "halo2/h2_maps_win64_dx11/textures.dat",
+        "depot_id": 976735,
+        "manifest_id": "3171334642139802443",
+        "bytes": 564824320,
+        "sha1": "aedd5eee290c4ff4500782ec635ed0ab499c65f5",
+        "matched_authenticated_plan": true
+      }
+    ],
+    "passed": true
+  },
+  "current_policy_architecture_tests": {
+    "schema": "H2_STEAM_RULES_CURRENT_PROFILE_V1",
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-fjjaobe8",
+    "source_sha256": {
+      "tools/steam/ContentRules.cs": "46aafb0be2fb7f4f04d43082a715a98e10b2a986638550cb72a287e34c350e71",
+      "tests/macos/steam/ContentRulesTests.cs": "1e64c517483e279f3cfa47bba0f30e2a6dad0de43efb21ba21c07b9e4b3c4d43",
+      "tools/steam/content-profile.json": "cbb9f611704b7c1b4e0c4b00aa6cdf5f6989e2fcda43f74b1bcdd4879ab92b68"
+    },
+    "exit_code": 0,
+    "stderr": "",
+    "result": {
+      "schema": "H2_STEAM_RULES_TEST_V1",
+      "cases": 50,
+      "source_id": "e46c404c25077cdd5c064c12"
+    },
+    "passed": true,
+    "mac_exit": 0,
+    "mac": {
+      "schema": "H2_MACOS_STEAM_CURRENT_RULES_V1",
+      "scratch": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-dai81wry",
+      "runs": [
+        {
+          "architecture": "arm64",
+          "exit_code": 0,
+          "stderr": "",
+          "result": {
+            "schema": "H2_STEAM_RULES_TEST_V1",
+            "cases": 50,
+            "source_id": "e46c404c25077cdd5c064c12"
+          }
+        },
+        {
+          "architecture": "x86_64",
+          "exit_code": 0,
+          "stderr": "",
+          "result": {
+            "schema": "H2_STEAM_RULES_TEST_V1",
+            "cases": 50,
+            "source_id": "e46c404c25077cdd5c064c12"
+          }
+        }
+      ],
+      "passed": true,
+      "original_runtime_unchanged": true
+    }
+  },
+  "latest_linux_graph": {
+    "passed": true,
+    "status": "passed",
+    "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-cylrayl9/build",
+    "steps": [
+      {
+        "name": "configure",
+        "command": [
+          "cmake",
+          "-S",
+          "/home/eric/Developer/Halo-2-Decompiled",
+          "-B",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-cylrayl9/build",
+          "-DBUILD_TESTING=ON",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+          "-DHALO2_BUNDLE_MOVIES=OFF"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-steam-session-final-linux-graph/configure.log",
+        "exit_code": 0
+      },
+      {
+        "name": "build",
+        "command": [
+          "cmake",
+          "--build",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-cylrayl9/build",
+          "--config",
+          "Release",
+          "--parallel",
+          "2",
+          "--target",
+          "vulkan_portability_tests"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-steam-session-final-linux-graph/build.log",
+        "exit_code": 0
+      },
+      {
+        "name": "tests",
+        "command": [
+          "ctest",
+          "--test-dir",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-cylrayl9/build",
+          "--build-config",
+          "Release",
+          "--output-on-failure",
+          "--no-tests=error",
+          "--parallel",
+          "1",
+          "--tests-regex",
+          "^(vulkan_portability|steam_content_plan|steam_content_session|steam_setup_ui|mcc_setup_ui)$"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-steam-session-final-linux-graph/tests.log",
+        "exit_code": 0
+      }
+    ],
+    "retained_small_reports": []
+  },
+  "sdk_before_download": {
+    "schema": "H2_MACOS_STEAM_SDK_V1",
+    "architectures": [
+      "arm64",
+      "x86_64"
+    ],
+    "layout": "one self-contained managed/native runtime per CPU; the engine and launcher remain universal Mach-O binaries",
+    "framework": "10.0.12",
+    "steamkit": "3.4.0",
+    "commands": [
+      [
+        "dotnet",
+        "restore",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-3rarp2fw/work/project/Halo2Steam.csproj",
+        "--locked-mode"
+      ],
+      [
+        "dotnet",
+        "publish",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-3rarp2fw/work/project/Halo2Steam.csproj",
+        "-c",
+        "Release",
+        "-r",
+        "osx-arm64",
+        "--self-contained",
+        "true",
+        "--no-restore",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-3rarp2fw/work/staged-sdk/arm64",
+        "-p:DebugType=None",
+        "-p:DebugSymbols=false",
+        "-p:UseSharedCompilation=false"
+      ],
+      [
+        "dotnet",
+        "publish",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-3rarp2fw/work/project/Halo2Steam.csproj",
+        "-c",
+        "Release",
+        "-r",
+        "osx-x64",
+        "--self-contained",
+        "true",
+        "--no-restore",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-3rarp2fw/work/staged-sdk/x86_64",
+        "-p:DebugType=None",
+        "-p:DebugSymbols=false",
+        "-p:UseSharedCompilation=false"
+      ]
+    ],
+    "package_inputs": {
+      "protobuf-net.core/3.2.56/protobuf-net.core.3.2.56.nupkg": "355bcbade0afbef9d2fecd2cc8be7f2f7991a577acc0fec4ef50ba58ff5fd837",
+      "system.drawing.common/6.0.0/system.drawing.common.6.0.0.nupkg": "ffd11a01b11e3a310b452319688992d4ef059947bc8f85ae154c3554eacfc80a",
+      "system.io.hashing/10.0.1/system.io.hashing.10.0.1.nupkg": "93c1077319cb8ad5e8d02c680d903116652524974a655b19276fbdcc331807de",
+      "zstdsharp.port/0.8.7/zstdsharp.port.0.8.7.nupkg": "5acb834d93afdd382213c355fd35db29130706c64a81607c88374a2abf4ebc0a",
+      "qrcoder/1.8.1/qrcoder.1.8.1.nupkg": "d3fe5c80c742b6a2ef8a31734c06600e2d674806a97f36f4af97b0d2871de309",
+      "protobuf-net/3.2.56/protobuf-net.3.2.56.nupkg": "2a3c111f21b07e54038d56ae753f8d8d19df1a11dbe02a427e7f611d58b123e1",
+      "microsoft.win32.systemevents/6.0.0/microsoft.win32.systemevents.6.0.0.nupkg": "37d11565b979c35567332c065f26955b34fd961f3889a277683e3c848064d730",
+      "steamkit2/3.4.0/steamkit2.3.4.0.nupkg": "cd90b5ac507c4eba3ee3439b62b8a5dab17d687dc51dfc81202b69f6c8643153",
+      "microsoft.netcore.app.runtime.osx-arm64/10.0.12/microsoft.netcore.app.runtime.osx-arm64.10.0.12.nupkg": "2f0e72fdf79ead91d0e1ad4960ea3a9bdeba1b7cb08467e3ead0a427d1fd2e08",
+      "microsoft.netcore.app.runtime.osx-x64/10.0.12/microsoft.netcore.app.runtime.osx-x64.10.0.12.nupkg": "ab5c57042afdbadc29d8ddbf7753de2ae9abd983e971da8cf97a2d246ea8f72b",
+      "microsoft.aspnetcore.app.ref/10.0.12/microsoft.aspnetcore.app.ref.10.0.12.nupkg": "b2cb6e55804cc8cc82ab750b07562866088f667994dbc09e9e46df6ee44aa060",
+      "microsoft.aspnetcore.app.runtime.osx-arm64/10.0.12/microsoft.aspnetcore.app.runtime.osx-arm64.10.0.12.nupkg": "8507e0d702bc6451d7cfc4303f7964fc3f97f2234fe530848844c415c102150d",
+      "microsoft.aspnetcore.app.runtime.osx-x64/10.0.12/microsoft.aspnetcore.app.runtime.osx-x64.10.0.12.nupkg": "44c29c66431c2eede507fe48fd39f04585a4f7146c3ab0dad451d5c3d90b4b19",
+      "microsoft.netcore.app.host.osx-arm64/10.0.12/microsoft.netcore.app.host.osx-arm64.10.0.12.nupkg": "adbd6e6ec1911498f431aa97a2d1bba9d159ff60df0d7744cb8f0445744a1e34",
+      "microsoft.netcore.app.host.osx-x64/10.0.12/microsoft.netcore.app.host.osx-x64.10.0.12.nupkg": "17b4a60a181370cc3939d761e765eb60171939ae9dedfed0fe8c67388519c783"
+    },
+    "downloader": {
+      "schema": "H2_STEAM_DOWNLOADER_INPUTS_V1",
+      "repository": "https://github.com/SteamRE/DepotDownloader",
+      "revision": "6396afe2e34a6c40459bcb6bdafa43c83c9db8cc",
+      "files": {
+        "LICENSE": {
+          "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/LICENSE",
+          "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+        },
+        "DepotDownloader/ContentDownloader.cs": {
+          "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/ContentDownloader.cs",
+          "sha256": "452e17680be99dcef7ceda97646380a42725e84454d07791d0a873e9963df4a5"
+        },
+        "DepotDownloader/Steam3Session.cs": {
+          "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/Steam3Session.cs",
+          "sha256": "8f8409cdd2e513e795992c14f973e6beff4e2d5ef3edccb9d3505e0966de5f99"
+        },
+        "DepotDownloader/CDNClientPool.cs": {
+          "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/CDNClientPool.cs",
+          "sha256": "d1afed81478ae805049bd79c352728835f4df53f37c775aa0670a6d84ce43950"
+        },
+        "DepotDownloader/DepotConfigStore.cs": {
+          "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/DepotConfigStore.cs",
+          "sha256": "e971911fd7c6a4bb0a2d4316edb7e56425a40423bf0a21888e85d72751b87e88"
+        },
+        "DepotDownloader/DownloadConfig.cs": {
+          "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/DownloadConfig.cs",
+          "sha256": "cb630953931100574bffcfd8f6485a7b75d111538f97c6e144c47c94ceac2c72"
+        },
+        "DepotDownloader/HttpClientFactory.cs": {
+          "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/HttpClientFactory.cs",
+          "sha256": "95f902c91cdffbfa32b2fb7a3381b327c0d3ca3789649b1d674c0d09a97cfa12"
+        },
+        "DepotDownloader/ProtoManifest.cs": {
+          "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/ProtoManifest.cs",
+          "sha256": "950206a50706ed54add058f69fd4d80ff5266fec82b9a0ac9a70b9c4ba2ec8c3"
+        },
+        "DepotDownloader/Util.cs": {
+          "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/Util.cs",
+          "sha256": "3a0f61e2c9860c93cec83347ac8eccfccb8f613c78a61a5a05f8f4352c8d8f93"
+        },
+        "DepotDownloader/ConsoleAuthenticator.cs": {
+          "url": "https://raw.githubusercontent.com/SteamRE/DepotDownloader/6396afe2e34a6c40459bcb6bdafa43c83c9db8cc/DepotDownloader/ConsoleAuthenticator.cs",
+          "sha256": "1c6fffca83d28a0f78d0dc681ebb81fc4e0a1b4e6e7e3f92b958b87b2f6dd01b"
+        }
+      }
+    },
+    "upstream_adapters": {
+      "DepotDownloader/ContentDownloader.cs": {
+        "original_sha256": "452e17680be99dcef7ceda97646380a42725e84454d07791d0a873e9963df4a5",
+        "adapted_sha256": "bf36a2d87ba35546535b38de2ac979bca35e24e07a9c42ab1383b59122cdea92"
+      },
+      "DepotDownloader/Steam3Session.cs": {
+        "original_sha256": "8f8409cdd2e513e795992c14f973e6beff4e2d5ef3edccb9d3505e0966de5f99",
+        "adapted_sha256": "f72d8462a02dbef067711fab05749cfec98a48783e4c370320073286c4f52e22"
+      },
+      "DepotDownloader/CDNClientPool.cs": {
+        "original_sha256": "d1afed81478ae805049bd79c352728835f4df53f37c775aa0670a6d84ce43950",
+        "adapted_sha256": "62d2c97a2b30d6542e9cf067ff6c5895c8d2263812be6169bff21165d43e4c7d"
+      },
+      "DepotDownloader/DepotConfigStore.cs": {
+        "original_sha256": "e971911fd7c6a4bb0a2d4316edb7e56425a40423bf0a21888e85d72751b87e88",
+        "adapted_sha256": "d2c5c52d89bbb76d25d35c268497fe83bc6a8b9c28277309cd1de2b7ae2e0b6a"
+      },
+      "DepotDownloader/DownloadConfig.cs": {
+        "original_sha256": "cb630953931100574bffcfd8f6485a7b75d111538f97c6e144c47c94ceac2c72",
+        "adapted_sha256": "de870f232b1a4663f24f9b5b6b9388017f96ccee92dd3cdddc5381c928597c62"
+      },
+      "DepotDownloader/HttpClientFactory.cs": {
+        "original_sha256": "95f902c91cdffbfa32b2fb7a3381b327c0d3ca3789649b1d674c0d09a97cfa12",
+        "adapted_sha256": "909cc7b39d06eef2801cf1c3fdc803fa2d7ddc370ee07543e1427c37a28a107b"
+      },
+      "DepotDownloader/ProtoManifest.cs": {
+        "original_sha256": "950206a50706ed54add058f69fd4d80ff5266fec82b9a0ac9a70b9c4ba2ec8c3",
+        "adapted_sha256": "576b8eb09ba0fc054464d2b1259d7797140e7828a3d65b930d3c368ddf4361d7"
+      },
+      "DepotDownloader/Util.cs": {
+        "original_sha256": "3a0f61e2c9860c93cec83347ac8eccfccb8f613c78a61a5a05f8f4352c8d8f93",
+        "adapted_sha256": "8aba2a6389a105e6a0e73e4f76f49d862a72da622cce0afa1f3475c5abe5ed2a"
+      },
+      "DepotDownloader/ConsoleAuthenticator.cs": {
+        "original_sha256": "1c6fffca83d28a0f78d0dc681ebb81fc4e0a1b4e6e7e3f92b958b87b2f6dd01b",
+        "adapted_sha256": "dce53d86fa4d7f6af79a336ffa0f1627347a2c7c4ee79717d5437b964aba5458"
+      }
+    },
+    "source_sha256": {
+      "Halo2Steam.csproj": "39c2db8959da6941a1d0a13f8c1f860581cf1757e507b6691b48286afe048509",
+      "global.json": "12f1cf1c3eef038f55de570dc8f5e321f4ff5306a9281106c43cc60a1f78a371",
+      "Program.cs": "6f7425f397d90649e65e0ac9dd9e18605c0705bac921e2d60474d5deb3b5dc9b",
+      "content-profile.json": "cbb9f611704b7c1b4e0c4b00aa6cdf5f6989e2fcda43f74b1bcdd4879ab92b68",
+      "packages.lock.json": "11a43a8547420fea072fef3c7be4eafa46230a303e32f3a675e0cc473b46ddbf",
+      "package-inputs.json": "7b4d804f50ead307f01c593e9e69de4800d0689328264ddce1acb727fae05bb5",
+      "upstream.json": "3ee820c7da45d5b6e5affebb66a3a055ae36026049cc6353df8e841b80bb8638",
+      "DownloaderAdapters.cs": "b49f8e9459eb2895bc04910f6a432f14dda542fe526995430c8f42745751b2a2",
+      "ContentRules.cs": "46aafb0be2fb7f4f04d43082a715a98e10b2a986638550cb72a287e34c350e71",
+      "ContentProtocol.cs": "1cab0f796b3f64cbcf6af0355aa14687aeae37f5f1890498b06d5f4279bcab12",
+      "ContentSession.cs": "8a2431d18a82c60bfb57c34259348f9112c76037ec819b3cf1dd07a0d1f568ad"
+    },
+    "package_lock": {
+      "version": 1,
+      "dependencies": {
+        "net10.0": {
+          "QRCoder": {
+            "type": "Direct",
+            "requested": "[1.8.1, )",
+            "resolved": "1.8.1",
+            "contentHash": "aGfRFpU/IPexAtEOEXCNxC3fMCAqgn6kqALRvXt6LxVAW0VolSDGHiyrY+o2CJgTITOsMpsrsDi7svMJaJ9Vfg==",
+            "dependencies": {
+              "System.Drawing.Common": "6.0.0"
+            }
+          },
+          "SteamKit2": {
+            "type": "Direct",
+            "requested": "[3.4.0, )",
+            "resolved": "3.4.0",
+            "contentHash": "3UZ5Useeh+5BJ19gazEpeFc3wRasMEUkrdkgzIhwAAK9VXL9sPbQu11bp6E3W7HsPCbm2s262yuyBbYLzA+4AA==",
+            "dependencies": {
+              "System.IO.Hashing": "10.0.1",
+              "ZstdSharp.Port": "0.8.7",
+              "protobuf-net": "3.2.56"
+            }
+          },
+          "Microsoft.Win32.SystemEvents": {
+            "type": "Transitive",
+            "resolved": "6.0.0",
+            "contentHash": "hqTM5628jSsQiv+HGpiq3WKBl2c8v1KZfby2J6Pr7pEPlK9waPdgEO6b8A/+/xn/yZ9ulv8HuqK71ONy2tg67A=="
+          },
+          "protobuf-net": {
+            "type": "Transitive",
+            "resolved": "3.2.56",
+            "contentHash": "4IPJeTYAMNewlN8MDaFkcmR/9hLhJeo9eARnTh104zh7mf+vXT2gu5MUfUnkSQU+CH578Q6vcdU7LQDQPG6eaw==",
+            "dependencies": {
+              "protobuf-net.Core": "3.2.56"
+            }
+          },
+          "protobuf-net.Core": {
+            "type": "Transitive",
+            "resolved": "3.2.56",
+            "contentHash": "d6QOukTpDzs7zZv9tPnBZMtvHDNeHJQXUhMx54g4urUQsXK3oo9U70H9HvklYq7hlQ4A7AHJl7EVEqyCXXIl8Q=="
+          },
+          "System.Drawing.Common": {
+            "type": "Transitive",
+            "resolved": "6.0.0",
+            "contentHash": "NfuoKUiP2nUWwKZN6twGqXioIe1zVD0RIj2t976A+czLHr2nY454RwwXs6JU9Htc6mwqL6Dn/nEL3dpVf2jOhg==",
+            "dependencies": {
+              "Microsoft.Win32.SystemEvents": "6.0.0"
+            }
+          },
+          "System.IO.Hashing": {
+            "type": "Transitive",
+            "resolved": "10.0.1",
+            "contentHash": "Dy6ULPb2S0GmNndjKrEIpfibNsc8+FTOoZnqygtFDuyun8vWboQbfMpQtKUXpgTxokR5E4zFHETpNnGfeWY6NA=="
+          },
+          "ZstdSharp.Port": {
+            "type": "Transitive",
+            "resolved": "0.8.7",
+            "contentHash": "+4VpxvzEKaHpfTjsLRMhQHx6brqGBkIA+fjUM3wUW8ZoWpPFAeKrO2Nf4uZDeBjjzNDNxSRvLQH4b3S9Ku4JJQ=="
+          }
+        },
+        "net10.0/osx-arm64": {
+          "Microsoft.Win32.SystemEvents": {
+            "type": "Transitive",
+            "resolved": "6.0.0",
+            "contentHash": "hqTM5628jSsQiv+HGpiq3WKBl2c8v1KZfby2J6Pr7pEPlK9waPdgEO6b8A/+/xn/yZ9ulv8HuqK71ONy2tg67A=="
+          },
+          "System.Drawing.Common": {
+            "type": "Transitive",
+            "resolved": "6.0.0",
+            "contentHash": "NfuoKUiP2nUWwKZN6twGqXioIe1zVD0RIj2t976A+czLHr2nY454RwwXs6JU9Htc6mwqL6Dn/nEL3dpVf2jOhg==",
+            "dependencies": {
+              "Microsoft.Win32.SystemEvents": "6.0.0"
+            }
+          }
+        },
+        "net10.0/osx-x64": {
+          "Microsoft.Win32.SystemEvents": {
+            "type": "Transitive",
+            "resolved": "6.0.0",
+            "contentHash": "hqTM5628jSsQiv+HGpiq3WKBl2c8v1KZfby2J6Pr7pEPlK9waPdgEO6b8A/+/xn/yZ9ulv8HuqK71ONy2tg67A=="
+          },
+          "System.Drawing.Common": {
+            "type": "Transitive",
+            "resolved": "6.0.0",
+            "contentHash": "NfuoKUiP2nUWwKZN6twGqXioIe1zVD0RIj2t976A+czLHr2nY454RwwXs6JU9Htc6mwqL6Dn/nEL3dpVf2jOhg==",
+            "dependencies": {
+              "Microsoft.Win32.SystemEvents": "6.0.0"
+            }
+          }
+        }
+      }
+    },
+    "signed": false,
+    "files": {
+      "arm64/Halo2Steam": {
+        "bytes": 124712,
+        "sha256": "df71e0bf23d1b9ad5f0b4d6971a32d523fd77f4a61591f1807d14e9279f158a1"
+      },
+      "arm64/Halo2Steam.deps.json": {
+        "bytes": 31864,
+        "sha256": "63e35de4053dfe9ab0828b4802981a917f4a971df2f5c3f2d3259f76b16fd55a"
+      },
+      "arm64/Halo2Steam.dll": {
+        "bytes": 167936,
+        "sha256": "92606e5ca0e48d7ec58a5e65e9702f1182ac792fc4f88f38e1d71c877432f953"
+      },
+      "arm64/Halo2Steam.runtimeconfig.json": {
+        "bytes": 465,
+        "sha256": "2d6a4ecfc2facfe190c3e411d5942e7d97f4835ca434334ded1d47a95d5ad5fd"
+      },
+      "arm64/Microsoft.CSharp.dll": {
+        "bytes": 892712,
+        "sha256": "04db04b7ff649cade0b326393d710615cf4ae567ad3b2d7e1e3cef2ed4df514f"
+      },
+      "arm64/Microsoft.VisualBasic.Core.dll": {
+        "bytes": 1334568,
+        "sha256": "ef68e44c2f6af4bf45bbf204f9338eec8a36953c8215c41092db8d28c31af89c"
+      },
+      "arm64/Microsoft.VisualBasic.dll": {
+        "bytes": 17232,
+        "sha256": "ca937fb780ae935eaacf0f7d7f6206a203a47890adc47482b3b87fa87d0e8784"
+      },
+      "arm64/Microsoft.Win32.Primitives.dll": {
+        "bytes": 15656,
+        "sha256": "cee26c81e68011ddb7604c241c018e6acd6a3209450efae01406815d18d3817c"
+      },
+      "arm64/Microsoft.Win32.Registry.dll": {
+        "bytes": 34600,
+        "sha256": "d427e316d886c3b979b384e63f5d90e6eabd3e20e2ad96d8ebedec88d6c379bf"
+      },
+      "arm64/Microsoft.Win32.SystemEvents.dll": {
+        "bytes": 26224,
+        "sha256": "ca495bf6c86b7f092d624928101985a941532d149dcd8acfea170f8a53be8850"
+      },
+      "arm64/QRCoder.dll": {
+        "bytes": 204288,
+        "sha256": "c4c40d29f6f96b8b1833f298dd45d2199c12b117d08da20b5a3e62694f984e4c"
+      },
+      "arm64/SteamKit2.dll": {
+        "bytes": 6891008,
+        "sha256": "ea304bb652a5bc5c49bf2cbf2ceeea350b558fe8d56c527e4cf6e98a367dea9b"
+      },
+      "arm64/System.AppContext.dll": {
+        "bytes": 15184,
+        "sha256": "bbc9a42d0e04997321f97634a22718eeef844a21e3da9423f8fb98b432a590fd"
+      },
+      "arm64/System.Buffers.dll": {
+        "bytes": 15144,
+        "sha256": "3a74e6999c120b343ba26264eb6ddd832bd05f34edb7e77326754b25d6b45a45"
+      },
+      "arm64/System.Collections.Concurrent.dll": {
+        "bytes": 254288,
+        "sha256": "e4ecfb566f7f0bc97ce50efdca414973416523f1b0bcf55067c29deac476af1e"
+      },
+      "arm64/System.Collections.Immutable.dll": {
+        "bytes": 1117008,
+        "sha256": "7d280bd2b5d2421c0db1165cdcc9c83fdc0b06d670b29c4f420fe549816dd572"
+      },
+      "arm64/System.Collections.NonGeneric.dll": {
+        "bytes": 104232,
+        "sha256": "20b455ced28ab53e3f4e50055e2fce3e58f6eda3f6802a3b97fb24caa4744001"
+      },
+      "arm64/System.Collections.Specialized.dll": {
+        "bytes": 105256,
+        "sha256": "ae5021ac2fc07f640404c60f9adb71dd0691e55d87637af83fa397b5eacb39e4"
+      },
+      "arm64/System.Collections.dll": {
+        "bytes": 328488,
+        "sha256": "3eaa30121ed216edea89b71672e117ddd7dd72107cadd92bfa0a965ee63bb342"
+      },
+      "arm64/System.ComponentModel.Annotations.dll": {
+        "bytes": 215848,
+        "sha256": "c2066535a50d10d5dcc434f725b91c0139475504544e00c3dd1fb3585f4e8478"
+      },
+      "arm64/System.ComponentModel.DataAnnotations.dll": {
+        "bytes": 16680,
+        "sha256": "a655fc8e4609479c49ae7c6b141107c6d37aff906c0fc05fe1d8fc98fba07932"
+      },
+      "arm64/System.ComponentModel.EventBasedAsync.dll": {
+        "bytes": 39208,
+        "sha256": "113ab591ba1b72536731cd316bde403a0db5ff94098cd8dd54e1434926a148cd"
+      },
+      "arm64/System.ComponentModel.Primitives.dll": {
+        "bytes": 80168,
+        "sha256": "bdb5c8adc360761a7bf6757244115a8324af70f6f176e45d4d017d5acb1b4e79"
+      },
+      "arm64/System.ComponentModel.TypeConverter.dll": {
+        "bytes": 873768,
+        "sha256": "a0fcf623e11d5b9ae263a70ee15c1e2df6cd3395c674aac6db24a1e670e0d79b"
+      },
+      "arm64/System.ComponentModel.dll": {
+        "bytes": 17232,
+        "sha256": "3df1b02c98ba637382437bb75c0d3a89f42d3d57f529ff660b323fd21058a5d7"
+      },
+      "arm64/System.Configuration.dll": {
+        "bytes": 19280,
+        "sha256": "b8dc0bc84bf9ff39d46d49c88f06e069c987b9ffc2d53afa9431aa4e87c930f6"
+      },
+      "arm64/System.Console.dll": {
+        "bytes": 226128,
+        "sha256": "9ce446d0891d72d07fd8b6875ec29101169923d1a8e2ba6192701cc4bc3266be"
+      },
+      "arm64/System.Core.dll": {
+        "bytes": 23376,
+        "sha256": "329ec2703a2855b45fc0a65ba328491e5b24115289fa434915a11096e0a6d46c"
+      },
+      "arm64/System.Data.Common.dll": {
+        "bytes": 3228968,
+        "sha256": "3f56fc9d06a55fd6c4feb31085e148374debe970012468c999255492a948dfb0"
+      },
+      "arm64/System.Data.DataSetExtensions.dll": {
+        "bytes": 15656,
+        "sha256": "c6aca75d9c7edeceae1cc5bf55d3a333b631b1eb8e78822517f1e4b9ecdef7b2"
+      },
+      "arm64/System.Data.dll": {
+        "bytes": 25384,
+        "sha256": "46333b50e1b2b7ffb2dd29d2c7298e9c5047eae6b45fb9f158abb09d289a3007"
+      },
+      "arm64/System.Diagnostics.Contracts.dll": {
+        "bytes": 16168,
+        "sha256": "9a9559204656fdc83300bcef5e182017ec42c4bcb6517586a1739f4342c6a3eb"
+      },
+      "arm64/System.Diagnostics.Debug.dll": {
+        "bytes": 15656,
+        "sha256": "bad63f638684b657b0af67af284eff497f1b343924375fa0400fdacd90bfa8ac"
+      },
+      "arm64/System.Diagnostics.DiagnosticSource.dll": {
+        "bytes": 558416,
+        "sha256": "aaec3bc3ddb9d4e2761b9479a691da16cdbebb7c65d9b169e57ea3aafc721a91"
+      },
+      "arm64/System.Diagnostics.FileVersionInfo.dll": {
+        "bytes": 45864,
+        "sha256": "7b191e3cf2bc19b6555c7c19ba206a8fca906f015c3e29f1fd4bbf6c0efb2935"
+      },
+      "arm64/System.Diagnostics.Process.dll": {
+        "bytes": 271144,
+        "sha256": "c9d2ac082d6e73071ca607d4217c3c5265d6ac2dc66aafdbedc39b10922d660a"
+      },
+      "arm64/System.Diagnostics.StackTrace.dll": {
+        "bytes": 35624,
+        "sha256": "ec47df2507d93a6a6e62d57775e139cdc5351c628f3b10c26d75c4e0480f385a"
+      },
+      "arm64/System.Diagnostics.TextWriterTraceListener.dll": {
+        "bytes": 65320,
+        "sha256": "9848840595c9c44af2bc62f318efd4735c95a569f44de0a0aa7040702da10dcd"
+      },
+      "arm64/System.Diagnostics.Tools.dll": {
+        "bytes": 15144,
+        "sha256": "de255dab74e804a22cd05f7d0dd1647ab5deea1a63b444d13849348f9c110782"
+      },
+      "arm64/System.Diagnostics.TraceSource.dll": {
+        "bytes": 150824,
+        "sha256": "7e5f9f162dcc7ecbdc120e1571f80bde365ac69133517e7c49d5ab49f678d106"
+      },
+      "arm64/System.Diagnostics.Tracing.dll": {
+        "bytes": 16168,
+        "sha256": "5d25a578c91ee7ccbc0a3459cdcc19f82084927413add4327b396dc5db5734a0"
+      },
+      "arm64/System.Drawing.Common.dll": {
+        "bytes": 427112,
+        "sha256": "89ea595ccb1fd1384480c1e30bd487c92af5d06d3b06f295323eff601acd9019"
+      },
+      "arm64/System.Drawing.Primitives.dll": {
+        "bytes": 128336,
+        "sha256": "4eaec56c03578eae28c63cf99eed3f8db3c1c55b5c1ca7b3a5926ac4cac3282a"
+      },
+      "arm64/System.Drawing.dll": {
+        "bytes": 20304,
+        "sha256": "491fd789964f6f9a784e113ebbe4f41421de1547c114c0aed9e5a1e427747786"
+      },
+      "arm64/System.Dynamic.Runtime.dll": {
+        "bytes": 16168,
+        "sha256": "91a6e6a60470a4f3e7f6e9169c248ca8882360d763d489b51d12caa6bdedc1df"
+      },
+      "arm64/System.Formats.Asn1.dll": {
+        "bytes": 249640,
+        "sha256": "770fb07c1d68bb4c70c9f9017f3007fbb0d331ca640e1664defb6aa29d63d213"
+      },
+      "arm64/System.Formats.Tar.dll": {
+        "bytes": 310056,
+        "sha256": "7e8f2ae6a723eb09f359bffb8e8bc136b0d0348d42165a2c098d84d5d58deb88"
+      },
+      "arm64/System.Globalization.Calendars.dll": {
+        "bytes": 15656,
+        "sha256": "c88ba12469c921a1ce0ff2c989e4b75f4d6bbab5ebeb6a428495a9a831d143ec"
+      },
+      "arm64/System.Globalization.Extensions.dll": {
+        "bytes": 15144,
+        "sha256": "24901beddbbdb64bdbe1637976061676e8a122a0236ff376646d1b9e4e14bff1"
+      },
+      "arm64/System.Globalization.dll": {
+        "bytes": 15696,
+        "sha256": "806b6cbaefb7384063384f21e9bcf485ef00cff97567553960a091019aa43772"
+      },
+      "arm64/System.IO.Compression.Brotli.dll": {
+        "bytes": 82728,
+        "sha256": "412bbd81acc3a125be9dbdaf0dd09e96cb146e317dace5339fbd169a697a8272"
+      },
+      "arm64/System.IO.Compression.FileSystem.dll": {
+        "bytes": 15144,
+        "sha256": "d74815ff7e6aa8be448c993e9b7c25e0f808a37f29c757f939706b4f50638a7b"
+      },
+      "arm64/System.IO.Compression.ZipFile.dll": {
+        "bytes": 105808,
+        "sha256": "e02cbf788d2b2b71f417a0070b0ddf913d12a2904e9ffa6809dbc43941b26d5e"
+      },
+      "arm64/System.IO.Compression.dll": {
+        "bytes": 463696,
+        "sha256": "8734713c0e784050accd0c9bb411f4cc44b4ef2c639fafc579ef8513ae901b1e"
+      },
+      "arm64/System.IO.FileSystem.AccessControl.dll": {
+        "bytes": 33576,
+        "sha256": "04595960d448e2336a96761db2f6b931b9c21e747c39335d54bf54f1f4b53109"
+      },
+      "arm64/System.IO.FileSystem.DriveInfo.dll": {
+        "bytes": 91984,
+        "sha256": "f4c89105b9f9ef88a2ee1a8f0cd94e66991437b4939acf05929ee7b879c0fe4b"
+      },
+      "arm64/System.IO.FileSystem.Primitives.dll": {
+        "bytes": 15184,
+        "sha256": "94b71083cbee5b6932bd0f1656cfae7c98fa19a5c3b832f08980d34107f33e43"
+      },
+      "arm64/System.IO.FileSystem.Watcher.dll": {
+        "bytes": 121680,
+        "sha256": "96f0b36c02891589c4a4d49fd5db5eed2ae8246e567cc921fb2cb0134ad13b36"
+      },
+      "arm64/System.IO.FileSystem.dll": {
+        "bytes": 15696,
+        "sha256": "3d4ccd6dc8f67f612f96dc3c6f789d93be6ec6e8094a2127c773d42d57a3e24c"
+      },
+      "arm64/System.IO.Hashing.dll": {
+        "bytes": 56584,
+        "sha256": "2679a6164163c1f4b7b5fada83a55eb48b0a85840e04f00e8921b8d495a66b84"
+      },
+      "arm64/System.IO.IsolatedStorage.dll": {
+        "bytes": 83752,
+        "sha256": "da13ed332d7eaf6833db543d970f59eff2c10bf4895e26767a5ebf61b74be4fd"
+      },
+      "arm64/System.IO.MemoryMappedFiles.dll": {
+        "bytes": 96592,
+        "sha256": "b6c1994a509673ccf5e701fad79d94375c24534641ef24861b9f7001ed39e1db"
+      },
+      "arm64/System.IO.Pipelines.dll": {
+        "bytes": 197456,
+        "sha256": "9169454dda20d9e4d09ee8ede45d7a23d9b89ca10a36c5c5710bbb64305c9dd9"
+      },
+      "arm64/System.IO.Pipes.AccessControl.dll": {
+        "bytes": 24400,
+        "sha256": "500f9d729881c3d7394ae1e2f29b382cdab3089e5c2ba135c189c68307f2458b"
+      },
+      "arm64/System.IO.Pipes.dll": {
+        "bytes": 146256,
+        "sha256": "c9157764a02f5f57c2df36d2094d33d25e86c951c9f9fe6752ed4e48b7324dd1"
+      },
+      "arm64/System.IO.UnmanagedMemoryStream.dll": {
+        "bytes": 15656,
+        "sha256": "115bff4e2de364cd19d18d89020688013f031a7cfb6f4c2ed736592a125b582f"
+      },
+      "arm64/System.IO.dll": {
+        "bytes": 15656,
+        "sha256": "0760612d05a9031d0cdac055bf227a0a24f91baae050c8bbb1228e2a01099f7f"
+      },
+      "arm64/System.Linq.AsyncEnumerable.dll": {
+        "bytes": 1492776,
+        "sha256": "57460d4fb09360a742f356d8df19fcdd0604ac27216b79cc62768af23853d354"
+      },
+      "arm64/System.Linq.Expressions.dll": {
+        "bytes": 4650832,
+        "sha256": "8eddf96de3b3c2494f998a3634a158142ff1d35137f57be0743437daf9a3841e"
+      },
+      "arm64/System.Linq.Parallel.dll": {
+        "bytes": 892712,
+        "sha256": "546e27ef759ab9de305e6087423c0def59eefe4683785202480d16f510dead40"
+      },
+      "arm64/System.Linq.Queryable.dll": {
+        "bytes": 213288,
+        "sha256": "5da3cb9d51834843f3564015353a420831cca97808171068916664f6422e3bad"
+      },
+      "arm64/System.Linq.dll": {
+        "bytes": 794448,
+        "sha256": "8a868d709f942f2d8de60bac937027ed85b67b0596776f83d03088695ef86204"
+      },
+      "arm64/System.Memory.dll": {
+        "bytes": 164648,
+        "sha256": "da5c971f6f5daa73542d4173ab5b756d295127ee1b37216aba572f89e459bf97"
+      },
+      "arm64/System.Net.Http.Json.dll": {
+        "bytes": 129320,
+        "sha256": "b10dbb6be546677495959b4d83e43fc772b20542f2185d95fc354c064908734d"
+      },
+      "arm64/System.Net.Http.dll": {
+        "bytes": 1966416,
+        "sha256": "db9af579b0b075f5056fad918b72f78cfba37516b65467dd1d10645cd307ed5a"
+      },
+      "arm64/System.Net.HttpListener.dll": {
+        "bytes": 329040,
+        "sha256": "acce33069bc472adc4b899ebb9c67622eec1eb57fd7b88f409e4325d8718eea7"
+      },
+      "arm64/System.Net.Mail.dll": {
+        "bytes": 544552,
+        "sha256": "64cd039b15b759a275ed3ac02456df94e9021d2afc6c7a791a706767a0c5b7de"
+      },
+      "arm64/System.Net.NameResolution.dll": {
+        "bytes": 109904,
+        "sha256": "617d7c316354051b42e0430b44aae949f55628396b0a543a1d24bb63d12a715d"
+      },
+      "arm64/System.Net.NetworkInformation.dll": {
+        "bytes": 154408,
+        "sha256": "64a24de4bcf4aacf3cfc35b390262ff7891a68ed9f4df40ed72074630686ca48"
+      },
+      "arm64/System.Net.Ping.dll": {
+        "bytes": 99112,
+        "sha256": "b587ae9b66df2b90aaa24095eb0fdd00f9a764069e484a082843fdbf3d58b0f1"
+      },
+      "arm64/System.Net.Primitives.dll": {
+        "bytes": 244520,
+        "sha256": "2afde47b49fbed90f7c349310e3d94586ed4e09b91ed14ac4fc27b32ea6537e9"
+      },
+      "arm64/System.Net.Quic.dll": {
+        "bytes": 386344,
+        "sha256": "73ddac14a9c83f00f3cea0f56e57ea2b788d81f2efe2c0455c211c1e80baa269"
+      },
+      "arm64/System.Net.Requests.dll": {
+        "bytes": 420176,
+        "sha256": "8335dfcb18ee2696845a6ea98576c357f54db74615fca3185c025aa0581e5085"
+      },
+      "arm64/System.Net.Security.dll": {
+        "bytes": 861008,
+        "sha256": "24ec841124fa80d863e2fa9516c33bad9327a40614f286c9a217a338ab26dd8f"
+      },
+      "arm64/System.Net.ServerSentEvents.dll": {
+        "bytes": 77648,
+        "sha256": "c0682f8405fde5ca0422eaf1e372cec7d0f2891e1bb24ef54e6cf6331ff97e28"
+      },
+      "arm64/System.Net.ServicePoint.dll": {
+        "bytes": 15144,
+        "sha256": "eb53fe6d6f2b31683c403d7618ba42363e5e48b75d0d286851c05b56c9ea0006"
+      },
+      "arm64/System.Net.Sockets.dll": {
+        "bytes": 702248,
+        "sha256": "46d7a7a84a774231735f793e8854bc0f3b71082db75bbf1596a089f1890e7f28"
+      },
+      "arm64/System.Net.WebClient.dll": {
+        "bytes": 175912,
+        "sha256": "457b25e9e488e37670d4538a9b361aa68f5fdcdc5687e3137ab4d48f25a9bf22"
+      },
+      "arm64/System.Net.WebHeaderCollection.dll": {
+        "bytes": 62288,
+        "sha256": "014e7ce53d379bb34a8b62c413172b638c75dbd39c8a3c980c05c70037bf0488"
+      },
+      "arm64/System.Net.WebProxy.dll": {
+        "bytes": 34600,
+        "sha256": "66e5d95b43c27ee89cf076ee4e74fe59395ddeb0aee10351374330c845f79872"
+      },
+      "arm64/System.Net.WebSockets.Client.dll": {
+        "bytes": 99624,
+        "sha256": "9225e59380d40a2210e54733af8b550b88d9f578ccb1eb2d4c7e0f5ab1698c09"
+      },
+      "arm64/System.Net.WebSockets.dll": {
+        "bytes": 260392,
+        "sha256": "71fed8a8b7a0292bb2cec412c195f2663526826efc47e7165014b19f1b7d19f2"
+      },
+      "arm64/System.Net.dll": {
+        "bytes": 17232,
+        "sha256": "112284c970170a0c849f23826ae1806dcf83ef99cc11dafdf6240a656d43218a"
+      },
+      "arm64/System.Numerics.Vectors.dll": {
+        "bytes": 15656,
+        "sha256": "0943de0053553e038b4d55dd542dae3c903b2cc86bad550360b3b94d1cd4f590"
+      },
+      "arm64/System.Numerics.dll": {
+        "bytes": 15144,
+        "sha256": "58cb6c0e4500a0a6a62679aa00846fccdafa8e7ef8c8296b49607aee21baa94b"
+      },
+      "arm64/System.ObjectModel.dll": {
+        "bytes": 77608,
+        "sha256": "11f5b5a449ef78c18ebbae268387bfe389001a6e4aa21a3fbdfd842126106fe2"
+      },
+      "arm64/System.Private.CoreLib.dll": {
+        "bytes": 17088296,
+        "sha256": "7adbb705a094d8d6d4238cbc80f3dc6be17177384ce836994485bc5cbbb1d281"
+      },
+      "arm64/System.Private.DataContractSerialization.dll": {
+        "bytes": 2397008,
+        "sha256": "ff8d348ccb92e276e0810a35d2d0b501894d9e70040f43fc7244416ca9555d66"
+      },
+      "arm64/System.Private.Uri.dll": {
+        "bytes": 265512,
+        "sha256": "475f8bea8c3bebeb0b3e07e7767f7daef2011d7ca956358bad9b3d34f55e7181"
+      },
+      "arm64/System.Private.Xml.Linq.dll": {
+        "bytes": 441168,
+        "sha256": "8b9b9947f840ab66d47433aa005182012ca6b5afd26f0230a25dfa309c964856"
+      },
+      "arm64/System.Private.Xml.dll": {
+        "bytes": 9002792,
+        "sha256": "4a7cf5f627e1d795455ccc8caba8d59b5256ddee446b3be82d922322ee750240"
+      },
+      "arm64/System.Reflection.DispatchProxy.dll": {
+        "bytes": 72488,
+        "sha256": "5392218379f3317ca36a0453135eb8518363447beb6bd2d5c039b1c2b9b23fc5"
+      },
+      "arm64/System.Reflection.Emit.ILGeneration.dll": {
+        "bytes": 15656,
+        "sha256": "1ab8bf99e1adff2f7f58fe2cf0a9631c2b550809a8e979fc1f100f636777908d"
+      },
+      "arm64/System.Reflection.Emit.Lightweight.dll": {
+        "bytes": 15656,
+        "sha256": "013f8ce0f29fa8d140a1055b02620a4eac66497578c0fbf976e9813f2e2b2112"
+      },
+      "arm64/System.Reflection.Emit.dll": {
+        "bytes": 344360,
+        "sha256": "123201e4e5c19a7047af207e3c159718cc42ccbd2b03ae84df68a951b3669a4a"
+      },
+      "arm64/System.Reflection.Extensions.dll": {
+        "bytes": 15184,
+        "sha256": "b8fcef43452ad977beb7012ff209d33352ee1f3d6aeb1a92952acb5c6e49213e"
+      },
+      "arm64/System.Reflection.Metadata.dll": {
+        "bytes": 1276200,
+        "sha256": "057c75e085164274d8b3f1f232b7de8f437c66cccf76afc46096d10a4250b1c5"
+      },
+      "arm64/System.Reflection.Primitives.dll": {
+        "bytes": 15696,
+        "sha256": "bf31345869121fe4b21ce9134be3afa7cba79bf31a7375b67930e99dc49a9973"
+      },
+      "arm64/System.Reflection.TypeExtensions.dll": {
+        "bytes": 34128,
+        "sha256": "a3c288a0cbb2801ba05152df911c8a4f93c979f6bd505895aea08ed161f966cb"
+      },
+      "arm64/System.Reflection.dll": {
+        "bytes": 16208,
+        "sha256": "3f172fd5b152cc91dcf77dc9645306f861c9ac2dcfa7c8a11c80f689fbea05fb"
+      },
+      "arm64/System.Resources.Reader.dll": {
+        "bytes": 15144,
+        "sha256": "fb121053b15454568cac64637a4fafa2c6328762923a271a6d0e96337d771d70"
+      },
+      "arm64/System.Resources.ResourceManager.dll": {
+        "bytes": 15656,
+        "sha256": "6491ad2d48893b3747f289b153d76735e2a2c860a4fbc4dc46dae17484a69f41"
+      },
+      "arm64/System.Resources.Writer.dll": {
+        "bytes": 45904,
+        "sha256": "ce0927500bd4956432de55bd69330b7dccb21be8fd94fb654ce41d9678a751af"
+      },
+      "arm64/System.Runtime.CompilerServices.Unsafe.dll": {
+        "bytes": 15184,
+        "sha256": "990ae8f30054969ad3957acb5836c4fd0c09cf26a38c1419766e9461af3df2bb"
+      },
+      "arm64/System.Runtime.CompilerServices.VisualC.dll": {
+        "bytes": 18728,
+        "sha256": "36148fce8bca2703551ccc149b0875d6505944791e8203e9742c569b55e9a672"
+      },
+      "arm64/System.Runtime.Extensions.dll": {
+        "bytes": 17704,
+        "sha256": "0dfea5ab8a249d11c0db40691224bbcbd06ba36074c44b8992c42b5a93599592"
+      },
+      "arm64/System.Runtime.Handles.dll": {
+        "bytes": 15656,
+        "sha256": "3dd0f49d03628c113ed85f324cc861be078d5f4f35c305fbf45d32c4bf62e3d0"
+      },
+      "arm64/System.Runtime.InteropServices.JavaScript.dll": {
+        "bytes": 39760,
+        "sha256": "bc71cbf2e121c5902fa55d440a37148b714b4fcc2c42a80334373ee56a5b3797"
+      },
+      "arm64/System.Runtime.InteropServices.RuntimeInformation.dll": {
+        "bytes": 15144,
+        "sha256": "340cbe2ab5d019148b965a71b24518cb468c804de2cc70654d2b4186f181e9f6"
+      },
+      "arm64/System.Runtime.InteropServices.dll": {
+        "bytes": 111400,
+        "sha256": "34eabc205b2b2d4f7517e0887d758c7a50b7981ca302e7535e6ebc5c5edb4e91"
+      },
+      "arm64/System.Runtime.Intrinsics.dll": {
+        "bytes": 17232,
+        "sha256": "1c9efd51448ac571c32d865f522372479c20733a6febbc64226a3c1df1274c24"
+      },
+      "arm64/System.Runtime.Loader.dll": {
+        "bytes": 15656,
+        "sha256": "1bd5eb9e1d8fc35f1cd6c64b7045de992efdc6c5ab0f2aed96126bf76196c1ab"
+      },
+      "arm64/System.Runtime.Numerics.dll": {
+        "bytes": 366376,
+        "sha256": "ef5091a9831ecacabbec02815aef630a57643401c0be408eac3eadbbd29ab0d5"
+      },
+      "arm64/System.Runtime.Serialization.Formatters.dll": {
+        "bytes": 128808,
+        "sha256": "b776f70c4dca346e96297c9943446bb892011a1400521c5abe512131c82ffaa4"
+      },
+      "arm64/System.Runtime.Serialization.Json.dll": {
+        "bytes": 15656,
+        "sha256": "257919b12a0054b8436a5202649a70233a2b87ce27c1a08e608bc552f46206dd"
+      },
+      "arm64/System.Runtime.Serialization.Primitives.dll": {
+        "bytes": 30032,
+        "sha256": "c1e9b1816362a43696c5d3f49e44313c174b81b5a6e772237e043c28f4242b2a"
+      },
+      "arm64/System.Runtime.Serialization.Xml.dll": {
+        "bytes": 16680,
+        "sha256": "b548b44c19b1d3e157067a529a71d4d335a70066635219b1dcfd53b427c66779"
+      },
+      "arm64/System.Runtime.Serialization.dll": {
+        "bytes": 16720,
+        "sha256": "1e43cbf5f68b0ea0e45721bb086db7fb019ace758cba18d943526881d1e19214"
+      },
+      "arm64/System.Runtime.dll": {
+        "bytes": 44840,
+        "sha256": "2380e215ff5a0479bc32a652f429110029cb475194b3f13aa122322cf7ac6a73"
+      },
+      "arm64/System.Security.AccessControl.dll": {
+        "bytes": 59688,
+        "sha256": "2384480f3ca5cc9bce37c5e4567f4c27eb5b540e5af596f743b2b836761a7f12"
+      },
+      "arm64/System.Security.Claims.dll": {
+        "bytes": 102184,
+        "sha256": "ad7521e028e9f7db5ff4de5755451d9205eb2f85070a574c62313f13e28a21b2"
+      },
+      "arm64/System.Security.Cryptography.Algorithms.dll": {
+        "bytes": 17232,
+        "sha256": "11128bd6dc037da7c64fc530e1b0ae277a08c5254f5e1aa076d8f0d9d0797fa8"
+      },
+      "arm64/System.Security.Cryptography.Cng.dll": {
+        "bytes": 16208,
+        "sha256": "19e6c573b6ec71266aad1af57be6a7bb45477cd8f204dfd7b7c07da996d41cc6"
+      },
+      "arm64/System.Security.Cryptography.Csp.dll": {
+        "bytes": 16168,
+        "sha256": "4196b47196c6636d5a6db9896e081e90f8438803ebfa75afaf9bc827e54b4283"
+      },
+      "arm64/System.Security.Cryptography.Encoding.dll": {
+        "bytes": 15656,
+        "sha256": "35213d2d4da1f9c546822e24531f667d0c4146d1ecea75a5ca04e3cfb7a29bca"
+      },
+      "arm64/System.Security.Cryptography.OpenSsl.dll": {
+        "bytes": 15656,
+        "sha256": "a68fa83f2c75effdca5415e4859452d3f2c3c581e9b6da7f74984a7933b6c3e4"
+      },
+      "arm64/System.Security.Cryptography.Primitives.dll": {
+        "bytes": 15696,
+        "sha256": "7c17f3b2cf35d0b6b059d4c35aaa4437c898ba43980d0f8f647f8c9116b03724"
+      },
+      "arm64/System.Security.Cryptography.X509Certificates.dll": {
+        "bytes": 16680,
+        "sha256": "faae5423eed2bf2a542d7a96ef61a1f3fdc1637e349f3d083bcd8106044b50e8"
+      },
+      "arm64/System.Security.Cryptography.dll": {
+        "bytes": 2459944,
+        "sha256": "561e91d77035c41e0e6cbd18bdeb84cbe601f2e92f115194a31be4941299d96c"
+      },
+      "arm64/System.Security.Principal.Windows.dll": {
+        "bytes": 39208,
+        "sha256": "8ea597bb3efe0b3d92e72381329dc416a81449fcb93b487debb7aef3c758541f"
+      },
+      "arm64/System.Security.Principal.dll": {
+        "bytes": 15144,
+        "sha256": "3757dae8d1a40a18c49a77976487f221a18e2b6efbff7f41fbc06e13fb2a926d"
+      },
+      "arm64/System.Security.SecureString.dll": {
+        "bytes": 15696,
+        "sha256": "60aa66f0129af371a532d09c893f14ba6a26652bc5f846f46891e0dcdda7f887"
+      },
+      "arm64/System.Security.dll": {
+        "bytes": 18216,
+        "sha256": "973f706b1fbe0ec9a1f93ac7de6da640ae2ed0a6458fc6bb87e4938a74b5ae43"
+      },
+      "arm64/System.ServiceModel.Web.dll": {
+        "bytes": 16680,
+        "sha256": "5813bed53081399829e1fde1e5e6115e055ca217ea8c0a8bcdf13be2cc6bcd44"
+      },
+      "arm64/System.ServiceProcess.dll": {
+        "bytes": 15656,
+        "sha256": "cc6624133f331e7e1c4c0ea22c94fe46aca26e9be497d71f68090647631f2d87"
+      },
+      "arm64/System.Text.Encoding.CodePages.dll": {
+        "bytes": 869160,
+        "sha256": "57ffb9bd4d63b439407dbffe000ac101be344449c377f4fde2728c0a246a2f75"
+      },
+      "arm64/System.Text.Encoding.Extensions.dll": {
+        "bytes": 15696,
+        "sha256": "b260d73a3d90767968eb84342ebb6f3d8a4a45db3acec4a10d63b7010745f4f6"
+      },
+      "arm64/System.Text.Encoding.dll": {
+        "bytes": 15696,
+        "sha256": "e2bea8489263180f0def9375bd6dacea87770d1048db146b36352ed63129ca73"
+      },
+      "arm64/System.Text.Encodings.Web.dll": {
+        "bytes": 122152,
+        "sha256": "0faf0efb04096971efebe7edb4651be0eb95037169d7748185cda1b89126681a"
+      },
+      "arm64/System.Text.Json.dll": {
+        "bytes": 2101544,
+        "sha256": "5e8419f146b0fd12343fdd2d203fa3362b637b62b69a5a6d0acb6e065797382b"
+      },
+      "arm64/System.Text.RegularExpressions.dll": {
+        "bytes": 1159464,
+        "sha256": "d8ab4f9feed906b96e6a44321e3d9b1145084d770b6b7cdba6139c218bdca151"
+      },
+      "arm64/System.Threading.AccessControl.dll": {
+        "bytes": 34640,
+        "sha256": "7c57e4f844ebb4da34ec9a1201a3bacb3e6354fea707f3ea5fe28dbe633ffd37"
+      },
+      "arm64/System.Threading.Channels.dll": {
+        "bytes": 165200,
+        "sha256": "c67157d6169bd4103a8c656a89e104893e120f8ef86b333d27f75004fea4b765"
+      },
+      "arm64/System.Threading.Overlapped.dll": {
+        "bytes": 15656,
+        "sha256": "a3d0efa8d7b7b8d5ef71bf474a863b5f13fb9a320495885983d7b09029cfa0ea"
+      },
+      "arm64/System.Threading.Tasks.Dataflow.dll": {
+        "bytes": 532264,
+        "sha256": "b39398da6c923d0c48466341196d4300787180f64b7e030cd4704844359cc94f"
+      },
+      "arm64/System.Threading.Tasks.Extensions.dll": {
+        "bytes": 15696,
+        "sha256": "d23ad857040cbb3f2e2867c31c1fb5556b5531495ed0cb00289372d63fe1bca1"
+      },
+      "arm64/System.Threading.Tasks.Parallel.dll": {
+        "bytes": 133928,
+        "sha256": "e8bad7ac7b943d647a3a37ce0f56e5795d3480e10065c8226ede4776edc46f7e"
+      },
+      "arm64/System.Threading.Tasks.dll": {
+        "bytes": 16680,
+        "sha256": "ad2a12f1c181a447cf91242ea87f0a4d6f786ec8c3c814163dea787abc70a800"
+      },
+      "arm64/System.Threading.Thread.dll": {
+        "bytes": 15656,
+        "sha256": "21975fa675a9f5310ff95766bd68a5a3391c789b92ec592901164f69d5b36250"
+      },
+      "arm64/System.Threading.ThreadPool.dll": {
+        "bytes": 15696,
+        "sha256": "0ec992e8a8d697704c5c336643f2773127f5c106337bd3dc07cae88d4cacc067"
+      },
+      "arm64/System.Threading.Timer.dll": {
+        "bytes": 15144,
+        "sha256": "661ba8771ba837d247bcb1926cddca3b1a79ce431b4e3ab1167834df7911afc0"
+      },
+      "arm64/System.Threading.dll": {
+        "bytes": 80208,
+        "sha256": "91d6a209e84d9716a3c702c580b3b50abc4092edbfae95b4b8d9daeefc8b932d"
+      },
+      "arm64/System.Transactions.Local.dll": {
+        "bytes": 400680,
+        "sha256": "1ca82252e3341e079ac5c92476d9fca071150ecad4d944e94e705b47b8078bb5"
+      },
+      "arm64/System.Transactions.dll": {
+        "bytes": 16680,
+        "sha256": "2e1f82f867388e4669fd93336ba00b1fad6533c77a49a772d57249a50b064b4d"
+      },
+      "arm64/System.ValueTuple.dll": {
+        "bytes": 15696,
+        "sha256": "b56ad5c8c8d4dff8f3d090de1d9fa78fdfd8e20feabc02d56a4ed915359185ba"
+      },
+      "arm64/System.Web.HttpUtility.dll": {
+        "bytes": 56656,
+        "sha256": "e62b4b8234c1ee2d0057c0d9bf4c68755c8e780b8a2503c665ab28e8e906f95d"
+      },
+      "arm64/System.Web.dll": {
+        "bytes": 15144,
+        "sha256": "7d93a9193040d90bbc572d573018b331a2a0a6ec5f61dd9a48f06494546031af"
+      },
+      "arm64/System.Windows.dll": {
+        "bytes": 15696,
+        "sha256": "24079b7a07ebf934263b027afa3d8dd90ee3ef98b6709f5b7ac68b13e34ca086"
+      },
+      "arm64/System.Xml.Linq.dll": {
+        "bytes": 15656,
+        "sha256": "9c6c2ea5e1bf742e0224bb346cdcaf4bee836f7ee3767d66f4b03bd6f9a37245"
+      },
+      "arm64/System.Xml.ReaderWriter.dll": {
+        "bytes": 21800,
+        "sha256": "a837a85a76a404a5a72d4b437e38df5ec080bad361f0f333142d896a9690794e"
+      },
+      "arm64/System.Xml.Serialization.dll": {
+        "bytes": 16208,
+        "sha256": "80dd0a381258236f6fadeb8f596694a47e7b70bbf2d46f31bdd41325dc2b8da3"
+      },
+      "arm64/System.Xml.XDocument.dll": {
+        "bytes": 15696,
+        "sha256": "4615129a8f8fade4677b55d8cf6855da7548c1ecaa7326d53cd0d3ff54c4d88b"
+      },
+      "arm64/System.Xml.XPath.XDocument.dll": {
+        "bytes": 17232,
+        "sha256": "ac0c13b69f50f5addd477d4f902f74cf0fc976e9da7ba275c36a9ab05886e084"
+      },
+      "arm64/System.Xml.XPath.dll": {
+        "bytes": 15656,
+        "sha256": "33d39d58e8171202206a06097fbb7636120da6e63abdd559433948f685cee553"
+      },
+      "arm64/System.Xml.XmlDocument.dll": {
+        "bytes": 15696,
+        "sha256": "6dbe5fbf786939e4df248ec79965d6ddb21d9fd4f78bd2cb157c17d71cb47f49"
+      },
+      "arm64/System.Xml.XmlSerializer.dll": {
+        "bytes": 17704,
+        "sha256": "30c5081c08bcfbcdb27bed43e6634014a0bf807f750eba36f9d681fc408e0ef7"
+      },
+      "arm64/System.Xml.dll": {
+        "bytes": 23336,
+        "sha256": "7ade32876e27f5a8da54dcc0ace10fa12e4c935083bd40f8ad3fd68d311114df"
+      },
+      "arm64/System.dll": {
+        "bytes": 50472,
+        "sha256": "56a4c3118c3479e409d1cc38ec5f0ff4e04aa13742cef3b00d631100308a3e05"
+      },
+      "arm64/WindowsBase.dll": {
+        "bytes": 16168,
+        "sha256": "d9b68fb78f401ed57cde8a5592c943446351e6fd43fa260637a2aa2a69394a56"
+      },
+      "arm64/ZstdSharp.dll": {
+        "bytes": 397312,
+        "sha256": "177f541b9bba3cfe89d3fe9565ea9f78285ef8499d689dcfd5de0018b6fa43e5"
+      },
+      "arm64/createdump": {
+        "bytes": 206192,
+        "sha256": "5e182d541627bc4b778659b232f40c2215464be3d3ec4b7fe7c84fbb315df718"
+      },
+      "arm64/libSystem.Globalization.Native.dylib": {
+        "bytes": 155024,
+        "sha256": "d7ee8f9da0d2286f7aa68fd1ff26614eeb5334d731f1f8e8db47d9122d01093c"
+      },
+      "arm64/libSystem.IO.Compression.Native.dylib": {
+        "bytes": 976928,
+        "sha256": "36988a88e87227a9459f74e0f668d87299fd689d2f58b5e25b63c3dfadd7a313"
+      },
+      "arm64/libSystem.Native.dylib": {
+        "bytes": 161840,
+        "sha256": "d9f238f39a82f6a36506434b4734116dc5ef7bc1db35f309520b41dddb5f74d1"
+      },
+      "arm64/libSystem.Net.Security.Native.dylib": {
+        "bytes": 86368,
+        "sha256": "7ccd152100d59295c2e12e232e754e94584ed5f5d33e1bc4737d55ce071b92f6"
+      },
+      "arm64/libSystem.Security.Cryptography.Native.Apple.dylib": {
+        "bytes": 184048,
+        "sha256": "ec8babef3abbdbfa447905c43377ed1e4fc3b7ee16d12732132c3de92dc1061c"
+      },
+      "arm64/libclrgc.dylib": {
+        "bytes": 904160,
+        "sha256": "1a78bf51dd543c1ac232834df8107893cbf64e179117ca5da4d38903362e2c44"
+      },
+      "arm64/libclrgcexp.dylib": {
+        "bytes": 983200,
+        "sha256": "4e885a2b29d06433aa65f74f6521ad0719ad2fdf72cc87e94e648a8e1ad2f7f7"
+      },
+      "arm64/libclrjit.dylib": {
+        "bytes": 3101248,
+        "sha256": "27fd7ce43d42de821d2515d750ede03928a1651de0cb73ea3638eb3710d24ca4"
+      },
+      "arm64/libcoreclr.dylib": {
+        "bytes": 6217936,
+        "sha256": "25ac51dfc9c8dfaf57c159006cf5d38b1972eeedbf279bfde90c25c437b46078"
+      },
+      "arm64/libhostfxr.dylib": {
+        "bytes": 425456,
+        "sha256": "355e1c90fc93ff90b1d70788eb56381ec1428ff6c0b3fa81a9db00ca59a1a489"
+      },
+      "arm64/libhostpolicy.dylib": {
+        "bytes": 423040,
+        "sha256": "3ea3808a1c4b6d838b94add1166d346358c80ad1f485785c7b1b855044bf4794"
+      },
+      "arm64/libmscordaccore.dylib": {
+        "bytes": 2408704,
+        "sha256": "179bdce04c593e286729ba501dfe6f0a6bcb38eabd684f4aaf2cb4424c1ceae3"
+      },
+      "arm64/libmscordbi.dylib": {
+        "bytes": 1787280,
+        "sha256": "bd8475a7511fb46892616a49c0428eb53e25d05307a7859733e92f1741122dd9"
+      },
+      "arm64/mscorlib.dll": {
+        "bytes": 59728,
+        "sha256": "73426030044a7953ff6ba9c8752d8c109af6661bf746ce6077611ea641986d0f"
+      },
+      "arm64/netstandard.dll": {
+        "bytes": 100648,
+        "sha256": "6b67e0141ae83e0d43b3c23bb90227bf2ab3582c615dc918e46824375ca69888"
+      },
+      "arm64/protobuf-net.Core.dll": {
+        "bytes": 300032,
+        "sha256": "18f2f6976f101c804d7c7314739fefce4dafa6d63ff4c3986e45d59967bd2777"
+      },
+      "arm64/protobuf-net.dll": {
+        "bytes": 285184,
+        "sha256": "78d95efd88bce208a2aa412f193ed534e4b6337f8c15ff9171b8696946200edf"
+      },
+      "content-profile.json": {
+        "bytes": 1024,
+        "sha256": "cbb9f611704b7c1b4e0c4b00aa6cdf5f6989e2fcda43f74b1bcdd4879ab92b68"
+      },
+      "corresponding-source/build_steam.py": {
+        "bytes": 8876,
+        "sha256": "d1af743030bbb22130bf071e99950784bace108949a9770302c3e8325996ab7f"
+      },
+      "corresponding-source/helper/ContentProtocol.cs": {
+        "bytes": 6212,
+        "sha256": "1cab0f796b3f64cbcf6af0355aa14687aeae37f5f1890498b06d5f4279bcab12"
+      },
+      "corresponding-source/helper/ContentRules.cs": {
+        "bytes": 10020,
+        "sha256": "46aafb0be2fb7f4f04d43082a715a98e10b2a986638550cb72a287e34c350e71"
+      },
+      "corresponding-source/helper/ContentSession.cs": {
+        "bytes": 11584,
+        "sha256": "8a2431d18a82c60bfb57c34259348f9112c76037ec819b3cf1dd07a0d1f568ad"
+      },
+      "corresponding-source/helper/DownloaderAdapters.cs": {
+        "bytes": 1958,
+        "sha256": "b49f8e9459eb2895bc04910f6a432f14dda542fe526995430c8f42745751b2a2"
+      },
+      "corresponding-source/helper/Halo2Steam.csproj": {
+        "bytes": 997,
+        "sha256": "39c2db8959da6941a1d0a13f8c1f860581cf1757e507b6691b48286afe048509"
+      },
+      "corresponding-source/helper/Program.cs": {
+        "bytes": 5785,
+        "sha256": "6f7425f397d90649e65e0ac9dd9e18605c0705bac921e2d60474d5deb3b5dc9b"
+      },
+      "corresponding-source/helper/content-profile.json": {
+        "bytes": 1024,
+        "sha256": "cbb9f611704b7c1b4e0c4b00aa6cdf5f6989e2fcda43f74b1bcdd4879ab92b68"
+      },
+      "corresponding-source/helper/global.json": {
+        "bytes": 75,
+        "sha256": "12f1cf1c3eef038f55de570dc8f5e321f4ff5306a9281106c43cc60a1f78a371"
+      },
+      "corresponding-source/helper/package-inputs.json": {
+        "bytes": 2815,
+        "sha256": "7b4d804f50ead307f01c593e9e69de4800d0689328264ddce1acb727fae05bb5"
+      },
+      "corresponding-source/helper/packages.lock.json": {
+        "bytes": 3311,
+        "sha256": "11a43a8547420fea072fef3c7be4eafa46230a303e32f3a675e0cc473b46ddbf"
+      },
+      "corresponding-source/helper/upstream/CDNClientPool.cs": {
+        "bytes": 2923,
+        "sha256": "62d2c97a2b30d6542e9cf067ff6c5895c8d2263812be6169bff21165d43e4c7d"
+      },
+      "corresponding-source/helper/upstream/ConsoleAuthenticator.cs": {
+        "bytes": 2342,
+        "sha256": "dce53d86fa4d7f6af79a336ffa0f1627347a2c7c4ee79717d5437b964aba5458"
+      },
+      "corresponding-source/helper/upstream/ContentDownloader.cs": {
+        "bytes": 60071,
+        "sha256": "bf36a2d87ba35546535b38de2ac979bca35e24e07a9c42ab1383b59122cdea92"
+      },
+      "corresponding-source/helper/upstream/DepotConfigStore.cs": {
+        "bytes": 1647,
+        "sha256": "d2c5c52d89bbb76d25d35c268497fe83bc6a8b9c28277309cd1de2b7ae2e0b6a"
+      },
+      "corresponding-source/helper/upstream/DownloadConfig.cs": {
+        "bytes": 1170,
+        "sha256": "de870f232b1a4663f24f9b5b6b9388017f96ccee92dd3cdddc5381c928597c62"
+      },
+      "corresponding-source/helper/upstream/HttpClientFactory.cs": {
+        "bytes": 1808,
+        "sha256": "909cc7b39d06eef2801cf1c3fdc803fa2d7ddc370ee07543e1427c37a28a107b"
+      },
+      "corresponding-source/helper/upstream/ProtoManifest.cs": {
+        "bytes": 6477,
+        "sha256": "576b8eb09ba0fc054464d2b1259d7797140e7828a3d65b930d3c368ddf4361d7"
+      },
+      "corresponding-source/helper/upstream/Steam3Session.cs": {
+        "bytes": 26016,
+        "sha256": "f72d8462a02dbef067711fab05749cfec98a48783e4c370320073286c4f52e22"
+      },
+      "corresponding-source/helper/upstream/Util.cs": {
+        "bytes": 7401,
+        "sha256": "8aba2a6389a105e6a0e73e4f76f49d862a72da622cce0afa1f3475c5abe5ed2a"
+      },
+      "corresponding-source/helper/upstream.json": {
+        "bytes": 2955,
+        "sha256": "3ee820c7da45d5b6e5affebb66a3a055ae36026049cc6353df8e841b80bb8638"
+      },
+      "corresponding-source/upstream/DepotDownloader/CDNClientPool.cs": {
+        "bytes": 2905,
+        "sha256": "d1afed81478ae805049bd79c352728835f4df53f37c775aa0670a6d84ce43950"
+      },
+      "corresponding-source/upstream/DepotDownloader/ConsoleAuthenticator.cs": {
+        "bytes": 2324,
+        "sha256": "1c6fffca83d28a0f78d0dc681ebb81fc4e0a1b4e6e7e3f92b958b87b2f6dd01b"
+      },
+      "corresponding-source/upstream/DepotDownloader/ContentDownloader.cs": {
+        "bytes": 59826,
+        "sha256": "452e17680be99dcef7ceda97646380a42725e84454d07791d0a873e9963df4a5"
+      },
+      "corresponding-source/upstream/DepotDownloader/DepotConfigStore.cs": {
+        "bytes": 1629,
+        "sha256": "e971911fd7c6a4bb0a2d4316edb7e56425a40423bf0a21888e85d72751b87e88"
+      },
+      "corresponding-source/upstream/DepotDownloader/DownloadConfig.cs": {
+        "bytes": 1155,
+        "sha256": "cb630953931100574bffcfd8f6485a7b75d111538f97c6e144c47c94ceac2c72"
+      },
+      "corresponding-source/upstream/DepotDownloader/HttpClientFactory.cs": {
+        "bytes": 1790,
+        "sha256": "95f902c91cdffbfa32b2fb7a3381b327c0d3ca3789649b1d674c0d09a97cfa12"
+      },
+      "corresponding-source/upstream/DepotDownloader/ProtoManifest.cs": {
+        "bytes": 6459,
+        "sha256": "950206a50706ed54add058f69fd4d80ff5266fec82b9a0ac9a70b9c4ba2ec8c3"
+      },
+      "corresponding-source/upstream/DepotDownloader/Steam3Session.cs": {
+        "bytes": 25928,
+        "sha256": "8f8409cdd2e513e795992c14f973e6beff4e2d5ef3edccb9d3505e0966de5f99"
+      },
+      "corresponding-source/upstream/DepotDownloader/Util.cs": {
+        "bytes": 7383,
+        "sha256": "3a0f61e2c9860c93cec83347ac8eccfccb8f613c78a61a5a05f8f4352c8d8f93"
+      },
+      "corresponding-source/upstream/LICENSE": {
+        "bytes": 18092,
+        "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+      },
+      "licenses/DepotDownloader-GPL-2.0.txt": {
+        "bytes": 18092,
+        "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+      },
+      "licenses/microsoft.aspnetcore.app.ref/10.0.12/LICENSE.txt": {
+        "bytes": 1139,
+        "sha256": "d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b"
+      },
+      "licenses/microsoft.aspnetcore.app.ref/10.0.12/microsoft.aspnetcore.app.ref.nuspec": {
+        "bytes": 1255,
+        "sha256": "95a0a9ad7776a90572b555f8e3e038aa08302ac5321caa3bb9d88d95b60a9cff"
+      },
+      "licenses/microsoft.aspnetcore.app.runtime.osx-arm64/10.0.12/LICENSE.txt": {
+        "bytes": 1116,
+        "sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310"
+      },
+      "licenses/microsoft.aspnetcore.app.runtime.osx-arm64/10.0.12/microsoft.aspnetcore.app.runtime.osx-arm64.nuspec": {
+        "bytes": 1251,
+        "sha256": "4f891c1b81a65635040bcee6aeed21923604926694f77ed57b1a24dde866baf1"
+      },
+      "licenses/microsoft.aspnetcore.app.runtime.osx-x64/10.0.12/LICENSE.txt": {
+        "bytes": 1116,
+        "sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310"
+      },
+      "licenses/microsoft.aspnetcore.app.runtime.osx-x64/10.0.12/microsoft.aspnetcore.app.runtime.osx-x64.nuspec": {
+        "bytes": 1249,
+        "sha256": "4144dd7b6e097255f855087bd9a09f848eac74cdbd78d83ff6e6ea82c2c713a9"
+      },
+      "licenses/microsoft.netcore.app.host.osx-arm64/10.0.12/LICENSE.TXT": {
+        "bytes": 1116,
+        "sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310"
+      },
+      "licenses/microsoft.netcore.app.host.osx-arm64/10.0.12/microsoft.netcore.app.host.osx-arm64.nuspec": {
+        "bytes": 1001,
+        "sha256": "5f7d05f58101973d004652f2520815019ca0fe44564e7d704a185a196a16ab6c"
+      },
+      "licenses/microsoft.netcore.app.host.osx-x64/10.0.12/LICENSE.TXT": {
+        "bytes": 1116,
+        "sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310"
+      },
+      "licenses/microsoft.netcore.app.host.osx-x64/10.0.12/microsoft.netcore.app.host.osx-x64.nuspec": {
+        "bytes": 999,
+        "sha256": "d3f628aa8be3bfe638ae1757ad1393cfd8cae6ea6942d1df81b1f5c3a796a288"
+      },
+      "licenses/microsoft.netcore.app.runtime.osx-arm64/10.0.12/LICENSE.TXT": {
+        "bytes": 1116,
+        "sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310"
+      },
+      "licenses/microsoft.netcore.app.runtime.osx-arm64/10.0.12/microsoft.netcore.app.runtime.osx-arm64.nuspec": {
+        "bytes": 1004,
+        "sha256": "ca22557753f440016db25ca95607d8a6f84b5ff8a785d722b4d4275cb9ae523d"
+      },
+      "licenses/microsoft.netcore.app.runtime.osx-x64/10.0.12/LICENSE.TXT": {
+        "bytes": 1116,
+        "sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310"
+      },
+      "licenses/microsoft.netcore.app.runtime.osx-x64/10.0.12/microsoft.netcore.app.runtime.osx-x64.nuspec": {
+        "bytes": 1002,
+        "sha256": "7d2134640a174f711ad50fd02413ff09974877296ee531944432a843dc6f431f"
+      },
+      "licenses/microsoft.win32.systemevents/6.0.0/LICENSE.TXT": {
+        "bytes": 1139,
+        "sha256": "d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b"
+      },
+      "licenses/microsoft.win32.systemevents/6.0.0/microsoft.win32.systemevents.nuspec": {
+        "bytes": 1140,
+        "sha256": "104184b74b481fd16650a799f70450a352d80bbf5c9663b2a13e2056ea5852f9"
+      },
+      "licenses/protobuf-net/3.2.56/protobuf-net.nuspec": {
+        "bytes": 2010,
+        "sha256": "b5f83421eadc4f8e9eb7f27c3b640d168514035d77bcc13f60688753ac03ef1b"
+      },
+      "licenses/protobuf-net.core/3.2.56/protobuf-net.core.nuspec": {
+        "bytes": 1916,
+        "sha256": "6f65a26510081645fd50d003ed8902ba714154f966e96444963ac0777d88cbd8"
+      },
+      "licenses/qrcoder/1.8.1/LICENSE.txt": {
+        "bytes": 1147,
+        "sha256": "fde71b40fff47192a02738042cb39fa780635daa00827771bec65366ccd1e46d"
+      },
+      "licenses/qrcoder/1.8.1/qrcoder.nuspec": {
+        "bytes": 2502,
+        "sha256": "4e8211b4746800fb80a698dab062491a9f1d7f0abdcfcf343d4285ba3460acd5"
+      },
+      "licenses/steamkit2/3.4.0/license.txt": {
+        "bytes": 768,
+        "sha256": "d0c87e66d00e92e13cfa07158bf07e9be65e18aa5220d06af8532092521e78fa"
+      },
+      "licenses/steamkit2/3.4.0/steamkit2.nuspec": {
+        "bytes": 1590,
+        "sha256": "b1104c448cfeb40dd297b26b7a0296ef9f3f85826d205cec720502e11a666d8a"
+      },
+      "licenses/system.drawing.common/6.0.0/LICENSE.TXT": {
+        "bytes": 1139,
+        "sha256": "d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b"
+      },
+      "licenses/system.drawing.common/6.0.0/system.drawing.common.nuspec": {
+        "bytes": 1568,
+        "sha256": "ee6e3c79a2f4799b4bb6026d5ca994aeea22b5a37442c0824891208ad8b33844"
+      },
+      "licenses/system.io.hashing/10.0.1/system.io.hashing.nuspec": {
+        "bytes": 1595,
+        "sha256": "0d393f81b2acce689e1bf487f7fa96f6b74610765694aabc67d372736507db69"
+      },
+      "licenses/zstdsharp.port/0.8.7/zstdsharp.port.nuspec": {
+        "bytes": 2104,
+        "sha256": "699db268db6f8a5bf14ea073c553886a9d6ae140932c6bcb256db36fba257c34"
+      },
+      "packages.lock.json": {
+        "bytes": 3311,
+        "sha256": "11a43a8547420fea072fef3c7be4eafa46230a303e32f3a675e0cc473b46ddbf"
+      },
+      "x86_64/Halo2Steam": {
+        "bytes": 88024,
+        "sha256": "1bfb0bee13966670e9688719d1375a02ab67cdf446a3877942e0b80fbcc7be70"
+      },
+      "x86_64/Halo2Steam.deps.json": {
+        "bytes": 31850,
+        "sha256": "2c8c2104970381c30621593ccbf06b8867e4baa762dca459199c67650bbb0923"
+      },
+      "x86_64/Halo2Steam.dll": {
+        "bytes": 167936,
+        "sha256": "efdbc3fed5a0430e4ed68c0db0ab82bfeff7e11c82e986572346de4e1f4fb67a"
+      },
+      "x86_64/Halo2Steam.runtimeconfig.json": {
+        "bytes": 465,
+        "sha256": "2d6a4ecfc2facfe190c3e411d5942e7d97f4835ca434334ded1d47a95d5ad5fd"
+      },
+      "x86_64/Microsoft.CSharp.dll": {
+        "bytes": 795984,
+        "sha256": "5294469932bff7f998ce8c1b9f576c18808b42b18bf96d7344f48b4bab0b3ce4"
+      },
+      "x86_64/Microsoft.VisualBasic.Core.dll": {
+        "bytes": 1166160,
+        "sha256": "e5c43e66e6cd45e277516ade99a19fef4be06ef64907c97f703522e0246b82bc"
+      },
+      "x86_64/Microsoft.VisualBasic.dll": {
+        "bytes": 17192,
+        "sha256": "2e9be793036069632a74bc8739e34ba3c245e4403069d7fee5bd711f84dcd7b6"
+      },
+      "x86_64/Microsoft.Win32.Primitives.dll": {
+        "bytes": 15656,
+        "sha256": "a46eccdca33d8de0503e3684a873436e1a8b512d1292328a6781f0be0e84d356"
+      },
+      "x86_64/Microsoft.Win32.Registry.dll": {
+        "bytes": 34088,
+        "sha256": "b6b5c81a824e4576a88b774b175bff91c05f8f2966715c049d7901391a82d05c"
+      },
+      "x86_64/Microsoft.Win32.SystemEvents.dll": {
+        "bytes": 26224,
+        "sha256": "ca495bf6c86b7f092d624928101985a941532d149dcd8acfea170f8a53be8850"
+      },
+      "x86_64/QRCoder.dll": {
+        "bytes": 204288,
+        "sha256": "c4c40d29f6f96b8b1833f298dd45d2199c12b117d08da20b5a3e62694f984e4c"
+      },
+      "x86_64/SteamKit2.dll": {
+        "bytes": 6891008,
+        "sha256": "ea304bb652a5bc5c49bf2cbf2ceeea350b558fe8d56c527e4cf6e98a367dea9b"
+      },
+      "x86_64/System.AppContext.dll": {
+        "bytes": 15144,
+        "sha256": "b9ae1b2dab475da1260f9beb24dd2b72ad1b610dcd89c677472adcc2c576345c"
+      },
+      "x86_64/System.Buffers.dll": {
+        "bytes": 15184,
+        "sha256": "853dfc4460fa310cda88c33eadb72cd7c252b75b580335687bfd2191eeeeb4b9"
+      },
+      "x86_64/System.Collections.Concurrent.dll": {
+        "bytes": 227624,
+        "sha256": "5ac639e834db37b9b144a397fdde296906e00bee7cd948bafa8cfe9d97f1c0fe"
+      },
+      "x86_64/System.Collections.Immutable.dll": {
+        "bytes": 984400,
+        "sha256": "a08d1055d8722f05514a4a5c55f9d053dfd63624ad5b8d7300afbcd223d4f796"
+      },
+      "x86_64/System.Collections.NonGeneric.dll": {
+        "bytes": 92456,
+        "sha256": "d1241019338431787441ce73a93306af3a1e042e01e8322387a37ee3262576a5"
+      },
+      "x86_64/System.Collections.Specialized.dll": {
+        "bytes": 92456,
+        "sha256": "7da3369aa24b914a7e0321b0242b32f69d8b27cd7a66e0f5b1506795155b2da1"
+      },
+      "x86_64/System.Collections.dll": {
+        "bytes": 288552,
+        "sha256": "44526ce955a7fe689e533dd514239426979d1f0a9edb96c2bc403e55fd04859d"
+      },
+      "x86_64/System.ComponentModel.Annotations.dll": {
+        "bytes": 191272,
+        "sha256": "52cda40d5251284a06335538f4842e975b34b5e10967a2ada0f9f179f6015fdd"
+      },
+      "x86_64/System.ComponentModel.DataAnnotations.dll": {
+        "bytes": 16720,
+        "sha256": "70a2026258a16388f4b1192dc65386f6503170ae3dfbadec2fc6ad03281826b8"
+      },
+      "x86_64/System.ComponentModel.EventBasedAsync.dll": {
+        "bytes": 35664,
+        "sha256": "1211dfe3e387763d506fd711392b3f591991387141a7933f02ead62914ece2c8"
+      },
+      "x86_64/System.ComponentModel.Primitives.dll": {
+        "bytes": 70440,
+        "sha256": "1b38c671ef12335589947d58ae19af8ed0f1daec500ff110614452879ff86bef"
+      },
+      "x86_64/System.ComponentModel.TypeConverter.dll": {
+        "bytes": 759632,
+        "sha256": "8ac40f5683508904ed94a6a4dae0c946b3e62e1275b18c5c1f382eb21f9f3166"
+      },
+      "x86_64/System.ComponentModel.dll": {
+        "bytes": 17192,
+        "sha256": "d7362f251ac95222082a96b930f8a926ef33dd12efaf34a3da2f1dd866ac7e31"
+      },
+      "x86_64/System.Configuration.dll": {
+        "bytes": 19240,
+        "sha256": "e90814520d2ef6a51c9b06398e27e971fbe13404d229e22d12dce17218443478"
+      },
+      "x86_64/System.Console.dll": {
+        "bytes": 198952,
+        "sha256": "e767706f3fbf3c03557b3dce92dd5cf174b1b45ffa82f14ad570509524b0fe80"
+      },
+      "x86_64/System.Core.dll": {
+        "bytes": 23336,
+        "sha256": "2614a9eddb9d8c3924eb165e909f7d085309032b83a2db96875bf98d203894b0"
+      },
+      "x86_64/System.Data.Common.dll": {
+        "bytes": 2802984,
+        "sha256": "43b4773a51fcb3f78354f5380370afe74f79bfc447b0ecbcddd64019c130ec8b"
+      },
+      "x86_64/System.Data.DataSetExtensions.dll": {
+        "bytes": 15656,
+        "sha256": "961b582cb04b21a40c110a3cbac40e5cf4aeaa962d68a11c11e3c1f2751a0f14"
+      },
+      "x86_64/System.Data.dll": {
+        "bytes": 25384,
+        "sha256": "246dbc72f651e872164456c082aabac19181890abd290b6ae27ea2b45c80ec02"
+      },
+      "x86_64/System.Diagnostics.Contracts.dll": {
+        "bytes": 16208,
+        "sha256": "d3c52d23300d8e8e20428ec7118a3d73ff9d45f34e5ed777d4b80629f3987c3e"
+      },
+      "x86_64/System.Diagnostics.Debug.dll": {
+        "bytes": 15696,
+        "sha256": "6a163859ebb13f2a5297c65efb8c0399295bfe0eb8b69781cf730fd3102aef09"
+      },
+      "x86_64/System.Diagnostics.DiagnosticSource.dll": {
+        "bytes": 497960,
+        "sha256": "5cfd5677cf30763e36882e23a26dd02330a9fe0b72bedd7c1a36b872a7190b3e"
+      },
+      "x86_64/System.Diagnostics.FileVersionInfo.dll": {
+        "bytes": 42792,
+        "sha256": "21ebd7b91a2f5dcf7b5a8ed26d44394fd93edbde615c605bba74548e8a919c80"
+      },
+      "x86_64/System.Diagnostics.Process.dll": {
+        "bytes": 235816,
+        "sha256": "d9c88b69b36158704dfc56c7e2d4448cc8cda0a5ef01bc415449f69e71d8a643"
+      },
+      "x86_64/System.Diagnostics.StackTrace.dll": {
+        "bytes": 34600,
+        "sha256": "50b2b377300d5b72281dc75659de0f3b35b1af3ef2f19204a0792125e4fec2a4"
+      },
+      "x86_64/System.Diagnostics.TextWriterTraceListener.dll": {
+        "bytes": 58664,
+        "sha256": "4a8e5aae707ab55be3840301f2c8fd97d0bc5a6603dc4a67bcf60df85bc92bb6"
+      },
+      "x86_64/System.Diagnostics.Tools.dll": {
+        "bytes": 15144,
+        "sha256": "9051f6728413f6b7accfb826dcc74d13ca65b19c109c0883b042df358cb6768e"
+      },
+      "x86_64/System.Diagnostics.TraceSource.dll": {
+        "bytes": 130856,
+        "sha256": "4a85b8e14c3bebce8222d2d806363e586d26cce0a3414a3c2af9165434c6d9fd"
+      },
+      "x86_64/System.Diagnostics.Tracing.dll": {
+        "bytes": 16168,
+        "sha256": "097d0833e92bce9fddc66dbb609e461a18bad0a4649e215fd251cfdfa684dabf"
+      },
+      "x86_64/System.Drawing.Common.dll": {
+        "bytes": 427112,
+        "sha256": "89ea595ccb1fd1384480c1e30bd487c92af5d06d3b06f295323eff601acd9019"
+      },
+      "x86_64/System.Drawing.Primitives.dll": {
+        "bytes": 123176,
+        "sha256": "7e3385c546c91e0192f4401c934307a89103ab7eda5d7beacfe53dc8ca834032"
+      },
+      "x86_64/System.Drawing.dll": {
+        "bytes": 20264,
+        "sha256": "333f3e70c84d489aa9cb4c2576dd74cb4bf8ad4cd3414947f5bbbd73476ba28b"
+      },
+      "x86_64/System.Dynamic.Runtime.dll": {
+        "bytes": 16168,
+        "sha256": "7d1a78ade42435709590cba405204e8f6ab84a34b6823ea8ddc801c4ffc568c7"
+      },
+      "x86_64/System.Formats.Asn1.dll": {
+        "bytes": 224040,
+        "sha256": "2ebd4d34834175e40f38d203d07acb06f4d6e70ba18005bf4fad230ed13ba3d3"
+      },
+      "x86_64/System.Formats.Tar.dll": {
+        "bytes": 276304,
+        "sha256": "9462ccf99c6a2bb5c72fbe17546d4e124596a8757f3ec52559c0df00c12d86b4"
+      },
+      "x86_64/System.Globalization.Calendars.dll": {
+        "bytes": 15656,
+        "sha256": "e08df6a1f102c139337af0fe716795df203e8b16c742b301001b64ca2de9ed93"
+      },
+      "x86_64/System.Globalization.Extensions.dll": {
+        "bytes": 15184,
+        "sha256": "15fe0ff3c3c1363198046db1167585809788273e80db92d72b11b784eb61fd59"
+      },
+      "x86_64/System.Globalization.dll": {
+        "bytes": 15696,
+        "sha256": "4360984e9ff47fceb285b7a7445f7bd60abc1692adba5538daf5bb8854a699f7"
+      },
+      "x86_64/System.IO.Compression.Brotli.dll": {
+        "bytes": 73552,
+        "sha256": "aafe5a419ef3c0da79fe2d338cbeb1cd9aaf902a93c86106d15621cd2f2aa63c"
+      },
+      "x86_64/System.IO.Compression.FileSystem.dll": {
+        "bytes": 15144,
+        "sha256": "56ddf5f38b26cef93ed76fafd336a0cf12b3ae12edfb2ae7a58da53448c1a895"
+      },
+      "x86_64/System.IO.Compression.ZipFile.dll": {
+        "bytes": 98600,
+        "sha256": "dfc477eeefa6449cd57a6cda6eb3ac44dbec30767563f3678040d254abaf182e"
+      },
+      "x86_64/System.IO.Compression.dll": {
+        "bytes": 416040,
+        "sha256": "0570f3d3ee44688bb45e53e9299f73fe4ee7245037f1c7c4d19ea856546d8897"
+      },
+      "x86_64/System.IO.FileSystem.AccessControl.dll": {
+        "bytes": 33064,
+        "sha256": "c444616e8c03119b888712e9290c3ede9ad070108985c77a30ca3aad0312949f"
+      },
+      "x86_64/System.IO.FileSystem.DriveInfo.dll": {
+        "bytes": 81704,
+        "sha256": "92c952e5e9e1dff808eee9dfc89188f5379966872a7d9cb123a340995ecd968b"
+      },
+      "x86_64/System.IO.FileSystem.Primitives.dll": {
+        "bytes": 15144,
+        "sha256": "e8e05d2c0de51b40a50845a243607ae9a574e68330c6e2f6abffc986883f300c"
+      },
+      "x86_64/System.IO.FileSystem.Watcher.dll": {
+        "bytes": 105768,
+        "sha256": "e7a35ca1f3eb515cbb61a8528897f5cfde7b1cf1818dcbadcdd0698606215b2a"
+      },
+      "x86_64/System.IO.FileSystem.dll": {
+        "bytes": 15696,
+        "sha256": "f1e4984f5c79d818ad03492b20ee5021fce686e95bc96a9f98cac7147bc5063a"
+      },
+      "x86_64/System.IO.Hashing.dll": {
+        "bytes": 56584,
+        "sha256": "2679a6164163c1f4b7b5fada83a55eb48b0a85840e04f00e8921b8d495a66b84"
+      },
+      "x86_64/System.IO.IsolatedStorage.dll": {
+        "bytes": 76584,
+        "sha256": "8db11a0f2d0e04da55cc3e1a7b9eba256ca67bbef70084f53b183bc5e929c5df"
+      },
+      "x86_64/System.IO.MemoryMappedFiles.dll": {
+        "bytes": 83752,
+        "sha256": "bdfbe925cbf45194a7ca68a7ff4a34985b5f5009b22ccd433f88625202d272f0"
+      },
+      "x86_64/System.IO.Pipelines.dll": {
+        "bytes": 181032,
+        "sha256": "44685cd1c12fa16a5f05715c8f9257feff52f5604a011f80e0f081b934a7895b"
+      },
+      "x86_64/System.IO.Pipes.AccessControl.dll": {
+        "bytes": 24400,
+        "sha256": "c3dee6977b2884c03a0dde0784d2c46ed1b4a92622d1a7a5bbb15c494bffa3ca"
+      },
+      "x86_64/System.IO.Pipes.dll": {
+        "bytes": 127312,
+        "sha256": "20a88e95295ca45928826af4be08c75bfb5d3be5ab7fb07f59da6d2a70cce4b0"
+      },
+      "x86_64/System.IO.UnmanagedMemoryStream.dll": {
+        "bytes": 15696,
+        "sha256": "30add725b36241b281fe0beac7a586547dde83c994dedf95f3909e9740a9bcb3"
+      },
+      "x86_64/System.IO.dll": {
+        "bytes": 15656,
+        "sha256": "64e67d8b2721dd977faf399c3eda1cff3ed8a518969490b3a8c597ab11acdd87"
+      },
+      "x86_64/System.Linq.AsyncEnumerable.dll": {
+        "bytes": 1328424,
+        "sha256": "dbeed91dd10b95af94c3116cf8cc16e3bd40ac93e4a849c3f7e1eb84ef9ba689"
+      },
+      "x86_64/System.Linq.Expressions.dll": {
+        "bytes": 3723560,
+        "sha256": "8747b0972d090c255c5d2344ea2237013c385028ee36f9647f9f57a0050fbe04"
+      },
+      "x86_64/System.Linq.Parallel.dll": {
+        "bytes": 776016,
+        "sha256": "1d410e1752bdde8c65dac2f4cbcde891f10dfc8e59695aef940c4d90ecf9183b"
+      },
+      "x86_64/System.Linq.Queryable.dll": {
+        "bytes": 178472,
+        "sha256": "0672af357e11b0b3a5ae6b9d191c0f3abe522dc94b1348b10b1923e93e693582"
+      },
+      "x86_64/System.Linq.dll": {
+        "bytes": 696616,
+        "sha256": "38a098dd2c0cd30e0df1a7dd4454e4ed1b6e6400a9f509509716d304cb21a4a8"
+      },
+      "x86_64/System.Memory.dll": {
+        "bytes": 152400,
+        "sha256": "9f1ba107f3bae73bba9487448736f1fc52570d0d0db621927ca7d6ec3235e602"
+      },
+      "x86_64/System.Net.Http.Json.dll": {
+        "bytes": 120104,
+        "sha256": "e17520735b7b77dc29ea9b7df272b1fc973f6a390bc132026568fbbd29c3dc9c"
+      },
+      "x86_64/System.Net.Http.dll": {
+        "bytes": 1756968,
+        "sha256": "9c4bd7b7e23005eebbdadc63ace8392bfd1cb6028b31e84c690693ef0cb147f7"
+      },
+      "x86_64/System.Net.HttpListener.dll": {
+        "bytes": 291624,
+        "sha256": "d210cb3130568e901f87939c0923845a8b1927d3e2db48d0a455684bb65466a8"
+      },
+      "x86_64/System.Net.Mail.dll": {
+        "bytes": 481064,
+        "sha256": "0b08e64b77dfe58e309acf7494d1daaddae5349293ae67884dae2c1786f91c5e"
+      },
+      "x86_64/System.Net.NameResolution.dll": {
+        "bytes": 97616,
+        "sha256": "80d9e3cfa36cf63e8057be00e5207243cade60452d4a9bdc7f6fee6e5aa91fea"
+      },
+      "x86_64/System.Net.NetworkInformation.dll": {
+        "bytes": 135464,
+        "sha256": "ced581b97fd0deb61497b17857f090e6113e9aeaa12d44806da4c6cf85168a38"
+      },
+      "x86_64/System.Net.Ping.dll": {
+        "bytes": 89384,
+        "sha256": "aa30bc93e22a58ac908975b755f41ea286e74b6884bfa082c8ef4c7b432e800a"
+      },
+      "x86_64/System.Net.Primitives.dll": {
+        "bytes": 214824,
+        "sha256": "6fc3fac8770bf8597e4cc3c236db380ba4286ccc2e79f3944100dff04282df16"
+      },
+      "x86_64/System.Net.Quic.dll": {
+        "bytes": 345384,
+        "sha256": "fe829a12d73e118bd3fbf0ef87ee81e88d9c418d8d6a6fe9aa37cfcb587cef06"
+      },
+      "x86_64/System.Net.Requests.dll": {
+        "bytes": 367400,
+        "sha256": "fb4b178deef7b336dfabb4c0d1620bca65fad0ffe725f4c380cea13a39d7af83"
+      },
+      "x86_64/System.Net.Security.dll": {
+        "bytes": 757072,
+        "sha256": "28488ee2fab4a73b05790d9f1b8ce37a8bf262ea7ddb0952d17c8cacd1331657"
+      },
+      "x86_64/System.Net.ServerSentEvents.dll": {
+        "bytes": 71464,
+        "sha256": "4d6879cc918a53f038657842fd038a52e7ad2f39300f842e2c4d8e33e939a8d1"
+      },
+      "x86_64/System.Net.ServicePoint.dll": {
+        "bytes": 15144,
+        "sha256": "4239b401186f7f4060e07bc372d5272e9e3fa641b1255587ebf2b1bbdf71ad1e"
+      },
+      "x86_64/System.Net.Sockets.dll": {
+        "bytes": 603944,
+        "sha256": "dd2267cfb7741ee360fba655a3919d93c9a88b7b469898346ecbdf1ab15be594"
+      },
+      "x86_64/System.Net.WebClient.dll": {
+        "bytes": 156496,
+        "sha256": "2f1bbc08240a46e90b578fe219ccd1c76916d88c11d278047f1345fea258a778"
+      },
+      "x86_64/System.Net.WebHeaderCollection.dll": {
+        "bytes": 54568,
+        "sha256": "1ec65485a4739fa01fead400d9773791f45206be2a7a0f7f96c0cec306b58a74"
+      },
+      "x86_64/System.Net.WebProxy.dll": {
+        "bytes": 32592,
+        "sha256": "e05a77a2a4ac76103b052f8ae05e1458dfbf986f90605017431e3bd9a74bbb6c"
+      },
+      "x86_64/System.Net.WebSockets.Client.dll": {
+        "bytes": 90920,
+        "sha256": "0627c0f6f7bc61c3b4e748216bad95bbd9519a9c32087d7858d5bc70b638bc5d"
+      },
+      "x86_64/System.Net.WebSockets.dll": {
+        "bytes": 236880,
+        "sha256": "eaf2eca664406f3029787a3dc3fefbb247246541665a552802b009a276427c60"
+      },
+      "x86_64/System.Net.dll": {
+        "bytes": 17232,
+        "sha256": "b81c923dce5413d381f59ab44e30a491e22b4b57b95efba0e79189c9de3bc7fe"
+      },
+      "x86_64/System.Numerics.Vectors.dll": {
+        "bytes": 15656,
+        "sha256": "73cd5d1fcc96d1e181ce24de4f109d74512fdc6a363cb78b37cc2c99974533cc"
+      },
+      "x86_64/System.Numerics.dll": {
+        "bytes": 15144,
+        "sha256": "4ccd8a4d33b0684cf5c331a88d08b001b2e0d2d855e974d2f91404a37e483fd0"
+      },
+      "x86_64/System.ObjectModel.dll": {
+        "bytes": 69416,
+        "sha256": "933706ef42e9681523c96ba2209b1dbb23e221b5b87709dda0b5bf73d7939354"
+      },
+      "x86_64/System.Private.CoreLib.dll": {
+        "bytes": 15557928,
+        "sha256": "98a1c1c66076b01a1ec028e8915e381e49b5bd37d88d3af954a23beb4db9571f"
+      },
+      "x86_64/System.Private.DataContractSerialization.dll": {
+        "bytes": 2071336,
+        "sha256": "d9476fffcccdd879f13b82fb7aa1c8803fd8ee260498634d0be6f80356655c0d"
+      },
+      "x86_64/System.Private.Uri.dll": {
+        "bytes": 245032,
+        "sha256": "72bc0a0f61cdd6dffa5d6961a15b6cbcd9fb2ac0a249dd6299c55fb06e1934f8"
+      },
+      "x86_64/System.Private.Xml.Linq.dll": {
+        "bytes": 388392,
+        "sha256": "317f1cbc2544df5fb1fa61e2bfd4dc6c519c345fdaa5b6adea3e53df54153042"
+      },
+      "x86_64/System.Private.Xml.dll": {
+        "bytes": 7902544,
+        "sha256": "f33e43bd55e2b4ca78d82d49324c2e84a8de7550bfc09bbd6079ed5d262679e2"
+      },
+      "x86_64/System.Reflection.DispatchProxy.dll": {
+        "bytes": 66856,
+        "sha256": "5a6ffaa03e4b6a02aafe5b5ae40a4dfc2c794a62d97cd51050942d59748e5774"
+      },
+      "x86_64/System.Reflection.Emit.ILGeneration.dll": {
+        "bytes": 15656,
+        "sha256": "7a00783021ce73afb26d524f579f66ed03964a8bb9e7bfe95a93036997fdcb9a"
+      },
+      "x86_64/System.Reflection.Emit.Lightweight.dll": {
+        "bytes": 15656,
+        "sha256": "360a27f30eb80c09d4baf5c689babd00c3ba67712ca9ae8a044fc07b43227f82"
+      },
+      "x86_64/System.Reflection.Emit.dll": {
+        "bytes": 302888,
+        "sha256": "29bb7dcfd010d3b158ba7060c123822665d56de6ba4436375a912926b427ea99"
+      },
+      "x86_64/System.Reflection.Extensions.dll": {
+        "bytes": 15144,
+        "sha256": "07b9e141cf0e743b6b320d58990e478a2c94769555a5fa4f8596cdb4e0038dfa"
+      },
+      "x86_64/System.Reflection.Metadata.dll": {
+        "bytes": 1147688,
+        "sha256": "235869cee3029ea354b720112772145c6d57c3aef186ed13ded6c448761c7a7b"
+      },
+      "x86_64/System.Reflection.Primitives.dll": {
+        "bytes": 15656,
+        "sha256": "b7134aad8a5295f0cbc5e63e0474105b912dfefeb14cf6316255ccd279b5eb84"
+      },
+      "x86_64/System.Reflection.TypeExtensions.dll": {
+        "bytes": 32080,
+        "sha256": "c9f7344d5c157cf8edf82df33cbb9b9c2825ff3dfd840aab687531f1688d73ce"
+      },
+      "x86_64/System.Reflection.dll": {
+        "bytes": 16208,
+        "sha256": "f5f05f5ac627f00585bc5056f60c784460e004053ef65be7e2337eae1370db04"
+      },
+      "x86_64/System.Resources.Reader.dll": {
+        "bytes": 15144,
+        "sha256": "5d5a87d369a25793b36c8a0a11509bcf7c3826dbf416e7ae27d20a991ce80954"
+      },
+      "x86_64/System.Resources.ResourceManager.dll": {
+        "bytes": 15656,
+        "sha256": "0fc40377754f2b87d7b6d429a2734a2a703d0746990b85c37e225b02b1b034cf"
+      },
+      "x86_64/System.Resources.Writer.dll": {
+        "bytes": 42280,
+        "sha256": "562e70f9f72205b7e609950dc2e7e4e9615dfc68adc5ce4c0abfab70545c847b"
+      },
+      "x86_64/System.Runtime.CompilerServices.Unsafe.dll": {
+        "bytes": 15184,
+        "sha256": "45e3f8d593e8931ae120c41ccc02c73ecda9949e0182428a354e13df3992c23f"
+      },
+      "x86_64/System.Runtime.CompilerServices.VisualC.dll": {
+        "bytes": 18728,
+        "sha256": "3d9bb5c3c33693d68180168f911fa5073311e60bf7b4e3042a259780b1bd0b59"
+      },
+      "x86_64/System.Runtime.Extensions.dll": {
+        "bytes": 17704,
+        "sha256": "f69018678b41132affbd8e002f1ebe917a03e0eaf392ecc9c7f1d4f8599170d4"
+      },
+      "x86_64/System.Runtime.Handles.dll": {
+        "bytes": 15656,
+        "sha256": "a135bd775bbf70a44a81b4a25d617e5b138f9ccd22f8fc0246596ff14da3b6d3"
+      },
+      "x86_64/System.Runtime.InteropServices.JavaScript.dll": {
+        "bytes": 39760,
+        "sha256": "54394d50a80f6ce03c8675cb2fbf634f59e8d84b45f08a8b0b659bfc7d5ff69e"
+      },
+      "x86_64/System.Runtime.InteropServices.RuntimeInformation.dll": {
+        "bytes": 15144,
+        "sha256": "5193ef6b49193a5a6554ef15ff101ad1e4bc6b73764e6c665ea5ca64654bdcac"
+      },
+      "x86_64/System.Runtime.InteropServices.dll": {
+        "bytes": 102224,
+        "sha256": "b913357b0065518b20a8359cff74c3a2c513da83d88478f83bacc79fe63d8937"
+      },
+      "x86_64/System.Runtime.Intrinsics.dll": {
+        "bytes": 17192,
+        "sha256": "3e5ad67e7eb3086556c5e43792fe6771721465fc23af4567ce3240e1137f28c6"
+      },
+      "x86_64/System.Runtime.Loader.dll": {
+        "bytes": 15656,
+        "sha256": "5010a2753c510426f3d4a69883ba7ee4fb5a70047488024131b73dcfb925796f"
+      },
+      "x86_64/System.Runtime.Numerics.dll": {
+        "bytes": 342824,
+        "sha256": "f8ea3595d96b9e09f9c433628296e34b2abf7e083435ff5e1bed9abba5b9de95"
+      },
+      "x86_64/System.Runtime.Serialization.Formatters.dll": {
+        "bytes": 116008,
+        "sha256": "cce76d933f2d1327ce4a7ab09e683dee4c11cf92f5d0869e6e710efadaee71d6"
+      },
+      "x86_64/System.Runtime.Serialization.Json.dll": {
+        "bytes": 15656,
+        "sha256": "87798ec2da09cf4e15a83709da1ea3032dc32b8682778080f3994214532d1d2b"
+      },
+      "x86_64/System.Runtime.Serialization.Primitives.dll": {
+        "bytes": 28456,
+        "sha256": "b6ff7e40cf3f070ec9222620635dc8c8fd766823564e7b60bb21044565ccb5c9"
+      },
+      "x86_64/System.Runtime.Serialization.Xml.dll": {
+        "bytes": 16680,
+        "sha256": "8e768fe7758545ce9fd8517f0569a00c65a518d3e407a38193fb0d7733993f91"
+      },
+      "x86_64/System.Runtime.Serialization.dll": {
+        "bytes": 16680,
+        "sha256": "7481d56cbff4bc36592dbe063c9b8d073cf71dbf875ca74e0f631c0619300f7b"
+      },
+      "x86_64/System.Runtime.dll": {
+        "bytes": 44880,
+        "sha256": "81a458df4d16a9166daf47af66432f946bb107942cf6fd15284839e56551b768"
+      },
+      "x86_64/System.Security.AccessControl.dll": {
+        "bytes": 59728,
+        "sha256": "4bc933e5bde61049f9958607b3be1d0e06955e500c9d213110f280cbdd4511c3"
+      },
+      "x86_64/System.Security.Claims.dll": {
+        "bytes": 92456,
+        "sha256": "34e7fab05a3f0576ead8f637408e8dd7bec8a4731ad80155b7095ab3e896291f"
+      },
+      "x86_64/System.Security.Cryptography.Algorithms.dll": {
+        "bytes": 17232,
+        "sha256": "b539042e3884cad3d03fbf303eb335a682de22330485c5ce7e266875efeb92a5"
+      },
+      "x86_64/System.Security.Cryptography.Cng.dll": {
+        "bytes": 16168,
+        "sha256": "11939e45ecea8c7d83d2192d98db8489265b2bad1bcb0f324083f27b0bce0827"
+      },
+      "x86_64/System.Security.Cryptography.Csp.dll": {
+        "bytes": 16208,
+        "sha256": "86b80ce11ebf6fa8b17a9237ee9e386b38f142d15d95cca06d172845f98d8070"
+      },
+      "x86_64/System.Security.Cryptography.Encoding.dll": {
+        "bytes": 15656,
+        "sha256": "184d52d17dc980eb30c6f05c3ea87ea20f8f707b8768e59fa1ffff82cbb0c5b7"
+      },
+      "x86_64/System.Security.Cryptography.OpenSsl.dll": {
+        "bytes": 15696,
+        "sha256": "00ba005b2d1391a2e095a66ad693ab8daa22bff31bf3621222252e233eac9844"
+      },
+      "x86_64/System.Security.Cryptography.Primitives.dll": {
+        "bytes": 15656,
+        "sha256": "612d2e1d991e8c76cd91b573f9adf4561a764e5a1ef9c4ff92d9a70c06605c55"
+      },
+      "x86_64/System.Security.Cryptography.X509Certificates.dll": {
+        "bytes": 16680,
+        "sha256": "5d92b85892569639f1c2c63949a7e7fc390494619e84317be5b93fa656b037b1"
+      },
+      "x86_64/System.Security.Cryptography.dll": {
+        "bytes": 2138448,
+        "sha256": "72b9b7fab40b902a8c41bf10a7aec064baf570fc2f50b516b91b879ea266acaf"
+      },
+      "x86_64/System.Security.Principal.Windows.dll": {
+        "bytes": 38696,
+        "sha256": "255a557340ca79c4e66bf8be0b25e0886e235edba04dabed5a3819d04aaa51c1"
+      },
+      "x86_64/System.Security.Principal.dll": {
+        "bytes": 15144,
+        "sha256": "3451f573900730750cf135d2a309a770c2a6b746a1a0d20ea2c5c87060b5c92d"
+      },
+      "x86_64/System.Security.SecureString.dll": {
+        "bytes": 15656,
+        "sha256": "f9d46a8c5f9ab2d4902dcdc5bb88e6bb2f93abc661bbb2cdf02dfa80bbf76bee"
+      },
+      "x86_64/System.Security.dll": {
+        "bytes": 18216,
+        "sha256": "b4b35cdfde744df7312f96c95d78ba944c7fe14c87be4702eff8cc77dfd9dd68"
+      },
+      "x86_64/System.ServiceModel.Web.dll": {
+        "bytes": 16720,
+        "sha256": "941205b107b865a6c6d2ad3574b833cef3814110a4a1cef8525cc261dbf3df16"
+      },
+      "x86_64/System.ServiceProcess.dll": {
+        "bytes": 15656,
+        "sha256": "079bb1318cb40e58fa82e9e149787ada68791b6196512dfc461d959fd0fcad5d"
+      },
+      "x86_64/System.Text.Encoding.CodePages.dll": {
+        "bytes": 852264,
+        "sha256": "bac9c8c896b3b400c09562cc3840a357f8237e631606bd32094d7f2dc7c9b78e"
+      },
+      "x86_64/System.Text.Encoding.Extensions.dll": {
+        "bytes": 15656,
+        "sha256": "fd91b4516867b20ff923be98597b9906c8344988eba70a9d3c71fe1ef9ad6a1e"
+      },
+      "x86_64/System.Text.Encoding.dll": {
+        "bytes": 15656,
+        "sha256": "415665784ec8ea9336810bbfd5b2402d689b17840bbb5c7d2057c636de804598"
+      },
+      "x86_64/System.Text.Encodings.Web.dll": {
+        "bytes": 113960,
+        "sha256": "4db64cfb52fa4e9e835f77ded67a18d35c634fe66007600dd44164a0e835c1c6"
+      },
+      "x86_64/System.Text.Json.dll": {
+        "bytes": 1882920,
+        "sha256": "3b41f4492b60d26accd6722fd2ae9fabc19d925197da9e141d0ed0576a2a12f5"
+      },
+      "x86_64/System.Text.RegularExpressions.dll": {
+        "bytes": 1036584,
+        "sha256": "e2d5d1f248b72a702cd06d20cb831819c70808045fa3c4ee16e3936eabd8d9bf"
+      },
+      "x86_64/System.Threading.AccessControl.dll": {
+        "bytes": 34600,
+        "sha256": "2ad110336a9f80857284a71fe528db5e989eaf8a98956a1e08cac54767c3920a"
+      },
+      "x86_64/System.Threading.Channels.dll": {
+        "bytes": 149328,
+        "sha256": "42838a78f38fcff69b3a28bfb03df05eaebd44d1d1187c0f2742f8f42158c1ba"
+      },
+      "x86_64/System.Threading.Overlapped.dll": {
+        "bytes": 15696,
+        "sha256": "2e8760430376fbab311552ed8923387cfd16cde149495d2594d8be8468aae0ea"
+      },
+      "x86_64/System.Threading.Tasks.Dataflow.dll": {
+        "bytes": 470824,
+        "sha256": "a02760386e1301cae74187f87aa288a0241804fdcdba8ac08fd932260a72f44a"
+      },
+      "x86_64/System.Threading.Tasks.Extensions.dll": {
+        "bytes": 15656,
+        "sha256": "5ec6503c7cc5774937315437d861e60d0cd24779182774bdbd35dc87f5d77fbd"
+      },
+      "x86_64/System.Threading.Tasks.Parallel.dll": {
+        "bytes": 121128,
+        "sha256": "17346e24e622a9f6ec9aa64cc701e903b7e9434e31dc794d23330163fa2c018d"
+      },
+      "x86_64/System.Threading.Tasks.dll": {
+        "bytes": 16720,
+        "sha256": "92c537d4495f10ef8a0251735fb2a98243fbe4917c768621ff98e4bd9a659c9e"
+      },
+      "x86_64/System.Threading.Thread.dll": {
+        "bytes": 15656,
+        "sha256": "2f2afd9b0ba0f587e8afbeb6dc4362c7cb52faf759a12e5c25f9e7e38cffb81b"
+      },
+      "x86_64/System.Threading.ThreadPool.dll": {
+        "bytes": 15656,
+        "sha256": "83b461fa5a8a3cd020b5c0145a4237134904d038f84c0234c62bcefcd876122f"
+      },
+      "x86_64/System.Threading.Timer.dll": {
+        "bytes": 15184,
+        "sha256": "cbb625e575c5531446f0468bf482a97defc6be0a408d4260aa0244606d502ffe"
+      },
+      "x86_64/System.Threading.dll": {
+        "bytes": 73552,
+        "sha256": "13eab1858de182e8c83a0615928a2114a30c424ed226faf0a09269062b571d65"
+      },
+      "x86_64/System.Transactions.Local.dll": {
+        "bytes": 356688,
+        "sha256": "46a2bdb7d54f67607ec68507b3a385513ea7ddd2670e22674a2bc5b38bdcb415"
+      },
+      "x86_64/System.Transactions.dll": {
+        "bytes": 16720,
+        "sha256": "337efe573def76c83fc03344dcbe90f3455c911176fd1e4e82859ccebfc0c8f5"
+      },
+      "x86_64/System.ValueTuple.dll": {
+        "bytes": 15656,
+        "sha256": "3219154027cdab461d6912678644c14021929abe3d9b98b9a5bd272829c63302"
+      },
+      "x86_64/System.Web.HttpUtility.dll": {
+        "bytes": 52008,
+        "sha256": "04ca6567b94631fa1fcf5ef68e10895147692744b685fd9e1a2bcc8ab74e8a80"
+      },
+      "x86_64/System.Web.dll": {
+        "bytes": 15144,
+        "sha256": "1e8a2269fdd8ffe023564d042c24b03facd844ba0dee9c17f49c6f4dee2f78db"
+      },
+      "x86_64/System.Windows.dll": {
+        "bytes": 15656,
+        "sha256": "6947b46b79f13918a100bdc92f0d771524ee44d5c643967478f1a5dd3dafb2fb"
+      },
+      "x86_64/System.Xml.Linq.dll": {
+        "bytes": 15656,
+        "sha256": "716feaddf1a207514e5c66e4a160fa1ea64c2af02317ab0a142fc2099cad7c5c"
+      },
+      "x86_64/System.Xml.ReaderWriter.dll": {
+        "bytes": 21800,
+        "sha256": "17e9b5d412318bb235e1e06e69c3fa6ccde65e5a3ab38ce6f1160d2f83a8da92"
+      },
+      "x86_64/System.Xml.Serialization.dll": {
+        "bytes": 16168,
+        "sha256": "c14e13220d355795daeed82ca5df5bbd7e7a26f83011501f5485114246a83d0f"
+      },
+      "x86_64/System.Xml.XDocument.dll": {
+        "bytes": 15656,
+        "sha256": "022317d9bb6ccde79d78939ddb16eb927bfcb4347f6003ca48521b705a868e76"
+      },
+      "x86_64/System.Xml.XPath.XDocument.dll": {
+        "bytes": 16680,
+        "sha256": "9f3d62c795a59f721f2e00f3a23a183474b65f768309dc3b80da7b94da75d449"
+      },
+      "x86_64/System.Xml.XPath.dll": {
+        "bytes": 15696,
+        "sha256": "6e42443f3b6ccab12fc09c2cbbd2495351ad19627e4fc9191ffc78666918b2c5"
+      },
+      "x86_64/System.Xml.XmlDocument.dll": {
+        "bytes": 15656,
+        "sha256": "8306c0c2a53be4c91678c9c16893f9f604111ea6ddf717f71e473128ff643d95"
+      },
+      "x86_64/System.Xml.XmlSerializer.dll": {
+        "bytes": 17744,
+        "sha256": "21fc31cc35fdf7034780bc9ec1591b6df5e940d250f3efd5f4a9184797f28746"
+      },
+      "x86_64/System.Xml.dll": {
+        "bytes": 23376,
+        "sha256": "89f825303eb9cbd77f97811b92e3b214e6e6a20c29e749e9b57448b25e16ac68"
+      },
+      "x86_64/System.dll": {
+        "bytes": 50472,
+        "sha256": "d15f6e4a1eb681f97aa57b1b426b761e5fcb22c6ad91e8cfd436b9a5a33acf44"
+      },
+      "x86_64/WindowsBase.dll": {
+        "bytes": 16168,
+        "sha256": "6f2d93e68f0cb6230a3ed23109a0c1019ff5ed68450b04ca7e8e9bfc024fed96"
+      },
+      "x86_64/ZstdSharp.dll": {
+        "bytes": 397312,
+        "sha256": "177f541b9bba3cfe89d3fe9565ea9f78285ef8499d689dcfd5de0018b6fa43e5"
+      },
+      "x86_64/createdump": {
+        "bytes": 174064,
+        "sha256": "fcac995a9ff8b849680213fb4cdc26563eae662dea20cbe275e77ea3f389e043"
+      },
+      "x86_64/libSystem.Globalization.Native.dylib": {
+        "bytes": 134800,
+        "sha256": "4af11dce3516b4f95e98dae06d91faec6720bb36aefaacd99b8fd2534b241ef7"
+      },
+      "x86_64/libSystem.IO.Compression.Native.dylib": {
+        "bytes": 1065088,
+        "sha256": "9cace82c7ae8c3ed7f2515d3bd57c8364625f2b7ff72747a8c4312300542f31c"
+      },
+      "x86_64/libSystem.Native.dylib": {
+        "bytes": 133888,
+        "sha256": "db521410290132957f02c04a905274a2203392123156ae84a483984eb51f362f"
+      },
+      "x86_64/libSystem.Net.Security.Native.dylib": {
+        "bytes": 53344,
+        "sha256": "703a54c83bbb8569e9f7231e004c83acf5c303c3a35cfdb1231b2e42534585db"
+      },
+      "x86_64/libSystem.Security.Cryptography.Native.Apple.dylib": {
+        "bytes": 159584,
+        "sha256": "7ade90a78cb8a26427a9f53e330ff5e96ba66094f21d8013dd673e3c64cbc49b"
+      },
+      "x86_64/libclrgc.dylib": {
+        "bytes": 1043616,
+        "sha256": "ebc552397e9b10deaaea49c43dcfaa8d1161627d25686a768772e14fb76591a1"
+      },
+      "x86_64/libclrgcexp.dylib": {
+        "bytes": 1126816,
+        "sha256": "0f524c9f7668c0e0f69e3e3e0740f4506eeb3624f8ae599686c6226f341307b7"
+      },
+      "x86_64/libclrjit.dylib": {
+        "bytes": 3359264,
+        "sha256": "e7efd9bd372951d55401a09a400ec41d3c3e39756819540d67986cb38650ee33"
+      },
+      "x86_64/libcoreclr.dylib": {
+        "bytes": 6543584,
+        "sha256": "ade4d124b157d21b2e2c1625f2c12d89f30ea19eb31d703e0759f9a08c65d353"
+      },
+      "x86_64/libhostfxr.dylib": {
+        "bytes": 417744,
+        "sha256": "7767b77dff7639ab6eae4116cbaa37a0eb780d22e5759a57295322317b0ae1a8"
+      },
+      "x86_64/libhostpolicy.dylib": {
+        "bytes": 404048,
+        "sha256": "955fe99bceba95d07601b793521aa124836e094cb17c6240d4dae3313c501e31"
+      },
+      "x86_64/libmscordaccore.dylib": {
+        "bytes": 2430496,
+        "sha256": "fa0cef41cc0ac5690207ec9135fa5fd3e099da82bf6f8b3af860e9bd9b3a4453"
+      },
+      "x86_64/libmscordbi.dylib": {
+        "bytes": 1741168,
+        "sha256": "f8ece4349e501f3a9666a090715974da2cf891c932420282918df4a6b881a5ee"
+      },
+      "x86_64/mscorlib.dll": {
+        "bytes": 59688,
+        "sha256": "1a6c2c766352d096f68a54ad0c721c56827ad95c9433c447dff39ba65c8ddea0"
+      },
+      "x86_64/netstandard.dll": {
+        "bytes": 100688,
+        "sha256": "4f297de0cc2d2959de104044eb0e9bc469c5edd7fbb7b7bdb50055d8cfb7470a"
+      },
+      "x86_64/protobuf-net.Core.dll": {
+        "bytes": 300032,
+        "sha256": "18f2f6976f101c804d7c7314739fefce4dafa6d63ff4c3986e45d59967bd2777"
+      },
+      "x86_64/protobuf-net.dll": {
+        "bytes": 285184,
+        "sha256": "78d95efd88bce208a2aa412f193ed534e4b6337f8c15ff9171b8696946200edf"
+      }
+    }
+  },
+  "download_validation": {
+    "state": "passed",
+    "user_authorized_game_data_retention": true,
+    "actual_payload_architecture": "arm64 (native Apple Silicon); x86_64 payload not separately transferred",
+    "cohort": {
+      "schema": "H2_MACOS_STEAM_DOWNLOAD_COHORT_V1",
+      "scratch": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-37qm4sfw",
+      "retained_generated_artifacts": [],
+      "persistent_game_data_authorized": true,
+      "command": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "tools/run_tests.py",
+        "--source",
+        "tests/macos/python",
+        "--target",
+        "macos_python_tests",
+        "--filter",
+        "^macos_steam_download_resume$",
+        "--test-jobs",
+        "1",
+        "--cmake-arg=-DHALO2_MACOS_STEAM_SDK_INPUT=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-37qm4sfw/sdk",
+        "--cmake-arg=-DHALO2_MACOS_STEAM_DOWNLOAD_TEST=ON",
+        "--output",
+        "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-steam-download",
+        "--retain-report",
+        "steam-download-resume.json"
+      ],
+      "released_after_app_packaged": {
+        "paths": [
+          {
+            "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-37qm4sfw/sdk",
+            "allocated_file_bytes": 185335808
+          },
+          {
+            "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-d57y82vp/build/macos-dependencies/python-work",
+            "allocated_file_bytes": 424275968
+          },
+          {
+            "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-d57y82vp/build/macos-dependencies/python",
+            "allocated_file_bytes": 104005632
+          },
+          {
+            "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-d57y82vp/build/launcher-sdk",
+            "allocated_file_bytes": 126836736
+          }
+        ],
+        "free_before": 335135662080,
+        "free_after": 335979700224
+      },
+      "exit_code": 0,
+      "cmake": {
+        "passed": true,
+        "status": "passed",
+        "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-d57y82vp/build",
+        "steps": [
+          {
+            "name": "configure",
+            "command": [
+              "cmake",
+              "-S",
+              "/Users/eric/Developer/Halo2-macos-port/tests/macos/python",
+              "-B",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-d57y82vp/build",
+              "-DBUILD_TESTING=ON",
+              "-DCMAKE_BUILD_TYPE=Release",
+              "-DHALO2_MACOS_STEAM_SDK_INPUT=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-37qm4sfw/sdk",
+              "-DHALO2_MACOS_STEAM_DOWNLOAD_TEST=ON"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-steam-download/configure.log",
+            "exit_code": 0
+          },
+          {
+            "name": "build",
+            "command": [
+              "cmake",
+              "--build",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-d57y82vp/build",
+              "--config",
+              "Release",
+              "--parallel",
+              "2",
+              "--target",
+              "macos_python_tests"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-steam-download/build.log",
+            "exit_code": 0
+          },
+          {
+            "name": "tests",
+            "command": [
+              "ctest",
+              "--test-dir",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-d57y82vp/build",
+              "--build-config",
+              "Release",
+              "--output-on-failure",
+              "--no-tests=error",
+              "--parallel",
+              "1",
+              "--tests-regex",
+              "^macos_steam_download_resume$"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-steam-download/tests.log",
+            "exit_code": 0
+          }
+        ],
+        "retained_small_reports": [
+          {
+            "path": "steam-download-resume.json",
+            "status": "retained",
+            "bytes": 3263,
+            "sha256": "2390dc8a3fafb2a09f73791986ef3d4e8f7713fa12305c64fe43e7e3be04fca0",
+            "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-steam-download/evidence/steam-download-resume.json"
+          }
+        ]
+      },
+      "passed": true,
+      "build_removed": true
+    },
+    "result": {
+      "schema": "H2_MACOS_STEAM_DOWNLOAD_RESUME_V1",
+      "data_root": "/Users/eric/Library/Application Support/net.halo2forever",
+      "source_owner": "/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12",
+      "source_id": "e46c404c25077cdd5c064c12",
+      "payload_retention_authorized": true,
+      "preparation_started": false,
+      "runs": [
+        {
+          "phase": "seed",
+          "plan": {
+            "source_id": "e46c404c25077cdd5c064c12",
+            "files": 883,
+            "bytes": 42179329726,
+            "download_bytes": 28103673648,
+            "required_free_bytes": 128685472826,
+            "available_free_bytes": 335961706496,
+            "inventory_sha256": "2ca40ce755a565877d65f512d4bea1927d78863cc645c7fdbd40918c5add95a9",
+            "entitlement_verified": true
+          },
+          "started": true,
+          "cancel_seconds": 0.134,
+          "exit_code": 2,
+          "helper_reaped": true,
+          "reader_reaped": true,
+          "validated_transferred_uncompressed_bytes": 33973211,
+          "storage": {
+            "files": 13,
+            "logical_bytes": 10932130226,
+            "allocated_bytes": 38432768
+          }
+        },
+        {
+          "phase": "resume",
+          "plan": {
+            "source_id": "e46c404c25077cdd5c064c12",
+            "files": 883,
+            "bytes": 42179329726,
+            "download_bytes": 28103673648,
+            "required_free_bytes": 128685472826,
+            "available_free_bytes": 335913668608,
+            "inventory_sha256": "2ca40ce755a565877d65f512d4bea1927d78863cc645c7fdbd40918c5add95a9",
+            "entitlement_verified": true
+          },
+          "started": true,
+          "verified_reused_bytes": 33973211,
+          "verified_reused_files": 1,
+          "helper_reaped": true,
+          "reader_reaped": true,
+          "complete": {
+            "event": "complete",
+            "source": "/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12/content/halo2",
+            "source_id": "e46c404c25077cdd5c064c12",
+            "inventory_sha256": "2ca40ce755a565877d65f512d4bea1927d78863cc645c7fdbd40918c5add95a9",
+            "validated_compressed_bytes": 28087785568,
+            "reused_bytes": 33973211
+          },
+          "receipt": {
+            "schema": "H2_STEAM_COMPLETE_V1",
+            "source_id": "e46c404c25077cdd5c064c12",
+            "inventory_sha256": "2ca40ce755a565877d65f512d4bea1927d78863cc645c7fdbd40918c5add95a9",
+            "files": 883,
+            "bytes": 42179329726,
+            "validated_compressed_bytes": 28087785568,
+            "reused_bytes": 33973211
+          },
+          "storage": {
+            "files": 896,
+            "logical_bytes": 42183170486,
+            "allocated_bytes": 42185318400
+          }
+        }
+      ],
+      "partial_preserved": true,
+      "passed": true,
+      "all_selected_file_sha1_verified": true,
+      "source": "/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12/content/halo2",
+      "retained_reference_inputs": [
+        {
+          "path": "/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12",
+          "kind": "user-authorized Steam-owned MCC source",
+          "files": 896,
+          "logical_bytes": 42183170486,
+          "allocated_bytes": 42185318400
+        }
+      ],
+      "storage_after_stop": {
+        "files": 896,
+        "logical_bytes": 42183170486,
+        "allocated_bytes": 42185318400
+      }
+    },
+    "independent_read_only_source_audit": {
+      "schema": "H2_MACOS_STEAM_SOURCE_AUDIT_V1",
+      "scratch": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-xts44yp7",
+      "source_owner": "/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12",
+      "read_only_source_audit": true,
+      "preparation_started": false,
+      "retained_generated_artifacts": [],
+      "lockout_reader": {
+        "tags": 5816,
+        "groups": {
+          "scnr": 1,
+          "sky ": 1,
+          "mode": 134,
+          "shad": 332,
+          "stem": 81,
+          "spas": 90,
+          "vrtx": 91,
+          "bitm": 754,
+          "scen": 10,
+          "hlmt": 109,
+          "coll": 90,
+          "lens": 45,
+          "ssce": 5,
+          "lsnd": 157,
+          "snd!": 2162,
+          "ligh": 61,
+          "itmc": 11,
+          "ltmp": 1,
+          "bloc": 39,
+          "phmo": 62,
+          "effe": 585,
+          "sbsp": 1,
+          "snde": 3,
+          "weat": 1,
+          "fog ": 1,
+          "fpch": 1,
+          "unic": 78,
+          "ugh!": 2,
+          "matg": 1,
+          "sncl": 2,
+          "spk!": 1,
+          "pmov": 64,
+          "prt3": 187,
+          "bipd": 4,
+          "jmad": 64,
+          "garb": 1,
+          "foot": 69,
+          "PRTM": 6,
+          "udlg": 4,
+          "adlg": 1,
+          "MGS2": 15,
+          "trak": 16,
+          "jpt!": 104,
+          "nhdt": 32,
+          "deca": 54,
+          "vehi": 20,
+          "weap": 41,
+          "proj": 34,
+          "cont": 26,
+          "pphy": 7,
+          "ant!": 3,
+          "char": 2,
+          "styl": 10,
+          "eqip": 11,
+          "clwd": 1,
+          "tdtl": 2,
+          "mulg": 1,
+          "sfx+": 1,
+          "<fx>": 5,
+          "snmx": 1,
+          "colo": 4,
+          "hudg": 1,
+          "wgtz": 2,
+          "wigl": 1,
+          "skin": 32,
+          "wgit": 74,
+          "mcsr": 1,
+          "bsdt": 2,
+          "gldf": 1
+        }
+      },
+      "passed": true,
+      "files_verified": 883,
+      "bytes_verified": 42179329726,
+      "inventory_sha256": "2ca40ce755a565877d65f512d4bea1927d78863cc645c7fdbd40918c5add95a9",
+      "independent_plan_sha256": "89f7c809b2489cb817ba747f33f602d2ed0f6ef649796a345eaff6b59e216bfb",
+      "required_files": [
+        {
+          "path": "halo2/h2_fonts/font_table.txt",
+          "bytes": 156,
+          "download_bytes": 112,
+          "sha1": "baae20e1c4344c0be5f0f2035067878ae61542c8",
+          "depot_id": 976735,
+          "manifest_id": "3171334642139802443"
+        },
+        {
+          "path": "halo2/h2_maps_win64_dx11/lockout.map",
+          "bytes": 1820416,
+          "download_bytes": 1675328,
+          "sha1": "94ed4873eaa36e560b204a922617f7ea783ea3b5",
+          "depot_id": 976736,
+          "manifest_id": "7615983289011416505"
+        },
+        {
+          "path": "halo2/h2_maps_win64_dx11/mainmenu.map",
+          "bytes": 8331008,
+          "download_bytes": 6454400,
+          "sha1": "e3d47ef46eaab4eaaaf25432a8de1eb5e782a744",
+          "depot_id": 976735,
+          "manifest_id": "3171334642139802443"
+        },
+        {
+          "path": "halo2/h2_maps_win64_dx11/shared.map",
+          "bytes": 27908864,
+          "download_bytes": 23839536,
+          "sha1": "2d81edf6e97f1457ec90bd0e575eb44425912354",
+          "depot_id": 976735,
+          "manifest_id": "3171334642139802443"
+        },
+        {
+          "path": "halo2/h2_maps_win64_dx11/single_player_shared.map",
+          "bytes": 44841472,
+          "download_bytes": 39372528,
+          "sha1": "d0315b150a6835145d0d2a886d90711424d8d063",
+          "depot_id": 976735,
+          "manifest_id": "3171334642139802443"
+        },
+        {
+          "path": "halo2/h2_maps_win64_dx11/textures.dat",
+          "bytes": 564824320,
+          "download_bytes": 478706560,
+          "sha1": "aedd5eee290c4ff4500782ec635ed0ab499c65f5",
+          "depot_id": 976735,
+          "manifest_id": "3171334642139802443"
+        },
+        {
+          "path": "MCC/Content/Paks/MCC-WindowsNoEditor.pak",
+          "bytes": 10928289765,
+          "download_bytes": 5298558368,
+          "sha1": "0b08b6b666e242c73d690bcfa9bb9dfdcbf34c62",
+          "depot_id": 976731,
+          "manifest_id": "4956458579120161185"
+        }
+      ],
+      "all_selected_files_sha1_verified_independently": true,
+      "production_source_directory_admitted": true,
+      "loading_media": {
+        "bytes": 3356709,
+        "sha256": "7ecbdce187ffda00077a593db8ef65a5e9e5ef72d0cd3d4474c523246f7b1695"
+      },
+      "source": "/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12/content/halo2",
+      "receipt": {
+        "schema": "H2_STEAM_COMPLETE_V1",
+        "source_id": "e46c404c25077cdd5c064c12",
+        "inventory_sha256": "2ca40ce755a565877d65f512d4bea1927d78863cc645c7fdbd40918c5add95a9",
+        "files": 883,
+        "bytes": 42179329726,
+        "validated_compressed_bytes": 28087785568,
+        "reused_bytes": 33973211
+      },
+      "storage": {
+        "files": 896,
+        "logical_bytes": 42183170486,
+        "allocated_bytes": 42185318400
+      },
+      "source_sha256": {
+        "tools/steam_content.py": "53cb46ae64f6b7947f614608c428192e377065100300e6d9e0fdfce87a05b25e",
+        "tools/steam/content-profile.json": "cbb9f611704b7c1b4e0c4b00aa6cdf5f6989e2fcda43f74b1bcdd4879ab92b68",
+        "tools/mcc_content.py": "835afea069ac06b3b9667e17d855de4180b90a2a778421833e4071f80eafd25f",
+        "tools/mcc_loading_presentation.py": "e3d54f58fe2b9b38000d517921777f74382809888c026bacfcc1895fcfd84c45"
+      },
+      "elapsed_seconds": 21.166
+    },
+    "independent_audit_scratch_removed_verified": true,
+    "linux_owner_removed_verified": true,
+    "probe_sources": {
+      "audit_source": "import collections,hashlib,json,os,stat,sys,time\nfrom pathlib import Path\nroot=Path.cwd();sys.path.insert(0,str(root/'tools'))\nfrom steam_content import file_plan,profile,manifest_path\nfrom mcc_content import directory,MccCache\nfrom mcc_loading_presentation import read_media,MEDIA_SHA\nowned=Path.home()/'Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12'\nout=root/'build/test-results/macos-steam-download/source-audit.json'\nreport={'schema':'H2_MACOS_STEAM_SOURCE_AUDIT_V1','scratch':os.environ['HALO2_TEST_SCRATCH'],'source_owner':str(owned),'read_only_source_audit':True,'preparation_started':False,'retained_generated_artifacts':[]}\nstarted=time.monotonic()\ntry:\n complete=json.loads((owned/'complete.json').read_text())\n raw=(owned/'selected-files.json').read_bytes();files=json.loads(raw)\n assert complete['schema']=='H2_STEAM_COMPLETE_V1' and complete['source_id']==owned.name\n assert hashlib.sha256(raw).hexdigest()==complete['inventory_sha256']\n marker=json.loads((owned/'owner.json').read_text());rules=profile()\n depots={'depots':[dict(depot_id=d['depot_id'],manifest_id=d['manifest_id'],role=rules['depots'][str(d['depot_id'])]) for d in marker['depots']]}\n manifests=[dict(depot_id=d['depot_id'],manifest_id=d['manifest_id'],files=[dict(name=f['path'],bytes=f['bytes'],compressed_bytes=f['download_bytes'],sha1=f['sha1']) for f in files if f['depot_id']==d['depot_id']]) for d in marker['depots']]\n planned=file_plan(depots,manifests)\n assert (len(planned['files']),planned['bytes'],planned['download_bytes'])==(883,42179329726,28103673648)\n verified_bytes=0;required=[]\n for f in planned['files']:\n  path=owned/'content'/manifest_path(f['path'])\n  p=path\n  while p!=owned.parent:\n   assert not p.is_symlink(),'Linked source entry'\n   p=p.parent\n  before=path.stat()\n  assert stat.S_ISREG(before.st_mode) and before.st_size==f['bytes']\n  with path.open('rb') as stream:digest=hashlib.file_digest(stream,'sha1').hexdigest()\n  after=path.stat()\n  assert (before.st_size,before.st_mtime_ns,before.st_ino)==(after.st_size,after.st_mtime_ns,after.st_ino)\n  assert digest==f['sha1'],'Source checksum mismatch'\n  verified_bytes+=before.st_size\n  if f['path'].casefold() in {p.casefold() for p in rules['required_files']}:required.append(f)\n source=directory(owned/'content/halo2');assert source==owned/'content/halo2'\n assert directory(source.parent)==source and directory(source/'h2_maps_win64_dx11')==source\n cache=MccCache(source/'h2_maps_win64_dx11/lockout.map')\n report['lockout_reader']={'tags':len(cache.tags),'groups':dict(collections.Counter(v['group'] for v in cache.tags.values()))}\n assert report['lockout_reader']['tags']>0\n cache.close()\n media,provenance=read_media(source);assert hashlib.sha256(media).hexdigest()==MEDIA_SHA\n report.update(passed=True,files_verified=len(planned['files']),bytes_verified=verified_bytes,\n  inventory_sha256=complete['inventory_sha256'],independent_plan_sha256=planned['plan_sha256'],\n  required_files=required,all_selected_files_sha1_verified_independently=True,\n  production_source_directory_admitted=True,loading_media={'bytes':len(media),'sha256':MEDIA_SHA},\n  source=str(source),receipt=complete)\n report['storage']={'files':0,'logical_bytes':0,'allocated_bytes':0}\n for p in owned.rglob('*'):\n  if p.is_file() and not p.is_symlink():\n   s=p.stat();report['storage']['files']+=1;report['storage']['logical_bytes']+=s.st_size;report['storage']['allocated_bytes']+=s.st_blocks*512\n report['source_sha256']={name:hashlib.sha256((root/name).read_bytes()).hexdigest() for name in ['tools/steam_content.py','tools/steam/content-profile.json','tools/mcc_content.py','tools/mcc_loading_presentation.py']}\nexcept BaseException as e:report.update(passed=False,error=type(e).__name__+': '+str(e)[:1000])\nfinally:\n report['elapsed_seconds']=round(time.monotonic()-started,3)\n out.write_text(json.dumps(report,indent=2)+'\\n')\nprint(json.dumps({'passed':report.get('passed'),'files':report.get('files_verified'),'bytes':report.get('bytes_verified'),'error':report.get('error'),'elapsed_seconds':report['elapsed_seconds']}),flush=True)\nsys.exit(0 if report.get('passed') else 1)\n",
+      "cleanup_source": "import json,os,plistlib,subprocess\nfrom pathlib import Path\nroot=Path.cwd();out=root/'build/test-results/macos-steam-download'\nactive=json.loads((out/'active-owner.json').read_text());receipt=json.loads((out/'report.json').read_text())\npaths=[Path(active['scratch']),Path(active['build']).parent]\npaths += [Path(v['path']) for v in active['released_inputs']]\nremoved=[{'path':str(p),'removed':not p.exists()} for p in paths]\nraw=subprocess.check_output(['ps','-ax','-o','pid=','-o','ppid=','-o','args='],text=True)\nprocesses=[]\nfor line in raw.splitlines():\n parts=line.strip().split(None,2)\n if len(parts)==3:\n  try:processes.append((int(parts[0]),int(parts[1]),parts[2]))\n  except ValueError:pass\nparents={pid:parent for pid,parent,args in processes};excluded=set();current=os.getpid()\nwhile current and current not in excluded:excluded.add(current);current=parents.get(current,0)\nlive=[{'pid':pid,'parent_pid':parent} for pid,parent,args in processes if pid not in excluded and any(str(p) in args for p in paths[:2])]\nimages=plistlib.loads(subprocess.check_output(['hdiutil','info','-plist']))['images']\nmounts=[{'image_path':image.get('image-path')} for image in images if any(str(p) in str(image.get('image-path','')) for p in paths[:2])]\nresult={'schema':'H2_MACOS_STEAM_DOWNLOAD_CLEANUP_V1','owned_paths':removed,'live_owned_processes':live,'owned_disk_images':mounts,'cmake_passed':receipt['passed'],'retained_generated_artifacts':[],\n'retained_reference_inputs':[{'path':str(Path.home()/'Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12'),'kind':'User-authorized owned MCC source; preserve for port testing','allocated_file_bytes':42185318400}],\n'passed':all(v['removed'] for v in removed) and not live and not mounts}\n(out/'cleanup.json').write_text(json.dumps(result,indent=2)+'\\n')\nprint(json.dumps(result))\n"
+    },
+    "probe_source_sha256": {
+      "audit_source": "839ce4e5eaacd8d0073b82abac758b2702eecb78b0929991fdd0c1ac6f4f1c34",
+      "cleanup_source": "38260777df53f98b3cfe21a079c97c519a37c99a6835acba50d8fd6953ef1a14"
+    },
+    "raw_report_sha256": {
+      "download-report.json": "a4f0c903c292f96200fe763b0ac1904606ffa8baa0605510bf2c3a4151ac6689",
+      "source-audit.json": "8b29c1eecf363d28035fabdcf9d85224f662034530de6e780468f88c1ca619a3",
+      "cleanup.json": "bc2c99e295ee00fe685906bee9dc896d14f9cb0f9f26a5843eb70650f0bf9064"
+    }
+  }
+}

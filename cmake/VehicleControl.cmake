@@ -1,6 +1,6 @@
 # Original scalar vehicle controls remain separate from the unfinished live
 # driving/body integration. Build this component with strict FP semantics.
-add_library(halo2_vehicle_control STATIC src/source_vehicle_control.cpp)
+add_library(halo2_vehicle_control STATIC src/gameplay/vehicles/source_vehicle_control.cpp)
 target_include_directories(halo2_vehicle_control PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_vehicle_control PUBLIC cxx_std_20)
 if(MSVC)

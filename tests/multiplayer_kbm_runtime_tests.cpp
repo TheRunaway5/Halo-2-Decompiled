@@ -117,6 +117,7 @@ int main(int argc, char **argv) {
       case 128:
         key(window_id, SDL_SCANCODE_W, true); mouse(window_id, true);
         key(window_id, SDL_SCANCODE_SPACE, true); key(window_id, SDL_SCANCODE_R, true);
+        key(window_id, SDL_SCANCODE_SPACE, false); key(window_id, SDL_SCANCODE_R, false);
         break;
       case 135: key(window_id, SDL_SCANCODE_F1, true); key(window_id, SDL_SCANCODE_F1, false); break;
       case 140:
@@ -192,20 +193,17 @@ int main(int argc, char **argv) {
     check(sample(124).controls.yaw != sample(121).controls.yaw &&
           sample(124).controls.pitch != sample(121).controls.pitch,
           "Relative SDL mouse motion did not reach the live camera");
-    for (unsigned tick = 130; tick <= 140; ++tick)
-      check(!sample(tick).controls.forward && !sample(tick).controls.fire &&
-            !sample(tick).controls.jump && !sample(tick).controls.reload,
-            "F1 capture or closing the panel leaked held/queued gameplay input");
-    check(sample(144).controls.forward == 1 && sample(144).controls.fire,
-          "Fresh input after closing F1 did not resume gameplay");
+    for (unsigned tick = 130; tick <= 144; ++tick)
+      check(sample(tick).controls.forward == 1 && sample(tick).controls.fire,
+            "F1 interrupted held gameplay input after debug menu removal");
     for (unsigned tick = 148; tick < 154; ++tick)
       check(!sample(tick).controls.forward && !sample(tick).controls.fire,
-            "Released input or reopened F1 leaked gameplay input");
+            "Released gameplay input returned after pressing F1");
     SDL_GameControllerClose(controller); SDL_JoystickClose(joystick);
     check(SDL_JoystickDetachVirtual(device) == 0, "Virtual controller did not detach");
     std::cout << "PASS: actual rendered multiplayer, 154+ observed simulation ticks, idle attached controller, "
                  "WASD movement, Shift crouch, single Space/R taps, LMB ammunition, R reload, mouse look, focus reset, "
-                 "F1 gameplay capture, stale-input release and fresh-input resume\n";
+                 "inert F1 and normal held-input release\n";
     std::cout << "LIMIT: scope/switch/scoreboard/melee/grenade gameplay handlers are not validated by this probe\n";
   } catch (const std::exception &error) { std::cerr << error.what() << '\n'; return 1; }
 #endif

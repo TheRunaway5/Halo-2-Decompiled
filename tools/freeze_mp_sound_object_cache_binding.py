@@ -31,9 +31,9 @@ def main():
             for path,value in manifest.get(group,{}).items():add(prior,path,value)
     verify(prior)
     names=['CMakeLists.txt','include/halo2/cache.hpp','include/halo2/original_data.hpp',
-        'src/original_data.cpp','include/halo2/sound_object_request.hpp','src/sound_object_request.cpp',
-        'include/halo2/fp_sound_request.hpp','src/fp_sound_request.cpp',
-        'include/halo2/sound_metadata_store.hpp','src/sound_metadata_store.cpp',
+        'src/assets/original_data.cpp','include/halo2/sound_object_request.hpp','src/audio/sound_object_request.cpp',
+        'include/halo2/fp_sound_request.hpp','src/gameplay/weapons/fp_sound_request.cpp',
+        'include/halo2/sound_metadata_store.hpp','src/audio/sound_metadata_store.cpp',
         'tests/sound_object_request_tests.cpp','tests/sound_object_cache_binding_tests.cpp',
         'tools/freeze_mp_native_sound_storage.py','tools/freeze_mp_sound_object_cache_binding.py',
         'docs/MP_SOUND_OBJECT_CACHE_BINDING_RESEARCH.md']

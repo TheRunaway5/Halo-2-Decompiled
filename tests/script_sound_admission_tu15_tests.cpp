@@ -47,12 +47,8 @@ void run(Cache &cache,bool source_mode,const std::filesystem::path &xbe){
  if(source_mode)source=std::make_shared<CampaignSourceRuntime>(cache,xbe,0,1,0x12345678);
  Simulation sim(c,0,cache.spawns().front(),{},{},{},{},{},{},source);
  sim.cinematic_text_services([](auto){return true;},[](auto){return 1.f;});
- if(source_mode) {
-  // Exercise actual source-bank/lifetime checkpoint publication, not the
-  // debug snapshot route (which intentionally rejects source-backed worlds).
-  sim.request_checkpoint();sim.step({});check(sim.has_checkpoint(),"source checkpoint was not captured");
-  sim.request_revert();sim.step({});
- } else {sim.debug_save_snapshot("before");sim.debug_load_snapshot("before");}
+ sim.request_checkpoint();sim.step({});check(sim.has_checkpoint(),"checkpoint was not captured");
+ sim.request_revert();sim.step({});
  // This older queued Reset must precede the new impulse.
  std::vector<Seen> seen;unsigned diagnostics{},rng_writes{},nested_checks{},capture_checks{};
  std::uint32_t random=0x12345678;
@@ -114,7 +110,7 @@ void run(Cache &cache,bool source_mode,const std::filesystem::path &xbe){
   check(sim.take_sounds().empty(),"immediate event also queued for duplicate delivery");
   check(sim.scripts().globals().at(0).number()==3,"script did not resume after synchronous sound host return");
   if(source_mode){check(rng_writes==2&&nested_checks==2&&packets.size()==2,"actual audio/RNG/public guard controls incomplete");check(rng_before[1]==rng_after[0],"later source request did not observe prior immediate auxiliary RNG publication");}
-  restored=true;if(source_mode){sim.request_revert();sim.step({});}else sim.debug_load_snapshot("before");
+  restored=true;sim.request_revert();sim.step({});
   check(seen.size()==8 && std::get<0>(seen.back())==SoundEvent::Reset,"restored reset was delayed or omitted");
  }
  check(diagnostics==0,"host audio/guard diagnostic occurred");

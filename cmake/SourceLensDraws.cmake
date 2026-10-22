@@ -2,16 +2,16 @@
 # retained owners. Ordinary scheduling still requires its bitmap publication
 # and parent/view owner; adding bodies does not synthesize a visible request.
 include(cmake/VulkanLensRetirementObserver.cmake)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_lens_draw_tu15_generated.cpp)
-target_sources(halo2_renderer PRIVATE src/source_lens_draw_geometry_tu15.cpp src/source_lens_draw_gpu.cpp src/source_lens_draw_frame_tu15.cpp src/source_lens_cpu_cache_tu15.cpp src/source_lens_presentation_handoff_tu15.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/rendering/effects/source_lens_draw_tu15_generated.cpp)
+target_sources(halo2_renderer PRIVATE src/rendering/effects/source_lens_draw_geometry_tu15.cpp src/rendering/effects/source_lens_draw_gpu.cpp src/rendering/effects/source_lens_draw_frame_tu15.cpp src/rendering/effects/source_lens_cpu_cache_tu15.cpp src/rendering/effects/source_lens_presentation_handoff_tu15.cpp)
 if(MSVC)
-    set_property(SOURCE src/source_lens_draw_frame_tu15.cpp src/source_lens_cpu_cache_tu15.cpp
+    set_property(SOURCE src/rendering/effects/source_lens_draw_frame_tu15.cpp src/rendering/effects/source_lens_cpu_cache_tu15.cpp
         APPEND PROPERTY COMPILE_OPTIONS /fp:strict)
 else()
-    set_property(SOURCE src/source_lens_draw_frame_tu15.cpp src/source_lens_cpu_cache_tu15.cpp
+    set_property(SOURCE src/rendering/effects/source_lens_draw_frame_tu15.cpp src/rendering/effects/source_lens_cpu_cache_tu15.cpp
         APPEND PROPERTY COMPILE_OPTIONS -ffp-contract=off)
 endif()
-add_library(halo2_mcc_lens_bitmap_layout STATIC src/mcc_lens_bitmap_layout.cpp)
+add_library(halo2_mcc_lens_bitmap_layout STATIC src/rendering/effects/mcc_lens_bitmap_layout.cpp)
 target_include_directories(halo2_mcc_lens_bitmap_layout PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(halo2_renderer PRIVATE halo2_mcc_lens_bitmap_layout)
 set(lens_draw_shaders)

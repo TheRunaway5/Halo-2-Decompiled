@@ -5,6 +5,10 @@
 #include "halo2/source_device_world.hpp"
 #include "halo2/effect_sound.hpp"
 #include "halo2/multiplayer_pose_continuity.hpp"
+#include "halo2/multiplayer_scene_continuity.hpp"
+#include "halo2/multiplayer_hud_continuity.hpp"
+#include "halo2/multiplayer_locomotion_continuity.hpp"
+#include "halo2/sound_classes.hpp"
 #include <map>
 #include <set>
 
@@ -31,6 +35,7 @@ struct MultiplayerRuntimeReceiptValues {
     std::set<std::uint32_t> heard_prop_effects,attached_effect_objects;
     std::map<std::pair<std::uint16_t,std::uint32_t>,MultiplayerRuntimeFiringOwner> firing_instances;
     std::array<std::uint32_t,multiplayer_capacity> heard_shots{};
+    std::array<std::uint32_t,multiplayer_capacity> heard_teleports{};
     std::optional<std::uint64_t> world_effect_tick;
     std::optional<std::uint32_t> muzzle_pose_tick;
     std::vector<std::array<std::uint32_t,3>> muzzle_pose_owners;
@@ -39,6 +44,11 @@ struct MultiplayerRuntimeReceiptValues {
     // a render frame consumes several received snapshots.
     std::vector<SoundEvent> sounds;
     std::vector<std::pair<std::uint32_t,std::uint32_t>> weapon_sounds;
+    // Actual local peer envelopes at this receipt, before the once-per-frame
+    // audio elapsed update. Preserve all target/current/remaining triples and
+    // the one-shot game-over latch. Authority Simulation owns its own classes.
+    SoundClassFades peer_sound_classes;
+    bool peer_game_over_fade_started{};
 };
 struct MultiplayerRuntimeReceiptFrontier : MultiplayerRuntimeReceiptValues {
     // Captured by the actual display replica after this accepted receipt's
@@ -49,6 +59,18 @@ struct MultiplayerRuntimeReceiptFrontier : MultiplayerRuntimeReceiptValues {
     // reconstructed from two decoded states. Headless legacy fixtures may
     // omit it; a complete windowed receipt restore requires its owning token.
     MultiplayerPoseContinuity::Snapshot pose;
+    // Exact scene adapters, external callback/portal/light values and material
+    // graph, captured together at the actual receipt boundary. Headless legacy
+    // frontiers may omit this; windowed scene restoration requires it.
+    MultiplayerSceneContinuity::Snapshot scene;
+    // Every fixed resident HUD registry and the actual scoreboard at this
+    // boundary, including dormant owners and their preceding-render CPU
+    // state. Capture never advances HUD animation or held-input clocks.
+    MultiplayerHudContinuity::Snapshot hud;
+    // All sixteen actual native gait slots and their salted metadata at this
+    // receipt, including absent/dormant/unavailable slots. Never reconstructed
+    // from the decoded roster or from two completed pose endpoints.
+    MultiplayerLocomotionContinuity::Snapshot locomotion;
     // Filled by the history's fresh capture of its bound sound owner. Input
     // frontiers leave this empty; stale same-owner checkpoints are rejected.
     NativeEffectSounds::Checkpoint pending_effect_sounds;

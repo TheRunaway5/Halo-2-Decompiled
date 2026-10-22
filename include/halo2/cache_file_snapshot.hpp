@@ -13,7 +13,7 @@ public:
     static std::shared_ptr<CacheFileSnapshot> try_open(const std::filesystem::path &);
     // Capture independent complete bytes on disk with bounded writeback.
     // The optional suffix supports byte-buffer growth without a RAM-sized
-    // temporary. Linux requires disk-backed storage, rather than tmpfs/ramfs.
+    // temporary. Linux/macOS reject tmpfs/ramfs backing.
     static std::shared_ptr<CacheFileSnapshot> try_capture(
         std::span<const std::byte>, std::span<const std::byte> suffix = {});
     // Capture the actual admitted regular file without changing its cursor.

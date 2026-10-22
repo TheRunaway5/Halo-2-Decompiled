@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/hud.hpp"
 #include <bit>
@@ -110,7 +111,7 @@ void run(const Cache& cache,const LevelContent& content,bool teams,bool moving) 
     const auto point=interior(*match.source_king_state());Spawn spawn;spawn.position={point[0],point[1],point[2]};
     // Explicit position service input isolates objective delivery from normal
     // movement/spawn/HUD verification. All actual gameplay ticks still run.
-    for(unsigned i=0;i<multiplayer_capacity;++i)match.debug_request({DebugGameRequest::Teleport,i,0,{}},&spawn);
+    for(unsigned i=0;i<multiplayer_capacity;++i)test::place_player(match,i,spawn);
     client.send(local);proxy.pump();host.receive(controls);proxy.pump();match.step(controls);host.broadcast();
     auto packets=proxy.pump();fragments=std::max(fragments,unsigned(packets.size()));check(packets.size()>1,"Full King roster was not fragmented");
     if(tick==29) {

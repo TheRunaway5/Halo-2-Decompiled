@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #include "halo2/multiplayer.hpp"
 #include "halo2/hud.hpp"
 #include <bit>
@@ -71,8 +72,8 @@ int main(int argc,char **argv)try {
         match->configure_local_views(views,definitions);
       }
       std::array<Controls,16> idle{};
-      match->debug_request({DebugGameRequest::Teleport,player},&spawn);match->step(idle);
-      match->debug_request({DebugGameRequest::Teleport,player},&spawn);
+      test::place_player(*match,player,spawn);match->step(idle);
+      test::place_player(*match,player,spawn);
       idle[player].pickup=true;idle[player].pickup_milliseconds=233;match->step(idle);idle[player]={};
       if(match->unit(player).weapon.definition!=weapon->first)throw FormatError("Actual charged pickup did not attach");
       for(unsigned n=0;n<120;++n)match->step(idle);

@@ -3,10 +3,10 @@
 import argparse,json,os,shutil,subprocess
 from pathlib import Path
 from oracle_mp_title_update_display import ROOT,sha,save,encoded
-INPUTS=('src/sound_capabilities.cpp','tests/sound_capabilities_tests.cpp','src/native_sound_storage.cpp','src/native_synchronization.cpp')
+INPUTS=('src/audio/sound_capabilities.cpp','tests/sound_capabilities_tests.cpp','src/audio/native_sound_storage.cpp','src/platform/native_synchronization.cpp')
 def run(out,fixture):
  assert not out.exists();out.mkdir(parents=True)
- dep=subprocess.run(['g++','-std=c++20','-Iinclude','-MM',*INPUTS],cwd=ROOT,capture_output=True,text=True,check=True);save(out/'dependencies.txt',dep.stdout.encode())
+ dep=subprocess.run(['g++','-std=c++20','-Iinclude', '-Isrc','-MM',*INPUTS],cwd=ROOT,capture_output=True,text=True,check=True);save(out/'dependencies.txt',dep.stdout.encode())
  names=sorted(set(q for q in dep.stdout.replace('\\\n',' ').split()if not q.endswith(':')));pins={}
  for name in names:
   source=ROOT/name;before=sha(source);target=out/'source'/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,target);assert sha(source)==sha(target)==before;pins[name]=before
@@ -16,7 +16,7 @@ def run(out,fixture):
  command(['g++','--version'],'compiler-version')
  for mode,flags in(('normal',['-O2']),('sanitizer',['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer'])):
   binary=out/f'sound_capabilities_tests_{mode}'
-  command(['g++','-std=c++20','-pthread','-Wall','-Wextra','-Wpedantic','-Werror',*flags,'-I'+str(out/'source/include'),*[str(out/'source'/n)for n in INPUTS],'-o',str(binary)],mode+'-build')
+  command(['g++','-std=c++20','-pthread','-Wall','-Wextra','-Wpedantic','-Werror',*flags,'-I'+str(out/'source/include'), '-I'+str(out/'source/src'),*[str(out/'source'/n)for n in INPUTS],'-o',str(binary)],mode+'-build')
   env=dict(ASAN_OPTIONS='detect_leaks=1:halt_on_error=1',UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1')if mode=='sanitizer'else{}
   r=command([str(binary),str(fixture)],mode+'-test',env);print(mode,r.stdout.strip(),flush=True)
  for name,h in pins.items():assert sha(ROOT/name)==sha(out/'source'/name)==h,name

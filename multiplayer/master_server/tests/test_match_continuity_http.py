@@ -74,7 +74,7 @@ class ContinuityHttpTests(unittest.IsolatedAsyncioTestCase):
     def packet(self, target, epoch, kind=1):
         return bytes([target]) + epoch.to_bytes(4, "little") + b"H2N2\x3c\x00" + bytes([kind]) + b"x" * 20
 
-    async def test_nonhost_disconnect_keeps_room_routes_and_retained_result(self):
+    async def test_nonhost_disconnect_keeps_routes_but_cannot_supply_result_consent(self):
         descriptors, sockets, queues, host, room = await self.running()
         h = next(i for i, d in enumerate(descriptors) if d["slot"] == host)
         lost = (h + 1) % 3
@@ -97,14 +97,47 @@ class ContinuityHttpTests(unittest.IsolatedAsyncioTestCase):
             await self.next(queues[i], lambda p: isinstance(p, dict) and "postgame" in p)
         for i in (h, survivor):
             await sockets[i].send_json({"confirm_result": hashlib.sha256(raw).hexdigest()})
-        for i in (h, survivor):
-            await self.next(queues[i], lambda p: isinstance(p, dict) and "completed" in p)
+        async with asyncio.timeout(3):
+            while len(room.confirmations) != 2:
+                await asyncio.sleep(.005)
         row = self.api.directory.store.db.execute(
             "SELECT policy,admitted_connections,confirming_connections,departed_slots,authority_epoch "
             "FROM match_result_consensus WHERE match=?", (room.id,)).fetchone()
-        self.assertEqual(tuple(row), ("native-survivors-v1", 3, 2, 1 << descriptors[lost]["slot"], 0))
+        self.assertIsNone(row)
+        self.assertEqual(room.phase, "reviewing")
         self.assertEqual(self.api.directory.store.db.execute(
-            "SELECT count(*) FROM match_result_players WHERE match=?", (room.id,)).fetchone()[0], 3)
+            "SELECT count(*) FROM match_results WHERE id=?", (room.id,)).fetchone()[0], 0)
+        self.assertEqual(self.api.directory.store.db.execute(
+            "SELECT count(*) FROM match_result_players WHERE match=?", (room.id,)).fetchone()[0], 0)
+
+    async def test_review_confirmation_survives_relay_disconnect(self):
+        descriptors, sockets, queues, host, room = await self.running()
+        h = next(i for i, d in enumerate(descriptors) if d["slot"] == host)
+        leaving, last = [i for i in range(3) if i != h]
+        raw = self.report(descriptors)
+        digest = hashlib.sha256(raw).hexdigest()
+        await sockets[h].send_json({"postgame": raw.hex()})
+        for queue in queues:
+            await self.next(queue, lambda p: isinstance(p, dict) and "postgame" in p)
+        await sockets[leaving].send_json({"confirm_result": digest})
+        owner = room.players[descriptors[leaving]["slot"]][0]
+        async with asyncio.timeout(3):
+            while owner not in room.confirmations:
+                await asyncio.sleep(.005)
+        await sockets[leaving].close()
+        async with asyncio.timeout(3):
+            while owner in room.tokens:
+                await asyncio.sleep(.005)
+        self.assertIn(owner, room.confirmations)
+        for i in (h, last):
+            await sockets[i].send_json({"confirm_result": digest})
+        for i in (h, last):
+            self.assertEqual(await self.next(queues[i], lambda p: isinstance(p, dict) and "completed" in p),
+                             {"completed": digest})
+        receipt = self.api.directory.store.db.execute(
+            "SELECT policy,admitted_connections,confirming_connections FROM match_result_consensus WHERE match=?",
+            (room.id,)).fetchone()
+        self.assertEqual(tuple(receipt), ("native-unanimous-v1", 3, 3))
 
     async def test_host_handoff_preserves_room_and_rejects_old_generation(self):
         descriptors, sockets, queues, host, room = await self.running()
@@ -191,6 +224,19 @@ class ContinuityHttpTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(WSServerHandshakeError):
             await self.client.ws_connect("/v1/matches/" + room.id + "/relay",
                 headers={"Authorization": "Bearer " + descriptors[lost]["token"]})
+        # Neither the departed host nor a timed-out rebind supplied consent.
+        # A complete-world acknowledgement is not a postgame result vote.
+        raw = self.report(descriptors)
+        await sockets[candidate].send_json({"postgame": raw.hex()})
+        await self.next(queues[candidate], lambda p: isinstance(p, dict) and "postgame" in p)
+        await sockets[candidate].send_json({"confirm_result": hashlib.sha256(raw).hexdigest()})
+        owner = room.players[descriptors[candidate]["slot"]][0]
+        async with asyncio.timeout(3):
+            while owner not in room.confirmations:
+                await asyncio.sleep(.005)
+        self.assertEqual(room.phase, "reviewing")
+        self.assertEqual(self.api.directory.store.db.execute(
+            "SELECT count(*) FROM match_results WHERE id=?", (room.id,)).fetchone()[0], 0)
 
 
 if __name__ == "__main__":

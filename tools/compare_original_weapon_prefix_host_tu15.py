@@ -83,7 +83,7 @@ def main():
         eflags=observed['eflags'], x87_control=observed['x87_control_word'], x87_status=observed['x87_status'],
         x87_tag=observed['x87_tag'], mxcsr=observed['mxcsr'])
     mask = defined_flag_mask(host['instructions'])
-    damage_source = ROOT/'src/source_damage_delivery_runtime_generated.cpp'
+    damage_source = ROOT/'src/gameplay/units/source_damage_delivery_runtime_generated.cpp'
     pc_map, owners, store_sites = damage_pc_mapping(damage_source)
     domains = native['canonical_damage_instruction_ranges']
     actual_native_trace = native['instructions'].copy()

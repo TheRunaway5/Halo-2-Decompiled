@@ -9,7 +9,7 @@ def main():
     p.add_argument('--output',type=Path,required=True);p.add_argument('--sanitizer',action='store_true');a=p.parse_args()
     build=a.build.resolve();out=a.output.resolve();assert build.is_dir()and not out.exists();out.mkdir(parents=True)
     target='object_physics_construction_tests';names=['include/halo2/object_physics_construction.hpp',
-        'src/object_physics_construction.cpp','tests/object_physics_construction_tests.cpp'];observed={}
+        'src/gameplay/objects/object_physics_construction.cpp','tests/object_physics_construction_tests.cpp'];observed={}
     for name in names+['CMakeLists.txt']:
         destination=out/'source-before'/name;destination.parent.mkdir(parents=True,exist_ok=True)
         shutil.copy2(ROOT/name,destination);observed[name]=sha(ROOT/name)

@@ -19,7 +19,7 @@ def main():
   if p!='CMakeLists.txt':assert sha(ROOT/p)==h,p
  assert sha(E/'dependencies.d')==m['dependencies_sha256']
  assert m['main_production_module_sha256']==sha(ROOT/'cmake/PhysicsMainHeap.cmake')
- assert 'src/physics_main_heap_runtime_generated.cpp' in (ROOT/'cmake/PhysicsMainHeap.cmake').read_text()
+ assert 'src/physics/physics_main_heap_runtime_generated.cpp' in (ROOT/'cmake/PhysicsMainHeap.cmake').read_text()
  same_tree(E/'correspondence-v1',E/'correspondence-repeat');same_tree(E/'original-v1',E/'original-repeat')
  p=E/'correspondence-v1/complete-report.json';assert sha(p)=='0504f7dd7d9ca46abb6d129f899b5f711214768b28c7db3376850d61787dd084'
  paired=json.loads(p.read_text());original=json.loads((E/'original-v1/report.json').read_text())
@@ -38,10 +38,10 @@ def main():
   assert original[key]==sha(E.parent/directory/'correspondence-v1/complete-report.json')
  g=json.loads((E/'generated-v1.json').read_text());assert g==json.loads((E/'generated-repeat.json').read_text())
  assert g['generator_sha256']==sha(ROOT/'tools/generate_physics_early_initializer_tu15_20261012.py') and g['correspondence_sha256']==sha(p)
- assert g['generated_cpp_sha256']==sha(ROOT/'src/physics_early_initializer_runtime_generated.cpp')==sha(E/'runtime-repeat.cpp')
+ assert g['generated_cpp_sha256']==sha(ROOT/'src/physics/physics_early_initializer_runtime_generated.cpp')==sha(E/'runtime-repeat.cpp')
  assert len(g['lowered_instructions'])==45 and not g['production_opcode_decoder'] and not g['production_original_code_execution']
  f=json.loads((E/'call-frames.json').read_text());assert f['tool_sha256']==sha(ROOT/'tools/export_physics_early_initializer_frames_tu15_20261012.py')
- assert f['reports'][0]==sha(p) and f['header_sha256']==sha(ROOT/'src/physics_early_initializer_call_frames.hpp') and len(f['frames'])==8
+ assert f['reports'][0]==sha(p) and f['header_sha256']==sha(ROOT/'src/physics/physics_early_initializer_call_frames.hpp') and len(f['frames'])==8
  assert len(original['steps'])==5 and [s['pending_renderer']for s in original['steps']]==[False,False,False,True,False]
  assert original['stores']==1049789 and original['executed_original_instructions']==1066041 and original['executed_sites']==834
  assert original['store_sha256']==sha(E/'original-v1'/original['store_file'])

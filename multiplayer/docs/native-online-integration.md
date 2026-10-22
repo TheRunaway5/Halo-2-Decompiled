@@ -1,5 +1,13 @@
 # Native ONLINE integration
 
+Asset-policy update, 2026-10-21: the dated Vista-bank/XBE integration below is
+reference evidence. MCC imports are now the sole runtime donor for ONLINE/clans,
+including native prompt fonts; old flags, byte comparisons and selected-launcher
+receipts do not qualify the changed MCC-only route. Preserve source/service/
+geometry evidence and require current U01/U02/D01 acceptance, with complete
+shader/movie, physical and fresh-delivery gaps still open in
+[the maintained goal](online-completion-goal.md).
+
 The 12 October increment connects the existing native Friends invitation action
 to the official Discord Social SDK, keeps the received invitation inbox in the
 Vista selected-player flow, and isolates ONLINE fonts and bitmaps from the
@@ -34,9 +42,9 @@ Discord identity and SDK endpoints in these repeatable checks are fixtures.
 Calling the official SDK's local game-launch registration API succeeds for the
 stable title launcher. This does not prove Discord delivery or a cold launch.
 
-## Vista asset ownership
+## Historical Vista asset ownership (2026-10-12)
 
-ONLINE and clan stacks create a separate painter from the imported Vista
+The October12 ONLINE and clan stacks created a separate painter from imported Vista
 `pack.tsv` and `maps/fonts`. This includes Friends, received game invitations,
 parties, clans, Quickmatch, Optimatch, playlists and matchmaking progress.
 ONLINE postgame owners explicitly carry their session provenance through the
@@ -61,11 +69,12 @@ file hashes, checks SQLite integrity and restores the private rollback backup.
 Accepted parties, retained state, six queue definitions and Caddy voice
 timeouts are preserved. See [party activity](discord-party-activity.md).
 
-Both root launchers select the tested Release runtime and report the imported
-Vista ONLINE/clan bank. The existing TU1.5 gameplay XBE and selected shell/HUD
-registries are retained. Both isolated 1280x720 sign-in smoke checks pass with
-the bundled SDK, without changing the normal saved profile. The helper's
-optional Vulkan validation mode is now explicit; this host lacks that layer.
+At that checkpoint both root launchers selected the tested Release runtime and
+reported the imported Vista ONLINE/clan bank; its TU1.5 gameplay XBE and selected
+shell/HUD registries were retained. Both isolated1280x720 sign-in smoke checks
+passed with the bundled SDK without changing the normal saved profile. The
+helper exposed optional Vulkan validation; that host lacked the layer. These
+dated results do not establish the current installed runtime or MCC-only delivery.
 
 The final native suite passes all fifteen ONLINE integration checks, including
 four-client ranked and casual accepted parties and a sixteen-client clan game,

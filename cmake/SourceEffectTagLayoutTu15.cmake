@@ -1,7 +1,7 @@
-target_sources(halo2_cache PRIVATE src/source_effect_tag_layout_tu15.cpp)
+target_sources(halo2_cache PRIVATE src/rendering/effects/source_effect_tag_layout_tu15.cpp)
 if(BUILD_TESTING)
     add_executable(source_effect_tag_layout_tu15_tests
-        tests/source_effect_tag_layout_tu15_tests.cpp src/source_effect_tag_layout_tu15.cpp)
+        tests/source_effect_tag_layout_tu15_tests.cpp src/rendering/effects/source_effect_tag_layout_tu15.cpp)
     target_include_directories(source_effect_tag_layout_tu15_tests PRIVATE include)
     add_test(NAME source_effect_tag_layout_tu15 COMMAND source_effect_tag_layout_tu15_tests)
     add_executable(source_effect_tag_layout_tu15_mcc_tests tests/source_effect_tag_layout_tu15_mcc_tests.cpp)

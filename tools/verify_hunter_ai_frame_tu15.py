@@ -17,7 +17,7 @@ def main():
     ap.add_argument('--base',type=Path,default=ROOT/'analysis/weapons-tu15-goal-20261013')
     ap.add_argument('--generation',default='ai-frame-native-functions-v6')
     ap.add_argument('--build',default='ai-frame-root-native-build-v4')
-    ap.add_argument('--module',type=Path,default=ROOT/'src/source_ai_frame_tu15_generated.cpp')
+    ap.add_argument('--module',type=Path,default=ROOT/'src/campaign/ai/source_ai_frame_tu15_generated.cpp')
     ap.add_argument('--pair',action='append',help='Original directory:native directory within base')
     ap.add_argument('--output',type=Path,required=True);a=ap.parse_args();base=a.base.resolve();assert not a.output.exists()
     generation_path=base/a.generation/'generation.json';generation=json.loads(generation_path.read_text())

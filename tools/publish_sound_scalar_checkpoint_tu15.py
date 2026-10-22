@@ -36,7 +36,7 @@ def main():
     assert actual['CPU']['x87_status'] ^ original_cpu['x87_status'] == 0x20
     assert actual['CPU']['x87_control'] ^ original_cpu['x87_control'] == 0x40
     assert not actual['actual_resource_reads'] and not actual['supplied_gameplay_returns']
-    generated = ROOT / 'src/source_sound_scalar_tu15_generated.cpp'
+    generated = ROOT / 'src/audio/source_sound_scalar_tu15_generated.cpp'
     assert sha(generated) == native['native_generated_source_sha256']
     for path, pin in world['source_files_sha256'].items():
         assert sha(path) == pin, path

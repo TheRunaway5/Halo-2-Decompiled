@@ -1,6 +1,7 @@
 #include "halo2/native_vista_loading_audio.hpp"
 #include <SDL.h>
 #include <nlohmann/json.hpp>
+#include <openssl/sha.h>
 #include <algorithm>
 #include <atomic>
 #include <bit>
@@ -8,6 +9,8 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <iomanip>
+#include <sstream>
 #include <thread>
 
 using namespace halo2;
@@ -71,13 +74,20 @@ void finite_stereo(const std::vector<float>& pcm) {
 }
 }
 int main(int argc,char** argv) {try {
-  check(argc==4,"Supply execution.json, encoded bank, and original decoded PCM");
+  check(argc==4,"Supply original controls, encoded bank, and decoded PCM or sha256:digest");
   std::ifstream fixture_file(argv[1]);const auto fixture=Json::parse(fixture_file);
   check(fixture.at("source_sha256")=="33119398d3f68ad569c5010b652039105d3ce1b6512c418508e49ce69309f109",
       "Wrong original Vista executable");
-  const auto encoded=read(argv[2]),decoded=read(argv[3]);
-  check(vista_loading_audio_decode(encoded)==decoded && decoded.size()==65408,
-      "Native adapter bank differs from original instruction-decoded PCM");
+  const auto encoded=read(argv[2]),decoded=vista_loading_audio_decode(encoded);
+  check(decoded.size()==65408,"Wrong original decoded tone size");
+  const std::string expected_pcm=argv[3];
+  if(expected_pcm.starts_with("sha256:")) {
+    std::array<unsigned char,SHA256_DIGEST_LENGTH> digest{};
+    SHA256(decoded.data(),decoded.size(),digest.data());
+    std::ostringstream hex;hex<<std::hex<<std::setfill('0');
+    for(auto byte:digest)hex<<std::setw(2)<<unsigned(byte);
+    check(expected_pcm=="sha256:"+hex.str(),"Bundled tone differs from original instruction-decoded PCM");
+  }else check(decoded==read(argv[3]),"Native adapter bank differs from original instruction-decoded PCM");
   check(SDL_setenv("SDL_AUDIODRIVER","dummy",1)==0,"Cannot select SDL dummy device");
   unsigned worker_cases=0,gain_cases=0;
   for(const auto& row:fixture.at("worker_cases")) {

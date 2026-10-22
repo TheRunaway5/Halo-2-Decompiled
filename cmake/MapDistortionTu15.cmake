@@ -1,4 +1,4 @@
-target_sources(halo2_cache PRIVATE src/source_particle_sampler.cpp)
+target_sources(halo2_cache PRIVATE src/rendering/effects/source_particle_sampler.cpp)
 if(BUILD_TESTING)
     add_executable(source_particle_sampler_tests tests/source_particle_sampler_tests.cpp)
     target_link_libraries(source_particle_sampler_tests PRIVATE halo2_cache)

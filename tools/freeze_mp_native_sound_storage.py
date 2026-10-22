@@ -78,9 +78,9 @@ def main():
                 add(prior,path,value)
     verify(prior)
 
-    names = ['CMakeLists.txt','include/halo2/native_sound_storage.hpp','src/native_sound_storage.cpp',
+    names = ['CMakeLists.txt','include/halo2/native_sound_storage.hpp','src/audio/native_sound_storage.cpp',
              'tests/native_sound_storage_tests.cpp','include/halo2/sound_cache_startup.hpp',
-             'src/sound_cache_startup.cpp','docs/MP_NATIVE_SOUND_STORAGE_RESEARCH.md',
+             'src/audio/sound_cache_startup.cpp','docs/MP_NATIVE_SOUND_STORAGE_RESEARCH.md',
              'tools/freeze_mp_native_sound_storage.py']
     for name in names:
         copy(actual(name),FROZEN/'source'/name)

@@ -4,6 +4,7 @@ target_sources(halo2_cache PRIVATE
     src/tags/types.cpp
     src/tags/binary.cpp
     src/tags/directory.cpp
+    src/tags/native_directory.cpp
     src/tags/system.cpp)
 add_executable(inspect_tags tools/inspect_tags.cpp)
 target_link_libraries(inspect_tags PRIVATE halo2_cache)
@@ -51,13 +52,13 @@ if(BUILD_TESTING)
     set_tests_properties(tag_object_prediction_original_assets PROPERTIES SKIP_RETURN_CODE 77)
     # Explicit live verification target; run manually with original files and
     # a display. It drives SDL inputs through complete rendered matches.
-    add_executable(tag_gameplay_match_tests tests/tag_gameplay_match_tests.cpp src/multiplayer_runtime.cpp)
-    target_link_libraries(tag_gameplay_match_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan glm::glm)
+    add_executable(tag_gameplay_match_tests tests/tag_gameplay_match_tests.cpp src/gameplay/multiplayer/multiplayer_runtime.cpp)
+    target_link_libraries(tag_gameplay_match_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan halo2_glm)
     target_compile_definitions(tag_gameplay_match_tests PRIVATE HALO2_SHADER_DIR="${CMAKE_CURRENT_BINARY_DIR}/shaders")
     add_dependencies(tag_gameplay_match_tests halo2_shaders)
     # Separate host/client processes exercise each rendered tag world.
-    add_executable(tag_network_match_tests tests/tag_network_match_tests.cpp src/multiplayer_runtime.cpp)
-    target_link_libraries(tag_network_match_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan glm::glm)
+    add_executable(tag_network_match_tests tests/tag_network_match_tests.cpp src/gameplay/multiplayer/multiplayer_runtime.cpp)
+    target_link_libraries(tag_network_match_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan halo2_glm)
     target_compile_definitions(tag_network_match_tests PRIVATE HALO2_SHADER_DIR="${CMAKE_CURRENT_BINARY_DIR}/shaders")
     add_dependencies(tag_network_match_tests halo2_shaders)
     # Manual guarded simulation: one real tag world and lightweight UDP peers.
@@ -73,12 +74,12 @@ if(BUILD_TESTING)
     add_executable(tag_campaign_encounter_tests tests/tag_campaign_encounter_tests.cpp)
     target_link_libraries(tag_campaign_encounter_tests PRIVATE halo2_systems)
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        add_library(tag_campaign_runtime_entry OBJECT src/main.cpp)
+        add_library(tag_campaign_runtime_entry OBJECT src/app/main.cpp)
         target_link_libraries(tag_campaign_runtime_entry PRIVATE halo2_renderer)
         target_compile_definitions(tag_campaign_runtime_entry PRIVATE main=tag_campaign_runtime_entry
             HALO2_SHADER_DIR="${CMAKE_CURRENT_BINARY_DIR}/shaders")
         add_executable(tag_campaign_gameplay_tests tests/tag_campaign_gameplay_tests.cpp
-            src/frontend.cpp src/multiplayer_runtime.cpp $<TARGET_OBJECTS:tag_campaign_runtime_entry>)
+            src/ui/frontend.cpp src/gameplay/multiplayer/multiplayer_runtime.cpp $<TARGET_OBJECTS:tag_campaign_runtime_entry>)
         target_link_libraries(tag_campaign_gameplay_tests PRIVATE halo2_renderer)
         target_compile_definitions(tag_campaign_gameplay_tests PRIVATE HALO2_SHADER_DIR="${CMAKE_CURRENT_BINARY_DIR}/shaders")
         target_link_options(tag_campaign_gameplay_tests PRIVATE
@@ -90,6 +91,14 @@ if(BUILD_TESTING)
     add_executable(tag_system_tests tests/tag_system_tests.cpp)
     target_link_libraries(tag_system_tests PRIVATE halo2_cache)
     add_test(NAME tag_system_contract COMMAND tag_system_tests)
+    add_executable(tag_owner_index_tests tests/tag_owner_index_tests.cpp)
+    target_link_libraries(tag_owner_index_tests PRIVATE halo2_cache)
+    add_test(NAME tag_owner_index_contract COMMAND tag_owner_index_tests)
+    add_executable(native_tag_directory_tests tests/native_tag_directory_tests.cpp
+        src/tags/native_directory.cpp)
+    target_include_directories(native_tag_directory_tests PRIVATE include)
+    add_test(NAME native_tag_directory_capacity COMMAND native_tag_directory_tests)
+    set_tests_properties(native_tag_directory_capacity PROPERTIES TIMEOUT 20)
     add_executable(tag_system_asset_tests tests/tag_system_asset_tests.cpp)
     target_link_libraries(tag_system_asset_tests PRIVATE halo2_cache)
     add_test(NAME tag_system_original_assets COMMAND tag_system_asset_tests

@@ -78,7 +78,7 @@ def main():
         r=load(name);scratch.add(r['runner_scratch']);references.append(name)
     checks=[dict(path=p,removed=not Path(p).exists())for p in sorted(scratch)]
     assert all(r['removed']for r in checks)
-    source_files=['src/multiplayer.cpp','include/halo2/multiplayer.hpp','tests/native_weapon_runtime_tests.cpp',
+    source_files=['src/gameplay/multiplayer/multiplayer.cpp','include/halo2/multiplayer.hpp','tests/native_weapon_runtime_tests.cpp',
         'tools/validate_weapon_material_snapshot_tu15.py']
     pins=load('weapon-dual-drop-lifetime-validation-v3/source-manifest.json')['source_files_sha256']
     assert all(pins[n]==sha(ROOT/n)for n in source_files)

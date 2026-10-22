@@ -123,9 +123,9 @@ def generate(repo):
     out += ["}};", ""]
     manifest = {"schema": "H2_PINNED_ORDINARY_POINTER_LAYOUTS_V1", "assembly_commit": PIN,
                 "fallback": "Halo2MCC inherits Halo2 plugin paths in the pinned Engines.xml",
-                "normalized_unit_shapes": "bipd/crea sphere 0x80, pill 0x50; vehi phantom 0x2a0; src/mcc_physics.cpp",
-                "normalized_bsp_physics": "sbsp root138/c8 row+B0 reserves A0; normalized MOPP dataref64/68; src/mcc_physics.cpp",
-                "relative_fields_preserved": ["scnr Script Expressions +0xc is ScriptNode::string_offset, src/content.cpp and src/scripts.cpp"],
+                "normalized_unit_shapes": "bipd/crea sphere 0x80, pill 0x50; vehi phantom 0x2a0; src/physics/mcc_physics.cpp",
+                "normalized_bsp_physics": "sbsp root138/c8 row+B0 reserves A0; normalized MOPP dataref64/68; src/physics/mcc_physics.cpp",
+                "relative_fields_preserved": ["scnr Script Expressions +0xc is ScriptNode::string_offset, src/assets/content.cpp and src/campaign/scripting/scripts.cpp"],
                 "resource_addresses_delegated": ["scnr Structure BSPs +8 is bound by canonical BSP resource delivery"],
                 "sources": sources, "schema_count": len(schemas), "node_count": len(nodes), "field_count": len(fields)}
     return "\n".join(out), json.dumps(manifest, indent=2) + "\n"
@@ -137,7 +137,7 @@ def main():
     p.add_argument("--check", action="store_true")
     args = p.parse_args()
     layout, manifest = generate(args.assembly)
-    for path, value in ((root / "src/mcc_ordinary_pointer_layout.inc", layout),
+    for path, value in ((root / "src/assets/mcc/mcc_ordinary_pointer_layout.inc", layout),
                         (root / "tools/mcc-ordinary-pointer-layouts.json", manifest)):
         if args.check:
             if not path.exists() or path.read_text() != value:

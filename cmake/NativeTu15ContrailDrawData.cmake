@@ -1,7 +1,7 @@
-target_sources(halo2_systems PRIVATE src/native_tu15_contrail_draw_data.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/effects/native_tu15_contrail_draw_data.cpp)
 if(BUILD_TESTING)
     add_executable(native_tu15_contrail_draw_data_tests tests/native_tu15_contrail_draw_data_tests.cpp
-        src/native_tu15_contrail_draw_data.cpp src/source_runtime_memory.cpp)
+        src/rendering/effects/native_tu15_contrail_draw_data.cpp src/runtime/source_runtime_memory.cpp)
     target_include_directories(native_tu15_contrail_draw_data_tests PRIVATE include)
     target_link_libraries(native_tu15_contrail_draw_data_tests PRIVATE halo2_snapshot_storage
         Threads::Threads nlohmann_json::nlohmann_json OpenSSL::Crypto)

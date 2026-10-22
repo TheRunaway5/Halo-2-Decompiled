@@ -1,5 +1,5 @@
-#include "material_frame_selection.hpp"
-#include "material_frame_oracle.hpp"
+#include "rendering/renderer/material_frame_selection.hpp"
+#include "rendering/renderer/material_frame_oracle.hpp"
 #include <iostream>
 #include <stdexcept>
 using namespace halo2;

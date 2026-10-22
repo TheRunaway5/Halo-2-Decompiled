@@ -5,6 +5,7 @@ This is module composition, not binary execution or a function-address guess.
 Each selected address comes from that module's compiled correspondence table.
 The emitted manifest pins every consumed production source file.
 """
+from source_layout import source_file
 import argparse
 import hashlib
 import json
@@ -27,7 +28,7 @@ def main():
     ap.add_argument('--output',type=Path,required=True);ap.add_argument('--manifest',type=Path,required=True)
     a=ap.parse_args();rows=[];inputs={};seen=set()
     for kind,name in MODULES:
-        p=ROOT/'src'/name;source=p.read_text();inputs[str(p.relative_to(ROOT))]=digest(p)
+        p=source_file(ROOT, name);source=p.read_text();inputs[str(p.relative_to(ROOT))]=digest(p)
         if kind=='Phantom':
             # This TU1.5-only composition exposes actual selected entries.
             # Consume its literal binding arrays, including the vehicle graph.

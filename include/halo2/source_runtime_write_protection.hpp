@@ -2,8 +2,47 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <thread>
 namespace halo2 {
 class SourceRuntimeMemory;
+class SourceRuntimePolicyChange;
+// Policy exclusion only; neither class grants native execution authority or
+// retains the borrowed bank. The enclosing owner must keep that bank alive.
+// Acquire the hold after installing ordinary write/topology guards and before
+// timing/device locks. Downgrade to a change before unregistering those guards.
+class SourceRuntimePolicyHold final {
+public:
+    explicit SourceRuntimePolicyHold(const SourceRuntimeMemory &);
+    // Atomically replace the sole active admission, without opening a gap for
+    // another publisher during installation or rollback of ordinary guards.
+    explicit SourceRuntimePolicyHold(SourceRuntimePolicyChange &);
+    ~SourceRuntimePolicyHold();
+    SourceRuntimePolicyHold(const SourceRuntimePolicyHold &)=delete;
+    SourceRuntimePolicyHold(SourceRuntimePolicyHold &&)=delete;
+private:
+    const SourceRuntimeMemory *const memory_;
+    const std::thread::id executor_=std::this_thread::get_id();
+    bool active_=true;
+    friend class SourceRuntimePolicyChange;
+};
+// Keeps admission live through all side effects and outgoing capture retirement.
+// Execution-input bindings retain it for their entire lifetime, including on
+// other threads. A publication cannot start between admission and mutation.
+class SourceRuntimePolicyChange final {
+public:
+    explicit SourceRuntimePolicyChange(const SourceRuntimeMemory &);
+    // Atomic, allocation-free downgrade of this creator's active hold. Keep
+    // the returned admission alive through guard removal and capture release.
+    explicit SourceRuntimePolicyChange(SourceRuntimePolicyHold &);
+    ~SourceRuntimePolicyChange();
+    SourceRuntimePolicyChange(const SourceRuntimePolicyChange &)=delete;
+    SourceRuntimePolicyChange(SourceRuntimePolicyChange &&)=delete;
+private:
+    const SourceRuntimeMemory *const memory_;
+    const std::thread::id executor_=std::this_thread::get_id();
+    bool active_=true;
+    friend class SourceRuntimePolicyHold;
+};
 // Native resource owners can add access constraints without replacing or
 // splitting retained banks. They must unregister before the bank dies. Mutable
 // borrowed spans must not be retained across a protection transition.

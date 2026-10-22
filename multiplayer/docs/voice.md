@@ -76,9 +76,13 @@ window caption and console; it does not replace a source HUD row. The original
 HUD speaker bitmap and name show only the selected audible remote speaker after
 four consecutive talking updates. Local radio arming never drives that icon.
 
-The host derives all audience decisions from its authoritative match state and
-verified transport slots. A client cannot choose its speaker identity, recipients
-or playback gains. Media uses bounded20ms Opus frames through the match relay;
+The host derives audience decisions from its authoritative match state and
+verified transport slots. Protocol 98 signs microphone origin with a per-room
+Ed25519 key bound to the admitted physical owner. The host preserves that proof
+while forwarding; it cannot sign speech as another owner's couch seats. Both
+the coordinator relay and direct native receivers verify the proof before using
+the speaker for block policy. The host can still set delivery gains and radio
+mixing. Media uses bounded20ms Opus frames through the selected match transport;
 playback has per-talker sequence checks, five-frame queues and stereo mixing.
 The source five-speaker directional calculation is explicitly downmixed to the
 native stereo output. Opus DTX replaces the unavailable XHV speech detector.

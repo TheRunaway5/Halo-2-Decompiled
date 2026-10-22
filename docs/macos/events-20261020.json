@@ -1,0 +1,141 @@
+{
+  "schema": "H2_MACOS_NATIVE_EVENT_EVIDENCE_V1",
+  "date": "2026-10-20",
+  "scope": "native event/poller/timer resources and production startup-timer execution; other sound owner CPPs compile only on Mac",
+  "macos": {
+    "passed_tests": 2,
+    "architectures": [
+      "arm64",
+      "x86_64_rosetta"
+    ],
+    "report": "build/test-results/macos-native-events-uptime/report.json",
+    "original_remote_report": "build/test-results/macos-native-events-uptime/report.json",
+    "output": "build/test-results/macos-native-events-uptime/evidence/Testing/Temporary/LastTest.log",
+    "production_objects_compiled": [
+      "source_runtime_sound_event_port.cpp",
+      "source_runtime_sound_timed_notifications.cpp",
+      "source_runtime_sound_codec_event_port.cpp",
+      "native_tu15_startup_timer_execution.cpp"
+    ]
+  },
+  "linux_platform": {
+    "passed_tests": 1,
+    "report": "build/test-results/macos-native-events-linux-uptime/report.json"
+  },
+  "linux_original_source_regression": {
+    "status": "five passed in initial run; both codec checks subsequently passed with real output",
+    "report": "build/test-results/macos-events-linux-source-regression/report.json",
+    "passed_tests": 5,
+    "failed_tests": 2,
+    "environment": {
+      "SDL_AUDIODRIVER": "dummy"
+    },
+    "startup_result": {
+      "prefixes": 48,
+      "original_instructions": 31656,
+      "source_stores": 13008,
+      "source_installed_heaps": 24,
+      "setup_returns": 24
+    },
+    "source_sha256_before_macos_clock_fix": {
+      "src/native_event_resources.hpp": "acbc9c397160f3b734a7cadf2e6dd336eebca27ab9c2709502960bca87471ff7",
+      "src/macos/native_event_resources.hpp": "add8ec789f31d7b5618064625c8c46988fac7c24c21054275fa8ae94f6b00609",
+      "src/native_tu15_startup_timer.cpp": "145ccedad615e2bd9c97f74f7eae4dcf0e032fce5932848773a3142962d4b0fa",
+      "src/native_tu15_startup_timer_execution.cpp": "517839fbd3d6105e284d7b0fc9f2ad59567c27719e7650e5d29cbf9a71d19630",
+      "src/source_runtime_sound_event_port.cpp": "7a82d95173479a6b2e275ef1bdf97f705b345d730bdade4ba5d884090641f156",
+      "src/source_runtime_sound_timed_notifications.cpp": "dd30cae97457919163e5365102ef17480e6c4e71055dcdd964a6a8d6d6446318",
+      "src/source_runtime_sound_codec_event_port.cpp": "b8889436a889eebf13486269d752ef1974e5ad3929081dc25a347c7f77b57d8d",
+      "include/halo2/source_runtime_sound_event_port.hpp": "0732baa035887cec291f3b2e53945db79dc950e59627caefacac109313a029a9",
+      "include/halo2/source_runtime_sound_timed_notifications.hpp": "bfcb376398f7ac5bf43a6b396a1f1753dcb2b6737d77171f6df44019257b2281",
+      "include/halo2/native_tu15_startup_timer.hpp": "0e4831cb0672b68e1bb151855aea840590295f835de2074215e37f0fc92fcc65",
+      "cmake/NativeTu15StartupTimer.cmake": "c63cac7f2c7e452454ee1b92423ab4b0df3651d82b39385e509bea579090a63f",
+      "tests/macos/CMakeLists.txt": "bd98bc154c9cc40daa4b4c41e12302e06b6716d0131e1baf5fc16bce49fd428e",
+      "tests/macos/native_event_tests.cpp": "8818577083d8a4ea3c8133f233bfc1348f04941a431eaf08a9db8444b2f72fd5"
+    },
+    "linux_preprocessor_identity_report": "build/test-results/macos-events-linux-clock-branch.json",
+    "aggregate_final_passed_tests": 7
+  },
+  "verified": [
+    "nonblocking real signal receipts and duplicate registration rejection",
+    "nonconsuming tagged readiness and disconnect/reconnect",
+    "wall-clock past/future deadlines and monotonic six-hour/5ms timers",
+    "pending return values, one-shot consumption, cancel/re-arm clears stale receipts",
+    "64 repeated immediate timer creation/arming/destruction cycles and actual descriptor closure",
+    "production startup call ABI/source stores/due record and malformed frame rejection",
+    "actual startup expiration delivers retained DPC/system-time arguments through required executor",
+    "pending source insertion cancellation, no replay, and owner retirement"
+  ],
+  "clock_design": {
+    "wall": "dispatch_walltime; gettimeofday domain, follows wall clock changes per Dispatch contract",
+    "relative": "dispatch_time and CLOCK_UPTIME_RAW; excludes sleep, unlike libc++ steady_clock",
+    "fence": "set_timer clears accumulated pending data; all configuration and receipt handlers share a serial queue; cancellation handler fences destruction",
+    "kqueue_absolute_rejected": "XNU converts calendar time once and does not adjust for later wall clock changes",
+    "source_default_clocks": "startup interrupt clock sampled between native uptime queries; system clock sampled between realtime/NT-epoch queries",
+    "observed_uptime_and_continuous_ns": [
+      {
+        "uptime_raw": 15439513917458,
+        "monotonic_raw": 62135221546166
+      },
+      {
+        "uptime_raw": 15440549393375,
+        "monotonic_raw": 62136257033875
+      }
+    ],
+    "libcxx_reference": "https://github.com/llvm/llvm-project/blob/main/libcxx/src/chrono.cpp"
+  },
+  "limits": [
+    "no live clock mutation or sleep/resume experiment performed",
+    "Mac sound event, timed notification, codec and full startup execution remain gated by deferred source numerical backend",
+    "Mac production sound owner object compilation is not callback execution or audible output validation",
+    "no whole-game or physical Intel hardware claim"
+  ],
+  "mac_validation_source_sha256": {
+    "src/native_event_resources.hpp": "acbc9c397160f3b734a7cadf2e6dd336eebca27ab9c2709502960bca87471ff7",
+    "src/macos/native_event_resources.hpp": "17d5145305f5f4d33ff7d18953b3c940cb33a7fc83be9c131cd0a7c36a9a300f",
+    "src/native_tu15_startup_timer.cpp": "2ac68e7dae76fd2e32b8dbd0ba7a5420d92061fea1f7b1ae81c6ab5d60736b90",
+    "src/native_tu15_startup_timer_execution.cpp": "517839fbd3d6105e284d7b0fc9f2ad59567c27719e7650e5d29cbf9a71d19630",
+    "src/source_runtime_sound_event_port.cpp": "7a82d95173479a6b2e275ef1bdf97f705b345d730bdade4ba5d884090641f156",
+    "src/source_runtime_sound_timed_notifications.cpp": "dd30cae97457919163e5365102ef17480e6c4e71055dcdd964a6a8d6d6446318",
+    "src/source_runtime_sound_codec_event_port.cpp": "b8889436a889eebf13486269d752ef1974e5ad3929081dc25a347c7f77b57d8d",
+    "include/halo2/source_runtime_sound_event_port.hpp": "0732baa035887cec291f3b2e53945db79dc950e59627caefacac109313a029a9",
+    "include/halo2/source_runtime_sound_timed_notifications.hpp": "bfcb376398f7ac5bf43a6b396a1f1753dcb2b6737d77171f6df44019257b2281",
+    "include/halo2/native_tu15_startup_timer.hpp": "0e4831cb0672b68e1bb151855aea840590295f835de2074215e37f0fc92fcc65",
+    "cmake/NativeTu15StartupTimer.cmake": "c63cac7f2c7e452454ee1b92423ab4b0df3651d82b39385e509bea579090a63f",
+    "tests/macos/CMakeLists.txt": "bd98bc154c9cc40daa4b4c41e12302e06b6716d0131e1baf5fc16bce49fd428e",
+    "tests/macos/native_event_tests.cpp": "4e2c3500c4b0f4c6cc01b558261bbfa14a0337209e91dca70926edf5abe492d7"
+  },
+  "workspace_source_sha256_at_recording": {
+    "src/native_event_resources.hpp": "acbc9c397160f3b734a7cadf2e6dd336eebca27ab9c2709502960bca87471ff7",
+    "src/macos/native_event_resources.hpp": "17d5145305f5f4d33ff7d18953b3c940cb33a7fc83be9c131cd0a7c36a9a300f",
+    "src/native_tu15_startup_timer.cpp": "2ac68e7dae76fd2e32b8dbd0ba7a5420d92061fea1f7b1ae81c6ab5d60736b90",
+    "src/native_tu15_startup_timer_execution.cpp": "517839fbd3d6105e284d7b0fc9f2ad59567c27719e7650e5d29cbf9a71d19630",
+    "src/source_runtime_sound_event_port.cpp": "7a82d95173479a6b2e275ef1bdf97f705b345d730bdade4ba5d884090641f156",
+    "src/source_runtime_sound_timed_notifications.cpp": "dd30cae97457919163e5365102ef17480e6c4e71055dcdd964a6a8d6d6446318",
+    "src/source_runtime_sound_codec_event_port.cpp": "b8889436a889eebf13486269d752ef1974e5ad3929081dc25a347c7f77b57d8d",
+    "include/halo2/source_runtime_sound_event_port.hpp": "0732baa035887cec291f3b2e53945db79dc950e59627caefacac109313a029a9",
+    "include/halo2/source_runtime_sound_timed_notifications.hpp": "bfcb376398f7ac5bf43a6b396a1f1753dcb2b6737d77171f6df44019257b2281",
+    "include/halo2/native_tu15_startup_timer.hpp": "0e4831cb0672b68e1bb151855aea840590295f835de2074215e37f0fc92fcc65",
+    "cmake/NativeTu15StartupTimer.cmake": "c63cac7f2c7e452454ee1b92423ab4b0df3651d82b39385e509bea579090a63f",
+    "tests/macos/CMakeLists.txt": "bd98bc154c9cc40daa4b4c41e12302e06b6716d0131e1baf5fc16bce49fd428e",
+    "tests/macos/native_event_tests.cpp": "4e2c3500c4b0f4c6cc01b558261bbfa14a0337209e91dca70926edf5abe492d7"
+  },
+  "cleanup": {
+    "mac_private_builds_removed_and_scratch_empty": true,
+    "linux_platform_build_removed": true,
+    "linux_source_regression_build_still_active": false,
+    "retained_large_artifacts": [],
+    "linux_original_source_regression_build_removed": true,
+    "linux_codec_rerun_build_still_active": false,
+    "linux_codec_rerun_build_removed": true
+  },
+  "linux_codec_real_output_rerun": {
+    "status": "passed",
+    "report": "build/test-results/macos-codec-linux-real-output/report.json",
+    "audio_preflight": "build/test-results/macos-codec-audio-preflight.json",
+    "environment": {
+      "SDL_AUDIODRIVER": "pulseaudio"
+    },
+    "preflight": "two real stereo 48kHz/64-frame output devices opened and played with no queued PCM",
+    "passed_tests": 2
+  }
+}

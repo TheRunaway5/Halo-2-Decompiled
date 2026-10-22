@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #define SDL_MAIN_HANDLED
 #include "halo2/multiplayer.hpp"
 #include "halo2/multiplayer_network.hpp"
@@ -14,8 +15,7 @@ namespace {
 void check(bool value,const char* message){if(!value)throw FormatError(message);}
 void place(MultiplayerMatch& match,unsigned id,Vec3 position) {
   Spawn spawn;spawn.position=position;
-  DebugGameRequest request;request.kind=DebugGameRequest::Teleport;request.player=id;
-  match.debug_request(request,&spawn);
+  test::place_player(match,id,spawn);
 }
 }
 int main(int argc,char**argv)try {
@@ -45,8 +45,7 @@ int main(int argc,char**argv)try {
         host.receive(controls);
         if(advance && match.player(1).connected) {
           if(!placed) {
-            DebugGameSettings settings;settings.players[0].noclip=settings.players[1].noclip=true;
-            match.debug_settings(settings);place(match,0,{0,0,0});place(match,1,{1,0,0});placed=true;
+            place(match,0,{0,0,0});place(match,1,{1,0,0});placed=true;
           }
           killed|=match.player(1).deaths!=0;controls[0].fire=!killed;
           match.step(controls);

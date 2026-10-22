@@ -41,15 +41,16 @@ int main(int argc,char**argv)try{
   options.hidden=true;options.validation=true;options.mute=true;options.capture_tick=38;
   options.screenshot=output/"prop-impact.ppm";options.reference_tick_cadence=true;
   options.reference_render_fraction=0;options.reference_auxiliary_seed=0x12345678;
-  // Use the existing complete offline activation policy, then keep only
-  // this declared acceptance shooter's debug noclip enabled each tick.
+  // Use the existing complete offline activation policy with declared fixture placement.
   options.defer_initial_player_spawn=true;
   std::uint32_t player=null_datum;
   options.player_birth_owner=[&](MultiplayerPlayer& owner,unsigned){player=owner.source_datum;owner.source_flags=8;};
   options.pre_player_update_owner=[&](MultiplayerMatch& match){
     const auto* owner=match.player_from_datum(player);check(owner,"Capture player owner missing");
     if(!(owner->source_flags&1u))match.apply_source_player_activation(player,owner->source_flags,owner->source_flags|1u);
-    DebugGameSettings settings;settings.players[0].noclip=true;match.debug_settings(settings);
+    auto& unit=const_cast<Unit&>(match.unit(0));
+    unit.body.position=spawn.position;unit.body.velocity={};unit.body.grounded=false;
+    unit.yaw=spawn.facing;unit.pitch=pitch;
   };
   unsigned contacts{};std::uint64_t serial{};
   options.input_observer=[&](unsigned,std::span<const Controls>,const MultiplayerState& state){

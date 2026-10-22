@@ -446,7 +446,7 @@ def main():
     report = dict(boundary=__doc__, source_xbe_sha256=PIN, snapshot_ram_sha256=sha(snapshot.ram),
         snapshot_manifest_sha256=sha((snapshot.directory / 'export.json').read_bytes()), tool_sha256=sha(Path(__file__).read_bytes()),
         fixture_sha256=sha(fixture.read_bytes()), native_binary_sha256=sha(args.binary.read_bytes()) if args.binary else None,
-        helper_sha256=sha((ROOT / 'src/source_async_jobs.cpp').read_bytes()),
+        helper_sha256=sha((ROOT / 'src/platform/source_async_jobs.cpp').read_bytes()),
         helper_header_sha256=sha((ROOT / 'include/halo2/source_async_jobs.hpp').read_bytes()),
         native_test_sha256=sha((ROOT / 'tests/source_async_jobs_tests.cpp').read_bytes()),
         cases=len(rows), checked_words=sum(len(row) for row in output), kind_counts=dict(collections.Counter(row[0] for row in rows)),

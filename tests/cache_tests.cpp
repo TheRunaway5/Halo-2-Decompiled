@@ -1,5 +1,7 @@
 #include "halo2/cache.hpp"
 #include "halo2/texture.hpp"
+#include "halo2/decoded_allocation_budget.hpp"
+#include "halo2/model.hpp"
 #include <bit>
 #include <chrono>
 #include <filesystem>
@@ -32,6 +34,15 @@ int main() {
         rejects([&] { bytes.slice(1, std::numeric_limits<std::size_t>::max()); });
         rejects([&] { bytes.string(0, 4); });
         rejects([&] { halo2::Bytes({}).u32(0); });
+        halo2::DecodedAllocationBudget allocation(1024);
+        std::vector<std::byte> expanded;
+        allocation.grow(expanded,900);expanded.resize(900);
+        const auto capacity=expanded.capacity();
+        rejects([&]{allocation.grow(expanded,125);});
+        expect(expanded.capacity()==capacity && expanded.size()==900);
+        std::vector<std::uint64_t> parallel;
+        rejects([&]{allocation.grow(parallel,16);});
+        expect(parallel.empty() && parallel.capacity()==0);
         // Xbox rectangular Morton layout: the first four source bytes describe a 2x2 tile.
         std::vector<std::byte> swizzled;
         for (unsigned value : {0, 1, 4, 5, 2, 3, 6, 7}) swizzled.push_back(std::byte(value));
@@ -107,6 +118,59 @@ int main() {
         rejects([&] { halo2::Cache cache(file); });
         put(data, 8, 2048); write();
         rejects([&] { halo2::Cache cache(file); }); // Unsupported build, no accidental Vista handling.
+        // A tiny resource cache declares two frames aliasing one unavailable
+        // 4096-square payload. Animation must reject aggregate decoded bytes
+        // before touching that payload or appending the first decoded frame.
+        data.assign(8192,std::byte{});
+        put(data,0,0x68656164);put(data,4,8);put(data,8,data.size());put(data,2044,0x666f6f74);
+        const std::string build="02.09.27.09809";
+        for(unsigned i=0;i<build.size();++i)data[288+i]=std::byte(build[i]);
+        put(data,16,2048);put(data,20,2048);
+        put(data,2048,0x10000000);put(data,2052,1);put(data,2056,0x10000010);
+        put(data,2060,0xffffffffu);put(data,2064,0xffffffffu);put(data,2072,1);put(data,2076,0x74616773);
+        put(data,2080,0x6269746d);put(data,2084,0xffffffffu);put(data,2088,0xffffffffu);
+        put(data,2096,0x6269746d);put(data,2100,0xe1000000);put(data,2104,0x20000000);put(data,2108,308);
+        put(data,708,3000);put(data,712,16);put(data,716,3020);
+        data[3000]=std::byte{'b'};
+        put(data,4096+68,2);put(data,4096+72,0x20000000+76);
+        for(unsigned i=0;i<2;++i){const auto at=4096+76+i*116;
+            put(data,at+4,4096|(4096u<<16));put(data,at+8,1);put(data,at+12,11);
+        }
+        write();halo2::Cache hostile(file);
+        expect(hostile.bitmap_decoded_bytes(0xe1000000,0)==64u*1024u*1024u);
+        halo2::Material animated;animated.forward_pass=true;animated.forward_pass_index=0;
+        animated.passes.resize(1);animated.passes[0].textures.push_back({0,0,0,0});
+        animated.passes[0].bitmap_remaps.push_back({0,0,0});animated.bitmaps.push_back({0xe1000000,0,0});
+        animated.animation.overlays.resize(1);animated.animation.passes.push_back({512});
+        animated.animation.implementations.push_back({{512},{},{}});
+        animated.animation.mappings.push_back({0,0,0});animated.animation.parameters.push_back({512});
+        animated.animation.references.push_back({0,0});
+        bool bounded=false;
+        try{halo2::prepare_bitmap_animation(hostile,animated);}catch(const halo2::FormatError &error){
+            bounded=std::string(error.what())=="animated bitmap byte budget exceeded";
+        }
+        expect(bounded && animated.animated_textures[0].empty());
+        const auto maps=std::filesystem::path(__FILE__).parent_path().parent_path()/"assets/disc/maps";
+        std::size_t bsp_cases{},model_cases{},model_gaps{},max_bsp_bytes{},max_model_bytes{};
+        if(std::filesystem::is_directory(maps))for(const auto &entry:std::filesystem::directory_iterator(maps)) {
+            if(entry.path().extension()!=".map")continue;
+            halo2::Cache reference(entry.path());
+            for(std::size_t i=0;i<reference.bsps().size();++i){
+                const auto mesh=reference.load_bsp(i,false);++bsp_cases;
+                max_bsp_bytes=std::max(max_bsp_bytes,mesh.vertices.size()*sizeof(halo2::Vertex));
+            }
+            for(const auto &tag:reference.tags())if(tag.group=="mode" && tag.address) {
+                try{const auto model=reference.load_model(tag.datum,false);++model_cases;
+                    max_model_bytes=std::max(max_model_bytes,model.mesh.vertices.size()*sizeof(halo2::Vertex)+
+                        model.skin.size()*sizeof(halo2::SkinBinding)+model.vertex_origins.size()*sizeof(halo2::RenderModel::VertexOrigin));
+                }catch(const halo2::FormatError &error){
+                    if(std::string(error.what()).find("decoded allocation")!=std::string::npos)throw;
+                    ++model_gaps; // Existing format/owner gaps do not certify a model.
+                }
+            }
+        }
+        std::cout<<"Reference decode bounds: bsps="<<bsp_cases<<" models="<<model_cases<<" existing_model_gaps="<<model_gaps
+                 <<" max_bsp_bytes="<<max_bsp_bytes<<" max_model_bytes="<<max_model_bytes<<'\n';
         std::cout << "cache bounds, bitmap swizzle, compressed payload and invalid-input tests passed\n";
         return 0;
     } catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }

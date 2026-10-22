@@ -37,11 +37,11 @@ def main():
  assert original['pool_correspondence_sha256']==sha(pool)
  g=json.loads((E/'generated-v1.json').read_text());assert g==json.loads((E/'generated-repeat.json').read_text())
  assert g['generator_sha256']==sha(ROOT/'tools/generate_physics_renderer_storage_tu15_20261012.py') and g['correspondence_sha256']==sha(p)
- assert g['generated_cpp_sha256']==sha(ROOT/'src/physics_renderer_storage_runtime_generated.cpp')==sha(E/'runtime-repeat.cpp')
+ assert g['generated_cpp_sha256']==sha(ROOT/'src/physics/physics_renderer_storage_runtime_generated.cpp')==sha(E/'runtime-repeat.cpp')
  assert len(g['lowered_instructions'])==192 and len(g['complete_native_entries'])==3
  assert not g['production_opcode_decoder'] and not g['production_original_code_execution']
  f=json.loads((E/'call-frames.json').read_text());assert f['tool_sha256']==sha(ROOT/'tools/export_physics_renderer_storage_frames_tu15_20261012.py')
- assert f['report_sha256']==sha(p) and f['header_sha256']==sha(ROOT/'src/physics_renderer_storage_call_frames.hpp') and len(f['frames'])==23
+ assert f['report_sha256']==sha(p) and f['header_sha256']==sha(ROOT/'src/physics/physics_renderer_storage_call_frames.hpp') and len(f['frames'])==23
  cases=original['cases'];assert len(cases)==12
  assert original['ordered_writes']==sum(len(c['stores'])for c in cases)==60
  assert original['original_instruction_count']==744 and original['executed_sites']==62

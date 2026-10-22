@@ -163,7 +163,7 @@ def main():
     ctest=(OUT/'ctest.log').read_text();assert re.search(r'100% tests passed(?:, 0 tests failed)? out of 1',ctest)
     assert re.search(r'original_round_reset\s*\.+\s*Passed',ctest)
     assert 'Skipped'not in ctest and 'Failed'not in ctest
-    test_sources=('src/source_round_reset.cpp','include/halo2/source_round_reset.hpp','tests/round_reset_tests.cpp')
+    test_sources=('src/gameplay/multiplayer/source_round_reset.cpp','include/halo2/source_round_reset.hpp','tests/round_reset_tests.cpp')
     binary=ROOT/'build/round_reset_tests';assert binary.stat().st_mtime_ns<=(OUT/'ctest.log').stat().st_mtime_ns
     assert all((ROOT/p).stat().st_mtime_ns<=binary.stat().st_mtime_ns for p in test_sources)
     sanitizer=OUT/'round_reset_tests_asan';log=(OUT/'sanitizer.log').read_text()

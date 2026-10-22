@@ -49,7 +49,7 @@ def main():
     header = '''// Generated from byte-authenticated complete original constructor listings.
 // Native resource/void ABI; original Xbox kernel clobbers remain unproved.
 #pragma once
-#include "physics_platform_call_bindings.hpp"
+#include "physics/physics_platform_call_bindings.hpp"
 namespace halo2::physics_platform_call_detail {
 inline constexpr std::array<Binding,2> heap_memory_bindings{{
 '''+',\n'.join('    '+binding(row) for row in bindings[:2])+'''

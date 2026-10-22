@@ -1,0 +1,63 @@
+{
+  "schema": "H2_MACOS_PHYSICAL_MEMORY_EVIDENCE_V1",
+  "date": "2026-10-20",
+  "scope": "Darwin physical storage/protection; source API guards at4KiB with aggregated native host permissions",
+  "macos": {
+    "passed_tests": 10,
+    "architecture_page_bytes": {
+      "arm64": 16384,
+      "x86_64_rosetta": 4096
+    },
+    "report": "build/test-results/macos-physical/report.json",
+    "original_remote_report": "build/test-results/macos-physical-fixed/report.json",
+    "native_output": "build/test-results/macos-physical/evidence/Testing/Temporary/LastTest.log"
+  },
+  "linux": {
+    "passed_tests": 6,
+    "report": "build/test-results/macos-physical-linux-fixed/report.json"
+  },
+  "verified": [
+    "contiguous stable actual native backing and exact source allocation tokens/sizes",
+    "unaligned protection requests intersect exact4KiB source rows",
+    "source/native API writes, mutable views and validation reject read-only pages atomically before observers",
+    "mixed native granule retains writable neighbors; uniform read-only granules including tailpadding receive native read-only protection",
+    "cancel/reprepare and exact staged-bank publication preserve complete physical bytes and guards",
+    "original-size physical allocation, original physical release and combined resource continuation regressions",
+    "unchanged Linux native4KiB mprotect regression"
+  ],
+  "limitations": [
+    "hardware per4KiB faults within16KiB host granules are not provided; mixed granules require supported memory API guards",
+    "mutable borrowed spans cannot be retained across protection transitions per existing API contract",
+    "Darwin independent disk snapshot adoption and complete game execution are separate pending gates"
+  ],
+  "mac_validation_source_sha256": {
+    "src/source_runtime_host_physical_memory.cpp": "460428297b7775105a7e39fcdff7d8aa466fdb5edc99d63f047c39bb48674658",
+    "src/source_runtime_host_physical_pages.hpp": "a164d82391447f0425f2cbdab59184466297302edd5c330519abe08db7e4bd57",
+    "src/macos/source_runtime_host_physical_pages.hpp": "ead703692fca16fef4d724f814455a262e8e339621b0ccda2e79046a331f10c3",
+    "src/macos/source_runtime_host_pages.hpp": "ff4abcfd8a5992bb24523d87bd4edce6977e689db28fafa368c573a8b984a4bd",
+    "src/source_runtime_memory.cpp": "e11c5d27a4ba32514b99935efbcfce383d7013c80681a5ced0376c93353bbd84",
+    "include/halo2/source_runtime_write_protection.hpp": "10a90ea34819ff228ea66d9e549122c2b64a1785a8da64b6e9e3c43e92e61c40",
+    "tests/macos/CMakeLists.txt": "61e6ba8a474c2818e10edb0324d5259c20d588b88a2fef23cf0a25adb61407ab",
+    "tests/macos/physical_memory_tests.cpp": "31e068f396895d96203492ce69e51d75a57f1ce6f1fd4bc05acb70cc62b6c68c",
+    "tests/macos/native_protection.hpp": "ae90f159f5dd65133d72d200302f38a073088806ea2cfbdb5f03fc5970561d96",
+    "tests/source_host_resource_continuation_tests.cpp": "62af2ba492d3a8b6af2ba36d2372d075a043b186ab14c967024d04df37752c35",
+    "tests/source_physical_release_tests.cpp": "8f8b5cefb9fc412bf4d48d869e09a5cec3e9e931d458ad4e45257105ca0e8e45"
+  },
+  "workspace_source_sha256_at_recording": {
+    "src/source_runtime_host_physical_memory.cpp": "460428297b7775105a7e39fcdff7d8aa466fdb5edc99d63f047c39bb48674658",
+    "src/source_runtime_host_physical_pages.hpp": "a164d82391447f0425f2cbdab59184466297302edd5c330519abe08db7e4bd57",
+    "src/macos/source_runtime_host_physical_pages.hpp": "ead703692fca16fef4d724f814455a262e8e339621b0ccda2e79046a331f10c3",
+    "src/macos/source_runtime_host_pages.hpp": "ff4abcfd8a5992bb24523d87bd4edce6977e689db28fafa368c573a8b984a4bd",
+    "src/source_runtime_memory.cpp": "e11c5d27a4ba32514b99935efbcfce383d7013c80681a5ced0376c93353bbd84",
+    "include/halo2/source_runtime_write_protection.hpp": "10a90ea34819ff228ea66d9e549122c2b64a1785a8da64b6e9e3c43e92e61c40",
+    "tests/macos/CMakeLists.txt": "61e6ba8a474c2818e10edb0324d5259c20d588b88a2fef23cf0a25adb61407ab",
+    "tests/macos/physical_memory_tests.cpp": "31e068f396895d96203492ce69e51d75a57f1ce6f1fd4bc05acb70cc62b6c68c",
+    "tests/macos/native_protection.hpp": "ae90f159f5dd65133d72d200302f38a073088806ea2cfbdb5f03fc5970561d96",
+    "tests/source_host_resource_continuation_tests.cpp": "62af2ba492d3a8b6af2ba36d2372d075a043b186ab14c967024d04df37752c35",
+    "tests/source_physical_release_tests.cpp": "8f8b5cefb9fc412bf4d48d869e09a5cec3e9e931d458ad4e45257105ca0e8e45"
+  },
+  "cleanup": {
+    "owned_private_builds_removed": true,
+    "retained_large_artifacts": []
+  }
+}

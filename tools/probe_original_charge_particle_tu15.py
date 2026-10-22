@@ -586,8 +586,8 @@ def main():
         entry=a.entry,captured_weapon_tick=a.captured_weapon_tick,captured_projectile_effect=a.captured_projectile_effect,captured_unit_action=a.captured_unit_action,captured_hunter_particle_frame=a.captured_hunter_particle_frame,captured_caller_fp=captured_fp,queued_callback=queued_callback,portal_caller=portal_caller,source_memory_faults=source_faults,frame_delta_bits=delta_bits,caller_argument_words=arguments,caller_frame_address=gp[4],caller_before_hex=old_caller.hex(),caller_after_hex=caller.hex(),
         supplied_game_services=[],instruction_patches=[],native_platform_services=native_platform_services,
         native_platform_contract_source_sha256={str(p.relative_to(ROOT)):sha(p) for p in
-            ((ROOT/'src/physics_pool_host_storage.cpp',ROOT/'src/source_runtime_host_storage.cpp') if a.host_pool_pages else
-             (ROOT/'src/physics_physical_storage_host.cpp',ROOT/'src/source_runtime_host_physical_memory.cpp'))}
+            ((ROOT/'src/physics/physics_pool_host_storage.cpp',ROOT/'src/runtime/source_runtime_host_storage.cpp') if a.host_pool_pages else
+             (ROOT/'src/physics/physics_physical_storage_host.cpp',ROOT/'src/runtime/source_runtime_host_physical_memory.cpp'))}
             if a.host_pool_pages or a.host_game_start_memory else {},
         completed=completed,error=error,unowned_boundary=boundary,original_instructions=count,retained_stores=writes,exit_pc=g.reg_read(R.UC_X86_REG_EIP),
         original_functions={f'{p:08x}':n for p,n in sorted(visited.items())},original_function_entries=callers,
@@ -603,7 +603,7 @@ def main():
             native_synchronization_library_sha256=sha(a.native_synchronization_library),
             native_synchronization_adapter_sha256=sha(ROOT/'tools/shadow_native_synchronization_adapter.py'))
         report['native_platform_contract_source_sha256'].update({str(p.relative_to(ROOT)):sha(p) for p in
-            (ROOT/'src/native_synchronization.cpp',ROOT/'include/halo2/native_synchronization.hpp',
+            (ROOT/'src/platform/native_synchronization.cpp',ROOT/'include/halo2/native_synchronization.hpp',
              ROOT/'tools/shadow_native_synchronization_adapter.cpp')})
         (out/'report.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
     if animation_resources:

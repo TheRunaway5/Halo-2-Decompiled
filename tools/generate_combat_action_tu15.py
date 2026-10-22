@@ -160,7 +160,7 @@ def combat_instructions(*,get,put,addr,**unused):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--output',type=Path,default=Path('src/source_combat_action_tu15_generated.cpp'))
+    p.add_argument('--output',type=Path,default=Path('src/gameplay/units/source_combat_action_tu15_generated.cpp'))
     p.add_argument('--directory',type=Path,default=Path('analysis/weapon-effects-20261013/live-tu15/combat-functions'))
     a=p.parse_args();assert sha(NEW_DEFAULT)==NEW_PIN
     image=Xbe(NEW_DEFAULT);code=CombatCode(image)

@@ -7,8 +7,8 @@ ROOT=Path(__file__).resolve().parents[1]
 E=ROOT/'analysis/multiplayer/sandbox-source/tu15-settings-startup-20261012'
 P=ROOT/'analysis/multiplayer/sandbox-source/tu15-kernel-hardware-20261012'
 P_PIN='cef31a2a431b06a168ee2d65b074cd785b3ca547907504510f51021d642df455'
-OWN=('include/halo2/source_tu15_settings.hpp','src/source_tu15_settings.cpp',
- 'src/source_tu15_settings_runtime_generated.cpp','tests/source_tu15_settings_tests.cpp',
+OWN=('include/halo2/source_tu15_settings.hpp','src/platform/source_tu15_settings.cpp',
+ 'src/platform/source_tu15_settings_runtime_generated.cpp','tests/source_tu15_settings_tests.cpp',
  'cmake/SourceTu15Settings.cmake','tools/generate_tu15_startup_settings_20261012.py',
  'tools/compile_tu15_settings_primary_20261012.py','tools/oracle_tu15_settings_startup_20261012.py',
  'tools/validate_tu15_settings_startup_20261012.py','docs/PHYSICS_TU15_SETTINGS_STARTUP_20261012.md')

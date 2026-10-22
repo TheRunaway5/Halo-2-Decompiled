@@ -1,6 +1,6 @@
 if(BUILD_TESTING)
     add_executable(cinematic_camera_interpolation_tests tests/cinematic_camera_interpolation_tests.cpp
-        src/cinematic_camera_interpolation.cpp src/campaign_frame_clock.cpp)
+        src/campaign/cinematic_camera_interpolation.cpp src/campaign/campaign_frame_clock.cpp)
     target_include_directories(cinematic_camera_interpolation_tests PRIVATE include)
     add_test(NAME native_cinematic_camera_interpolation COMMAND cinematic_camera_interpolation_tests)
     add_test(NAME native_cinematic_capture_resolution COMMAND cinematic_crossfade_gpu_tests
@@ -11,7 +11,7 @@ if(BUILD_TESTING)
         # Real translated stores pass the physical protection adapter even
         # when their source range cannot intersect a physical allocation.
         add_executable(source_physical_write_guard_tests tests/source_physical_write_guard_tests.cpp
-            src/source_runtime_memory.cpp src/source_runtime_host_physical_memory.cpp)
+            src/runtime/source_runtime_memory.cpp src/runtime/source_runtime_host_physical_memory.cpp)
         target_include_directories(source_physical_write_guard_tests PRIVATE include)
         target_link_libraries(source_physical_write_guard_tests PRIVATE halo2_snapshot_storage Threads::Threads)
         target_link_options(source_physical_write_guard_tests PRIVATE -Wl,--wrap=pthread_mutex_lock)
@@ -62,7 +62,7 @@ if(BUILD_TESTING)
     target_link_libraries(renderer_descriptor_tests PRIVATE halo2_renderer)
     # Rebuild only Renderer.cpp with the exact former full-scan iteration.
     # All other engine code, source shaders and Vulkan inputs stay shared.
-    add_library(renderer_descriptor_reference OBJECT src/renderer.cpp)
+    add_library(renderer_descriptor_reference OBJECT src/rendering/renderer/renderer.cpp)
     set_property(TARGET renderer_descriptor_reference PROPERTY EXCLUDE_FROM_ALL TRUE)
     target_link_libraries(renderer_descriptor_reference PRIVATE halo2_renderer)
     target_include_directories(renderer_descriptor_reference PRIVATE
@@ -85,7 +85,7 @@ if(BUILD_TESTING)
     # lifetime and its actual lighting reads, sharing normal engine services.
     # This avoids requiring every translated physics/audio routine in ASAN.
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT WIN32)
-        add_library(renderer_lighting_sanitized OBJECT src/renderer.cpp src/object_lighting.cpp)
+        add_library(renderer_lighting_sanitized OBJECT src/rendering/renderer/renderer.cpp src/gameplay/objects/object_lighting.cpp)
         set_property(TARGET renderer_lighting_sanitized PROPERTY EXCLUDE_FROM_ALL TRUE)
         target_link_libraries(renderer_lighting_sanitized PRIVATE halo2_renderer)
         target_include_directories(renderer_lighting_sanitized PRIVATE

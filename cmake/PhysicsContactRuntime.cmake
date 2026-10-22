@@ -1,8 +1,8 @@
-target_sources(halo2_systems PRIVATE src/physics_contact_runtime_generated.cpp)
+target_sources(halo2_systems PRIVATE src/physics/runtime/physics_contact_runtime_generated.cpp)
 if(MSVC)
-    set_source_files_properties(src/physics_contact_runtime_generated.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
+    set_source_files_properties(src/physics/runtime/physics_contact_runtime_generated.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
 else()
-    set_source_files_properties(src/physics_contact_runtime_generated.cpp PROPERTIES
+    set_source_files_properties(src/physics/runtime/physics_contact_runtime_generated.cpp PROPERTIES
         COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
 endif()
 if(BUILD_TESTING)

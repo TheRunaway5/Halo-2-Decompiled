@@ -20,6 +20,7 @@ from .player_identity import VerifiedOwner
 OP = "https://steamcommunity.com/openid/login"
 NS = "http://specs.openid.net/auth/2.0"
 SELECT = NS + "/identifier_select"
+MAX_SUBJECT_SESSIONS = 4
 
 
 @dataclass
@@ -189,10 +190,16 @@ class SteamLogin:
             return web.json_response({"state": pending.status}, headers=headers)
         owner = pending.identity
         self.cleanup()
-        require(self.db.execute("SELECT count(*) FROM steam_login_sessions").fetchone()[0] < 1000,
-                "Steam identity capacity reached", 503)
         token = "h2s_" + secrets.token_urlsafe(32)
         with self.db:
+            # The first DELETE acquires the write transaction before counting
+            # capacity. Retain the newest sessions and rotate this subject's
+            # oldest tokens without evicting any other account's sessions.
+            self.db.execute("""DELETE FROM steam_login_sessions WHERE subject=? AND token_hash NOT IN
+                (SELECT token_hash FROM steam_login_sessions WHERE subject=?
+                 ORDER BY expires DESC,rowid DESC LIMIT ?)""", (owner.subject, owner.subject, MAX_SUBJECT_SESSIONS - 1))
+            require(self.db.execute("SELECT count(*) FROM steam_login_sessions").fetchone()[0] < 1000,
+                    "Steam identity capacity reached", 503)
             self.db.execute("INSERT INTO steam_login_sessions VALUES(?,?,?,?)",
                             (hashlib.sha256(token.encode()).hexdigest(), owner.subject, owner.username, int(self.clock()) + 28800))
         del self.pending[state]
@@ -240,7 +247,10 @@ class SteamLogin:
             # Check every declared persistent reference, including stats/ranks.
             # Do not delete or silently combine two independently played users.
             for (table,) in self.db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall():
-                if table in ("player_profiles", "player_identities"):
+                # A public alias is allocated at first login, before any play.
+                # Actual history, customization and EOS bindings still block
+                # adoption through their own player foreign keys below.
+                if table in ("player_profiles", "player_identities", "history_players"):
                     continue
                 quoted = '"' + table.replace('"', '""') + '"'
                 for fk in self.db.execute("PRAGMA foreign_key_list(" + quoted + ")").fetchall():
@@ -253,6 +263,7 @@ class SteamLogin:
             if discord:
                 target = discord[0]
                 if old:
+                    self.db.execute("DELETE FROM history_players WHERE player=?", (old,))
                     self.db.execute("DELETE FROM player_identities WHERE player=?", (old,))
                     self.db.execute("DELETE FROM player_profiles WHERE player=?", (old,))
                     self.db.execute("DELETE FROM players WHERE id=?", (old,))
@@ -264,8 +275,8 @@ class SteamLogin:
                 if not old:
                     self.db.execute("INSERT INTO players VALUES(?,?,?)", (target, *primary))
                     self.db.execute("INSERT INTO player_identities VALUES(?,?,?)", (*primary, target))
-                    self.db.execute("INSERT INTO player_profiles(player,screen_name,steam_name) VALUES(?,?,?)",
-                                    (target, social.username, request.get(VERIFIED_ACCOUNT_NAME, "")))
+                    self.db.execute("INSERT INTO player_profiles(player,screen_name,steam_name,joined_at) VALUES(?,?,?,?)",
+                                    (target, social.username, request.get(VERIFIED_ACCOUNT_NAME, ""),self.directory.store.now()))
                 self.db.execute("UPDATE player_profiles SET discord_username='' WHERE discord_username=? AND player!=?", (social.username,target))
                 self.db.execute("UPDATE player_profiles SET discord_username=? WHERE player=?", (social.username,target))
                 self.db.execute("INSERT INTO player_identities VALUES('discord',?,?)", (social.subject,target))

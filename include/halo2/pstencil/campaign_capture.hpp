@@ -1,6 +1,5 @@
 #pragma once
 #include "halo2/renderer.hpp"
-#include "halo2/debug_panel.hpp"
 #include <cstdlib>
 #include <charconv>
 #include <functional>
@@ -59,13 +58,13 @@ inline void campaign_capture_controls(Renderer& renderer,const ModelView& view,
     const std::filesystem::path& path,const CampaignCaptureDraw& draw,bool after=false) {
     const auto output=[&](const char* suffix){return path.parent_path()/(path.stem().string()+suffix);};
     if(std::getenv("HALO2_PSTENCIL_CAMPAIGN_MODE_CONTROLS")) {
-        auto settings=renderer.debug_panel().display_settings();
+        auto settings=renderer.display_settings();
         struct Restore {
             Renderer& renderer;decltype(settings) saved;
-            ~Restore(){renderer.debug_panel().display_settings(saved);}
+            ~Restore(){renderer.display_settings(saved);}
         } restore{renderer,settings};
         settings.graphics_mode=GraphicsMode::Original;
-        renderer.debug_panel().display_settings(settings);
+        renderer.display_settings(settings);
         auto original=view;original.raw_effect_lights={};original.effect_lights={};
         original.pstencil_point_casters={};original.pstencil_lightmap_casters={};
         draw(original,output(after?"-Original-restored.ppm":"-Original-before.ppm"));

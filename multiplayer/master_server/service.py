@@ -155,6 +155,10 @@ class Directory:
         self.matchmaking = MatchmakingApi(self, load_catalog(settings.matchmaking_catalog))
         from .clans_http import ClanApi
         self.clans = ClanApi(self)
+        from .player_profile import PlayerProfiles
+        self.profiles = PlayerProfiles(self)
+        from .eos_identity import EosIdentity
+        self.eos_identity = EosIdentity(self)
         from .voice_blocks import VoiceBlocks
         self.voice_blocks = VoiceBlocks(self)
         from .clan_voice import ClanVoice
@@ -223,15 +227,23 @@ class Directory:
         return value
 
     async def health(self, request):
+        from .player_presence import population
         self.store.db.execute("SELECT 1").fetchone()
         require(self.maintenance_task is not None and not self.maintenance_task.done(), "Maintenance worker unavailable", 503)
+        counts = population(self)
+        queued = sum(counts[state][kind] for state in ("queued", "joining") for kind in ("users", "guests"))
         return web.json_response({"status": "ok", "ready": True, "master_id": self.id,
                                   "uptime_seconds": int(time.monotonic() - self.started),
-                                  "peers": self.peer_status})
+                                  "peers": self.peer_status, "matchmaking_players": queued})
 
     async def masters(self, request):
         return web.json_response({"master": {"id": self.id, "public_key": public_hex(self.key),
                                              "url": self.settings.public_url}, "peers": self.settings.peers})
+
+    async def online_status(self, request):
+        from .player_presence import population
+        require(not request.query, "Online counts do not accept filters")
+        return web.json_response(population(self))
 
     async def discover(self, request):
         require(len(request.query) == len(set(request.query)), "Duplicate discovery filter")
@@ -247,12 +259,17 @@ class Directory:
         admin = request.path.startswith("/v1/admin/")
         owner = await self.owner(request, admin)
         body = await self.body(request)
-        fields(body, ("server_public_key",), ("ttl_seconds", "owner_label") if admin else ("ttl_seconds",))
+        challenge = request.path.endswith("/challenge")
+        fields(body, ("server_public_key",) if challenge else ("server_public_key", "proof"),
+               ("ttl_seconds", "owner_label") if admin else ("ttl_seconds",))
         ttl = integer(body.get("ttl_seconds", 86400 * 30), 1, 86400 * 90)
         key = public_key(body["server_public_key"])
         if admin:
             owner = ("operator", text(body.get("owner_label", "operator-bootstrap")))
-        result = self.store.enroll(*owner, key, ttl)
+        if challenge:
+            return web.json_response(self.store.enrollment_challenge(*owner, key, ttl),
+                                     headers={"Cache-Control": "no-store"})
+        result = self.store.enroll(*owner, key, ttl, body["proof"])
         LOG.info(json.dumps({"event": "credential_enrolled", "credential_id": result["credential_id"], "provider": owner[0]}))
         return web.json_response(result, status=201)
 
@@ -398,15 +415,18 @@ def create_app(settings, owner_verifier=None, clock=time.time):
     app[web.AppKey("directory", Directory)] = directory
     app.cleanup_ctx.append(directory.lifetime)
     app.add_routes([
-        web.get("/v1/health", directory.health), web.get("/v1/masters", directory.masters),
+        web.get("/v1/health", directory.health), web.get("/v1/online/status", directory.online_status),
+        web.get("/v1/masters", directory.masters),
         web.get("/v1/servers", directory.discover), web.post("/v1/servers", directory.announce),
         web.get("/v1/servers/{server_id}", directory.discover),
         web.patch("/v1/servers/{server_id}", directory.announce),
         web.delete("/v1/servers/{server_id}", directory.announce),
         web.post("/v1/servers/{server_id}/heartbeat", directory.announce),
         web.post("/v1/credentials", directory.enroll), web.get("/v1/credentials", directory.credentials),
+        web.post("/v1/credentials/challenge", directory.enroll),
         web.delete("/v1/credentials/{credential_id}", directory.revoke),
         web.post("/v1/admin/credentials", directory.enroll),
+        web.post("/v1/admin/credentials/challenge", directory.enroll),
         web.delete("/v1/admin/credentials/{credential_id}", directory.revoke),
         web.post("/v1/federation/sync", directory.sync),
     ])
@@ -424,6 +444,9 @@ def create_app(settings, owner_verifier=None, clock=time.time):
     app.add_routes(directory.match_transport.routes())
     app.on_shutdown.append(directory.match_transport.close)
     app.add_routes(directory.clans.routes())
+    app.add_routes(directory.profiles.routes())
+    app.add_routes(directory.eos_identity.routes())
+    app.on_shutdown.append(directory.eos_identity.close)
     app.router.add_put("/v1/account/voice-blocks", directory.voice_blocks.update)
     app.add_routes(directory.parties.routes())
     app.router.add_get("/v1/clans/voice", directory.clan_voice.connect)

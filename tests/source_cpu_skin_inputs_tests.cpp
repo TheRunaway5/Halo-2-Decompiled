@@ -106,6 +106,17 @@ void assets(const Corpus&corpus,Checks&checks){std::map<std::pair<std::string,st
     check(loaded==84&&origins>100000,"all21 actual model-class metadata coverage changed");
     Cache c(std::filesystem::path(HALO2_SOURCE_DIR)/"assets/disc/maps/cyclotron.map");const auto tag=std::find_if(c.tags().begin(),c.tags().end(),[](const auto&t){return t.group=="mode"&&t.name=="objects\\characters\\elite\\fp_arms\\fp_arms";});check(tag!=c.tags().end(),"actual Elite arms missing");
     auto m=c.load_model(tag->datum,true);for(auto&mat:m.mesh.materials)if(!mat.lods.empty())check(prepare_dynamic_material(c,mat,{},true),"Elite authored pass was not prepared");
+    unsigned admitted_bindings=0,rejected_bindings=0;
+    for(const auto& root:m.mesh.materials)for(unsigned classification=0;classification<=6;++classification) {
+        bool needed=false,prepared=false,query_rejected=false,prepare_rejected=false;
+        try {needed=cpu_skin_material_inputs_required(c,root,classification);}catch(const FormatError&){query_rejected=true;}
+        auto copy=root;
+        try {prepared=prepare_cpu_skin_material_inputs(c,copy,classification);}catch(const FormatError&){prepare_rejected=true;}
+        check(query_rejected==prepare_rejected && (query_rejected || needed==prepared),
+            "read-only CPU skin admission differs from prepared material");
+        if(query_rejected)++rejected_bindings;else ++admitted_bindings;
+    }
+    std::cout<<admitted_bindings<<" admitted and "<<rejected_bindings<<" rejected material/class copy decisions exact\n";
     const auto roots=m.mesh.materials;SourceDynamicModelShaders selection(c,m,tag->datum);
     const auto world_nodes=pose_model_nodes(m);auto posed=skin_model_world_nodes(m,world_nodes);
     SourceModelShaderView view;view.shader=source_shader_lod_view(0,480,false,false);view.part_shader_multiplier=1;selection.select(posed,{10000,255},view);

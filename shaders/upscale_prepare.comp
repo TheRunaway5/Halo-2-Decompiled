@@ -1,0 +1,54 @@
+#version 450
+layout(local_size_x=8,local_size_y=8) in;
+layout(binding=0) uniform sampler2D rawDepth;
+layout(binding=1) uniform sampler2D sceneColor;
+layout(binding=2,rgba16f) uniform writeonly image2D colorOut;
+layout(binding=3,rg16f) uniform image2D motionOut;
+layout(binding=4,r32f) uniform writeonly image2D depthOut;
+layout(binding=5,r8) uniform image2D reactiveOut;
+layout(binding=6,std140) uniform View {
+    mat4 inverseCurrent;
+    mat4 previous;
+    mat4 previousForeground;
+    vec4 rectangle;
+    vec4 planes; // near, far, integer W mode, history reset
+    vec4 jitter; // actual viewport offset in input pixels
+    vec4 size;
+} view;
+layout(binding=7) uniform sampler2D previousColor;
+layout(push_constant) uniform Phase { uint phase; } pc;
+void main() {
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy);
+    if(pc.phase==0u) {
+        if(any(greaterThanEqual(p,ivec2(view.rectangle.zw))))return;
+        p+=ivec2(view.rectangle.xy);
+        float d=texelFetch(rawDepth,p,0).r;
+        float n=view.planes.x,f=view.planes.y;
+        if(view.planes.z!=0.0) {
+            float distance=max(n,d*1024.0);
+            d=d>=0.999999?1.0:clamp(f/(f-n)-n*f/((f-n)*distance),0.0,1.0);
+        }
+        vec2 uv=(vec2(p)+0.5-view.rectangle.xy-view.jitter.xy)/view.rectangle.zw;
+        vec4 world=view.inverseCurrent*vec4(uv*2.0-1.0,d,1.0);
+        vec4 old=view.previous*world;
+        vec2 velocity=vec2(0);
+        if(view.planes.w==0.0 && old.w>0.0 && d<0.999999) {
+            vec2 oldPixel=(old.xy/old.w*0.5+0.5)*view.rectangle.zw+view.rectangle.xy;
+            velocity=oldPixel-(vec2(p)+0.5-view.jitter.xy);
+        }
+        imageStore(motionOut,p,vec4(velocity,0,0));
+        imageStore(depthOut,p,vec4(d));
+        imageStore(reactiveOut,p,vec4(d>=0.999999?1.0:0.0));
+    } else {
+        if(any(greaterThanEqual(p,ivec2(view.size.xy))))return;
+        vec4 color=texelFetch(sceneColor,p,0);
+        imageStore(colorOut,p,vec4(color.rgb,1));
+        // Changing/translucent effects and unjittered UI must reject stale
+        // history. Object motion is already in motionOut at this boundary.
+        vec2 oldPixel=vec2(p)+0.5+imageLoad(motionOut,p).xy;
+        vec3 old=texture(previousColor,oldPixel/view.size.xy).rgb;
+        float change=max(max(abs(color.r-old.r),abs(color.g-old.g)),abs(color.b-old.b));
+        float reactive=max(imageLoad(reactiveOut,p).r,smoothstep(0.05,0.25,change));
+        imageStore(reactiveOut,p,vec4(reactive));
+    }
+}

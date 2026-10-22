@@ -15,7 +15,7 @@ W = ROOT/'analysis/multiplayer/integration/physics-engine-20261010'
 P_PIN = '9f883c33d30cf5469ff87587cde06623ebb138bc5352da6c2da62c6dbac8e857'
 W_PIN = '87abf847fc5688a1e6567fe426b44dc6a1e4427805c798f5363a338411889c94'
 OWNED = (
-    'src/physics_step_internal.hpp', 'src/physics_world_runtime_generated.cpp',
+    'src/physics/runtime/physics_step_internal.hpp', 'src/physics/runtime/physics_world_runtime_generated.cpp',
     'tools/generate_physics_game_frame_runtime_20261011.py',
     'tools/oracle_world_qword_tu15_20261012.py',
     'tools/validate_world_qword_tu15_20261012.py',
@@ -45,14 +45,14 @@ def freeze():
     world = read(W/'source-manifest-v19.json')
     for name, pin in parent['files'].items(): assert sha(P/'source-v5'/name) == pin, name
     for name, pin in world['files'].items(): assert sha(W/'source-v19'/name) == pin, name
-    assert (ROOT/'src/physics_world_runtime_generated.cpp').read_text() == (E/'runtime-v1.cpp').read_text()
-    old = (W/'source-v19/src/physics_world_runtime_generated.cpp').read_text()
+    assert (ROOT/'src/physics/runtime/physics_world_runtime_generated.cpp').read_text() == (E/'runtime-v1.cpp').read_text()
+    old = (W/'source-v19/src/physics/runtime/physics_world_runtime_generated.cpp').read_text()
     wrong = 's.fp.push(ext(f(r(s.memory,(selected(0x4655d0u,s.image)),8))));'
     right = 's.fp.push(static_cast<long double>(std::bit_cast<double>(r64(s.memory,(selected(0x4655d0u,s.image))))));'
     assert old.count(wrong) == 1 and old.replace(wrong,right) == (E/'runtime-v1.cpp').read_text()
     guard = '    if (n == 0 || n > 4)\n        throw std::runtime_error("Invalid original physics scalar read width");\n'
-    old_header = (P/'source-v5/src/physics_step_internal.hpp').read_text()
-    assert old_header.replace('    std::array<std::byte, 4> b{};',guard+'    std::array<std::byte, 4> b{};',1) == (ROOT/'src/physics_step_internal.hpp').read_text()
+    old_header = (P/'source-v5/src/physics/runtime/physics_step_internal.hpp').read_text()
+    assert old_header.replace('    std::array<std::byte, 4> b{};',guard+'    std::array<std::byte, 4> b{};',1) == (ROOT/'src/physics/runtime/physics_step_internal.hpp').read_text()
     origins = {name: P/'source-v5'/name for name in parent['files']}
     origins.update({name: ROOT/name for name in OWNED+EXTRA})
     # Capture local Python imports used by the new oracle/generator. Retained
@@ -99,7 +99,7 @@ def validate():
     assert sha(E/'source-v2/CMakeLists.txt') == manifest['top_sha256']
     assert REGISTRATION in (ROOT/'CMakeLists.txt').read_text()
     generated = read(E/'generated-v1.json')
-    assert sha(E/'runtime-v1.cpp') == generated['generated_cpp_sha256'] == sha(ROOT/'src/physics_world_runtime_generated.cpp')
+    assert sha(E/'runtime-v1.cpp') == generated['generated_cpp_sha256'] == sha(ROOT/'src/physics/runtime/physics_world_runtime_generated.cpp')
     assert generated['generator_sha256'] == sha(ROOT/'tools/generate_physics_game_frame_runtime_20261011.py')
     assert sha(E/'runtime-repeat.cpp') == sha(E/'runtime-v1.cpp')
     assert sha(E/'generated-repeat.json') == sha(E/'generated-v1.json')

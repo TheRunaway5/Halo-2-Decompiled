@@ -6,9 +6,9 @@ ROOT=Path(__file__).resolve().parents[1]
 E=ROOT/'analysis/multiplayer/sandbox-source/vehicle-motion-math-20261011'
 PARENT=ROOT/'analysis/multiplayer/sandbox-source/vehicle-motion-20261011'
 PARENT_PIN='279a35483a321b66ce80be0026075e4cd55fef418a261d2919481e06e6ddfd38'
-OVERLAYS=('include/halo2/physics_contact_runtime.hpp','src/physics_contact_runtime_internal.hpp')
-OWNED=('include/halo2/physics_vehicle_motion_math.hpp','src/physics_vehicle_motion_math_internal.hpp',
- 'src/physics_vehicle_motion_math_generated.cpp','tests/physics_vehicle_motion_math_tests.cpp',
+OVERLAYS=('include/halo2/physics_contact_runtime.hpp','src/physics/runtime/physics_contact_runtime_internal.hpp')
+OWNED=('include/halo2/physics_vehicle_motion_math.hpp','src/physics/vehicles/physics_vehicle_motion_math_internal.hpp',
+ 'src/physics/vehicles/physics_vehicle_motion_math_generated.cpp','tests/physics_vehicle_motion_math_tests.cpp',
  'cmake/PhysicsVehicleMotionMath.cmake','tools/research_vehicle_motion_math_20261011.py',
  'tools/generate_vehicle_motion_math_20261011.py','tools/oracle_vehicle_motion_math_20261011.py',
  'tools/oracle_vehicle_motion_math_hardware_20261011.py','tools/vehicle_motion_math_hardware_trace_20261011.cpp',
@@ -68,7 +68,7 @@ def validate():
  generated=read(E/'generated-verified/manifest.json');assert sha(E/'generated-verified/manifest.json')==sha(E/'generated-repeat/manifest.json')
  assert generated['generator_sha256']==sha(ROOT/'tools/generate_vehicle_motion_math_20261011.py')
  assert generated['correspondence_sha256']==sha(E/'correspondence-verified/report.json')
- assert generated['generated_cpp_sha256']==sha(ROOT/'src/physics_vehicle_motion_math_generated.cpp')==sha(E/'generated-repeat/physics_vehicle_motion_math_generated.cpp')
+ assert generated['generated_cpp_sha256']==sha(ROOT/'src/physics/vehicles/physics_vehicle_motion_math_generated.cpp')==sha(E/'generated-repeat/physics_vehicle_motion_math_generated.cpp')
  assert len(generated['lowered_instructions'])==443 and not generated['production_opcode_decoder'] and not generated['production_original_code_execution']
  original=read(E/'original-verified/report.json');assert sha(E/'original-verified/report.json')==sha(E/'original-repeat/report.json')
  assert set(original['fixtures'])=={'u5'} and original['tool_sha256']==sha(ROOT/'tools/oracle_vehicle_motion_math_20261011.py')
@@ -112,7 +112,7 @@ def validate():
   native_cases=8598,complete_cases=6118,required_owner_prefixes=2480,native_observer_events=3039202,hardware_steps=3036319,
   ordered_writes=506987,retained_bytes=1602967,compiled_bodies=96,compiled_sites=11056,exercised_sites=6896,
   new_bodies=16,new_sites=443,overlays=changes,logs=logs,binaries=binaries,
-  current_world_source_sha256=sha(ROOT/'src/physics_world_runtime_generated.cpp'),current_world_binary_sha256=sha(ROOT/'build-vehicle-control-20261011/physics_world_runtime_tests'),
+  current_world_source_sha256=sha(ROOT/'src/physics/runtime/physics_world_runtime_generated.cpp'),current_world_binary_sha256=sha(ROOT/'build-vehicle-control-20261011/physics_world_runtime_tests'),
   production_uses_original_executable=False,unported_owner_results_supplied=False,tu15_release_sanitizer_production_passed=True,full_physics_parity=False)
  (E/'validation.json').write_text(json.dumps(result,sort_keys=True,indent=2)+'\n');print(json.dumps(dict(cases=8598,validation_sha256=sha(E/'validation.json'))))
 if __name__=='__main__':

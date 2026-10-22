@@ -10,14 +10,14 @@ import argparse,datetime,hashlib,json,os,shlex,subprocess,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 DEFAULT=ROOT/'analysis/multiplayer/game-variants/king-presentation-native-20261011'
-CHANGED=('src/vista_announcer_events.cpp','src/vista_announcer_assets.cpp','src/native_vista_announcer.cpp',
- 'src/source_king.cpp','include/halo2/source_king.hpp','src/native_vista_flow.cpp',
+CHANGED=('src/audio/vista_announcer_events.cpp','src/audio/vista_announcer_assets.cpp','src/ui/vista/native_vista_announcer.cpp',
+ 'src/gameplay/multiplayer/source_king.cpp','include/halo2/source_king.hpp','src/ui/vista/native_vista_flow.cpp',
  'include/halo2/vista_announcer_events.hpp','include/halo2/native_vista_announcer.hpp',
  'tests/king_presentation_tests.cpp','tests/native_vista_announcer_tests.cpp',
  'tests/fixtures/king_presentation_original.json','tests/fixtures/king_event_producers_original.json',
  'tools/oracle_king_presentation.py','tools/oracle_king_event_producers.py',
  'tools/verify_king_presentation.py','CMakeLists.txt')
-BASE_FILES=('src/vista_announcer_queue.cpp','tests/vista_announcer_events_tests.cpp',
+BASE_FILES=('src/audio/vista_announcer_queue.cpp','tests/vista_announcer_events_tests.cpp',
  'tests/fixtures/vista_announcer_events_original.json','tests/fixtures/vista_announcer_publication_original.json',
  'tools/oracle_vista_announcer_events.py','tools/oracle_vista_pcr_screen.py','tools/export_vista_announcer_cues.py')
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -64,9 +64,9 @@ def main():
  assert sha(original/'producer-report.json')==sha(overlay/'tests/fixtures/king_event_producers_original.json')
  assert json.loads((original/'producer-report.json').read_text())==json.loads((ROOT/'analysis/multiplayer/game-variants/king-presentation-20261011/producer-report.json').read_text())
  entries=json.loads((build/'compile_commands.json').read_text());objects={}
- owners=('src/vista_announcer_events.cpp','src/vista_announcer_assets.cpp','src/native_vista_announcer.cpp','src/vista_announcer_queue.cpp','src/source_king.cpp')
+ owners=('src/audio/vista_announcer_events.cpp','src/audio/vista_announcer_assets.cpp','src/ui/vista/native_vista_announcer.cpp','src/audio/vista_announcer_queue.cpp','src/gameplay/multiplayer/source_king.cpp')
  tests=('tests/king_presentation_tests.cpp','tests/native_vista_announcer_tests.cpp','tests/vista_announcer_events_tests.cpp')
- for index,name in enumerate((*owners,*tests,'src/native_vista_flow.cpp')):
+ for index,name in enumerate((*owners,*tests,'src/ui/vista/native_vista_flow.cpp')):
   template='tests/vista_announcer_events_tests.cpp'if name=='tests/king_presentation_tests.cpp'else name
   entry=next(e for e in entries if Path(e['file'])==base_source/template);cmd=shlex.split(entry['command'])
   cmd=[str(overlay/name)if token==str(base_source/template)else token for token in cmd]
@@ -74,7 +74,7 @@ def main():
   # Avoid overwriting the base build's ordinary dependency files.
   for option in ('-MF','-MT'):
    if option in cmd:cmd[cmd.index(option)+1]=str(obj)+('.d'if option=='-MF'else'')
-  cmd[1:1]=['-I'+str(overlay/'include')]
+  cmd[1:1]=['-I'+str(overlay/'include'), '-I'+str(overlay/'src')]
   cmd.extend(['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer'])
   execute('compile-'+str(index),cmd,Path(entry['directory']));objects[name]=obj
  listing=subprocess.check_output(['ninja','-C',str(build),'-t','commands','native_vista_announcer_tests'],text=True)
@@ -85,8 +85,8 @@ def main():
  binaries={}
  for name in tests:
   stem=Path(name).stem;binary=run/stem;cmd=[]
-  required=owners if stem=='native_vista_announcer_tests'else ('src/vista_announcer_events.cpp','src/vista_announcer_queue.cpp','src/source_king.cpp')
-  if stem=='vista_announcer_events_tests':required=(*required,'src/vista_announcer_assets.cpp')
+  required=owners if stem=='native_vista_announcer_tests'else ('src/audio/vista_announcer_events.cpp','src/audio/vista_announcer_queue.cpp','src/gameplay/multiplayer/source_king.cpp')
+  if stem=='vista_announcer_events_tests':required=(*required,'src/audio/vista_announcer_assets.cpp')
   for token in link:
    if token.startswith('-Wl,--dependency-file='):continue
    if token.endswith('native_vista_announcer_tests.cpp.o'):
@@ -109,7 +109,7 @@ def main():
   source_hashes_sha256=sha(run/'source-hashes.json'),asset_hashes=str((run/'asset-hashes.json').relative_to(a.output.parent)),
   asset_hashes_sha256=sha(run/'asset-hashes.json'),commands=commands,binaries=binaries,
   original_calls=report['whole_delivery_and_queue_calls'],original_start_calls=54,sanitized_owners=list(owners),
-  compiled_only_owners=['src/native_vista_flow.cpp'],
+  compiled_only_owners=['src/ui/vista/native_vista_flow.cpp'],
   production_king_admission=False,king_transport_admission=False,goal_complete=False,
   live_overlay_drift=[name for name in CHANGED if not(ROOT/name).exists()or sha(ROOT/name)!=pins[name]])
  a.output.write_text(json.dumps(result,sort_keys=True,indent=2)+'\n');print(a.output,flush=True)

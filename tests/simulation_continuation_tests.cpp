@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #include "halo2/simulation_authority.hpp"
 #include "halo2/math.hpp"
 #include "halo2/multiplayer_object_runtime.hpp"
@@ -249,7 +250,7 @@ void vehicle(const char *xbe,const char *map){
                 Spawn at;at.position=position+direction(theta)*radius;at.position.z=position.z;
                 at.facing=theta+3.14159265f;at.bsp=0;
                 const auto floor=a.collision().raycast(at.position+Vec3{0,0,2},{0,0,-1},4);
-                if(!floor)continue;at.position.z=floor->position.z+.01f;a.debug_teleport(0,at);
+                if(!floor)continue;at.position.z=floor->position.z+.01f;test::place_player(a,at);
                 const auto prompt=a.unit_action_prompt(a.player());
                 if(prompt.target.object!=handle||(prompt.target.action!=5&&prompt.target.action!=6))continue;
                 check(a.take_unit_action(const_cast<Unit&>(a.player()),prompt),"Production displayed vehicle entry was rejected");
@@ -292,7 +293,7 @@ void vehicle(const char *xbe,const char *map){
     object.solved_transform=overturned;object.solved_nodes.reset();
     auto declared=a.prepare_authority(declared_pose,binding);
     check(a.commit_authority(std::move(declared)),"Declared native overturned scene pose was rejected");
-    a.debug_teleport(0,approach);
+    test::place_player(a,approach);
     const auto flip=a.unit_action_prompt(a.player());
     check(flip.target.object==entry.target.object&&flip.target.action==8&&
         a.take_unit_action(const_cast<Unit&>(a.player()),flip),"Production overturned-vehicle flip did not begin");
@@ -342,9 +343,9 @@ void source(const char *xbe,const char *map){
     auto variant=source_game_variant_default(0);source_game_variant_set(variant,0x59,5);
     wa.configure_session(variant,1,30,0x12345678);wb.configure_session(variant,1,30,0x12345678);
     Simulation a(ca,0,ac.spawns().front(),{},{},{},SourceSceneGameContext{2,2},
-        NativeObjectLifetimes(wa.memory(),wa.object_pool()),{[&](const auto &p){return wa.create_biped(p.definition,p.position,{1,0,0});},[&](auto h){wa.destroy_object(h);}});
+        NativeObjectLifetimes(wa.memory(),wa.object_pool()),{[&](const auto &p,SourceScenarioBirth){return wa.create_biped(p.definition,p.position,{1,0,0});},[&](auto h){wa.destroy_object(h);}});
     Simulation b(cb,0,bc.spawns().front(),{},{},{},SourceSceneGameContext{2,2},
-        NativeObjectLifetimes(wb.memory(),wb.object_pool()),{[&](const auto &p){return wb.create_biped(p.definition,p.position,{1,0,0});},[&](auto h){wb.destroy_object(h);}});
+        NativeObjectLifetimes(wb.memory(),wb.object_pool()),{[&](const auto &p,SourceScenarioBirth){return wb.create_biped(p.definition,p.position,{1,0,0});},[&](auto h){wb.destroy_object(h);}});
     const Simulation::AuthorityDigest binding{std::byte{0x42},std::byte{0x15}};
     check(a.scene().resolve(0)!=null_datum,"Actual composed TU1.5 scene biped unavailable");
     rejects([&]{a.authority_checkpoint(binding);});const auto saved=a.authority_checkpoint(binding,true);

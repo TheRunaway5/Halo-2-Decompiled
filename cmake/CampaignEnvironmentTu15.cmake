@@ -1,9 +1,9 @@
 # Complete native source environment producer and ordinary main publication.
-target_sources(halo2_physics_world_runtime PRIVATE src/source_campaign_environment_tu15_generated.cpp)
-target_sources(halo2_systems PRIVATE src/source_campaign_environment_frame_tu15.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/campaign/source_campaign_environment_tu15_generated.cpp)
+target_sources(halo2_systems PRIVATE src/campaign/source_campaign_environment_frame_tu15.cpp)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    set_source_files_properties(src/source_campaign_environment_tu15_generated.cpp
-        src/source_campaign_environment_frame_tu15.cpp PROPERTIES
+    set_source_files_properties(src/campaign/source_campaign_environment_tu15_generated.cpp
+        src/campaign/source_campaign_environment_frame_tu15.cpp PROPERTIES
         COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
 endif()
 if(BUILD_TESTING)
@@ -42,9 +42,9 @@ if(BUILD_TESTING)
 endif()
 
 # Completed campaign main-location/environment to WORLD particle consumer.
-target_sources(halo2_systems PRIVATE src/source_campaign_environment_view_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/campaign/source_campaign_environment_view_tu15.cpp)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    set_source_files_properties(src/source_campaign_environment_view_tu15.cpp PROPERTIES
+    set_source_files_properties(src/campaign/source_campaign_environment_view_tu15.cpp PROPERTIES
         COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
 endif()
 if(BUILD_TESTING)

@@ -93,7 +93,7 @@ Terminal setup works without Tk; quote paths containing spaces:
 ```
 
 Use `--setup-only` to prepare files and exit. A source-only checkout can prepare
-content before building a launcher:
+content before building the runtime or launcher:
 
 ```bash
 python3 tools/setup_assets.py --prepare-mcc-gameplay --mcc-root "/path/to/Halo The Master Chief Collection"
@@ -103,6 +103,10 @@ Normal setup uses MCC only. The original Xbox ISO and TU1.5 update are
 reference inputs for development; old Xbox/Vista source selections are ignored
 by the launchers. See [game-file setup](docs/ASSET_SETUP.md) for cache ownership,
 discovery options and readiness checks.
+Normal setup and menu launch select the authenticated MCC V3 loading bank,
+including the decoded MCC audio track. Preserved legacy loading banks are not
+a fallback for this route. See [loading presentation](docs/MCC_LOADING_PRESENTATION.md)
+for source ownership, validation scope and remaining playback checks.
 
 ### Build from source
 
@@ -110,7 +114,7 @@ Required: CMake 3.24+, Ninja for the commands below, a C++20 compiler, Python
 3.11+, SDL2, Vulkan headers/loader, GLM, `glslangValidator`, SPIRV-Tools
 (`spirv-val`), zlib, pkg-config,
 libcurl 7.86+ with WebSocket support, OpenSSL Crypto, nlohmann-json 3.10+,
-libopus, and FFmpeg development libraries (`libavcodec`, `libavformat`,
+libopus, libvorbis, libogg, and FFmpeg development libraries (`libavcodec`, `libavformat`,
 `libavutil`, `libswresample`, `libswscale`) with Bink and dedicated Xbox ADPCM
 decoding. Runtime rendering requires a Vulkan-capable GPU. The launcher setup
 and home windows also require Python Tk; `python3 -m tkinter` checks it.
@@ -128,8 +132,10 @@ Successful links copy the latest local binaries and a hash manifest to
 `dist/builds/linux-x86_64/`; the original build tree and compiled shader bindings
 are retained. This folder contains local build outputs. Downloadable releases
 require the separate relocatable package and published release manifest.
-Linux arm64, Windows x86_64/arm64 and macOS arm64 output staging are skipped
-until those targets are supported. Disposable validation disables staging.
+Linux arm64 and Windows x86_64/arm64 output staging are skipped until those
+targets are supported. The [macOS port checklist](docs/MACOS_PORT.md) documents
+the universal arm64+x86_64 build and bundled MoltenVK graphics bring-up;
+the playable macOS engine remains in progress. Disposable validation disables staging.
 See [binary builds and updates](docs/BINARY_UPDATES.md) for the output layout
 and release manifest used by the launcher's Update button.
 
@@ -148,13 +154,28 @@ readiness. The title-first launcher is configured to skip the boot intro once
 startup is available. Use an optimized build for runtime work; Debug asset
 preparation is substantially slower.
 
-The upscaled intro and credits are repository assets stored with Git LFS.
-Install Git LFS, then run `git lfs install` and `git lfs pull` in a clone before
-MCC setup or a movie-enabled build. Check the downloaded files with
-`python3 tools/bundle_movies.py --verify`. Precompiled release ZIPs include the
-real movies directly. A code-only Release build can select
-`-DHALO2_BUNDLE_MOVIES=OFF`. See [release movies](docs/RELEASE_MOVIES.md) for
-checksums, codecs and packaging.
+For a source checkout, `./Halo2-Launcher --build-engine` builds the current
+engine and both launchers, runs launcher routing checks, then checks four actual
+submitted MCC frames on each previously selected multiplayer map and the default
+map with one, two and four local players. Only passing builds replace the local
+Play selection. Existing runtimes remain available after a failed check.
+`--launcher-info` also reports source differences from the selected runtime.
+Compilation and smoke outputs use disposable storage; a successful selection
+retains its runtime, resources, source hashes and bounded qualification report
+under `bin/engine-builds/`. This establishes build/routing and startup coverage;
+full gameplay, menu, visual and audio acceptance remain separate.
+
+MCC imports are the sole runtime asset source, including UI, fonts, prompts,
+loading audio and movies. Earlier exceptions for supplied movies, custom prompt
+atlases and the original loading tone are superseded. Preserve those files as
+references; normal MCC setup and packages do not require or select them.
+The separate upscaled intro/credits remain optional Git LFS reference assets,
+not an MCC setup prerequisite. Fresh builds default to
+`-DHALO2_BUNDLE_MOVIES=OFF`. No authentic MCC source is assigned to the Classic
+intro, credits or attract roles yet, so those roles remain unavailable. See
+[release movies](docs/RELEASE_MOVIES.md) for reference checksums/codecs and the
+remaining source and delivery gates. Source changes do not establish a newly
+qualified installed runtime or release.
 
 The launcher provides `--update` to fetch verified precompiled binaries for the
 host platform, preserving imported content and local changes. It reports when
@@ -172,7 +193,10 @@ sandbox/network limitations are documented in
 [multiplayer progress](docs/MULTIPLAYER_PROGRESS.md) and
 [keyboard/mouse controls](docs/MP_KBM_CONTROLS.md).
 [Elite integration](docs/MP_ELITE_MULTIPLAYER_INTEGRATION.md) covers authored
-Spartan/Elite bodies, arms, cameras and HUDs. Optional
+Spartan/Elite bodies, arms, cameras and HUDs.
+[Bomb Defusal](docs/BOMB_DEFUSAL.md) adds one-life attack/defend Assault rounds,
+multiple bomb sites, halftime and Halo-tuned plant/defuse timers.
+
 [Fiesta and Infection Slayer](docs/CUSTOM_SLAYER_VARIANTS.md) are native custom
 variants with their own rules and verification limits.
 
@@ -234,7 +258,7 @@ under `analysis/`. See [pinned research and provenance](docs/RESEARCH.md) and
 
 | Path | Contents |
 | --- | --- |
-| `src/`, `include/halo2/` | Native implementation and public interfaces |
+| `src/`, `include/halo2/` | [Native implementation grouped by subsystem](src/README.md) and public interfaces |
 | `shaders/` | GLSL renderer shaders |
 | `tools/` | Setup, extraction, decompilation, audits and launcher tools |
 | `tests/`, `cmake/` | Test sources, fixture guides and build configuration |

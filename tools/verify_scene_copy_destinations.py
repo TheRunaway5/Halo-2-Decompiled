@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 BASE=ROOT/'analysis/multiplayer/game-variants/scene-copy-geometry-native-20261012/verify-20261012T004707.124351Z'
 OUT=ROOT/'analysis/multiplayer/game-variants/scene-copy-destinations-native-20261012'
-FILES=('include/halo2/water.hpp','src/water.cpp','tests/scene_copy_destination_tests.cpp',
+FILES=('include/halo2/water.hpp','src/rendering/world/water.cpp','tests/scene_copy_destination_tests.cpp',
  'tests/water_copy_gpu_tests.cpp','tests/fixtures/scene_copy_destinations_original.json',
  'tools/oracle_scene_copy_destinations.py','tools/verify_scene_copy_destinations.py')
 TARGETS=('scene_copy_destination_tests','source_scene_copy_tests','water_tests','water_copy_gpu_tests','halo2_renderer')
@@ -49,8 +49,8 @@ def main():
   anchor='''        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/scene_copy_geometry_original.json)
 '''
   assert cmake.count(anchor)==1;cmake=cmake.replace(anchor,anchor+TEST_BLOCK);(source/'CMakeLists.txt').write_text(cmake)
-  renderer=(source/'src/renderer.cpp').read_text();assert renderer.count(OLD_TAPS)==1 and NEW_TAPS in (ROOT/'src/renderer.cpp').read_text()
-  (source/'src/renderer.cpp').write_text(renderer.replace(OLD_TAPS,NEW_TAPS))
+  renderer=(source/'src/rendering/renderer/renderer.cpp').read_text();assert renderer.count(OLD_TAPS)==1 and NEW_TAPS in (ROOT/'src/rendering/renderer/renderer.cpp').read_text()
+  (source/'src/rendering/renderer/renderer.cpp').write_text(renderer.replace(OLD_TAPS,NEW_TAPS))
   pins={name:sha(source/name)for name in sorted(set(base_pins)|set(FILES))}
   (run/'source-hashes.json').write_text(json.dumps(pins,sort_keys=True,indent=2)+'\n')
  else:
@@ -99,7 +99,7 @@ def main():
   obj=run/(Path(name).stem+'.asan.o');command[command.index('-o')+1]=str(obj)
   command.extend(['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer'])
   execute('asan-compile-'+Path(name).stem,command,Path(entry['directory']));return obj
- owners=[sanitized(name)for name in('src/source_scene_copy.cpp','src/water.cpp','tests/scene_copy_destination_tests.cpp')]
+ owners=[sanitized(name)for name in('src/rendering/source_scene_copy.cpp','src/rendering/world/water.cpp','tests/scene_copy_destination_tests.cpp')]
  binary=run/'scene_copy_destination_tests_asan'
  execute('asan-link',['c++','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer',*owners,
   build/'libhalo2_cache.a','-lz','-lglm',build/'libhalo2_native_synchronization.a','-o',binary])

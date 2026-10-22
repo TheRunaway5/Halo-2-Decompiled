@@ -22,7 +22,7 @@ def main():
     for name in ('physics_contact_runtime_internal.hpp','physics_world_runtime_internal.hpp'):
         copies[ROOT/'.local/weapon-charge-effect-source-20261014'/name]=source/name
     for p,q in copies.items():shutil.copyfile(p,q)
-    common=['c++','-std=c++20']+(['-O3','-DNDEBUG'] if a.release else ['-O1'])+['-fno-fast-math','-ffp-contract=off','-frounding-math','-I'+str(source/'include'),'-I'+str(v4/'include'),'-I'+str(v4/'src'),'-isystem','/usr/include/SDL2']
+    common=['c++','-std=c++20']+(['-O3','-DNDEBUG'] if a.release else ['-O1'])+['-fno-fast-math','-ffp-contract=off','-frounding-math','-I'+str(source/'include'), '-I'+str(source/'src'),'-I'+str(v4/'include'),'-I'+str(v4/'src'),'-isystem','/usr/include/SDL2']
     commands=[common+['-c',str(source/'particle.cpp'),'-o',str(out/'particle.o')],common+['-c',str(source/'replay.cpp'),'-o',str(out/'replay.o')]]
     link=list(pinned['link']);index=next(i for i,p in enumerate(link) if p.endswith('/capture.o'));link[index:index+1]=[str(out/'replay.o'),str(out/'particle.o')];link[link.index('-o')+1]=str(out/'replay-native');commands.append(link)
     with (out/'build.log').open('w') as log:

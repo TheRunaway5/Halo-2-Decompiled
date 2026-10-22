@@ -47,7 +47,6 @@
 #include <memory>
 
 namespace halo2 {
-class DebugPanel;
 class MainmenuWorldSourcePlan;
 class SourceBspResidentPlan;
 struct MainmenuBspAdmissionFrame;
@@ -225,6 +224,8 @@ struct ModelView {
     std::span<const Vertex> water_reflection_background;
     Camera water_reflection_camera;
     float effect_time{};
+    PlayerScreenFlash screen_flash;
+    std::optional<std::size_t> screen_flash_after_ui_vertex;
     std::span<const ObjectLightingBinding> object_lighting;
     std::span<const ModelObjectDraw> objects;
     std::optional<ScopeCopyFrame> scope;
@@ -302,6 +303,9 @@ public:
              const std::filesystem::path &shader_directory = {},
              std::span<const SourceShadowRawPlanMaterial> raw_shadow_materials = {});
     ~Renderer();
+    // Frontend worlds and model widgets retain native resolution while
+    // players edit their saved world-upscaling choices.
+    void upscale_world(bool enabled);
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
     bool draw(const Camera& camera, const std::filesystem::path& screenshot = {},
@@ -317,7 +321,7 @@ public:
               bool ui_full_surface_bounds = false);
     // Isolated loading submission: only resident loading image descriptors,
     // supplied original triangles/constants, and frame synchronization are used.
-    // No CPU world/cache/view owner or ImGui callback participates.
+    // No CPU world/cache/view owner participates.
     bool draw_loading(unsigned resident_material_base,std::span<const Material>,
                       std::span<const Vertex>,const std::filesystem::path& screenshot = {});
     // Called on the UI owner before transferring graphics to the loader.
@@ -327,8 +331,10 @@ public:
     void release_presentation();
     void resized();
     std::string validate_display_settings(const DisplaySettings &) const;
-    // Lazy optional F1 overlay; closed panels submit no graphics commands.
-    DebugPanel& debug_panel();
+    const DisplaySettings& display_settings() const;
+    void display_settings(DisplaySettings);
+    // The desktop session outlives every renderer using its preferences.
+    void share_display_settings(DisplaySettings&);
     // Opt-in read-only profiling; disabled draws do not read the host clock.
     void measure_frames(bool);
     RendererFrameTiming frame_timing() const;

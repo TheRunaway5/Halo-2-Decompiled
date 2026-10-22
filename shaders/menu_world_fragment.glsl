@@ -1,3 +1,6 @@
+#ifndef MENU_WORLD_ENCODE_DEPTH
+#define MENU_WORLD_ENCODE_DEPTH(depth) worldD24Depth(depth)
+#endif
 #ifndef H2_MENU_WORLD_FRAGMENT_GLSL
 #define H2_MENU_WORLD_FRAGMENT_GLSL
 // Independently written interface adapter around the project's MIT kernels.
@@ -66,7 +69,7 @@ vec4 menuWorldFragment(vec4 front0,vec4 front1,vec4 p0,vec4 p1,vec4 p2,float slo
     vec4 clip=MENU_WORLD_CLIP_RANGE();
     if(MENU_WORLD_W_CLIP_MODE()==16u)depth=clamp(depth,clip.z,clip.w);
     else if(depth<clip.z || depth>clip.w)demote;
-    gl_FragDepth=worldD24Depth(depth);
+    gl_FragDepth=MENU_WORLD_ENCODE_DEPTH(depth);
     vec4 samples[4];runTextureStages(samples);
     H2_FIXED_STAGE_UNROLL for(uint i=0u;i<4u;++i) {
         uint mode=textureMode(i);

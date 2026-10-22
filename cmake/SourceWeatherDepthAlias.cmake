@@ -8,13 +8,15 @@ function(halo2_add_source_weather_depth_alias weather_source_root)
       add_custom_command(OUTPUT "${weather_alias_shader}"
         COMMAND ${CMAKE_COMMAND} -E make_directory "${weather_shader_directory}"
         COMMAND "${GLSLANG_VALIDATOR}" -V --target-env vulkan1.1
+            "-I${weather_source_root}/shaders"
             "${weather_source_root}/shaders/${alias_shader}" -o "${weather_alias_shader}"
         DEPENDS "${weather_source_root}/shaders/${alias_shader}"
+            "${weather_source_root}/shaders/source_depth_storage.glsl"
         VERBATIM)
       list(APPEND weather_alias_shaders "${weather_alias_shader}")
     endforeach()
     add_custom_target(source_weather_depth_alias_shader DEPENDS ${weather_alias_shaders})
-    add_library(halo2_weather_depth_alias "${weather_source_root}/src/source_weather_depth_alias.cpp")
+    add_library(halo2_weather_depth_alias "${weather_source_root}/src/rendering/weather/source_weather_depth_alias.cpp")
     target_include_directories(halo2_weather_depth_alias PUBLIC "${weather_source_root}/include")
     target_link_libraries(halo2_weather_depth_alias PUBLIC Vulkan::Vulkan)
     add_dependencies(halo2_weather_depth_alias source_weather_depth_alias_shader)

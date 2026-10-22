@@ -40,6 +40,10 @@ class HttpTests(unittest.IsolatedAsyncioTestCase):
         body = {"server_public_key": public_hex(key)}
         response = await self.client.post("/v1/credentials", json=body)
         self.assertEqual(401, response.status)
+        challenge = await self.client.post("/v1/credentials/challenge", json=body,
+                                           headers={"Authorization": "Bearer owner-one"})
+        self.assertEqual(200, challenge.status)
+        body["proof"] = signed(key, await challenge.json())
         response = await self.client.post("/v1/credentials", json=body, headers={"Authorization": "Bearer owner-one"})
         self.assertEqual(201, response.status)
         credential = await response.json()

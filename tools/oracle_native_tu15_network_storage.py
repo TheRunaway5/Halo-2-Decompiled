@@ -55,7 +55,7 @@ def main():
  # The actual-ID pool constructor/string-copy bodies are independently
  # lowered from this authenticated image. Admit only those complete bodies.
  import re
- support=(ROOT/'src/physics_live_support_tu15_generated.cpp').read_text()
+ support=(ROOT/'src/physics/physics_live_support_tu15_generated.cpp').read_text()
  for name in ('16e450','16e4b0','32a4e0'):
   m=re.search(r'static void run_'+name+r'\([^\n]*\)\s*\{',support);assert m
   body=support[m.start():support.index('\n}\n',m.start())+3]

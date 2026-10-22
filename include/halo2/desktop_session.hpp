@@ -2,6 +2,7 @@
 #include "halo2/display_settings.hpp"
 #include "halo2/pc_settings.hpp"
 #include "halo2/controller_settings.hpp"
+#include "halo2/vista_loading_assets.hpp"
 #include <SDL.h>
 #include <filesystem>
 #include <functional>
@@ -41,10 +42,17 @@ public:
   // starts at1. This does not import an Xbox startup history or captured seed.
   std::uint32_t &auxiliary_random();
   std::uint32_t fresh_secondary_random();
-  std::string apply_video(unsigned width, unsigned height, bool fullscreen);
+  FullscreenMode fullscreen_mode() const;
+  std::string apply_video(unsigned width, unsigned height, FullscreenMode);
+  std::string apply_video(unsigned width, unsigned height, bool fullscreen) {
+    return apply_video(width,height,fullscreen?FullscreenMode::Fullscreen:FullscreenMode::Windowed);
+  }
   // Configure genuine exported Vista loading images. Only explicit offline
   // session resource requests activate the source normal-mode presentation.
   void configure_loading(const std::filesystem::path&);
+  // Owned converted MCC inputs use the same animation, fade and renderer
+  // handoff. Admission is atomic; no executable/Vista bank is discovered here.
+  void configure_loading(const VistaLoadingAssets&);
   std::shared_ptr<Renderer> make_renderer(Mesh&,bool validation,
       std::span<const SourceShadowPlanMaterial> shadow_materials={},
       const SourceBspResidentPlan *bsp_resident_plan=nullptr,
@@ -65,6 +73,7 @@ public:
   // All three services must be bound before a loading interval starts.
   void set_loading_audio_services(DesktopLoadingAudioServices);
   DisplaySettings display_settings;
+  bool upscaling_preferences_initialized{};
   PcKeyboardSettings keyboard_settings;
   ControllerSettings controller_settings;
 

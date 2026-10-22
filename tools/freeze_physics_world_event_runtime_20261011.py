@@ -10,7 +10,7 @@ BASE = ROOT / 'analysis/multiplayer/integration/physics-engine-20261010'
 PARENT_PIN = 'f6134ae86ea5cac7e1a752ce8cb394c3148b59ff184686c36e58d466ed59587b'
 OWNED = (
     'cmake/PhysicsWorldRuntime.cmake',
-    'src/physics_world_runtime_generated.cpp',
+    'src/physics/runtime/physics_world_runtime_generated.cpp',
     'tools/research_physics_world_event_runtime_20261011.py',
     'tools/generate_physics_world_event_runtime_20261011.py',
     'tools/oracle_physics_world_event_runtime_20261011.py',

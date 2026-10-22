@@ -125,9 +125,9 @@ def main():
   '\n'.join('R '+' '.join(f'{v:08X}'for v in row)+' | '+' '.join(f'{v:08X}'for v in out)for row,out in zip(rows,outputs))+
   '\n'+'\n'.join(resource_rows)+'\n')
  report=dict(boundary=__doc__,source_xbe_sha256=PIN,snapshot_ram_sha256=sha(s.ram),snapshot_manifest_sha256=sha((s.directory/'export.json').read_bytes()),
-  tool_sha256=sha(Path(__file__).read_bytes()),source_sha256=sha((ROOT/'src/source_bitmap_async_read.cpp').read_bytes()),
+  tool_sha256=sha(Path(__file__).read_bytes()),source_sha256=sha((ROOT/'src/rendering/source_bitmap_async_read.cpp').read_bytes()),
   header_sha256=sha((ROOT/'include/halo2/source_bitmap_async_read.hpp').read_bytes()),test_sha256=sha((ROOT/'tests/source_bitmap_async_read_tests.cpp').read_bytes()),
-  async_helper_sha256=sha((ROOT/'src/source_async_jobs.cpp').read_bytes()),async_header_sha256=sha((ROOT/'include/halo2/source_async_jobs.hpp').read_bytes()),
+  async_helper_sha256=sha((ROOT/'src/platform/source_async_jobs.cpp').read_bytes()),async_header_sha256=sha((ROOT/'include/halo2/source_async_jobs.hpp').read_bytes()),
   read_protocol_report_sha256=sha((ROOT/'analysis/multiplayer-shading/source-async-read-original.json').read_bytes()),
   fixture_sha256=sha(fixture.read_bytes()),native_binary_sha256=sha(a.binary.read_bytes()),allocator_report_sha256=sha(allocator_path.read_bytes()),
   cases=len(rows),checked_words=sum(len(row)for row in outputs),actual_allocator_requests=168,immutable_reads=len(resource_rows),

@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="72" viewBox="0 0 16 18" version="1.1">
+  <title>Playstation r1: custom controller prompt</title>
+  <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+  <defs>
+    <clipPath id="sphere-edge">
+      <ellipse cx="8" cy="10" rx="7.9" ry="7.9" />
+    </clipPath>
+    <linearGradient id="sphere-rim" gradientUnits="userSpaceOnUse" x1="2" x2="14" y1="2" y2="18">
+      <stop offset="0" stop-color="#000000" />
+      <stop offset="0.3" stop-color="#0b0b0e" />
+      <stop offset="0.6" stop-color="#989597" />
+      <stop offset="0.85" stop-color="#919291" />
+      <stop offset="1" stop-color="#717071" />
+    </linearGradient>
+    <radialGradient id="sphere-body" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(5 6) scale(11 11)">
+      <stop offset="0" stop-color="#555555" />
+      <stop offset="0.35" stop-color="#0f0f0f" />
+      <stop offset="0.8" stop-color="#080808" />
+      <stop offset="1" stop-color="#111111" />
+    </radialGradient>
+    <radialGradient id="white-body" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(4.5 7.5) scale(11 11)">
+      <stop offset="0" stop-color="#f8f8f8" />
+      <stop offset="0.48" stop-color="#fbfbfb" />
+      <stop offset="0.8" stop-color="#d3d3d3" />
+      <stop offset="1" stop-color="#565756" />
+    </radialGradient>
+  </defs>
+  <g transform="scale(1.00000000 1.00000000)" id="legacy-metal-button" clip-path="url(#sphere-edge)">
+    <ellipse id="outer-rim" cx="8" cy="10" rx="7.7" ry="7.7" fill="url(#sphere-rim)" />
+    <ellipse id="sphere-face" cx="7.8" cy="9.6" rx="6.65" ry="6.65" fill="url(#white-body)" />
+    <g id="label-r1" transform="translate(3 6.5) scale(0.58)" fill="#263e55" fill-rule="evenodd">
+      <path d="M0 0 H4.4 C6.5 0 7.2 1.2 7.2 3 C7.2 4.4 6.5 5.3 5.2 5.5 L7.7 10 H5.9 L3.5 5.8 H1.5 V10 H0 Z M1.5 1.4 V4.4 H4.1 C5.3 4.4 5.7 4 5.7 2.9 C5.7 1.9 5.2 1.4 4.1 1.4 Z" transform="translate(0.0 0)" />
+      <path d="M1 1.8 L3.5 0 H5 V8.5 H7 V10 H1 V8.5 H3.3 V2 L1.8 3 Z" transform="translate(8.5 0)" />
+    </g>
+  </g>
+</svg>

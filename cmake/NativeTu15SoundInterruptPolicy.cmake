@@ -1,16 +1,16 @@
 # Apply the reviewed EventPort disabled-policy overlay after the timed-notification
 # overlay first. This owns only disabled source delivery, never globalD8 enable.
-target_sources(halo2_systems PRIVATE src/source_runtime_sound_interrupt_policy.cpp)
+target_sources(halo2_systems PRIVATE src/audio/runtime/source_runtime_sound_interrupt_policy.cpp)
 if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_executable(native_tu15_sound_interrupt_policy_tests
-        tests/native_tu15_sound_interrupt_policy_tests.cpp src/source_runtime_sound_interrupt_policy.cpp
-        src/source_runtime_sound_event_port.cpp src/native_tu15_sound_event_port_data.cpp
-        src/source_runtime_sound_frontend_events.cpp src/source_sound_frontend_events_tu15_generated.cpp
-        src/source_sound_frontend_dpc_tu15_generated.cpp src/source_sound_pending_aggregate_tu15.cpp
-        src/native_tu15_sound_frontend_dpc_data.cpp src/native_tu15_sound_sdk_prefix_data.cpp
-        src/source_runtime_sound_reset_resources.cpp src/source_sound_reset_tu15_generated.cpp
-        src/source_runtime_sound_dma_resources.cpp src/source_sound_dma_storage_tu15_generated.cpp
-        src/source_runtime_host_physical_memory.cpp src/source_runtime_memory.cpp)
+        tests/native_tu15_sound_interrupt_policy_tests.cpp src/audio/runtime/source_runtime_sound_interrupt_policy.cpp
+        src/audio/runtime/source_runtime_sound_event_port.cpp src/audio/native_tu15_sound_event_port_data.cpp
+        src/audio/runtime/source_runtime_sound_frontend_events.cpp src/audio/source_sound_frontend_events_tu15_generated.cpp
+        src/audio/source_sound_frontend_dpc_tu15_generated.cpp src/audio/source_sound_pending_aggregate_tu15.cpp
+        src/audio/native_tu15_sound_frontend_dpc_data.cpp src/audio/native_tu15_sound_sdk_prefix_data.cpp
+        src/audio/runtime/source_runtime_sound_reset_resources.cpp src/audio/source_sound_reset_tu15_generated.cpp
+        src/audio/runtime/source_runtime_sound_dma_resources.cpp src/audio/source_sound_dma_storage_tu15_generated.cpp
+        src/runtime/source_runtime_host_physical_memory.cpp src/runtime/source_runtime_memory.cpp)
     target_include_directories(native_tu15_sound_interrupt_policy_tests PRIVATE src)
     target_link_libraries(native_tu15_sound_interrupt_policy_tests PRIVATE halo2_sound_platform
         halo2_physics_world_runtime halo2_snapshot_storage nlohmann_json::nlohmann_json)

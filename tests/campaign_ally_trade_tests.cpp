@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #include "halo2/native_unit_interaction.hpp"
 #include "halo2/simulation.hpp"
 #include <iostream>
@@ -17,7 +18,7 @@ int main(int argc,char **argv)try{
    if(ally.weapon.definition==null_datum || ally.weapon.definition==sim.player().weapon.definition)continue;
    for(float distance:{.4f,.6f,.8f}){
     const auto direction=halo2::direction(ally.yaw);Spawn p;p.position=ally.body.position+direction*distance;p.facing=ally.yaw+3.141592654f;p.bsp=0;
-    sim.debug_teleport(0,p);
+    test::place_player(sim,p);
     if(!native_can_trade_weapon(sim.player(),ally,c,sim.allied(sim.player().team,ally.team)))continue;
     const auto beforep=sim.player().weapon,beforea=ally.weapon;const auto actor=ally.source_datum;
     const auto prompt=sim.action_prompt();if(prompt.target.action!=2 || prompt.target.object!=actor)throw FormatError("Trade was hidden by a different action");

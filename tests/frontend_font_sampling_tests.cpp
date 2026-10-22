@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
+#include <utility>
 
 using namespace halo2;
 namespace {
@@ -89,6 +90,15 @@ void synthetic_tests() {
   const auto sampled_before = sampled;
   require(apply_retail_font_sampling(original, sampled) == 2,
           "normal Unicode identity map lost rows or admitted aliases/private controls");
+  const auto atlas_copy=original;
+  require(atlas_copy.atlas.pixels.data()==std::as_const(original).atlas.pixels.data(),
+          "Completed sampled font atlas was copied again");
+  auto no_change=synthetic(1),empty_sample=synthetic(2);
+  empty_sample.glyphs.clear();
+  auto* escaped=no_change.atlas.pixels.data();
+  require(apply_retail_font_sampling(no_change,empty_sample)==0,"Empty glyph source changed sampling");
+  const auto retained=no_change;const auto byte=retained.atlas.pixels[0];escaped[0]^=std::byte{1};
+  require(retained.atlas.pixels[0]==byte,"No-op font sampling lost the escaped mutable-view boundary");
   same_layout(before, original);
   same_layout(sampled_before, sampled);
   copied_pixels(original.atlas, before.atlas, 0);

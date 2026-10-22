@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #define SDL_MAIN_HANDLED
 #include "halo2/native_unit_interaction.hpp"
 #include "halo2/native_action_prompt_hud.hpp"
@@ -31,7 +32,7 @@ int main(int argc,char **argv)try {
    for(const auto &ally:sim.actors()) {
     if(!sim.allied(sim.player().team,ally.team)||ally.weapon.definition==null_datum||ally.weapon.definition==sim.player().weapon.definition)continue;
     for(float distance:{.4f,.6f,.8f}) {
-     Spawn at;at.position=ally.body.position+direction(ally.yaw)*distance;at.facing=ally.yaw+3.141592654f;sim.debug_teleport(0,at);
+     Spawn at;at.position=ally.body.position+direction(ally.yaw)*distance;at.facing=ally.yaw+3.141592654f;test::place_player(sim,at);
      const auto p=sim.action_prompt();if(p.target.action!=2||p.target.object!=ally.source_datum)continue;
      target=ally.source_datum;selected=p;position=at.position;yaw=at.facing;original_player=sim.player().weapon.source_datum;original_ally=ally.weapon.source_datum;break;
     }if(target!=null_datum)break;
@@ -48,7 +49,7 @@ int main(int argc,char **argv)try {
     for(unsigned angle=0;angle<48;++angle) {
      const float a=float(angle)*6.2831853f/48;Spawn at;at.position=o.position+direction(a)*radius;at.facing=a+3.141592654f;
      const auto floor=sim.collision().raycast(at.position+Vec3{0,0,2},{0,0,-1},4);if(!floor)continue;at.position.z=floor->position.z+.01f;
-     sim.debug_teleport(0,at);const auto p=match->action_prompt(0);
+     test::place_player(sim,at);const auto p=match->action_prompt(0);
      if(p.target.object!=handle||p.target.action!=(flip?8:board?6:5))continue;
      selected=p;target=handle;position=at.position;yaw=at.facing;expected_seat=p.target.index;break;
     }if(target!=null_datum)break;

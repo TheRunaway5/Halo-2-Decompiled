@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="72" viewBox="0 0 16 18" version="1.1">
+  <title>Playstation share-create: custom controller prompt</title>
+  <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+  <defs>
+    <clipPath id="sphere-edge">
+      <ellipse cx="8" cy="10" rx="7.9" ry="7.9" />
+    </clipPath>
+    <linearGradient id="sphere-rim" gradientUnits="userSpaceOnUse" x1="2" x2="14" y1="2" y2="18">
+      <stop offset="0" stop-color="#929292" />
+      <stop offset="0.3" stop-color="#141414" />
+      <stop offset="0.6" stop-color="#2b2b2b" />
+      <stop offset="0.85" stop-color="#1f1f1f" />
+      <stop offset="1" stop-color="#555555" />
+    </linearGradient>
+    <radialGradient id="sphere-body" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(5 6) scale(11 11)">
+      <stop offset="0" stop-color="#7d7d7d" />
+      <stop offset="0.35" stop-color="#707070" />
+      <stop offset="0.8" stop-color="#3e3e3e" />
+      <stop offset="1" stop-color="#373737" />
+    </radialGradient>
+    <radialGradient id="sphere-reflection" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(5.3 5.8) scale(3.2 4.4)">
+      <stop offset="0" stop-opacity="1" stop-color="#a2a2a2" />
+      <stop offset="0.35" stop-opacity="0.9" stop-color="#a2a2a2" />
+      <stop offset="1" stop-opacity="0" stop-color="#a2a2a2" />
+    </radialGradient>
+  </defs>
+  <g transform="scale(1.00000000 1.00000000)" id="legacy-metal-button" clip-path="url(#sphere-edge)">
+    <ellipse id="outer-rim" cx="8" cy="10" rx="7.7" ry="7.7" fill="url(#sphere-rim)" />
+    <ellipse id="sphere-face" cx="7.8" cy="9.6" rx="6.65" ry="6.65" fill="url(#sphere-body)" />
+    <ellipse id="reflection" cx="5.3" cy="5.8" rx="3.2" ry="4.4" fill="url(#sphere-reflection)" />
+    <g id="share-create" transform="translate(0 0) scale(.5)" fill="none" stroke="#edf3fc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16 25 V18 M10.5 16 L7.5 13 M21.5 16 L24.5 13 M16 13 V9" />
+      <rect x="12" y="23" width="8" height="6" rx="1.4" />
+    </g>
+  </g>
+</svg>

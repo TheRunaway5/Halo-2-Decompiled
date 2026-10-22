@@ -17,7 +17,7 @@ def main():
  assert archive.sha(ROOT/'analysis/multiplayer/integration/spartan-ragdoll-constructor-20261010/frozen/manifest.json')=='c8a78b096ce8f8a22c487fdab55da339c4d3cf09f5c492fffe26fe22cbf8f3a7'
  paths=[ROOT/p for p in ('tools/freeze_mp_spartan_body_matrix.py','tools/oracle_mp_spartan_body_matrix_1_1.py',
   'tools/export_mp_spartan_body_matrix_1_1.py','tools/audit_mp_spartan_body_matrix_1_1.py',
-  'include/halo2/physics_body_matrix.hpp','src/physics_body_matrix.cpp','tests/physics_body_matrix_tests.cpp',
+  'include/halo2/physics_body_matrix.hpp','src/physics/physics_body_matrix.cpp','tests/physics_body_matrix_tests.cpp',
   'docs/MP_SPARTAN_BODY_MATRIX_RESEARCH.md',
   'analysis/multiplayer/integration/spartan-ragdoll-constructor-20261010/frozen/manifest.json')]
  for p in BASE.rglob('*'):

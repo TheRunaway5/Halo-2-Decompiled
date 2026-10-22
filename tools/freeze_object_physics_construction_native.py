@@ -46,7 +46,7 @@ def main():
     for folder in folders:
         for path in sorted((BASE/folder).rglob('*')):
             if path.is_file():copy(path,FROZEN/'evidence'/folder/path.relative_to(BASE/folder))
-    names=['include/halo2/object_physics_construction.hpp','src/object_physics_construction.cpp',
+    names=['include/halo2/object_physics_construction.hpp','src/gameplay/objects/object_physics_construction.cpp',
         'tests/object_physics_construction_tests.cpp','tools/oracle_object_physics_construction_native.py',
         'tools/research_object_physics_construction_u5.py','tools/measure_object_physics_construction_controls.py',
         'tools/export_object_physics_construction_fixtures.py','tools/validate_object_physics_construction_native.py',

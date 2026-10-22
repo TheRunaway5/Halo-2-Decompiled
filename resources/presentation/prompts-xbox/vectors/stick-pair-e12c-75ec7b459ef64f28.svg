@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="304" height="152" viewBox="0 0 76 38" version="1.1">
+  <title>Xbox stick-pair-e12c: custom controller prompt</title>
+  <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+  <defs>
+    <mask id="sticks-opacity" maskUnits="userSpaceOnUse" x="0" y="0" width="76" height="38">
+      <rect width="76" height="38" fill="black" />
+      <g id="left-stick">
+        <path id="shaft" d="M9.69 15.475000000000001 H28.310000000000002 V29.65 Q28.310000000000002 37.65 19.0 37.65 Q9.69 37.65 9.69 29.65 Z" fill="#888888" />
+        <path id="shaft-rim" d="M9.69 20.935000000000002 V29.65 Q9.69 37.65 19.0 37.65 Q28.310000000000002 37.65 28.310000000000002 29.65 V20.935000000000002" fill="none" stroke="#bbbbbb" stroke-width="0.8" />
+        <ellipse id="cap" cx="19.0" cy="11.8" rx="18.75" ry="10.5" fill="#888888" stroke="#bbbbbb" stroke-width="0.9" />
+        <ellipse id="cap-inset" cx="19.0" cy="9.280000000000001" rx="13.3125" ry="6.09" fill="none" stroke="#cccccc" stroke-width="1.05" />
+        <path id="neck-shadow" d="M10.69 22.2 H27.310000000000002 L26.310000000000002 24.0 Q19.0 24.7 11.69 24.0 Z" fill="#777777" />
+        <path id="neck-crease" d="M11.69 23.400000000000002 Q19.0 25.1 26.310000000000002 23.400000000000002" fill="none" stroke="#444444" stroke-width="0.9" />
+      </g>
+      <g id="right-stick">
+        <path id="shaft" d="M47.69 15.475000000000001 H66.31 V29.65 Q66.31 37.65 57.0 37.65 Q47.69 37.65 47.69 29.65 Z" fill="#333333" />
+        <path id="shaft-rim" d="M47.69 20.935000000000002 V29.65 Q47.69 37.65 57.0 37.65 Q66.31 37.65 66.31 29.65 V20.935000000000002" fill="none" stroke="#444444" stroke-width="0.8" />
+        <ellipse id="cap" cx="57.0" cy="11.8" rx="18.75" ry="10.5" fill="#333333" stroke="#444444" stroke-width="0.9" />
+        <ellipse id="cap-inset" cx="57.0" cy="9.280000000000001" rx="13.3125" ry="6.09" fill="none" stroke="#444444" stroke-width="1.05" />
+      </g>
+    </mask>
+  </defs>
+  <rect id="sticks-paint" width="76" height="38" fill="white" mask="url(#sticks-opacity)" />
+</svg>

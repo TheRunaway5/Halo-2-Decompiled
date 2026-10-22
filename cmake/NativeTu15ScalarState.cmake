@@ -1,6 +1,6 @@
-target_sources(halo2_systems PRIVATE src/native_tu15_scalar_state_data.cpp)
+target_sources(halo2_systems PRIVATE src/core/native_tu15_scalar_state_data.cpp)
 if(BUILD_TESTING)
-    target_sources(native_tu15_network_link_tests PRIVATE src/native_tu15_scalar_state_data.cpp)
+    target_sources(native_tu15_network_link_tests PRIVATE src/core/native_tu15_scalar_state_data.cpp)
     add_test(NAME native_tu15_scalar_state_startup_callback COMMAND native_tu15_network_link_tests --frontier scalar-state)
     add_test(NAME original_tu15_scalar_state_startup_callback COMMAND native_tu15_network_link_tests --frontier scalar-state
         --input-devices none

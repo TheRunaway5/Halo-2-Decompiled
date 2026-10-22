@@ -61,7 +61,7 @@ def main():
    lines.append((f'L{p:x}: 'if p in targets else '')+f'if(s.services.instruction)s.services.instruction(0x{p:x}u);'+s)
   bodies.append(f'static void run_{entry:x}(WorldState &s){{\n'+'\n'.join(lines)+'\n}\n')
  pre='''// Generated complete physical stage and partition source bodies.
-#include "physics_world_runtime_internal.hpp"
+#include "physics/runtime/physics_world_runtime_internal.hpp"
 #include "halo2/physics_physical_storage_runtime.hpp"
 namespace halo2 {namespace {using namespace physics_world_runtime_detail;
 '''

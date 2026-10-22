@@ -61,7 +61,7 @@ def main():
         expected[name] = {'bytes': (PROJECT / name).stat().st_size,
                           'sha256': values['compiled_sha256']}
     renderer = json.loads((OUT / 'renderer-migration-source.json').read_text())
-    expected['src/renderer.cpp'] = {'bytes': (PROJECT / 'src/renderer.cpp').stat().st_size,
+    expected['src/rendering/renderer/renderer.cpp'] = {'bytes': (PROJECT / 'src/rendering/renderer/renderer.cpp').stat().st_size,
                                     'sha256': renderer['after_sha256']}
     encoded = json.loads((OUT / 'source-encoding-amendments.json').read_text())['files']
     expected.update(encoded)
@@ -75,8 +75,8 @@ def main():
     # The retained pre-encoding files let historical stages be inspected after
     # the current private project advances. No old capture manifest is edited.
     historical = {
-        'src/original_data.cpp': OUT / 'source-amendments/original_data-before-name-fix.cpp',
-        'src/renderer.cpp': OUT / 'source-amendments/renderer-before-d24.cpp',
+        'src/assets/original_data.cpp': OUT / 'source-amendments/original_data-before-name-fix.cpp',
+        'src/rendering/renderer/renderer.cpp': OUT / 'source-amendments/renderer-before-d24.cpp',
         'CMakeLists.txt': OUT / 'source-amendments/CMakeLists-before-encoding.txt',
         'shaders/world.frag': OUT / 'source-amendments/world.frag.before-encoding-fix',
         'shaders/light_volume.frag': OUT / 'source-amendments/light_volume.frag.before-encoding-fix',

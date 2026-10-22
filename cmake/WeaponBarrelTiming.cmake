@@ -1,16 +1,16 @@
-target_sources(halo2_systems PRIVATE src/weapon_barrel_timing.cpp src/weapon_energy.cpp src/weapon_magazine.cpp src/passive_weapon.cpp src/weapon_hand_feedback.cpp src/weapon_hud.cpp src/weapon_trigger.cpp src/charged_weapon.cpp)
-target_sources(halo2_systems PRIVATE src/weapon_hud_ownership.cpp)
-target_sources(halo2_cache PRIVATE src/source_light_volume_draw.cpp)
+target_sources(halo2_systems PRIVATE src/gameplay/weapons/weapon_barrel_timing.cpp src/gameplay/weapons/weapon_energy.cpp src/gameplay/weapons/weapon_magazine.cpp src/gameplay/weapons/passive_weapon.cpp src/gameplay/weapons/weapon_hand_feedback.cpp src/ui/hud/weapon_hud.cpp src/gameplay/weapons/weapon_trigger.cpp src/gameplay/weapons/charged_weapon.cpp)
+target_sources(halo2_systems PRIVATE src/ui/hud/weapon_hud_ownership.cpp)
+target_sources(halo2_cache PRIVATE src/rendering/effects/source_light_volume_draw.cpp)
 add_executable(audit_weapon_muzzle_admission tools/audit_weapon_muzzle_admission.cpp)
 target_link_libraries(audit_weapon_muzzle_admission PRIVATE halo2_systems)
 if(MSVC)
-  set_source_files_properties(src/weapon_barrel_timing.cpp src/weapon_energy.cpp src/weapon_magazine.cpp src/passive_weapon.cpp src/weapon_hand_feedback.cpp src/weapon_hud.cpp src/weapon_trigger.cpp src/charged_weapon.cpp src/source_light_volume_draw.cpp src/shader_animation.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
+  set_source_files_properties(src/gameplay/weapons/weapon_barrel_timing.cpp src/gameplay/weapons/weapon_energy.cpp src/gameplay/weapons/weapon_magazine.cpp src/gameplay/weapons/passive_weapon.cpp src/gameplay/weapons/weapon_hand_feedback.cpp src/ui/hud/weapon_hud.cpp src/gameplay/weapons/weapon_trigger.cpp src/gameplay/weapons/charged_weapon.cpp src/rendering/effects/source_light_volume_draw.cpp src/rendering/shader_animation.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
 else()
-  set_source_files_properties(src/weapon_barrel_timing.cpp src/weapon_energy.cpp src/weapon_magazine.cpp src/passive_weapon.cpp src/weapon_hand_feedback.cpp src/weapon_hud.cpp src/weapon_trigger.cpp src/charged_weapon.cpp src/source_light_volume_draw.cpp src/shader_animation.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off")
+  set_source_files_properties(src/gameplay/weapons/weapon_barrel_timing.cpp src/gameplay/weapons/weapon_energy.cpp src/gameplay/weapons/weapon_magazine.cpp src/gameplay/weapons/passive_weapon.cpp src/gameplay/weapons/weapon_hand_feedback.cpp src/ui/hud/weapon_hud.cpp src/gameplay/weapons/weapon_trigger.cpp src/gameplay/weapons/charged_weapon.cpp src/rendering/effects/source_light_volume_draw.cpp src/rendering/shader_animation.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off")
 endif()
 # Dedicated progress launchers retain the original Xbox gameplay HUD.
 foreach(weapon_launcher IN ITEMS halo2_weapons_launcher halo2_weapons_title_launcher)
-  add_executable(${weapon_launcher} src/weapon_launcher.cpp)
+  add_executable(${weapon_launcher} src/app/weapon_launcher.cpp)
   target_link_libraries(${weapon_launcher} PRIVATE SDL2::SDL2)
   target_compile_definitions(${weapon_launcher} PRIVATE
       HALO2_PYTHON_EXECUTABLE="${Python3_EXECUTABLE}"
@@ -149,17 +149,17 @@ if(BUILD_TESTING)
       ${CMAKE_CURRENT_SOURCE_DIR}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_elite_reload_original.tsv 3)
   set_tests_properties(original_weapon_elite_reload_cycles PROPERTIES SKIP_RETURN_CODE 77)
-  add_executable(weapon_reserve_tests tests/weapon_reserve_tests.cpp src/weapon_magazine.cpp)
+  add_executable(weapon_reserve_tests tests/weapon_reserve_tests.cpp src/gameplay/weapons/weapon_magazine.cpp)
   target_include_directories(weapon_reserve_tests PRIVATE include)
   add_test(NAME original_weapon_reserve COMMAND weapon_reserve_tests
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_reserve_original.tsv)
   set_tests_properties(original_weapon_reserve PROPERTIES SKIP_RETURN_CODE 77)
-  add_executable(weapon_animation_timing_tests tests/weapon_animation_timing_tests.cpp src/weapon_energy.cpp)
+  add_executable(weapon_animation_timing_tests tests/weapon_animation_timing_tests.cpp src/gameplay/weapons/weapon_energy.cpp)
   target_include_directories(weapon_animation_timing_tests PRIVATE include)
   add_test(NAME original_weapon_animation_timing COMMAND weapon_animation_timing_tests
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_animation_timing_original.tsv)
   set_tests_properties(original_weapon_animation_timing PROPERTIES SKIP_RETURN_CODE 77)
-  add_executable(weapon_magazine_tests tests/weapon_magazine_tests.cpp src/weapon_magazine.cpp)
+  add_executable(weapon_magazine_tests tests/weapon_magazine_tests.cpp src/gameplay/weapons/weapon_magazine.cpp)
   target_include_directories(weapon_magazine_tests PRIVATE include)
   add_test(NAME original_weapon_magazine COMMAND weapon_magazine_tests
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_magazine_original.tsv)
@@ -169,17 +169,17 @@ if(BUILD_TESTING)
   add_test(NAME original_host_shader_spline2 COMMAND shader_spline2_tests
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/shader_spline2_host_original.tsv)
   set_tests_properties(original_host_shader_spline2 PROPERTIES SKIP_RETURN_CODE 77)
-  add_executable(weapon_heat_shader_tests tests/weapon_heat_shader_tests.cpp src/source_weapon_shader_input.cpp)
+  add_executable(weapon_heat_shader_tests tests/weapon_heat_shader_tests.cpp src/gameplay/weapons/source_weapon_shader_input.cpp)
   target_include_directories(weapon_heat_shader_tests PRIVATE include)
   add_test(NAME original_weapon_heat_shader COMMAND weapon_heat_shader_tests
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_heat_shader_original.tsv)
   set_tests_properties(original_weapon_heat_shader PROPERTIES SKIP_RETURN_CODE 77)
-  add_executable(weapon_preparation_random_tests tests/weapon_preparation_random_tests.cpp src/weapon_energy.cpp)
+  add_executable(weapon_preparation_random_tests tests/weapon_preparation_random_tests.cpp src/gameplay/weapons/weapon_energy.cpp)
   target_include_directories(weapon_preparation_random_tests PRIVATE include)
   add_test(NAME original_weapon_preparation_random COMMAND weapon_preparation_random_tests
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_preparation_random_original.tsv)
   set_tests_properties(original_weapon_preparation_random PROPERTIES SKIP_RETURN_CODE 77)
-  add_executable(weapon_energy_tests tests/weapon_energy_tests.cpp src/weapon_energy.cpp)
+  add_executable(weapon_energy_tests tests/weapon_energy_tests.cpp src/gameplay/weapons/weapon_energy.cpp)
   target_include_directories(weapon_energy_tests PRIVATE include)
   add_test(NAME original_weapon_energy COMMAND weapon_energy_tests
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_energy_original.tsv
@@ -199,7 +199,7 @@ if(BUILD_TESTING)
       ${CMAKE_CURRENT_SOURCE_DIR}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_elite_energy_original.tsv 3)
   set_tests_properties(original_weapon_elite_energy_cycles PROPERTIES SKIP_RETURN_CODE 77)
-  add_executable(weapon_barrel_timing_tests tests/weapon_barrel_timing_tests.cpp src/weapon_barrel_timing.cpp)
+  add_executable(weapon_barrel_timing_tests tests/weapon_barrel_timing_tests.cpp src/gameplay/weapons/weapon_barrel_timing.cpp)
   target_include_directories(weapon_barrel_timing_tests PRIVATE include)
   add_test(NAME original_weapon_barrel_timing COMMAND weapon_barrel_timing_tests
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_barrel_timing_original.tsv)
@@ -221,15 +221,15 @@ if(BUILD_TESTING)
 endif()
 
 if(BUILD_TESTING)
-    add_executable(weapon_primary_charge_tu15_tests tests/weapon_primary_charge_tu15_tests.cpp src/source_weapon_shader_input.cpp)
+    add_executable(weapon_primary_charge_tu15_tests tests/weapon_primary_charge_tu15_tests.cpp src/gameplay/weapons/source_weapon_shader_input.cpp)
     target_include_directories(weapon_primary_charge_tu15_tests PRIVATE include)
     target_link_libraries(weapon_primary_charge_tu15_tests PRIVATE nlohmann_json::nlohmann_json)
     target_compile_options(weapon_primary_charge_tu15_tests PRIVATE -ffp-contract=off)
     add_test(NAME original_tu15_weapon_primary_charge COMMAND weapon_primary_charge_tu15_tests
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_primary_charge_tu15_original.json")
 endif()
-target_sources(halo2_systems PRIVATE src/native_weapon_hud.cpp)
-target_sources(halo2_systems PRIVATE src/campaign_source_runtime.cpp)
+target_sources(halo2_systems PRIVATE src/ui/hud/native_weapon_hud.cpp)
+target_sources(halo2_systems PRIVATE src/campaign/campaign_source_runtime.cpp)
 if(BUILD_TESTING)
   add_executable(weapon_zoom_hud_tests tests/weapon_zoom_hud_tests.cpp)
   add_executable(campaign_weapon_hud_world_tests tests/campaign_weapon_hud_world_tests.cpp)
@@ -274,8 +274,98 @@ if(BUILD_TESTING)
   set_tests_properties(vehicle_weapon_hud PROPERTIES SKIP_RETURN_CODE 77)
   add_executable(vehicle_weapon_hud_world_tests tests/vehicle_weapon_hud_world_tests.cpp)
   target_link_libraries(vehicle_weapon_hud_world_tests PRIVATE halo2_systems)
-  add_executable(vehicle_weapon_hud_runtime_tests EXCLUDE_FROM_ALL tests/vehicle_weapon_hud_world_tests.cpp src/multiplayer_runtime.cpp)
-  target_link_libraries(vehicle_weapon_hud_runtime_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan glm::glm)
+  add_executable(body_impulse_tu15_tests tests/body_impulse_tu15_tests.cpp)
+  add_executable(rocket_first_person_reference_tests tests/rocket_first_person_reference_tests.cpp)
+  target_link_libraries(rocket_first_person_reference_tests PRIVATE halo2_systems)
+  target_link_libraries(body_impulse_tu15_tests PRIVATE halo2_systems)
+  add_test(NAME original_tu15_body_impulse COMMAND body_impulse_tu15_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/body_impulse_tu15_original.json)
+  if(EXISTS "${HALO2_ROCKET_GHOST_MCC_MAP}")
+    get_filename_component(halo2_ghost_boost_maps "${HALO2_ROCKET_GHOST_MCC_MAP}" DIRECTORY)
+    add_test(NAME original_rocket_first_person_reference COMMAND rocket_first_person_reference_tests
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps" "${halo2_ghost_boost_maps}"
+        "${CMAKE_CURRENT_BINARY_DIR}/rocket-first-person-reference.json")
+    add_test(NAME native_mcc_ghost_right_click_boost COMMAND ${CMAKE_COMMAND} -E env
+        HALO2_TEST_VEHICLE_WEAPON_HUD_CASE=ghost HALO2_TEST_GHOST_BOOST=1
+        "HALO2_TEST_VEHICLE_WEAPON_HUD_REPORT=${CMAKE_CURRENT_BINARY_DIR}/ghost-boost.json"
+        $<TARGET_FILE:vehicle_weapon_hud_world_tests> "${HALO2_ROCKET_GHOST_MCC_MAP}"
+        "${halo2_ghost_boost_maps}" native-mcc)
+    set_tests_properties(native_mcc_ghost_right_click_boost PROPERTIES TIMEOUT 180)
+    add_test(NAME native_mcc_rocket_lock_and_explosion COMMAND ${CMAKE_COMMAND} -E env
+        HALO2_TEST_VEHICLE_WEAPON_HUD_CASE=ghost HALO2_TEST_ROCKET_LOCK_ON=1
+        "HALO2_TEST_VEHICLE_WEAPON_HUD_REPORT=${CMAKE_CURRENT_BINARY_DIR}/rocket-lock.json"
+        $<TARGET_FILE:vehicle_weapon_hud_world_tests> "${HALO2_ROCKET_GHOST_MCC_MAP}"
+        "${halo2_ghost_boost_maps}" native-mcc)
+    set_tests_properties(native_mcc_rocket_lock_and_explosion PROPERTIES TIMEOUT 180)
+    foreach(rocket_target banshee scorpion wraith warthog-mg warthog-gauss)
+      add_test(NAME native_mcc_rocket_lock_${rocket_target} COMMAND ${CMAKE_COMMAND} -E env
+          HALO2_TEST_VEHICLE_WEAPON_HUD_CASE=${rocket_target} HALO2_TEST_ROCKET_LOCK_ON=1
+          "HALO2_TEST_VEHICLE_WEAPON_HUD_REPORT=${CMAKE_CURRENT_BINARY_DIR}/rocket-lock-${rocket_target}.json"
+          $<TARGET_FILE:vehicle_weapon_hud_world_tests> "${HALO2_ROCKET_GHOST_MCC_MAP}"
+          "${halo2_ghost_boost_maps}" native-mcc)
+      set_tests_properties(native_mcc_rocket_lock_${rocket_target} PROPERTIES TIMEOUT 180)
+    endforeach()
+    foreach(rocket_target warthog-mg warthog-gauss)
+      add_test(NAME native_mcc_rocket_empty_${rocket_target} COMMAND ${CMAKE_COMMAND} -E env
+          HALO2_TEST_VEHICLE_WEAPON_HUD_CASE=${rocket_target} HALO2_TEST_ROCKET_LOCK_ON=1
+          HALO2_TEST_ROCKET_EMPTY_TARGET=1
+          "HALO2_TEST_VEHICLE_WEAPON_HUD_REPORT=${CMAKE_CURRENT_BINARY_DIR}/rocket-empty-${rocket_target}.json"
+          $<TARGET_FILE:vehicle_weapon_hud_world_tests> "${HALO2_ROCKET_GHOST_MCC_MAP}"
+          "${halo2_ghost_boost_maps}" native-mcc)
+      set_tests_properties(native_mcc_rocket_empty_${rocket_target} PROPERTIES TIMEOUT 180)
+    endforeach()
+  endif()
+  add_executable(vehicle_weapon_hud_runtime_tests EXCLUDE_FROM_ALL tests/vehicle_weapon_hud_world_tests.cpp src/gameplay/multiplayer/multiplayer_runtime.cpp)
+  target_link_libraries(vehicle_weapon_hud_runtime_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan halo2_glm)
   target_compile_definitions(vehicle_weapon_hud_runtime_tests PRIVATE HALO2_VEHICLE_HUD_GPU=1 HALO2_SHADER_DIR="${CMAKE_CURRENT_BINARY_DIR}/shaders")
   add_dependencies(vehicle_weapon_hud_runtime_tests halo2_shaders)
+  if(EXISTS "${HALO2_ROCKET_GHOST_MCC_MAP}")
+    foreach(rocket_views 1 2 4)
+      add_test(NAME native_mcc_rocket_flight_render_${rocket_views} COMMAND ${Python3_EXECUTABLE}
+          ${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_rocket_fov_runtime_tu15.py
+          --executable $<TARGET_FILE:native_covenant_weapon_runtime_tests>
+          --maps "${halo2_ghost_boost_maps}" --phase attack --visuals-only
+          --players ${rocket_views} --width 1280 --height 720
+          --report "${CMAKE_CURRENT_BINARY_DIR}/rocket-flight-${rocket_views}.json")
+      set_tests_properties(native_mcc_rocket_flight_render_${rocket_views} PROPERTIES TIMEOUT 180)
+    endforeach()
+    add_test(NAME native_mcc_ghost_projectile_render COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_ghost_projectile_render_test.py
+        $<TARGET_FILE:vehicle_weapon_hud_runtime_tests> "${HALO2_ROCKET_GHOST_MCC_MAP}"
+        "${CMAKE_CURRENT_BINARY_DIR}/ghost-projectile-render.json")
+    set_tests_properties(native_mcc_ghost_projectile_render PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_test(NAME native_mcc_rocket_explosion_render COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_ghost_projectile_render_test.py
+        $<TARGET_FILE:vehicle_weapon_hud_runtime_tests> "${HALO2_ROCKET_GHOST_MCC_MAP}"
+        "${CMAKE_CURRENT_BINARY_DIR}/rocket-explosion-render.json" rocket-explosion)
+    set_tests_properties(native_mcc_rocket_explosion_render PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+  endif()
+  add_executable(vehicle_held_weapon_render_tests EXCLUDE_FROM_ALL tests/vehicle_held_weapon_render_tests.cpp src/gameplay/multiplayer/multiplayer_runtime.cpp)
+  target_link_libraries(vehicle_held_weapon_render_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan halo2_glm)
+  target_compile_definitions(vehicle_held_weapon_render_tests PRIVATE HALO2_SHADER_DIR="${CMAKE_CURRENT_BINARY_DIR}/shaders")
+  add_dependencies(vehicle_held_weapon_render_tests halo2_shaders)
+  foreach(stage IN ITEMS on-foot seated moving exited)
+    add_test(NAME vehicle_held_weapon_${stage} COMMAND vehicle_held_weapon_render_tests
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/coagulation.map"
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps"
+        "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe" 0 ${stage})
+    set_tests_properties(vehicle_held_weapon_${stage} PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77)
+  endforeach()
+  add_test(NAME vehicle_held_weapon_passenger COMMAND vehicle_held_weapon_render_tests
+      "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/coagulation.map"
+      "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps"
+      "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe" 1 seated)
+  set_tests_properties(vehicle_held_weapon_passenger PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77)
+  if(HALO2_MCC_GAMEPLAY_TEST_CACHE)
+    foreach(stage IN ITEMS on-foot seated moving exited)
+      add_test(NAME vehicle_held_weapon_mcc_${stage} COMMAND vehicle_held_weapon_render_tests
+          "${HALO2_MCC_GAMEPLAY_TEST_CACHE}/halo2/h2_maps_win64_dx11/coagulation.map"
+          "${HALO2_MCC_GAMEPLAY_TEST_CACHE}/halo2/h2_maps_win64_dx11" mcc 0 ${stage})
+      set_tests_properties(vehicle_held_weapon_mcc_${stage} PROPERTIES TIMEOUT 240 SKIP_RETURN_CODE 77)
+    endforeach()
+    add_test(NAME vehicle_held_weapon_mcc_passenger COMMAND vehicle_held_weapon_render_tests
+        "${HALO2_MCC_GAMEPLAY_TEST_CACHE}/halo2/h2_maps_win64_dx11/coagulation.map"
+        "${HALO2_MCC_GAMEPLAY_TEST_CACHE}/halo2/h2_maps_win64_dx11" mcc 1 seated)
+    set_tests_properties(vehicle_held_weapon_mcc_passenger PROPERTIES TIMEOUT 240 SKIP_RETURN_CODE 77)
+  endif()
 endif()

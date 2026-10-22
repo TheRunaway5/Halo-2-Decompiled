@@ -3,6 +3,7 @@
 #include "halo2/menu_world_raster.hpp"
 #include "halo2/menu_world_source_storage.hpp"
 #include "halo2/menu_world_vertex_catalog.hpp"
+#include "halo2/source_depth_storage.hpp"
 #include <memory>
 #include <filesystem>
 
@@ -10,7 +11,7 @@ namespace halo2 {
 struct MenuWorldNativeDrawContext {
   VkDevice device{};
   VkPhysicalDevice physical{};
-  VkRenderPass render_pass{}; // Compatible color+D24S8, sample1, subpass0.
+  VkRenderPass render_pass{}; // Compatible color+declared depth storage, sample1, subpass0.
   VkDescriptorSetLayout material_layout{}; // Existing set0; binding4 dynamic.
   // Actual logical-device enabled state. Physical support alone is insufficient.
   std::uint32_t api_version{};
@@ -19,6 +20,13 @@ struct MenuWorldNativeDrawContext {
   // Empty retains the configured production directory. Explicit captures
   // carry the same private shader snapshot through the raw geometry backend.
   std::filesystem::path shader_directory;
+  // Explicit alternate shader interface; all program/declaration identities and
+  // source owner admission remain unchanged. Requires compiled triangle ABI1.
+  bool triangle_vertices{};
+  SourceDepthStorageEncoding depth_encoding=SourceDepthStorageEncoding::native_d24;
+  // Actual instance policy, configured before device creation by the macOS
+  // SourceShaderMath owner. Required for triangle vertices on Metal.
+  bool strict_shader_math_enabled{};
 };
 struct MenuWorldNativeDrawInput {
   MenuWorldSourceBinding source;

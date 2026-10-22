@@ -1,7 +1,7 @@
 # Bounded no-scaling record0 status projection; boot/whole-graph ownership stays explicit.
 add_library(halo2_native_tu15_sound_record0_context STATIC
-    src/native_tu15_sound_status_context.cpp
-    src/native_tu15_sound_record0_context.cpp)
+    src/audio/native_tu15_sound_status_context.cpp
+    src/audio/native_tu15_sound_record0_context.cpp)
 target_include_directories(halo2_native_tu15_sound_record0_context PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_native_tu15_sound_record0_context PUBLIC cxx_std_20)

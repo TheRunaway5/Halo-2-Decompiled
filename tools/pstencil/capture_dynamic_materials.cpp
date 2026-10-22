@@ -1,5 +1,5 @@
 #include "../capture_live_model_common.hpp"
-#include "../../src/source_object_geometry.hpp"
+#include "../../src/gameplay/objects/source_object_geometry.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/source_game_variant.hpp"
 #include "halo2/source_bsp_effect_lights.hpp"
@@ -14,7 +14,6 @@
 #include "halo2/model_selection.hpp"
 #include "halo2/world_material.hpp"
 #include "halo2/renderer.hpp"
-#include "halo2/debug_panel.hpp"
 #include <algorithm>
 #include <bit>
 #include <cstring>
@@ -326,7 +325,7 @@ int run(int argc,char**argv) {
     };
     const auto capture=[&](const char* name){return capture_renderer(renderer,name);};
     const auto dark=capture("baseline.ppm");view.raw_effect_lights=packets;const auto lit=capture("illumination.ppm");
-    DisplaySettings mode;mode.graphics_mode=pstencil::GraphicsMode::pStencil;renderer.debug_panel().display_settings(mode);
+    DisplaySettings mode;mode.graphics_mode=pstencil::GraphicsMode::pStencil;renderer.display_settings(mode);
     const auto shadowed=capture("pStencil-specular.ppm");
     view.pstencil_point_casters={};const auto unshadowed_specular=capture("pStencil-no-shadows-specular.ppm");view.pstencil_point_casters=point_casters;
     std::size_t specular_packets=0;for(const auto& packet:packets)if(packet.pstencil_specular)specular_packets+=packet.pstencil_specular->size();
@@ -363,14 +362,14 @@ int run(int argc,char**argv) {
     std::size_t pstencil_light_channels=0;
     for(unsigned n=0;n<shadowed.rgb.size();++n)pstencil_light_channels+=shadowed.rgb[n]!=pstencil_baseline.rgb[n];
     require(pstencil_light_channels>100,"pStencil authored point light made no visible contribution");
-    view.raw_effect_lights=packets;mode.graphics_mode=pstencil::GraphicsMode::Original;renderer.debug_panel().display_settings(mode);
+    view.raw_effect_lights=packets;mode.graphics_mode=pstencil::GraphicsMode::Original;renderer.display_settings(mode);
     require(capture("Original-restored.ppm").rgb==lit.rgb,"dynamic model Original round trip changed pixels");
     mode.graphics_mode=pstencil::GraphicsMode::pStencil;
     // Isolate the independent dynamic-caster path: no raw receiver is
     // allowed to supply a caster. Base geometry still supplies its complete
     // current triangles, including parts with no dynamic-light pass.
     auto dynamic_only=packets;for(auto& packet:dynamic_only)packet.pstencil_casts_shadow=false;
-    view.raw_effect_lights=dynamic_only;renderer.debug_panel().display_settings(mode);
+    view.raw_effect_lights=dynamic_only;renderer.display_settings(mode);
     const auto independent=capture("pStencil-independent-dynamic-casters.ppm");
     // Known source part types have independent caster eligibility; removing a
     // shader layer is no longer a valid no-caster control. An explicitly empty
@@ -413,7 +412,7 @@ int run(int argc,char**argv) {
             unreflected.materials[n]=clone(clone,unreflected.materials[n]);
         require(cubes>0,"visor has no bound authored environment cube");
         Renderer control_renderer(window.get(),unreflected,true);control_renderer.scene_bsp_atmosphere(cache.load_bsp_atmosphere(0));
-        control_renderer.debug_panel().display_settings(mode);view.raw_effect_lights=packets;
+        control_renderer.display_settings(mode);view.raw_effect_lights=packets;
         const auto control=capture_renderer(control_renderer,"pStencil-visor-no-reflection.ppm");std::size_t reflected=0;
         for(unsigned n=0;n<control.rgb.size();++n)reflected+=control.rgb[n]!=shadowed.rgb[n];
         require(reflected>0,"pStencil visor reflection bitmap made no visible contribution");

@@ -9,10 +9,10 @@ def main():
     p.add_argument('--output',type=Path,required=True);p.add_argument('--sanitizer',action='store_true');a=p.parse_args()
     build=a.build.resolve();out=a.output.resolve();assert build.is_dir()and not out.exists();out.mkdir(parents=True)
     targets=['physics_component_construction_tests','fp_sound_submit_tests']
-    names=['include/halo2/raw_datum_pool.hpp','src/raw_datum_pool.cpp','include/halo2/physics_component_construction.hpp',
-        'src/physics_component_construction.cpp','tests/physics_component_construction_tests.cpp',
-        'include/halo2/object_physics_construction.hpp','src/object_physics_construction.cpp',
-        'include/halo2/fp_sound_submit.hpp','src/fp_sound_submit.cpp','tests/fp_sound_submit_tests.cpp'];observed={}
+    names=['include/halo2/raw_datum_pool.hpp','src/gameplay/objects/raw_datum_pool.cpp','include/halo2/physics_component_construction.hpp',
+        'src/physics/physics_component_construction.cpp','tests/physics_component_construction_tests.cpp',
+        'include/halo2/object_physics_construction.hpp','src/gameplay/objects/object_physics_construction.cpp',
+        'include/halo2/fp_sound_submit.hpp','src/gameplay/weapons/fp_sound_submit.cpp','tests/fp_sound_submit_tests.cpp'];observed={}
     for name in names+['CMakeLists.txt']:
         target=out/'source-before'/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(ROOT/name,target);observed[name]=sha(ROOT/name)
     commands={}

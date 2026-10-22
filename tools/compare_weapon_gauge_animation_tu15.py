@@ -38,8 +38,8 @@ def main():
     source=Path(validation['private_source'])
     build=Path(json.loads((args.validation.parent/'release/report.json').read_text())['build'])
     manifest=json.loads((args.validation.parent/'source-manifest.json').read_text())['source_files_sha256']
-    for name in ('src/source_weapon_material_input.cpp','include/halo2/source_weapon_material_input.hpp',
-                 'src/source_weapon_shader_input.cpp','src/shader_animation.cpp'):
+    for name in ('src/gameplay/weapons/source_weapon_material_input.cpp','include/halo2/source_weapon_material_input.hpp',
+                 'src/gameplay/weapons/source_weapon_shader_input.cpp','src/rendering/shader_animation.cpp'):
         assert sha(source/name)==manifest[name]==sha(ROOT/name),name
     shutil.copytree(source/'include',scratch/'include')
     tokens=shlex.split((build/'CMakeFiles/source_weapon_material_input_tests.dir/link.txt').read_text())
@@ -57,7 +57,7 @@ def main():
     native_source=ROOT/'tests/source_weapon_material_input_tests.cpp'
     shutil.copyfile(native_source,scratch/'native.cpp')
     command=[tokens[0],'-std=c++20','-O2','-fno-fast-math','-ffp-contract=off',
-        '-I'+str(scratch/'include'),str(scratch/'native.cpp'),'-fuse-ld=lld',
+        '-I'+str(scratch/'include'), '-I'+str(scratch/'src'),str(scratch/'native.cpp'),'-fuse-ld=lld',
         '-Wl,--start-group',*libraries,'-Wl,--end-group','-o',str(scratch/'native')]
     report.update(compile_command=command,library_files_sha256=library_pins,
         native_test_source_sha256=sha(native_source),snapshot_manifest_sha256=sha(args.validation.parent/'source-manifest.json'))

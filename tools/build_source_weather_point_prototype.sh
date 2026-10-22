@@ -18,5 +18,5 @@ c++ -std=c++20 -ffp-contract=off -fno-fast-math "${task_flags[@]}" \
     "-DHALO2_SOURCE_DIR=\"$task_root\"" \
     "-DHALO2_WEATHER_POINT_SHADER_DIR=\"$task_build/shaders\"" \
     "-DHALO2_WEATHER_POINT_PROBE_SHADER=\"$task_build/shaders/source_weather_point_probe.comp.spv\"" \
-    "$task_root/src/source_weather_point_render.cpp" "$task_root/tests/source_weather_point_render_tests.cpp" \
+    "$task_root/src/rendering/weather/source_weather_point_render.cpp" "$task_root/tests/source_weather_point_render_tests.cpp" \
     "$task_archive" -lvulkan -lz -llz4 -o "$task_build/source_weather_point_render_tests"

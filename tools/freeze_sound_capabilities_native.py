@@ -4,7 +4,7 @@ import json,shutil
 from pathlib import Path
 from oracle_mp_title_update_display import ROOT,sha,save,encoded
 BASE=ROOT/'analysis/multiplayer/integration/sound-capabilities-native'
-OWNED=('include/halo2/sound_capabilities.hpp','src/sound_capabilities.cpp','tests/sound_capabilities_tests.cpp','tools/research_sound_capabilities_u5.py','tools/oracle_sound_capabilities_native.py','tools/export_sound_capabilities_fixtures.py','tools/validate_sound_capabilities_native.py','tools/audit_sound_capabilities_native.py','tools/freeze_sound_capabilities_native.py','docs/MP_SOUND_CAPABILITIES_ACCOUNTING_RESEARCH.md')
+OWNED=('include/halo2/sound_capabilities.hpp','src/audio/sound_capabilities.cpp','tests/sound_capabilities_tests.cpp','tools/research_sound_capabilities_u5.py','tools/oracle_sound_capabilities_native.py','tools/export_sound_capabilities_fixtures.py','tools/validate_sound_capabilities_native.py','tools/audit_sound_capabilities_native.py','tools/freeze_sound_capabilities_native.py','docs/MP_SOUND_CAPABILITIES_ACCOUNTING_RESEARCH.md')
 def run():
  final=BASE/'final-manifest.json';assert not final.exists(),'Already frozen'
  assert(BASE/'audit.json').read_bytes()==(BASE/'audit-repeat.json').read_bytes();audit=json.loads((BASE/'audit.json').read_text())

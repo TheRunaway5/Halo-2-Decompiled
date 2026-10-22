@@ -3,6 +3,7 @@
 #include "halo2/sound_variation.hpp"
 #include "halo2/unit_damage_audio.hpp"
 #include <algorithm>
+#include <bit>
 #include <cmath>
 #include <iostream>
 #include <set>
@@ -14,6 +15,42 @@ namespace {
 void check(bool value,const char *message){if(!value)throw FormatError(message);}
 double peak(std::span<const float> samples){double result=0;for(const auto s:samples){
   check(std::isfinite(s),"Native audio produced nonfinite PCM");result=std::max(result,std::abs(double(s)));}return result;}
+void source_request_handoff(const Cache &cache,std::uint32_t sound){
+  // Declared raw caller ABI controls, separate from initialized guest state.
+  for(const auto control:{1.f,.25f}) {
+    std::array<std::byte,160> request;request.fill(std::byte{0xa5});
+    const auto put=[&](unsigned at,std::uint32_t value){for(unsigned i=0;i<4;++i)request[at+i]=std::byte(value>>(i*8));};
+    put(0,0xdu);request[0xf]=std::byte{};
+    put(0x10,std::bit_cast<std::uint32_t>(control));put(0x14,0);put(0x50,0x12345678u);
+    const auto before=request;
+    unsigned packets{};
+    const SdlSoundPlatformConfiguration manual{SdlSoundPlatformConfiguration::Delivery::Manual,256,{}};
+    std::vector<float> expected;
+    {
+      MultiplayerAudio semantic(cache,0x5821b36d,manual);
+      semantic.impulse(sound,control,MultiplayerAudioKind::FirstPerson,0x12345678u,2);
+      expected=semantic.render(4096);
+    }
+    MultiplayerAudio raw(cache,0x5821b36d,manual,[&](const auto &packet){
+      check(packet.sound==sound && packet.owner==0x12345678u && packet.view==2 &&
+            packet.kind==MultiplayerAudioKind::FirstPerson && packet.frames>0,
+            "Source request lost its authored sound/owner/view at actual SDL submission");++packets;
+    });
+    check(raw.source_impulse(sound,request,MultiplayerAudioKind::FirstPerson,2).has_value(),
+        "Actual native backend rejected the declared source impulse");
+    const auto pcm=raw.render(4096);
+    check(pcm==expected && peak(pcm)>0 && packets==1 && request==before,
+        "Source raw caller control changed PCM or mutated original request backing");
+    raw.stop();
+    for(const auto flags:{0x1du,0x40du}) {
+      put(0,flags);bool rejected{};
+      try{(void)raw.source_impulse(sound,request,MultiplayerAudioKind::FirstPerson,2);}
+      catch(const FormatError&){rejected=true;}
+      check(rejected && raw.voices()==0,"Source controller/forced selector silently became an ordinary impulse");
+    }
+  }
+  std::cout<<"PASS raw source impulse preserves caller backing, owner/view, control and actual PCM; controller/forced selectors remain separate\n";
+}
 void world_distance_handoff(const Cache &cache,std::uint32_t sound){
   const auto measure=[&](Vec3 point,std::span<const Vec3> listeners){
     MultiplayerAudio audio(cache,0x5821b36d,{SdlSoundPlatformConfiguration::Delivery::Manual,256,{}});
@@ -231,6 +268,7 @@ int main(int argc,char **argv){
     for(const auto &clip:definition.clock_clips)if(clip.activity==0x0b000065 || clip.activity==0x0c000064)
       for(const auto &event:clip.events)if(event.type==1&&event.tag!=null_datum)reload_tags.insert(event.tag);
     check(!reload_tags.empty(),"Original reload clips have no sound event");
+    source_request_handoff(cache,*reload_tags.begin());
     world_distance_handoff(cache,*reload_tags.begin());
     shared_variation_ownership(cache,*reload_tags.begin());
     completion_ownership(cache,*reload_tags.begin());

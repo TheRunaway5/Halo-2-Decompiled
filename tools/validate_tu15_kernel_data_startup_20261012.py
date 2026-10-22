@@ -22,8 +22,8 @@ def read(p):return json.loads(Path(p).read_text())
 
 def freeze():
     selected=set(CMAKE+TOOLS+('docs/PHYSICS_TU15_KERNEL_DATA_STARTUP_20261012.md',
-        'tests/source_runtime_image_tests.cpp','src/source_runtime_memory.cpp',
-        'src/source_runtime_image.cpp','src/source_runtime_host_virtual_memory.cpp'))
+        'tests/source_runtime_image_tests.cpp','src/runtime/source_runtime_memory.cpp',
+        'src/runtime/source_runtime_image.cpp','src/runtime/source_runtime_host_virtual_memory.cpp'))
     for name in CMAKE:
         selected.update(re.findall(r'\b(?:src|tests)/[\w/]+\.cpp',(ROOT/name).read_text()))
     pending=list(selected)
@@ -61,7 +61,7 @@ include(cmake/PhysicsWorldRuntime.cmake)
 include(cmake/PhysicsPlatformLocks.cmake)
 include(cmake/PhysicsPlatformCall.cmake)
 add_executable(source_runtime_image_tests tests/source_runtime_image_tests.cpp
-    src/source_runtime_memory.cpp src/source_runtime_image.cpp)
+    src/runtime/source_runtime_memory.cpp src/runtime/source_runtime_image.cpp)
 target_include_directories(source_runtime_image_tests PRIVATE include)
 target_compile_features(source_runtime_image_tests PRIVATE cxx_std_20)
 if(HALO2_SANITIZERS)
@@ -75,7 +75,7 @@ include(cmake/SourceTu15StartupRecords.cmake)
     for name in ('analysis','assets'):(target/name).symlink_to(ROOT/name,target_is_directory=True)
     result=dict(schema=1,parity_target='English TU1.5 only',files=pins,top_sha256=sha(target/'CMakeLists.txt'),
         original_archive_reuse=False,tests=sorted(TESTS),production_cmake_sha256=sha(ROOT/'CMakeLists.txt'),
-        world_cpp_sha256=sha(ROOT/'src/physics_world_runtime_generated.cpp'),
+        world_cpp_sha256=sha(ROOT/'src/physics/runtime/physics_world_runtime_generated.cpp'),
         scope='Fresh native source compilation with actual retained data input. No title, heap/world creation or live physics claim.')
     (E/'source-manifest-v3.json').write_text(json.dumps(result,sort_keys=True,indent=2)+'\n')
     print(json.dumps(dict(files=len(pins),manifest_sha256=sha(E/'source-manifest-v3.json'))))

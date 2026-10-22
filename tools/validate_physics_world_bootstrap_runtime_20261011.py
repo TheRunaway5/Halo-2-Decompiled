@@ -61,7 +61,7 @@ def main():
     generated = read(generated_path)
     assert generated['generator_sha256'] == sha(ROOT / 'tools/generate_physics_world_bootstrap_runtime_20261011.py')
     assert generated['correspondence_sha256'] == PAIR_PIN
-    assert generated['generated_cpp_sha256'] == sha(ROOT / 'src/physics_world_runtime_generated.cpp') == sha(E / 'generated-v19-repeat/runtime.cpp')
+    assert generated['generated_cpp_sha256'] == sha(ROOT / 'src/physics/runtime/physics_world_runtime_generated.cpp') == sha(E / 'generated-v19-repeat/runtime.cpp')
     assert len(generated['complete_native_entries']) == 362 and len(generated['lowered_instructions']) == 30221
     assert not generated['production_opcode_decoder'] and not generated['production_original_code_execution']
     base_checkpoint = read(E / 'disc-original-v1/checkpoint.json')

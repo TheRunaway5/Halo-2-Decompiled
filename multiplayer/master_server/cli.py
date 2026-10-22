@@ -96,7 +96,13 @@ def enroll(instance, base, token, operator=False, owner="simulator", ttl=86400 *
     data = {"server_public_key": public_hex(instance.key), "ttl_seconds": ttl}
     if operator:
         data["owner_label"] = owner
-    result = request(base, "POST", "/v1/admin/credentials" if operator else "/v1/credentials", data, token)
+    path = "/v1/admin/credentials" if operator else "/v1/credentials"
+    challenge = request(base, "POST", path + "/challenge", data, token)
+    require(challenge.get("kind") == "enrollment" and challenge.get("master_id") == identity["id"]
+            and challenge.get("server_public_key") == data["server_public_key"]
+            and challenge.get("ttl_seconds") == ttl, "Invalid enrollment challenge")
+    data["proof"] = signed(instance.key, challenge)
+    result = request(base, "POST", path, data, token)
     require(result["origin_master_id"] == identity["id"] and result["server_id"] == instance.value["server_id"], "Enrollment identity mismatch")
     instance.value.update(master=base, credential=result, sequence=0)
     instance.save()

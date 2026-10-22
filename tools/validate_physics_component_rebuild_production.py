@@ -11,7 +11,7 @@ def main():
     build=a.build.resolve();out=a.output.resolve();assert build.is_dir()and not out.exists();out.mkdir(parents=True)
     targets=['physics_component_rebuild_tests','physics_construction_operands_tests','physics_component_construction_tests',
         'object_physics_construction_tests','object_preparation_pressure_tests','looping_construction_operands_tests','fp_sound_submit_tests']
-    names=SOURCES+['include/halo2/original_data.hpp','src/original_data.cpp','tests/physics_construction_operands_tests.cpp',
+    names=SOURCES+['include/halo2/original_data.hpp','src/assets/original_data.cpp','tests/physics_construction_operands_tests.cpp',
         'include/halo2/object_preparation_pressure.hpp'];observed={}
     for name in names+['CMakeLists.txt']:
         dst=out/'source-before'/name;dst.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(ROOT/name,dst);observed[name]=sha(ROOT/name)

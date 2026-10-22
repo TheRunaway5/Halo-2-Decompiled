@@ -1,0 +1,387 @@
+{
+  "schema": "H2_MACOS_DEPENDENCY_AUDIT_V1",
+  "requested_architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "scope": "host pkg-config packages; not configured engine closure",
+  "packages": {
+    "openssl": {
+      "version": "3.5.9",
+      "libdir": "/opt/homebrew/Cellar/openssl@3/3.5.9/lib"
+    },
+    "opus": {
+      "version": "1.6.1",
+      "libdir": "/opt/homebrew/Cellar/opus/1.6.1/lib"
+    },
+    "libavcodec": {
+      "version": "63.1.102",
+      "libdir": "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib"
+    },
+    "libavformat": {
+      "version": "63.1.102",
+      "libdir": "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib"
+    },
+    "libavutil": {
+      "version": "61.1.102",
+      "libdir": "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib"
+    },
+    "libswresample": {
+      "version": "7.1.102",
+      "libdir": "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib"
+    },
+    "libswscale": {
+      "version": "10.1.102",
+      "libdir": "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib"
+    }
+  },
+  "roots": {
+    "openssl:libcrypto.dylib": "/opt/homebrew/Cellar/openssl@3/3.5.9/lib/libcrypto.3.dylib",
+    "openssl:libssl.dylib": "/opt/homebrew/Cellar/openssl@3/3.5.9/lib/libssl.3.dylib",
+    "opus:libopus.dylib": "/opt/homebrew/Cellar/opus/1.6.1/lib/libopus.0.dylib",
+    "libavcodec:libavcodec.dylib": "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib/libavcodec.63.1.102.dylib",
+    "libavformat:libavformat.dylib": "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib/libavformat.63.1.102.dylib",
+    "libavutil:libavutil.dylib": "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib/libavutil.61.1.102.dylib",
+    "libswresample:libswresample.dylib": "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib/libswresample.7.1.102.dylib",
+    "libswscale:libswscale.dylib": "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib/libswscale.10.1.102.dylib"
+  },
+  "images": {
+    "/opt/homebrew/Cellar/openssl@3/3.5.9/lib/libcrypto.3.dylib": {
+      "architectures": [
+        "arm64"
+      ],
+      "missing": [
+        "x86_64"
+      ],
+      "sha256": "e33ec992b3bb291f26b919a89880f307eef3d15339253fab6ec60464a85f16db",
+      "dependencies": {
+        "arm64": []
+      }
+    },
+    "/opt/homebrew/Cellar/openssl@3/3.5.9/lib/libssl.3.dylib": {
+      "architectures": [
+        "arm64"
+      ],
+      "missing": [
+        "x86_64"
+      ],
+      "sha256": "a9727e1a8d39f34d0ab892d389518555f665bbb3d218dc371832c046194feccf",
+      "dependencies": {
+        "arm64": [
+          "/opt/homebrew/Cellar/openssl@3/3.5.9/lib/libcrypto.3.dylib"
+        ]
+      }
+    },
+    "/opt/homebrew/Cellar/opus/1.6.1/lib/libopus.0.dylib": {
+      "architectures": [
+        "arm64"
+      ],
+      "missing": [
+        "x86_64"
+      ],
+      "sha256": "98dcd3cc62c6cf913b789051536ab246c56cc163c74bd8b4968ac467ec74b68b",
+      "dependencies": {
+        "arm64": []
+      }
+    },
+    "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib/libavcodec.63.1.102.dylib": {
+      "architectures": [
+        "arm64"
+      ],
+      "missing": [
+        "x86_64"
+      ],
+      "sha256": "887a9775777c2fdb45228fb7776c3f040e4cf56a0cce2b773ae1b978e26dce5a",
+      "dependencies": {
+        "arm64": [
+          "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib/libswresample.7.dylib",
+          "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib/libavutil.61.dylib",
+          "/opt/homebrew/opt/libvpx/lib/libvpx.12.dylib",
+          "/opt/homebrew/opt/xz/lib/liblzma.5.dylib",
+          "/opt/homebrew/opt/dav1d/lib/libdav1d.7.dylib",
+          "/opt/homebrew/opt/lame/lib/libmp3lame.0.dylib",
+          "/opt/homebrew/opt/opus/lib/libopus.0.dylib",
+          "/opt/homebrew/opt/svt-av1/lib/libSvtAv1Enc.4.dylib",
+          "/opt/homebrew/opt/x264/lib/libx264.165.dylib",
+          "/opt/homebrew/opt/x265/lib/libx265.217.dylib",
+          "/opt/homebrew/opt/openssl@4/lib/libssl.4.dylib",
+          "/opt/homebrew/opt/openssl@4/lib/libcrypto.4.dylib"
+        ]
+      }
+    },
+    "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib/libavformat.63.1.102.dylib": {
+      "architectures": [
+        "arm64"
+      ],
+      "missing": [
+        "x86_64"
+      ],
+      "sha256": "29cf1a49a39f4e8e99c7bfa6f7aef3df2e7d91c8282cd7e1ef1fb206aec75779",
+      "dependencies": {
+        "arm64": [
+          "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib/libavcodec.63.dylib",
+          "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib/libswresample.7.dylib",
+          "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib/libavutil.61.dylib",
+          "/opt/homebrew/opt/openssl@4/lib/libssl.4.dylib",
+          "/opt/homebrew/opt/openssl@4/lib/libcrypto.4.dylib",
+          "/opt/homebrew/opt/libvpx/lib/libvpx.12.dylib",
+          "/opt/homebrew/opt/xz/lib/liblzma.5.dylib",
+          "/opt/homebrew/opt/dav1d/lib/libdav1d.7.dylib",
+          "/opt/homebrew/opt/lame/lib/libmp3lame.0.dylib",
+          "/opt/homebrew/opt/opus/lib/libopus.0.dylib",
+          "/opt/homebrew/opt/svt-av1/lib/libSvtAv1Enc.4.dylib",
+          "/opt/homebrew/opt/x264/lib/libx264.165.dylib",
+          "/opt/homebrew/opt/x265/lib/libx265.217.dylib"
+        ]
+      }
+    },
+    "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib/libavutil.61.1.102.dylib": {
+      "architectures": [
+        "arm64"
+      ],
+      "missing": [
+        "x86_64"
+      ],
+      "sha256": "0377aea088208e69d29c03caeb960ca395fdbcd646335dc0a87748bfe81f8525",
+      "dependencies": {
+        "arm64": [
+          "/opt/homebrew/opt/openssl@4/lib/libssl.4.dylib",
+          "/opt/homebrew/opt/openssl@4/lib/libcrypto.4.dylib"
+        ]
+      }
+    },
+    "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib/libswresample.7.1.102.dylib": {
+      "architectures": [
+        "arm64"
+      ],
+      "missing": [
+        "x86_64"
+      ],
+      "sha256": "8d35eb7639343a837ac4e97cfe1742a293b9bc514a790e5db822927628122d2f",
+      "dependencies": {
+        "arm64": [
+          "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib/libavutil.61.dylib",
+          "/opt/homebrew/opt/openssl@4/lib/libssl.4.dylib",
+          "/opt/homebrew/opt/openssl@4/lib/libcrypto.4.dylib"
+        ]
+      }
+    },
+    "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib/libswscale.10.1.102.dylib": {
+      "architectures": [
+        "arm64"
+      ],
+      "missing": [
+        "x86_64"
+      ],
+      "sha256": "518909dce64a42971a838278cf43ba2bd77bd172ba0eccb3c6ba273e25be7cda",
+      "dependencies": {
+        "arm64": [
+          "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib/libavutil.61.dylib",
+          "/opt/homebrew/opt/openssl@4/lib/libssl.4.dylib",
+          "/opt/homebrew/opt/openssl@4/lib/libcrypto.4.dylib"
+        ]
+      }
+    },
+    "/opt/homebrew/Cellar/libvpx/1.17.0/lib/libvpx.12.dylib": {
+      "architectures": [
+        "arm64"
+      ],
+      "missing": [
+        "x86_64"
+      ],
+      "sha256": "443cd530535e976a7fe96a027f3e65acebf41a7055005732422309c207089937",
+      "dependencies": {
+        "arm64": []
+      }
+    },
+    "/opt/homebrew/Cellar/xz/5.8.4/lib/liblzma.5.dylib": {
+      "architectures": [
+        "arm64"
+      ],
+      "missing": [
+        "x86_64"
+      ],
+      "sha256": "1b2e12cc1b920264f3dd15eeba22e85b8afd589595d8945d1d12a52afa694b09",
+      "dependencies": {
+        "arm64": []
+      }
+    },
+    "/opt/homebrew/Cellar/dav1d/1.5.4/lib/libdav1d.7.dylib": {
+      "architectures": [
+        "arm64"
+      ],
+      "missing": [
+        "x86_64"
+      ],
+      "sha256": "60c3a42a79582241ac77bbbba4c0137c2209204aecbc59e5d6392c2dc0a5b439",
+      "dependencies": {
+        "arm64": []
+      }
+    },
+    "/opt/homebrew/Cellar/lame/4.0/lib/libmp3lame.0.dylib": {
+      "architectures": [
+        "arm64"
+      ],
+      "missing": [
+        "x86_64"
+      ],
+      "sha256": "5150d16a2b09a8f6f3475dcc837fdf5435d4f97e817ca12306fec8da5614647c",
+      "dependencies": {
+        "arm64": [
+          "/opt/homebrew/opt/mpg123/lib/libmpg123.0.dylib"
+        ]
+      }
+    },
+    "/opt/homebrew/Cellar/svt-av1/4.2.0/lib/libSvtAv1Enc.4.2.0.dylib": {
+      "architectures": [
+        "arm64"
+      ],
+      "missing": [
+        "x86_64"
+      ],
+      "sha256": "bac7066bcd47c31971f61e57cdd0eccabb2ec2ef3ca5aa1e08bd5ca51cd54608",
+      "dependencies": {
+        "arm64": []
+      }
+    },
+    "/opt/homebrew/Cellar/x264/r3222/lib/libx264.165.dylib": {
+      "architectures": [
+        "arm64"
+      ],
+      "missing": [
+        "x86_64"
+      ],
+      "sha256": "854e5f4d6e5f9ed65d235b60df329bbed0ad9b9ebd4b4e13c666ebe33af6acaa",
+      "dependencies": {
+        "arm64": []
+      }
+    },
+    "/opt/homebrew/Cellar/x265/4.3/lib/libx265.217.dylib": {
+      "architectures": [
+        "arm64"
+      ],
+      "missing": [
+        "x86_64"
+      ],
+      "sha256": "b3a50884e2d9cecf57fd29c4fba2c4e47b37cd7b4d7ff5d920919efca038d9ae",
+      "dependencies": {
+        "arm64": []
+      }
+    },
+    "/opt/homebrew/Cellar/openssl@4/4.0.3/lib/libssl.4.dylib": {
+      "architectures": [
+        "arm64"
+      ],
+      "missing": [
+        "x86_64"
+      ],
+      "sha256": "d223211e5bc6bfa664a8e066024d026f95f5b571c7b17376312344710d142aa7",
+      "dependencies": {
+        "arm64": [
+          "/opt/homebrew/Cellar/openssl@4/4.0.3/lib/libcrypto.4.dylib"
+        ]
+      }
+    },
+    "/opt/homebrew/Cellar/openssl@4/4.0.3/lib/libcrypto.4.dylib": {
+      "architectures": [
+        "arm64"
+      ],
+      "missing": [
+        "x86_64"
+      ],
+      "sha256": "eb4e14b7f6ef10df40a60f7a078920c44e6b24be23f76eb1f657142becfeb4e7",
+      "dependencies": {
+        "arm64": []
+      }
+    },
+    "/opt/homebrew/Cellar/mpg123/1.33.7/lib/libmpg123.0.dylib": {
+      "architectures": [
+        "arm64"
+      ],
+      "missing": [
+        "x86_64"
+      ],
+      "sha256": "435f7bc76659569772b1a90b049a28fe17bc0d605525f1061f830c119807718a",
+      "dependencies": {
+        "arm64": []
+      }
+    }
+  },
+  "missing_architectures": {
+    "/opt/homebrew/Cellar/openssl@3/3.5.9/lib/libcrypto.3.dylib": [
+      "x86_64"
+    ],
+    "/opt/homebrew/Cellar/openssl@3/3.5.9/lib/libssl.3.dylib": [
+      "x86_64"
+    ],
+    "/opt/homebrew/Cellar/opus/1.6.1/lib/libopus.0.dylib": [
+      "x86_64"
+    ],
+    "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib/libavcodec.63.1.102.dylib": [
+      "x86_64"
+    ],
+    "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib/libavformat.63.1.102.dylib": [
+      "x86_64"
+    ],
+    "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib/libavutil.61.1.102.dylib": [
+      "x86_64"
+    ],
+    "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib/libswresample.7.1.102.dylib": [
+      "x86_64"
+    ],
+    "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/lib/libswscale.10.1.102.dylib": [
+      "x86_64"
+    ],
+    "/opt/homebrew/Cellar/libvpx/1.17.0/lib/libvpx.12.dylib": [
+      "x86_64"
+    ],
+    "/opt/homebrew/Cellar/xz/5.8.4/lib/liblzma.5.dylib": [
+      "x86_64"
+    ],
+    "/opt/homebrew/Cellar/dav1d/1.5.4/lib/libdav1d.7.dylib": [
+      "x86_64"
+    ],
+    "/opt/homebrew/Cellar/lame/4.0/lib/libmp3lame.0.dylib": [
+      "x86_64"
+    ],
+    "/opt/homebrew/Cellar/svt-av1/4.2.0/lib/libSvtAv1Enc.4.2.0.dylib": [
+      "x86_64"
+    ],
+    "/opt/homebrew/Cellar/x264/r3222/lib/libx264.165.dylib": [
+      "x86_64"
+    ],
+    "/opt/homebrew/Cellar/x265/4.3/lib/libx265.217.dylib": [
+      "x86_64"
+    ],
+    "/opt/homebrew/Cellar/openssl@4/4.0.3/lib/libssl.4.dylib": [
+      "x86_64"
+    ],
+    "/opt/homebrew/Cellar/openssl@4/4.0.3/lib/libcrypto.4.dylib": [
+      "x86_64"
+    ],
+    "/opt/homebrew/Cellar/mpg123/1.33.7/lib/libmpg123.0.dylib": [
+      "x86_64"
+    ]
+  },
+  "errors": [],
+  "passed": false,
+  "source_sha256": {
+    "audit_dependencies.py": "68fdb7284d92f6a5ad13541ee411b7c20e6d8c71653b149f93bf0f010cb31935",
+    "bundle.py": "3df7356aeb946f2327d04ec0a9f6411c0446cf0bcb3112a3a8186b122588f287"
+  },
+  "retained_large_artifacts": [],
+  "date": "2026-10-20",
+  "original_report": "build/test-results/macos-host-dependencies.json",
+  "cleanup": {
+    "private_build_parent_empty": true,
+    "dependency_copies_created": false,
+    "receipt": "Mac private build parent empty"
+  },
+  "verified_opus_source_for_universal_build": {
+    "version": "1.6.1",
+    "url": "https://downloads.xiph.org/releases/opus/opus-1.6.1.tar.gz",
+    "sha256": "6ffcb593207be92584df15b32466ed64bbec99109f007c82205f0194572411a1",
+    "upstream_checksum_list": "https://downloads.xiph.org/releases/opus/SHA256SUMS.txt",
+    "implementation_status": "not started"
+  }
+}

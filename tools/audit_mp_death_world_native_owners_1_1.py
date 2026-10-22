@@ -21,7 +21,7 @@ def main():
  assert j['failure']is None and j['frozen_prior_byte_identical']
  assert not j['instruction_patches'] and not j['new_supplied_guest_fields_or_results']
  assert b['tool_sha256']==sha(ROOT/'tools/generate_death_world_runtime_bindings_1_1.py')
- assert b['generated_sha256']==sha(ROOT/'src/death_world_runtime_entries.hpp')
+ assert b['generated_sha256']==sha(ROOT/'src/gameplay/units/death_world_runtime_entries.hpp')
  native=set()
  for v in b['owners'].values():
   assert v['sha256']==sha(ROOT/v['source'])

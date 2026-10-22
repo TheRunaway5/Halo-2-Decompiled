@@ -1,0 +1,20 @@
+{
+  "schema": "H2_LOSSLESS_MOVIE_PLAYBACK_V1",
+  "role": "intro",
+  "source": {
+    "bytes": 1374717117,
+    "sha256": "a0bc31f0c004613930fbef81490fb640ae88ea14b3cb2d672a874ed202fd38f6"
+  },
+  "file": "intro.hevc.mp4",
+  "bytes": 1658954183,
+  "sha256": "b998f83333b64b55b5816c2a0e39a06489dbb7f7f70f55fdfe5cc43ddcedaa37",
+  "source_duration": 18.139833,
+  "width": 3840,
+  "height": 2160,
+  "frames": 1079,
+  "frame_rate": "60000/1001",
+  "pixel_format": "yuv420p",
+  "all_yuv_frames_identical": true,
+  "copied_audio_packets": true,
+  "ordered_frame_hash_sha256": "7bf633cfb91a0910aec00ef3d32810156e33cfcacb9a571112a078881a4b7a1b"
+}

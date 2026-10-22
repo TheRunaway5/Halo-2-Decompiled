@@ -106,6 +106,35 @@ harness_stack: .space 65536
 harness_stack_end:
 '''
 
+def reference_text_gaps(image,capture,regions,output,section_name='.text',span=None):
+ # MCC-native execution keeps compiled code outside SourceRuntimeMemory. The
+ # independent CPU reference needs original instructions in its own process.
+ # Preserve every captured input: authenticate shared text bytes, then mount
+ # only absent code ranges from the pinned image. Never replace runtime data.
+ text=next(s for s in image.sections if s.name==section_name);raw=image.section_bytes(text)
+ first,end=text.va,text.va+len(raw)
+ if span is not None:
+  lo,hi=span;assert first<=lo<hi<=end
+  raw=raw[lo-first:hi-first];first,end=lo,hi
+ cursor=first;gaps=[];shared=[]
+ for r in sorted(regions,key=lambda r:r['address']):
+  lo=max(first,r['address']);hi=min(end,r['address']+r['size'])
+  if lo>=hi:continue
+  assert lo>=cursor,'Overlapping captured text owners'
+  data=(capture/r['before_file']).read_bytes();offset=lo-r['address']
+  assert data[offset:offset+hi-lo]==raw[lo-first:hi-first],'Captured original text bytes changed'
+  if cursor<lo:gaps.append((cursor,lo))
+  shared.append(dict(address=lo,bytes=hi-lo));cursor=hi
+ if cursor<end:gaps.append((cursor,end))
+ extra=[]
+ for lo,hi in gaps:
+  path=output/f'reference-{section_name}-{lo:x}.bin';path.write_bytes(raw[lo-first:hi-first])
+  extra.append(dict(address=lo,size=hi-lo,reference_file=path))
+ return text,extra,dict(source_section=section_name,source_code_start=first,source_code_bytes=len(raw),source_text_sha256=hashlib.sha256(raw).hexdigest(),
+  added_reference_code_bytes=sum(r['size']for r in extra),shared_text_owners=shared,
+  scope='Pinned TU1.5 code gaps only in isolated offline reference process; captured runtime inputs unchanged')
+
+
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--return-breakpoints',action='store_true');p.add_argument('--capture',required=True,type=Path);p.add_argument('--output',required=True,type=Path);a=p.parse_args()
  a.capture=a.capture.resolve();a.output=a.output.resolve();assert not a.output.exists();a.output.mkdir(parents=True)
@@ -120,12 +149,7 @@ def main():
  data=struct.pack('<10I',*initial['gp'],initial['eflags'],initial['mxcsr'])+env+b''.join(struct.pack('<4I',*x) for x in initial['xmm']);assert len(data)==276
  (a.output/'input.bin').write_bytes(data)
  regions=sorted(d['regions'],key=lambda r:r['address']);assembly=[];sections=[]
- for n,r in enumerate(regions):
-  assembly.append(f'.section .bank{n},"awx"\n.incbin "{a.capture/r["before_file"]}"\n')
-  sections.append(f'.bank{n} 0x{r["address"]:x} : {{ *(.bank{n}) }}')
-  assert not(r['address']<=0x70000000<r['address']+r['size'])
- text=next(s for s in image.sections if s.name=='.text');text_region=next(r for r in regions if r['address']==text.va)
- assert (a.capture/text_region['before_file']).read_bytes()==image.section_bytes(text),'Original text changed'
+ text,code_gaps,code_authentication=reference_text_gaps(image,a.capture,regions,a.output)
  # B8F40 can query original GPU resource-busy state during object retirement.
  # Authenticate every admitted instruction, including the non-.text XDK owner.
  # No original instruction, memory input, result or hardware poll is replaced.
@@ -134,12 +158,20 @@ def main():
   from oracle_smg_firing_1_1 import _Code
   from generate_physics_live_support_tu15 import complete_body
   code=_Code(image,'D3D');body=complete_body(code,0x4057f0);assert len(body.code)==48
-  for pc in sorted(body.code):
-   instruction=code.at(pc);region=next(r for r in regions if r['address']<=pc and pc+len(instruction.bytes)<=r['address']+r['size'])
-   bank=(a.capture/region['before_file']).read_bytes();off=pc-region['address']
-   assert bank[off:off+len(instruction.bytes)]==instruction.bytes,'Original D3D query instruction changed'
-   authenticated_sites.append(pc)
-  authenticated_external_code.append(dict(section='D3D',entry=0x4057f0,instruction_sites=len(authenticated_sites)))
+  instructions=[code.at(pc)for pc in sorted(body.code)]
+  # This section is writable in the original image. Admit only the complete
+  # contiguous130-byte, call-free query body; never seed missing GPU data.
+  assert not any(i.mnemonic=='call'for i in instructions)
+  assert all(a.address+len(a.bytes)==b.address for a,b in zip(instructions,instructions[1:]))
+  start=instructions[0].address;end=instructions[-1].address+len(instructions[-1].bytes);assert end-start==130
+  _,external_gaps,external_auth=reference_text_gaps(image,a.capture,regions,a.output,'D3D',(start,end))
+  code_gaps.extend(external_gaps);authenticated_sites=[i.address for i in instructions]
+  authenticated_external_code.append(dict(section='D3D',entry=0x4057f0,instruction_sites=len(authenticated_sites),code_authentication=external_auth))
+ for n,r in enumerate(sorted([*regions,*code_gaps],key=lambda r:r['address'])):
+  path=r.get('reference_file',a.capture/r.get('before_file',''))
+  assembly.append(f'.section .bank{n},"awx"\n.incbin "{path}"\n')
+  sections.append(f'.bank{n} 0x{r["address"]:x} : {{ *(.bank{n}) }}')
+  assert not(r['address']<=0x70000000<r['address']+r['size'])
  emit='\n'.join(f' mov ${r["address"]},%ecx\n mov ${r["size"]},%edx\n call write_exact' for r in regions)
  asm=ASM.replace('EMIT_BANKS',emit).replace('ENTRY',str(d['entry'])).replace('INPUT_FILE',str(a.output/'input.bin')).replace('FS_BASE',str(initial['fs_base']))
  (a.output/'bridge.s').write_text(asm+'\n'+'\n'.join(assembly));(a.output/'link.ld').write_text('ENTRY(_start)\nSECTIONS {\n'+'\n'.join(sections)+'\n.bridge 0x70000000 : { *(.bridge) }\n}\n')
@@ -175,7 +207,7 @@ def main():
    if original!=expected:
     first=next(n for n,(x,y) in enumerate(zip(original,expected)) if x!=y);differences.append(dict(field='memory',address=r['address']+first,size=r['size']))
   assert output.read(1)==b''
- trace=json.loads((a.output/'trace.json').read_text());report=dict(reference='English TU1.5 only',passed=not differences,original_instructions=trace['original_instructions'],compared_memory_bytes=compared,
+ trace=json.loads((a.output/'trace.json').read_text());report=dict(reference='English TU1.5 only',passed=not differences,original_instructions=trace['original_instructions'],compared_memory_bytes=compared,reference_code_authentication=code_authentication,
   differences=differences,original_abi=actual,original_sha256=NEW_PIN,harness_sha256=sha(a.output/'original-hardware'),tracer_sha256=sha(tracer),
   host='Linux i386 CPU execution with ptrace observation; not Xbox hardware',eflags_comparison_mask=flag_mask,hardware_entry_eflags=trace['entry_eflags'],native_entry_eflags=initial['eflags'],host_fixed_interrupt_flag=True,return_breakpoint_observation=a.return_breakpoints,authenticated_external_code=authenticated_external_code,entry=d['entry'],boundary='One real live physics call; unchanged original text, no replaced callee/result. All accessible final source bytes and GP/SSE/x87/FP controls/status compared.')
  (a.output/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({k:v for k,v in report.items() if k!='original_abi'}));return 0 if report['passed'] else 1

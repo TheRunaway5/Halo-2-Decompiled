@@ -8,8 +8,8 @@ def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--build',type=Path,required=True)
     p.add_argument('--output',type=Path,required=True);p.add_argument('--sanitizer',action='store_true');a=p.parse_args()
     build=a.build.resolve();out=a.output.resolve();assert build.is_dir()and not out.exists();out.mkdir(parents=True)
-    names=['include/halo2/object_construction_tables.hpp','src/object_construction_tables.cpp',
-        'tests/object_construction_tables_tests.cpp','include/halo2/original_data.hpp','src/original_data.cpp']
+    names=['include/halo2/object_construction_tables.hpp','src/gameplay/objects/object_construction_tables.cpp',
+        'tests/object_construction_tables_tests.cpp','include/halo2/original_data.hpp','src/assets/original_data.cpp']
     observed={}
     for name in names+['CMakeLists.txt']:
         target=out/'source-before'/name;target.parent.mkdir(parents=True,exist_ok=True)

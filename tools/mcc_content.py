@@ -224,9 +224,12 @@ class MccCache:
         self.data.clear()
 
 
-def texture_resource(stream, pointer, stored_size):
+def texture_resource(stream, pointer, stored_size, *, decoded_limit=MAX_RESOURCE):
     """Decode any bitmap partition without resampling or assuming pixel layout."""
     address = pointer & 0x3fffffff
+    limit = min(MAX_RESOURCE, decoded_limit)
+    if limit <= 0:
+        raise FormatError("MCC decoded bitmap budget exhausted")
     stream.seek(0, 2)
     extent = stream.tell()
     if stored_size < 8 or stored_size > MAX_RESOURCE or address + stored_size > extent:
@@ -246,8 +249,9 @@ def texture_resource(stream, pointer, stored_size):
     result = bytearray()
     for size in segments:
         block = data[at:at + abs(size)]
-        result.extend(block if size < 0 else inflate(block, MAX_RESOURCE - len(result)))
-        if len(result) > MAX_RESOURCE:
+        remaining = limit - len(result)
+        if size < 0 and len(block) > remaining:
             raise FormatError("Excessive decoded MCC texture partition")
+        result.extend(block if size < 0 else inflate(block, remaining))
         at += abs(size)
     return bytes(result)

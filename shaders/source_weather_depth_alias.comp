@@ -1,8 +1,12 @@
 #version 450
+#extension GL_GOOGLE_include_directive : require
+#include "source_depth_storage.glsl"
+layout(constant_id=0) const uint sourceDepthEncoding=0u;
 layout(local_size_x=8,local_size_y=8) in;
 layout(set=0,binding=0,std430) readonly buffer Depth { uint words[]; } depth;
 layout(set=0,binding=1,std430) readonly buffer Stencil { uint words[]; } stencil;
 layout(set=0,binding=2,rgba8ui) uniform writeonly uimage2D alias_image;
+layout(set=0,binding=3,std430) buffer Validation { uint invalid; } validation;
 layout(push_constant) uniform Extent { uint width; uint height; } extent;
 void main() {
     uvec2 xy=gl_GlobalInvocationID.xy;
@@ -10,6 +14,9 @@ void main() {
     uint i=xy.y*extent.width+xy.x;
     // Native depth copy has N in low24; the upper byte is unspecified.
     uint n=depth.words[i]&0x00ffffffu;
+    if(sourceDepthEncoding!=0u && !sourceD24CarrierDecode(depth.words[i],n)) {
+        atomicOr(validation.invalid,1u);return;
+    }
     uint s=(stencil.words[i>>2u]>>((i&3u)*8u))&255u;
     imageStore(alias_image,ivec2(xy),uvec4((n>>8u)&255u,n&255u,s,(n>>16u)&255u));
 }

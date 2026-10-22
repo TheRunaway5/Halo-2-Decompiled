@@ -60,6 +60,12 @@ struct MenuWorldVertexCatalogEntry {
   std::span<const std::uint32_t> spirv;
   std::span<const unsigned> consumed_inputs, consumed_constants;
   std::string_view source_sha256, spirv_sha256;
+  // Optional build-time variant: original ABI2/3 UBO and outputs, plus read-only
+  // raw bytes at set1/binding2 and 16 stream descriptors/ordered indices at3.
+  // Version1 executes the three original vertices and shared depth plane in VS.
+  std::uint32_t triangle_abi{};
+  std::span<const std::uint32_t> triangle_spirv;
+  std::string_view triangle_source_sha256, triangle_spirv_sha256;
 };
 // Requires trusted generated catalog storage, fully checked by the build-time
 // SPIR-V validator. Runtime admission checks program identity, ambiguity and

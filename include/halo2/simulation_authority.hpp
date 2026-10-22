@@ -75,7 +75,6 @@ struct Simulation::AuthorityCheckpoint {
   bool flashlights_allowed{},ambience_details_enabled{},suppress_ambience_rebuild{},suppress_automatic_objects{};
   bool multiplayer_weapon_steps{},source_physics_movement{};
   std::uint64_t flashlights_changed_tick{};
-  DebugGameSettings debug_settings;
   bool cinematic_skip_enabled{},level_finished{},reset_requested{};
   std::optional<std::uint64_t> reverted_tick;
   std::uint64_t checkpoint_restores{};

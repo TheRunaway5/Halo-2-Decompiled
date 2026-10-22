@@ -50,7 +50,7 @@ def main():
     accepted_path = BASE / 'smg-sound-properties-cmake-v1/evidence/sound-properties-acceptance/report.json'
     accepted = json.loads(accepted_path.read_text())
     assert accepted['passed'] and accepted['production_source_regenerated_and_equal']
-    assert accepted['native_generated_source_sha256'] == sha(ROOT / 'src/source_sound_properties_tu15_generated.cpp')
+    assert accepted['native_generated_source_sha256'] == sha(ROOT / 'src/audio/source_sound_properties_tu15_generated.cpp')
     world = reports[names[2]]
     for path, pin in world['source_files_sha256'].items():
         assert sha(Path(path)) == pin, path

@@ -330,6 +330,7 @@ struct SourceRuntimeCacheTagImage;
 struct SourceRuntimeCacheTagView;
 struct SourceRuntimeCacheBspImage;
 struct SourceRuntimeCacheAnimationImage;
+struct MccPreparedMapOwner;
 // Exact relocation fields already verified/applied by the preserved native
 // library importer. Offsets belong to this allocation; file/resource offsets
 // are not included. owner retains the full salted directory identity.
@@ -339,6 +340,7 @@ struct PreservedNativePointerMap {
     std::vector<std::pair<std::uint32_t,std::uint32_t>> pointers;
 };
 class Cache {
+    friend std::vector<const Tag*> indexed_tag_owners(const Cache&,TagQuery);
 public:
     using AnimationResourceReader=std::function<std::vector<std::byte>(std::uint32_t,std::uint32_t)>;
     // The same object -> hlmt -> jmad operand used by load_model, without
@@ -352,6 +354,11 @@ public:
     explicit Cache(const std::filesystem::path& path,
                    const std::filesystem::path& shared_directory = {},
                    std::shared_ptr<const OriginalData> gameplay_data = {});
+    // Explicit prepared-cache context for mod-owned map/shared directories.
+    // The existing constructor remains available for conventional stock paths.
+    Cache(const std::filesystem::path& path,const std::filesystem::path& shared_directory,
+          std::shared_ptr<const OriginalData> gameplay_data,
+          const std::filesystem::path& prepared_cache_root);
     // Ordered writes applied to this private cache copy before gameplay import.
     std::size_t multiplayer_balance_writes() const { return multiplayer_balance_writes_; }
     std::size_t multiplayer_netgame_writes() const { return multiplayer_netgame_writes_; }
@@ -359,6 +366,7 @@ public:
     const std::string& build() const { return build_; }
     bool is_vista() const { return vista_; }
     bool is_mcc() const { return mcc_; }
+    bool is_custom_mcc() const { return mcc_ && custom_mcc_; }
     const std::string& scenario() const { return scenario_; }
     std::int16_t load_source_geometry_scenario_type() const; // Literal primaryscnr+10 for2F970.
     const std::filesystem::path& shared_directory() const { return shared_directory_; }
@@ -543,6 +551,7 @@ public:
     SourceWeatherBsp load_source_weather_bsp(std::size_t index = 0) const;
     Texture load_bitmap(std::uint32_t datum, std::uint32_t index,
                         std::span<const std::byte> palette = {}) const;
+    std::uint64_t bitmap_decoded_bytes(std::uint32_t datum, std::uint32_t index) const;
     // Actual Vista frontend RFC1950 resources, with tight per-face mip chains.
     // This explicit source path never substitutes an Xbox bitmap donor.
     Texture load_vista_frontend_bitmap(std::uint32_t datum, std::uint32_t index = 0) const;
@@ -638,6 +647,10 @@ public:
     FrontendContent load_frontend() const;
     HudContent load_hud(std::uint32_t biped, std::uint32_t weapon) const;
     HudContent load_hud_definition(std::uint32_t biped,std::uint32_t hud_definition) const;
+    // Cinematic caches may retain a full typed HUD identity with no payload.
+    // Resource preloading can omit it; an actually selected HUD still requires
+    // load_hud/load_hud_definition and their complete ownership checks.
+    bool resident_hud_definition(std::uint32_t hud_definition) const;
     std::vector<std::uint32_t> load_unit_seat_huds(std::uint32_t unit) const;
     FullScoreboardAssets load_full_scoreboard_assets() const;
     std::string describe() const;
@@ -670,6 +683,7 @@ private:
     std::size_t multiplayer_netgame_writes_{};
     bool vista_{};
     bool mcc_{};
+    bool custom_mcc_{};
     std::vector<std::uint32_t> mcc_sound_gestalts_;
     std::vector<bool> mcc_native_shaders_;
     bool pc_geometry() const { return vista_ || mcc_; }
@@ -681,8 +695,8 @@ private:
     std::span<const std::byte> cache_bytes() const;
     std::span<std::byte> mutable_cache_bytes();
     void initialize_vista();
-    void initialize_mcc();
-    void initialize_mcc_native_shaders();
+    void initialize_mcc(const MccPreparedMapOwner*);
+    void initialize_mcc_native_shaders(const MccPreparedMapOwner*);
     BitmapResource load_mcc_bitmap_resource(std::uint32_t,unsigned) const;
     Texture load_mcc_bitmap(std::uint32_t,unsigned,std::span<const std::byte>) const;
     EncodedSound load_mcc_sound(std::uint32_t,unsigned,unsigned) const;

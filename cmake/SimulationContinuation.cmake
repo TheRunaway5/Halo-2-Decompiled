@@ -1,4 +1,4 @@
-target_sources(halo2_systems PRIVATE src/simulation_continuation.cpp src/collision_continuation.cpp)
+target_sources(halo2_systems PRIVATE src/gameplay/simulation_continuation.cpp src/physics/collision/collision_continuation.cpp)
 if(BUILD_TESTING)
     add_executable(simulation_continuation_tests tests/simulation_continuation_tests.cpp)
     target_link_libraries(simulation_continuation_tests PRIVATE halo2_systems)

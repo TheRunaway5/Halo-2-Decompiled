@@ -13,7 +13,7 @@ BASE=ROOT/'analysis/multiplayer/game-variants/king-objective-network-native-2026
 REPORT=ROOT/'analysis/multiplayer/game-variants/king-recording-event-source-20261012/complete/report.json'
 REPORT_PIN='395b5d08cbcc47bf421349051cec917afc2689882239ff53a044c07c17915da8'
 OUT=ROOT/'analysis/multiplayer/game-variants/result-event-native-20261012'
-OWNED=('include/halo2/source_result_event.hpp','src/source_result_event.cpp','tests/result_event_tests.cpp','tools/verify_result_event.py')
+OWNED=('include/halo2/source_result_event.hpp','src/gameplay/multiplayer/source_result_event.cpp','tests/result_event_tests.cpp','tools/verify_result_event.py')
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
  ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--output',type=Path,default=OUT/'verification.json');a=ap.parse_args()
@@ -25,13 +25,13 @@ def main():
   expected=report['tool_sha256']if p=='tools/research_king_recording_event.py'else report['dependencies'].get(p)
   if expected:assert sha(ROOT/p)==expected,p
   target=source/p;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(ROOT/p,target);overlaid[p]=sha(target)
- for p in ('include/halo2/source_result_statistics.hpp','include/halo2/source_game_end.hpp','src/source_result_statistics.cpp','src/source_result_capture.cpp','src/source_result_retention.cpp'):
+ for p in ('include/halo2/source_result_statistics.hpp','include/halo2/source_game_end.hpp','src/gameplay/multiplayer/source_result_statistics.cpp','src/gameplay/multiplayer/source_result_capture.cpp','src/gameplay/multiplayer/source_result_retention.cpp'):
   assert sha(ROOT/p)==sha(BASE/p),('Required retained ABI drift',p)
  cmake=(source/'CMakeLists.txt').read_text();live=(ROOT/'CMakeLists.txt').read_text()
  declaration=re.search(r'        add_executable\(result_event_tests.*?complete/report\.json\)\n',live,re.S).group()
- line='target_sources(halo2_systems PRIVATE src/source_result_event.cpp)\n';assert live.count(line)==1 and line not in cmake
- anchor='target_sources(halo2_systems PRIVATE src/source_result_capture.cpp)\n';assert cmake.count(anchor)==1;cmake=cmake.replace(anchor,anchor+line)
- anchor='        add_executable(result_retention_tests tests/result_retention_tests.cpp src/source_result_retention.cpp)\n';assert cmake.count(anchor)==1;cmake=cmake.replace(anchor,anchor+declaration)
+ line='target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/source_result_event.cpp)\n';assert live.count(line)==1 and line not in cmake
+ anchor='target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/source_result_capture.cpp)\n';assert cmake.count(anchor)==1;cmake=cmake.replace(anchor,anchor+line)
+ anchor='        add_executable(result_retention_tests tests/result_retention_tests.cpp src/gameplay/multiplayer/source_result_retention.cpp)\n';assert cmake.count(anchor)==1;cmake=cmake.replace(anchor,anchor+declaration)
  (source/'CMakeLists.txt').write_text(cmake);(run/'live-CMakeLists.txt').write_text(live)
  (run/'cmake-overlay.json').write_text(json.dumps(dict(base_sha256=sha(BASE/'CMakeLists.txt'),live_sha256=sha(run/'live-CMakeLists.txt'),
   frozen_sha256=sha(source/'CMakeLists.txt'),production_source_line=line,test_declaration=declaration),sort_keys=True,indent=2)+'\n')
@@ -53,7 +53,7 @@ def main():
  execute('ctest',['ctest','--test-dir',build,'--verbose','-R','^original_result_(event|statistics|capture|retention)$'])
  assert re.search(r'100% tests passed.*out of 4',(run/'ctest.log').read_text())
  sanitized=run/'result_event_tests_asan';execute('sanitizer-build',['/usr/bin/c++','-std=c++20','-O1','-g','-Wall','-Wextra','-Werror',
-  '-fsanitize=address,undefined','-fno-omit-frame-pointer','-I'+str(source/'include'),source/'tests/result_event_tests.cpp',source/'src/source_result_event.cpp','-o',sanitized])
+  '-fsanitize=address,undefined','-fno-omit-frame-pointer','-I'+str(source/'include'), '-I'+str(source/'src'),source/'tests/result_event_tests.cpp',source/'src/gameplay/multiplayer/source_result_event.cpp','-o',sanitized])
  execute('sanitizer-test',[sanitized,original/'report.json'],{'ASAN_OPTIONS':'detect_leaks=1:halt_on_error=1','UBSAN_OPTIONS':'halt_on_error=1'})
  with concurrent.futures.ThreadPoolExecutor(max_workers=8)as pool:current=list(pool.map(lambda p:sha(source/p),pins))
  assert all(pins[p]==v for p,v in zip(pins,current))and sha(REPORT)==REPORT_PIN

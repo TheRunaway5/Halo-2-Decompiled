@@ -59,8 +59,8 @@ def main():
     excluded=[entry['name']for entry in rows if any(v['category']=='world_excluded_by_native_body_filter'for v in entry['variants'])]
     report=dict(authored_metadata_audit_completed=True,weapon_paths=63,authored_rows=1110,maps=maps,
         counts=dict(counts),world_model_paths_excluded_by_first_person_filter=excluded,weapons=rows,
-        filter_source='src/multiplayer_runtime.cpp: body_guns first_person_models.front() model/animation predicate',
-        filter_source_sha256=sha(ROOT/'src/multiplayer_runtime.cpp'),scope_sha256=sha(scope_path),
+        filter_source='src/gameplay/multiplayer/multiplayer_runtime.cpp: body_guns first_person_models.front() model/animation predicate',
+        filter_source_sha256=sha(ROOT/'src/gameplay/multiplayer/multiplayer_runtime.cpp'),scope_sha256=sha(scope_path),
         native_content_import_admission_verified=False,owning_game_rules_verified=False,
         dropping_equipping_or_visual_behavior_verified=False,full_weapon_parity=False,fully_certified_weapons=0,
         runner_scratch=os.environ['HALO2_TEST_SCRATCH'],tool_sha256=sha(Path(__file__)),large_artifacts_retained=[])

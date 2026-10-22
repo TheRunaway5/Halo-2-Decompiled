@@ -2,7 +2,7 @@
 #include "halo2/mcc_sound_vanilla_reference.hpp"
 #include "halo2/source_runtime_memory.hpp"
 #include "halo2/audio.hpp"
-#include "mcc_sound_variation_provider_internal.hpp"
+#include "audio/mcc_sound_variation_provider_internal.hpp"
 #include <algorithm>
 #include <atomic>
 #include <iostream>

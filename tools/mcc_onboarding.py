@@ -11,7 +11,9 @@ import shutil
 
 from audit_rendering import FormatError, file_sha
 from mcc_content import directory, discover
+from mcc_conversion_coverage import validate as validate_conversion_coverage
 from prepare_mcc_gameplay import PROFILE, prepare, source_files, source_directories
+from mcc_movies import _cancellation
 
 SCHEMA = "H2_MCC_ASSET_SOURCE_V1"
 REGISTRY = "assets/mcc-source.tsv"
@@ -56,8 +58,9 @@ def private_cache(root, cache, *, verify=False, source=None, progress=print):
             if [p.as_posix() for p in source_directories(source)] != report.get("source_directories", []):
                 raise FormatError("The installed MCC directory tree has changed")
         conversion = json.loads((cache / "tag-conversion.json").read_text())
-        output_hashes = {"h2_maps_win64_dx11/" + row["map"]: row["output_sha256"]
-                         for row in conversion["maps"]}
+        output_hashes, coverage = validate_conversion_coverage(records, conversion)
+        if "conversion_coverage" in report and report["conversion_coverage"] != coverage:
+            raise FormatError("MCC conversion coverage differs from its copied-source owners")
         changes = report.get("output_changes", []) + report.get("graphics_corrections", {}).get("changes", [])
         for change in changes:
             relative = PurePosixPath(change["path"])
@@ -90,6 +93,8 @@ def private_cache(root, cache, *, verify=False, source=None, progress=print):
             if stamp(files) != stamp(after) or omitted != final_omitted or (
                     [p.as_posix() for p in source_directories(source)] != report["source_directories"]):
                 raise FormatError("The installed MCC content changed during verification")
+        from mcc_native_map_owner_publication import verify_owner_index
+        verify_owner_index(cache, report)
     return cache, report
 
 
@@ -111,6 +116,9 @@ def selected(root):
 def select(root, cache, *, verify=True, progress=print):
     root = Path(root).resolve()
     cache, report = private_cache(root, cache, verify=verify, progress=progress)
+    from native_variant_assets import install as install_variants
+    install_variants(root, cache, progress=progress)
+    install_variants(root, root, progress=progress)
     relative = cache.relative_to(root).as_posix()
     registry = root / REGISTRY
     registry.parent.mkdir(parents=True, exist_ok=True)
@@ -146,9 +154,12 @@ def preview_maps(root):
     if value is None:
         return {}
     owner = value[0] / "halo2"
+    stock_maps = owner / "h2_maps_win64_dx11"
     result = {}
     for path in sorted(owner.rglob("*"), key=lambda p: p.as_posix().casefold()):
-        if path.suffix.casefold() != ".map" or path.stem.casefold() in (
+        if path.suffix.casefold() != ".map":
+            continue
+        if path.parent == stock_maps and path.stem.casefold() in (
                 "shared", "single_player_shared", "mainmenu"):
             continue
         if path.is_file() and not path.is_symlink() and path.resolve().is_relative_to(owner):
@@ -195,71 +206,158 @@ def missing_shader_scalar_tables(destination, catalog):
 
 def publish_shader_scalar_tables(destination, tables):
     """Publish one complete absent common file without replacing any bank."""
+    from mcc_native_map_owner_publication import _publish_absent
     temporary = destination / ('.function-tables-' + uuid.uuid4().hex)
     try:
         temporary.write_bytes(tables)
-        # A same-directory hard link atomically publishes the complete bytes
-        # and refuses to replace a file created by another repair meanwhile.
-        os.link(temporary, destination / 'function-tables.bin')
+        _publish_absent(temporary, destination / 'function-tables.bin')
     except FileExistsError as error:
         raise FormatError('Common scalar function tables changed during repair; retry setup') from error
     finally:
         temporary.unlink(missing_ok=True)
 
 
-def repair_cache_shaders(root, cache, report, *, progress=print):
-    """Add the port's retained materials to an older import, atomically.
+def _shader_beforeimage(path, expected):
+    if expected is None:
+        if path.exists() or path.is_symlink():
+            raise FormatError('Native repair destination changed; existing files retained: ' + str(path))
+    elif path.is_symlink() or not path.is_file() or path.read_bytes() != expected:
+        raise FormatError('Native repair metadata beforeimage changed: ' + str(path))
 
-    The MCC tree and gameplay admission flags are never changed by this repair.
-    An existing owned library remains selected; custom shader banks are not
-    silently replaced by a bundled catalog.
+
+def _publish_shader_change(staged, destination, previous, temporary, journal):
+    """Journal before rename, including SIGTERM between syscall and return."""
+    from mcc_native_map_owner_publication import _publish_absent
+    _shader_beforeimage(destination, previous)
+    backup = None
+    if previous is not None:
+        backup = temporary / ('metadata-' + uuid.uuid4().hex + '.previous')
+        backup.write_bytes(previous)
+    value = staged.stat()
+    journal.append((staged, destination, backup, (value.st_dev, value.st_ino)))
+    if previous is None:
+        _publish_absent(staged, destination)
+    else:
+        os.replace(staged, destination)
+
+
+def _rollback_shader_changes(journal):
+    errors = []
+    for staged, destination, backup, identity in reversed(journal):
+        # An unconsumed staging name means its rename did not take effect.
+        if staged.exists():
+            continue
+        try:
+            value = destination.lstat()
+            if destination.is_symlink() or (value.st_dev, value.st_ino) != identity:
+                raise FormatError('Published repair file changed before rollback: ' + str(destination))
+            if backup is None:
+                destination.rename(staged)
+            else:
+                os.replace(backup, destination)
+        except BaseException as error:
+            errors.append(str(error))
+    return errors
+
+
+@_cancellation()
+def repair_cache_shaders(root, cache, report, *, progress=print):
+    """Repair native metadata in one exception/cancellation rollback boundary.
+
+    Cairo, catalog, an absent common LUT, owner index and provenance share the
+    same beforeimage. These sequential renames are not a cross-file crash-atomic
+    or concurrent-writer guarantee. Existing MCC/program/custom bytes and all
+    gameplay admission flags remain unchanged.
     """
+    from mcc_native_map_owner_publication import verify_owner_index, prepare_owner_index_refresh, _read
+    from preserve_native_shaders import copy_selected
+    root, cache = Path(root), Path(cache)
+    # Authenticate declared bindings before changing any closure input. A
+    # no-index shader-only legacy fixture remains compatible, but prepared MCC
+    # reports with stock banks must derive the real final-input owner metadata.
+    beforeimage = verify_owner_index(cache, report)
+    provenance = cache / 'provenance.json'
+    old_provenance, _ = _read(cache, 'provenance.json', [])
+    if json.loads(old_provenance) != report:
+        raise FormatError('Native repair provenance changed before preparation')
     destination = cache / 'native-shaders'
     if destination.is_symlink():
         raise FormatError('The native shader library must be an owned directory')
-    if destination.exists():
-        catalog_path = destination / 'catalog.json'
-        if catalog_path.is_symlink():
-            raise FormatError('The native shader catalog must have a private owner')
-        catalog_bytes = catalog_path.read_bytes()
-        catalog = json.loads(catalog_bytes)
-        if catalog.get('schema') != 'H2_PRESERVED_NATIVE_SHADER_CATALOG_V1':
-            raise FormatError('Invalid cached native shader catalog')
-        tables = missing_shader_scalar_tables(destination, catalog)
-        result = repair_shader_closure(root, cache, report, catalog, catalog_bytes, progress=progress)
-        if tables is not None:
-            publish_shader_scalar_tables(destination, tables)
-            progress('Retained scalar function tables are ready. Existing native programs were retained.')
-        return result
-    from preserve_native_shaders import copy_selected
     temporary = cache / ('.native-shaders-' + uuid.uuid4().hex)
-    pending = cache / ('.shader-provenance-' + uuid.uuid4().hex)
     temporary.mkdir()
-    installed = committed = False
+    journal = []
+    committed = False
+    recovery_required = False
     try:
-        progress('Preparing the retained native material library for this MCC cache…')
-        shaders = copy_selected(root, temporary)
-        if not shaders.get('maps'):
-            raise FormatError(shaders.get('blocker', 'Native material library is unavailable'))
-        updated = {**report, 'native_shader_library': shaders}
-        pending.write_text(json.dumps(updated, indent=2) + '\n')
-        (temporary / 'native-shaders').rename(destination)
-        installed = True
-        os.replace(pending, cache / 'provenance.json')
+        updated, next_catalog, staged_source, source = report, None, None, None
+        if destination.exists():
+            catalog_path = destination / 'catalog.json'
+            if catalog_path.is_symlink():
+                raise FormatError('The native shader catalog must have a private owner')
+            catalog_bytes = catalog_path.read_bytes()
+            catalog = json.loads(catalog_bytes)
+            if catalog.get('schema') != 'H2_PRESERVED_NATIVE_SHADER_CATALOG_V1':
+                raise FormatError('Invalid cached native shader catalog')
+            tables = missing_shader_scalar_tables(destination, catalog)
+            updated, next_catalog, staged_source, source = _stage_shader_closure(
+                root, cache, report, catalog, temporary, progress=progress)
+            _shader_beforeimage(provenance, old_provenance)
+            _shader_beforeimage(catalog_path, catalog_bytes)
+            if staged_source is not None:
+                _publish_shader_change(staged_source, source, None, temporary, journal)
+            if tables is not None:
+                staged_tables = temporary / 'function-tables.next'
+                staged_tables.write_bytes(tables)
+                _publish_shader_change(staged_tables, destination / 'function-tables.bin', None, temporary, journal)
+            if next_catalog is not None:
+                replacement = temporary / 'catalog.next'
+                replacement.write_bytes(next_catalog)
+                _publish_shader_change(replacement, catalog_path, catalog_bytes, temporary, journal)
+        else:
+            progress('Preparing the retained native material library for this MCC cache…')
+            shaders = copy_selected(root, temporary)
+            if not shaders.get('maps'):
+                raise FormatError(shaders.get('blocker', 'Native material library is unavailable'))
+            updated = {**report, 'native_shader_library': {**report.get('native_shader_library', {}), **shaders}}
+            _shader_beforeimage(provenance, old_provenance)
+            _publish_shader_change(temporary / 'native-shaders', destination, None, temporary, journal)
+        plan = None
+        if report.get('schema') == PROFILE and updated.get('native_shader_library', {}).get('maps'):
+            plan = prepare_owner_index_refresh(cache, report, updated, verified_beforeimage=beforeimage)
+            plan.check_beforeimage()
+            pending_index = temporary / 'map-owners.next'
+            pending_index.write_bytes(plan.index_bytes)
+            if plan.index_bytes != plan.previous_index:
+                _publish_shader_change(pending_index, destination / 'map-owners.json',
+                                       plan.previous_index, temporary, journal)
+            updated = plan.updated_provenance
+            next_provenance = plan.provenance_bytes
+        else:
+            next_provenance = (json.dumps(updated, indent=2) + '\n').encode()
+        if updated != report:
+            pending = temporary / 'provenance.next'
+            pending.write_bytes(next_provenance)
+            _publish_shader_change(pending, provenance, old_provenance, temporary, journal)
+        if plan is not None:
+            plan.check_inputs()
         committed = True
-        progress('Retained native materials are ready. The MCC data import was reused.')
+        progress('Retained native materials are ready. Existing native programs and MCC files were retained.')
         return cache, updated
-    except BaseException:
-        if installed and not committed:
-            destination.rename(temporary / 'native-shaders')
+    except BaseException as error:
+        if not committed:
+            errors = _rollback_shader_changes(journal)
+            if errors:
+                recovery_required = True
+                raise FormatError('Native repair rollback incomplete; recovery files retained at ' + str(temporary) +
+                                  ': ' + '; '.join(errors)) from error
         raise
     finally:
-        shutil.rmtree(temporary)
-        pending.unlink(missing_ok=True)
+        if not recovery_required:
+            shutil.rmtree(temporary)
 
 
-def repair_shader_closure(root, cache, report, catalog, catalog_bytes, *, progress=print):
-    """Append only an absent, authenticated native dependency; never a bank replacement."""
+def _stage_shader_closure(root, cache, report, catalog, temporary, *, progress):
+    """Validate and stage an absent common bank without committing metadata."""
     from native_shader_bundle import canonical_digest, closure_policy, require_closure_source
     from preserve_native_shaders import copy_selected, read_selected_library
     destination = cache / 'native-shaders'
@@ -290,7 +388,7 @@ def repair_shader_closure(root, cache, report, catalog, catalog_bytes, *, progre
         if canonical_digest(manifest) == expected[name]['canonical_sha256']:
             dependencies.append(name)
     if not dependencies:
-        return cache, report
+        return report, None, None, None
     source = destination / source_name
     if source.is_symlink():
         raise FormatError('Canonical retained Cairo native library must have a private owner')
@@ -301,8 +399,9 @@ def repair_shader_closure(root, cache, report, catalog, catalog_bytes, *, progre
             require_closure_source(source_manifest)
         except (OSError, ValueError, KeyError) as error:
             raise FormatError('Existing Cairo native library is customized or incomplete; automatic repair retained it unchanged') from error
-        if source_name in by_name and by_name[source_name].get('complete') is True:
-            return cache, report
+        if (source_name in by_name and by_name[source_name].get('complete') is True and
+                report.get('native_shader_library', {}).get('maps', {}).get(source_name) == file_sha(source / 'library.json')):
+            return report, None, None, None
     # A canonical recipient with changed payload files is not an authenticated
     # old import. Leave it intact rather than making its report look repaired.
     for name in dependencies:
@@ -310,60 +409,40 @@ def repair_shader_closure(root, cache, report, catalog, catalog_bytes, *, progre
             read_selected_library(destination / name, name)
         except (OSError, ValueError, KeyError) as error:
             raise FormatError('Cached native bank has changed payloads; automatic closure repair retained it unchanged: ' + name) from error
-    temporary = cache / ('.native-shaders-' + uuid.uuid4().hex)
-    pending = cache / ('.shader-provenance-' + uuid.uuid4().hex)
-    temporary.mkdir()
-    installed = catalog_published = committed = False
-    try:
-        progress('Preparing the missing retained Cairo native library; the MCC data import is reused…')
-        if not source_exists:
-            shaders = copy_selected(root, temporary, maps={source_name})
-            if source_name not in shaders.get('maps', {}):
-                raise FormatError(shaders.get('blocker', 'Canonical retained Cairo native library is unavailable'))
-            staged_source = temporary / 'native-shaders' / source_name
-            source_manifest, _ = read_selected_library(staged_source, source_name)
-            require_closure_source(source_manifest)
-        else:
-            staged_source = source
-        new_row = dict(map=source_name, complete=True, tags=len(source_manifest['shader_tags']))
-        if source_name in by_name:
-            previous = by_name[source_name]
-            if previous.get('complete') is not True or previous.get('tags', new_row['tags']) != new_row['tags']:
-                raise FormatError('Existing Cairo native catalog entry is customized; automatic repair retained it unchanged')
-            updated_catalog = catalog
-        else:
-            updated_catalog = {**catalog, 'maps': [*rows, new_row]}
-        previous_shaders = report.get('native_shader_library', {})
-        updated_shaders = {**previous_shaders,
-            'maps': {**previous_shaders.get('maps', {}), source_name: file_sha(staged_source / 'library.json')},
-            'closure_repair': dict(complete=True, source_map=source_name, dependent_maps=dependencies,
-                source_canonical_sha256=policy['source_canonical_sha256'], existing_programs_replaced=False)}
-        updated = {**report, 'native_shader_library': updated_shaders}
-        pending.write_text(json.dumps(updated, indent=2) + '\n')
-        replacement = temporary / 'catalog.next'
-        replacement.write_text(json.dumps(updated_catalog, indent=2) + '\n')
-        backup = temporary / 'catalog.previous'
-        backup.write_bytes(catalog_bytes)
-        if (destination / 'catalog.json').read_bytes() != catalog_bytes or source.exists() != source_exists:
-            raise FormatError('Cached native library changed during closure repair; retry setup')
-        if not source_exists:
-            staged_source.rename(source)
-            installed = True
-        os.replace(replacement, destination / 'catalog.json')
-        catalog_published = True
-        os.replace(pending, cache / 'provenance.json')
-        committed = True
-        progress('Retained Cairo native materials are ready. Existing native programs and MCC files were retained.')
-        return cache, updated
-    except BaseException:
-        if catalog_published and not committed:
-            os.replace(temporary / 'catalog.previous', destination / 'catalog.json')
-        if installed and not committed:
-            source.rename(temporary / source_name)
-        raise
-    finally:
-        shutil.rmtree(temporary)
-        pending.unlink(missing_ok=True)
+    progress('Preparing the missing retained Cairo native library; the MCC data import is reused…')
+    if not source_exists:
+        shaders = copy_selected(root, temporary, maps={source_name})
+        if source_name not in shaders.get('maps', {}):
+            raise FormatError(shaders.get('blocker', 'Canonical retained Cairo native library is unavailable'))
+        staged_source = temporary / 'native-shaders' / source_name
+        source_manifest, _ = read_selected_library(staged_source, source_name)
+        require_closure_source(source_manifest)
+    else:
+        staged_source = source
+    new_row = dict(map=source_name, complete=True, tags=len(source_manifest['shader_tags']))
+    if source_name in by_name:
+        previous = by_name[source_name]
+        if previous.get('complete') is not True or previous.get('tags', new_row['tags']) != new_row['tags']:
+            raise FormatError('Existing Cairo native catalog entry is customized; automatic repair retained it unchanged')
+        next_catalog = None
+    else:
+        next_catalog = (json.dumps({**catalog, 'maps': [*rows, new_row]}, indent=2) + '\n').encode()
+    previous_shaders = report.get('native_shader_library', {})
+    updated_shaders = {**previous_shaders,
+        'maps': {**previous_shaders.get('maps', {}), source_name: file_sha(staged_source / 'library.json')},
+        'closure_repair': dict(complete=True, source_map=source_name, dependent_maps=dependencies,
+            source_canonical_sha256=policy['source_canonical_sha256'], existing_programs_replaced=False)}
+    return {**report, 'native_shader_library': updated_shaders}, next_catalog, (
+        staged_source if not source_exists else None), source
+
+
+def repair_shader_closure(root, cache, report, catalog, catalog_bytes, *, progress=print):
+    """Compatibility entry point; closure, LUT and owner metadata share commit."""
+    path = Path(cache) / 'native-shaders/catalog.json'
+    _shader_beforeimage(path, catalog_bytes)
+    if json.loads(catalog_bytes) != catalog:
+        raise FormatError('Native closure catalog differs from supplied beforeimage')
+    return repair_cache_shaders(root, cache, report, progress=progress)
 
 
 def repair_shaders(root, *, progress=print):
@@ -374,6 +453,7 @@ def repair_shaders(root, *, progress=print):
 
 
 def repair_movies(root, *, cache=None, progress=print):
+    """Explicit supplied-movie reference repair; normal MCC setup omits it."""
     """Resume only the bundled movie handoff; never reimport the MCC tree."""
     value = selected(root) if cache is None else private_cache(root, cache)
     if value is None:
@@ -383,7 +463,7 @@ def repair_movies(root, *, cache=None, progress=print):
 
 
 def repair_prompts(root, *, cache=None, progress=print):
-    """Resume only the authored prompt bank; never reimport MCC data."""
+    """Explicit reference/custom repair, outside normal native MCC setup."""
     value = selected(root) if cache is None else private_cache(root, cache)
     if value is None:
         raise FormatError('Import MCC before preparing authored button prompts')
@@ -393,6 +473,8 @@ def repair_prompts(root, *, cache=None, progress=print):
 
 def _needs_graphics_reimport(root, report):
     """Old completed copies remain usable; setup upgrades their correction set."""
+    from installation_paths import resource_root
+    root = resource_root(root)
     from mcc_bitmap_correction_bundle import BUNDLE_V2, PROFILES_V2
     from mcc_bitmap_correction_bundle_v3 import BUNDLE_V3, MAP_NAME, PROFILES_V3
     from mcc_bitmap_correction_bundle_v4 import BUNDLE_V4, MAP_NAME as SACRED_ICON_MAP, PROFILES_V4
@@ -422,8 +504,12 @@ def _needs_graphics_reimport(root, report):
 
 def setup(root, mcc_source=None, *, progress=print):
     root = Path(root).resolve()
+    import mcc_presentation
+    presentation = mcc_presentation.requirements(root)
     source = directory(mcc_source) if mcc_source is not None else discover()
     progress("Found Halo MCC Halo 2: " + str(source))
+    if presentation['family'] == mcc_presentation.AUTHORED:
+        mcc_presentation.preflight(root, source, presentation)
     imports = root / "assets/imported"
     candidates = sorted(imports.glob("mcc-*/provenance.json"),
                         key=lambda p: p.stat().st_mtime_ns, reverse=True) if imports.is_dir() else []
@@ -441,13 +527,22 @@ def setup(root, mcc_source=None, *, progress=print):
         except (OSError, ValueError, KeyError) as error:
             progress("Existing MCC cache needs a fresh import: " + str(error))
             continue
+        if not mcc_presentation.compatible(report, presentation):
+            progress("Existing MCC loading presentation belongs to a different runtime family; preserving it and preparing a separate cache.")
+            continue
         # Older imports did not have a portable material library. Repair those
         # when this installation includes one; no MCC bytes need re-copying.
         from native_shader_bundle import BUNDLE
-        if (root / BUNDLE).is_file() or (root / 'assets/native-shaders-source.tsv').is_file():
+        from installation_paths import resource_root
+        if (resource_root(root) / BUNDLE).is_file() or (root / 'assets/native-shaders-source.tsv').is_file():
             cache, report = repair_cache_shaders(root, cache, report, progress=progress)
-        cache, report = repair_movies(root, cache=cache, progress=progress)
-        cache, report = repair_prompts(root, cache=cache, progress=progress)
+        from mcc_ui_layout import repair as repair_ui_layout
+        cache, report = repair_ui_layout(root, cache, progress=progress)
+        cache, report = mcc_presentation.repair(root, cache, source, presentation, progress=progress)
+        from controller_prompt_assets import repair as repair_controller_prompts
+        cache, report = repair_controller_prompts(root,cache,progress=progress)
+        mcc_presentation.recheck(presentation)
         return select(root, cache, verify=False, progress=progress)
-    cache, report = prepare(root, source, progress=progress)
+    cache, report = prepare(root, source, progress=progress, presentation=presentation)
+    mcc_presentation.recheck(presentation)
     return select(root, cache, verify=False, progress=progress)

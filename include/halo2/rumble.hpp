@@ -18,6 +18,8 @@ struct RumbleEvent {
   bool shielded = true;
   float scale = 1;
   int owner = -1;
+  float flash_scale = 1; // Completed damage report+34; rumble uses report+38.
+  bool seated{}; // Actual signed unit+1FC at the response, not at receipt time.
 };
 struct RumbleJournalEvent {
   RumbleEvent event;

@@ -9,7 +9,7 @@
 namespace halo2 {
 class CacheFileSnapshot;
 // Value-owned complete checkpoint bytes. Copies remain independent even when
-// a caller already holds mutable data. Large Linux buffers use the shared
+// a caller already holds mutable data. Large Linux/macOS buffers use the shared
 // disk-snapshot backend; storage policy never changes the logical byte extent.
 class SourceRuntimeSnapshotBytes {
 public:

@@ -22,7 +22,7 @@ struct NativeTu15TimerDpc {
 };
 // Owns the actual relative one-shot service reached by TU1.5 process startup.
 // Calls and source-bank access are serialized by the application's executor.
-// Linux timerfd owns expiration; polling runs on that same executor. Existing
+// A native monotonic timer owns expiration; polling runs on that same executor. Existing
 // timer waiters and foreign timers/DPCs require their actual platform owner.
 class NativeTu15StartupTimer final {
 public:

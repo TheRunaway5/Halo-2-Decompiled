@@ -6,16 +6,23 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include "hud_action_prompt_display_fixture.hpp"
 using namespace halo2;
 namespace {
 void require(bool ok,const char *message){if(!ok){std::cerr<<message<<'\n';throw FormatError(message);}}
 }
 int main(int argc,char **argv){try{
+  if(argc>=3 && std::string_view(argv[1])=="--display") {
+    require(argc==3 || argc==4,"Supply --display maps [UI assets]");
+    return action_prompt_display_test(argv[2],argc==4?std::filesystem::path(argv[3]):std::filesystem::path{});
+  }
   require(argc==2 || argc==3,"Supply original maps [Vista UI pack]");
   const bool vista=argc==3;
   const std::string primary=vista?"\xee\x84\xb2" "E":"[E]",secondary=vista?"\xee\x84\xb2" "X":"[X]";
-  const std::string pad_primary=vista?"\xee\x84\x82":"[X]",pad_secondary=vista?"\xee\x84\x84":"[LB]";
-  const auto maps=std::filesystem::path(argv[1]);Cache cache(maps/"zanzibar.map");
+  const std::string pad_primary=vista?"\xee\x84\x82":"[X]",pad_secondary=vista?"\xee\x84\x83":"[Y]";
+  const auto maps=std::filesystem::path(argv[1]);
+  action_prompt_display_test(maps,vista?std::filesystem::path(argv[2]):std::filesystem::path{});
+  Cache cache(maps/"zanzibar.map");
   auto content=cache.load_content(0,true);
   auto rules=slayer_rules({"Action prompt regression",0,{{89,5}}});
   rules.weapon=cache.slayer_starting_weapon(5);rules.score_limit=rules.time_ticks=0;
@@ -79,7 +86,7 @@ int main(int argc,char **argv){try{
   for(unsigned count=1;count<=4;++count)for(unsigned view=0;view<count;++view){
     hud.prompt_gamepad(view,true);
     require(hud.action_text(state,id,view)=="Hold "+pad_primary+" to pick up \xee\x84\x9b\r\nHold "+pad_secondary+" to dual-wield",
-        "Controller prompt did not match actual X/LB gameplay bindings");
+        "Controller prompt did not match actual X/Y gameplay bindings");
     for(const auto size:std::array<Vec2,3>{{{640,480},{1920,1080},{1280,800}}}){
       const auto draw=hud.draw(state,id,view,count,unsigned(size.x),unsigned(size.y),0,0);
       require(!draw.empty(),"Split/wide view lost its prompt");
@@ -91,10 +98,10 @@ int main(int argc,char **argv){try{
         for(const auto &v:draw)if(mesh.materials.at(v.material).name.starts_with("action-message/vista-buttons/"))buttons.push_back(v);
         require(buttons.size()==12,"Controller message did not draw exactly two textured button glyphs");
         for(unsigned n=0;n<2;++n){
-          const auto &g=raw.glyphs.at(n?0xe104:0xe102);const auto &v=buttons[n*6];
-          const auto uv=retail_font_sample_uvs(raw,n?0xe104:0xe102,0,0,g.width,g.height);
+          const auto &g=raw.glyphs.at(n?0xe103:0xe102);const auto &v=buttons[n*6];
+          const auto uv=retail_font_sample_uvs(raw,n?0xe103:0xe102,0,0,g.width,g.height);
           require(std::abs(v.uv.x-uv[0])<1e-6f && std::abs(v.uv.y-uv[1])<1e-6f,
-              "Controller prompt did not sample the selected Vista X/LB texture");
+              "Controller prompt did not sample the selected Vista X/Y texture");
         }
         for(const auto &v:buttons)require(v.color.x==1 && v.color.y==1 && v.color.z==1,
             "HUD tint replaced the Vista button's native color");

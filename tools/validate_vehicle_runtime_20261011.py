@@ -16,8 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 E = ROOT / 'analysis/multiplayer/sandbox-source/vehicle-runtime-20261011'
 OWNED = (
     'include/halo2/physics_vehicle_runtime.hpp',
-    'src/physics_vehicle_runtime_internal.hpp',
-    'src/physics_vehicle_runtime_generated.cpp',
+    'src/physics/vehicles/physics_vehicle_runtime_internal.hpp',
+    'src/physics/vehicles/physics_vehicle_runtime_generated.cpp',
     'tests/physics_vehicle_runtime_tests.cpp',
     'cmake/PhysicsVehicleRuntime.cmake',
     'tools/research_vehicle_runtime_20261011.py',
@@ -112,7 +112,7 @@ def validate():
     generator = json.loads(generated.read_text())
     assert generator['generator_sha256'] == sha(ROOT / 'tools/generate_vehicle_runtime_20261011.py')
     assert generator['correspondence_sha256'] == sha(correspondence)
-    assert generator['generated_cpp_sha256'] == sha(ROOT / 'src/physics_vehicle_runtime_generated.cpp')
+    assert generator['generated_cpp_sha256'] == sha(ROOT / 'src/physics/vehicles/physics_vehicle_runtime_generated.cpp')
     assert generator['generated_cpp_sha256'] == sha(E / 'generated-repeat/physics_vehicle_runtime_generated.cpp')
     assert set(generator['lowered_instructions']) == set(paired['instruction_map'])
     assert len(generator['complete_native_entries']) == 10

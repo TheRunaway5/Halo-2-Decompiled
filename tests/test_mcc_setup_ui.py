@@ -98,6 +98,23 @@ raise SystemExit(main())
 
 
 class SetupProcessTests(SetupFixture, unittest.TestCase):
+    def test_separate_resources_keep_cli_and_writes_with_their_owners(self):
+        from installation_paths import ENVIRONMENT, SCHEMA
+        resources = self.root.parent / 'signed resources'
+        resources.mkdir()
+        (self.root / 'tools').rename(resources / 'tools')
+        script = resources / 'tools/setup_assets.py'
+        before = script.read_bytes()
+        binding = json.dumps(dict(schema=SCHEMA, data=str(self.root), resources=str(resources)))
+        with patch.dict(os.environ, {ENVIRONMENT: binding}):
+            self.start_worker('quick')
+            self.assertEqual(self.terminal_event()[0], 'done')
+        info = json.loads((self.root / 'child-info.json').read_text())
+        self.assertEqual(info['argv'][0], str(script))
+        self.assertEqual(script.read_bytes(), before)
+        self.assertEqual(list(resources.rglob('*')), [resources / 'tools', script])
+        self.preserved()
+
     def test_child_runs_cli_main_thread_and_eof_cleans_then_reaps(self):
         process = self.start_worker()
         self.wait_until(lambda: (self.root / 'ready').exists())

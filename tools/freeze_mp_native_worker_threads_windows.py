@@ -20,8 +20,8 @@ def main():
  assert 'realWorkers=6 realPermitConsumptions=2 postWaitStores=2'in(BASE/'validation/test.log').read_text()
  for path in sorted((BASE/'validation').rglob('*')):
   if path.is_file():copy(path,FROZEN/'validation'/path.relative_to(BASE/'validation'))
- for name in ['include/halo2/native_threads.hpp','src/native_threads.cpp','tests/native_threads_tests.cpp',
-              'include/halo2/native_synchronization.hpp','src/native_synchronization.cpp',
+ for name in ['include/halo2/native_threads.hpp','src/platform/native_threads.cpp','tests/native_threads_tests.cpp',
+              'include/halo2/native_synchronization.hpp','src/platform/native_synchronization.cpp',
               'tools/freeze_mp_native_worker_threads_windows.py']:
   copy(actual(name),FROZEN/'source'/name)
   if name!='tools/freeze_mp_native_worker_threads_windows.py':

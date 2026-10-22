@@ -1,5 +1,145 @@
 # Complete Halo 2 ONLINE
 
+## First goal — P2P security and Rust migration
+
+User-requested priority change, 2026-10-21: **solve this security goal before
+proceeding with the remaining ONLINE work.** The full existing goal and every
+unfinished item below remain required. This is the first stage of that same
+goal, with detailed acceptance criteria in
+[ONLINE security-first goal](online-security-first-goal.md).
+
+The checklist here is authoritative for security completion. The linked
+document defines the evidence required for each stable ID; keep both in sync.
+Items start open and close only against their stated evidence. Existing
+authentication, bounds checks and passing gameplay tests are foundations, not
+acceptance of this Rust migration.
+
+- [ ] **S01 — Threat model and attack-surface inventory.** Trace every network
+  entry point and native consumer, including hostile authenticated players and
+  hosts, LAN/community joins, snapshots, migration, signaling and voice.
+  Baseline completed 2026-10-21 for source inventory only: the
+  [threat model and migration order](online-security-threat-model.md) account
+  for all twelve inspected C++ receive funnels, SDK callbacks, native import
+  and backend controls. The [verification receipt](../../.local/online-security-s01-20261021/verification.json)
+  pins 59 source/declaration/reference files with no unadmitted drift and checks
+  60 local links. It records actual transport/protocol defaults and explicit
+  legacy-path, memory-budget, trust and containment gaps. This is not exploit,
+  Rust implementation, deployed configuration or release-security acceptance.
+  Reopened 2026-10-22: concurrent EOS SDK/transport, callback, session and Rust
+  reassembly changes extend that historical baseline. Refresh the receive
+  census, credential/sender transitions, native lifetime/dependency inventory
+  and direct/relay policy before claiming current combined-source coverage.
+- [ ] **S02 — Reproducible Rust build.** Integrate a pinned Rust toolchain,
+  locked dependencies and disposable Cargo/CMake validation into all supported
+  release platforms and packaging.
+  Initial Linux Cargo foundation, 2026-10-21: the scoped
+  [protocol module](../../rust/online_protocol/README.md) pins Rust 1.96.0,
+  locks its dependency-free package and forbids unsafe Rust. Actual offline,
+  locked tests pass all seven voice-framing groups, strict Clippy passes and
+  the release library builds; see the
+  [source/build receipt](../../.local/online-security-rust-20261021/initial-parser/report.json).
+  Its temporary Cargo target tree is removed. CMake integration, the reviewed
+  C++ bridge, supported-platform packaging and production receive-path routing
+  were pending at that milestone; the following bridge milestone advances the
+  Linux build and match-voice route. S02/S03/S04/S09 remain open. Parsed data grants no sender,
+  speaker, generation or native-world authority.
+- [ ] **S03 — Owned, typed Rust/C++ interface.** Establish a small reviewed
+  bridge with explicit lifetimes, errors and cancellation; keep untrusted
+  pointers, callbacks and unchecked byte buffers out of gameplay interfaces.
+  Linux bridge milestone, 2026-10-21: the mandatory CMake/CXX 1.0.205 static
+  library now joins the real session voice branch to the Rust parser, returning
+  owned fields with no C++ decoder fallback. All existing sender/seat/role,
+  block and generation checks remain in the actual session. The
+  [interface and qualification](online-security-rust-bridge.md) record normal
+  and C++ ASan/UBSan controls over 12,355 differential frames and 1,200 concurrent
+  calls. Normal and C++ ASan/UBSan repository builds also pass the real four-peer DTLS,
+  synthetic Opus/PCM and two-handoff session control, including observed
+  rejection of authenticated wrong-seat and non-finite-gain voice packets plus
+  successful healthy controls. Native completion/account inputs remain explicit
+  fixtures. Full protocol/admission migration, platform/release checks,
+  containment and independent security review are still required.
+- [ ] **S04 — Rust packet decoding.** Replace the application wire decoders
+  and validation used by real receive paths, preserving supported protocol
+  behavior and rejecting malformed fields before native gameplay access.
+  Native-request milestone, 2026-10-21: complete joins, one-to-four-seat inputs,
+  leaves and configuration queries now return owned typed fields from Rust to
+  the real host, loading worker and saved-input checks. The
+  [implementation and qualification](online-security-native-requests.md) record
+  ten passing Rust groups, strict Clippy, 337,231 native-request differential
+  frames and Linux normal/C++ sanitizer plus Windows GNU/Wine bridge controls.
+  All eight selected repository CTests also pass: the actual native four-seat
+  malformed/replayed-request consumer, UDP input/discovery/startup and direct
+  DTLS/synthetic voice handoffs. Endpoint/account/native-cut fixture limits are
+  explicit. Snapshot/state and authority/archive decoding, other protocol
+  families and complete security acceptance remain open; no full S04/S07/S12
+  checkoff follows.
+- [ ] **S05 — Rust authority archive handling.** Move snapshot reassembly,
+  decompression, delta/replay decoding and schema validation behind explicit
+  aggregate memory and work budgets.
+  Archive milestone, 2026-10-22: the actual authority decoder now consumes an
+  owned flat Rust tree after Rust framing/DEFLATE/grammar checks; its C++ wire
+  reader is removed without a fallback. The
+  [implementation and qualification](online-security-authority-archive.md) record
+  44,719 value/grammar comparisons, hostile deep-tree teardown, synchronized
+  reservations and passing normal/C++ sanitizer bridge controls. Full native
+  codec qualification is in progress. Expected native-schema checks, checksum
+  admission and real prepare/commit stay enforced in their C++ owners; moving
+  the remaining schema, replay/delta and whole-session budget work remains open.
+- [ ] **S06 — Cryptographic peer admission.** Preserve established transport
+  encryption; bind admitted identity, match and connection credentials, and
+  close unauthenticated public-path bypasses without creating custom crypto.
+  Review the newly added EOS route independently of earlier DTLS evidence,
+  including admitted PUID/pair-key binding, SDK lifetime/contracts and the
+  `AllowRelays`/`ForceRelays` controls before direct-P2P release acceptance.
+- [ ] **S07 — Replay protection and sender permissions.** Enforce sequence,
+  membership and epoch rules for every message family, including physical-peer
+  versus couch-seat ownership and host-only operations.
+- [ ] **S08 — Secure migration protocol handling.** Move the network-facing
+  membership, telemetry and voting state machines into Rust; reject stale or
+  forged transitions and preserve native promotion/readiness gates.
+- [ ] **S09 — Secure voice framing.** Move voice framing, speaker admission,
+  sequencing and queue policy into Rust while preserving direct peer transport,
+  mute/block rules, delivery fences and existing voice behavior.
+- [ ] **S10 — Native semantic validation and containment.** Preserve the real
+  C++ world prepare/commit checks and qualify containment for hostile snapshot
+  import/replay; parsing success must never authorize arbitrary code or memory.
+- [ ] **S11 — Abuse and resource controls.** Enforce per-peer and whole-session
+  limits on rates, queued data, allocations and processing, with cancellation
+  and cleanup that preserve healthy peers.
+- [ ] **S12 — Adversarial and compatibility verification.** Add differential,
+  fuzz, sanitizer and malicious-peer integration coverage across the Rust
+  implementation, bridge and retained native consumers.
+- [ ] **S13 — Dependency and hardening review.** Audit and maintain remaining
+  native transport, compression and media dependencies; verify release compiler
+  hardening and independently review authentication, unsafe code and lifetimes.
+- [ ] **S14 — Integrated security acceptance.** Qualify the actual supported
+  ONLINE paths and packaged runtime, retain reproducible evidence and resolve
+  blocking findings before returning to the remaining ONLINE checklist.
+
+**Current task:** finish the already-owned archive qualification, refresh S01
+for the concurrent EOS ingress/transport changes, then continue S02/S03 and
+remaining S04/S05 state/control/schema/replay work.
+**Completed security items for current combined source:** none; the earlier
+S01 source inventory is retained as historical evidence. **Next dependency:**
+the updated ingress inventory and owned-message qualification. **Unresolved:** Rust
+implementation, measured limits, containment, adversarial verification and
+release acceptance. The source match-voice and native host-request routes use
+Rust. Archive syntax/decompression also use Rust; native schema/authority checks
+remain necessary. These changes do not install a runtime or enable migration.
+
+Until S01–S14 are checked with their required evidence, defer new work on the
+remaining ONLINE items, including M02/M04 integration and migration activation.
+Finish or safely drain already-owned validation and its storage cleanup; retain
+its results under their original scope. Continue only work necessary to this
+security goal, preservation or cleanup. This ordering does not cancel the
+existing goal, discard unfinished work or mark any downstream item complete.
+Security acceptance covers currently supported runtime paths and migration
+protocol rejection tests; completing M02/M07 is not a prerequisite for S14.
+Later migration implementation must pass the same security controls before
+enablement, so there is no circular dependency or exception for new paths.
+
+## Existing ONLINE goal — resume after security acceptance
+
 User-requested consolidated goal, 2026-10-13. This is the acceptance checklist
 for all ONLINE work discussed in this chat, including the subsequent direct
 peer architecture and modern mesh requirements. Earlier narrower completion
@@ -25,11 +165,34 @@ including the user's real Steam login and successful two-way party voice test,
 remain recorded. Checkboxes describe final acceptance, not a percentage estimate.
 Steam primary login and `master.halo2forever.net` supersede the earlier identity
 and hostname choices; optional verified Discord linking/social access remains.
-The user's 2026-10-19 clarification also makes installed MCC the asset source
-for the Vista ONLINE/clan UI. Extract the available authored banks through
-MCC-only onboarding; a separate Vista installation/import is not a release
-requirement. Earlier Vista donor checks remain reference evidence, not proof
-that the final MCC-only ONLINE/clan path has passed.
+The user's clarification, reaffirmed 2026-10-21, makes MCC imports the sole
+runtime asset path for the entire port, including gameplay, audio, fonts and
+every ONLINE/clan screen. Vista supplies UI reference evidence and OG Xbox
+TU1.5 supplies gameplay/network behavior reference evidence; neither is an
+end-user asset donor or runtime prerequisite. Extract the available authored
+banks through MCC-only onboarding. Legacy Vista/Xbox asset fixtures remain
+reference evidence and cannot qualify the delivered MCC-only runtime.
+This supersedes the older goal registration's wording about preserving a
+Vista runtime asset selection; preserve those original inputs as reference
+evidence while the delivered asset selector and onboarding use MCC imports.
+
+Asset-source reaffirmation, 2026-10-21: the user's latest instruction is
+“MCC assets import are the only way forward. Vista and OG TU1.5 are just for
+reference.” Apply that direction to the delivered asset path. Earlier records
+of separately supplied intro/credits, button artwork or a loading-tone
+exception cannot qualify an MCC-only release. Preserve those existing files
+and evidence; do not delete or relabel them. Any missing MCC movie, prompt or
+material owner remains an explicit delivery gap until its actual MCC source
+and integration are verified. No installed runtime or preserved asset was
+changed by this checklist clarification.
+
+Missing or incompatible MCC resources must stop admission of the affected
+delivered feature; do not fall back to Vista/Xbox caches, executables, loose
+donor files or historical asset registries. A path inside an MCC import is not
+proof of MCC origin: preserve source hashes and the extraction record for the
+actual payload. Reference-only tooling and translated behavior code do not
+supply runtime artwork, fonts, audio, movies or shader payloads. Keep those
+reference checks separately identified from MCC runtime acceptance.
 
 Checkoff rules:
 
@@ -47,12 +210,739 @@ Checkoff rules:
 - Reopen an affected item when later changes invalidate its evidence. Resolve
   missing original behavior with source/public evidence or an explicit user
   scope decision; do not silently substitute invented behavior or remove gates.
-- Preserve TU1.5 gameplay/network authority, MCC-extracted Vista ONLINE/clan
-  assets, direct player-hosted gameplay/voice, guest privacy and test-storage
-  cleanup throughout. Every ONLINE/clan UI acceptance check must use the same
-  MCC-only asset path required for fresh installs and releases.
+- Preserve TU1.5 as the gameplay/network behavior reference, Vista as the UI
+  reference, MCC imports as the sole runtime asset source, direct player-hosted
+  gameplay/voice, guest privacy and test-storage cleanup throughout. Delivered
+  native, ONLINE/clan, fresh-install and release acceptance must use that same
+  MCC-only asset path; keep legacy-asset reference checks separately labeled.
 
-Current task: **M02**, prepare complete world-borrower adoption using the now
+Deferred implementation after S01–S14, 2026-10-21: **M04/M02** have source candidates
+for complete local Core/script-clock playback images, fresh receipt/ticket
+mapping, paired actual MCC announcer publication, and stable shield/damage
+state adoption. The new genuine Effects-owned auxiliary target binds Audio
+to the actual four-owner Effects preparation; Effects remains the sole RNG
+restore writer and must publish before Audio. This is implementation in
+progress, not behavior acceptance or complete foreground readiness. The
+[clock review](../../.local/mcc-playing-audio-adoption-20261021/script-clock-continuation/independent-integrated-review.md),
+[damage review](../../.local/mcc-playing-audio-adoption-20261021/damage-audio-continuation/independent-review-recheck.md)
+and [managed compiler receipt](../../.local/mcc-playing-audio-adoption-20261021/companion-syntax/02-complete-declared-compile-inputs/report.json)
+separate source/syntax findings from the pending integrated MCC playback tests.
+Actual target-native metadata capability, all audio/event/class companions,
+ONLINE announcer construction and one complete foreground transaction remain
+required. No M02/M04 checkoff, runtime installation or migration activation.
+
+Current validation, 2026-10-21: the frozen local Audio/clock/announcer/native
+Damage cohort now passes **10/10 normal cases together, no skips**, including
+actual MCC continuation. The genuine four-birth native case retains a local
+encoded cut and restores twelve active shield/damage voices, with exact
+subsequent PCM/request/shared-RNG parity across four views. Its Effects owners
+are cold, and Damage unit IDs are declared adapter inputs; this does not
+qualify an active effects graph or network/native admission for those IDs.
+The original 8/9 failure (`Native script sound stop owner unavailable`) and
+the exact second-admission diagnostic are retained. The fixture now supplies
+the real optional-voice stop owner required for its repeated admission;
+production Clock policy and metadata were not changed to force this pass.
+See the [final passing phase](../../.local/mcc-playing-audio-adoption-20261021/core-continuation/validation-normal/08-final-ten-case-cohort/certification.json)
+and [initial failure](../../.local/mcc-playing-audio-adoption-20261021/core-continuation/validation-normal/01-core-announcer/tests.log).
+The native fixture's separate packet-observer precondition failure is also
+retained. Actual four-way adapter observations establish that its ordinary
+report is silent and its hard report emits an authored cue for both species;
+the positive controls now use that verified input while retaining the original
+silent inputs as negatives. See the [diagnosis](../../.local/mcc-playing-audio-adoption-20261021/damage-audio-continuation/packet-observer-diagnosis.json).
+Normal cleanup is verified, including all seventeen recorded process identities
+and the private source/build tree; no binaries were retained. The
+[independent final audit](../../.local/mcc-playing-audio-adoption-20261021/core-continuation/independent-normal-final-audit.md)
+confirms the ten-case result. The exact paired ASan/UBSan run failed during
+linking with `R_X86_64_PC32` relocation overflows; no CTest started. Its
+[failure certification](../../.local/mcc-playing-audio-adoption-20261021/core-continuation/validation-sanitized/01-paired-core-script-announcer-damage/certification.json)
+is retained without a sanitizer pass claim. Its now-idle owner was closed for
+the security-first priority; [verified cleanup](../../.local/mcc-playing-audio-adoption-20261021/core-continuation/validation-sanitized/cleanup.json)
+removed 15,162,448,091 logical bytes / 15,267,098,624 allocated bytes and the
+private source/build parent. All 24 recorded process identities are gone;
+original resource hashes match. Required changed source preimages (4,295,548
+bytes) remain explicitly retained with their hashes; no binaries are retained.
+That source cohort excludes newer ROOT native-publication candidates. Complete
+M04, native/provider composition and runtime migration remain open and deferred.
+
+Native publication follow-on, 2026-10-21: an actual owning takeover now has a
+source candidate for retaining its exact target, Cache control block and native
+World gates before timing/device holds. Independent review found two retained
+bank admission gaps: an untracked execution tape could attach during exclusion,
+and eligible same-backing preparation could replace a write policy and retire
+its captures. The new real-memory regression reproduces both failures before
+the admissions are enforced and passes all four groups afterward, including
+foreign live tapes, outgoing capture retirement, registry exclusion and atomic
+admission-to-hold upgrade/hold-to-admission teardown. Duplicate registry capture
+retirement is also checked off the registry mutex. Two native-owner syntax checks also pass. See the
+[policy handoff](../../.local/mcc-playing-audio-adoption-20261021/paired-owner/native-policy-admission/after.json).
+The [final independent source review](../../.local/mcc-playing-audio-adoption-20261021/paired-owner/native-policy-admission/independent-source-review.md)
+finds no remaining scoped source blocker, verifies the passing component groups
+and completed probe cleanup, and records concurrent CMake drift separately.
+The genuine selected-MCC takeover scope fixture is implemented with syntax
+checks, but its native execution, provider/timing/Core composition and complete
+foreground transaction are still pending. No readiness or migration activation
+follows from this low-level result.
+The next native audio seam must retain the live original Cache control block
+through an incoming-only, creator-thread factory and authenticate the provider's
+exact native timing owner, including rejection of another World sharing that
+Cache. The [owner/callsite plan](../../.local/mcc-playing-audio-adoption-20261021/paired-owner/same-cache-incoming-plan.md)
+records those remaining factories, provider/Core held binding and session
+activation dependencies; it is source research, not implementation acceptance.
+
+Following implementation candidate, 2026-10-21: the metadata provider now
+offers a target binding authenticated by the actual owning native publication
+and its exact Physics timing-memory owner, including its control block. Its
+transferable value retains only a weak native scope; the creator-only held
+value retains native exclusion before acquiring timing. Direct held witnesses
+use immutable identities and epoch/eligibility checks. Four source syntax
+checks pass, and a real compiled-object symbol audit keeps the generic Cache
+provider free of systems/native-publication dependencies; the separate binding
+implementation belongs to `halo2_systems`. Probe storage is removed. See the
+[binding candidate](../../.local/mcc-playing-audio-adoption-20261021/paired-owner/provider-native-binding/after.json)
+and [independent design review](../../.local/mcc-playing-audio-adoption-20261021/paired-owner/provider-native-binding/independent-binding-design-review.md).
+The same-original-Cache incoming factory and genuine selected-MCC binding
+controls are now implemented as source candidates. The private constructor pins
+the original Cache before its public slot escapes; RuntimeAuthority admits that
+exact owner and reconstructs fresh native/content owners only after its replay
+worker retires. The public distinct-Cache route remains separately available.
+The fixture requires another genuine World sharing Cache A to be rejected on
+its actual timing owner, checks weak binding/native wrapper lifetime and
+preserves original activation, twelve native ticks and direct voice assertions.
+Four further C++ syntax checks and Python parsing pass, with probe storage
+removed; the [final factory source review](../../.local/mcc-playing-audio-adoption-20261021/paired-owner/same-cache-incoming-implementation/independent-source-review.md)
+finds no scoped source blocker. Fresh current-source eight-case CMake/native
+qualification is deferred until S01–S14 security acceptance. The separate exact
+paired audio sanitizer build failed to link as recorded above and has been
+cleaned; no new native execution acceptance follows from these candidates.
+Core native-bound restore remains deliberately fail-closed.
+The complete publication still needs one shared timing/native exclusion for
+gameplay and announcer devices, target-provider substitution and actual release
+of outer native exclusion before deferred Core shutdown/retirement. Dropping
+one held reference alone cannot establish that ordering.
+
+Separate source candidate, 2026-10-21: the actual local peer's 54 complete
+sound-class envelopes and one-shot game-over latch now live in the existing
+receipt values. The runtime aliases its original writers to those fields;
+the authoritative Simulation classes and once-per-frame audio elapsed update
+remain with their existing owners. The composed historical receipt regression
+now checks every target/current/remaining bit pattern, the latch, rejection
+controls and a continued fade suffix. An explicit selected-MCC common-cut
+route preserves the three-peer/twelve-couch-player cohort without an external
+XBE or a missing-input skip. Three managed C++ syntax checks, Python syntax
+and independent source review pass, with scratch removed; the actual new MCC
+common-cut execution is still pending. Four invalid-input CLI controls also
+reject with their intended admission diagnostics, without skip status 77 or native
+execution; see the [admission receipt](../../.local/mcc-playing-audio-adoption-20261021/peer-envelope-continuation/admission/report.json).
+See the
+[source handoff](../../.local/mcc-playing-audio-adoption-20261021/peer-envelope-continuation/handoff.json).
+Existing receipt preparation requires externally quiescent target values;
+this change does not add an independent revision witness for arbitrary direct
+value writes, qualify playing devices or close M02/M04.
+
+Qualified earlier prerequisite, 2026-10-21: **M04/M02** now have a qualified
+Core ownership/enrollment prerequisite in normal and ASan/UBSan runs. Gameplay Audio and the separate actual
+MCC announcer retain their existing strong Cache owners; ownership alone leaves
+legacy producer behavior unchanged. Explicit, quiescent creator enrollment
+routes Core playback, completion accounting and error cleanup through typed SDL
+receipts, and both fade consumers use logical elapsed time. The
+[production review](../../.local/mcc-playing-audio-adoption-20261021/core-enrollment/independent-production-review.md)
+records the corrected pre-publication observer compatibility and the explicit
+allocation-free SDL enrollment seam. The latter avoids a checkpoint allocation
+failure changing only one owner's executor policy. The new
+[normal eight-case qualification](../../.local/mcc-playing-audio-adoption-20261021/core-enrollment/validation-incremental-retry2/02-poststop-and-pcm-controls/report.json)
+starts and passes every requested case without skips in2.62s. This includes
+actual imported MCC PCM, finite/nonzero whole-cue output, exact legacy/enrolled
+selection/completion/clock/peak comparisons, authored loops, script lifetime
+controls, and all six direct SDL controls. The fixed script policy tests
+ownership and fade lifetime, not authentic World timing. The fixture's stop-row
+expectation now follows the actual original first-match clear; reviewed
+correction/failure receipts remain in the same investigation. All17 declared
+inputs match before/after; the actual normal target/link census contains388
+unique ROOT translation units, with its during-build sampling limit recorded.
+The separately preserved Apple-only CMake change does not affect these Linux
+targets. This is not a frozen whole-project or native caller qualification.
+The [normal owner's cleanup](../../.local/mcc-playing-audio-adoption-20261021/core-enrollment/validation-incremental-retry2/cleanup.json)
+removes its private build/scratch, empty parent and all three recorded process
+identities; no large artifact is retained from that owner. The fresh
+[same-eight ASan/UBSan qualification](../../.local/mcc-playing-audio-adoption-20261021/core-enrollment/validation-sanitized/report.json)
+starts and passes all eight cases without skips in5.65s; actual compiler and
+all four retained link commands contain address/undefined instrumentation.
+The seven changed source/module pins match the normal run. Sixteen of seventeen
+declared inputs remain unchanged; the preserved four-line root CMake drift only
+registers a separate hologram GPU case and does not change these audio targets.
+The actual build compiles388 unique ROOT translation units, with the sampled
+source/header boundary recorded rather than claimed as an immutable freeze.
+Its [cleanup](../../.local/mcc-playing-audio-adoption-20261021/core-enrollment/validation-sanitized/cleanup.json)
+verifies removal of build/scratch, the empty parent and17 recorded process
+identities. No binaries or large generated artifacts are retained. The
+[stage handoff](../../.local/mcc-playing-audio-adoption-20261021/core-enrollment/handoff.md)
+pins these exact qualified sources; subsequent continuation implementation
+requires its own qualification. Prior
+platform results below apply only to their recorded earlier pins.
+Neither real construction site enrolls automatically. Complete Core snapshots,
+fresh script/announcer branch adoption, target-World capabilities, damage/class
+companions and the full foreground transaction remain open. Ready/default
+migration stay disabled; no runtime is installed.
+
+Earlier platform qualification, 2026-10-21: **M04**, a prerequisite of **M02**,
+now has an implemented held SDL playback transaction foundation. The
+[focused qualification](../../.local/mcc-playing-audio-adoption-20261021/platform-implementation/validation-final.md)
+records seven normal and six ASan/UBSan cases started and passed without skips,
+including the unchanged real split-producer reset compatibility control in the
+normal run. Saved packet/cursor/clock state, fresh branch-qualified receipts,
+callback exclusion, stale/cancel/owner guards and allocation-free publication
+have focused coverage. The physical device clock stays monotonic. Both managed
+scratch trees and their dedicated empty parents are removed; all13 recorded
+process identities are gone and no large artifact is retained. Concurrent ROOT
+CMake changes are preserved and recorded separately. This qualifies the
+platform foundation, not complete playing-audio adoption, physical audibility,
+MCC media provenance or full-engine/runtime ABI compatibility. The next audio
+step is the complete paired game Audio/script/damage/class-envelope transaction
+and the separate actual MCC announcer owner, using the
+[owner inventory](../../.local/mcc-playing-audio-adoption-20261021/paired-owner/inventory.md)
+and [announcer companion review](../../.local/mcc-playing-audio-adoption-20261021/paired-owner/announcer-companion.md).
+Four-seat input, camera/GPU/resource borrowers and the single complete foreground
+publication remain required. M02/M04 stay unchecked, the full goal stays active,
+and complete Ready/default migration remain disabled. No runtime is installed.
+
+Latest native qualification, 2026-10-21: **M02/M05** have a new
+[certified native result](../../.local/mcc-online-m02-20261021/native/normal/01-current-mcc-gait-and-fullgroup/actual-result.json)
+for the runtime locomotion integration and explicit MCC full-group driver.
+All four selected tests pass without skips;23 exact translation units,
+34 actual object records and all three fresh binaries are certified. The
+rendered run observes325 accepted receipts,324 full captures,128 retained
+entries and two bound/native-all cuts. Its actual16-slot locomotion owner
+has eight occupied slots and no observed unavailable slot. The separate CPU
+group fixture passes its420-tick/three-adapter suffix and allocation/retirement
+controls; it does not represent16 simultaneously active players. Maximum local
+input gap464.999ms and frame input308.735ms are observed, but frame wall505.523ms
+still fails the unchanged500ms parent gate. No host/runtime error or peer drop
+before completion is observed. Frozen/borrowed/consumed inputs remain unchanged;
+later concurrent ROOT changes are recorded separately and are not qualified by
+this result. Full foreground publication, camera/GPU/input/playing-audio owners,
+whole-history memory admission and migration acceptance remain open. No runtime
+is installed, and complete Ready/default migration remain disabled. This uses
+the selected MCC cache without an external XBE; D01 still requires complete
+MCC payload provenance and fresh delivery, including unresolved material/movie
+owners. The managed owner's [verified cleanup](../../.local/mcc-online-m02-20261021/native/normal/cleanup-report.json)
+removes its private source/build/MCC copy and owned processes. ROOT independently
+checks all seven recorded identities and scratch references are gone and the
+original registry/four core hashes are unchanged. No new large artifact is
+retained; the goal and remaining acceptance gates stay open.
+
+Earlier working checkpoint, 2026-10-20: **M05/M02** have a capture-local
+material comparison candidate and a startup-candidate wait correction. The
+[corrected paired component run](../../.local/mcc-frame-liveness-20261020/focused-continuity/handoff.md)
+passes the same complete fixture against baseline and candidate, including all
+1280 authored cases, distinct expected constant/program owners, exposed-pass
+changes, COW, NaN/signed-zero and restoration controls. In eight retained
+captures the candidate checks768 pass values and reuses3,145,728 successful
+comparisons; the measured capture window changes108.211 to94.4519ms. Whole
+CTest time increases3.47 to3.88s, so this is no general or native speedup claim.
+The actual production owners build through the new focused CMake route; both
+private source/build trees and their disposable helpers are removed, with no
+large artifact retained. The [startup correction](../../.local/mcc-candidate-startup-20261020/review.md)
+waits for the first genuine full history before attempting Arm. Strict tail
+identity checks and explicit retirement remain unchanged. Managed syntax and
+independent source review pass. The fresh native runs below observe two real
+startup pending windows and pass the unchanged rejected-mask regression.
+
+The [fresh native qualification](../../.local/mcc-online-m05-20261021/native/checkpoint.md)
+has a [certified first result](../../.local/mcc-online-m05-20261021/native/normal/01-current-mcc-candidate-native/actual-result.json)
+against its private byte-identical selected MCC import. Build/freshness pass
+for16 translation units,27 actual objects and both binaries; all three selected
+tests run without skips. Material and MCC input owners pass. Native records445
+accepted receipts,444 full captures and128 retained entries, but zero bound
+cuts before the unchanged deadline. Two actual startup pending windows pass
+the rejected-mask regression. Maximum local input-observer gap is452.158ms,
+maximum frame input338.337ms and frame wall471.291ms, with no observed peer
+drop; these are local observations, not host-arrival or WAN acceptance.
+The [failure-only diagnostic run](../../.local/mcc-online-m05-20261021/native/normal/02-continuation-first-failed-diagnostic/actual-result.json)
+preserves all ten compatibility predicates and actually identifies
+`configuration_binding` as the first failure. It builds exactly one updated
+translation unit and a fresh native binary; the material binary stays unchanged.
+All three tests run without skips: material and MCC input owners pass; native
+fails at the unchanged deadline with278 accepted receipts,277 full captures,
+128 retained entries and zero bound cuts. This second run observes an813.351ms
+maximum local input gap and805.874ms frame wall, exceeding500ms; the first run's
+lower values do not establish sustainable timing. The differing configuration
+field remains unobserved. The independently reviewed one-statement
+[configuration correction](../../.local/mcc-continuation-configuration-20261021/handoff.md)
+keeps the actual observed weapon in presentation rules and preserves admitted
+Match settings. Its [certified native result](../../.local/mcc-online-m05-20261021/native/normal/03-admitted-rules-presentation-separation/actual-result.json)
+rebuilds exactly that one translation unit and a fresh native binary. The
+configuration rejection clears in this exercised cohort:264 receipts,263 full
+captures,128 history entries and two bound/native-all cuts are observed, with
+no aborted cut. Native still fails148.95s on an actual ordinary-departure
+backing gap (`88C50` → `233D57`, missing `455E48`); material and MCC input owners
+pass. Maximum local input gap526.721ms and frame wall597.15ms exceed500ms;
+no peer drop is observed. The [bounded name-operand repair](../../.local/mcc-name-mapping-owner-20261021/handoff.md)
+now identifies and mounts eight authentic program-data owners/1,848bytes through
+the existing provider. Token/string owners keep their original read-only policy;
+the dispatch table keeps its actual writable policy. Independent review finds
+no blocker and the focused cold component passes0.18s, checking complete raw/
+semantic mappings, access, checkpoint and conflict-before-publication. Its
+private build/scratch are removed. This translates reference-backed code
+operands and supplies no glyph artwork or end-user reference-image dependency.
+The unchanged [fourth native phase](../../.local/mcc-online-m05-20261021/native/normal/04-name-sanitizer-canonical-operands/actual-result.json)
+passes all three selected tests without skips: native144.43s, input owners0.42s
+and material2.44s. One provider translation unit/object and the fresh native
+binary are certified; only its three approved source inputs enter the cohort.
+Actual observations show268 receipts,267 full captures,128 retained entries,
+two bound/native-all cuts and no host/runtime error. The ordinary authenticated
+leave completes after the fixture's completion request; no peer is dropped
+before completion. Maximum local input gap535.85ms and frame wall550.806ms
+still exceed500ms. This exercises the formerly missing departure operand path;
+dynamic private-glyph callbacks, physical/WAN play and a complete migration
+transaction remain unqualified. The managed investigation's
+[verified cleanup](../../.local/mcc-online-m05-20261021/native/normal/cleanup-report.json)
+removes its owned source/build/private-MCC snapshot and all recorded processes;
+original inputs and installed runtimes are preserved. No new large artifact
+is retained and no runtime is installed. The next
+prepared code step is the reviewed all16 locomotion receipt integration,
+followed by the remaining timing/memory and complete-owner adoption work.
+Frozen/borrowed/consumed inputs remain clean, with later ROOT changes recorded
+separately. These results do
+not causally isolate a speedup from older source cohorts. The fixed256/128/
+two-cut/500ms gates remain; the latest native test passes while the parent timing
+goal still fails. **M02/M05**, complete adoption,
+whole-history memory admission and migration acceptance remain open. Direct
+player-hosted gameplay/voice and disabled default migration are unchanged.
+
+Earlier checkpoint evidence, 2026-10-20: **M05** retains the reviewed topology
+change after its controlled allocation and full frozen material/native passes.
+The native run captures348 complete frontiers, retains128 and binds two cuts;
+its547.229-ms maximum local input gap still exceeds500ms. Sustainable timing
+and the full runtime/history/preparation allocation union remain open.
+The [paired-gap investigation](../../.local/mcc-frame-liveness-20261020/README.md)
+now records actual command gaps with their preceding and following frames,
+including work outside the existing frame timer. Its fresh frozen native
+cohort is qualifying the startup and loading boundaries described below;
+the earlier measurements do not qualify later concurrent runtime changes.
+A separate **M02** exact-owner preflight repair
+passes six real same-pointer/different-owner and null-alias cases that fail
+before the repair. The permanent regression passes the fresh full material
+suite. No readiness, timeout, input ordering,
+capture-coverage or player-hosted transport policy is changed by this work.
+The [fresh baseline result](../../.local/mcc-frame-liveness-20261020/native/normal/terminal-summary.md)
+has genuine new binaries and four verified compiled translation units. Material
+passes in3.56s and the registered MCC input-owner check passes in0.56s; native
+startup fails in6.73s before the match loop with an immutable physics-scalar
+owner conflict. Separate new `presentation/loading-v3` files also invalidate
+the broad selected-cache metadata audit; pinned core map/provenance hashes
+still match. Neither failure is a timing result. That closed baseline produced
+no paired frame observations; the later isolated phases below supersede its
+syntax/helper-only diagnostic evidence with actual native observations.
+The closed owner, all six recorded process identities and its private source/
+build are removed; no large artifact is retained. The complete current
+[cold-data composition check](../../.local/mcc-frame-liveness-20261020/cold-data-probe/handoff.md)
+now passes through 46 actual production translation units and 254 frozen code
+files in 10.74s, without runtime layers or external assets. The original failed
+scalar address remains unobserved; this is no old-baseline or gameplay pass.
+The permanent [cold-data component regression](../../.local/mcc-frame-liveness-20261020/cold-permanent/handoff.md)
+also passes its focused managed CMake build and wrapped CTest (0.24s), checking
+exact typed-table/padding ownership, immutable access and checkpoint restore.
+Its private build is removed. This test was added after the native cohort
+froze; it is outside that cohort and closes no migration acceptance item.
+The [isolated native cohort](../../.local/mcc-frame-liveness-20261020/native/isolated/handoff.md)
+builds against its own byte-identical MCC reflink copy. ROOT verified all
+254 cold-check code hashes, 18 critical inputs and consumed core asset hashes.
+Its [actual first result](../../.local/mcc-frame-liveness-20261020/native/isolated/normal/01-current-root-paired-native/actual-result.md)
+passes material (2.34s) and input owners (0.39s); native reaches rendering but
+fails strict loading identity comparison (61.88s), with zero completed frames,
+commands or captures. Frozen/borrowed/consumed inputs remain unchanged. The
+same live owner's reviewed [prepared-host fixture correction](../../.local/mcc-frame-liveness-20261020/loading-identity/root-trace.md)
+admits no unrelated ROOT updates or changed gates. Its actual phase2 confirms
+equal loading fingerprints and 170 frames/277 local commands, then stops at
+the original `1658FB` read of missing `4D61D8` storage, before any accepted
+receipt or capture. Phase3 admits only the independently reviewed shared
+saved-session provider, declaration and cold-world call. Static original
+[section evidence](../../.local/mcc-frame-liveness-20261020/saved-session-loader/report.json)
+and actual [component owner controls](../../.local/mcc-frame-liveness-20261020/cold-saved-session/handoff.md)
+support that candidate; no live initialization is supplied. Actual phase3
+clears the missing bank and accepts 81 receipts, captures 80 and binds no cuts
+before the unchanged deadline. Its [paired measurements](../../.local/mcc-frame-liveness-20261020/paired-gap/phase3/analysis.md)
+reconcile the 1,109.287518ms worst local command gap exactly; current-frame
+scene capture dominates its pre-command interval. Scene is 99.6% of measured
+whole-run capture work, while 131.145s elapses before the first completed
+frame. No individual scene-child or startup-phase cause is inferred. The
+actual provisional-tail rejection also needs a specific predicate. The same
+owner's reviewed phase4 changes only the passive scene-child and failure-only
+guard diagnostics. Its [certified actual result](../../.local/mcc-frame-liveness-20261020/native/isolated/normal/04-scene-leaf-and-tail-guard/actual-result.json)
+passes material (7.34s) and input owners (1.14s); native fails (200.39s), with
+64 accepted receipts, 63 full captures and no bound cuts at the unchanged
+deadline. The [actual leaf attribution](../../.local/mcc-frame-liveness-20261020/scene-leaf/phase4/analysis.md)
+covers all 64 completed scene calls: Material is 98.77% of scene wall time and
+98.86% of its current-thread CPU time, with valid CPU samples for every leaf.
+The 1,743.199427ms largest local command gap has an exact paired partition;
+its current frame contains 1,010.73ms of Material capture. This is diagnostic
+attribution, not a performance comparison or a passing timing result. The
+[first failed predicate](../../.local/mcc-frame-liveness-20261020/tail-guard-diagnostic/phase4-context-analysis.md)
+is `tail-context`; the log does not distinguish an absent context from a
+different generation, and later short-circuited predicates are unobserved.
+The pre-first-frame interval still takes 130.190s and is not subdivided by
+these measurements. No gate is relaxed and no phase5 is authorized. The
+cohort is now closed. Its [cleanup receipt](../../.local/mcc-frame-liveness-20261020/native/isolated/normal/cleanup.json)
+and independent ROOT verification confirm all 12 recorded process identities,
+the private source/build/MCC copy and owned scratch are gone. The disposable
+coordinator is retired after exact reconstruction verification. Retained
+evidence is bounded logs/reports and 28 source files (2,213,030 bytes), with no
+binary, asset copy or raw bank. Removed allocated-file sums include shared
+reflink extents and are not an exclusive disk-space gain. Complete native
+coverage, sustained timing and migration acceptance remain pending. Next M05
+dependencies are exact internal Material cost attribution,
+the first Arm context/binding transition and the pre-first-frame phase budget.
+Qualify each correction in a coherent new source cohort before repeating the
+unchanged complete-history gate; do not substitute the older frozen runtime
+for current concurrent changes or infer missing context values from this log.
+**U01/D01** now have source fixes for
+stale authored-prompt prerequisites in frontend admission and the rendered
+ONLINE/clan wrapper. The [current source audit](../../.local/mcc-topology-sharing-20261020/mcc-online-asset-audit.md)
+finds the normal frontend/menu path uses MCC owners; Vista names and explicit
+reference helpers are not runtime donor evidence. New prompt-font proof must
+qualify actual native MCC fonts, without relabelling historical receipts.
+No additional checkbox is closed by these findings. Gameplay and voice remain
+directly player-hosted, and default migration remains disabled pending its
+complete acceptance gates.
+
+The [admission controls](../../.local/mcc-topology-sharing-20261020/frontend-admission/handoff.md)
+pass62 Python tests plus the direct first-run fixture check. A distinct native
+MCC control-font profile is mandatory, every copied font remains hash-covered,
+and historical proofs are not upgraded. The
+[render-input controls](../../.local/mcc-topology-sharing-20261020/rendered-prompt-pins/handoff.md)
+pass eight cases using actual copied MCC fonts and their authenticated profile.
+The wrapper pins those owners instead of obsolete authored manifests; its
+paired completion marker is corrected and a permanent CPU regression is
+registered. All owned helper scratch is removed with no large artifact retained.
+These are admission/input checks, not rendered widescreen acceptance. The new
+CTest registration executes successfully in the fresh M05 baseline above; the
+paired frontend C++ marker remains outside its selected native targets. No
+installed runtime, cache or real proof changed through this investigation.
+
+Latest D01 loading-route milestone, 2026-10-20: normal fresh/reuse setup,
+runtime menu selection, converter packaging and frontend resource admission now
+explicitly select the MCC V3 bank. The source change passes 116 managed Python
+checks; the shared Linux cohort builds the native game, default decoder and two
+component fixtures. All three
+[genuine MCC loading checks](../../.local/mcc-animation-selector-20261020/11-genuine-default-v3-loading-bank/cohort.json)
+pass without skips, including actual source preparation, offline bank repair,
+canonical PCM ownership and the native V3 bridge. The private producer has no
+original tone or V2 bank. Exact source/binary and scope records are in the
+[independent closing summary](../../.local/mcc-animation-selector-20261020/phases10-11-independent-closing-summary.json)
+and [implementation report](../../.local/mcc-loading-default-route-20261020/implementation.md).
+The qualifier applies only the two owned Linux CMake changes to its frozen
+baseline; concurrent Mac changes in ROOT are preserved and separately scoped.
+Full fresh-cache onboarding, relocated package/launcher playback, authored
+MCC loop timing, physical audio and the remaining shader/movie asset-source
+gates remain open. No installed runtime or selected cache is changed, and D01
+remains unchecked.
+
+The [owned investigation cleanup](../../.local/mcc-animation-selector-20261020/cleanup-receipt.json)
+is verified: the private build/source/media tree and its process identities are
+gone, and 12 obsolete helpers/drafts are retired with a small reconstruction
+patch. Removed files accounted for 1,474,326,528 allocated bytes in scratch;
+observed filesystem free space increased only 56,295,424 bytes amid concurrent
+activity, so those figures are not treated as equivalent. No large artifact is
+retained. Original assets, selected cache provenance and launcher-selected
+runtimes are preserved. The launcher still reports its independent MCC
+frontend unavailable; these component checks do not qualify or enable Play.
+
+Latest M05 exact-body diagnostic, 2026-10-20: the new frozen current-ROOT
+[native cohort](../../.local/mcc-common-cut-association-20261020/01-01-genuine-mcc-cut-lineage/cohort.json)
+builds successfully but fails the unchanged native history gate in 196.20s.
+Its complete 1,786-event trace has no overflow, incomplete writer or truncation;
+298 actual observations produce 297 full frontiers and zero bound cuts.
+The [per-cut analysis](../../.local/mcc-common-cut-association-20261020/01-analysis/association-summary.md)
+shows that native exports for ticks 91 and 1,337 exactly retain their issued
+host snapshot stamps, but neither expected body was ever adopted, projected or
+retained by the client. Empty, nonoverflowed reservations are rejected after
+history advances beyond those ticks. The third offered body is also absent;
+its native export was not observed before the test ended. This isolates a
+pre-adoption delivery/admission dependency for the first two cuts, without
+locating wire loss or establishing a performance change against older cohorts.
+The private scheduling candidate remains unpromoted; M05/M02 remain open and
+default migration remains disabled. The
+[owned cleanup](../../.local/mcc-common-cut-association-20261020/cleanup-receipt.json)
+verifies removal of the private source/build tree and its process identities;
+no installed runtime or selected asset owner changed.
+
+Latest untraced MCC qualification, 2026-10-20: the
+[four-check cohort](../../.local/mcc-animation-selector-20261020/09-untraced-bounded-batch-and-posing/independent-results.json)
+passes body selection, body overlays and material continuity. The genuine body
+fixture retains its 48 existing requests and adds 12 published-clock posing
+requests: two resolve actual authored clips and ten are independently confirmed
+omissions, with all seven graph byte identities unchanged. The exact posing
+StringID comes from the
+[MCC name join and TU1.5/runtime evidence](../../.local/mcc-weapon-selector-20261020/posing-source-audit.md),
+following an actual red regression. All 49 earlier mappings and the 36-entry FP
+prefix remain unchanged. The full native case now captures 231 frontiers with
+128 peak retained, receives three fully native-validated host offers, but binds
+zero cuts and fails the unchanged deadline. No unsupported selector appears.
+The bounded scheduling candidate remains private; complete cut association,
+throughput and default host migration remain unaccepted. The untraced peer-drop
+observation has no removal reason and is not evidence of an idle timeout.
+
+Latest M05 input-liveness investigation, 2026-10-20: the exact
+[admission timeline](../../.local/mcc-animation-input-liveness-20261020/phase05-findings.md)
+records twelve genuine accepted bodies occupying 6.776 seconds before the first
+command; their complete frontier captures consume 6.636 seconds. The host removes
+the unseen-input peer at 5.020 seconds. A
+[private bounded-batch candidate](../../.local/mcc-animation-selector-20261020/06-bounded-receipt-input-liveness/cohort.json)
+completes one authentic body per frame, preserving the original ordinary input
+tail and every pending body until an explicit generation fence. The host now
+accepts all 153 commands and has no idle removal; the later removal is an
+authenticated Leave after an unsupported animation-selector exception. Original
+stale-control neutralization remains reachable, and the native gate remains red
+at 51 projected receipts/50 retained frontiers/zero bound cuts. This is a private
+candidate, not an installed repair or M05 acceptance. Identify the actual
+selector, then qualify sustained scheduling and the unchanged native gates
+without diagnostics before promotion. The coordinated V3
+[setup/runtime/package integration](../../.local/mcc-loading-default-route-20261020/seam.md)
+has now been implemented in source with 116 managed Python checks passing.
+Shared native compilation and genuine-bank/default-route qualification were
+subsequently completed in the D01 milestone above; fresh full-cache delivery,
+launcher and device evidence remain required. Component evidence does not
+close D01.
+
+Latest MCC body-selector milestone, 2026-10-20: the
+[untraced repair cohort](../../.local/mcc-animation-selector-20261020/03-untraced-mcc-body-selector-repair/cohort.json)
+passes all three registered checks without skips. The strict compiled-to-MCC
+name boundary now includes four existing body requests, retaining all45 old
+rows and the first36 canonical first-person activities. Genuine MCC tests
+exercise12 species/weapon/stance/dual contexts and48 requests:32 independently
+named authored clips match,16 omissions are independently confirmed, four FP
+bindings keep body-only activities out, and seven graph payloads stay unchanged.
+This is selector/clip-identity evidence, not complete pose or migration parity.
+The direct component reproduced the missing canonical reload selector before
+repair; the exact earlier phase11 terminal selector remains unknown.
+The [untraced full native check](../../.local/mcc-animation-selector-20261020/04-untraced-native-after-body-repair/cohort.json)
+still fails with33 retained receipts and zero bound cuts. Its first input
+arrives at5.681s, after peer removal at4.967s, with no runtime exception.
+Input-producer admission and snapshot-batch scheduling are the next M05 seam;
+the private material candidate and error instrumentation were removed before
+this result. Full history/proof/deadline gates and default-disabled migration
+remain unchanged. Worker-retained test logs are authoritative; the
+[helper attribution correction](../../.local/mcc-animation-selector-20261020/helper-test-log-attribution-correction.json)
+labels post-listing empty tails separately without changing actual results.
+
+Earlier material-cost milestone, 2026-10-20: the
+[uninstrumented candidate cohort](../../.local/mcc-material-callgrind-20261020/11-clean-schema-native-history/cohort.json)
+passes six of seven actual checks without skips. Material and genuine MCC
+loading components pass; native ONLINE recovery remains red with66 retained
+scene/HUD receipts and no bound cuts. Its propagated runtime error is
+`Unsupported compiled weapon animation selector` from the gait/footstep owner.
+The separate startup predecessor rejection is caught; capture subsequently
+continues. It records first input at4.003s and peer removal at21.868s. These
+observations describe this cohort, not a controlled improvement over earlier
+runs. A scalar schema-dispatch candidate records21.5% lower own-thread CPU in
+one actual capture pair with identical current accounting, but prior-bank/cache
+conditions differ; no causal speedup is claimed. The candidate is retained as
+an exact patch and is not promoted to production. All history, proof, coverage
+and time-limit gates remain unchanged. The
+[final restored component cohort and cleanup](../../.local/mcc-material-callgrind-20261020/closure.md)
+record six passing checks, original uninstrumented native/material/audio
+binary restoration, removal of the private build/media and retirement of11
+obsolete helpers. The [frozen failure review](../../.local/mcc-material-callgrind-20261020/phase11-native-failure-review.md)
+keeps the actual thrown selector/caller explicitly unknown. M05 and
+M02 remain open; no installed runtime or migration acceptance is claimed.
+
+Earlier capture-cost milestone, 2026-10-20: [actual selected-cache measurements](../../.local/mcc-scene-capture-cost-20261020/findings.md)
+attribute98.80% of scene-capture time to the material owner, predominantly its
+complete graph walk. Baseline warm material captures have a363.262ms median;
+the actual native test still retains33 receipts and binds no cuts before peer
+loss. A fused shared-pass comparison candidate passes historical A/B-to-A/A,
+same-address mutable-write and full static/readiness regressions, but demonstrates
+no native performance benefit. Its slower run also has concurrent compilation/
+physics load and a different capture frontier, so no causal regression is claimed.
+The unproven candidate and temporary probes were removed by exact owned patches;
+no production performance change or installed runtime is claimed. M05 needs
+leaf-cost attribution with controlled prior-graph/load conditions. MCC loading/
+shader payload provenance remains a separate D01 release blocker, and these
+selected-cache measurements do not accept a fully MCC-derived runtime.
+
+Latest owner-repair milestone, 2026-10-20: [the final untraced cohort](../../.local/mcc-native-owner-repair-20261020-retry/closure.md)
+passes four of five actual checks. Genuine MCC melee-resource retention and
+two independently evidenced loader-zero runtime bytes now pass real-consumer
+and checkpoint regressions; the player-hosted authority reaches 1,076 ticks
+without the previous host exceptions. The rendered ONLINE check still fails:
+it retains33 complete receipts, offers one cut and binds none. First observed
+main input arrives at11.565s; the peer is removed at4.934s before completion.
+These observations exclude genuine neutral admission sends. The earlier trace
+isolates7.054s of scene capture in the first receipt batch before main input;
+the binding tail takes1.993ms. Complete history/proof/time-limit gates remain
+unchanged. Exact source cohorts, later root drift and reference-only coverage
+are separated in the receipt. Temporary tracing, both private build trees and
+superseded helpers are removed; no runtime was installed. **M02** complete
+adoption and **D01** whole-payload MCC provenance remain open.
+
+Downstream resume point after security acceptance: **M05**, qualify bounded direct-peer delivery/retention of actual
+candidate snapshot bodies before ordinary snapshot freshness can discard them,
+and sustainable complete-frontier processing. The separately gated source
+implementation now prepares every physical recipient before choosing a future
+genuine broadcast, delivers its unchanged native packets through a bounded
+direct-peer lane, and pins the exact completed foreground entry until the
+native/common-cut owner takes over or explicitly retires. Source capture splits
+the actual frame immediately after that broadcast; later native proof still
+checks the original connection, body, sequence and tick. Complete-batch pacing
+is enabled only by this optional qualification mode. The ordinary default path
+and full migration readiness remain disabled for this contract. Final-source
+delivery sanitizer checks pass. The first frozen selected-MCC native cohort
+passes both requested tests: 278 complete foreground captures, 128 retained
+entries and two bound native cuts, with one complete common Commit/Release.
+Its measured maximum input gap is 536.201 ms, so it does not qualify the
+500-ms timing target or sustainable replay. The second frozen cohort includes
+the MCC-native prompt repair below. Its prompt control and delivery core pass,
+and two common cuts complete Commit/Release, but the combined native test
+fails its unchanged deadline with only 228 of 256 required captures. A peer
+disappearance is observed before any completion request; that alone does not
+distinguish live connection loss from exception teardown. The cause of the
+slower capture progress remains unproved. See the [actual cohort and limits](../../.local/mcc-prepared-snapshot-20261020/README.md)
+and [genuine phase-2 failure review](../../.local/mcc-prepared-snapshot-20261020/normal/phase2-review.md).
+The earlier diagnostic's two native exports without exact adopted bodies remain
+separate evidence; the reserved path now reaches genuine native association,
+but remains optional and disabled in normal matchmaking. Preserve strict native,
+receipt, foreground and all-peer checks while resolving sustained processing before
+resuming the complete **M02** borrower
+transaction and all-survivor qualification. D01 separately requires the actual
+full-cache/package/launcher and remaining asset-source acceptance beyond its
+new loading-route component evidence. M01 remains the only checked full-goal
+item; default migration and full-owner readiness remain disabled.
+Next M05 diagnostic: attribute runtime setup and complete-capture/frame cost,
+and record the deadline/catch time alongside authenticated Leave-versus-idle
+removal. The current deadline includes setup, and the terminal peer-count flag
+cannot establish whether removal preceded the failure. Keep the original
+256-capture, 128-entry, two-cut and 180-second requirements unchanged while
+collecting that evidence; do not turn a slow run into a pass by reducing coverage.
+That passive diagnostic source is now implemented, with three GCC C++20
+translation-unit checks passing and their scratch removed. A new managed
+current-ROOT cohort froze17,440 files and passed graphics/configure and both
+target builds with every original gate unchanged. The peer delivery core passes;
+the native test fails after6.44 seconds with `Original runtime regions overlap`,
+after the MCC prompt control and before runtime timing/capture diagnostics.
+Those metrics remain unobserved. This startup failure is distinct from the
+earlier deadline failure; both remain red. Diagnose the actual conflicting
+owners without weakening memory admission before collecting M05 cost evidence.
+See the [active M05 run and exact scope](../../.local/mcc-history-cost-20261020/README.md).
+
+The next exact two-file repair removes four duplicate narrow HS declarations
+already covered by the unconditional complete startup provider. The focused
+cold-world regression passes; the unchanged rendered MCC/core pair then both
+pass, without skips:287 accepted receipts,286 complete captures,128 retained
+peak, two bound native cuts, two host native-all cuts and one Commit/Release.
+No peer removal occurs. Scene capture consumes68,374.7 ms wall /67,094.5 ms
+thread CPU over286 samples, about98.27% of measured capture cost; this is not
+the share of the entire141,340-ms runtime interval or a per-material profile.
+The maximum input gap remains596.92 ms and does not qualify500 ms. **M05**
+remains open for sustained catch-up, memory and input timing; the two earlier
+red phases retain their original results. The next bounded experiment may
+reduce schema comparison overhead while preserving every field/payload check.
+See the [actual repaired cohort and limits](../../.local/mcc-history-cost-20261020/normal/02-hs-registry-owner-fix/qualifier-terminal-summary.md).
+
+The fresh schema experiment is now retained after independent review, matched
+expanded component controls against both baseline and candidate, and a passing
+unchanged native/core pair. It specializes encode/compare dispatch and uses
+bounded raw unsigned scalar comparisons; the complete named schema walk and
+first-mismatch scanner remain. The actual MCC run reaches299 accepted receipts,
+298 captures,128 peak and two bound cuts, with one host Commit/Release and no
+peer drop. Longest local input-submission gap538.508 ms still exceeds500 ms.
+Mean scene thread CPU is209.21 ms/sample versus234.60 in the repaired baseline,
+but graph/value histories differ and total native test time grows151.32 to
+158.82 seconds; no controlled or overall speedup is claimed. The first-frame
+setup interval also grows43.62 to51.02 seconds. **M05** remains open. Next
+work must address sustained catch-up, remaining input stalls and memory with
+the same complete-history gates, then resume the complete **M02** borrower and
+all-survivor adoption checks. The owned build is closed and cleanup independently
+verified:37,454 files /1,281,326,066 logical bytes /1,384,538,112 allocated-byte
+sum removed, all ten recorded process identities absent and helper retired.
+No large artifact is retained; original/reference inputs and launcher runtimes
+are preserved. Small actual results/source patches remain under the
+[M05 investigation](../../.local/mcc-history-cost-20261020/README.md).
+The final ROOT audit separately records later concurrent world-memory/fallback
+constructor additions. They preserve this repair but were not admitted to this
+frozen cohort; no whole-current-ROOT or delivered-runtime acceptance is claimed.
+
+Next **M05** memory milestone, 2026-10-20: a managed controlled1024-root public
+material-history probe measures33,860,448 requested live new/delete bytes across
+128 owning cuts; zero-history storage stays constant and full retirement
+returns to zero. The same baseline genuinely exceeds a24-MiB fixture-local
+comparison gate. This excludes allocator overhead, malloc-only storage,
+native/GPU/assets and extra distinct handoff/prepared owners; it is not a
+whole-runtime bound. A private immutable-topology candidate now preserves all
+fresh schema/DFS/alias/owner checks and full inherited per-cut charging.
+The byte-identical probe now passes against that candidate: retained allocation
+falls to5,781,544 bytes, down82.9254%, with all restore/alias/COW/retirement
+controls passing, zero additional commit allocation and final retirement zero.
+Single-cut allocation increases32,800 bytes and zero-history steady storage is
+unchanged; this does not establish a whole-runtime memory bound or speedup.
+Both managed memory owners, scratch and obsolete helpers are removed with
+small source/hash/result/cleanup records retained. Expanded128-cut/real-COW/
+control-block/null-alias/retirement controls are added to the permanent fixture
+and their source syntax passes. The expanded fixture now passes against both
+baseline and candidate, and the genuine selected-MCC native pair passes with
+348 complete captures,128 retained peak and two bound native cuts. One common
+Commit/Release completes; no runtime/host error occurs. The actual binaries
+were verified to recompile the changed source after an identified incremental
+timestamp error; both earlier startup failures retain their real outcomes.
+Native test time is156.41s versus162.87s for the repaired baseline, but graph
+histories/capture counts differ, so no controlled timing improvement is claimed.
+Maximum local input gap547.229ms remains above500ms. Per-cut unique accounting
+increases to25,280,664 peak bytes as designed; that statistic does not measure
+the complete historical allocation union. Default migration and complete
+readiness remain disabled; **M05/M02** stay open. See the
+[active memory investigation](../../.local/mcc-topology-sharing-20261020/README.md).
+
+The [owned cleanup](../../.local/mcc-topology-sharing-20261020/native/normal-retry1/cleanup.json)
+is now complete: source/build/scratch and all12 recorded process identities
+are absent, independently checked by ROOT. The obsolete qualifier is retired
+after exact reconstruction verification. Removed allocated-file-byte sum is
+1,407,197,184 bytes; filesystem free-space change is recorded separately amid
+concurrent work. No large artifact is retained. Original/imported assets,
+reference evidence, installed runtimes and79 unrelated ROOT drifts remain
+preserved. This does not close the whole-goal D06 or any migration requirement.
+
+MCC-only prompt milestone, 2026-10-20: normal frontend and gameplay HUD prompts
+now use the authenticated native MCC font atlas, pixels, metrics and UVs.
+Fresh import, cache reuse and package staging no longer require or select the
+separately authored prompt overlay; existing cache/reference artwork is preserved.
+82 focused import/reuse/package controls and seven actual-MCC font-owner
+controls pass without skips. The latter is registered as
+`native_mcc_prompt_font_owner` when an MCC test cache is supplied. The frozen
+native phase-2 binary also passes the actual HUD constructor control for
+12 selectors, 331 visible bindings and 224 colored draws, with unchanged native
+source geometry, no authored-bank dependency and foreign font rejection.
+These are CPU/source-closure checks, not submitted-screen or fresh portable
+release acceptance. Existing overlay-based screenshots cannot establish parity
+for the changed native glyphs. See the [prompt source handoff](../../.local/mcc-prepared-snapshot-20261020/native-prompts-handoff.md).
+**U01/U02/D01** remain open: qualify the new glyphs in actual widescreen screens,
+finish MCC-derived material/shader and movie ownership, and verify a fresh
+MCC-only package and both delivered launchers. Vista and Xbox TU1.5 remain
+reference inputs only throughout this work.
+This qualification owner and its one-off helper are now closed and retired;
+all generated source/build/scratch and recorded process identities were verified
+absent. No binary, raw media or capture was retained. The [cleanup receipt](../../.local/mcc-prepared-snapshot-20261020/normal/closure.md)
+records 1,355,874,304 removed allocated bytes separately from free-space gain.
+
+Earlier selected-MCC route milestone, 2026-10-20: the explicit selected-MCC native
+continuation route is implemented and exercised with no external gameplay
+executable. In the [new source cohort](../../.local/scene-receipt-integration-20261020-retry-15/closure.md),
+four of five actual checks pass; native continuation remains red. It renders
+57 frames and retains 33 complete scene/HUD receipts, but offers/binds no native
+cut and loses the peer before first input. Publication rejects missing pinned
+melee resources; the host separately reports unavailable native runtime backing
+at `0x51daed`. Their causal relationship is unproved. **M02** now prioritizes
+genuine MCC-bound native/melee ownership before publication/adoption; **M05**
+also retains the measured startup/input stalls. Source/readiness/history gates
+remain unchanged. MCC format/compiled-native selection does not close the
+whole-payload provenance blockers in **D01**. All generated private builds and
+superseded helpers were removed. M01 remains the only checked full-goal item.
+The [native-owner audit](../../.local/selected-mcc-online-history-20261020/native-owner-gaps.md)
+separates the current MCC melee-resource seam from native mutable backing;
+the latter is missing port-owned runtime state, not a new Xbox asset requirement.
+That audit predates the real-consumer byte/resource repairs above; complete
+world ownership remains unqualified. Later concurrent source changes are
+explicitly distinguished from each frozen result.
+
+Earlier **M02** integration milestones prepare world-borrower adoption using the
 qualified owning receipt, runtime/event frontier and deferred-cue history.
 Passive particle/model-light resource admission before renderer startup is now
 qualified. Exact surviving-client decoded/scene/device/prop/collision rollback
@@ -70,6 +960,77 @@ rendered tests, a nonempty Backwash residency control and ten GCC checks pass;
 this remains private preparation without live migration or full readiness.
 M02 remains unchecked; retaining resources and adoption inputs does not adopt
 the runtime.
+Exact local scenery, machine and prop checkpoints are now qualified as the
+next M02 prerequisite: nine unskipped component/native/rendered checks pass
+against the frozen source cohort, with private build/scratch removal verified.
+They preserve completed posed geometry, lifetime/LOD/light caches, actual PRT
+links and retained native prop views without cold reconstruction. The current
+step connects all six scene adapters, actual callback/portal/light values and
+the owning material graph to the authenticated receipt frontier. The reviewed
+ONLINE admission ordering now finishes resident setup before real
+all-seat admission while preserving authentic receipt/view/radar/camera bindings
+and ONLINE-only operating clocks. The stage-timed diagnostic cohort passes all
+15 registered checks and 18 target-configured GCC syntax checks against native
+build `6f7eac6fd742`. It retains 367 complete scene receipts, the full 128-entry
+history and two validated native cuts, with 35 submitted frames. These are
+private diagnostic results, not live migration or final uninstrumented
+acceptance. The old fixture did not record the completion-request timestamp,
+so its later observed peer departure cannot yet be classified as a live loss
+or normal teardown. The fixture now records that real boundary and rejects
+peer loss before its successful completion request.
+
+The diagnostic identifies static material-schema comparison as roughly
+75–80% of capture cost; complete material captures take roughly 0.27–0.48
+seconds each and batches still impede actual input/render cadence. Sustainable
+performance and whole-history memory remain M05 work. All capture coverage,
+proofs, timeouts, payload caps, 128-entry retention, 256-capture/two-cut gates
+and the 180-second fixture deadline remain unchanged. Temporary timing has
+been removed. The next uninstrumented source cohort passes 18 of 19 checks and
+all 22 GCC
+syntax checks against native build `6c9ed551007c`. All three explicit MCC-only
+clan, party and matchmaking HTTP cases pass. Authored material record-array
+controls also pass, including 58 byte/count/COW/tamper mutations. The rendered
+client stays connected, retains 565 complete scene/HUD receipts at the full
+128-entry history and submits 52 frames, but binds only one of the required
+two recovery cuts before the unchanged deadline. The host validates six native
+cuts. First input arrives at 2.04 seconds; the largest observed send gap is
+4.46 seconds, with no peer loss. This is a real remaining cut-association/
+throughput failure; combined acceptance remains red. Its exact proof, history
+and timeout gates are preserved while diagnosis continues.
+
+The following metadata-only diagnostic cohort, `59e4ccc35b8a`, passes all 21
+required CTests and 24 GCC syntax checks. The reference-asset rendered fixture
+retains 429 scene/HUD receipts and binds two exact cuts, but only one completes
+release before return. It drops 71,306 incoming gameplay fragments at the
+unchanged 512-packet queue. Three other native cuts have no accepted exact
+gameplay body and abort; both successful cuts match the complete body digest,
+extent, sequence, reservation and native proof. This identifies real queue
+pressure without establishing why the earlier untraced run differed. Maximum
+input send gap remains 3.69 seconds; reliable performance/migration stays open.
+This fixture uses legacy reference inputs, so it cannot qualify the delivered
+MCC-only native runtime. See the
+[diagnostic findings](../../.local/cut-association-analysis-20261020/cohort13-findings.md)
+and [21-test receipt](../../.local/scene-receipt-integration-20261020-retry-13/qualification.json).
+Temporary tracing has been removed with exact scoped patches, preserving the
+concurrent runtime changes. The private 2,052,970,305-byte source/build/scratch
+tree and its processes are gone; only bounded reports and three explicitly
+retained UI reference sheets remain. No runtime was installed, no full-owner
+readiness was advertised, and migration stays disabled by default.
+
+A camera audit confirms TU1.5 display clients consume actual player-host-produced
+camera data, already retained by the per-peer host camera continuation. The
+extra older-path camera adapter continuation has been retired and does not
+qualify TU1.5 migration. Complete CPU HUD/scoreboard retention and private
+preparation are integrated; GPU uploads, physical input/playing audio, the
+complete owner transaction and live migration remain open.
+See the
+[diagnosis](../../.local/scene-receipt-integration-20261020/fixture-observation-repair.md).
+This work remains private preparation, without live adoption or complete
+readiness; see the
+[earlier untraced 18/19 cohort receipt](../../.local/scene-receipt-integration-20261020-retry-12/qualification.json)
+and [remaining owners](../../.local/scene-receipt-integration-20261020/remaining-owners.md).
+See the [scene qualification](../../.local/scene-checkpoints-20261019/qualification.json)
+and [remaining owners](../../.local/scene-checkpoints-20261019/remaining-owners.md).
 **M01** is checked below with its dated GPU/native evidence and verified cleanup. Next
 dependencies remain **M03–M06**, presentation/input/audio continuity, bounded
 retention and all-survivor readiness, followed by **M07**, the actual windowed
@@ -133,16 +1094,117 @@ post-decision takeover staging cannot establish pre-election or all-survivor Rea
   [foreground preparation receipt](../../.local/foreground-receipt-adoption-20261019/verification.json).
   Full live adoption, pre-election/all-survivor readiness, delivery and physical/
   WAN validation remain open; this does not check M02 or enable migration.
+  Further prerequisite qualified 2026-10-20: actual scene checkpoint/prepare/
+  restore APIs preserve scenery, machine and prop poses, salted lifetimes,
+  four-view caches, lighting/PRT banks and native prop section/submission state.
+  Nine unskipped CTests pass against frozen native build `b55dbf868052`;
+  cancellation, stale/foreign/executor/reentrant controls and normal lighting
+  COW pass. The private build/scratch and one-off qualifier were removed;
+  see the [scene qualification](../../.local/scene-checkpoints-20261019/qualification.json).
+  Callback/material graph ownership, receipt integration and the other scene
+  owners remain required; this does not establish complete scene readiness.
+  Source integration candidate, 2026-10-20: the existing exact locomotion
+  group is now connected from the owning cache through all16 runtime slots
+  and their four metadata arrays into authentic receipt history and private
+  foreground preparation/readiness. All writers invalidate preparation, and
+  historical replacement/clear tokens retain outgoing adapters. The
+  [eight-file candidate](../../.local/mcc-locomotion-runtime-20261021/handoff.md)
+  initially passed managed generic compiler syntax only; the fresh native
+  qualification below supersedes that syntax-only boundary. The windowed fixture observes
+  real occupied/unavailable slots without inventing an occupied gait. Its
+  separate full-group suffix driver initially used explicit offline reference
+  inputs; those reference results do not qualify the MCC runtime. This candidate does not publish
+  or activate a partial handoff; camera, GPU images, physical input and playing
+  audio remain required before complete adoption/readiness.
+  MCC component route, 2026-10-21: the
+  [explicit MCC receipt/group driver](../../.local/mcc-locomotion-runtime-20261021/mcc-route/handoff.md)
+  now uses the same genuine native checkpoint/host continuation/received-origin
+  proofs and complete scene/HUD/pose/group fixtures without an external XBE.
+  Explicit malformed, missing or non-MCC requests fail before world creation;
+  the separate old reference invocation remains labeled. Source/independent
+  reviews and managed syntax pass, with their scratch removed. The new
+  [three-target/four-test native cohort](../../.local/mcc-online-m02-20261021/native/normal/01-current-mcc-gait-and-fullgroup/actual-result.json)
+  now passes all four selected tests without skips; closed owner21732 was not
+  reused. The group fixture covers all16 metadata slots with three
+  occupied authored CPU adapters, including dormant ownership and a420-tick
+  witness suffix; it does not assert16 active players. The windowed run observes
+  eight occupied native gaits,324 proof-bound captures and unavailable mask0.
+  Its505.523ms maximum frame wall still fails the500ms parent gate. No M02 checkoff,
+  aggregate Ready, live activation or full timing/memory acceptance follows.
+  Remaining closure groups: complete camera/GPU/material/resource borrowers;
+  all four local seats and retained/released physical inputs; paired playing
+  audio and its actual announcer/script/damage owners (M04); and one complete,
+  validated foreground transaction over those owners. Existing focused CPU
+  world/scene/HUD/pose/locomotion evidence does not close these integration
+  groups. M05 timing/memory, M06 survivor readiness and M07 live activation
+  remain separate subsequent acceptance gates.
 - [ ] **M03 — Presentation continuity.** Complete exact scene/model/first-person,
   camera, pose, lighting, HUD, culling and active-effect history adoption.
   Verify active gameplay across the handoff; cold reset component controls
   alone do not establish continuity.
+  CPU component milestone, 2026-10-20: actual authored HUD/scoreboard history
+  passes 827 checks and 50 guard controls over 240 complete 1–4-seat 4:3 and
+  widescreen output streams, Spartan/Elite and FFA/team. Native build
+  `fabf113f7aa5` and all six component owner hashes are recorded in the
+  [13/14 cohort receipt](../../.local/scene-receipt-integration-20261020-retry-10/qualification.json).
+  The later stage-timed diagnostic passes 15/15 checks, including the complete
+  authored HUD registry and locomotion components; final uninstrumented runtime
+  integration remains incomplete after the next 18/19 cohort: exact CPU HUD
+  capture succeeds, while rendered recovery binds only one required cut.
+  The MCC-artwork variant was
+  unregistered because its optional input pack is absent; this establishes no
+  MCC UI, GPU-image, complete registry/runtime or migration acceptance.
 - [ ] **M04 — Input and playing audio.** Adopt all four local seats/controllers,
   retained/released inputs, pending and already-playing game sounds and voice
   device ownership without stale-generation playback or duplicated actions.
+  The [playing-audio readiness review](../../.local/mcc-playing-audio-adoption-20261021/readiness.md)
+  identifies the real paired MultiplayerAudio/SDL stream owner, active packet
+  cursors, fades/RNG and callback/script epochs. Its next transaction must hold
+  callback exclusion through aggregate preflight/publication and retain displaced
+  PCM/callbacks until after locks. Existing pending-cue snapshots and teardown
+  APIs do not provide this continuity. Voice retains its separate generation
+  fence and direct peer transport; microphone/codec queues must not be rewound.
+  The [held-platform design](../../.local/mcc-playing-audio-adoption-20261021/platform-transaction-design.md)
+  and [independent source review](../../.local/mcc-playing-audio-adoption-20261021/platform-transaction-independent-review.md)
+  distinguish the monotonic physical device clock from restorable elapsed/fade
+  and pause-aware presentation clocks. Epoch-bound mutations/completions, held
+  preparation lifetime and paired Audio/script retirement remain mandatory;
+  platform-only restoration cannot qualify aggregate readiness. The subsequent
+  [held SDL implementation and qualification](../../.local/mcc-playing-audio-adoption-20261021/platform-implementation/validation-final.md)
+  passes seven normal cases and six ASan/UBSan cases without skips on the exact
+  reviewed four source pins. Genuine retained CTest logs, compiler/link flags,
+  source comparisons and both verified cleanup receipts are recorded in the
+  [result identities](../../.local/mcc-playing-audio-adoption-20261021/platform-implementation/validation-final.json).
+  A subsequent [independent final audit](../../.local/mcc-playing-audio-adoption-20261021/platform-implementation/final-audit.json)
+  rechecks the four current source identities, actual test logs and sanitizer
+  flags, absent scratch parents and all13 recorded process identities. No owned
+  path reference is found in readable procfs; permission-denied unrelated
+  process surfaces and the lack of historical full descendant/group inventory
+  limit that observation to the documented scope.
+  Prepared target receipts are unusable before their exact publication and
+  cannot revive canceled or sibling preparations. Publication performs no
+  allocation, callback or PCM retirement under the held device lock; logical
+  elapsed/presentation clocks restore while the physical device clock does not.
+  Actual dummy-device callbacks and the real legacy producer compatibility
+  route are covered; physical audibility and MCC media provenance are not.
+  Complete paired Core/script/damage/class envelopes, strong cache/resource
+  ownership, single-owner RNG restoration and the actual separate MCC announcer
+  transaction remain required. Four-seat physical input and aggregate runtime
+  adoption remain open. No migration or runtime installation is enabled.
 - [ ] **M05 — Sustainable validated cuts.** Qualify bounded history/checkpoint
   memory and sustained transfer/replay catch-up under live gameplay; retain the
   exact matching native/presentation cut without unbounded backlog or memory.
+  Source-bound union review, 2026-10-20: the
+  [retained-owner audit](../../.local/mcc-memory-admission-20261020/handoff.md)
+  identifies uncapped writable material preparation, capture staging before
+  eviction, independently retained native exports/replacements, live PCM and
+  resource growth. Shared committed/pending/candidate/reservation handles must
+  count each actual backing once. The next memory seam is lifetime-bound
+  admission through complete receipt capture/remember and the single aggregate
+  preparation, including outgoing owners until their actual final retirement.
+  Pending locomotion history adds its value snapshots and shared resource-bank
+  lifetimes to this union. This is source evidence and an implementation
+  dependency, not measured whole-runtime memory or a passing budget gate.
 - [ ] **M06 — All-survivor readiness.** Advertise only actual complete native,
   presentation, input and audio readiness; agree membership/cut/epoch before
   promotion, preserve retry/cancellation, and reject stale or incomplete owners.
@@ -236,27 +1298,97 @@ post-decision takeover staging cannot establish pre-election or all-survivor Rea
   and retained audit/history with real users. Original clan-rank policy/artwork
   also requires P05 and U03.
 
-### U — Vista ONLINE and clan UI
+### U — MCC-imported ONLINE and clan UI
 
 - [ ] **U01 — Asset and privacy audit.** Verify every ONLINE/clan screen uses
-  the high-resolution Vista UI fonts/bitmaps available in MCC, extracted through
-  the MCC-only asset pipeline with source provenance, `ONLINE` capitalization,
+  high-resolution fonts/bitmaps imported from MCC, with Vista used only as the
+  UI reference. Require the MCC-only asset pipeline with source provenance,
+  `ONLINE` capitalization,
   hidden account IDs and chosen screen names, without the obstructing title logo.
-  Complete the MCC catalogue's missing runtime sampling pack and widget/locale/
-  menu-source metadata admission, then connect ONLINE/clan selection to that
-  MCC-owned bank; the existing painter's older Vista-root selection does not
-  satisfy this gate.
+  This covers Quickmatch, Optimatch, playlists, parties, friends/invites, the
+  server browser, every clan screen and post-carnage reports. Each screen must
+  resolve its authored images, fonts and layout data from the prepared MCC owner
+  used by onboarding and the release.
+  Qualify the current direct MCC v13 widget/locale/identifier and shared-MCC-bank
+  ONLINE/clan route against a fresh private MCC import. Verify every required
+  bitmap/font and any optional sampling manifest belongs to that same import;
+  catalogue generation alone does not qualify runtime selection. Legacy Vista
+  roots and sidecar importers do not satisfy MCC-only fresh-install or release
+  acceptance.
   Check the actual MCC inventory for every required bank and keep missing or
   changed resources explicit; do not silently require a separate Vista donor.
-  The [bounded wiring audit](../../.local/runtime-receipt-frontier-20261019/mcc-ui-wiring.md)
-  records the current catalogue/metadata/painter gaps; it is not visual acceptance.
+  The [current source audit](../../.local/scene-receipt-integration-20261020/mcc-ui-checklist-audit.md)
+  records the newer direct route and remaining delivery checks; the
+  [earlier wiring audit](../../.local/runtime-receipt-frontier-20261019/mcc-ui-wiring.md)
+  describes its older source cohort. Neither is visual acceptance.
+  Partial inventory evidence, 2026-10-20: all 563 prepared menu images and 40
+  fonts match their recorded hashes; required ONLINE banks and clan menu/panel
+  owners are present. The [MCC inventory audit](../../.local/scene-receipt-integration-20261020/mcc-ui-inventory.md)
+  records the missing fourth dedicated-server icon comparison state explicitly;
+  the current browser skips that widget and does not request that state.
+  Partial native evidence, 2026-10-20: all three explicit MCC-only clan, party
+  and matchmaking HTTP cases pass against native build `6c9ed551007c` from the
+  [18/19 source cohort](../../.local/scene-receipt-integration-20261020-retry-12/qualification.json).
+  They use the complete private cache and its independently verified converted
+  layout; the supported native layout fallback remains outside this test route.
+  These synthetic loopback service/CPU checks do not establish real account or
+  invitation delivery, GPU pixels, fresh raw extraction or widescreen acceptance.
+  Their MCC case names identify the selected menu-data owner; they do not
+  establish complete runtime payload provenance. The legacy material/loading
+  payload dependencies recorded under D01 remain release blockers.
+  Fresh-import, submitted-screen and release checks remain required before
+  checking U01.
+  Further partial evidence, 2026-10-20: clan, party and social Vulkan cases pass
+  on the RTX 5080 using the selected MCC menu cache; all 54 images across six
+  scenes and nine aspect ratios are represented in the reviewed contact sheets.
+  They cover long/scrolled names, 100 clan members, a full 16-member party and
+  invitation options, with no observed panel overflow or obstructing title logo.
+  See the [visual review and limits](../../.local/scene-receipt-integration-20261020-retry-13/visual-review.md).
+  These synthetic records and existing-cache captures do not close fresh import,
+  complete payload provenance, actual delivered native/launcher or live social
+  acceptance. U01/U02/U03/D01 remain unchecked.
+  Native-font prerequisite, 2026-10-20: normal MCC frontend/HUD prompt selection
+  now uses authenticated native MCC glyphs without the separately authored
+  overlay. The actual native CPU control passes all331 visible bindings and
+  source geometry/UV checks. Import/reuse/package and registered MCC font-owner
+  controls pass; see the [source and qualification limits](../../.local/mcc-prepared-snapshot-20261020/README.md).
+  Changed native glyphs require new submitted-screen/widescreen acceptance;
+  prior overlay-based captures do not qualify their appearance.
+  Delivered-policy follow-up, 2026-10-20: authenticated older frontend proofs
+  could still select separately supplied prompt/movie/loading producers in
+  normal setup/reuse/package dispatch and could admit their runtime for launch.
+  The [MCC-only delivery correction](../../.local/mcc-delivered-presentation-20261020/handoff.md)
+  closes both routes with a required MCC-capable runtime update. Historical
+  proofs and original assets remain preserved; they are not upgraded. All128
+  focused setup, admission, reuse and packaging cases pass on source-stable
+  inputs, including exact-donor legacy refusal and reference-file preservation.
+  A separate stale package-fixture correction preserves its cleanup, output-race
+  and archive assertions. Generated scratch is removed; no binary is retained.
+  These synthetic controls do not qualify an installed runtime, a fresh full
+  MCC import, a relocated release or changed widescreen pixels. Genuine MCC
+  material/program ownership and movie-role delivery remain D01 dependencies.
 - [ ] **U02 — Widescreen and real dimensions.** Regress actual clan/party/menu/
   PCR geometry, long/scrolled rosters, hit targets and controller navigation at
   the supported aspect/scale matrix in the delivered build, using the
-  MCC-extracted Vista UI banks from U01; verify on screen.
-- [ ] **U03 — Remaining original rendering.** Finish source-supported Vista
-  matchmaking progress-ring materials/animation, PCR emblem shaders and original
-  clan-rank presentation within the real screen geometry.
+  MCC-imported UI banks from U01. Match the reference Vista panel dimensions
+  and anchors when fitting widescreen; verify the submitted screens.
+- [ ] **U03 — Remaining original rendering.** Finish matchmaking progress-ring
+  materials/animation, PCR emblem shaders and original clan-rank presentation
+  using MCC imports within the real screen geometry, with Vista/TU1.5 retained
+  only as the applicable visual/behavior references.
+  Partial MCC-owner evidence, 2026-10-20: both rank-icon sizes contain all 50
+  frames in the selected MCC cache; all 100 pages match its manifest. The actual
+  MCC `wigl` supplies 50 ranges, 0..48 individually and 49..127 in the final row.
+  See the [bounded clan-rank audit](../../.local/mcc-frame-liveness-20261020/u03-clan-rank-audit.md).
+  The authenticated catalog already supplies the selected clan's capped display
+  level; preserve its existing exclusion of raw rank and clan IDs. Correct
+  match/team presentation and native lobby/PCR rendering remain open; clan role
+  and a profile's maximum rank are not substitutes.
+  The [publication-owner follow-up](../../.local/mcc-frame-liveness-20261020/u03-publication-owner-followup.md)
+  now traces the selected clan stat into the original session/lobby rank field
+  and finds Xbox PCR's conditional publisher. The retained getter meaning and
+  TU1.5 operands remain unqualified. Preserve PC PCR's proven NONE producer and
+  raw-rank privacy; no rank renderer or U03 acceptance is claimed.
 
 ### P — Playlists, modes and competitive rules
 
@@ -312,8 +1444,55 @@ post-decision takeover staging cannot establish pre-election or all-survivor Rea
 - [ ] **D01 — Coherent release build.** Build a consistent source/dependency
   cohort and run focused regressions for affected paths; package authored
   variants, official SDK dependencies and required notices. Verify fresh MCC-only
-  onboarding supplies all required ONLINE/clan UI assets without a Vista install
-  or historical donor registry; preserve installed MCC files and source manifests.
+  onboarding supplies all required runtime assets, including gameplay/audio and
+  ONLINE/clan UI, without Vista/Xbox installs, executables, extracted caches or
+  historical donor registries. Preserve installed MCC files and source manifests;
+  keep offline Vista/TU1.5 reference inputs outside the release dependency path.
+  Provenance blockers found 2026-10-20 included the bundled original loading
+  tone and a retained native material library with original-map/XBE donor
+  provenance. The later V3 loading milestone above replaces the normal source
+  path with authenticated MCC audio and passes genuine native component checks;
+  its full-cache/package/launcher and physical playback gates remain open.
+  Native shader/material and bundled movie asset-source gates remain unresolved.
+  A strict movie-source candidate now omits the separate MP4 bank from normal
+  MCC import/reuse/package/runtime selection and passes84 Python controls plus
+  the native routing CTest. Its source mapping for Classic intro/credits/attract
+  remains unassigned; the MCC-only directive above requires actual source
+  ownership and playback qualification before delivery. This is not a
+  replacement movie bank or delivered release; see
+  the [candidate and limits](../../.local/mcc-movie-source-policy-20261020/README.md).
+  Copying a donor payload into an MCC cache does not make it MCC-derived.
+  Qualify the actual MCC-derived runtime owners before checking D01; see the
+  [fresh-import dependency audit](../../.local/mcc-online-ui-rendered-20261020/fresh-import-next.md).
+  The [loading-source audit](../../.local/mcc-runtime-provenance-20261020/loading-source.md)
+  authenticates an available MCC loading track without claiming original-tone
+  identity. The [material-source audit](../../.local/mcc-runtime-provenance-20261020/material-source.md)
+  distinguishes copied payloads from port implementation code. A bounded
+  [MCC HUD-family inventory](../../.local/mcc-material-owner-inventory-20261020/owner-seam.md)
+  confirms four complete programs in authentic MCC shared-map allocations;
+  their pass selection, state/remaps, shader semantics and direct renderer
+  adapter remain unqualified. No legacy bank is relabeled as MCC-derived.
+  Loading playback prerequisite qualified 2026-10-20: the new native stereo
+  owner passes its component, authenticated-MCC-track and original material
+  regressions in one frozen linked cohort, with no skips; see the
+  [three-test receipt](../../.local/mcc-material-callgrind-20261020/03-mcc-genuine-audio-corrected/cohort.json).
+  The real archive entry decodes to the pinned complete PCM hash, and the
+  owner preserves rate/channels, finite overshoot, one-shot EOF/restart/mute
+  and caller FP state. SDL dummy output is exercised; physical playback is
+  unverified. Full decoded one-shot playback is explicit native policy, not
+  evidence of MCC-authored segment/loop timing.
+  The subsequent [six-check cohort](../../.local/mcc-material-callgrind-20261020/08-mcc-v3-genuine-producer-and-bridge-corrected/cohort.json)
+  qualifies explicit V3 producer/verification APIs and strict V3-only idle
+  DesktopLoading admission against a privately generated genuine MCC bank.
+  All six registered checks run without skips; the old V2 case is separately
+  labelled reference evidence. No legacy tone is present in the new private
+  import root or bank. A found linked-parent traversal guard is repaired and
+  covered; the private-tree reference fixture now copies its own two known
+  reference files rather than weakening ownership checks. Normal preparation,
+  onboarding/provenance selection and package dependency activation were
+  subsequently changed to explicit V3 in the source milestone above. The
+  complete fresh import, delivered package/launcher, authored loading-interval
+  and physical-device acceptance remain open.
 - [ ] **D02 — Both launchers.** Install the qualified native runtime, verify
   each launcher's selected paths/hashes and retained asset banks, and repeat
   startup/login/ONLINE smoke checks. Document and resolve any remaining
@@ -326,7 +1505,7 @@ post-decision takeover staging cannot establish pre-election or all-survivor Rea
   PCR and requeue across independent consumer NATs. Record latency/loss/NAT and
   host-quality results separately from localhost and VPS probes.
 - [ ] **D05 — User-visible/hardware acceptance.** Verify rendered migration,
-  Vista/clan widescreen screens, real social/clan flows, physical controllers
+  MCC-imported ONLINE/clan widescreen screens, real social/clan flows, physical controllers
   and bidirectional headset voice in the qualified release. Keep unavailable
   required participation explicit and unchecked.
 - [ ] **D06 — Test-storage cleanup.** Use the required owned scratch lifecycle;
@@ -364,11 +1543,12 @@ reference inputs, frozen source or concurrent scratch were removed. Evidence:
 - **Xbox TU1.5 is the sole gameplay and networking parity target** (user confirmation,
   2026-10-14). Earlier-image decompiles are supporting evidence only where their
   correspondence to TU1.5 is established. TU1.1 construction/compatibility is
-  not an ONLINE completion requirement. The selected high-resolution Vista
-  ONLINE/clan UI assets remain the UI requirement, sourced from the installed
-  MCC asset set through the MCC-only import pipeline (user clarification,
-  2026-10-19). TU1.5 remains the behavior/reference target; users need only MCC
-  as the external game asset source.
+  not an ONLINE completion requirement. High-resolution ONLINE/clan images,
+  fonts and layout must be imported from MCC, matching Vista UI references,
+  through the MCC-only import pipeline (user clarification,
+  2026-10-19). TU1.5 remains the behavior/reference target, Vista the UI reference;
+  MCC imports are the only runtime asset path for all gameplay, audio and UI
+  (reaffirmed 2026-10-20). Neither reference game is a release prerequisite.
 - The master verifies identity, stores social/clan state, discovers servers,
   matches players, authenticates connection setup and accepts post-carnage
   reports after matches. It does not simulate or relay active match gameplay
@@ -390,7 +1570,7 @@ reference inputs, frozen source or concurrent scratch were removed. Evidence:
 |---|---|---|
 | Identity | Steam primary login; private account IDs and chosen Halo screen names; preserve existing Discord accounts/history through verified linking | Real Steam OpenID/account verification and the operator-controlled native frontend login/normal-browser confirmation passed on 2026-10-16; live linked social/gameplay acceptance remains open |
 | Native navigation | Quickmatch, Optimatch and Playlists launch real admitted online games; server browser joins community servers | Match launch exists; community server joining remains outstanding |
-| UI | ONLINE capitalization; high-resolution Vista UI assets/fonts sourced from MCC throughout ONLINE and clans; readable screens without the obstructing Halo 2 logo; correct real clan-screen dimensions and widescreen bounds | MCC-only resource catalogue exists, with runtime activation/sampling explicitly disabled; complete widget/locale/menu-source and sampling-pack admission, replace the painter's older Vista-root selection, then pass fresh-import/delivered widescreen checks without a separate Vista donor |
+| UI | ONLINE capitalization; high-resolution MCC-imported UI assets/fonts matched to Vista references throughout ONLINE and clans; readable screens without the obstructing Halo 2 logo; correct real clan-screen dimensions and widescreen bounds | Source now includes direct MCC v13 widget/locale/identifier and shared-bank selection. Qualify that route and all required images/fonts against fresh MCC-only onboarding and the delivered widescreen/native-clan screens; the optional sampling catalogue and legacy Vista donor paths do not establish acceptance |
 | Social | Complete Discord friends/presence, native invitations, accepted parties and correct launch/return behavior | Existing SDK/native flows require regression and remaining live checks |
 | Clans | Complete create/join/invite/manage/leave flows, matchmaking and original supported clan-rank presentation | Existing clan flows; remaining competitive/presentation coverage stays open |
 | Couch players | Up to four local players per PC can queue/play together against others; verified secondary accounts retain their own stats; guests retain local PCR rows but publish no personal stats | Eight-player/two-PC native fixture exercised; physical controllers and independent voice devices are separate gates |

@@ -3,7 +3,7 @@
 
 Loose-tag path strings are recorded as bytes with offsets, not decoded shader
 execution. Retail object/material links use the existing version-8 cache reader
-and the field offsets owned by src/model.cpp and src/model_selection.cpp.
+and the field offsets owned by src/rendering/models/model.cpp and src/model_selection.cpp.
 No material parameters, historical aliases, or runtime selection are inferred.
 """
 from __future__ import annotations

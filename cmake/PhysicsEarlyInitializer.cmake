@@ -1,6 +1,6 @@
 # Complete original early initializer, with real pool/main storage joins.
-target_sources(halo2_physics_world_runtime PRIVATE src/physics_early_initializer_runtime_generated.cpp)
-target_sources(halo2_systems PRIVATE src/physics_early_initializer_host.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/physics/physics_early_initializer_runtime_generated.cpp)
+target_sources(halo2_systems PRIVATE src/physics/physics_early_initializer_host.cpp)
 if(BUILD_TESTING)
     add_executable(physics_early_initializer_tests tests/physics_early_initializer_tests.cpp)
     target_link_libraries(physics_early_initializer_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json OpenSSL::Crypto)

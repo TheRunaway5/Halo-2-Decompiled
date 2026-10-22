@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'analysis/multiplayer/game-variants/king-damage-native-20261011'
 DEFAULT_BASE=OUT/'verify-20261011T213523.415365Z'
-OWNERS=('src/source_player_damage.cpp','src/damage_amount.cpp','src/source_king.cpp','src/multiplayer.cpp','src/simulation.cpp')
+OWNERS=('src/gameplay/units/source_player_damage.cpp','src/gameplay/units/damage_amount.cpp','src/gameplay/multiplayer/source_king.cpp','src/gameplay/multiplayer/multiplayer.cpp','src/gameplay/simulation.cpp')
 HEADERS=('include/halo2/source_player_damage.hpp','include/halo2/damage_amount.hpp','include/halo2/source_king.hpp','include/halo2/multiplayer.hpp','include/halo2/simulation.hpp')
 TARGETS=('player_damage_tests','king_runtime_tests','multiplayer_tests','prop_sandbox_tests','multiplayer_grenade_delivery_tests')
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -41,7 +41,7 @@ def main():
   entry=next(e for e in entries if Path(e['file'])==source/name);cmd=shlex.split(entry['command'])
   target=run/(name.replace('/','-')+('-asan'if sanitized else '')+'.o');cmd[cmd.index('-o')+1]=str(target)
   cmd=[str(overlay/name)if token==str(source/name)else token for token in cmd]
-  cmd.insert(1,'-I'+str(overlay/'include'))
+  cmd.insert(1,'-I'+str(overlay/'include'), '-I'+str(overlay/'src'))
   if sanitized:cmd.extend(['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer'])
   execute(('asan-'if sanitized else 'normal-')+name.replace('/','-'),cmd);return target
  def link_target(target,sanitized):
@@ -76,8 +76,8 @@ def main():
  for name in (*OWNERS,'tests/king_runtime_tests.cpp'):objects[name,True]=compile_one(name,True)
  execute('native-king-asan',[link_target('king_runtime_tests',True),xbe])
  kernel=run/'player_damage_tests_asan'
- execute('kernel-asan-build',['c++','-std=c++20','-O1','-g','-fno-fast-math','-ffp-contract=off','-fsanitize=address,undefined','-fno-omit-frame-pointer','-I'+str(overlay/'include'),'-I'+str(source/'include'),
-     overlay/'tests/player_damage_tests.cpp',*(overlay/name for name in ('src/source_player_damage.cpp','src/damage_amount.cpp','src/source_king.cpp')),'-o',kernel])
+ execute('kernel-asan-build',['c++','-std=c++20','-O1','-g','-fno-fast-math','-ffp-contract=off','-fsanitize=address,undefined','-fno-omit-frame-pointer','-I'+str(overlay/'include'), '-I'+str(overlay/'src'),'-I'+str(source/'include'), '-I'+str(source/'src'),
+     overlay/'tests/player_damage_tests.cpp',*(overlay/name for name in ('src/gameplay/units/source_player_damage.cpp','src/gameplay/units/damage_amount.cpp','src/gameplay/multiplayer/source_king.cpp')),'-o',kernel])
  execute('kernel-asan-test',[kernel,overlay/'tests/fixtures/king_trait_consumers_original.json']);binaries[str(kernel.relative_to(a.output.parent))]=sha(kernel)
  assert all(sha(base/name)==digest for name,digest in base_files.items())
  assert all(sha(source/name)==digest for name,digest in base_pins.items())

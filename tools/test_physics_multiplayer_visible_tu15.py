@@ -116,6 +116,18 @@ def inspect_mirror(args):
     raise RuntimeError("Mirror player has no mapped desktop window")
 
 
+def enforce_runtime_deadline(process, complete, seconds, expired):
+    if complete.wait(seconds) or process.poll() is not None:
+        return
+    expired.append(f"Native physics acceptance exceeded {seconds:g} seconds")
+    process.terminate()
+    try:
+        process.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait(timeout=10)
+
+
 def run(args, scenario):
     out = args.output / scenario
     out.mkdir(parents=True, exist_ok=False)
@@ -136,11 +148,15 @@ def run(args, scenario):
     mirror_errors = []
     mirror_error_observations = []
     mirror_stop = threading.Event()
+    timeout_errors = []
     if args.visible_mirror_display:
         mirror_checks.append(inspect_mirror(args))
     with (out / "runtime.log").open("w") as log:
         process = subprocess.Popen(command, cwd=ROOT, env=env, stdout=subprocess.PIPE,
                                    stderr=subprocess.STDOUT, text=True, bufsize=1)
+        deadline = threading.Thread(target=enforce_runtime_deadline,
+            args=(process, mirror_stop, args.timeout_seconds, timeout_errors), daemon=True)
+        deadline.start()
         def monitor_mirror():
             while not mirror_stop.wait(.5):
                 try:
@@ -186,6 +202,7 @@ def run(args, scenario):
             exit_code = process.wait(timeout=15)
         finally:
             mirror_stop.set()
+            deadline.join(timeout=15)
             if monitor is not None:
                 monitor.join(timeout=5)
             if process.poll() is None:
@@ -201,6 +218,7 @@ def run(args, scenario):
     runtime_after = digest(args.runtime)
     manifest = {"command": command, "exit_code": exit_code,
                 "elapsed_seconds": time.monotonic() - started,
+                "timeout_seconds": args.timeout_seconds, "timeout_errors": timeout_errors,
                 "runtime_sha256": runtime_executed,
                 "runtime_sha256_before": runtime_before, "runtime_sha256_after": runtime_after,
                 "runtime_stable": runtime_before == runtime_executed == runtime_after,
@@ -215,7 +233,7 @@ def run(args, scenario):
                 "map_sha256": digest(map_path), "map_sha256_before": map_before,
                 "map_stable": map_before == digest(map_path), "visible_x11_window": window,
                 "record_command": record_command, "record_exit_code": record.returncode if record else None}
-    if mirror_errors and exit_code == 0:
+    if (mirror_errors or timeout_errors) and exit_code == 0:
         manifest["native_exit_code"] = exit_code
         exit_code = manifest["exit_code"] = 1
     if not manifest["map_stable"] and exit_code == 0:
@@ -276,9 +294,20 @@ def main():
     parser.add_argument("--retain-video", action="store_true", help="Explicitly retain the unaltered recordings and selected frames with reports")
     parser.add_argument("--scenario", action="append", choices=["movement", "objects", "lift", "vehicle", "lan-movement", "lan-lift", "lan-vehicle", "lan-objects", "lan-campaign"])
     parser.add_argument("--record", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--timeout-seconds", type=float, default=180,
+                        help="Hard per-case native deadline; expiry is a failed result")
     parser.add_argument("--visible-mirror-display", help="Desktop displaying an unaltered live mirror when input is isolated")
     parser.add_argument("--mirror-process-info", type=Path, help="Owned live capture/player process metadata")
     args = parser.parse_args()
+    if not 0 < args.timeout_seconds < 86400:
+        parser.error("--timeout-seconds must be positive and less than one day")
+    if os.environ.get("HALO2_TU15_OBJECT_FIELD_TARGET"):
+        required = ("HALO2_TU15_PHANTOM_TRACE", "HALO2_TU15_PHANTOM_OBJECT_TRACE",
+                    "HALO2_TU15_LIFT_DEFINITION")
+        missing = [name for name in required if not os.environ.get(name)]
+        if missing:
+            parser.error("Object-field acceptance requires its actual field/member observations: "
+                         + ", ".join(missing))
     for name in ("runtime", "output", "mcc_root"):
         setattr(args, name, getattr(args, name).resolve())
     args.maps, args.cache_inputs = runtime_cache(args.mcc_root, args.maps)

@@ -66,7 +66,7 @@ def main():
     for name in tools:
         files['tools/' + name] = sha(ROOT / 'tools' / name)
     for name in ['docs/MP_UNIT_ZOOM_HUD_SOURCE_RESEARCH.md', 'include/halo2/unit_zoom.hpp',
-                 'src/unit_zoom.cpp', 'tests/unit_zoom_hud_tests.cpp']:
+                 'src/gameplay/units/unit_zoom.cpp', 'tests/unit_zoom_hud_tests.cpp']:
         files[name] = sha(ROOT / name)
 
     hud_fixtures = BASE / 'controls-measured/fixtures.tsv'

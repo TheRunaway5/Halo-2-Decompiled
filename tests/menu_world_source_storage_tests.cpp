@@ -1,4 +1,5 @@
 #include "halo2/menu_world_source_storage.hpp"
+#include "halo2/menu_world_triangle_storage.hpp"
 #include <algorithm>
 #include <atomic>
 #include <cstring>
@@ -256,6 +257,31 @@ int main(int argc,char **argv) {try {
         reloaded[0].resources[0].offset==retained.offset,"identical separately loaded source section was not shared");
     require(storage.store({}).empty(),"empty metadata submission retained previous draw tokens");
     require(gpu.readback(retained)==expected,"metadata refresh invalidated live immutable geometry buffer");
+    MenuWorldSourceStorage triangle_storage({gpu.device,gpu.physical,true});
+    const auto triangle_draws=triangle_storage.store(bindings);
+    unsigned rejected_triangle_metadata=0;
+    for(unsigned i=0;i<4;++i) {
+      const auto &draw=triangle_draws[i];const auto wire=menu_world_triangle_storage(draw);
+      require(wire.size()==64+draw.index_count,"triangle metadata lost source index count");
+      for(unsigned primitive=0;primitive<draw.source.draw().triangle_count();++primitive) {
+        const auto source=draw.source.draw().triangle(primitive);
+        for(unsigned lane=0;lane<3;++lane)require(wire[64+primitive*3+lane]==source[lane],"triangle metadata changed original corner/parity");
+      }
+      const auto actual=gpu.readback(draw.raw_storage);
+      for(unsigned resource=0;resource<draw.resources.size();++resource) {
+        const auto &slice=draw.resources[resource];const auto &expected=draw.source.draw().geometry->resources()[resource].bytes;
+        require(slice.offset<=actual.size()&&expected.size()<=actual.size()-slice.offset&&
+          std::equal(expected.begin(),expected.end(),actual.begin()+slice.offset),"triangle raw SSBO changed original resource bytes");
+      }
+      const auto reject=[&](auto change){auto invalid=draw;change(invalid);bool rejected=false;try{menu_world_triangle_storage(invalid);}catch(const FormatError&){rejected=true;}require(rejected,"triangle metadata admitted invalid resource bounds");++rejected_triangle_metadata;};
+      reject([](auto &d){d.raw_storage.buffer={};});
+      reject([](auto &d){--d.raw_storage.size;});
+      reject([](auto &d){d.index_count+=3;});
+      reject([](auto &d){d.resources[0].buffer={};});
+      reject([](auto &d){d.resources[0].offset=UINT32_MAX;});
+      reject([](auto &d){--d.resources[0].size;});
+    }
+    require(rejected_triangle_metadata==24,"triangle metadata rejection coverage incomplete");
     require(streams==12 && bytes==165660 && triangles==9315,"incomplete original geometry storage comparison");
     std::cout<<"4 original draws: "<<streams<<" raw streams / "<<bytes<<" bytes; "<<triangles
         <<" ordered triangles; 9 explicit range readbacks/empties and cache identities; "

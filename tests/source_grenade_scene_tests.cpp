@@ -4,7 +4,7 @@
 #include "halo2/content.hpp"
 #include "halo2/collision.hpp"
 #include "halo2/original_data.hpp"
-#include "../src/source_object_geometry.hpp"
+#include "../src/gameplay/objects/source_object_geometry.hpp"
 #include <algorithm>
 #include <bit>
 #include <cstring>

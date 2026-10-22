@@ -51,7 +51,9 @@ separate source-VM world does not implement these newly authored rulesets.
 
 Building `halo2_native` copies `data/tags` beside the executable and generates
 `releases/halo2-custom-slayer-v1.zip`. The repository also includes that portable
-release asset. It contains the two new JSON definitions and a SHA-256 manifest;
+release asset. The generated bundle now also includes the Assault-based
+[Bomb Defusal](BOMB_DEFUSAL.md) definition alongside these two Slayer definitions
+and a SHA-256 manifest;
 no map/model/texture/executable payload is included. Extract it beside the
 matching runtime, preserving the `data/tags/variants` paths. Rebuild/reverify:
 

@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="168" height="100" viewBox="0 0 42 25" version="1.1">
+  <title>Playstation l1: custom controller prompt</title>
+  <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+  <defs>
+    <linearGradient id="shoulder-rim" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="31">
+      <stop offset="0" stop-color="#4d7da8" />
+      <stop offset="1" stop-color="#497296" />
+    </linearGradient>
+    <linearGradient id="shoulder-face" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="15" y2="29">
+      <stop offset="0" stop-color="#588bbf" />
+      <stop offset="1" stop-color="#5080a8" />
+    </linearGradient>
+    <linearGradient id="label-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="0" y2="10">
+      <stop offset="0" stop-color="#335566" />
+      <stop offset="1" stop-color="#224455" />
+    </linearGradient>
+  </defs>
+  <g transform="scale(0.70000000 0.69444444)" id="shoulder-button">
+    <g id="body" transform="translate(0 0)">
+      <path id="outer-bevel" d="M5 13 C15 13 49 11.5 58.5 8 V27.8 H6 C1 27.8 1 25.5 1 21 C1 16 1.5 13 5 13 Z" fill="url(#shoulder-rim)" />
+      <path id="button-face" d="M5 14.5 H56.8 V25.6 H5 C3 25.6 2.7 24.7 2.7 21 V19 C2.7 16 3 14.5 5 14.5 Z" fill="url(#shoulder-face)" />
+    </g>
+    <g id="label" transform="translate(33 14.2) scale(1 .85)">
+      <g id="label-l1" transform="translate(0 0) scale(1)" fill="#263e55" fill-rule="evenodd">
+        <path d="M0 0 H1.5 V8.5 H6 V10 H0 Z" transform="translate(0.0 0)" />
+        <path d="M1 1.8 L3.5 0 H5 V8.5 H7 V10 H1 V8.5 H3.3 V2 L1.8 3 Z" transform="translate(8.5 0)" />
+      </g>
+    </g>
+  </g>
+</svg>

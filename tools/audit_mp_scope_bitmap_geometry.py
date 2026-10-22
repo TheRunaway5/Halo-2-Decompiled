@@ -11,7 +11,7 @@ from oracle_mp_scope_bitmap_geometry import sha
 BASE=ROOT/'analysis/multiplayer/integration/scope-bitmap-geometry'
 SOURCES=['tools/oracle_mp_scope_bitmap_geometry.py','tools/research_mp_scope_bitmap_updates.py',
          'tools/export_mp_scope_bitmap_fixtures.py','tools/audit_mp_scope_bitmap_geometry.py',
-         'include/halo2/hud_bitmap_geometry.hpp','src/hud_bitmap_geometry.cpp','tests/hud_bitmap_geometry_tests.cpp',
+         'include/halo2/hud_bitmap_geometry.hpp','src/ui/hud/hud_bitmap_geometry.cpp','tests/hud_bitmap_geometry_tests.cpp',
          'docs/MP_SCOPE_BITMAP_GEOMETRY_SOURCE_RESEARCH.md']
 
 def main():

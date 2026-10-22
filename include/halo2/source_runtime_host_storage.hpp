@@ -3,7 +3,7 @@
 #include "halo2/source_static_allocation.hpp"
 
 namespace halo2 {
-// Linux raw-storage adapter for the reached source kernel allocation request.
+// Native raw-storage adapter for the reached source kernel allocation request.
 // Native32-bit tokens identify owned SourceRuntimeMemory regions. They are
 // host address-space choices, not recovered Xbox addresses. Initial bytes
 // come from actual anonymous host mmap pages, without game-field writes.

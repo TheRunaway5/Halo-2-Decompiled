@@ -32,7 +32,7 @@ def main():
     assert frontier['diagnostic_completed'] and not frontier['full_native_call_returned']
     assert frontier['last_external_calls'][-1] == dict(instruction=0x129846, target=0x127b20, tail=False)
     assert not frontier['actual_resource_reads']
-    assert sha(ROOT / 'src/source_sound_cache_query_tu15_generated.cpp') == native['native_generated_source_sha256']
+    assert sha(ROOT / 'src/audio/source_sound_cache_query_tu15_generated.cpp') == native['native_generated_source_sha256']
     for report in (native, world):
         for path, pin in report['source_files_sha256'].items():
             assert sha(path) == pin, path
@@ -46,8 +46,8 @@ def main():
     assert prior_audit['publisher_scratch_removed_after_runner_exit']
     assert all(not Path(row['path']).exists() for row in prior_audit['scratch_checks'])
     now = datetime.datetime.now(datetime.timezone.utc).isoformat()
-    production = [ROOT / name for name in ('src/source_sound_cache_query_tu15_generated.cpp',
-        'include/halo2/source_sound_cache_query_tu15.hpp', 'src/physics_live_world_tu15.cpp',
+    production = [ROOT / name for name in ('src/audio/source_sound_cache_query_tu15_generated.cpp',
+        'include/halo2/source_sound_cache_query_tu15.hpp', 'src/physics/physics_live_world_tu15.cpp',
         'cmake/PhysicsLiveWorldTu15.cmake', 'tools/generate_sound_cache_query_tu15.py')]
     result = dict(passed=True, timestamp_utc=now, complete_original_metadata_predicate=0x1296e0,
         original_call_site=0x129833, original_full_cfg_instructions=27, native_query_fixtures=49,

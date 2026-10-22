@@ -26,7 +26,7 @@ def main():
     parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=False)
     source=args.output/'source';source.mkdir()
-    pending=[Path('src/sound_spatial.cpp'),Path('tests/live_sound_spatial_tests.cpp')];seen={}
+    pending=[Path('src/audio/sound_spatial.cpp'),Path('tests/live_sound_spatial_tests.cpp')];seen={}
     while pending:
         path=pending.pop()
         if str(path)in seen:continue
@@ -44,18 +44,18 @@ def main():
         assert (result.returncode==0)==(expect==0),(label,result.stdout,result.stderr)
         return result
     common=['c++','-std=c++20','-fno-fast-math','-ffp-contract=off','-frounding-math','-fno-associative-math',
-            '-Wall','-Wextra','-I'+str(source/'include'),str(source/'src/sound_spatial.cpp'),str(source/'tests/live_sound_spatial_tests.cpp')]
+            '-Wall','-Wextra','-I'+str(source/'include'), '-I'+str(source/'src'),str(source/'src/audio/sound_spatial.cpp'),str(source/'tests/live_sound_spatial_tests.cpp')]
     for kind,flags in [('normal',['-O2']),('sanitizers',['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer'])]:
         binary=args.output/f'live_sound_spatial_{kind}';run(common+flags+['-o',binary],f'{kind}-build')
         for label in ('actual','declared'):
             result=run([binary,args.output/f'{label}.tsv'],f'{kind}-{label}')
             print(result.stdout.strip())
     mutation=args.output/'inverse-transform-removed.cpp'
-    original=(source/'src/sound_spatial.cpp').read_text();needle='inverse_transform(listener+8,point);'
+    original=(source/'src/audio/sound_spatial.cpp').read_text();needle='inverse_transform(listener+8,point);'
     assert original.count(needle)==1
     mutation.write_text(original.replace(needle,'/* Deliberate isolated red control: no inverse transform. */'))
     binary=args.output/'spatial_red_control'
-    command=[str(mutation)if v==str(source/'src/sound_spatial.cpp')else v for v in common]
+    command=[str(mutation)if v==str(source/'src/audio/sound_spatial.cpp')else v for v in common]
     run(command+['-O2','-o',binary],'red-build')
     result=run([binary,args.output/'actual.tsv'],'red-actual',expect=1)
     assert 'Original spatial driver request differs'in result.stderr,result.stderr

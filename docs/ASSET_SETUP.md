@@ -1,9 +1,16 @@
 # MCC game-file setup
 
-Both launchers use **Halo MCC only**. Normal startup no longer reads Xbox or
-Vista source registries, supplies an Xbox executable, or repairs an old Vista
-loading bank. The original Xbox ISO and TU1.5 patch remain reference material
-for development and validation.
+Both launchers select the private MCC import; **MCC is the sole permitted
+runtime asset donor**. Normal startup no longer reads Xbox or Vista source
+registries, supplies an Xbox executable, or repairs an old Vista loading bank.
+The original Xbox ISO and TU1.5 patch remain reference material
+for development and validation. The user's October21 reaffirmation also
+supersedes earlier supplied-movie, custom prompt-atlas and original loading-tone
+exceptions. Preserve those files as references; they are not normal import,
+reuse, package or runtime dependencies.
+Retained original-donor native shader/program payloads remain a
+[D01 provenance blocker](../multiplayer/docs/online-completion-goal.md);
+selecting an MCC cache does not establish complete MCC-derived payload ownership.
 
 Run `./Halo2-Launcher`. First launch opens MCC setup and searches installed
 Steam libraries, including configured external libraries. Windows discovery
@@ -29,10 +36,13 @@ resources and map content. Programs and shader binaries/caches are excluded;
 existing port shaders are preserved. Separate external Workshop/mod folders
 are not automatically imported by this installation scan.
 
-New imports use only MCC loading resources and independently authored custom
-loading textures. The old executable-backed Vista loading images and ambience
-are excluded. Native reconstruction and audio for that loading presentation
-are still unfinished.
+Normal source preparation selects the authenticated MCC V3 loading bank,
+including decoded MCC audio and its MCC-derived bitmap/mask owners, and native
+MCC control-font glyphs. Old Vista loading banks, supplied tones and separate
+prompt atlases are not fallbacks. These source/component checks do not qualify
+a fresh complete import, delivered loading interval or physical playback; see
+[loading presentation](MCC_LOADING_PRESENTATION.md). Authentic MCC Classic
+intro/credits/attract roles remain unassigned and unavailable.
 
 Imports are staged, verified and published before `assets/mcc-source.tsv` is
 replaced atomically. Failed imports preserve the previous selection. Setup
@@ -41,10 +51,12 @@ inventory, directory tree, donor hashes, converted output hashes and installed
 source snapshot. It never mounts the live MCC installation as the runtime
 asset owner. Original files and earlier imports are preserved.
 
-**The cache can be prepared; MCC native gameplay is not yet playable.** Native
-world startup and complete Xbox TU1.5 gameplay-tag conversion remain
-unfinished. Play stays disabled while that blocker exists, including after
-an update. There is no automatic Xbox/Vista fallback. See
+**Preparing a cache does not qualify complete gameplay.** A separately admitted
+MCC frontend may enable title/menus, and a separately admitted native test may
+enable its bounded Lockout route. An invalid explicit frontend selection fails
+closed; updates do not bypass those checks. Full gameplay/parity, complete
+material/shader and movie ownership, and fresh package/launcher acceptance remain
+open. There is no automatic Xbox/Vista fallback. See
 [MCC gameplay conversion](MCC_GAMEPLAY_CONVERSION.md) for implementation and
 validation boundaries.
 
@@ -56,7 +68,8 @@ TU1.5 gameplay/visual behavior and the existing shaders.
 Historical reference import helpers remain available to developer audits.
 They are not normal onboarding inputs. The launcher rejects `--xbox-source`,
 `--vista-source`, `--gameplay-xbe`, `--menu-vista-settings`, and the old separate
-HUD/menu import switches. Use the MCC setup command above.
+HUD/menu import switches. Developer/reference native flags do not qualify a
+delivered route. Use the MCC setup command above.
 
 The setup and home windows require Python 3.11+ with Tk. They use hand-drawn
 Canvas geometry and system fonts. `python3 tools/setup_assets_ui.py` previews

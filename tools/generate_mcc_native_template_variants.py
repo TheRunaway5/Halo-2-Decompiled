@@ -74,7 +74,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--data", type=Path, default=ROOT / "tools/reference/mcc-native-template-variants.json")
-    parser.add_argument("--output", type=Path, default=ROOT / "src/mcc_native_template_variants.inc")
+    parser.add_argument("--output", type=Path, default=ROOT / "src/rendering/mcc_native_template_variants.inc")
     args = parser.parse_args()
     rendered = generate(args.data.read_bytes())
     if args.check:

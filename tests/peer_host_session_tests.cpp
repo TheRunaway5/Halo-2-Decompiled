@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <thread>
 
@@ -58,7 +59,10 @@ int main(int argc,char **argv)try{
     const auto drain=[&]{for(unsigned self=0;self<16;++self)if(auto &s=sessions[self]){
         std::vector<std::byte> bytes;unsigned from{};while(s->receive(bytes,from)){
             check(bytes.size()==8&&from==std::to_integer<unsigned>(bytes[7])&&bytes[6]==std::byte(self==host?1:3),"Direct gameplay changed source or role");++games[self];}
-        for(auto &packet:s->voice_packets()){check(!packet.preferences&&packet.peer==(self==host?packet.frame.source:host),"Direct voice changed authenticated route");++voices[self];
+        for(auto &packet:s->voice_packets()){check(!packet.preferences&&packet.peer==(self==host?packet.frame.source:host),"Direct voice changed authenticated route");
+            check(packet.frame.sequence!=0xff000100u&&packet.frame.sequence!=0xff000101u,"Delayed malicious voice reached ordinary delivery");
+            if(packet.frame.sequence==0xff000110u || packet.frame.sequence==0xff000111u)continue;
+            ++voices[self];
             if(audio[self]){old_received[self]=packet.frame;audio[self]->receive(std::move(packet.frame));}}}};
     const auto exercise=[&](auto duration){const auto until=std::chrono::steady_clock::now()+duration;
         while(std::chrono::steady_clock::now()<until){healthy();for(unsigned self=0;self<16;++self)if(auto &s=sessions[self]){
@@ -71,6 +75,39 @@ int main(int argc,char **argv)try{
             else{s->send(game(self,false),host);for(const auto &frame:captured)s->voice(host,frame);}}
             drain();std::this_thread::sleep_for(10ms);}drain();};
     stage="initial gameplay/voice";exercise(decoded_audio?1200ms:800ms);
+    // Real authenticated malicious-peer controls: do not infer rejection from
+    // an empty queue on an unreliable channel. Require the actual dispatch
+    // rejection counter AND delivery of a valid voice control for each case.
+    stage="authenticated voice rejection";
+    unsigned attacker=0;while(attacker==host || !sessions[attacker])++attacker;
+    if(decoded_audio)check(old_microphone[attacker].has_value(),"Real attacker capture baseline was not observed");
+    auto baseline=decoded_audio?*old_microphone[attacker]:GameVoiceFrame{attacker,0,false,{1,1},{0x60}};
+    for(unsigned attack=0;attack<2;++attack){
+        auto poison=baseline,control=baseline;poison.sequence=0xff000100u+attack;control.sequence=0xff000110u+attack;
+        if(attack==0)poison.source=host; // Claim a seat owned by another physical PC.
+        else poison.gains.left=std::numeric_limits<float>::infinity();
+        const auto before=sessions[host]->rejected_direct_dispatches();bool valid_received=false;
+        auto heartbeat=std::chrono::steady_clock::now();
+        wait([&]{
+            healthy();
+            if(std::chrono::steady_clock::now()>=heartbeat){
+                for(unsigned p=0;p<16;++p)if(p!=host&&sessions[p])sessions[host]->send(game(host,true),p);
+                heartbeat=std::chrono::steady_clock::now()+20ms;
+            }
+            sessions[attacker]->voice(host,poison);sessions[attacker]->voice(host,control);
+            for(auto &packet:sessions[host]->voice_packets()){
+                check(packet.frame.sequence!=poison.sequence,"Authenticated forged/malformed voice reached its consumer");
+                if(packet.frame.sequence==control.sequence){
+                    check(!packet.preferences&&packet.peer==attacker&&packet.frame.source==attacker,
+                        "Valid voice control lost its actual authenticated sender");valid_received=true;
+                }
+            }
+            return valid_received&&sessions[host]->rejected_direct_dispatches()>before;
+        },"Actual malicious voice rejection or healthy control was not observed");
+    }
+    // Retire only the synthetic high-sequence controls before ordinary audio
+    // resumes; they must not poison a real decoder's sequencing baseline.
+    std::this_thread::sleep_for(40ms);sessions[host]->voice_packets();
     Json history=Json::array();
     for(unsigned round=0;round<2;++round){stage="prepare handoff "+std::to_string(round+1);const auto before=*sessions[host]->authority_context();unsigned candidate=16;
         for(unsigned p=0;p<16;++p)if(sessions[p]&&p!=host){candidate=p;break;}
@@ -189,10 +226,11 @@ int main(int argc,char **argv)try{
         history.push_back({{"host",host},{"epoch",next.epoch},{"physical_members",next.peers},{"seats",4}});
     }
     Json result{{"handoffs",history},{"native_cut_and_role_completion","declared fixture"},{"game_counts",games},{"voice_packet_counts",voices},
-        {"master_gameplay_relay",false},{"audible_devices",false},{"decoded_synthetic_audio",decoded_audio},{"automatic_measured_host_choice",automatic},{"automatic_peer_proposals",true},{"native_commit_callback_guard",true},{"automatic_rendered_runtime",false}};
+        {"master_gameplay_relay",false},{"audible_devices",false},{"decoded_synthetic_audio",decoded_audio},{"automatic_measured_host_choice",automatic},{"automatic_peer_proposals",true},{"native_commit_callback_guard",true},{"automatic_rendered_runtime",false},{"authenticated_voice_rejection",true}};
     {std::ofstream out(std::filesystem::path(argv[2]).parent_path()/"result.json");out<<result.dump(2);}
     std::cout<<"PASS four actual native session workers: two host socket/signaling losses, direct majority decisions, native-completion barriers, preserved 16 original allocation identities, 16/12/8 couch seats and resumed gameplay/encoded voice packets\n";
     if(decoded_audio)std::cout<<"PASS real Opus/PCM through queued synthetic devices: in-flight playback holds native completion, retired old audio queues, late microphone/received-batch rejection, preserved voice preferences, resumed decoded stereo and retained device ownership across both host losses\n";
+    std::cout<<"PASS authenticated wrong-seat and non-finite voice rejection observed in dispatch, with healthy voice controls delivered\n";
     if(automatic)std::cout<<"PASS automatic ready-PC preference from reciprocal survivor measurements after predecessor telemetry expires across two host losses, then a sole physical survivor without invented speed/NAT metrics\n";
     std::cout<<"PASS session-worker election initiation and paced retries without any positive caller proposal\n";
     std::cout<<"PASS native commit admission/audio guards, refusal without epoch publication, one successful commit before publication and no repeated old-certificate commit\n";

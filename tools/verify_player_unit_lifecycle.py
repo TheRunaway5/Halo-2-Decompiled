@@ -131,7 +131,7 @@ def main():
     assert re.search(r'original_player_unit\s*\.+\s*Passed',ctest)
     assert 'Skipped'not in ctest and 'Failed'not in ctest
     binary=ROOT/'build/player_unit_tests';assert binary.stat().st_mtime_ns<=(OUT/'ctest.log').stat().st_mtime_ns
-    test_sources=('src/source_player_unit.cpp','include/halo2/source_player_unit.hpp','tests/player_unit_tests.cpp')
+    test_sources=('src/gameplay/units/source_player_unit.cpp','include/halo2/source_player_unit.hpp','tests/player_unit_tests.cpp')
     assert all((ROOT/p).stat().st_mtime_ns<=binary.stat().st_mtime_ns for p in test_sources)
     sanitizer=OUT/'player_unit_tests_asan';log=(OUT/'sanitizer.log').read_text()
     assert 'PASS 339 complete/partial original player-unit records'in log and '24 absent-service checks'in log

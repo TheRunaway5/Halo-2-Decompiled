@@ -1,5 +1,13 @@
 # Optional higher-resolution font sampling
 
+Asset policy, reaffirmed 2026-10-21: MCC imports are the sole runtime donor.
+The Xbox/Vista font pairs, flags and captures below document the earlier
+reference sampling route, not normal launcher inputs or current delivery
+acceptance. Normal MCC prompts use authenticated native MCC glyphs, pixels,
+metrics and geometry; separate Vista/custom overlays are not a fallback.
+Fresh screen/package/launcher qualification and complete shader/movie ownership
+remain open in the [current checklist](../multiplayer/docs/online-completion-goal.md).
+
 This mode changes sampled glyph pixels while retaining the Xbox font table,
 ascent, descent, leading, kerning, advances, bearings and logical ink rectangles.
 It does not reproduce Xbox raster pixels. The supplied PC distribution was
@@ -75,10 +83,11 @@ glyph.
 `FrontendPainter` loads the original eleven-role font table. When an optional
 UI pack includes `fonts/<original-name>`, it applies the separate sampled atlas
 before creating that font's existing material. Duplicate table roles retain
-their shared material. The installed launchers automatically select
-`assets/menu-ui/vista`; an explicit `--menu-ui-assets ""` restores original
-bitmap and font artwork. Five exact compiled source files and their SHA-256
-identities are installed with `font-provenance.json`.
+their shared material. In the October9 reference delivery, launchers selected
+`assets/menu-ui/vista`; its explicit `--menu-ui-assets ""` control restored
+original artwork. These are historical reference selections, not the current
+MCC-only launcher contract. Five exact compiled source files and their SHA-256
+identities were installed with that delivery's `font-provenance.json`.
 
 The final eighteen-control adapter passed twelve focused tests. Its actual
 source pairs provide1398 enlarged glyph rows. The painter comparison covers

@@ -94,9 +94,9 @@ def main():
     assert 0x3fc00000 in next(c for c in cases if c['species']=='elite')['original_explosion_scale_words']
     checks=[dict(path=p,removed=not Path(p).exists())for p in sorted(scratch)]
     assert all(r['removed']for r in checks)
-    source_files=['src/multiplayer.cpp','include/halo2/multiplayer.hpp','src/multiplayer_network.cpp',
+    source_files=['src/gameplay/multiplayer/multiplayer.cpp','include/halo2/multiplayer.hpp','src/network/multiplayer_network.cpp',
         'include/halo2/multiplayer_network.hpp','include/halo2/multiplayer_datagrams.hpp',
-        'src/multiplayer_presentation.cpp','src/multiplayer_runtime.cpp','tests/native_weapon_runtime_tests.cpp',
+        'src/gameplay/multiplayer/multiplayer_presentation.cpp','src/gameplay/multiplayer/multiplayer_runtime.cpp','tests/native_weapon_runtime_tests.cpp',
         'tests/source_scene_physics_tests.cpp','tools/validate_weapon_material_snapshot_tu15.py']
     pins=load(final_folder+'/source-manifest.json')['source_files_sha256']
     current={n:sha(ROOT/n)for n in source_files}

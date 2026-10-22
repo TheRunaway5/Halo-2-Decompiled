@@ -25,7 +25,7 @@ def main():
  assert sha(E/'correspondence-repeat/complete-report.json')==sha(paired)
  generated=E/'generated-manifest-v2.json';g=json.loads(generated.read_text())
  assert g['correspondence_sha256']==sha(paired) and g['generator_sha256']==sha(ROOT/'tools/generate_physics_contact_runtime_20261011.py')
- assert g['generated_cpp_sha256']==sha(ROOT/'src/physics_contact_runtime_generated.cpp')==sha(E/'generated-repeat/runtime.cpp')
+ assert g['generated_cpp_sha256']==sha(ROOT/'src/physics/runtime/physics_contact_runtime_generated.cpp')==sha(E/'generated-repeat/runtime.cpp')
  assert sha(generated)==sha(E/'generated-repeat/manifest.json')
  assert len(g['complete_native_entries'])==70 and len(g['lowered_instructions'])==8386
  assert not g['production_opcode_decoder'] and not g['production_original_code_execution']

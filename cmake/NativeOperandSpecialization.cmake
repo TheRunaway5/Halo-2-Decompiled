@@ -1,0 +1,52 @@
+include_guard(GLOBAL)
+option(HALO2_SPECIALIZE_NATIVE_OPERANDS "Fold authenticated literal native executable operands" ON)
+
+function(halo2_native_operand_source output source)
+    get_filename_component(original "${source}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+    if(NOT HALO2_SPECIALIZE_NATIVE_OPERANDS)
+        set(${output} "${original}" PARENT_SCOPE)
+        return()
+    endif()
+    get_filename_component(stem "${source}" NAME_WE)
+    file(RELATIVE_PATH relative "${CMAKE_CURRENT_SOURCE_DIR}/src" "${original}")
+    set(specialized "${CMAKE_CURRENT_BINARY_DIR}/native-operands/${relative}")
+    string(REGEX REPLACE "\\.cpp$" ".operands.json" receipt "${specialized}")
+    add_custom_command(OUTPUT "${specialized}" "${receipt}"
+        COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tools/specialize_native_operands.py"
+            --source "${original}" --output "${specialized}"
+        DEPENDS "${original}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/specialize_native_operands.py"
+        COMMENT "Specializing authenticated literal operands from ${stem}" VERBATIM)
+    # Retain any source-specific build contracts; the containing target keeps
+    # its original libraries, definitions and strict arithmetic flags.
+    foreach(property COMPILE_OPTIONS COMPILE_FLAGS COMPILE_DEFINITIONS INCLUDE_DIRECTORIES)
+        get_source_file_property(value "${source}" ${property})
+        if(value AND NOT value STREQUAL "NOTFOUND")
+            set_source_files_properties("${specialized}" PROPERTIES ${property} "${value}")
+        endif()
+    endforeach()
+    get_filename_component(original_directory "${original}" DIRECTORY)
+    set_property(SOURCE "${specialized}" APPEND PROPERTY INCLUDE_DIRECTORIES "${original_directory}")
+    set(${output} "${specialized}" PARENT_SCOPE)
+endfunction()
+
+function(halo2_specialize_native_target target)
+    if(NOT HALO2_SPECIALIZE_NATIVE_OPERANDS OR NOT TARGET ${target})
+        return()
+    endif()
+    get_target_property(sources ${target} SOURCES)
+    set(updated)
+    foreach(source IN LISTS sources)
+        get_filename_component(original "${source}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+        if(EXISTS "${original}" AND source MATCHES "_generated\\.cpp$")
+            file(STRINGS "${original}" mapping LIMIT_COUNT 1
+                REGEX "^std::uint32_t selected\\(std::uint32_t p,SourcePhysicsContactImage image\\)")
+            if(mapping)
+                halo2_native_operand_source(specialized "${source}")
+                list(APPEND updated "${specialized}")
+                continue()
+            endif()
+        endif()
+        list(APPEND updated "${source}")
+    endforeach()
+    set_property(TARGET ${target} PROPERTY SOURCES "${updated}")
+endfunction()

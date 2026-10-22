@@ -97,7 +97,7 @@ def main():
         cache.close()
     input_path = scratch / 'input.bin'; input_path.write_bytes(data)
     cpp = ROOT / 'tools/probe_original_weapon_palettes.cpp'
-    production = [ROOT / 'src/source_model_palette.cpp', ROOT / 'src/transform.cpp']
+    production = [ROOT / 'src/rendering/models/source_model_palette.cpp', ROOT / 'src/core/transform.cpp']
     # Reuse the small retained header/source closure instead of creating another source tree.
     closure = ROOT / 'analysis/weapons-tu15-goal-20261013/needler-live-palette-native-v1'
     origins = json.loads((closure / 'build.json').read_text())['source_origins']
@@ -107,7 +107,7 @@ def main():
     initial = {str(p): sha(p) for p in [cpp, *production]}
     binary = scratch / 'palette-probe'
     command = ['c++', '-std=c++20', '-O2', '-ffp-contract=off', '-ffunction-sections', '-fdata-sections',
-               '-I' + str(closure / 'source/include'), str(cpp), *map(str, production), '-Wl,--gc-sections', '-o', str(binary)]
+               '-I' + str(closure / 'source/include'), '-I'+str(closure /'source/src'), str(cpp), *map(str, production), '-Wl,--gc-sections', '-o', str(binary)]
     compile_result = subprocess.run(command, capture_output=True, text=True)
     (output / 'compile.log').write_text((compile_result.stdout + compile_result.stderr)[-65536:])
     assert compile_result.returncode == 0, compile_result.stderr[-2000:]

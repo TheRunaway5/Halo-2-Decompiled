@@ -1,4 +1,4 @@
-#include "source_lens_cpu_cache_tu15.hpp"
+#include "rendering/effects/source_lens_cpu_cache_tu15.hpp"
 #include "halo2/render_program.hpp"
 #include <algorithm>
 #include <iostream>

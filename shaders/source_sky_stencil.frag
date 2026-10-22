@@ -1,4 +1,7 @@
 #version 450
+#extension GL_GOOGLE_include_directive : require
+#include "source_depth_storage.glsl"
+layout(constant_id=0) const uint sourceDepthEncoding=0u;
 layout(location=9) flat in vec4 vtxPos0;
 layout(location=10) flat in vec4 vtxPos1;
 layout(location=11) flat in vec4 vtxPos2;
@@ -44,5 +47,5 @@ void main() {
     } else zvalue=uintBitsToFloat(0x7f7fffffu);
     if(isnan(zvalue)) zvalue=uintBitsToFloat(0x7f7fffffu);
     zvalue=clamp(zvalue,clipRange.z,clipRange.w);
-    gl_FragDepth=uintBitsToFloat(floatBitsToUint(floor(zvalue)/16777216.0)+1u);
+    gl_FragDepth=sourceD24AttachmentValue(zvalue,sourceDepthEncoding);
 }

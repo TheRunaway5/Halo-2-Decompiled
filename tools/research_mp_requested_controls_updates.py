@@ -50,7 +50,7 @@ def main():
   'zoom_and_selectors':(0xc9920,0xc9cc0,0x1051c0,0x104a30,0xcf300,0xcf440,0xcd310,0x112270),
   'action_dispatch_and_admission':(0xe7f30,0xe7ef0,0xe7e60,0xe7ff0,0xe8610,0xeb080),
   'switch_melee_grenade_callbacks':tuple(dict.fromkeys(callbacks))}
- comparison.main(groups=groups,seed_pairs=seeds,source_files=('src/unit_input.cpp','src/player_command.cpp','src/unit_inventory.cpp'),
+ comparison.main(groups=groups,seed_pairs=seeds,source_files=('src/gameplay/units/unit_input.cpp','src/gameplay/units/player_command.cpp','src/gameplay/units/unit_inventory.cpp'),
   configuration_tool={'path':'tools/research_mp_requested_controls_updates.py','sha256':sha(__file__),
    'source_dispatcher_pair':{'disc':'000e7f30','later':'000e8e50','complete_body_and_branches_equal':True}})
 if __name__=='__main__':main()

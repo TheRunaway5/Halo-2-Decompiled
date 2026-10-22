@@ -23,7 +23,7 @@ PINS={
  'docs/MP_FULL_SCOREBOARD_RESEARCH.md':'2c6fce3ca2b88ec6eae7f7ce41c81748dcd01c277f220b39cbb1a4a89df5be0c',
  'analysis/multiplayer/title-update-1.5/full-scoreboard/measured/report.json':'a0eecfb5dd9752c4d1185e64215aa569cf63b27b81c786664df2b81015c8fdf2',
  'include/halo2/full_scoreboard.hpp':'e43a6eb94dea67f989b85062ec8437f1d29270f95d66feb5bcff601561f21393',
- 'src/full_scoreboard.cpp':'89b2ed16d722e2ec448a05f402393bc621227e77d785446812b8a8e7427e5e98',
+ 'src/ui/hud/full_scoreboard.cpp':'89b2ed16d722e2ec448a05f402393bc621227e77d785446812b8a8e7427e5e98',
  'tests/full_scoreboard_tests.cpp':'50a3688b393f0d31ef9e80290e35b10ef04b76438786d05b86b9b66f18e85e4a'}
 class ProviderTrace(Trace):
  def hook(self,g,a,n,user):

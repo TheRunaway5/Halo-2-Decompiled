@@ -11,7 +11,7 @@ else
 fi
 c++ -std=c++20 -ffp-contract=off -fno-fast-math -Wall -Wextra -Werror \
     "${extra_flags[@]}" -I"$repo_dir/include" \
-    "$repo_dir/src/source_weather_plate_program.cpp" \
-    "$repo_dir/src/source_weather_plate_caller.cpp" \
+    "$repo_dir/src/rendering/weather/source_weather_plate_program.cpp" \
+    "$repo_dir/src/rendering/weather/source_weather_plate_caller.cpp" \
     "$repo_dir/tests/source_weather_plate_caller_tests.cpp" \
     -o "$build_dir/source_weather_plate_caller_tests"

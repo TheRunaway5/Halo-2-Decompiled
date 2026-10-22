@@ -19,10 +19,10 @@ def main():
     pack, output = args.pack.resolve(), args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     files = [root / p for p in (
-        "build-frontend/halo2_native", "src/frontend.cpp", "src/frontend_painter.cpp",
-        "src/frontend_ui_assets.cpp", "include/halo2/frontend_ui_assets.hpp",
-        "include/halo2/frontend.hpp", "src/frontend_content.cpp", "src/renderer.cpp",
-        "src/bsp_atmosphere.cpp", "shaders/ui_frame.frag", "assets/disc/maps/mainmenu.map",
+        "build-frontend/halo2_native", "src/ui/frontend.cpp", "src/ui/frontend_painter.cpp",
+        "src/ui/frontend_ui_assets.cpp", "include/halo2/frontend_ui_assets.hpp",
+        "include/halo2/frontend.hpp", "src/ui/frontend_content.cpp", "src/rendering/renderer/renderer.cpp",
+        "src/rendering/world/bsp_atmosphere.cpp", "shaders/ui_frame.frag", "assets/disc/maps/mainmenu.map",
         "assets/disc/maps/ui/frame_edges/left-edge.dds",
         "assets/disc/maps/ui/frame_edges/right-edge.dds")]
     files += [pack / "pack.tsv", pack / "manifest.json", pack / "pack-manifest.json"]

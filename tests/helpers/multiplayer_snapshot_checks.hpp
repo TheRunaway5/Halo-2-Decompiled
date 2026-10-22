@@ -65,7 +65,7 @@ inline void verify_multiplayer_snapshot(const MultiplayerState &expected, const 
     for(unsigned n=0;n<expected.source_scene_roots.size();++n) {
         const auto &a=expected.source_scene_roots[n],&b=actual.source_scene_roots[n];
         require_snapshot(a.object==b.object && a.definition==b.definition && a.placement==b.placement &&
-            a.created_tick==b.created_tick && a.attached_effects.size()==b.attached_effects.size(),
+            a.created_tick==b.created_tick && a.render_clusters==b.render_clusters && a.attached_effects.size()==b.attached_effects.size(),
             "UDP attachment owner/generation differs");
         require_snapshot(a.model_regions.has_value()==b.model_regions.has_value(),"UDP source scene region presence differs");
         if(a.model_regions) {
@@ -88,7 +88,9 @@ inline void verify_multiplayer_snapshot(const MultiplayerState &expected, const 
     verify_device_snapshot(expected.devices,actual.devices);
     { const auto &a = expected, &b = actual;
         require_snapshot(a.tick == b.tick &&
+            a.source_game_type == b.source_game_type &&
             a.source_engine == b.source_engine &&
+            a.source_engine_entity == b.source_engine_entity &&
             a.finished == b.finished &&
             a.results_finalized == b.results_finalized &&
             a.game_over_countdown == b.game_over_countdown &&

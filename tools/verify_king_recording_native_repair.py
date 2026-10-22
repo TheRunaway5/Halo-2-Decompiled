@@ -27,7 +27,7 @@ def main():
  old_log=(OUT/prior[-1]['log']).read_text();passed=re.findall(r'Test\s+#\d+:\s+([a-z_]+)\s+\.+\s+Passed',old_log)
  assert len(passed)==12 and '92% tests passed, 1 tests failed out of 13'in old_log
  assert old_log.count('***Failed')==1 and 'native_multiplayer_outcome_handoff'in old_log
- runtime_name='src/multiplayer_runtime.cpp'
+ runtime_name='src/gameplay/multiplayer/multiplayer_runtime.cpp'
  assert all(sha(ROOT/p)==pins[p]for p in native.OWNED if p not in (TEST,runtime_name)),'Owned production drift'
  frozen_runtime=(source/runtime_name).read_text();live_runtime=(ROOT/runtime_name).read_text()
  marker='    std::map<std::uint32_t,AnimationClip> fp_clips;'
@@ -38,7 +38,7 @@ def main():
  for p in (TEST,SCRIPT):
   target=overlay/p;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(ROOT/p,target);overlaid[p]=sha(target)
  (run/'overlay-hashes.json').write_text(json.dumps(overlaid,sort_keys=True,indent=2)+'\n')
- (run/'concurrent-render-runtime.patch').write_text(''.join(difflib.unified_diff(frozen_runtime.splitlines(True),live_runtime.splitlines(True),fromfile='frozen/src/multiplayer_runtime.cpp',tofile='live/src/multiplayer_runtime.cpp')))
+ (run/'concurrent-render-runtime.patch').write_text(''.join(difflib.unified_diff(frozen_runtime.splitlines(True),live_runtime.splitlines(True),fromfile='frozen/src/multiplayer_runtime.cpp',tofile='live/src/gameplay/multiplayer/multiplayer_runtime.cpp')))
  runtime_drift=dict(frozen_sha256=pins[runtime_name],live_sha256=sha(ROOT/runtime_name),unchanged_through_marker=marker,
   actual_headless_prefix_equal=True,patch_sha256=sha(run/'concurrent-render-runtime.patch'))
  commands=[];env={**os.environ,'SDL_AUDIODRIVER':'dummy','PYTHONDONTWRITEBYTECODE':'1'}
@@ -76,7 +76,7 @@ def main():
  execute('runtime-test',[runtime,source/'assets/disc/maps/lockout.map',source/'assets/disc/default.xbe'])
  for target in ('multiplayer_fp_network_tests','multiplayer_scope_network_tests'):
   execute(target,[build/target,source/'assets/disc/maps/lockout.map',source/'assets/disc/maps',native.U5])
- owners=('src/multiplayer.cpp','src/source_result_event.cpp','src/multiplayer_outcome.cpp','tests/king_recording_runtime_tests.cpp')
+ owners=('src/gameplay/multiplayer/multiplayer.cpp','src/gameplay/multiplayer/source_result_event.cpp','src/gameplay/multiplayer/multiplayer_outcome.cpp','tests/king_recording_runtime_tests.cpp')
  objects=[compile_owner(p,'sanitizer-compile-'+str(i),True)for i,p in enumerate(owners)]
  sanitized=link_test('king_recording_runtime_tests',objects,'king_recording_runtime_tests_asan',True)
  execute('sanitizer-test',[sanitized,source/'assets/disc/maps/lockout.map',source/'assets/disc/maps',native.U5],extra={'ASAN_OPTIONS':'detect_leaks=1:halt_on_error=1','UBSAN_OPTIONS':'halt_on_error=1'})

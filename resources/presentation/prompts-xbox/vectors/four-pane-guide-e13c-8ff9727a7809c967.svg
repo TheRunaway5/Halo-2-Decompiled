@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="128" viewBox="0 0 16 32" version="1.1">
+  <title>Xbox four-pane-guide-e13c: custom controller prompt</title>
+  <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+  <defs />
+  <rect id="pane-0-0" x="1" y="13" width="5" height="5" fill="white" />
+  <path id="pane-0-0-bottom-edge" d="M1 18.5 H6" fill="none" stroke="white" stroke-opacity="0.2" stroke-width="1" />
+  <rect id="pane-0-1" x="9" y="13" width="5" height="5" fill="white" />
+  <path id="pane-0-1-bottom-edge" d="M9 18.5 H14" fill="none" stroke="white" stroke-opacity="0.2" stroke-width="1" />
+  <rect id="pane-1-0" x="1" y="21" width="5" height="5" fill="white" />
+  <path id="pane-1-0-bottom-edge" d="M1 26.5 H6" fill="none" stroke="white" stroke-opacity="0.2" stroke-width="1" />
+  <rect id="pane-1-1" x="9" y="21" width="5" height="5" fill="white" />
+  <path id="pane-1-1-bottom-edge" d="M9 26.5 H14" fill="none" stroke="white" stroke-opacity="0.2" stroke-width="1" />
+</svg>

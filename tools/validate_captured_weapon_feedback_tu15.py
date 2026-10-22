@@ -66,7 +66,7 @@ def validate(case, metadata, regions):
         assert first_damage==118 and first_death==165 and not flow['ticks'][first_death-1]['target']['dead']
         selected_tick=json.loads((case.parent/'run.json').read_text()).get('capture_tick')
         assert selected_tick is None or selected_tick==tick
-        support=Path(__file__).resolve().parents[1]/'src/physics_live_support_tu15_generated.cpp'
+        support=Path(__file__).resolve().parents[1]/'src/physics/physics_live_support_tu15_generated.cpp'
         entries={int(value,16) for value in re.findall(r'static void run_([0-9a-f]+)\(WorldState &',support.read_text())}
         assert 0xfdde0 in entries and entry in entries
         caller=_trace(code,0xfdde0,entries)

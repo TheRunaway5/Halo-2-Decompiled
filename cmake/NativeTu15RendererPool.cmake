@@ -1,7 +1,7 @@
-target_sources(halo2_systems PRIVATE src/native_tu15_renderer_pool_data.cpp src/source_renderer_pool_tu15_generated.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/renderer/native_tu15_renderer_pool_data.cpp src/rendering/renderer/source_renderer_pool_tu15_generated.cpp)
 if(BUILD_TESTING)
     foreach(target native_tu15_network_link_tests native_tu15_graphics_startup_tests)
-        target_sources(${target} PRIVATE src/native_tu15_renderer_pool_data.cpp src/source_renderer_pool_tu15_generated.cpp)
+        target_sources(${target} PRIVATE src/rendering/renderer/native_tu15_renderer_pool_data.cpp src/rendering/renderer/source_renderer_pool_tu15_generated.cpp)
     endforeach()
     add_test(NAME native_tu15_graphics_pool_startup COMMAND native_tu15_graphics_startup_tests --frontier graphics-pool --input-devices none)
     add_test(NAME original_tu15_graphics_pool_startup COMMAND native_tu15_graphics_startup_tests --frontier graphics-pool --input-devices none

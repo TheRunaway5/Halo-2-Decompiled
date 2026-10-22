@@ -34,7 +34,7 @@ def audit(d):
   for line in p.read_text().splitlines():a,b,*_=line.split();raw=bytes.fromhex(b);assert image.read(int(a,16),len(raw))==raw;rows+=1
  for line in(d/'measured/instructions/executed-old.asm').read_text().splitlines():
   a,b,*_=line.split();raw=bytes.fromhex(b);assert images['old'].read(int(a,16),len(raw))==raw;rows+=1
- for rel in('include/halo2/sound_cache_request.hpp','src/sound_cache_request.cpp','tests/sound_cache_request_tests.cpp'):
+ for rel in('include/halo2/sound_cache_request.hpp','src/audio/sound_cache_request.cpp','tests/sound_cache_request_tests.cpp'):
   assert(ROOT/rel).read_bytes()==(d/'validation-v2/native/source'/rel).read_bytes(),rel
   assert(ROOT/rel).read_bytes()==(d/'validation-v2-repeat/native/source'/rel).read_bytes(),rel
  for name in('normal.stdout','sanitizer.stdout','normal.stderr','sanitizer.stderr'):

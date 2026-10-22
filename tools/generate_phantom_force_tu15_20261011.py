@@ -135,7 +135,7 @@ def main():
   bodies.append(f'void run_{entry:x}(MathState &s) {{\n'+'\n'.join(lines)+'\nthrow std::runtime_error("TU1.5 phantom force fell outside authenticated CFG");\n}')
  text='''// Generated from complete owned TU1.5 instructions. No runtime decoder.
 #include "halo2/physics_phantom_force_tu15.hpp"
-#include "physics_vehicle_motion_math_internal.hpp"
+#include "physics/vehicles/physics_vehicle_motion_math_internal.hpp"
 namespace halo2 {
 namespace {
 using namespace physics_vehicle_motion_math_detail;

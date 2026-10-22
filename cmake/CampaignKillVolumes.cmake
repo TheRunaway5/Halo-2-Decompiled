@@ -1,8 +1,8 @@
 # One borrowed owner for original campaign kill-volume state and scheduling.
-target_sources(halo2_systems PRIVATE src/source_kill_volumes.cpp)
+target_sources(halo2_systems PRIVATE src/gameplay/units/source_kill_volumes.cpp)
 if(BUILD_TESTING)
     add_executable(source_kill_volumes_tests tests/source_kill_volumes_tests.cpp
-        src/source_kill_volumes.cpp src/source_runtime_memory.cpp)
+        src/gameplay/units/source_kill_volumes.cpp src/runtime/source_runtime_memory.cpp)
     target_include_directories(source_kill_volumes_tests PRIVATE include)
     target_link_libraries(source_kill_volumes_tests PRIVATE halo2_snapshot_storage
         nlohmann_json::nlohmann_json Threads::Threads)

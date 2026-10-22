@@ -5,11 +5,18 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
+import shutil
+import stat
 from pathlib import Path
 import struct
 
 SECTOR = 2048
 MAGIC = b"MICROSOFT*XBOX*MEDIA"
+MAX_ENTRIES = 65536
+MAX_DIRECTORY_BYTES = 64 * 1024**2
+MAX_PATH_BYTES = 8 * 1024**2
+MAX_XBE_BYTES = 128 * 1024**2
 
 
 class FormatError(ValueError):
@@ -60,8 +67,10 @@ class Disc:
         entries: list[dict] = []
         directories: set[tuple[int, int]] = set()
         names: set[str] = set()
+        output_bytes = directory_bytes = path_bytes = 0
 
         def directory(sector: int, size: int, parent: str, depth: int):
+            nonlocal output_bytes, directory_bytes, path_bytes
             if depth > 64 or size > 16 * 1024 * 1024:
                 raise FormatError("directory nesting or size limit exceeded")
             if not size:
@@ -70,6 +79,9 @@ class Disc:
             if key in directories:
                 raise FormatError("directory cycle or alias")
             directories.add(key)
+            directory_bytes += size
+            if directory_bytes > MAX_DIRECTORY_BYTES:
+                raise FormatError("aggregate directory budget exceeded")
             data = self.read(self.base + sector * SECTOR, size)
             seen: set[int] = set()
             stack = [0]
@@ -86,13 +98,22 @@ class Disc:
                 if not name or name in (".", "..") or any(c in name for c in "/\\\x00:"):
                     raise FormatError("unsafe disc filename")
                 path = f"{parent}/{name}" if parent else name
+                path_bytes += len(path)
+                if len(path) > 1024 or path_bytes > MAX_PATH_BYTES:
+                    raise FormatError("disc path metadata budget exceeded")
                 if path.casefold() in names:
                     raise FormatError("duplicate disc path")
                 names.add(path.casefold())
+                if len(names) > MAX_ENTRIES:
+                    raise FormatError("disc entry budget exceeded")
                 bounds(self.base + first * SECTOR, length, self.size)
                 if flags & 0x10:
                     directory(first, length, path, depth + 1)
                 else:
+                    output_bytes += length
+                    # Charge every output copy, including aliased extents.
+                    if output_bytes > self.size - self.base:
+                        raise FormatError("disc aggregate output exceeds source volume")
                     entries.append({"path": path, "sector": first, "size": length,
                                     "offset": self.base + first * SECTOR})
                 for child in (right, left):
@@ -102,9 +123,11 @@ class Disc:
         return sorted(entries, key=lambda item: item["path"].casefold())
 
     def extract(self, target: Path) -> dict:
+        entries = self.entries()
         target.mkdir(parents=True, exist_ok=True)
         target = target.resolve()
-        entries = self.entries()
+        if sum(item["size"] for item in entries) > shutil.disk_usage(target).free:
+            raise FormatError("insufficient space for disc extraction")
         if (target / "disc-manifest.json").exists():
             raise FileExistsError(f"{target}/disc-manifest.json already exists; use a new output directory")
         # Validate every destination before writing the first file.
@@ -140,7 +163,16 @@ class Disc:
 
 
 def inspect_xbe(path: Path) -> dict:
-    data = path.read_bytes()
+    # Check the opened descriptor before allocating. Nonblocking open also lets
+    # us reject pipes/devices without waiting for a writer.
+    fd = os.open(path, os.O_RDONLY | getattr(os, "O_NONBLOCK", 0))
+    with os.fdopen(fd, "rb") as source:
+        info = os.fstat(source.fileno())
+        if not stat.S_ISREG(info.st_mode) or not 0x178 <= info.st_size <= MAX_XBE_BYTES:
+            raise FormatError("XBE must be a regular file of at most 128 MiB")
+        data = source.read(info.st_size + 1)
+        if len(data) != info.st_size:
+            raise FormatError("XBE changed size while reading")
     bounds(0, 0x178, len(data))
     if data[:4] != b"XBEH":
         raise FormatError("not an Xbox executable")

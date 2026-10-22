@@ -61,7 +61,7 @@ def main():
         owned = Path(report['build']).parent if name in [names[0], names[1], names[3]] else Path(report['runner_scratch'])
         assert not owned.exists(), owned
         cleanup.append(dict(report=name, scratch=str(owned), removed=True))
-    sources = [ROOT / 'src/physics_live_world_tu15.cpp', ROOT / 'cmake/PhysicsLiveWorldTu15.cmake']
+    sources = [ROOT / 'src/physics/physics_live_world_tu15.cpp', ROOT / 'cmake/PhysicsLiveWorldTu15.cmake']
     for owner in ['gain', 'random_scalar']:
         sources += [ROOT / ('include/halo2/source_sound_' + owner + '_tu15.hpp'),
             ROOT / ('src/source_sound_' + owner + '_tu15_generated.cpp'),

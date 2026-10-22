@@ -4,7 +4,7 @@ import argparse,json
 from pathlib import Path
 from oracle_mp_title_update_display import ROOT,OLD,NEW,sha,save,encoded
 from audit_sound_create_native import prior_pins
-OWNED=('include/halo2/sound_create.hpp','src/sound_create.cpp','tests/sound_create_tests.cpp','tools/research_sound_create_u5.py','tools/oracle_sound_create_native.py','tools/export_sound_create_fixtures.py','tools/validate_sound_create_native.py','tools/reproduce_sound_create_native.py','tools/audit_sound_create_native.py','tools/freeze_sound_create_native.py','docs/MP_SOUND_CREATE_NATIVE_INTEGRATION.md')
+OWNED=('include/halo2/sound_create.hpp','src/audio/sound_create.cpp','tests/sound_create_tests.cpp','tools/research_sound_create_u5.py','tools/oracle_sound_create_native.py','tools/export_sound_create_fixtures.py','tools/validate_sound_create_native.py','tools/reproduce_sound_create_native.py','tools/audit_sound_create_native.py','tools/freeze_sound_create_native.py','docs/MP_SOUND_CREATE_NATIVE_INTEGRATION.md')
 SELECTED=('paired-v2','paired-repeat','measured','repeated','native','native-repeat-run','export-repeat','reproduction-logs')
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--directory',type=Path,required=True);a=p.parse_args();d=a.directory.resolve();pins=prior_pins();audit=json.loads((d/'audit.json').read_text());assert audit['prior_pins_verified']==pins

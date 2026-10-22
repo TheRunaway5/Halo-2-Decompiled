@@ -37,6 +37,7 @@ int main(int argc,char **argv) {
             SDL_WINDOW_VULKAN|SDL_WINDOW_HIDDEN);
         require(window,SDL_GetError());
         Texture red{1,1,11,{std::byte{180},std::byte{32},std::byte{16},std::byte{255}}};
+        red.mips={{1,1,0,4,1}};
         Material material;material.diffuse=material.detail=material.auxiliary=red;
         material.bump={1,1,11,{std::byte{128},std::byte{128},std::byte{255},std::byte{255}}};
         for(auto &frames:material.animated_textures)frames={red,red};
@@ -53,6 +54,13 @@ int main(int argc,char **argv) {
             Renderer renderer(window,mesh,true);Camera camera;camera.field_of_view=60;
             const auto resident=renderer.resident_material_images();
             require(resident==3,"identical weapon/stage/animated images did not share or a volume aliased 2D storage");
+            renderer.require_lens_bitmap(1,red);
+            auto writable=red;auto *retained=writable.pixels.data();
+            renderer.require_lens_bitmap(1,writable);retained[0]^=std::byte{1};
+            bool mutation_rejected=false;
+            try{renderer.require_lens_bitmap(1,writable);}catch(const FormatError &){mutation_rejected=true;}
+            require(mutation_rejected,"fingerprint cache admitted a retained writer's changed bitmap");
+            renderer.require_lens_bitmap(1,red);
             bool volume_rejected=false;
             try {renderer.update_image(16,red);}catch(const std::runtime_error &) {volume_rejected=true;}
             require(volume_rejected && renderer.resident_material_images()==resident,

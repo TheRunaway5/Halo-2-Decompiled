@@ -92,7 +92,7 @@ def main():
  fixture='tests/fixtures/camouflage_material_animation_original.json'
  assert sha(original/'fixture.json')==pins[fixture],'Original material fixture did not reproduce'
  entries=json.loads((build/'compile_commands.json').read_text());objects=[]
- for index,name in enumerate(('src/world_material.cpp','tests/camouflage_material_tests.cpp')):
+ for index,name in enumerate(('src/rendering/world/world_material.cpp','tests/camouflage_material_tests.cpp')):
   entry=next(e for e in entries if Path(e['file'])==source/name);cmd=shlex.split(entry['command']);obj=run/(f'sanitized-{index}.o')
   cmd[cmd.index('-o')+1]=str(obj);cmd.extend(['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer'])
   execute('sanitizer-compile-'+str(index),cmd,Path(entry['directory']));objects.append(obj)

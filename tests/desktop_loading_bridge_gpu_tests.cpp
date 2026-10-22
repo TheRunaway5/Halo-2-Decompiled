@@ -84,7 +84,9 @@ private:
 
 int main(int argc,char** argv) {
   try {
-    require(argc==3,"genuine loading assets and output directory required");
+    require(argc==3 || (argc==4 && std::string_view(argv[3])=="--without-validation"),"genuine loading assets and output directory required");
+    const bool validation=argc==3;
+    if(!validation)std::cout<<"Vulkan validation explicitly disabled for this functional device-lifecycle run\n";
     const auto output=std::filesystem::absolute(argv[2]);std::filesystem::create_directories(output);
     std::mutex gains_mutex;std::vector<std::uint32_t> gains;
     unsigned audio_begins{},audio_ends{};bool audio_active{};
@@ -108,7 +110,7 @@ int main(int argc,char** argv) {
     GuardedAtmosphere bank;
     std::weak_ptr<Renderer> departed;
     {
-      auto mesh=scene();auto renderer=desktop.make_renderer(mesh,true);
+      auto mesh=scene();auto renderer=desktop.make_renderer(mesh,validation);
       renderer->scene_bsp_atmosphere(bank.value());desktop.renderer_ready(renderer);
       require(renderer->draw({}),"initial ordinary scene did not present");
       departed=renderer;desktop.begin_loading();
@@ -127,8 +129,10 @@ int main(int argc,char** argv) {
     // without an assumed audio consumer, then exercise the explicit service.
     std::weak_ptr<Renderer> world;
     {
-      auto mesh=scene();auto renderer=desktop.make_renderer(mesh,true);world=renderer;
+      auto mesh=scene();auto renderer=desktop.make_renderer(mesh,validation);world=renderer;
       require(!departed.expired(),"old GPU device died before presentation admission");
+      require(desktop.loading_snapshot()->fade_active,
+          "GPU preparation did not overlap the existing source loading fade");
       desktop.renderer_ready(renderer);
       const auto state=*desktop.loading_snapshot();
       require(!state.active && state.fade_complete && state.gain_bits==0 && state.fade_active,
@@ -151,7 +155,7 @@ int main(int argc,char** argv) {
     await([&]{return desktop.loading_snapshot()->submitted_frames>=2;},"reverse loading did not retain its GPU owner");
     capture(desktop,output/"departed-world.ppm",960,540);
     {
-      auto mesh=scene();auto renderer=desktop.make_renderer(mesh,true);
+      auto mesh=scene();auto renderer=desktop.make_renderer(mesh,validation);
       desktop.renderer_ready(renderer);
       require(world.expired(),"world device was not released on menu return");
       require(desktop.loading_snapshot()->fade_complete && !desktop.loading_active(),"reverse source fade did not join");

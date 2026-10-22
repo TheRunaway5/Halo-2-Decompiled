@@ -221,6 +221,55 @@ int main() {
             "A second social command replaced a pending command");
       release_post=true;eventually([&]{return !client.snapshot().busy;});
     }
+    {
+      std::atomic<unsigned> writes{};
+      std::atomic<bool> reject{true};
+      OnlineAccount client(login,options,[&](const auto &r,std::stop_token)->OnlineMatchmakingResponse {
+        if(r.url.ends_with("/session") && r.method=="POST")return {201,Json{{"token",token},{"expires_in",900}}.dump()};
+        if(r.method=="DELETE")return {200,"{}"};
+        if(r.method=="PUT") {
+          check(r.url.ends_with("/account/profile") && r.bearer==token,"Profile escaped its authenticated owner endpoint");
+          const auto body=Json::parse(r.body);
+          check(body==Json{{"appearance","ff020304013f1f81a5"},{"service_tag",writes==0?"A117":"S002"}},"Profile bytes or separate service tag changed");
+          ++writes;
+          return reject ? OnlineMatchmakingResponse{503,R"({"error":"Profile unavailable"})"} : OnlineMatchmakingResponse{200,"{}"};
+        }
+        return {200,empty};
+      });
+      const FrontendAppearance appearance{{-1,2,3,4},1,63,31,129,165};
+      client.profile(appearance,"A117");client.connect("Chosen Pilot");
+      eventually([&]{return client.snapshot().authenticated && writes==1;});
+      check(!client.snapshot().profile_message.empty(),"Profile failure did not report its own sync state");
+      for(unsigned n=0;n<20;n++)client.profile(appearance,"A117");
+      std::this_thread::sleep_for(std::chrono::milliseconds(80));
+      check(writes==1,"Unchanged or failed profile retried on every account poll");
+      reject=false;client.profile(appearance,"S002");
+      eventually([&]{return writes==2 && client.snapshot().profile_message.empty();});
+      check(client.snapshot().authenticated,"Optional profile synchronization broke the account session");
+    }
+    {
+      std::atomic<unsigned> reads{},writes{};
+      OnlineAccount parent(login,options,[&](const OnlineMatchmakingRequest &r,std::stop_token)->OnlineMatchmakingResponse {
+        check(r.url.starts_with(options.endpoint+"/v1/account/"),"Couch profile polled clan, party or another origin");
+        if(r.method=="POST") {
+          check(r.url.ends_with("/session")&&r.bearer=="discord-test"&&Json::parse(r.body).at("screen_name")=="Couch Pilot","Couch profile used another account exchange");
+          return {201,Json{{"token",token},{"expires_in",900}}.dump()};
+        }
+        check(r.bearer==token,"Couch profile leaked its identity grant");
+        if(r.method=="PUT") {
+          const auto body=Json::parse(r.body);check(body.at("service_tag")=="C002"&&body.at("appearance").get<std::string>().size()==18,"Couch customization changed");++writes;
+        } else if(r.method=="GET")++reads;
+        return {200,"{}"};
+      });
+      auto couch=parent.profile_worker(login);
+      FrontendAppearance appearance{};couch->profile(appearance,"C002");couch->connect("Couch Pilot");
+      eventually([&]{return couch->snapshot().authenticated&&writes==1&&reads==1;});
+      check(!couch->command({"create","Unexpected Clan"}),"Couch profile obtained social mutation access");
+      for(unsigned n=0;n<20;++n)couch->profile(appearance,"C002");
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      check(writes==1&&reads==1,"Couch profile polled at frontend frame frequency");
+      couch->sign_out();
+    }
     login->cancel();
     std::cout<<"PASS account token privacy, chosen names, pinned TLS origin, command replay, cancellation race, sign-out, strict bounded JSON and no partial clan state\n";
   }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

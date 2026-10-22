@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Exercise the shipped campaign selector through X11 keyboard/mouse events.
 
-Run under a private Xvfb display. This operates the actual launcher and F1 UI;
+Run under a private Xvfb display. This operates the actual launcher and pause settings UI;
 it neither changes renderer settings directly nor advances simulation clocks.
 """
 import argparse
@@ -102,16 +102,17 @@ def main():
             wait_for(lambda row: row['tick'] >= args.tick and row['pstencil'], 180)
             photo('pStencil-before')
             for index, enabled in enumerate((False, True, False, True)):
-                key(0xffbe)  # F1, handled by the actual campaign event loop.
+                key(0xff1b)  # Escape opens the actual pause menu.
+                key(0xff54);key(0xff54);key(0xff54)  # Solo Settings follows Resume, Revert and Restart.
+                key(0xff0d)
+                key(0xff54);key(0xff54);key(0xff54)  # Video Settings.
+                key(0xff0d)
                 photo(f'{index}-settings-before')
-                click(180, 90)  # Default ImGui Graphics Mode combo.
-                photo(f'{index}-combo')
-                # The two real menu rows, using the default ImGui font/layout.
-                click(60, 109 if not enabled else 126)
+                key(0xff0d)  # First row cycles Graphics Mode in place.
                 row = wait_for(lambda row: row['pstencil'] == enabled)
                 transitions.append(dict(requested='pStencil' if enabled else 'Original', **row))
                 photo(f'{index}-selected')
-                key(0xffbe)
+                key(0xff1b);key(0xff1b);key(0xff1b)
                 photo(f'{index}-scene')
             frames(10)
             # Stop this finite interaction probe; full playback is separate.
@@ -120,7 +121,7 @@ def main():
             result = dict(status='passed', transitions=transitions,
                           seconds=time.monotonic() - start,
                           audio_driver_forced=False,
-                          scope='Real campaign F1 and mouse selection; no pixel parity or full recording claim')
+                          scope='Real campaign pause menu and keyboard selection; no pixel parity or full recording claim')
         except BaseException as error:
             photo('failure')
             result = dict(status='failed', error=str(error), transitions=transitions,

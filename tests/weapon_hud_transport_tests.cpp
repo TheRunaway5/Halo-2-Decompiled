@@ -1,5 +1,5 @@
 // Exercise the actual private packet codec without adding a public gameplay API.
-#include "../src/multiplayer_network.cpp"
+#include "../src/network/multiplayer_network.cpp"
 #include <iostream>
 #include <limits>
 using namespace halo2;
@@ -16,6 +16,13 @@ int main(int argc,char **argv)try {
     for(unsigned id=0;id<2;++id) {
       auto &p=state.players[id];p.source_hud_target_flags=id?31u-flags:flags;
       p.source_hud_autoaimed=id?bool(variant&1u):!bool(variant&1u);
+      // Explicit presentation transport stimulus; it does not admit Assault
+      // or Territories gameplay through the Slayer/King world gate.
+      auto &objectives=p.source_hud_objectives;
+      objectives.charge_visible=bool((flags+id)&1u);objectives.charge_fraction=float(variant)/3;
+      objectives.territory_count=(flags+id)%9;
+      for(unsigned n=0;n<objectives.territory_count;++n)
+        objectives.territories[n]={id?0xffu:0xff0000u,(float(n)-2)/3};
       p.weapon_trigger={0x42,7,5,128,bool(variant&1u),{}};
       if(variant&2u)p.weapon_trigger.target_position=std::array{10.25f,-20.5f,30.75f};
       p.secondary_weapon.datum=0x12340010u+id;p.secondary_weapon.definition=p.weapon;
@@ -45,6 +52,7 @@ int main(int argc,char **argv)try {
     const auto decoded=decode_state(reader,locals);reader.end();
     for(unsigned id=0;id<2;++id)if(decoded.players[id].source_hud_target_flags!=state.players[id].source_hud_target_flags ||
         decoded.players[id].source_hud_autoaimed!=state.players[id].source_hud_autoaimed ||
+        decoded.players[id].source_hud_objectives!=state.players[id].source_hud_objectives ||
         decoded.players[id].weapon_trigger!=state.players[id].weapon_trigger ||
         decoded.players[id].secondary_weapon.trigger!=state.players[id].secondary_weapon.trigger ||
         decoded.players[id].secondary_weapon.magazine_mode!=state.players[id].secondary_weapon.magazine_mode ||
@@ -66,6 +74,13 @@ int main(int argc,char **argv)try {
     bool rejected=false;try{Packet bytes;encode_state(bytes,state,locals);}catch(const FormatError &){rejected=true;}
     if(!rejected)throw FormatError("Native camera packet accepted a non-finite HUD aim displacement");
   }
+  for(unsigned invalid=0;invalid<2;++invalid) {
+    auto state=match.state();auto &o=state.players[0].source_hud_objectives;
+    if(invalid)o.territory_count=9;
+    else o.charge_fraction=std::numeric_limits<float>::quiet_NaN();
+    bool rejected=false;try{Packet bytes;encode_state(bytes,state,locals);}catch(const FormatError &){rejected=true;}
+    if(!rejected)throw FormatError("Native packet accepted an invalid objective HUD bank");
+  }
   for(const auto flags:{4u,0x80u}) {
     Packet bytes;VehicleWeaponHudStatus status;
     if(flags==4u) {encode_vehicle_hud(bytes,status);bytes[0]=std::byte(flags);}
@@ -77,5 +92,5 @@ int main(int argc,char **argv)try {
     bool rejected=false;try {Reader reader{bytes};(void)decode_vehicle_hud(reader);}catch(const FormatError &){rejected=true;}
     if(!rejected)throw FormatError("Native packet accepted invalid vehicle HUD flags");
   }
-  std::cout<<cases<<" actual packet-codec round trips preserved independent hand/vehicle HUD state and camera aim; malformed flags/non-finite aim rejected\n";
+  std::cout<<cases<<" actual packet-codec round trips preserved independent objective/hand/vehicle HUD state and camera aim; malformed flags/non-finite aim rejected\n";
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

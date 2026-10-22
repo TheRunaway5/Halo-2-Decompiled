@@ -1,5 +1,5 @@
 # English TU1.5 phantom/world activation and installed callbacks.
-add_library(halo2_physics_phantom_world_tu15 STATIC src/physics_phantom_world_tu15_generated.cpp)
+add_library(halo2_physics_phantom_world_tu15 STATIC src/physics/physics_phantom_world_tu15_generated.cpp)
 target_include_directories(halo2_physics_phantom_world_tu15 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_physics_phantom_world_tu15 PUBLIC cxx_std_20)
 target_link_libraries(halo2_physics_phantom_world_tu15 PUBLIC halo2_physics_phantom_force_tu15 halo2_physics_world_runtime)

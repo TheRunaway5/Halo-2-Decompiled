@@ -27,7 +27,7 @@ def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--output',type=Path,default=ROOT/'src/source_ctf_configuration_tu15_generated.cpp')
+    p.add_argument('--output',type=Path,default=ROOT/'src/gameplay/multiplayer/source_ctf_configuration_tu15_generated.cpp')
     p.add_argument('--directory',type=Path,required=True)
     a=p.parse_args();assert Path(os.environ['HALO2_TEST_SCRATCH']).is_dir()
     assert sha(NEW_DEFAULT)==NEW_PIN

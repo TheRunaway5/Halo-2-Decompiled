@@ -32,7 +32,7 @@ def main():
             folder+'/source-manifest.json',folder+'/projectile-birth-observation.json']
         references += [str(path.relative_to(BASE))for path in sorted((BASE/folder/'release/evidence').glob('weapon-source-firing-*.json'))]
     manifest=load(folders[-1]+'/source-manifest.json')['source_files_sha256']
-    source_files=['src/multiplayer.cpp','tests/native_covenant_weapon_runtime_tests.cpp',
+    source_files=['src/gameplay/multiplayer/multiplayer.cpp','tests/native_covenant_weapon_runtime_tests.cpp',
         'tools/validate_weapon_material_snapshot_tu15.py']
     for name in source_files:assert sha(ROOT/name)==manifest[name],name
     for item in analyses:scratch.add(item['runner_scratch'])

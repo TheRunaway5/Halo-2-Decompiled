@@ -13,7 +13,7 @@ sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=False);frozen=args.output/'source';pins={}
-    inputs=['src/sound_sdk_voice_initialization.cpp','src/sound_capabilities.cpp','src/native_sound_storage.cpp','src/native_synchronization.cpp','tests/sound_sdk_voice_initialization_tests.cpp']
+    inputs=['src/audio/sound_sdk_voice_initialization.cpp','src/audio/sound_capabilities.cpp','src/audio/native_sound_storage.cpp','src/platform/native_synchronization.cpp','tests/sound_sdk_voice_initialization_tests.cpp']
     pending=list(map(Path,inputs))
     while pending:
         p=pending.pop()
@@ -23,7 +23,7 @@ def main():
         pending.extend(Path('include')/p.decode()for p in re.findall(rb'#include\s+"([^"]+)"',raw))
     fixture=Path('tests/fixtures/sound_sdk_voice_initialization.original.json');original=args.output/'original.json';shutil.copy2(ROOT/fixture,original)
     owner=frozen/inputs[0]
-    common=['c++','-std=c++20','-fno-fast-math','-ffp-contract=off','-frounding-math','-fno-associative-math','-Wall','-Wextra','-pthread','-I'+str(frozen/'include'),*[str(frozen/p)for p in inputs]]
+    common=['c++','-std=c++20','-fno-fast-math','-ffp-contract=off','-frounding-math','-fno-associative-math','-Wall','-Wextra','-pthread','-I'+str(frozen/'include'), '-I'+str(frozen/'src'),*[str(frozen/p)for p in inputs]]
     commands=[]
     def run(argv,label,success=True):
         argv=list(map(str,argv));r=subprocess.run(argv,capture_output=True,text=True)

@@ -1,4 +1,4 @@
-target_sources(halo2_systems PRIVATE src/script_continuation.cpp src/presentation_continuation.cpp)
+target_sources(halo2_systems PRIVATE src/campaign/scripting/script_continuation.cpp src/core/presentation_continuation.cpp)
 if(BUILD_TESTING)
     add_executable(script_presentation_continuation_tests tests/script_presentation_continuation_tests.cpp)
     target_link_libraries(script_presentation_continuation_tests PRIVATE halo2_systems)

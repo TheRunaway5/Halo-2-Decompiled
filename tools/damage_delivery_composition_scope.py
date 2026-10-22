@@ -10,9 +10,9 @@ from oracle_smg_firing_1_1 import ROOT,Xbe,_Code,PIN
 from generate_physics_world_bootstrap_runtime_20261011 import sha
 
 MODULES=(
-    'src/unit_weapon_routing.cpp',
-    'src/unit_object_runtime_generated.cpp',
-    'src/physics_vehicle_motion_generated.cpp',
+    'src/gameplay/weapons/unit_weapon_routing.cpp',
+    'src/gameplay/units/unit_object_runtime_generated.cpp',
+    'src/physics/vehicles/physics_vehicle_motion_generated.cpp',
 )
 
 def extend(paired):

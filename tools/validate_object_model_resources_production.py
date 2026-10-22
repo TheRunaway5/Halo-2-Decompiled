@@ -8,7 +8,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--build',type=Path,required=True)
     p.add_argument('--output',type=Path,required=True);p.add_argument('--sanitizer',action='store_true');a=p.parse_args()
     build=a.build.resolve();out=a.output.resolve();assert build.is_dir();out.mkdir(parents=True,exist_ok=False)
-    names=['include/halo2/object_model_resources.hpp','src/object_model_resources.cpp','tests/object_model_resources_tests.cpp']
+    names=['include/halo2/object_model_resources.hpp','src/gameplay/objects/object_model_resources.cpp','tests/object_model_resources_tests.cpp']
     observed={}
     for name in names+['CMakeLists.txt']:
         target=out/'source-before'/name;target.parent.mkdir(parents=True,exist_ok=True)

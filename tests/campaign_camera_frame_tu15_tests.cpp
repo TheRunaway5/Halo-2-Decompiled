@@ -96,7 +96,12 @@ void run(const char*xbe,const char*map,bool points,bool native_cold){
  unsigned frames{},zero{},one{},many{};
  auto frame=[&](float raw,bool paused=false){
   const float incoming=source_campaign_frame_interval_tu15(raw);
-  const auto accepted=sim.advance_frame_time(incoming,paused);for(int n=0;n<accepted.ticks;++n)sim.step({});
+  const auto clock_owner=word(0x51df54u);auto expected_clock=bank(m,clock_owner,0x24u);
+  const auto accepted=sim.advance_frame_time(incoming,paused);
+  expected_clock[1]=std::byte(paused);
+  check(bank(m,clock_owner,0x24u)==expected_clock,
+      "Campaign pause did not publish only the pause byte to its retained TU1.5 clock");
+  for(int n=0;n<accepted.ticks;++n)sim.step({});
   sim.advance_cinematic_render_time(accepted.elapsed,accepted.ticks,accepted.ticks);
   const auto working_before=bank(m,0x4f64a4u+0x10cu,0x24u);
   std::vector<SourcePhysicsContactRecordStore> stores;
@@ -160,13 +165,14 @@ void run(const char*xbe,const char*map,bool points,bool native_cold){
  const auto clock=word(word(0x51df54u)+8u);
  const auto paused_view=frame(.125f,true);(void)paused_view;
  (void)frame(100.f,true);check(word(word(0x51df54u)+8u)==clock,"Zero camera phase advanced source game ticks");
+ (void)frame(1.f/30.f,false);
  sim.request_checkpoint();sim.step({});check(sim.has_checkpoint(),"Owning Simulation did not capture campaign checkpoint");
  const auto saved_observer=bank(m,0x4f64a4u,0x358u);const auto restores=sim.checkpoint_restores();
  for(int i=0;i<3;++i)(void)frame(1.f/30.f);
  sim.request_revert();sim.step({});check(sim.checkpoint_restores()==restores+1,"Owning Simulation did not restore camera checkpoint");
  check(bank(m,0x4f64a4u,0x358u)==saved_observer,"Owning Simulation camera restore lost completed observer state");
  check(source_campaign_camera_view_tu15(m,0).has_value(),"Restored source camera lost native user identity");
- std::cout<<"PASS "<<(points?"03b points":"00a animations")<<" real native registered player; frames="<<frames<<" zero="<<zero<<" one="<<one<<" multi="<<many<<" cut/FOV/read-only/paused raw positive/source checkpoint\n";
+ std::cout<<"PASS "<<(points?"03b points":"00a animations")<<" real native registered player; frames="<<frames<<" zero="<<zero<<" one="<<one<<" multi="<<many<<" cut/FOV/read-only/paused raw positive/source clock Resume/checkpoint\n";
  check(zero&&one&&many,"Native camera frame fixtures lost tick-schedule coverage");
 }
 int main(int argc,char**argv)try{

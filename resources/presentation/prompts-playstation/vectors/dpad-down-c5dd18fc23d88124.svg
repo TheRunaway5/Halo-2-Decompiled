@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="44" viewBox="0 0 16 11" version="1.1">
+  <title>Playstation dpad-down: custom controller prompt</title>
+  <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+  <defs />
+  <polygon id="arrow" points="-0.052336067108487205,2.0112205101027927 15.875537073487571,2.0112205101027927 7.911600503189542,11.174073813769896" fill="#ffffff" />
+</svg>

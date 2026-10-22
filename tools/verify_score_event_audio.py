@@ -12,7 +12,7 @@ ROOT=Path(__file__).resolve().parents[1]
 BASE=ROOT/'analysis/multiplayer/game-variants/king-hud-native-20261012/verification.json'
 BASE_PIN='8ba1f7bd52f15a766ecbadf279a7abccfaea21bd46df7146d47d2cd4ef7f0d43'
 OUT=ROOT/'analysis/multiplayer/game-variants/score-event-audio-native-20261012'
-OWNED=('include/halo2/native_vista_announcer.hpp','src/native_vista_announcer.cpp','tests/score_event_audio_tests.cpp','tools/verify_score_event_audio.py')
+OWNED=('include/halo2/native_vista_announcer.hpp','src/ui/vista/native_vista_announcer.cpp','tests/score_event_audio_tests.cpp','tools/verify_score_event_audio.py')
 U5='/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe'
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
@@ -40,7 +40,7 @@ def main():
  inputs={str(BASE):BASE_PIN,str(source.parent/'source-hashes.json'):prior['source_hashes_sha256']}
  names=('assets/disc/maps/lockout.map','assets/disc/maps/shared.map','assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03',
   'tests/fixtures/king_presentation_original.json','tests/fixtures/vista_announcer_events_original.json',
-  'src/source_score_event.cpp','include/halo2/source_score_event.hpp','src/vista_announcer_events.cpp','src/vista_announcer_queue.cpp',U5)
+  'src/gameplay/multiplayer/source_score_event.cpp','include/halo2/source_score_event.hpp','src/audio/vista_announcer_events.cpp','src/audio/vista_announcer_queue.cpp',U5)
  for name in names:inputs[str(source/name)]=sha(source/name)
  for name in ('ascension.map','shared.map','mainmenu.map'):
   p=overlay/'Halo 2 Vista installer/maps'/name;inputs[str(p)]=sha(p)
@@ -55,7 +55,7 @@ def main():
   row=next(e for e in entries if Path(e['file'])==source/(template or name));cmd=shlex.split(row['command']);obj=run/(label+'.o')
   actual=overlay/name if name in overlaid else source/name
   cmd=[str(actual)if token==row['file']else token for token in cmd]
-  cmd[cmd.index('-o')+1]=str(obj);cmd.insert(1,'-I'+str(overlay/'include'))
+  cmd[cmd.index('-o')+1]=str(obj);cmd.insert(1,'-I'+str(overlay/'include'), '-I'+str(overlay/'src'))
   for option in ('-MF','-MT'):
    if option in cmd:cmd[cmd.index(option)+1]=str(obj)+('.d'if option=='-MF'else'')
   if sanitized:cmd.extend(['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer'])
@@ -71,14 +71,14 @@ def main():
   execute('link-'+label,cmd,build);return binary
  args=(overlay/'Halo 2 Vista installer/maps',r'scenarios\multi\ascension\ascension',source/'assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03',
   source/'assets/disc/maps/lockout.map',source/'assets/disc/maps',U5)
- production=compile_owner('src/native_vista_announcer.cpp','compile-announcer',False)
+ production=compile_owner('src/ui/vista/native_vista_announcer.cpp','compile-announcer',False)
  test=compile_owner('tests/score_event_audio_tests.cpp','compile-score-audio-test',False,'tests/king_recording_runtime_tests.cpp')
  binary=link_test([production,test],'score_event_audio_tests',False);execute('score-audio-test',[binary,*args])
  regression=compile_owner('tests/native_vista_announcer_tests.cpp','compile-announcer-test',False,'tests/king_recording_runtime_tests.cpp')
  reg_binary=link_test([production,regression],'native_vista_announcer_tests',False)
  execute('announcer-regression',[reg_binary,*args[:3],source/'tests/fixtures/king_presentation_original.json'])
  execute('score-producer-regression',[build/'score_event_tests',source/'analysis/multiplayer/game-variants/score-events-20261012/complete/report.json'])
- owners=('src/source_score_event.cpp','src/native_vista_announcer.cpp','src/vista_announcer_events.cpp','src/vista_announcer_queue.cpp','tests/score_event_audio_tests.cpp')
+ owners=('src/gameplay/multiplayer/source_score_event.cpp','src/ui/vista/native_vista_announcer.cpp','src/audio/vista_announcer_events.cpp','src/audio/vista_announcer_queue.cpp','tests/score_event_audio_tests.cpp')
  objects=[compile_owner(p,'sanitizer-compile-'+str(i),True,'tests/king_recording_runtime_tests.cpp'if p.startswith('tests/')else None)for i,p in enumerate(owners)]
  sanitized=link_test(objects,'score_event_audio_tests_asan',True)
  execute('sanitizer-test',[sanitized,*args],extra={'ASAN_OPTIONS':'detect_leaks=1:halt_on_error=1','UBSAN_OPTIONS':'halt_on_error=1'})

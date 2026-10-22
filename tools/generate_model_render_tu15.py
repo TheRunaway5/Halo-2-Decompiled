@@ -33,7 +33,7 @@ ENTRIES=(
 )
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--output',type=Path,default=Path('src/source_model_render_tu15_generated.cpp'))
+    p.add_argument('--output',type=Path,default=Path('src/rendering/models/source_model_render_tu15_generated.cpp'))
     p.add_argument('--directory',type=Path,default=Path('analysis/shader-parity-20261013/model-render-functions-v1'))
     a=p.parse_args();assert sha(NEW_DEFAULT)==NEW_PIN
     image=Xbe(NEW_DEFAULT);code=CombatCode(image)

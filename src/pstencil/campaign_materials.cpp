@@ -1,5 +1,5 @@
 #include "halo2/pstencil/campaign_materials.hpp"
-#include "../campaign_material_selection.hpp"
+#include "campaign/campaign_material_selection.hpp"
 #include <chrono>
 #include <cstdlib>
 #include <fstream>

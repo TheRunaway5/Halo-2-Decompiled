@@ -5,6 +5,7 @@
 using namespace halo2;
 int main() try {
     MultiplayerState expected;
+    expected.source_engine_entity=SourceMultiplayerEngineEntityTu15{2,3,std::vector<std::byte>(0x24)};
     auto &player = expected.players[0];
     player.connected = true;
     player.health = player.shield = 1;
@@ -30,11 +31,21 @@ int main() try {
     prop.regions.selection.states={{0,4,0}};prop.regions.looping_effects={0xffffffffu};
     expected.source_scene_roots_authoritative=true;expected.source_scene_roots.emplace_back();
     auto &root=expected.source_scene_roots.back();root.object=0xe2750006;root.definition=0xea9c0100;root.placement=27;
+    root.render_clusters={0,3,511};
     root.attached_effects.push_back({0,0x83,0xe6650000,0xea790904,-0.f,1,{0x01234567,0x89abcdef},
         {{0x020000ca,0,{}}}});
     struct Mutation { const char *name; void (*apply)(MultiplayerState &); };
     const Mutation mutations[] = {
+        {"source world kind",[](auto &s){s.source_game_type=1;}},
+        {"source engine entity owner",[](auto &s){s.source_engine_entity.reset();}},
+        {"source engine entity selector",[](auto &s){s.source_engine_entity->type=4;}},
+        {"source engine entity mask",[](auto &s){s.source_engine_entity->changed^=1;}},
+        {"source engine relationship mask",[](auto &s){s.source_engine_entity->relationship_mask^=1;}},
+        {"source engine entity byte",[](auto &s){s.source_engine_entity->bytes[10]^=std::byte{1};}},
+        {"source engine entity extent",[](auto &s){s.source_engine_entity->bytes.pop_back();}},
         {"source owner",[](auto &s){s.source_scene_roots[0].object^=0x10000u;}},
+        {"source cluster membership",[](auto &s){s.source_scene_roots[0].render_clusters[1]=4;}},
+        {"source registration loss",[](auto &s){s.source_scene_roots[0].render_clusters.clear();}},
         {"source effect count",[](auto &s){s.source_scene_roots[0].attached_effects.clear();}},
         {"source effect generation",[](auto &s){s.source_scene_roots[0].attached_effects[0].instance^=0x10000u;}},
         {"source effect slot",[](auto &s){++s.source_scene_roots[0].attached_effects[0].slot;}},

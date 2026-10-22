@@ -367,7 +367,7 @@ def main():
         reservation_report_sha256=sha(reservation_report.read_bytes()),
         reservation_provenance_sha256=sha(reservation_provenance.read_bytes()), fixture_sha256=sha(fixture.read_bytes()),
         native_binary_sha256=sha(args.binary.read_bytes()) if args.binary else None,
-        helper_sha256=sha((ROOT / 'src/source_bitmap_image_binding.cpp').read_bytes()),
+        helper_sha256=sha((ROOT / 'src/rendering/source_bitmap_image_binding.cpp').read_bytes()),
         header_sha256=sha((ROOT / 'include/halo2/source_bitmap_image_binding.hpp').read_bytes()),
         test_sha256=sha((ROOT / 'tests/source_bitmap_image_binding_tests.cpp').read_bytes()),
         native_fixture_validation=validation,

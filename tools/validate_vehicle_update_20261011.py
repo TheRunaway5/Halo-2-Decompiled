@@ -16,8 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 E = ROOT / 'analysis/multiplayer/sandbox-source/vehicle-update-20261011'
 OWNED = (
     'include/halo2/physics_vehicle_update.hpp',
-    'src/physics_contact_runtime_internal.hpp',
-    'src/physics_vehicle_update_generated.cpp',
+    'src/physics/runtime/physics_contact_runtime_internal.hpp',
+    'src/physics/vehicles/physics_vehicle_update_generated.cpp',
     'tests/physics_vehicle_update_tests.cpp',
     'cmake/PhysicsVehicleUpdate.cmake',
     'tools/research_vehicle_update_20261011.py',
@@ -41,9 +41,9 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-EXPLICIT_SUPPORT = ('src/physics_vehicle_runtime_generated.cpp',
+EXPLICIT_SUPPORT = ('src/physics/vehicles/physics_vehicle_runtime_generated.cpp',
     'tests/physics_vehicle_runtime_tests.cpp', 'cmake/PhysicsVehicleRuntime.cmake',
-    'src/physics_world_runtime_generated.cpp', 'tests/physics_world_runtime_tests.cpp')
+    'src/physics/runtime/physics_world_runtime_generated.cpp', 'tests/physics_world_runtime_tests.cpp')
 PARENT = ROOT / 'analysis/multiplayer/sandbox-source/vehicle-runtime-20261011'
 PARENT_MANIFEST_PIN = '1817c17329836b3336c6bbb688a25606e3bdc4a0f4f9a659a8ddfdf048b2773d'
 
@@ -51,7 +51,7 @@ PARENT_MANIFEST_PIN = '1817c17329836b3336c6bbb688a25606e3bdc4a0f4f9a659a8ddfdf04
 def verify_parent():
     assert sha(PARENT / 'source-manifest-v1.json') == PARENT_MANIFEST_PIN
     parent = json.loads((PARENT / 'source-manifest-v1.json').read_text())
-    overlay = 'src/physics_contact_runtime_internal.hpp'
+    overlay = 'src/physics/runtime/physics_contact_runtime_internal.hpp'
     for relative, pin in parent['files'].items():
         assert sha(PARENT / 'source-v1' / relative) == pin
         if relative != overlay:
@@ -143,7 +143,7 @@ def validate():
     generator = json.loads(generated.read_text())
     assert generator['generator_sha256'] == sha(ROOT / 'tools/generate_vehicle_update_20261011.py')
     assert generator['correspondence_sha256'] == sha(correspondence)
-    assert generator['generated_cpp_sha256'] == sha(ROOT / 'src/physics_vehicle_update_generated.cpp')
+    assert generator['generated_cpp_sha256'] == sha(ROOT / 'src/physics/vehicles/physics_vehicle_update_generated.cpp')
     assert generator['generated_cpp_sha256'] == sha(E / 'generated-repeat/physics_vehicle_update_generated.cpp')
     assert len(generator['lowered_instructions']) == 1068
     assert set(generator['lowered_instructions']) < set(paired['instruction_map'])

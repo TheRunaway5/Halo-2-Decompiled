@@ -1,0 +1,1960 @@
+{
+  "schema": "H2_MACOS_LOADING_ARITHMETIC_DIAGNOSTIC_V1",
+  "date": "2026-10-20",
+  "scope": "Independent, disposable Linux library-build differential against the retained Mac genuine-track failure. No production decoder, PCM admission hash or deferred original engine numerical code changed.",
+  "probe_sources": {
+    "strict": "import hashlib,json,os,subprocess,sys,tarfile,urllib.request,time\nfrom pathlib import Path\nroot=Path.cwd();sys.path.insert(0,str(root/'tools'))\nfrom mcc_loading_presentation import read_media,V3_FRAMES,V3_PCM_SHA,MEDIA_SHA,CODEBOOK_SHA,_v3_pcm\nwork=Path(os.environ['HALO2_TEST_SCRATCH']); reportpath=root/'build/test-results/macos-vorbis-arithmetic/diagnostic.json'\nreport={'schema':'H2_VORBIS_COMPILER_DIAGNOSTIC_V1','scratch':str(work),'media_sha256':MEDIA_SHA,'codebook_sha256':CODEBOOK_SHA,'expected_pcm_sha256':V3_PCM_SHA,'variants':[],'retained_large_artifacts':[]}\ndef digest(p):return hashlib.file_digest(p.open('rb'),'sha256').hexdigest()\ndef save():reportpath.parent.mkdir(parents=True,exist_ok=True);reportpath.write_text(json.dumps(report,indent=2)+'\\n')\ndef run(command,log,env=None):\n with log.open('w') as f:r=subprocess.run([str(v) for v in command],stdout=f,stderr=subprocess.STDOUT,env=env)\n if r.returncode:raise RuntimeError(str(command[0])+': '+log.read_text()[-4096:])\n return r\ntry:\n payload,_=read_media(Path('/home/eric/.local/share/Steam/steamapps/common/Halo The Master Chief Collection/halo2'))\n media=work/'loading.wem';media.write_bytes(payload)\n converter=root/'build/halo2_mcc_loading_audio';books=root/'external/ww2ogg/packed_codebooks_aoTuV_603.bin'\n baseline=work/'baseline.wav';run([converter,media,baseline,books,V3_FRAMES],work/'baseline.log')\n baseline_data=baseline.read_bytes();_v3_pcm(baseline_data)\n report['baseline']={'command':[str(converter),str(media),str(baseline),str(books),str(V3_FRAMES)],'converter_sha256':digest(converter),'library_sha256':digest(Path('/usr/lib/libvorbis.so.0').resolve()),'pcm_sha256':hashlib.sha256(baseline_data[44:]).hexdigest(),'canonical':True}\n print('PASS baseline actual converter:',report['baseline']['pcm_sha256'],flush=True);save()\n url='https://downloads.xiph.org/releases/vorbis/libvorbis-1.3.7.tar.xz';archive=work/'vorbis.tar.xz'\n try:\n  with urllib.request.urlopen(url,timeout=30) as response,archive.open('wb') as out:\n   import shutil;shutil.copyfileobj(response,out)\n except Exception:\n  with urllib.request.urlopen('https://ftp.osuosl.org/pub/xiph/releases/vorbis/libvorbis-1.3.7.tar.xz',timeout=30) as response,archive.open('wb') as out:\n   import shutil;shutil.copyfileobj(response,out)\n expected='b33cc4934322bcbf6efcbacf49e3ca01aadbea4114ec9589d1b1e9d20f72954b'\n assert digest(archive)==expected\n report['source']={'url':url,'sha256':expected}\n with tarfile.open(archive) as tar:tar.extractall(work,filter='data')\n source=work/'libvorbis-1.3.7'\n files='mdct smallft block envelope window lsp lpc analysis synthesis psy info floor1 floor0 res0 mapping0 registry codebook sharedbook lookup bitrate'.split()\n for label,compiler,flags in [('clang-strict','clang',['-O3','-ffp-contract=off']),('gcc-strict','gcc',['-O3','-ffp-contract=off'])]:\n  folder=work/label;folder.mkdir()\n  lib=folder/'libvorbis.so.0'\n  command=[compiler,'-shared','-fPIC',*flags,'-I'+str(source/'include'),'-I'+str(source/'lib'),*[source/'lib'/(f+'.c') for f in files],'-o',lib,'-logg','-lm']\n  started=time.monotonic();run(command,folder/'compile.log')\n  output=folder/'loading.wav';env=dict(os.environ,LD_LIBRARY_PATH=str(folder))\n  run([converter,media,output,books,V3_FRAMES],folder/'decode.log',env)\n  data=output.read_bytes()[44:];sha=hashlib.sha256(data).hexdigest()\n  row={'label':label,'command':[str(v) for v in command],'compiler':subprocess.check_output([compiler,'--version'],text=True).splitlines()[0],'library_sha256':digest(lib),'pcm_sha256':sha,'canonical':sha==V3_PCM_SHA,'matches_both_mac_slices':sha=='c38968922521e5f031733ab6de5183df92335741591e283b778e33baa173acf7','elapsed_seconds':time.monotonic()-started}\n  report['variants'].append(row);save();print(label,sha,'canonical',row['canonical'],'mac_match',row['matches_both_mac_slices'],flush=True)\n report['probe_completed']=True;save()\nfinally:save()\n",
+    "fma": "import hashlib,json,os,subprocess,sys,tarfile,urllib.request,time\nfrom pathlib import Path\nroot=Path.cwd();sys.path.insert(0,str(root/'tools'))\nfrom mcc_loading_presentation import read_media,V3_FRAMES,V3_PCM_SHA,MEDIA_SHA,CODEBOOK_SHA,_v3_pcm\nwork=Path(os.environ['HALO2_TEST_SCRATCH']); reportpath=root/'build/test-results/macos-vorbis-arithmetic/fma-diagnostic.json'\nreport={'schema':'H2_VORBIS_COMPILER_DIAGNOSTIC_V1','scratch':str(work),'media_sha256':MEDIA_SHA,'codebook_sha256':CODEBOOK_SHA,'expected_pcm_sha256':V3_PCM_SHA,'variants':[],'retained_large_artifacts':[]}\ndef digest(p):return hashlib.file_digest(p.open('rb'),'sha256').hexdigest()\ndef save():reportpath.parent.mkdir(parents=True,exist_ok=True);reportpath.write_text(json.dumps(report,indent=2)+'\\n')\ndef run(command,log,env=None):\n with log.open('w') as f:r=subprocess.run([str(v) for v in command],stdout=f,stderr=subprocess.STDOUT,env=env)\n if r.returncode:raise RuntimeError(str(command[0])+': '+log.read_text()[-4096:])\n return r\ntry:\n payload,_=read_media(Path('/home/eric/.local/share/Steam/steamapps/common/Halo The Master Chief Collection/halo2'))\n media=work/'loading.wem';media.write_bytes(payload)\n converter=root/'build/halo2_mcc_loading_audio';books=root/'external/ww2ogg/packed_codebooks_aoTuV_603.bin'\n baseline=work/'baseline.wav';run([converter,media,baseline,books,V3_FRAMES],work/'baseline.log')\n baseline_data=baseline.read_bytes();_v3_pcm(baseline_data)\n report['baseline']={'command':[str(converter),str(media),str(baseline),str(books),str(V3_FRAMES)],'converter_sha256':digest(converter),'library_sha256':digest(Path('/usr/lib/libvorbis.so.0').resolve()),'pcm_sha256':hashlib.sha256(baseline_data[44:]).hexdigest(),'canonical':True}\n print('PASS baseline actual converter:',report['baseline']['pcm_sha256'],flush=True);save()\n url='https://downloads.xiph.org/releases/vorbis/libvorbis-1.3.7.tar.xz';archive=work/'vorbis.tar.xz'\n try:\n  with urllib.request.urlopen(url,timeout=30) as response,archive.open('wb') as out:\n   import shutil;shutil.copyfileobj(response,out)\n except Exception:\n  with urllib.request.urlopen('https://ftp.osuosl.org/pub/xiph/releases/vorbis/libvorbis-1.3.7.tar.xz',timeout=30) as response,archive.open('wb') as out:\n   import shutil;shutil.copyfileobj(response,out)\n expected='b33cc4934322bcbf6efcbacf49e3ca01aadbea4114ec9589d1b1e9d20f72954b'\n assert digest(archive)==expected\n report['source']={'url':url,'sha256':expected}\n with tarfile.open(archive) as tar:tar.extractall(work,filter='data')\n source=work/'libvorbis-1.3.7'\n files='mdct smallft block envelope window lsp lpc analysis synthesis psy info floor1 floor0 res0 mapping0 registry codebook sharedbook lookup bitrate'.split()\n for label,compiler,flags in [('gcc-v4-off','gcc',['-O3','-march=x86-64-v4','-ffp-contract=off']),('gcc-v4-contract','gcc',['-O3','-march=x86-64-v4','-ffp-contract=fast']),('gcc-v4-fast-math','gcc',['-O3','-march=x86-64-v4','-ffast-math'])]:\n  folder=work/label;folder.mkdir()\n  lib=folder/'libvorbis.so.0'\n  command=[compiler,'-shared','-fPIC',*flags,'-I'+str(source/'include'),'-I'+str(source/'lib'),*[source/'lib'/(f+'.c') for f in files],'-o',lib,'-logg','-lm']\n  started=time.monotonic();run(command,folder/'compile.log')\n  output=folder/'loading.wav';env=dict(os.environ,LD_LIBRARY_PATH=str(folder))\n  run([converter,media,output,books,V3_FRAMES],folder/'decode.log',env)\n  data=output.read_bytes()[44:];sha=hashlib.sha256(data).hexdigest()\n  row={'label':label,'command':[str(v) for v in command],'compiler':subprocess.check_output([compiler,'--version'],text=True).splitlines()[0],'library_sha256':digest(lib),'pcm_sha256':sha,'canonical':sha==V3_PCM_SHA,'matches_both_mac_slices':sha=='c38968922521e5f031733ab6de5183df92335741591e283b778e33baa173acf7','elapsed_seconds':time.monotonic()-started}\n  report['variants'].append(row);save();print(label,sha,'canonical',row['canonical'],'mac_match',row['matches_both_mac_slices'],flush=True)\n report['probe_completed']=True;save()\nfinally:save()\n"
+  },
+  "probe_source_sha256": {
+    "strict": "02025f861edcdb9e5e6f97432d6be4b9b64d74eca63440ccae342be9c4682507",
+    "fma": "4939d975522d33079286ba744b976a478493a0647697155c3cf851f60bbb18c1"
+  },
+  "validation": {
+    "strict": {
+      "schema": "H2_VORBIS_COMPILER_DIAGNOSTIC_V1",
+      "scratch": "/tmp/halo2-test-wdcbqdha",
+      "media_sha256": "7ecbdce187ffda00077a593db8ef65a5e9e5ef72d0cd3d4474c523246f7b1695",
+      "codebook_sha256": "00a93eab267d281401b1efd54e888a2e183299b9e6c446c48d09f701a89d9d27",
+      "expected_pcm_sha256": "4170c17c50ed19f4fd1fcd292431a78564c139ff6f1324e3ea56fdefcac34d6e",
+      "variants": [
+        {
+          "label": "clang-strict",
+          "command": [
+            "clang",
+            "-shared",
+            "-fPIC",
+            "-O3",
+            "-ffp-contract=off",
+            "-I/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/include",
+            "-I/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/mdct.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/smallft.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/block.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/envelope.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/window.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/lsp.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/lpc.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/analysis.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/synthesis.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/psy.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/info.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/floor1.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/floor0.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/res0.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/mapping0.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/registry.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/codebook.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/sharedbook.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/lookup.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/bitrate.c",
+            "-o",
+            "/tmp/halo2-test-wdcbqdha/clang-strict/libvorbis.so.0",
+            "-logg",
+            "-lm"
+          ],
+          "compiler": "clang version 23.1.1",
+          "library_sha256": "869ecac746d728e577bec1b50519ae8b3db31c17f70cd6e3bc4964ed441a3453",
+          "pcm_sha256": "c38968922521e5f031733ab6de5183df92335741591e283b778e33baa173acf7",
+          "canonical": false,
+          "matches_both_mac_slices": true,
+          "elapsed_seconds": 4.331047082087025
+        },
+        {
+          "label": "gcc-strict",
+          "command": [
+            "gcc",
+            "-shared",
+            "-fPIC",
+            "-O3",
+            "-ffp-contract=off",
+            "-I/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/include",
+            "-I/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/mdct.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/smallft.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/block.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/envelope.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/window.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/lsp.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/lpc.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/analysis.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/synthesis.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/psy.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/info.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/floor1.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/floor0.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/res0.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/mapping0.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/registry.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/codebook.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/sharedbook.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/lookup.c",
+            "/tmp/halo2-test-wdcbqdha/libvorbis-1.3.7/lib/bitrate.c",
+            "-o",
+            "/tmp/halo2-test-wdcbqdha/gcc-strict/libvorbis.so.0",
+            "-logg",
+            "-lm"
+          ],
+          "compiler": "gcc (GCC) 16.2.1 20260810",
+          "library_sha256": "0a301eabfb0eafbfae338ee0fd091992420aa74d4161d4aeae5bb4708cf05b81",
+          "pcm_sha256": "c38968922521e5f031733ab6de5183df92335741591e283b778e33baa173acf7",
+          "canonical": false,
+          "matches_both_mac_slices": true,
+          "elapsed_seconds": 4.977711592917331
+        }
+      ],
+      "retained_large_artifacts": [],
+      "baseline": {
+        "command": [
+          "/home/eric/Developer/Halo-2-Decompiled/build/halo2_mcc_loading_audio",
+          "/tmp/halo2-test-wdcbqdha/loading.wem",
+          "/tmp/halo2-test-wdcbqdha/baseline.wav",
+          "/home/eric/Developer/Halo-2-Decompiled/external/ww2ogg/packed_codebooks_aoTuV_603.bin",
+          "2744320"
+        ],
+        "converter_sha256": "68f33a52e8b6d1ae3a1076d0147dab1249cae69f09ddb48453036a673b1c6adb",
+        "library_sha256": "8b2d8cbebd41533bcc00150000ae98d7d171e8caa257bcb6f7ee7eea80ea5849",
+        "pcm_sha256": "4170c17c50ed19f4fd1fcd292431a78564c139ff6f1324e3ea56fdefcac34d6e",
+        "canonical": true
+      },
+      "source": {
+        "url": "https://downloads.xiph.org/releases/vorbis/libvorbis-1.3.7.tar.xz",
+        "sha256": "b33cc4934322bcbf6efcbacf49e3ca01aadbea4114ec9589d1b1e9d20f72954b"
+      },
+      "probe_completed": true,
+      "scratch_removed_verified": true,
+      "evidence_file_sha256": "0a1a48d4b2565eb68c9c4b7b1e92818ae84ae3675eb5fcfd0e5576bd5da2c72c"
+    },
+    "fma": {
+      "schema": "H2_VORBIS_COMPILER_DIAGNOSTIC_V1",
+      "scratch": "/tmp/halo2-test-waarefjj",
+      "media_sha256": "7ecbdce187ffda00077a593db8ef65a5e9e5ef72d0cd3d4474c523246f7b1695",
+      "codebook_sha256": "00a93eab267d281401b1efd54e888a2e183299b9e6c446c48d09f701a89d9d27",
+      "expected_pcm_sha256": "4170c17c50ed19f4fd1fcd292431a78564c139ff6f1324e3ea56fdefcac34d6e",
+      "variants": [
+        {
+          "label": "gcc-v4-off",
+          "command": [
+            "gcc",
+            "-shared",
+            "-fPIC",
+            "-O3",
+            "-march=x86-64-v4",
+            "-ffp-contract=off",
+            "-I/tmp/halo2-test-waarefjj/libvorbis-1.3.7/include",
+            "-I/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/mdct.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/smallft.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/block.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/envelope.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/window.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/lsp.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/lpc.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/analysis.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/synthesis.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/psy.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/info.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/floor1.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/floor0.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/res0.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/mapping0.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/registry.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/codebook.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/sharedbook.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/lookup.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/bitrate.c",
+            "-o",
+            "/tmp/halo2-test-waarefjj/gcc-v4-off/libvorbis.so.0",
+            "-logg",
+            "-lm"
+          ],
+          "compiler": "gcc (GCC) 16.2.1 20260810",
+          "library_sha256": "bf268d910e902f415c29ed22df5d0256a9563a65e1066c2cc2e6e1cd78e857d1",
+          "pcm_sha256": "c38968922521e5f031733ab6de5183df92335741591e283b778e33baa173acf7",
+          "canonical": false,
+          "matches_both_mac_slices": true,
+          "elapsed_seconds": 9.78293218195904
+        },
+        {
+          "label": "gcc-v4-contract",
+          "command": [
+            "gcc",
+            "-shared",
+            "-fPIC",
+            "-O3",
+            "-march=x86-64-v4",
+            "-ffp-contract=fast",
+            "-I/tmp/halo2-test-waarefjj/libvorbis-1.3.7/include",
+            "-I/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/mdct.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/smallft.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/block.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/envelope.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/window.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/lsp.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/lpc.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/analysis.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/synthesis.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/psy.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/info.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/floor1.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/floor0.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/res0.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/mapping0.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/registry.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/codebook.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/sharedbook.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/lookup.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/bitrate.c",
+            "-o",
+            "/tmp/halo2-test-waarefjj/gcc-v4-contract/libvorbis.so.0",
+            "-logg",
+            "-lm"
+          ],
+          "compiler": "gcc (GCC) 16.2.1 20260810",
+          "library_sha256": "adccabcfd07683429de272fabf6a842b878b0a78430124f20246807b77ac92f6",
+          "pcm_sha256": "2756bb0b05415ffeade0b7f9498f0549ad29f416aca41713bf5f02fd90f05dc7",
+          "canonical": false,
+          "matches_both_mac_slices": false,
+          "elapsed_seconds": 8.668949658982456
+        },
+        {
+          "label": "gcc-v4-fast-math",
+          "command": [
+            "gcc",
+            "-shared",
+            "-fPIC",
+            "-O3",
+            "-march=x86-64-v4",
+            "-ffast-math",
+            "-I/tmp/halo2-test-waarefjj/libvorbis-1.3.7/include",
+            "-I/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/mdct.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/smallft.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/block.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/envelope.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/window.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/lsp.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/lpc.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/analysis.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/synthesis.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/psy.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/info.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/floor1.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/floor0.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/res0.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/mapping0.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/registry.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/codebook.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/sharedbook.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/lookup.c",
+            "/tmp/halo2-test-waarefjj/libvorbis-1.3.7/lib/bitrate.c",
+            "-o",
+            "/tmp/halo2-test-waarefjj/gcc-v4-fast-math/libvorbis.so.0",
+            "-logg",
+            "-lm"
+          ],
+          "compiler": "gcc (GCC) 16.2.1 20260810",
+          "library_sha256": "84b69d82bf3613f4d5e80507c58cf7c6d6bc3974abfe71e45e4cf3d88b1edbe7",
+          "pcm_sha256": "3cc1cf17c5eea149bf65b12066aa424071ac771ccf8a77e891402fb01ce9ec26",
+          "canonical": false,
+          "matches_both_mac_slices": false,
+          "elapsed_seconds": 7.658467727014795
+        }
+      ],
+      "retained_large_artifacts": [],
+      "baseline": {
+        "command": [
+          "/home/eric/Developer/Halo-2-Decompiled/build/halo2_mcc_loading_audio",
+          "/tmp/halo2-test-waarefjj/loading.wem",
+          "/tmp/halo2-test-waarefjj/baseline.wav",
+          "/home/eric/Developer/Halo-2-Decompiled/external/ww2ogg/packed_codebooks_aoTuV_603.bin",
+          "2744320"
+        ],
+        "converter_sha256": "68f33a52e8b6d1ae3a1076d0147dab1249cae69f09ddb48453036a673b1c6adb",
+        "library_sha256": "8b2d8cbebd41533bcc00150000ae98d7d171e8caa257bcb6f7ee7eea80ea5849",
+        "pcm_sha256": "4170c17c50ed19f4fd1fcd292431a78564c139ff6f1324e3ea56fdefcac34d6e",
+        "canonical": true
+      },
+      "source": {
+        "url": "https://downloads.xiph.org/releases/vorbis/libvorbis-1.3.7.tar.xz",
+        "sha256": "b33cc4934322bcbf6efcbacf49e3ca01aadbea4114ec9589d1b1e9d20f72954b"
+      },
+      "probe_completed": true,
+      "scratch_removed_verified": true,
+      "evidence_file_sha256": "49e1f1b2b976def7c33837ce56f3d97b37192771b96f71222f68be968c1418e2"
+    }
+  },
+  "conclusions": [
+    "Using the same actual production converter and authenticated WEM/codebook, both strict Linux compiler builds reproduce the exact existing Mac PCM hash.",
+    "Keeping GCC and x86-64-v4 fixed while enabling contraction changes the PCM hash. Adding fast-math changes it again. Neither tested policy reproduces the retained admitted reference.",
+    "This isolates the remaining difference to decoder build behavior in this comparison. It does not identify a single operation or establish audible/engine parity.",
+    "The canonical PCM admission gate remains unchanged and failed on Mac. Complete fresh preparation is not accepted. The original engine x87/SSE conversion remains deferred."
+  ],
+  "cleanup": {
+    "all_probe_scratch_removed": true,
+    "retained_large_artifacts": [],
+    "original_inputs_and_existing_runtime_preserved": true
+  },
+  "function_boundary_follow_up": {
+    "block_trace": {
+      "schema": "H2_VORBIS_BLOCK_DIFFERENTIAL_V1",
+      "scratch": "/tmp/halo2-test-3gq0gj8n",
+      "retained_large_artifacts": [],
+      "commands": [
+        [
+          "/home/eric/Developer/Halo-2-Decompiled/build/halo2_mcc_loading_audio",
+          "/tmp/halo2-test-3gq0gj8n/loading.wem",
+          "/tmp/halo2-test-3gq0gj8n/baseline.wav",
+          "/home/eric/Developer/Halo-2-Decompiled/external/ww2ogg/packed_codebooks_aoTuV_603.bin",
+          "2744320"
+        ],
+        [
+          "gcc",
+          "-shared",
+          "-fPIC",
+          "-O3",
+          "-ffp-contract=off",
+          "-I/tmp/halo2-test-3gq0gj8n/libvorbis-1.3.7/include",
+          "-I/tmp/halo2-test-3gq0gj8n/libvorbis-1.3.7/lib",
+          "/tmp/halo2-test-3gq0gj8n/libvorbis-1.3.7/lib/mdct.c",
+          "/tmp/halo2-test-3gq0gj8n/libvorbis-1.3.7/lib/smallft.c",
+          "/tmp/halo2-test-3gq0gj8n/libvorbis-1.3.7/lib/block.c",
+          "/tmp/halo2-test-3gq0gj8n/libvorbis-1.3.7/lib/envelope.c",
+          "/tmp/halo2-test-3gq0gj8n/libvorbis-1.3.7/lib/window.c",
+          "/tmp/halo2-test-3gq0gj8n/libvorbis-1.3.7/lib/lsp.c",
+          "/tmp/halo2-test-3gq0gj8n/libvorbis-1.3.7/lib/lpc.c",
+          "/tmp/halo2-test-3gq0gj8n/libvorbis-1.3.7/lib/analysis.c",
+          "/tmp/halo2-test-3gq0gj8n/libvorbis-1.3.7/lib/synthesis.c",
+          "/tmp/halo2-test-3gq0gj8n/libvorbis-1.3.7/lib/psy.c",
+          "/tmp/halo2-test-3gq0gj8n/libvorbis-1.3.7/lib/info.c",
+          "/tmp/halo2-test-3gq0gj8n/libvorbis-1.3.7/lib/floor1.c",
+          "/tmp/halo2-test-3gq0gj8n/libvorbis-1.3.7/lib/floor0.c",
+          "/tmp/halo2-test-3gq0gj8n/libvorbis-1.3.7/lib/res0.c",
+          "/tmp/halo2-test-3gq0gj8n/libvorbis-1.3.7/lib/mapping0.c",
+          "/tmp/halo2-test-3gq0gj8n/libvorbis-1.3.7/lib/registry.c",
+          "/tmp/halo2-test-3gq0gj8n/libvorbis-1.3.7/lib/codebook.c",
+          "/tmp/halo2-test-3gq0gj8n/libvorbis-1.3.7/lib/sharedbook.c",
+          "/tmp/halo2-test-3gq0gj8n/libvorbis-1.3.7/lib/lookup.c",
+          "/tmp/halo2-test-3gq0gj8n/libvorbis-1.3.7/lib/bitrate.c",
+          "-o",
+          "/tmp/halo2-test-3gq0gj8n/strict/libvorbis.so.0",
+          "-logg",
+          "-lm"
+        ],
+        [
+          "/home/eric/Developer/Halo-2-Decompiled/build/halo2_mcc_loading_audio",
+          "/tmp/halo2-test-3gq0gj8n/loading.wem",
+          "/tmp/halo2-test-3gq0gj8n/strict.wav",
+          "/home/eric/Developer/Halo-2-Decompiled/external/ww2ogg/packed_codebooks_aoTuV_603.bin",
+          "2744320"
+        ],
+        [
+          "gdb",
+          "-q",
+          "-nx",
+          "-batch",
+          "-x",
+          "/tmp/halo2-test-3gq0gj8n/baseline-trace.py",
+          "--args",
+          "/home/eric/Developer/Halo-2-Decompiled/build/halo2_mcc_loading_audio",
+          "/tmp/halo2-test-3gq0gj8n/loading.wem",
+          "/tmp/halo2-test-3gq0gj8n/baseline-partial.wav",
+          "/home/eric/Developer/Halo-2-Decompiled/external/ww2ogg/packed_codebooks_aoTuV_603.bin",
+          "2744320"
+        ],
+        [
+          "gdb",
+          "-q",
+          "-nx",
+          "-batch",
+          "-x",
+          "/tmp/halo2-test-3gq0gj8n/strict-trace.py",
+          "--args",
+          "/home/eric/Developer/Halo-2-Decompiled/build/halo2_mcc_loading_audio",
+          "/tmp/halo2-test-3gq0gj8n/loading.wem",
+          "/tmp/halo2-test-3gq0gj8n/strict-partial.wav",
+          "/home/eric/Developer/Halo-2-Decompiled/external/ww2ogg/packed_codebooks_aoTuV_603.bin",
+          "2744320"
+        ]
+      ],
+      "baseline_pcm_sha256": "4170c17c50ed19f4fd1fcd292431a78564c139ff6f1324e3ea56fdefcac34d6e",
+      "source": {
+        "url": "https://ftp.osuosl.org/pub/xiph/releases/vorbis/libvorbis-1.3.7.tar.xz",
+        "sha256": "b33cc4934322bcbf6efcbacf49e3ca01aadbea4114ec9589d1b1e9d20f72954b"
+      },
+      "strict_pcm_sha256": "c38968922521e5f031733ab6de5183df92335741591e283b778e33baa173acf7",
+      "baseline_library_sha256": "8b2d8cbebd41533bcc00150000ae98d7d171e8caa257bcb6f7ee7eea80ea5849",
+      "strict_library_sha256": "0a301eabfb0eafbfae338ee0fd091992420aa74d4161d4aeae5bb4708cf05b81",
+      "profile_red_reproduced": true,
+      "debugger_source_sha256": "c27410e79873b564578c8f6e4ab38bff57679080d303997e52899d8a4c3ca8b2",
+      "comparisons": [
+        {
+          "event": "mdct_init",
+          "n": 256,
+          "trig": {
+            "same": true,
+            "baseline_sha256": "bf164e68bf71730d51d28ef374507814f8a4701a092f8a99775b49afde8d1cee",
+            "strict_sha256": "bf164e68bf71730d51d28ef374507814f8a4701a092f8a99775b49afde8d1cee",
+            "differing_words": 0,
+            "first_differences": []
+          }
+        },
+        {
+          "event": "mdct_init",
+          "n": 2048,
+          "trig": {
+            "same": true,
+            "baseline_sha256": "9dc98462ec61bdbd5f3d7508b05bcfde0e63ff829dadcaf07a83fcf6959fe3f2",
+            "strict_sha256": "9dc98462ec61bdbd5f3d7508b05bcfde0e63ff829dadcaf07a83fcf6959fe3f2",
+            "differing_words": 0,
+            "first_differences": []
+          }
+        },
+        {
+          "event": "mdct_backward",
+          "n": 256,
+          "index": 1,
+          "input": {
+            "same": true,
+            "baseline_sha256": "eba1ddcf6597db26f0e67381ef624a5edf5360cfbc4bf586dce7aa9e4ad5d299",
+            "strict_sha256": "eba1ddcf6597db26f0e67381ef624a5edf5360cfbc4bf586dce7aa9e4ad5d299",
+            "differing_words": 0,
+            "first_differences": []
+          },
+          "output": {
+            "same": false,
+            "baseline_sha256": "856048703f86f4808d13ec556d536977024fd53dae79d9f3af2a79ab814e7153",
+            "strict_sha256": "7c20d5500d26e94bc7313195a724dbfe8839aef1a8a23def036647c761600354",
+            "differing_words": 184,
+            "first_differences": [
+              {
+                "index": 0,
+                "baseline": "3840a93b",
+                "strict": "3840a93a"
+              },
+              {
+                "index": 1,
+                "baseline": "372b0624",
+                "strict": "372b0628"
+              },
+              {
+                "index": 3,
+                "baseline": "378aa484",
+                "strict": "378aa481"
+              },
+              {
+                "index": 4,
+                "baseline": "37d441a5",
+                "strict": "37d441a7"
+              },
+              {
+                "index": 5,
+                "baseline": "373f92da",
+                "strict": "373f92d8"
+              },
+              {
+                "index": 6,
+                "baseline": "38058655",
+                "strict": "38058656"
+              },
+              {
+                "index": 7,
+                "baseline": "36a93561",
+                "strict": "36a93568"
+              },
+              {
+                "index": 8,
+                "baseline": "38078478",
+                "strict": "38078477"
+              }
+            ]
+          }
+        },
+        {
+          "event": "mdct_backward",
+          "n": 256,
+          "index": 2,
+          "input": {
+            "same": true,
+            "baseline_sha256": "9b19ab22d02fff4c43c2253feaf800374478f152e7a752c71e04a5fec9999fe7",
+            "strict_sha256": "9b19ab22d02fff4c43c2253feaf800374478f152e7a752c71e04a5fec9999fe7",
+            "differing_words": 0,
+            "first_differences": []
+          },
+          "output": {
+            "same": false,
+            "baseline_sha256": "6be6e057e0b1d148cb8649ed165e80af0afac2cf96059c6b764b414d43e15a04",
+            "strict_sha256": "b50d3258b484bd43f3d0b077de7ddc9b03c533067f4877bde644e5ed667be055",
+            "differing_words": 194,
+            "first_differences": [
+              {
+                "index": 0,
+                "baseline": "37b844c1",
+                "strict": "37b844c0"
+              },
+              {
+                "index": 1,
+                "baseline": "376e23a3",
+                "strict": "376e23a1"
+              },
+              {
+                "index": 3,
+                "baseline": "37051075",
+                "strict": "37051072"
+              },
+              {
+                "index": 5,
+                "baseline": "370dc767",
+                "strict": "370dc768"
+              },
+              {
+                "index": 6,
+                "baseline": "37f0a57f",
+                "strict": "37f0a582"
+              },
+              {
+                "index": 7,
+                "baseline": "3730e902",
+                "strict": "3730e904"
+              },
+              {
+                "index": 8,
+                "baseline": "37dbf2bd",
+                "strict": "37dbf2bc"
+              },
+              {
+                "index": 9,
+                "baseline": "373af67d",
+                "strict": "373af67e"
+              }
+            ]
+          }
+        },
+        {
+          "event": "mdct_backward",
+          "n": 2048,
+          "index": 3,
+          "input": {
+            "same": true,
+            "baseline_sha256": "d8592c74f2b2cbd975a802cb78a4a511d4efff6b7768554f91d55be523ef326f",
+            "strict_sha256": "d8592c74f2b2cbd975a802cb78a4a511d4efff6b7768554f91d55be523ef326f",
+            "differing_words": 0,
+            "first_differences": []
+          },
+          "output": {
+            "same": false,
+            "baseline_sha256": "8b06770c969201988b7c83dc7c79b8a4731d9adb9c4b0abb37e321aafd740094",
+            "strict_sha256": "947f188f9a48c9bb4e89850531e3f82124edd983b29232fc6ffc0c207dec8389",
+            "differing_words": 1670,
+            "first_differences": [
+              {
+                "index": 1,
+                "baseline": "37574345",
+                "strict": "37574344"
+              },
+              {
+                "index": 3,
+                "baseline": "b7ff35b4",
+                "strict": "b7ff35b7"
+              },
+              {
+                "index": 4,
+                "baseline": "381be071",
+                "strict": "381be072"
+              },
+              {
+                "index": 5,
+                "baseline": "b71df0f8",
+                "strict": "b71df100"
+              },
+              {
+                "index": 6,
+                "baseline": "382250fa",
+                "strict": "382250f8"
+              },
+              {
+                "index": 7,
+                "baseline": "37de4e94",
+                "strict": "37de4e92"
+              },
+              {
+                "index": 9,
+                "baseline": "3897b690",
+                "strict": "3897b691"
+              },
+              {
+                "index": 10,
+                "baseline": "b7bf20cc",
+                "strict": "b7bf20cb"
+              }
+            ]
+          }
+        },
+        {
+          "event": "mdct_backward",
+          "n": 2048,
+          "index": 4,
+          "input": {
+            "same": true,
+            "baseline_sha256": "00d8861b4846e4d12922b1aa21633a7c002f4fca599d67e8f28001db7e0eab79",
+            "strict_sha256": "00d8861b4846e4d12922b1aa21633a7c002f4fca599d67e8f28001db7e0eab79",
+            "differing_words": 0,
+            "first_differences": []
+          },
+          "output": {
+            "same": false,
+            "baseline_sha256": "f2d1f644ee0b3eec1bf64b69c600d416e453f4f3f9e47f2cb11a23ecaa2d2ed2",
+            "strict_sha256": "74db4ba47c865562561d16a446c7ca271a62fa36bed4aa5dabc2a238e31a87e5",
+            "differing_words": 1614,
+            "first_differences": [
+              {
+                "index": 0,
+                "baseline": "b7129618",
+                "strict": "b7129614"
+              },
+              {
+                "index": 2,
+                "baseline": "b83ed5ae",
+                "strict": "b83ed5af"
+              },
+              {
+                "index": 3,
+                "baseline": "b78c4f89",
+                "strict": "b78c4f8c"
+              },
+              {
+                "index": 4,
+                "baseline": "b7bb05d6",
+                "strict": "b7bb05d5"
+              },
+              {
+                "index": 5,
+                "baseline": "37c54e55",
+                "strict": "37c54e57"
+              },
+              {
+                "index": 6,
+                "baseline": "b634f1c8",
+                "strict": "b634f1d6"
+              },
+              {
+                "index": 7,
+                "baseline": "359af027",
+                "strict": "359af020"
+              },
+              {
+                "index": 8,
+                "baseline": "b83a8f46",
+                "strict": "b83a8f44"
+              }
+            ]
+          }
+        },
+        {
+          "event": "mdct_backward",
+          "n": 2048,
+          "index": 5,
+          "input": {
+            "same": true,
+            "baseline_sha256": "0320014e77506b66db5d6d4064ac3b38fe459a6fbe0aa2ea6dd18696041bc8af",
+            "strict_sha256": "0320014e77506b66db5d6d4064ac3b38fe459a6fbe0aa2ea6dd18696041bc8af",
+            "differing_words": 0,
+            "first_differences": []
+          },
+          "output": {
+            "same": false,
+            "baseline_sha256": "606275404798f4cbf3c102fa4ec77ab4162287ba864caeb15871c9e13b8bc86c",
+            "strict_sha256": "dbb2ed1fd707e46c845e5a9c81f320e967c43a74756b617ee0d17cb45e4e1fb9",
+            "differing_words": 1660,
+            "first_differences": [
+              {
+                "index": 0,
+                "baseline": "b8177467",
+                "strict": "b8177468"
+              },
+              {
+                "index": 1,
+                "baseline": "386c3489",
+                "strict": "386c3485"
+              },
+              {
+                "index": 2,
+                "baseline": "b7aa7272",
+                "strict": "b7aa7276"
+              },
+              {
+                "index": 3,
+                "baseline": "37917cd8",
+                "strict": "37917cd7"
+              },
+              {
+                "index": 4,
+                "baseline": "374058b3",
+                "strict": "374058b0"
+              },
+              {
+                "index": 5,
+                "baseline": "b76c6e3e",
+                "strict": "b76c6e46"
+              },
+              {
+                "index": 6,
+                "baseline": "382e1ff6",
+                "strict": "382e1ff7"
+              },
+              {
+                "index": 7,
+                "baseline": "b81c2474",
+                "strict": "b81c2476"
+              }
+            ]
+          }
+        },
+        {
+          "event": "mdct_backward",
+          "n": 2048,
+          "index": 6,
+          "input": {
+            "same": true,
+            "baseline_sha256": "446fdcebc7f5de5edb1e0aa695a5e7c5710a92609aa65c3a666a1ac215ee74d7",
+            "strict_sha256": "446fdcebc7f5de5edb1e0aa695a5e7c5710a92609aa65c3a666a1ac215ee74d7",
+            "differing_words": 0,
+            "first_differences": []
+          },
+          "output": {
+            "same": false,
+            "baseline_sha256": "0ddbb10b59d3db808886332ccceb4b6f8837bc8fb3597abf424e30d9345dc3f6",
+            "strict_sha256": "ffb849989d6a47eb982d40f96b5c489ade74b3ad004963bc56279705495a68fa",
+            "differing_words": 1622,
+            "first_differences": [
+              {
+                "index": 1,
+                "baseline": "b859f520",
+                "strict": "b859f522"
+              },
+              {
+                "index": 2,
+                "baseline": "376c45b1",
+                "strict": "376c45b6"
+              },
+              {
+                "index": 3,
+                "baseline": "3804d8c1",
+                "strict": "3804d8c2"
+              },
+              {
+                "index": 4,
+                "baseline": "b88803f5",
+                "strict": "b88803f6"
+              },
+              {
+                "index": 5,
+                "baseline": "389b2887",
+                "strict": "389b2886"
+              },
+              {
+                "index": 6,
+                "baseline": "b8181860",
+                "strict": "b8181862"
+              },
+              {
+                "index": 7,
+                "baseline": "38100132",
+                "strict": "38100131"
+              },
+              {
+                "index": 8,
+                "baseline": "b7a2fda0",
+                "strict": "b7a2fd9d"
+              }
+            ]
+          }
+        },
+        {
+          "event": "mdct_backward",
+          "n": 2048,
+          "index": 7,
+          "input": {
+            "same": true,
+            "baseline_sha256": "3e58d3689bd167fde7871176ccf54fa956d11f3c7750317dadf98d88565dad17",
+            "strict_sha256": "3e58d3689bd167fde7871176ccf54fa956d11f3c7750317dadf98d88565dad17",
+            "differing_words": 0,
+            "first_differences": []
+          },
+          "output": {
+            "same": false,
+            "baseline_sha256": "5efbc54098991bcb8e482ed4bb5a1a40879fbbe3be307679a4387a2cbe65f85f",
+            "strict_sha256": "4ccbc3bcc4ab7bd0ad74ae436822e52cfa56a2dd0b459712748c2cacb98f4a78",
+            "differing_words": 1626,
+            "first_differences": [
+              {
+                "index": 0,
+                "baseline": "b870b042",
+                "strict": "b870b041"
+              },
+              {
+                "index": 1,
+                "baseline": "37f7d816",
+                "strict": "37f7d817"
+              },
+              {
+                "index": 2,
+                "baseline": "36384d41",
+                "strict": "36384d38"
+              },
+              {
+                "index": 3,
+                "baseline": "b88aba85",
+                "strict": "b88aba86"
+              },
+              {
+                "index": 7,
+                "baseline": "37ff8b8f",
+                "strict": "37ff8b92"
+              },
+              {
+                "index": 8,
+                "baseline": "b7eff0e9",
+                "strict": "b7eff0e8"
+              },
+              {
+                "index": 9,
+                "baseline": "3815e3af",
+                "strict": "3815e3b1"
+              },
+              {
+                "index": 10,
+                "baseline": "b73c9a25",
+                "strict": "b73c9a24"
+              }
+            ]
+          }
+        },
+        {
+          "event": "mdct_backward",
+          "n": 2048,
+          "index": 8,
+          "input": {
+            "same": true,
+            "baseline_sha256": "7a4114ee0f8101f2466564d5106be6dcfd5f391e5534608d558c7a115af3d5af",
+            "strict_sha256": "7a4114ee0f8101f2466564d5106be6dcfd5f391e5534608d558c7a115af3d5af",
+            "differing_words": 0,
+            "first_differences": []
+          },
+          "output": {
+            "same": false,
+            "baseline_sha256": "e34b1cd89378a5e4ee54a6e995555d0f0a4d009bb643e609d04054cf52edfe3b",
+            "strict_sha256": "718e78094609760a2f46746fe3d9695d05829ed4da76c143e33b7781a28f0f42",
+            "differing_words": 1678,
+            "first_differences": [
+              {
+                "index": 1,
+                "baseline": "381d73c0",
+                "strict": "381d73c1"
+              },
+              {
+                "index": 2,
+                "baseline": "b8659f45",
+                "strict": "b8659f44"
+              },
+              {
+                "index": 3,
+                "baseline": "b7203462",
+                "strict": "b7203464"
+              },
+              {
+                "index": 4,
+                "baseline": "b5c2e3b0",
+                "strict": "b5c2e39f"
+              },
+              {
+                "index": 5,
+                "baseline": "b6e5a251",
+                "strict": "b6e5a24d"
+              },
+              {
+                "index": 6,
+                "baseline": "361e2bc5",
+                "strict": "361e2bbc"
+              },
+              {
+                "index": 7,
+                "baseline": "3783132c",
+                "strict": "3783132d"
+              },
+              {
+                "index": 9,
+                "baseline": "38147b28",
+                "strict": "38147b26"
+              }
+            ]
+          }
+        },
+        {
+          "event": "mdct_backward",
+          "n": 2048,
+          "index": 9,
+          "input": {
+            "same": true,
+            "baseline_sha256": "59380499b71a0a8c8bf921774bebdcef22a50ab5ecb64be200e4caff53453402",
+            "strict_sha256": "59380499b71a0a8c8bf921774bebdcef22a50ab5ecb64be200e4caff53453402",
+            "differing_words": 0,
+            "first_differences": []
+          },
+          "output": {
+            "same": false,
+            "baseline_sha256": "0700191d64d3f2d341f24cc8de0d797d68498306db2d5d330dc897f0b5de548e",
+            "strict_sha256": "5217da311328cd496ef9d7645e47f00e55981baa54e4038939aef01ce1bed360",
+            "differing_words": 1638,
+            "first_differences": [
+              {
+                "index": 0,
+                "baseline": "355cb846",
+                "strict": "355cb7f8"
+              },
+              {
+                "index": 2,
+                "baseline": "378fbb20",
+                "strict": "378fbb24"
+              },
+              {
+                "index": 4,
+                "baseline": "3739f65f",
+                "strict": "3739f662"
+              },
+              {
+                "index": 5,
+                "baseline": "b63c9883",
+                "strict": "b63c9890"
+              },
+              {
+                "index": 6,
+                "baseline": "371446bf",
+                "strict": "371446ba"
+              },
+              {
+                "index": 7,
+                "baseline": "386e0a82",
+                "strict": "386e0a83"
+              },
+              {
+                "index": 8,
+                "baseline": "377b0c95",
+                "strict": "377b0c9a"
+              },
+              {
+                "index": 9,
+                "baseline": "b7470d36",
+                "strict": "b7470d34"
+              }
+            ]
+          }
+        },
+        {
+          "event": "mdct_backward",
+          "n": 2048,
+          "index": 10,
+          "input": {
+            "same": true,
+            "baseline_sha256": "ed901e86c27b99642ae7e7d1af394cf03189d51989d5756b819bf5e4a900d04e",
+            "strict_sha256": "ed901e86c27b99642ae7e7d1af394cf03189d51989d5756b819bf5e4a900d04e",
+            "differing_words": 0,
+            "first_differences": []
+          },
+          "output": {
+            "same": false,
+            "baseline_sha256": "1d072b2967504d99fbd2e247618bd422ee15a7066969cf318528f08ce0016fea",
+            "strict_sha256": "0bd9f04c40d2d656ad16304e385e71b4c4e807a954f8912d0bc9677043178ccd",
+            "differing_words": 1642,
+            "first_differences": [
+              {
+                "index": 0,
+                "baseline": "37d317ee",
+                "strict": "37d317ec"
+              },
+              {
+                "index": 1,
+                "baseline": "b6cd2d23",
+                "strict": "b6cd2d18"
+              },
+              {
+                "index": 2,
+                "baseline": "b6b61ca7",
+                "strict": "b6b61c91"
+              },
+              {
+                "index": 3,
+                "baseline": "3799af29",
+                "strict": "3799af27"
+              },
+              {
+                "index": 4,
+                "baseline": "b7f691ab",
+                "strict": "b7f691aa"
+              },
+              {
+                "index": 5,
+                "baseline": "373c8e77",
+                "strict": "373c8e78"
+              },
+              {
+                "index": 6,
+                "baseline": "b8435cd1",
+                "strict": "b8435cd3"
+              },
+              {
+                "index": 7,
+                "baseline": "37c9b464",
+                "strict": "37c9b465"
+              }
+            ]
+          }
+        },
+        {
+          "event": "mdct_backward",
+          "n": 2048,
+          "index": 11,
+          "input": {
+            "same": true,
+            "baseline_sha256": "f8d87f4e43d2812d2ade7fe6388ad39355ea90b021c39d5997d47db45294daff",
+            "strict_sha256": "f8d87f4e43d2812d2ade7fe6388ad39355ea90b021c39d5997d47db45294daff",
+            "differing_words": 0,
+            "first_differences": []
+          },
+          "output": {
+            "same": false,
+            "baseline_sha256": "57b0b558c7fae99b5875021cebc7e7d4f2854aa8a7a402510fd4b8f5890473fb",
+            "strict_sha256": "90115a79e5f0900cb357c6890340be8b1bf0f584b18fb62802f857c95fbf7c47",
+            "differing_words": 1572,
+            "first_differences": [
+              {
+                "index": 0,
+                "baseline": "b70d3d6f",
+                "strict": "b70d3d74"
+              },
+              {
+                "index": 1,
+                "baseline": "b81bfac8",
+                "strict": "b81bfac9"
+              },
+              {
+                "index": 2,
+                "baseline": "380ac729",
+                "strict": "380ac727"
+              },
+              {
+                "index": 3,
+                "baseline": "b8a5a513",
+                "strict": "b8a5a514"
+              },
+              {
+                "index": 4,
+                "baseline": "b7a11ae1",
+                "strict": "b7a11ae0"
+              },
+              {
+                "index": 5,
+                "baseline": "b85aab0e",
+                "strict": "b85aab0c"
+              },
+              {
+                "index": 6,
+                "baseline": "b798c528",
+                "strict": "b798c52b"
+              },
+              {
+                "index": 7,
+                "baseline": "b848d3a5",
+                "strict": "b848d3a4"
+              }
+            ]
+          }
+        },
+        {
+          "event": "mdct_backward",
+          "n": 2048,
+          "index": 12,
+          "input": {
+            "same": true,
+            "baseline_sha256": "2b24bf5b9df3b33f57d90115649da87aa3123ea501522585ed3ce7814b97bed7",
+            "strict_sha256": "2b24bf5b9df3b33f57d90115649da87aa3123ea501522585ed3ce7814b97bed7",
+            "differing_words": 0,
+            "first_differences": []
+          },
+          "output": {
+            "same": false,
+            "baseline_sha256": "f63ac7fca4a861a21cf68db2977825455a9fddd6ca921570b02a006e86f9cf22",
+            "strict_sha256": "34fd713f7373ec6dbb087b2ce945936cc23a36dcae0aae2f67f3b4e9d93f9268",
+            "differing_words": 1562,
+            "first_differences": [
+              {
+                "index": 1,
+                "baseline": "b8526988",
+                "strict": "b852698b"
+              },
+              {
+                "index": 2,
+                "baseline": "b7dd087b",
+                "strict": "b7dd0879"
+              },
+              {
+                "index": 3,
+                "baseline": "b90f42cf",
+                "strict": "b90f42ce"
+              },
+              {
+                "index": 4,
+                "baseline": "b63cb067",
+                "strict": "b63cb080"
+              },
+              {
+                "index": 5,
+                "baseline": "b81b7daf",
+                "strict": "b81b7db0"
+              },
+              {
+                "index": 6,
+                "baseline": "b8d4b630",
+                "strict": "b8d4b62f"
+              },
+              {
+                "index": 8,
+                "baseline": "b84e05d5",
+                "strict": "b84e05d1"
+              },
+              {
+                "index": 10,
+                "baseline": "b857d4f4",
+                "strict": "b857d4f0"
+              }
+            ]
+          }
+        }
+      ],
+      "debugger_source": "\nimport gdb,hashlib,json,struct\nfrom pathlib import Path\nevents=[];back_count=0\ndef mem(address,length):return bytes(gdb.selected_inferior().read_memory(address,length))\ndef reg(name):return int(gdb.parse_and_eval('$'+name))\ndef array(address,count):\n raw=mem(address,count*4)\n return {'sha256':hashlib.sha256(raw).hexdigest(),'words':[v[0] for v in struct.iter_unpack('<I',raw)]}\nclass EndInit(gdb.FinishBreakpoint):\n def __init__(self,ptr):\n  self.ptr=ptr;super().__init__(gdb.newest_frame(),internal=True);self.silent=True\n def stop(self):\n  n=struct.unpack('<i',mem(self.ptr,4))[0];ptr=struct.unpack('<Q',mem(self.ptr+8,8))[0]\n  events.append({'event':'mdct_init','n':n,'trig':array(ptr,n+n//4)})\n  return False\nclass StartInit(gdb.Breakpoint):\n def stop(self):EndInit(reg('rdi'));return False\nclass EndBack(gdb.FinishBreakpoint):\n def __init__(self,row,ptr):\n  self.row=row;self.ptr=ptr;super().__init__(gdb.newest_frame(),internal=True);self.silent=True\n def stop(self):\n  self.row['output']=array(self.ptr,self.row['n']);events.append(self.row)\n  if back_count>=12:\n   Path(DESTINATION).write_text(json.dumps(events))\n   gdb.execute('quit')\n  return False\nclass StartBack(gdb.Breakpoint):\n def stop(self):\n  global back_count\n  back_count+=1\n  ptr=reg('rdi');n=struct.unpack('<i',mem(ptr,4))[0]\n  row={'event':'mdct_backward','index':back_count,'n':n,'input':array(reg('rsi'),n//2)}\n  EndBack(row,reg('rdx'));return False\ngdb.execute('set pagination off');gdb.execute('set confirm off');gdb.execute('set breakpoint pending on')\nStartInit('mdct_init',internal=True);StartBack('mdct_backward',internal=True)\ngdb.execute('run')\n",
+      "passed": true,
+      "scratch_removed_verified": true
+    },
+    "scope_probe": {
+      "schema": "H2_VORBIS_MDCT_SCOPE_DIAGNOSTIC_V1",
+      "scratch": "/tmp/halo2-test-9l9bpv8k",
+      "commands": [
+        [
+          "/home/eric/Developer/Halo-2-Decompiled/build/halo2_mcc_loading_audio",
+          "/tmp/halo2-test-9l9bpv8k/loading.wem",
+          "/tmp/halo2-test-9l9bpv8k/baseline.wav",
+          "/home/eric/Developer/Halo-2-Decompiled/external/ww2ogg/packed_codebooks_aoTuV_603.bin",
+          "2744320"
+        ],
+        [
+          "gcc",
+          "-shared",
+          "-fPIC",
+          "-O3",
+          "-ffp-contract=off",
+          "-I/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/include",
+          "-I/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib",
+          "/tmp/halo2-test-9l9bpv8k/strict-mdct.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/smallft.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/block.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/envelope.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/window.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/lsp.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/lpc.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/analysis.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/synthesis.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/psy.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/info.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/floor1.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/floor0.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/res0.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/mapping0.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/registry.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/codebook.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/sharedbook.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/lookup.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/bitrate.c",
+          "/tmp/halo2-test-9l9bpv8k/mdct-bridge.c",
+          "-o",
+          "/tmp/halo2-test-9l9bpv8k/strict-canonical-mdct/libvorbis.so.0",
+          "-logg",
+          "-lm",
+          "-ldl"
+        ],
+        [
+          "/home/eric/Developer/Halo-2-Decompiled/build/halo2_mcc_loading_audio",
+          "/tmp/halo2-test-9l9bpv8k/loading.wem",
+          "/tmp/halo2-test-9l9bpv8k/strict-canonical-mdct/loading.wav",
+          "/home/eric/Developer/Halo-2-Decompiled/external/ww2ogg/packed_codebooks_aoTuV_603.bin",
+          "2744320"
+        ],
+        [
+          "clang",
+          "-shared",
+          "-fPIC",
+          "-O3",
+          "-march=x86-64-v3",
+          "-ffp-contract=on",
+          "-I/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/include",
+          "-I/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/mdct.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/smallft.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/block.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/envelope.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/window.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/lsp.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/lpc.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/analysis.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/synthesis.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/psy.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/info.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/floor1.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/floor0.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/res0.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/mapping0.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/registry.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/codebook.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/sharedbook.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/lookup.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/bitrate.c",
+          "-o",
+          "/tmp/halo2-test-9l9bpv8k/clang-contract-on/libvorbis.so.0",
+          "-logg",
+          "-lm",
+          "-ldl"
+        ],
+        [
+          "/home/eric/Developer/Halo-2-Decompiled/build/halo2_mcc_loading_audio",
+          "/tmp/halo2-test-9l9bpv8k/loading.wem",
+          "/tmp/halo2-test-9l9bpv8k/clang-contract-on/loading.wav",
+          "/home/eric/Developer/Halo-2-Decompiled/external/ww2ogg/packed_codebooks_aoTuV_603.bin",
+          "2744320"
+        ],
+        [
+          "clang",
+          "-shared",
+          "-fPIC",
+          "-O3",
+          "-march=x86-64-v3",
+          "-ffp-contract=fast",
+          "-I/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/include",
+          "-I/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/mdct.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/smallft.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/block.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/envelope.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/window.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/lsp.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/lpc.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/analysis.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/synthesis.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/psy.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/info.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/floor1.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/floor0.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/res0.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/mapping0.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/registry.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/codebook.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/sharedbook.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/lookup.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/bitrate.c",
+          "-o",
+          "/tmp/halo2-test-9l9bpv8k/clang-contract-fast/libvorbis.so.0",
+          "-logg",
+          "-lm",
+          "-ldl"
+        ],
+        [
+          "/home/eric/Developer/Halo-2-Decompiled/build/halo2_mcc_loading_audio",
+          "/tmp/halo2-test-9l9bpv8k/loading.wem",
+          "/tmp/halo2-test-9l9bpv8k/clang-contract-fast/loading.wav",
+          "/home/eric/Developer/Halo-2-Decompiled/external/ww2ogg/packed_codebooks_aoTuV_603.bin",
+          "2744320"
+        ],
+        [
+          "clang",
+          "-shared",
+          "-fPIC",
+          "-O3",
+          "-march=x86-64-v3",
+          "-ffast-math",
+          "-I/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/include",
+          "-I/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/mdct.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/smallft.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/block.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/envelope.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/window.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/lsp.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/lpc.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/analysis.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/synthesis.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/psy.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/info.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/floor1.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/floor0.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/res0.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/mapping0.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/registry.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/codebook.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/sharedbook.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/lookup.c",
+          "/tmp/halo2-test-9l9bpv8k/libvorbis-1.3.7/lib/bitrate.c",
+          "-o",
+          "/tmp/halo2-test-9l9bpv8k/clang-fast-math/libvorbis.so.0",
+          "-logg",
+          "-lm",
+          "-ldl"
+        ],
+        [
+          "/home/eric/Developer/Halo-2-Decompiled/build/halo2_mcc_loading_audio",
+          "/tmp/halo2-test-9l9bpv8k/loading.wem",
+          "/tmp/halo2-test-9l9bpv8k/clang-fast-math/loading.wav",
+          "/home/eric/Developer/Halo-2-Decompiled/external/ww2ogg/packed_codebooks_aoTuV_603.bin",
+          "2744320"
+        ]
+      ],
+      "variants": [
+        {
+          "label": "strict-canonical-mdct",
+          "pcm_sha256": "cb11a0e21db393e66a769abb1f9b50147ad0b2b9f159e408b27928f357899df6",
+          "matches_canonical": false,
+          "library_sha256": "95cd0e616a3a6b75b4aadf7db06e38df370c41f686cc674f80043e53e407a094",
+          "elapsed_seconds": 3.803
+        },
+        {
+          "label": "clang-contract-on",
+          "pcm_sha256": "b155fef080667f6500729fc1d7c20f918ba1ba5fe5d2f3e386d05f2c1eb4b008",
+          "matches_canonical": false,
+          "library_sha256": "9664aaa612cd30ebe54266e8962a5764654093cc779e572693548ce5f38682f2",
+          "elapsed_seconds": 2.555
+        },
+        {
+          "label": "clang-contract-fast",
+          "pcm_sha256": "caf1248652ea1d48709a3226be0406b69444dcf9c767671333f9c5a2132eeda5",
+          "matches_canonical": false,
+          "library_sha256": "3ee4b2fbef259f061699baae884603d9e26fecef5e57d78e63c6da04081df8af",
+          "elapsed_seconds": 2.448
+        },
+        {
+          "label": "clang-fast-math",
+          "pcm_sha256": "d79740ba57d3d3a12f940e33e3ceef95d70d3ba33dba74738b7661ef4d7862c3",
+          "matches_canonical": false,
+          "library_sha256": "58bf803b98803239b443f0a12d4c90758da5b37152cd093c0eb297de28c7ea2f",
+          "elapsed_seconds": 2.496
+        }
+      ],
+      "retained_large_artifacts": [],
+      "passed": true,
+      "scratch_removed_verified": true
+    },
+    "owned_probe": {
+      "schema": "H2_VORBIS_ACTIVE_ARITHMETIC_OWNER_V1",
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-05jsuykf",
+      "runs": [
+        {
+          "label": "reference-mdct-block",
+          "command": {
+            "label": "reference-mdct-block",
+            "mdct": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-05jsuykf/reference-mdct.c",
+            "block": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-05jsuykf/reference-block.c",
+            "extra": [
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-05jsuykf/reference-bridge.c"
+            ]
+          },
+          "library_sha256": "3e423cb28e72ecef6aebca3333a75a12891eb8c6c1fecdee2d7b4c6bf1c3f87f",
+          "mdct": [
+            {
+              "n": 256,
+              "case": 0,
+              "differing_words": 0,
+              "reference_sha256": "cfbc98487075fcf3325c223d759a9536b4600268c31bd4385f9f4b52efb8a9b4",
+              "candidate_sha256": "cfbc98487075fcf3325c223d759a9536b4600268c31bd4385f9f4b52efb8a9b4",
+              "first_differences": []
+            },
+            {
+              "n": 256,
+              "case": 1,
+              "differing_words": 0,
+              "reference_sha256": "89d7eaa63770032fdd9a70d916dca678293ce972a3015053e8a3b3e89671316d",
+              "candidate_sha256": "89d7eaa63770032fdd9a70d916dca678293ce972a3015053e8a3b3e89671316d",
+              "first_differences": []
+            },
+            {
+              "n": 256,
+              "case": 2,
+              "differing_words": 0,
+              "reference_sha256": "6e524bd6f80b16f4dd7f1cbf6fdf12942f3ff0a83cc11cb61ff2b0042fa304e1",
+              "candidate_sha256": "6e524bd6f80b16f4dd7f1cbf6fdf12942f3ff0a83cc11cb61ff2b0042fa304e1",
+              "first_differences": []
+            },
+            {
+              "n": 256,
+              "case": 3,
+              "differing_words": 0,
+              "reference_sha256": "befb0d12337c124b8c0c28d6f04575ddb3c4554287176aeb2010609c8bbc7527",
+              "candidate_sha256": "befb0d12337c124b8c0c28d6f04575ddb3c4554287176aeb2010609c8bbc7527",
+              "first_differences": []
+            },
+            {
+              "n": 2048,
+              "case": 0,
+              "differing_words": 0,
+              "reference_sha256": "5f6ac0d142f74eeb56eda8c9b11bf92d3fb202a66f5e4b14c9042ddb507566d9",
+              "candidate_sha256": "5f6ac0d142f74eeb56eda8c9b11bf92d3fb202a66f5e4b14c9042ddb507566d9",
+              "first_differences": []
+            },
+            {
+              "n": 2048,
+              "case": 1,
+              "differing_words": 0,
+              "reference_sha256": "52aa001ec621c71db3023f040455ca8f49afc9165fc7c1bec91b7f6deb06393c",
+              "candidate_sha256": "52aa001ec621c71db3023f040455ca8f49afc9165fc7c1bec91b7f6deb06393c",
+              "first_differences": []
+            },
+            {
+              "n": 2048,
+              "case": 2,
+              "differing_words": 0,
+              "reference_sha256": "7106548f7410c426f3bf9ac7d3bfecd6fc1f72491b20171265edeaba3867bd39",
+              "candidate_sha256": "7106548f7410c426f3bf9ac7d3bfecd6fc1f72491b20171265edeaba3867bd39",
+              "first_differences": []
+            },
+            {
+              "n": 2048,
+              "case": 3,
+              "differing_words": 0,
+              "reference_sha256": "dd9d8e325258c1595cede560d4aa1103c8b383fce46df4f03702c36e5a82875b",
+              "candidate_sha256": "dd9d8e325258c1595cede560d4aa1103c8b383fce46df4f03702c36e5a82875b",
+              "first_differences": []
+            }
+          ],
+          "mdct_differing_words": 0,
+          "pcm_sha256": "4170c17c50ed19f4fd1fcd292431a78564c139ff6f1324e3ea56fdefcac34d6e",
+          "matches_canonical": true
+        },
+        {
+          "label": "explicit-first-mdct",
+          "command": {
+            "label": "explicit-first-mdct",
+            "mdct": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-05jsuykf/fma-first-mdct.c",
+            "block": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-05jsuykf/reference-block.c",
+            "extra": [
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-05jsuykf/block-only-bridge.c"
+            ]
+          },
+          "library_sha256": "91fdcad542e1dba65275a287a40b1175763fd730b93b7351f29a7da75cca0f57",
+          "mdct": [
+            {
+              "n": 256,
+              "case": 0,
+              "differing_words": 96,
+              "reference_sha256": "cfbc98487075fcf3325c223d759a9536b4600268c31bd4385f9f4b52efb8a9b4",
+              "candidate_sha256": "fd0a00d14df8ac151c7ac698c460447d9bbf80d6b19c247ca14d30b0c7ebabec",
+              "first_differences": [
+                {
+                  "index": 0,
+                  "reference": "3601952d",
+                  "candidate": "3601952e"
+                },
+                {
+                  "index": 3,
+                  "reference": "b5c0ec73",
+                  "candidate": "b5c0ec72"
+                },
+                {
+                  "index": 4,
+                  "reference": "b542a60d",
+                  "candidate": "b542a60c"
+                },
+                {
+                  "index": 6,
+                  "reference": "b4d86872",
+                  "candidate": "b4d86868"
+                }
+              ]
+            },
+            {
+              "n": 256,
+              "case": 1,
+              "differing_words": 80,
+              "reference_sha256": "89d7eaa63770032fdd9a70d916dca678293ce972a3015053e8a3b3e89671316d",
+              "candidate_sha256": "95c0110e9666dd8c3c8f7626d108f0a6e53c46d5cbd0d69771cd640a993b8832",
+              "first_differences": [
+                {
+                  "index": 1,
+                  "reference": "356d448b",
+                  "candidate": "356d4489"
+                },
+                {
+                  "index": 2,
+                  "reference": "3652c8dd",
+                  "candidate": "3652c8df"
+                },
+                {
+                  "index": 3,
+                  "reference": "b5f23fb9",
+                  "candidate": "b5f23fb7"
+                },
+                {
+                  "index": 5,
+                  "reference": "35d83faa",
+                  "candidate": "35d83fae"
+                }
+              ]
+            },
+            {
+              "n": 256,
+              "case": 2,
+              "differing_words": 144,
+              "reference_sha256": "6e524bd6f80b16f4dd7f1cbf6fdf12942f3ff0a83cc11cb61ff2b0042fa304e1",
+              "candidate_sha256": "01603a0ba3c64787d59c7a5a4fbda9dbe09a8947a271f6c71a74ca1c58d38b86",
+              "first_differences": [
+                {
+                  "index": 0,
+                  "reference": "bd1999e5",
+                  "candidate": "bd1999e3"
+                },
+                {
+                  "index": 1,
+                  "reference": "be07c027",
+                  "candidate": "be07c025"
+                },
+                {
+                  "index": 3,
+                  "reference": "3d4e153c",
+                  "candidate": "3d4e153b"
+                },
+                {
+                  "index": 5,
+                  "reference": "be204978",
+                  "candidate": "be204977"
+                }
+              ]
+            },
+            {
+              "n": 256,
+              "case": 3,
+              "differing_words": 122,
+              "reference_sha256": "befb0d12337c124b8c0c28d6f04575ddb3c4554287176aeb2010609c8bbc7527",
+              "candidate_sha256": "096c7f2f9e3f5bd49970bf9e7d40477d1c383a34336da3175a6211620e9f7a63",
+              "first_differences": [
+                {
+                  "index": 1,
+                  "reference": "3c2c7b92",
+                  "candidate": "3c2c7b9c"
+                },
+                {
+                  "index": 3,
+                  "reference": "3e309bfc",
+                  "candidate": "3e309bfa"
+                },
+                {
+                  "index": 4,
+                  "reference": "3bdd1142",
+                  "candidate": "3bdd1130"
+                },
+                {
+                  "index": 6,
+                  "reference": "3d7ec303",
+                  "candidate": "3d7ec305"
+                }
+              ]
+            },
+            {
+              "n": 2048,
+              "case": 0,
+              "differing_words": 966,
+              "reference_sha256": "5f6ac0d142f74eeb56eda8c9b11bf92d3fb202a66f5e4b14c9042ddb507566d9",
+              "candidate_sha256": "cbd9adc4af9b93afca8247c30f29bf26027bfdd105413b1aa451b82cecde27a6",
+              "first_differences": [
+                {
+                  "index": 0,
+                  "reference": "35c6e505",
+                  "candidate": "35c6e508"
+                },
+                {
+                  "index": 3,
+                  "reference": "36d41311",
+                  "candidate": "36d41310"
+                },
+                {
+                  "index": 4,
+                  "reference": "b63eb0b6",
+                  "candidate": "b63eb0b4"
+                },
+                {
+                  "index": 8,
+                  "reference": "b62bc95c",
+                  "candidate": "b62bc958"
+                }
+              ]
+            },
+            {
+              "n": 2048,
+              "case": 1,
+              "differing_words": 884,
+              "reference_sha256": "52aa001ec621c71db3023f040455ca8f49afc9165fc7c1bec91b7f6deb06393c",
+              "candidate_sha256": "96dd31e112a2e46ba64ec1aa835f3939b45b9493f95452a4cfec7cd63f7ae0e8",
+              "first_differences": [
+                {
+                  "index": 0,
+                  "reference": "37af9722",
+                  "candidate": "37af9721"
+                },
+                {
+                  "index": 1,
+                  "reference": "362247fd",
+                  "candidate": "362247fc"
+                },
+                {
+                  "index": 2,
+                  "reference": "b6bf870d",
+                  "candidate": "b6bf870e"
+                },
+                {
+                  "index": 6,
+                  "reference": "3508d36b",
+                  "candidate": "3508d363"
+                }
+              ]
+            },
+            {
+              "n": 2048,
+              "case": 2,
+              "differing_words": 1018,
+              "reference_sha256": "7106548f7410c426f3bf9ac7d3bfecd6fc1f72491b20171265edeaba3867bd39",
+              "candidate_sha256": "dfcc31968e348884f1b613ab1b18d679317338d1837987e1ff9c427ea3074ea9",
+              "first_differences": [
+                {
+                  "index": 0,
+                  "reference": "3e9d1d7c",
+                  "candidate": "3e9d1d79"
+                },
+                {
+                  "index": 3,
+                  "reference": "beb980cb",
+                  "candidate": "beb980cd"
+                },
+                {
+                  "index": 5,
+                  "reference": "3ee5de17",
+                  "candidate": "3ee5de16"
+                },
+                {
+                  "index": 7,
+                  "reference": "3edff336",
+                  "candidate": "3edff337"
+                }
+              ]
+            },
+            {
+              "n": 2048,
+              "case": 3,
+              "differing_words": 1010,
+              "reference_sha256": "dd9d8e325258c1595cede560d4aa1103c8b383fce46df4f03702c36e5a82875b",
+              "candidate_sha256": "8370b37ff8c89376fd42cbfa7e01dc9ea111d69994b54ac8cb7d3886fb08f352",
+              "first_differences": [
+                {
+                  "index": 0,
+                  "reference": "bdd807c7",
+                  "candidate": "bdd807c6"
+                },
+                {
+                  "index": 2,
+                  "reference": "3d571aa3",
+                  "candidate": "3d571aa0"
+                },
+                {
+                  "index": 5,
+                  "reference": "be04c220",
+                  "candidate": "be04c222"
+                },
+                {
+                  "index": 6,
+                  "reference": "3d1fe9e9",
+                  "candidate": "3d1fe9ec"
+                }
+              ]
+            }
+          ],
+          "mdct_differing_words": 4320,
+          "pcm_sha256": "b155fef080667f6500729fc1d7c20f918ba1ba5fe5d2f3e386d05f2c1eb4b008",
+          "matches_canonical": false
+        },
+        {
+          "label": "explicit-second-mdct",
+          "command": {
+            "label": "explicit-second-mdct",
+            "mdct": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-05jsuykf/fma-second-mdct.c",
+            "block": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-05jsuykf/reference-block.c",
+            "extra": [
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-05jsuykf/block-only-bridge.c"
+            ]
+          },
+          "library_sha256": "05bf13ddb985eb84faf27de36ea745367b4b40d17c682f3c172e8ad6eca85523",
+          "mdct": [
+            {
+              "n": 256,
+              "case": 0,
+              "differing_words": 204,
+              "reference_sha256": "cfbc98487075fcf3325c223d759a9536b4600268c31bd4385f9f4b52efb8a9b4",
+              "candidate_sha256": "542ac5c8620e5e1f2d65db0c2479855af40ea1182660129b41a98457ab54c83c",
+              "first_differences": [
+                {
+                  "index": 0,
+                  "reference": "3601952d",
+                  "candidate": "3601952c"
+                },
+                {
+                  "index": 1,
+                  "reference": "3506b81d",
+                  "candidate": "3506b820"
+                },
+                {
+                  "index": 2,
+                  "reference": "35a9edce",
+                  "candidate": "35a9edd4"
+                },
+                {
+                  "index": 4,
+                  "reference": "b542a60d",
+                  "candidate": "b542a60f"
+                }
+              ]
+            },
+            {
+              "n": 256,
+              "case": 1,
+              "differing_words": 202,
+              "reference_sha256": "89d7eaa63770032fdd9a70d916dca678293ce972a3015053e8a3b3e89671316d",
+              "candidate_sha256": "3cecdbcc274a99046730e7684e3350a04d8fd4244b78417d7760c2faab6ea45d",
+              "first_differences": [
+                {
+                  "index": 0,
+                  "reference": "3532d300",
+                  "candidate": "3532d2fe"
+                },
+                {
+                  "index": 1,
+                  "reference": "356d448b",
+                  "candidate": "356d4494"
+                },
+                {
+                  "index": 2,
+                  "reference": "3652c8dd",
+                  "candidate": "3652c8db"
+                },
+                {
+                  "index": 3,
+                  "reference": "b5f23fb9",
+                  "candidate": "b5f23fb6"
+                }
+              ]
+            },
+            {
+              "n": 256,
+              "case": 2,
+              "differing_words": 182,
+              "reference_sha256": "6e524bd6f80b16f4dd7f1cbf6fdf12942f3ff0a83cc11cb61ff2b0042fa304e1",
+              "candidate_sha256": "91431ef62c20343e557881ce20bb4b7173cac7fcec6e863444fff614d20f8336",
+              "first_differences": [
+                {
+                  "index": 0,
+                  "reference": "bd1999e5",
+                  "candidate": "bd1999e3"
+                },
+                {
+                  "index": 1,
+                  "reference": "be07c027",
+                  "candidate": "be07c025"
+                },
+                {
+                  "index": 4,
+                  "reference": "3dbfd989",
+                  "candidate": "3dbfd988"
+                },
+                {
+                  "index": 7,
+                  "reference": "bc811f51",
+                  "candidate": "bc811f58"
+                }
+              ]
+            },
+            {
+              "n": 256,
+              "case": 3,
+              "differing_words": 214,
+              "reference_sha256": "befb0d12337c124b8c0c28d6f04575ddb3c4554287176aeb2010609c8bbc7527",
+              "candidate_sha256": "48121c8cbb68793957298423edce43b17efca448c5f810f72e91775d088506c5",
+              "first_differences": [
+                {
+                  "index": 0,
+                  "reference": "3d1daeb3",
+                  "candidate": "3d1daeaf"
+                },
+                {
+                  "index": 1,
+                  "reference": "3c2c7b92",
+                  "candidate": "3c2c7b9e"
+                },
+                {
+                  "index": 2,
+                  "reference": "3dbc3d58",
+                  "candidate": "3dbc3d57"
+                },
+                {
+                  "index": 3,
+                  "reference": "3e309bfc",
+                  "candidate": "3e309bf9"
+                }
+              ]
+            },
+            {
+              "n": 2048,
+              "case": 0,
+              "differing_words": 1652,
+              "reference_sha256": "5f6ac0d142f74eeb56eda8c9b11bf92d3fb202a66f5e4b14c9042ddb507566d9",
+              "candidate_sha256": "89dd447a4681eb499c634e3d81e38c60a15b435d2f3c1bcff683434a1f985ee0",
+              "first_differences": [
+                {
+                  "index": 0,
+                  "reference": "35c6e505",
+                  "candidate": "35c6e504"
+                },
+                {
+                  "index": 2,
+                  "reference": "3740d6cc",
+                  "candidate": "3740d6ce"
+                },
+                {
+                  "index": 3,
+                  "reference": "36d41311",
+                  "candidate": "36d41313"
+                },
+                {
+                  "index": 4,
+                  "reference": "b63eb0b6",
+                  "candidate": "b63eb0bc"
+                }
+              ]
+            },
+            {
+              "n": 2048,
+              "case": 1,
+              "differing_words": 1702,
+              "reference_sha256": "52aa001ec621c71db3023f040455ca8f49afc9165fc7c1bec91b7f6deb06393c",
+              "candidate_sha256": "1f85bf21a232c9b16546302dc22cfcdf79fd0ba64c7f2b1f4039d5f36e54c7c8",
+              "first_differences": [
+                {
+                  "index": 1,
+                  "reference": "362247fd",
+                  "candidate": "36224800"
+                },
+                {
+                  "index": 2,
+                  "reference": "b6bf870d",
+                  "candidate": "b6bf8712"
+                },
+                {
+                  "index": 3,
+                  "reference": "b635f40b",
+                  "candidate": "b635f40c"
+                },
+                {
+                  "index": 4,
+                  "reference": "b73e6487",
+                  "candidate": "b73e6489"
+                }
+              ]
+            },
+            {
+              "n": 2048,
+              "case": 2,
+              "differing_words": 1714,
+              "reference_sha256": "7106548f7410c426f3bf9ac7d3bfecd6fc1f72491b20171265edeaba3867bd39",
+              "candidate_sha256": "4eb99985327239c23b9ddc5e5f48356e1c9c309002e94baa3b1bef30f4bd9248",
+              "first_differences": [
+                {
+                  "index": 0,
+                  "reference": "3e9d1d7c",
+                  "candidate": "3e9d1d7b"
+                },
+                {
+                  "index": 1,
+                  "reference": "be859bf2",
+                  "candidate": "be859bf4"
+                },
+                {
+                  "index": 2,
+                  "reference": "be2cc7ff",
+                  "candidate": "be2cc801"
+                },
+                {
+                  "index": 3,
+                  "reference": "beb980cb",
+                  "candidate": "beb980ce"
+                }
+              ]
+            },
+            {
+              "n": 2048,
+              "case": 3,
+              "differing_words": 1686,
+              "reference_sha256": "dd9d8e325258c1595cede560d4aa1103c8b383fce46df4f03702c36e5a82875b",
+              "candidate_sha256": "b99419814b5146cf9375396c056de4c14b69c8f8d15665fde12709917a598261",
+              "first_differences": [
+                {
+                  "index": 0,
+                  "reference": "bdd807c7",
+                  "candidate": "bdd807c2"
+                },
+                {
+                  "index": 1,
+                  "reference": "bda702d0",
+                  "candidate": "bda702d9"
+                },
+                {
+                  "index": 2,
+                  "reference": "3d571aa3",
+                  "candidate": "3d571aa5"
+                },
+                {
+                  "index": 3,
+                  "reference": "bec17723",
+                  "candidate": "bec17722"
+                }
+              ]
+            }
+          ],
+          "mdct_differing_words": 7556,
+          "pcm_sha256": "b42742ce2915c2d754bac996fb9c2320b0a1f1ed5336773334bdf77c62fd52a5",
+          "matches_canonical": false
+        }
+      ],
+      "retained_large_artifacts": [],
+      "ready": true,
+      "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-05jsuykf/libvorbis-1.3.7",
+      "common_flags": [
+        "gcc",
+        "-O3",
+        "-ffp-contract=off"
+      ],
+      "stopped": true,
+      "scratch_removed_verified": true
+    },
+    "probe_sources": {
+      "block_trace_source": "import hashlib,json,os,struct,subprocess,sys,tarfile,time,urllib.request,shutil\nfrom pathlib import Path\nroot=Path.cwd();sys.path.insert(0,str(root/'tools'))\nfrom mcc_loading_presentation import read_media,V3_FRAMES,V3_PCM_SHA,_v3_pcm\nwork=Path(os.environ['HALO2_TEST_SCRATCH'])\nout=root/'build/test-results/macos-vorbis-trace';out.mkdir(parents=True,exist_ok=True)\nreport={'schema':'H2_VORBIS_BLOCK_DIFFERENTIAL_V1','scratch':str(work),'retained_large_artifacts':[],'commands':[]}\ndef digest(path):return hashlib.file_digest(path.open('rb'),'sha256').hexdigest()\ndef save(): (out/'report.json').write_text(json.dumps(report,indent=2)+'\\n')\ndef run(command,log,env=None):\n command=list(map(str,command));report['commands'].append(command)\n with log.open('w') as f:r=subprocess.run(command,stdout=f,stderr=subprocess.STDOUT,env=env,timeout=90)\n if r.returncode:raise RuntimeError(str(command[0])+': '+log.read_text()[-5000:])\n return r\ntry:\n media=work/'loading.wem';media.write_bytes(read_media(Path('/home/eric/.local/share/Steam/steamapps/common/Halo The Master Chief Collection/halo2'))[0])\n converter=root/'build/halo2_mcc_loading_audio';books=root/'external/ww2ogg/packed_codebooks_aoTuV_603.bin'\n baseline=work/'baseline.wav';run([converter,media,baseline,books,V3_FRAMES],work/'baseline.log');_v3_pcm(baseline.read_bytes())\n report['baseline_pcm_sha256']=digest(baseline) if False else hashlib.sha256(baseline.read_bytes()[44:]).hexdigest()\n archive=work/'vorbis.tar.xz';url='https://ftp.osuosl.org/pub/xiph/releases/vorbis/libvorbis-1.3.7.tar.xz'\n with urllib.request.urlopen(url,timeout=30) as response,archive.open('wb') as stream:shutil.copyfileobj(response,stream)\n assert digest(archive)=='b33cc4934322bcbf6efcbacf49e3ca01aadbea4114ec9589d1b1e9d20f72954b'\n report['source']={'url':url,'sha256':digest(archive)}\n with tarfile.open(archive) as tar:tar.extractall(work,filter='data')\n src=work/'libvorbis-1.3.7';folder=work/'strict';folder.mkdir()\n names='mdct smallft block envelope window lsp lpc analysis synthesis psy info floor1 floor0 res0 mapping0 registry codebook sharedbook lookup bitrate'.split()\n library=folder/'libvorbis.so.0'\n run(['gcc','-shared','-fPIC','-O3','-ffp-contract=off','-I'+str(src/'include'),'-I'+str(src/'lib'),*[src/'lib'/(n+'.c') for n in names],'-o',library,'-logg','-lm'],work/'compile.log')\n strict=work/'strict.wav';env=dict(os.environ,LD_LIBRARY_PATH=str(folder))\n run([converter,media,strict,books,V3_FRAMES],work/'strict.log',env)\n strictsha=hashlib.sha256(strict.read_bytes()[44:]).hexdigest()\n assert strictsha=='c38968922521e5f031733ab6de5183df92335741591e283b778e33baa173acf7'\n report.update(strict_pcm_sha256=strictsha,baseline_library_sha256=digest(Path('/usr/lib/libvorbis.so.0')),strict_library_sha256=digest(library),profile_red_reproduced=strictsha!=V3_PCM_SHA)\n gdbsource=r'''\nimport gdb,hashlib,json,struct\nfrom pathlib import Path\nevents=[];back_count=0\ndef mem(address,length):return bytes(gdb.selected_inferior().read_memory(address,length))\ndef reg(name):return int(gdb.parse_and_eval('$'+name))\ndef array(address,count):\n raw=mem(address,count*4)\n return {'sha256':hashlib.sha256(raw).hexdigest(),'words':[v[0] for v in struct.iter_unpack('<I',raw)]}\nclass EndInit(gdb.FinishBreakpoint):\n def __init__(self,ptr):\n  self.ptr=ptr;super().__init__(gdb.newest_frame(),internal=True);self.silent=True\n def stop(self):\n  n=struct.unpack('<i',mem(self.ptr,4))[0];ptr=struct.unpack('<Q',mem(self.ptr+8,8))[0]\n  events.append({'event':'mdct_init','n':n,'trig':array(ptr,n+n//4)})\n  return False\nclass StartInit(gdb.Breakpoint):\n def stop(self):EndInit(reg('rdi'));return False\nclass EndBack(gdb.FinishBreakpoint):\n def __init__(self,row,ptr):\n  self.row=row;self.ptr=ptr;super().__init__(gdb.newest_frame(),internal=True);self.silent=True\n def stop(self):\n  self.row['output']=array(self.ptr,self.row['n']);events.append(self.row)\n  if back_count>=12:\n   Path(DESTINATION).write_text(json.dumps(events))\n   gdb.execute('quit')\n  return False\nclass StartBack(gdb.Breakpoint):\n def stop(self):\n  global back_count\n  back_count+=1\n  ptr=reg('rdi');n=struct.unpack('<i',mem(ptr,4))[0]\n  row={'event':'mdct_backward','index':back_count,'n':n,'input':array(reg('rsi'),n//2)}\n  EndBack(row,reg('rdx'));return False\ngdb.execute('set pagination off');gdb.execute('set confirm off');gdb.execute('set breakpoint pending on')\nStartInit('mdct_init',internal=True);StartBack('mdct_backward',internal=True)\ngdb.execute('run')\n'''\n report['debugger_source_sha256']=hashlib.sha256(gdbsource.encode()).hexdigest()\n traces={}\n for name,environment in [('baseline',None),('strict',env)]:\n  destination=work/(name+'-trace.json')\n  commandfile=work/(name+'-trace.py');commandfile.write_text('DESTINATION='+repr(str(destination))+'\\n'+gdbsource)\n  run(['gdb','-q','-nx','-batch','-x',commandfile,'--args',converter,media,work/(name+'-partial.wav'),books,V3_FRAMES],work/(name+'-gdb.log'),environment)\n  assert destination.exists(),(work/(name+'-gdb.log')).read_text()[-3000:]\n  traces[name]=json.loads(destination.read_text())\n assert len(traces['baseline'])==len(traces['strict'])\n report['comparisons']=[]\n for left,right in zip(traces['baseline'],traces['strict']):\n  assert (left['event'],left['n'],left.get('index'))==(right['event'],right['n'],right.get('index'))\n  row={k:left[k] for k in ('event','n','index') if k in left}\n  for field in ('trig','input','output'):\n   if field not in left:continue\n   a,b=left[field],right[field];pairs=[(i,x,y) for i,(x,y) in enumerate(zip(a['words'],b['words'])) if x!=y]\n   row[field]={'same':a['sha256']==b['sha256'],'baseline_sha256':a['sha256'],'strict_sha256':b['sha256'],'differing_words':len(pairs),'first_differences':[dict(index=i,baseline=f'{x:08x}',strict=f'{y:08x}') for i,x,y in pairs[:8]]}\n  report['comparisons'].append(row)\n report['debugger_source']=gdbsource\n report['passed']=True\nexcept BaseException as e:report.update(passed=False,error=str(e)[:6000])\nfinally:save()\nprint(json.dumps({k:v for k,v in report.items() if k not in ('commands','debugger_source')}),flush=True)\nsys.exit(0 if report.get('passed') else 1)\n",
+      "scope_probe_source": "import hashlib,json,os,subprocess,sys,tarfile,time,urllib.request,shutil\nfrom pathlib import Path\nroot=Path.cwd();sys.path.insert(0,str(root/'tools'))\nfrom mcc_loading_presentation import read_media,V3_FRAMES,V3_PCM_SHA,_v3_pcm\nwork=Path(os.environ['HALO2_TEST_SCRATCH']);out=root/'build/test-results/macos-vorbis-trace';out.mkdir(parents=True,exist_ok=True)\nreport={'schema':'H2_VORBIS_MDCT_SCOPE_DIAGNOSTIC_V1','scratch':str(work),'commands':[],'variants':[],'retained_large_artifacts':[]}\ndef digest(path):return hashlib.file_digest(path.open('rb'),'sha256').hexdigest()\ndef save():(out/'scope.json').write_text(json.dumps(report,indent=2)+'\\n')\ndef run(command,log,env=None):\n command=list(map(str,command));report['commands'].append(command)\n with log.open('w') as f:r=subprocess.run(command,stdout=f,stderr=subprocess.STDOUT,env=env,timeout=90)\n if r.returncode:raise RuntimeError(str(command[0])+': '+log.read_text()[-4000:])\ntry:\n media=work/'loading.wem';media.write_bytes(read_media(Path('/home/eric/.local/share/Steam/steamapps/common/Halo The Master Chief Collection/halo2'))[0])\n converter=root/'build/halo2_mcc_loading_audio';books=root/'external/ww2ogg/packed_codebooks_aoTuV_603.bin'\n baseline=work/'baseline.wav';run([converter,media,baseline,books,V3_FRAMES],work/'baseline.log');_v3_pcm(baseline.read_bytes())\n archive=work/'vorbis.tar.xz';url='https://ftp.osuosl.org/pub/xiph/releases/vorbis/libvorbis-1.3.7.tar.xz'\n with urllib.request.urlopen(url,timeout=30) as response,archive.open('wb') as stream:shutil.copyfileobj(response,stream)\n assert digest(archive)=='b33cc4934322bcbf6efcbacf49e3ca01aadbea4114ec9589d1b1e9d20f72954b'\n with tarfile.open(archive) as tar:tar.extractall(work,filter='data')\n source=work/'libvorbis-1.3.7'\n names='mdct smallft block envelope window lsp lpc analysis synthesis psy info floor1 floor0 res0 mapping0 registry codebook sharedbook lookup bitrate'.split()\n bridge=work/'mdct-bridge.c'\n bridge.write_text('#include \"mdct.h\"\\n#include <dlfcn.h>\\n#include <stdlib.h>\\nvoid mdct_backward(mdct_lookup *lookup,float *input,float *output){\\nstatic void (*original)(mdct_lookup*,float*,float*);\\nif(!original){void *owner=dlopen(\"/usr/lib/libvorbis.so.0\",RTLD_NOW|RTLD_LOCAL);if(!owner)abort();original=dlsym(owner,\"mdct_backward\");if(!original)abort();}\\noriginal(lookup,input,output);}\\n')\n patched=work/'strict-mdct.c';text=(source/'lib/mdct.c').read_text();assert text.count('void mdct_backward(')==1\n patched.write_text(text.replace('void mdct_backward(','void strict_mdct_backward('))\n variants=[\n ('strict-canonical-mdct','gcc',['-O3','-ffp-contract=off'],True),\n ('clang-contract-on','clang',['-O3','-march=x86-64-v3','-ffp-contract=on'],False),\n ('clang-contract-fast','clang',['-O3','-march=x86-64-v3','-ffp-contract=fast'],False),\n ('clang-fast-math','clang',['-O3','-march=x86-64-v3','-ffast-math'],False)]\n for label,compiler,flags,replace in variants:\n  folder=work/label;folder.mkdir();library=folder/'libvorbis.so.0'\n  sources=[(patched if name=='mdct' and replace else source/'lib'/(name+'.c')) for name in names]\n  if replace:sources.append(bridge)\n  started=time.monotonic()\n  run([compiler,'-shared','-fPIC',*flags,'-I'+str(source/'include'),'-I'+str(source/'lib'),*sources,'-o',library,'-logg','-lm','-ldl'],folder/'compile.log')\n  output=folder/'loading.wav';run([converter,media,output,books,V3_FRAMES],folder/'decode.log',dict(os.environ,LD_LIBRARY_PATH=str(folder)))\n  pcm=output.read_bytes()[44:];sha=hashlib.sha256(pcm).hexdigest()\n  row={'label':label,'pcm_sha256':sha,'matches_canonical':sha==V3_PCM_SHA,'library_sha256':digest(library),'elapsed_seconds':round(time.monotonic()-started,3)}\n  report['variants'].append(row);save();print(json.dumps(row),flush=True)\n report['passed']=True\nexcept BaseException as error:report.update(passed=False,error=str(error)[:5000])\nfinally:save()\nsys.exit(0 if report.get('passed') else 1)\n",
+      "owned_probe_source": "import ctypes,hashlib,json,os,shutil,signal,struct,subprocess,sys,tarfile,time,urllib.request\nfrom pathlib import Path\nroot=Path.cwd();sys.path.insert(0,str(root/'tools'))\nfrom mcc_loading_presentation import read_media,V3_FRAMES,V3_PCM_SHA\nwork=Path(os.environ['HALO2_TEST_SCRATCH']);out=root/'build/test-results/macos-vorbis-work';out.mkdir(parents=True,exist_ok=True)\nreport={'schema':'H2_VORBIS_ACTIVE_ARITHMETIC_OWNER_V1','scratch':str(work),'runs':[],'retained_large_artifacts':[]}\ndef save():(out/'report.json').write_text(json.dumps(report,indent=2)+'\\n')\ndef digest(p):return hashlib.file_digest(p.open('rb'),'sha256').hexdigest()\ndef run(command,log,env=None):\n command=list(map(str,command))\n with log.open('w') as f:r=subprocess.run(command,stdout=f,stderr=subprocess.STDOUT,env=env,timeout=90)\n if r.returncode:raise RuntimeError(log.read_text()[-6000:])\n return command\nclass Lookup(ctypes.Structure):\n _fields_=[('n',ctypes.c_int),('log2n',ctypes.c_int),('trig',ctypes.POINTER(ctypes.c_float)),('bitrev',ctypes.POINTER(ctypes.c_int)),('scale',ctypes.c_float)]\ndef configure(lib):\n lib.mdct_init.argtypes=[ctypes.POINTER(Lookup),ctypes.c_int]\n lib.mdct_clear.argtypes=[ctypes.POINTER(Lookup)]\n lib.mdct_backward.argtypes=[ctypes.POINTER(Lookup),ctypes.POINTER(ctypes.c_float),ctypes.POINTER(ctypes.c_float)]\n return lib\nreference=configure(ctypes.CDLL('/usr/lib/libvorbis.so.0'))\ndef mdct_compare(lib):\n metrics=[];seed=0x98723541\n for n in (256,2048):\n  lookup=Lookup();reference.mdct_init(ctypes.byref(lookup),n)\n  try:\n   for case in range(4):\n    values=[]\n    for i in range(n//2):\n     seed^=(seed<<13)&0xffffffff;seed^=seed>>17;seed^=(seed<<5)&0xffffffff\n     word=(seed&0x807fffff)|((105 if case<2 else 120)<<23)\n     values.append(struct.unpack('<f',struct.pack('<I',word))[0])\n    original=(ctypes.c_float*(n//2))(*values);a=(ctypes.c_float*n)();b=(ctypes.c_float*n)()\n    reference.mdct_backward(ctypes.byref(lookup),original,a)\n    original=(ctypes.c_float*(n//2))(*values)\n    lib.mdct_backward(ctypes.byref(lookup),original,b)\n    aa=bytes(a);bb=bytes(b);diff=[(i,x[0],y[0]) for i,(x,y) in enumerate(zip(struct.iter_unpack('<I',aa),struct.iter_unpack('<I',bb))) if x!=y]\n    metrics.append({'n':n,'case':case,'differing_words':len(diff),'reference_sha256':hashlib.sha256(aa).hexdigest(),'candidate_sha256':hashlib.sha256(bb).hexdigest(),'first_differences':[{'index':i,'reference':f'{x:08x}','candidate':f'{y:08x}'} for i,x,y in diff[:4]]})\n  finally:reference.mdct_clear(ctypes.byref(lookup))\n return metrics\ntry:\n media=work/'loading.wem';media.write_bytes(read_media(Path('/home/eric/.local/share/Steam/steamapps/common/Halo The Master Chief Collection/halo2'))[0])\n converter=root/'build/halo2_mcc_loading_audio';books=root/'external/ww2ogg/packed_codebooks_aoTuV_603.bin'\n archive=work/'vorbis.tar.xz'\n with urllib.request.urlopen('https://ftp.osuosl.org/pub/xiph/releases/vorbis/libvorbis-1.3.7.tar.xz',timeout=30) as response,archive.open('wb') as stream:shutil.copyfileobj(response,stream)\n assert digest(archive)=='b33cc4934322bcbf6efcbacf49e3ca01aadbea4114ec9589d1b1e9d20f72954b'\n with tarfile.open(archive) as tar:tar.extractall(work,filter='data')\n source=work/'libvorbis-1.3.7'\n objects=work/'objects';objects.mkdir()\n names='smallft envelope window lsp lpc analysis synthesis psy info floor1 floor0 res0 mapping0 registry codebook sharedbook lookup bitrate'.split()\n includes=['-I'+str(source/'include'),'-I'+str(source/'lib')]\n common=[]\n for name in names:\n  obj=objects/(name+'.o');run(['gcc','-c','-fPIC','-O3','-ffp-contract=off',*includes,source/'lib'/(name+'.c'),'-o',obj],work/'compile.log');common.append(obj)\n report.update(ready=True,source=str(source),common_flags=['gcc','-O3','-ffp-contract=off'])\n save();print(json.dumps({'ready':True,'scratch':str(work),'source':str(source)}),flush=True)\n deadline=time.monotonic()+1500;last=0\n while time.monotonic()<deadline:\n  commandpath=work/'command.json'\n  if not commandpath.exists():time.sleep(.1);continue\n  command=json.loads(commandpath.read_text());commandpath.unlink()\n  if command.get('action')=='stop':report['stopped']=True;break\n  label=command['label'];assert label.replace('-','').replace('_','').isalnum()\n  folder=work/label;folder.mkdir()\n  compiler=command.get('compiler','gcc');flags=command.get('flags',['-O3','-ffp-contract=off'])\n  inputs=[]\n  for name in ('mdct','block'):\n   selected=Path(command.get(name,str(source/'lib'/(name+'.c'))));assert selected.is_relative_to(work)\n   obj=folder/(name+'.o');run([compiler,'-c','-fPIC',*flags,*includes,selected,'-o',obj],folder/(name+'.log'));inputs.append(obj)\n  for i,extra in enumerate(command.get('extra',[])):\n   selected=Path(extra);assert selected.is_relative_to(work);obj=folder/('extra'+str(i)+'.o');run([compiler,'-c','-fPIC',*flags,*includes,selected,'-o',obj],folder/('extra'+str(i)+'.log'));inputs.append(obj)\n  library=folder/'libvorbis.so.0';link=run([compiler,'-shared','-Wl,-Bsymbolic',*inputs,*common,'-o',library,'-logg','-lm','-ldl'],folder/'link.log')\n  lib=configure(ctypes.CDLL(str(library)))\n  metrics=mdct_compare(lib)\n  output=folder/'loading.wav';run([converter,media,output,books,V3_FRAMES],folder/'decode.log',dict(os.environ,LD_LIBRARY_PATH=str(folder)))\n  sha=hashlib.sha256(output.read_bytes()[44:]).hexdigest()\n  row={'label':label,'command':command,'library_sha256':digest(library),'mdct':metrics,'mdct_differing_words':sum(v['differing_words'] for v in metrics),'pcm_sha256':sha,'matches_canonical':sha==V3_PCM_SHA}\n  output.unlink();report['runs'].append(row);save()\n  print(json.dumps({k:v for k,v in row.items() if k not in ('mdct','command')}),flush=True)\n else:raise TimeoutError('Owned arithmetic investigation deadline')\nexcept BaseException as e:report.update(error=type(e).__name__+': '+str(e)[:6000])\nfinally:save()\nsys.exit(0 if report.get('stopped') else 1)\n"
+    },
+    "conclusions": [
+      "Both actual decoder builds use identical 256- and 2048-point coefficient tables and identical transform inputs for the first twelve transforms; the outputs differ from the first inverse transform.",
+      "Replacing only mdct_backward and vorbis_synthesis_blockin in an otherwise strict rebuilt library with the retained reference-library implementations reproduces the full admitted PCM hash.",
+      "Explicitly fusing the visible product pairs and the tested compiler contraction policies do not reproduce that reference. These are diagnostic controls, not a production numerical fix.",
+      "No production PCM hash, codec arithmetic policy or deferred original engine x87/SSE code changed."
+    ]
+  }
+}

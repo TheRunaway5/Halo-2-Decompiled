@@ -22,6 +22,9 @@ struct SourceSceneRoot {
     std::vector<SourceAttachedEffect> attached_effects;
     // Completed source constructor/current choices, never a replica RNG roll.
     std::optional<SourceModelRegionBank> model_regions;
+    // Actual successful entries in either original spatial pool, including
+    // orphan entries. Sorted unique cluster IDs; empty means unregistered.
+    std::vector<std::int16_t> render_clusters;
 };
 struct SourceWorldPose {
     std::uint32_t object{0xffffffffu};

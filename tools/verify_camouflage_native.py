@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'analysis/multiplayer/game-variants/camouflage-native-20261011'
 TARGETS=('camouflage_tests','camouflage_runtime_tests','player_damage_tests','king_runtime_tests','multiplayer_tests','prop_sandbox_tests','multiplayer_grenade_delivery_tests')
-OWNERS=('src/source_camouflage.cpp','src/content.cpp','src/prop_sandbox_definition.cpp','src/source_player_damage.cpp','src/damage_amount.cpp','src/source_king.cpp','src/multiplayer.cpp','src/simulation.cpp')
+OWNERS=('src/rendering/source_camouflage.cpp','src/assets/content.cpp','src/gameplay/objects/prop_sandbox_definition.cpp','src/gameplay/units/source_player_damage.cpp','src/gameplay/units/damage_amount.cpp','src/gameplay/multiplayer/source_king.cpp','src/gameplay/multiplayer/multiplayer.cpp','src/gameplay/simulation.cpp')
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def main():
  ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--output',type=Path,default=OUT/'verification.json')
@@ -75,8 +75,8 @@ def main():
  sanitizer={'ASAN_OPTIONS':'detect_leaks=1:halt_on_error=1','UBSAN_OPTIONS':'halt_on_error=1'}
  execute('sanitizer-test',[binary,source/'tests/fixtures/camouflage_timeline_original.json',source/'assets/disc/maps/lockout.map',source/'assets/disc/maps'],extra=sanitizer)
  kernel=run/'camouflage_tests_asan'
- execute('kernel-sanitizer-build',['c++','-std=c++20','-O1','-g','-fno-fast-math','-ffp-contract=off','-fsanitize=address,undefined','-fno-omit-frame-pointer','-I'+str(source/'include'),
-     source/'tests/camouflage_tests.cpp',source/'src/source_camouflage.cpp',source/'src/source_king.cpp','-o',kernel])
+ execute('kernel-sanitizer-build',['c++','-std=c++20','-O1','-g','-fno-fast-math','-ffp-contract=off','-fsanitize=address,undefined','-fno-omit-frame-pointer','-I'+str(source/'include'), '-I'+str(source/'src'),
+     source/'tests/camouflage_tests.cpp',source/'src/rendering/source_camouflage.cpp',source/'src/gameplay/multiplayer/source_king.cpp','-o',kernel])
  execute('kernel-sanitizer-test',[kernel,source/'tests/fixtures/camouflage_state_original.json',source/'tests/fixtures/camouflage_disruption_original.json'],extra=sanitizer)
  assert all(sha(source/name)==digest for name,digest in pins.items())
  assert all((source/name).stat().st_size==row['bytes']and sha(source/name)==row['sha256']for name,row in assets.items())

@@ -5,18 +5,19 @@ import hashlib
 import json
 from pathlib import Path
 import zipfile
+from native_variant_assets import LAYOUTS, source_bundle
 
 
 def bundle(root, output):
-    files={p.relative_to(root).as_posix():p.read_bytes() for p in sorted((root/'data/tags/variants').glob('*.json'))}
-    if len(files)!=2:raise ValueError('Expected Fiesta Slayer and Infection Slayer definitions')
-    for raw in files.values():
+    files=source_bundle(root)
+    for name,raw in files.items():
+        if name==LAYOUTS:continue
         row=json.loads(raw)
-        if row['schema']!='halo2-native-slayer-variant-v1' or row['engine']!='slayer':raise ValueError('Invalid custom variant')
+        if (row['schema'],row['engine']) not in {('halo2-native-slayer-variant-v1','slayer'),('halo2-native-assault-variant-v1','assault')}:raise ValueError('Invalid custom variant')
     manifest=dict(schema='halo2-custom-slayer-bundle-v1',files={name:hashlib.sha256(raw).hexdigest() for name,raw in files.items()},
         contents='Newly authored JSON definitions. Game maps/models/textures/code are supplied by the user installation.',
         installation='Extract beside the matching halo2_native executable, preserving data/tags/variants.',
-        native_compatibility='halo2-native-queue-v10')
+        native_compatibility='halo2-native-bomb-defusal-layout-v1')
     files['data/tags/custom-slayer-bundle.json']=(json.dumps(manifest,indent=2,sort_keys=True)+'\n').encode()
     output.parent.mkdir(parents=True,exist_ok=True)
     with zipfile.ZipFile(output,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=9) as archive:
@@ -31,9 +32,9 @@ def verify(path):
         manifest=json.loads(archive.read('data/tags/custom-slayer-bundle.json'))
         if set(archive.namelist())!=set(manifest['files'])|{'data/tags/custom-slayer-bundle.json'}:raise ValueError('Unexpected bundle payload')
         for name,digest in manifest['files'].items():
-            if not name.startswith('data/tags/variants/') or '..' in Path(name).parts:raise ValueError('Invalid bundle path')
+            if (not name.startswith('data/tags/variants/') and name!=LAYOUTS) or '..' in Path(name).parts:raise ValueError('Invalid bundle path')
             if hashlib.sha256(archive.read(name)).hexdigest()!=digest:raise ValueError('Bundle hash mismatch')
-    print('PASS custom Slayer bundle: Fiesta Slayer and Infection Slayer; authored definitions only')
+    print('PASS custom multiplayer bundle: Fiesta, Infection and Bomb Defusal; authored definitions only')
 
 
 def main():

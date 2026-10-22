@@ -80,12 +80,12 @@ def main():
     verify(prior)
 
     sources = [
-        'CMakeLists.txt', 'include/halo2/original_data.hpp', 'src/original_data.cpp',
-        'include/halo2/sound_cache_startup.hpp', 'src/sound_cache_startup.cpp',
-        'include/halo2/sound_startup.hpp', 'src/sound_startup.cpp',
+        'CMakeLists.txt', 'include/halo2/original_data.hpp', 'src/assets/original_data.cpp',
+        'include/halo2/sound_cache_startup.hpp', 'src/audio/sound_cache_startup.cpp',
+        'include/halo2/sound_startup.hpp', 'src/audio/sound_startup.cpp',
         'include/halo2/source_tag_metadata.hpp',
-        'include/halo2/source_tag_metadata_store.hpp', 'src/source_tag_metadata_store.cpp',
-        'include/halo2/cache.hpp', 'src/cache.cpp',
+        'include/halo2/source_tag_metadata_store.hpp', 'src/assets/source_tag_metadata_store.cpp',
+        'include/halo2/cache.hpp', 'src/assets/cache.cpp',
         'tests/sound_cache_startup_tests.cpp', 'tests/sound_cache_startup_constants_tests.cpp',
         'tests/sound_map_metadata_tests.cpp', 'tools/export_mp_sound_cache_startup_constants.py',
         'tools/export_mp_sound_map_metadata.py', 'tools/export_mp_unit_constructor_constants.py',

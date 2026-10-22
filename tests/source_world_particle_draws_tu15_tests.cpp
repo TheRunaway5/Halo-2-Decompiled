@@ -13,11 +13,13 @@
 
 using namespace halo2;
 int main(int argc,char **argv)try {
-    if(argc!=4)throw FormatError("Supply TU15_XBE BACKWASH_MAP DISC_MAPS");
-    if(!std::filesystem::exists(argv[1]) || !std::filesystem::exists(argv[2]))return 77;
-    MultiplayerOptions options;options.gameplay_xbe=argv[1];options.map=argv[2];
+    if(argc!=4)throw FormatError("Supply native-mcc or TU15_XBE, BACKWASH_MAP and SHARED_MAPS");
+    const bool mcc=std::string_view(argv[1])=="native-mcc";
+    if((!mcc && !std::filesystem::exists(argv[1])) || !std::filesystem::exists(argv[2]))return 77;
+    MultiplayerOptions options;if(!mcc)options.gameplay_xbe=argv[1];options.map=argv[2];
     options.shared_maps=argv[3];options.local_players=1;options.starting_weapon=5;options.mute=true;
     MultiplayerPreparedWorld world(options);
+    if(mcc && !world.cache->is_mcc())throw FormatError("Native MCC particle test requires the prepared MCC cache");
     {
         // Keep this check before the existing fixture's direct local-player
         // setup. Its later native local index intentionally has no Match FP

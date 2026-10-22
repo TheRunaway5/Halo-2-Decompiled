@@ -3,11 +3,11 @@
 #include "halo2/mcc_runtime_delivery.hpp"
 #include "halo2/mcc_sound_timing_reference.hpp"
 #include "halo2/mcc_sound_stored_time_reference.hpp"
-#include "../src/mcc_sound_stored_time_apply.hpp"
-#include "../src/mcc_sound_stored_time_reference_profile.hpp"
-#include "../src/mcc_sound_class_qualified.hpp"
-#include "../src/mcc_sound_permutation_time_reference_profile.hpp"
-#include "../src/mcc_sound_vanilla_reference_profile.hpp"
+#include "../src/audio/mcc_sound_stored_time_apply.hpp"
+#include "../src/audio/mcc_sound_stored_time_reference_profile.hpp"
+#include "../src/audio/mcc_sound_class_qualified.hpp"
+#include "../src/audio/mcc_sound_permutation_time_reference_profile.hpp"
+#include "../src/audio/mcc_sound_vanilla_reference_profile.hpp"
 #include <openssl/evp.h>
 #include <algorithm>
 #include <fstream>

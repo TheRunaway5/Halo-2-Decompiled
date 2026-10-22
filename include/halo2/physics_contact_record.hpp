@@ -17,6 +17,13 @@ public:
     virtual ~SourcePhysicsContactMemory() = default;
     virtual void read(std::uint32_t address, std::span<std::byte> output) const = 0;
     virtual void write(std::uint32_t address, std::span<const std::byte> input) = 0;
+    // A source vector operand consists of four ordered scalar reads. Device
+    // adapters keep that access/fault sequence, including32-bit address wrap.
+    // Retained ordinary storage can specialize the side-effect-free access.
+    // Callers consume the complete output only after this operation returns.
+    virtual void read_vector(std::uint32_t address,std::span<std::byte,16> output) const {
+        for(unsigned lane=0;lane<4;++lane)read(address+lane*4u,output.subspan(lane*4u,4));
+    }
 };
 
 struct SourcePhysicsContactConstruction {

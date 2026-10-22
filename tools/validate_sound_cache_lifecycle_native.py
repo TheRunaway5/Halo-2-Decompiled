@@ -3,7 +3,7 @@
 import argparse,os,shutil,subprocess
 from pathlib import Path
 from oracle_mp_title_update_display import ROOT,sha,save,encoded
-SOURCES=('include/halo2/sound_cache_lifecycle.hpp','src/sound_cache_lifecycle.cpp','tests/sound_cache_lifecycle_tests.cpp','include/halo2/sound_cache_startup.hpp','include/halo2/native_sound_storage.hpp','src/native_sound_storage.cpp')
+SOURCES=('include/halo2/sound_cache_lifecycle.hpp','src/audio/sound_cache_lifecycle.cpp','tests/sound_cache_lifecycle_tests.cpp','include/halo2/sound_cache_startup.hpp','include/halo2/native_sound_storage.hpp','src/audio/native_sound_storage.cpp')
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--directory',type=Path,required=True);p.add_argument('--fixture-directory',type=Path,required=True);a=p.parse_args();d=a.directory.resolve();fixture=a.fixture_directory.resolve();native=d/'native';native.mkdir(parents=True,exist_ok=True)
     for rel in SOURCES:
@@ -16,7 +16,7 @@ def main():
         assert r.returncode==0,(label,r.stdout,r.stderr);return r.stdout
     version=run(['g++','--version'],'compiler-version')
     inputs=[str(native/'source'/q)for q in SOURCES if q.endswith('.cpp')]
-    common=['g++','-std=c++20','-pthread','-Wall','-Wextra','-Wpedantic','-I'+str(native/'source/include')]
+    common=['g++','-std=c++20','-pthread','-Wall','-Wextra','-Wpedantic','-I'+str(native/'source/include'), '-I'+str(native/'source/src')]
     normal=native/'sound_cache_lifecycle_tests';san=native/'sound_cache_lifecycle_tests_asan'
     run([*common,'-O2',*inputs,'-o',str(normal)],'normal-build');run([str(normal),str(fixture/'fixtures.tsv')],'normal')
     run([*common,'-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer',*inputs,'-o',str(san)],'sanitizer-build')

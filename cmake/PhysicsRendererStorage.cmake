@@ -1,6 +1,6 @@
 # Complete renderer raw producer and descriptor bodies, with required heap owner.
-target_sources(halo2_physics_world_runtime PRIVATE src/physics_renderer_storage_runtime_generated.cpp)
-target_sources(halo2_systems PRIVATE src/physics_renderer_storage_host.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/physics/physics_renderer_storage_runtime_generated.cpp)
+target_sources(halo2_systems PRIVATE src/physics/physics_renderer_storage_host.cpp)
 if(BUILD_TESTING)
     add_executable(physics_renderer_storage_tests tests/physics_renderer_storage_tests.cpp)
     target_link_libraries(physics_renderer_storage_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json OpenSSL::Crypto)

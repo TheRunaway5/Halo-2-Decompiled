@@ -1,5 +1,4 @@
 #include "halo2/renderer.hpp"
-#include "halo2/debug_panel.hpp"
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
@@ -96,7 +95,7 @@ int main(int argc,char** argv)try {
         auto resized=targets.acquire();report["observations"].push_back(inspect(resized,800,600));
         check(resized.bank().generation>report["observations"][0]["generation"].get<std::uint64_t>(),"Target epoch did not advance");
         DisplaySettings settings;settings.internal_width=320;settings.internal_height=240;
-        renderer->debug_panel().display_settings(settings);
+        renderer->display_settings(settings);
         check(renderer->draw(camera,output/"internal-resolution.ppm"),"Native internal-resolution frame was not drawn");
         check(!resized.valid(),"Internal-resolution recreation retained old target handles");
         retained.emplace(targets.acquire());report["observations"].push_back(inspect(*retained,320,240));

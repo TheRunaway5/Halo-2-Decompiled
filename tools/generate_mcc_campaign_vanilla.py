@@ -141,7 +141,7 @@ def generate(raw):
     lines+=array('campaign_profiles','Profile',profile_rows)
     return '\n'.join(lines)+'\n'
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--check',action='store_true');args=parser.parse_args();result=generate(MANIFEST.read_bytes());output=ROOT/'src/mcc_campaign_vanilla_profiles.inc'
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--check',action='store_true');args=parser.parse_args();result=generate(MANIFEST.read_bytes());output=ROOT/'src/campaign/mcc_campaign_vanilla_profiles.inc'
     if args.check:
         if output.read_text()!=result:raise SystemExit('Compiled campaign authoring profile is stale')
     else:output.write_text(result)

@@ -41,10 +41,15 @@ bool source_live_model_base_matches_tu15(const SourceLiveModelBaseDrawTu15&,
 // to the caller. Every section uses its retained main coverage byte. Admission
 // is atomic for a full owner; unsupported lighting/overrides return no bank.
 // This does not choose a pose, colors, lighting state or shader-function owner.
+// An optional provider lends one complete immutable skin for this synchronous
+// call. Ordered section selection and per-view shader evaluation stay here.
+using SourceLiveModelPoseProviderTu15=std::function<std::span<const Vertex>(
+    std::uint32_t,unsigned,const RenderModel&,std::span<const Transform>)>;
 std::optional<std::vector<Vertex>> source_live_model_base_vertices_tu15(
     std::uint32_t owner,std::uint32_t definition,std::uint32_t render_model,
     std::span<const SourceLiveModelBaseDrawTu15>,std::span<const RenderModel,6>,
-    const SourceDynamicModelShaders&,std::span<const Transform>,const SourceModelShaderView&);
+    const SourceDynamicModelShaders&,std::span<const Transform>,const SourceModelShaderView&,
+    const SourceLiveModelPoseProviderTu15& = {});
 class SourceLiveModelBaseSelectionTu15 {
 public:
     // Observe each completed4B5D0 output, including recursively built children.

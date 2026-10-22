@@ -45,7 +45,8 @@ def apply_selected(root, pack, *, tag_revisions=None):
     from mcc_bitmap_correction_bundle_v4 import (BUNDLE_V4, MAP_NAME as SACRED_ICON_MAP,
                                                 PROFILES_V4, SOURCE_MAP as SACRED_ICON_SOURCE_MAP,
                                                 reconstruct_v4)
-    root, pack = Path(root), Path(pack)
+    from installation_paths import resource_root
+    root, pack = resource_root(root), Path(pack)
     # Original/reference profiles are offline maintenance inputs only. Normal
     # import uses the port's qualified deltas and the user's MCC bytes, even
     # when an old development reference registry is present.

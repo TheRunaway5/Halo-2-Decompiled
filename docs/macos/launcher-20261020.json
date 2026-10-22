@@ -1,0 +1,916 @@
+{
+  "schema": "H2_MACOS_LAUNCHER_PATH_PORT_V1",
+  "date": "2026-10-20",
+  "runs": {
+    "macos-launcher-baseline": {
+      "runner": {
+        "passed": false,
+        "status": "failed",
+        "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-e4syl7a0/build",
+        "steps": [
+          {
+            "name": "configure",
+            "command": [
+              "cmake",
+              "-S",
+              "/Users/eric/Developer/Halo2-macos-port/tests/macos/launcher",
+              "-B",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-e4syl7a0/build",
+              "-DBUILD_TESTING=ON",
+              "-DCMAKE_BUILD_TYPE=Release",
+              "-GNinja",
+              "-DSDL2_DIR=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-l2za0fvh/sdk/cmake/SDL2",
+              "-DHALO2_MOLTENVK_LIBRARY=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-l2za0fvh/sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib",
+              "-DHALO2_MOLTENVK_LICENSE=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-l2za0fvh/sdk/MoltenVK/LICENSE",
+              "-DHALO2_SDL_LICENSE=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-l2za0fvh/SDL2-LICENSE.txt",
+              "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+              "-DHALO2_BUNDLE_MOVIES=OFF"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-baseline/configure.log",
+            "exit_code": 0
+          },
+          {
+            "name": "build",
+            "command": [
+              "cmake",
+              "--build",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-e4syl7a0/build",
+              "--config",
+              "Release",
+              "--parallel",
+              "2",
+              "--target",
+              "vulkan_portability_tests",
+              "macos_launcher_tests"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-baseline/build.log",
+            "exit_code": 1
+          }
+        ],
+        "retained_small_reports": []
+      },
+      "build.log": "[1/8] Building CXX object CMakeFiles/vulkan_portability_tests.dir/Users/eric/Developer/Halo2-macos-port/tests/vulkan_portability_tests.cpp.o\n[2/8] Building CXX object CMakeFiles/halo2_launcher.dir/Users/eric/Developer/Halo2-macos-port/src/launcher.cpp.o\n[3/8] Building CXX object CMakeFiles/halo2_title_launcher.dir/Users/eric/Developer/Halo2-macos-port/src/launcher.cpp.o\n[4/8] Linking CXX executable vulkan_portability_tests\n[5/8] Linking CXX executable halo2_launcher/Halo2-Launcher\nFAILED: [code=1] halo2_launcher/Halo2-Launcher \n: && /usr/bin/c++ -O3 -DNDEBUG -arch arm64 -arch x86_64 -mmacosx-version-min=13.0 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/halo2_launcher.dir/Users/eric/Developer/Halo2-macos-port/src/launcher.cpp.o -o halo2_launcher/Halo2-Launcher  -Wl,-rpath,/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-l2za0fvh/sdk  /private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-l2za0fvh/sdk/SDL2.framework/SDL2 && cd /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-e4syl7a0/build && /opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15 -B /Users/eric/Developer/Halo2-macos-port/tests/macos/launcher/prepare_slice.py /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-e4syl7a0/build/halo2_launcher/Halo2-Launcher /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-e4syl7a0/build/slices/halo2_launcher/arm64/Halo2-Launcher arm64 && cd /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-e4syl7a0/build && /opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15 -B /Users/eric/Developer/Halo2-macos-port/tests/macos/launcher/prepare_slice.py /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-e4syl7a0/build/halo2_launcher/Halo2-Launcher /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-e4syl7a0/build/slices/halo2_launcher/x86_64/Halo2-Launcher x86_64\nlipo: -verify_arch requires exactly one input file\nTraceback (most recent call last):\n  File \"/Users/eric/Developer/Halo2-macos-port/tests/macos/launcher/prepare_slice.py\", line 31, in <module>\n    main()\n    ~~~~^^\n  File \"/Users/eric/Developer/Halo2-macos-port/tests/macos/launcher/prepare_slice.py\", line 18, in main\n    subprocess.run(['lipo', str(source), '-verify_arch', 'arm64', 'x86_64'], check=True)\n    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.15/3.15.0/Frameworks/Python.framework/Versions/3.15/lib/python3.15/subprocess.py\", line 692, in run\n    raise CalledProcessError(retcode, process.args,\n                             output=stdout, stderr=stderr)\nsubprocess.CalledProcessError: Command '['lipo', '/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-e4syl7a0/build/halo2_launcher/Halo2-Launcher', '-verify_arch', 'arm64', 'x86_64']' returned non-zero exit status 1.\n[6/8] Building CXX object CMakeFiles/halo2_onboarding.dir/Users/eric/Developer/Halo2-macos-port/src/launcher.cpp.o\nninja: build stopped: subcommand failed.\n"
+    },
+    "macos-launcher-baseline-corrected": {
+      "runner": {
+        "passed": false,
+        "status": "failed",
+        "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-vq6fuc_g/build",
+        "steps": [
+          {
+            "name": "configure",
+            "command": [
+              "cmake",
+              "-S",
+              "/Users/eric/Developer/Halo2-macos-port/tests/macos/launcher",
+              "-B",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-vq6fuc_g/build",
+              "-DBUILD_TESTING=ON",
+              "-DCMAKE_BUILD_TYPE=Release",
+              "-GNinja",
+              "-DSDL2_DIR=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-i7vwk5pi/sdk/cmake/SDL2",
+              "-DHALO2_MOLTENVK_LIBRARY=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-i7vwk5pi/sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib",
+              "-DHALO2_MOLTENVK_LICENSE=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-i7vwk5pi/sdk/MoltenVK/LICENSE",
+              "-DHALO2_SDL_LICENSE=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-i7vwk5pi/SDL2-LICENSE.txt",
+              "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+              "-DHALO2_BUNDLE_MOVIES=OFF"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-baseline-corrected/configure.log",
+            "exit_code": 0
+          },
+          {
+            "name": "build",
+            "command": [
+              "cmake",
+              "--build",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-vq6fuc_g/build",
+              "--config",
+              "Release",
+              "--parallel",
+              "2",
+              "--target",
+              "vulkan_portability_tests",
+              "macos_launcher_tests"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-baseline-corrected/build.log",
+            "exit_code": 0
+          },
+          {
+            "name": "tests",
+            "command": [
+              "ctest",
+              "--test-dir",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-vq6fuc_g/build",
+              "--build-config",
+              "Release",
+              "--output-on-failure",
+              "--no-tests=error",
+              "--parallel",
+              "1",
+              "--tests-regex",
+              "^macos_launcher_first_run_halo2_launcher_arm64$"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-baseline-corrected/tests.log",
+            "exit_code": 8
+          }
+        ],
+        "retained_small_reports": []
+      },
+      "build.log": "[1/8] Building CXX object CMakeFiles/vulkan_portability_tests.dir/Users/eric/Developer/Halo2-macos-port/tests/vulkan_portability_tests.cpp.o\n[2/8] Building CXX object CMakeFiles/halo2_launcher.dir/Users/eric/Developer/Halo2-macos-port/src/launcher.cpp.o\n[3/8] Building CXX object CMakeFiles/halo2_title_launcher.dir/Users/eric/Developer/Halo2-macos-port/src/launcher.cpp.o\n[4/8] Linking CXX executable vulkan_portability_tests\n[5/8] Linking CXX executable halo2_launcher/Halo2-Launcher\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-vq6fuc_g/build/slices/halo2_launcher/arm64/Halo2-Launcher: replacing existing signature\n[6/8] Linking CXX executable halo2_title_launcher/Halo2-Title-Launcher\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-vq6fuc_g/build/slices/halo2_title_launcher/arm64/Halo2-Title-Launcher: replacing existing signature\n[7/8] Building CXX object CMakeFiles/halo2_onboarding.dir/Users/eric/Developer/Halo2-macos-port/src/launcher.cpp.o\n[8/8] Linking CXX executable halo2_onboarding/Halo2-Launcher\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-vq6fuc_g/build/slices/halo2_onboarding/arm64/Halo2-Launcher: replacing existing signature\n",
+      "tests.log": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-vq6fuc_g/build\n    Start 2: macos_launcher_first_run_halo2_launcher_arm64\n1/1 Test #2: macos_launcher_first_run_halo2_launcher_arm64 ...***Failed    8.63 sec\n..F....FF.......................E.\n======================================================================\nERROR: test_updated_launcher_is_forwarded_with_original_arguments (__main__.LauncherFirstRunTests.test_updated_launcher_is_forwarded_with_original_arguments)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/eric/Developer/Halo2-macos-port/tests/launcher_first_run_test.py\", line 572, in test_updated_launcher_is_forwarded_with_original_arguments\n    self.assertEqual(json.loads((self.root / 'forwarded.json').read_text()), ['--launcher-info'])\n                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^\n  File \"/opt/homebrew/Cellar/python@3.15/3.15.0/Frameworks/Python.framework/Versions/3.15/lib/python3.15/pathlib/__init__.py\", line 986, in read_text\n    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:\n         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.15/3.15.0/Frameworks/Python.framework/Versions/3.15/lib/python3.15/pathlib/__init__.py\", line 970, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: '/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-vq6fuc_g/build/Testing/Temporary/scratch/halo2-test-gftbaxmw/halo2-mcc-first-run-ykqis06v/fresh checkout/forwarded.json'\n\n======================================================================\nFAIL: test_default_route_uses_only_private_mcc_map_paths (__main__.LauncherFirstRunTests.test_default_route_uses_only_private_mcc_map_paths)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/eric/Developer/Halo2-macos-port/tests/launcher_first_run_test.py\", line 395, in test_default_route_uses_only_private_mcc_map_paths\n    self.assertEqual(record['discord'], str(self.launcher))\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: None != '/Users/eric/Developer/Halo2-macos-port/.[145 chars]cher'\n\n======================================================================\nFAIL: test_frontend_is_default_play_while_native_gameplay_test_remains_explicit (__main__.LauncherFirstRunTests.test_frontend_is_default_play_while_native_gameplay_test_remains_explicit)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/eric/Developer/Halo2-macos-port/tests/launcher_first_run_test.py\", line 178, in test_frontend_is_default_play_while_native_gameplay_test_remains_explicit\n    self.assertIn('--menu-screen', args)\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: '--menu-screen' not found in ['--multiplayer', '--mp-source-object-world', '/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-vq6fuc_g/build/Testing/Temporary/scratch/halo2-test-gftbaxmw/halo2-mcc-first-run-zxkjvqu0/fresh checkout/saves/native-mcc-test', '--map', '/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-vq6fuc_g/build/Testing/Temporary/scratch/halo2-test-gftbaxmw/halo2-mcc-first-run-zxkjvqu0/fresh checkout/assets/imported/mcc-test/halo2/h2_maps_win64_dx11/lockout.map', '--shared-maps', '/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-vq6fuc_g/build/Testing/Temporary/scratch/halo2-test-gftbaxmw/halo2-mcc-first-run-zxkjvqu0/fresh checkout/assets/imported/mcc-test/halo2/h2_maps_win64_dx11', '--hidden', '--frames', '1']\n\n======================================================================\nFAIL: test_frontend_rejects_foreign_menu_cache_and_stale_validation_retains_test (__main__.LauncherFirstRunTests.test_frontend_rejects_foreign_menu_cache_and_stale_validation_retains_test)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/eric/Developer/Halo2-macos-port/tests/launcher_first_run_test.py\", line 199, in test_frontend_rejects_foreign_menu_cache_and_stale_validation_retains_test\n    self.assertIn('selected imported MCC map cache', result.stderr)\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'selected imported MCC map cache' not found in 'Traceback (most recent call last):\\n  File \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-vq6fuc_g/build/Testing/Temporary/scratch/halo2-test-gftbaxmw/halo2-mcc-first-run-2q_x5nmq/fresh checkout/tools/native_gameplay_test.py\", line 264, in <module>\\n    raise SystemExit(main())\\n                     ~~~~^^\\n  File \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-vq6fuc_g/build/Testing/Temporary/scratch/halo2-test-gftbaxmw/halo2-mcc-first-run-2q_x5nmq/fresh checkout/tools/native_gameplay_test.py\", line 256, in main\\n    from frontend_runtime_selection import selected_frontend_runtime\\nModuleNotFoundError: No module named \\'frontend_runtime_selection\\'\\nHalo 2 launcher: The native gameplay test supports local MCC Lockout with viewport and capture options. Other gameplay modes remain in progress.\\n'\n\n----------------------------------------------------------------------\nRan 34 tests in 8.291s\n\nFAILED (failures=3, errors=1)\n\n\n0% tests passed, 1 tests failed out of 1\n\nTotal Test time (real) =   8.63 sec\n\nThe following tests FAILED:\n\t  2 - macos_launcher_first_run_halo2_launcher_arm64 (Failed)\nErrors while running CTest\n"
+    },
+    "macos-launcher-path-baseline": {
+      "runner": {
+        "passed": false,
+        "status": "failed",
+        "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-em49evbw/build",
+        "steps": [
+          {
+            "name": "configure",
+            "command": [
+              "cmake",
+              "-S",
+              "/Users/eric/Developer/Halo2-macos-port/tests/macos/launcher",
+              "-B",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-em49evbw/build",
+              "-DBUILD_TESTING=ON",
+              "-DCMAKE_BUILD_TYPE=Release",
+              "-GNinja",
+              "-DSDL2_DIR=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-k6x5len5/sdk/cmake/SDL2",
+              "-DHALO2_MOLTENVK_LIBRARY=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-k6x5len5/sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib",
+              "-DHALO2_MOLTENVK_LICENSE=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-k6x5len5/sdk/MoltenVK/LICENSE",
+              "-DHALO2_SDL_LICENSE=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-k6x5len5/SDL2-LICENSE.txt",
+              "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+              "-DHALO2_BUNDLE_MOVIES=OFF"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-path-baseline/configure.log",
+            "exit_code": 0
+          },
+          {
+            "name": "build",
+            "command": [
+              "cmake",
+              "--build",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-em49evbw/build",
+              "--config",
+              "Release",
+              "--parallel",
+              "2",
+              "--target",
+              "vulkan_portability_tests",
+              "macos_launcher_tests"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-path-baseline/build.log",
+            "exit_code": 0
+          },
+          {
+            "name": "tests",
+            "command": [
+              "ctest",
+              "--test-dir",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-em49evbw/build",
+              "--build-config",
+              "Release",
+              "--output-on-failure",
+              "--no-tests=error",
+              "--parallel",
+              "1",
+              "--tests-regex",
+              "^macos_launcher_first_run_halo2_launcher_arm64$"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-path-baseline/tests.log",
+            "exit_code": 8
+          }
+        ],
+        "retained_small_reports": [
+          {
+            "path": "slices/halo2_launcher/arm64/Halo2-Launcher.json",
+            "status": "retained",
+            "bytes": 473,
+            "sha256": "778e9458d804b762aaed4e55735d36739b1165e78bf055c8817d546cfd0b6296",
+            "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-path-baseline/evidence/slices/halo2_launcher/arm64/Halo2-Launcher.json"
+          }
+        ]
+      },
+      "build.log": "[1/8] Building CXX object CMakeFiles/vulkan_portability_tests.dir/Users/eric/Developer/Halo2-macos-port/tests/vulkan_portability_tests.cpp.o\n[2/8] Building CXX object CMakeFiles/halo2_launcher.dir/Users/eric/Developer/Halo2-macos-port/src/launcher.cpp.o\n[3/8] Building CXX object CMakeFiles/halo2_title_launcher.dir/Users/eric/Developer/Halo2-macos-port/src/launcher.cpp.o\n[4/8] Linking CXX executable vulkan_portability_tests\n[5/8] Linking CXX executable halo2_launcher/Halo2-Launcher\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-em49evbw/build/slices/halo2_launcher/arm64/Halo2-Launcher: replacing existing signature\n[6/8] Linking CXX executable halo2_title_launcher/Halo2-Title-Launcher\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-em49evbw/build/slices/halo2_title_launcher/arm64/Halo2-Title-Launcher: replacing existing signature\n[7/8] Building CXX object CMakeFiles/halo2_onboarding.dir/Users/eric/Developer/Halo2-macos-port/src/launcher.cpp.o\n[8/8] Linking CXX executable halo2_onboarding/Halo2-Launcher\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-em49evbw/build/slices/halo2_onboarding/arm64/Halo2-Launcher: replacing existing signature\n",
+      "tests.log": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-em49evbw/build\n    Start 2: macos_launcher_first_run_halo2_launcher_arm64\n1/1 Test #2: macos_launcher_first_run_halo2_launcher_arm64 ...***Failed    7.33 sec\n..F....FF.......................E.\n======================================================================\nERROR: test_updated_launcher_is_forwarded_with_original_arguments (__main__.LauncherFirstRunTests.test_updated_launcher_is_forwarded_with_original_arguments)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/eric/Developer/Halo2-macos-port/tests/launcher_first_run_test.py\", line 573, in test_updated_launcher_is_forwarded_with_original_arguments\n    self.assertEqual(json.loads((self.root / 'forwarded.json').read_text()), ['--launcher-info'])\n                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^\n  File \"/opt/homebrew/Cellar/python@3.15/3.15.0/Frameworks/Python.framework/Versions/3.15/lib/python3.15/pathlib/__init__.py\", line 986, in read_text\n    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:\n         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.15/3.15.0/Frameworks/Python.framework/Versions/3.15/lib/python3.15/pathlib/__init__.py\", line 970, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: '/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-em49evbw/build/Testing/Temporary/scratch/halo2-test-6asqww0r/halo2-mcc-first-run-sqttg2oo/fresh checkout/forwarded.json'\n\n======================================================================\nFAIL: test_default_route_uses_only_private_mcc_map_paths (__main__.LauncherFirstRunTests.test_default_route_uses_only_private_mcc_map_paths)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/eric/Developer/Halo2-macos-port/tests/launcher_first_run_test.py\", line 396, in test_default_route_uses_only_private_mcc_map_paths\n    self.assertEqual(record['discord'], str(self.launcher))\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: None != '/Users/eric/Developer/Halo2-macos-port/.[145 chars]cher'\n\n======================================================================\nFAIL: test_frontend_is_default_play_while_native_gameplay_test_remains_explicit (__main__.LauncherFirstRunTests.test_frontend_is_default_play_while_native_gameplay_test_remains_explicit)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/eric/Developer/Halo2-macos-port/tests/launcher_first_run_test.py\", line 179, in test_frontend_is_default_play_while_native_gameplay_test_remains_explicit\n    self.assertIn('--menu-screen', args)\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: '--menu-screen' not found in ['--multiplayer', '--mp-source-object-world', '/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-em49evbw/build/Testing/Temporary/scratch/halo2-test-6asqww0r/halo2-mcc-first-run-nfpv45ch/fresh checkout/saves/native-mcc-test', '--map', '/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-em49evbw/build/Testing/Temporary/scratch/halo2-test-6asqww0r/halo2-mcc-first-run-nfpv45ch/fresh checkout/assets/imported/mcc-test/halo2/h2_maps_win64_dx11/lockout.map', '--shared-maps', '/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-em49evbw/build/Testing/Temporary/scratch/halo2-test-6asqww0r/halo2-mcc-first-run-nfpv45ch/fresh checkout/assets/imported/mcc-test/halo2/h2_maps_win64_dx11', '--hidden', '--frames', '1']\n\n======================================================================\nFAIL: test_frontend_rejects_foreign_menu_cache_and_stale_validation_retains_test (__main__.LauncherFirstRunTests.test_frontend_rejects_foreign_menu_cache_and_stale_validation_retains_test)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/eric/Developer/Halo2-macos-port/tests/launcher_first_run_test.py\", line 200, in test_frontend_rejects_foreign_menu_cache_and_stale_validation_retains_test\n    self.assertIn('selected imported MCC map cache', result.stderr)\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'selected imported MCC map cache' not found in 'Halo 2 launcher: The native gameplay test supports local MCC Lockout with viewport and capture options. Other gameplay modes remain in progress.\\n'\n\n----------------------------------------------------------------------\nRan 34 tests in 7.016s\n\nFAILED (failures=3, errors=1)\n\n\n0% tests passed, 1 tests failed out of 1\n\nTotal Test time (real) =   7.33 sec\n\nThe following tests FAILED:\n\t  2 - macos_launcher_first_run_halo2_launcher_arm64 (Failed)\nErrors while running CTest\n"
+    },
+    "macos-launcher-baseline-current-fixture": {
+      "runner": {
+        "passed": false,
+        "status": "failed",
+        "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-63tq8mv0/build",
+        "steps": [
+          {
+            "name": "configure",
+            "command": [
+              "cmake",
+              "-S",
+              "/Users/eric/Developer/Halo2-macos-port/tests/macos/launcher",
+              "-B",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-63tq8mv0/build",
+              "-DBUILD_TESTING=ON",
+              "-DCMAKE_BUILD_TYPE=Release",
+              "-GNinja",
+              "-DSDL2_DIR=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-jq9sql8b/sdk/cmake/SDL2",
+              "-DHALO2_MOLTENVK_LIBRARY=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-jq9sql8b/sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib",
+              "-DHALO2_MOLTENVK_LICENSE=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-jq9sql8b/sdk/MoltenVK/LICENSE",
+              "-DHALO2_SDL_LICENSE=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-jq9sql8b/SDL2-LICENSE.txt",
+              "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+              "-DHALO2_BUNDLE_MOVIES=OFF"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-baseline-current-fixture/configure.log",
+            "exit_code": 0
+          },
+          {
+            "name": "build",
+            "command": [
+              "cmake",
+              "--build",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-63tq8mv0/build",
+              "--config",
+              "Release",
+              "--parallel",
+              "2",
+              "--target",
+              "vulkan_portability_tests",
+              "macos_launcher_tests"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-baseline-current-fixture/build.log",
+            "exit_code": 0
+          },
+          {
+            "name": "tests",
+            "command": [
+              "ctest",
+              "--test-dir",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-63tq8mv0/build",
+              "--build-config",
+              "Release",
+              "--output-on-failure",
+              "--no-tests=error",
+              "--parallel",
+              "1",
+              "--tests-regex",
+              "^macos_launcher_first_run_halo2_launcher_arm64$"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-baseline-current-fixture/tests.log",
+            "exit_code": 8
+          }
+        ],
+        "retained_small_reports": [
+          {
+            "path": "slices/halo2_launcher/arm64/Halo2-Launcher.json",
+            "status": "retained",
+            "bytes": 473,
+            "sha256": "180283d388f20e22e4eeb139e3aa4fa5ec56185deee15d479c3de024f8dada8a",
+            "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-baseline-current-fixture/evidence/slices/halo2_launcher/arm64/Halo2-Launcher.json"
+          }
+        ]
+      },
+      "build.log": "[1/8] Building CXX object CMakeFiles/vulkan_portability_tests.dir/Users/eric/Developer/Halo2-macos-port/tests/vulkan_portability_tests.cpp.o\n[2/8] Building CXX object CMakeFiles/halo2_launcher.dir/Users/eric/Developer/Halo2-macos-port/src/launcher.cpp.o\n[3/8] Building CXX object CMakeFiles/halo2_title_launcher.dir/Users/eric/Developer/Halo2-macos-port/src/launcher.cpp.o\n[4/8] Linking CXX executable vulkan_portability_tests\n[5/8] Linking CXX executable halo2_launcher/Halo2-Launcher\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-63tq8mv0/build/slices/halo2_launcher/arm64/Halo2-Launcher: replacing existing signature\n[6/8] Linking CXX executable halo2_title_launcher/Halo2-Title-Launcher\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-63tq8mv0/build/slices/halo2_title_launcher/arm64/Halo2-Title-Launcher: replacing existing signature\n[7/8] Building CXX object CMakeFiles/halo2_onboarding.dir/Users/eric/Developer/Halo2-macos-port/src/launcher.cpp.o\n[8/8] Linking CXX executable halo2_onboarding/Halo2-Launcher\n/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-63tq8mv0/build/slices/halo2_onboarding/arm64/Halo2-Launcher: replacing existing signature\n",
+      "tests.log": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-63tq8mv0/build\n    Start 2: macos_launcher_first_run_halo2_launcher_arm64\n1/1 Test #2: macos_launcher_first_run_halo2_launcher_arm64 ...***Failed    9.94 sec\n..F.............................E.\n======================================================================\nERROR: test_updated_launcher_is_forwarded_with_original_arguments (__main__.LauncherFirstRunTests.test_updated_launcher_is_forwarded_with_original_arguments)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/eric/Developer/Halo2-macos-port/tests/launcher_first_run_test.py\", line 581, in test_updated_launcher_is_forwarded_with_original_arguments\n    self.assertEqual(json.loads((self.root / 'forwarded.json').read_text()), ['--launcher-info'])\n                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^\n  File \"/opt/homebrew/Cellar/python@3.15/3.15.0/Frameworks/Python.framework/Versions/3.15/lib/python3.15/pathlib/__init__.py\", line 986, in read_text\n    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:\n         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.15/3.15.0/Frameworks/Python.framework/Versions/3.15/lib/python3.15/pathlib/__init__.py\", line 970, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: '/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-63tq8mv0/build/Testing/Temporary/scratch/halo2-test-rvaiywlv/halo2-mcc-first-run-asso4rbm/fresh checkout/forwarded.json'\n\n======================================================================\nFAIL: test_default_route_uses_only_private_mcc_map_paths (__main__.LauncherFirstRunTests.test_default_route_uses_only_private_mcc_map_paths)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/eric/Developer/Halo2-macos-port/tests/launcher_first_run_test.py\", line 404, in test_default_route_uses_only_private_mcc_map_paths\n    self.assertEqual(record['discord'], str(self.launcher))\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: None != '/Users/eric/Developer/Halo2-macos-port/.[145 chars]cher'\n\n----------------------------------------------------------------------\nRan 34 tests in 9.628s\n\nFAILED (failures=1, errors=1)\n\n\n0% tests passed, 1 tests failed out of 1\n\nTotal Test time (real) =   9.94 sec\n\nThe following tests FAILED:\n\t  2 - macos_launcher_first_run_halo2_launcher_arm64 (Failed)\nErrors while running CTest\n"
+    },
+    "macos-launcher-paths": {
+      "runner": {
+        "passed": true,
+        "status": "passed",
+        "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build",
+        "steps": [
+          {
+            "name": "configure",
+            "command": [
+              "cmake",
+              "-S",
+              "/Users/eric/Developer/Halo2-macos-port/tests/macos/launcher",
+              "-B",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build",
+              "-DBUILD_TESTING=ON",
+              "-DCMAKE_BUILD_TYPE=Release",
+              "-GNinja",
+              "-DSDL2_DIR=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-wgj4ed7_/sdk/cmake/SDL2",
+              "-DHALO2_MOLTENVK_LIBRARY=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-wgj4ed7_/sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib",
+              "-DHALO2_MOLTENVK_LICENSE=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-wgj4ed7_/sdk/MoltenVK/LICENSE",
+              "-DHALO2_SDL_LICENSE=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-wgj4ed7_/SDL2-LICENSE.txt",
+              "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+              "-DHALO2_BUNDLE_MOVIES=OFF"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-paths/configure.log",
+            "exit_code": 0
+          },
+          {
+            "name": "build",
+            "command": [
+              "cmake",
+              "--build",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build",
+              "--config",
+              "Release",
+              "--parallel",
+              "2",
+              "--target",
+              "vulkan_portability_tests",
+              "macos_launcher_tests"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-paths/build.log",
+            "exit_code": 0
+          },
+          {
+            "name": "tests",
+            "command": [
+              "ctest",
+              "--test-dir",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build",
+              "--build-config",
+              "Release",
+              "--output-on-failure",
+              "--no-tests=error",
+              "--parallel",
+              "1",
+              "--tests-regex",
+              "^(macos_launcher_|vulkan_portability$)"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-paths/tests.log",
+            "exit_code": 0
+          }
+        ],
+        "retained_small_reports": [
+          {
+            "path": "launcher-paths.json",
+            "status": "retained",
+            "bytes": 2202,
+            "sha256": "61291ba516011d3dbd03fa754eb1c2c5c5afd333380ac496886a491169f17811",
+            "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-paths/evidence/launcher-paths.json"
+          },
+          {
+            "path": "slices/halo2_launcher/arm64/Halo2-Launcher.json",
+            "status": "retained",
+            "bytes": 473,
+            "sha256": "0b4adbb3b7a47756c3ca6d42791df6ac1510fadb53287d7d83d2aad04317c6b1",
+            "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-paths/evidence/slices/halo2_launcher/arm64/Halo2-Launcher.json"
+          },
+          {
+            "path": "slices/halo2_launcher/x86_64/Halo2-Launcher.json",
+            "status": "retained",
+            "bytes": 475,
+            "sha256": "97a19ac3f59fd64f1068c26848f20c60d199d2bd4318a0c47a2b98e52f48ffef",
+            "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-paths/evidence/slices/halo2_launcher/x86_64/Halo2-Launcher.json"
+          },
+          {
+            "path": "slices/halo2_title_launcher/arm64/Halo2-Title-Launcher.json",
+            "status": "retained",
+            "bytes": 497,
+            "sha256": "2e75581df973c525736a6ba3445ad30653ae46e45d0b51362ca8f38419d0029a",
+            "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-paths/evidence/slices/halo2_title_launcher/arm64/Halo2-Title-Launcher.json"
+          },
+          {
+            "path": "slices/halo2_title_launcher/x86_64/Halo2-Title-Launcher.json",
+            "status": "retained",
+            "bytes": 499,
+            "sha256": "262faf3f859be46f1f13f9d225c00318676a5f9241dc87783bb26f5197189763",
+            "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-paths/evidence/slices/halo2_title_launcher/x86_64/Halo2-Title-Launcher.json"
+          },
+          {
+            "path": "slices/halo2_onboarding/arm64/Halo2-Launcher.json",
+            "status": "retained",
+            "bytes": 477,
+            "sha256": "66faa347bd9e14cfde76a87169746d70c8c5d23d10bd74c26fa050f5db326af0",
+            "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-paths/evidence/slices/halo2_onboarding/arm64/Halo2-Launcher.json"
+          },
+          {
+            "path": "slices/halo2_onboarding/x86_64/Halo2-Launcher.json",
+            "status": "retained",
+            "bytes": 479,
+            "sha256": "c633d96e08cd169e39d640107924b947fb3088e9b1270f4287693adf7c771bad",
+            "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-paths/evidence/slices/halo2_onboarding/x86_64/Halo2-Launcher.json"
+          }
+        ]
+      },
+      "tests_log": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build\n    Start 1: vulkan_portability\n1/8 Test #1: vulkan_portability .....................................   Passed    0.34 sec\n    Start 2: macos_launcher_first_run_halo2_launcher_arm64\n2/8 Test #2: macos_launcher_first_run_halo2_launcher_arm64 ..........   Passed   10.46 sec\n    Start 3: macos_launcher_first_run_halo2_launcher_x86_64\n3/8 Test #3: macos_launcher_first_run_halo2_launcher_x86_64 .........   Passed   15.28 sec\n    Start 4: macos_launcher_first_run_halo2_title_launcher_arm64\n4/8 Test #4: macos_launcher_first_run_halo2_title_launcher_arm64 ....   Passed    9.82 sec\n    Start 5: macos_launcher_first_run_halo2_title_launcher_x86_64\n5/8 Test #5: macos_launcher_first_run_halo2_title_launcher_x86_64 ...   Passed   14.62 sec\n    Start 6: macos_launcher_first_run_halo2_onboarding_arm64\n6/8 Test #6: macos_launcher_first_run_halo2_onboarding_arm64 ........   Passed    9.52 sec\n    Start 7: macos_launcher_first_run_halo2_onboarding_x86_64\n7/8 Test #7: macos_launcher_first_run_halo2_onboarding_x86_64 .......   Passed   14.20 sec\n    Start 8: macos_launcher_executable_paths\n8/8 Test #8: macos_launcher_executable_paths ........................   Passed    0.47 sec\n\n100% tests passed out of 8\n\nTotal Test time (real) =  74.73 sec\n",
+      "evidence": {
+        "launcher-paths.json": {
+          "schema": "H2_MACOS_EXECUTABLE_PATH_V1",
+          "runs": [
+            {
+              "arch": "arm64",
+              "command": [
+                "/usr/bin/arch",
+                "-arm64",
+                "./Launch link \u03bb",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build/Testing/Temporary/scratch/halo2-test-8_1c2ppi/launcher-path-lh9xoak2/Moved app with spaces \u0394/Actual executable \u03a9",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build/Testing/Temporary/scratch/halo2-test-8_1c2ppi/launcher-path-lh9xoak2/unrelated working directory"
+              ],
+              "exit": 0,
+              "stdout": "{\"executable\":\"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build/Testing/Temporary/scratch/halo2-test-8_1c2ppi/launcher-path-lh9xoak2/Moved app with spaces \u0394/Actual executable \u03a9\",\"passed\":true,\"working_directory\":\"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build/Testing/Temporary/scratch/halo2-test-8_1c2ppi/launcher-path-lh9xoak2/unrelated working directory\"}\n",
+              "stderr": ""
+            },
+            {
+              "arch": "x86_64",
+              "command": [
+                "/usr/bin/arch",
+                "-x86_64",
+                "./Launch link \u03bb",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build/Testing/Temporary/scratch/halo2-test-8_1c2ppi/launcher-path-lh9xoak2/Moved app with spaces \u0394/Actual executable \u03a9",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build/Testing/Temporary/scratch/halo2-test-8_1c2ppi/launcher-path-lh9xoak2/unrelated working directory"
+              ],
+              "exit": 0,
+              "stdout": "{\"executable\":\"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build/Testing/Temporary/scratch/halo2-test-8_1c2ppi/launcher-path-lh9xoak2/Moved app with spaces \u0394/Actual executable \u03a9\",\"passed\":true,\"working_directory\":\"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build/Testing/Temporary/scratch/halo2-test-8_1c2ppi/launcher-path-lh9xoak2/unrelated working directory\"}\n",
+              "stderr": ""
+            }
+          ],
+          "passed": true
+        },
+        "slices/halo2_title_launcher/arm64/Halo2-Title-Launcher.json": {
+          "universal": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build/halo2_title_launcher/Halo2-Title-Launcher",
+          "universal_sha256": "ec47f2d361d547b468b411fd77716fc5634e19042ffa8757cfe62943daa1058e",
+          "slice": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build/slices/halo2_title_launcher/arm64/Halo2-Title-Launcher",
+          "slice_sha256": "c754e87e1452704c9c41100446fda4f17c44078a98f0b97e1d76843212a24436",
+          "arch": "arm64"
+        },
+        "slices/halo2_title_launcher/x86_64/Halo2-Title-Launcher.json": {
+          "universal": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build/halo2_title_launcher/Halo2-Title-Launcher",
+          "universal_sha256": "ec47f2d361d547b468b411fd77716fc5634e19042ffa8757cfe62943daa1058e",
+          "slice": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build/slices/halo2_title_launcher/x86_64/Halo2-Title-Launcher",
+          "slice_sha256": "797af2356d6d6636c2baa004499beea95f07965cac753f8615a2bc781e402a19",
+          "arch": "x86_64"
+        },
+        "slices/halo2_onboarding/arm64/Halo2-Launcher.json": {
+          "universal": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build/halo2_onboarding/Halo2-Launcher",
+          "universal_sha256": "5748c0f546b1e4c7d7088f6bdb44b568a5ed96b3aff39e988a23b07f282e9b08",
+          "slice": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build/slices/halo2_onboarding/arm64/Halo2-Launcher",
+          "slice_sha256": "ef4ce4f138a095650db18ebeab4ae64e566f90fac71aa233d7140c3ec5b43a61",
+          "arch": "arm64"
+        },
+        "slices/halo2_onboarding/x86_64/Halo2-Launcher.json": {
+          "universal": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build/halo2_onboarding/Halo2-Launcher",
+          "universal_sha256": "5748c0f546b1e4c7d7088f6bdb44b568a5ed96b3aff39e988a23b07f282e9b08",
+          "slice": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build/slices/halo2_onboarding/x86_64/Halo2-Launcher",
+          "slice_sha256": "8c92942fa1c14036bd7826f18b5812af49fb56b7472df76f47ecaa00c08be1cc",
+          "arch": "x86_64"
+        },
+        "slices/halo2_launcher/arm64/Halo2-Launcher.json": {
+          "universal": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build/halo2_launcher/Halo2-Launcher",
+          "universal_sha256": "5748c0f546b1e4c7d7088f6bdb44b568a5ed96b3aff39e988a23b07f282e9b08",
+          "slice": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build/slices/halo2_launcher/arm64/Halo2-Launcher",
+          "slice_sha256": "ef4ce4f138a095650db18ebeab4ae64e566f90fac71aa233d7140c3ec5b43a61",
+          "arch": "arm64"
+        },
+        "slices/halo2_launcher/x86_64/Halo2-Launcher.json": {
+          "universal": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build/halo2_launcher/Halo2-Launcher",
+          "universal_sha256": "5748c0f546b1e4c7d7088f6bdb44b568a5ed96b3aff39e988a23b07f282e9b08",
+          "slice": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo/build/slices/halo2_launcher/x86_64/Halo2-Launcher",
+          "slice_sha256": "8c92942fa1c14036bd7826f18b5812af49fb56b7472df76f47ecaa00c08be1cc",
+          "arch": "x86_64"
+        }
+      }
+    },
+    "macos-launcher-bundle-regression": {
+      "runner": {
+        "passed": true,
+        "status": "passed",
+        "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8_9ky_0i/build",
+        "steps": [
+          {
+            "name": "configure",
+            "command": [
+              "cmake",
+              "-S",
+              "/Users/eric/Developer/Halo2-macos-port",
+              "-B",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8_9ky_0i/build",
+              "-DBUILD_TESTING=ON",
+              "-DCMAKE_BUILD_TYPE=Release",
+              "-GNinja",
+              "-DSDL2_DIR=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-fl61c3a5/sdk/cmake/SDL2",
+              "-DHALO2_MOLTENVK_LIBRARY=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-fl61c3a5/sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib",
+              "-DHALO2_MOLTENVK_LICENSE=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-fl61c3a5/sdk/MoltenVK/LICENSE",
+              "-DHALO2_SDL_LICENSE=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-fl61c3a5/SDL2-LICENSE.txt",
+              "-DHALO2_MACOS_BRINGUP_ONLY=ON"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-bundle-regression/configure.log",
+            "exit_code": 0
+          },
+          {
+            "name": "build",
+            "command": [
+              "cmake",
+              "--build",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8_9ky_0i/build",
+              "--config",
+              "Release",
+              "--parallel",
+              "2",
+              "--target",
+              "halo2_macos_graphics_probe",
+              "vulkan_portability_tests"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-bundle-regression/build.log",
+            "exit_code": 0
+          },
+          {
+            "name": "tests",
+            "command": [
+              "ctest",
+              "--test-dir",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8_9ky_0i/build",
+              "--build-config",
+              "Release",
+              "--output-on-failure",
+              "--no-tests=error",
+              "--parallel",
+              "1",
+              "--tests-regex",
+              "^(macos_moltenvk_|macos_bundle$|vulkan_portability$)"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-bundle-regression/tests.log",
+            "exit_code": 0
+          }
+        ],
+        "retained_small_reports": [
+          {
+            "path": "macos-arm64.json",
+            "status": "retained",
+            "bytes": 763,
+            "sha256": "dc17d4f9d5237107595c435b9ca47dc8851e80b1c63f8a6de21550b77c423187",
+            "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-bundle-regression/evidence/macos-arm64.json"
+          },
+          {
+            "path": "macos-x86_64.json",
+            "status": "retained",
+            "bytes": 763,
+            "sha256": "088afa56e91a711aabe8690b57b03d2759ba42f7d21da9a9a9cc1dfaa7f7a5ae",
+            "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-bundle-regression/evidence/macos-x86_64.json"
+          },
+          {
+            "path": "Halo 2 Graphics Check.bundle.json",
+            "status": "retained",
+            "bytes": 598,
+            "sha256": "d7424d766228de3b0bba35e1f245d052d4d4b09af484719ea14d9803b45f81ab",
+            "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-bundle-regression/evidence/Halo 2 Graphics Check.bundle.json"
+          },
+          {
+            "path": "Halo 2 Graphics Check.app/Contents/Resources/bundle-manifest.json",
+            "status": "retained",
+            "bytes": 448,
+            "sha256": "d7fb742d9ae04236ed5435626dc9df8bee386bd8646fe7b29cdc6bb86175d57b",
+            "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-bundle-regression/evidence/Halo 2 Graphics Check.app/Contents/Resources/bundle-manifest.json"
+          }
+        ]
+      },
+      "tests_log": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8_9ky_0i/build\n    Start 1: macos_moltenvk_arm64\n1/4 Test #1: macos_moltenvk_arm64 .............   Passed    1.62 sec\n    Start 2: macos_moltenvk_x86_64\n2/4 Test #2: macos_moltenvk_x86_64 ............   Passed    4.63 sec\n    Start 3: vulkan_portability\n3/4 Test #3: vulkan_portability ...............   Passed    0.23 sec\n    Start 4: macos_bundle\n4/4 Test #4: macos_bundle .....................   Passed    2.72 sec\n\n100% tests passed out of 4\n\nTotal Test time (real) =   9.20 sec\n",
+      "evidence": {
+        "Halo 2 Graphics Check.bundle.json": {
+          "schema": "H2_MACOS_BUNDLE_V1",
+          "architectures": [
+            "arm64",
+            "x86_64"
+          ],
+          "signing": "ad-hoc development; not notarized",
+          "files": {
+            "Frameworks/SDL2": {
+              "bytes": 3058928,
+              "sha256": "b030ac4d29499719fef19bbb7d8acbbcbd26b5fb590715ae47619941833b9180"
+            },
+            "Frameworks/libMoltenVK.dylib": {
+              "bytes": 10891168,
+              "sha256": "4c45b91239e3a1d27ebca88ed321a5bdef387bea9ddf983f44416a0bcff7333e"
+            },
+            "MacOS/Halo 2 Graphics Check": {
+              "bytes": 129072,
+              "sha256": "9cd40598d036836d6d6f31fe71b214cfc8501d05ff5a862203e21fb348354626"
+            }
+          }
+        },
+        "macos-arm64.json": {
+          "schema": "H2_MACOS_GRAPHICS_BRINGUP_V1",
+          "architecture": "arm64",
+          "loaded_moltenvk": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8_9ky_0i/build/Testing/Temporary/scratch/halo2-test-cgrep0nv/Relocated Graphics Check.app/Contents/Frameworks/libMoltenVK.dylib",
+          "loaded_sdl": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8_9ky_0i/build/Testing/Temporary/scratch/halo2-test-cgrep0nv/Relocated Graphics Check.app/Contents/Frameworks/SDL2",
+          "gpu": "Apple M2 Pro",
+          "presented_frames": 3,
+          "host_page_bytes": 16384,
+          "portability_enumeration": false,
+          "portability_subset": true,
+          "source_d24s8_supported": false,
+          "depth_clamp": true,
+          "geometry_shader": false,
+          "engine_port_complete": false
+        },
+        "macos-x86_64.json": {
+          "schema": "H2_MACOS_GRAPHICS_BRINGUP_V1",
+          "architecture": "x86_64",
+          "loaded_moltenvk": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8_9ky_0i/build/Testing/Temporary/scratch/halo2-test-xqpemb4t/Relocated Graphics Check.app/Contents/Frameworks/libMoltenVK.dylib",
+          "loaded_sdl": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8_9ky_0i/build/Testing/Temporary/scratch/halo2-test-xqpemb4t/Relocated Graphics Check.app/Contents/Frameworks/SDL2",
+          "gpu": "Apple M2 Pro",
+          "presented_frames": 3,
+          "host_page_bytes": 4096,
+          "portability_enumeration": false,
+          "portability_subset": true,
+          "source_d24s8_supported": false,
+          "depth_clamp": true,
+          "geometry_shader": false,
+          "engine_port_complete": false
+        },
+        "Halo 2 Graphics Check.app/Contents/Resources/bundle-manifest.json": {
+          "schema": "H2_MACOS_BUNDLE_V1",
+          "architectures": [
+            "arm64",
+            "x86_64"
+          ],
+          "signing": "ad-hoc development; not notarized",
+          "files": {
+            "Frameworks/SDL2": {
+              "bytes": 3058928,
+              "sha256": "b030ac4d29499719fef19bbb7d8acbbcbd26b5fb590715ae47619941833b9180"
+            },
+            "Frameworks/libMoltenVK.dylib": {
+              "bytes": 10891168,
+              "sha256": "4c45b91239e3a1d27ebca88ed321a5bdef387bea9ddf983f44416a0bcff7333e"
+            }
+          }
+        }
+      }
+    },
+    "macos-launcher-root-build": {
+      "runner": {
+        "passed": true,
+        "status": "passed",
+        "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-hconc38s/build",
+        "steps": [
+          {
+            "name": "configure",
+            "command": [
+              "cmake",
+              "-S",
+              "/Users/eric/Developer/Halo2-macos-port",
+              "-B",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-hconc38s/build",
+              "-DBUILD_TESTING=ON",
+              "-DCMAKE_BUILD_TYPE=Release",
+              "-GNinja",
+              "-DSDL2_DIR=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-als5rc4f/sdk/cmake/SDL2",
+              "-DHALO2_MOLTENVK_LIBRARY=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-als5rc4f/sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib",
+              "-DHALO2_MOLTENVK_LICENSE=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-als5rc4f/sdk/MoltenVK/LICENSE",
+              "-DHALO2_SDL_LICENSE=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-als5rc4f/SDL2-LICENSE.txt",
+              "-DHALO2_BUILD_LAUNCHERS_WITH_NATIVE=OFF",
+              "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+              "-DHALO2_BUNDLE_MOVIES=OFF"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-root-build/configure.log",
+            "exit_code": 0
+          },
+          {
+            "name": "build",
+            "command": [
+              "cmake",
+              "--build",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-hconc38s/build",
+              "--config",
+              "Release",
+              "--parallel",
+              "2",
+              "--target",
+              "vulkan_portability_tests",
+              "halo2_launcher",
+              "halo2_title_launcher",
+              "halo2_onboarding"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-root-build/build.log",
+            "exit_code": 0
+          },
+          {
+            "name": "tests",
+            "command": [
+              "ctest",
+              "--test-dir",
+              "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-hconc38s/build",
+              "--build-config",
+              "Release",
+              "--output-on-failure",
+              "--no-tests=error",
+              "--parallel",
+              "1",
+              "--tests-regex",
+              "^(launcher_first_run|title_launcher_first_run|bundled_launcher_first_run|vulkan_portability)$"
+            ],
+            "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-launcher-root-build/tests.log",
+            "exit_code": 0
+          }
+        ],
+        "retained_small_reports": []
+      },
+      "tests_log": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-hconc38s/build\n    Start 185: vulkan_portability\n1/4 Test #185: vulkan_portability ...............   Passed    0.23 sec\n    Start 190: launcher_first_run\n2/4 Test #190: launcher_first_run ...............   Passed   10.82 sec\n    Start 191: bundled_launcher_first_run\n3/4 Test #191: bundled_launcher_first_run .......   Passed   10.66 sec\n    Start 192: title_launcher_first_run\n4/4 Test #192: title_launcher_first_run .........   Passed   10.67 sec\n\n100% tests passed out of 4\n\nTotal Test time (real) =  32.42 sec\n",
+      "evidence": {}
+    },
+    "macos-launcher-linux": {
+      "runner": {
+        "passed": true,
+        "status": "passed",
+        "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-y2uwkedk/build",
+        "steps": [
+          {
+            "name": "configure",
+            "command": [
+              "cmake",
+              "-S",
+              "/home/eric/Developer/Halo-2-Decompiled",
+              "-B",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-y2uwkedk/build",
+              "-DBUILD_TESTING=ON",
+              "-DCMAKE_BUILD_TYPE=Release",
+              "-DHALO2_BUILD_LAUNCHERS_WITH_NATIVE=OFF",
+              "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+              "-DHALO2_BUNDLE_MOVIES=OFF",
+              "-GNinja"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-launcher-linux/configure.log",
+            "exit_code": 0
+          },
+          {
+            "name": "build",
+            "command": [
+              "cmake",
+              "--build",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-y2uwkedk/build",
+              "--config",
+              "Release",
+              "--parallel",
+              "2",
+              "--target",
+              "halo2_launcher",
+              "halo2_title_launcher",
+              "halo2_onboarding"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-launcher-linux/build.log",
+            "exit_code": 0
+          },
+          {
+            "name": "tests",
+            "command": [
+              "ctest",
+              "--test-dir",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-y2uwkedk/build",
+              "--build-config",
+              "Release",
+              "--output-on-failure",
+              "--no-tests=error",
+              "--parallel",
+              "2",
+              "--tests-regex",
+              "^(launcher_first_run|title_launcher_first_run|bundled_launcher_first_run|native_frontend_capability|native_frontend_launcher_routing)$"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-launcher-linux/tests.log",
+            "exit_code": 0
+          }
+        ],
+        "retained_small_reports": []
+      },
+      "tests_log": "Test project /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-y2uwkedk/build\n    Start 208: launcher_first_run\n    Start 209: bundled_launcher_first_run\n1/5 Test #208: launcher_first_run .................   Passed    2.80 sec\n    Start 210: title_launcher_first_run\n2/5 Test #209: bundled_launcher_first_run .........   Passed    2.81 sec\n    Start 212: native_frontend_capability\n3/5 Test #212: native_frontend_capability .........   Passed    0.43 sec\n    Start 216: native_frontend_launcher_routing\n4/5 Test #216: native_frontend_launcher_routing ...   Passed    0.98 sec\n5/5 Test #210: title_launcher_first_run ...........   Passed    2.79 sec\n\n100% tests passed out of 5\n\nTotal Test time (real) =   5.62 sec\n",
+      "evidence": {}
+    }
+  },
+  "source_sha256": {
+    "CMakeLists.txt": "5bf2c29fc683638d5bce0eb10ec37bf43bcf5f09cdba8cc4a254a8711123d57b",
+    "src/launcher.cpp": "f88f5b217a0750d8db0fbc50955754fffa8fe077519e738673a45b9008de7a60",
+    "include/halo2/macos/executable.hpp": "f1a1fc7f3ef7cd9474584e3cf445315443b411219366572cc292091c11ab5f3b",
+    "include/halo2/macos/bundle.hpp": "9b54e4ac1d90529c748e001d302ae9e7eb55d883cd00cd04628060d9dc0e0b38",
+    "tests/launcher_first_run_test.py": "d43d5d62b2b46612200780bc8578d560d7c426bc5ec15bece75e0e4f4b737396",
+    "tools/native_gameplay_test.py": "a50a5f6fff059460e394b4ccb915330dbe8272aa79c97153780f9b655e0fa0ef",
+    "tools/frontend_runtime_selection.py": "317719e793b98219cc59561c28a3da7d437dbe3fc3da7085609ec811049aefc0",
+    "tools/packaged_shader_defaults.py": "48d02a17297b9c5be481e3bf4743db20e2962e50b9b4d738035f1f1b62f4950c",
+    "tests/macos/launcher/CMakeLists.txt": "98d164709ebc1dad11188ce61e2bfd16ce703a02016c3f7be72b10aacb94e768",
+    "tests/macos/launcher/executable_test.py": "febabb705818fea3064f98717f3864f95b000fe86589a9855003b6b9451cf087",
+    "tests/macos/launcher/executable_tests.cpp": "6f8e7edbeb7da1392a527f322c5199455d923b896ab7a07faaa5fbac99a52d8c",
+    "tests/macos/launcher/prepare_slice.py": "126ef10f06fc621f39a1375b489736c9b32aae4dedf5d8051006006fbd65acf8"
+  },
+  "baseline_source": {
+    "note": "Current-fixture baseline before the Darwin executable dispatch fix",
+    "sha256": {
+      "src/launcher.cpp": "5f1160c9c4eee27fc699c9be5ed4df535e6d2c398f86c8a8ca7fda7fb7f6f4c7",
+      "tests/launcher_first_run_test.py": "d43d5d62b2b46612200780bc8578d560d7c426bc5ec15bece75e0e4f4b737396",
+      "include/halo2/macos/bundle.hpp": "d7b345d9a7765c288c621b0e57b605f165f706a8c318b810aa6d2612aff839fb"
+    }
+  },
+  "cleanup": {
+    "mac_paths": [
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-63tq8mv0",
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8_9ky_0i",
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-e4syl7a0",
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-em49evbw",
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-hconc38s",
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo",
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-vq6fuc_g",
+      "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-als5rc4f",
+      "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-fl61c3a5",
+      "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-i7vwk5pi",
+      "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-jq9sql8b",
+      "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-k6x5len5",
+      "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-l2za0fvh",
+      "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-wgj4ed7_"
+    ],
+    "linux_paths": [
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-y2uwkedk"
+    ],
+    "linux_removed": true,
+    "mac_verified_removed": true,
+    "retained_large_artifacts": [],
+    "mac_private_paths": [
+      {
+        "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-63tq8mv0",
+        "removed": true
+      },
+      {
+        "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8_9ky_0i",
+        "removed": true
+      },
+      {
+        "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-e4syl7a0",
+        "removed": true
+      },
+      {
+        "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-em49evbw",
+        "removed": true
+      },
+      {
+        "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-hconc38s",
+        "removed": true
+      },
+      {
+        "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-p138meyo",
+        "removed": true
+      },
+      {
+        "path": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-vq6fuc_g",
+        "removed": true
+      },
+      {
+        "path": "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-als5rc4f",
+        "removed": true
+      },
+      {
+        "path": "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-fl61c3a5",
+        "removed": true
+      },
+      {
+        "path": "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-i7vwk5pi",
+        "removed": true
+      },
+      {
+        "path": "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-jq9sql8b",
+        "removed": true
+      },
+      {
+        "path": "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-k6x5len5",
+        "removed": true
+      },
+      {
+        "path": "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-l2za0fvh",
+        "removed": true
+      },
+      {
+        "path": "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-wgj4ed7_",
+        "removed": true
+      }
+    ],
+    "mac_checked_at_utc": "2026-10-20T21:18:46.209212+00:00",
+    "mac_scratch_parent_remaining": [],
+    "inspection_scratch": "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-yn27hckf"
+  },
+  "notes": {
+    "production_behavior": "Darwin executable identity supplies launcher-home relaunch, selected-release forwarding and the internal Discord relaunch path. The same Darwin primitive locates graphics bundle resources.",
+    "baseline": "After bringing the synthetic routing fixture up to the unchanged current frontend admission contract, exactly the missing Darwin relaunch-path assertion and update-forwarding case fail before the dispatch change.",
+    "fixture_repairs": "The existing regression now copies frontend_runtime_selection.py and packaged_shader_defaults.py along with native_gameplay_test.py. Its newly generated synthetic frontend receipt declares the mandatory V3 loading profile and exact hashes of its synthetic resources. No real retained proof, cache or production admission rule changed.",
+    "slice_selection": "Actual universal launchers are lipo-verified for both architectures, then exact slices are extracted and signed inside the private build. Python-launched subprocesses therefore cannot accidentally pick native ARM while testing x86_64.",
+    "path_api": "The universal path test executes both slices through a relative Unicode symlink after relocation and after changing working directory. No argv0-derived path is accepted.",
+    "scope": "Actual launcher binaries and graphics execute; setup/runtime subprocesses in the routing regression are explicit synthetic recorders. No real MCC preparation, GUI runtime packaging, sign-in, entitlement, gameplay, physical Intel, release signing or notarization is established.",
+    "next_boundary": "Packaged tools/resources and writable imports/saves/settings still share the legacy installation-root model. Separate these owners and package the setup/UI runtime before shipping a self-contained Mac launcher."
+  },
+  "mac_source_sha256": {
+    "CMakeLists.txt": "5bf2c29fc683638d5bce0eb10ec37bf43bcf5f09cdba8cc4a254a8711123d57b",
+    "src/launcher.cpp": "f88f5b217a0750d8db0fbc50955754fffa8fe077519e738673a45b9008de7a60",
+    "include/halo2/macos/executable.hpp": "f1a1fc7f3ef7cd9474584e3cf445315443b411219366572cc292091c11ab5f3b",
+    "include/halo2/macos/bundle.hpp": "9b54e4ac1d90529c748e001d302ae9e7eb55d883cd00cd04628060d9dc0e0b38",
+    "tests/launcher_first_run_test.py": "d43d5d62b2b46612200780bc8578d560d7c426bc5ec15bece75e0e4f4b737396",
+    "tools/native_gameplay_test.py": "a50a5f6fff059460e394b4ccb915330dbe8272aa79c97153780f9b655e0fa0ef",
+    "tools/frontend_runtime_selection.py": "317719e793b98219cc59561c28a3da7d437dbe3fc3da7085609ec811049aefc0",
+    "tools/packaged_shader_defaults.py": "48d02a17297b9c5be481e3bf4743db20e2962e50b9b4d738035f1f1b62f4950c",
+    "tests/macos/launcher/CMakeLists.txt": "98d164709ebc1dad11188ce61e2bfd16ce703a02016c3f7be72b10aacb94e768",
+    "tests/macos/launcher/executable_test.py": "febabb705818fea3064f98717f3864f95b000fe86589a9855003b6b9451cf087",
+    "tests/macos/launcher/executable_tests.cpp": "6f8e7edbeb7da1392a527f322c5199455d923b896ab7a07faaa5fbac99a52d8c",
+    "tests/macos/launcher/prepare_slice.py": "126ef10f06fc621f39a1375b489736c9b32aae4dedf5d8051006006fbd65acf8"
+  },
+  "source_hashes_match_mac": {
+    "CMakeLists.txt": true,
+    "src/launcher.cpp": true,
+    "include/halo2/macos/executable.hpp": true,
+    "include/halo2/macos/bundle.hpp": true,
+    "tests/launcher_first_run_test.py": true,
+    "tools/native_gameplay_test.py": true,
+    "tools/frontend_runtime_selection.py": true,
+    "tools/packaged_shader_defaults.py": true,
+    "tests/macos/launcher/CMakeLists.txt": true,
+    "tests/macos/launcher/executable_test.py": true,
+    "tests/macos/launcher/executable_tests.cpp": true,
+    "tests/macos/launcher/prepare_slice.py": true
+  }
+}

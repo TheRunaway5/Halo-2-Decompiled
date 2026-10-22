@@ -4,10 +4,10 @@ import argparse,json,shutil,subprocess
 from pathlib import Path
 from freeze_mp_native_sound_storage import ROOT,sha
 
-SOURCES=['include/halo2/physics_component_rebuild.hpp','src/physics_component_rebuild.cpp',
+SOURCES=['include/halo2/physics_component_rebuild.hpp','src/physics/physics_component_rebuild.cpp',
  'tests/physics_component_rebuild_tests.cpp','include/halo2/physics_component_construction.hpp',
- 'src/physics_component_construction.cpp','include/halo2/raw_datum_pool.hpp','src/raw_datum_pool.cpp',
- 'include/halo2/object_physics_construction.hpp','src/object_physics_construction.cpp']
+ 'src/physics/physics_component_construction.cpp','include/halo2/raw_datum_pool.hpp','src/gameplay/objects/raw_datum_pool.cpp',
+ 'include/halo2/object_physics_construction.hpp','src/gameplay/objects/object_physics_construction.cpp']
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--fixture',type=Path,required=True)
@@ -18,7 +18,7 @@ def main():
     for mode,flags in [('normal',['-O2']),('sanitizer',['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer','-no-pie'])]:
         directory=out/mode;directory.mkdir();binary=directory/'physics_component_rebuild_tests'
         argv=['g++','-std=c++20','-Wall','-Wextra','-Wpedantic','-Werror','-fno-fast-math','-ffp-contract=off','-frounding-math',*flags,
-            '-I',str(out/'source/include')]+[str(out/'source'/name)for name in SOURCES if name.endswith('.cpp')]+['-o',str(binary)]
+            '-I',str(out/'source/include'), '-I'+str(out/'source/src')]+[str(out/'source'/name)for name in SOURCES if name.endswith('.cpp')]+['-o',str(binary)]
         for label,command in [('build',argv),('test',[str(binary),str(a.fixture.resolve())])]:
             with(directory/(label+'.log')).open('w')as log:result=subprocess.run(command,cwd=ROOT,stdout=log,stderr=subprocess.STDOUT)
             commands.append(dict(mode=mode,phase=label,argv=command,exit_code=result.returncode));(out/'commands.json').write_text(json.dumps(commands,sort_keys=True,indent=2)+'\n')

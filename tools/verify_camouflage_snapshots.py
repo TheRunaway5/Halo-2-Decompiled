@@ -11,7 +11,7 @@ ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'analysis/multiplayer/game-variants/camouflage-native-20261011'
 BASE=OUT/'verify-20261011T221616.197051Z'
 OWNED=('include/halo2/multiplayer.hpp','include/halo2/multiplayer_datagrams.hpp',
-       'src/multiplayer.cpp','src/multiplayer_network.cpp','tests/camouflage_runtime_tests.cpp')
+       'src/gameplay/multiplayer/multiplayer.cpp','src/network/multiplayer_network.cpp','tests/camouflage_runtime_tests.cpp')
 TARGETS=('camouflage_tests','camouflage_runtime_tests','player_damage_tests','king_runtime_tests',
          'multiplayer_tests','prop_sandbox_tests','multiplayer_grenade_delivery_tests')
 CHECKS=('original_camouflage','native_camouflage_runtime','original_player_damage','native_king_runtime',
@@ -63,7 +63,7 @@ def main():
   result.parent.mkdir(parents=True,exist_ok=True);cmd[cmd.index('-o')+1]=str(result)
   name=str(Path(entry['file']).relative_to(source))
   if name in OWNED:cmd=[str(overlay/name)if t==str(source/name)else t for t in cmd]
-  cmd.insert(1,'-I'+str(overlay/'include'));dep=result.with_suffix('.d');cmd.extend(['-MMD','-MF',str(dep)])
+  cmd.insert(1,'-I'+str(overlay/'include'), '-I'+str(overlay/'src'));dep=result.with_suffix('.d');cmd.extend(['-MMD','-MF',str(dep)])
   if sanitized:cmd.extend(['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer'])
   execute(('asan-'if sanitized else 'normal-')+obj.replace('/','-'),cmd)
   # All changed project headers must resolve to the overlay. A relative or
@@ -111,7 +111,7 @@ def main():
  sanitizer={}
  for obj,entry in selected.items():
   name=str(Path(entry['file']).relative_to(source))
-  if name in ('src/multiplayer.cpp','src/multiplayer_network.cpp','tests/camouflage_runtime_tests.cpp'):
+  if name in ('src/gameplay/multiplayer/multiplayer.cpp','src/network/multiplayer_network.cpp','tests/camouflage_runtime_tests.cpp'):
    o,p=compile_one(obj,entry,True);sanitizer[o]=p
  assert len(sanitizer)==3
  binary=link_target('camouflage_runtime_tests',sanitizer)

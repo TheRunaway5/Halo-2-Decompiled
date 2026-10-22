@@ -2,19 +2,19 @@
 if(BUILD_TESTING)
     add_executable(native_tu15_renderer_cache_pools_tests
         tests/native_tu15_renderer_cache_pools_tests.cpp
-        src/native_tu15_renderer_cache_pools_data.cpp
-        src/source_renderer_transparent_storage_tu15_generated.cpp
-        src/native_tu15_network_storage_data.cpp
-        src/native_tu15_renderer_pool_data.cpp
-        src/source_runtime_memory.cpp
-        src/source_runtime_host_storage.cpp
-        src/physics_pool_host_storage.cpp)
+        src/rendering/renderer/native_tu15_renderer_cache_pools_data.cpp
+        src/rendering/renderer/source_renderer_transparent_storage_tu15_generated.cpp
+        src/network/native_tu15_network_storage_data.cpp
+        src/rendering/renderer/native_tu15_renderer_pool_data.cpp
+        src/runtime/source_runtime_memory.cpp
+        src/runtime/source_runtime_host_storage.cpp
+        src/physics/physics_pool_host_storage.cpp)
     add_executable(native_tu15_renderer_tail_storage_tests
         tests/native_tu15_renderer_tail_storage_tests.cpp
-        src/source_renderer_cpu_interface_tu15.cpp
-        src/source_renderer_tail_storage_tu15_generated.cpp
-        src/native_tu15_renderer_tail_storage_data.cpp
-        src/source_runtime_memory.cpp)
+        src/rendering/renderer/source_renderer_cpu_interface_tu15.cpp
+        src/rendering/renderer/source_renderer_tail_storage_tu15_generated.cpp
+        src/rendering/renderer/native_tu15_renderer_tail_storage_data.cpp
+        src/runtime/source_runtime_memory.cpp)
     foreach(target native_tu15_renderer_cache_pools_tests native_tu15_renderer_tail_storage_tests)
         target_include_directories(${target} PRIVATE include src)
         target_link_libraries(${target} PRIVATE halo2_physics_world_runtime halo2_snapshot_storage

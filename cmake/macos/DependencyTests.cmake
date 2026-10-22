@@ -1,0 +1,16 @@
+# Reuse the production identity and encrypted direct-peer owners. These Mac
+# aliases explicitly execute every requested slice, including Rosetta on ARM.
+if(NOT APPLE OR NOT BUILD_TESTING OR NOT HALO2_MACOS_BUILD_OPENSSL)
+    return()
+endif()
+set(macos_dependency_tests)
+foreach(target steam_login_tests discord_login_tests online_peer_transport_tests online_peer_runtime_tests)
+    if(TARGET ${target})
+        list(APPEND macos_dependency_tests ${target})
+        foreach(arch IN LISTS CMAKE_OSX_ARCHITECTURES)
+            add_test(NAME macos_engine_${target}_${arch} COMMAND /usr/bin/arch -${arch} $<TARGET_FILE:${target}>)
+            set_tests_properties(macos_engine_${target}_${arch} PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
+        endforeach()
+    endif()
+endforeach()
+add_custom_target(halo2_macos_dependency_tests DEPENDS ${macos_dependency_tests})

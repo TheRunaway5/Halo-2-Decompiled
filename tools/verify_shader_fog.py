@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 BASE=ROOT/'analysis/multiplayer/game-variants/shader-state-native-20261011/verify-20261011T235858.006932Z'
 OUT=ROOT/'analysis/multiplayer/game-variants/shader-fog-native-20261012'
-FILES=('include/halo2/source_shader_fog.hpp','include/halo2/world_material.hpp','src/source_shader_fog.cpp',
+FILES=('include/halo2/source_shader_fog.hpp','include/halo2/world_material.hpp','src/rendering/source_shader_fog.cpp',
  'tests/source_shader_fog_tests.cpp','tests/camouflage_pass_bank_tests.cpp','tests/fixtures/fog_externs_original.json',
  'tools/oracle_fog_externs.py','tools/inspect_render_primitives_title_updates.py','tools/verify_shader_fog.py')
 TARGETS=('source_shader_fog_tests','camouflage_pass_bank_tests','source_shader_rgb_tests','source_shader_state_tests',
@@ -21,14 +21,14 @@ TARGETS=('source_shader_fog_tests','camouflage_pass_bank_tests','source_shader_r
 CHECKS=('original_shader_fog','original_camouflage_pass_banks','original_shader_rgb','original_shader_state',
  'original_vertex_extern','original_shader_state_import','original_camouflage_state_material',
  'original_camouflage_material_animation','original_shader_texture_reference')
-SOURCE_BLOCK='''target_sources(halo2_cache PRIVATE src/source_shader_fog.cpp)
+SOURCE_BLOCK='''target_sources(halo2_cache PRIVATE src/rendering/source_shader_fog.cpp)
 if(MSVC)
-    set_source_files_properties(src/source_shader_fog.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
+    set_source_files_properties(src/rendering/source_shader_fog.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
 else()
-    set_source_files_properties(src/source_shader_fog.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
+    set_source_files_properties(src/rendering/source_shader_fog.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
 endif()
 '''
-TEST_BLOCK='''    add_executable(camouflage_pass_bank_tests tests/camouflage_pass_bank_tests.cpp src/source_camouflage_context.cpp)
+TEST_BLOCK='''    add_executable(camouflage_pass_bank_tests tests/camouflage_pass_bank_tests.cpp src/rendering/source_camouflage_context.cpp)
     target_link_libraries(camouflage_pass_bank_tests PRIVATE halo2_cache nlohmann_json::nlohmann_json)
     add_test(NAME original_camouflage_pass_banks COMMAND camouflage_pass_bank_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
@@ -54,7 +54,7 @@ def main():
   shutil.copy2(ROOT/name,destination)
  cmake=(source/'CMakeLists.txt').read_text();live=(ROOT/'CMakeLists.txt').read_text()
  assert SOURCE_BLOCK in live and TEST_BLOCK in live
- source_anchor='target_sources(halo2_cache PRIVATE src/source_shader_state.cpp)\n'
+ source_anchor='target_sources(halo2_cache PRIVATE src/rendering/source_shader_state.cpp)\n'
  test_anchor='''    add_test(NAME original_shader_state COMMAND source_shader_state_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/render_state_extern_original.json)
 '''
@@ -101,8 +101,8 @@ def main():
   obj=run/(Path(name).stem+'.asan.o');command[command.index('-o')+1]=str(obj)
   command.extend(['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer'])
   execute('asan-compile-'+Path(name).stem,command,Path(entry['directory']));return obj
- owners=[sanitized(name)for name in('src/source_shader_fog.cpp','src/source_camouflage_context.cpp',
-  'src/source_vertex_extern.cpp','src/world_material.cpp')]
+ owners=[sanitized(name)for name in('src/rendering/source_shader_fog.cpp','src/rendering/source_camouflage_context.cpp',
+  'src/rendering/source_vertex_extern.cpp','src/rendering/world/world_material.cpp')]
  binaries=[]
  arguments={
   'source_shader_fog_tests':[source/'tests/fixtures/fog_externs_original.json'],

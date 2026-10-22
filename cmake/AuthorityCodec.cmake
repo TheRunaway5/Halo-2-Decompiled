@@ -1,44 +1,91 @@
 find_package(ZLIB 1.2.9 REQUIRED)
-add_library(halo2_authority_delta STATIC src/source_authority_delta.cpp)
+add_library(halo2_authority_delta STATIC src/runtime/source_authority_delta.cpp)
 target_include_directories(halo2_authority_delta PUBLIC include)
 target_compile_features(halo2_authority_delta PUBLIC cxx_std_20)
 target_link_libraries(halo2_authority_delta PRIVATE OpenSSL::Crypto ZLIB::ZLIB)
-target_sources(halo2_systems PRIVATE src/source_authority_binding.cpp)
+target_sources(halo2_systems PRIVATE src/runtime/source_authority_binding.cpp)
 target_link_libraries(halo2_systems PRIVATE OpenSSL::Crypto)
-add_library(halo2_authority_codec STATIC src/source_authority_codec.cpp src/source_authority_codec_decode.cpp src/source_execution_codec.cpp src/source_replay_batch.cpp)
-target_sources(halo2_authority_codec PRIVATE src/native_vehicle_camera_codec.cpp src/source_host_continuation_codec.cpp)
-target_sources(halo2_authority_codec PRIVATE src/source_host_continuation_bundle.cpp)
+add_library(halo2_authority_codec STATIC src/runtime/source_authority_codec.cpp src/runtime/source_authority_codec_decode.cpp src/runtime/source_execution_codec.cpp src/platform/source_replay_batch.cpp)
+target_sources(halo2_authority_codec PRIVATE src/gameplay/vehicles/native_vehicle_camera_codec.cpp src/runtime/source_host_continuation_codec.cpp)
+target_sources(halo2_authority_codec PRIVATE src/runtime/source_host_continuation_bundle.cpp)
 target_compile_features(halo2_authority_codec PUBLIC cxx_std_20)
 target_include_directories(halo2_authority_codec PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/boost-pfr/include")
-target_link_libraries(halo2_authority_codec PUBLIC halo2_systems PRIVATE OpenSSL::Crypto ZLIB::ZLIB)
-add_library(halo2_authority_publisher STATIC src/source_authority_publisher.cpp)
+target_link_libraries(halo2_authority_codec PUBLIC halo2_systems PRIVATE halo2_online_protocol OpenSSL::Crypto ZLIB::ZLIB)
+add_library(halo2_authority_publisher STATIC src/runtime/source_authority_publisher.cpp)
 target_compile_features(halo2_authority_publisher PUBLIC cxx_std_20)
 target_include_directories(halo2_authority_publisher PUBLIC include)
 target_link_libraries(halo2_authority_publisher PUBLIC halo2_authority_codec PRIVATE halo2_authority_delta Threads::Threads)
-add_library(halo2_authority_receiver STATIC src/source_authority_receiver.cpp)
-target_sources(halo2_authority_receiver PRIVATE src/effect_presentation_history.cpp)
-target_sources(halo2_systems PRIVATE src/multiplayer_pose_continuity.cpp)
-target_sources(halo2_authority_receiver PRIVATE src/multiplayer_receipt_continuity.cpp)
-target_sources(halo2_authority_receiver PRIVATE src/source_foreground_world_handoff.cpp)
-target_sources(halo2_authority_receiver PRIVATE src/source_peer_host_takeover.cpp)
-target_sources(halo2_authority_receiver PRIVATE src/multiplayer_runtime_authority.cpp)
+add_library(halo2_authority_receiver STATIC src/runtime/source_authority_receiver.cpp)
+target_sources(halo2_authority_receiver PRIVATE src/rendering/effects/effect_presentation_history.cpp)
+target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/multiplayer_pose_continuity.cpp)
+target_sources(halo2_authority_receiver PRIVATE src/network/multiplayer_receipt_continuity.cpp)
+target_sources(halo2_authority_receiver PRIVATE src/runtime/source_foreground_world_handoff.cpp)
+target_sources(halo2_authority_receiver PRIVATE src/network/source_peer_host_takeover.cpp)
+target_sources(halo2_authority_receiver PRIVATE src/network/multiplayer_runtime_authority.cpp)
+target_sources(halo2_renderer PRIVATE src/rendering/renderer/material_presentation_continuity.cpp src/gameplay/multiplayer/multiplayer_scene_continuity.cpp src/ui/hud/multiplayer_hud_continuity.cpp src/gameplay/multiplayer/multiplayer_locomotion_continuity.cpp)
 target_compile_features(halo2_authority_receiver PUBLIC cxx_std_20)
 target_include_directories(halo2_authority_receiver PUBLIC include)
 target_link_libraries(halo2_authority_receiver PUBLIC halo2_authority_codec PRIVATE halo2_authority_publisher halo2_authority_delta Threads::Threads)
 target_link_libraries(halo2_renderer PUBLIC halo2_authority_receiver halo2_authority_publisher)
+include(cmake/HudContinuation.cmake)
+include(cmake/LocomotionContinuation.cmake)
+include(cmake/MccOnlineUi.cmake)
 if(BUILD_TESTING)
+    include(cmake/MaterialContinuityTests.cmake)
     add_executable(source_peer_host_takeover_tests tests/source_peer_host_takeover_tests.cpp)
     target_link_libraries(source_peer_host_takeover_tests PRIVATE halo2_authority_receiver nlohmann_json::nlohmann_json)
     add_test(NAME source_peer_host_takeover_http COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_peer_host_takeover_http_test.py" $<TARGET_FILE:source_peer_host_takeover_tests>)
-    set_tests_properties(source_peer_host_takeover_http PROPERTIES TIMEOUT 270 SKIP_RETURN_CODE 77)
+    set_tests_properties(source_peer_host_takeover_http PROPERTIES TIMEOUT 270 SKIP_RETURN_CODE 77
+        LABELS "offline-Xbox-reference")
+    set(HALO2_MCC_NATIVE_SCOPE_TEST_ROOT "" CACHE PATH
+        "Explicit selected prepared MCC cache for genuine takeover native-scope validation")
+    set(HALO2_MCC_NATIVE_SCOPE_TEST_MAP "" CACHE FILEPATH
+        "Optional exact Lockout map within HALO2_MCC_NATIVE_SCOPE_TEST_ROOT")
+    if(HALO2_MCC_NATIVE_SCOPE_TEST_ROOT)
+        set(_halo2_native_scope_mcc_map_args)
+        if(HALO2_MCC_NATIVE_SCOPE_TEST_MAP)
+            list(APPEND _halo2_native_scope_mcc_map_args --map "${HALO2_MCC_NATIVE_SCOPE_TEST_MAP}")
+        endif()
+        add_test(NAME source_peer_host_takeover_mcc_http COMMAND ${Python3_EXECUTABLE}
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_peer_host_takeover_http_test.py"
+            $<TARGET_FILE:source_peer_host_takeover_tests>
+            --mcc-root "${HALO2_MCC_NATIVE_SCOPE_TEST_ROOT}" ${_halo2_native_scope_mcc_map_args})
+        set_tests_properties(source_peer_host_takeover_mcc_http PROPERTIES TIMEOUT 600 RUN_SERIAL TRUE
+            LABELS "selected-MCC-native"
+            ENVIRONMENT "SDL_AUDIODRIVER=dummy;SDL_VIDEODRIVER=dummy")
+        unset(_halo2_native_scope_mcc_map_args)
+    elseif(HALO2_MCC_NATIVE_SCOPE_TEST_MAP)
+        message(FATAL_ERROR "HALO2_MCC_NATIVE_SCOPE_TEST_MAP requires HALO2_MCC_NATIVE_SCOPE_TEST_ROOT")
+    endif()
     add_executable(source_common_cut_runtime_tests tests/source_common_cut_runtime_tests.cpp)
     target_link_libraries(source_common_cut_runtime_tests PRIVATE halo2_authority_receiver nlohmann_json::nlohmann_json)
     add_test(NAME source_common_cut_runtime_http COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_common_cut_runtime_http_test.py" $<TARGET_FILE:source_common_cut_runtime_tests>
         "${HALO2_TU15_GAMEPLAY_XBE}" "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map")
     set_tests_properties(source_common_cut_runtime_http PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77
+        LABELS "offline-Xbox-reference"
         ENVIRONMENT "SDL_AUDIODRIVER=dummy;SDL_VIDEODRIVER=dummy")
+    set(HALO2_MCC_COMMON_CUT_TEST_ROOT "" CACHE PATH
+        "Explicit selected prepared MCC cache for native common-cut receipt validation")
+    set(HALO2_MCC_COMMON_CUT_TEST_MAP "" CACHE FILEPATH
+        "Optional exact Lockout map within HALO2_MCC_COMMON_CUT_TEST_ROOT")
+    if(HALO2_MCC_COMMON_CUT_TEST_ROOT)
+        set(_halo2_common_cut_mcc_map_args)
+        if(HALO2_MCC_COMMON_CUT_TEST_MAP)
+            list(APPEND _halo2_common_cut_mcc_map_args --map "${HALO2_MCC_COMMON_CUT_TEST_MAP}")
+        endif()
+        add_test(NAME source_common_cut_runtime_mcc_http COMMAND ${Python3_EXECUTABLE}
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_common_cut_runtime_http_test.py"
+            $<TARGET_FILE:source_common_cut_runtime_tests>
+            --mcc-root "${HALO2_MCC_COMMON_CUT_TEST_ROOT}" ${_halo2_common_cut_mcc_map_args})
+        set_tests_properties(source_common_cut_runtime_mcc_http PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE
+            LABELS "selected-MCC-native"
+            ENVIRONMENT "SDL_AUDIODRIVER=dummy;SDL_VIDEODRIVER=dummy")
+        unset(_halo2_common_cut_mcc_map_args)
+    elseif(HALO2_MCC_COMMON_CUT_TEST_MAP)
+        message(FATAL_ERROR "HALO2_MCC_COMMON_CUT_TEST_MAP requires HALO2_MCC_COMMON_CUT_TEST_ROOT")
+    endif()
     add_executable(source_replay_batch_tests tests/source_replay_batch_tests.cpp)
     target_link_libraries(source_replay_batch_tests PRIVATE halo2_authority_codec)
     add_test(NAME source_replay_batch COMMAND source_replay_batch_tests)

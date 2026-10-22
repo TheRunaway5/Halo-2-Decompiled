@@ -21,7 +21,7 @@ ENTRIES = (0x2e9c0,0x2e3d0,0x2f2b0,0x48090,0x47fc0,0x47e90,
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--output',type=Path,default=Path('src/source_lens_draw_tu15_generated.cpp'))
+    p.add_argument('--output',type=Path,default=Path('src/rendering/effects/source_lens_draw_tu15_generated.cpp'))
     p.add_argument('--directory',type=Path,required=True)
     a=p.parse_args()
     assert sha(NEW_DEFAULT)==NEW_PIN

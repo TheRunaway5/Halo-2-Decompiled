@@ -7,6 +7,7 @@
 #include "halo2/native_object_lifetimes.hpp"
 #include "halo2/source_world_pose.hpp"
 #include "halo2/native_authority_boundary.hpp"
+#include "halo2/player_screen_flash.hpp"
 #include <functional>
 #include <optional>
 #include <map>
@@ -28,6 +29,8 @@ float camera_vertical_field_of_view(const Camera &, float aspect);
 struct ScreenEffects {
   Vec3 fade_color;
   float fade{}, letterbox{}, hud = 1;
+  PlayerScreenFlash flash;
+  std::optional<std::size_t> flash_after_ui_vertex;
 };
 // Scenario names refer to placements, and resolve to a live generation handle.
 // This scene layer owns transforms/lifetime; it does not emulate Havok bodies.
@@ -42,6 +45,9 @@ struct SourceSceneObjectOwner {
   // Original construction owns child allocation. Presentation binds the
   // already constructed child to this exact retained parent generation.
   std::function<std::uint32_t(const ScenarioObject &,std::uint32_t)> adopt_child;
+  // Actual TU1.5 11EBA0 ->11EAB0 reads named parents and their current
+  // WORLD nodes from this scene's retained source world.
+  std::function<bool(std::size_t,Vec3)> contains_trigger;
 };
 class SceneObjects {
 public:
@@ -125,7 +131,7 @@ public:
     std::array<std::byte,32> content_binding{};
     std::size_t bsp{};
     AuthorityPool pool=AuthorityPool::LocalOwned;
-    bool source_factory{},render_attribution_resolver{},source_child_factory{};
+    bool source_factory{},render_attribution_resolver{},source_child_factory{},source_trigger_query{};
     std::vector<Object> objects;
     std::map<std::uint32_t,std::size_t> slots;
     std::vector<std::uint32_t> names;

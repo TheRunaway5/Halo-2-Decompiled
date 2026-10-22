@@ -4,11 +4,11 @@
 #include "halo2/content.hpp"
 #include "halo2/mcc_sound_timing_reference.hpp"
 #include "halo2/physics_contact_record.hpp"
-#include "../src/mcc_sound_timing_reference_profile.hpp"
+#include "../src/audio/mcc_sound_timing_reference_profile.hpp"
 #include "halo2/mcc_sound_stored_time_reference.hpp"
-#include "../src/mcc_sound_stored_time_reference_profile.hpp"
-#include "../src/mcc_sound_vanilla_reference_profile.hpp"
-#include "../src/mcc_sound_stored_time_apply.hpp"
+#include "../src/audio/mcc_sound_stored_time_reference_profile.hpp"
+#include "../src/audio/mcc_sound_vanilla_reference_profile.hpp"
+#include "../src/audio/mcc_sound_stored_time_apply.hpp"
 #include <atomic>
 #include <future>
 #include <thread>

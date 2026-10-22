@@ -86,7 +86,7 @@ def main():
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     source = ROOT / "tools/mcc-sound-permutation-time-reference-profiles.json"
-    target = ROOT / "src/mcc_sound_permutation_time_reference_profiles.inc"
+    target = ROOT / "src/audio/mcc_sound_permutation_time_reference_profiles.inc"
     result = generate(json.loads(source.read_text()))
     if args.check:
         if not target.exists() or target.read_text() != result:

@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #include "halo2/multiplayer.hpp"
 #include "halo2/original_data.hpp"
 #include <array>
@@ -43,15 +44,14 @@ int main(int argc,char** argv) {
         match.source_inventory(0).slots[0]==match.unit(0).weapon.source_datum &&
         match.unit(0).weapon.loaded==content.weapons.at(rules.weapon).capacity,
         "Actual authored spawn/start-SMG inventory differs");
-    // Explicit public debug start, one unit above the authored volume's upper
+    // Explicit fixture start, one unit above the authored volume's upper
     // face. Native normal movement/gravity must produce every later position
     // and velocity. No velocity, vitality, animation pose or contact is assigned.
     const auto right=cross(volume.up,volume.forward);
     Spawn above;above.bsp=0;above.facing=match.unit(0).yaw;
     above.position=volume.position+volume.forward*(volume.extents.x*.5f)+
         right*(volume.extents.y*.5f)+volume.up*(volume.extents.z+1.f);
-    DebugGameRequest request;request.kind=DebugGameRequest::Teleport;request.player=0;
-    match.debug_request(request,&above);control.debug_request(request,&above);
+    test::place_player(match,0,above);test::place_player(control,0,above);
     std::array<Controls,multiplayer_capacity> input{};
     input[0].yaw=match.unit(0).yaw;
     bool fatal=false;Vec3 velocity{};std::uint64_t death_tick{};

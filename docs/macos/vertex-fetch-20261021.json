@@ -1,0 +1,4308 @@
+{
+  "schema": "H2_MACOS_RAW_VERTEX_FETCH_EVIDENCE_V1",
+  "date": "2026-10-21",
+  "passed": true,
+  "scope": "Shared raw SSBO vertex fetch helper required before generating geometry-free native world shaders. Not yet selected by MenuWorldNativeDraw or the live renderer.",
+  "source_sha256": {
+    "shaders/source_world_vertex_fetch.glsl": "db6fda450f3461084aef7bb7c567d47fc1d6355545f51a64bce693765bd85daf",
+    "tests/macos/depth_storage/gpu.hpp": "cf6742f2ed0c23cc944ed14cabc05047921e5c95326af42db09794a0c0bb2f6e",
+    "tests/macos/vertex_fetch/CMakeLists.txt": "10cff6ce6696f2bc41eabc92583534cddfb4a65d3eed07cb0fd4e899a4150a53",
+    "tests/macos/vertex_fetch/fetch.frag": "3beceb7626bf674f66d945336186b2c71d20039fbcb10d77244d69e66131aec3",
+    "tests/macos/vertex_fetch/fetch.vert": "22f60765a54db2618c5068cde58c42e36bc26d9ecec1d18446aebbe7bae9fd1f",
+    "tests/macos/vertex_fetch/vertex_fetch_tests.cpp": "d8158533bd06fe75da1da5f4214d81a51f8baf8f9357e553480e8bc07430a2de"
+  },
+  "mac_source_hashes_match": true,
+  "macos": {
+    "runner": {
+      "passed": true,
+      "status": "passed",
+      "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-nsox2upk/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/Users/eric/Developer/Halo2-macos-port/tests/macos/vertex_fetch",
+            "-B",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-nsox2upk/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-GNinja",
+            "-DSDL2_DIR=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-irijd9qm/sdk/cmake/SDL2",
+            "-DHALO2_MOLTENVK_LIBRARY=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-irijd9qm/sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib",
+            "-DHALO2_MOLTENVK_LICENSE=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-irijd9qm/sdk/MoltenVK/LICENSE",
+            "-DHALO2_SDL_LICENSE=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-irijd9qm/SDL2-LICENSE.txt",
+            "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+            "-DHALO2_BUNDLE_MOVIES=OFF"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-vertex-fetch-final/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-nsox2upk/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "vulkan_portability_tests",
+            "vertex_fetch_tests"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-vertex-fetch-final/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-nsox2upk/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "1",
+            "--tests-regex",
+            "^(macos_vertex_fetch_arm64|macos_vertex_fetch_x86_64|vulkan_portability)$"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-vertex-fetch-final/tests.log",
+          "exit_code": 0
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "vertex-fetch-arm64.json",
+          "status": "retained",
+          "bytes": 11872,
+          "sha256": "926933e66e14180efa5a15de1d7f6718e5ceffae7efb020edea1f3a49d355e02",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-vertex-fetch-final/evidence/vertex-fetch-arm64.json"
+        },
+        {
+          "path": "vertex-fetch-x86_64.json",
+          "status": "retained",
+          "bytes": 11872,
+          "sha256": "926933e66e14180efa5a15de1d7f6718e5ceffae7efb020edea1f3a49d355e02",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-vertex-fetch-final/evidence/vertex-fetch-x86_64.json"
+        }
+      ]
+    },
+    "tests_log": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-nsox2upk/build\n    Start 1: vulkan_portability\n1/3 Test #1: vulkan_portability ...............   Passed    0.43 sec\n    Start 2: macos_vertex_fetch_arm64\n2/3 Test #2: macos_vertex_fetch_arm64 .........   Passed    0.80 sec\n    Start 3: macos_vertex_fetch_x86_64\n3/3 Test #3: macos_vertex_fetch_x86_64 ........   Passed    1.28 sec\n\n100% tests passed out of 3\n\nTotal Test time (real) =   2.52 sec\n",
+    "results": {
+      "vertex-fetch-arm64.json": {
+        "cases": [
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x3",
+            "format_code": 0,
+            "native_format": 106,
+            "native_source_format_supported": true,
+            "native_stride": 12,
+            "prefix": 0,
+            "source_stride": 12,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x3",
+            "format_code": 0,
+            "native_format": 106,
+            "native_source_format_supported": true,
+            "native_stride": 12,
+            "prefix": 1,
+            "source_stride": 12,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x3",
+            "format_code": 0,
+            "native_format": 106,
+            "native_source_format_supported": true,
+            "native_stride": 12,
+            "prefix": 2,
+            "source_stride": 12,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x3",
+            "format_code": 0,
+            "native_format": 106,
+            "native_source_format_supported": true,
+            "native_stride": 12,
+            "prefix": 3,
+            "source_stride": 12,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x2",
+            "format_code": 1,
+            "native_format": 103,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 0,
+            "source_stride": 8,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x2",
+            "format_code": 1,
+            "native_format": 103,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 1,
+            "source_stride": 8,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x2",
+            "format_code": 1,
+            "native_format": 103,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 2,
+            "source_stride": 8,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x2",
+            "format_code": 1,
+            "native_format": 103,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 3,
+            "source_stride": 8,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x3",
+            "format_code": 2,
+            "native_format": 85,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 0,
+            "source_stride": 6,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x3",
+            "format_code": 2,
+            "native_format": 85,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 1,
+            "source_stride": 6,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x3",
+            "format_code": 2,
+            "native_format": 85,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 2,
+            "source_stride": 6,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x3",
+            "format_code": 2,
+            "native_format": 85,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 3,
+            "source_stride": 6,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x2",
+            "format_code": 3,
+            "native_format": 78,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 0,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x2",
+            "format_code": 3,
+            "native_format": 78,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 1,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x2",
+            "format_code": 3,
+            "native_format": 78,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 2,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x2",
+            "format_code": 3,
+            "native_format": 78,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 3,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "packed_signed_11_11_10",
+            "format_code": 4,
+            "native_format": 99,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 0,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "packed_signed_11_11_10",
+            "format_code": 4,
+            "native_format": 99,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 1,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "packed_signed_11_11_10",
+            "format_code": 4,
+            "native_format": 99,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 2,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "packed_signed_11_11_10",
+            "format_code": 4,
+            "native_format": 99,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 3,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x1",
+            "format_code": 5,
+            "native_format": 9,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 0,
+            "source_stride": 1,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x1",
+            "format_code": 5,
+            "native_format": 9,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 1,
+            "source_stride": 1,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x1",
+            "format_code": 5,
+            "native_format": 9,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 2,
+            "source_stride": 1,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x1",
+            "format_code": 5,
+            "native_format": 9,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 3,
+            "source_stride": 1,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x2",
+            "format_code": 6,
+            "native_format": 16,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 0,
+            "source_stride": 2,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x2",
+            "format_code": 6,
+            "native_format": 16,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 1,
+            "source_stride": 2,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x2",
+            "format_code": 6,
+            "native_format": 16,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 2,
+            "source_stride": 2,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x2",
+            "format_code": 6,
+            "native_format": 16,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 3,
+            "source_stride": 2,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x3",
+            "format_code": 7,
+            "native_format": 23,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 0,
+            "source_stride": 3,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x3",
+            "format_code": 7,
+            "native_format": 23,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 1,
+            "source_stride": 3,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x3",
+            "format_code": 7,
+            "native_format": 23,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 2,
+            "source_stride": 3,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x3",
+            "format_code": 7,
+            "native_format": 23,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 3,
+            "source_stride": 3,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x4",
+            "format_code": 8,
+            "native_format": 37,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 0,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x4",
+            "format_code": 8,
+            "native_format": 37,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 1,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x4",
+            "format_code": 8,
+            "native_format": 37,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 2,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x4",
+            "format_code": 8,
+            "native_format": 37,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 3,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          }
+        ],
+        "device": "Apple M2 Pro",
+        "differences": 0,
+        "passed": true,
+        "schema": "H2_RAW_VERTEX_FETCH_V1",
+        "synchronization_validation_active": false,
+        "validation_errors": 0,
+        "validation_layer_active": false
+      },
+      "vertex-fetch-x86_64.json": {
+        "cases": [
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x3",
+            "format_code": 0,
+            "native_format": 106,
+            "native_source_format_supported": true,
+            "native_stride": 12,
+            "prefix": 0,
+            "source_stride": 12,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x3",
+            "format_code": 0,
+            "native_format": 106,
+            "native_source_format_supported": true,
+            "native_stride": 12,
+            "prefix": 1,
+            "source_stride": 12,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x3",
+            "format_code": 0,
+            "native_format": 106,
+            "native_source_format_supported": true,
+            "native_stride": 12,
+            "prefix": 2,
+            "source_stride": 12,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x3",
+            "format_code": 0,
+            "native_format": 106,
+            "native_source_format_supported": true,
+            "native_stride": 12,
+            "prefix": 3,
+            "source_stride": 12,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x2",
+            "format_code": 1,
+            "native_format": 103,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 0,
+            "source_stride": 8,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x2",
+            "format_code": 1,
+            "native_format": 103,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 1,
+            "source_stride": 8,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x2",
+            "format_code": 1,
+            "native_format": 103,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 2,
+            "source_stride": 8,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x2",
+            "format_code": 1,
+            "native_format": 103,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 3,
+            "source_stride": 8,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x3",
+            "format_code": 2,
+            "native_format": 85,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 0,
+            "source_stride": 6,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x3",
+            "format_code": 2,
+            "native_format": 85,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 1,
+            "source_stride": 6,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x3",
+            "format_code": 2,
+            "native_format": 85,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 2,
+            "source_stride": 6,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x3",
+            "format_code": 2,
+            "native_format": 85,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 3,
+            "source_stride": 6,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x2",
+            "format_code": 3,
+            "native_format": 78,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 0,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x2",
+            "format_code": 3,
+            "native_format": 78,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 1,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x2",
+            "format_code": 3,
+            "native_format": 78,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 2,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x2",
+            "format_code": 3,
+            "native_format": 78,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 3,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "packed_signed_11_11_10",
+            "format_code": 4,
+            "native_format": 99,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 0,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "packed_signed_11_11_10",
+            "format_code": 4,
+            "native_format": 99,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 1,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "packed_signed_11_11_10",
+            "format_code": 4,
+            "native_format": 99,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 2,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "packed_signed_11_11_10",
+            "format_code": 4,
+            "native_format": 99,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 3,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x1",
+            "format_code": 5,
+            "native_format": 9,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 0,
+            "source_stride": 1,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x1",
+            "format_code": 5,
+            "native_format": 9,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 1,
+            "source_stride": 1,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x1",
+            "format_code": 5,
+            "native_format": 9,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 2,
+            "source_stride": 1,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x1",
+            "format_code": 5,
+            "native_format": 9,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 3,
+            "source_stride": 1,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x2",
+            "format_code": 6,
+            "native_format": 16,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 0,
+            "source_stride": 2,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x2",
+            "format_code": 6,
+            "native_format": 16,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 1,
+            "source_stride": 2,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x2",
+            "format_code": 6,
+            "native_format": 16,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 2,
+            "source_stride": 2,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x2",
+            "format_code": 6,
+            "native_format": 16,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 3,
+            "source_stride": 2,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x3",
+            "format_code": 7,
+            "native_format": 23,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 0,
+            "source_stride": 3,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x3",
+            "format_code": 7,
+            "native_format": 23,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 1,
+            "source_stride": 3,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x3",
+            "format_code": 7,
+            "native_format": 23,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 2,
+            "source_stride": 3,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x3",
+            "format_code": 7,
+            "native_format": 23,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 3,
+            "source_stride": 3,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x4",
+            "format_code": 8,
+            "native_format": 37,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 0,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x4",
+            "format_code": 8,
+            "native_format": 37,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 1,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x4",
+            "format_code": 8,
+            "native_format": 37,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 2,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x4",
+            "format_code": 8,
+            "native_format": 37,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 3,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          }
+        ],
+        "device": "Apple M2 Pro",
+        "differences": 0,
+        "passed": true,
+        "schema": "H2_RAW_VERTEX_FETCH_V1",
+        "synchronization_validation_active": false,
+        "validation_errors": 0,
+        "validation_layer_active": false
+      }
+    }
+  },
+  "linux_synchronization_validation": {
+    "runner": {
+      "passed": true,
+      "status": "passed",
+      "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-c26f8sld/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/home/eric/Developer/Halo-2-Decompiled/tests/macos/vertex_fetch",
+            "-B",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-c26f8sld/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-vertex-fetch-linux-validation/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-c26f8sld/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "vertex_fetch_tests",
+            "vulkan_portability_tests"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-vertex-fetch-linux-validation/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-c26f8sld/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "1",
+            "--tests-regex",
+            "^(macos_vertex_fetch_host|vulkan_portability)$"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-vertex-fetch-linux-validation/tests.log",
+          "exit_code": 0
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "vertex-fetch-host.json",
+          "status": "retained",
+          "bytes": 11881,
+          "sha256": "b5be026f2bd445433cb3363a5ebd14490311c41b6e19c1c4c428dcb7615e6474",
+          "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-vertex-fetch-linux-validation/evidence/vertex-fetch-host.json"
+        }
+      ]
+    },
+    "tests_log": "Test project /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-c26f8sld/build\n    Start 1: vulkan_portability\n1/2 Test #1: vulkan_portability ...............   Passed    0.10 sec\n    Start 2: macos_vertex_fetch_host\n2/2 Test #2: macos_vertex_fetch_host ..........   Passed    3.44 sec\n\n100% tests passed out of 2\n\nTotal Test time (real) =   3.54 sec\n",
+    "results": {
+      "vertex-fetch-host.json": {
+        "cases": [
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x3",
+            "format_code": 0,
+            "native_format": 106,
+            "native_source_format_supported": true,
+            "native_stride": 12,
+            "prefix": 0,
+            "source_stride": 12,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x3",
+            "format_code": 0,
+            "native_format": 106,
+            "native_source_format_supported": true,
+            "native_stride": 12,
+            "prefix": 1,
+            "source_stride": 12,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x3",
+            "format_code": 0,
+            "native_format": 106,
+            "native_source_format_supported": true,
+            "native_stride": 12,
+            "prefix": 2,
+            "source_stride": 12,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x3",
+            "format_code": 0,
+            "native_format": 106,
+            "native_source_format_supported": true,
+            "native_stride": 12,
+            "prefix": 3,
+            "source_stride": 12,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x2",
+            "format_code": 1,
+            "native_format": 103,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 0,
+            "source_stride": 8,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x2",
+            "format_code": 1,
+            "native_format": 103,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 1,
+            "source_stride": 8,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x2",
+            "format_code": 1,
+            "native_format": 103,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 2,
+            "source_stride": 8,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "float32x2",
+            "format_code": 1,
+            "native_format": 103,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 3,
+            "source_stride": 8,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x3",
+            "format_code": 2,
+            "native_format": 85,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 0,
+            "source_stride": 6,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x3",
+            "format_code": 2,
+            "native_format": 85,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 1,
+            "source_stride": 6,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x3",
+            "format_code": 2,
+            "native_format": 85,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 2,
+            "source_stride": 6,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x3",
+            "format_code": 2,
+            "native_format": 85,
+            "native_source_format_supported": true,
+            "native_stride": 8,
+            "prefix": 3,
+            "source_stride": 6,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x2",
+            "format_code": 3,
+            "native_format": 78,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 0,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x2",
+            "format_code": 3,
+            "native_format": 78,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 1,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x2",
+            "format_code": 3,
+            "native_format": 78,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 2,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "snorm16x2",
+            "format_code": 3,
+            "native_format": 78,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 3,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "packed_signed_11_11_10",
+            "format_code": 4,
+            "native_format": 99,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 0,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "packed_signed_11_11_10",
+            "format_code": 4,
+            "native_format": 99,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 1,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "packed_signed_11_11_10",
+            "format_code": 4,
+            "native_format": 99,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 2,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "packed_signed_11_11_10",
+            "format_code": 4,
+            "native_format": 99,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 3,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x1",
+            "format_code": 5,
+            "native_format": 9,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 0,
+            "source_stride": 1,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x1",
+            "format_code": 5,
+            "native_format": 9,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 1,
+            "source_stride": 1,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x1",
+            "format_code": 5,
+            "native_format": 9,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 2,
+            "source_stride": 1,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x1",
+            "format_code": 5,
+            "native_format": 9,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 3,
+            "source_stride": 1,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x2",
+            "format_code": 6,
+            "native_format": 16,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 0,
+            "source_stride": 2,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x2",
+            "format_code": 6,
+            "native_format": 16,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 1,
+            "source_stride": 2,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x2",
+            "format_code": 6,
+            "native_format": 16,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 2,
+            "source_stride": 2,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x2",
+            "format_code": 6,
+            "native_format": 16,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 3,
+            "source_stride": 2,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x3",
+            "format_code": 7,
+            "native_format": 23,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 0,
+            "source_stride": 3,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x3",
+            "format_code": 7,
+            "native_format": 23,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 1,
+            "source_stride": 3,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x3",
+            "format_code": 7,
+            "native_format": 23,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 2,
+            "source_stride": 3,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x3",
+            "format_code": 7,
+            "native_format": 23,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 3,
+            "source_stride": 3,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x4",
+            "format_code": 8,
+            "native_format": 37,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 0,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x4",
+            "format_code": 8,
+            "native_format": 37,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 1,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x4",
+            "format_code": 8,
+            "native_format": 37,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 2,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          },
+          {
+            "different_lanes": 0,
+            "first_differences": [],
+            "format": "unorm8x4",
+            "format_code": 8,
+            "native_format": 37,
+            "native_source_format_supported": true,
+            "native_stride": 4,
+            "prefix": 3,
+            "source_stride": 4,
+            "uncovered_pixels": 0,
+            "vertices": 65536
+          }
+        ],
+        "device": "NVIDIA GeForce RTX 5080",
+        "differences": 0,
+        "passed": true,
+        "schema": "H2_RAW_VERTEX_FETCH_V1",
+        "synchronization_validation_active": true,
+        "validation_errors": 0,
+        "validation_layer_active": true
+      }
+    }
+  },
+  "sdk_inputs": {
+    "MoltenVK-macos.tar": [
+      "https://github.com/KhronosGroup/MoltenVK/releases/download/v1.4.2/MoltenVK-macos.tar",
+      "f95765a6229cb7b915990a2890ce12ebe36a730b021545d3d52ae69ce4c4024e"
+    ],
+    "SDL2.dmg": [
+      "https://github.com/libsdl-org/SDL/releases/download/release-2.32.10/SDL2-2.32.10.dmg",
+      "4a7ac31640d70214e848f994be8a12849c0f97918a7e6c2e27a40036166d1a7f"
+    ],
+    "SDL2-LICENSE.txt": [
+      "https://raw.githubusercontent.com/libsdl-org/SDL/release-2.32.10/LICENSE.txt",
+      "97f35b302b361680ec1e891e95d2d52097bb95abff361434916d99dc1305f127"
+    ]
+  },
+  "linux_validation_layer_input": {
+    "scratch_owner": "/tmp/halo2-test-ehnfgoix",
+    "vulkan-validation-layers-1.4.363.0-1-x86_64.pkg.tar.zst": {
+      "url": "https://geo.mirror.pkgbuild.com/extra/os/x86_64/vulkan-validation-layers-1.4.363.0-1-x86_64.pkg.tar.zst",
+      "sha256": "904f4eba2e708c9c96579900688a284309cd56dc09b5af3f78c563ffda13df9e",
+      "bytes": 9236457
+    },
+    "vulkan-validation-layers-1.4.363.0-1-x86_64.pkg.tar.zst.sig": {
+      "url": "https://geo.mirror.pkgbuild.com/extra/os/x86_64/vulkan-validation-layers-1.4.363.0-1-x86_64.pkg.tar.zst.sig",
+      "sha256": "e8f686fa461dd25015ea5a93a0cf79e0d98a4d246109e4536eba2900766e889d",
+      "bytes": 566
+    },
+    "signature": {
+      "exit_code": 0,
+      "output": "==> Checking /tmp/halo2-test-ehnfgoix/vulkan-validation-layers-1.4.363.0-1-x86_64.pkg.tar.zst.sig... (detached)\ngpg: Signature made Tue Sep 29 06:06:45 2026 EDT\ngpg:                using RSA key 262A58EC6C51F7EA395B2E2DFDC3040B92ACA748\ngpg: Note: trustdb not writable\ngpg: Good signature from \"Robin Candau <antiz@archlinux.org>\" [full]\n"
+    }
+  },
+  "baseline": {
+    "runner": {
+      "passed": false,
+      "status": "failed",
+      "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-4p58z5wn/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/home/eric/Developer/Halo-2-Decompiled/tests/macos/vertex_fetch",
+            "-B",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-4p58z5wn/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-vertex-fetch-linux/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-4p58z5wn/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "vertex_fetch_tests",
+            "vulkan_portability_tests"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-vertex-fetch-linux/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-4p58z5wn/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "1",
+            "--tests-regex",
+            "^(macos_vertex_fetch_host|vulkan_portability)$"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-vertex-fetch-linux/tests.log",
+          "exit_code": 8
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "vertex-fetch-host.json",
+          "status": "retained",
+          "bytes": 59314,
+          "sha256": "9da09b739e05ff2ee75350e82a714b9cabb499a94d4b0e1c9af62169381a07df",
+          "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-vertex-fetch-linux/evidence/vertex-fetch-host.json"
+        }
+      ]
+    },
+    "failed_gpu_comparison": {
+      "cases": [
+        {
+          "different_lanes": 0,
+          "first_differences": [],
+          "format": "float32x3",
+          "format_code": 0,
+          "native_format": 106,
+          "native_source_format_supported": true,
+          "native_stride": 12,
+          "prefix": 0,
+          "source_stride": 12,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 0,
+          "first_differences": [],
+          "format": "float32x3",
+          "format_code": 0,
+          "native_format": 106,
+          "native_source_format_supported": true,
+          "native_stride": 12,
+          "prefix": 1,
+          "source_stride": 12,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 0,
+          "first_differences": [],
+          "format": "float32x3",
+          "format_code": 0,
+          "native_format": 106,
+          "native_source_format_supported": true,
+          "native_stride": 12,
+          "prefix": 2,
+          "source_stride": 12,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 0,
+          "first_differences": [],
+          "format": "float32x3",
+          "format_code": 0,
+          "native_format": 106,
+          "native_source_format_supported": true,
+          "native_stride": 12,
+          "prefix": 3,
+          "source_stride": 12,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 0,
+          "first_differences": [],
+          "format": "float32x2",
+          "format_code": 1,
+          "native_format": 103,
+          "native_source_format_supported": true,
+          "native_stride": 8,
+          "prefix": 0,
+          "source_stride": 8,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 0,
+          "first_differences": [],
+          "format": "float32x2",
+          "format_code": 1,
+          "native_format": 103,
+          "native_source_format_supported": true,
+          "native_stride": 8,
+          "prefix": 1,
+          "source_stride": 8,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 0,
+          "first_differences": [],
+          "format": "float32x2",
+          "format_code": 1,
+          "native_format": 103,
+          "native_source_format_supported": true,
+          "native_stride": 8,
+          "prefix": 2,
+          "source_stride": 8,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 0,
+          "first_differences": [],
+          "format": "float32x2",
+          "format_code": 1,
+          "native_format": 103,
+          "native_source_format_supported": true,
+          "native_stride": 8,
+          "prefix": 3,
+          "source_stride": 8,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 4608,
+          "first_differences": [
+            {
+              "fetched_bits": 1048068592,
+              "input": 7944,
+              "lane": 1,
+              "native_bits": 1048068593,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1056457200,
+              "input": 15888,
+              "lane": 2,
+              "native_bits": 1056457201,
+              "vertex": 50
+            },
+            {
+              "fetched_bits": 1048134130,
+              "input": 7976,
+              "lane": 1,
+              "native_bits": 1048134131,
+              "vertex": 57
+            },
+            {
+              "fetched_bits": 1048199668,
+              "input": 8008,
+              "lane": 1,
+              "native_bits": 1048199669,
+              "vertex": 89
+            },
+            {
+              "fetched_bits": 1056522738,
+              "input": 15952,
+              "lane": 2,
+              "native_bits": 1056522739,
+              "vertex": 114
+            },
+            {
+              "fetched_bits": 1048265206,
+              "input": 8040,
+              "lane": 1,
+              "native_bits": 1048265207,
+              "vertex": 121
+            },
+            {
+              "fetched_bits": 1048330744,
+              "input": 8072,
+              "lane": 1,
+              "native_bits": 1048330745,
+              "vertex": 153
+            },
+            {
+              "fetched_bits": 1056588276,
+              "input": 16016,
+              "lane": 2,
+              "native_bits": 1056588277,
+              "vertex": 178
+            },
+            {
+              "fetched_bits": 1048396282,
+              "input": 8104,
+              "lane": 1,
+              "native_bits": 1048396283,
+              "vertex": 185
+            },
+            {
+              "fetched_bits": 1048461820,
+              "input": 8136,
+              "lane": 1,
+              "native_bits": 1048461821,
+              "vertex": 217
+            },
+            {
+              "fetched_bits": 1056653814,
+              "input": 16080,
+              "lane": 2,
+              "native_bits": 1056653815,
+              "vertex": 242
+            },
+            {
+              "fetched_bits": 1048527358,
+              "input": 8168,
+              "lane": 1,
+              "native_bits": 1048527359,
+              "vertex": 249
+            }
+          ],
+          "format": "snorm16x3",
+          "format_code": 2,
+          "native_format": 85,
+          "native_source_format_supported": true,
+          "native_stride": 8,
+          "prefix": 0,
+          "source_stride": 6,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 4608,
+          "first_differences": [
+            {
+              "fetched_bits": 1048068592,
+              "input": 7944,
+              "lane": 1,
+              "native_bits": 1048068593,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1056457200,
+              "input": 15888,
+              "lane": 2,
+              "native_bits": 1056457201,
+              "vertex": 50
+            },
+            {
+              "fetched_bits": 1048134130,
+              "input": 7976,
+              "lane": 1,
+              "native_bits": 1048134131,
+              "vertex": 57
+            },
+            {
+              "fetched_bits": 1048199668,
+              "input": 8008,
+              "lane": 1,
+              "native_bits": 1048199669,
+              "vertex": 89
+            },
+            {
+              "fetched_bits": 1056522738,
+              "input": 15952,
+              "lane": 2,
+              "native_bits": 1056522739,
+              "vertex": 114
+            },
+            {
+              "fetched_bits": 1048265206,
+              "input": 8040,
+              "lane": 1,
+              "native_bits": 1048265207,
+              "vertex": 121
+            },
+            {
+              "fetched_bits": 1048330744,
+              "input": 8072,
+              "lane": 1,
+              "native_bits": 1048330745,
+              "vertex": 153
+            },
+            {
+              "fetched_bits": 1056588276,
+              "input": 16016,
+              "lane": 2,
+              "native_bits": 1056588277,
+              "vertex": 178
+            },
+            {
+              "fetched_bits": 1048396282,
+              "input": 8104,
+              "lane": 1,
+              "native_bits": 1048396283,
+              "vertex": 185
+            },
+            {
+              "fetched_bits": 1048461820,
+              "input": 8136,
+              "lane": 1,
+              "native_bits": 1048461821,
+              "vertex": 217
+            },
+            {
+              "fetched_bits": 1056653814,
+              "input": 16080,
+              "lane": 2,
+              "native_bits": 1056653815,
+              "vertex": 242
+            },
+            {
+              "fetched_bits": 1048527358,
+              "input": 8168,
+              "lane": 1,
+              "native_bits": 1048527359,
+              "vertex": 249
+            }
+          ],
+          "format": "snorm16x3",
+          "format_code": 2,
+          "native_format": 85,
+          "native_source_format_supported": true,
+          "native_stride": 8,
+          "prefix": 1,
+          "source_stride": 6,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 4608,
+          "first_differences": [
+            {
+              "fetched_bits": 1048068592,
+              "input": 7944,
+              "lane": 1,
+              "native_bits": 1048068593,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1056457200,
+              "input": 15888,
+              "lane": 2,
+              "native_bits": 1056457201,
+              "vertex": 50
+            },
+            {
+              "fetched_bits": 1048134130,
+              "input": 7976,
+              "lane": 1,
+              "native_bits": 1048134131,
+              "vertex": 57
+            },
+            {
+              "fetched_bits": 1048199668,
+              "input": 8008,
+              "lane": 1,
+              "native_bits": 1048199669,
+              "vertex": 89
+            },
+            {
+              "fetched_bits": 1056522738,
+              "input": 15952,
+              "lane": 2,
+              "native_bits": 1056522739,
+              "vertex": 114
+            },
+            {
+              "fetched_bits": 1048265206,
+              "input": 8040,
+              "lane": 1,
+              "native_bits": 1048265207,
+              "vertex": 121
+            },
+            {
+              "fetched_bits": 1048330744,
+              "input": 8072,
+              "lane": 1,
+              "native_bits": 1048330745,
+              "vertex": 153
+            },
+            {
+              "fetched_bits": 1056588276,
+              "input": 16016,
+              "lane": 2,
+              "native_bits": 1056588277,
+              "vertex": 178
+            },
+            {
+              "fetched_bits": 1048396282,
+              "input": 8104,
+              "lane": 1,
+              "native_bits": 1048396283,
+              "vertex": 185
+            },
+            {
+              "fetched_bits": 1048461820,
+              "input": 8136,
+              "lane": 1,
+              "native_bits": 1048461821,
+              "vertex": 217
+            },
+            {
+              "fetched_bits": 1056653814,
+              "input": 16080,
+              "lane": 2,
+              "native_bits": 1056653815,
+              "vertex": 242
+            },
+            {
+              "fetched_bits": 1048527358,
+              "input": 8168,
+              "lane": 1,
+              "native_bits": 1048527359,
+              "vertex": 249
+            }
+          ],
+          "format": "snorm16x3",
+          "format_code": 2,
+          "native_format": 85,
+          "native_source_format_supported": true,
+          "native_stride": 8,
+          "prefix": 2,
+          "source_stride": 6,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 4608,
+          "first_differences": [
+            {
+              "fetched_bits": 1048068592,
+              "input": 7944,
+              "lane": 1,
+              "native_bits": 1048068593,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1056457200,
+              "input": 15888,
+              "lane": 2,
+              "native_bits": 1056457201,
+              "vertex": 50
+            },
+            {
+              "fetched_bits": 1048134130,
+              "input": 7976,
+              "lane": 1,
+              "native_bits": 1048134131,
+              "vertex": 57
+            },
+            {
+              "fetched_bits": 1048199668,
+              "input": 8008,
+              "lane": 1,
+              "native_bits": 1048199669,
+              "vertex": 89
+            },
+            {
+              "fetched_bits": 1056522738,
+              "input": 15952,
+              "lane": 2,
+              "native_bits": 1056522739,
+              "vertex": 114
+            },
+            {
+              "fetched_bits": 1048265206,
+              "input": 8040,
+              "lane": 1,
+              "native_bits": 1048265207,
+              "vertex": 121
+            },
+            {
+              "fetched_bits": 1048330744,
+              "input": 8072,
+              "lane": 1,
+              "native_bits": 1048330745,
+              "vertex": 153
+            },
+            {
+              "fetched_bits": 1056588276,
+              "input": 16016,
+              "lane": 2,
+              "native_bits": 1056588277,
+              "vertex": 178
+            },
+            {
+              "fetched_bits": 1048396282,
+              "input": 8104,
+              "lane": 1,
+              "native_bits": 1048396283,
+              "vertex": 185
+            },
+            {
+              "fetched_bits": 1048461820,
+              "input": 8136,
+              "lane": 1,
+              "native_bits": 1048461821,
+              "vertex": 217
+            },
+            {
+              "fetched_bits": 1056653814,
+              "input": 16080,
+              "lane": 2,
+              "native_bits": 1056653815,
+              "vertex": 242
+            },
+            {
+              "fetched_bits": 1048527358,
+              "input": 8168,
+              "lane": 1,
+              "native_bits": 1048527359,
+              "vertex": 249
+            }
+          ],
+          "format": "snorm16x3",
+          "format_code": 2,
+          "native_format": 85,
+          "native_source_format_supported": true,
+          "native_stride": 8,
+          "prefix": 3,
+          "source_stride": 6,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 3072,
+          "first_differences": [
+            {
+              "fetched_bits": 1048068592,
+              "input": 7944,
+              "lane": 1,
+              "native_bits": 1048068593,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1048134130,
+              "input": 7976,
+              "lane": 1,
+              "native_bits": 1048134131,
+              "vertex": 57
+            },
+            {
+              "fetched_bits": 1048199668,
+              "input": 8008,
+              "lane": 1,
+              "native_bits": 1048199669,
+              "vertex": 89
+            },
+            {
+              "fetched_bits": 1048265206,
+              "input": 8040,
+              "lane": 1,
+              "native_bits": 1048265207,
+              "vertex": 121
+            },
+            {
+              "fetched_bits": 1048330744,
+              "input": 8072,
+              "lane": 1,
+              "native_bits": 1048330745,
+              "vertex": 153
+            },
+            {
+              "fetched_bits": 1048396282,
+              "input": 8104,
+              "lane": 1,
+              "native_bits": 1048396283,
+              "vertex": 185
+            },
+            {
+              "fetched_bits": 1048461820,
+              "input": 8136,
+              "lane": 1,
+              "native_bits": 1048461821,
+              "vertex": 217
+            },
+            {
+              "fetched_bits": 1048527358,
+              "input": 8168,
+              "lane": 1,
+              "native_bits": 1048527359,
+              "vertex": 249
+            },
+            {
+              "fetched_bits": 1048592640,
+              "input": 8208,
+              "lane": 1,
+              "native_bits": 1048592641,
+              "vertex": 289
+            },
+            {
+              "fetched_bits": 1048658178,
+              "input": 8272,
+              "lane": 1,
+              "native_bits": 1048658179,
+              "vertex": 353
+            },
+            {
+              "fetched_bits": 1048723716,
+              "input": 8336,
+              "lane": 1,
+              "native_bits": 1048723717,
+              "vertex": 417
+            },
+            {
+              "fetched_bits": 1048789254,
+              "input": 8400,
+              "lane": 1,
+              "native_bits": 1048789255,
+              "vertex": 481
+            }
+          ],
+          "format": "snorm16x2",
+          "format_code": 3,
+          "native_format": 78,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 0,
+          "source_stride": 4,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 3072,
+          "first_differences": [
+            {
+              "fetched_bits": 1048068592,
+              "input": 7944,
+              "lane": 1,
+              "native_bits": 1048068593,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1048134130,
+              "input": 7976,
+              "lane": 1,
+              "native_bits": 1048134131,
+              "vertex": 57
+            },
+            {
+              "fetched_bits": 1048199668,
+              "input": 8008,
+              "lane": 1,
+              "native_bits": 1048199669,
+              "vertex": 89
+            },
+            {
+              "fetched_bits": 1048265206,
+              "input": 8040,
+              "lane": 1,
+              "native_bits": 1048265207,
+              "vertex": 121
+            },
+            {
+              "fetched_bits": 1048330744,
+              "input": 8072,
+              "lane": 1,
+              "native_bits": 1048330745,
+              "vertex": 153
+            },
+            {
+              "fetched_bits": 1048396282,
+              "input": 8104,
+              "lane": 1,
+              "native_bits": 1048396283,
+              "vertex": 185
+            },
+            {
+              "fetched_bits": 1048461820,
+              "input": 8136,
+              "lane": 1,
+              "native_bits": 1048461821,
+              "vertex": 217
+            },
+            {
+              "fetched_bits": 1048527358,
+              "input": 8168,
+              "lane": 1,
+              "native_bits": 1048527359,
+              "vertex": 249
+            },
+            {
+              "fetched_bits": 1048592640,
+              "input": 8208,
+              "lane": 1,
+              "native_bits": 1048592641,
+              "vertex": 289
+            },
+            {
+              "fetched_bits": 1048658178,
+              "input": 8272,
+              "lane": 1,
+              "native_bits": 1048658179,
+              "vertex": 353
+            },
+            {
+              "fetched_bits": 1048723716,
+              "input": 8336,
+              "lane": 1,
+              "native_bits": 1048723717,
+              "vertex": 417
+            },
+            {
+              "fetched_bits": 1048789254,
+              "input": 8400,
+              "lane": 1,
+              "native_bits": 1048789255,
+              "vertex": 481
+            }
+          ],
+          "format": "snorm16x2",
+          "format_code": 3,
+          "native_format": 78,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 1,
+          "source_stride": 4,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 3072,
+          "first_differences": [
+            {
+              "fetched_bits": 1048068592,
+              "input": 7944,
+              "lane": 1,
+              "native_bits": 1048068593,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1048134130,
+              "input": 7976,
+              "lane": 1,
+              "native_bits": 1048134131,
+              "vertex": 57
+            },
+            {
+              "fetched_bits": 1048199668,
+              "input": 8008,
+              "lane": 1,
+              "native_bits": 1048199669,
+              "vertex": 89
+            },
+            {
+              "fetched_bits": 1048265206,
+              "input": 8040,
+              "lane": 1,
+              "native_bits": 1048265207,
+              "vertex": 121
+            },
+            {
+              "fetched_bits": 1048330744,
+              "input": 8072,
+              "lane": 1,
+              "native_bits": 1048330745,
+              "vertex": 153
+            },
+            {
+              "fetched_bits": 1048396282,
+              "input": 8104,
+              "lane": 1,
+              "native_bits": 1048396283,
+              "vertex": 185
+            },
+            {
+              "fetched_bits": 1048461820,
+              "input": 8136,
+              "lane": 1,
+              "native_bits": 1048461821,
+              "vertex": 217
+            },
+            {
+              "fetched_bits": 1048527358,
+              "input": 8168,
+              "lane": 1,
+              "native_bits": 1048527359,
+              "vertex": 249
+            },
+            {
+              "fetched_bits": 1048592640,
+              "input": 8208,
+              "lane": 1,
+              "native_bits": 1048592641,
+              "vertex": 289
+            },
+            {
+              "fetched_bits": 1048658178,
+              "input": 8272,
+              "lane": 1,
+              "native_bits": 1048658179,
+              "vertex": 353
+            },
+            {
+              "fetched_bits": 1048723716,
+              "input": 8336,
+              "lane": 1,
+              "native_bits": 1048723717,
+              "vertex": 417
+            },
+            {
+              "fetched_bits": 1048789254,
+              "input": 8400,
+              "lane": 1,
+              "native_bits": 1048789255,
+              "vertex": 481
+            }
+          ],
+          "format": "snorm16x2",
+          "format_code": 3,
+          "native_format": 78,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 2,
+          "source_stride": 4,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 3072,
+          "first_differences": [
+            {
+              "fetched_bits": 1048068592,
+              "input": 7944,
+              "lane": 1,
+              "native_bits": 1048068593,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1048134130,
+              "input": 7976,
+              "lane": 1,
+              "native_bits": 1048134131,
+              "vertex": 57
+            },
+            {
+              "fetched_bits": 1048199668,
+              "input": 8008,
+              "lane": 1,
+              "native_bits": 1048199669,
+              "vertex": 89
+            },
+            {
+              "fetched_bits": 1048265206,
+              "input": 8040,
+              "lane": 1,
+              "native_bits": 1048265207,
+              "vertex": 121
+            },
+            {
+              "fetched_bits": 1048330744,
+              "input": 8072,
+              "lane": 1,
+              "native_bits": 1048330745,
+              "vertex": 153
+            },
+            {
+              "fetched_bits": 1048396282,
+              "input": 8104,
+              "lane": 1,
+              "native_bits": 1048396283,
+              "vertex": 185
+            },
+            {
+              "fetched_bits": 1048461820,
+              "input": 8136,
+              "lane": 1,
+              "native_bits": 1048461821,
+              "vertex": 217
+            },
+            {
+              "fetched_bits": 1048527358,
+              "input": 8168,
+              "lane": 1,
+              "native_bits": 1048527359,
+              "vertex": 249
+            },
+            {
+              "fetched_bits": 1048592640,
+              "input": 8208,
+              "lane": 1,
+              "native_bits": 1048592641,
+              "vertex": 289
+            },
+            {
+              "fetched_bits": 1048658178,
+              "input": 8272,
+              "lane": 1,
+              "native_bits": 1048658179,
+              "vertex": 353
+            },
+            {
+              "fetched_bits": 1048723716,
+              "input": 8336,
+              "lane": 1,
+              "native_bits": 1048723717,
+              "vertex": 417
+            },
+            {
+              "fetched_bits": 1048789254,
+              "input": 8400,
+              "lane": 1,
+              "native_bits": 1048789255,
+              "vertex": 481
+            }
+          ],
+          "format": "snorm16x2",
+          "format_code": 3,
+          "native_format": 78,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 3,
+          "source_stride": 4,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 0,
+          "first_differences": [],
+          "format": "packed_signed_11_11_10",
+          "format_code": 4,
+          "native_format": 99,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 0,
+          "source_stride": 4,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 0,
+          "first_differences": [],
+          "format": "packed_signed_11_11_10",
+          "format_code": 4,
+          "native_format": 99,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 1,
+          "source_stride": 4,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 0,
+          "first_differences": [],
+          "format": "packed_signed_11_11_10",
+          "format_code": 4,
+          "native_format": 99,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 2,
+          "source_stride": 4,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 0,
+          "first_differences": [],
+          "format": "packed_signed_11_11_10",
+          "format_code": 4,
+          "native_format": 99,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 3,
+          "source_stride": 4,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 32256,
+          "first_differences": [
+            {
+              "fetched_bits": 1010876610,
+              "input": 3,
+              "lane": 0,
+              "native_bits": 1010876609,
+              "vertex": 3
+            },
+            {
+              "fetched_bits": 1019265218,
+              "input": 6,
+              "lane": 0,
+              "native_bits": 1019265217,
+              "vertex": 6
+            },
+            {
+              "fetched_bits": 1021370594,
+              "input": 7,
+              "lane": 0,
+              "native_bits": 1021370593,
+              "vertex": 7
+            },
+            {
+              "fetched_bits": 1027653826,
+              "input": 12,
+              "lane": 0,
+              "native_bits": 1027653825,
+              "vertex": 12
+            },
+            {
+              "fetched_bits": 1028706514,
+              "input": 13,
+              "lane": 0,
+              "native_bits": 1028706513,
+              "vertex": 13
+            },
+            {
+              "fetched_bits": 1029759202,
+              "input": 14,
+              "lane": 0,
+              "native_bits": 1029759201,
+              "vertex": 14
+            },
+            {
+              "fetched_bits": 1030811890,
+              "input": 15,
+              "lane": 0,
+              "native_bits": 1030811889,
+              "vertex": 15
+            },
+            {
+              "fetched_bits": 1036042434,
+              "input": 24,
+              "lane": 0,
+              "native_bits": 1036042433,
+              "vertex": 24
+            },
+            {
+              "fetched_bits": 1036568778,
+              "input": 25,
+              "lane": 0,
+              "native_bits": 1036568777,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1037095122,
+              "input": 26,
+              "lane": 0,
+              "native_bits": 1037095121,
+              "vertex": 26
+            },
+            {
+              "fetched_bits": 1037621466,
+              "input": 27,
+              "lane": 0,
+              "native_bits": 1037621465,
+              "vertex": 27
+            },
+            {
+              "fetched_bits": 1038147810,
+              "input": 28,
+              "lane": 0,
+              "native_bits": 1038147809,
+              "vertex": 28
+            }
+          ],
+          "format": "unorm8x1",
+          "format_code": 5,
+          "native_format": 9,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 0,
+          "source_stride": 1,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 32256,
+          "first_differences": [
+            {
+              "fetched_bits": 1010876610,
+              "input": 3,
+              "lane": 0,
+              "native_bits": 1010876609,
+              "vertex": 3
+            },
+            {
+              "fetched_bits": 1019265218,
+              "input": 6,
+              "lane": 0,
+              "native_bits": 1019265217,
+              "vertex": 6
+            },
+            {
+              "fetched_bits": 1021370594,
+              "input": 7,
+              "lane": 0,
+              "native_bits": 1021370593,
+              "vertex": 7
+            },
+            {
+              "fetched_bits": 1027653826,
+              "input": 12,
+              "lane": 0,
+              "native_bits": 1027653825,
+              "vertex": 12
+            },
+            {
+              "fetched_bits": 1028706514,
+              "input": 13,
+              "lane": 0,
+              "native_bits": 1028706513,
+              "vertex": 13
+            },
+            {
+              "fetched_bits": 1029759202,
+              "input": 14,
+              "lane": 0,
+              "native_bits": 1029759201,
+              "vertex": 14
+            },
+            {
+              "fetched_bits": 1030811890,
+              "input": 15,
+              "lane": 0,
+              "native_bits": 1030811889,
+              "vertex": 15
+            },
+            {
+              "fetched_bits": 1036042434,
+              "input": 24,
+              "lane": 0,
+              "native_bits": 1036042433,
+              "vertex": 24
+            },
+            {
+              "fetched_bits": 1036568778,
+              "input": 25,
+              "lane": 0,
+              "native_bits": 1036568777,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1037095122,
+              "input": 26,
+              "lane": 0,
+              "native_bits": 1037095121,
+              "vertex": 26
+            },
+            {
+              "fetched_bits": 1037621466,
+              "input": 27,
+              "lane": 0,
+              "native_bits": 1037621465,
+              "vertex": 27
+            },
+            {
+              "fetched_bits": 1038147810,
+              "input": 28,
+              "lane": 0,
+              "native_bits": 1038147809,
+              "vertex": 28
+            }
+          ],
+          "format": "unorm8x1",
+          "format_code": 5,
+          "native_format": 9,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 1,
+          "source_stride": 1,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 32256,
+          "first_differences": [
+            {
+              "fetched_bits": 1010876610,
+              "input": 3,
+              "lane": 0,
+              "native_bits": 1010876609,
+              "vertex": 3
+            },
+            {
+              "fetched_bits": 1019265218,
+              "input": 6,
+              "lane": 0,
+              "native_bits": 1019265217,
+              "vertex": 6
+            },
+            {
+              "fetched_bits": 1021370594,
+              "input": 7,
+              "lane": 0,
+              "native_bits": 1021370593,
+              "vertex": 7
+            },
+            {
+              "fetched_bits": 1027653826,
+              "input": 12,
+              "lane": 0,
+              "native_bits": 1027653825,
+              "vertex": 12
+            },
+            {
+              "fetched_bits": 1028706514,
+              "input": 13,
+              "lane": 0,
+              "native_bits": 1028706513,
+              "vertex": 13
+            },
+            {
+              "fetched_bits": 1029759202,
+              "input": 14,
+              "lane": 0,
+              "native_bits": 1029759201,
+              "vertex": 14
+            },
+            {
+              "fetched_bits": 1030811890,
+              "input": 15,
+              "lane": 0,
+              "native_bits": 1030811889,
+              "vertex": 15
+            },
+            {
+              "fetched_bits": 1036042434,
+              "input": 24,
+              "lane": 0,
+              "native_bits": 1036042433,
+              "vertex": 24
+            },
+            {
+              "fetched_bits": 1036568778,
+              "input": 25,
+              "lane": 0,
+              "native_bits": 1036568777,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1037095122,
+              "input": 26,
+              "lane": 0,
+              "native_bits": 1037095121,
+              "vertex": 26
+            },
+            {
+              "fetched_bits": 1037621466,
+              "input": 27,
+              "lane": 0,
+              "native_bits": 1037621465,
+              "vertex": 27
+            },
+            {
+              "fetched_bits": 1038147810,
+              "input": 28,
+              "lane": 0,
+              "native_bits": 1038147809,
+              "vertex": 28
+            }
+          ],
+          "format": "unorm8x1",
+          "format_code": 5,
+          "native_format": 9,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 2,
+          "source_stride": 1,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 32256,
+          "first_differences": [
+            {
+              "fetched_bits": 1010876610,
+              "input": 3,
+              "lane": 0,
+              "native_bits": 1010876609,
+              "vertex": 3
+            },
+            {
+              "fetched_bits": 1019265218,
+              "input": 6,
+              "lane": 0,
+              "native_bits": 1019265217,
+              "vertex": 6
+            },
+            {
+              "fetched_bits": 1021370594,
+              "input": 7,
+              "lane": 0,
+              "native_bits": 1021370593,
+              "vertex": 7
+            },
+            {
+              "fetched_bits": 1027653826,
+              "input": 12,
+              "lane": 0,
+              "native_bits": 1027653825,
+              "vertex": 12
+            },
+            {
+              "fetched_bits": 1028706514,
+              "input": 13,
+              "lane": 0,
+              "native_bits": 1028706513,
+              "vertex": 13
+            },
+            {
+              "fetched_bits": 1029759202,
+              "input": 14,
+              "lane": 0,
+              "native_bits": 1029759201,
+              "vertex": 14
+            },
+            {
+              "fetched_bits": 1030811890,
+              "input": 15,
+              "lane": 0,
+              "native_bits": 1030811889,
+              "vertex": 15
+            },
+            {
+              "fetched_bits": 1036042434,
+              "input": 24,
+              "lane": 0,
+              "native_bits": 1036042433,
+              "vertex": 24
+            },
+            {
+              "fetched_bits": 1036568778,
+              "input": 25,
+              "lane": 0,
+              "native_bits": 1036568777,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1037095122,
+              "input": 26,
+              "lane": 0,
+              "native_bits": 1037095121,
+              "vertex": 26
+            },
+            {
+              "fetched_bits": 1037621466,
+              "input": 27,
+              "lane": 0,
+              "native_bits": 1037621465,
+              "vertex": 27
+            },
+            {
+              "fetched_bits": 1038147810,
+              "input": 28,
+              "lane": 0,
+              "native_bits": 1038147809,
+              "vertex": 28
+            }
+          ],
+          "format": "unorm8x1",
+          "format_code": 5,
+          "native_format": 9,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 3,
+          "source_stride": 1,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 64512,
+          "first_differences": [
+            {
+              "fetched_bits": 1010876610,
+              "input": 3,
+              "lane": 0,
+              "native_bits": 1010876609,
+              "vertex": 3
+            },
+            {
+              "fetched_bits": 1019265218,
+              "input": 6,
+              "lane": 0,
+              "native_bits": 1019265217,
+              "vertex": 6
+            },
+            {
+              "fetched_bits": 1021370594,
+              "input": 7,
+              "lane": 0,
+              "native_bits": 1021370593,
+              "vertex": 7
+            },
+            {
+              "fetched_bits": 1027653826,
+              "input": 12,
+              "lane": 0,
+              "native_bits": 1027653825,
+              "vertex": 12
+            },
+            {
+              "fetched_bits": 1028706514,
+              "input": 13,
+              "lane": 0,
+              "native_bits": 1028706513,
+              "vertex": 13
+            },
+            {
+              "fetched_bits": 1029759202,
+              "input": 14,
+              "lane": 0,
+              "native_bits": 1029759201,
+              "vertex": 14
+            },
+            {
+              "fetched_bits": 1030811890,
+              "input": 15,
+              "lane": 0,
+              "native_bits": 1030811889,
+              "vertex": 15
+            },
+            {
+              "fetched_bits": 1036042434,
+              "input": 24,
+              "lane": 0,
+              "native_bits": 1036042433,
+              "vertex": 24
+            },
+            {
+              "fetched_bits": 1036568778,
+              "input": 25,
+              "lane": 0,
+              "native_bits": 1036568777,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1052819650,
+              "input": 96,
+              "lane": 1,
+              "native_bits": 1052819649,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1037095122,
+              "input": 26,
+              "lane": 0,
+              "native_bits": 1037095121,
+              "vertex": 26
+            },
+            {
+              "fetched_bits": 1052951236,
+              "input": 97,
+              "lane": 1,
+              "native_bits": 1052951235,
+              "vertex": 26
+            }
+          ],
+          "format": "unorm8x2",
+          "format_code": 6,
+          "native_format": 16,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 0,
+          "source_stride": 2,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 64512,
+          "first_differences": [
+            {
+              "fetched_bits": 1010876610,
+              "input": 3,
+              "lane": 0,
+              "native_bits": 1010876609,
+              "vertex": 3
+            },
+            {
+              "fetched_bits": 1019265218,
+              "input": 6,
+              "lane": 0,
+              "native_bits": 1019265217,
+              "vertex": 6
+            },
+            {
+              "fetched_bits": 1021370594,
+              "input": 7,
+              "lane": 0,
+              "native_bits": 1021370593,
+              "vertex": 7
+            },
+            {
+              "fetched_bits": 1027653826,
+              "input": 12,
+              "lane": 0,
+              "native_bits": 1027653825,
+              "vertex": 12
+            },
+            {
+              "fetched_bits": 1028706514,
+              "input": 13,
+              "lane": 0,
+              "native_bits": 1028706513,
+              "vertex": 13
+            },
+            {
+              "fetched_bits": 1029759202,
+              "input": 14,
+              "lane": 0,
+              "native_bits": 1029759201,
+              "vertex": 14
+            },
+            {
+              "fetched_bits": 1030811890,
+              "input": 15,
+              "lane": 0,
+              "native_bits": 1030811889,
+              "vertex": 15
+            },
+            {
+              "fetched_bits": 1036042434,
+              "input": 24,
+              "lane": 0,
+              "native_bits": 1036042433,
+              "vertex": 24
+            },
+            {
+              "fetched_bits": 1036568778,
+              "input": 25,
+              "lane": 0,
+              "native_bits": 1036568777,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1052819650,
+              "input": 96,
+              "lane": 1,
+              "native_bits": 1052819649,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1037095122,
+              "input": 26,
+              "lane": 0,
+              "native_bits": 1037095121,
+              "vertex": 26
+            },
+            {
+              "fetched_bits": 1052951236,
+              "input": 97,
+              "lane": 1,
+              "native_bits": 1052951235,
+              "vertex": 26
+            }
+          ],
+          "format": "unorm8x2",
+          "format_code": 6,
+          "native_format": 16,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 1,
+          "source_stride": 2,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 64512,
+          "first_differences": [
+            {
+              "fetched_bits": 1010876610,
+              "input": 3,
+              "lane": 0,
+              "native_bits": 1010876609,
+              "vertex": 3
+            },
+            {
+              "fetched_bits": 1019265218,
+              "input": 6,
+              "lane": 0,
+              "native_bits": 1019265217,
+              "vertex": 6
+            },
+            {
+              "fetched_bits": 1021370594,
+              "input": 7,
+              "lane": 0,
+              "native_bits": 1021370593,
+              "vertex": 7
+            },
+            {
+              "fetched_bits": 1027653826,
+              "input": 12,
+              "lane": 0,
+              "native_bits": 1027653825,
+              "vertex": 12
+            },
+            {
+              "fetched_bits": 1028706514,
+              "input": 13,
+              "lane": 0,
+              "native_bits": 1028706513,
+              "vertex": 13
+            },
+            {
+              "fetched_bits": 1029759202,
+              "input": 14,
+              "lane": 0,
+              "native_bits": 1029759201,
+              "vertex": 14
+            },
+            {
+              "fetched_bits": 1030811890,
+              "input": 15,
+              "lane": 0,
+              "native_bits": 1030811889,
+              "vertex": 15
+            },
+            {
+              "fetched_bits": 1036042434,
+              "input": 24,
+              "lane": 0,
+              "native_bits": 1036042433,
+              "vertex": 24
+            },
+            {
+              "fetched_bits": 1036568778,
+              "input": 25,
+              "lane": 0,
+              "native_bits": 1036568777,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1052819650,
+              "input": 96,
+              "lane": 1,
+              "native_bits": 1052819649,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1037095122,
+              "input": 26,
+              "lane": 0,
+              "native_bits": 1037095121,
+              "vertex": 26
+            },
+            {
+              "fetched_bits": 1052951236,
+              "input": 97,
+              "lane": 1,
+              "native_bits": 1052951235,
+              "vertex": 26
+            }
+          ],
+          "format": "unorm8x2",
+          "format_code": 6,
+          "native_format": 16,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 2,
+          "source_stride": 2,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 64512,
+          "first_differences": [
+            {
+              "fetched_bits": 1010876610,
+              "input": 3,
+              "lane": 0,
+              "native_bits": 1010876609,
+              "vertex": 3
+            },
+            {
+              "fetched_bits": 1019265218,
+              "input": 6,
+              "lane": 0,
+              "native_bits": 1019265217,
+              "vertex": 6
+            },
+            {
+              "fetched_bits": 1021370594,
+              "input": 7,
+              "lane": 0,
+              "native_bits": 1021370593,
+              "vertex": 7
+            },
+            {
+              "fetched_bits": 1027653826,
+              "input": 12,
+              "lane": 0,
+              "native_bits": 1027653825,
+              "vertex": 12
+            },
+            {
+              "fetched_bits": 1028706514,
+              "input": 13,
+              "lane": 0,
+              "native_bits": 1028706513,
+              "vertex": 13
+            },
+            {
+              "fetched_bits": 1029759202,
+              "input": 14,
+              "lane": 0,
+              "native_bits": 1029759201,
+              "vertex": 14
+            },
+            {
+              "fetched_bits": 1030811890,
+              "input": 15,
+              "lane": 0,
+              "native_bits": 1030811889,
+              "vertex": 15
+            },
+            {
+              "fetched_bits": 1036042434,
+              "input": 24,
+              "lane": 0,
+              "native_bits": 1036042433,
+              "vertex": 24
+            },
+            {
+              "fetched_bits": 1036568778,
+              "input": 25,
+              "lane": 0,
+              "native_bits": 1036568777,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1052819650,
+              "input": 96,
+              "lane": 1,
+              "native_bits": 1052819649,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1037095122,
+              "input": 26,
+              "lane": 0,
+              "native_bits": 1037095121,
+              "vertex": 26
+            },
+            {
+              "fetched_bits": 1052951236,
+              "input": 97,
+              "lane": 1,
+              "native_bits": 1052951235,
+              "vertex": 26
+            }
+          ],
+          "format": "unorm8x2",
+          "format_code": 6,
+          "native_format": 16,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 3,
+          "source_stride": 2,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 96768,
+          "first_differences": [
+            {
+              "fetched_bits": 1010876610,
+              "input": 3,
+              "lane": 0,
+              "native_bits": 1010876609,
+              "vertex": 3
+            },
+            {
+              "fetched_bits": 1019265218,
+              "input": 6,
+              "lane": 0,
+              "native_bits": 1019265217,
+              "vertex": 6
+            },
+            {
+              "fetched_bits": 1021370594,
+              "input": 7,
+              "lane": 0,
+              "native_bits": 1021370593,
+              "vertex": 7
+            },
+            {
+              "fetched_bits": 1027653826,
+              "input": 12,
+              "lane": 0,
+              "native_bits": 1027653825,
+              "vertex": 12
+            },
+            {
+              "fetched_bits": 1028706514,
+              "input": 13,
+              "lane": 0,
+              "native_bits": 1028706513,
+              "vertex": 13
+            },
+            {
+              "fetched_bits": 1029759202,
+              "input": 14,
+              "lane": 0,
+              "native_bits": 1029759201,
+              "vertex": 14
+            },
+            {
+              "fetched_bits": 1030811890,
+              "input": 15,
+              "lane": 0,
+              "native_bits": 1030811889,
+              "vertex": 15
+            },
+            {
+              "fetched_bits": 1036042434,
+              "input": 24,
+              "lane": 0,
+              "native_bits": 1036042433,
+              "vertex": 24
+            },
+            {
+              "fetched_bits": 1036568778,
+              "input": 25,
+              "lane": 0,
+              "native_bits": 1036568777,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1052819650,
+              "input": 96,
+              "lane": 1,
+              "native_bits": 1052819649,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1037095122,
+              "input": 26,
+              "lane": 0,
+              "native_bits": 1037095121,
+              "vertex": 26
+            },
+            {
+              "fetched_bits": 1052951236,
+              "input": 97,
+              "lane": 1,
+              "native_bits": 1052951235,
+              "vertex": 26
+            }
+          ],
+          "format": "unorm8x3",
+          "format_code": 7,
+          "native_format": 23,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 0,
+          "source_stride": 3,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 96768,
+          "first_differences": [
+            {
+              "fetched_bits": 1010876610,
+              "input": 3,
+              "lane": 0,
+              "native_bits": 1010876609,
+              "vertex": 3
+            },
+            {
+              "fetched_bits": 1019265218,
+              "input": 6,
+              "lane": 0,
+              "native_bits": 1019265217,
+              "vertex": 6
+            },
+            {
+              "fetched_bits": 1021370594,
+              "input": 7,
+              "lane": 0,
+              "native_bits": 1021370593,
+              "vertex": 7
+            },
+            {
+              "fetched_bits": 1027653826,
+              "input": 12,
+              "lane": 0,
+              "native_bits": 1027653825,
+              "vertex": 12
+            },
+            {
+              "fetched_bits": 1028706514,
+              "input": 13,
+              "lane": 0,
+              "native_bits": 1028706513,
+              "vertex": 13
+            },
+            {
+              "fetched_bits": 1029759202,
+              "input": 14,
+              "lane": 0,
+              "native_bits": 1029759201,
+              "vertex": 14
+            },
+            {
+              "fetched_bits": 1030811890,
+              "input": 15,
+              "lane": 0,
+              "native_bits": 1030811889,
+              "vertex": 15
+            },
+            {
+              "fetched_bits": 1036042434,
+              "input": 24,
+              "lane": 0,
+              "native_bits": 1036042433,
+              "vertex": 24
+            },
+            {
+              "fetched_bits": 1036568778,
+              "input": 25,
+              "lane": 0,
+              "native_bits": 1036568777,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1052819650,
+              "input": 96,
+              "lane": 1,
+              "native_bits": 1052819649,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1037095122,
+              "input": 26,
+              "lane": 0,
+              "native_bits": 1037095121,
+              "vertex": 26
+            },
+            {
+              "fetched_bits": 1052951236,
+              "input": 97,
+              "lane": 1,
+              "native_bits": 1052951235,
+              "vertex": 26
+            }
+          ],
+          "format": "unorm8x3",
+          "format_code": 7,
+          "native_format": 23,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 1,
+          "source_stride": 3,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 96768,
+          "first_differences": [
+            {
+              "fetched_bits": 1010876610,
+              "input": 3,
+              "lane": 0,
+              "native_bits": 1010876609,
+              "vertex": 3
+            },
+            {
+              "fetched_bits": 1019265218,
+              "input": 6,
+              "lane": 0,
+              "native_bits": 1019265217,
+              "vertex": 6
+            },
+            {
+              "fetched_bits": 1021370594,
+              "input": 7,
+              "lane": 0,
+              "native_bits": 1021370593,
+              "vertex": 7
+            },
+            {
+              "fetched_bits": 1027653826,
+              "input": 12,
+              "lane": 0,
+              "native_bits": 1027653825,
+              "vertex": 12
+            },
+            {
+              "fetched_bits": 1028706514,
+              "input": 13,
+              "lane": 0,
+              "native_bits": 1028706513,
+              "vertex": 13
+            },
+            {
+              "fetched_bits": 1029759202,
+              "input": 14,
+              "lane": 0,
+              "native_bits": 1029759201,
+              "vertex": 14
+            },
+            {
+              "fetched_bits": 1030811890,
+              "input": 15,
+              "lane": 0,
+              "native_bits": 1030811889,
+              "vertex": 15
+            },
+            {
+              "fetched_bits": 1036042434,
+              "input": 24,
+              "lane": 0,
+              "native_bits": 1036042433,
+              "vertex": 24
+            },
+            {
+              "fetched_bits": 1036568778,
+              "input": 25,
+              "lane": 0,
+              "native_bits": 1036568777,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1052819650,
+              "input": 96,
+              "lane": 1,
+              "native_bits": 1052819649,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1037095122,
+              "input": 26,
+              "lane": 0,
+              "native_bits": 1037095121,
+              "vertex": 26
+            },
+            {
+              "fetched_bits": 1052951236,
+              "input": 97,
+              "lane": 1,
+              "native_bits": 1052951235,
+              "vertex": 26
+            }
+          ],
+          "format": "unorm8x3",
+          "format_code": 7,
+          "native_format": 23,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 2,
+          "source_stride": 3,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 96768,
+          "first_differences": [
+            {
+              "fetched_bits": 1010876610,
+              "input": 3,
+              "lane": 0,
+              "native_bits": 1010876609,
+              "vertex": 3
+            },
+            {
+              "fetched_bits": 1019265218,
+              "input": 6,
+              "lane": 0,
+              "native_bits": 1019265217,
+              "vertex": 6
+            },
+            {
+              "fetched_bits": 1021370594,
+              "input": 7,
+              "lane": 0,
+              "native_bits": 1021370593,
+              "vertex": 7
+            },
+            {
+              "fetched_bits": 1027653826,
+              "input": 12,
+              "lane": 0,
+              "native_bits": 1027653825,
+              "vertex": 12
+            },
+            {
+              "fetched_bits": 1028706514,
+              "input": 13,
+              "lane": 0,
+              "native_bits": 1028706513,
+              "vertex": 13
+            },
+            {
+              "fetched_bits": 1029759202,
+              "input": 14,
+              "lane": 0,
+              "native_bits": 1029759201,
+              "vertex": 14
+            },
+            {
+              "fetched_bits": 1030811890,
+              "input": 15,
+              "lane": 0,
+              "native_bits": 1030811889,
+              "vertex": 15
+            },
+            {
+              "fetched_bits": 1036042434,
+              "input": 24,
+              "lane": 0,
+              "native_bits": 1036042433,
+              "vertex": 24
+            },
+            {
+              "fetched_bits": 1036568778,
+              "input": 25,
+              "lane": 0,
+              "native_bits": 1036568777,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1052819650,
+              "input": 96,
+              "lane": 1,
+              "native_bits": 1052819649,
+              "vertex": 25
+            },
+            {
+              "fetched_bits": 1037095122,
+              "input": 26,
+              "lane": 0,
+              "native_bits": 1037095121,
+              "vertex": 26
+            },
+            {
+              "fetched_bits": 1052951236,
+              "input": 97,
+              "lane": 1,
+              "native_bits": 1052951235,
+              "vertex": 26
+            }
+          ],
+          "format": "unorm8x3",
+          "format_code": 7,
+          "native_format": 23,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 3,
+          "source_stride": 3,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 129024,
+          "first_differences": [
+            {
+              "fetched_bits": 1062589911,
+              "input": 213,
+              "lane": 3,
+              "native_bits": 1062589910,
+              "vertex": 0
+            },
+            {
+              "fetched_bits": 1062655704,
+              "input": 214,
+              "lane": 3,
+              "native_bits": 1062655703,
+              "vertex": 1
+            },
+            {
+              "fetched_bits": 1062721497,
+              "input": 215,
+              "lane": 3,
+              "native_bits": 1062721496,
+              "vertex": 2
+            },
+            {
+              "fetched_bits": 1010876610,
+              "input": 3,
+              "lane": 0,
+              "native_bits": 1010876609,
+              "vertex": 3
+            },
+            {
+              "fetched_bits": 1062787290,
+              "input": 216,
+              "lane": 3,
+              "native_bits": 1062787289,
+              "vertex": 3
+            },
+            {
+              "fetched_bits": 1062853083,
+              "input": 217,
+              "lane": 3,
+              "native_bits": 1062853082,
+              "vertex": 4
+            },
+            {
+              "fetched_bits": 1062918876,
+              "input": 218,
+              "lane": 3,
+              "native_bits": 1062918875,
+              "vertex": 5
+            },
+            {
+              "fetched_bits": 1019265218,
+              "input": 6,
+              "lane": 0,
+              "native_bits": 1019265217,
+              "vertex": 6
+            },
+            {
+              "fetched_bits": 1062984669,
+              "input": 219,
+              "lane": 3,
+              "native_bits": 1062984668,
+              "vertex": 6
+            },
+            {
+              "fetched_bits": 1021370594,
+              "input": 7,
+              "lane": 0,
+              "native_bits": 1021370593,
+              "vertex": 7
+            },
+            {
+              "fetched_bits": 1063050462,
+              "input": 220,
+              "lane": 3,
+              "native_bits": 1063050461,
+              "vertex": 7
+            },
+            {
+              "fetched_bits": 1063116255,
+              "input": 221,
+              "lane": 3,
+              "native_bits": 1063116254,
+              "vertex": 8
+            }
+          ],
+          "format": "unorm8x4",
+          "format_code": 8,
+          "native_format": 37,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 0,
+          "source_stride": 4,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 129024,
+          "first_differences": [
+            {
+              "fetched_bits": 1062589911,
+              "input": 213,
+              "lane": 3,
+              "native_bits": 1062589910,
+              "vertex": 0
+            },
+            {
+              "fetched_bits": 1062655704,
+              "input": 214,
+              "lane": 3,
+              "native_bits": 1062655703,
+              "vertex": 1
+            },
+            {
+              "fetched_bits": 1062721497,
+              "input": 215,
+              "lane": 3,
+              "native_bits": 1062721496,
+              "vertex": 2
+            },
+            {
+              "fetched_bits": 1010876610,
+              "input": 3,
+              "lane": 0,
+              "native_bits": 1010876609,
+              "vertex": 3
+            },
+            {
+              "fetched_bits": 1062787290,
+              "input": 216,
+              "lane": 3,
+              "native_bits": 1062787289,
+              "vertex": 3
+            },
+            {
+              "fetched_bits": 1062853083,
+              "input": 217,
+              "lane": 3,
+              "native_bits": 1062853082,
+              "vertex": 4
+            },
+            {
+              "fetched_bits": 1062918876,
+              "input": 218,
+              "lane": 3,
+              "native_bits": 1062918875,
+              "vertex": 5
+            },
+            {
+              "fetched_bits": 1019265218,
+              "input": 6,
+              "lane": 0,
+              "native_bits": 1019265217,
+              "vertex": 6
+            },
+            {
+              "fetched_bits": 1062984669,
+              "input": 219,
+              "lane": 3,
+              "native_bits": 1062984668,
+              "vertex": 6
+            },
+            {
+              "fetched_bits": 1021370594,
+              "input": 7,
+              "lane": 0,
+              "native_bits": 1021370593,
+              "vertex": 7
+            },
+            {
+              "fetched_bits": 1063050462,
+              "input": 220,
+              "lane": 3,
+              "native_bits": 1063050461,
+              "vertex": 7
+            },
+            {
+              "fetched_bits": 1063116255,
+              "input": 221,
+              "lane": 3,
+              "native_bits": 1063116254,
+              "vertex": 8
+            }
+          ],
+          "format": "unorm8x4",
+          "format_code": 8,
+          "native_format": 37,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 1,
+          "source_stride": 4,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 129024,
+          "first_differences": [
+            {
+              "fetched_bits": 1062589911,
+              "input": 213,
+              "lane": 3,
+              "native_bits": 1062589910,
+              "vertex": 0
+            },
+            {
+              "fetched_bits": 1062655704,
+              "input": 214,
+              "lane": 3,
+              "native_bits": 1062655703,
+              "vertex": 1
+            },
+            {
+              "fetched_bits": 1062721497,
+              "input": 215,
+              "lane": 3,
+              "native_bits": 1062721496,
+              "vertex": 2
+            },
+            {
+              "fetched_bits": 1010876610,
+              "input": 3,
+              "lane": 0,
+              "native_bits": 1010876609,
+              "vertex": 3
+            },
+            {
+              "fetched_bits": 1062787290,
+              "input": 216,
+              "lane": 3,
+              "native_bits": 1062787289,
+              "vertex": 3
+            },
+            {
+              "fetched_bits": 1062853083,
+              "input": 217,
+              "lane": 3,
+              "native_bits": 1062853082,
+              "vertex": 4
+            },
+            {
+              "fetched_bits": 1062918876,
+              "input": 218,
+              "lane": 3,
+              "native_bits": 1062918875,
+              "vertex": 5
+            },
+            {
+              "fetched_bits": 1019265218,
+              "input": 6,
+              "lane": 0,
+              "native_bits": 1019265217,
+              "vertex": 6
+            },
+            {
+              "fetched_bits": 1062984669,
+              "input": 219,
+              "lane": 3,
+              "native_bits": 1062984668,
+              "vertex": 6
+            },
+            {
+              "fetched_bits": 1021370594,
+              "input": 7,
+              "lane": 0,
+              "native_bits": 1021370593,
+              "vertex": 7
+            },
+            {
+              "fetched_bits": 1063050462,
+              "input": 220,
+              "lane": 3,
+              "native_bits": 1063050461,
+              "vertex": 7
+            },
+            {
+              "fetched_bits": 1063116255,
+              "input": 221,
+              "lane": 3,
+              "native_bits": 1063116254,
+              "vertex": 8
+            }
+          ],
+          "format": "unorm8x4",
+          "format_code": 8,
+          "native_format": 37,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 2,
+          "source_stride": 4,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        },
+        {
+          "different_lanes": 129024,
+          "first_differences": [
+            {
+              "fetched_bits": 1062589911,
+              "input": 213,
+              "lane": 3,
+              "native_bits": 1062589910,
+              "vertex": 0
+            },
+            {
+              "fetched_bits": 1062655704,
+              "input": 214,
+              "lane": 3,
+              "native_bits": 1062655703,
+              "vertex": 1
+            },
+            {
+              "fetched_bits": 1062721497,
+              "input": 215,
+              "lane": 3,
+              "native_bits": 1062721496,
+              "vertex": 2
+            },
+            {
+              "fetched_bits": 1010876610,
+              "input": 3,
+              "lane": 0,
+              "native_bits": 1010876609,
+              "vertex": 3
+            },
+            {
+              "fetched_bits": 1062787290,
+              "input": 216,
+              "lane": 3,
+              "native_bits": 1062787289,
+              "vertex": 3
+            },
+            {
+              "fetched_bits": 1062853083,
+              "input": 217,
+              "lane": 3,
+              "native_bits": 1062853082,
+              "vertex": 4
+            },
+            {
+              "fetched_bits": 1062918876,
+              "input": 218,
+              "lane": 3,
+              "native_bits": 1062918875,
+              "vertex": 5
+            },
+            {
+              "fetched_bits": 1019265218,
+              "input": 6,
+              "lane": 0,
+              "native_bits": 1019265217,
+              "vertex": 6
+            },
+            {
+              "fetched_bits": 1062984669,
+              "input": 219,
+              "lane": 3,
+              "native_bits": 1062984668,
+              "vertex": 6
+            },
+            {
+              "fetched_bits": 1021370594,
+              "input": 7,
+              "lane": 0,
+              "native_bits": 1021370593,
+              "vertex": 7
+            },
+            {
+              "fetched_bits": 1063050462,
+              "input": 220,
+              "lane": 3,
+              "native_bits": 1063050461,
+              "vertex": 7
+            },
+            {
+              "fetched_bits": 1063116255,
+              "input": 221,
+              "lane": 3,
+              "native_bits": 1063116254,
+              "vertex": 8
+            }
+          ],
+          "format": "unorm8x4",
+          "format_code": 8,
+          "native_format": 37,
+          "native_source_format_supported": true,
+          "native_stride": 4,
+          "prefix": 3,
+          "source_stride": 4,
+          "uncovered_pixels": 0,
+          "vertices": 65536
+        }
+      ],
+      "device": "NVIDIA GeForce RTX 5080",
+      "differences": 1320960,
+      "error": "Raw vertex fetch differs from native vertex input",
+      "passed": false,
+      "schema": "H2_RAW_VERTEX_FETCH_V1",
+      "synchronization_validation_active": false,
+      "validation_errors": 0,
+      "validation_layer_active": false
+    },
+    "tests_log": "Test project /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-4p58z5wn/build\n    Start 1: vulkan_portability\n1/2 Test #1: vulkan_portability ...............   Passed    0.10 sec\n    Start 2: macos_vertex_fetch_host\n2/2 Test #2: macos_vertex_fetch_host ..........***Failed    3.25 sec\nRaw vertex fetch differs from native vertex input\nRaw vertex fetch cases: 36, passed: false\n\n\n50% tests passed, 1 tests failed out of 2\n\nTotal Test time (real) =   3.36 sec\n\nThe following tests FAILED:\n\t  2 - macos_vertex_fetch_host (Failed)\nErrors while running CTest\n",
+    "finding": "Shader floating division by 255 or 32767 produced one-ULP differences from native vertex fetch. Float bits, packed integer words and all four byte alignments already matched. Initial 36-case run had 1,320,960 different lanes."
+  },
+  "fix": {
+    "normalization": "Integer quotient/remainder split produces correctly rounded binary32 n/d for n<=d, with d=255 or32767. Magnitude normalization and two bounded uint32 divisions avoid shader reciprocal rounding. Negative SNORM saturates -32768 to -1. Missing float XYZ lanes are zero, W is one. Signed packed input has integer defaults.",
+    "bit_fetch": "Little-endian byte-addressed 8/16/32-bit reads assemble cross-word values, including nonzero byte prefixes and packed source strides. Raw float bits and signed normal words are not decoded by the CPU.",
+    "format_contract": "Ordinals follow the nine current MenuWorldSourceFormat values. Every future caller must validate source format, address bounds and padded buffer extent; this helper does not itself establish opaque resource ownership."
+  },
+  "coverage": {
+    "formats": [
+      "float32x3",
+      "float32x2",
+      "snorm16x3",
+      "snorm16x2",
+      "packed_signed_11_11_10",
+      "unorm8x1",
+      "unorm8x2",
+      "unorm8x3",
+      "unorm8x4"
+    ],
+    "byte_prefixes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "vertices_per_case": 65536,
+    "cases_per_run": 36,
+    "vertices_per_run": 2359296,
+    "component_comparisons_per_run": 9437184,
+    "snorm16": "Every 16-bit encoding on each consumed lane, including both -1 encodings.",
+    "unorm8": "Every byte encoding on each consumed lane.",
+    "floats_and_packed": "Deterministic varied 32-bit words and float controls including signed zero, subnormals, infinities and NaNs; not exhaustive over all 32-bit words.",
+    "oracle": "The same shader outputs both actual hardware vertex input bits and the raw-buffer adapter result into separate RGBA32_UINT attachments. Full image readback compares every lane; sentinel detects missing raster coverage. All native source formats were actually supported on both devices; no padded substitute format was selected.",
+    "shader_validation": "All three SPIR-V modules pass spirv-val --target-env vulkan1.1 as part of the private build."
+  },
+  "commands": {
+    "macos": "ssh -o BatchMode=yes -o ConnectTimeout=15 codex-mac; cd /Users/eric/Developer/Halo2-macos-port && PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin caffeinate -i python3 -B tools/run_test.py -- python3 -B tools/macos/test_port.py --engine-configure-check --source tests/macos/vertex_fetch --engine-target vertex_fetch_tests --engine-test-filter \"^(macos_vertex_fetch_arm64|macos_vertex_fetch_x86_64|vulkan_portability)$\" --retain-report vertex-fetch-arm64.json --retain-report vertex-fetch-x86_64.json --output build/test-results/macos-vertex-fetch-final",
+    "linux": "Signed pinned validation-layer package unpacked only into enclosing tools/run_test.py scratch; VK_LAYER_PATH and LD_LIBRARY_PATH select it for the retained tools/run_tests.py runner steps. Layer and nested build removed after terminal result.",
+    "network": "Two source-transfer attempts timed out while Tailscale reported the Mac offline. After the user restored it, rsync succeeded; final source hashes match the tested Linux files."
+  },
+  "limits": [
+    "MenuWorldNativeDraw still requires geometryShader; no generated world catalog or live draw path uses this helper yet.",
+    "Host upload/descriptor bounds, triangle gathering, three vertex-program executions, ordered depth-plane calculation, material/raster state and full renderer activation remain required.",
+    "Mac had no validation layer. Linux core and synchronization validation were active with zero errors.",
+    "This validates graphics-format conversion and does not convert or certify the deferred x87/SSE source CPU numerical backend.",
+    "Loading PCM admission and complete universal-engine/gameplay acceptance remain open."
+  ],
+  "cleanup": {
+    "linux": {
+      "scratch_exists": {
+        "/tmp/halo2-test-ehnfgoix": false,
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-4p58z5wn": false,
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-63cbqw2j": false,
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-c26f8sld": false
+      },
+      "owned_processes": [],
+      "python_cache_exists": false,
+      "large_test_artifacts_retained": []
+    },
+    "macos": {
+      "scratch_exists": {
+        ".local/test-scratch/halo2-test-b7jb3378": false,
+        ".local/test-scratch/halo2-test-nsox2upk": false,
+        "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-fmo0fbhr": false,
+        "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-irijd9qm": false
+      },
+      "source_sha256": {
+        "shaders/source_world_vertex_fetch.glsl": "db6fda450f3461084aef7bb7c567d47fc1d6355545f51a64bce693765bd85daf",
+        "tests/macos/depth_storage/gpu.hpp": "cf6742f2ed0c23cc944ed14cabc05047921e5c95326af42db09794a0c0bb2f6e",
+        "tests/macos/vertex_fetch/CMakeLists.txt": "10cff6ce6696f2bc41eabc92583534cddfb4a65d3eed07cb0fd4e899a4150a53",
+        "tests/macos/vertex_fetch/fetch.frag": "3beceb7626bf674f66d945336186b2c71d20039fbcb10d77244d69e66131aec3",
+        "tests/macos/vertex_fetch/fetch.vert": "22f60765a54db2618c5068cde58c42e36bc26d9ecec1d18446aebbe7bae9fd1f",
+        "tests/macos/vertex_fetch/vertex_fetch_tests.cpp": "d8158533bd06fe75da1da5f4214d81a51f8baf8f9357e553480e8bc07430a2de"
+      },
+      "owned_processes": [],
+      "owned_mounts": [],
+      "mcc_source_preserved": true,
+      "mcc_lockout_bytes": 1820416,
+      "mcc_lockout_sha256": "97d034dca2109adde65e56c0ab78ee56f72045b56bf9b3200f304d5e1ff4c61e",
+      "python_cache_exists": false,
+      "large_test_artifacts_retained": []
+    },
+    "large_test_artifacts_retained": []
+  }
+}

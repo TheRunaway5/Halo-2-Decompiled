@@ -18,8 +18,8 @@ def main():
     args=parser.parse_args(); out=args.output.resolve()
     assert not out.exists(); out.mkdir(parents=True)
     assert sha(FIXTURE)==FIXTURE_PIN
-    inputs=['src/object_creation_request.cpp','tests/object_creation_request_tests.cpp']
-    dependency=subprocess.run(['g++','-std=c++20','-Iinclude','-MM',*inputs],cwd=ROOT,
+    inputs=['src/gameplay/objects/object_creation_request.cpp','tests/object_creation_request_tests.cpp']
+    dependency=subprocess.run(['g++','-std=c++20','-Iinclude', '-Isrc','-MM',*inputs],cwd=ROOT,
         capture_output=True,text=True,check=True)
     (out/'dependencies.txt').write_text(dependency.stdout)
     names=sorted(set(q for q in dependency.stdout.replace('\\\n',' ').split() if not q.endswith(':')))
@@ -31,7 +31,7 @@ def main():
     commands=[]
     for mode in ('normal','sanitizer'):
         folder=out/mode; folder.mkdir(); executable=folder/'object_creation_request_tests'
-        argv=['g++','-std=c++20','-Wall','-Wextra','-Wpedantic','-Werror','-I'+str(out/'source/include')]
+        argv=['g++','-std=c++20','-Wall','-Wextra','-Wpedantic','-Werror','-I'+str(out/'source/include'), '-I'+str(out/'source/src')]
         argv+=['-O2'] if mode=='normal' else ['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer']
         argv += [*[str(out/'source'/q) for q in inputs],'-o',str(executable)]
         for label, command in (('build',argv),('test',[str(executable),str(FIXTURE)])):

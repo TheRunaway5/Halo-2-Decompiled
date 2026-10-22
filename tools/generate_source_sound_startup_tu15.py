@@ -18,7 +18,7 @@ CALLS=((0x128050,0x224ec0),(0x224f26,0x387877),(0x225020,0x1972c0),
 
 def main():
  p=argparse.ArgumentParser(description=__doc__)
- p.add_argument('--output',type=Path,default=Path('src/source_sound_startup_tu15_generated.cpp'))
+ p.add_argument('--output',type=Path,default=Path('src/audio/source_sound_startup_tu15_generated.cpp'))
  p.add_argument('--directory',type=Path,required=True);a=p.parse_args()
  assert sha(NEW_DEFAULT)==NEW_PIN;image=Xbe(NEW_DEFAULT);code=_Code(image,'.text')
  for pc,target in CALLS:

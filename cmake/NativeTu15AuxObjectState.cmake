@@ -1,6 +1,6 @@
-target_sources(halo2_systems PRIVATE src/native_tu15_aux_object_state_data.cpp src/source_aux_object_state_tu15_generated.cpp)
+target_sources(halo2_systems PRIVATE src/gameplay/objects/native_tu15_aux_object_state_data.cpp src/gameplay/objects/source_aux_object_state_tu15_generated.cpp)
 if(BUILD_TESTING)
-    target_sources(native_tu15_network_link_tests PRIVATE src/native_tu15_aux_object_state_data.cpp src/source_aux_object_state_tu15_generated.cpp)
+    target_sources(native_tu15_network_link_tests PRIVATE src/gameplay/objects/native_tu15_aux_object_state_data.cpp src/gameplay/objects/source_aux_object_state_tu15_generated.cpp)
     add_test(NAME native_tu15_aux_object_state_startup_callback COMMAND native_tu15_network_link_tests --frontier aux-object-state)
     add_test(NAME original_tu15_aux_object_state_startup_callback COMMAND native_tu15_network_link_tests --frontier aux-object-state
         --input-devices none

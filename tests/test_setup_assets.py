@@ -262,6 +262,8 @@ class SetupTests(unittest.TestCase):
             self.assertEqual({p.relative_to(root / "output").as_posix()
                               for p in (root / "output").rglob("*") if p.is_file()},
                              {"maps/mainmenu.map", "maps/shared.map", "maps/fonts/conduit-13"})
+            for name in ("maps/mainmenu.map", "maps/shared.map", "maps/fonts/conduit-13"):
+                self.assertEqual((root / "output" / name).read_bytes(), name.encode())
 
     def test_nested_installer_extracts_only_ui_inputs(self):
         rows = [("maps/mainmenu.map", b"menu"), ("maps/shared.map", b"shared"),

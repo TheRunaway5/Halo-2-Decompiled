@@ -20,7 +20,7 @@ class StoredTimeGeneratorTests(unittest.TestCase):
         self.assertEqual(len(self.policy["values"]), 7993)
         self.assertEqual(len(self.policy["owners"]), 41)
         self.assertEqual(len(self.policy["payloads"]), 24624)
-        self.assertEqual(GEN.generate(self.policy), (ROOT / "src/mcc_sound_stored_time_reference_profiles.inc").read_text())
+        self.assertEqual(GEN.generate(self.policy), (ROOT / "src/audio/mcc_sound_stored_time_reference_profiles.inc").read_text())
 
     def rejects(self, mutate):
         policy = copy.deepcopy(self.policy)

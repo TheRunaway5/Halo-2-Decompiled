@@ -1,0 +1,720 @@
+{
+  "schema": "H2_MACOS_LIBDEFLATE_DELIVERY_V1",
+  "date": "2026-10-20",
+  "goal_status": "active",
+  "source_hashes": {
+    "cmake/MccDecompression.cmake": "4351dd5a24a2662800589b333263062db7644ea22f5582436c862c95c3dfe4b4",
+    "cmake/macos/Libdeflate.cmake": "99fc6551bb778f98cf76dccb58451cfb55aff562740add536ac234e06091a67d",
+    "tools/macos/build_libdeflate.py": "1a885b7faefd9c067a7f52ef27c017e312f8f7038932e6de84bca361ef3c17b1",
+    "tests/macos/libdeflate/CMakeLists.txt": "214b82babdd2546be214b358af01cfed3464e83686238dcb25e2e009fcc1f92e",
+    "tests/macos/libdeflate/dependency_tests.cpp": "4000cab023aa7e133cffdcf089611253af85e22a7a2712b960cb6a3f40cbe7d5",
+    "tests/macos/libdeflate/decoder_observer.cpp": "95d56d5627a2b2e68af34088f3f8cf39c01a32ac9832adab69b17edb1f2106c6",
+    "tests/macos/libdeflate/decoder_observer.hpp": "1d003dc43bfe16e51d659b8118d2f2b481fe7de7f080193f7f0708139c33a9f5",
+    "tests/macos/libdeflate/relocation_test.py": "0e9abf0a94348b6d4b0b90ef42a1894accee03332e43bbbbcf008e046234d7ef",
+    "tests/macos/libdeflate/inspect_engine.cmake": "a7a4382fe2742a7cae603504ca161b1d2a68441bba77e91380cf74d183b2ec22",
+    "src/mcc_cache_decode.cpp": "afe34bc7ab81ddb371bba929b7509c6d450ccd6f808951acfab67d5528b76d34",
+    "tests/mcc_cache_decode_tests.cpp": "9f804da895e456410d3bea3822457e9891eb8ab06ae90630b7350101a9257235",
+    "analysis/five-second-loading-20261020/original-map-decoder.txt": "50cb564a9bbecc95e3ba8fbbeeeb16604b4bd57e7fb881ff00c161f38886d577"
+  },
+  "root_cmake_sha256": "9569be8f6b1480e870d594d573aa8bffd64fe50cd07ca55399d036da87717438",
+  "publisher_input": {
+    "source_url": "https://github.com/ebiggers/libdeflate/releases/download/v1.26/libdeflate-1.26.tar.gz",
+    "source_sha256": "125856d4656e0feab660f94842f835923410c9281fedbcee64598c918da42b5a",
+    "publisher_digest": "sha256:125856d4656e0feab660f94842f835923410c9281fedbcee64598c918da42b5a",
+    "license_sha256": "4ad69099cb4374836fd27583d9991e2838cd86b6e4666ab26b2d32582c91e73a",
+    "archive_root": "libdeflate-1.26",
+    "archive_bytes": 187565,
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-70dkstlo"
+  },
+  "linux_cohorts": {
+    "macos-libdeflate-linux": {
+      "report": {
+        "passed": true,
+        "status": "passed",
+        "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-gh0oqpjf/build",
+        "steps": [
+          {
+            "name": "configure",
+            "command": [
+              "cmake",
+              "-S",
+              "/home/eric/Developer/Halo-2-Decompiled/tests/macos/libdeflate",
+              "-B",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-gh0oqpjf/build",
+              "-DBUILD_TESTING=ON",
+              "-DCMAKE_BUILD_TYPE=Release",
+              "-GNinja",
+              "-DHALO2_LIBDEFLATE_TEST_MAP=/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/lockout.map"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-libdeflate-linux/configure.log",
+            "exit_code": 0
+          },
+          {
+            "name": "build",
+            "command": [
+              "cmake",
+              "--build",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-gh0oqpjf/build",
+              "--config",
+              "Release",
+              "--parallel",
+              "2",
+              "--target",
+              "macos_libdeflate_tests"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-libdeflate-linux/build.log",
+            "exit_code": 0
+          },
+          {
+            "name": "tests",
+            "command": [
+              "ctest",
+              "--test-dir",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-gh0oqpjf/build",
+              "--build-config",
+              "Release",
+              "--output-on-failure",
+              "--no-tests=error",
+              "--parallel",
+              "1",
+              "--tests-regex",
+              "^libdeflate_"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-libdeflate-linux/tests.log",
+            "exit_code": 0
+          }
+        ],
+        "retained_small_reports": [
+          {
+            "path": "Testing/Temporary/LastTest.log",
+            "status": "retained",
+            "bytes": 3049,
+            "sha256": "9596ff97ba479277ef05dbb58c2c80455b061a9ce604e73c819d62911e24bec2",
+            "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-libdeflate-linux/evidence/Testing/Temporary/LastTest.log"
+          },
+          {
+            "path": "decoder-sources.json",
+            "status": "retained",
+            "bytes": 353,
+            "sha256": "9c813377fef6357c72920ea015bb8b94f27d99bb7b5351127ee54679b7896668",
+            "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-libdeflate-linux/evidence/decoder-sources.json"
+          }
+        ]
+      },
+      "logs": {
+        "configure.log": {
+          "bytes": 961,
+          "sha256": "4a084c181bf0227669e6bf736eaded66bc05a98152e8753db64c78bf73d3bd1e",
+          "text": "-- The CXX compiler identification is GNU 16.2.1\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: /usr/bin/c++ - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Found Python3: /usr/bin/python3.14 (found version \"3.14.7\") found components: Interpreter\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n-- Found Threads: TRUE\n-- Found ZLIB: /usr/lib/libz.so (found version \"1.3.1\")\n-- Found nlohmann_json: /usr/share/cmake/nlohmann_json/nlohmann_jsonConfig.cmake (found version \"3.12.0\")\n-- Found PkgConfig: /usr/bin/pkg-config (found version \"3.0.7\")\n-- Found OpenSSL: /usr/lib/libcrypto.so (found version \"3.6.5\") found components: Crypto\n-- Configuring done (1.1s)\n-- Generating done (0.0s)\n-- Build files have been written to: /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-gh0oqpjf/build\n"
+        },
+        "build.log": {
+          "bytes": 753,
+          "sha256": "14ae474d5c70997d6fb858289bafc44c692db5af7fe3d2282d9e43eab918cd04"
+        },
+        "tests.log": {
+          "bytes": 369,
+          "sha256": "53ed21a837e4b32fe4879481d690bd7582a9426c76464e8c8be15c594cb1c329",
+          "text": "Test project /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-gh0oqpjf/build\n    Start 1: libdeflate_contract\n1/2 Test #1: libdeflate_contract ..............   Passed    1.70 sec\n    Start 2: libdeflate_dependency\n2/2 Test #2: libdeflate_dependency ............   Passed    0.20 sec\n\n100% tests passed out of 2\n\nTotal Test time (real) =   1.90 sec\n"
+        }
+      },
+      "evidence": {
+        "Testing/Temporary/LastTest.log": "Start testing: Oct 20 22:14 EDT\n----------------------------------------------------------\n1/2 Testing: libdeflate_contract\n1/2 Test: libdeflate_contract\nCommand: \"/usr/bin/python3.14\" \"/home/eric/Developer/Halo-2-Decompiled/cmake/../tools/run_test.py\" \"--scratch-root\" \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-gh0oqpjf/build/Testing/Temporary/scratch\" \"--\" \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-gh0oqpjf/build/mcc_decoder_contract_tests\"\nDirectory: /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-gh0oqpjf/build\n\"libdeflate_contract\" start time: Oct 20 22:14 EDT\nOutput:\n----------------------------------------------------------\ncontracts 100 rejections 19 concurrent 8\n<end of output>\nTest time =   1.70 sec\n----------------------------------------------------------\nTest Passed.\n\"libdeflate_contract\" end time: Oct 20 22:14 EDT\n\"libdeflate_contract\" time elapsed: 00:00:01\n----------------------------------------------------------\n\n2/2 Testing: libdeflate_dependency\n2/2 Test: libdeflate_dependency\nCommand: \"/usr/bin/python3.14\" \"/home/eric/Developer/Halo-2-Decompiled/cmake/../tools/run_test.py\" \"--scratch-root\" \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-gh0oqpjf/build/Testing/Temporary/scratch\" \"--\" \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-gh0oqpjf/build/macos_libdeflate_dependency_tests\" \"/usr/lib\" \"/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/lockout.map\"\nDirectory: /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-gh0oqpjf/build\n\"libdeflate_dependency\" start time: Oct 20 22:14 EDT\nOutput:\n----------------------------------------------------------\n{\"accelerator\":{\"calls\":16,\"input_bytes\":1818788,\"output_bytes\":3784320,\"successes\":16},\"architecture\":\"x86_64\",\"fixture\":{\"accelerated_seconds\":1.7053e-05,\"all_bytes_equal\":true,\"decoded_bytes\":8192,\"decoded_sha256\":\"34c1e0fef25cd071eaef96f5ebb45b707ecf1075221806f8b1d574e37124da17\",\"encoded_bytes\":1257,\"encoded_sha256\":\"072408c03c75741a0cd7f4e14b28fde2df7873c75aeaa622a2b20b3bbc155ce9\",\"serial_seconds\":1.1491e-05},\"fixture_accelerator\":{\"calls\":1,\"input_bytes\":353,\"output_bytes\":7296,\"successes\":1},\"header_version\":\"1.26\",\"loaded_libdeflate\":\"/usr/lib/libdeflate.so.0\",\"owned_map\":{\"accelerated_seconds\":0.006270455,\"all_bytes_equal\":true,\"decoded_bytes\":3777920,\"decoded_sha256\":\"d137b6511eec0753304be4f72c5047e4462d02dc25bece0fc9f190d7c68e7bd2\",\"encoded_bytes\":1820416,\"encoded_sha256\":\"97d034dca2109adde65e56c0ab78ee56f72045b56bf9b3200f304d5e1ff4c61e\",\"serial_seconds\":0.008126745},\"passed\":true,\"schema\":\"H2_MACOS_LIBDEFLATE_DECODER_V1\"}\n<end of output>\nTest time =   0.20 sec\n----------------------------------------------------------\nTest Passed.\n\"libdeflate_dependency\" end time: Oct 20 22:14 EDT\n\"libdeflate_dependency\" time elapsed: 00:00:00\n----------------------------------------------------------\n\nEnd testing: Oct 20 22:14 EDT\n",
+        "decoder-sources.json": {
+          "serial_sha256": "50cb564a9bbecc95e3ba8fbbeeeb16604b4bd57e7fb881ff00c161f38886d577",
+          "inflater_sha256": "744195afd95bea31cadd0a9b6bc965f986aa6662230435897693d3560b43f553",
+          "production_decoder_sha256": "afe34bc7ab81ddb371bba929b7509c6d450ccd6f808951acfab67d5528b76d34",
+          "bytes_owner_sha256": "47afa44724948305dd258eb141252c8be3e10c8d7e07406b43668edeedb24b2b"
+        }
+      }
+    },
+    "macos-libdeflate-linux-root": {
+      "report": {
+        "passed": true,
+        "status": "passed",
+        "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-69ao083w/build",
+        "steps": [
+          {
+            "name": "configure",
+            "command": [
+              "cmake",
+              "-S",
+              "/home/eric/Developer/Halo-2-Decompiled",
+              "-B",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-69ao083w/build",
+              "-DBUILD_TESTING=ON",
+              "-DCMAKE_BUILD_TYPE=Release",
+              "-GNinja"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-libdeflate-linux-root/configure.log",
+            "exit_code": 0
+          },
+          {
+            "name": "build",
+            "command": [
+              "cmake",
+              "--build",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-69ao083w/build",
+              "--config",
+              "Release",
+              "--parallel",
+              "2",
+              "--target",
+              "vulkan_portability_tests"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-libdeflate-linux-root/build.log",
+            "exit_code": 0
+          },
+          {
+            "name": "tests",
+            "command": [
+              "ctest",
+              "--test-dir",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-69ao083w/build",
+              "--build-config",
+              "Release",
+              "--output-on-failure",
+              "--no-tests=error",
+              "--parallel",
+              "2",
+              "--tests-regex",
+              "^vulkan_portability$"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-libdeflate-linux-root/tests.log",
+            "exit_code": 0
+          }
+        ],
+        "retained_small_reports": [
+          {
+            "path": "Testing/Temporary/LastTest.log",
+            "status": "retained",
+            "bytes": 1062,
+            "sha256": "489b5fc73a46d762c3eae024683cf7f287ebcfafaa2cd1801892f0f9a48f4cd4",
+            "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-libdeflate-linux-root/evidence/Testing/Temporary/LastTest.log"
+          }
+        ]
+      },
+      "logs": {
+        "configure.log": {
+          "bytes": 4621,
+          "sha256": "95152717d0068e26c42bde119bada93dfb3ceca873e5a641565acf07879d96c4",
+          "text": "-- The CXX compiler identification is GNU 16.2.1\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: /usr/bin/c++ - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Found Vulkan: /usr/lib/libvulkan.so (found version \"1.4.363\") found components: glslc glslangValidator\n-- Found Python3: /usr/bin/python3.14 (found version \"3.14.7\") found components: Interpreter\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n-- Found Threads: TRUE\n-- Found CURL: /usr/lib/libcurl.so (found suitable version \"8.22.0\", minimum required is \"7.86\")\n-- Found OpenSSL: /usr/lib/libcrypto.so (found version \"3.6.5\") found components: Crypto\n-- Found nlohmann_json: /usr/share/cmake/nlohmann_json/nlohmann_jsonConfig.cmake (found suitable version \"3.12.0\", minimum required is \"3.10\")\n-- Found ZLIB: /usr/lib/libz.so (found version \"1.3.1\")\n-- Found PkgConfig: /usr/bin/pkg-config (found version \"3.0.7\")\n-- Checking for modules 'libavcodec;libavformat;libavutil;libswresample;libswscale'\n--   Found libavcodec, version 63.1.102\n--   Found libavformat, version 63.1.102\n--   Found libavutil, version 61.1.102\n--   Found libswresample, version 7.1.102\n--   Found libswscale, version 10.1.102\n-- Checking for module 'opus'\n--   Found opus, version 1.6.1\n-- Checking for modules 'vorbis;ogg'\n--   Found vorbis, version 1.3.7\n--   Found ogg, version 1.3.6\n-- Performing Test HALO2_XBOX_ADPCM\n-- Performing Test HALO2_XBOX_ADPCM - Success\n-- The C compiler identification is GNU 16.2.1\n-- Detecting C compiler ABI info\n-- Detecting C compiler ABI info - done\n-- Check for working C compiler: /usr/bin/cc - skipped\n-- Detecting C compile features\n-- Detecting C compile features - done\n-- Looking for include file sys/queue.h\n-- Looking for include file sys/queue.h - found\n-- Looking for include files sys/socket.h, linux/if_addr.h\n-- Looking for include files sys/socket.h, linux/if_addr.h - found\n-- Looking for include files sys/socket.h, linux/rtnetlink.h\n-- Looking for include files sys/socket.h, linux/rtnetlink.h - found\n-- Looking for 4 include files sys/types.h, ..., netinet/ip_icmp.h\n-- Looking for 4 include files sys/types.h, ..., netinet/ip_icmp.h - found\n-- Looking for 3 include files sys/types.h, ..., net/route.h\n-- Looking for 3 include files sys/types.h, ..., net/route.h - found\n-- Looking for include file stdatomic.h\n-- Looking for include file stdatomic.h - found\n-- Looking for usrsctp.h\n-- Looking for usrsctp.h - found\n-- Performing Test have_sa_len\n-- Performing Test have_sa_len - Failed\n-- Performing Test have_sin_len\n-- Performing Test have_sin_len - Failed\n-- Performing Test have_sin6_len\n-- Performing Test have_sin6_len - Failed\n-- Performing Test have_sconn_len\n-- Performing Test have_sconn_len - Failed\n-- Performing Test has_wfloat_equal\n-- Performing Test has_wfloat_equal - Success\n-- Performing Test has_wshadow\n-- Performing Test has_wshadow - Success\n-- Performing Test has_wpointer_aritih\n-- Performing Test has_wpointer_aritih - Success\n-- Performing Test has_wunreachable_code\n-- Performing Test has_wunreachable_code - Success\n-- Performing Test has_winit_self\n-- Performing Test has_winit_self - Success\n-- Performing Test has_wno_unused_function\n-- Performing Test has_wno_unused_function - Success\n-- Performing Test has_wno_unused_parameter\n-- Performing Test has_wno_unused_parameter - Success\n-- Performing Test has_wno_unreachable_code\n-- Performing Test has_wno_unreachable_code - Success\n-- Performing Test has_wstrict_prototypes\n-- Performing Test has_wstrict_prototypes - Success\n-- Compiler flags (CMAKE_C_FLAGS):  -std=c99 -pedantic -Wall -Wextra -Wfloat-equal -Wshadow -Wpointer-arith -Wunreachable-code -Winit-self -Wno-unused-function -Wno-unused-parameter -Wno-unreachable-code -Wstrict-prototypes\n-- Performing Test has_wno_address_of_packed_member\n-- Performing Test has_wno_address_of_packed_member - Success\n-- Performing Test has_wno_deprecated_declarations\n-- Performing Test has_wno_deprecated_declarations - Success\n-- Found OpenSSL: /usr/lib/libcrypto.so (found version \"3.6.5\")\nApplied pinned SCTP patch: usrsctp-freed-window-atomic.patch\nApplied pinned SCTP patch: usrsctp-free-chunks-atomic.patch\nApplied pinned SCTP patch: usrsctp-callout-flags-lock.patch\n-- Found ZLIB: /usr/lib/libz.so (found suitable version \"1.3.1\", minimum required is \"1.2.9\")\n-- Configuring done (7.3s)\n-- Generating done (2.8s)\n-- Build files have been written to: /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-69ao083w/build\n"
+        },
+        "build.log": {
+          "bytes": 198,
+          "sha256": "29c319d18dca0dff40ba6656b14b7466696c0433a7ca715e86980d7c2e8b8bf1"
+        },
+        "tests.log": {
+          "bytes": 268,
+          "sha256": "c048c3fb213fcbfd4e2c7ce683e950017c3ea975821e86cc8cf34842a5264d3a",
+          "text": "Test project /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-69ao083w/build\n    Start 207: vulkan_portability\n1/1 Test #207: vulkan_portability ...............   Passed    0.14 sec\n\n100% tests passed out of 1\n\nTotal Test time (real) =   0.19 sec\n"
+        }
+      },
+      "evidence": {
+        "Testing/Temporary/LastTest.log": "Start testing: Oct 20 22:16 EDT\n----------------------------------------------------------\n207/2282 Testing: vulkan_portability\n207/2282 Test: vulkan_portability\nCommand: \"/usr/bin/python3.14\" \"/home/eric/Developer/Halo-2-Decompiled/cmake/../tools/run_test.py\" \"--scratch-root\" \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-69ao083w/build/Testing/Temporary/scratch\" \"--\" \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-69ao083w/build/vulkan_portability_tests\"\nDirectory: /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-69ao083w/build\n\"vulkan_portability\" start time: Oct 20 22:16 EDT\nOutput:\n----------------------------------------------------------\nVulkan portability extension negotiation passed\n<end of output>\nTest time =   0.14 sec\n----------------------------------------------------------\nTest Passed.\n\"vulkan_portability\" end time: Oct 20 22:16 EDT\n\"vulkan_portability\" time elapsed: 00:00:00\n----------------------------------------------------------\n\nEnd testing: Oct 20 22:16 EDT\n"
+      }
+    }
+  },
+  "audit_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-4xnmno0_",
+  "mac": {
+    "source_hashes": {
+      "cmake/MccDecompression.cmake": "4351dd5a24a2662800589b333263062db7644ea22f5582436c862c95c3dfe4b4",
+      "cmake/macos/Libdeflate.cmake": "99fc6551bb778f98cf76dccb58451cfb55aff562740add536ac234e06091a67d",
+      "tools/macos/build_libdeflate.py": "1a885b7faefd9c067a7f52ef27c017e312f8f7038932e6de84bca361ef3c17b1",
+      "tests/macos/libdeflate/CMakeLists.txt": "214b82babdd2546be214b358af01cfed3464e83686238dcb25e2e009fcc1f92e",
+      "tests/macos/libdeflate/dependency_tests.cpp": "4000cab023aa7e133cffdcf089611253af85e22a7a2712b960cb6a3f40cbe7d5",
+      "tests/macos/libdeflate/decoder_observer.cpp": "95d56d5627a2b2e68af34088f3f8cf39c01a32ac9832adab69b17edb1f2106c6",
+      "tests/macos/libdeflate/decoder_observer.hpp": "1d003dc43bfe16e51d659b8118d2f2b481fe7de7f080193f7f0708139c33a9f5",
+      "tests/macos/libdeflate/relocation_test.py": "0e9abf0a94348b6d4b0b90ef42a1894accee03332e43bbbbcf008e046234d7ef",
+      "tests/macos/libdeflate/inspect_engine.cmake": "a7a4382fe2742a7cae603504ca161b1d2a68441bba77e91380cf74d183b2ec22",
+      "src/mcc_cache_decode.cpp": "afe34bc7ab81ddb371bba929b7509c6d450ccd6f808951acfab67d5528b76d34",
+      "tests/mcc_cache_decode_tests.cpp": "9f804da895e456410d3bea3822457e9891eb8ab06ae90630b7350101a9257235",
+      "analysis/five-second-loading-20261020/original-map-decoder.txt": "50cb564a9bbecc95e3ba8fbbeeeb16604b4bd57e7fb881ff00c161f38886d577"
+    },
+    "root_cmake_sha256": "1614c6a13e7d56a5c69b4514581c59bc18cc3fbdd5540a14540d4ffb040341ae",
+    "cohorts": {
+      "macos-libdeflate": {
+        "report": {
+          "passed": true,
+          "status": "passed",
+          "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build",
+          "steps": [
+            {
+              "name": "configure",
+              "command": [
+                "cmake",
+                "-S",
+                "/Users/eric/Developer/Halo2-macos-port/tests/macos/libdeflate",
+                "-B",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build",
+                "-DBUILD_TESTING=ON",
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-GNinja",
+                "-DHALO2_LIBDEFLATE_TEST_MAP=/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12/content/halo2/h2_maps_win64_dx11/lockout.map"
+              ],
+              "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-libdeflate/configure.log",
+              "exit_code": 0
+            },
+            {
+              "name": "build",
+              "command": [
+                "cmake",
+                "--build",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build",
+                "--config",
+                "Release",
+                "--parallel",
+                "2",
+                "--target",
+                "macos_libdeflate_tests"
+              ],
+              "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-libdeflate/build.log",
+              "exit_code": 0
+            },
+            {
+              "name": "tests",
+              "command": [
+                "ctest",
+                "--test-dir",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build",
+                "--build-config",
+                "Release",
+                "--output-on-failure",
+                "--no-tests=error",
+                "--parallel",
+                "1",
+                "--tests-regex",
+                "^macos_libdeflate_"
+              ],
+              "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-libdeflate/tests.log",
+              "exit_code": 0
+            }
+          ],
+          "retained_small_reports": [
+            {
+              "path": "Testing/Temporary/LastTest.log",
+              "status": "retained",
+              "bytes": 7818,
+              "sha256": "b9d6517d34e7caec5e6127fd230666862af3af4f33763b0b288f148294db8cd2",
+              "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-libdeflate/evidence/Testing/Temporary/LastTest.log"
+            },
+            {
+              "path": "macos-dependencies/libdeflate/manifest.json",
+              "status": "retained",
+              "bytes": 3402,
+              "sha256": "32480ae0199664286879c5be189d410d2d6b250fb7e1e0a0e5a79573c14780c7",
+              "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-libdeflate/evidence/macos-dependencies/libdeflate/manifest.json"
+            },
+            {
+              "path": "decoder-sources.json",
+              "status": "retained",
+              "bytes": 353,
+              "sha256": "9c813377fef6357c72920ea015bb8b94f27d99bb7b5351127ee54679b7896668",
+              "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-libdeflate/evidence/decoder-sources.json"
+            },
+            {
+              "path": "libdeflate-relocation.json",
+              "status": "retained",
+              "bytes": 4682,
+              "sha256": "267f2aaa040a5a99dc5378d0e165a3f4b5c399298d29950313f420d89576554a",
+              "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-libdeflate/evidence/libdeflate-relocation.json"
+            }
+          ]
+        },
+        "logs": {
+          "configure.log": {
+            "bytes": 980,
+            "sha256": "864ff6dc0bbad420408242def9a0bff9ad792d6ba937ad910bfd660742f7b99a",
+            "text": "-- The CXX compiler identification is AppleClang 21.0.0.21000334\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: /usr/bin/c++ - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Found Python3: /opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15 (found version \"3.15.0\") found components: Interpreter\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n-- Found Threads: TRUE\n-- Found ZLIB: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libz.tbd (found version \"1.2.12\")\n-- Found nlohmann_json: /opt/homebrew/share/cmake/nlohmann_json/nlohmann_jsonConfig.cmake (found version \"3.12.0\")\n-- Configuring done (1.3s)\n-- Generating done (0.0s)\n-- Build files have been written to: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build\n"
+          },
+          "build.log": {
+            "bytes": 10790,
+            "sha256": "0763182173eb05c46f9975b82cf5b733fb98a1921703b991564e904591ea3922"
+          },
+          "tests.log": {
+            "bytes": 755,
+            "sha256": "542f7a8e408cfbe43916a970154b0a2cf2fffceb5978df16de60ed35e391b713",
+            "text": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build\n    Start 1: macos_libdeflate_contract_arm64\n1/5 Test #1: macos_libdeflate_contract_arm64 ......   Passed    1.72 sec\n    Start 2: macos_libdeflate_dependency_arm64\n2/5 Test #2: macos_libdeflate_dependency_arm64 ....   Passed    0.16 sec\n    Start 3: macos_libdeflate_contract_x86_64\n3/5 Test #3: macos_libdeflate_contract_x86_64 .....   Passed    2.97 sec\n    Start 4: macos_libdeflate_dependency_x86_64\n4/5 Test #4: macos_libdeflate_dependency_x86_64 ...   Passed    0.32 sec\n    Start 5: macos_libdeflate_relocation\n5/5 Test #5: macos_libdeflate_relocation ..........   Passed    0.48 sec\n\n100% tests passed out of 5\n\nTotal Test time (real) =   5.65 sec\n"
+          }
+        },
+        "evidence": {
+          "Testing/Temporary/LastTest.log": "Start testing: Oct 20 22:15 EDT\n----------------------------------------------------------\n1/5 Testing: macos_libdeflate_contract_arm64\n1/5 Test: macos_libdeflate_contract_arm64\nCommand: \"/opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15\" \"/Users/eric/Developer/Halo2-macos-port/cmake/../tools/run_test.py\" \"--scratch-root\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/Testing/Temporary/scratch\" \"--\" \"/usr/bin/arch\" \"-arm64\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/mcc_decoder_contract_tests\"\nDirectory: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build\n\"macos_libdeflate_contract_arm64\" start time: Oct 20 22:15 EDT\nOutput:\n----------------------------------------------------------\ncontracts 100 rejections 19 concurrent 8\n<end of output>\nTest time =   1.72 sec\n----------------------------------------------------------\nTest Passed.\n\"macos_libdeflate_contract_arm64\" end time: Oct 20 22:15 EDT\n\"macos_libdeflate_contract_arm64\" time elapsed: 00:00:01\n----------------------------------------------------------\n\n2/5 Testing: macos_libdeflate_dependency_arm64\n2/5 Test: macos_libdeflate_dependency_arm64\nCommand: \"/opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15\" \"/Users/eric/Developer/Halo2-macos-port/cmake/../tools/run_test.py\" \"--scratch-root\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/Testing/Temporary/scratch\" \"--\" \"/usr/bin/arch\" \"-arm64\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/macos_libdeflate_dependency_tests.app/Contents/MacOS/macos_libdeflate_dependency_tests\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/macos_libdeflate_dependency_tests.app/Contents/Frameworks\"\nDirectory: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build\n\"macos_libdeflate_dependency_arm64\" start time: Oct 20 22:15 EDT\nOutput:\n----------------------------------------------------------\n{\"accelerator\":{\"calls\":1,\"input_bytes\":354,\"output_bytes\":7296,\"successes\":1},\"architecture\":\"arm64\",\"fixture\":{\"accelerated_seconds\":9.3666e-05,\"all_bytes_equal\":true,\"decoded_bytes\":8192,\"decoded_sha256\":\"34c1e0fef25cd071eaef96f5ebb45b707ecf1075221806f8b1d574e37124da17\",\"encoded_bytes\":1258,\"encoded_sha256\":\"7ff217eab43f54e79ecb8309266e45db255a190d6183e75d1258bcd091eb31c5\",\"serial_seconds\":1.0125e-05},\"fixture_accelerator\":{\"calls\":1,\"input_bytes\":354,\"output_bytes\":7296,\"successes\":1},\"header_version\":\"1.26\",\"loaded_libdeflate\":\"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/macos_libdeflate_dependency_tests.app/Contents/Frameworks/libdeflate.0.dylib\",\"passed\":true,\"schema\":\"H2_MACOS_LIBDEFLATE_DECODER_V1\"}\n<end of output>\nTest time =   0.16 sec\n----------------------------------------------------------\nTest Passed.\n\"macos_libdeflate_dependency_arm64\" end time: Oct 20 22:15 EDT\n\"macos_libdeflate_dependency_arm64\" time elapsed: 00:00:00\n----------------------------------------------------------\n\n3/5 Testing: macos_libdeflate_contract_x86_64\n3/5 Test: macos_libdeflate_contract_x86_64\nCommand: \"/opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15\" \"/Users/eric/Developer/Halo2-macos-port/cmake/../tools/run_test.py\" \"--scratch-root\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/Testing/Temporary/scratch\" \"--\" \"/usr/bin/arch\" \"-x86_64\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/mcc_decoder_contract_tests\"\nDirectory: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build\n\"macos_libdeflate_contract_x86_64\" start time: Oct 20 22:15 EDT\nOutput:\n----------------------------------------------------------\ncontracts 100 rejections 19 concurrent 8\n<end of output>\nTest time =   2.97 sec\n----------------------------------------------------------\nTest Passed.\n\"macos_libdeflate_contract_x86_64\" end time: Oct 20 22:16 EDT\n\"macos_libdeflate_contract_x86_64\" time elapsed: 00:00:02\n----------------------------------------------------------\n\n4/5 Testing: macos_libdeflate_dependency_x86_64\n4/5 Test: macos_libdeflate_dependency_x86_64\nCommand: \"/opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15\" \"/Users/eric/Developer/Halo2-macos-port/cmake/../tools/run_test.py\" \"--scratch-root\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/Testing/Temporary/scratch\" \"--\" \"/usr/bin/arch\" \"-x86_64\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/macos_libdeflate_dependency_tests.app/Contents/MacOS/macos_libdeflate_dependency_tests\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/macos_libdeflate_dependency_tests.app/Contents/Frameworks\"\nDirectory: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build\n\"macos_libdeflate_dependency_x86_64\" start time: Oct 20 22:16 EDT\nOutput:\n----------------------------------------------------------\n{\"accelerator\":{\"calls\":1,\"input_bytes\":354,\"output_bytes\":7296,\"successes\":1},\"architecture\":\"x86_64\",\"fixture\":{\"accelerated_seconds\":7.2583e-05,\"all_bytes_equal\":true,\"decoded_bytes\":8192,\"decoded_sha256\":\"34c1e0fef25cd071eaef96f5ebb45b707ecf1075221806f8b1d574e37124da17\",\"encoded_bytes\":1258,\"encoded_sha256\":\"7ff217eab43f54e79ecb8309266e45db255a190d6183e75d1258bcd091eb31c5\",\"serial_seconds\":1.0292e-05},\"fixture_accelerator\":{\"calls\":1,\"input_bytes\":354,\"output_bytes\":7296,\"successes\":1},\"header_version\":\"1.26\",\"loaded_libdeflate\":\"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/macos_libdeflate_dependency_tests.app/Contents/Frameworks/libdeflate.0.dylib\",\"passed\":true,\"schema\":\"H2_MACOS_LIBDEFLATE_DECODER_V1\"}\n<end of output>\nTest time =   0.32 sec\n----------------------------------------------------------\nTest Passed.\n\"macos_libdeflate_dependency_x86_64\" end time: Oct 20 22:16 EDT\n\"macos_libdeflate_dependency_x86_64\" time elapsed: 00:00:00\n----------------------------------------------------------\n\n5/5 Testing: macos_libdeflate_relocation\n5/5 Test: macos_libdeflate_relocation\nCommand: \"/opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15\" \"/Users/eric/Developer/Halo2-macos-port/cmake/../tools/run_test.py\" \"--scratch-root\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/Testing/Temporary/scratch\" \"--\" \"/opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15\" \"-B\" \"/Users/eric/Developer/Halo2-macos-port/tests/macos/libdeflate/relocation_test.py\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/macos_libdeflate_dependency_tests.app\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/macos-dependencies/libdeflate\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/libdeflate-relocation.json\" \"/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12/content/halo2/h2_maps_win64_dx11/lockout.map\" \"arm64\" \"x86_64\"\nDirectory: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build\n\"macos_libdeflate_relocation\" start time: Oct 20 22:16 EDT\nOutput:\n----------------------------------------------------------\n<end of output>\nTest time =   0.48 sec\n----------------------------------------------------------\nTest Passed.\n\"macos_libdeflate_relocation\" end time: Oct 20 22:16 EDT\n\"macos_libdeflate_relocation\" time elapsed: 00:00:00\n----------------------------------------------------------\n\nEnd testing: Oct 20 22:16 EDT\n",
+          "decoder-sources.json": {
+            "serial_sha256": "50cb564a9bbecc95e3ba8fbbeeeb16604b4bd57e7fb881ff00c161f38886d577",
+            "inflater_sha256": "744195afd95bea31cadd0a9b6bc965f986aa6662230435897693d3560b43f553",
+            "production_decoder_sha256": "afe34bc7ab81ddb371bba929b7509c6d450ccd6f808951acfab67d5528b76d34",
+            "bytes_owner_sha256": "47afa44724948305dd258eb141252c8be3e10c8d7e07406b43668edeedb24b2b"
+          },
+          "libdeflate-relocation.json": {
+            "schema": "H2_MACOS_LIBDEFLATE_RELOCATION_V1",
+            "runs": [
+              {
+                "architecture": "arm64",
+                "command": [
+                  "/usr/bin/arch",
+                  "-arm64",
+                  "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/Testing/Temporary/scratch/halo2-test-x2ds5aun/Folder with spaces/macos_libdeflate_dependency_tests.app/Contents/MacOS/macos_libdeflate_dependency_tests",
+                  "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/Testing/Temporary/scratch/halo2-test-x2ds5aun/Folder with spaces/macos_libdeflate_dependency_tests.app/Contents/Frameworks",
+                  "/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12/content/halo2/h2_maps_win64_dx11/lockout.map"
+                ],
+                "decoder": {
+                  "accelerator": {
+                    "calls": 16,
+                    "input_bytes": 1818789,
+                    "output_bytes": 3784320,
+                    "successes": 16
+                  },
+                  "architecture": "arm64",
+                  "fixture": {
+                    "accelerated_seconds": 7e-05,
+                    "all_bytes_equal": true,
+                    "decoded_bytes": 8192,
+                    "decoded_sha256": "34c1e0fef25cd071eaef96f5ebb45b707ecf1075221806f8b1d574e37124da17",
+                    "encoded_bytes": 1258,
+                    "encoded_sha256": "7ff217eab43f54e79ecb8309266e45db255a190d6183e75d1258bcd091eb31c5",
+                    "serial_seconds": 8.25e-06
+                  },
+                  "fixture_accelerator": {
+                    "calls": 1,
+                    "input_bytes": 354,
+                    "output_bytes": 7296,
+                    "successes": 1
+                  },
+                  "header_version": "1.26",
+                  "loaded_libdeflate": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/Testing/Temporary/scratch/halo2-test-x2ds5aun/Folder with spaces/macos_libdeflate_dependency_tests.app/Contents/Frameworks/libdeflate.0.dylib",
+                  "owned_map": {
+                    "accelerated_seconds": 0.00279225,
+                    "all_bytes_equal": true,
+                    "decoded_bytes": 3777920,
+                    "decoded_sha256": "d137b6511eec0753304be4f72c5047e4462d02dc25bece0fc9f190d7c68e7bd2",
+                    "encoded_bytes": 1820416,
+                    "encoded_sha256": "97d034dca2109adde65e56c0ab78ee56f72045b56bf9b3200f304d5e1ff4c61e",
+                    "serial_seconds": 0.007108417
+                  },
+                  "passed": true,
+                  "schema": "H2_MACOS_LIBDEFLATE_DECODER_V1"
+                }
+              },
+              {
+                "architecture": "x86_64",
+                "command": [
+                  "/usr/bin/arch",
+                  "-x86_64",
+                  "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/Testing/Temporary/scratch/halo2-test-x2ds5aun/Folder with spaces/macos_libdeflate_dependency_tests.app/Contents/MacOS/macos_libdeflate_dependency_tests",
+                  "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/Testing/Temporary/scratch/halo2-test-x2ds5aun/Folder with spaces/macos_libdeflate_dependency_tests.app/Contents/Frameworks",
+                  "/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12/content/halo2/h2_maps_win64_dx11/lockout.map"
+                ],
+                "decoder": {
+                  "accelerator": {
+                    "calls": 16,
+                    "input_bytes": 1818789,
+                    "output_bytes": 3784320,
+                    "successes": 16
+                  },
+                  "architecture": "x86_64",
+                  "fixture": {
+                    "accelerated_seconds": 6.3125e-05,
+                    "all_bytes_equal": true,
+                    "decoded_bytes": 8192,
+                    "decoded_sha256": "34c1e0fef25cd071eaef96f5ebb45b707ecf1075221806f8b1d574e37124da17",
+                    "encoded_bytes": 1258,
+                    "encoded_sha256": "7ff217eab43f54e79ecb8309266e45db255a190d6183e75d1258bcd091eb31c5",
+                    "serial_seconds": 1.025e-05
+                  },
+                  "fixture_accelerator": {
+                    "calls": 1,
+                    "input_bytes": 354,
+                    "output_bytes": 7296,
+                    "successes": 1
+                  },
+                  "header_version": "1.26",
+                  "loaded_libdeflate": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/Testing/Temporary/scratch/halo2-test-x2ds5aun/Folder with spaces/macos_libdeflate_dependency_tests.app/Contents/Frameworks/libdeflate.0.dylib",
+                  "owned_map": {
+                    "accelerated_seconds": 0.0031495,
+                    "all_bytes_equal": true,
+                    "decoded_bytes": 3777920,
+                    "decoded_sha256": "d137b6511eec0753304be4f72c5047e4462d02dc25bece0fc9f190d7c68e7bd2",
+                    "encoded_bytes": 1820416,
+                    "encoded_sha256": "97d034dca2109adde65e56c0ab78ee56f72045b56bf9b3200f304d5e1ff4c61e",
+                    "serial_seconds": 0.008469167
+                  },
+                  "passed": true,
+                  "schema": "H2_MACOS_LIBDEFLATE_DECODER_V1"
+                }
+              }
+            ],
+            "passed": true
+          },
+          "macos-dependencies/libdeflate/manifest.json": {
+            "schema": "H2_MACOS_LIBDEFLATE_SDK_V1",
+            "version": "1.26",
+            "source_url": "https://github.com/ebiggers/libdeflate/releases/download/v1.26/libdeflate-1.26.tar.gz",
+            "source_sha256": "125856d4656e0feab660f94842f835923410c9281fedbcee64598c918da42b5a",
+            "architectures": [
+              "arm64",
+              "x86_64"
+            ],
+            "deployment_target": "13.0",
+            "configurations": {
+              "arm64": {
+                "configure": [
+                  "cmake",
+                  "-S",
+                  "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/macos-dependencies/libdeflate-work/libdeflate-1.26",
+                  "-B",
+                  "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/macos-dependencies/libdeflate-work/arm64-build",
+                  "-G",
+                  "Ninja",
+                  "-DCMAKE_BUILD_TYPE=Release",
+                  "-DCMAKE_INSTALL_PREFIX=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/macos-dependencies/libdeflate-work/arm64-install",
+                  "-DCMAKE_TOOLCHAIN_FILE=/Users/eric/Developer/Halo2-macos-port/cmake/macos/DependencyToolchain.cmake",
+                  "-DHALO2_DEPENDENCY_ARCH=arm64",
+                  "-DCMAKE_OSX_DEPLOYMENT_TARGET=13.0",
+                  "-DCMAKE_INSTALL_NAME_DIR=@rpath",
+                  "-DLIBDEFLATE_BUILD_SHARED_LIB=ON",
+                  "-DLIBDEFLATE_BUILD_STATIC_LIB=OFF",
+                  "-DLIBDEFLATE_BUILD_GZIP=OFF",
+                  "-DLIBDEFLATE_BUILD_TESTS=OFF",
+                  "-DLIBDEFLATE_INSTALL=ON"
+                ],
+                "header_sha256": "1bb50a3ff8c6980c1031c0e9bb324cf99df51379fdca77a358644cca841765cc",
+                "library_sha256": "535a785145f41c6d5f79f89962a88713422729f11a3aae356d6c4d21a1816271",
+                "dependencies": [
+                  "/usr/lib/libSystem.B.dylib"
+                ]
+              },
+              "x86_64": {
+                "configure": [
+                  "cmake",
+                  "-S",
+                  "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/macos-dependencies/libdeflate-work/libdeflate-1.26",
+                  "-B",
+                  "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/macos-dependencies/libdeflate-work/x86_64-build",
+                  "-G",
+                  "Ninja",
+                  "-DCMAKE_BUILD_TYPE=Release",
+                  "-DCMAKE_INSTALL_PREFIX=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/macos-dependencies/libdeflate-work/x86_64-install",
+                  "-DCMAKE_TOOLCHAIN_FILE=/Users/eric/Developer/Halo2-macos-port/cmake/macos/DependencyToolchain.cmake",
+                  "-DHALO2_DEPENDENCY_ARCH=x86_64",
+                  "-DCMAKE_OSX_DEPLOYMENT_TARGET=13.0",
+                  "-DCMAKE_INSTALL_NAME_DIR=@rpath",
+                  "-DLIBDEFLATE_BUILD_SHARED_LIB=ON",
+                  "-DLIBDEFLATE_BUILD_STATIC_LIB=OFF",
+                  "-DLIBDEFLATE_BUILD_GZIP=OFF",
+                  "-DLIBDEFLATE_BUILD_TESTS=OFF",
+                  "-DLIBDEFLATE_INSTALL=ON"
+                ],
+                "header_sha256": "1bb50a3ff8c6980c1031c0e9bb324cf99df51379fdca77a358644cca841765cc",
+                "library_sha256": "14cbbf09fc57894514843ea51f57ea6c4702b0dc83746a08645387b92c069931",
+                "dependencies": [
+                  "/usr/lib/libSystem.B.dylib"
+                ]
+              }
+            },
+            "header_sha256": "1bb50a3ff8c6980c1031c0e9bb324cf99df51379fdca77a358644cca841765cc",
+            "library_sha256": "b6e39721d912be7a7340df4e1ad14e53d4665e5ee324ce7a0c33fd231f6af322",
+            "license_sha256": "4ad69099cb4374836fd27583d9991e2838cd86b6e4666ab26b2d32582c91e73a",
+            "prefix": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216/build/macos-dependencies/libdeflate"
+          }
+        }
+      },
+      "macos-libdeflate-engine": {
+        "report": {
+          "passed": true,
+          "status": "passed",
+          "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-5avk2jfv/build",
+          "steps": [
+            {
+              "name": "configure",
+              "command": [
+                "cmake",
+                "-S",
+                "/Users/eric/Developer/Halo2-macos-port",
+                "-B",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-5avk2jfv/build",
+                "-DBUILD_TESTING=ON",
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-GNinja",
+                "-DSDL2_DIR=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8odwhy4h/sdk/cmake/SDL2",
+                "-DHALO2_MOLTENVK_LIBRARY=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8odwhy4h/sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib",
+                "-DHALO2_MOLTENVK_LICENSE=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8odwhy4h/sdk/MoltenVK/LICENSE",
+                "-DHALO2_SDL_LICENSE=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8odwhy4h/SDL2-LICENSE.txt",
+                "-DCMAKE_PROJECT_INCLUDE=/Users/eric/Developer/Halo2-macos-port/tests/macos/libdeflate/inspect_engine.cmake",
+                "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+                "-DHALO2_BUNDLE_MOVIES=OFF"
+              ],
+              "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-libdeflate-engine/configure.log",
+              "exit_code": 0
+            },
+            {
+              "name": "build",
+              "command": [
+                "cmake",
+                "--build",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-5avk2jfv/build",
+                "--config",
+                "Release",
+                "--parallel",
+                "2",
+                "--target",
+                "vulkan_portability_tests"
+              ],
+              "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-libdeflate-engine/build.log",
+              "exit_code": 0
+            },
+            {
+              "name": "tests",
+              "command": [
+                "ctest",
+                "--test-dir",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-5avk2jfv/build",
+                "--build-config",
+                "Release",
+                "--output-on-failure",
+                "--no-tests=error",
+                "--parallel",
+                "1",
+                "--tests-regex",
+                "^vulkan_portability$"
+              ],
+              "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-libdeflate-engine/tests.log",
+              "exit_code": 0
+            }
+          ],
+          "retained_small_reports": [
+            {
+              "path": "Testing/Temporary/LastTest.log",
+              "status": "retained",
+              "bytes": 1113,
+              "sha256": "2fc691ae346eb5429ce638a4616d2bb249dd1e67a57991ac6b3163c85d542ee7",
+              "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-libdeflate-engine/evidence/Testing/Temporary/LastTest.log"
+            },
+            {
+              "path": "libdeflate-engine-selection.json",
+              "status": "retained",
+              "bytes": 670,
+              "sha256": "697b7f94b94ce22e14a03adc5659e5604f869caa6ec47eee99fb3f0ddba597ea",
+              "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-libdeflate-engine/evidence/libdeflate-engine-selection.json"
+            }
+          ]
+        },
+        "logs": {
+          "configure.log": {
+            "bytes": 4621,
+            "sha256": "a9f07f50bf18d4324d5af6cc70b74a876295cc2cda9d34b946dc770ec5030d54",
+            "text": "-- The CXX compiler identification is AppleClang 21.0.0.21000334\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: /usr/bin/c++ - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Found Python3: /opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15 (found version \"3.15.0\") found components: Interpreter\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n-- Found Threads: TRUE\n-- Found CURL: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libcurl.tbd (found suitable version \"8.7.1\", minimum required is \"7.86\")\n-- Found nlohmann_json: /opt/homebrew/share/cmake/nlohmann_json/nlohmann_jsonConfig.cmake (found suitable version \"3.12.0\", minimum required is \"3.10\")\n-- Found ZLIB: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libz.tbd (found version \"1.2.12\")\n-- Found PkgConfig: /opt/homebrew/bin/pkg-config (found version \"3.0.10\")\n-- The C compiler identification is AppleClang 21.0.0.21000334\n-- Detecting C compiler ABI info\n-- Detecting C compiler ABI info - done\n-- Check for working C compiler: /usr/bin/cc - skipped\n-- Detecting C compile features\n-- Detecting C compile features - done\n-- Looking for include file sys/queue.h\n-- Looking for include file sys/queue.h - found\n-- Looking for include files sys/socket.h, linux/if_addr.h\n-- Looking for include files sys/socket.h, linux/if_addr.h - not found\n-- Looking for include files sys/socket.h, linux/rtnetlink.h\n-- Looking for include files sys/socket.h, linux/rtnetlink.h - not found\n-- Looking for 4 include files sys/types.h, ..., netinet/ip_icmp.h\n-- Looking for 4 include files sys/types.h, ..., netinet/ip_icmp.h - found\n-- Looking for 3 include files sys/types.h, ..., net/route.h\n-- Looking for 3 include files sys/types.h, ..., net/route.h - found\n-- Looking for include file stdatomic.h\n-- Looking for include file stdatomic.h - found\n-- Looking for usrsctp.h\n-- Looking for usrsctp.h - found\n-- Performing Test have_sa_len\n-- Performing Test have_sa_len - Success\n-- have_sa_len\n-- Performing Test have_sin_len\n-- Performing Test have_sin_len - Success\n-- have_sin_len\n-- Performing Test have_sin6_len\n-- Performing Test have_sin6_len - Success\n-- have_sin6_len\n-- Performing Test have_sconn_len\n-- Performing Test have_sconn_len - Success\n-- HAVE_SCONN_LEN\n-- Performing Test has_wfloat_equal\n-- Performing Test has_wfloat_equal - Success\n-- Performing Test has_wshadow\n-- Performing Test has_wshadow - Success\n-- Performing Test has_wpointer_aritih\n-- Performing Test has_wpointer_aritih - Success\n-- Performing Test has_wunreachable_code\n-- Performing Test has_wunreachable_code - Success\n-- Performing Test has_winit_self\n-- Performing Test has_winit_self - Success\n-- Performing Test has_wno_unused_function\n-- Performing Test has_wno_unused_function - Success\n-- Performing Test has_wno_unused_parameter\n-- Performing Test has_wno_unused_parameter - Success\n-- Performing Test has_wno_unreachable_code\n-- Performing Test has_wno_unreachable_code - Success\n-- Performing Test has_wstrict_prototypes\n-- Performing Test has_wstrict_prototypes - Success\n-- Compiler flags (CMAKE_C_FLAGS):  -std=c99 -pedantic -Wall -Wextra -Wfloat-equal -Wshadow -Wpointer-arith -Wunreachable-code -Winit-self -Wno-unused-function -Wno-unused-parameter -Wno-unreachable-code -Wstrict-prototypes\n-- Performing Test has_wno_address_of_packed_member\n-- Performing Test has_wno_address_of_packed_member - Success\n-- Performing Test has_wno_deprecated_declarations\n-- Performing Test has_wno_deprecated_declarations - Success\nApplied pinned SCTP patch: usrsctp-freed-window-atomic.patch\nApplied pinned SCTP patch: usrsctp-free-chunks-atomic.patch\nApplied pinned SCTP patch: usrsctp-callout-flags-lock.patch\n-- The OBJCXX compiler identification is AppleClang 21.0.0.21000334\n-- Detecting OBJCXX compiler ABI info\n-- Detecting OBJCXX compiler ABI info - done\n-- Check for working OBJCXX compiler: /usr/bin/clang++ - skipped\n-- Found ZLIB: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libz.tbd (found suitable version \"1.2.12\", minimum required is \"1.2.9\")\n-- Configuring done (10.6s)\n-- Generating done (1.8s)\nCMake Warning (unused-cli):\n  Manually-specified variables were not used by the project:\n\n    SDL2_DIR\n\n\n-- Build files have been written to: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-5avk2jfv/build\n"
+          },
+          "build.log": {
+            "bytes": 198,
+            "sha256": "29c319d18dca0dff40ba6656b14b7466696c0433a7ca715e86980d7c2e8b8bf1"
+          },
+          "tests.log": {
+            "bytes": 268,
+            "sha256": "ba21ff026341fc0382f39f13ff4dbd1606f1b67371a0fea7fc4621f4c18afad4",
+            "text": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-5avk2jfv/build\n    Start 185: vulkan_portability\n1/1 Test #185: vulkan_portability ...............   Passed    0.40 sec\n\n100% tests passed out of 1\n\nTotal Test time (real) =   0.43 sec\n"
+          }
+        },
+        "evidence": {
+          "Testing/Temporary/LastTest.log": "Start testing: Oct 20 22:20 EDT\n----------------------------------------------------------\n185/1890 Testing: vulkan_portability\n185/1890 Test: vulkan_portability\nCommand: \"/opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15\" \"/Users/eric/Developer/Halo2-macos-port/cmake/../tools/run_test.py\" \"--scratch-root\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-5avk2jfv/build/Testing/Temporary/scratch\" \"--\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-5avk2jfv/build/vulkan_portability_tests\"\nDirectory: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-5avk2jfv/build\n\"vulkan_portability\" start time: Oct 20 22:20 EDT\nOutput:\n----------------------------------------------------------\nVulkan portability extension negotiation passed\n<end of output>\nTest time =   0.40 sec\n----------------------------------------------------------\nTest Passed.\n\"vulkan_portability\" end time: Oct 20 22:20 EDT\n\"vulkan_portability\" time elapsed: 00:00:00\n----------------------------------------------------------\n\nEnd testing: Oct 20 22:20 EDT\n",
+          "libdeflate-engine-selection.json": {
+            "accelerator_defined": true,
+            "full_engine_built": false,
+            "library": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-5avk2jfv/build/macos-dependencies/libdeflate/lib/libdeflate.0.dylib",
+            "license_registered": true,
+            "notice": "Libdeflate=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-5avk2jfv/build/macos-dependencies/libdeflate/share/licenses/Libdeflate.txt",
+            "passed": true,
+            "requested_architectures": "arm64;x86_64",
+            "root_cmake_sha256": "1614c6a13e7d56a5c69b4514581c59bc18cc3fbdd5540a14540d4ffb040341ae",
+            "schema": "H2_MACOS_LIBDEFLATE_ENGINE_SELECTION_V1",
+            "sdk_build_dependency": true
+          }
+        }
+      }
+    },
+    "baseline": {
+      "schema": "H2_MACOS_LIBDEFLATE_HOST_BASELINE_V1",
+      "command": [
+        "/usr/bin/clang++",
+        "-arch",
+        "arm64",
+        "-arch",
+        "x86_64",
+        "-I/opt/homebrew/include",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-id_f8ttq/dependency.cpp",
+        "/opt/homebrew/Cellar/libdeflate/1.26/lib/libdeflate.dylib",
+        "-o",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-id_f8ttq/dependency"
+      ],
+      "exit": 1,
+      "library": "/opt/homebrew/Cellar/libdeflate/1.26/lib/libdeflate.0.dylib",
+      "library_sha256": "9d9dbada77f94f88e856d42731b1dc9f0004e922aa4c441557f383b2cdf5fcb0",
+      "architectures": [
+        "arm64"
+      ],
+      "stdout": "",
+      "stderr": "ld: warning: ignoring file '/opt/homebrew/Cellar/libdeflate/1.26/lib/libdeflate.dylib': found architecture 'arm64', required architecture 'x86_64'\nUndefined symbols for architecture x86_64:\n  \"_libdeflate_alloc_decompressor\", referenced from:\n      _main in dependency-x86_64.o\n  \"_libdeflate_free_decompressor\", referenced from:\n      _main in dependency-x86_64.o\nld: symbol(s) not found for architecture x86_64\nclang++: error: linker command failed with exit code 1 (use -v to see invocation)\n",
+      "scratch": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-id_f8ttq"
+    },
+    "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B118\n",
+    "cleanup": {
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-id_f8ttq": true,
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w5upe216": true,
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-5avk2jfv": true,
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-8odwhy4h": true
+    },
+    "processes": [],
+    "mounts": [],
+    "preserved_original_mcc": {
+      "path": "/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12",
+      "exists": true
+    }
+  },
+  "linux_cleanup": {
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-70dkstlo": true,
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-gh0oqpjf": true,
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-69ao083w": true
+  },
+  "linux_owned_processes": [],
+  "compiled_source_metadata_equal": true,
+  "cross_host_map_comparisons": [
+    {
+      "architecture": "arm64",
+      "matches_linux_serial_reference": {
+        "encoded_bytes": true,
+        "decoded_bytes": true,
+        "encoded_sha256": true,
+        "decoded_sha256": true,
+        "all_bytes_equal": true
+      }
+    },
+    {
+      "architecture": "x86_64",
+      "matches_linux_serial_reference": {
+        "encoded_bytes": true,
+        "decoded_bytes": true,
+        "encoded_sha256": true,
+        "decoded_sha256": true,
+        "all_bytes_equal": true
+      }
+    }
+  ],
+  "passed_ctest_executions": 9,
+  "baseline_cpp": "#include <libdeflate.h>\nint main(){auto* p=libdeflate_alloc_decompressor();if(!p)return 1;libdeflate_free_decompressor(p);return 0;}\n",
+  "transient_connection_note": "An SSH banner timeout returned255 before the initial Mac test started. The source transfer completed; a later bounded connection successfully ran the cohort. The test used a temporary caffeinate assertion tied to its process, with no persistent power-setting change.",
+  "verification_scope": [
+    "Actual old thin-library universal link failure; checksum-pinned shared SDK built and executed on both Mac CPUs.",
+    "Unchanged production MCC decoder and Bytes owner; separately pinned pre-optimization serial decoder and production zlib inflater.",
+    "Each Mac CPU passes100 contracts including19 malformed rejections and8 concurrent callers.",
+    "Real forwarding observation of successful accelerator calls; no supplied decoded bytes.",
+    "Signed relocated app executes with original SDK hidden and validates every owned Lockout decoded byte on both CPUs.",
+    "Complete engine graph inspected for actual accelerator macro, imported target, build dependency and license registration; only focused portability is built there."
+  ],
+  "remaining": [
+    "Complete engine dependency closure and playable menu/campaign/multiplayer/audio/input/display acceptance remain open.",
+    "Exact source x87/SSE numerical backend remains deferred.",
+    "Source depth/geometry handling and authenticated loading PCM/preparation remain open.",
+    "Physical Intel, older macOS and release signing/notarization remain unverified."
+  ],
+  "new_large_artifacts_retained": [],
+  "passed": true,
+  "audit_scratch_removed": true
+}

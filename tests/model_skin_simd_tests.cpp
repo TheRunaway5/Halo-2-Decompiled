@@ -1,5 +1,6 @@
-#include "model_skin_vertices.hpp"
-#include "model_world_pose_cache.hpp"
+#include "rendering/models/model_skin_vertices.hpp"
+#include "rendering/models/model_world_pose_cache.hpp"
+#include "rendering/models/model_frame_pose_cache.hpp"
 #include <bit>
 #include <chrono>
 #include <cstdlib>
@@ -78,6 +79,25 @@ void assets(const std::filesystem::path &root) {
             caches.emplace(name,std::make_unique<Cache>(path));
         }
         const auto model=caches.at(name)->load_model(datum,false);
+        {
+            ModelFramePoseCache frame;
+            const auto nodes=pose_model_nodes(model);
+            const auto expected=skin_model_world_nodes(model,nodes);
+            // The live vehicle caller visits multiple selected sections in
+            // each view. Identical pose/LOD owners must build exactly once.
+            for(unsigned view=0;view<4;++view)for(unsigned section=0;section<3;++section)
+                equal(expected,frame.update(0x10001u,2,model,nodes));
+            require(frame.builds()==1 && frame.reuses()==11,"Repeated view/section skins were rebuilt");
+            equal(expected,frame.update(0x20001u,2,model,nodes));
+            equal(expected,frame.update(0x10001u,3,model,nodes));
+            require(frame.builds()==3,"Distinct source owners or LODs shared an unowned skin");
+            if(!nodes.empty()) {
+                auto changed=nodes;changed[0].position.x+=.125f;
+                const auto expected_changed=skin_model_world_nodes(model,changed);
+                equal(expected_changed,frame.update(0x10001u,2,model,changed));
+                require(frame.builds()==4,"Changed same-frame WORLD nodes retained a stale skin");
+            }
+        }
         ModelWorldPoseCache retained;std::vector<Transform> previous_nodes;
         for(unsigned frame=0;frame<3;++frame) {
             Transform root_transform;root_transform.position={float(frame)*3.125f,-float(frame)*.07f,float(frame)*.625f};

@@ -1,4 +1,6 @@
 #pragma once
+#include "halo2/source_hud_messages.hpp"
+#include "halo2/source_control_target.hpp"
 #include "halo2/source_execution_inputs.hpp"
 #include "halo2/source_main_camera_receipt_tu15.hpp"
 #include "halo2/source_scenario_birth.hpp"
@@ -6,8 +8,10 @@
 #include "halo2/physics_world_runtime.hpp"
 #include "halo2/source_effect_light_birth_tu15.hpp"
 #include "halo2/source_runtime_memory.hpp"
+#include "halo2/source_multiplayer_engine_entity_tu15.hpp"
 #include <filesystem>
 #include <memory>
+#include <thread>
 #include <utility>
 #include "halo2/transform.hpp"
 #include "halo2/source_player_profile.hpp"
@@ -25,11 +29,15 @@
 #include "halo2/physics_pool_host_storage.hpp"
 #include "halo2/physics_platform_locks.hpp"
 #include "halo2/source_object_draw_collector.hpp"
+#include "halo2/source_object_admission_memory.hpp"
 
 #include "halo2/source_object_attachment_tu15.hpp"
+#include "halo2/source_round_lifecycle.hpp"
+#include "halo2/source_game_over.hpp"
 
 namespace halo2 {
 class Cache;
+class SdlSoundPlatform;
 class MccSoundVariationProvider;
 class MccScriptSoundWorldAccess;
 class RendererPaletteFactory;
@@ -74,10 +82,44 @@ using SourceFirstPersonPhaseObserverTu15=std::function<void(bool,
 using SourceSoundSubmitObserverTu15=std::function<void(bool,std::uint32_t,
     std::uint32_t,const SourcePhysicsWorldRuntimeAbi &,const SourceRuntimeMemory &,
     std::span<const std::uint32_t>,std::span<const SourceFirstPersonCpuInputTu15>)>;
+// Completed original caller intent, copied before admission mutates its
+// backing. A native output adapter may consume it without supplying a source
+// admission/voice result. Independent of diagnostic instruction tracing.
+using SourceSoundRequestObserverTu15=std::function<void(std::uint32_t,
+    std::span<const std::byte,160>)>;
+struct SourceTeleporterActivationTu15 {
+    std::uint32_t player{},sound=0xffffffffu;
+};
+struct SourceTeleporterEventsTu15 {
+    std::vector<SourceTeleporterActivationTu15> activations;
+    std::vector<SourceHudMessageEvent> notices;
+};
+// The source world owns its engine/player phases by default. Existing native
+// match adapters own that interval until their state and consumers migrate;
+// callers select exactly one owner for a tick, without checkpointed policy.
+enum class SourceEngineFrameOwnerTu15 { World, MatchAdapter };
+// Completed original engine bank, read without advancing any owner.
+struct SourceMultiplayerEngineStateTu15 {
+    SourceRoundLifecycle round;
+    SourceGameEndStats statistics;
+    SourceResultRecording recording;
+    SourceGameOverState game_over;
+    std::uint16_t retained_teams{};
+    bool finalized{};
+};
+// Actual15DDC0 input and completed outcome. NONE is a real tied/no-winner
+// result; consumers must not infer a winner from accumulated win counters.
+struct SourceMultiplayerRoundEndTu15 {
+    std::uint32_t winner=0xffffffffu,tick{};
+    std::int16_t round{};
+    bool team{},game_over{};
+};
 struct SourceBspPartCommandState;
 // Read-only publication of the actual101BC0 ->178E30 explosion request.
 // Locations are the completed source effect's retained3C records, including
 // their full34-byte world frames. No trajectory or effect frame is inferred.
+// effect_instance is the actual constructed identity; a finite effect may
+// already retire during its first update before the creation call returns.
 struct SourceProjectileDetonationTu15 {
     std::uint32_t projectile,definition,effect,effect_instance,player,unit;
     std::array<std::byte,0x60> request;
@@ -206,6 +248,7 @@ public:
         const SourceObjectAdmission&,std::uint32_t mode);
     SourceObjectAdmission admit_render_objects(const SourcePortalVisibilitySet&,
         const SourceObjectAdmissionInput&,std::span<const std::array<std::uint32_t,4>> prior={})const;
+    SourceObjectClusterMemberships render_cluster_memberships()const;
     SourceObjectDrawCollector build_world_model(std::uint32_t object,unsigned view,
         unsigned local_players,bool view_modifier,float geometry_metric,float lighting_metric);
     // Complete builder for a current render-entry/child request. The caller
@@ -214,8 +257,20 @@ public:
         unsigned view,unsigned local_players,bool view_modifier);
     // The native roster ordinal disambiguates offline identities on this
     // machine; it does not bind the original four local input/view records.
+    // The platform address produces the player ID. The separate simulation
+    // machine key comes from this world's already constructed local owner.
     void construct_player(std::uint32_t player,unsigned native_identity_ordinal,
                           const SourcePlayerConfiguration &,const SourceMachineIdentity &);
+    // Match the caller's start bank to this cache's authored scenario. A
+    // separately declared native placement keeps its existing input owner.
+    bool uses_scenario_player_spawns(std::span<const Spawn>) const;
+    // Complete151DA0, with real14FDC0 activation when needed. The caller owns
+    // respawn admission; the source factory owns selection, birth, binding,
+    // equipment and completion stores. NONE preserves its actual failure.
+    std::uint32_t birth_player(std::uint32_t player);
+    SourceMultiplayerEngineStateTu15 multiplayer_engine_state() const;
+    SourceMultiplayerEngineEntityTu15 multiplayer_engine_entity() const;
+    void observe_multiplayer_round_end(std::function<void(const SourceMultiplayerRoundEndTu15 &)>);
     // Native roster input, before player allocation/configuration. Original
     // team-mask and existing-player configuration owners consume the change.
     void publish_roster_team(unsigned user,std::int8_t team);
@@ -236,11 +291,16 @@ public:
         Vec3 position,Vec3 forward,Vec3 up,const SourceFirstPersonPhaseObserverTu15 & = {});
     void observe_first_person_phase(SourceFirstPersonPhaseObserverTu15);
     void observe_sound_submissions(SourceSoundSubmitObserverTu15);
+    void observe_sound_requests(SourceSoundRequestObserverTu15);
     void observe_effect_light_births(SourceEffectLightBirthObserverTu15);
     // Bind an actual owned EEPROM resource before source audio construction.
     // This retains only its immutable non-key UserSettings section; absence
     // never becomes a speaker/configuration or initialized-device default.
     void bind_sound_user_settings(const std::filesystem::path &);
+    // Retain real native output and the existing application speaker policy.
+    // Original SDK construction/reset/DMA code still owns every source result.
+    // A bound device cannot be exported through a world authority checkpoint.
+    void bind_native_sound_output(std::shared_ptr<SdlSoundPlatform>,const std::filesystem::path &);
     // Explicit observed boot-SMC transaction inputs, before source audio
     // construction. The original kernel expression publishes immutable data;
     // this does not select a mode or supply a device-initialization result.
@@ -267,7 +327,19 @@ public:
     // Original C93D0 constructs the 7C command; C92C0 delivers declared
     // throttle/facing inputs synchronously. The actual controller solves motion.
     void deliver_unit_input(std::uint32_t unit,Vec3 throttle,Vec3 facing);
-    void step_objects();
+    void step_objects(SourceEngineFrameOwnerTu15 = SourceEngineFrameOwnerTu15::World);
+    // Actual15EBA0 teleporter phase: registered engine, raw mode !=4,
+    // whole1A6830 before player callbacks and world movement. No clock advance.
+    std::vector<SourceTeleporterActivationTu15> step_teleporters(
+        std::vector<SourceHudMessageEvent> *notices=nullptr);
+    // Completed outputs at actual15EBEE ->1A6830, before later player/world
+    // work. The world rebases its retained input; the observer only copies
+    // presentation data and cannot advance another source owner.
+    void observe_multiplayer_teleporters(std::function<void(const SourceTeleporterEventsTu15 &)>);
+    std::array<float,2> hud_message_timing()const;
+    // Rebase the native player's retained source input through18A2A0 using
+    // its completed unit forward. Raw native look deltas keep their baseline.
+    void reorient_player_look(std::uint32_t player,std::uint32_t unit);
     // Original13AA28's complete179DF0 particle phase. The caller delivers its
     // actual frame delta once per frame. Other13A9B0 owners remain separate.
     void advance_effect_particles(float frame_seconds,const SourceFirstPersonPhaseObserverTu15& observer={});
@@ -292,6 +364,9 @@ public:
     void prepare_player_look(std::uint32_t player,std::uint32_t object,
         std::span<std::byte,0x5c> command);
     std::optional<Vec2> player_look(std::uint32_t player,std::uint32_t unit) const;
+    // Read the completed153BA0 result retained by the actual player's input
+    // producer. No query executes during presentation;full generations match.
+    std::optional<SourcePlayerActionTarget> player_action_target(std::uint32_t player,std::uint32_t unit) const;
     void populate_weapon_selection(std::uint32_t unit,std::span<std::byte,0x5c> command,bool switch_weapon);
     // Complete original TU1.5 13DC44 target-mask owner over the actual unit.
     std::uint32_t weapon_hud_target_flags(std::uint32_t unit);
@@ -328,6 +403,9 @@ public:
     void set_object_position(std::uint32_t object,Vec3 position);
     void set_kill_volume_enabled(std::int16_t trigger,bool enabled);
     bool object_in_kill_volume(std::uint32_t object);
+    // Actual11EBA0/11EAB0, including attached named-object/node resolution,
+    // source WORLD composition, scale and strict open box boundaries.
+    bool trigger_contains(std::size_t trigger,Vec3 point);
     // One complete original game physics frame (actual1CC8D0), using the
     // source clock configured for this session and the owner's retained ABI.
     // Command delivery and game-clock advancement belong to the game tick.
@@ -417,6 +495,25 @@ public:
     bool commit_authority(PreparedAuthority &&) noexcept;
 private:
     friend class MccScriptSoundWorldAccess;
+    friend class SourceNativePublication;
+    friend class MultiplayerObjectRuntime;
+    void require_publication_provider(const MccSoundVariationProvider&,const Cache&)const;
+    // Borrowed component only: the enclosing owning native publication must
+    // retain this World, and must release timing/SDL before destroying it.
+    class NativePublicationHold {
+    public:
+        ~NativePublicationHold();
+        NativePublicationHold(const NativePublicationHold &)=delete;
+        NativePublicationHold(NativePublicationHold &&)=delete;
+        bool matches(const PhysicsLiveWorldTu15 &)const noexcept;
+    private:
+        friend class PhysicsLiveWorldTu15;
+        explicit NativePublicationHold(PhysicsLiveWorldTu15 &);
+        struct Impl;
+        const std::thread::id executor_=std::this_thread::get_id();
+        std::unique_ptr<Impl> impl_;
+    };
+    std::unique_ptr<NativePublicationHold> hold_native_publication();
     // One closed metadata publication owns the existing mutation-fault
     // barrier across its separately journaled source-input writes.
     void write_script_sound_inputs(

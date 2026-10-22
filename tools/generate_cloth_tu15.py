@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Lower complete original TU1.5 cloth instance construction and initial geometry."""
+"""Lower complete original TU1.5 cloth construction, geometry and retirement."""
 import argparse,json
 from pathlib import Path
 from types import SimpleNamespace
@@ -8,10 +8,11 @@ from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
 from generate_physics_live_support_tu15 import complete_body,generate,sha
 
 ENTRIES={1151072: (36, {1153728, 1501344, 1500832}, set()), 1153728: (88, {1153152, 1154672}, set()), 1154672: (196, {1155424, 1157904}, set()), 1157904: (75, {1155424}, set()), 1155424: (145, {765280, 770560}, set()), 1153152: (159, {765280, 3329036, 3322054}, set())}
+ENTRIES[0x1190d0]=(4,{0x16e8a0},set())
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--output',type=Path,default=Path('src/source_cloth_tu15_generated.cpp'))
+    p.add_argument('--output',type=Path,default=Path('src/physics/source_cloth_tu15_generated.cpp'))
     p.add_argument('--directory',type=Path,required=True)
     a=p.parse_args();assert sha(NEW_DEFAULT)==NEW_PIN
     image=Xbe(NEW_DEFAULT);code=_Code(image,'.text')

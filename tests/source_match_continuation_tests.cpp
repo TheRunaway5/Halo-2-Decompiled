@@ -32,7 +32,8 @@ void same(const SourceMatchAuthority::Checkpoint &a,const SourceMatchAuthority::
     const auto &x=a.match,&y=b.match;
     check(x.admitted_binding==y.admitted_binding&&x.configuration_binding==y.configuration_binding&&x.source_players==y.source_players&&
         x.simulation.source_lifetimes==y.simulation.source_lifetimes&&x.simulation.ticks==y.simulation.ticks&&
-        x.simulation.random_state==y.simulation.random_state&&x.simulation.scripts==y.simulation.scripts,
+        x.simulation.random_state==y.simulation.random_state&&x.simulation.scripts==y.simulation.scripts&&
+        x.source_engine_started==y.source_engine_started,
         "Coupled native Match clocks, admission or source lifetime history changed");
     check(a.world.world.bank==b.world.world.bank,"Complete restored source bank differs");
     check(x.retained_stats.players==y.retained_stats.players&&x.retained_stats.pvp==y.retained_stats.pvp&&x.retained_stats.teams==y.retained_stats.teams&&
@@ -89,6 +90,12 @@ void run(const char *xbe,const char *map,bool active,bool departure) {
     SourceMatchAuthority source(a,wa),target(b,wb);
     rejects([&]{SourceMatchAuthority wrong(a,wb);});rejects([&]{a.authority_checkpoint(binding);});
     if(active) {
+        // Canonical source joins retain unitNONE until the first actual
+        // player/factory frame. Measure the source-born weapon, rather than
+        // the native presentation template's pre-birth ammunition.
+        at->time+=33;++a_wall;a.step({});
+        check(a.player(0).source_current_object!=null_datum && a.unit(0).weapon.loaded>0,
+            "Active continuation needs a genuinely born armed source unit");
         const auto initial_ammo=a.unit(0).weapon.loaded;
         for(unsigned tick=0;tick<20;++tick){std::array<Controls,16> delivered{};
             for(unsigned i=0;i<4;++i)delivered[i].yaw=a.unit(i).yaw;

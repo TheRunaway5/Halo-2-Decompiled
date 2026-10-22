@@ -25,11 +25,11 @@ def digest(p):
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    names = ['src/renderer.cpp', 'include/halo2/renderer.hpp', 'src/bsp_postprocess.cpp',
-             'include/halo2/bsp_postprocess.hpp', 'src/particle_renderer.cpp', 'src/scope_render.cpp',
-             'src/source_shadow_draw_storage.cpp', 'shaders/world_vertex.glsl', 'shaders/world.frag',
+    names = ['src/rendering/renderer/renderer.cpp', 'include/halo2/renderer.hpp', 'src/rendering/world/bsp_postprocess.cpp',
+             'include/halo2/bsp_postprocess.hpp', 'src/rendering/effects/particle_renderer.cpp', 'src/rendering/scope_render.cpp',
+             'src/rendering/shadows/source_shadow_draw_storage.cpp', 'shaders/world_vertex.glsl', 'shaders/world.frag',
              'shaders/particle_depth.glsl', 'shaders/fog.frag', 'shaders/fog_color.glsl',
-             'include/halo2/source_weather_depth_alias.hpp', 'src/source_weather_depth_alias.cpp',
+             'include/halo2/source_weather_depth_alias.hpp', 'src/rendering/weather/source_weather_depth_alias.cpp',
              'shaders/source_weather_depth_alias.comp', 'tools/audit_world_depth_encoding.cpp',
              'tools/audit_world_d24_requirements.py',
              'tools/reference/halo2-decompiled/src/unknown_01cf50.cpp',

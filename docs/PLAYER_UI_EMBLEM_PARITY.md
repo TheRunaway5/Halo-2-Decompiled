@@ -91,7 +91,69 @@ ongoing physics/effect-light changes are outside this snapshot.
 
 [Delivery, source and framebuffer hashes](../analysis/scoreboard-emblems/20261012/delivery.json).
 
+## Bottom-right match scores (2026-10-20)
+
+The compact score HUD now draws its original special1/2 widgets. FFA uses
+`player_emblem` / `other_player_emblem` with each selected score player's saved
+foreground, background, toggles and appearance palette. Teams uses the separate
+`*_teams` widgets, their shared `emblem_dummy` bitmap and the own/rival team
+score colors through `widget_simple_custom`. These are the original colored
+score markers; team mode does not select a player's personal emblem.
+
+The dummy bitmap still owns the original quad size, registration, placement and
+winning animation. FFA's `waypoint_emblem` shader samples its own two animated
+image banks instead. Materials are private to each widget and local viewport;
+departed rivals are suppressed by the existing source score query and masks.
+The fourth widget input now supplies ordinary gameplay HUD opacity. MCC emblem
+function names are normalized to the same original operands, including the six
+appearance selectors; unknown colliding names remain rejected. Selected HUD
+artwork uses its scoreboard emblem bank when that manifest is present.
+
+[Original instruction evidence](../analysis/hud-score-icons-20261020/original.json)
+executes 48 disc/TU1.5 special dispatch cases without supplied returns and
+captures 160 original disc icon quads. The geometry probe supplies explicit
+video/appearance/projection services, as listed in the report. Permanent
+regressions compare all160 quads,41 layout/view cases, saved/default profiles,
+rival changes, and FFA/team transitions. Vulkan captures check visible own/rival
+pixels, red/blue team color ownership and profile-dependent FFA pixels across
+stock, selected UI and prepared MCC artwork. The focused16 checks and native
+build passed; the two resource/original-emblem checks also passed.
+[Validation receipt and source hashes](../analysis/hud-score-icons-20261020/validation.json).
+Generated binaries and captures are disposable; these checks do
+not certify a synchronized physical-Xbox framebuffer or a full playthrough.
+
+The local geometry fixture follows the repository's generated-reference
+storage policy. Recreate it from owned inputs with:
+
+```bash
+python3 tools/run_test.py --scratch-root .local/test-scratch -- \
+  .tools/python/bin/python tools/oracle_hud_score_icons.py \
+  --tu15 /path/to/TU1.5/default.xbe \
+  --output analysis/hud-score-icons-20261020/original.json \
+  --fixture tests/fixtures/hud_score_icons_original.tsv
+```
+
+### Widescreen compact HUD placement follow-up, 2026-10-20
+
+Gameplay emblem materials now select the full drawable viewport used by their
+submitted HUD coordinates. They previously retained the centered frontend
+viewport: at 1280x720 the original x=1056.5..1080.5 submission rendered at
+x=952..969, moving the emblem left of its score number and shrinking its width.
+The gameplay material clone owns this selection; authored widget offsets,
+registration and winning animation retain the original geometry.
+
+The GPU regression now measures pixels against submitted rectangles at 640x480,
+1280x720 and 2560x1080, for one through four players in FFA and team modes. An
+opaque, fixed background keeps both captures on the same UI composition path
+and prevents frame-wide background differences from counting as icon pixels.
+The original 4:3-only check could not catch the viewport mismatch.
+Validation and cleanup are recorded in
+[the placement receipt](../analysis/hud-score-icons-20261020/placement-validation.json).
+
 ## Remaining boundary
+
+The remaining in-match objective meter consumers and shield/radar placement
+checks are documented in [Objective meters and shield/radar alignment](HUD_OBJECTIVE_ALIGNMENT.md).
 
 The Vista PC16/185 post-carnage frontend still lacks its native emblem pass.
 Its actual `waypoint_emblem` implementation has a zero Xbox combiner region

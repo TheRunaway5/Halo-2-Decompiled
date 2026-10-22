@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/source_object_admission.hpp"
+#include <map>
 
 namespace halo2 {
 // Current object data-array header and the two literal source cluster-list
@@ -15,4 +16,10 @@ struct SourceObjectAdmissionMemory {
 SourceObjectAdmission source_object_admission_memory(const SourcePortalVisibilitySet&,
     const SourceObjectAdmissionMemory&,const SourceObjectAdmissionInput&,
     std::span<const std::array<std::uint32_t,4>> prior_associations={});
+using SourceObjectClusterMemberships=std::map<std::uint32_t,std::vector<std::int16_t>>;
+// Read actual linked entries in both pools, including orphan entries after
+// reference allocation failure. Empty membership means no source registration;
+// object+60 alone cannot establish this. No source state is changed.
+SourceObjectClusterMemberships source_object_cluster_memberships(
+    const SourceObjectAdmissionMemory&,std::size_t cluster_count);
 }

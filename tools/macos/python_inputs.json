@@ -1,0 +1,24 @@
+{
+  "schema": "H2_MACOS_PYTHON_INPUTS_V1",
+  "python": "3.14.8",
+  "pillow": "13.0.0",
+  "certifi": "2026.10.19",
+  "files": {
+    "python-3.14.8-macos11.pkg": {
+      "url": "https://www.python.org/ftp/python/3.14.8/python-3.14.8-macos11.pkg",
+      "sha256": "507fc086c5c006ff875d344a75b4e67b8fb3c401f1bc4908c6250adb673d4907"
+    },
+    "pillow-13.0.0-cp314-cp314-macosx_10_15_x86_64.whl": {
+      "url": "https://files.pythonhosted.org/packages/84/a1/be060135d85187b25fa8b2573786c0e45c62ae27527fff5257675eb97f4a/pillow-13.0.0-cp314-cp314-macosx_10_15_x86_64.whl",
+      "sha256": "49c12af515073e9bf511e4ef736743bf70d531a643668722279314b937742ba4"
+    },
+    "pillow-13.0.0-cp314-cp314-macosx_11_0_arm64.whl": {
+      "url": "https://files.pythonhosted.org/packages/b5/f4/0bf6f1ac9ba7ee2ffe9914aeb410a1035a0c1a3c42f122388d7fc950bc4b/pillow-13.0.0-cp314-cp314-macosx_11_0_arm64.whl",
+      "sha256": "d9b0a2bee3f3e03e9f29057aedb807dbf1e1d96ee1b9d0f422d9db6c8583271d"
+    },
+    "certifi-2026.10.19-py3-none-any.whl": {
+      "url": "https://files.pythonhosted.org/packages/c4/51/29046e48f693c54e5b7412216d447a1d8362c9653148d98c02cdf65fa733/certifi-2026.10.19-py3-none-any.whl",
+      "sha256": "42d35340cc5b9ba78e818ddbff0c5b1c2b779de448a340fd1b989f5fa8670e1b"
+    }
+  }
+}

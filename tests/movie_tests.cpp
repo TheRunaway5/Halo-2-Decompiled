@@ -52,79 +52,91 @@ void mcc_movie_routing() {
   const auto bundle = directory / "resources/movies";
   const auto bank = cache / "presentation/movies";
   std::filesystem::create_directories(maps);
-  write(cache / "halo2/bink/intro_60.bik", "unassigned MCC fallback");
-  check(frontend_movie_path(maps, bundle, "intro").empty(), "unverified MCC Bink was selected");
+  // Observe exact private fixture bytes, link targets and modification times.
+  // Routing must not read/rewrite/repair an unassigned bank, even when it has
+  // valid old metadata or points to a foreign owner.
+  const auto tree = [&] {
+    Json rows = Json::array();
+    for (const auto &entry : std::filesystem::recursive_directory_iterator(directory)) {
+      const auto state = entry.symlink_status();
+      Json row{{"path", entry.path().lexically_relative(directory).generic_string()},
+               {"type", int(state.type())}};
+      if (std::filesystem::is_symlink(state))
+        row["target"] = std::filesystem::read_symlink(entry.path()).generic_string();
+      else if (std::filesystem::is_regular_file(state)) {
+        std::ifstream input(entry.path(), std::ios::binary);
+        row["bytes"] = std::string(std::istreambuf_iterator<char>(input), {});
+        row["mtime"] = entry.last_write_time().time_since_epoch().count();
+      }
+      rows.push_back(std::move(row));
+    }
+    std::sort(rows.begin(), rows.end(), [](const auto &a, const auto &b) {
+      return a.at("path").template get<std::string>() < b.at("path").template get<std::string>();
+    });
+    return rows;
+  };
+  const auto unavailable = [&] {
+    const auto before = tree();
+    for (const std::string role : {"intro", "credits", "attract"}) {
+      check(frontend_movie_path(maps, bundle, role).empty(), "MCC selected an unassigned supplied movie role");
+      check(frontend_movie_path(maps, {}, role).empty(), "MCC selected an unassigned cached/disc movie role");
+    }
+    check(tree() == before, "MCC movie routing mutated an unassigned retained bank");
+  };
+  for (const std::string role : {"intro", "credits", "attract"}) {
+    write(cache / "halo2/bink" / (role + "_60.bik"), "unassigned MCC Bink fixture");
+    write(cache / "halo2/prebuild/video" / (role + ".bk2"), "unassigned collection movie fixture");
+  }
+  unavailable();
+  // A complete, self-consistent historical supplied-bank receipt remains a
+  // different source owner; it cannot grant an MCC frontend assignment.
   Json source{{"schema", "halo2-upscaled-movies-v1"}, {"description", "fixture"}, {"files", Json::object()}};
   Json roles = Json::object();
   for (const std::string role : {"intro", "credits"}) {
-    const auto file = role + "_60.mp4";
-    const auto payload = role + " fixture";
+    const auto file = role + "_60.mp4", payload = role + " supplied fixture";
     write(bundle / file, payload);
+    write(bank / file, payload);
     source["files"][file] = {{"bytes", payload.size()}, {"sha256", sha(payload)}};
     roles[role] = source["files"][file];
     roles[role]["path"] = file;
   }
   write(bundle / "manifest.json", source.dump());
-  check(frontend_movie_path(maps, bundle, "intro").empty(), "unpaired bundled metadata was accepted");
   write(bundle.parent_path() / "movie-manifest.json", source.dump());
-  check(frontend_movie_path(maps, bundle, "intro") == bundle / "intro_60.mp4",
-        "older MCC cache did not use explicitly assigned repo intro");
-  check(frontend_movie_path(maps, bundle, "credits") == bundle / "credits_60.mp4",
-        "older MCC cache did not use explicitly assigned repo credits");
-  check(frontend_movie_path(maps, bundle, "attract").empty(), "credits were assigned as attract");
-  Json manifest{{"schema", "H2_PORT_BUNDLED_MOVIES_V1"}, {"complete", true},
-                {"source_schema", "halo2-upscaled-movies-v1"},
-                {"source_manifest", {{"path", "resources/movie-manifest.json"}, {"sha256", sha(source.dump())}}},
-                {"roles", roles}, {"copied_without_transcoding", true},
-                {"attract_assigned", false}, {"external_vista_or_xbox_required", false}};
-  Json report{{"schema", "H2_MCC_TU15_PREPARATION_V1"},
-              {"external_installation_requirement", "Halo MCC only"}};
-  auto publish = [&](const Json &value) {
-    const auto raw = value.dump();
-    write(bank / "manifest.json", raw);
-    report["port_bundled_movies"] = {{"schema", "H2_PORT_BUNDLED_MOVIES_V1"}, {"complete", true},
-        {"path", "presentation/movies/manifest.json"}, {"sha256", sha(raw)}, {"roles", value["roles"]}};
-    write(cache / "provenance.json", report.dump());
-  };
-  std::filesystem::create_directories(bank);
-  for (const std::string role : {"intro", "credits"})
-    std::filesystem::copy_file(bundle / (role + "_60.mp4"), bank / (role + "_60.mp4"),
-                              std::filesystem::copy_options::none);
-  publish(manifest);
-  check(frontend_movie_path(maps, bundle, "intro") == bank / "intro_60.mp4", "cache bank did not take precedence");
-  std::filesystem::remove_all(directory / "resources");
-  check(frontend_movie_path(maps, bundle, "credits") == bank / "credits_60.mp4", "cached movie depended on repo original");
-  // Payload authentication belongs to import/repair. Same-size changes are
-  // deliberately left for stream validation instead of a 2.5GB startup hash.
-  write(bank / "intro_60.mp4", std::string(std::filesystem::file_size(bank / "intro_60.mp4"), 'X'));
-  check(frontend_movie_path(maps, {}, "intro") == bank / "intro_60.mp4", "runtime unexpectedly rehashed movie payload");
-  write(bank / "intro_60.mp4", "short");
-  rejects([&] { frontend_movie_path(maps, {}, "credits"); });
-  write(bank / "intro_60.mp4", "intro fixture");
-  write(bank / "manifest.json", manifest.dump() + " ");
-  rejects([&] { frontend_movie_path(maps, {}, "intro"); });
-  auto bad = manifest;
-  bad["roles"]["intro"]["path"] = "../intro_60.mp4";
-  publish(bad);
-  rejects([&] { frontend_movie_path(maps, {}, "intro"); });
-  bad = manifest;
-  bad["roles"]["attract"] = bad["roles"]["credits"];
-  publish(bad);
-  rejects([&] { frontend_movie_path(maps, {}, "intro"); });
-  publish(manifest);
-  report["port_bundled_movies"]["path"] = "../movies/manifest.json";
+  const Json manifest{{"schema", "H2_PORT_BUNDLED_MOVIES_V1"}, {"complete", true},
+      {"source_schema", "halo2-upscaled-movies-v1"},
+      {"source_manifest", {{"path", "resources/movie-manifest.json"}, {"sha256", sha(source.dump())}}},
+      {"roles", roles}, {"copied_without_transcoding", true},
+      {"attract_assigned", false}, {"external_vista_or_xbox_required", false}};
+  const Json report{{"schema", "H2_MCC_TU15_PREPARATION_V1"},
+      {"external_installation_requirement", "Halo MCC only"},
+      {"port_bundled_movies", {{"schema", "H2_PORT_BUNDLED_MOVIES_V1"}, {"complete", true},
+       {"path", "presentation/movies/manifest.json"}, {"sha256", sha(manifest.dump())}, {"roles", roles}}}};
+  write(bank / "manifest.json", manifest.dump());
   write(cache / "provenance.json", report.dump());
-  rejects([&] { frontend_movie_path(maps, {}, "intro"); });
-  publish(manifest);
-  const auto outside = directory / "intro_60.mp4";
-  std::filesystem::rename(bank / "intro_60.mp4", outside);
-  std::filesystem::create_symlink(outside, bank / "intro_60.mp4");
-  rejects([&] { frontend_movie_path(maps, {}, "intro"); });
+  unavailable();
+  write(cache / "provenance.json", "malformed foreign provenance");
+  write(bank / "manifest.json", "malformed retained movie manifest");
+  write(bundle / "manifest.json", "malformed supplied bundle");
+  unavailable();
+  const auto foreign = directory / "foreign";
+  write(foreign / "provenance.json", report.dump());
+  write(foreign / "manifest.json", manifest.dump());
+  write(foreign / "intro_60.mp4", "foreign intro fixture");
+  std::filesystem::remove(cache / "provenance.json");
+  std::filesystem::create_symlink(foreign / "provenance.json", cache / "provenance.json");
+  std::filesystem::remove(bank / "manifest.json");
+  std::filesystem::create_symlink(foreign / "manifest.json", bank / "manifest.json");
   std::filesystem::remove(bank / "intro_60.mp4");
-  std::filesystem::rename(outside, bank / "intro_60.mp4");
-  std::filesystem::rename(bank, directory / "outside-bank");
-  std::filesystem::create_directory_symlink(directory / "outside-bank", bank);
-  rejects([&] { frontend_movie_path(maps, {}, "intro"); });
+  std::filesystem::create_symlink(foreign / "intro_60.mp4", bank / "intro_60.mp4");
+  unavailable();
+  std::filesystem::remove_all(bank);
+  std::filesystem::create_directory_symlink(foreign, bank);
+  std::filesystem::remove_all(bundle);
+  std::filesystem::create_directory_symlink(foreign, bundle);
+  unavailable();
+  for (const std::string name : {"../intro", "Intro", "intro_60.mp4", ""})
+    rejects([&] { frontend_movie_path(maps, bundle, name); });
+  std::cout << "PASS MCC frontend movie policy: intro/credits/attract unavailable; retained supplied/foreign banks unchanged\n";
 }
 void routing_and_canvas() {
   const auto directory = std::filesystem::temp_directory_path() /
@@ -182,12 +194,76 @@ void decode(const std::filesystem::path &path, unsigned count, bool upscaled, bo
   std::cout << path.filename() << ": " << movie.frame_number() << "/" << count
             << " video frames, " << audio.frames() << " stereo audio frames\n";
 }
+bool compare_decoders(const std::filesystem::path &path, bool deep = false) {
+  Movie accelerated(path);
+  if (std::string(accelerated.decode_device()) == "software") {
+    std::cout << "Hardware movie decoding unavailable: " << path << '\n';
+    return false;
+  }
+  Movie reference(path, MovieDecodeMode::Software);
+  check(accelerated.duration() == reference.duration() &&
+            accelerated.frame_rate() == reference.frame_rate() &&
+            accelerated.frame_count() == reference.frame_count(),
+        "hardware decoding changed movie timing");
+  const auto start = std::chrono::steady_clock::now();
+  for (unsigned frame = 0; frame < 180; ++frame) {
+    const auto seconds = (frame + .1) / reference.frame_rate();
+    reference.advance(seconds);
+    accelerated.advance(seconds);
+    check(reference.frame_number() == accelerated.frame_number() &&
+              reference.image().pixels == accelerated.image().pixels,
+          "hardware movie pixels differ from software decoding");
+  }
+  const auto elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+  // Reproduce a delayed render frame. Intermediate frames still feed the
+  // codec, but only the final display frame needs download/color conversion.
+  for (unsigned attempt = 0; attempt < 3; ++attempt) {
+    Movie jumped(path);
+    Movie software_jump(path, MovieDecodeMode::Software);
+    const auto seconds = 179.1 / reference.frame_rate();
+    check(jumped.advance(seconds) && software_jump.advance(seconds), "movie catch-up did not advance");
+    check(jumped.frame_number() == reference.frame_number() &&
+              software_jump.frame_number() == reference.frame_number(),
+          "movie catch-up changed the frame number");
+    check(jumped.image().pixels == reference.image().pixels,
+          "hardware movie catch-up changed pixels");
+    check(software_jump.image().pixels == reference.image().pixels,
+          "software movie catch-up changed pixels");
+    check(!jumped.advance(seconds), "held hardware frame changed");
+  }
+  if (deep) {
+    for (const auto first : {reference.frame_count() / 2, reference.frame_count() - 16}) {
+      for (unsigned frame = first; frame < first + 16; ++frame) {
+        const auto time = (frame + .1) / reference.frame_rate();
+        reference.advance(time);
+        accelerated.advance(time);
+        check(reference.frame_number() == accelerated.frame_number() &&
+                  reference.image().pixels == accelerated.image().pixels,
+              "hardware movie pixels differ in middle/final frames");
+      }
+    }
+  }
+  std::cout << path.filename() << ": " << accelerated.decode_device()
+            << ", 180 byte-identical RGBA frames and catch-up"
+            << (deep ? "; middle/final 32 frames identical" : "")
+            << "; initial comparison seconds=" << elapsed << '\n';
+  return true;
+}
 } // namespace
 int main(int argc, char **argv) {
   try {
     routing_and_canvas();
     mcc_movie_routing();
-    if (argc >= 3 && std::string(argv[1]) == "--bundle") {
+    if (argc == 3 && std::string(argv[1]) == "--compare-file") {
+      if (!compare_decoders(argv[2]))
+        return 77;
+    } else if ((argc == 3 || (argc == 4 && std::string(argv[3]) == "--deep")) &&
+        std::string(argv[1]) == "--compare-decoders") {
+      const auto directory = std::filesystem::path(argv[2]);
+      if (!compare_decoders(directory / "intro_60.mp4", argc == 4) ||
+          !compare_decoders(directory / "credits_60.mp4", argc == 4))
+        return 77;
+    } else if (argc >= 3 && std::string(argv[1]) == "--bundle") {
       const bool full = argc >= 4 && std::string(argv[3]) == "--full";
       decode(std::filesystem::path(argv[2]) / "intro_60.mp4", 1079, true, full);
       decode(std::filesystem::path(argv[2]) / "credits_60.mp4", 22739, true, full);

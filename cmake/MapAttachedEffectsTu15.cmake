@@ -1,4 +1,4 @@
-target_sources(halo2_systems PRIVATE src/source_attached_effect.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/effects/source_attached_effect.cpp)
 if(BUILD_TESTING)
     add_executable(source_attached_effect_tests tests/source_attached_effect_tests.cpp)
     target_link_libraries(source_attached_effect_tests PRIVATE halo2_systems)

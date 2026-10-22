@@ -29,12 +29,12 @@ def main():
   elif 'all-maps' in name:assert '21 real maps imported/constructed/stepped' in raw
   else:assert 'Match fire/blast/removal in 57 ticks' in raw
   assert 'ERROR: AddressSanitizer' not in raw and 'runtime error:' not in raw,name
- paths=['include/halo2/prop_sandbox.hpp','src/prop_sandbox.cpp','src/prop_sandbox_definition.cpp',
-  'tests/prop_sandbox_tests.cpp','src/particle_material.cpp','src/menu_noise_texture.cpp',
-  'include/halo2/texture.hpp','include/halo2/content.hpp','src/content.cpp',
-  'include/halo2/simulation.hpp','src/simulation.cpp','include/halo2/multiplayer.hpp','src/multiplayer.cpp',
-  'src/multiplayer_network.cpp','src/multiplayer_runtime.cpp','include/halo2/collision.hpp','src/collision.cpp',
-  'include/halo2/unit_damage.hpp','src/unit_damage.cpp','CMakeLists.txt',
+ paths=['include/halo2/prop_sandbox.hpp','src/gameplay/objects/prop_sandbox.cpp','src/gameplay/objects/prop_sandbox_definition.cpp',
+  'tests/prop_sandbox_tests.cpp','src/rendering/effects/particle_material.cpp','src/ui/menu_noise_texture.cpp',
+  'include/halo2/texture.hpp','include/halo2/content.hpp','src/assets/content.cpp',
+  'include/halo2/simulation.hpp','src/gameplay/simulation.cpp','include/halo2/multiplayer.hpp','src/gameplay/multiplayer/multiplayer.cpp',
+  'src/network/multiplayer_network.cpp','src/gameplay/multiplayer/multiplayer_runtime.cpp','include/halo2/collision.hpp','src/physics/collision/collision.cpp',
+  'include/halo2/unit_damage.hpp','src/gameplay/units/unit_damage.cpp','CMakeLists.txt',
   'tools/oracle_mp_power_module_death_1_1.py','tools/export_mp_power_module_death_fixture.py',
   'tools/inspect_prop_explosion_definitions.py','tools/inspect_prop_explosion_runtime.cpp',
   'tools/freeze_live_prop_sandbox.py','docs/MP_LIVE_PROP_SANDBOX_RESEARCH.md',

@@ -216,8 +216,8 @@ if(BUILD_TESTING)
     add_executable(pstencil_caster_tests tests/pstencil/caster_tests.cpp)
     target_link_libraries(pstencil_caster_tests PRIVATE halo2_pstencil_render)
     add_test(NAME pstencil_caster_faces COMMAND pstencil_caster_tests ${PROJECT_SOURCE_DIR}/assets/disc/maps/zanzibar.map)
-    add_executable(pstencil_gameplay_capture tools/pstencil/capture_gameplay.cpp src/multiplayer_runtime.cpp)
-    target_link_libraries(pstencil_gameplay_capture PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan glm::glm)
+    add_executable(pstencil_gameplay_capture tools/pstencil/capture_gameplay.cpp src/gameplay/multiplayer/multiplayer_runtime.cpp)
+    target_link_libraries(pstencil_gameplay_capture PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan halo2_glm)
     target_compile_definitions(pstencil_gameplay_capture PRIVATE HALO2_SHADER_DIR="${CMAKE_CURRENT_BINARY_DIR}/shaders")
     add_dependencies(pstencil_gameplay_capture halo2_shaders)
     add_executable(pstencil_point_lights_tests tests/pstencil/point_lights_tests.cpp)
@@ -268,10 +268,14 @@ if(BUILD_TESTING)
         -DOUTPUT_ROOT=${CMAKE_CURRENT_BINARY_DIR}/pstencil/renderer-results
         -P ${PROJECT_SOURCE_DIR}/tests/pstencil/run_renderer.cmake)
     add_executable(pstencil_ui_tests tests/pstencil/ui_tests.cpp)
-    target_link_libraries(pstencil_ui_tests PRIVATE halo2_renderer halo2_imgui)
+    target_link_libraries(pstencil_ui_tests PRIVATE halo2_renderer)
     target_compile_definitions(pstencil_ui_tests PRIVATE HALO2_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
     add_test(NAME pstencil_live_graphics_selector COMMAND pstencil_ui_tests
         ${CMAKE_CURRENT_BINARY_DIR}/pstencil/ui-results)
+    if(EXISTS "${PROJECT_SOURCE_DIR}/.tools/validation/usr/share/vulkan/explicit_layer.d/VkLayer_khronos_validation.json")
+        set_tests_properties(pstencil_live_graphics_selector pstencil_real_map_roundtrip PROPERTIES
+            ENVIRONMENT "VK_LAYER_PATH=${PROJECT_SOURCE_DIR}/.tools/validation/usr/share/vulkan/explicit_layer.d;LD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}/.tools/validation/usr/lib:$ENV{LD_LIBRARY_PATH}")
+    endif()
     add_test(NAME pstencil_original_world_positions COMMAND pstencil_geometry_tests
         ${PROJECT_SOURCE_DIR}/assets/disc/maps/zanzibar.map
         ${PROJECT_SOURCE_DIR}/tests/fixtures/retail_shadow_caster_world.tsv)

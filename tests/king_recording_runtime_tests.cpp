@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #include "halo2/multiplayer_outcome.hpp"
 #include <bit>
 #include <cstring>
@@ -34,7 +35,7 @@ void run(const Cache& cache,const LevelContent& content,bool teams,bool moving) 
   std::array<Controls,multiplayer_capacity> controls{};unsigned events{};auto previous_index=0u;
   for(unsigned tick=0;tick<100;++tick) {
     now=1000+tick;const auto point=interior(*match->source_king_state());Spawn spawn;spawn.position={point[0],point[1],point[2]};
-    for(unsigned i=0;i<2;++i)match->debug_request({DebugGameRequest::Teleport,i,0,{}},&spawn);
+    for(unsigned i=0;i<2;++i)test::place_player(*match,i,spawn);
     const auto prior_queries=queries;const auto prior_frozen=match->result_recording().frozen;
     match->step(controls);const auto& bank=*match->recorded_events();
     check(match->result_recording_started() && bank.start==1000,"Native first active tick lost the retained start producer");

@@ -8,6 +8,7 @@ namespace halo2 {
 struct MenuWorldSourceStorageContext {
   VkDevice device{};
   VkPhysicalDevice physical{};
+  bool storage_fetch{}; // Additional padded SSBO bank for triangle-vertex mode.
 };
 struct MenuWorldSourceBufferSlice {
   VkBuffer buffer{};
@@ -31,6 +32,7 @@ struct MenuWorldSourceStoredDraw {
   std::uint32_t index_count{};
   VkIndexType index_type=VK_INDEX_TYPE_UINT16;
   VkPrimitiveTopology topology=VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+  MenuWorldSourceBufferSlice raw_storage; // Nonempty only in storage_fetch mode.
   MenuWorldSourceIndexRange source_index_range; // Resolved original first/count.
 };
 // Owns immutable host-uploaded Vulkan vertex/index buffers. Distinct owners of

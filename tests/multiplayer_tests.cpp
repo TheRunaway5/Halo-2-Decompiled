@@ -8,6 +8,7 @@
 #include <future>
 #include <mutex>
 #include <deque>
+#include <bit>
 #ifndef _WIN32
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -76,6 +77,7 @@ SlayerRules rules() {
   r.weapon = 3;
   return r;
 }
+#include "lan_admission_fixture.hpp"
 void heavy_vehicle_replica_admission() {
   const auto content=arena();const auto spawn=starts();
   for(int mode:{1,2,4}) {
@@ -120,7 +122,11 @@ void session_configuration() {
         client=from;have_client=true;
         sendto(proxy.fd,packet.data(),n,0,reinterpret_cast<sockaddr*>(&authority),sizeof(authority));
       }else {
-        check(have_client && n>=31 && std::to_integer<unsigned>(packet[6])==7,"Unexpected session description fragment");
+        check(have_client && n>=31,"Unexpected session description fragment");
+        if(packet[6]==std::byte{8}){
+          sendto(proxy.fd,packet.data(),n,0,reinterpret_cast<sockaddr*>(&client),sizeof(client));continue;
+        }
+        check(packet[6]==std::byte{7},"Unexpected session description packet type");
         const auto index=std::to_integer<unsigned>(packet[23])|(std::to_integer<unsigned>(packet[24])<<8);
         const auto count=std::to_integer<unsigned>(packet[25])|(std::to_integer<unsigned>(packet[26])<<8);
         check(count>1,"Session description did not exercise fragmentation");
@@ -466,6 +472,76 @@ void mcc_asset_identity() {
   std::filesystem::remove(b/maps/"textures.dat");
   rejects([&]{identity(b);},"MCC LAN identity omitted required texture data");
 }
+void native_request_ingress() {
+  using Packet=std::vector<std::byte>;
+  struct Bus {std::array<std::deque<std::pair<unsigned,Packet>>,5> packets;};
+  struct Endpoint final:MultiplayerDatagrams {
+    std::shared_ptr<Bus> bus;unsigned self;
+    Endpoint(std::shared_ptr<Bus> b,unsigned s):bus(std::move(b)),self(s){}
+    void send(std::span<const std::byte> p,unsigned to)override {
+      bus->packets.at(to).emplace_back(self,Packet(p.begin(),p.end()));
+    }
+    bool receive(Packet &p,unsigned &from)override {
+      auto &q=bus->packets[self];if(q.empty())return false;
+      from=q.front().first;p=std::move(q.front().second);q.pop_front();return true;
+    }
+  };
+  // The in-memory endpoints model the native consumer's retained matched-peer
+  // slots. This tests actual LanHost/LanClient behavior, not DTLS authentication.
+  const auto bus=std::make_shared<Bus>();
+  auto host_endpoint=std::make_shared<Endpoint>(bus,4),client_endpoint=std::make_shared<Endpoint>(bus,0);
+  const auto content=arena();MultiplayerMatch match(content,0,starts(),rules());
+  std::vector<OnlineAdmission> admitted;
+  for(unsigned i=0;i<4;++i){OnlineAdmission p;p.slot=i;p.peer=0;p.name="Seat "+std::to_string(i);p.team=-1;admitted.push_back(p);}
+  LanHost host(match,host_endpoint,789,admitted);
+  const std::array<std::int8_t,4> teams{-1,-1,-1,-1};
+  LanClient client(client_endpoint,4,789,teams);
+  std::array<Controls,4> local{};std::array<Controls,multiplayer_capacity> delivered{};
+  const auto before=match.state().tick;
+  const auto take=[&]{auto &q=bus->packets[4];check(q.size()==1,"Expected one real native request");auto p=std::move(q.front().second);q.clear();return p;};
+  const auto inject=[&](const Packet &p){bus->packets[4].emplace_back(0,p);host.receive(delivered);};
+  client.send(local);const auto hello=take();
+  for(unsigned n=0;n<4;++n){
+    auto p=hello;
+    if(n==0)p[23]=std::byte{0};
+    if(n==1)p[23]=std::byte{5};
+    if(n==2)p[28]=std::byte{2};
+    if(n==3)p.push_back(std::byte{});
+    inject(p);
+    const auto state=match.state();
+    check(host.peers()==0&&state.tick==before&&
+        std::none_of(state.players.begin(),state.players.end(),[](const auto &v){return v.connected;}),
+        "Malformed Hello allocated native players or advanced the world");
+  }
+  inject(hello);host.broadcast();client.receive();
+  check(client.ready()&&client.slots().size()==4&&host.peers()==1,"Healthy four-seat join failed after malformed requests");
+  for(auto &c:local)c.forward=.25f;
+  client.send(local);const auto baseline=take();inject(baseline);
+  const auto retained=[&](float value){
+    check(host.peers()==1&&match.state().tick==before,"Rejected input retired its healthy peer or advanced world");
+    for(auto slot:client.slots())check(delivered[slot].forward==value,"Rejected input partially changed an admitted couch seat");
+  };
+  retained(.25f);
+  for(auto &c:local)c.forward=-.75f;
+  client.send(local);const auto valid=take();
+  for(unsigned n=0;n<5;++n){
+    auto p=valid;
+    if(n==0){const auto bits=0x7fc00000u;for(unsigned j=0;j<4;++j)p[28+j]=std::byte(bits>>(8*j));}
+    if(n==1)p.back()=std::byte{2}; // Invalid final-seat intent, after all earlier controls.
+    if(n==2)p[27]=std::byte{3};
+    if(n==3)p[15]^=std::byte{1}; // Valid grammar, wrong live cookie.
+    if(n==4)std::copy(baseline.begin()+23,baseline.begin()+27,p.begin()+23); // Replay sequence, changed controls.
+    inject(p);retained(.25f);
+  }
+  inject(valid);retained(-.75f);
+  auto leave=Packet(valid.begin(),valid.begin()+23);leave[6]=std::byte{4};
+  auto foreign=leave;foreign[15]^=std::byte{1};inject(foreign);retained(-.75f);
+  auto trailing=leave;trailing.push_back(std::byte{});inject(trailing);retained(-.75f);
+  inject(leave);
+  const auto state=match.state();
+  check(host.peers()==0&&state.tick==before&&std::none_of(state.players.begin(),state.players.end(),[](const auto &p){return p.connected;}),
+      "Valid leave did not remove its four seats atomically");
+}
 void network_vehicle_intent() {
   const auto content=arena();const auto spawn=starts();
   MultiplayerMatch match(content,0,spawn,rules());LanHost host(match,0,789);
@@ -696,6 +772,18 @@ void network_snapshot_fragments() {
   check(sendto(proxy.fd,bytes.data(),hello_size,0,reinterpret_cast<sockaddr *>(&host_address),sizeof(host_address))==hello_size,
       "Relay actual native hello");
   host.receive(controls);
+  // The raw join now requires the endpoint to echo a stateless challenge.
+  sockaddr_in challenge_from{};socklen_t challenge_from_size=sizeof(challenge_from);
+  const auto challenge_size=recvfrom(proxy.fd,bytes.data(),bytes.size(),MSG_DONTWAIT,
+      reinterpret_cast<sockaddr*>(&challenge_from),&challenge_from_size);
+  check(challenge_size==31&&std::uint8_t(bytes[6])==8,"Raw join did not challenge before its snapshot");
+  sendto(proxy.fd,bytes.data(),challenge_size,0,reinterpret_cast<sockaddr*>(&client_address),sizeof(client_address));
+  client.receive();size=sizeof(client_address);
+  const auto proof_size=recvfrom(proxy.fd,bytes.data(),bytes.size(),MSG_DONTWAIT,
+      reinterpret_cast<sockaddr*>(&client_address),&size);
+  check(proof_size>0,"Actual client did not echo its admission challenge");
+  sendto(proxy.fd,bytes.data(),proof_size,0,reinterpret_cast<sockaddr*>(&host_address),sizeof(host_address));
+  host.receive(controls);
   const auto receive=[&] {
     std::vector<std::vector<char>> result;
     for(;;) {
@@ -749,6 +837,18 @@ void network_snapshot_fragments() {
   match.step(controls);host.broadcast();const auto recovered=receive();
   for(const auto &packet:recovered)deliver(packet);
   check(client.state().tick==4 && client.error().empty(),"Client recovers after conflicting fragments");
+  // Tiny tails with rotating sequence numbers must allocate received bytes,
+  // never the host's declared multi-megabyte complete snapshot size.
+  constexpr unsigned chunk=1400-35,total=(8*1024*1024/chunk)*chunk+1;
+  constexpr unsigned parts=(total+chunk-1)/chunk;
+  for(unsigned sequence=1000;sequence<1500;++sequence){
+    auto tail=first.front();tail.resize(36);
+    const auto field=[&](unsigned at,unsigned value,unsigned size){for(unsigned i=0;i<size;++i)tail[at+i]=char(value>>(8*i));};
+    field(23,sequence,4);field(27,parts-1,2);field(29,parts,2);field(31,total,4);
+    deliver(tail);
+    check(client.snapshot_buffered_bytes()<=4,"Tiny snapshot tails allocated a declared full body");
+  }
+  check(client.state().tick==4,"Incomplete hostile snapshot replaced the accepted world");
 #endif
 }
 void retail(const std::filesystem::path &maps) {
@@ -829,6 +929,9 @@ void retail(const std::filesystem::path &maps) {
 } // namespace
 int main(int argc, char **argv) {
   try {
+    if(argc==2 && std::string(argv[1])=="--admission-security") {
+      raw_lan_admission_security();std::cout<<"Raw UDP requires endpoint proof before allocation and amplified configuration replies\n";return 0;
+    }
     if(argc==2 && std::string(argv[1])=="--asset-identity") {
       asset_identity(); mcc_asset_identity();
       std::cout<<"LAN identity authenticates relocated MCC caches, resources and fonts without an XBE\n";
@@ -837,6 +940,11 @@ int main(int argc, char **argv) {
     if(argc==2 && std::string(argv[1])=="--vehicle-intent") {
       network_vehicle_intent();
       std::cout<<"Vehicle action and seat intent survives actual UDP without advancing physics\n";return 0;
+    }
+    if(argc==2 && std::string(argv[1])=="--request-ingress") {
+      native_request_ingress();
+      std::cout<<"Actual native host rejects malformed joins/inputs/leaves, wrong cookies and replay without partial four-seat mutation; healthy traffic survives\n";
+      return 0;
     }
     if(argc==2 && std::string(argv[1])=="--session-config") {
       session_configuration();
@@ -869,6 +977,7 @@ int main(int argc, char **argv) {
     asset_identity();
     mcc_asset_identity();
     network_vehicle_intent();
+    native_request_ingress();
     network();
     network_snapshot_fragments();
     if (argc > 1)

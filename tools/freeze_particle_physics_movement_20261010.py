@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 SCOPE=ROOT/'analysis/multiplayer/integration/particle-physics-movement-20261010'
 OUT=SCOPE/'frozen'
-OWN=['include/halo2/particle_movement.hpp','src/particle_movement.cpp',
+OWN=['include/halo2/particle_movement.hpp','src/rendering/effects/particle_movement.cpp',
      'tests/particle_movement_tests.cpp','tools/oracle_particle_physics_movement_20261010.py',
      'tools/freeze_particle_physics_movement_20261010.py','docs/MP_PARTICLE_PHYSICS_MOVEMENT_RESEARCH.md']
 def sha(p):
@@ -26,7 +26,7 @@ def main():
   'assets/disc/default.xbe':'03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d',
   'analysis/multiplayer/integration/live-grenade-20261010/frozen/manifest.json':'4e60d9bf5f9dba3564cf2694413a6632f7ba58d76112aff98fa72fe1d319acfd'}
  for p,h in inputs.items():assert sha(ROOT/p)==h,p
- dependencies=subprocess.check_output(['g++','-std=c++20','-MM','-Iinclude','src/particle_movement.cpp','tests/particle_movement_tests.cpp'],cwd=ROOT,text=True)
+ dependencies=subprocess.check_output(['g++','-std=c++20','-MM','-Iinclude', '-Isrc','src/rendering/effects/particle_movement.cpp','tests/particle_movement_tests.cpp'],cwd=ROOT,text=True)
  headers={p for p in dependencies.replace('\\\n',' ').split()if p.startswith('include/')}
  observations={}
  for name in sorted(headers|set(OWN)|{'CMakeLists.txt'}):
@@ -43,8 +43,8 @@ def main():
  commands={
   'cwd':str(ROOT),'original_commands':[f'PYTHONPATH=tools .tools/python/bin/python tools/oracle_particle_physics_movement_20261010.py --output analysis/multiplayer/integration/particle-physics-movement-20261010/{d}'for d in('measured-v2','repeated-v2')],
   'native_run':'particle_movement_tests assets/disc/maps/lockout.map analysis/multiplayer/integration/particle-physics-movement-20261010/measured-v2/fixtures.bin analysis/multiplayer/integration/particle-physics-movement-20261010/measured-v2/context.bin analysis/multiplayer/integration/particle-physics-movement-20261010/measured-v2/stores.bin',
-  'normal_build':'g++ -std=c++20 -O2 -ffp-contract=off -Iinclude tests/particle_movement_tests.cpp src/particle_movement.cpp build-animation-metadata-store-20261008/libhalo2_cache.a -pthread -o particle_movement_tests',
-  'sanitizer_build':'g++ -std=c++20 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -ffp-contract=off -Iinclude tests/particle_movement_tests.cpp src/particle_movement.cpp analysis/multiplayer/integration/particle-physics-movement-20261010/validated/sanitizer/libhalo2_cache.a -pthread -o particle_movement_tests',
+  'normal_build':'g++ -std=c++20 -O2 -ffp-contract=off -Iinclude tests/particle_movement_tests.cpp src/rendering/effects/particle_movement.cpp build-animation-metadata-store-20261008/libhalo2_cache.a -pthread -o particle_movement_tests',
+  'sanitizer_build':'g++ -std=c++20 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -ffp-contract=off -Iinclude tests/particle_movement_tests.cpp src/rendering/effects/particle_movement.cpp analysis/multiplayer/integration/particle-physics-movement-20261010/validated/sanitizer/libhalo2_cache.a -pthread -o particle_movement_tests',
   'production_configure':'cmake -S . -B build-animation-metadata-store-20261008',
   'production_build':'cmake --build build-animation-metadata-store-20261008 --target particle_movement_tests -j4',
   'production_test':"ctest --test-dir build-animation-metadata-store-20261008 -R '^original_particle_physics_movement$' --output-on-failure",

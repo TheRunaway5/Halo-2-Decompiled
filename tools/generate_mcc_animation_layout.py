@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "tools/reference/assembly/src/Assembly/Plugins/Halo2/jmad.xml"
-OUTPUT = ROOT / "src/mcc_animation_layout.inc"
+OUTPUT = ROOT / "src/gameplay/animation/mcc_animation_layout.inc"
 
 
 def generate(source=SOURCE,node_type="PointerNode",field_type="PointerField",node_name="pointer_nodes",field_name="pointer_fields"):
@@ -43,4 +43,4 @@ def generate(source=SOURCE,node_type="PointerNode",field_type="PointerField",nod
 if __name__ == "__main__":
     OUTPUT.write_text(generate())
     source=ROOT/"analysis/multiplayer/pc-gameplay-tag-comparison-20261011/schemas/Halo2MCC/matg.xml"
-    (ROOT/"src/mcc_globals_clone_layout.inc").write_text(generate(source,"CloneNode","CloneField","clone_nodes","clone_fields"))
+    (ROOT/"src/assets/mcc/mcc_globals_clone_layout.inc").write_text(generate(source,"CloneNode","CloneField","clone_nodes","clone_fields"))

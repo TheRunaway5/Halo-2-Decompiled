@@ -3,7 +3,7 @@
 import sys
 from pathlib import Path
 root=Path(sys.argv[1]) if len(sys.argv)>1 else Path(__file__).resolve().parents[2]
-path=root/'src/multiplayer_runtime.cpp'
+path=root/'src/gameplay/multiplayer/multiplayer_runtime.cpp'
 source=path.read_text()
 def replace(old,new):
     global source

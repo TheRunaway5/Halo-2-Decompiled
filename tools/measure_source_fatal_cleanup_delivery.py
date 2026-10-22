@@ -8,6 +8,7 @@ runs in a fresh Unicorn instance with NO preparation service hooks. Unknown nati
 owners stop before their first original instruction with the actual ABI. This
 does not establish original player birth, active physics or natural hit admission.
 """
+from source_layout import source_file
 import argparse
 import json
 import re
@@ -70,7 +71,7 @@ def main():
             reg=getattr(R,f'UC_X86_REG_{prefix}{n}');g.reg_write(reg,source.reg_read(reg))
     scope=[];sites=set()
     for name in MODULES:
-        path=ROOT/'src'/name
+        path=source_file(ROOT, name)
         entries={int(p,16) for p in re.findall(r'services\.instruction\(0x([0-9a-f]+)u\)',path.read_text())}
         assert entries;sites.update(entries)
         scope.append(dict(path=str(path.relative_to(ROOT)),sha256=sha(path),instruction_sites=len(entries)))

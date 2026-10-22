@@ -40,7 +40,7 @@ ENTRIES=(0x1cfa40,0x1cfc90,0x297640,0x265e80,0x208bf0,0x261a10,
 
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
-    ap.add_argument('--output',type=Path,default=Path('src/source_ai_actor_tu15_generated.cpp'))
+    ap.add_argument('--output',type=Path,default=Path('src/campaign/ai/source_ai_actor_tu15_generated.cpp'))
     ap.add_argument('--directory',type=Path,required=True)
     ap.add_argument('--reference',type=Path,action='append',default=[],help='Authenticated actual nested public Hunter unit-action original replay')
     a=ap.parse_args()

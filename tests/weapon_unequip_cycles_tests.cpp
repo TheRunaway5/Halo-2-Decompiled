@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #include "halo2/multiplayer.hpp"
 #include "halo2/native_weapon_inventory.hpp"
 #include <bit>
@@ -44,8 +45,8 @@ int main(int argc,char **argv)try {
       player=match->join("Original clear caller",-1,profile);
       for(const auto datum:std::set{smg,first,pickup.items[0].definition})match->configure_replicated_first_person(cache.load_first_person_binding(datum,int(representation)));
       std::array<Controls,16> controls{};
-      match->debug_request({DebugGameRequest::Teleport,player},&spawn);match->step(controls);
-      match->debug_request({DebugGameRequest::Teleport,player},&spawn);controls[player].pickup=true;controls[player].pickup_milliseconds=233;match->step(controls);
+      test::place_player(*match,player,spawn);match->step(controls);
+      test::place_player(*match,player,spawn);controls[player].pickup=true;controls[player].pickup_milliseconds=233;match->step(controls);
       controls[player]={};for(unsigned n=0;n<120;++n)match->step(controls);
       if(name=="smg"){controls[player].switch_weapon=true;match->step(controls);controls[player]={};for(unsigned n=0;n<120;++n)match->step(controls);}
       if(match->unit(player).weapon.definition!=target)throw FormatError("Original clear fixture target did not equip");
@@ -68,7 +69,7 @@ int main(int argc,char **argv)try {
     if(case_tick==0) {
       if(context=="holstered")controls[player].switch_weapon=true;
       else if(context=="dropped") {
-        match->debug_request({DebugGameRequest::Teleport,player},&spawns.at(0));
+        test::place_player(*match,player,spawns.at(0));
         controls[player].pickup=true;controls[player].pickup_milliseconds=233;
       } else throw FormatError("Unknown unequip ownership context");
     }

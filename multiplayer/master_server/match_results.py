@@ -35,14 +35,28 @@ class MatchResults:
           individual_placement INTEGER NOT NULL, PRIMARY KEY(match,player),
           FOREIGN KEY(match,player) REFERENCES match_result_players(match,player),
           FOREIGN KEY(match,team) REFERENCES match_result_teams(match,team));
-        CREATE TABLE IF NOT EXISTS match_result_consensus(
-          match TEXT PRIMARY KEY REFERENCES match_results(id),
-          policy TEXT NOT NULL CHECK(policy='native-survivors-v1'),
-          admitted_connections INTEGER NOT NULL, confirming_connections INTEGER NOT NULL,
-          departed_slots INTEGER NOT NULL, authority_epoch INTEGER NOT NULL);
         """)
+        consensus_schema = """CREATE TABLE IF NOT EXISTS match_result_consensus(
+          match TEXT PRIMARY KEY REFERENCES match_results(id),
+          policy TEXT NOT NULL CHECK(policy IN ('native-survivors-v1','native-unanimous-v1')),
+          admitted_connections INTEGER NOT NULL, confirming_connections INTEGER NOT NULL,
+          departed_slots INTEGER NOT NULL, authority_epoch INTEGER NOT NULL)"""
+        old_schema = store.db.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='match_result_consensus'").fetchone()
+        if old_schema and "native-unanimous-v1" not in old_schema[0]:
+            # Preserve historical survivor-policy receipts without relabeling
+            # them as consent from every originally admitted connection.
+            with store.db:
+                store.db.execute(consensus_schema.replace('match_result_consensus', 'match_result_consensus_v2'))
+                store.db.execute("INSERT INTO match_result_consensus_v2 SELECT * FROM match_result_consensus")
+                store.db.execute("DROP TABLE match_result_consensus")
+                store.db.execute("ALTER TABLE match_result_consensus_v2 RENAME TO match_result_consensus")
+        else:
+            store.db.execute(consensus_schema)
         from .carnage_history import ReportHistory
         self.history = ReportHistory(store)
+        from .player_statistics import initialize
+        initialize(store.db)
 
     @staticmethod
     def validate(room, report):
@@ -73,7 +87,8 @@ class MatchResults:
         return raw, hashlib.sha256(raw).hexdigest()
 
     def commit(self, room):
-        require(set(room.confirmations) == set(room.tokens), "All required physical connections must confirm the result")
+        require(room.confirmations == room.admitted_owners,
+                "All admitted physical connections must confirm the result")
         db = self.store.db
         with db:
             old = db.execute("SELECT digest FROM match_results WHERE id=?", (room.id,)).fetchone()
@@ -88,8 +103,8 @@ class MatchResults:
             if getattr(room, "supports_continuity", False) or (
                     getattr(room, "direct_udp", False) and room.departed_slots):
                 db.execute("INSERT INTO match_result_consensus VALUES(?,?,?,?,?,?)",
-                           (room.id, "native-survivors-v1", len(room.admitted_owners),
-                            len(room.tokens), room.departed_slots, room.continuity.epoch if room.continuity else 0))
+                           (room.id, "native-unanimous-v1", len(room.admitted_owners),
+                            len(room.confirmations), room.departed_slots, room.continuity.epoch if room.continuity else 0))
             raw = room.result
             if room.team_mode:
                 for team in sorted({team for _, _, team in room.players}):
@@ -112,6 +127,10 @@ class MatchResults:
             self.skills.commit(room)
             self.clan_skills.commit(room)
             public = self.history.capture(room)
+            from .player_statistics import enqueue
+            for member,_,_ in room.players:
+                if member not in getattr(room,"guests",()):
+                    enqueue(db,member)
         logging.getLogger("halo2.results").info(json.dumps({"event": "carnage_report_committed",
             "match": public, "format": "vista-pcr-consumed-v1",
             "published_players": len(room.players)-len(getattr(room, "guests", ())) }))

@@ -5,6 +5,9 @@
 #include <array>
 #include <iostream>
 #include <stdexcept>
+#if defined(__unix__)
+#include <sys/mman.h>
+#endif
 
 using halo2::SourceRuntimeMemory;
 namespace {
@@ -29,6 +32,71 @@ std::uint32_t word(const SourceRuntimeMemory &m, std::uint32_t p) {
   return v;
 }
 
+void topology_gap_queries() {
+  using A = SourceRuntimeMemory::Access;
+  constexpr std::uint32_t base = 0x80000000u;
+  SourceRuntimeMemory bank;
+  std::array<bool,512> occupied{};
+  for (const auto [offset, size] :
+       {std::pair{0u,7u}, {16u,31u}, {63u,1u}, {128u,111u}, {400u,112u}}) {
+    bank.mount(base+offset,std::vector<std::byte>(size),A::ReadOnly,"gap oracle owner");
+    std::fill(occupied.begin()+offset,occupied.begin()+offset+size,true);
+  }
+  unsigned calls{};int guard;
+  halo2::source_runtime_register_topology_guard(bank,&guard,[&](auto,auto){++calls;});
+  halo2::source_runtime_register_write_guard(bank,&guard,[&](auto,auto){++calls;});
+  for (unsigned alignment : {1u,2u,4u,8u,16u,32u,64u})
+    for (unsigned first : {0u,1u,8u,17u,48u,64u,127u,239u,399u,511u})
+      for (unsigned size=1;size<=80;++size) {
+        std::optional<std::uint32_t> expected;
+        for (unsigned at=first;at+size<=occupied.size();++at) {
+          if ((base+at)%alignment) continue;
+          if (std::none_of(occupied.begin()+at,occupied.begin()+at+size,[](bool v){return v;})) {
+            expected=base+at;break;
+          }
+        }
+        check(bank.find_unowned_range(base+first,std::uint64_t(base)+512,size,alignment)==expected,
+            "Topology gap differs from independent byte-occupancy first fit");
+      }
+  check(calls==0,"Read-only gap query invoked mutable ownership policy");
+  halo2::source_runtime_unregister_topology_guard(bank,&guard);
+  halo2::source_runtime_unregister_write_guard(bank,&guard);
+  SourceRuntimeMemory reserved;
+  reserved.reserve(base,8192,4096,"uncommitted pages remain occupied");
+  check(reserved.find_unowned_range(base,std::uint64_t(base)+16384,4096,4096)==base+8192,
+        "Gap query treated uncommitted reservation pages as free");
+  reserved.release(base);
+  check(reserved.find_unowned_range(base,std::uint64_t(base)+16384,4096,4096)==base,
+        "Gap query retained a released owner");
+  SourceRuntimeMemory edge;
+  check(edge.find_unowned_range(0xffffffffu,0x100000000ull,1,1)==0xffffffffu &&
+        !edge.find_unowned_range(0xffffffffu,0x100000000ull,2,1) &&
+        !edge.find_unowned_range(0xffffffffu,0x100000000ull,1,2) &&
+        edge.find_unowned_range(1,0x100000000ull,1,0x80000000u)==0x80000000u,
+        "Gap query alignment/wrap boundary differs");
+  fails([&]{edge.find_unowned_range(base,base,1,1);});
+  fails([&]{edge.find_unowned_range(base,0x100000001ull,1,1);});
+  fails([&]{edge.find_unowned_range(base,0x100000000ull,0,1);});
+  fails([&]{edge.find_unowned_range(base,0x100000000ull,1,0);});
+  fails([&]{edge.find_unowned_range(base,0x100000000ull,1,3);});
+#if defined(__unix__)
+  // A topology query must never sample or snapshot the payload. The actual
+  // host lease is above4GiB and deliberately unreadable to make that observable.
+  constexpr std::size_t unreadable_bytes=2*1024*1024;
+  void* mapped=mmap(nullptr,unreadable_bytes,PROT_NONE,MAP_PRIVATE|MAP_ANONYMOUS,-1,0);
+  check(mapped!=MAP_FAILED,"Cannot allocate protected gap-query control");
+  auto lifetime=std::shared_ptr<void>(mapped,[](void* p){munmap(p,unreadable_bytes);});
+  if constexpr(sizeof(void*)>4)
+    check(reinterpret_cast<std::uintptr_t>(mapped)>0xffffffffull,
+          "Protected native gap-query control must exercise a host address above4GiB");
+  auto backing=std::make_shared<halo2::SourceRuntimeMemoryBacking>(lifetime,
+      std::span(static_cast<std::byte*>(mapped),unreadable_bytes));
+  SourceRuntimeMemory protected_bank;
+  protected_bank.mount(base,backing,A::ReadOnly,"unreadable actual native64 payload");
+  check(protected_bank.find_unowned_range(base,std::uint64_t(base)+unreadable_bytes+4096,4096,4096)==base+unreadable_bytes,
+        "Gap query sampled opaque backing or failed its full native extent");
+#endif
+}
 void guarded_topology() {
   using A = SourceRuntimeMemory::Access;
   SourceRuntimeMemory left, right;
@@ -124,6 +192,7 @@ void full_page_topology() {
 } // namespace
 int main() {
   try {
+    topology_gap_queries();
     guarded_topology();
     full_page_topology();
     SourceRuntimeMemory m;

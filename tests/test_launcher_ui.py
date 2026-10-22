@@ -61,7 +61,7 @@ class LauncherHomeTests(unittest.TestCase):
             time.sleep(0.005)
         self.assertTrue(condition(), "Launcher did not reach the expected state")
 
-    def reopen_home(self, *, unavailable, frontend=False, native_test=False):
+    def reopen_home(self, *, unavailable, frontend=False, native_test=False, gameplay=False):
         import tkinter as tk
         update = self.home.update
         self.home.close()
@@ -70,10 +70,23 @@ class LauncherHomeTests(unittest.TestCase):
                                  availability_function=lambda: unavailable,
                                  frontend_function=lambda: frontend,
                                  native_test_function=lambda: native_test,
+                                 gameplay_function=lambda: gameplay,
                                  preview_maps_function=lambda: {"lockout.map": self.preview_map},
                                  preview_launch_function=lambda argv: self.preview_calls.append(argv),
                                  sandbox_launch_function=lambda argv: self.sandbox_calls.append(argv))
         self.window.update()
+
+    def test_qualified_multiplayer_play_works_with_an_unavailable_frontend(self):
+        from mcc_onboarding import NOT_PLAYABLE
+        (self.root/'frontend-runtime-selection.json').write_text('{}')
+        self.reopen_home(unavailable=NOT_PLAYABLE, gameplay=True)
+        self.assertFalse(self.home.frontend)
+        self.assertFalse(self.home.frontend_stale)
+        self.assertEqual(str(self.home.play_button.cget('state')), 'normal')
+        self.assertIn('multiplayer', self.home.play_button.cget('text'))
+        self.home.play_button.invoke()
+        self.assertEqual(self.home.result, 0)
+        self.assertEqual(self.preview_calls, [])
 
     def test_update_disables_actions_and_success_waits_for_play(self):
         self.home.update_button.invoke()

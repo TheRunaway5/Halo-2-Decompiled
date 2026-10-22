@@ -25,8 +25,8 @@ def main():
                 'evidence_files','original_inputs','prior_pins','files','dependency_pins']:
    for path,digest in dependency.get(group,{}).items():add(prior,path,digest)
  verify(prior)
- names=['CMakeLists.txt','include/halo2/original_data.hpp','src/original_data.cpp',
- 'include/halo2/sound_create.hpp','src/sound_create.cpp','tests/sound_create_tests.cpp',
+ names=['CMakeLists.txt','include/halo2/original_data.hpp','src/assets/original_data.cpp',
+ 'include/halo2/sound_create.hpp','src/audio/sound_create.cpp','tests/sound_create_tests.cpp',
  'tests/sound_create_constants_tests.cpp','tools/export_mp_sound_create_constants.py',
  'tools/run_owned_fixture_test.py','tools/freeze_mp_sound_create_production.py',
  'tools/freeze_mp_native_sound_storage.py','docs/MP_SOUND_CREATE_PRODUCTION_RESEARCH.md']

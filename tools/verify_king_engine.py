@@ -12,7 +12,7 @@ import capstone,unicorn
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'analysis/multiplayer/game-variants/king-engine-20261011'
 NATIVE=('include/halo2/source_king.hpp','include/halo2/slayer.hpp','include/halo2/source_game_end.hpp',
- 'src/source_king.cpp','src/slayer.cpp','tests/king_engine_tests.cpp',
+ 'src/gameplay/multiplayer/source_king.cpp','src/gameplay/multiplayer/slayer.cpp','tests/king_engine_tests.cpp',
  'tests/fixtures/king_engine_original.json','tests/fixtures/king_scoring_original.json','tests/fixtures/king_world_original.json')
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def main():
@@ -33,7 +33,7 @@ project(halo2_king_core_verification LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 enable_testing()
-add_executable(king_engine_tests tests/king_engine_tests.cpp src/source_king.cpp src/slayer.cpp)
+add_executable(king_engine_tests tests/king_engine_tests.cpp src/gameplay/multiplayer/source_king.cpp src/gameplay/multiplayer/slayer.cpp)
 target_include_directories(king_engine_tests PRIVATE include)
 target_compile_options(king_engine_tests PRIVATE -Wall -Wextra -Werror -fno-fast-math -ffp-contract=off)
 add_test(NAME original_king_engine COMMAND king_engine_tests
@@ -69,8 +69,8 @@ add_test(NAME original_king_engine COMMAND king_engine_tests
  binary=build/'king_engine_tests';sanitized=run/'king_engine_tests_asan'
  compiler='/usr/bin/c++'
  flags=['-std=c++20','-O1','-g','-Wall','-Wextra','-Werror','-fno-fast-math','-ffp-contract=off',
-  '-fsanitize=address,undefined','-fno-omit-frame-pointer','-I'+str(source/'include')]
- execute('sanitizer-build',[compiler,*flags,source/'tests/king_engine_tests.cpp',source/'src/source_king.cpp',source/'src/slayer.cpp','-o',sanitized])
+  '-fsanitize=address,undefined','-fno-omit-frame-pointer','-I'+str(source/'include'), '-I'+str(source/'src')]
+ execute('sanitizer-build',[compiler,*flags,source/'tests/king_engine_tests.cpp',source/'src/gameplay/multiplayer/source_king.cpp',source/'src/gameplay/multiplayer/slayer.cpp','-o',sanitized])
  fixture_args=[source/'tests/fixtures'/f'king_{kind}_original.json'for kind in ('engine','scoring','world')]
  execute('sanitizer-test',[sanitized,*fixture_args],{'ASAN_OPTIONS':'detect_leaks=1:halt_on_error=1','UBSAN_OPTIONS':'halt_on_error=1'})
  for p in files:

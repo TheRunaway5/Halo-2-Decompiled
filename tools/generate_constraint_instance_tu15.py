@@ -11,7 +11,7 @@ ENTRIES={3128176: (11, set(), {3128188}), 3130736: (25, {3130336}, set()), 31309
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--output',type=Path,default=Path('src/source_constraint_instance_tu15_generated.cpp'))
+    p.add_argument('--output',type=Path,default=Path('src/physics/source_constraint_instance_tu15_generated.cpp'))
     p.add_argument('--directory',type=Path,required=True)
     a=p.parse_args();assert sha(NEW_DEFAULT)==NEW_PIN
     image=Xbe(NEW_DEFAULT);code=_Code(image,'.text')

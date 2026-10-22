@@ -51,14 +51,14 @@ def main():
         'immutable-operands','immutable-operands-repeat','native-validation','production-normal','production-sanitizer'):
         for path in sorted((BASE/folder).rglob('*')):
             if path.is_file():copy(path,FROZEN/'evidence'/folder/path.relative_to(BASE/folder))
-    names=['include/halo2/physics_component_rebuild.hpp','src/physics_component_rebuild.cpp','tests/physics_component_rebuild_tests.cpp',
+    names=['include/halo2/physics_component_rebuild.hpp','src/physics/physics_component_rebuild.cpp','tests/physics_component_rebuild_tests.cpp',
         'tests/physics_construction_operands_tests.cpp','tools/oracle_physics_component_rebuild_native.py',
         'tools/research_physics_component_rebuild_u5.py','tools/measure_physics_component_rebuild_controls.py',
         'tools/export_physics_component_rebuild_fixtures.py','tools/export_physics_construction_operands.py',
         'tools/validate_physics_component_rebuild_native.py','tools/validate_physics_component_rebuild_production.py',
         'tools/freeze_physics_component_rebuild_native.py','docs/MP_PHYSICS_COMPONENT_REBUILD_NATIVE_RESEARCH.md']
     owned={name:sha(actual(name))for name in names}
-    for name in names+['CMakeLists.txt','include/halo2/original_data.hpp','src/original_data.cpp']:copy(actual(name),FROZEN/'source'/name)
+    for name in names+['CMakeLists.txt','include/halo2/original_data.hpp','src/assets/original_data.cpp']:copy(actual(name),FROZEN/'source'/name)
     artifacts={relative(path):sha(path)for path in sorted(FROZEN.rglob('*'))if path.is_file()}
     result=dict(schema='physics-component-rebuild-frozen-v1',artifact_pins=artifacts,protected_prior_pins=prior,owned_source_pins=owned,
         dependency_manifests=DEPENDENCIES,complete_cpu_callers=2,complete_paired_caller_instructions=93,

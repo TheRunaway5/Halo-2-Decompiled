@@ -25,7 +25,7 @@ def main():
    q=row[label+'_listing'];assert sha(paired.parent/'instructions'/q['file'])==q['sha256']
  generated=E/'generated-manifest-v4.json';g=json.loads(generated.read_text())
  assert g['correspondence_sha256']==sha(paired) and g['generator_sha256']==sha(ROOT/'tools/generate_physics_world_runtime_20261011.py')
- assert g['generated_cpp_sha256']==sha(ROOT/'src/physics_world_runtime_generated.cpp')==sha(E/'generated-repeat/runtime.cpp')
+ assert g['generated_cpp_sha256']==sha(ROOT/'src/physics/runtime/physics_world_runtime_generated.cpp')==sha(E/'generated-repeat/runtime.cpp')
  assert sha(generated)==sha(E/'generated-repeat/manifest.json') and len(g['lowered_instructions'])==20747 and len(g['complete_native_entries'])==202
  assert not g['production_opcode_decoder'] and not g['production_original_code_execution']
  binding=E/'input-bindings-extra-v4/report.json';q=json.loads(binding.read_text());assert q['tool_sha256']==sha(ROOT/'tools/research_physics_world_runtime_extra_bindings_20261011.py')

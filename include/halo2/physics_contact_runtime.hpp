@@ -1,6 +1,8 @@
 #pragma once
 #include "halo2/physics_solver.hpp"
 #include <optional>
+#include <thread>
+#include <typeinfo>
 
 namespace halo2 {
 // Active MMX aliases physical x87 registers and makes every tag valid. Some
@@ -45,6 +47,22 @@ struct SourcePhysicsContactRuntimeServices {
     std::function<void(SourcePhysicsContactMemory &,
         const SourcePhysicsContactRuntimeCall &, SourcePhysicsContactRuntimeAbi &,
         const SourcePhysicsContactRecordObserver &)> required_owner;
+    // Optional exact cursor contract for the live owner. Outside the listed
+    // service PCs and active traces, instruction() only publishes this cursor.
+    // References outlive the synchronous native entry; other executors retain
+    // the full callback. A replaced/wrapped callback also keeps full delivery;
+    // its callable type must match the explicitly admitted one. Default
+    // services keep observing every instruction.
+    struct InstructionCursor {
+        std::uint32_t *position{};
+        const bool *first_trace{},*second_trace{};
+        std::span<const std::uint32_t> service_sites;
+        std::thread::id executor;
+        const std::type_info *callback_type{};
+        // Permit literal-PC dispatch only after the state has checked the
+        // exact live service-site set. Generic descriptors keep their search.
+        bool literal_service_sites{};
+    } instruction_cursor;
 };
 // Canonical 1.1 entry identifies a statically compiled complete source body.
 // Image selection binds authenticated TU1.5 constants, targets and tables.

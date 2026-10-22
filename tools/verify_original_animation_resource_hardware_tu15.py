@@ -204,7 +204,7 @@ def main():
             report['hardware_ordered_stores_equal_original']=list(stores(out/'hardware-stores.bin'))==list(stores(case/'original-stores.bin'))
             if (native_case/'native-instructions.bin').is_file():
                 from audit_damage_delivery_observation_pcs_tu15 import mapping
-                pcs,_,write_sites=mapping(ROOT/'src/source_damage_delivery_runtime_generated.cpp')
+                pcs,_,write_sites=mapping(ROOT/'src/gameplay/units/source_damage_delivery_runtime_generated.cpp')
                 native_rows=list(struct.iter_unpack('<II',(native_case/'native-instructions.bin').read_bytes()))
                 assert all(domain in (0,1) and (not domain or pc in pcs) for pc,domain in native_rows)
                 selected_native=[pcs[pc] if domain else pc for pc,domain in native_rows]

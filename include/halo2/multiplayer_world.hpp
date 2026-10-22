@@ -3,14 +3,61 @@
 #include "halo2/original_data.hpp"
 #include "halo2/multiplayer_object_runtime.hpp"
 #include "halo2/tags.hpp"
+#include <future>
+#include <thread>
 
 namespace halo2 {
+class GameplayFontBank;
+class SourceRuntimeResourcePreparation;
+// Immutable map resources only: no Match, source executor, players, clocks or
+// RNG. A countdown job can prepare these before the original world boundary.
+class MultiplayerMapAssets {
+public:
+  explicit MultiplayerMapAssets(const MultiplayerOptions&);
+  ~MultiplayerMapAssets();
+  bool matches(const MultiplayerOptions&) const;
+  std::shared_ptr<const Cache> cache_for(const MultiplayerOptions&) const;
+  LevelContent take_content(const MultiplayerOptions&,std::optional<ScriptProgram>&);
+  Mesh take_bsp_mesh(const MultiplayerOptions&);
+  HudContent take_hud(std::uint32_t biped,std::uint32_t weapon);
+  float hud_sensor_range(std::uint32_t biped,std::uint32_t weapon) const;
+  std::shared_ptr<GameplayFontBank> fonts;
+private:
+  std::shared_ptr<const Cache> cache_;
+  std::shared_ptr<SourceRuntimeResourcePreparation> resources_;
+  std::optional<LevelContent> content_;
+  std::optional<Mesh> mesh_;
+  struct Huds;
+  std::unique_ptr<Huds> huds_;
+  std::filesystem::path map_,shared_,xbe_;
+  std::size_t bsp_{};
+  SourceGameVariant variant_;
+  std::uint64_t custom_fingerprint_{};
+  std::optional<std::int16_t> campaign_difficulty_;
+};
+// One application-owned worker and at most one queued request. Abandoning a
+// countdown future never joins on the UI thread; application teardown joins
+// before its resource owners disappear. Obsolete queued requests are dropped.
+class MultiplayerAssetLoader {
+public:
+  MultiplayerAssetLoader();
+  ~MultiplayerAssetLoader();
+  std::shared_future<std::shared_ptr<MultiplayerMapAssets>> request(const MultiplayerOptions&);
+private:
+  struct Impl;
+  std::unique_ptr<Impl> impl_;
+};
 // Actual native world initialization, shared by the synchronous session load
 // service and the later runtime. No snapshot or replacement match is created
 // when rendering begins. Network transports remain runtime-owned.
 class MultiplayerPreparedWorld {
+  // Pin the actual constructor owner before its public slot can escape.
+  // Native borrowers continue to require this exact Cache/control block.
+  const std::thread::id cache_executor_=std::this_thread::get_id();
+  const std::shared_ptr<const Cache> constructor_cache_;
 public:
   explicit MultiplayerPreparedWorld(const MultiplayerOptions&);
+  MultiplayerPreparedWorld(const MultiplayerOptions&,std::shared_ptr<MultiplayerMapAssets>);
   // Declared local script input is admitted before the VM/match constructor.
   // It supplies commands only; network and physical results remain owned by
   // the actual native authority. Ordinary construction retains map scripts.
@@ -42,14 +89,29 @@ public:
   std::unique_ptr<MultiplayerObjectRuntime> source_objects;
   MultiplayerMatch match;
   std::vector<unsigned> local_slots;
+  std::shared_ptr<GameplayFontBank> gameplay_fonts;
+  std::shared_ptr<MultiplayerMapAssets> map_assets;
 private:
+  friend class MultiplayerRuntimeAuthority;
+  friend class SourcePeerHostTakeover;
   struct SourceShadowSetup;
-  MultiplayerPreparedWorld(const MultiplayerOptions&,std::optional<ScriptProgram>,const SourceShadowSetup*,
+  std::shared_ptr<const Cache> original_cache() const;
+  // Only same-creator incoming takeover construction may reuse the resident's
+  // genuine original Cache. Replay workers retain the public private-Cache path.
+  static std::unique_ptr<MultiplayerPreparedWorld> incoming_source_shadow(
+      const MultiplayerOptions&,const MultiplayerPreparedWorld&,
       std::shared_ptr<PhysicsLiveClockSource>);
+  static std::unique_ptr<MultiplayerPreparedWorld> source_shadow(
+      const MultiplayerOptions&,SourceShadowViews,
+      std::shared_ptr<PhysicsLiveClockSource>,std::shared_ptr<const Cache>);
+  MultiplayerPreparedWorld(const MultiplayerOptions&,std::optional<ScriptProgram>,const SourceShadowSetup*,
+      std::shared_ptr<PhysicsLiveClockSource>,std::shared_ptr<MultiplayerMapAssets> = {},
+      std::shared_ptr<const Cache> = {});
   std::filesystem::path map_,shared_,xbe_;
   std::size_t bsp_{};
   unsigned players_{},starting_weapon_{};
   SourceGameVariant variant_;
+  std::uint64_t custom_fingerprint_{};
   std::vector<std::int8_t> teams_;
   std::vector<SourcePlayerConfiguration> profiles_;
   std::optional<std::uint32_t> seed_;

@@ -4,7 +4,7 @@ import argparse,json,shutil,subprocess
 from pathlib import Path
 from oracle_mp_title_update_display import ROOT,sha,save,encoded
 
-OWN=('include/halo2/object_preparation_pressure.hpp','src/object_preparation_pressure.cpp',
+OWN=('include/halo2/object_preparation_pressure.hpp','src/gameplay/objects/object_preparation_pressure.cpp',
      'tests/object_preparation_pressure_tests.cpp')
 DEP=('include/halo2/object_construction.hpp',)
 def main():
@@ -14,7 +14,7 @@ def main():
  commands=[]
  for mode,flags in (('normal',['-O2']),('sanitizer',['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer','-no-pie'])):
   directory=out/mode;directory.mkdir();binary=directory/'object_preparation_pressure_tests'
-  for label,argv in [('build',['g++','-std=c++20','-Wall','-Wextra','-Wpedantic','-Werror',*flags,'-I',str(out/'source/include'),str(out/'source/src/object_preparation_pressure.cpp'),str(out/'source/tests/object_preparation_pressure_tests.cpp'),'-o',str(binary)]),('test',[str(binary),str(a.fixture.resolve())])]:
+  for label,argv in [('build',['g++','-std=c++20','-Wall','-Wextra','-Wpedantic','-Werror',*flags,'-I',str(out/'source/include'), '-I'+str(out/'source/src'),str(out/'source/src/gameplay/objects/object_preparation_pressure.cpp'),str(out/'source/tests/object_preparation_pressure_tests.cpp'),'-o',str(binary)]),('test',[str(binary),str(a.fixture.resolve())])]:
    with(directory/(label+'.log')).open('w')as log:result=subprocess.run(argv,cwd=ROOT,stdout=log,stderr=subprocess.STDOUT)
    commands.append(dict(mode=mode,phase=label,argv=argv,exit_code=result.returncode))
    (out/'commands.json').write_bytes(encoded(commands))

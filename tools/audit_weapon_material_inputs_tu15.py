@@ -102,9 +102,9 @@ def main():
         builtin_one_weapon_paths=sorted({row['weapon'] for row in consumers if row['name']==0x030005a6}),
         primary_trigger_model_material_references=sum(row['name']==0x0f000574 for row in consumers),
         source_scope_sha256=sha(scope_path),
-        source_files_sha256={str(path):sha(path) for path in [Path(__file__),ROOT/'src/shader_animation.cpp',
-            ROOT/'src/source_weapon_magazine.cpp',ROOT/'src/source_weapon_shader_input.cpp',ROOT/'src/multiplayer_runtime.cpp',
-            ROOT/'src/model.cpp',ROOT/'src/material.cpp',ROOT/'src/content.cpp']},
+        source_files_sha256={str(path):sha(path) for path in [Path(__file__),ROOT/'src/rendering/shader_animation.cpp',
+            ROOT/'src/gameplay/weapons/source_weapon_magazine.cpp',ROOT/'src/gameplay/weapons/source_weapon_shader_input.cpp',ROOT/'src/gameplay/multiplayer/multiplayer_runtime.cpp',
+            ROOT/'src/rendering/models/model.cpp',ROOT/'src/rendering/material.cpp',ROOT/'src/assets/content.cpp']},
         material_consumption_or_runtime_behavior_verified=False,full_weapon_parity=False,
         runner_scratch=str(scratch),large_artifacts_retained=[])
     (output/'report.json').write_text(json.dumps(report,indent=2)+'\n')

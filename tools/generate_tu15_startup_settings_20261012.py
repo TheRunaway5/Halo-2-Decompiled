@@ -36,7 +36,7 @@ def main():
   bodies.append('\n'.join(lines))
  assert len(rows)==13
  text='''// Generated from unchanged English TU1.5 only; no production decoder.
-#include "physics_world_runtime_internal.hpp"
+#include "physics/runtime/physics_world_runtime_internal.hpp"
 #include "halo2/source_tu15_settings.hpp"
 namespace halo2 { namespace {
 using namespace physics_world_runtime_detail;

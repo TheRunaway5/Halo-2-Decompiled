@@ -98,6 +98,25 @@ Json execute(const Json& row,const Json& fixture) {
 int main(int argc,char** argv) {
   try {
     if(argc<2||argc>3)throw std::runtime_error("Usage: ctf_activation_tu15_tests original-fixture.json [actual.json]");
+    // First activation reaches the complete shared +C callback through the
+    // original engine vtable. It must resolve in production, even though the
+    // isolated fixture retains independent original support for other callees.
+    if(!source_ctf_activation_tu15_owns_entry(0xa6780u))
+      throw std::runtime_error("Original first-activation callback has no production owner");
+    if(!source_ctf_activation_tu15_owns_entry(0x24a810u))
+      throw std::runtime_error("Original player/equipment admission callback has no production owner");
+    if(!source_ctf_activation_tu15_owns_entry(0x106350u))
+      throw std::runtime_error("Original real-weapon classification has no production owner");
+    if(!source_ctf_activation_tu15_owns_entry(0x1a87c0u))
+      throw std::runtime_error("Original CTF event-request construction has no production owner");
+    if(!source_ctf_activation_tu15_owns_entry(0x160d40u))
+      throw std::runtime_error("Original actual carrier-player registry refresh has no production owner");
+    if(!source_ctf_activation_tu15_owns_entry(0x24a4b0u))
+      throw std::runtime_error("Original CTF actual objective-drop notification has no production owner");
+    for(auto entry:{0x24a070u,0x24dae0u,0x24b6e0u,0x24b4c0u,0x249b20u,
+        0x24d5f0u,0x165610u,0x249a40u,0x24b950u,0x24c490u})
+      if(!source_ctf_activation_tu15_owns_entry(entry))
+        throw std::runtime_error("Original CTF tick/registry/timer/return has no production owner");
     Json fixture;std::ifstream input(argv[1]);input>>fixture;
     Json results=Json::array();std::size_t count=0,complete=0;
     for(const auto& row:fixture.at("cases")) {

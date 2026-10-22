@@ -14,6 +14,8 @@ public:
       Mesh &,const std::filesystem::path &ui_assets);
   NativeActionPromptFrame frame(NativeActionPrompt,const PcKeyboardSettings &,
       const ControllerSettings &,bool gamepad,unsigned width,unsigned height);
+  NativeActionPromptFrame frame(NativeActionPrompt,const PcKeyboardSettings &,
+      const ControllerSettings &,PromptDevice,unsigned width,unsigned height);
 private:
   MultiplayerHud hud_;
 };

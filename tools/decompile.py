@@ -8,6 +8,10 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import shutil
+import tempfile
+import time
+import urllib.parse
 import urllib.request
 import zipfile
 
@@ -26,6 +30,61 @@ PACKAGE_SHA256 = {
 MATCHING_SHA = "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d"
 INVENTORY_URL = "https://raw.githubusercontent.com/kirklandsig/halo2-decompiled/5f08630655e3ddc9ac45909090f11ae799fa0c27/config/functions.csv"
 INVENTORY_SHA256 = "76117247be7d24fc3baadfce3ca2ca29d7ce0f0e796db72a2c7ae1dd112218f6"
+PACKAGE_LIMITS = {"ghidra.zip": 1024**3, "ghidra-xbe.zip": 32 * 1024**2}
+INVENTORY_LIMIT = 16 * 1024**2
+DOWNLOAD_TIMEOUT = 30
+DOWNLOAD_DEADLINE = 900
+
+
+class HttpsRedirects(urllib.request.HTTPRedirectHandler):
+    max_redirections = 5
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if urllib.parse.urlsplit(newurl).scheme != "https":
+            raise ValueError("Download redirect must use HTTPS")
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def download_pinned(url, destination, digest, limit):
+    """Publish only verified bytes; all failures remove the private partial."""
+    if urllib.parse.urlsplit(url).scheme != "https":
+        raise ValueError("Pinned downloads must use HTTPS")
+    destination = Path(destination)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if shutil.disk_usage(destination.parent).free < limit + 64 * 1024**2:
+        raise ValueError("Insufficient free space for bounded download")
+    deadline = time.monotonic() + DOWNLOAD_DEADLINE
+    partial = None
+    try:
+        with urllib.request.build_opener(HttpsRedirects()).open(url, timeout=DOWNLOAD_TIMEOUT) as response:
+            length = response.headers.get("Content-Length")
+            if length is not None and (not length.isdecimal() or int(length) > limit):
+                raise ValueError("Download exceeds byte limit")
+            expected = int(length) if length is not None else None
+            with tempfile.NamedTemporaryFile(dir=destination.parent, prefix=".download-", delete=False) as out:
+                partial = Path(out.name)
+                total, actual = 0, hashlib.sha256()
+                while True:
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError("Download deadline exceeded")
+                    # read1 returns after one buffered/socket read, so a trickle
+                    # cannot hold an entire large read past the wall deadline.
+                    block = response.read1(min(64 * 1024, limit - total + 1))
+                    if not block:
+                        break
+                    total += len(block)
+                    if total > limit:
+                        raise ValueError("Download exceeds byte limit")
+                    out.write(block)
+                    actual.update(block)
+            if expected is not None and total != expected:
+                raise ValueError("Truncated download")
+            if actual.hexdigest() != digest:
+                raise ValueError("Download does not match pinned SHA256")
+            partial.replace(destination)
+    finally:
+        if partial is not None:
+            partial.unlink(missing_ok=True)
 
 
 def bootstrap():
@@ -36,10 +95,10 @@ def bootstrap():
     for name, url in PACKAGES.items():
         archive = downloads / name
         if not archive.exists():
-            temporary = archive.with_suffix(".partial")
             print(f"Downloading {url}", flush=True)
-            urllib.request.urlretrieve(url, temporary)
-            temporary.replace(archive)
+            download_pinned(url, archive, PACKAGE_SHA256[name], PACKAGE_LIMITS[name])
+        if archive.stat().st_size > PACKAGE_LIMITS[name]:
+            raise ValueError("Cached package exceeds byte limit")
         with archive.open("rb") as source:
             if hashlib.file_digest(source, "sha256").hexdigest() != PACKAGE_SHA256[name]:
                 raise ValueError(f"{archive} does not match the pinned upstream release SHA256")
@@ -89,14 +148,15 @@ def main():
         if args.inventory:
             parser.error("choose --inventory or --matching-inventory")
         args.inventory = output / "retail-inventory.csv"
-        urllib.request.urlretrieve(INVENTORY_URL, args.inventory)
-        if hashlib.sha256(args.inventory.read_bytes()).hexdigest() != INVENTORY_SHA256:
-            parser.error("downloaded retail function inventory does not match its pinned SHA256")
+        download_pinned(INVENTORY_URL, args.inventory, INVENTORY_SHA256, INVENTORY_LIMIT)
         metadata["inventory_url"] = INVENTORY_URL
     if args.inventory:
         if metadata["sha256"] != MATCHING_SHA:
             parser.error("inventory only supported for the exact matching retail XBE SHA256")
-        inventory = args.inventory.read_bytes()
+        with args.inventory.open("rb") as source:
+            inventory = source.read(INVENTORY_LIMIT + 1)
+        if len(inventory) > INVENTORY_LIMIT:
+            parser.error("function inventory exceeds byte limit")
         metadata["inventory_sha256"] = hashlib.sha256(inventory).hexdigest()
         seeds = output / "seeds.tsv"
         with args.inventory.open(newline="") as f, seeds.open("w") as out:

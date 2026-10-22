@@ -23,7 +23,7 @@ def main():
     parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=False)
     frozen=args.output/'source';pins={}
-    pending=[Path('src/sound_sdk_device.cpp'),Path('tests/sound_sdk_device_tests.cpp')]
+    pending=[Path('src/audio/sound_sdk_device.cpp'),Path('tests/sound_sdk_device_tests.cpp')]
     while pending:
         path=pending.pop()
         if str(path) in pins:continue
@@ -32,8 +32,8 @@ def main():
         pending.extend(Path('include')/name.decode() for name in re.findall(rb'#include\s+"([^"]+)"',raw))
     fixture=Path('tests/fixtures/sound_sdk_device.original.json')
     argument=args.output/'original.json';shutil.copyfile(ROOT/fixture,argument)
-    owner=frozen/'src/sound_sdk_device.cpp'
-    common=['c++','-std=c++20','-Wall','-Wextra','-I'+str(frozen/'include'),str(owner),
+    owner=frozen/'src/audio/sound_sdk_device.cpp'
+    common=['c++','-std=c++20','-Wall','-Wextra','-I'+str(frozen/'include'), '-I'+str(frozen/'src'),str(owner),
             str(frozen/'tests/sound_sdk_device_tests.cpp')]
     commands=[]
 

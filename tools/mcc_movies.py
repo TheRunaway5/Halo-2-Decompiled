@@ -15,10 +15,12 @@ import re
 import shutil
 import signal
 import stat
+import sys
 import threading
 import uuid
 
 from audit_rendering import FormatError
+from installation_paths import resource_root
 
 SCHEMA = "H2_PORT_BUNDLED_MOVIES_V1"
 SOURCE_SCHEMA = "halo2-upscaled-movies-v1"
@@ -56,7 +58,7 @@ def _read(path, root):
 
 
 def source_manifest(root):
-    root = Path(root).resolve()
+    root = resource_root(root)
     raw, metadata = _read(root / SOURCE_MANIFEST, root)
     if not isinstance(metadata, dict) or metadata.get("schema") != SOURCE_SCHEMA:
         raise FormatError("Unsupported bundled movie source manifest")
@@ -147,6 +149,13 @@ def _publish_new(source, destination):
     if os.name == "nt":
         os.rename(source, destination)  # Windows rename refuses existing files.
         return
+    if sys.platform == "darwin":
+        from macos.atomic_files import rename_exclusive
+        try:
+            rename_exclusive(source, destination)
+        except FileExistsError as error:
+            raise FormatError("Bundled movie destination changed during import; existing files were retained") from error
+        return
     library = ctypes.CDLL(None, use_errno=True)
     rename = getattr(library, "renameat2", None)
     if rename is None:
@@ -161,6 +170,7 @@ def _publish_new(source, destination):
 
 
 def _prepare(root, cache, progress, previous=None):
+    root = resource_root(root)
     files, manifest, entry = _metadata(root)
     if previous is not None and previous != entry:
         raise FormatError("Cached bundled movie provenance is customized; existing data was retained")

@@ -13,6 +13,8 @@ from pathlib import Path
 import struct
 import subprocess
 
+from world_triangle_vertex import triangle_vertex_source
+
 SCHEMA = 'halo2-menu-world-vertex-source-v1'
 PORT_SCHEMA = 'halo2-native-menu-world-vertex-source-v2'
 ABI = 2
@@ -57,7 +59,7 @@ def run(argv):
     return result.stdout + result.stderr
 
 
-def spirv_contract(data, semantics, abi=ABI):
+def spirv_contract(data, semantics, abi=ABI, triangle=False):
     if len(data) < 20 or len(data) % 4:
         raise ValueError('compiled catalog SPIR-V has invalid extent')
     words = struct.unpack('<' + 'I' * (len(data) // 4), data)
@@ -75,9 +77,12 @@ def spirv_contract(data, semantics, abi=ABI):
     if not any(op == 15 and args[0] == 0 for op, args in instructions):
         raise ValueError('compiled catalog lacks a vertex entry point')
     decorations, offsets, pointers, variables, types, constants = {}, {}, {}, [], {}, {}
+    member_decorations=set()
     for op, args in instructions:
         if op == 71 and len(args) >= 2:
             decorations[(args[0], args[1])] = tuple(args[2:])
+        elif op == 72 and len(args) == 3:
+            member_decorations.add(tuple(args))
         elif op == 72 and len(args) == 4 and args[2] == 35:
             offsets[(args[0], args[1])] = args[3]
         elif op == 32 and len(args) == 3:
@@ -126,9 +131,9 @@ def spirv_contract(data, semantics, abi=ABI):
         if len(location) != 1 or location[0] in locations[storage] or pointer not in pointers:
             raise ValueError('compiled catalog has ambiguous input/output locations')
         locations[storage][location[0]] = pointers[pointer][1]
-    if set(locations[1]) != set(range(len(semantics))) or set(locations[3]) != set(range(13)):
+    if set(locations[1]) != (set() if triangle else set(range(len(semantics)))) or set(locations[3]) != set(range(13)):
         raise ValueError('compiled catalog changed declared input/output locations')
-    for location, semantic in enumerate(semantics):
+    for location, semantic in enumerate([] if triangle else semantics):
         type_id = locations[1][location]
         if semantic in (4, 5, 6):
             if types.get(type_id) != (21, (32, 1)):
@@ -142,6 +147,19 @@ def spirv_contract(data, semantics, abi=ABI):
         location = decorations.get((variable, 30))
         if storage == 3 and location and location[0] >= 9 and decorations.get((variable, 14)) != ():
             raise ValueError('compiled catalog ordered depth output lost Flat decoration')
+    storage = [args for args in variables if args[2] == 12]
+    if triangle:
+        if any(op == 17 and args[0] in (2,3) for op,args in instructions):
+            raise ValueError('triangle vertex variant unexpectedly requires geometry/tessellation')
+        if len(storage) != 2 or sorted((decorations.get((v[1],34)),decorations.get((v[1],33))) for v in storage) != [((1,),(2,)),((1,),(3,))]:
+            raise ValueError('triangle vertex variant changed raw/triangle SSBO descriptors')
+        for pointer,variable,*_ in storage:
+            block=pointers[pointer][1]
+            expected=[0] if decorations[(variable,33)]==(2,) else [0,256]
+            if [offsets.get((block,i)) for i in range(len(expected))]!=expected or any((block,i,24) not in member_decorations for i in range(len(expected))):
+                raise ValueError('triangle vertex variant changed SSBO offsets/read-only contract')
+    elif storage:
+        raise ValueError('ordinary vertex catalog gained storage buffers')
     return words
 
 
@@ -161,6 +179,8 @@ def main():
     parser.add_argument('--validator', type=Path, required=True, help='build spirv-val executable')
     parser.add_argument('--header', type=Path, required=True)
     parser.add_argument('--manifest', type=Path, required=True)
+    parser.add_argument('--triangle-vertices', action='store_true', help='Also compile geometry-free raw-buffer vertex variants')
+    parser.add_argument('--shader-root', type=Path, default=Path(__file__).resolve().parents[1]/'shaders')
     args = parser.parse_args()
     raw_manifest = args.sources.read_bytes()
     source_manifest = json.loads(raw_manifest)
@@ -231,7 +251,22 @@ def main():
         header.append(array(prefix + '_spirv', 'std::uint32_t', words, lambda x: f'0x{x:08x}u'))
         header.append(array(prefix + '_inputs', 'unsigned', inputs, lambda x: f'{x}u'))
         header.append(array(prefix + '_constants', 'unsigned', constants, lambda x: f'{x}u'))
-        records.append({**entry, 'abi': abi, 'source_sha256': sha(source), 'program_sha256': program_sha, 'program_bytes': program_bytes,
+        triangle_record = {}
+        if args.triangle_vertices:
+            triangle_text=triangle_vertex_source(source.decode(),semantics,inputs,args.shader_root)
+            triangle_source=compiled/f'menu-world-triangle-{index}.vert'
+            triangle_source.write_text(triangle_text)
+            triangle_output=triangle_source.with_suffix('.spv')
+            triangle_command=[compiler,'-V','--target-env','vulkan1.3','-S','vert',triangle_source,'-o',triangle_output]
+            triangle_log=run(triangle_command)
+            triangle_validate=run([validator,'--target-env','vulkan1.3',triangle_output])
+            triangle_spirv=triangle_output.read_bytes()
+            triangle_words=spirv_contract(triangle_spirv,semantics,abi,triangle=True)
+            header.append(array(prefix+'_triangle_spirv','std::uint32_t',triangle_words,lambda x:f'0x{x:08x}u'))
+            triangle_record={'triangle_source_sha256':sha(triangle_text.encode()),'triangle_spirv_sha256':sha(triangle_spirv),
+                'triangle_spirv_bytes':len(triangle_spirv),'triangle_command':[str(x) for x in triangle_command],
+                'triangle_compiler_log':triangle_log,'triangle_validator_log':triangle_validate}
+        records.append({**entry, **triangle_record, 'abi': abi, 'source_sha256': sha(source), 'program_sha256': program_sha, 'program_bytes': program_bytes,
                         'spirv_sha256': sha(spirv), 'spirv_bytes': len(spirv),
                         'spirv': str(output.resolve()), 'command': [str(x) for x in command],
                         'compiler_log': build_log, 'validator_log': validate_log})
@@ -239,7 +274,8 @@ def main():
     for i, record in enumerate(records):
         p = f'entry_{i}'
         header.append(f'  {{{record["abi"]},{record["class_index"]},"{record["program_sha256"]}",{record["program_bytes"]},{p}_semantics,{p}_spirv,{p}_inputs,{p}_constants,'
-                      f'"{record["source_sha256"]}","{record["spirv_sha256"]}"}},')
+                      f'"{record["source_sha256"]}","{record["spirv_sha256"]}"'
+                      +(f',1,{p}_triangle_spirv,"{record["triangle_source_sha256"]}","{record["triangle_spirv_sha256"]}"' if args.triangle_vertices else '')+'},')
     header += ['}};', '} // namespace halo2::generated_menu_world_vertex_catalog', '']
     header_bytes = '\n'.join(header).encode()
     source_manifest = manifests[0][2]
@@ -256,7 +292,7 @@ def main():
               'validator': {'path': str(validator), 'sha256': sha(validator.read_bytes()), 'version': validator_version},
               'header_sha256': sha(header_bytes), 'entries': records,
               'vrtx_count': source_manifest['vrtx_count'], 'rejected': source_manifest['rejected'],
-              'runtime_compilation': False, 'live_renderer_admission': False}
+              'runtime_compilation': False, 'live_renderer_admission': False, 'triangle_vertices': args.triangle_vertices}
     atomic(args.header, header_bytes)
     atomic(args.manifest, (json.dumps(report, indent=2, sort_keys=True) + '\n').encode())
     print(f'menu raw vertex compiled catalog: {len(records)} embedded modules; compact ABI checked; runtime compilation absent')

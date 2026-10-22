@@ -15,7 +15,7 @@ old='s.push(0x183e17u,selected(0x183e1cu,s.image));run_439c0(s);'
 new='s.push(0x183e17u,selected(0x183e1cu,s.image));s.required(0x183e17u,selected(0x439c0u,s.image),false);'
 accepted='s.push(0x183e17u,selected(0x183e1cu,s.image));s.required(0x183e17u,0x439c0u,false);'
 rows=[]
-for name in ('src/physics_live_support_tu15_generated.cpp','src/source_map_world_support_tu15_generated.cpp'):
+for name in ('src/physics/physics_live_support_tu15_generated.cpp','src/runtime/source_map_world_support_tu15_generated.cpp'):
  p=Path(name);s=p.read_text();assert s.count(old)+s.count(new)+s.count(accepted)==1
  original=s.replace(new,old).replace(accepted,old);s=s.replace(old,new);p.write_text(s)
  rows.append(dict(path=name,prior_call_emission_sha256=hashlib.sha256(original.encode()).hexdigest(),generated_cpp_sha256=hashlib.sha256(s.encode()).hexdigest()))

@@ -14,7 +14,7 @@ BASE_PIN='1ea1d9e4d59a284cf0b03d996a2dc2af9874e84359bcb1e883c5b6565b660c72'
 REPORT=ROOT/'analysis/multiplayer/game-variants/score-events-20261012/complete/report.json'
 REPORT_PIN='a03d858a312d4ae06552b7edd36a88bff7f2df5285467abfd70e13368aac3c58'
 OUT=ROOT/'analysis/multiplayer/game-variants/score-event-native-20261012'
-OWNED=('include/halo2/source_score_event.hpp','src/source_score_event.cpp','tests/score_event_tests.cpp','tools/oracle_score_events.py','tools/verify_score_event.py')
+OWNED=('include/halo2/source_score_event.hpp','src/gameplay/multiplayer/source_score_event.cpp','tests/score_event_tests.cpp','tools/oracle_score_events.py','tools/verify_score_event.py')
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
  ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--output',type=Path,default=OUT/'verification.json');a=ap.parse_args()
@@ -28,8 +28,8 @@ def main():
  assert overlaid['tools/oracle_score_events.py']==report['tool_sha256']
  assert sha(ROOT/'include/halo2/vista_announcer_events.hpp')==sha(base/'include/halo2/vista_announcer_events.hpp')
  cmake=(source/'CMakeLists.txt').read_text();live=(ROOT/'CMakeLists.txt').read_text()
- line='target_sources(halo2_systems PRIVATE src/source_score_event.cpp)\n';assert live.count(line)==1 and line not in cmake
- anchor='target_sources(halo2_systems PRIVATE src/source_result_event.cpp)\n';assert cmake.count(anchor)==1;cmake=cmake.replace(anchor,anchor+line)
+ line='target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/source_score_event.cpp)\n';assert live.count(line)==1 and line not in cmake
+ anchor='target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/source_result_event.cpp)\n';assert cmake.count(anchor)==1;cmake=cmake.replace(anchor,anchor+line)
  declaration=re.search(r'        add_executable\(score_event_tests.*?complete/report\.json\)\n',live,re.S).group();assert 'add_executable(score_event_tests'not in cmake
  anchor='            ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/game-variants/king-recording-event-source-20261012/complete/report.json)\n';assert cmake.count(anchor)==1;cmake=cmake.replace(anchor,anchor+declaration)
  (source/'CMakeLists.txt').write_text(cmake);(run/'live-CMakeLists.txt').write_text(live)
@@ -49,7 +49,7 @@ def main():
  targets=('score_event_tests','result_event_tests');execute('build',['cmake','--build',build,'--target',*targets,'-j2'])
  execute('ctest',['ctest','--test-dir',build,'--verbose','-R','^original_(score_event|result_event)$']);assert re.search(r'100% tests passed.*out of 2',(run/'ctest.log').read_text())
  sanitized=run/'score_event_tests_asan';execute('sanitizer-build',['/usr/bin/c++','-std=c++20','-O1','-g','-Wall','-Wextra','-Werror',
-  '-fsanitize=address,undefined','-fno-omit-frame-pointer','-I'+str(source/'include'),source/'tests/score_event_tests.cpp',source/'src/source_score_event.cpp','-o',sanitized])
+  '-fsanitize=address,undefined','-fno-omit-frame-pointer','-I'+str(source/'include'), '-I'+str(source/'src'),source/'tests/score_event_tests.cpp',source/'src/gameplay/multiplayer/source_score_event.cpp','-o',sanitized])
  execute('sanitizer-test',[sanitized,original/'report.json'],{'ASAN_OPTIONS':'detect_leaks=1:halt_on_error=1','UBSAN_OPTIONS':'halt_on_error=1'})
  with concurrent.futures.ThreadPoolExecutor(max_workers=8)as pool:current=list(pool.map(lambda p:sha(source/p),pins))
  assert all(pins[p]==v for p,v in zip(pins,current))and sha(REPORT)==REPORT_PIN

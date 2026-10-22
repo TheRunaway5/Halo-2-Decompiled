@@ -1,4 +1,4 @@
-add_library(halo2_source_tu15_timer STATIC src/source_tu15_timer.cpp src/source_tu15_timer_runtime_generated.cpp)
+add_library(halo2_source_tu15_timer STATIC src/platform/source_tu15_timer.cpp src/platform/source_tu15_timer_runtime_generated.cpp)
 target_include_directories(halo2_source_tu15_timer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_source_tu15_timer PUBLIC cxx_std_20)
 target_link_libraries(halo2_source_tu15_timer PUBLIC halo2_source_tu15_status)
@@ -16,7 +16,7 @@ if(TARGET halo2_systems)
 endif()
 if(BUILD_TESTING)
     add_executable(source_tu15_timer_startup_tests tests/source_tu15_timer_startup_tests.cpp
-        src/source_runtime_memory.cpp src/source_runtime_image.cpp src/source_runtime_host_virtual_memory.cpp)
+        src/runtime/source_runtime_memory.cpp src/runtime/source_runtime_image.cpp src/runtime/source_runtime_host_virtual_memory.cpp)
     target_link_libraries(source_tu15_timer_startup_tests PRIVATE halo2_snapshot_storage)
     target_link_libraries(source_tu15_timer_startup_tests PRIVATE halo2_source_tu15_timer nlohmann_json::nlohmann_json)
     add_test(NAME original_tu15_fresh_startup_timer COMMAND source_tu15_timer_startup_tests
@@ -26,7 +26,7 @@ if(BUILD_TESTING)
         ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/sandbox-source/tu15-status-startup-20261012/boot-v3/kernel)
     set_tests_properties(original_tu15_fresh_startup_timer PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(source_tu15_timer_procedures_tests tests/source_tu15_timer_procedures_tests.cpp
-        src/source_runtime_memory.cpp src/source_runtime_host_virtual_memory.cpp)
+        src/runtime/source_runtime_memory.cpp src/runtime/source_runtime_host_virtual_memory.cpp)
     target_link_libraries(source_tu15_timer_procedures_tests PRIVATE halo2_snapshot_storage)
     target_link_libraries(source_tu15_timer_procedures_tests PRIVATE halo2_source_tu15_timer nlohmann_json::nlohmann_json)
     add_test(NAME original_tu15_timer_procedures COMMAND source_tu15_timer_procedures_tests

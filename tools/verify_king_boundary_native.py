@@ -15,7 +15,7 @@ BASE_PIN='03191a1d8ee4757db0ce6676aa823a54367aeb6bcfc39f23b16e3cd7bf585816'
 REPORT=ROOT/'analysis/multiplayer/game-variants/king-hill-emission-source-20261012/complete/report.json'
 REPORT_PIN='96cae012aec928d6f9e23cb756e11bfcfe189e062ec70cb54e0754b0adcddcb8'
 OUT=ROOT/'analysis/multiplayer/game-variants/king-boundary-native-20261012'
-OWNED=('include/halo2/source_king_boundary.hpp','src/source_king_boundary.cpp','tests/king_boundary_tests.cpp','tools/verify_king_boundary_native.py')
+OWNED=('include/halo2/source_king_boundary.hpp','src/gameplay/multiplayer/source_king_boundary.cpp','tests/king_boundary_tests.cpp','tools/verify_king_boundary_native.py')
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
  assert sha(BASE)==BASE_PIN and sha(REPORT)==REPORT_PIN
@@ -24,11 +24,11 @@ def main():
  for p in OWNED:
   target=source/p;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(ROOT/p,target)
  live=(ROOT/'CMakeLists.txt').read_text();cmake=(base/'CMakeLists.txt').read_text()
- pattern=r'target_sources\(halo2_systems PRIVATE src/source_king_visual.cpp\)\n(?:target_sources\(halo2_systems PRIVATE src/source_king_boundary.cpp\)\n)?if\(MSVC\).*?endif\(\)\n'
- old=re.search(pattern,cmake,re.S).group();new=re.search(pattern,live,re.S).group();assert 'src/source_king_boundary.cpp'in new and 'src/source_king_boundary.cpp'not in old
+ pattern=r'target_sources\(halo2_systems PRIVATE src/gameplay/multiplayer/source_king_visual.cpp\)\n(?:target_sources\(halo2_systems PRIVATE src/gameplay/multiplayer/source_king_boundary.cpp\)\n)?if\(MSVC\).*?endif\(\)\n'
+ old=re.search(pattern,cmake,re.S).group();new=re.search(pattern,live,re.S).group();assert 'src/gameplay/multiplayer/source_king_boundary.cpp'in new and 'src/gameplay/multiplayer/source_king_boundary.cpp'not in old
  cmake=cmake.replace(old,new)
  declaration=re.search(r'        add_executable\(king_boundary_tests.*?king-hill-emission-source-20261012/complete/report\.json\)\n',live,re.S).group()
- anchor='        add_executable(king_engine_tests tests/king_engine_tests.cpp src/source_king.cpp src/slayer.cpp)\n';assert cmake.count(anchor)==1
+ anchor='        add_executable(king_engine_tests tests/king_engine_tests.cpp src/gameplay/multiplayer/source_king.cpp src/gameplay/multiplayer/slayer.cpp)\n';assert cmake.count(anchor)==1
  cmake=cmake.replace(anchor,declaration+anchor);(source/'CMakeLists.txt').write_text(cmake);(run/'live-CMakeLists.txt').write_text(live)
  (run/'cmake-overlay.json').write_text(json.dumps(dict(base_sha256=sha(base/'CMakeLists.txt'),live_sha256=sha(run/'live-CMakeLists.txt'),
   frozen_sha256=sha(source/'CMakeLists.txt'),production_before=old,production_after=new,test_declaration=declaration),sort_keys=True,indent=2)+'\n')
@@ -36,7 +36,7 @@ def main():
  with concurrent.futures.ThreadPoolExecutor(max_workers=8)as pool:pins=dict(zip((str(p.relative_to(source))for p in files),pool.map(sha,files)))
  (run/'source-hashes.json').write_text(json.dumps(pins,sort_keys=True,indent=2)+'\n')
  inputs={str(BASE):BASE_PIN,str(REPORT):REPORT_PIN,str(base.parent/'source-hashes.json'):prior['source_hashes_sha256']}
- for p in ('include/halo2/source_king.hpp','include/halo2/source_king_visual.hpp','src/source_king_visual.cpp'):
+ for p in ('include/halo2/source_king.hpp','include/halo2/source_king_visual.hpp','src/gameplay/multiplayer/source_king_visual.cpp'):
   inputs[str(base/p)]=sha(base/p);assert sha(ROOT/p)==sha(base/p)
  (run/'input-hashes.json').write_text(json.dumps(inputs,sort_keys=True,indent=2)+'\n')
  commands=[];env={**os.environ,'PYTHONDONTWRITEBYTECODE':'1'}
@@ -51,8 +51,8 @@ def main():
  assert re.search(r'100% tests passed.*out of 2',(run/'ctest.log').read_text())
  sanitized=run/'king_boundary_tests_asan'
  execute('sanitizer-build',['/usr/bin/c++','-std=c++20','-O1','-g','-Wall','-Wextra','-Werror',
-  '-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-fast-math','-ffp-contract=off','-frounding-math','-I'+str(source/'include'),
-  source/'tests/king_boundary_tests.cpp',source/'src/source_king_boundary.cpp','-o',sanitized])
+  '-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-fast-math','-ffp-contract=off','-frounding-math','-I'+str(source/'include'), '-I'+str(source/'src'),
+  source/'tests/king_boundary_tests.cpp',source/'src/gameplay/multiplayer/source_king_boundary.cpp','-o',sanitized])
  execute('sanitizer-test',[sanitized,REPORT],{'ASAN_OPTIONS':'detect_leaks=1:halt_on_error=1','UBSAN_OPTIONS':'halt_on_error=1'})
  assert all(sha(p)==v for p,v in inputs.items())
  with concurrent.futures.ThreadPoolExecutor(max_workers=8)as pool:current=list(pool.map(lambda p:sha(source/p),pins))

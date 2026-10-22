@@ -87,9 +87,11 @@ class SetupProcess:
         self._handlers(True)
         self.latest = self.tail = self.reader_error = ""
         self.reader_stop.clear(); self.reader_done.clear()
-        bundled = self.root / "python/bin/python3"
+        from installation_paths import resource_root
+        resources = resource_root(self.root)
+        bundled = resources / "python/bin/python3"
         python = str(bundled) if bundled.is_file() else sys.executable
-        command = [python, "-u", "-B", str(self.root / "tools/setup_assets.py"),
+        command = [python, "-u", "-B", str(resources / "tools/setup_assets.py"),
                    "--root", str(self.root), "--gui-owner"]
         if selected is not None:
             command += ["--mcc-root", str(Path(selected).expanduser().resolve())]
@@ -332,7 +334,7 @@ class SourceSelector(LauncherCanvas):
     """Detect MCC in the background and import into an owned local cache."""
 
     def __init__(self, window, root, mcc=None, setup_function=None,
-                 discover_function=None, auto_detect=True, setup_process=None):
+                 discover_function=None, auto_detect=True, setup_process=None, steam_helper=None):
         from mcc_content import discover
 
         super().__init__(window, root, "Halo 2 — MCC setup")
@@ -343,6 +345,11 @@ class SourceSelector(LauncherCanvas):
             SetupProcess(root, self.events) if setup_function is None else None)
         self.result, self.working, self.scanning, self.closed, self.error = 1, False, False, False, False
         self.modal = False
+        self.steam = None
+        if steam_helper is None:
+            from macos.steam_setup import helper_path
+            steam_helper = helper_path(root)
+        self.steam_helper = steam_helper
         self.text(51, 158, "G A M E   F I L E   S E T U P", 12, CYAN)
         self.line(50, 193, 318, 193, fill=EDGE)
         self.text(49, 225, "Bring your copy.", 29, INK)
@@ -378,6 +385,9 @@ class SourceSelector(LauncherCanvas):
         self.browse_button = self.button("Browse…", self.browse, 861, 323, 104, 32)
         self.scan_button = self.button("Scan installed games", self.scan, 400, 397, 220, 36)
         self.controls = [self.entry, self.browse_button, self.scan_button]
+        if self.steam_helper is not None:
+            self.steam_button = self.button('Download owned MCC from Steam…', self.start_steam, 644, 397, 344, 36)
+            self.controls.append(self.steam_button)
         self.status_label = self.tk.Label(window, text="Scan installed games or browse to the MCC folder.",
                                          background=PANEL, foreground=MUTED, font=self.font(14),
                                          anchor="nw", justify="left", wraplength=self.px(555),
@@ -474,6 +484,18 @@ class SourceSelector(LauncherCanvas):
                 self.events.put(("error", str(error)))
         threading.Thread(target=work, daemon=True).start()
 
+    def start_steam(self):
+        if self.working or self.scanning or self.closed or self.modal or self.steam_helper is None:
+            return
+        from macos.steam_setup import SteamSetupWindow
+        self._busy(True)
+        self.status_label.configure(text='Sign in with Steam to download your MCC Halo 2 content.', foreground=CYAN)
+        try:
+            self.steam = SteamSetupWindow(self, self.steam_helper)
+        except Exception as error:
+            self._busy(False)
+            self.events.put(('error', str(error)))
+
     def _show_error(self, detail):
         """A modal in the same palette; grab prevents clicks on source fields."""
         tk = self.tk
@@ -517,6 +539,8 @@ class SourceSelector(LauncherCanvas):
             self.prepare.focus_set()
 
     def poll(self):
+        if self.steam is not None:
+            self.steam.poll()
         if self.process is not None:
             if self.process.stop_signal is not None:
                 self.result = 128 + self.process.stop_signal
@@ -532,7 +556,10 @@ class SourceSelector(LauncherCanvas):
         try:
             for _ in range(500):
                 kind, value = self.events.get_nowait()
-                if kind == "status":
+                if kind.startswith('steam'):
+                    if self.steam is not None:
+                        self.steam.event(kind, value)
+                elif kind == "status":
                     text = str(value).replace("\n", " ")
                     self.status_label.configure(text=text if len(text) <= 250 else text[:247] + "…")
                 elif kind in ("detected", "not-found"):
@@ -601,7 +628,11 @@ def run(root, mcc=None):
         return 128 + process.stop_signal if process.stop_signal is not None else selector.result
     finally:
         try:
-            process.shutdown()
+            try:
+                if 'selector' in locals() and selector.steam is not None:
+                    selector.steam.finish()
+            finally:
+                process.shutdown()
         finally:
             if window is not None:
                 with contextlib.suppress(tk.TclError):

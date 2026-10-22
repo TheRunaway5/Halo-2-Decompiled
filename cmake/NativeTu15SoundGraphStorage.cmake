@@ -1,4 +1,4 @@
-add_library(halo2_native_tu15_sound_graph_storage STATIC src/native_tu15_sound_graph_storage.cpp)
+add_library(halo2_native_tu15_sound_graph_storage STATIC src/audio/native_tu15_sound_graph_storage.cpp)
 target_include_directories(halo2_native_tu15_sound_graph_storage PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_native_tu15_sound_graph_storage PUBLIC cxx_std_20)
 target_link_libraries(halo2_native_tu15_sound_graph_storage PUBLIC

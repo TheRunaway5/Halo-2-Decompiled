@@ -2,6 +2,7 @@
 #include "halo2/cache.hpp"
 #include "halo2/source_model_shader.hpp"
 #include "halo2/source_geometry_lod.hpp"
+#include "halo2/source_shadow.hpp"
 #include <functional>
 
 namespace halo2 {
@@ -23,6 +24,15 @@ struct SourceObjectViewLod {
     // coverage are separate source producers. Absent only in legacy diagnostics.
     std::optional<SourceModelShaderView> shader;
     std::optional<SourceGeometryLodPolicy> detail_policy;
+    // Necessary camera-frustum admission before requiring a machine's draw
+    // resources. This does not replace portal/spatial source admission.
+    std::function<bool(Vec3 sphere_center,float sphere_radius)> in_frustum;
+    // Actual retained object+30/+3C from this full generation's completed
+    // source snapshot. A node0 shadow bound is a separate producer.
+    std::function<ShadowCasterSphere(std::uint32_t full_handle)> source_bound;
+    // Original spatial membership and current portal-frustum admission.
+    // Absent only for explicit diagnostic/legacy presentation callers.
+    std::function<bool(std::uint32_t full_handle,ShadowCasterSphere)> source_visible;
 };
 struct SourceObjectViewSelection {
     std::size_t source_object{};

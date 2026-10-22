@@ -2,7 +2,7 @@
 #include "halo2/object_lighting.hpp"
 #include "halo2/source_render_policy.hpp"
 #include "halo2/world_material.hpp"
-#include "../src/material_fog_phase.hpp"
+#include "../src/rendering/renderer/material_fog_phase.hpp"
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>

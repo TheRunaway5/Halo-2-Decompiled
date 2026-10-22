@@ -10,7 +10,7 @@ BASE = ROOT / 'analysis/multiplayer/integration/physics-engine-20261010'
 PARENT_PIN = '24099ef15f3b8e7038facb3df1e6becc6849a3fdf40e28c877358d53f70ea53a'
 APPEND = '\ninclude(cmake/PhysicsPlatformLocks.cmake)\n'
 OWNED = (
-    'include/halo2/physics_platform_locks.hpp', 'src/physics_platform_locks.cpp',
+    'include/halo2/physics_platform_locks.hpp', 'src/physics/physics_platform_locks.cpp',
     'tests/physics_platform_locks_tests.cpp', 'cmake/PhysicsPlatformLocks.cmake',
     'tools/research_physics_platform_lock_boundary_20261011.py',
     'tools/oracle_physics_platform_locks_20261011.py',

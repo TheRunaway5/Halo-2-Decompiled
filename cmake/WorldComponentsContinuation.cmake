@@ -1,4 +1,4 @@
-target_sources(halo2_systems PRIVATE src/prop_continuation.cpp src/scenery_collision_continuation.cpp src/device_continuation.cpp src/world_continuation_bindings.cpp)
+target_sources(halo2_systems PRIVATE src/gameplay/objects/prop_continuation.cpp src/gameplay/objects/scenery_collision_continuation.cpp src/gameplay/objects/device_continuation.cpp src/runtime/world_continuation_bindings.cpp)
 if(BUILD_TESTING)
     add_executable(device_continuation_tests tests/device_continuation_tests.cpp)
     target_link_libraries(device_continuation_tests PRIVATE halo2_systems)

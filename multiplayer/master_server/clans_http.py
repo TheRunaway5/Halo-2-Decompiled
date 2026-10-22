@@ -76,7 +76,9 @@ class ClanApi:
         name = text(body["screen_name"])
         owner = await self.directory.owner(request)
         self.cleanup()
-        who = player(self.db, owner, name, request.get(VERIFIED_DISCORD_USERNAME, ""))
+        who = player(self.db, owner, name, request.get(VERIFIED_DISCORD_USERNAME, ""), now=self.directory.store.now())
+        with self.db:
+            self.directory.matchmaking.results.history.identity(who)
         self.sessions = {k: s for k, s in self.sessions.items() if s.player != who}
         require(len(self.sessions) < 1000, "ONLINE session capacity reached", 503)
         token = secrets.token_urlsafe(32)

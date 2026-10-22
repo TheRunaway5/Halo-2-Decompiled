@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FACTS = ROOT / 'tools/mcc-sound-timing-reference-profiles.json'
-OUTPUT = ROOT / 'src/mcc_sound_timing_reference_profiles.inc'
+OUTPUT = ROOT / 'src/audio/mcc_sound_timing_reference_profiles.inc'
 
 
 def digest(value):

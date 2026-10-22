@@ -4,9 +4,9 @@
 #include "halo2/content.hpp"
 #include "halo2/mcc_sound_timing_reference.hpp"
 #include "halo2/physics_contact_record.hpp"
-#include "../src/mcc_sound_timing_reference_profile.hpp"
-#include "../src/mcc_sound_vanilla_reference_profile.hpp"
-#include "../src/mcc_sound_permutation_time_reference_profile.hpp"
+#include "../src/audio/mcc_sound_timing_reference_profile.hpp"
+#include "../src/audio/mcc_sound_vanilla_reference_profile.hpp"
+#include "../src/audio/mcc_sound_permutation_time_reference_profile.hpp"
 #include <atomic>
 #include <future>
 #include <thread>
@@ -203,6 +203,67 @@ void transaction_lifetime(){
     std::cout<<"Execution retained exact const owner and actual resource across caller reset; released after unlock\n";
 }
 
+void held_timing_read(){
+    // Timing-only software operands, not a World/native publication proof.
+    auto m=std::make_shared<Memory>();m->scalar(0x556d90u,0x12345678u);
+    auto owner=std::make_shared<MccSoundTimingMemoryOwner>(m);
+    const auto lease=capture_mcc_sound_timing_read_lease(owner);
+    const auto alias=capture_mcc_sound_timing_read_lease(owner);
+    auto foreign_owner=std::make_shared<MccSoundTimingMemoryOwner>(m);
+    const auto foreign=capture_mcc_sound_timing_read_lease(foreign_owner);
+    unsigned callbacks{};const auto reads=m->reads.load();
+    {
+        const auto held=hold_mcc_sound_timing_read_lease(lease);
+        need(held.matches(lease)&&held.matches(alias)&&!held.matches(foreign),
+            "Held timing witness lost its exact owner/epoch identity");
+        need(check_mcc_sound_timing_read_lease(lease)==MccSoundTimingReadStatus::ReentrantLeaseOperation&&
+            with_mcc_sound_timing_owned_read(lease,[&](const auto&){++callbacks;})==
+                MccSoundTimingReadStatus::ReentrantLeaseOperation,
+            "Ordinary timing read reentered the held mutex");
+        rejected([&]{(void)hold_mcc_sound_timing_read_lease(lease);});
+        rejected([&]{(void)capture_mcc_sound_timing_read_lease(owner);});
+        rejected([&]{owner->rebind(m);});
+        bool foreign_matches=true,foreign_acquired=true;MccSoundTimingReadStatus status{};
+        std::thread other([&]{
+            foreign_matches=held.matches(lease);
+            try{(void)hold_mcc_sound_timing_read_lease(lease);}catch(const std::exception&){foreign_acquired=false;}
+            status=check_mcc_sound_timing_read_lease(lease);
+        });other.join();
+        need(!foreign_matches&&!foreign_acquired&&status==MccSoundTimingReadStatus::WrongThread,
+            "Foreign producer accessed a held timing owner");
+        need(held.matches(lease)&&m->reads==reads&&m->writes==0&&callbacks==0,
+            "Held direct witnesses or rejected operations read/write metadata or dispatched a callback");
+    }
+    need(with_mcc_sound_timing_owned_read(lease,[&](const auto& reader){
+        need(Bytes(reader.read(0x556d90u,4)).u32(0)==0x12345678u,"Released timing scope changed memory");++callbacks;
+    })==MccSoundTimingReadStatus::Executed&&callbacks==1,
+        "Held timing scope failed to unlock or clear its reentry guard");
+    owner->rebind(m);rejected([&]{(void)hold_mcc_sound_timing_read_lease(lease);});
+    const auto current=capture_mcc_sound_timing_read_lease(owner);
+    std::promise<void> started,finished;auto entered=started.get_future(),done=finished.get_future();
+    std::thread teardown;bool waited=false;
+    {
+        const auto held=hold_mcc_sound_timing_read_lease(current);
+        teardown=std::thread([&]{started.set_value();owner->invalidate();finished.set_value();});
+        entered.wait();waited=done.wait_for(std::chrono::milliseconds(25))==std::future_status::timeout;
+    }
+    teardown.join();done.get();need(waited,"Invalidation interleaved with the held timing mutex");
+    rejected([&]{(void)hold_mcc_sound_timing_read_lease(current);});
+    need(check_mcc_sound_timing_read_lease(current)==MccSoundTimingReadStatus::StaleOwner,
+        "Invalidated timing owner retained eligibility");
+    std::weak_ptr<MccSoundTimingMemoryOwner> weak;
+    {
+        auto transient=std::make_shared<MccSoundTimingMemoryOwner>(m);weak=transient;
+        std::optional<MccSoundTimingReadLease> pending=capture_mcc_sound_timing_read_lease(transient);
+        {
+            const auto held=hold_mcc_sound_timing_read_lease(*pending);
+            transient.reset();pending.reset();need(!weak.expired(),"Held timing scope lost its real mutex owner");
+        }
+    }
+    need(weak.expired(),"Released timing scope retained its owner after unlocking");
+    std::cout<<"Held timing-only scope passed exact owner/epoch, no-read direct witnesses, reentry/foreign/stale refusal, serialized invalidation and retained-owner lifetime\n";
+}
+
 void permutation_catalog_timing(){
     Fixture f;auto source=f.input();
     std::vector<mcc_sound_permutation_time_detail::Owner> owners;
@@ -287,4 +348,4 @@ void permutation_catalog_timing(){
     std::cout<<"Distinct permutation catalog passed: four named tuples, original zero, raw equal-only subset, final20/12/16B, no query payload reads; controls="<<controls<<'\n';
 }
 } // namespace
-int main()try{synthetic_timing();transaction_timing();transaction_lifetime();permutation_catalog_timing();}catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}
+int main()try{synthetic_timing();transaction_timing();transaction_lifetime();held_timing_read();permutation_catalog_timing();}catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}

@@ -111,7 +111,7 @@ void storage(){
   moved=moved;check(moved.data()==borrowed,"Self-assignment invalidated a retained borrower");
   auto copy=moved;borrowed[17]=std::byte{0x95};check(copy[17]==std::byte{0x22},"Copy shares an earlier mutable borrower");
   copy.clear();check(copy.empty(),"Byte-buffer clear differs");
-#if defined(__linux__)
+#if defined(__linux__) || defined(__APPLE__)
   auto saved=incoming(2u*1024u*1024u);Bank target;const std::array marker{std::byte{0x71}};
   target.mount(0x1000,marker,Bank::Access::ReadWrite,"existing target");
   const auto before=target.checkpoint();const auto native=target.native_address(0x1000,1);

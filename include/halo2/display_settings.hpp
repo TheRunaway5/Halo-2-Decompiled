@@ -2,6 +2,7 @@
 #include <cstdint>
 #include "halo2/source_geometry_lod.hpp"
 #include "halo2/pstencil/shadow.hpp"
+#include "halo2/upscaling_settings.hpp"
 namespace halo2 {
 inline constexpr unsigned minimum_field_of_view=70, maximum_field_of_view=120;
 inline constexpr unsigned default_field_of_view=78;
@@ -17,7 +18,8 @@ struct DisplaySettings {
     bool crt_filter{};
     TwoPlayerSplit two_player_split=TwoPlayerSplit::Horizontal;
     unsigned internal_width{}, internal_height{}; // Zero follows the drawable.
-    unsigned anti_aliasing{}; // Native SSAA: 0=off, 1=2x, 2=4x per axis.
+    Upscaler upscaler=Upscaler::Off;
+    UpscalingQuality upscaling_quality=UpscalingQuality::Quality;
     unsigned brightness=3, gamma=0, detail=0;
     bool safe_area{};
     unsigned field_of_view=default_field_of_view, vehicle_field_of_view=default_vehicle_field_of_view;

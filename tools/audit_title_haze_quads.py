@@ -55,8 +55,8 @@ def main():
     aspects=json.loads(args.aspects.read_text())
     runtime=sha(ROOT/'build-frontend/halo2_native')
     assert aspects['passed'] and all(c['binary_sha256']==runtime for c in aspects['checks'])
-    source_paths=('src/patchy_fog.cpp','include/halo2/atmosphere.hpp','shaders/patchy_noise.vert',
-        'shaders/patchy_noise.frag','shaders/patchy_composite.frag','src/renderer.cpp',
+    source_paths=('src/rendering/patchy_fog.cpp','include/halo2/atmosphere.hpp','shaders/patchy_noise.vert',
+        'shaders/patchy_noise.frag','shaders/patchy_composite.frag','src/rendering/renderer/renderer.cpp',
         'shaders/patchy_constants.glsl','shaders/combiner.glsl',
         'tests/patchy_fog_quad_tests.cpp','tests/menu_haze_capture_gpu_tests.cpp',
         'tools/export_title_haze_fixture.py','tests/menu_bloom_capture_gpu_tests.cpp',

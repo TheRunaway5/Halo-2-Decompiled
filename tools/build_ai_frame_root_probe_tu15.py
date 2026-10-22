@@ -5,6 +5,7 @@ The standalone link uses current source memory, snapshot storage and the
 complete AI module. No frozen game libraries or supplied game-service returns
 are linked. Original input banks and independent hardware remain required.
 """
+from source_layout import source_file
 import argparse,json,shlex,shutil,subprocess
 from pathlib import Path
 from audit_rendering import file_sha
@@ -23,13 +24,13 @@ def main():
     assert (out.is_dir() and (out/'source').is_dir() and not (out/'build.json').exists()) if resuming else not out.exists()
     source=out/'source';source.mkdir(parents=True,exist_ok=resuming)
     originals=[p for p in (ROOT/'include').rglob('*') if p.is_file()]
-    originals+=list((ROOT/'src').glob('*.hpp'))
-    originals+=[ROOT/'src'/p for p in ('source_runtime_memory.cpp','source_runtime_snapshot_bytes.cpp','cache_file_snapshot.cpp','source_runtime_write_protection.inc')]
-    originals+=[ROOT/'tools/replay_native_ai_frame_tu15.cpp',ROOT/'src/native_mcc_script_builtin.cpp']
+    originals+=list((ROOT/'src').rglob('*.hpp'))
+    originals+=[source_file(ROOT, p) for p in ('source_runtime_memory.cpp','source_runtime_snapshot_bytes.cpp','cache_file_snapshot.cpp','source_runtime_write_protection.inc')]
+    originals+=[ROOT/'tools/replay_native_ai_frame_tu15.cpp',ROOT/'src/campaign/scripting/native_mcc_script_builtin.cpp']
     effect_support_sources=('source_projectile_effect_observer.cpp','source_effect_world_locations.cpp','raw_datum_pool.cpp','raw_datum_pool_identity.cpp','mcc_sound_tag_layout.cpp','source_combat_action_tu15_generated.cpp') if a.api in ('effect-particle-frame','effect-particle-draw') and a.support_module else ()
     if a.api=='effect-particle-draw':
         effect_support_sources+=('source_effect_particle_frame_tu15_generated.cpp','source_vehicle_director_tu15_generated.cpp')
-    originals+=[ROOT/'src'/name for name in effect_support_sources]
+    originals+=[source_file(ROOT, name) for name in effect_support_sources]
     snapshot={}
     for p in originals:
         q=source/p.relative_to(ROOT);q.parent.mkdir(parents=True,exist_ok=True)
@@ -44,11 +45,11 @@ def main():
         else:shutil.copy2(support,source/'support.cpp')
         snapshot['support.cpp']=file_sha(source/'support.cpp')
     common=['c++','-std=c++20','-O3','-DNDEBUG','-fno-fast-math','-ffp-contract=off','-frounding-math','-I'+str(source/'include'),'-I'+str(source/'src')]
-    files=[source/'module.cpp',source/'tools/replay_native_ai_frame_tu15.cpp',*[source/'src'/p for p in ('source_runtime_memory.cpp','source_runtime_snapshot_bytes.cpp','cache_file_snapshot.cpp')]]
+    files=[source/'module.cpp',source/'tools/replay_native_ai_frame_tu15.cpp',*[source_file(source, p) for p in ('source_runtime_memory.cpp','source_runtime_snapshot_bytes.cpp','cache_file_snapshot.cpp')]]
     if support:files.append(source/'support.cpp')
-    files += [source/'src'/name for name in effect_support_sources]
+    files += [source_file(source, name) for name in effect_support_sources]
     if '#include "halo2/native_mcc_script_builtin.hpp"' in module.read_text():
-        files.append(source/'src/native_mcc_script_builtin.cpp')
+        files.append(source/'src/campaign/scripting/native_mcc_script_builtin.cpp')
     commands=[common+['-c',str(p),'-o',str(out/(p.stem+'.o'))] for p in files]
     # The standalone support owner uses the real layout-requirement exception;
     # unused cache-conversion functions must not pull in the entire Cache graph.

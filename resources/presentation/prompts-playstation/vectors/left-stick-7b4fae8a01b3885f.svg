@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="152" height="72" viewBox="0 0 38 18" version="1.1">
+  <title>Playstation left-stick: custom controller prompt</title>
+  <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+  <defs>
+    <mask id="sticks-opacity" maskUnits="userSpaceOnUse" x="0" y="0" width="38" height="18">
+      <rect width="38" height="18" fill="black" />
+      <g id="left-stick">
+        <path id="shaft" d="M4.845 7.014473684210527 H14.155000000000001 V13.860526315789473 Q14.155000000000001 17.65 9.5 17.65 Q4.845 17.65 4.845 13.860526315789473 Z" fill="#888888" />
+        <path id="shaft-rim" d="M4.845 9.600789473684213 V13.860526315789473 Q4.845 17.65 9.5 17.65 Q14.155000000000001 17.65 14.155000000000001 13.860526315789473 V9.600789473684213" fill="none" stroke="#bbbbbb" stroke-width="0.37894736842105264" />
+        <ellipse id="cap" cx="9.5" cy="5.273684210526317" rx="9.25" ry="4.973684210526316" fill="#888888" stroke="#bbbbbb" stroke-width="0.4263157894736842" />
+        <ellipse id="cap-inset" cx="9.5" cy="4.080000000000001" rx="6.5675" ry="2.884736842105263" fill="none" stroke="#cccccc" stroke-width="0.49736842105263157" />
+        <path id="neck-shadow" d="M5.318684210526316 10.200000000000001 H13.681315789473686 L13.20763157894737 11.05263157894737 Q9.5 11.38421052631579 5.792368421052632 11.05263157894737 Z" fill="#777777" />
+        <path id="neck-crease" d="M5.792368421052632 10.768421052631581 Q9.5 11.573684210526316 13.20763157894737 10.768421052631581" fill="none" stroke="#444444" stroke-width="0.4263157894736842" />
+      </g>
+      <g id="right-stick">
+        <path id="shaft" d="M23.845 7.014473684210527 H33.155 V13.860526315789473 Q33.155 17.65 28.5 17.65 Q23.845 17.65 23.845 13.860526315789473 Z" fill="#333333" />
+        <path id="shaft-rim" d="M23.845 9.600789473684213 V13.860526315789473 Q23.845 17.65 28.5 17.65 Q33.155 17.65 33.155 13.860526315789473 V9.600789473684213" fill="none" stroke="#444444" stroke-width="0.37894736842105264" />
+        <ellipse id="cap" cx="28.5" cy="5.273684210526317" rx="9.25" ry="4.973684210526316" fill="#333333" stroke="#444444" stroke-width="0.4263157894736842" />
+        <ellipse id="cap-inset" cx="28.5" cy="4.080000000000001" rx="6.5675" ry="2.884736842105263" fill="none" stroke="#444444" stroke-width="0.49736842105263157" />
+      </g>
+    </mask>
+  </defs>
+  <rect id="sticks-paint" width="38" height="18" fill="white" mask="url(#sticks-opacity)" />
+  <g id="label-l" transform="translate(7.212105263157895 2.413815789473685) scale(0.5719736842105263)" fill="#f2f6ff" fill-rule="evenodd">
+    <path d="M0 0 H1.5 V8.5 H6 V10 H0 Z" transform="translate(0.0 0)" />
+  </g>
+</svg>

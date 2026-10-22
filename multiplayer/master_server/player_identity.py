@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 import re
 import uuid
+import time
 
 from aiohttp import web
 from .protocol import require
@@ -32,9 +33,13 @@ def initialize(db):
     """)
     if "steam_name" not in {r[1] for r in db.execute("PRAGMA table_info(player_profiles)")}:
         db.execute("ALTER TABLE player_profiles ADD COLUMN steam_name TEXT NOT NULL DEFAULT ''")
+    if "joined_at" not in {r[1] for r in db.execute("PRAGMA table_info(player_profiles)")}:
+        # Existing accounts have no registration timestamp. NULL is honest;
+        # migration time and earliest retained match are not their join date.
+        db.execute("ALTER TABLE player_profiles ADD COLUMN joined_at INTEGER")
 
 
-def player(db, owner, name, username=""):
+def player(db, owner, name, username="", *, now=None):
     # Only the upstream verifier may supply a username. Local screen names are
     # deliberately nonunique and cannot be used for identity or authorization.
     require(len(owner) == 2 and all(type(v) is str and v for v in owner), "Verified account identity required", 401)
@@ -47,18 +52,20 @@ def player(db, owner, name, username=""):
         row = db.execute("SELECT player FROM player_identities WHERE provider=? AND subject=?", owner).fetchone()
         if row:
             value = row[0]
+            joined = None
         else:
             require(db.execute("SELECT count(*) FROM players").fetchone()[0] < 1000, "Player capacity reached", 503)
             value = str(uuid.uuid4())
+            joined = int(time.time() if now is None else now)
             db.execute("INSERT INTO players VALUES(?,?,?)", (value, *owner))
             db.execute("INSERT INTO player_identities VALUES(?,?,?)", (*owner, value))
         discord_name = username if owner[0] == "discord" else ""
         steam_name = username if owner[0] == "steam" else ""
         if discord_name:
             db.execute("UPDATE player_profiles SET discord_username='' WHERE discord_username=? AND player!=?", (username, value))
-        db.execute("INSERT INTO player_profiles(player,screen_name,discord_username,steam_name) VALUES(?,?,?,?) "
+        db.execute("INSERT INTO player_profiles(player,screen_name,discord_username,steam_name,joined_at) VALUES(?,?,?,?,?) "
                    "ON CONFLICT(player) DO UPDATE SET screen_name=excluded.screen_name, "
                    "discord_username=CASE WHEN excluded.discord_username!='' THEN excluded.discord_username ELSE player_profiles.discord_username END, "
                    "steam_name=CASE WHEN excluded.steam_name!='' THEN excluded.steam_name ELSE player_profiles.steam_name END",
-                   (value, name, discord_name, steam_name))
+                   (value, name, discord_name, steam_name, joined))
     return value

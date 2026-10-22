@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #define SDL_MAIN_HANDLED
 #include "halo2/animation_presentation.hpp"
 #include "halo2/multiplayer.hpp"
@@ -28,7 +29,7 @@ struct HistoryReport {
   nlohmann::json data{{"samples",nlohmann::json::array()},{"render_loop_completed",false},
       {"full_weapon_parity",false},{"original_position_owner",true},
       {"diagnostic_placement","Pinned at the current authored pickup row through original B95D0"}};
-  ~HistoryReport(){if(path){std::ofstream file(path);file<<data.dump(2)<<'\n';}}
+  ~HistoryReport(){if(path){std::ofstream file(path);file<<data.dump()<<'\n';}}
 };
 void check(bool ok,const char *why){if(!ok)throw FormatError(why);}
 void key(Uint32 window,SDL_Scancode scan) {
@@ -46,9 +47,12 @@ void trigger(Uint32 window,Uint8 button,bool down) {
   check(SDL_PushEvent(&e)==1,"Queue weapon trigger");
 }
 }
-int main(int argc,char **argv){try {
+int main(int argc,char **argv){HistoryReport history;try {
   check(argc==4 || argc==5,"Supply MAP SHARED XBE [CAPTURE]");
   const bool mcc=std::string(argv[3])=="native-mcc";
+  history.data["runtime_cache_source"]=mcc?"prepared MCC requested":"offline reference requested";
+  history.data["runtime_cache_path"]=argv[1];
+  history.data["native_world_constructor_completed"]=false;
   if(!std::getenv("DISPLAY") || !std::filesystem::exists(argv[1]) || (!mcc && !std::filesystem::exists(argv[3])))return 77;
   SDL_SetHintWithPriority(SDL_HINT_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT,"0xffff/0xffff",SDL_HINT_OVERRIDE);
   SDL_SetMainReady();MultiplayerOptions options;options.map=argv[1];options.shared_maps=argv[2];
@@ -66,7 +70,10 @@ int main(int argc,char **argv){try {
   options.prepared_world=std::make_shared<MultiplayerPreparedWorld>(options);
   const auto &world=*options.prepared_world;
   check(!mcc || world.cache->is_mcc(),"Weapon runtime testing requires an MCC cache");
-  HistoryReport history;history.data["representation"]=representation;
+  history.data["representation"]=representation;
+  history.data["native_world_constructor_completed"]=true;
+  history.data["runtime_cache_source"]=mcc?"MCC":"offline reference";
+  history.data["runtime_cache_path"]=argv[1];
   history.data["expected_unit_definition"]=world.content.player_representations.at(representation).biped.datum;
   const NetgameEquipment *row=nullptr,*primary_row=nullptr;
   for(const auto &r:world.content.netgame_equipment)
@@ -78,16 +85,21 @@ int main(int argc,char **argv){try {
         primary_row=&r;
     }
   check(row && primary_row,"Actual map has no SMG/battle-rifle pickup rows");
+  const auto primary_row_index=unsigned(primary_row-world.content.netgame_equipment.data());
+  const auto smg_row_index=unsigned(row-world.content.netgame_equipment.data());
+  history.data["authored_pickup_rows"]={{"primary",primary_row_index},{"smg",smg_row_index},
+      {"primary_definition",primary_row->items[0].definition},{"smg_definition",row->items[0].definition}};
   // Only initial diagnostic placement is supplied. Item allocation, transfer,
   // clocks, trigger/reload/grenade outcomes and poses come from the live loop.
   const auto location=row->position;const auto slot=world.local_slots.at(0);
   options.desktop=std::make_shared<DesktopSession>();auto *window=options.desktop->window(800,600,false);
+  SDL_RaiseWindow(window);SDL_SetWindowInputFocus(window);
   std::cout<<"Native SDL video driver: "<<SDL_GetCurrentVideoDriver()<<'\n';
   const auto window_id=SDL_GetWindowID(window);SDL_FlushEvents(SDL_FIRSTEVENT,SDL_LASTEVENT);
   std::optional<unsigned> start,carried_at,dual_at,grenade_at;MultiplayerState current;unsigned step{},draws{};
   std::uint32_t primary_target=null_datum,starting_datum=null_datum;
   bool map_pickup{},switched{},dual_requested{};
-  bool raised{},dual{},right_fired{},left_fired{},reloaded{},thrown{},dropped{};
+  bool dual{},right_fired{},left_fired{},reloaded{},thrown{},dropped{};
   bool offhand_radar{},primary_radar{},grenade_radar_phase{};
   bool reload_received{},lost_focus{};
   unsigned firing_particles{},firing_sounds{},fired_rounds{};
@@ -98,6 +110,7 @@ int main(int argc,char **argv){try {
   unsigned world_pose_publications{},world_pose_draws{},dropped_pose_draws{},world_pose_mismatches{},world_palette_matrices{};
   history.data["world_pose_metrics"]={{"enabled",verify_world_poses},{"render_fraction",options.reference_render_fraction}};
   const bool follow_drop=std::getenv("HALO2_TEST_DUAL_DROP_LIFETIME")!=nullptr;
+  const bool trace_dual_selection=std::getenv("HALO2_TEST_TRACE_DUAL_SELECTION")!=nullptr;
   std::uint32_t offhand_datum=null_datum;
   unsigned drop_checks{},drop_mismatches{},drop_preview_differences{};
   std::optional<unsigned> drop_tick,retired_tick;
@@ -167,13 +180,42 @@ int main(int argc,char **argv){try {
   };
   std::optional<SourcePhysicsEntryObserverBinding> retirement_observer;
   std::vector<std::size_t> retirement_pending;
-  if(follow_drop) {
+  struct SelectionFrame {std::uint32_t entry;std::size_t row;bool active;};
+  std::vector<SelectionFrame> selection_pending;
+  if(follow_drop || trace_dual_selection) {
     auto *source=options.prepared_world->match.source_object_runtime();
     check(source && source->owns_physics(),"Drop retirement trace requires original storage");
     const auto &memory=source->memory();
     retirement_observer.emplace(memory,[&](bool before,std::uint32_t entry,const auto &abi) {
-      if(entry!=0xba490u)return;
       const auto word=[&](std::uint32_t p){return Bytes(memory.view(p,4)).u32(0);};
+      if(trace_dual_selection && (entry==0xeaf00u || entry==0xe9530u || entry==0xeaa60u ||
+          entry==0xeac70u || entry==0xcfb80u || entry==0x113190u || entry==0x1123b0u)) {
+        auto &rows=history.data["dual_selection_calls"];
+        if(rows.is_null())rows=nlohmann::json::array();
+        if(before) {
+          const auto tick=word(word(0x51df54u)+8u);
+          const bool active=(!selection_pending.empty() && selection_pending.back().active) ||
+              (entry==0xeaf00u && tick>=32 && tick<=65 && word(word(abi.gp[4]+8u))==18u);
+          std::size_t row=SIZE_MAX;
+          if(active && rows.size()<192) {
+            row=rows.size();std::array<std::uint32_t,6> stack;
+            for(unsigned i=0;i<stack.size();++i)stack[i]=word(abi.gp[4]+i*4u);
+            rows.push_back({{"entry",entry},{"source_tick",tick},{"before_gp",abi.gp},
+                {"stack_words",stack},{"completed",false}});
+          }
+          selection_pending.push_back({entry,row,active});
+        }else {
+          check(!selection_pending.empty() && selection_pending.back().entry==entry,
+              "Unpaired original dual equip observation");
+          const auto row=selection_pending.back().row;selection_pending.pop_back();
+          if(row!=SIZE_MAX) {
+            rows.at(row)["after_gp"]=abi.gp;rows.at(row)["returned_value"]=abi.gp[0];
+            rows.at(row)["completed"]=true;
+          }
+        }
+        return;
+      }
+      if(entry!=0xba490u || !follow_drop)return;
       if(before) {
         const auto object=word(abi.gp[4]+4u);
         if(object!=offhand_datum || object==null_datum){retirement_pending.push_back(SIZE_MAX);return;}
@@ -198,7 +240,7 @@ int main(int argc,char **argv){try {
   };
   std::optional<Spawn> diagnostic_pose;
   const auto place=[&](const Spawn &pose) {
-    options.prepared_world->match.debug_request({DebugGameRequest::Teleport,slot},&pose);
+    test::place_player(options.prepared_world->match,slot,pose);
     auto *source=options.prepared_world->match.source_object_runtime();
     check(source && source->owns_physics(),"Dual placement requires the actual source pose owner");
     check(current.players[slot].source_unit!=null_datum,"Dual placement has no actual source unit");
@@ -240,11 +282,64 @@ int main(int argc,char **argv){try {
       nlohmann::json sample{{"tick",tick},{"source_tick",word(word(0x51df54u)+8u)},
           {"fire",controls[0].fire},{"fire_secondary",controls[0].fire_secondary},
           {"reload",controls[0].reload},{"source_unit",p.source_unit},
+          {"pickup",controls[0].pickup},{"pickup_milliseconds",controls[0].pickup_milliseconds},
+          {"dual_wield",controls[0].dual_wield},{"dual_wield_milliseconds",controls[0].dual_wield_milliseconds},
+          {"switch_weapon",controls[0].switch_weapon},{"source_action_word",p.source_action_word},
           {"motion_sensor_control",p.motion_sensor_control},{"hands",nlohmann::json::array()}};
+      sample["actual_keyboard_focus"]=SDL_GetKeyboardFocus()==window;
+      sample["actual_window_flags"]=SDL_GetWindowFlags(window);
+      sample["published_world_weapon_count"]=state.world_weapons.size();
+      if(p.source_player!=null_datum) {
+        const auto command=0x6002800cu+(p.source_player&65535u)*0x5cu;
+        sample["original_action_result"]={word(0x60041000u),word(0x60041004u),word(0x60041008u)};
+        sample["delivered_action_result"]={word(command+0x28u),word(command+0x2cu),word(command+0x30u)};
+      }
+      if(!start&&(tick<4||tick==120))try {
+        sample["primary_netgame_object"]=source->netgame_object(primary_row_index);
+        sample["smg_netgame_object"]=source->netgame_object(smg_row_index);
+        auto& actual_items=sample["actual_pickup_source_objects"]=nlohmann::json::array();
+        for(const auto& object:source->live_objects())
+          if((object.definition==primary_row->items[0].definition||object.definition==row->items[0].definition)&&actual_items.size()<12) {
+            const auto at=source->object_transform(object.object).position;
+            actual_items.push_back({{"object",object.object},{"definition",object.definition},
+                {"parent",object.parent},{"type",object.type},{"position",{at.x,at.y,at.z}}});
+          }
+      }catch(const std::exception& error){sample["pickup_observation_error"]=error.what();}
+      if(!start&&(tick<4||tick==120)) {
+        auto& primary_candidates=sample["primary_pickup_candidates"]=nlohmann::json::array();
+        for(const auto& item:state.world_weapons)
+          if(item.definition==primary_row->items[0].definition&&primary_candidates.size()<8) {
+            const auto delta=item.position-primary_row->position;
+            primary_candidates.push_back({{"object",item.handle},{"definition",item.definition},
+                {"position",{item.position.x,item.position.y,item.position.z}},
+                {"authored_position_distance_squared",delta.x*delta.x+delta.y*delta.y+delta.z*delta.z}});
+          }
+      }
       sample["hud_storage"]=word(0x50eeccu);sample["hud_definition_address"]=word(0x51df94u);
       sample["unit_definition"]=p.source_unit==null_datum?null_datum:source->object_definition(p.source_unit);
       check(p.source_unit==null_datum || sample["unit_definition"]==history.data["expected_unit_definition"],
           "Actual dual source unit lost its selected authored species");
+      sample["action_prompt"]={{"action",p.action_prompt.target.action},
+          {"index",p.action_prompt.target.index},{"object",p.action_prompt.target.object},
+          {"definition",p.action_prompt.definition},{"message",p.action_prompt.message}};
+      if(p.source_unit!=null_datum) {
+        const auto root=source->object_transform(p.source_unit).position;
+        const auto equipment=source->tu15_world().player_equipment(p.source_unit);
+        const auto view=source->tu15_world().first_person_view(0);
+        sample["source_position"]={root.x,root.y,root.z};
+        sample["source_equipment"]={{"weapons",equipment.weapons},{"definitions",equipment.definitions},
+            {"current",equipment.current},{"requested",equipment.requested},{"ready_ticks",equipment.ready_ticks}};
+        sample["source_first_person"]={{"unit",view.unit},{"weapon",view.hands[0].weapon},
+            {"graph",view.hands[0].graph},{"activity",view.hands[0].activity},
+            {"packed_clip",view.hands[0].animation_identifier},{"frame",view.hands[0].frame}};
+        auto &items=sample["actual_smg_items"]=nlohmann::json::array();
+        for(const auto &item:state.world_weapons)
+          if(item.definition==world.rules.weapon && items.size()<8) {
+            const auto at=source->object_transform(item.handle).position;
+            items.push_back({{"object",item.handle},{"definition",item.definition},
+                {"source_position",{at.x,at.y,at.z}},{"published_position",{item.position.x,item.position.y,item.position.z}}});
+          }
+      }
       for(unsigned hand=0;hand<2;++hand) {
         const auto datum=hand?p.secondary_weapon.datum:p.source_weapon;if(datum==null_datum)continue;
         const auto body=source->object_body(datum);
@@ -264,6 +359,9 @@ int main(int argc,char **argv){try {
       history.data["samples"].push_back(std::move(sample));
       history.data["publication_checks"]=history_checks;history.data["publication_mismatches"]=history_mismatches;
     }
+    // Request real X11/SDL focus independently of whether the first animation
+    // draw has occurred. No synthetic focus event or gameplay input is used.
+    if(SDL_GetKeyboardFocus()!=window){SDL_RaiseWindow(window);SDL_SetWindowInputFocus(window);}
     reload_received|=controls[0].reload;
     lost_focus|=start.has_value() && SDL_GetKeyboardFocus()!=window;
     const auto primary_item=std::find_if(state.world_weapons.begin(),state.world_weapons.end(),[&](const auto &item) {
@@ -276,7 +374,10 @@ int main(int argc,char **argv){try {
       diagnostic_pose=at;place(at);hold_key(window_id,SDL_SCANCODE_E,true);
       std::cout<<"Actual map battle rifle available at tick="<<tick<<'\n';
     }
-    check(tick<120 || start,"Weapon window never received actual keyboard focus");
+    if(tick>=120&&!start) {
+      check(SDL_GetKeyboardFocus()==window,"Weapon window never received actual keyboard focus");
+      check(primary_item!=state.world_weapons.end(),"Authored map primary pickup was not published at its observed start location");
+    }
     if(start && !map_pickup && p.source_weapon==primary_target) {
       check(p.weapon==primary_row->items[0].definition,"Map pickup changed its authored definition");
       check(std::none_of(state.world_weapons.begin(),state.world_weapons.end(),[&](const auto &item){return item.handle==primary_target;}),
@@ -328,7 +429,6 @@ int main(int argc,char **argv){try {
     check(!start || tick<*start+250,"Live dual pickup/animation sequence timed out");
   };
   options.animation_observer=[&](unsigned,unsigned,const AnimationRenderObservation &sample){
-    if(!raised){SDL_RaiseWindow(window);SDL_SetWindowInputFocus(window);raised=true;}
     if(!sample.first_person)return;
     for(const auto &v:sample.vertices)check(std::isfinite(v.position.x)&&std::isfinite(v.position.y)&&std::isfinite(v.position.z),"Nonfinite posed weapon vertex");
     if(current.players[slot].secondary_weapon.datum!=null_datum) {
@@ -382,6 +482,7 @@ int main(int argc,char **argv){try {
   if(argc==5){options.screenshot=argv[4];options.capture_tick=240;}
   check(run_multiplayer(options)==0,"Weapon runtime failed");
   history.data["render_loop_completed"]=true;
+  history.data["pending_dual_selection_calls"]=selection_pending.size();
   if(verify_world_poses) {
     check(world_pose_publications && world_pose_draws && dropped_pose_draws && world_palette_matrices && !world_pose_mismatches,
         "Loose weapon source publication/draw/palette comparison failed");
@@ -470,4 +571,4 @@ int main(int argc,char **argv){try {
   std::cout<<"PASS actual SDL map pickup and switch; dual pickup, two independently firing/reloading weapon datums, "<<draws<<" posed draws, "<<clips.size()<<" clips, "<<firing_particles<<" particle draws, "<<firing_sounds<<" firing sounds";
   if(argc!=5)std::cout<<", grenade animation and offhand drop";
   std::cout<<'\n';
-}catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}
+}catch(const std::exception &e){history.data["runtime_error"]=e.what();std::cerr<<e.what()<<'\n';return 1;}}

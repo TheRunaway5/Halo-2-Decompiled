@@ -58,7 +58,7 @@ void adapter_scope(MenuState &state, bool exceptional) {
     state.set_pc_display_adapter([resource=resources[0],&calls](const DisplaySettings &) {
       ++calls; return std::string{};
     });
-    state.set_pc_video_adapter([resource=resources[1],&calls](unsigned,unsigned,bool) {
+    state.set_pc_video_adapter([resource=resources[1],&calls](unsigned,unsigned,FullscreenMode) {
       ++calls; return std::string{};
     });
     state.set_pc_video_query([resource=resources[2],&calls] {

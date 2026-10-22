@@ -23,7 +23,7 @@ def main():
  previous=json.loads((ROOT/'analysis/multiplayer/integration/grenade-bounded-phases/manifest.json').read_text())
  prior={**previous['source_files'],**previous['verified_prior_pins']}
  for name,h in prior.items():assert motion.digest(ROOT/name)==h,name
- for name in ['include/halo2/unit_grenade.hpp','src/unit_grenade.cpp','tests/unit_grenade_tests.cpp','docs/MP_GRENADE_NATIVE_CALLBACK_RESEARCH.md',
+ for name in ['include/halo2/unit_grenade.hpp','src/gameplay/weapons/unit_grenade.cpp','tests/unit_grenade_tests.cpp','docs/MP_GRENADE_NATIVE_CALLBACK_RESEARCH.md',
   'tools/oracle_mp_grenade_callbacks_1_1.py','tools/export_mp_grenade_callback_fixtures.py','tools/freeze_mp_grenade_callbacks_1_1.py']:files[name]=motion.digest(ROOT/name)
  value=dict(schema=1,source_files=files,verified_prior_pins=prior,source_instruction_rows=rows,original_xbe_sha256=PIN,
   original_report_sha256=motion.digest(OUT/'measured/report.json'),fixture_sha256=motion.digest(OUT/'measured/fixtures.tsv'),

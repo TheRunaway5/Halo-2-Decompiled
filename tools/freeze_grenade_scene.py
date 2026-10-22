@@ -13,7 +13,7 @@ def main():
   source=Path(source);before=digest(source);target=stage/relative;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,target);assert digest(target)==before and digest(source)==before;observed.append(dict(path=str(source),sha256=before,size=source.stat().st_size))
  for path in sorted((ROOT/'include').rglob('*')):
   if path.is_file():copy(path,Path('source')/path.relative_to(ROOT))
- sourcefiles=['src/source_grenade_scene.cpp','src/source_object_geometry.cpp','src/source_object_geometry.hpp','tests/source_grenade_scene_tests.cpp','docs/MP_GRENADE_SCENE_RESEARCH.md','CMakeLists.txt']
+ sourcefiles=['src/gameplay/weapons/source_grenade_scene.cpp','src/gameplay/objects/source_object_geometry.cpp','src/gameplay/objects/source_object_geometry.hpp','tests/source_grenade_scene_tests.cpp','docs/MP_GRENADE_SCENE_RESEARCH.md','CMakeLists.txt']
  sourcefiles += ['tools/'+x for x in ('oracle_grenade_scene_state.py','extract_grenade_scene_constructor.py','pair_grenade_scene_attach_flags.py','export_grenade_scene_fixtures.py','build_grenade_scene_validation.py','probe_source_grenade_scene_maps.py','audit_grenade_scene.py','freeze_grenade_scene.py','research_mp_original_data_u5.py','research_mp_live_locomotion_owners_u5.py','inspect_multiplayer.py','inventory_mp_weapon_effects.py','reference/halo2-decompiled/tools/xbe.py','reference/halo2-decompiled/tools/functions.py')]
  for relative in sourcefiles:copy(ROOT/relative,Path('source')/relative)
  evidence=('measured-final','measured-repeat','constructor','constructor-repeat','attach-flags','attach-flags-repeat','fixtures','maps-production-normal-owned','maps-production-normal-owned-repeat','maps-production-sanitizer','maps-production-sanitizer-repeat')
@@ -37,7 +37,7 @@ def main():
  copy(san/'source_grenade_scene_tests','sanitizer/source_grenade_scene_tests')
  for path in sorted(san.glob('libhalo2_*.a')):copy(path,Path('sanitizer')/path.name)
  for name in ('CMakeCache.txt','CTestTestfile.cmake'):copy(san/name,Path('sanitizer')/name)
- for name in ('halo2_cache','halo2_systems','halo2_renderer','halo2_imgui','halo2_shadow_render','halo2_menu_world_storage','halo2_particle_renderer','halo2_sound_platform','halo2_native_synchronization','source_grenade_scene_tests'):
+ for name in ('halo2_cache','halo2_systems','halo2_renderer','halo2_shadow_render','halo2_menu_world_storage','halo2_particle_renderer','halo2_sound_platform','halo2_native_synchronization','source_grenade_scene_tests'):
   source=san/'CMakeFiles'/(name+'.dir')
   for filename in ('flags.make','link.txt','build.make','DependInfo.cmake','compiler_depend.make','compiler_depend.ts'):
    path=source/filename

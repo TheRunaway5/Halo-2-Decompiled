@@ -137,7 +137,7 @@ def main():
   '\n'.join(' '.join(f'{v:08X}'for v in row)+' | '+' '.join(f'{v:08X}'for v in out)for row,out in zip(cases,rows))+'\n')
  report=dict(boundary=__doc__,source_xbe_sha256=PIN,snapshot_ram_sha256=sha(s.ram),
   snapshot_manifest_sha256=sha((s.directory/'export.json').read_bytes()),tool_sha256=sha(Path(__file__).read_bytes()),
-  helper_sha256=sha((ROOT/'src/source_bitmap_initialization.cpp').read_bytes()),fixture_sha256=sha(fixture.read_bytes()),
+  helper_sha256=sha((ROOT/'src/rendering/source_bitmap_initialization.cpp').read_bytes()),fixture_sha256=sha(fixture.read_bytes()),
   native_binary_sha256=sha(a.binary.read_bytes()),cases=len(cases),checked_words=sum(len(r)for r in rows),
   constructor_cases=len(constructor_records),reservation_cases=len(stage_inputs),reservation_stops=dict(counts),
   retained_stage=dict(index=stage,lower=f'{lower:08X}',upper=f'{upper:08X}',

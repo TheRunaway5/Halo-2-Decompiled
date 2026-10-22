@@ -167,7 +167,7 @@ class HistoryApi:
             "JOIN match_results m ON m.id=r.match JOIN carnage_reports h ON h.match=m.id "
             "WHERE r.player=?"+cutoff+" ORDER BY m.completed DESC,h.public_id DESC LIMIT ?", parameters).fetchall()
         fields = ("id", "completed", "playlist", "revision", "map", "variant", "ranked", "placement", "score", "kills", "deaths", "assists", "suicides", "format")
-        return web.json_response({"player": dict(id=request.match_info["player"], discord_username=username, screen_name=name),
+        return web.json_response({"player": dict(id=request.match_info["player"], discord_username=username, **self.directory.profiles.view(who)),
             "matches": [dict(zip(fields, row)) for row in rows[:limit]],
             "next": cursor(rows[limit-1][1], rows[limit-1][0]) if len(rows)>limit else None})
 

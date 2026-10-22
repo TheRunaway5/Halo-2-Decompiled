@@ -7,7 +7,7 @@ from validate_sound_driver_update_native import source_files
 BUILDS=(('normal','build-animation-metadata-store-20261008'),('sanitizer','build-animation-event-asan-20261008'))
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--directory',type=Path,required=True);a=p.parse_args();out=a.directory.resolve();commands=[]
-    sources=source_files()+['CMakeLists.txt','include/halo2/sound_cache_lifecycle.hpp','src/sound_cache_lifecycle.cpp','tests/sound_cache_lifecycle_tests.cpp']
+    sources=source_files()+['CMakeLists.txt','include/halo2/sound_cache_lifecycle.hpp','src/audio/sound_cache_lifecycle.cpp','tests/sound_cache_lifecycle_tests.cpp']
     for rel in sources:
         dst=out/'source'/rel;dst.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(ROOT/rel,dst)
     def run(argv,label,env=None):
@@ -32,7 +32,7 @@ def main():
                     archives[key]=sha(path)
         shutil.copy2(build/'CMakeCache.txt',dest/'CMakeCache.txt')
     before={rel:sha(out/'source'/rel)for rel in sources};after={rel:sha(ROOT/rel)for rel in sources};drift={rel:dict(before=before[rel],after=after[rel])for rel in sources if before[rel]!=after[rel]}
-    assert not any(rel in drift for rel in('include/halo2/sound_driver_update.hpp','src/sound_driver_update.cpp','tests/sound_driver_update_tests.cpp'))
+    assert not any(rel in drift for rel in('include/halo2/sound_driver_update.hpp','src/audio/sound_driver_update.cpp','tests/sound_driver_update_tests.cpp'))
     save(out/'commands.json',encoded(dict(schema='sound-driver-update-production-validation-v1',tool_sha256=sha(__file__),commands=commands,source_snapshot=before,source_after=after,source_drift=drift,observed_archives=archives,scope='Actual focused CMake production targets and original fixtures, existing actual sanitizer flags preserved. Exact observed archives/source snapshots are pinned, not a reproducible whole-tree or active-device/playback claim.')))
     print(dict(commands_sha256=sha(out/'commands.json'),archives=len(archives),source_drift=drift))
 if __name__=='__main__':main()

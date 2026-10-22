@@ -50,7 +50,7 @@ def main():
   copy(ROOT/'CMakeLists.txt',BASE/'cmake-observed.txt')
   text=(ROOT/'CMakeLists.txt').read_text();start=text.index('    find_path(HALO2_TEST_JSON_INCLUDE',text.index('    add_executable(object_construction_tests'))
   end=text.index('    endif()',start)+len('    endif()')
-  fragments=['target_sources(halo2_systems PRIVATE src/object_preparation_pressure.cpp)',text[start:end]]
+  fragments=['target_sources(halo2_systems PRIVATE src/gameplay/objects/object_preparation_pressure.cpp)',text[start:end]]
   save(BASE/'cmake-owned-fragments.json',encoded(fragments))
   pairs=[(relative(BASE/'measured/report.json'),relative(BASE/'repeated/report.json')),
    (relative(BASE/'controls-measured-v2/report.json'),relative(BASE/'controls-repeated-v2/report.json'))]

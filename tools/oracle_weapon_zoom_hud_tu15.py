@@ -64,10 +64,26 @@ def main():
                 outputs.append(guest.reg_read(UC_X86_REG_XMM0)&0xffffffff)
             assert outputs[0]==outputs[1],(tag['name'],selector,outputs)
             records.append(dict(weapon=tag['name'],levels=count,selector=selector,
+                flags_bits=f'{cache.u(at+0x12c):08x}',magazine_count=cache.u(at+0x2c0),
                 minimum_bits=f'{cache.u(at+0x200):08x}',maximum_bits=f'{cache.u(at+0x204):08x}',
                 original_magnification_bits=f'{outputs[0]:08x}'))
+    globals_tag=next(t for t in cache.tags.values() if t['group']=='matg' and t['offset'] is not None)
+    info=cache.u(globals_tag['offset']+0x134)-cache.magic
+    cameras=[dict(biped=t['name'],fov_bits=f"{cache.u(t['offset']+0xcc):08x}")
+        for t in cache.tags.values() if t['group']=='bipd' and t['offset'] is not None and
+        t['name'] in ('objects\\characters\\masterchief\\masterchief',
+            'objects\\characters\\dervish\\dervish','objects\\characters\\masterchief\\masterchief_mp',
+            'objects\\characters\\elite\\elite_mp')]
+    smg=next(t for t in cache.tags.values() if t['name']=='objects\\weapons\\rifle\\smg\\smg')
+    at=smg['offset']
+    binocular_weapon=dict(weapon=smg['name'],flags_bits=f'{cache.u(at+0x12c):08x}',
+        levels=cache.h(at+0x1fe),minimum_bits=f'{cache.u(at+0x200):08x}',
+        maximum_bits=f'{cache.u(at+0x204):08x}',magazine_count=cache.u(at+0x2c0))
     args.output.parent.mkdir(parents=True,exist_ok=True)
     args.output.write_text(json.dumps(dict(scope=__doc__,records=records,
+        map_sha256=hashlib.sha256(cache.data).hexdigest(),camera_fields=cameras,binocular_weapon=binocular_weapon,
+        binocular=dict(levels=cache.i(info+0xb8),minimum_bits=f'{cache.u(info+0xbc):08x}',
+            maximum_bits=f'{cache.u(info+0xc0):08x}'),
         images=[dict(label=m[0],sha256=m[1],entry=f'{m[2]:08x}') for m in machines],
         original_images_equal=True,instruction_patches=[],math_service_replacements=[],
         tool_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()),indent=2)+'\n')

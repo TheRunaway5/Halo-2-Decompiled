@@ -22,6 +22,17 @@ if(HALO2_DSP_PREBUILT_LIBRARY)
         message(FATAL_ERROR "HALO2_DSP_PREBUILT_LIBRARY does not exist")
     endif()
     set(_halo2_gp_archive "${HALO2_DSP_PREBUILT_LIBRARY}")
+    if(APPLE)
+        include("${CMAKE_CURRENT_LIST_DIR}/macos/Dsp.cmake")
+        halo2_macos_verify_dsp_archive("${_halo2_gp_archive}")
+    endif()
+elseif(APPLE)
+    include("${CMAKE_CURRENT_LIST_DIR}/macos/Dsp.cmake")
+    halo2_macos_build_dsp_archive(_halo2_gp_archive
+        SOURCE "${_halo2_gp_source}" DIRECTORY "${_halo2_gp_target}"
+        CARGO "${HALO2_DSP_CARGO}" TOOLCHAIN "${HALO2_DSP_RUST_TOOLCHAIN}"
+        ENVIRONMENT ${_halo2_gp_env})
+    add_custom_target(halo2_dsp56300_rust DEPENDS "${_halo2_gp_archive}")
 else()
     add_custom_command(OUTPUT "${_halo2_gp_archive}"
     COMMAND ${CMAKE_COMMAND} -E env ${_halo2_gp_env}
@@ -41,8 +52,8 @@ set_target_properties(halo2_dsp56300 PROPERTIES IMPORTED_LOCATION "${_halo2_gp_a
 if(NOT HALO2_DSP_PREBUILT_LIBRARY)
     add_dependencies(halo2_dsp56300 halo2_dsp56300_rust)
 endif()
-add_library(halo2_sound_gp_cpu_tu15 STATIC EXCLUDE_FROM_ALL src/sound_gp_cpu_tu15.cpp src/sound_gp_cpu_tu15_ffi.c)
-add_library(halo2_sound_gp_dma_tu15 STATIC EXCLUDE_FROM_ALL src/sound_gp_dma_tu15.cpp)
+add_library(halo2_sound_gp_cpu_tu15 STATIC EXCLUDE_FROM_ALL src/audio/dsp/sound_gp_cpu_tu15.cpp src/audio/dsp/sound_gp_cpu_tu15_ffi.c)
+add_library(halo2_sound_gp_dma_tu15 STATIC EXCLUDE_FROM_ALL src/audio/dsp/sound_gp_dma_tu15.cpp)
 target_include_directories(halo2_sound_gp_dma_tu15 PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_compile_features(halo2_sound_gp_dma_tu15 PUBLIC cxx_std_20)
 option(HALO2_BUILD_GP_DMA_TESTS "Build the explicit native GP scratch DMA owner tests" OFF)

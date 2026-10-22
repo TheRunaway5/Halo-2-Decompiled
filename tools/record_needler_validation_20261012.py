@@ -18,21 +18,21 @@ def main():
  assert 'PASS actual native UDP' in (E/'needler-mcc-network-20261012.log').read_text()
  for r in results:assert '\nPASS ' in Path(r['log']).read_text()
  owned=['include/halo2/content.hpp','include/halo2/fixed_effect_event.hpp','include/halo2/muzzle_effects.hpp',
-        'include/halo2/effect_sound.hpp','src/content.cpp','src/simulation.cpp','src/muzzle_effects.cpp',
-        'src/effect_sound.cpp','tests/muzzle_effects_tests.cpp','tests/needler_firing_tests.cpp',
+        'include/halo2/effect_sound.hpp','src/assets/content.cpp','src/gameplay/simulation.cpp','src/rendering/effects/muzzle_effects.cpp',
+        'src/rendering/effects/effect_sound.cpp','tests/muzzle_effects_tests.cpp','tests/needler_firing_tests.cpp',
         'tests/native_covenant_weapon_runtime_tests.cpp','tests/native_weapon_runtime_tests.cpp']
- equal_owned=[p for p in owned if p!='src/content.cpp']
+ equal_owned=[p for p in owned if p!='src/assets/content.cpp']
  assert all(sha(ROOT/p)==sha(SOURCE/p) for p in equal_owned)
  # Shared root independently optimized its tag lookup; compare only our exact
  # authored Needler import hunk, retaining the frozen parent implementation.
  def needler_import(text):
   return text.split('        if(multiplayer && w.weapon_type==2) {',1)[1].split('        if (multiplayer && w.name',1)[0]
- assert needler_import((ROOT/'src/content.cpp').read_text())==needler_import((SOURCE/'src/content.cpp').read_text())
- unrelated=subprocess.run(['diff','-u',str(SOURCE/'src/content.cpp'),str(ROOT/'src/content.cpp')],capture_output=True,text=True)
+ assert needler_import((ROOT/'src/assets/content.cpp').read_text())==needler_import((SOURCE/'src/assets/content.cpp').read_text())
+ unrelated=subprocess.run(['diff','-u',str(SOURCE/'src/assets/content.cpp'),str(ROOT/'src/assets/content.cpp')],capture_output=True,text=True)
  (E/'needler-root-content-independent.patch').write_text(unrelated.stdout)
  # Only the explicitly owned runtime hunks were applied to the MCC parent.
  runtime_patch=subprocess.run(['diff','-u',str(ROOT/'analysis/multiplayer/mcc-hud/verified-source/src/multiplayer_runtime.cpp'),
-                               str(SOURCE/'src/multiplayer_runtime.cpp')],capture_output=True,text=True)
+                               str(SOURCE/'src/gameplay/multiplayer/multiplayer_runtime.cpp')],capture_output=True,text=True)
  assert runtime_patch.returncode==1 and 'weather_layers' not in runtime_patch.stdout
  (E/'needler-mcc-runtime-owned.patch').write_text(runtime_patch.stdout)
  for name in ('record_needler_validation_20261012.py','validate_needler_runtime_20261012.py'):

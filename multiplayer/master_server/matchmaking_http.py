@@ -207,9 +207,9 @@ class MatchmakingApi:
         verified_owners = [(provider, subject)] + [owner for _, owner, _ in locals_verified if owner]
         # Replacing this primary connection is allowed; taking another PC's
         # independently authenticated seat is not.
-        existing_primary = db.execute("SELECT id FROM players WHERE provider=? AND subject=?", (provider, subject)).fetchone()
+        existing_primary = db.execute("SELECT player FROM player_identities WHERE provider=? AND subject=?", (provider, subject)).fetchone()
         for owner in verified_owners:
-            existing = db.execute("SELECT id FROM players WHERE provider=? AND subject=?", owner).fetchone()
+            existing = db.execute("SELECT player FROM player_identities WHERE provider=? AND subject=?", owner).fetchone()
             if existing:
                 require(not any(s.player != (existing_primary[0] if existing_primary else None)
                     and any(p.player == existing[0] for p in s.seats()) for s in self.sessions.values()),

@@ -21,7 +21,7 @@ CHAIN = ((0x132b0, 0x1337a, 0x14ba0),
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path,
-                        default=Path('src/source_particle_target_tu15_generated.cpp'))
+                        default=Path('src/rendering/effects/source_particle_target_tu15_generated.cpp'))
     parser.add_argument('--directory', type=Path, required=True)
     args = parser.parse_args()
     assert sha(NEW_DEFAULT) == NEW_PIN

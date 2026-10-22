@@ -95,14 +95,14 @@ def main():
     assert 'AddressSanitizer'not in sanitizer_log and 'runtime error:'not in sanitizer_log
     assert sanitizer.stat().st_mtime_ns<=(OUT/'sanitizers/run.log').stat().st_mtime_ns
     assert all((ROOT/path).stat().st_mtime_ns<=sanitizer.stat().st_mtime_ns for path in
-        ('src/object_storage_release.cpp','tests/object_storage_release_tests.cpp','include/halo2/object_storage_release.hpp'))
+        ('src/gameplay/objects/object_storage_release.cpp','tests/object_storage_release_tests.cpp','include/halo2/object_storage_release.hpp'))
     production=(OUT/'production.log').read_text()
     assert 'Multiplayer ticks=90 players=4 finished=0'in production
     assert (ROOT/'build/halo2_native').stat().st_mtime_ns<=(OUT/'production.log').stat().st_mtime_ns
     paths=set(report['prior_pins'])|set(report['source_dependencies'])
     paths.update(spec['path']for spec in SPECS.values())
     paths.update(spec['tsv']for spec in SPECS.values())
-    paths.update(('CMakeLists.txt','include/halo2/object_storage_release.hpp','src/object_storage_release.cpp',
+    paths.update(('CMakeLists.txt','include/halo2/object_storage_release.hpp','src/gameplay/objects/object_storage_release.cpp',
         'tests/object_storage_release_tests.cpp','tests/fixtures/object_storage_release_original.json',
         'tools/verify_constructed_object_deletion.py','docs/MP_CONSTRUCTED_OBJECT_DELETION.md',
         'docs/GAME_MODE_PROGRESS.md','docs/MP_ROUND_RESET_STORAGE_RESEARCH.md',

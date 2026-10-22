@@ -1,0 +1,1904 @@
+{
+  "schema": "H2_MACOS_STARTUP_STORAGE_V1",
+  "date": "2026-10-20",
+  "goal_status": "active",
+  "linux": {
+    "linux_host": {
+      "report": {
+        "passed": true,
+        "status": "passed",
+        "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-om5qtw1t/build",
+        "steps": [
+          {
+            "name": "configure",
+            "command": [
+              "cmake",
+              "-S",
+              "/home/eric/Developer/Halo-2-Decompiled/tests/macos/startup_storage",
+              "-B",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-om5qtw1t/build",
+              "-DBUILD_TESTING=ON",
+              "-DCMAKE_BUILD_TYPE=Release"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-startup-storage-linux/configure.log",
+            "exit_code": 0
+          },
+          {
+            "name": "build",
+            "command": [
+              "cmake",
+              "--build",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-om5qtw1t/build",
+              "--config",
+              "Release",
+              "--parallel",
+              "2",
+              "--target",
+              "startup_storage_tests"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-startup-storage-linux/build.log",
+            "exit_code": 0
+          },
+          {
+            "name": "tests",
+            "command": [
+              "ctest",
+              "--test-dir",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-om5qtw1t/build",
+              "--build-config",
+              "Release",
+              "--output-on-failure",
+              "--no-tests=error",
+              "--parallel",
+              "2",
+              "--tests-regex",
+              "^startup_storage_"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-startup-storage-linux/tests.log",
+            "exit_code": 0
+          }
+        ],
+        "retained_small_reports": [
+          {
+            "path": "Testing/Temporary/LastTest.log",
+            "status": "retained",
+            "bytes": 1189,
+            "sha256": "f8bf8d358055883b1ffd37d3bd118270ceccf9fc68e3819dc14c383bfd8879b1",
+            "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-startup-storage-linux/evidence/Testing/Temporary/LastTest.log"
+          }
+        ]
+      },
+      "logs": {
+        "configure.log": {
+          "bytes": 646,
+          "sha256": "0f448800390a0b6f6e785eea2cd29dd68534f0c0729b3ba1d56e0db08c535238",
+          "text": "-- The CXX compiler identification is GNU 16.2.1\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: /usr/bin/c++ - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Found Python3: /usr/bin/python3.14 (found version \"3.14.7\") found components: Interpreter\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n-- Found Threads: TRUE\n-- Configuring done (0.3s)\n-- Generating done (0.0s)\n-- Build files have been written to: /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-om5qtw1t/build\n"
+        },
+        "build.log": {
+          "bytes": 548,
+          "sha256": "e78acb667c5a438e950e50449bc9da15298bca9973e2f817bed49c43fca572ca"
+        },
+        "tests.log": {
+          "bytes": 266,
+          "sha256": "5ed1ac854d4debc872a95e97db3f5ba52faf71b606c085a4ca6c49af35eca7ed",
+          "text": "Test project /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-om5qtw1t/build\n    Start 1: startup_storage_host\n1/1 Test #1: startup_storage_host .............   Passed    0.10 sec\n\n100% tests passed out of 1\n\nTotal Test time (real) =   0.10 sec\n"
+        },
+        "evidence/Testing/Temporary/LastTest.log": {
+          "bytes": 1189,
+          "sha256": "f8bf8d358055883b1ffd37d3bd118270ceccf9fc68e3819dc14c383bfd8879b1",
+          "text": "Start testing: Oct 20 21:29 EDT\n----------------------------------------------------------\n1/1 Testing: startup_storage_host\n1/1 Test: startup_storage_host\nCommand: \"/usr/bin/python3.14\" \"/home/eric/Developer/Halo-2-Decompiled/cmake/../tools/run_test.py\" \"--scratch-root\" \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-om5qtw1t/build/Testing/Temporary/scratch\" \"--\" \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-om5qtw1t/build/startup_storage_host_tests\"\nDirectory: /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-om5qtw1t/build\n\"startup_storage_host\" start time: Oct 20 21:29 EDT\nOutput:\n----------------------------------------------------------\nLinux worker priority: before=-8, after=-1, success=1\nPASS 20 native startup host controls: real worker identity/priority, parent preservation, file timestamps/extents/sync\n<end of output>\nTest time =   0.10 sec\n----------------------------------------------------------\nTest Passed.\n\"startup_storage_host\" end time: Oct 20 21:29 EDT\n\"startup_storage_host\" time elapsed: 00:00:00\n----------------------------------------------------------\n\nEnd testing: Oct 20 21:29 EDT\n"
+        }
+      }
+    },
+    "linux_broad_cancelled": {
+      "report": {
+        "passed": false,
+        "status": "interrupted",
+        "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-5a1ya5z_/build",
+        "steps": [
+          {
+            "name": "configure",
+            "command": [
+              "cmake",
+              "-S",
+              "/home/eric/Developer/Halo-2-Decompiled",
+              "-B",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-5a1ya5z_/build",
+              "-DBUILD_TESTING=ON",
+              "-DCMAKE_BUILD_TYPE=Release",
+              "-GNinja"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-startup-storage-arena-linux/configure.log",
+            "exit_code": 0
+          },
+          {
+            "name": "build",
+            "command": [
+              "cmake",
+              "--build",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-5a1ya5z_/build",
+              "--config",
+              "Release",
+              "--parallel",
+              "2",
+              "--target",
+              "native_tu15_arena_data_tests"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-startup-storage-arena-linux/build.log",
+            "exit_code": null
+          }
+        ],
+        "retained_small_reports": [
+          {
+            "path": "Testing/Temporary/LastTest.log",
+            "status": "not produced"
+          }
+        ]
+      },
+      "logs": {
+        "configure.log": {
+          "bytes": 4621,
+          "sha256": "bea5941339f64c13f95a838e260273939b050927a61d6c1c18385e2343039ccc",
+          "text": "-- The CXX compiler identification is GNU 16.2.1\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: /usr/bin/c++ - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Found Vulkan: /usr/lib/libvulkan.so (found version \"1.4.363\") found components: glslc glslangValidator\n-- Found Python3: /usr/bin/python3.14 (found version \"3.14.7\") found components: Interpreter\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n-- Found Threads: TRUE\n-- Found CURL: /usr/lib/libcurl.so (found suitable version \"8.22.0\", minimum required is \"7.86\")\n-- Found OpenSSL: /usr/lib/libcrypto.so (found version \"3.6.5\") found components: Crypto\n-- Found nlohmann_json: /usr/share/cmake/nlohmann_json/nlohmann_jsonConfig.cmake (found suitable version \"3.12.0\", minimum required is \"3.10\")\n-- Found ZLIB: /usr/lib/libz.so (found version \"1.3.1\")\n-- Found PkgConfig: /usr/bin/pkg-config (found version \"3.0.7\")\n-- Checking for modules 'libavcodec;libavformat;libavutil;libswresample;libswscale'\n--   Found libavcodec, version 63.1.102\n--   Found libavformat, version 63.1.102\n--   Found libavutil, version 61.1.102\n--   Found libswresample, version 7.1.102\n--   Found libswscale, version 10.1.102\n-- Checking for module 'opus'\n--   Found opus, version 1.6.1\n-- Checking for modules 'vorbis;ogg'\n--   Found vorbis, version 1.3.7\n--   Found ogg, version 1.3.6\n-- Performing Test HALO2_XBOX_ADPCM\n-- Performing Test HALO2_XBOX_ADPCM - Success\n-- The C compiler identification is GNU 16.2.1\n-- Detecting C compiler ABI info\n-- Detecting C compiler ABI info - done\n-- Check for working C compiler: /usr/bin/cc - skipped\n-- Detecting C compile features\n-- Detecting C compile features - done\n-- Looking for include file sys/queue.h\n-- Looking for include file sys/queue.h - found\n-- Looking for include files sys/socket.h, linux/if_addr.h\n-- Looking for include files sys/socket.h, linux/if_addr.h - found\n-- Looking for include files sys/socket.h, linux/rtnetlink.h\n-- Looking for include files sys/socket.h, linux/rtnetlink.h - found\n-- Looking for 4 include files sys/types.h, ..., netinet/ip_icmp.h\n-- Looking for 4 include files sys/types.h, ..., netinet/ip_icmp.h - found\n-- Looking for 3 include files sys/types.h, ..., net/route.h\n-- Looking for 3 include files sys/types.h, ..., net/route.h - found\n-- Looking for include file stdatomic.h\n-- Looking for include file stdatomic.h - found\n-- Looking for usrsctp.h\n-- Looking for usrsctp.h - found\n-- Performing Test have_sa_len\n-- Performing Test have_sa_len - Failed\n-- Performing Test have_sin_len\n-- Performing Test have_sin_len - Failed\n-- Performing Test have_sin6_len\n-- Performing Test have_sin6_len - Failed\n-- Performing Test have_sconn_len\n-- Performing Test have_sconn_len - Failed\n-- Performing Test has_wfloat_equal\n-- Performing Test has_wfloat_equal - Success\n-- Performing Test has_wshadow\n-- Performing Test has_wshadow - Success\n-- Performing Test has_wpointer_aritih\n-- Performing Test has_wpointer_aritih - Success\n-- Performing Test has_wunreachable_code\n-- Performing Test has_wunreachable_code - Success\n-- Performing Test has_winit_self\n-- Performing Test has_winit_self - Success\n-- Performing Test has_wno_unused_function\n-- Performing Test has_wno_unused_function - Success\n-- Performing Test has_wno_unused_parameter\n-- Performing Test has_wno_unused_parameter - Success\n-- Performing Test has_wno_unreachable_code\n-- Performing Test has_wno_unreachable_code - Success\n-- Performing Test has_wstrict_prototypes\n-- Performing Test has_wstrict_prototypes - Success\n-- Compiler flags (CMAKE_C_FLAGS):  -std=c99 -pedantic -Wall -Wextra -Wfloat-equal -Wshadow -Wpointer-arith -Wunreachable-code -Winit-self -Wno-unused-function -Wno-unused-parameter -Wno-unreachable-code -Wstrict-prototypes\n-- Performing Test has_wno_address_of_packed_member\n-- Performing Test has_wno_address_of_packed_member - Success\n-- Performing Test has_wno_deprecated_declarations\n-- Performing Test has_wno_deprecated_declarations - Success\n-- Found OpenSSL: /usr/lib/libcrypto.so (found version \"3.6.5\")\nApplied pinned SCTP patch: usrsctp-freed-window-atomic.patch\nApplied pinned SCTP patch: usrsctp-free-chunks-atomic.patch\nApplied pinned SCTP patch: usrsctp-callout-flags-lock.patch\n-- Found ZLIB: /usr/lib/libz.so (found suitable version \"1.3.1\", minimum required is \"1.2.9\")\n-- Configuring done (5.3s)\n-- Generating done (1.9s)\n-- Build files have been written to: /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-5a1ya5z_/build\n"
+        },
+        "build.log": {
+          "bytes": 393216,
+          "sha256": "49dc73c129e48871d2ac7847c4917223649f6b953baecc30148ff1ba73820023"
+        }
+      }
+    },
+    "linux_stale_assertion": {
+      "report": {
+        "passed": false,
+        "status": "failed",
+        "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-3y3y16tr/build",
+        "steps": [
+          {
+            "name": "configure",
+            "command": [
+              "cmake",
+              "-S",
+              "/home/eric/Developer/Halo-2-Decompiled/tests/macos/startup_storage",
+              "-B",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-3y3y16tr/build",
+              "-DBUILD_TESTING=ON",
+              "-DCMAKE_BUILD_TYPE=Release",
+              "-GNinja",
+              "-DHALO2_STARTUP_ARENA_TEST=ON"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-startup-arena-focused-linux/configure.log",
+            "exit_code": 0
+          },
+          {
+            "name": "build",
+            "command": [
+              "cmake",
+              "--build",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-3y3y16tr/build",
+              "--config",
+              "Release",
+              "--parallel",
+              "2",
+              "--target",
+              "startup_storage_tests"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-startup-arena-focused-linux/build.log",
+            "exit_code": 0
+          },
+          {
+            "name": "tests",
+            "command": [
+              "ctest",
+              "--test-dir",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-3y3y16tr/build",
+              "--build-config",
+              "Release",
+              "--output-on-failure",
+              "--no-tests=error",
+              "--parallel",
+              "2",
+              "--tests-regex",
+              "^startup_storage_"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-startup-arena-focused-linux/tests.log",
+            "exit_code": 8
+          }
+        ],
+        "retained_small_reports": [
+          {
+            "path": "Testing/Temporary/LastTest.log",
+            "status": "retained",
+            "bytes": 2248,
+            "sha256": "06507d5cfe088aa5dfbdef85f698be89e944f6732c00e6986dfc72d7e1c5a308",
+            "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-startup-arena-focused-linux/evidence/Testing/Temporary/LastTest.log"
+          },
+          {
+            "path": "arena.json",
+            "status": "not produced"
+          }
+        ]
+      },
+      "logs": {
+        "configure.log": {
+          "bytes": 841,
+          "sha256": "ca7a3fa629c048d466290092ab421cd8e39f0497752ead98a973bc880036494d",
+          "text": "-- The CXX compiler identification is GNU 16.2.1\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: /usr/bin/c++ - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Found Python3: /usr/bin/python3.14 (found version \"3.14.7\") found components: Interpreter\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n-- Found Threads: TRUE\n-- Found nlohmann_json: /usr/share/cmake/nlohmann_json/nlohmann_jsonConfig.cmake (found version \"3.12.0\")\n-- Found OpenSSL: /usr/lib/libcrypto.so (found version \"3.6.5\") found components: Crypto\n-- Configuring done (0.4s)\n-- Generating done (0.0s)\n-- Build files have been written to: /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-3y3y16tr/build\n"
+        },
+        "build.log": {
+          "bytes": 4145,
+          "sha256": "93bd83050d6b1de761ff4be450160c9e4f41630ad34e947441a4ed4c71c42496"
+        },
+        "tests.log": {
+          "bytes": 528,
+          "sha256": "dbca848498a78c0dede6bf4aab7be8f2a0e38cc0ad03b7072b4dfc2ae32ddbc5",
+          "text": "Test project /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-3y3y16tr/build\n    Start 1: startup_storage_host\n    Start 2: startup_storage_arena\n1/2 Test #1: startup_storage_host .............   Passed    0.12 sec\n2/2 Test #2: startup_storage_arena ............***Failed    0.12 sec\nNative arena data includes unclassified storage\n\n\n50% tests passed, 1 tests failed out of 2\n\nTotal Test time (real) =   0.12 sec\n\nThe following tests FAILED:\n\t  2 - startup_storage_arena (Failed)\nErrors while running CTest\n"
+        },
+        "evidence/Testing/Temporary/LastTest.log": {
+          "bytes": 2248,
+          "sha256": "06507d5cfe088aa5dfbdef85f698be89e944f6732c00e6986dfc72d7e1c5a308",
+          "text": "Start testing: Oct 20 21:43 EDT\n----------------------------------------------------------\n1/2 Testing: startup_storage_host\n1/2 Test: startup_storage_host\nCommand: \"/usr/bin/python3.14\" \"/home/eric/Developer/Halo-2-Decompiled/cmake/../tools/run_test.py\" \"--scratch-root\" \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-3y3y16tr/build/Testing/Temporary/scratch\" \"--\" \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-3y3y16tr/build/startup_storage_host_tests\"\nDirectory: /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-3y3y16tr/build\n\"startup_storage_host\" start time: Oct 20 21:43 EDT\nOutput:\n----------------------------------------------------------\nLinux worker priority: before=-8, after=-1, success=1\nPASS 20 native startup host controls: real worker identity/priority, parent preservation, file timestamps/extents/sync\n<end of output>\nTest time =   0.12 sec\n----------------------------------------------------------\nTest Passed.\n\"startup_storage_host\" end time: Oct 20 21:43 EDT\n\"startup_storage_host\" time elapsed: 00:00:00\n----------------------------------------------------------\n\n2/2 Testing: startup_storage_arena\n2/2 Test: startup_storage_arena\nCommand: \"/usr/bin/python3.14\" \"/home/eric/Developer/Halo-2-Decompiled/cmake/../tools/run_test.py\" \"--scratch-root\" \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-3y3y16tr/build/Testing/Temporary/scratch\" \"--\" \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-3y3y16tr/build/startup_storage_arena_tests\" \"--capture\" \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-3y3y16tr/build/arena.json\"\nDirectory: /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-3y3y16tr/build\n\"startup_storage_arena\" start time: Oct 20 21:43 EDT\nOutput:\n----------------------------------------------------------\nNative arena data includes unclassified storage\n<end of output>\nTest time =   0.12 sec\n----------------------------------------------------------\nTest Failed.\n\"startup_storage_arena\" end time: Oct 20 21:43 EDT\n\"startup_storage_arena\" time elapsed: 00:00:00\n----------------------------------------------------------\n\nEnd testing: Oct 20 21:43 EDT\n"
+        }
+      }
+    },
+    "linux_reference": {
+      "report": {
+        "passed": true,
+        "status": "passed",
+        "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-u3took15/build",
+        "steps": [
+          {
+            "name": "configure",
+            "command": [
+              "cmake",
+              "-S",
+              "/home/eric/Developer/Halo-2-Decompiled/tests/macos/startup_storage",
+              "-B",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-u3took15/build",
+              "-DBUILD_TESTING=ON",
+              "-DCMAKE_BUILD_TYPE=Release",
+              "-GNinja",
+              "-DHALO2_STARTUP_ARENA_TEST=ON",
+              "-DHALO2_STARTUP_REFERENCE_XBE=/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-startup-arena-focused-linux-reference/configure.log",
+            "exit_code": 0
+          },
+          {
+            "name": "build",
+            "command": [
+              "cmake",
+              "--build",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-u3took15/build",
+              "--config",
+              "Release",
+              "--parallel",
+              "2",
+              "--target",
+              "startup_storage_tests"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-startup-arena-focused-linux-reference/build.log",
+            "exit_code": 0
+          },
+          {
+            "name": "tests",
+            "command": [
+              "ctest",
+              "--test-dir",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-u3took15/build",
+              "--build-config",
+              "Release",
+              "--output-on-failure",
+              "--no-tests=error",
+              "--parallel",
+              "2",
+              "--tests-regex",
+              "^startup_storage_"
+            ],
+            "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-startup-arena-focused-linux-reference/tests.log",
+            "exit_code": 0
+          }
+        ],
+        "retained_small_reports": [
+          {
+            "path": "Testing/Temporary/LastTest.log",
+            "status": "retained",
+            "bytes": 3928,
+            "sha256": "5ee9e511f4a227524f9d048c26d31d0818b8e6dceab268dfbad26f59eb9fb4cc",
+            "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-startup-arena-focused-linux-reference/evidence/Testing/Temporary/LastTest.log"
+          },
+          {
+            "path": "arena.json",
+            "status": "retained",
+            "bytes": 6762,
+            "sha256": "698338fb62240d7433c180df7c5d83a8d5cdf26739e066d83ccf324e28e971cf",
+            "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-startup-arena-focused-linux-reference/evidence/arena.json"
+          },
+          {
+            "path": "arena-original.json",
+            "status": "retained",
+            "bytes": 6804,
+            "sha256": "5c72fe4ec926d583951ba22099d9407668a763c8f177e7157d1c15a2d3f67c9a",
+            "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-startup-arena-focused-linux-reference/evidence/arena-original.json"
+          }
+        ]
+      },
+      "logs": {
+        "configure.log": {
+          "bytes": 841,
+          "sha256": "548aa6c99f8f77cf6ad4b2934367af36be21f5d0034627b45816e2345f0cd987",
+          "text": "-- The CXX compiler identification is GNU 16.2.1\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: /usr/bin/c++ - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Found Python3: /usr/bin/python3.14 (found version \"3.14.7\") found components: Interpreter\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n-- Found Threads: TRUE\n-- Found nlohmann_json: /usr/share/cmake/nlohmann_json/nlohmann_jsonConfig.cmake (found version \"3.12.0\")\n-- Found OpenSSL: /usr/lib/libcrypto.so (found version \"3.6.5\") found components: Crypto\n-- Configuring done (0.4s)\n-- Generating done (0.0s)\n-- Build files have been written to: /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-u3took15/build\n"
+        },
+        "build.log": {
+          "bytes": 4145,
+          "sha256": "ab913c3a46f2452b4b5a50186bb646b12a6909f32603bf0a059519b7d318c47a"
+        },
+        "tests.log": {
+          "bytes": 483,
+          "sha256": "fe4bd4a8b0209e4cc6151eb908433cf34092715ea8941ac377c34c0e0680344d",
+          "text": "Test project /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-u3took15/build\n    Start 1: startup_storage_host\n    Start 2: startup_storage_arena\n1/3 Test #1: startup_storage_host .............   Passed    0.16 sec\n    Start 3: startup_storage_arena_original\n2/3 Test #2: startup_storage_arena ............   Passed    0.41 sec\n3/3 Test #3: startup_storage_arena_original ...   Passed    0.66 sec\n\n100% tests passed out of 3\n\nTotal Test time (real) =   0.83 sec\n"
+        },
+        "evidence/Testing/Temporary/LastTest.log": {
+          "bytes": 3928,
+          "sha256": "5ee9e511f4a227524f9d048c26d31d0818b8e6dceab268dfbad26f59eb9fb4cc",
+          "text": "Start testing: Oct 20 21:44 EDT\n----------------------------------------------------------\n1/3 Testing: startup_storage_host\n1/3 Test: startup_storage_host\nCommand: \"/usr/bin/python3.14\" \"/home/eric/Developer/Halo-2-Decompiled/cmake/../tools/run_test.py\" \"--scratch-root\" \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-u3took15/build/Testing/Temporary/scratch\" \"--\" \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-u3took15/build/startup_storage_host_tests\"\nDirectory: /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-u3took15/build\n\"startup_storage_host\" start time: Oct 20 21:44 EDT\nOutput:\n----------------------------------------------------------\nLinux worker priority: before=-8, after=-1, success=1\nPASS 20 native startup host controls: real worker identity/priority, parent preservation, file timestamps/extents/sync\n<end of output>\nTest time =   0.16 sec\n----------------------------------------------------------\nTest Passed.\n\"startup_storage_host\" end time: Oct 20 21:44 EDT\n\"startup_storage_host\" time elapsed: 00:00:00\n----------------------------------------------------------\n\n2/3 Testing: startup_storage_arena\n2/3 Test: startup_storage_arena\nCommand: \"/usr/bin/python3.14\" \"/home/eric/Developer/Halo-2-Decompiled/cmake/../tools/run_test.py\" \"--scratch-root\" \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-u3took15/build/Testing/Temporary/scratch\" \"--\" \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-u3took15/build/startup_storage_arena_tests\" \"--capture\" \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-u3took15/build/arena.json\"\nDirectory: /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-u3took15/build\n\"startup_storage_arena\" start time: Oct 20 21:44 EDT\nOutput:\n----------------------------------------------------------\nNative TU1.5 arena bootstrap: 43566 classified cold/operand bytes; 13 complete calls, 1049656 ordered writes; real worker, two files and checked 64-bit arena; no executable input\n<end of output>\nTest time =   0.41 sec\n----------------------------------------------------------\nTest Passed.\n\"startup_storage_arena\" end time: Oct 20 21:44 EDT\n\"startup_storage_arena\" time elapsed: 00:00:00\n----------------------------------------------------------\n\n3/3 Testing: startup_storage_arena_original\n3/3 Test: startup_storage_arena_original\nCommand: \"/usr/bin/python3.14\" \"/home/eric/Developer/Halo-2-Decompiled/cmake/../tools/run_test.py\" \"--scratch-root\" \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-u3took15/build/Testing/Temporary/scratch\" \"--\" \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-u3took15/build/startup_storage_arena_tests\" \"--reference-xbe\" \"/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe\" \"--original-fixture\" \"/home/eric/Developer/Halo-2-Decompiled/analysis/multiplayer/sandbox-source/physics-game-arena-tu15-20261012/original-v2/report.json\" \"--capture\" \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-u3took15/build/arena-original.json\"\nDirectory: /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-u3took15/build\n\"startup_storage_arena_original\" start time: Oct 20 21:44 EDT\nOutput:\n----------------------------------------------------------\nNative TU1.5 arena bootstrap: 43566 classified cold/operand bytes; 13 complete calls, 1049656 ordered writes; real worker, two files and checked 64-bit arena; unchanged original CPU comparison passed\n<end of output>\nTest time =   0.66 sec\n----------------------------------------------------------\nTest Passed.\n\"startup_storage_arena_original\" end time: Oct 20 21:44 EDT\n\"startup_storage_arena_original\" time elapsed: 00:00:00\n----------------------------------------------------------\n\nEnd testing: Oct 20 21:44 EDT\n"
+        }
+      },
+      "arena.json": {
+        "cold_fields": [
+          {
+            "address": 4306496,
+            "bytes": 4,
+            "initial_sha256": "2c7ad9617d04ab2e3521698e6652c9f640b4a77c0b2c1594daef5ff95410f8aa"
+          },
+          {
+            "address": 4306504,
+            "bytes": 4,
+            "initial_sha256": "83b5d11a73ad91a0e03856a6ae3249007565dcace273e10fa5b533fe0a5bbab1"
+          },
+          {
+            "address": 4598780,
+            "bytes": 18,
+            "initial_sha256": "b16eccaf5abc9bbbb67abb6a9c44ef2733191abe04548a1fa2169cbdb00da0dc"
+          },
+          {
+            "address": 4704108,
+            "bytes": 4,
+            "initial_sha256": "db30e14bbca4db1dc34c090ffbb0138a7c5068ac174e5d289fc7411c741249e7"
+          },
+          {
+            "address": 5164068,
+            "bytes": 9632,
+            "initial_sha256": "c2b27b680670fb14bbcaad20c34699cb8b8e9da2544f32519d480a40498d6e5d"
+          },
+          {
+            "address": 5178416,
+            "bytes": 1,
+            "initial_sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+          },
+          {
+            "address": 5187920,
+            "bytes": 8,
+            "initial_sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
+          },
+          {
+            "address": 5187928,
+            "bytes": 4,
+            "initial_sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "address": 5187932,
+            "bytes": 4,
+            "initial_sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "address": 5187940,
+            "bytes": 4,
+            "initial_sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "address": 5188848,
+            "bytes": 52,
+            "initial_sha256": "7955cb2de90dd9efc6df9fdbf5f5d10c114f4135a9a6b52db1003be749e32f7a"
+          },
+          {
+            "address": 5270432,
+            "bytes": 32768,
+            "initial_sha256": "c35020473aed1b4642cd726cad727b63fff2824ad68cedd7ffb73c7cbd890479"
+          },
+          {
+            "address": 5303200,
+            "bytes": 12,
+            "initial_sha256": "15ec7bf0b50732b49f8228e07d24365338f9e3ab994b00af08e5a3bffe55fd8b"
+          },
+          {
+            "address": 5303216,
+            "bytes": 1,
+            "initial_sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+          },
+          {
+            "address": 5303220,
+            "bytes": 8,
+            "initial_sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
+          },
+          {
+            "address": 5303244,
+            "bytes": 1,
+            "initial_sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+          },
+          {
+            "address": 5303248,
+            "bytes": 8,
+            "initial_sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
+          },
+          {
+            "address": 5364496,
+            "bytes": 4,
+            "initial_sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "address": 5365548,
+            "bytes": 4,
+            "initial_sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "address": 5693989,
+            "bytes": 1,
+            "initial_sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+          },
+          {
+            "address": 5694040,
+            "bytes": 1024,
+            "initial_sha256": "5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+          }
+        ],
+        "declared_bytes": 43566,
+        "native_64_bit_ownership": true,
+        "normal_gameplay_admission": false,
+        "ordered_stores": 1049656,
+        "original_cpu_comparison": false,
+        "passed": true,
+        "physical_bytes": 51265536,
+        "physical_bytes_compared": 0,
+        "physical_sha256": "211437447b5b8ab45f1b3279d5b9f06c59a45cf35fb2ef33db74af57e503bb0a",
+        "reference_executable_is_runtime_input": false,
+        "released_and_foreign_addresses_rejected": true,
+        "schema": "H2_NATIVE_TU15_ARENA_BOOTSTRAP_V1",
+        "steps": [
+          {
+            "argument": null,
+            "entry": 1231728,
+            "ordered_stores": 18,
+            "returned_gp": [
+              2147880960,
+              51265536,
+              397312,
+              0,
+              1610674180,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": null,
+            "entry": 1188272,
+            "ordered_stores": 2728,
+            "returned_gp": [
+              1,
+              4294967295,
+              5173688,
+              0,
+              1610674180,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": null,
+            "entry": 1200768,
+            "ordered_stores": 1049638,
+            "returned_gp": [
+              1696638025,
+              4,
+              0,
+              0,
+              1610674180,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": null,
+            "entry": 1200768,
+            "ordered_stores": 1049638,
+            "returned_gp": [
+              1,
+              0,
+              0,
+              0,
+              1610674180,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": 0,
+            "entry": 1203792,
+            "ordered_stores": 1049640,
+            "returned_gp": [
+              2194965132,
+              2428444049,
+              0,
+              0,
+              1610674184,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": 1,
+            "entry": 1203792,
+            "ordered_stores": 1049642,
+            "returned_gp": [
+              2194965132,
+              1555261956,
+              0,
+              0,
+              1610674184,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": 3,
+            "entry": 1203792,
+            "ordered_stores": 1049644,
+            "returned_gp": [
+              2194965136,
+              3188396048,
+              0,
+              0,
+              1610674184,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": 4,
+            "entry": 1203792,
+            "ordered_stores": 1049646,
+            "returned_gp": [
+              2194965140,
+              1762050814,
+              0,
+              0,
+              1610674184,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": 5,
+            "entry": 1203792,
+            "ordered_stores": 1049648,
+            "returned_gp": [
+              2194965144,
+              3569037538,
+              0,
+              0,
+              1610674184,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": 16,
+            "entry": 1203792,
+            "ordered_stores": 1049650,
+            "returned_gp": [
+              2194965152,
+              0,
+              0,
+              0,
+              1610674184,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": 257,
+            "entry": 1203792,
+            "ordered_stores": 1049652,
+            "returned_gp": [
+              2194965168,
+              4279200368,
+              0,
+              0,
+              1610674184,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": 1024,
+            "entry": 1203792,
+            "ordered_stores": 1049654,
+            "returned_gp": [
+              2194965428,
+              1258607687,
+              0,
+              0,
+              1610674184,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": 5120,
+            "entry": 1203792,
+            "ordered_stores": 1049656,
+            "returned_gp": [
+              2194966452,
+              2227061214,
+              0,
+              0,
+              1610674184,
+              0,
+              0,
+              0
+            ]
+          }
+        ],
+        "ungated_worker_startup": true,
+        "world_startup_complete": false
+      },
+      "arena-original.json": {
+        "cold_fields": [
+          {
+            "address": 4306496,
+            "bytes": 4,
+            "initial_sha256": "2c7ad9617d04ab2e3521698e6652c9f640b4a77c0b2c1594daef5ff95410f8aa"
+          },
+          {
+            "address": 4306504,
+            "bytes": 4,
+            "initial_sha256": "83b5d11a73ad91a0e03856a6ae3249007565dcace273e10fa5b533fe0a5bbab1"
+          },
+          {
+            "address": 4598780,
+            "bytes": 18,
+            "initial_sha256": "b16eccaf5abc9bbbb67abb6a9c44ef2733191abe04548a1fa2169cbdb00da0dc"
+          },
+          {
+            "address": 4704108,
+            "bytes": 4,
+            "initial_sha256": "db30e14bbca4db1dc34c090ffbb0138a7c5068ac174e5d289fc7411c741249e7"
+          },
+          {
+            "address": 5164068,
+            "bytes": 9632,
+            "initial_sha256": "c2b27b680670fb14bbcaad20c34699cb8b8e9da2544f32519d480a40498d6e5d"
+          },
+          {
+            "address": 5178416,
+            "bytes": 1,
+            "initial_sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+          },
+          {
+            "address": 5187920,
+            "bytes": 8,
+            "initial_sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
+          },
+          {
+            "address": 5187928,
+            "bytes": 4,
+            "initial_sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "address": 5187932,
+            "bytes": 4,
+            "initial_sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "address": 5187940,
+            "bytes": 4,
+            "initial_sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "address": 5188848,
+            "bytes": 52,
+            "initial_sha256": "7955cb2de90dd9efc6df9fdbf5f5d10c114f4135a9a6b52db1003be749e32f7a"
+          },
+          {
+            "address": 5270432,
+            "bytes": 32768,
+            "initial_sha256": "c35020473aed1b4642cd726cad727b63fff2824ad68cedd7ffb73c7cbd890479"
+          },
+          {
+            "address": 5303200,
+            "bytes": 12,
+            "initial_sha256": "15ec7bf0b50732b49f8228e07d24365338f9e3ab994b00af08e5a3bffe55fd8b"
+          },
+          {
+            "address": 5303216,
+            "bytes": 1,
+            "initial_sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+          },
+          {
+            "address": 5303220,
+            "bytes": 8,
+            "initial_sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
+          },
+          {
+            "address": 5303244,
+            "bytes": 1,
+            "initial_sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+          },
+          {
+            "address": 5303248,
+            "bytes": 8,
+            "initial_sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
+          },
+          {
+            "address": 5364496,
+            "bytes": 4,
+            "initial_sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "address": 5365548,
+            "bytes": 4,
+            "initial_sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "address": 5693989,
+            "bytes": 1,
+            "initial_sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+          },
+          {
+            "address": 5694040,
+            "bytes": 1024,
+            "initial_sha256": "5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+          }
+        ],
+        "declared_bytes": 43566,
+        "native_64_bit_ownership": true,
+        "normal_gameplay_admission": false,
+        "ordered_stores": 1049656,
+        "original_cpu_comparison": true,
+        "original_instructions": 1065823,
+        "passed": true,
+        "physical_bytes": 51265536,
+        "physical_bytes_compared": 51265536,
+        "physical_sha256": "211437447b5b8ab45f1b3279d5b9f06c59a45cf35fb2ef33db74af57e503bb0a",
+        "reference_executable_is_runtime_input": false,
+        "released_and_foreign_addresses_rejected": true,
+        "schema": "H2_NATIVE_TU15_ARENA_BOOTSTRAP_V1",
+        "steps": [
+          {
+            "argument": null,
+            "entry": 1231728,
+            "ordered_stores": 18,
+            "returned_gp": [
+              2147880960,
+              51265536,
+              397312,
+              0,
+              1610674180,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": null,
+            "entry": 1188272,
+            "ordered_stores": 2728,
+            "returned_gp": [
+              1,
+              4294967295,
+              5173688,
+              0,
+              1610674180,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": null,
+            "entry": 1200768,
+            "ordered_stores": 1049638,
+            "returned_gp": [
+              1696638025,
+              4,
+              0,
+              0,
+              1610674180,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": null,
+            "entry": 1200768,
+            "ordered_stores": 1049638,
+            "returned_gp": [
+              1,
+              0,
+              0,
+              0,
+              1610674180,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": 0,
+            "entry": 1203792,
+            "ordered_stores": 1049640,
+            "returned_gp": [
+              2194965132,
+              2428444049,
+              0,
+              0,
+              1610674184,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": 1,
+            "entry": 1203792,
+            "ordered_stores": 1049642,
+            "returned_gp": [
+              2194965132,
+              1555261956,
+              0,
+              0,
+              1610674184,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": 3,
+            "entry": 1203792,
+            "ordered_stores": 1049644,
+            "returned_gp": [
+              2194965136,
+              3188396048,
+              0,
+              0,
+              1610674184,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": 4,
+            "entry": 1203792,
+            "ordered_stores": 1049646,
+            "returned_gp": [
+              2194965140,
+              1762050814,
+              0,
+              0,
+              1610674184,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": 5,
+            "entry": 1203792,
+            "ordered_stores": 1049648,
+            "returned_gp": [
+              2194965144,
+              3569037538,
+              0,
+              0,
+              1610674184,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": 16,
+            "entry": 1203792,
+            "ordered_stores": 1049650,
+            "returned_gp": [
+              2194965152,
+              0,
+              0,
+              0,
+              1610674184,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": 257,
+            "entry": 1203792,
+            "ordered_stores": 1049652,
+            "returned_gp": [
+              2194965168,
+              4279200368,
+              0,
+              0,
+              1610674184,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": 1024,
+            "entry": 1203792,
+            "ordered_stores": 1049654,
+            "returned_gp": [
+              2194965428,
+              1258607687,
+              0,
+              0,
+              1610674184,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "argument": 5120,
+            "entry": 1203792,
+            "ordered_stores": 1049656,
+            "returned_gp": [
+              2194966452,
+              2227061214,
+              0,
+              0,
+              1610674184,
+              0,
+              0,
+              0
+            ]
+          }
+        ],
+        "ungated_worker_startup": true,
+        "world_startup_complete": false
+      }
+    }
+  },
+  "cold_cursor_reference": {
+    "schema": "H2_ARENA_COLD_CURSOR_REFERENCE_V1",
+    "source_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+    "field": {
+      "section": 24,
+      "address": "0x4f2958",
+      "bytes": 4,
+      "value_hex": "00000000",
+      "loader_zero_fill": true
+    },
+    "passed": true
+  },
+  "source_hashes": {
+    "src/native_startup_resources.hpp": "bd81b9bf043b3c27d6a9e53c0031af6682fa60f98c824d24fdd6ece86e37d109",
+    "src/macos/startup_resources.hpp": "c273858526f552344bd018aa9092b85d899fc057355fd5992572dcdfb101c621",
+    "include/halo2/death_startup_native.hpp": "774f4d95ea8941068af0d9c8afdf01206344c3fdb61d3b2b1e14abbe6504e9bf",
+    "tests/macos/startup_storage/CMakeLists.txt": "05a9dd5d16458872411a47f632f74cf74f050018bd5a952be93eafeb82af1954",
+    "tests/macos/startup_storage/host_tests.cpp": "7dfd4e9633c03e56cb68d083769eb41c421d6dae71463b8e7111d13bf5437356",
+    "tests/native_tu15_arena_data_tests.cpp": "0f2ef91530abd2c06c97a9aaf034f961bc56a1e52854c4b5ad560bba8d7b1b1f",
+    "src/physics_step_internal.hpp": "88b09bc391954d6461c85d0df02c7f327030fedcbc00080d5999033f5affa754",
+    "src/physics_contact_runtime_internal.hpp": "fc6cb43293352942b1d9afe17039cba925274e9b17e9024fffde6f4cc7f3e74a",
+    "src/physics_world_runtime_internal.hpp": "49dc4f92e19d28db4dca6af349d938311641cd2dae75925454eb8735997ac050",
+    "src/source_process_heap_platform_bindings.hpp": "e94e4faca2694ceaf8a84c51cd08208fb96e7bf9802d8fc3e2239d9e5e055b3e",
+    "src/native_tu15_arena_data.cpp": "61e772b3e25a4c74f266207ceb4f5e5c7a9ce192db6c70e823d34b06a5cd25bf",
+    "src/native_tu15_arena_bootstrap.cpp": "7e353145b63070dd95fc48b30bb1fb55b061f1c0edcdf06338c84d4381e61075",
+    "src/physics_game_arena_native.cpp": "78fc414ff39c44c2c32f3e7de97313097c599b948914284df5b443c3be526894",
+    "src/physics_game_arena_runtime_generated.cpp": "7fc61cfbbace54ab959622be07b5e1bb09b46e5440be157e38d81319a4602d7b",
+    "src/physics_physical_storage_runtime_generated.cpp": "70ec1231093e9d07845aa804e4b580e1cd333258ff3703b4fa60dbb8b085ffc8",
+    "src/physics_physical_storage_host.cpp": "2c3fe697b37797ee6d084ce59ba327f965d4e44c6c2a00a18a367b1436dfa6a1",
+    "src/native_tu15_heap_data.cpp": "78f5ca87387e06ddce66588b6461e4b88e1c872ba8c56bb3213ae213b8aebd45",
+    "src/native_tu15_heap_bootstrap.cpp": "b1a6ecd5a8ee07b47866c615a166cf212d12ac82d3cb40f427d6b5c80dc25741",
+    "src/source_process_heap_platform.cpp": "90c4f4cdc9c8e8934f22255c971f575d16aef06f6714c4f61415fed3fef11519",
+    "src/source_process_heap_runtime_generated.cpp": "9561e7c59e8c7ceedaec6db662700b92bb6ae88800021dd93bd6bc1eecdc4c61",
+    "src/source_process_shutdown.cpp": "5eee2ee4894ec89f606a96bf20884f4461fb4720bf44c4f911ce25c22c8e1278",
+    "src/source_process_startup_records.cpp": "9aee8e582ed9ec34eb8843b5fa62c6db31a3158fdebcc80dcbf6142cd8ae7fb5",
+    "src/physics_platform_call.cpp": "4d9d0121667f1908171af6c682a64b98edf444269df0382a0693d125354f24e4",
+    "src/physics_platform_locks.cpp": "e9cc646a42d5a2f89f7f0824851cc55df05feaed4736436ea5a5d99f3bfa04f8",
+    "src/physics_platform_locks_continuation.cpp": "beefd5b88f5bbfd6be28c702a2c98021bf21879a3ad184c66b4503d8c4503963",
+    "src/native_synchronization.cpp": "633110ea24d81644132c8b4381190b797a1dae2326f2023d4b120f5f7f80665d",
+    "src/native_threads.cpp": "9022937fcebdf165f6323cb05204356d6cb3ddda2b86dbd7057cd45625c5d31f",
+    "src/source_runtime_memory.cpp": "d97299c549ee49fa88e8bdf296025cab435c35cbfdaf33f4ba9475ab1dde12a4",
+    "src/source_runtime_host_virtual_memory.cpp": "42ca40e26e8a4cf0039cf577aa368a9ad1cfe6230105735ec50563f8da811b84",
+    "src/source_runtime_host_storage.cpp": "b99a0cec099b9f469915fcc2ce7fe44d3ab7e7ac52fbd01f344e606aed52f49e",
+    "src/source_runtime_host_physical_memory.cpp": "7a3b7ca787d282cb5a5097a070bd71221e42c8a3163d5aeb243c8339c4fe6bd1",
+    "src/source_runtime_image.cpp": "372de4b63b729a579b734e6f2b3b5f36b6e5fbc130572d1b281d10e3ea851e2c",
+    "src/cache_file_snapshot.cpp": "d78ab161fff239560ffa6ce74d225e03dc29e0f3249c35627a5251f2ee4c4a26",
+    "src/source_runtime_snapshot_bytes.cpp": "08d2949cab0aea6c291a202ce036e14db14ba74d6c3f2851b8123b7517ed672b",
+    "src/death_startup_native.cpp": "84dc7460003ffccb3a4444384dceb7fe75bd38e62371efb7993d9c69dba1b894"
+  },
+  "linux_cleanup": {
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-om5qtw1t": true,
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-5a1ya5z_": true,
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-3y3y16tr": true,
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-u3took15": true
+  },
+  "mac": {
+    "tests": {
+      "mac_host_initial": {
+        "report": {
+          "passed": true,
+          "status": "passed",
+          "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-m4hprf0j/build",
+          "steps": [
+            {
+              "name": "configure",
+              "command": [
+                "cmake",
+                "-S",
+                "/Users/eric/Developer/Halo2-macos-port/tests/macos/startup_storage",
+                "-B",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-m4hprf0j/build",
+                "-DBUILD_TESTING=ON",
+                "-DCMAKE_BUILD_TYPE=Release"
+              ],
+              "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-startup-storage/configure.log",
+              "exit_code": 0
+            },
+            {
+              "name": "build",
+              "command": [
+                "cmake",
+                "--build",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-m4hprf0j/build",
+                "--config",
+                "Release",
+                "--parallel",
+                "2",
+                "--target",
+                "startup_storage_tests"
+              ],
+              "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-startup-storage/build.log",
+              "exit_code": 0
+            },
+            {
+              "name": "tests",
+              "command": [
+                "ctest",
+                "--test-dir",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-m4hprf0j/build",
+                "--build-config",
+                "Release",
+                "--output-on-failure",
+                "--no-tests=error",
+                "--parallel",
+                "1",
+                "--tests-regex",
+                "^startup_storage_"
+              ],
+              "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-startup-storage/tests.log",
+              "exit_code": 0
+            }
+          ],
+          "retained_small_reports": [
+            {
+              "path": "Testing/Temporary/LastTest.log",
+              "status": "retained",
+              "bytes": 2477,
+              "sha256": "1a791fa2aba251ca868aa27d0e5a0a9a32106720910b292b2a9cd411103bed5c",
+              "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-startup-storage/evidence/Testing/Temporary/LastTest.log"
+            }
+          ]
+        },
+        "logs": {
+          "configure.log": {
+            "bytes": 713,
+            "sha256": "ed64dbc6c339820dba75924dc94007f4da7cd20b04d432e7e0bcdeb6092e8fd7",
+            "text": "-- The CXX compiler identification is AppleClang 21.0.0.21000334\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: /usr/bin/c++ - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Found Python3: /opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15 (found version \"3.15.0\") found components: Interpreter\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n-- Found Threads: TRUE\n-- Configuring done (1.1s)\n-- Generating done (0.0s)\n-- Build files have been written to: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-m4hprf0j/build\n"
+          },
+          "build.log": {
+            "bytes": 548,
+            "sha256": "1ea8eb3e5ce79c118a395b5ea1f1db49bdea939c0f1a0026af51f503414cbe74"
+          },
+          "tests.log": {
+            "bytes": 382,
+            "sha256": "0c72d92969c6490277e3fbf5194540c0172162b9d5242b5d9aea82df87465582",
+            "text": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-m4hprf0j/build\n    Start 1: startup_storage_host_arm64\n1/2 Test #1: startup_storage_host_arm64 .......   Passed    0.39 sec\n    Start 2: startup_storage_host_x86_64\n2/2 Test #2: startup_storage_host_x86_64 ......   Passed    1.22 sec\n\n100% tests passed out of 2\n\nTotal Test time (real) =   1.62 sec\n"
+          },
+          "evidence/Testing/Temporary/LastTest.log": {
+            "bytes": 2477,
+            "sha256": "1a791fa2aba251ca868aa27d0e5a0a9a32106720910b292b2a9cd411103bed5c",
+            "text": "Start testing: Oct 20 21:30 EDT\n----------------------------------------------------------\n1/2 Testing: startup_storage_host_arm64\n1/2 Test: startup_storage_host_arm64\nCommand: \"/opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15\" \"/Users/eric/Developer/Halo2-macos-port/cmake/../tools/run_test.py\" \"--scratch-root\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-m4hprf0j/build/Testing/Temporary/scratch\" \"--\" \"/usr/bin/arch\" \"-arm64\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-m4hprf0j/build/startup_storage_host_tests\"\nDirectory: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-m4hprf0j/build\n\"startup_storage_host_arm64\" start time: Oct 20 21:30 EDT\nOutput:\n----------------------------------------------------------\nDarwin worker priority: before=31, after=32, success=1\nPASS 24 native startup host controls: real worker identity/priority, parent preservation, file timestamps/extents/sync\n<end of output>\nTest time =   0.39 sec\n----------------------------------------------------------\nTest Passed.\n\"startup_storage_host_arm64\" end time: Oct 20 21:30 EDT\n\"startup_storage_host_arm64\" time elapsed: 00:00:00\n----------------------------------------------------------\n\n2/2 Testing: startup_storage_host_x86_64\n2/2 Test: startup_storage_host_x86_64\nCommand: \"/opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15\" \"/Users/eric/Developer/Halo2-macos-port/cmake/../tools/run_test.py\" \"--scratch-root\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-m4hprf0j/build/Testing/Temporary/scratch\" \"--\" \"/usr/bin/arch\" \"-x86_64\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-m4hprf0j/build/startup_storage_host_tests\"\nDirectory: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-m4hprf0j/build\n\"startup_storage_host_x86_64\" start time: Oct 20 21:30 EDT\nOutput:\n----------------------------------------------------------\nDarwin worker priority: before=31, after=32, success=1\nPASS 24 native startup host controls: real worker identity/priority, parent preservation, file timestamps/extents/sync\n<end of output>\nTest time =   1.22 sec\n----------------------------------------------------------\nTest Passed.\n\"startup_storage_host_x86_64\" end time: Oct 20 21:30 EDT\n\"startup_storage_host_x86_64\" time elapsed: 00:00:01\n----------------------------------------------------------\n\nEnd testing: Oct 20 21:30 EDT\n"
+          }
+        }
+      },
+      "mac_configure_movies": {
+        "report": {
+          "passed": false,
+          "status": "failed",
+          "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4_d894bl/build",
+          "steps": [
+            {
+              "name": "configure",
+              "command": [
+                "cmake",
+                "-S",
+                "/Users/eric/Developer/Halo2-macos-port",
+                "-B",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4_d894bl/build",
+                "-DBUILD_TESTING=ON",
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-GNinja",
+                "-DCMAKE_OSX_ARCHITECTURES=x86_64"
+              ],
+              "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-startup-arena-rosetta/configure.log",
+              "exit_code": 1
+            }
+          ],
+          "retained_small_reports": [
+            {
+              "path": "Testing/Temporary/LastTest.log",
+              "status": "not produced"
+            }
+          ]
+        },
+        "logs": {
+          "configure.log": {
+            "bytes": 4300,
+            "sha256": "9978aa48bbe42a6d495593585ce270a6f746e19fcb2d663826763205ebda25c7",
+            "text": "-- The CXX compiler identification is AppleClang 21.0.0.21000334\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: /usr/bin/c++ - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Found Python3: /opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15 (found version \"3.15.0\") found components: Interpreter\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n-- Found Threads: TRUE\n-- Found CURL: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libcurl.tbd (found suitable version \"8.7.1\", minimum required is \"7.86\")\n-- Found nlohmann_json: /opt/homebrew/share/cmake/nlohmann_json/nlohmann_jsonConfig.cmake (found suitable version \"3.12.0\", minimum required is \"3.10\")\n-- Found ZLIB: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libz.tbd (found version \"1.2.12\")\n-- Found PkgConfig: /opt/homebrew/bin/pkg-config (found version \"3.0.10\")\n-- The C compiler identification is AppleClang 21.0.0.21000334\n-- Detecting C compiler ABI info\n-- Detecting C compiler ABI info - done\n-- Check for working C compiler: /usr/bin/cc - skipped\n-- Detecting C compile features\n-- Detecting C compile features - done\n-- Looking for include file sys/queue.h\n-- Looking for include file sys/queue.h - found\n-- Looking for include files sys/socket.h, linux/if_addr.h\n-- Looking for include files sys/socket.h, linux/if_addr.h - not found\n-- Looking for include files sys/socket.h, linux/rtnetlink.h\n-- Looking for include files sys/socket.h, linux/rtnetlink.h - not found\n-- Looking for 4 include files sys/types.h, ..., netinet/ip_icmp.h\n-- Looking for 4 include files sys/types.h, ..., netinet/ip_icmp.h - found\n-- Looking for 3 include files sys/types.h, ..., net/route.h\n-- Looking for 3 include files sys/types.h, ..., net/route.h - found\n-- Looking for include file stdatomic.h\n-- Looking for include file stdatomic.h - found\n-- Looking for usrsctp.h\n-- Looking for usrsctp.h - found\n-- Performing Test have_sa_len\n-- Performing Test have_sa_len - Success\n-- have_sa_len\n-- Performing Test have_sin_len\n-- Performing Test have_sin_len - Success\n-- have_sin_len\n-- Performing Test have_sin6_len\n-- Performing Test have_sin6_len - Success\n-- have_sin6_len\n-- Performing Test have_sconn_len\n-- Performing Test have_sconn_len - Success\n-- HAVE_SCONN_LEN\n-- Performing Test has_wfloat_equal\n-- Performing Test has_wfloat_equal - Success\n-- Performing Test has_wshadow\n-- Performing Test has_wshadow - Success\n-- Performing Test has_wpointer_aritih\n-- Performing Test has_wpointer_aritih - Success\n-- Performing Test has_wunreachable_code\n-- Performing Test has_wunreachable_code - Success\n-- Performing Test has_winit_self\n-- Performing Test has_winit_self - Success\n-- Performing Test has_wno_unused_function\n-- Performing Test has_wno_unused_function - Success\n-- Performing Test has_wno_unused_parameter\n-- Performing Test has_wno_unused_parameter - Success\n-- Performing Test has_wno_unreachable_code\n-- Performing Test has_wno_unreachable_code - Success\n-- Performing Test has_wstrict_prototypes\n-- Performing Test has_wstrict_prototypes - Success\n-- Compiler flags (CMAKE_C_FLAGS):  -std=c99 -pedantic -Wall -Wextra -Wfloat-equal -Wshadow -Wpointer-arith -Wunreachable-code -Winit-self -Wno-unused-function -Wno-unused-parameter -Wno-unreachable-code -Wstrict-prototypes\n-- Performing Test has_wno_address_of_packed_member\n-- Performing Test has_wno_address_of_packed_member - Success\n-- Performing Test has_wno_deprecated_declarations\n-- Performing Test has_wno_deprecated_declarations - Success\nApplied pinned SCTP patch: usrsctp-freed-window-atomic.patch\nApplied pinned SCTP patch: usrsctp-free-chunks-atomic.patch\nApplied pinned SCTP patch: usrsctp-callout-flags-lock.patch\nCMake Error at cmake/Movies.cmake:13 (message):\n  Missing release movie intro_60.mp4.  Run tools/bundle_movies.py --source\n  /path/to/movies, set HALO2_MOVIE_SOURCE_DIR, or explicitly disable\n  HALO2_BUNDLE_MOVIES for a build without upscaled movies.\nCall Stack (most recent call first):\n  CMakeLists.txt:2361 (include)\n\n\n-- Configuring incomplete, errors occurred!\n"
+          }
+        }
+      },
+      "mac_configure_bundle_licenses": {
+        "report": {
+          "passed": false,
+          "status": "failed",
+          "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-zcn7lty8/build",
+          "steps": [
+            {
+              "name": "configure",
+              "command": [
+                "cmake",
+                "-S",
+                "/Users/eric/Developer/Halo2-macos-port",
+                "-B",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-zcn7lty8/build",
+                "-DBUILD_TESTING=ON",
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-GNinja",
+                "-DCMAKE_OSX_ARCHITECTURES=x86_64",
+                "-DHALO2_BUNDLE_MOVIES=OFF"
+              ],
+              "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-startup-arena-rosetta-no-movies/configure.log",
+              "exit_code": 1
+            }
+          ],
+          "retained_small_reports": [
+            {
+              "path": "Testing/Temporary/LastTest.log",
+              "status": "not produced"
+            }
+          ]
+        },
+        "logs": {
+          "configure.log": {
+            "bytes": 4245,
+            "sha256": "ef849b0ef3f14c06b9d025aae3f8e011758e8f31917634d0065888beda8f8219",
+            "text": "-- The CXX compiler identification is AppleClang 21.0.0.21000334\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: /usr/bin/c++ - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Found Python3: /opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15 (found version \"3.15.0\") found components: Interpreter\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n-- Found Threads: TRUE\n-- Found CURL: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libcurl.tbd (found suitable version \"8.7.1\", minimum required is \"7.86\")\n-- Found nlohmann_json: /opt/homebrew/share/cmake/nlohmann_json/nlohmann_jsonConfig.cmake (found suitable version \"3.12.0\", minimum required is \"3.10\")\n-- Found ZLIB: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libz.tbd (found version \"1.2.12\")\n-- Found PkgConfig: /opt/homebrew/bin/pkg-config (found version \"3.0.10\")\n-- The C compiler identification is AppleClang 21.0.0.21000334\n-- Detecting C compiler ABI info\n-- Detecting C compiler ABI info - done\n-- Check for working C compiler: /usr/bin/cc - skipped\n-- Detecting C compile features\n-- Detecting C compile features - done\n-- Looking for include file sys/queue.h\n-- Looking for include file sys/queue.h - found\n-- Looking for include files sys/socket.h, linux/if_addr.h\n-- Looking for include files sys/socket.h, linux/if_addr.h - not found\n-- Looking for include files sys/socket.h, linux/rtnetlink.h\n-- Looking for include files sys/socket.h, linux/rtnetlink.h - not found\n-- Looking for 4 include files sys/types.h, ..., netinet/ip_icmp.h\n-- Looking for 4 include files sys/types.h, ..., netinet/ip_icmp.h - found\n-- Looking for 3 include files sys/types.h, ..., net/route.h\n-- Looking for 3 include files sys/types.h, ..., net/route.h - found\n-- Looking for include file stdatomic.h\n-- Looking for include file stdatomic.h - found\n-- Looking for usrsctp.h\n-- Looking for usrsctp.h - found\n-- Performing Test have_sa_len\n-- Performing Test have_sa_len - Success\n-- have_sa_len\n-- Performing Test have_sin_len\n-- Performing Test have_sin_len - Success\n-- have_sin_len\n-- Performing Test have_sin6_len\n-- Performing Test have_sin6_len - Success\n-- have_sin6_len\n-- Performing Test have_sconn_len\n-- Performing Test have_sconn_len - Success\n-- HAVE_SCONN_LEN\n-- Performing Test has_wfloat_equal\n-- Performing Test has_wfloat_equal - Success\n-- Performing Test has_wshadow\n-- Performing Test has_wshadow - Success\n-- Performing Test has_wpointer_aritih\n-- Performing Test has_wpointer_aritih - Success\n-- Performing Test has_wunreachable_code\n-- Performing Test has_wunreachable_code - Success\n-- Performing Test has_winit_self\n-- Performing Test has_winit_self - Success\n-- Performing Test has_wno_unused_function\n-- Performing Test has_wno_unused_function - Success\n-- Performing Test has_wno_unused_parameter\n-- Performing Test has_wno_unused_parameter - Success\n-- Performing Test has_wno_unreachable_code\n-- Performing Test has_wno_unreachable_code - Success\n-- Performing Test has_wstrict_prototypes\n-- Performing Test has_wstrict_prototypes - Success\n-- Compiler flags (CMAKE_C_FLAGS):  -std=c99 -pedantic -Wall -Wextra -Wfloat-equal -Wshadow -Wpointer-arith -Wunreachable-code -Winit-self -Wno-unused-function -Wno-unused-parameter -Wno-unreachable-code -Wstrict-prototypes\n-- Performing Test has_wno_address_of_packed_member\n-- Performing Test has_wno_address_of_packed_member - Success\n-- Performing Test has_wno_deprecated_declarations\n-- Performing Test has_wno_deprecated_declarations - Success\nApplied pinned SCTP patch: usrsctp-freed-window-atomic.patch\nApplied pinned SCTP patch: usrsctp-free-chunks-atomic.patch\nApplied pinned SCTP patch: usrsctp-callout-flags-lock.patch\nCMake Error at cmake/macos/Bundle.cmake:13 (message):\n  Set HALO2_MOLTENVK_LICENSE to the dependency's license before bundling\nCall Stack (most recent call first):\n  cmake/macos/Bundle.cmake:47 (halo2_macos_bundle)\n  CMakeLists.txt:2382 (halo2_macos_engine_bundle)\n\n\n-- Configuring incomplete, errors occurred!\n"
+          }
+        }
+      },
+      "mac_stale_assertion": {
+        "report": {
+          "passed": false,
+          "status": "failed",
+          "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fs47xnhd/build",
+          "steps": [
+            {
+              "name": "configure",
+              "command": [
+                "cmake",
+                "-S",
+                "/Users/eric/Developer/Halo2-macos-port/tests/macos/startup_storage",
+                "-B",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fs47xnhd/build",
+                "-DBUILD_TESTING=ON",
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-GNinja",
+                "-DCMAKE_OSX_ARCHITECTURES=x86_64",
+                "-DHALO2_STARTUP_ARENA_TEST=ON"
+              ],
+              "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-startup-arena-focused/configure.log",
+              "exit_code": 0
+            },
+            {
+              "name": "build",
+              "command": [
+                "cmake",
+                "--build",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fs47xnhd/build",
+                "--config",
+                "Release",
+                "--parallel",
+                "2",
+                "--target",
+                "startup_storage_tests"
+              ],
+              "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-startup-arena-focused/build.log",
+              "exit_code": 0
+            },
+            {
+              "name": "tests",
+              "command": [
+                "ctest",
+                "--test-dir",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fs47xnhd/build",
+                "--build-config",
+                "Release",
+                "--output-on-failure",
+                "--no-tests=error",
+                "--parallel",
+                "2",
+                "--tests-regex",
+                "^startup_storage_"
+              ],
+              "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-startup-arena-focused/tests.log",
+              "exit_code": 8
+            }
+          ],
+          "retained_small_reports": [
+            {
+              "path": "Testing/Temporary/LastTest.log",
+              "status": "retained",
+              "bytes": 2473,
+              "sha256": "0600b2779bc98344f2177efd0b7f9a82615f1db47e8169709732e136a179b9fd",
+              "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-startup-arena-focused/evidence/Testing/Temporary/LastTest.log"
+            },
+            {
+              "path": "arena.json",
+              "status": "not produced"
+            }
+          ]
+        },
+        "logs": {
+          "configure.log": {
+            "bytes": 828,
+            "sha256": "a9f41a470fef8f5f0f78b9f760e26d7dc68fff36d05f561d77fbbafcfed7ba2f",
+            "text": "-- The CXX compiler identification is AppleClang 21.0.0.21000334\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: /usr/bin/c++ - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Found Python3: /opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15 (found version \"3.15.0\") found components: Interpreter\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n-- Found Threads: TRUE\n-- Found nlohmann_json: /opt/homebrew/share/cmake/nlohmann_json/nlohmann_jsonConfig.cmake (found version \"3.12.0\")\n-- Configuring done (0.7s)\n-- Generating done (0.0s)\n-- Build files have been written to: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fs47xnhd/build\n"
+          },
+          "build.log": {
+            "bytes": 45364,
+            "sha256": "9c29bc272be67d75c38f08f6800c92d43967a6c40c412fb04e3ef1b08707bbcd"
+          },
+          "tests.log": {
+            "bytes": 549,
+            "sha256": "8411196a534f8f3d143607a9d63a953b80a9ad8ebbf8864bc96c5814a61dd730",
+            "text": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fs47xnhd/build\n    Start 1: startup_storage_host_x86_64\n    Start 2: startup_storage_arena_x86_64\n1/2 Test #1: startup_storage_host_x86_64 ......   Passed    1.40 sec\n2/2 Test #2: startup_storage_arena_x86_64 .....***Failed    2.23 sec\nNative arena data includes unclassified storage\n\n\n50% tests passed, 1 tests failed out of 2\n\nTotal Test time (real) =   2.24 sec\n\nThe following tests FAILED:\n\t  2 - startup_storage_arena_x86_64 (Failed)\nErrors while running CTest\n"
+          },
+          "evidence/Testing/Temporary/LastTest.log": {
+            "bytes": 2473,
+            "sha256": "0600b2779bc98344f2177efd0b7f9a82615f1db47e8169709732e136a179b9fd",
+            "text": "Start testing: Oct 20 21:44 EDT\n----------------------------------------------------------\n1/2 Testing: startup_storage_host_x86_64\n1/2 Test: startup_storage_host_x86_64\nCommand: \"/opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15\" \"/Users/eric/Developer/Halo2-macos-port/cmake/../tools/run_test.py\" \"--scratch-root\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fs47xnhd/build/Testing/Temporary/scratch\" \"--\" \"/usr/bin/arch\" \"-x86_64\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fs47xnhd/build/startup_storage_host_tests\"\nDirectory: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fs47xnhd/build\n\"startup_storage_host_x86_64\" start time: Oct 20 21:44 EDT\nOutput:\n----------------------------------------------------------\nDarwin worker priority: before=31, after=32, success=1\nPASS 24 native startup host controls: real worker identity/priority, parent preservation, file timestamps/extents/sync\n<end of output>\nTest time =   1.40 sec\n----------------------------------------------------------\nTest Passed.\n\"startup_storage_host_x86_64\" end time: Oct 20 21:44 EDT\n\"startup_storage_host_x86_64\" time elapsed: 00:00:01\n----------------------------------------------------------\n\n2/2 Testing: startup_storage_arena_x86_64\n2/2 Test: startup_storage_arena_x86_64\nCommand: \"/opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15\" \"/Users/eric/Developer/Halo2-macos-port/cmake/../tools/run_test.py\" \"--scratch-root\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fs47xnhd/build/Testing/Temporary/scratch\" \"--\" \"/usr/bin/arch\" \"-x86_64\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fs47xnhd/build/startup_storage_arena_tests\" \"--capture\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fs47xnhd/build/arena.json\"\nDirectory: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fs47xnhd/build\n\"startup_storage_arena_x86_64\" start time: Oct 20 21:44 EDT\nOutput:\n----------------------------------------------------------\nNative arena data includes unclassified storage\n<end of output>\nTest time =   2.23 sec\n----------------------------------------------------------\nTest Failed.\n\"startup_storage_arena_x86_64\" end time: Oct 20 21:44 EDT\n\"startup_storage_arena_x86_64\" time elapsed: 00:00:02\n----------------------------------------------------------\n\nEnd testing: Oct 20 21:44 EDT\n"
+          }
+        }
+      },
+      "mac_host_final": {
+        "report": {
+          "passed": true,
+          "status": "passed",
+          "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-86ivfcog/build",
+          "steps": [
+            {
+              "name": "configure",
+              "command": [
+                "cmake",
+                "-S",
+                "/Users/eric/Developer/Halo2-macos-port/tests/macos/startup_storage",
+                "-B",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-86ivfcog/build",
+                "-DBUILD_TESTING=ON",
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-GNinja"
+              ],
+              "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-startup-storage-final/configure.log",
+              "exit_code": 0
+            },
+            {
+              "name": "build",
+              "command": [
+                "cmake",
+                "--build",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-86ivfcog/build",
+                "--config",
+                "Release",
+                "--parallel",
+                "2",
+                "--target",
+                "startup_storage_tests"
+              ],
+              "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-startup-storage-final/build.log",
+              "exit_code": 0
+            },
+            {
+              "name": "tests",
+              "command": [
+                "ctest",
+                "--test-dir",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-86ivfcog/build",
+                "--build-config",
+                "Release",
+                "--output-on-failure",
+                "--no-tests=error",
+                "--parallel",
+                "2",
+                "--tests-regex",
+                "^startup_storage_"
+              ],
+              "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-startup-storage-final/tests.log",
+              "exit_code": 0
+            }
+          ],
+          "retained_small_reports": [
+            {
+              "path": "Testing/Temporary/LastTest.log",
+              "status": "retained",
+              "bytes": 2477,
+              "sha256": "a26e3bea5d38c5ba6fc830d9eb3f183397a89fe1da8c828cbd0c7f8ad867fc00",
+              "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-startup-storage-final/evidence/Testing/Temporary/LastTest.log"
+            }
+          ]
+        },
+        "logs": {
+          "configure.log": {
+            "bytes": 713,
+            "sha256": "6629a1ec9a486b334186bf0b9e38d53f72c17243baf591749d8f491e1cc3910b",
+            "text": "-- The CXX compiler identification is AppleClang 21.0.0.21000334\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: /usr/bin/c++ - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Found Python3: /opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15 (found version \"3.15.0\") found components: Interpreter\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n-- Found Threads: TRUE\n-- Configuring done (0.7s)\n-- Generating done (0.0s)\n-- Build files have been written to: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-86ivfcog/build\n"
+          },
+          "build.log": {
+            "bytes": 412,
+            "sha256": "72ec8d851717cbfab17379697fc2e1f9210577f777e586c08ee28dd52ed10445"
+          },
+          "tests.log": {
+            "bytes": 382,
+            "sha256": "d1815c6fb1c595facc1b8a7e68fc32f64e273c5f0094aafafac34edd110004d4",
+            "text": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-86ivfcog/build\n    Start 1: startup_storage_host_arm64\n    Start 2: startup_storage_host_x86_64\n1/2 Test #1: startup_storage_host_arm64 .......   Passed    0.28 sec\n2/2 Test #2: startup_storage_host_x86_64 ......   Passed    0.42 sec\n\n100% tests passed out of 2\n\nTotal Test time (real) =   0.42 sec\n"
+          },
+          "evidence/Testing/Temporary/LastTest.log": {
+            "bytes": 2477,
+            "sha256": "a26e3bea5d38c5ba6fc830d9eb3f183397a89fe1da8c828cbd0c7f8ad867fc00",
+            "text": "Start testing: Oct 20 21:45 EDT\n----------------------------------------------------------\n1/2 Testing: startup_storage_host_arm64\n1/2 Test: startup_storage_host_arm64\nCommand: \"/opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15\" \"/Users/eric/Developer/Halo2-macos-port/cmake/../tools/run_test.py\" \"--scratch-root\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-86ivfcog/build/Testing/Temporary/scratch\" \"--\" \"/usr/bin/arch\" \"-arm64\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-86ivfcog/build/startup_storage_host_tests\"\nDirectory: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-86ivfcog/build\n\"startup_storage_host_arm64\" start time: Oct 20 21:45 EDT\nOutput:\n----------------------------------------------------------\nDarwin worker priority: before=31, after=32, success=1\nPASS 24 native startup host controls: real worker identity/priority, parent preservation, file timestamps/extents/sync\n<end of output>\nTest time =   0.28 sec\n----------------------------------------------------------\nTest Passed.\n\"startup_storage_host_arm64\" end time: Oct 20 21:45 EDT\n\"startup_storage_host_arm64\" time elapsed: 00:00:00\n----------------------------------------------------------\n\n2/2 Testing: startup_storage_host_x86_64\n2/2 Test: startup_storage_host_x86_64\nCommand: \"/opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15\" \"/Users/eric/Developer/Halo2-macos-port/cmake/../tools/run_test.py\" \"--scratch-root\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-86ivfcog/build/Testing/Temporary/scratch\" \"--\" \"/usr/bin/arch\" \"-x86_64\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-86ivfcog/build/startup_storage_host_tests\"\nDirectory: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-86ivfcog/build\n\"startup_storage_host_x86_64\" start time: Oct 20 21:45 EDT\nOutput:\n----------------------------------------------------------\nDarwin worker priority: before=31, after=32, success=1\nPASS 24 native startup host controls: real worker identity/priority, parent preservation, file timestamps/extents/sync\n<end of output>\nTest time =   0.42 sec\n----------------------------------------------------------\nTest Passed.\n\"startup_storage_host_x86_64\" end time: Oct 20 21:45 EDT\n\"startup_storage_host_x86_64\" time elapsed: 00:00:00\n----------------------------------------------------------\n\nEnd testing: Oct 20 21:45 EDT\n"
+          }
+        }
+      },
+      "mac_arena_corrected": {
+        "report": {
+          "passed": true,
+          "status": "passed",
+          "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-xydz5bee/build",
+          "steps": [
+            {
+              "name": "configure",
+              "command": [
+                "cmake",
+                "-S",
+                "/Users/eric/Developer/Halo2-macos-port/tests/macos/startup_storage",
+                "-B",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-xydz5bee/build",
+                "-DBUILD_TESTING=ON",
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-GNinja",
+                "-DCMAKE_OSX_ARCHITECTURES=x86_64",
+                "-DHALO2_STARTUP_ARENA_TEST=ON"
+              ],
+              "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-startup-arena-focused-corrected/configure.log",
+              "exit_code": 0
+            },
+            {
+              "name": "build",
+              "command": [
+                "cmake",
+                "--build",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-xydz5bee/build",
+                "--config",
+                "Release",
+                "--parallel",
+                "2",
+                "--target",
+                "startup_storage_tests"
+              ],
+              "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-startup-arena-focused-corrected/build.log",
+              "exit_code": 0
+            },
+            {
+              "name": "tests",
+              "command": [
+                "ctest",
+                "--test-dir",
+                "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-xydz5bee/build",
+                "--build-config",
+                "Release",
+                "--output-on-failure",
+                "--no-tests=error",
+                "--parallel",
+                "2",
+                "--tests-regex",
+                "^startup_storage_"
+              ],
+              "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-startup-arena-focused-corrected/tests.log",
+              "exit_code": 0
+            }
+          ],
+          "retained_small_reports": [
+            {
+              "path": "Testing/Temporary/LastTest.log",
+              "status": "retained",
+              "bytes": 2604,
+              "sha256": "146514215741d072ae59dc608a31d92352e8e50a5dfe3173a1dc4f750a0593f8",
+              "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-startup-arena-focused-corrected/evidence/Testing/Temporary/LastTest.log"
+            },
+            {
+              "path": "arena.json",
+              "status": "retained",
+              "bytes": 6762,
+              "sha256": "698338fb62240d7433c180df7c5d83a8d5cdf26739e066d83ccf324e28e971cf",
+              "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-startup-arena-focused-corrected/evidence/arena.json"
+            }
+          ]
+        },
+        "logs": {
+          "configure.log": {
+            "bytes": 828,
+            "sha256": "905b15fcc06cd7b0430b495c56732a17bff7454b9e65665b1ab89d44938f7fa1",
+            "text": "-- The CXX compiler identification is AppleClang 21.0.0.21000334\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: /usr/bin/c++ - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Found Python3: /opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15 (found version \"3.15.0\") found components: Interpreter\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n-- Found Threads: TRUE\n-- Found nlohmann_json: /opt/homebrew/share/cmake/nlohmann_json/nlohmann_jsonConfig.cmake (found version \"3.12.0\")\n-- Configuring done (0.8s)\n-- Generating done (0.0s)\n-- Build files have been written to: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-xydz5bee/build\n"
+          },
+          "build.log": {
+            "bytes": 45364,
+            "sha256": "b4b61bbccbece6ea76e626b73063233b787a3e5568850fae5f3c7f00ba90dff6"
+          },
+          "tests.log": {
+            "bytes": 384,
+            "sha256": "09f2552164be7d364d44a85a08fe1660988b0b1b1b4c2d4ce0e4dbff8495f5e2",
+            "text": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-xydz5bee/build\n    Start 1: startup_storage_host_x86_64\n    Start 2: startup_storage_arena_x86_64\n1/2 Test #1: startup_storage_host_x86_64 ......   Passed    0.41 sec\n2/2 Test #2: startup_storage_arena_x86_64 .....   Passed    1.97 sec\n\n100% tests passed out of 2\n\nTotal Test time (real) =   1.97 sec\n"
+          },
+          "evidence/Testing/Temporary/LastTest.log": {
+            "bytes": 2604,
+            "sha256": "146514215741d072ae59dc608a31d92352e8e50a5dfe3173a1dc4f750a0593f8",
+            "text": "Start testing: Oct 20 21:46 EDT\n----------------------------------------------------------\n1/2 Testing: startup_storage_host_x86_64\n1/2 Test: startup_storage_host_x86_64\nCommand: \"/opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15\" \"/Users/eric/Developer/Halo2-macos-port/cmake/../tools/run_test.py\" \"--scratch-root\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-xydz5bee/build/Testing/Temporary/scratch\" \"--\" \"/usr/bin/arch\" \"-x86_64\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-xydz5bee/build/startup_storage_host_tests\"\nDirectory: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-xydz5bee/build\n\"startup_storage_host_x86_64\" start time: Oct 20 21:46 EDT\nOutput:\n----------------------------------------------------------\nDarwin worker priority: before=31, after=32, success=1\nPASS 24 native startup host controls: real worker identity/priority, parent preservation, file timestamps/extents/sync\n<end of output>\nTest time =   0.41 sec\n----------------------------------------------------------\nTest Passed.\n\"startup_storage_host_x86_64\" end time: Oct 20 21:46 EDT\n\"startup_storage_host_x86_64\" time elapsed: 00:00:00\n----------------------------------------------------------\n\n2/2 Testing: startup_storage_arena_x86_64\n2/2 Test: startup_storage_arena_x86_64\nCommand: \"/opt/homebrew/Frameworks/Python.framework/Versions/3.15/bin/python3.15\" \"/Users/eric/Developer/Halo2-macos-port/cmake/../tools/run_test.py\" \"--scratch-root\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-xydz5bee/build/Testing/Temporary/scratch\" \"--\" \"/usr/bin/arch\" \"-x86_64\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-xydz5bee/build/startup_storage_arena_tests\" \"--capture\" \"/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-xydz5bee/build/arena.json\"\nDirectory: /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-xydz5bee/build\n\"startup_storage_arena_x86_64\" start time: Oct 20 21:46 EDT\nOutput:\n----------------------------------------------------------\nNative TU1.5 arena bootstrap: 43566 classified cold/operand bytes; 13 complete calls, 1049656 ordered writes; real worker, two files and checked 64-bit arena; no executable input\n<end of output>\nTest time =   1.97 sec\n----------------------------------------------------------\nTest Passed.\n\"startup_storage_arena_x86_64\" end time: Oct 20 21:46 EDT\n\"startup_storage_arena_x86_64\" time elapsed: 00:00:01\n----------------------------------------------------------\n\nEnd testing: Oct 20 21:46 EDT\n"
+          }
+        },
+        "arena.json": {
+          "cold_fields": [
+            {
+              "address": 4306496,
+              "bytes": 4,
+              "initial_sha256": "2c7ad9617d04ab2e3521698e6652c9f640b4a77c0b2c1594daef5ff95410f8aa"
+            },
+            {
+              "address": 4306504,
+              "bytes": 4,
+              "initial_sha256": "83b5d11a73ad91a0e03856a6ae3249007565dcace273e10fa5b533fe0a5bbab1"
+            },
+            {
+              "address": 4598780,
+              "bytes": 18,
+              "initial_sha256": "b16eccaf5abc9bbbb67abb6a9c44ef2733191abe04548a1fa2169cbdb00da0dc"
+            },
+            {
+              "address": 4704108,
+              "bytes": 4,
+              "initial_sha256": "db30e14bbca4db1dc34c090ffbb0138a7c5068ac174e5d289fc7411c741249e7"
+            },
+            {
+              "address": 5164068,
+              "bytes": 9632,
+              "initial_sha256": "c2b27b680670fb14bbcaad20c34699cb8b8e9da2544f32519d480a40498d6e5d"
+            },
+            {
+              "address": 5178416,
+              "bytes": 1,
+              "initial_sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+            },
+            {
+              "address": 5187920,
+              "bytes": 8,
+              "initial_sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
+            },
+            {
+              "address": 5187928,
+              "bytes": 4,
+              "initial_sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            {
+              "address": 5187932,
+              "bytes": 4,
+              "initial_sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            {
+              "address": 5187940,
+              "bytes": 4,
+              "initial_sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            {
+              "address": 5188848,
+              "bytes": 52,
+              "initial_sha256": "7955cb2de90dd9efc6df9fdbf5f5d10c114f4135a9a6b52db1003be749e32f7a"
+            },
+            {
+              "address": 5270432,
+              "bytes": 32768,
+              "initial_sha256": "c35020473aed1b4642cd726cad727b63fff2824ad68cedd7ffb73c7cbd890479"
+            },
+            {
+              "address": 5303200,
+              "bytes": 12,
+              "initial_sha256": "15ec7bf0b50732b49f8228e07d24365338f9e3ab994b00af08e5a3bffe55fd8b"
+            },
+            {
+              "address": 5303216,
+              "bytes": 1,
+              "initial_sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+            },
+            {
+              "address": 5303220,
+              "bytes": 8,
+              "initial_sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
+            },
+            {
+              "address": 5303244,
+              "bytes": 1,
+              "initial_sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+            },
+            {
+              "address": 5303248,
+              "bytes": 8,
+              "initial_sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
+            },
+            {
+              "address": 5364496,
+              "bytes": 4,
+              "initial_sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            {
+              "address": 5365548,
+              "bytes": 4,
+              "initial_sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            {
+              "address": 5693989,
+              "bytes": 1,
+              "initial_sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+            },
+            {
+              "address": 5694040,
+              "bytes": 1024,
+              "initial_sha256": "5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+            }
+          ],
+          "declared_bytes": 43566,
+          "native_64_bit_ownership": true,
+          "normal_gameplay_admission": false,
+          "ordered_stores": 1049656,
+          "original_cpu_comparison": false,
+          "passed": true,
+          "physical_bytes": 51265536,
+          "physical_bytes_compared": 0,
+          "physical_sha256": "211437447b5b8ab45f1b3279d5b9f06c59a45cf35fb2ef33db74af57e503bb0a",
+          "reference_executable_is_runtime_input": false,
+          "released_and_foreign_addresses_rejected": true,
+          "schema": "H2_NATIVE_TU15_ARENA_BOOTSTRAP_V1",
+          "steps": [
+            {
+              "argument": null,
+              "entry": 1231728,
+              "ordered_stores": 18,
+              "returned_gp": [
+                2147880960,
+                51265536,
+                397312,
+                0,
+                1610674180,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "argument": null,
+              "entry": 1188272,
+              "ordered_stores": 2728,
+              "returned_gp": [
+                1,
+                4294967295,
+                5173688,
+                0,
+                1610674180,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "argument": null,
+              "entry": 1200768,
+              "ordered_stores": 1049638,
+              "returned_gp": [
+                1696638025,
+                4,
+                0,
+                0,
+                1610674180,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "argument": null,
+              "entry": 1200768,
+              "ordered_stores": 1049638,
+              "returned_gp": [
+                1,
+                0,
+                0,
+                0,
+                1610674180,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "argument": 0,
+              "entry": 1203792,
+              "ordered_stores": 1049640,
+              "returned_gp": [
+                2194965132,
+                2428444049,
+                0,
+                0,
+                1610674184,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "argument": 1,
+              "entry": 1203792,
+              "ordered_stores": 1049642,
+              "returned_gp": [
+                2194965132,
+                1555261956,
+                0,
+                0,
+                1610674184,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "argument": 3,
+              "entry": 1203792,
+              "ordered_stores": 1049644,
+              "returned_gp": [
+                2194965136,
+                3188396048,
+                0,
+                0,
+                1610674184,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "argument": 4,
+              "entry": 1203792,
+              "ordered_stores": 1049646,
+              "returned_gp": [
+                2194965140,
+                1762050814,
+                0,
+                0,
+                1610674184,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "argument": 5,
+              "entry": 1203792,
+              "ordered_stores": 1049648,
+              "returned_gp": [
+                2194965144,
+                3569037538,
+                0,
+                0,
+                1610674184,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "argument": 16,
+              "entry": 1203792,
+              "ordered_stores": 1049650,
+              "returned_gp": [
+                2194965152,
+                0,
+                0,
+                0,
+                1610674184,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "argument": 257,
+              "entry": 1203792,
+              "ordered_stores": 1049652,
+              "returned_gp": [
+                2194965168,
+                4279200368,
+                0,
+                0,
+                1610674184,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "argument": 1024,
+              "entry": 1203792,
+              "ordered_stores": 1049654,
+              "returned_gp": [
+                2194965428,
+                1258607687,
+                0,
+                0,
+                1610674184,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "argument": 5120,
+              "entry": 1203792,
+              "ordered_stores": 1049656,
+              "returned_gp": [
+                2194966452,
+                2227061214,
+                0,
+                0,
+                1610674184,
+                0,
+                0,
+                0
+              ]
+            }
+          ],
+          "ungated_worker_startup": true,
+          "world_startup_complete": false
+        }
+      }
+    },
+    "source_hashes": {
+      "src/native_startup_resources.hpp": "bd81b9bf043b3c27d6a9e53c0031af6682fa60f98c824d24fdd6ece86e37d109",
+      "src/macos/startup_resources.hpp": "c273858526f552344bd018aa9092b85d899fc057355fd5992572dcdfb101c621",
+      "include/halo2/death_startup_native.hpp": "774f4d95ea8941068af0d9c8afdf01206344c3fdb61d3b2b1e14abbe6504e9bf",
+      "tests/macos/startup_storage/CMakeLists.txt": "05a9dd5d16458872411a47f632f74cf74f050018bd5a952be93eafeb82af1954",
+      "tests/macos/startup_storage/host_tests.cpp": "7dfd4e9633c03e56cb68d083769eb41c421d6dae71463b8e7111d13bf5437356",
+      "tests/native_tu15_arena_data_tests.cpp": "0f2ef91530abd2c06c97a9aaf034f961bc56a1e52854c4b5ad560bba8d7b1b1f",
+      "src/physics_step_internal.hpp": "88b09bc391954d6461c85d0df02c7f327030fedcbc00080d5999033f5affa754",
+      "src/physics_contact_runtime_internal.hpp": "fc6cb43293352942b1d9afe17039cba925274e9b17e9024fffde6f4cc7f3e74a",
+      "src/physics_world_runtime_internal.hpp": "49dc4f92e19d28db4dca6af349d938311641cd2dae75925454eb8735997ac050",
+      "src/source_process_heap_platform_bindings.hpp": "e94e4faca2694ceaf8a84c51cd08208fb96e7bf9802d8fc3e2239d9e5e055b3e",
+      "src/native_tu15_arena_data.cpp": "61e772b3e25a4c74f266207ceb4f5e5c7a9ce192db6c70e823d34b06a5cd25bf",
+      "src/native_tu15_arena_bootstrap.cpp": "7e353145b63070dd95fc48b30bb1fb55b061f1c0edcdf06338c84d4381e61075",
+      "src/physics_game_arena_native.cpp": "78fc414ff39c44c2c32f3e7de97313097c599b948914284df5b443c3be526894",
+      "src/physics_game_arena_runtime_generated.cpp": "7fc61cfbbace54ab959622be07b5e1bb09b46e5440be157e38d81319a4602d7b",
+      "src/physics_physical_storage_runtime_generated.cpp": "70ec1231093e9d07845aa804e4b580e1cd333258ff3703b4fa60dbb8b085ffc8",
+      "src/physics_physical_storage_host.cpp": "2c3fe697b37797ee6d084ce59ba327f965d4e44c6c2a00a18a367b1436dfa6a1",
+      "src/native_tu15_heap_data.cpp": "78f5ca87387e06ddce66588b6461e4b88e1c872ba8c56bb3213ae213b8aebd45",
+      "src/native_tu15_heap_bootstrap.cpp": "b1a6ecd5a8ee07b47866c615a166cf212d12ac82d3cb40f427d6b5c80dc25741",
+      "src/source_process_heap_platform.cpp": "90c4f4cdc9c8e8934f22255c971f575d16aef06f6714c4f61415fed3fef11519",
+      "src/source_process_heap_runtime_generated.cpp": "9561e7c59e8c7ceedaec6db662700b92bb6ae88800021dd93bd6bc1eecdc4c61",
+      "src/source_process_shutdown.cpp": "5eee2ee4894ec89f606a96bf20884f4461fb4720bf44c4f911ce25c22c8e1278",
+      "src/source_process_startup_records.cpp": "9aee8e582ed9ec34eb8843b5fa62c6db31a3158fdebcc80dcbf6142cd8ae7fb5",
+      "src/physics_platform_call.cpp": "4d9d0121667f1908171af6c682a64b98edf444269df0382a0693d125354f24e4",
+      "src/physics_platform_locks.cpp": "e9cc646a42d5a2f89f7f0824851cc55df05feaed4736436ea5a5d99f3bfa04f8",
+      "src/physics_platform_locks_continuation.cpp": "beefd5b88f5bbfd6be28c702a2c98021bf21879a3ad184c66b4503d8c4503963",
+      "src/native_synchronization.cpp": "633110ea24d81644132c8b4381190b797a1dae2326f2023d4b120f5f7f80665d",
+      "src/native_threads.cpp": "9022937fcebdf165f6323cb05204356d6cb3ddda2b86dbd7057cd45625c5d31f",
+      "src/source_runtime_memory.cpp": "e11c5d27a4ba32514b99935efbcfce383d7013c80681a5ced0376c93353bbd84",
+      "src/source_runtime_host_virtual_memory.cpp": "42ca40e26e8a4cf0039cf577aa368a9ad1cfe6230105735ec50563f8da811b84",
+      "src/source_runtime_host_storage.cpp": "b99a0cec099b9f469915fcc2ce7fe44d3ab7e7ac52fbd01f344e606aed52f49e",
+      "src/source_runtime_host_physical_memory.cpp": "7a3b7ca787d282cb5a5097a070bd71221e42c8a3163d5aeb243c8339c4fe6bd1",
+      "src/source_runtime_image.cpp": "372de4b63b729a579b734e6f2b3b5f36b6e5fbc130572d1b281d10e3ea851e2c",
+      "src/cache_file_snapshot.cpp": "d78ab161fff239560ffa6ce74d225e03dc29e0f3249c35627a5251f2ee4c4a26",
+      "src/source_runtime_snapshot_bytes.cpp": "08d2949cab0aea6c291a202ce036e14db14ba74d6c3f2851b8123b7517ed672b",
+      "src/death_startup_native.cpp": "84dc7460003ffccb3a4444384dceb7fe75bd38e62371efb7993d9c69dba1b894"
+    },
+    "cleanup": {
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-m4hprf0j": true,
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4_d894bl": true,
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-zcn7lty8": true,
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-fs47xnhd": true,
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-86ivfcog": true,
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-xydz5bee": true
+    },
+    "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B118\n",
+    "retained_original_mcc_source": {
+      "path": "/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12",
+      "exists": true,
+      "new_test_artifact": false
+    }
+  },
+  "evidence_audit_scratch": "/tmp/halo2-test-pa94sscm",
+  "source_hash_mismatches": [
+    "src/source_runtime_memory.cpp"
+  ],
+  "source_hash_mismatch_notes": {
+    "src/source_runtime_memory.cpp": "Concurrent Linux work expanded only the existing overlapping-region exception text to include requested/existing extents and owner. Mac mirror preserves the earlier text. Both complete source hashes are retained; do not claim identical full input trees."
+  },
+  "source_hash_scope": "Hashes observed at final evidence audit. The ported startup sources, helper, tests and generated arithmetic agree across the hosts; unrelated overlap-error diagnostics differ as recorded.",
+  "mac_vs_linux_authenticated_reference": {
+    "declared_bytes": true,
+    "cold_fields": true,
+    "ordered_stores": true,
+    "physical_bytes": true,
+    "physical_sha256": true,
+    "steps_except_ignored_priority_bool": true
+  },
+  "limitations": [
+    "No complete arm64 generated executor or playable engine acceptance.",
+    "Source x87/SSE backend remains deferred.",
+    "Death startup owner compiles universally; its complete source execution/cache reads are not certified here.",
+    "Broader persistent/profile storage, world startup, full setup preparation and canonical loading PCM admission remain open.",
+    "Rosetta execution is not physical Intel or older macOS acceptance.",
+    "No new large artifacts retained; the previously authorized original MCC source remains for port testing."
+  ],
+  "attempt_notes": [
+    "Broad Linux root graph configured but pulled in1496 targets; deliberately cancelled with130 after a focused real-source closure was prepared. No acceptance from that run.",
+    "Mac root configure first required release movie inputs; explicit no-movies CPU check then required bundle license configuration. These failed configure attempts are retained, not claimed as engine builds.",
+    "Initial focused Linux and Mac executions exposed stale20-field43562-byte expectation. Existing data owner additionally declares four loader-zeroed bytes at4F2958. Authenticated XBE audit and complete Linux original-store comparison justify21-field43566-byte expectation.",
+    "Focused closure uses unmodified generated arithmetic and dead-code elimination for unused entry points, with no stubbed callee or supplied source result."
+  ],
+  "final_cleanup_verification": {
+    "owned_linux_processes": [],
+    "owned_mac_processes": [],
+    "all_recorded_cmake_scratch_absent": true,
+    "evidence_audit_scratch_removed": true,
+    "new_large_artifacts_retained": [],
+    "preserved_existing_game_input": {
+      "path": "/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12",
+      "exists": true,
+      "new_test_artifact": false
+    }
+  }
+}

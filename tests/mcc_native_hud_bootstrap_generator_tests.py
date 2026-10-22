@@ -12,7 +12,7 @@ class GeneratorTests(unittest.TestCase):
     def setUp(self):
         self.raw = (ROOT/'tools/data/mcc-native-hud-bootstrap.json').read_bytes()
     def test_frozen(self):
-        self.assertEqual(gen.generate(self.raw), (ROOT/'src/mcc_native_hud_bootstrap.inc').read_text())
+        self.assertEqual(gen.generate(self.raw), (ROOT/'src/ui/hud/mcc_native_hud_bootstrap.inc').read_text())
     def test_changed_domains(self):
         for mutate in (lambda d: d['maps'].append(d['maps'][0]),
                        lambda d: d['owners'][0].update(name='screen_alias'),

@@ -23,7 +23,7 @@ def generate(raw):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--data',type=Path,default=ROOT/'tools/data/mcc-hud-shader-reference.json')
-    parser.add_argument('--output',type=Path,default=ROOT/'src/mcc_hud_shader_reference.inc')
+    parser.add_argument('--output',type=Path,default=ROOT/'src/ui/hud/mcc_hud_shader_reference.inc')
     parser.add_argument('--check',action='store_true')
     args=parser.parse_args()
     try:

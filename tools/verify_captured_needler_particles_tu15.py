@@ -91,7 +91,7 @@ def main():
         every_live_particle_owned_by_actual_needler_firing=True,chains=chains,
         actual_before_sha256=sha(args.actual/'before.bin'),actual_after_sha256=sha(args.actual/'after.bin'),
         actual_build_sha256=sha(args.actual/'build.json'),tool_sha256=sha(Path(__file__)),
-        source_layout_sha256=sha(Path(__file__).resolve().parents[1]/'src/source_particle_render_state_tu15.cpp'),
+        source_layout_sha256=sha(Path(__file__).resolve().parents[1]/'src/rendering/effects/source_particle_render_state_tu15.cpp'),
         rendered_sequence_verified=False,physical_xbox_verified=False,full_weapon_parity=False)
     args.output.write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps({k:report[k] for k in ('passed','systems','locations','emitters','particles')}))

@@ -85,7 +85,7 @@ class FrontendRuntimeSelectionTests(unittest.TestCase):
 
     def test_frontend_resource_changes_expire_only_frontend_admission(self):
         self.publish()
-        for name in ('presentation/prompts/atlases/0.dds','halo2/h2_fonts/fixture.font'):
+        for name in ('halo2/h2_fonts/nonactive-language/fixture.font','halo2/h2_fonts/fixture.font'):
             path=self.cache/name;before=path.read_bytes();path.write_bytes(before+b'changed')
             with self.subTest(name=name):
                 self.assertIsNone(self.selected())

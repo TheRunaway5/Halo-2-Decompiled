@@ -24,6 +24,8 @@ class RuntimeBuildTests(unittest.TestCase):
         command = "false" if fail else "touch ${CMAKE_BINARY_DIR}/compiled"
         (self.root / "CMakeLists.txt").write_text(
             "cmake_minimum_required(VERSION 3.24)\nproject(LauncherFixture LANGUAGES NONE)\n"
+            "option(HALO2_BUILD_LAUNCHERS_WITH_NATIVE \"Fixture: no implicit engine dependency\" OFF)\n"
+            "add_custom_target(halo2_native COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_BINARY_DIR}/engine-compiled)\n"
             f"add_custom_target(halo2_launcher COMMAND ${{CMAKE_COMMAND}} -E {command})\n"
             "add_custom_target(halo2_title_launcher)\n"
             "add_custom_target(halo2_onboarding)\n"
@@ -35,6 +37,7 @@ class RuntimeBuildTests(unittest.TestCase):
     def test_fresh_checkout_configures_and_builds_both_launchers(self):
         self.run_build()
         self.assertTrue((self.root / "build/compiled").is_file())
+        self.assertTrue((self.root / "build/engine-compiled").is_file())
         log = (self.root / "build/launcher-build.log").read_text()
         self.assertIn("Configuring Halo 2", log)
         self.assertIn("halo2_title_launcher", log)

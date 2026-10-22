@@ -35,9 +35,9 @@ async def main():
     if clan:
         playlist = "clan"
     assert playlist in ("ranked", "casual", "clan")
-    output = ROOT / ".local/matchmaking/captures" / (mode if playlist == "ranked" else mode+"-"+playlist)
-    output.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="halo2-real-match-") as temp:
+        output = Path(os.environ.get('HALO2_TEST_SCRATCH', temp)) / 'match-captures' / (mode if playlist == 'ranked' else mode+'-'+playlist)
+        output.mkdir(parents=True, exist_ok=True)
         path = Path(temp)/"playlists.json"
         fixture = catalog()
         for row in fixture["playlists"]:

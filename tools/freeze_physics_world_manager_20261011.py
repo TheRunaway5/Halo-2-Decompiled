@@ -10,7 +10,7 @@ BASE = ROOT / 'analysis/multiplayer/integration/physics-engine-20261010'
 PARENT_PIN = '0dc192567e03dd6ebaada5e5058e5baf1b79961e4b0464c2a3b0bff03ffbe811'
 APPEND = '\ninclude(cmake/PhysicsWorldManager.cmake)\n'
 OWNED = (
-    'src/physics_world_runtime_generated.cpp',
+    'src/physics/runtime/physics_world_runtime_generated.cpp',
     'cmake/PhysicsWorldManager.cmake',
     'tools/research_physics_world_manager_runtime_20261011.py',
     'tools/generate_physics_world_manager_runtime_20261011.py',

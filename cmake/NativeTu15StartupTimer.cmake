@@ -1,4 +1,5 @@
-add_library(halo2_native_tu15_startup_timer STATIC src/native_tu15_startup_timer.cpp src/native_tu15_power_dpc_generated.cpp)
+add_library(halo2_native_tu15_startup_timer STATIC src/platform/native_tu15_startup_timer.cpp
+    src/platform/native_tu15_startup_timer_execution.cpp src/platform/native_tu15_power_dpc_generated.cpp)
 target_include_directories(halo2_native_tu15_startup_timer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_features(halo2_native_tu15_startup_timer PUBLIC cxx_std_20)
 target_link_libraries(halo2_native_tu15_startup_timer PUBLIC halo2_native_tu15_startup_platform)
@@ -16,7 +17,7 @@ if(TARGET halo2_systems)
 endif()
 if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_executable(native_tu15_startup_timer_tests tests/native_tu15_startup_timer_tests.cpp
-        src/source_runtime_memory.cpp src/source_runtime_image.cpp src/source_runtime_host_virtual_memory.cpp)
+        src/runtime/source_runtime_memory.cpp src/runtime/source_runtime_image.cpp src/runtime/source_runtime_host_virtual_memory.cpp)
     target_link_libraries(native_tu15_startup_timer_tests PRIVATE halo2_snapshot_storage)
     target_link_libraries(native_tu15_startup_timer_tests PRIVATE halo2_native_tu15_startup_timer nlohmann_json::nlohmann_json)
     add_test(NAME native_tu15_startup_timer COMMAND native_tu15_startup_timer_tests

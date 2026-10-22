@@ -71,7 +71,7 @@ This is separate from the owner-provisioning seam below and the now-connected
 
 Keep the existing PKCE flow, scopes, and identity checks. A future provisioning
 action can pass the already obtained `access` token from the login worker to
-`POST /v1/credentials` over a configured trusted HTTPS origin using its private in-memory authorization handoff. Send only the instance public key and requested credential lifetime. The
+`POST /v1/credentials/challenge` over a configured trusted HTTPS origin using its private in-memory authorization handoff. Send the instance public key and requested credential lifetime, sign the returned enrollment payload with the instance private key, then submit it as `proof` to `POST /v1/credentials` with the same fields and authorization. The
 backend verifies the token's application ID, `identify` scope, and Discord
 subject itself; it must never trust a subject asserted by the client.
 

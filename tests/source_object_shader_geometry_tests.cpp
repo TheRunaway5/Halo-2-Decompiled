@@ -1,4 +1,4 @@
-#include "../src/source_object_geometry.hpp"
+#include "../src/gameplay/objects/source_object_geometry.hpp"
 #include "halo2/source_prop_scene.hpp"
 #include "halo2/source_machine_scene.hpp"
 #include "halo2/source_shadow.hpp"

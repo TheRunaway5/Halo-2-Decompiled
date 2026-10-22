@@ -2,6 +2,7 @@
 #include "halo2/online_matchmaking.hpp"
 #include "halo2/online_voice.hpp"
 #include "halo2/discord_party_activity.hpp"
+#include "halo2/frontend_appearance.hpp"
 namespace halo2 {
 enum class OnlineClanPresence { Unknown, Offline, Online, Playing };
 struct OnlineClanMember {
@@ -43,12 +44,14 @@ struct OnlineAccountSnapshot {
   std::optional<OnlineParty> party;
   std::vector<OnlinePartyInvite> party_invitations;
   std::string party_message;
+  std::string profile_message;
 };
 struct OnlineAccountOptions {
   std::string endpoint;
   bool allow_loopback_http{};
   std::chrono::milliseconds poll_interval = std::chrono::seconds(5);
   bool enable_parties{};
+  bool profile_only{};
 };
 OnlineAccountOptions online_account_environment();
 struct OnlineClanCommand {
@@ -69,6 +72,8 @@ public:
   OnlineAccount(std::shared_ptr<DiscordLogin>, OnlineAccountOptions, Http = {});
   ~OnlineAccount();
   void connect(const std::string &screen_name);
+  void profile(const FrontendAppearance &, const std::string &service_tag);
+  std::shared_ptr<OnlineAccount> profile_worker(std::shared_ptr<DiscordLogin>) const;
   void sign_out();
   bool command(OnlineClanCommand);
   bool party_command(OnlinePartyCommand);

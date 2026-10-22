@@ -1,5 +1,11 @@
 # Campaign implementation status
 
+The active [campaign AI, navigation, mission scripting and co-op checklist](CAMPAIGN_AI_COOP_GOAL_CHECKLIST.md)
+tracks current work and acceptance. October20's source-backed campaign script
+player/cooperative queries pass186 original component cases, normal/root and
+sanitizer checks; the Simulation caller compiles. Full campaign AI/HS integration
+and actual local/network co-op remain incomplete.
+
 ## Memory continuation — 2026-10-15
 
 The user resumed the campaign goal. The interaction asset loader now shares
@@ -126,7 +132,7 @@ campaign integration remain open.
 
 The exact captured1B7240 call now passes original discovery/formal execution
 and a complete646-body native component comparison:223 original instructions,
-69 real reads,21 stores/snapshots, all180 ABI/FP return bytes and all67 final
+69 real reads,21 stores/snapshots, all 180 ABI/FP return bytes and all 67 final
 bank runs. Original formal peak aggregate RAM is36.9MiB; native is12.6MiB,
 with zero swap and complete persistent controller reports. Independent original
 ledger/final-bank verification passes. Native raw-ledger partition, hardware CPU
@@ -158,7 +164,7 @@ both strict controllers per case. The measured writer union retains 21 pairs
 and 32 source emissions. The captured seed takes JNE1B72CB's real fallthrough
 1B72D1; a separate erratum corrects its misleading sealed name. Native finite
 comparisons are next. Forty-phase diagnostics locate the later query RAM stop
-after map initialization and191CA0, before125D40 returns, with unchanged
+after map initialization and 191CA0, before 125D40 returns, with unchanged
 anonymous/live heap usage and higher file residency. A private existing-helper
 code-page advice candidate is being prepared; no source change is activated.
 
@@ -169,9 +175,9 @@ pass. Counted placement gets beyond1B7240 and reaches the next missing original
 owner1B7000; counted birth and the targeted getter RED remain open. All eight
 native component cases also pass their independent full trace/ABI/bank and raw
 read/store/snapshot checks serially at13,201,408 bytes each with zero swap.
-Measured new-closure coverage is54 of1,289 sites,13 of234 conditional edges and
-3 of38 calls; this does not certify the other branches or campaign completion.
-The fresh original1B7000 audit passes:146 instructions,10 existing direct
+Measured new-closure coverage is54 of 1,289 sites,13 of 234 conditional edges and
+3 of 38 calls; this does not certify the other branches or campaign completion.
+The fresh original 1B7000 audit passes:146 instructions,10 existing direct
 callees, complete decoded control flow and RET8. Original row20 resolves to the
 actual48A5FC descriptor, without relying on the different base-retail row.
 Private647 generation preparation found a missing consumed historical reference
@@ -181,13 +187,13 @@ Linux helper link and independent dependency/source qualification. Its three-fil
 application preserves the concurrent MCC source/CMake changes through exact
 before/after and inverse checks. The private query's RAM result does not certify
 the complete root runtime. Fresh root697 generation also passes, preserving all
-current686 bodies/helpers/FP/API/MCC/order with11 pending audited additions and
+current686 bodies/helpers/FP/API/MCC/order with 11 pending audited additions and
 1435 new instructions; that AI candidate remains unadopted. The captured
-descriptor mismatch is only+4 changing0 to7F0. The original MOV/MOV/RET0
+descriptor mismatch is only+4 changing0 to 7F0. The original MOV/MOV/RET0
 initializer is now authenticated against TU1.5, and fresh complete input
 qualification passes with the exact whole descriptor after that single4-byte
 store. All other bytes, full ABI/FP/banks and strict RAM/controller gates remain
-intact. Original/native execution of1B7000 is the next component check.
+intact. Original/native execution of 1B7000 is the next component check.
 The original caller's131 admitted descriptor slots are now inventoried with
 authenticated signed-index and kind0 dispatch guards. Forty-four are kind0
 callbacks;35 lack a qualified AI-frame body in the three current source
@@ -196,18 +202,18 @@ engine implementations. Other kinds/layouts remain uninterpreted. This is a
 static inventory, with no callback activation or campaign completion claim.
 Its bounded successor also connects the table-loaded EDI to the kind0 load
 across every reached forward branch, preserving all register aliases and the
-exact early-exit epilogue. The original1B7000 discovery and formal replays now
+exact early-exit epilogue. The original 1B7000 discovery and formal replays now
 complete198 instructions with exact full180-byte entry state, real RET8 and
 matching full final-bank hashes; the formal ledger records60 reads/19 stores.
 Both pass complete serial memory evidence below40.2MB aggregate RSS with zero
 swap. The captured native647 comparison is the next component check.
-Independent original reconstruction now passes: every198 trace instruction,
-60 reads/19 stores, full180-byte entry/exit and all67 final bank headers/payloads
+Independent original reconstruction now passes: every 198 trace instruction,
+60 reads/19 stores, full180-byte entry/exit and all 67 final bank headers/payloads
 are verified. Nineteen measured writer pairs have30 exact AI/Support emissions.
 Native647 comparison and counted actor placement remain open; this does not
 activate root AI ownership or close the campaign goal.
 The complete647 isolated build and independent native comparison now pass:
-all198 PCs,60 reads/19 stores/19 snapshots,180 ABI/FP bytes and every67-run
+all 198 PCs,60 reads/19 stores/19 snapshots,180 ABI/FP bytes and every 67-run
 final bank byte match the original. Native aggregate RSS is13,201,408 bytes
 with zero swap and complete controller evidence. This qualifies one captured
 component input. The actual-query647 successor and counted actor placement
@@ -224,7 +230,7 @@ Four existing external owners are reused. Both candidates remain uncompiled
 and unadopted; the main AI module remains at its current686 definitions.
 A bounded diagnostic now proves the getter regression: valid AI19 reference
 C0010000 is rejected while the original full actor/unit/SID binding remains
-stable across all20 sampled prequery/dispatch/exit points. Its complete native
+stable across all 20 sampled prequery/dispatch/exit points. Its complete native
 run uses60,354,560 aggregate RSS/HWM bytes and zero swap. Original getter types
 and code bytes have fresh full-image authentication. The source-backed API
 fix is being refreshed against private647 and the current root; it has not
@@ -246,10 +252,10 @@ The observer-free post-respawn candidate now passes the unchanged memory gate:
 59,596,800 aggregateRSS/HWM bytes and zero swap with complete evidence. Actual
 actor birth and all typed squad/direct/location/empty getter assertions pass,
 preserving the full unit datum. Final authored packed placement reaches a
-distinct original2039C3 backing fault at address38. That failure still blocks
+distinct original 2039C3 backing fault at address38. That failure still blocks
 full query success, root API application and the checkpoint successor.
 
-The isolated recorded-animation startup backport passes fresh original11-body/
+The isolated recorded-animation startup backport passes fresh original 11-body/
 377-instruction authentication and its exact three-stage build. Its runtime
 attempt stops safely during player creation at67,112,960 aggregateRSS/HWM,
 one4KiBpage above the unchanged64MiB limit, with zero swap. It produces no
@@ -280,13 +286,13 @@ comparison at20,267,008B aggregateRSS/HWM (19.33MiB), zero swap. Exact arena,
 scratch, handles and logical capacity agree; allocation counts, eager capacity
 reuse, deferred copy/restore, salted allocator reuse, ordered store observers,
 concurrent const reads/copies and extracted codec-field branches pass. Actual
-member-offset syntax checks and all11 retained old-member dependency exclusions
+member-offset syntax checks and all 11 retained old-member dependency exclusions
 also pass. This qualifies the host adapter optimization only. The private main
-successor must rebuild the31TU union of actual storage/API class consumers,
+successor must rebuild the 31TU union of actual storage/API class consumers,
 retain original startup order and pass the unchanged full campaign query before
 root API/birth application. Full production codec and campaign parity stay open.
 
-The coherent31 main build passes all31 compiles and link, retaining actual
+The coherent31 main build passes all 31 compiles and link, retaining actual
 class definitions and ordered startup. Its observer-free campaign query still
 stops during Simulation construction at67,272,704 aggregateRSS/HWM,
 163,840B above the unchanged64MiB limit, zero swap. No semantic assertion or
@@ -302,7 +308,7 @@ are verified removed and all owned services terminal. Exact archive recovery
 from surviving authenticated objects/source metadata is the next prerequisite.
 
 The source-authority correction resolves eight stale hashes in the recovery
-manifest without changing source behavior. Recovery now completes all405
+manifest without changing source behavior. Recovery now completes all 405
 selected compiles,61 derived archives and the first relink in302.101 seconds
 under1GiB with zero swap/OOM. The complete executable hash differs from the
 retained reference, so strict admission rejects it before any gameplay run.
@@ -313,7 +319,7 @@ reference equivalence, the campaign query and full campaign parity remain open.
 The recovered baseline now passes a distinct, complete metadata-equivalence
 check against the retained reference:19,763 full symbol records and every
 static-string byte agree in meaning;90,809,506 bytes outside the two unallocated
-static tables and20-byte GNU build-ID descriptor are identical. The entire
+static tables and 20-byte GNU build-ID descriptor are identical. The entire
 normalized linker map agrees, including405member order,8,189input sections and
 initialization. The original full-file SHA remains different. The five-stage
 owned diagnostic then completes its build/admission/analysis lifecycle; its
@@ -374,16 +380,16 @@ the Pillar initially advances only three. The subsequent original scripted-camer
 bridge repairs that observed activation failure: actual scene03 camera/PVS
 admission advances both Pillar and camera time60 ticks over60 source phases.
 Real camera/WORLD motion, FOV storage, checkpoint repeat and stop pass;192
-original camera-time values and192 bounded director tick banks match. Native
+original camera-time values and 192 bounded director tick banks match. Native
 Presentation still supplies rendered camera pixels. The subsequent source timed
-screen bridge passes864 complete original bank comparisons and actual-world
+screen bridge passes 864 complete original bank comparisons and actual-world
 lifecycle/checkpoint repeat. It executes original update/stop/acknowledgement
 over the actual arena bank. A complete additive-animation owner then repairs
 the source scene01b failure;120 phases with both prophets/thrones and all ten
 authored unit tracks pass, with all ten WORLD hierarchies moving. The traced
 source-integrated GPU run records a crossfade copy acknowledgement and enters
 scene02. The subsequent source shader bridge retains original construction,
-interpolation, clear and32-slot replacement, with borrowed renderer samples.
+interpolation, clear and 32-slot replacement, with borrowed renderer samples.
 381 complete original bank/body/query comparisons and the actual Banshee
 clock/flag/renderer/checkpoint checks pass. Recorded-animation storage/map reset
 and query are coherently included in that candidate. Its virtual X11/RTX5080
@@ -413,7 +419,7 @@ emotional vertex differential. Exact LOD-bank sharing and selected-section
 skinning retain all authored resources. The2GiB graphics probes stop in scene02
 on host pressure; telemetry shows substantial free GPU memory. A separate3GiB
 graphics observation is retained in the source-model-render-integration-v11
-cohort, while the60MiB hard/64MiB measured source-match guard remains unchanged.
+cohort, while the 60MiB hard/64MiB measured source-match guard remains unchanged.
 That observation reaches scene09/tick3760 and exits after308.902s at missing
 original resource-pressure owner125FB0; peak host charge is3,082,862,592 bytes,
 zero swap and no cap/OOM events. The three whole pressure/eviction owners are
@@ -430,12 +436,12 @@ and enters `c01_intro_scene_01`, scene12. It exits on ship-panel shader admissio
 Both affected materials use the existing original `stencil_env` program; four
 material/LOD binding checks pass after correcting the dynamic environment guard.
 The full retry remains pending. The shadow thread still faults,
-and full effects, DOF, original pixels, audio timing and all13-scene/handoff
+and full effects, DOF, original pixels, audio timing and all 13-scene/handoff
 acceptance remain open.
 Headless startup reaches authored predictions, then exceeds
 the unchanged cap while retaining geometry/bitmap resources. Full playback is
 not accepted. Original unit-time value projection matches192 cases.
-The production crossfade consumer passes3,477,548 exact GPU pixels, including
+The production crossfade consumer passes 3,477,548 exact GPU pixels, including
 resize history and point-sampling checks. Full authored playback remains open, and
 GPU captures still show incorrect visibility/transparency. Four independent
 scene helpers pass 1,200 ticks; this does not establish full cinematic playback,
@@ -713,7 +719,7 @@ source-backed bank views.288 unit binding/unbinding cases also match through
 cold actor retirement. Constructor, control and recursive-seat regressions pass.
 The eight final native jobs ran serially with zero swap; their maximum measured
 peak was36,753,408bytes. Original-reference jobs peaked at62,914,560bytes, below
-the64MiB ceiling. The component builds directly from captured current sources;
+the 64MiB ceiling. The component builds directly from captured current sources;
 this stage did not link the full current application or refresh its launchers.
 
 These actor/control owners are not connected to Simulation yet. Complete source
@@ -727,7 +733,7 @@ Details and reproduction: [lifecycle results](../analysis/tags/gameplay-validati
 The subsequent actor-control stage completes retail eligibility, activation,
 clump wake and team propagation.256 whole-original cases match in both owned
 storage and a borrowed source actor bank. Binding and teardown now also pass
-through the bank's public API against the same backing. All12 serial component
+through the bank's public API against the same backing. All 12 serial component
 checks pass; final native peak25,055,232bytes, zero swap. The source-bank view
 does not allocate or copy records and must be reconstructed after whole-bank
 backing replacement. Whole birth/admission, squad membership, world checkpoint
@@ -931,3 +937,368 @@ integration remain unfinished. Thread creation and linkage do not prove full
 command-script execution. All remaining mission/BSP/checkpoint/restart/death,
 navigation, combat/hit-region and presentation paths stay open. The full campaign
 goal remains active. [Public world results](../analysis/tags/gameplay-validation-20261014/campaign-world-api/RESULTS.md).
+
+The October 20 [AI/co-op goal checklist](CAMPAIGN_AI_COOP_GOAL_CHECKLIST.md) now
+tracks engine parity with MCC tags converted to TU1.5 inputs. Actual authored
+Johnson and three-Grunt birth pass four source ticks in a private coherent MCC
+client, with no original-XBE/external-map runtime reads or cache writes. The
+Grunt path adds whole original `20B980`/`1ECC80` settings owners and their
+immutable switch; 272 original/native paths and five absent-owner controls pass
+normal and sanitizer checks. No tag values or actor outcomes are supplied.
+A 60-tick three-Grunt attempt stops after tick 10 at original AI-frame call
+`29ACAF -> 29AFD0`. This is the next reached engine owner, not a completed NPC
+continuation test. Source HS scheduling, navigation/combat, mission progression,
+cooperative participants/respawn/shared checkpoints and launcher delivery remain
+open. The selected installed clients and unrelated work are preserved.
+
+The subsequent condition/request increment recovers 453 complete original
+instructions and reuses the existing frame/iterator owners. All 330 component
+paths pass normal and ASan/UBSan GPR/SIMD/defined-flags/ordered-store comparisons;
+23 explicitly stop at real dependency-entry boundaries without supplied returns.
+The immutable-data profile adds 818 audited original AI reads (724 bytes), with
+normal/sanitized ownership and conflict checks. Actual authored three-Grunt
+continuation advances through tick 30 and next stops at mutable destination
+`1B07AC -> 56AE84`. The 60-tick test, live behavior and full AI/co-op requirements
+remain open in the goal checklist; this increment changes no selected runtime.
+
+The subsequent workspace increment publishes five authenticated loader-zero
+destinations (9,607 bytes), with all masks, candidates, counts and context still
+produced by original engine code. Twenty mask cases and eighteen gathering
+prefixes match the production frame's registers, flags, ordered writes and
+untouched padding under normal and ASan/UBSan checks, including whole-bank
+restoration. Six missing original
+sentinel bytes extend the existing descriptor metadata owner without borrowing
+unread padding or replacing existing owners. The actual MCC three-Grunt run
+passes both previous storage failures and next stops at incomplete descriptor
+child metadata `1B00A6 -> 47BE0C`. Tick 30 still reports three actors and zero
+script faults; 60 ticks and full AI/navigation/mission/co-op acceptance remain
+open. Source evidence, focused results and the new frontier are recorded in
+the active checklist. No installed runtime or MCC tag conversion is changed.
+
+The ordinary child-list increment adds the exact fields consumed from 105
+original 20-byte rows and the full five-command switch. All 65 instructions of
+the already-ported `1AFA90` constructor are exercised across 96 independent
+original cases, including the original empty/null-table failure. The production
+Actor/Frame tests pass 134 normal and ASan/UBSan comparisons in one immutable source snapshot,
+preserving concurrent engine changes. The real MCC run passes `47BE0C` and next
+reaches property-inserted metadata `1B02AF -> 47D3CC`, with three actors and zero
+script faults still reported through tick 30. Original whole `1AF970` produces
+the same reached pointer independently; no completed AI decision, 60-tick run,
+live mission or cooperative session follows from that evidence.
+
+The property-child/directory increment now passes 17 original/native cases
+under normal and ASan/UBSan checks, including whole `1AF970`, all ordered
+pointer/header stores and preserved padding. The real MCC run passes those
+150 authored selector bytes and then the 49 original bounded AI switch tables
+(1,836 immutable bytes). Its next failure is `2A144E -> 56E08C`. The three
+original scalar `_cinit` callbacks now match all 11 instructions across 36
+normal and ASan/UBSan comparisons. The composed MCC run passes those scalar
+producers and reaches tick 31, then stops at kind2 callback metadata
+`1B0EFD -> 48A82C`, retaining three actors and zero script faults.
+The following kind2 descriptor tails (440 bytes), nine object-tracking type
+field rows (72 bytes) and four tracking predicate/handler interfaces (32 bytes)
+now pass their scoped original/native checks. The same immutable normal and
+ASan/UBSan cohort covers 230 descriptor selectors plus 72 tracking predicates
+and constructor prefixes. The real MCC run clears those reads and reaches
+tick 34 with three actors, zero script faults and a retained checkpoint; it
+next requires original `26EFA0` from `26E60E`. Full callback/decision behavior,
+60 ticks and broader campaign/co-op acceptance remain open. The active
+checklist links exact source cohorts and runtime reports.
+
+The next engine increment ports all 298 instructions of whole `26EFA0`,
+`26EEF0`, `265620` and `2753C0`, reusing the existing source character, RNG
+and HS owners. It qualifies 244 original/native cases; ten stop at the actual
+HS handoff. The original two-slot scratch lease lifecycle adds 20 whole calls
+and two lock prefixes, with exactly 29 new cold bytes. Eleven callback masks
+and identities plus their null terminator add 70 readonly bytes and 36 original
+prefixes. All 302 cases pass normal and ASan/UBSan checks in one immutable
+source cohort. The real MCC encounter now reaches tick 45 with three actors,
+zero script faults and a checkpoint, then stops on original context write
+`26ACAF -> 52D874`. Two context destinations and the two complete callback
+families (14 missing bodies, 1,503 original instructions) remain open; 60 ticks
+and full campaign/mission/co-op acceptance remain failing or unverified.
+
+The following increment publishes the six original context bytes and ports
+both complete object-callback families plus seven missing direct dependencies:
+2,019 original instructions. Its610 original cases combine with the previous
+302 for 912 normal/ASan/UBSan cases; unexecuted helper bodies and external
+dependencies remain explicit. Immutable operands for the existing numeric
+dependency add12 previously missing bytes. The actual MCC run clears those
+paths, then the recovered six-instruction registered query clears its next
+boundary. All 948 combined component cases pass; the real three-actor run now
+reaches tick48 with zero script faults and an initial checkpoint before the
+next table read at `272164 -> 4568F6`. Whole original `272100` now has964
+independent cases covering its 61 instructions and all twelve consumed table
+cells; native/composed validation of that24-byte matrix is underway. These
+are engine qualifications against original TU1.5 behavior, using converted
+MCC content at runtime. Full mission, navigation, combat and cooperative
+session acceptance remain open in the [active checklist](CAMPAIGN_AI_COOP_GOAL_CHECKLIST.md).
+
+The selector and subsequent actor-state/query increments now pass2,366
+original/native cases in one immutable normal/ASan/UBSan source cohort and
+the main CMake target. Original `1FB3C0` adds43 instructions and reuses whole
+Frame waypoint/fallback owners. The registered `267A30` partner reuses its
+existing four-instruction Frame body through a missing runtime dispatch route.
+The actual authored three-Grunt encounter now completes300 source ticks with
+zero script faults and its initial checkpoint. No runtime XBE/reference-cache
+read or cache write is observed, and all 355 C55 provider files retain their
+pins. The private client is removed; launcher-selected runtimes are unchanged.
+This passes one bounded headless encounter, leaving additional actor/encounter
+families, visible combat/navigation, mission progression, checkpoint replay and
+real cooperative sessions open.
+
+The broader native inventory now records all 15 prepared campaign scenarios,
+65 declared BSPs, 1,807 squads, 5,244 scripts and 380 distinct builtin names.
+This is scenario metadata inspection, not validation of every BSP or script.
+An authored Elite separately passes 300 ticks. The Marine case exposed missing
+query bodies during birth/object update; the new 21-entry module recovers
+6,101 distinct original sites and closes the static body inventory behind
+11 existing selectors /65 targets. It reuses existing data owners and leaves
+indirect callbacks and CPU estimate requirements explicit. All 6,194 combined
+original/native cases pass normal/ASan/UBSan and the main CMake target.
+Three Marines now pass birth and reach 34 ticks with no script faults and an
+initial checkpoint, before requiring AI owner `1B0128 -> 1B7240`. Johnson
+reaches 16 ticks before `E57EE -> 1EA360`. Full mission progression, navigation,
+combat, checkpoint replay and real co-op remain open in the active checklist.
+
+The next behavior/scalar increment adds18 complete original bodies /1,680
+instructions,72 read-only operand bytes and the missing eight-byte mutable
+actor/script context declaration. Its832 new component cases bring the combined
+original/native suite to7,026, passing normal, ASan/UBSan and the main CMake
+target. The scalar and inherited behavior lookup execute all42 instructions
+each; the behavior and script-context cases retain their unexecuted branches
+and real callback boundaries. Actual Marines pass the former `1B7240` call
+and next require `1B7000` at tick34. Johnson passes `1EA360`, reaches tick30
+and enters the real script callback after original context publication, then
+requires the table at `211C0D -> 480C00`. Grunt and Elite controls still pass
+300 ticks. These are engine qualifications with MCC runtime content, leaving
+full mission, navigation/combat, checkpoint replay and real co-op open.
+
+The behavior/command/property module now contains76 complete original bodies
+and5,144 distinct instruction sites, reusing existing Frame/physics owners.
+The original HS function registry now provides all948 authored pointers,
+variable definitions, signatures and usage fields; existing shared owners
+are verified and preserved. Its lookup cases stop before real evaluator calls,
+so registry coverage does not qualify all evaluators. The current13,695-case
+original/native cohort passes normal, ASan/UBSan and the main CMake target. Actual authored
+Johnson, Grunt and Elite cases now separately pass300 source ticks with no
+script faults and initial checkpoints. Marines pass105F70, the BSP audibility
+cache builder, team/difficulty selection and camera-effect requests. They
+reach51 ticks and pass the damage module's fixed/indexed operands, including
+11266F's44AA04 read, the whole274E30 property-owner lookup and274450/274490
+creation, before21942E requires505E88 under17EAD0. The cache retains its64-byte loader-zero
+buffer, separate key and original initializer; no cached mask/key is supplied.
+The complete35-WORD difficulty-remapping table is original engine metadata,
+with343 whole cases covering every instruction in its three existing owners.
+The scalar/cache/difficulty increment adds2,680 original comparison cases;
+840 explicitly check x87 status capture/clear. These remain bounded headless checks;
+full mission progression, navigation/combat, checkpoint replay and a real
+cooperative session are still open in the active checklist.
+
+The camera-effect increment supplies the original14 writable type bytes and
+204 whole request comparisons, including all33 instructions,18 overlapping
+copies and18 mutable type overrides. A separate unchanged whole i386 execution
+checks full MXCSR across all204 cases; the emulator's98 missing sticky-status
+updates remain explicitly recorded. The damage owner now has its complete128
+fixed read-only operand bytes across24 regions; indexed tables and mutable
+state retain separate ownership. The [fixture guide](../tests/fixtures/campaign_camera_effect_request_tu15.md)
+records original regeneration and evidence limits. These checks qualify source
+execution/backing, not physical Xbox CPU or visible camera/gameplay acceptance.
+
+The indexed damage-reaction increment adds446 original comparisons:412 whole
+returns and34 actual CALL prefixes. CBC50/CBB90 establish eight rows in each
+of three DWORD tables,96 immutable bytes, plus16 authored name-ID bytes.
+Existing shared owners keep their access rights and backing lifetimes; the
+publisher adds only missing ranges and rejects conflicting metadata. In
+particular, the C55 factory's existing read-only47C1F8 word is preserved.
+Row4 has no claimed natural selector reachability, and callback bodies and
+unexecuted branches remain open. The [reaction reference guide](../tests/fixtures/campaign_damage_reaction_tu15.md)
+records coverage, regeneration and the next actual Marine boundary.
+
+The property-owner lookup adds720 whole original/native comparisons covering
+all56 original instructions. The existing object-decision module now has six
+complete bodies /397 sites; the other five bodies and20 immutable bytes are
+unchanged. Full-handle equality, related-owner guards, signed relative offsets
+and real property-list traversal are retained. No lookup result is supplied.
+Normal, ASan/UBSan and main CMake pass the combined13,119-case target. Actual
+Marines now enter the missing property-creation path at274A4E ->274450, still
+at tick45. The [lookup reference guide](../tests/fixtures/campaign_ai_prop_owner_lookup_tu15.md)
+records original coverage, regeneration and the explicit integration limits.
+
+The property-creation increment adds576 whole original/native calls, covering
+all50 instructions in274450/274490 through real existing classification,
+allocation and initialization. The object-decision module now has eight bodies
+/447 sites; its six earlier bodies and20 immutable bytes are unchanged.
+Original object-pool bounds establish8,197 loader-zero mutable bytes for the
+creation latch, epoch and2,048 object stamps, preserving prior owners and live
+values. The corrected fixture uses bitmap-consistent live counts; the earlier
+declared-count reference remains diagnostic/input-only. All13,695 cases pass
+normal, ASan/UBSan and main CMake. Actual Marines advance from45 to51 ticks;
+the next contrail parameter already has an original producer at219300, whose
+genuine inputs and lifecycle integration remain open. See the
+[creation reference guide](../tests/fixtures/campaign_ai_prop_creation_tu15.md).
+
+The51-tick contrail failure belongs to the older C55 client. The complete
+current-source v1 executable builds and original activation passes. Johnson,
+Elite and three-Grunt controls each pass300 ticks; three Marines reach63 ticks,
+zero script faults and an initial checkpoint before1B8612 calls missing1B7D20.
+Original lifecycle evidence also exposed constructor noise before session seed
+admission. Existing initialization now follows admitted seed -> clock/engine/
+world ->11E550 ->1F38D0 ->219300 -> cinematic/HS/AI. Two unchanged-original
+seed cases compare the whole noise/scalar outputs and demonstrate the24-draw
+loss from reseeding afterward. Native world regressions and the four actor
+controls are building in immutable v3; v2 was rejected before build because a
+concurrent source file changed during capture. Full mission/co-op remain open.
+[First complete current-source results](../analysis/campaign-ai-coop-20261020/current-source-v1/current-source-cohort.json),
+[Original seed-order evidence](../analysis/campaign-ai-coop-20261020/contrail-init/seed-reference-repeat-v1.json),
+[Post-fix native qualification](../analysis/campaign-ai-coop-20261020/current-source-v3/current-source-cohort.json).
+
+The reached1B7D20 decision-workspace closure is now translated:14 additional
+whole bodies/1,736 static original sites, preserving all76 prior bodies and188
+immutable bytes. The module totals90 bodies/6,880 sites. Its278 independent
+original cases repeat exactly (230 whole,48 service prefixes); every277860
+and2778E0 instruction executes. No planning, placement, collision or allocation
+outcome is supplied. All13,973 combined native component cases pass normal and
+ASan/UBSan in one unchanged snapshot, with unchanged captured checkout inputs.
+Module/data regeneration is exact and the owned component builds are removed.
+A separate immutable v4 full client is building the production component
+target, session-seed regressions, original activation and four authored actor
+probes. Composed Marine advancement and complete navigation/combat remain
+pending. Required new original references total1,137,756 bytes (workspace and
+two-seed initialization); no component binary/raw bank/capture is retained.
+[Component proof](../analysis/campaign-ai-coop-20261020/actor-current/component-proof-v1.json),
+[Reference scope](../tests/fixtures/campaign_ai_decision_workspace_tu15.md),
+[Complete v4 client](../analysis/campaign-ai-coop-20261020/current-source-v4/current-source-cohort.json).
+
+The complete v3 batch now finishes: original activation, both original-seed
+world comparisons, and Johnson/Elite/three-Grunt300-tick controls pass. Marines
+reach125 ticks with three actors, zero script faults and an initial checkpoint
+before the same missing1B7D20 owner. Six of seven tests pass; the batch remains
+failed for that incomplete Marine path. Its immutable snapshot is unchanged,
+checkout drift is recorded and its owned source/builds are removed. The v4
+client containing the new90-body module is still compiling.
+[Native seed outputs and completed-batch scope](../analysis/campaign-ai-coop-20261020/contrail-init/native-two-seeds-v3.json).
+
+The v4 client now completes its build and passes the13,973-case production
+component target, original activation, both native seed checks and the three
+300-tick controls. Marines enter the newly ported1B7D20 path and stop deeper
+at existing219030/219041, missing original read-only table word44ACD2. The
+snapshot is unchanged and its owned source/builds are removed; later checkout
+drift is recorded. Whole1B7D20 return and the Marine case remain unqualified.
+Both existing geometry permutation owners now have their complete original
+six-row tables (72 bytes), with1,152 independent whole original calls. Native
+normal/sanitizer and complete v5 checks are running; no coordinate, navigation
+result or query outcome is supplied.
+[Complete-client proof](../analysis/campaign-ai-coop-20261020/actor-current/full-client-proof-v4.json),
+[Original geometry reference](../analysis/campaign-ai-coop-20261020/decision-geometry/original-v1.json).
+
+The projection increment passes all15,125 combined native component cases
+normal and ASan/UBSan in an unchanged snapshot. Both original17-instruction
+geometry bodies and the72-byte table include repeat exactly. The concurrent
+callable-data checkout edit is recorded; owned component source/builds are
+removed. V5 still builds the full client. Its validation extractor has one
+explicitly declared address-mapper correction, with unchanged engine inputs;
+the final snapshot guard and effective input audit must remain visible.
+[Component proof](../analysis/campaign-ai-coop-20261020/decision-geometry/component-proof-v2.json),
+[Original reference and validation scope](../tests/fixtures/campaign_geometry_projection_tu15.md).
+
+V5 exposes a composed-startup regression: adding the forward table in final
+startup duplicates its existing native-world provider. Original activation and
+isolated15,125-case tests pass, but both native seed tests and all four actor
+cases fail during construction. The declared test-helper refresh is audited
+without overriding those failures; v5 source/builds are removed. The publisher
+now reuses the existing36-byte forward table and adds only36 inverse bytes.
+The component test composes both exact production providers to catch overlap;
+corrected normal checks pass, with ASan/UBSan and full v6 validation running.
+V6 also runs the complete cold-world ownership test. The original1,152-case
+reference is unchanged.
+[V5 audit](../analysis/campaign-ai-coop-20261020/current-source-v5/declared-refresh-and-failure-audit.json),
+[Corrected reference/data](../analysis/campaign-ai-coop-20261020/decision-geometry/original-reused-forward-v2.json),
+[V6 validation](../analysis/campaign-ai-coop-20261020/current-source-v6/current-source-cohort.json).
+
+Corrected component-v4 provider composition now passes all15,125 cases
+normal and ASan/UBSan in an unchanged snapshot and captured checkout. The
+existing forward provider and both geometry bodies are preserved; only36
+inverse bytes are added. Original references and the corrected include repeat
+exactly. Owned component source/builds are removed. Full v6 runtime and
+cold-world ownership checks remain in progress.
+[Corrected proof and cleanup](../analysis/campaign-ai-coop-20261020/decision-geometry/component-proof-corrected-v4.json).
+
+The unchanged complete v6 client now passes cold-world ownership, original
+activation, the15,125-case main component target, both seed regressions and
+three300-tick actor controls. Marines reach199 ticks with three actors, zero
+script faults and an initial checkpoint before1AFE1B, in original1AFDE0,
+stores into missing mutable child-row link-head47BE14. All probes use prepared
+MCC input without original-reference opens or cache writes. Later checkout
+drift is recorded; owned v6 source/builds are removed. The original forward
+provider is preserved and only36 inverse bytes are new. Command-list links,
+complete decisions/navigation/combat, mission replay and co-op remain open.
+[Full v6 proof and cleanup](../analysis/campaign-ai-coop-20261020/decision-geometry/full-native-proof-v6.json).
+
+The next engine increment recovers120 authored child/command-row list heads
+(480 exact writable bytes). The unchanged original1AFDE0 clears and constructs
+the lists;722 complete original/native calls agree on register/flag state,
+instruction order, ordered stores and checkpoint restoration. All15,847
+combined component cases pass normally and with ASan/UBSan in an unchanged
+snapshot; owned component source/builds are removed. Authored headers/timers
+stay immutable, existing mutable backing survives publication, and unread row
+gaps remain unowned. The complete v7 client is building to continue the actual
+199-tick Marine path. This does not qualify complete combat or mission/co-op
+behavior. The required original fixture is2,596,841 bytes; no build product or
+raw bank is retained.
+[Original/native component proof](../analysis/campaign-ai-coop-20261020/behavior-links/component-proof-v1.json),
+[Original reference guide](../tests/fixtures/campaign_ai_child_links_tu15.md).
+
+The complete v7 client now passes cold-world ownership, original activation,
+all15,847 combined component cases, both seed regressions and the three300-tick
+actor controls. The three-Marines case passes the former199-tick head-store
+boundary and reaches283 ticks with zero script faults and an initial checkpoint.
+It then stops at1B8938 requiring whole200C00. Snapshot is unchanged; later
+checkout drift is recorded, all probes remain MCC-only with no cache writes,
+and owned source/builds are removed. Complete path/combat/mission/co-op and
+live checkpoint replay remain open.
+[Full v7 proof and cleanup](../analysis/campaign-ai-coop-20261020/behavior-links/full-native-proof-v7.json).
+
+The current actor module now adds whole200C00 without changing its90 earlier
+bodies or212 immutable bytes:91 bodies /6,964 original instruction sites.
+Independent original execution repeats96 whole finite world-space distance
+calls and four prefixes before actual218780. All15,947 combined native cases
+pass normally and with ASan/UBSan in an unchanged snapshot; owned component
+source/builds are removed. Transformed-path completion and nonfinite/x87 status
+behavior remain unqualified by these component cases. The v8 capture was rejected before building because a concurrent multiplayer
+test edit changed during copying; its scratch is removed and the guard remains
+intact. The complete v9 client is building to qualify the actual283-tick path. Retain the required296,037-byte
+original reference, no binary or raw bank.
+[Path-distance component proof](../analysis/campaign-ai-coop-20261020/path-distance/component-proof-v1.json),
+[Reference and boundaries](../tests/fixtures/campaign_ai_path_distance_tu15.md).
+
+The complete unchanged v9 client including200C00 now passes cold-world
+ownership, original activation,15,947 combined component cases, both seed
+regressions and all three300-tick actor controls. Three Marines progress to288
+ticks with zero script faults and an initial checkpoint, then original1B0195
+invokes missing1BD1E0 through descriptor48ABE0+0x10 (kind1/index27). Its missing
+static closure is two whole bodies /148 original sites, including1ED100;
+267450,278DD0 and27C710 already have owners. Full Marine completion, transformed
+paths, live replay and mission/combat/co-op remain open. This is a composed
+progression result, not a controlled binary A/B or a separate200C00 live trace.
+The snapshot is unchanged; later checkout edits are recorded. All probes use
+prepared MCC input without original-reference opens or cache writes, and owned
+source/builds are removed. V8 was rejected before building due to a concurrent
+test edit during capture; its scratch is also removed without bypassing the
+consistency guard.
+[Full v9 proof](../analysis/campaign-ai-coop-20261020/path-distance/full-native-proof-v9.json),
+[Next original callback closure](../analysis/campaign-ai-coop-20261020/path-distance/after-288-closure-v1.json).
+
+Descriptor27 now has whole original1BD1E0 and1ED100 in the current actor
+module:93 bodies /7,112 original sites, preserving all91 prior bodies and212
+immutable bytes.372 complete original/native cases exercise every new site,
+all11 property-lookup sites and all50 existing iterator sites, without supplied
+returns or rewritten lookup/iterator bodies. All16,319 combined component cases
+pass normally and with ASan/UBSan in an unchanged snapshot; owned source/builds
+are removed. The separate squad-style fallback remains unqualified. The only
+component checkout drift is an authenticated opening-docstring-only change.
+Retain the required1,510,016-byte original reference, no binary/raw bank.
+Complete v10 composition requests900 ticks per authored encounter to continue
+the actual288-tick Marine path and expose later lifecycle/behavior dependencies.
+[Component proof and cleanup](../analysis/campaign-ai-coop-20261020/behavior-27/component-proof-v1.json),
+[Original reference guide](../tests/fixtures/campaign_ai_behavior_27_tu15.md).

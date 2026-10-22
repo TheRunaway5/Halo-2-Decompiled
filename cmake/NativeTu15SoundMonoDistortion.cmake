@@ -1,7 +1,7 @@
 # Compiled original record-1 arithmetic only. Other effects, source producer,
 # voice/DMA clocks and complete cold initializer 45 remain required.
 add_library(halo2_native_tu15_sound_mono_distortion STATIC
-    src/native_tu15_sound_mono_distortion.cpp)
+    src/audio/dsp/native_tu15_sound_mono_distortion.cpp)
 target_include_directories(halo2_native_tu15_sound_mono_distortion PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_native_tu15_sound_mono_distortion PUBLIC cxx_std_20)

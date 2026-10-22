@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import errno
 from contextlib import contextmanager
 import hashlib
 import json
@@ -22,6 +23,7 @@ OUTPUTS = {
     "halo2_launcher": "Halo2-Launcher",
     "halo2_title_launcher": "Halo2-Title-Launcher",
     "halo2_onboarding": "onboarding/Halo2-Launcher",
+    "halo2_mcc_loading_audio": "halo2_mcc_loading_audio",
 }
 MANIFEST = "build-output.json"
 MAX_MANIFEST = 1024 * 1024
@@ -164,6 +166,31 @@ def _copy_binary(source, destination, expected):
         raise StageError("Build output changed while copying; existing staged binary retained")
 
 
+def _backup_binary(parent, name, existing, temporary):
+    backup = ".previous-" + uuid.uuid4().hex
+    try:
+        os.link(name, backup, src_dir_fd=parent, dst_dir_fd=parent, follow_symlinks=False)
+    except OSError as error:
+        if error.errno not in (errno.EPERM, errno.EOPNOTSUPP, errno.EXDEV, errno.ENOSYS):
+            raise
+        # Mounted game drives may support atomic rename without hard links.
+        # Keep a verified private copy for the same manifest-failure rollback.
+        before = os.fstat(existing)
+        backup, descriptor = _temporary(parent, ".previous-", temporary)
+        try:
+            _copy_binary(existing, descriptor, _digest(existing))
+            os.fchmod(descriptor, stat.S_IMODE(before.st_mode))
+            os.fsync(descriptor)
+            if (_stamp(os.fstat(existing)) != _stamp(before) or
+                    _stamp(os.stat(name, dir_fd=parent, follow_symlinks=False)) != _stamp(before)):
+                raise StageError("Previous build output changed before publication")
+        finally:
+            os.close(descriptor)
+    else:
+        temporary.append((parent, backup))
+    return backup
+
+
 def stage(root, binary, target, platform=PLATFORM):
     if platform != PLATFORM:
         return {"status": "skipped", "platform": platform, "reason": "Only Linux x86_64 local binaries are supported"}
@@ -248,9 +275,7 @@ def stage(root, binary, target, platform=PLATFORM):
                 try:
                     if binary_changed:
                         if existing is not None:
-                            backup = ".previous-" + uuid.uuid4().hex
-                            os.link(relative.name, backup, src_dir_fd=destination_parent, dst_dir_fd=destination_parent, follow_symlinks=False)
-                            temporary.append((destination_parent, backup))
+                            backup = _backup_binary(destination_parent, relative.name, existing, temporary)
                         os.replace(binary_name, relative.name, src_dir_fd=destination_parent, dst_dir_fd=destination_parent)
                         binary_published = True
                     os.replace(manifest_name, MANIFEST, src_dir_fd=platform_parent, dst_dir_fd=platform_parent)

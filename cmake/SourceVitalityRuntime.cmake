@@ -1,4 +1,4 @@
-add_library(halo2_source_vitality STATIC src/source_vitality_runtime_generated.cpp)
+add_library(halo2_source_vitality STATIC src/gameplay/units/source_vitality_runtime_generated.cpp)
 target_include_directories(halo2_source_vitality PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_source_vitality PUBLIC cxx_std_20)
 target_link_libraries(halo2_systems PUBLIC halo2_source_vitality)

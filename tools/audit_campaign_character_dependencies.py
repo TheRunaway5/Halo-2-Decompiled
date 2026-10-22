@@ -18,8 +18,8 @@ from audit_rendering import Cache, FormatError, file_sha
 
 ROOT = Path(__file__).resolve().parents[1]
 READERS = (
-    'src/source_map_effects.cpp', 'src/source_combat_attachments.cpp',
-    'src/content.cpp', 'src/model_selection.cpp', 'include/halo2/model_selection.hpp',
+    'src/runtime/source_map_effects.cpp', 'src/gameplay/units/source_combat_attachments.cpp',
+    'src/assets/content.cpp', 'src/rendering/models/model_selection.cpp', 'include/halo2/model_selection.hpp',
 )
 
 

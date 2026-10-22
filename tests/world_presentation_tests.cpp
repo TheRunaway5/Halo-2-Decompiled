@@ -40,6 +40,12 @@ void snapshots() {
     }
     const auto half=multiplayer_presentation(a,b,.5f);
     near(std::abs(half.players[0].yaw),3.14159265f,"yaw took the long path across angle wrap");
+    auto teleported=b;teleported.tick+=4;teleported.players[0].source_teleport_serial=3;
+    for(float f:{0.f,.25f,.5f,.75f,1.f}) {
+        const auto shown=multiplayer_presentation(a,teleported,f);
+        near(shown.players[0].position,teleported.players[0].position,"Short teleport across lost snapshots blended its root");
+        near(shown.players[0].yaw,teleported.players[0].yaw,"Teleport blended its exit heading");
+    }
     check(a.players[0].position.x==0 && b.players[0].position.x==4 && a.world_weapons[0].loaded==6,
         "sampling changed authoritative endpoints");
     auto cut=b;cut.players[0].source_unit+=0x10000;cut.world_weapons[0].handle+=0x10000;
@@ -91,6 +97,9 @@ void body_lifecycle() {
             near(history.sample(pose.object,f).front().position,pose.nodes.front().position,message);
     };
     auto seated=before;++seated.tick;seated.players[0].source_parent=0x40003;seated.players[0].source_seat=0;
+    auto short_teleport=before;short_teleport.tick+=4;short_teleport.players[0].source_teleport_serial=2;
+    for(auto &pose:short_teleport.source_body_poses)pose.nodes.front().position={1,2,0};
+    transition(before,short_teleport,"Short teleport across packet loss retained body or carried-weapon history");
     seated.players[0].position={4,2,1};
     for(auto &pose:seated.source_body_poses)pose.nodes.front().position={4,2,1};
     transition(before,seated,"Vehicle entry retained the standing body or held weapon at the pre-entry position");

@@ -11,7 +11,7 @@ ENTRIES=(0x219080,)
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--output',type=Path,default=Path('src/source_collision_instance_storage_tu15_generated.cpp'))
+    p.add_argument('--output',type=Path,default=Path('src/physics/collision/source_collision_instance_storage_tu15_generated.cpp'))
     p.add_argument('--directory',type=Path,required=True)
     a=p.parse_args();assert sha(NEW_DEFAULT)==NEW_PIN
     image=Xbe(NEW_DEFAULT);code=_Code(image,'.text')

@@ -25,8 +25,8 @@ GROUPS = {
   0x101e30,0x107120,0x107160,0x107f80,0x108010,0x108110,0x108300,0xefcc0),
  'weapon_error': (0x102090,0xd2940,0x105840,0xceab0,0xcd1a0,0x147a90),
 }
-SOURCES=('src/unit_damage.cpp','src/damage_amount.cpp','src/lethal_attribution.cpp',
- 'src/owner_counter.cpp','src/smg.cpp','src/weapon_error.cpp','src/kernels.cpp')
+SOURCES=('src/gameplay/units/unit_damage.cpp','src/gameplay/units/damage_amount.cpp','src/gameplay/units/lethal_attribution.cpp',
+ 'src/gameplay/objects/owner_counter.cpp','src/gameplay/weapons/smg.cpp','src/gameplay/weapons/weapon_error.cpp','src/core/kernels.cpp')
 def h(v):return f'{v&0xffffffff:08x}'
 def inventory(p):return {int(r['address'],16):int(r['bytes']) for r in csv.DictReader(p.open(),delimiter='\t')}
 

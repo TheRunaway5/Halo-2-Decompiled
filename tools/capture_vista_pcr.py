@@ -27,8 +27,8 @@ def main():
         "Halo 2 Vista installer/halo2.exe", "Halo 2 Vista installer/maps/mainmenu.map",
         "assets/disc/maps/mainmenu.map", "tests/fixtures/vista_pcr_results_original.tsv",
         "tests/fixtures/vista_pcr_appearance_original.jsonl", "tests/fixtures/vista_transition_assets.json",
-        "src/frontend_painter.cpp", "src/frontend_vista.cpp", "src/vista_pcr_appearance.cpp",
-        "src/vista_pcr_screen.cpp", "src/frontend_state.cpp", "include/halo2/frontend.hpp",
+        "src/ui/frontend_painter.cpp", "src/ui/frontend_vista.cpp", "src/ui/vista/vista_pcr_appearance.cpp",
+        "src/ui/vista/vista_pcr_screen.cpp", "src/ui/frontend_state.cpp", "include/halo2/frontend.hpp",
         "include/halo2/vista_pcr_screen.hpp", "include/halo2/vista_pcr_appearance.hpp",
         "tests/fixtures/vista_pcr_chrome_original.json",
         "tests/frontend_vista_pcr_painter_tests.cpp")]

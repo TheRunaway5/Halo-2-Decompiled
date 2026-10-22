@@ -1,0 +1,73 @@
+{
+  "schema": "H2_MACOS_SOURCE_MEMORY_EVIDENCE_V1",
+  "date": "2026-10-20",
+  "scope": "virtual reservation and raw/pool storage owners; physical memory and complete engine remain unfinished",
+  "macos": {
+    "passed_tests": 4,
+    "architecture_page_bytes": {
+      "arm64": 16384,
+      "x86_64_rosetta": 4096
+    },
+    "report": "build/test-results/macos-memory/report.json",
+    "native_output": "build/test-results/macos-memory/evidence/Testing/Temporary/LastTest.log"
+  },
+  "linux": {
+    "passed_tests": 3,
+    "reports": [
+      "build/test-results/macos-memory-linux-final/report.json",
+      "build/test-results/macos-memory-linux-continuation/report.json"
+    ]
+  },
+  "verified": [
+    "source4KiB token alignment and returned sizes on16KiB host pages",
+    "uncommitted source holes rejected through source and native address APIs",
+    "recommit retains source writes",
+    "rejected commits retain original bank and ownership",
+    "native VM protection query proves rollback preserves committed neighboring granule and revokes new granules",
+    "source VM ownership checkpoint/import/publication and future commitment",
+    "raw storage zero bytes, allocation cursors and rejection",
+    "pool allocation stack/register outputs, checkpoint/import and future source token sequence",
+    "unchanged original VM tests on both Mac slices and existing combined resource continuation on Linux"
+  ],
+  "pending": [
+    "Darwin direct physical backing and source4KiB protection",
+    "Darwin independent file snapshot backing/adoption",
+    "all remaining engine checklist gates"
+  ],
+  "mac_validation_source_sha256": {
+    "src/source_runtime_host_pages.hpp": "6622ce2b4fa86dc15e9596f48d375221a61ed2218b90ee0f99f23582183e87e4",
+    "src/macos/source_runtime_host_pages.hpp": "ff4abcfd8a5992bb24523d87bd4edce6977e689db28fafa368c573a8b984a4bd",
+    "src/source_runtime_host_virtual_memory.cpp": "42ca40e26e8a4cf0039cf577aa368a9ad1cfe6230105735ec50563f8da811b84",
+    "src/source_runtime_host_storage.cpp": "b99a0cec099b9f469915fcc2ce7fe44d3ab7e7ac52fbd01f344e606aed52f49e",
+    "src/physics_pool_host_storage.cpp": "b10e08b39245dc8569e4fcdd05acd3e8070a15b26cfe06523663e4f956747e8e",
+    "src/source_runtime_memory.cpp": "e11c5d27a4ba32514b99935efbcfce383d7013c80681a5ced0376c93353bbd84",
+    "src/source_runtime_snapshot_bytes.cpp": "2c17d495cbcb86b464d02e9b2a47609318bbadc01f219807bda01f05d4b9908e",
+    "src/cache_file_snapshot.cpp": "83df18dc49c9a2c8073c06bc48ee7eceeaa61b099041f55aab952ffc26ea5d5d",
+    "src/source_runtime_page_copy.hpp": "140a609b0201b4aa5e9d71ad314b1bdd2a90244c10590bb7eaa0c4ea32a04468",
+    "include/halo2/source_runtime_host_virtual_memory.hpp": "b1ba7a98af699d2ffbc5d00ba483ec93ebf8c280d0f6032fc32d9ef84f469ba5",
+    "include/halo2/source_runtime_host_storage.hpp": "188e0e156761382c95cd83b4293c314edbf638018d091537974f2eab85562e19",
+    "tests/macos/CMakeLists.txt": "f962477ad8f30cac8bacb7a08526ee9aef7386209c2a3d766235192958176efa",
+    "tests/macos/source_memory_tests.cpp": "a623f354c9cb010ec505f5ae41c85750df2f96f547e43ad0f9cf7cb0b6ec9a42",
+    "tests/source_runtime_host_virtual_memory_tests.cpp": "2542edbcf98aaf0cc3ace4a0d86a0df02d8299efa13f8ebede088aa891d6d0d2"
+  },
+  "workspace_source_sha256_at_recording": {
+    "src/source_runtime_host_pages.hpp": "6622ce2b4fa86dc15e9596f48d375221a61ed2218b90ee0f99f23582183e87e4",
+    "src/macos/source_runtime_host_pages.hpp": "ff4abcfd8a5992bb24523d87bd4edce6977e689db28fafa368c573a8b984a4bd",
+    "src/source_runtime_host_virtual_memory.cpp": "42ca40e26e8a4cf0039cf577aa368a9ad1cfe6230105735ec50563f8da811b84",
+    "src/source_runtime_host_storage.cpp": "b99a0cec099b9f469915fcc2ce7fe44d3ab7e7ac52fbd01f344e606aed52f49e",
+    "src/physics_pool_host_storage.cpp": "b10e08b39245dc8569e4fcdd05acd3e8070a15b26cfe06523663e4f956747e8e",
+    "src/source_runtime_memory.cpp": "e11c5d27a4ba32514b99935efbcfce383d7013c80681a5ced0376c93353bbd84",
+    "src/source_runtime_snapshot_bytes.cpp": "2c17d495cbcb86b464d02e9b2a47609318bbadc01f219807bda01f05d4b9908e",
+    "src/cache_file_snapshot.cpp": "83df18dc49c9a2c8073c06bc48ee7eceeaa61b099041f55aab952ffc26ea5d5d",
+    "src/source_runtime_page_copy.hpp": "140a609b0201b4aa5e9d71ad314b1bdd2a90244c10590bb7eaa0c4ea32a04468",
+    "include/halo2/source_runtime_host_virtual_memory.hpp": "b1ba7a98af699d2ffbc5d00ba483ec93ebf8c280d0f6032fc32d9ef84f469ba5",
+    "include/halo2/source_runtime_host_storage.hpp": "188e0e156761382c95cd83b4293c314edbf638018d091537974f2eab85562e19",
+    "tests/macos/CMakeLists.txt": "f962477ad8f30cac8bacb7a08526ee9aef7386209c2a3d766235192958176efa",
+    "tests/macos/source_memory_tests.cpp": "a623f354c9cb010ec505f5ae41c85750df2f96f547e43ad0f9cf7cb0b6ec9a42",
+    "tests/source_runtime_host_virtual_memory_tests.cpp": "2542edbcf98aaf0cc3ace4a0d86a0df02d8299efa13f8ebede088aa891d6d0d2"
+  },
+  "cleanup": {
+    "owned_private_builds_removed": true,
+    "retained_large_artifacts": []
+  }
+}

@@ -30,8 +30,8 @@ def main():
                       'owned_current_files','evidence_files','original_inputs','prior_pins']:
             for path,value in manifest.get(group,{}).items():add(prior,path,value)
     verify(prior)
-    for name in ['CMakeLists.txt','include/halo2/original_data.hpp','src/original_data.cpp',
-                 'include/halo2/sound_map_activation.hpp','src/sound_map_activation.cpp',
+    for name in ['CMakeLists.txt','include/halo2/original_data.hpp','src/assets/original_data.cpp',
+                 'include/halo2/sound_map_activation.hpp','src/audio/sound_map_activation.cpp',
                  'tests/sound_map_activation_tests.cpp','tests/sound_map_activation_constants_tests.cpp',
                  'tools/export_mp_sound_map_activation_constants.py',
                  'tools/export_mp_unit_constructor_constants.py',

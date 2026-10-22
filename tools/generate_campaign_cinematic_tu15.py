@@ -13,7 +13,7 @@ ENTRIES=(0x13e9e0,0x13ea40,0x13ead0,0x13f560,0xfd190,0xbdf70,0x126850,0x166a80,0
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--output',type=Path,default=Path('src/source_campaign_cinematic_tu15_generated.cpp'))
+    parser.add_argument('--output',type=Path,default=Path('src/campaign/source_campaign_cinematic_tu15_generated.cpp'))
     parser.add_argument('--directory',type=Path,required=True)
     a=parser.parse_args()
     if a.output.exists() or a.directory.exists():raise ValueError('Preserve existing generated evidence')

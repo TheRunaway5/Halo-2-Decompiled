@@ -355,7 +355,7 @@ def instruction_extensions(**helpers):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--output', type=Path, default=Path('src/death_cycle_runtime_tu15_generated.cpp'))
+    parser.add_argument('--output', type=Path, default=Path('src/gameplay/units/death_cycle_runtime_tu15_generated.cpp'))
     parser.add_argument('--directory', type=Path, default=Path('analysis/multiplayer/death-cycle-20261013/effect-owners'))
     args = parser.parse_args()
     assert sha(NEW_DEFAULT) == NEW_PIN

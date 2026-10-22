@@ -1,7 +1,7 @@
 # GraphStorage owns four Sink objects; controller wrappers access GraphStorage.
 # Keep both implementations in one archive without a static dependency cycle.
 target_sources(halo2_native_tu15_sound_graph_storage PRIVATE
-    src/native_tu15_sound_controller.cpp)
+    src/audio/native_tu15_sound_controller.cpp)
 if(BUILD_TESTING)
     add_executable(native_tu15_sound_controller_probe
         tests/native_tu15_sound_controller_probe.cpp)

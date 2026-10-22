@@ -16,6 +16,9 @@ struct SourceAnimationGraphMemory {
   std::function<std::span<const std::byte>(std::uint32_t address,
                                            std::size_t bytes)>
       read;
+  // Namespace of the compiled dual-class exception in1CFCE0. Original
+  // fixtures retain this default; MCC owners verify their named cache ID.
+  std::uint32_t dual_weapon_class=0x0400054bu;
 };
 // Complete pure1e0f50,1deb10,1cfce0,29c6a0 owners. Bank headers are
 // signed count32/address32. Tree strides14/14/34, action/map stride8.

@@ -19,8 +19,8 @@ def main():
  for i in code.md.disasm(code.bytes,code.lo):
   if i.mnemonic=='call' and i.operands[0].type==2 and code.inside(i.operands[0].imm):starts.add(i.operands[0].imm)
  code.md.skipdata=False
- support=set(int(p,16)for p in re.findall(r'static void run_([a-f0-9]+)\(', (ROOT/'src/physics_live_support_tu15_generated.cpp').read_text()))
- existing=set(int(p,16)for p in re.findall(r'\{0x([a-f0-9]+)u,0x[a-f0-9]+u,Module::\w+\}', (ROOT/'src/physics_live_entries_tu15.hpp').read_text()))
+ support=set(int(p,16)for p in re.findall(r'static void run_([a-f0-9]+)\(', (ROOT/'src/physics/physics_live_support_tu15_generated.cpp').read_text()))
+ existing=set(int(p,16)for p in re.findall(r'\{0x([a-f0-9]+)u,0x[a-f0-9]+u,Module::\w+\}', (ROOT/'src/physics/physics_live_entries_tu15.hpp').read_text()))
  assert int.from_bytes(image.read(0x483808,4),"little")==0x4736ac
  assert int.from_bytes(image.read(0x4736bc,4),"little")==0x673b0
  pending=[0x6e830,0x673b0];seen=set();bodies={};external=set()
@@ -72,7 +72,7 @@ def main():
  operand_file=a.output.with_name('native_tu15_network_session_parameters.inc')
  operand_file.write_text('// Typed scalar/vector lanes and branch identities from authenticated constructor instructions.\n'+''.join(f'{{0x{p:x}u,{n},0x{v:x}u}},\n'for p,n,v in rows))
  report=json.loads(a.manifest.read_text());report.update(typed_parameter_file_sha256=digest(operand_file),typed_parameter_fields=len(rows))
- report.update(network_session_generator_sha256=digest(__file__),generated_cpp_sha256=digest(a.output),source_entry='0006e830',external_entry_identities=[f'{p:08x}'for p in sorted(external)],existing_support_source_sha256=digest(ROOT/'src/physics_live_support_tu15_generated.cpp'),existing_entry_metadata_sha256=digest(ROOT/'src/physics_live_entries_tu15.hpp'))
+ report.update(network_session_generator_sha256=digest(__file__),generated_cpp_sha256=digest(a.output),source_entry='0006e830',external_entry_identities=[f'{p:08x}'for p in sorted(external)],existing_support_source_sha256=digest(ROOT/'src/physics/physics_live_support_tu15_generated.cpp'),existing_entry_metadata_sha256=digest(ROOT/'src/physics/physics_live_entries_tu15.hpp'))
  a.manifest.write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')
  print(json.dumps(dict(complete_source_bodies=len(bodies),instructions=len(instructions),external_entries=len(external))))
 if __name__=='__main__':main()

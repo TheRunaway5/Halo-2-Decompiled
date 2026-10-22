@@ -1,5 +1,21 @@
 # Weapon pickup and control action prompts
 
+Later controller-artwork update, 2026-10-21: the user's revised Xbox and
+PlayStation control banks now follow each local player's actual SDL device,
+with keyboard/mouse substitution restricted to its own view. Fresh onboarding
+and reuse install both banks into the vanilla cache. The native MCC font
+atlases and logical metrics remain intact; a separate control-only material
+selects the requested artwork. This supersedes the controller-pixel selection
+in the earlier policy record below. Source action admission and message owners
+are unchanged. See [implementation and validation](PLAYSTATION_PROMPTS.md).
+
+Asset-policy update, 2026-10-21: delivered runtime assets must come solely from
+MCC imports. The Vista/custom-atlas hashes, flags and captures below remain
+dated reference evidence. Normal MCC HUD prompts use authenticated native MCC
+glyphs and their actual metrics/geometry; the old redraw bank is not selected.
+Fresh rendered/launcher acceptance and complete shader/movie/physical-audio
+gates remain open in the [current checklist](../multiplayer/docs/online-completion-goal.md).
+
 The native multiplayer HUD now receives an action context while the player is
 idle. Previously, the native weapon scan only ran after an interaction button
 was held, and the HUD had no consumer for the selected action. This prevented
@@ -59,16 +75,14 @@ The [HUD](../src/multiplayer_hud.cpp) resolves the map's actual localized string
 and preserves weapon glyphs. The native action bindings currently are E for
 pickup/interact and X for dual wield on keyboard; controller X for
 pickup/interact and the active adapter's secondary-pickup button for dual wield.
-The current Vista controller adapter binds that secondary action to Y. Each viewport follows its most recently
-used input device. Pickup/interact prompts use the selected new SVG button
-artwork through the pack's `prompt-source.tsv` binding. This applies to the
-dedicated controller/keycap atlas as well as action text. Original logical
-metrics, source messages, weapon icons, and current button bindings remain
-unchanged. The four keyboard backgrounds `U+E132..E135` select a wider keycap
-for longer binding names. The selected redraw pixels retain their native color,
-and the existing layout preserves their aspect ratio and HUD button height.
-See [the redraw pack](VISTA_PROMPTS_4K.md) for its masters and provenance.
-This binding substitution is native platform behavior.
+The current controller adapter binds that secondary action to Y. Each viewport
+follows its most recently used input device. With MCC fonts, controller/keycap
+artwork comes from the authenticated native MCC atlas, retaining its actual
+advances, geometry and color alongside the source messages and weapon icons.
+The four keyboard backgrounds `U+E132..E135` select a wider keycap for longer
+binding names. The earlier `prompt-source.tsv` SVG substitution belongs only
+to the separate non-MCC reference route; its preserved masters and evidence are
+in [the redraw pack](VISTA_PROMPTS_4K.md). It does not qualify current MCC pixels.
 The unit HUD owns the message once; weapon and offhand HUDs disable it.
 The ordinary UI font material retains glyph alpha. Text wraps within its own
 viewport, with source fonts, placement and help color.
@@ -338,3 +352,60 @@ checkpoints, campaign skip, native weapon gameplay, newer script lists,
 prop scene, and device world. Keyboard/controller pickup and terminal probes,
 main-loop rendering, and BSP checkpoint replay were repeated on the combined
 runtime with the selected bundled redraw pack.
+
+## Binding defaults and input selection (2026-10-20)
+
+The HUD now initializes every viewport through the native action and boarding
+binding resolvers. This removes its separate stale defaults: dual pickup used
+to advertise LB although the controller adapter uses Y, and keyboard boarding
+hints retained Mouse 2/Q although grenade/melee use Q/F. Runtime rebinding still
+uses the current settings. Campaign and multiplayer both recognize mouse-wheel
+activity, including precise wheel events, when choosing keyboard/mouse labels.
+Campaign clears controller labels when its controller disconnects.
+
+The imported MCC English action strings use a different callback namespace:
+the actual Needler pickup/dual template contains `E47C E45A` and `E47D E46A`.
+Leaving these in the original formatter produced untranslated private tokens.
+The HUD now resolves complete source-qualified templates before substituting
+local bindings. It preserves raw cache locale data and weapon icons, and never
+globally reinterprets original `E45A` (an animated thumbstick token).
+
+[The bounded reference](../tests/fixtures/mcc_action_prompt_templates.json)
+records all 40 available MCC gameplay maps, 36 paired original maps, and 4,705
+matched action fields. Its 112 distinct original/MCC template pairs qualify the
+action prefixes. Nine additional MCC-only templates retain their authored
+literal wording and icons while using those witnessed prefixes. The generated
+121-entry compatibility table matches complete English templates only; it does
+not establish general MCC callbacks or other-language behavior.
+[The audit](../tools/audit_action_prompt_templates.cpp) reads actual weapon,
+control, trade, flip and seat fields plus canonical locale names and records
+the original/MCC file hashes. [The generator](../tools/generate_action_prompt_templates.py)
+checks unambiguous pairs, prefix witnesses, and coverage before emitting the
+table. `native_action_prompt_template_reference` checks that it remains current.
+
+`native_action_prompt_bindings` checks all 16 controller layout/stick pairs,
+keyboard defaults and remaps, and window-specific input activity. Run it with:
+
+```bash
+python3 tools/run_tests.py --target action_prompt_bindings_tests \
+  --filter '^native_action_prompt_bindings$'
+```
+
+The action-prompt regression also has a `--display MAPS [UI_ASSETS]` mode.
+It checks actual Zanzibar Needler text, default controller/key labels, secondary
+mouse bindings, authored grenade/melee token substitution, full/split/wide draw
+bounds, and dead/disconnected/consumed-target suppression. Configure
+`HALO2_MCC_ACTION_PROMPT_MAPS` to add `native_hud_action_prompts_display_mcc` for
+owned prepared MCC maps. That route additionally checks native glyph materials,
+pixels, advances and UVs through the existing MCC font fixture. These are CPU
+HUD consumer checks with explicit action stimuli; they do not establish fresh
+live interaction admission or GPU framebuffer acceptance.
+
+The 2026-10-20 run passed all five focused binding/reference/display CTests,
+including 224 paired-template text checks in each source route and 224 native
+MCC colored-glyph draws. The original and Vista Needler/Zanzibar interaction
+fixtures also passed. The two broader catalogs still failed separately:
+the disc catalog encountered control marker node 31 in a one-node pose bank;
+the DLC catalog reached `Authored item gameplay requires the retained source
+runtime`. Neither is formatter acceptance or fresh live framebuffer proof.
+All owned test builds/probes were removed; no large artifacts were retained.

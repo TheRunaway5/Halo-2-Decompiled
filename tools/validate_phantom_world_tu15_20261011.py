@@ -9,7 +9,7 @@ W=ROOT/'analysis/multiplayer/integration/physics-engine-20261010'
 PARENT_MANIFEST='ebe8596ee6e5306b2dbc60de8012a7edfcf903596a3c9ee58b4b15beddd56f9d'
 PARENT_VALIDATION='9b106d2991f0b2521668c03b360440c731cc869848a13b83c1cc41f29c831a2b'
 WORLD_MANIFEST='3a6db1913e6d881b8d81c2852643e7541ee8d7bd042ff808d71e725bea0d5ae0'
-OWNED=('include/halo2/physics_phantom_world_tu15.hpp','src/physics_phantom_world_tu15_generated.cpp',
+OWNED=('include/halo2/physics_phantom_world_tu15.hpp','src/physics/physics_phantom_world_tu15_generated.cpp',
  'tests/physics_phantom_world_tu15_tests.cpp','cmake/PhysicsPhantomWorldTu15.cmake',
  'tools/research_phantom_world_tu15_20261011.py','tools/generate_phantom_world_tu15_20261011.py',
  'tools/oracle_phantom_world_tu15_20261011.py','tools/oracle_phantom_world_hardware_tu15_20261011.py',
@@ -42,7 +42,7 @@ def dependencies():
  assert sha(W/'source-manifest-v18.json')==WORLD_MANIFEST
  parent=read(P/'source-manifest-v1.json');world=read(W/'source-manifest-v18.json')
  for p,pin in parent['files'].items():assert sha(ROOT/p)==pin==sha(P/'source-v1'/p),p
- extras=('include/halo2/physics_world_runtime.hpp','src/physics_world_runtime_generated.cpp','src/physics_world_runtime_internal.hpp','cmake/PhysicsWorldRuntime.cmake','tests/physics_world_runtime_tests.cpp')
+ extras=('include/halo2/physics_world_runtime.hpp','src/physics/runtime/physics_world_runtime_generated.cpp','src/physics/runtime/physics_world_runtime_internal.hpp','cmake/PhysicsWorldRuntime.cmake','tests/physics_world_runtime_tests.cpp')
  for p in extras:assert sha(ROOT/p)==world['files'][p]==sha(W/'source-v18'/p),p
  files=set(parent['files'])|set(OWNED)|set(extras);pending=list(files);seen=set()
  while pending:

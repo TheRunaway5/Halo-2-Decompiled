@@ -15,7 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 E = ROOT / 'analysis/multiplayer/sandbox-source/vehicle-control-20261011'
 OWNED = (
-    'src/source_vehicle_control.cpp', 'include/halo2/source_vehicle_control.hpp',
+    'src/gameplay/vehicles/source_vehicle_control.cpp', 'include/halo2/source_vehicle_control.hpp',
     'tests/source_vehicle_control_tests.cpp', 'cmake/VehicleControl.cmake',
     'tools/research_vehicle_control_20261011.py',
     'tools/oracle_vehicle_control_20261011.py',

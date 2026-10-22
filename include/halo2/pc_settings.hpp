@@ -3,6 +3,16 @@
 #include <cstdint>
 #include <string>
 namespace halo2 {
+enum class FullscreenMode : unsigned { Windowed, Fullscreen, BorderlessFullscreen };
+constexpr const char* fullscreen_mode_name(FullscreenMode mode) {
+  switch(mode) {
+  case FullscreenMode::Windowed:return "Windowed";
+  case FullscreenMode::Fullscreen:return "Fullscreen";
+  case FullscreenMode::BorderlessFullscreen:return "Borderless Fullscreen";
+  }
+  return "Windowed";
+}
+
 // Host bindings retain the previously requested native defaults. Their action
 // labels are source PC string IDs; these are not Vista engine action ordinals.
 enum class PcAction : unsigned {

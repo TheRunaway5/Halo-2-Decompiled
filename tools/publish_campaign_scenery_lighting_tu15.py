@@ -42,9 +42,9 @@ def main():
     scratch.add(app['runner_scratch'])
     checks=[dict(path=p,removed=not Path(p).exists())for p in sorted(scratch)]
     assert all(row['removed']for row in checks)
-    selected=['src/main.cpp','src/renderer.cpp','include/halo2/renderer.hpp',
-        'src/source_campaign_model.cpp','include/halo2/source_campaign_model.hpp',
-        'src/source_dynamic_model_shaders.cpp','src/scenery_lighting.cpp','include/halo2/scenery.hpp',
+    selected=['src/app/main.cpp','src/rendering/renderer/renderer.cpp','include/halo2/renderer.hpp',
+        'src/campaign/source_campaign_model.cpp','include/halo2/source_campaign_model.hpp',
+        'src/rendering/models/source_dynamic_model_shaders.cpp','src/gameplay/objects/scenery_lighting.cpp','include/halo2/scenery.hpp',
         'tests/campaign_model_geometry_runtime_tu15_tests.cpp',
         'tools/validate_weapon_material_snapshot_tu15.py','tools/check_campaign_weapon_application_tu15.py']
     pins=load(folder+'/source-manifest.json')['source_files_sha256']

@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="132" height="144" viewBox="0 0 33 36" version="1.1">
+  <title>Playstation share-create: custom controller prompt</title>
+  <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+  <defs>
+    <linearGradient id="button-body" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="8" y2="34">
+      <stop offset="0" stop-color="#e8e8e8" />
+      <stop offset="0.55" stop-color="#f4f4f4" />
+      <stop offset="1" stop-color="#cbcbcb" />
+    </linearGradient>
+    <linearGradient id="button-rim" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="8" y2="34">
+      <stop offset="0" stop-color="#d0d0d0" />
+      <stop offset="1" stop-color="#848484" />
+    </linearGradient>
+    <radialGradient id="white-sheen" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(7 13) scale(13 12)">
+      <stop offset="0" stop-opacity="1" stop-color="#ffffff" />
+      <stop offset="0.35" stop-opacity="0.9" stop-color="#ffffff" />
+      <stop offset="1" stop-opacity="0" stop-color="#ffffff" />
+    </radialGradient>
+    <linearGradient id="arrow-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="14" y2="28">
+      <stop offset="0" stop-color="#cccccc" />
+      <stop offset="1" stop-color="#cccccc" />
+    </linearGradient>
+    <linearGradient id="arrow-edge" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="14" y2="28">
+      <stop offset="0" stop-color="#bbbbbb" />
+      <stop offset="1" stop-color="#aaaaaa" />
+    </linearGradient>
+  </defs>
+  <g transform="scale(1.00000000 1.00000000)" id="start-back-button">
+    <path id="rounded-body" d="M11.4 9.5 H20.5 C27.1 9.5 30.5 13.8 30.5 20.4 V23 C30.5 29.8 26.8 33.1 20.5 33.1 H11.4 C4.5 33.1 1.2 29.1 1.2 23 V20.4 C1.2 13.7 4.6 9.5 11.4 9.5 Z" fill="url(#button-body)" stroke="url(#button-rim)" stroke-width=".65" />
+    <path id="sheen" d="M11.4 9.8 H20 V14 C17 17 15 19 14 21 L8 22 H1.6 V20.4 C1.6 14 5 9.8 11.4 9.8 Z" fill="url(#white-sheen)" />
+    <g id="share-create" transform="translate(.5 0)" fill="none" stroke="#405269" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16 25 V18 M10.5 16 L7.5 13 M21.5 16 L24.5 13 M16 13 V9" />
+      <rect x="12" y="23" width="8" height="6" rx="1.4" />
+    </g>
+  </g>
+</svg>

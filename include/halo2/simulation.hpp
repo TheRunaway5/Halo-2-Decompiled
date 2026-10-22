@@ -23,7 +23,6 @@
 #include "halo2/object_garbage.hpp"
 #include "halo2/source_weather.hpp"
 #include "halo2/owner_counter.hpp"
-#include "halo2/debug_game.hpp"
 #include "halo2/prop_sandbox.hpp"
 #include "halo2/static_scenery_collision.hpp"
 #include "halo2/native_grenade.hpp"
@@ -451,16 +450,6 @@ public:
   std::uint64_t shots() const { return shots_; }
   std::uint64_t hits() const { return hits_; }
   std::string status() const;
-  // Explicit optional workbench state, excluded from retail checkpoints.
-  void debug_settings(DebugGameSettings value) {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;debug_settings_=std::move(value);}
-  const DebugGameSettings& debug_settings() const { return debug_settings_; }
-  const Unit& debug_player(unsigned slot) const;
-  void debug_heal(unsigned slot);
-  void debug_teleport(unsigned slot,const Spawn&);
-  void debug_save_snapshot(const std::string&);
-  void debug_load_snapshot(const std::string&);
-  void debug_delete_snapshot(const std::string&);
-  std::vector<std::string> debug_snapshot_names() const;
 
 private:
   friend class MultiplayerMatch;
@@ -573,11 +562,6 @@ private:
   std::uint64_t flashlights_changed_tick_{};
   struct SavedState;
   std::shared_ptr<const SavedState> checkpoint_;
-  DebugGameSettings debug_settings_;
-  std::map<std::string,std::pair<std::shared_ptr<const SavedState>,std::shared_ptr<const SavedState>>> debug_snapshots_;
-  Unit& debug_player_mutable(unsigned slot);
-  const DebugPlayerSettings& debug_settings_for(const Unit&) const;
-  void debug_refill_weapon(Unit&);
   bool save_pending_{}, revert_pending_{}, cinematic_skip_enabled_{};
   bool level_finished_{},reset_requested_{};
   std::optional<std::uint64_t> reverted_tick_;

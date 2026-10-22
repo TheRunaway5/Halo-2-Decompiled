@@ -7,7 +7,7 @@ E=ROOT/'analysis/multiplayer/sandbox-source/vehicle-contact-state-tu15-20261011'
 P=ROOT/'analysis/multiplayer/sandbox-source/vehicle-motion-math-20261011'
 PARENT_PIN='d5c0fdf607ca869e865e8975258a656a30b46f1937bb070f971f4e5ce3617e29'
 VALIDATION_PIN='57b1b0db72d685185cbefab2ba9ab269acdf4e1f59eddcd68fa22984105441bb'
-OWNED=('include/halo2/physics_vehicle_contact_state.hpp','src/physics_vehicle_contact_state_tu15_generated.cpp',
+OWNED=('include/halo2/physics_vehicle_contact_state.hpp','src/physics/vehicles/physics_vehicle_contact_state_tu15_generated.cpp',
  'cmake/PhysicsVehicleContactState.cmake','tests/physics_vehicle_contact_state_tests.cpp',
  'tools/research_vehicle_contact_state_tu15_20261011.py','tools/generate_vehicle_contact_state_tu15_20261011.py',
  'tools/oracle_vehicle_contact_state_tu15_20261011.py','tools/validate_vehicle_contact_state_tu15_20261011.py',
@@ -99,7 +99,7 @@ def validate():
     address,raw,mnemonic,operand=line.split('\t');i=code.at(int(address,16))
     assert i.bytes.hex()==raw and i.mnemonic==mnemonic and i.op_str==operand
  assert g['generator_sha256']==sha(ROOT/'tools/generate_vehicle_contact_state_tu15_20261011.py') and g['research_sha256']==sha(E/'research-verified/report.json')
- assert g['generated_cpp_sha256']==sha(ROOT/'src/physics_vehicle_contact_state_tu15_generated.cpp')==sha(E/'generated-repeat/physics_vehicle_contact_state_tu15_generated.cpp')
+ assert g['generated_cpp_sha256']==sha(ROOT/'src/physics/vehicles/physics_vehicle_contact_state_tu15_generated.cpp')==sha(E/'generated-repeat/physics_vehicle_contact_state_tu15_generated.cpp')
  assert len(g['lowered_instructions'])==160 and not g['production_opcode_decoder'] and not g['production_original_code_execution']
  assert o['tool_sha256']==sha(ROOT/'tools/oracle_vehicle_contact_state_tu15_20261011.py') and o['cases']==12518 and o['new_owner_covered_instructions']==151
  for name in ('u5.json',):assert sha(E/'original-verified'/name)==sha(E/'original-repeat'/name)==o['fixture_sha256']

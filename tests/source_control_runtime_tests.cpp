@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #define SDL_MAIN_HANDLED
 #include "halo2/multiplayer.hpp"
 #include "halo2/multiplayer_world.hpp"
@@ -118,7 +119,7 @@ int main(int argc,char **argv){try{
   const auto place=[&](Vec3 position,float yaw,float pitch,const MultiplayerState::Player &player){
     // Diagnostic placement only. Selection, the held action, movement, group
     // mutation, machine clocks and collision all run through normal gameplay.
-    Spawn at;at.position=position;at.bsp=0;at.facing=yaw;world.match.debug_request({DebugGameRequest::Teleport,slot},&at);
+    Spawn at;at.position=position;at.bsp=0;at.facing=yaw;test::place_player(world.match,slot,at);
     look(window_id,options.desktop->keyboard_settings,player,yaw,pitch);
   };
   const auto begin=[&](Phase next,unsigned tick){phase=next;phase_tick=tick;};

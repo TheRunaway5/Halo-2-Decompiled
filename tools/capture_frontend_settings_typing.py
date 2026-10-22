@@ -17,10 +17,10 @@ def main():
     root = Path(__file__).resolve().parents[1]
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
-    paths = ["build-frontend/halo2_native", "src/frontend.cpp", "src/frontend_state.cpp",
-             "src/frontend_painter.cpp", "src/frontend_content.cpp", "src/frontend_text_style.cpp",
-             "src/frontend_typewriter.cpp", "include/halo2/frontend.hpp", "src/renderer.cpp",
-             "src/bsp_atmosphere.cpp", "shaders/ui_frame.frag", "assets/disc/maps/mainmenu.map",
+    paths = ["build-frontend/halo2_native", "src/ui/frontend.cpp", "src/ui/frontend_state.cpp",
+             "src/ui/frontend_painter.cpp", "src/ui/frontend_content.cpp", "src/ui/frontend_text_style.cpp",
+             "src/ui/frontend_typewriter.cpp", "include/halo2/frontend.hpp", "src/rendering/renderer/renderer.cpp",
+             "src/rendering/world/bsp_atmosphere.cpp", "shaders/ui_frame.frag", "assets/disc/maps/mainmenu.map",
              "assets/disc/maps/ui/frame_edges/left-edge.dds",
              "assets/disc/maps/ui/frame_edges/right-edge.dds"]
     paths += [str(p.relative_to(root)) for p in sorted((root / "assets/disc/maps/fonts").iterdir())

@@ -7,7 +7,7 @@ ROOT=Path(__file__).resolve().parents[1]
 DEFAULT=ROOT/'analysis/multiplayer/game-variants/king-native-20261011'
 TARGETS=('king_runtime_tests','king_callback_tests','king_engine_tests','multiplayer_tests','source_netgame_weapon_scene_tests')
 FIXTURES=('king_engine_original.json','king_scoring_original.json','king_world_original.json','king_callbacks_original.json')
-OWNERS=('src/multiplayer.cpp','src/multiplayer_inventory.cpp','src/multiplayer_network.cpp','src/source_king.cpp','src/content.cpp')
+OWNERS=('src/gameplay/multiplayer/multiplayer.cpp','src/gameplay/multiplayer/multiplayer_inventory.cpp','src/network/multiplayer_network.cpp','src/gameplay/multiplayer/source_king.cpp','src/assets/content.cpp')
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
  ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--output',type=Path,default=DEFAULT/'verification.json')
@@ -92,8 +92,8 @@ def main():
  # A separate fully instrumented callback executable checks the new raw-bank
  # and trait owners independently of ordinary native runtime libraries.
  callback=run/'king_callback_tests_asan'
- execute('callback-sanitizer-build',['c++','-std=c++20','-O1','-g','-fno-fast-math','-ffp-contract=off','-fsanitize=address,undefined','-fno-omit-frame-pointer','-I'+str(source/'include'),
-   source/'tests/king_callback_tests.cpp',source/'src/source_king.cpp',source/'src/source_result_statistics.cpp','-o',callback])
+ execute('callback-sanitizer-build',['c++','-std=c++20','-O1','-g','-fno-fast-math','-ffp-contract=off','-fsanitize=address,undefined','-fno-omit-frame-pointer','-I'+str(source/'include'), '-I'+str(source/'src'),
+   source/'tests/king_callback_tests.cpp',source/'src/gameplay/multiplayer/source_king.cpp',source/'src/gameplay/multiplayer/source_result_statistics.cpp','-o',callback])
  execute('callback-sanitizer-test',[callback,source/'tests/fixtures/king_callbacks_original.json'],extra={'ASAN_OPTIONS':'detect_leaks=1:halt_on_error=1','UBSAN_OPTIONS':'halt_on_error=1'})
  assert all(sha(source/name)==digest for name,digest in pins.items())
  assert all((source/name).stat().st_size==row['bytes']and sha(source/name)==row['sha256']for name,row in assets.items())

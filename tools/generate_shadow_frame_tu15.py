@@ -25,7 +25,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--directory', type=Path, required=True)
     parser.add_argument('--output', type=Path,
-                        default=Path('src/source_shadow_frame_tu15_generated.cpp'))
+                        default=Path('src/rendering/shadows/source_shadow_frame_tu15_generated.cpp'))
     parser.add_argument('--additional-trace',type=Path,action='append',default=[],
                         help='Authenticated original instruction trace; lower complete observed callees')
     parser.add_argument('--external-entry',type=lambda value:int(value,0),action='append',default=[],

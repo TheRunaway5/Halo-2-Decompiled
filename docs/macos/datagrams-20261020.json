@@ -1,0 +1,63 @@
+{
+  "schema": "H2_MACOS_DATAGRAM_EVIDENCE_V1",
+  "date": "2026-10-20",
+  "scope": "Darwin native UDP transport only; source startup and live multiplayer remain open",
+  "macos": {
+    "passed_focused_transport_tests": 4,
+    "architectures": [
+      "arm64",
+      "x86_64_rosetta"
+    ],
+    "report": "build/test-results/macos-datagram/report.json",
+    "original_remote_report": "build/test-results/macos-datagram-final/report.json",
+    "output": "build/test-results/macos-datagram/evidence/Testing/Temporary/LastTest.log",
+    "earlier_failure_reports": [
+      "build/test-results/macos-datagram-initial/report.json",
+      "build/test-results/macos-datagram-zero-diagnostic/report.json"
+    ],
+    "earlier_failure": "recvmsg with zero-capacity iovec returned0 and0.0.0.0:0 instead of a packet endpoint on both Mac slices",
+    "fix": "receive into private1-byte scratch for zero caller capacity, preserving logical capacity and truncation rejection"
+  },
+  "linux": {
+    "passed_focused_transport_tests": 2,
+    "report": "build/test-results/macos-datagram-linux-final/report.json",
+    "earlier_full_platform_tests": 16,
+    "earlier_report": "build/test-results/macos-datagram-linux/report.json"
+  },
+  "verified": [
+    "Darwin descriptor has FD_CLOEXEC and O_NONBLOCK before publication",
+    "Darwin sockaddr_in native size and endpoint encoding",
+    "actual UDP loopback bytes and source endpoint",
+    "empty nonblocking queue distinguished from valid zero-byte packet",
+    "zero-capacity/short-buffer discarded datagrams throw without changing caller endpoint",
+    "socket buffer observations, broadcast/nonblocking option calls",
+    "source-configured24-socket budget, reusable slots,64-bit private pool and retirement",
+    "bind failure, move construction/assignment and service close preserve ownership"
+  ],
+  "not_verified": [
+    "22,783-case original configuration reference matrix not run by this suite",
+    "Darwin native link/title-address observation and original process network startup",
+    "live multiplayer or Xbox wire/secure protocol parity"
+  ],
+  "mac_validation_source_sha256": {
+    "src/native_tu15_network_service.cpp": "3bb5ac371a67fcd302762697c27127c031b6afb15e28d4037efb4a05d6cba39c",
+    "src/macos/native_datagram.hpp": "9c5e294ac6ef9407da4c35b143bd35faf94f1e463648bcbb384bd2a02cc3a102",
+    "include/halo2/native_tu15_network_service.hpp": "6f431fc3463260d25c7552d430d2e2028ea654a55fae234bd1c8c77573909244",
+    "tests/macos/CMakeLists.txt": "a4efca909d6199f0e20cd9e6c5afcc96b49a80b59376f2435aafa83e670d3ef6",
+    "tests/macos/datagram_tests.cpp": "96f1fd479a8c554a6753fa7f54563f1283dad14f7c7cee506787e1cc5f1d4e86",
+    "tests/native_tu15_network_service_tests.cpp": "30046edf1b09cb61f04611678028e3f2d4cac7a9a3fba3b65e559467fff1c7a9"
+  },
+  "workspace_source_sha256_at_recording": {
+    "src/native_tu15_network_service.cpp": "3bb5ac371a67fcd302762697c27127c031b6afb15e28d4037efb4a05d6cba39c",
+    "src/macos/native_datagram.hpp": "9c5e294ac6ef9407da4c35b143bd35faf94f1e463648bcbb384bd2a02cc3a102",
+    "include/halo2/native_tu15_network_service.hpp": "6f431fc3463260d25c7552d430d2e2028ea654a55fae234bd1c8c77573909244",
+    "tests/macos/CMakeLists.txt": "a4efca909d6199f0e20cd9e6c5afcc96b49a80b59376f2435aafa83e670d3ef6",
+    "tests/macos/datagram_tests.cpp": "96f1fd479a8c554a6753fa7f54563f1283dad14f7c7cee506787e1cc5f1d4e86",
+    "tests/native_tu15_network_service_tests.cpp": "30046edf1b09cb61f04611678028e3f2d4cac7a9a3fba3b65e559467fff1c7a9"
+  },
+  "cleanup": {
+    "all_owned_failed_and_passed_build_trees_removed": true,
+    "dedicated_mac_source_mirror_scratch_parent_empty": true,
+    "retained_large_artifacts": []
+  }
+}

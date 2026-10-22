@@ -87,8 +87,8 @@ def main():
     scratch.update((minimizer['runner_scratch'], identity['runner_scratch']))
     checks = [dict(path=p, removed=not Path(p).exists()) for p in sorted(scratch)]
     assert all(row['removed'] for row in checks)
-    source_files = ['src/physics_live_world_tu15.cpp', 'src/source_ui_script_startup_tu15_generated.cpp',
-        'src/native_tu15_ui_script_startup_data.inc', 'tests/native_weapon_runtime_tests.cpp',
+    source_files = ['src/physics/physics_live_world_tu15.cpp', 'src/ui/source_ui_script_startup_tu15_generated.cpp',
+        'src/ui/native_tu15_ui_script_startup_data.inc', 'tests/native_weapon_runtime_tests.cpp',
         'tools/validate_weapon_material_snapshot_tu15.py', 'tools/generate_ui_script_startup_tu15.py',
         'tools/export_ui_script_startup_data_tu15.py']
     pins = load('weapon-dual-source-history-validation-v2/source-manifest.json')['source_files_sha256']

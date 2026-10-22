@@ -1,8 +1,13 @@
 #include "halo2/native_tu15_world_memory.hpp"
+#include "halo2/native_tu15_multiplayer_data.hpp"
+#include "halo2/cache.hpp"
 #include "halo2/native_tu15_renderer_startup_data.hpp"
 #include "halo2/native_tu15_physics_branch_data.hpp"
 #include "halo2/physics_live_support_tu15.hpp"
 #include "halo2/source_cinematic_shadow_control_tu15.hpp"
+#include "halo2/source_ai_frame_tu15.hpp"
+#include "halo2/source_effect_particle_frame_tu15.hpp"
+#include "halo2/source_network_session_startup_tu15.hpp"
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
@@ -14,21 +19,378 @@ namespace {
 using namespace halo2;
 #include "fixtures/native_tu15_vehicle_render_operands.original.inc"
 #include "fixtures/native_tu15_vehicle_read_operands.original.inc"
+#include "fixtures/native_tu15_physical_methods.original.inc"
 #include "fixtures/native_tu15_vehicle_closure_operands.original.inc"
+#include "fixtures/native_tu15_game_engine_methods.original.inc"
+#include "fixtures/native_tu15_multiplayer_data.original.inc"
+#include "fixtures/native_tu15_melee_candidate_table.original.inc"
+#include "fixtures/weapon_fallback_constructor_tu15.original.inc"
+#include "fixtures/native_tu15_multiplayer_branch_data.original.inc"
 void check(bool condition,const char* message) {
     if(!condition)throw std::runtime_error(message);
 }
 std::uint32_t word(const SourceRuntimeMemory& memory,std::uint32_t address) {
-    std::uint32_t value=0;const auto bytes=memory.view(address,4);
-    for(unsigned i=0;i<4;++i)value|=std::to_integer<std::uint32_t>(bytes[i])<<(i*8);
-    return value;
+    return Bytes(memory.view(address,4)).u32(0);
+}
+void check_weapon_fallback_constructor(const SourceRuntimeMemory &cold) {
+    const auto storage=cold.view(0x5564f0u,0x58);
+    check(std::ranges::all_of(storage,[](auto b){return b==std::byte{};}),
+        "Fallback effect storage must remain loader-zeroed until its original constructor");
+    cold.validate_mutable_view(0x5564f0u,0x58);
+    for(const auto &row:weapon_fallback_original_cases) {
+        SourceRuntimeMemory memory;
+        memory.mount(0x5564f0u,std::vector<std::byte>(0x58,std::byte(row.fill)),
+            SourceRuntimeMemory::Access::ReadWrite,"Original constructor differential destination");
+        memory.mount(0x55d728u,std::array{std::byte(row.input),std::byte(row.input>>8)},
+            SourceRuntimeMemory::Access::ReadOnly,"Original constructor differential ushort input");
+        memory.mount(0x63000000u,std::vector<std::byte>(0x3000),
+            SourceRuntimeMemory::Access::ReadWrite,"Original constructor differential caller stack");
+        constexpr std::uint32_t sp=0x63000800u,stop=0x63002000u;
+        memory.write(sp,std::as_bytes(std::span(&stop,1)));
+        SourcePhysicsWorldRuntimeAbi abi{};
+        abi.gp={0x11111111u,0x22222222u,0x33333333u,0x44444444u,
+            sp,0x66666666u,0x77777777u,0x88888888u};abi.eflags=2;
+        SourcePhysicsWorldRuntimeServices services;
+        std::vector<unsigned> instructions;
+        services.instruction=[&](unsigned pc){instructions.push_back(pc);};
+        unsigned stores{};
+        source_run_effect_particle_frame_tu15(memory,0x380e70u,abi,{0x27f,0x1f80},services,
+            [&](const SourcePhysicsContactRecordStore &store) {
+                if(store.address<0x5564f0u || store.address>=0x556548u)return;
+                check(stores<weapon_fallback_original_store_sites.size(),"Fallback constructor added a store");
+                const auto site=weapon_fallback_original_store_sites[stores++];
+                check(store.instruction==site[0] && store.address==site[1] && store.written.size()==site[2],
+                    "Fallback constructor store order/width differs from original execution");
+                for(unsigned i=0;i<site[2];++i)
+                    check(std::to_integer<unsigned>(store.written[i])==row.bytes[store.address-0x5564f0u+i],
+                        "Fallback constructor store value differs from original execution");
+            });
+        check(stores==26 && std::ranges::equal(instructions,weapon_fallback_original_pcs),
+            "Fallback constructor omitted original instructions/stores");
+        check(abi.gp==row.gp && abi.eflags==row.eflags,
+            "Fallback constructor changed the original caller registers/flags/stack retirement");
+        for(unsigned i=0;i<0x58;++i)
+            check(std::to_integer<unsigned>(memory.view(0x5564f0u+i,1)[0])==row.bytes[i],
+                "Fallback effect records differ from unchanged original execution");
+    }
+}
+void check_object_update_policy(const SourceRuntimeMemory& cold) {
+    // Pinned TU1.5 21b207e7...: E35D5 reads exactly one .data BSS byte.
+    // The loader zeroes it; a reference executable is never a runtime input.
+    constexpr std::uint32_t address=0x51daedu;
+    // Execute the complete actual E3440 consumer, including its real E65A0
+    // callee, with explicit caller-owned object/tag tables. Both zero/nonzero
+    // policy branches then return normally; no external owner is fabricated.
+    struct PrefixComplete {};
+    for(const bool prefix:{false,true})for(const auto value:{0u,1u,0x80u,0xffu}) {
+        const auto policy=prefix?0x51daecu:address;
+        const auto input_checkpoint=cold.checkpoint();
+        SourceRuntimeMemory memory;memory.restore(input_checkpoint);
+        constexpr unsigned context=0x63000000u,objects=0x64000000u,
+            object=0x66000000u,tags=0x67000000u,definition=0x68000000u,
+            model=0x69000000u,stack=0x65000800u;
+        const auto mount=[&](unsigned p,unsigned bytes,const char* owner) {
+            memory.mount(p,std::vector<std::byte>(bytes),SourceRuntimeMemory::Access::ReadWrite,owner);
+        };
+        mount(context,0x48,"E3440 test caller object context");
+        mount(objects,0x20,"E3440 test caller object table");
+        mount(object,0x500,"E3440 test caller object");
+        mount(tags,0x30,"E3440 test caller tag table");
+        mount(definition,0x200,"E3440 test caller object definition");
+        mount(model,0x30,"E3440 test caller model definition");
+        mount(stack-0x800,0x1000,"E3440 test caller stack");
+        const auto put=[&](unsigned p,unsigned bits,unsigned bytes=4) {
+            std::array<std::byte,4> raw{};
+            for(unsigned n=0;n<bytes;++n)raw[n]=std::byte(bits>>(8*n));
+            memory.write(p,std::span(raw).first(bytes));
+        };
+        // The world normally publishes these live context pointers after
+        // cold construction. Here their caller-owned tables are explicit.
+        for(const auto p:{0x4ecbd0u,0x4f0414u}) {
+            try{(void)memory.view(p,4);}catch(const std::out_of_range&){
+                mount(p,4,"E3440 test caller context binding");
+            }
+        }
+        put(0x4ecbd0u,context);put(context+0x44,objects);put(objects+8,object);
+        put(0x4f0414u,tags);put(tags+8,definition);put(tags+0x18,model);
+        put(object,0x23450000u);put(definition+0x38,0x34560001u);
+        put(definition+0x1f0,0x800);put(object+0x3fd,1,1);
+        put(stack,0x70000000u);put(stack+4,0x12340000u);
+        if(prefix){
+            // Real13BA80/1A8E50/16EA60 iterate an explicitly empty player
+            // datum array. These are caller-owned runtime tables, not a
+            // substituted callee result or a retail runtime asset.
+            constexpr unsigned player_pool=0x6a000000u,game_options=0x6b000000u;
+            mount(player_pool,0x4c,"E3440 test caller empty player datum array");
+            mount(game_options,0x1134,"E3440 test caller game options");
+            try{(void)memory.view(0x4f54f4u,4);}catch(const std::out_of_range&){
+                mount(0x4f54f4u,4,"E3440 test caller player pool binding");
+            }
+            put(0x4f54f4u,player_pool);put(0x4f3218u,game_options);
+            put(definition+0x1f0,0);put(object+0x134,1u<<27);
+            //111E00 returns its real absent-equipment state; BBBC0 invokes
+            // real B9390 on the already-marked caller object table entry.
+            put(object+0x68,0xffffffffu);put(objects+2,2,1);
+        }
+        if(value)put(policy,value,1);
+        SourcePhysicsWorldRuntimeAbi abi{};abi.gp[4]=stack;abi.eflags=0x202;
+        unsigned instructions{},last{};bool read=false,after_read=false,entered_callee=false;
+        bool late_read=false,after_late_read=false,entered_bbbc0=false,entered_iterator=false,completed_prefix=false;
+        SourcePhysicsWorldRuntimeServices services{};
+        services.instruction=[&](unsigned pc) {
+            last=pc;read|=pc==0xe35d5u;after_read|=pc==0xe35dau;entered_callee|=pc==0xe65a0u;
+            late_read|=pc==0xe366eu;after_late_read|=pc==0xe3673u;
+            entered_bbbc0|=pc==0xbbbc0u;entered_iterator|=pc==0x16ea60u;
+            if(prefix&&pc==0xe3683u)throw PrefixComplete{};
+            check(++instructions<(prefix?512u:256u),"Actual E3440 reader escaped its bounded caller state");
+        };
+        if(prefix)services.required_owner=[&](SourcePhysicsContactMemory &bank,
+            const SourcePhysicsContactRuntimeCall &call,SourcePhysicsContactRuntimeAbi &state,
+            const SourcePhysicsContactRecordObserver &observe){
+            // The public runner exports these exact complete closure cases;
+            // owns_entry() lists only its top-level coordination roles.
+            check(call.target==0x16ea60u||call.target==0xbbbc0u,
+                "E3440 prefix reached an unprovided actual callee owner");
+            source_run_ai_frame_tu15(bank,call.target,state,{0x27f,0x1f80},services,observe);
+        };
+        try{source_run_physics_live_support_tu15(memory,0xe3440u,abi,{0x27f,0x1f80},services);}
+        catch(const PrefixComplete&){completed_prefix=true;}
+        catch(const std::exception&){std::cerr<<"Actual E3440 reader at0x"<<std::hex<<last<<std::dec<<": ";throw;}
+        if(prefix){
+            check(completed_prefix&&read&&after_read&&entered_callee&&late_read&&after_late_read&&
+                entered_bbbc0&&entered_iterator,
+                "Actual E3440 prefix omitted a real callee or its late policy reader/branch");
+            check(std::to_integer<unsigned>(memory.view(object+0x34b,1).front())==1&&
+                (word(memory,object+0xc0)&0x100u)==(value?0x100u:0u),
+                "Actual E366E zero/nonzero branch differs from its caller-owned object state");
+        }else{
+            check(read&&after_read&&entered_callee&&abi.gp[4]==stack+8&&(abi.gp[0]&0xffu)==1,
+                "Actual E3440 reader did not finish its genuine E65A0 callee and policy branch/return");
+            check(memory.view(object+0x349,1).front()==std::byte(value?1:0),
+                "Actual E3440 zero/nonzero policy branch differs from the source");
+        }
+        check(memory.view(policy,1).front()==std::byte(value),
+            "Actual E3440 consumer changed its input policy byte");
+        const auto consumed=memory.checkpoint();
+        const auto input_owner=std::ranges::find(input_checkpoint.regions,policy,
+            &SourceRuntimeMemory::CheckpointRegion::address);
+        const auto consumed_owner=std::ranges::find(consumed.regions,policy,
+            &SourceRuntimeMemory::CheckpointRegion::address);
+        check(input_owner!=input_checkpoint.regions.end()&&consumed_owner!=consumed.regions.end()&&
+            consumed_owner->owner==input_owner->owner&&consumed_owner->access==input_owner->access&&
+            consumed_owner->page_bytes==input_owner->page_bytes&&consumed_owner->committed==input_owner->committed&&
+            consumed_owner->bytes.size()==1&&consumed_owner->bytes.size()==input_owner->bytes.size()&&
+            consumed_owner->bytes[0]==std::byte(value),
+            "Actual E3440 consumer changed the exact policy checkpoint owner");
+        SourceRuntimeMemory retained;retained.restore(consumed);
+        const auto restored=retained.checkpoint();
+        const auto retained_owner=std::ranges::find(restored.regions,policy,
+            &SourceRuntimeMemory::CheckpointRegion::address);
+        check(retained_owner!=restored.regions.end()&&*retained_owner==*consumed_owner&&
+            retained.view(policy,1).front()==std::byte(value)&&!retained.is_read_only(policy,1),
+            "Consumed E3440 policy owner did not survive exact checkpoint/restore");
+    }
+    check(cold.view(address,1).front()==std::byte{},
+        "E35D5 object update lost its exact loader-zero policy byte");
+    const auto checkpoint=cold.checkpoint();
+    const auto owner=std::ranges::find(checkpoint.regions,address,
+        &SourceRuntimeMemory::CheckpointRegion::address);
+    check(owner!=checkpoint.regions.end()&&owner->bytes.size()==1&&
+        owner->access==SourceRuntimeMemory::Access::ReadWrite&&
+        !owner->page_bytes&&owner->committed.empty(),
+        "E35D5 object update policy lacks its exact committed writable owner");
+    // This is live mutable state in the authority bank, not an immutable
+    // literal or an untracked default returned by the missing-backing path.
+    SourceRuntimeMemory replacement;replacement.restore(checkpoint);
+    for(const auto value:{std::byte{1},std::byte{0x80},std::byte{0xff}}) {
+        replacement.write(address,std::span(&value,1));
+        const auto changed=replacement.checkpoint();
+        SourceRuntimeMemory retained;retained.restore(changed);
+        check(retained.view(address,1).front()==value&&
+            !retained.is_read_only(address,1),
+            "Authority checkpoint dropped the mutable E35D5 policy byte");
+        replacement.restore(checkpoint);
+        check(replacement.view(address,1).front()==std::byte{},
+            "Authority restore failed to restore the cold E35D5 policy byte");
+    }
+    check(cold.checkpoint()==checkpoint,"Replacement policy writes changed the cold source bank");
+}
+void check_ai_priority_readers(const SourceRuntimeMemory& cold) {
+    // Independent TU1.5 4568C4..4568DD fixture SHA256 d770ce78698bcf11...
+    // is bounded by270350's guarded270E90 selector, not adjacent padding.
+    constexpr std::array<unsigned,13> expected{1,1,2,3,4,6,7,8,8,9,9,9,9};
+    check(cold.is_read_only(0x4568c4u,26),"AI contact priorities lost immutable ownership");
+    const auto regions=cold.checkpoint().regions;
+    const auto owner=std::ranges::find(regions,0x4568c4u,&SourceRuntimeMemory::CheckpointRegion::address);
+    check(owner!=regions.end()&&owner->bytes.size()==26,
+        "AI contact priority owner extends beyond its authenticated reachable range");
+    check(!cold.is_read_only(0x47d6c4u,8),"AI target priorities lost authored writable access");
+    const auto target_owner=std::ranges::find(regions,0x47d6c4u,&SourceRuntimeMemory::CheckpointRegion::address);
+    check(target_owner!=regions.end()&&target_owner->bytes.size()==8,
+        "AI target priority owner extends beyond its original four-state domain");
+    constexpr std::array<unsigned,4> target_expected{0,0,2,3};
+    SourceRuntimeMemory memory;
+    memory.mount(0x5020c8u,std::array<std::byte,4>{},SourceRuntimeMemory::Access::ReadWrite,
+        "AI priority test actor-array binding");
+    memory.mount(0x63000000u,std::array<std::byte,0x48>{},SourceRuntimeMemory::Access::ReadWrite,
+        "AI priority test actor-array header");
+    memory.mount(0x64000000u,std::array<std::byte,0x888>{},SourceRuntimeMemory::Access::ReadWrite,
+        "AI priority test actor");
+    memory.mount(0x65000000u,std::array<std::byte,4096>{},SourceRuntimeMemory::Access::ReadWrite,
+        "AI priority test stack");
+    memory.mount(0x4568c4u,cold.view(0x4568c4u,26),SourceRuntimeMemory::Access::ReadOnly,
+        "AI priority test original contact inputs");
+    memory.mount(0x50eef8u,std::array<std::byte,4>{},SourceRuntimeMemory::Access::ReadWrite,
+        "AI priority test target-array binding");
+    memory.mount(0x66000000u,std::array<std::byte,0x48>{},SourceRuntimeMemory::Access::ReadWrite,
+        "AI priority test target-array header");
+    memory.mount(0x67000000u,std::array<std::byte,0x50>{},SourceRuntimeMemory::Access::ReadWrite,
+        "AI priority test target");
+    memory.mount(0x47d6c4u,cold.view(0x47d6c4u,8),SourceRuntimeMemory::Access::ReadWrite,
+        "AI priority test original target-state inputs");
+    const auto put=[&](unsigned address,unsigned value,unsigned width=4) {
+        std::array<std::byte,4> bytes{};
+        for(unsigned n=0;n<width;++n)bytes[n]=std::byte(value>>(n*8));
+        memory.write(address,std::span(bytes).first(width));
+    };
+    put(0x5020c8u,0x63000000u);
+    put(0x63000044u,0x64000000u);
+    put(0x64000858u,0xffffffffu);
+    put(0x50eef8u,0x66000000u);
+    put(0x66000044u,0x67000000u);
+    for(const bool target:{false,true})for(int index=-1;index<=(target?4:13);++index) {
+        put(0x64000328u,target?0u:unsigned(index),2);
+        put(0x67000026u,target?unsigned(index):0u,2);
+        SourcePhysicsWorldRuntimeAbi abi{};
+        abi.gp[4]=0x65000800u;abi.eflags=0x202;
+        struct PrefixComplete {};
+        bool read_done=false,rejected=false;
+        unsigned instructions{};
+        SourcePhysicsWorldRuntimeServices services{};
+        services.instruction=[&](unsigned pc) {
+            check(++instructions<=64,"AI contact reader exceeded its bounded original prefix");
+            if(pc==(target?0x2700d9u:0x2700a9u)){read_done=true;throw PrefixComplete{};}
+        };
+        try{source_run_ai_frame_tu15(memory,0x270000u,abi,{0x27f,0x1f80},services);}
+        catch(const PrefixComplete&){}
+        catch(const std::exception&){rejected=true;}
+        if(index<0||index>=(target?4:13))
+            check(!read_done&&rejected,"AI contact reader admitted an outside-domain table index");
+        else
+            check(read_done&&!rejected&&(abi.gp[target?1:7]&0xffffu)==
+                (target?target_expected[index]:expected[index]),
+                "Actual2700A1/2700D1 read differs from original bounded priority inputs");
+    }
 }
 }
 int main(int argc,char** argv)try {
     constexpr std::uint32_t tick=0x60212000u;
     SourceRuntimeKernelTickCount input{tick,{std::byte{0x78},std::byte{0x56},std::byte{0x34},std::byte{0x12}},
         "world memory test retained clock"};
+    for(bool writable:{false,true}) {
+        SourceRuntimeMemory partial;const auto& row=original_multiplayer_branch_data.front();
+        const std::array bytes{writable?row.bytes.front():row.bytes.front()^std::byte{0x80}};
+        partial.mount(row.address,bytes,writable?SourceRuntimeMemory::Access::ReadWrite:SourceRuntimeMemory::Access::ReadOnly,
+            "existing multiplayer branch owner control");
+        const auto prior=partial.checkpoint();bool rejected=false;
+        try{mount_native_tu15_multiplayer_branch_data(partial);}catch(const std::invalid_argument&){rejected=true;}
+        check(rejected&&partial.checkpoint()==prior,"Multiplayer branch admission changed or accepted a conflicting owner");
+    }
     auto memory=native_tu15_world_memory(input);
+    // Pinned21b207e7... original167CAB/16821D and151570 operands.
+    // The high-bounce Dire Valley map exercises the formerly missing first
+    // owner; approaching a native portal exercises the second. The full
+    // application replay remains the regression for those complete paths.
+    check(std::ranges::equal(memory.view(0x46a5a0u,4),
+        std::array{std::byte{6},std::byte{0},std::byte{0x80},std::byte{0x37}}) &&
+        memory.is_read_only(0x46a5a0u,4),
+        "Large-bound light query operand differs from its original read-only declaration");
+    check(std::ranges::equal(memory.view(0x46a340u,4),
+        std::array{std::byte{6},std::byte{0},std::byte{0x80},std::byte{0xb7}}) &&
+        memory.is_read_only(0x46a340u,4),
+        "Light shadow query operand differs from its original read-only declaration");
+    check(std::ranges::equal(memory.view(0x48c78cu,4),
+        std::array{std::byte{0},std::byte{0},std::byte{0},std::byte{0x40}}) &&
+        !memory.is_read_only(0x48c78cu,4),
+        "Portal approach policy differs from its original writable initialization");
+    for(const auto [address,size]:std::array{std::pair{0x56e20cu,8u},std::pair{0x56e218u,8u},
+            std::pair{0x56e214u,2u},std::pair{0x56e220u,2u}}) {
+        check(std::ranges::all_of(memory.view(address,size),[](auto v){return v==std::byte{};}),
+            "151540/151630 policy must retain original loader-zero bytes");
+        memory.validate_mutable_view(address,size);
+    }
+    // Whole53240 owns this complete saved-session destination;165860 reads
+    // its initialized byte only after a source player loses the current unit.
+    // Cold storage is not a completed network/session initialization result.
+    const auto saved_session=memory.view(0x4d6098u,0x144u);
+    check(std::ranges::all_of(saved_session,[](auto value){return value==std::byte{};}),
+        "Saved-session storage must retain original loader bytes before startup");
+    memory.validate_mutable_view(0x4d6098u,0x144u);
+    {
+        // Reuse preserves arbitrary actual live bytes and native backing.
+        SourceRuntimeMemory live;mount_native_tu15_network_saved_session_storage(live);
+        const auto native=live.native_address(0x4d6098u,0x144u);
+        live.write(0x4d61d8u,std::array{std::byte{0xa7}});
+        const auto before=live.checkpoint();mount_native_tu15_network_saved_session_storage(live);
+        check(live.checkpoint()==before&&live.native_address(0x4d6098u,0x144u)==native,
+            "Repeated saved-session admission changed live bytes or backing");
+        mount_native_tu15_network_session_data(live);
+        check(live.native_address(0x4d6098u,0x144u)==native&&
+              live.view(0x4d61d8u,1)[0]==std::byte{0xa7},
+            "Full network data mounting replaced the shared saved-session owner");
+        for(const bool readonly:{false,true}) {
+            SourceRuntimeMemory foreign;
+            foreign.mount(0x4d6098u,std::vector<std::byte>(0x144),
+                readonly?SourceRuntimeMemory::Access::ReadOnly:SourceRuntimeMemory::Access::ReadWrite,
+                "foreign saved-session owner");
+            const auto prior=foreign.checkpoint();bool rejected{};
+            try{mount_native_tu15_network_saved_session_storage(foreign);}catch(const std::invalid_argument&){rejected=true;}
+            check(rejected&&foreign.checkpoint()==prior,"Saved-session admission accepted or changed a foreign owner");
+        }
+    }
+    const auto branch_checkpoint=memory.checkpoint();mount_native_tu15_multiplayer_branch_data(memory);
+    check(memory.checkpoint()==branch_checkpoint,"Repeated multiplayer branch admission changed existing ownership");
+    check_weapon_fallback_constructor(memory);
+    for(const auto [address,bytes]:std::array{
+        std::pair{0x4d2b18u,9u*0x408u},std::pair{0x4d4f60u,0x40u},std::pair{0x515f1cu,8u}}) {
+        const auto cold=memory.view(address,bytes);
+        check(std::ranges::all_of(cold,[](auto value){return value==std::byte{};}),
+            "Cached special storage must retain its original loader bytes before source frame reset");
+        memory.validate_mutable_view(address,bytes);
+    }
+    check_object_update_policy(memory);
+    check_ai_priority_readers(memory);
+    {
+        // The complete HS startup provider also supplies the two bindings
+        // formerly declared separately by the world constructor. Preserve
+        // the real registry access/owner and the exact authored descriptors.
+        const auto regions=memory.checkpoint().regions;
+        for(const auto&[cell,target]:std::array{
+            std::pair{0x480c24u,0x456bb0u},std::pair{0x481634u,0x459d58u}}) {
+            check(word(memory,cell)==target,"Cold HS builtin registry binding differs");
+            memory.validate_mutable_view(cell,4);
+            const auto owner=std::ranges::find_if(regions,[&](const auto& region) {
+                return region.address<=cell &&
+                    std::uint64_t(region.address)+region.bytes.size()>=std::uint64_t(cell)+4;
+            });
+            check(owner!=regions.end() && owner->access==SourceRuntimeMemory::Access::ReadWrite &&
+                owner->owner=="Original TU1.5 authored HS function pointer registry",
+                "Cold HS binding lost its complete writable registry owner");
+        }
+        const auto descriptor=[&]<std::size_t N>(std::uint32_t address,
+            const std::array<std::uint32_t,N>& words) {
+            check(memory.is_read_only(address,N*4),"Cold HS builtin descriptor is not immutable");
+            for(std::size_t i=0;i<N;++i)
+                check(word(memory,address+std::uint32_t(i*4))==words[i],
+                    "Cold HS builtin descriptor differs from its authored words");
+        };
+        descriptor(0x456bb0u,std::array{0x00020006u,0x2105d0u,0x4670d4u,0u});
+        descriptor(0x459d58u,std::array{0x00000004u,0x002b4a40u,0u,0x00060002u,0x00000006u});
+    }
+    // Independent original image read at450212:05 00, readonly .rdata.
+    // No neighbouring selector is admitted by this reached-word owner.
+    check(memory.is_read_only(0x450212u,2) && Bytes(memory.view(0x450212u,2)).u16(0)==5,
+        "Actual1F1A3C index1 alternative is absent, writable or changed");
     // Independently authenticated original45F290..45F2BF, covering all24
     // bitmap formats admitted by138780's original selector bound.
     std::uint64_t bitmap_depth_hash=14695981039346656037ull;
@@ -88,8 +450,125 @@ int main(int argc,char** argv)try {
         !memory.is_read_only(0x4f2d74u,8),"Original model-cache policy/counter cold fields differ");
     check(memory.view(0x48c754u,1)[0]==std::byte{1}&&!memory.is_read_only(0x48c754u,1),
         "Original130F90 geometry-cache pressure-warning setting lost its authored writable byte");
+    for(const auto [address,target]:std::array<std::pair<std::uint32_t,std::uint32_t>,4>{{
+        {0x474cc0u,0x44abecu},{0x474cd4u,0x44abecu},
+        {0x474cd8u,0x44ac28u},{0x474cdcu,0x44ac34u}}}) {
+        check(word(memory,address)==target&&!memory.is_read_only(address,4),
+            "Original direct-consumer vector alias lost its authored value or writable section access");
+        check(memory.is_read_only(target,12),"Vector alias lost its existing authored constant backing");
+    }
     check(word(memory,0x411568u)==0&&!memory.is_read_only(0x411568u,4),
         "Original405801 cold SDK device cell lost its loader-zero writable owner");
+    check(word(memory,0x52be40u)==0&&!memory.is_read_only(0x52be40u,4),
+        "Original targeting sort lost its loader-zero writable parameter binding");
+    check(memory.view(0x51daeeu,1)[0]==std::byte{}&&!memory.is_read_only(0x51daeeu,1),
+        "Original optional vehicle query lost its loader-zero writable policy byte");
+    check(memory.view(0x56e198u,1)[0]==std::byte{}&&!memory.is_read_only(0x56e198u,1),
+        "Original receiver request warning lost its loader-zero writable flag");
+    for(const auto address:std::array{0x56e6c0u,0x56e6c4u,0x56e6c8u,0x56e6ccu,0x56e6d0u})
+        check(word(memory,address)==0 && !memory.is_read_only(address,4),
+            "Original282170 conveyor vector/guard lost its loader-zero writable owner");
+    check(word(memory,0x56ecccu)==0 && word(memory,0x56ecd0u)==0 &&
+        !memory.is_read_only(0x56ecccu,8),
+        "Original F4D1A lazy scalar/flags lost their loader-zero writable owner");
+    check(word(memory,0x46a178u)==0x3dcccccdu && memory.is_read_only(0x46a178u,4),
+        "Original F4D70 lazy initializer lost its exact tick scaling operand");
+    check(memory.is_read_only(0x45efacu,12)&&word(memory,0x45efacu)==0&&
+        word(memory,0x45efb0u)==0&&word(memory,0x45efb4u)==0xbf800000u,
+        "Original object effect direction lost its exact immutable vector");
+    constexpr std::array damage_dispatch{0x16098au,0x160968u,0x160972u,0x16097cu};
+    for(unsigned n=0;n<damage_dispatch.size();++n)
+        check(memory.is_read_only(0x160a4cu+n*4,4)&&word(memory,0x160a4cu+n*4)==damage_dispatch[n],
+            "Original damage-response dispatch lost its immutable branch identities");
+    constexpr std::array object_damage_targets{0xdbfadu,0xdbf53u,0xdbf98u,0xdbf89u,0xdbfbeu,0xdbfccu};
+    for(unsigned n=0;n<object_damage_targets.size();++n)
+        check(memory.is_read_only(0xdc084u+n*4,4)&&word(memory,0xdc084u+n*4)==object_damage_targets[n],
+            "Original object damage dispatch lost its immutable branch identities");
+    constexpr std::array<unsigned,13> object_damage_selectors{0,1,2,2,2,3,5,1,5,5,5,1,4};
+    const auto selectors=memory.view(0xdc09cu,object_damage_selectors.size());
+    check(memory.is_read_only(0xdc09cu,selectors.size()),"Original object damage selectors lost immutable ownership");
+    for(unsigned n=0;n<selectors.size();++n)
+        check(std::to_integer<unsigned>(selectors[n])==object_damage_selectors[n],"Original object damage byte selector differs");
+    check(memory.is_read_only(0x40db3eu,1)&&memory.view(0x40db3eu,1)[0]==std::byte{8},
+        "Original SDK DXT3 format entry lost its immutable literal backing");
+    check(memory.is_read_only(0x46ab2cu,4)&&word(memory,0x46ab2cu)==0x400a3ae7u,
+        "Original object-effect comparison lost its immutable authored float");
+    check(memory.is_read_only(0x46a7f0u,4)&&word(memory,0x46a7f0u)==0x3da3d70au,
+        "Original vehicle-look input scalar lost its immutable authored bits");
+    constexpr std::array physical_directions{
+        0x0u,0x0u,0x0u,0x3f800000u,0x0u,0x0u,0x0u,0x0u,0x3f800000u,
+        0x3f3504f3u,0x0u,0x3f3504f3u,0x3f13cd3au,0x3f13cd3au,0x3f13cd3au,0x3f13cd3au,0xbf13cd3au,0x3f13cd3au,
+        0x3f3504f3u,0x3f3504f3u,0x0u,0x3f3504f3u,0xbf3504f3u,0x0u,0x0u,0x3f3504f3u,0x3f3504f3u,
+        0x0u,0xbf3504f3u,0x3f3504f3u,0xbf800000u,0x0u,0x0u,0x0u,0x3f800000u,0x0u,
+        0x0u,0xbf800000u,0x0u,0xbf3504f3u,0xbf3504f3u,0x0u,0xbf3504f3u,0x3f3504f3u,0x0u,
+        0xbf3504f3u,0x0u,0x3f3504f3u,0xbf13cd3au,0xbf13cd3au,0x3f13cd3au,0xbf13cd3au,0x3f13cd3au,0x3f13cd3au,
+        0x0u,0x0u,0xbf800000u,0x3f3504f3u,0x0u,0xbf3504f3u,0xbf3504f3u,0x0u,0xbf3504f3u,
+        0x0u,0x3f3504f3u,0xbf3504f3u,0x0u,0xbf3504f3u,0xbf3504f3u,0x3f13cd3au,0x3f13cd3au,0xbf13cd3au,
+        0x3f13cd3au,0xbf13cd3au,0xbf13cd3au,0xbf13cd3au,0xbf13cd3au,0xbf13cd3au,0xbf13cd3au,0x3f13cd3au,0xbf13cd3au};
+    check(memory.is_read_only(0x461998u,27*12),"Original physical query directions lost immutable ownership");
+    for(unsigned n=0;n<physical_directions.size();++n)
+        check(word(memory,0x461998u+n*4)==physical_directions[n],
+            "Original18/27 physical query direction bits differ");
+    check(!memory.is_read_only(0x473360u,8)&&word(memory,0x473360u)==0&&word(memory,0x473364u)==0x3fe00000u,
+        "Original CRT double half lost its file-initialized writable owner");
+    for(const auto address:{0x44aa04u,0x44aa24u})
+        check(memory.is_read_only(address,4)&&word(memory,address)==0xffffffffu,
+            "Original mode1 object effect event lost its immutable authored sentinel");
+    check(memory.is_read_only(0x44a9e4u,4)&&word(memory,0x44a9e4u)==0u,
+        "Original mode1 object effect lost its exact immutable event selector");
+    check(memory.is_read_only(0x44aa48u,4)&&word(memory,0x44aa48u)==0x3f2aacdau,
+        "Original damage event scalar differs from authenticated original bits");
+    for(const auto& record:original_physical_methods)
+        for(unsigned offset=0;offset<record.bytes.size();offset+=4) {
+            check(memory.is_read_only(record.base+offset,4),
+                "Original physical method record lost readonly ownership");
+            check(std::ranges::equal(memory.view(record.base+offset,4),std::span(record.bytes).subspan(offset,4)),
+                "Physical method record differs from independently captured original bytes");
+        }
+    check(!memory.is_read_only(0x47c1f0u,4)&&word(memory,0x47c1f0u)==0x0600008bu,
+        "Original object effect event name lost its file-initialized writable owner");
+    // Independent TU1.5 image audit v1356: the complete16-byte .data table
+    // is writable, including selector2 shared with111786. Cold composition
+    // must borrow the existing owner, never remount or freeze either word.
+    for(unsigned i=0;i<4;++i)
+        check(!memory.is_read_only(0x47c1f0u+i*4u,4) && word(memory,0x47c1f0u+i*4u)==0x0600008bu+i,
+            "Complete authored reaction-name table lost its writable identity");
+    check(!memory.is_read_only(0x48c770u,4)&&word(memory,0x48c770u)==0x46800000u,
+        "Original packed color interpolation scale lost its initialized writable owner");
+    check(memory.is_read_only(0x44a8dcu,original_melee_candidate_bytes.size()) &&
+        std::ranges::equal(memory.view(0x44a8dcu,original_melee_candidate_bytes.size()),original_melee_candidate_bytes),
+        "Original melee candidate table lost its complete authenticated immutable bytes");
+    for(const auto& row:original_multiplayer_branch_data)
+        check(memory.is_read_only(row.address,row.bytes.size()) &&
+            std::ranges::equal(memory.view(row.address,row.bytes.size()),row.bytes),
+            "Multiplayer branch data differs from its full authenticated immutable table");
+    for(const auto& region:original_multiplayer_data_regions) {
+        check(std::ranges::equal(memory.view(region.address,region.bytes.size()),region.bytes),
+            "Cold world lacks authenticated multiplayer class or state publication storage");
+        check(memory.is_read_only(region.address,region.bytes.size())==region.read_only,
+            "Cold world multiplayer data access differs from the original owner");
+    }
+    for(const auto &record:original_game_engine_methods)
+        for(unsigned offset=0;offset<record.bytes.size();offset+=4) {
+            check(memory.is_read_only(record.base+offset,4),"Original registered game-engine method lost readonly ownership");
+            check(std::ranges::equal(memory.view(record.base+offset,4),std::span(record.bytes).subspan(offset,4)),
+                "Registered game-engine method differs from authenticated original bytes");
+        }
+    for(const auto address:{0x468c04u,0x468cd4u,0x468da4u,0x468e74u})
+        check(word(memory,address)==0x2e4d60u&&memory.is_read_only(address,4),
+            "Original game-engine player retirement slot lost its literal immutable method");
+    for(const auto address:{0x468bf8u,0x468cc8u,0x468d98u,0x468e68u})
+        check(memory.is_read_only(address,4)&&word(memory,address)==0x25bb50u,
+            "Original game-engine player event policy lost its immutable method identity");
+    for(const auto address:{0x468c5cu,0x468d2cu,0x468dfcu,0x468eccu})
+        check(memory.is_read_only(address,4)&&word(memory,address)==0x2e4ea0u,
+            "Original game-engine damage event lost its immutable method identity");
+    check(!memory.is_read_only(0x50ef10u,255*32)&&
+        std::ranges::all_of(memory.view(0x50ef10u,255*32),[](auto b){return b==std::byte{};}),
+        "Original animation transform array prefix lacks its loader-zero writable owner");
+    check(!memory.is_read_only(0x510ef0u,32)&&memory.view(0x510ef0u,32).size()==32&&
+        !memory.is_read_only(0x510f10u,32)&&memory.view(0x510f10u,32).size()==32,
+        "Animation array admission displaced its retained final node or fallback transform");
     constexpr std::array lens_dispatch{0x2f5bau,0x2f2ccu,0x2f3e2u,0x2f3feu,0x2f50au};
     for(unsigned i=0;i<lens_dispatch.size();++i)
         check(word(memory,0x2f5c8u+i*4)==lens_dispatch[i]&&memory.is_read_only(0x2f5c8u+i*4,4),
@@ -336,7 +815,16 @@ int main(int argc,char** argv)try {
     }
     // Optional offline audit compares individually declared data against the
     // authenticated TU1.5 reference. The production factory accepts no path.
-    if(argc==2) {
+    if(argc==3 && std::string_view(argv[1])=="--light-query-data-reference") {
+        auto original=load_source_runtime_image(argv[2],SourcePhysicsContactImage::TitleUpdate15);
+        for(const auto [address,size]:std::array{std::pair{0x46a5a0u,4u},std::pair{0x46a340u,4u},
+                std::pair{0x48c78cu,16u},std::pair{0x48c79cu,2u},std::pair{0x56e20cu,8u},
+                std::pair{0x56e218u,8u},std::pair{0x56e214u,2u},std::pair{0x56e220u,2u}}) {
+            check(std::ranges::equal(memory.view(address,size),original.view(address,size)),
+                "Light/portal query declarations differ from original executable loader bytes");
+        }
+        std::cout<<"Original TU1.5 light/portal query data:8 exact declarations matched\n";
+    }else if(argc==2) {
         auto original=load_source_runtime_image(argv[1],SourcePhysicsContactImage::TitleUpdate15);
         for(const auto& region:checkpoint.regions) {
             if(region.address==tick || region.address==0x41b774)continue;
@@ -346,7 +834,7 @@ int main(int argc,char** argv)try {
                 return 1;
             }
         }
-    }else check(argc==1,"Expected only optional offline reference path");
+    }else check(argc==1,"Expected optional offline reference path or --light-query-data-reference PATH");
     const auto level_owner=std::ranges::find(checkpoint.regions,0x4fadb8u,
         &SourceRuntimeMemory::CheckpointRegion::address);
     check(level_owner!=checkpoint.regions.end() && level_owner->bytes.size()==0x208u &&

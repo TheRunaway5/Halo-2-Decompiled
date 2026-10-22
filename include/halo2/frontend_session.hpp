@@ -2,12 +2,15 @@
 #include "halo2/frontend.hpp"
 #include <chrono>
 #include <memory>
+#include <future>
 
 namespace halo2 {
 struct FrontendAudioState;
 class NativeVistaWidgetManagers;
 class NativeVistaWidgetCache;
 class NativeVistaWidgetMemory;
+class MultiplayerMapAssets;
+struct MultiplayerOptions;
 // Native application lifetime only. This owns the actual frontend content and
 // MenuState across renderer/world teardown; it is not a Vista session, return
 // request, PCR builder, or permission to resume an old screen. A frontend
@@ -55,6 +58,7 @@ public:
   // Lazy so CPU-only frontend/session fixtures open no audio device.
   FrontendAudioState &audio_state();
   void world_audio_update();
+  std::shared_future<std::shared_ptr<MultiplayerMapAssets>> prepare_multiplayer_assets(const MultiplayerOptions&);
   // Source factory admission is supplied by the lifecycle/menu-return owner.
   // This native resource owner does not infer a factory from match completion.
   MenuState &enter(FrontendOptions::Entry,

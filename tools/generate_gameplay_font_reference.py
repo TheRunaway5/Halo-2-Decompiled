@@ -44,7 +44,7 @@ def generate(raw):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", type=Path, default=ROOT / "tools/data/gameplay-font-reference.json")
-    parser.add_argument("--output", type=Path, default=ROOT / "src/gameplay_font_reference.inc")
+    parser.add_argument("--output", type=Path, default=ROOT / "src/ui/gameplay_font_reference.inc")
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     try:

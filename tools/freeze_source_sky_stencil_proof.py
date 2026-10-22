@@ -18,7 +18,7 @@ def sources():
     paths=[ROOT/x for x in (
         'assets/disc/default.xbe',
         'analysis/multiplayer-shading/original-xemu/original_capture_20.rdc',
-        'include/halo2/source_sky_stencil.hpp','src/source_sky_stencil.cpp',
+        'include/halo2/source_sky_stencil.hpp','src/rendering/world/source_sky_stencil.cpp',
         'include/halo2/source_weather_depth_alias.hpp','tests/source_weather_plate_gpu_fixture.hpp',
         'include/halo2/cache.hpp','include/halo2/source_weather_plate_render.hpp',
         'include/halo2/vertex_program.hpp','include/halo2/render_program.hpp',

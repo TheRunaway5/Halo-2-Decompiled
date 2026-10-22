@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="212" height="108" viewBox="0 0 53 27" version="1.1">
+  <title>Playstation r3: custom controller prompt</title>
+  <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+  <defs>
+    <mask id="sticks-opacity" maskUnits="userSpaceOnUse" x="0" y="0" width="53" height="27">
+      <rect width="53" height="27" fill="black" />
+      <g id="left-stick">
+        <path id="shaft" d="M6.63 11.371710526315788 H19.37 V20.96578947368421 Q19.37 26.65 13.0 26.65 Q6.63 26.65 6.63 20.96578947368421 Z" fill="#333333" />
+        <path id="shaft-rim" d="M6.63 15.251184210526315 V20.96578947368421 Q6.63 26.65 13.0 26.65 Q19.37 26.65 19.37 20.96578947368421 V15.251184210526315" fill="none" stroke="#444444" stroke-width="0.5684210526315789" />
+        <ellipse id="cap" cx="13.0" cy="8.760526315789473" rx="12.75" ry="7.460526315789473" fill="#333333" stroke="#444444" stroke-width="0.6394736842105263" />
+        <ellipse id="cap-inset" cx="13.0" cy="6.97" rx="9.0525" ry="4.327105263157894" fill="none" stroke="#444444" stroke-width="0.7460526315789474" />
+      </g>
+      <g id="right-stick">
+        <path id="shaft" d="M32.885 16.371710526315788 H46.115 V20.96578947368421 Q46.115 26.65 39.5 26.65 Q32.885 26.65 32.885 20.96578947368421 Z" fill="#888888" />
+        <path id="shaft-rim" d="M32.885 20.251184210526315 V20.96578947368421 Q32.885 26.65 39.5 26.65 Q46.115 26.65 46.115 20.96578947368421 V20.251184210526315" fill="none" stroke="#bbbbbb" stroke-width="0.5684210526315789" />
+        <ellipse id="cap" cx="39.5" cy="13.760526315789473" rx="13.25" ry="7.460526315789473" fill="#888888" stroke="#bbbbbb" stroke-width="0.6394736842105263" />
+        <ellipse id="cap-inset" cx="39.5" cy="11.97" rx="9.407499999999999" ry="4.327105263157894" fill="none" stroke="#cccccc" stroke-width="0.7460526315789474" />
+        <path id="neck-shadow" d="M33.59552631578947 21.15 H45.40447368421053 L44.69394736842106 22.42894736842105 Q39.5 22.926315789473684 34.30605263157894 22.42894736842105 Z" fill="#777777" />
+        <path id="neck-crease" d="M34.30605263157894 22.002631578947366 Q39.5 23.210526315789473 44.69394736842106 22.002631578947366" fill="none" stroke="#444444" stroke-width="0.6394736842105263" />
+      </g>
+    </mask>
+  </defs>
+  <rect id="sticks-paint" width="53" height="27" fill="white" mask="url(#sticks-opacity)" />
+  <g id="label-r3" transform="translate(32.636315789473684 9.470723684210526) scale(0.8579605263157892)" fill="#f2f6ff" fill-rule="evenodd">
+    <path d="M0 0 H4.4 C6.5 0 7.2 1.2 7.2 3 C7.2 4.4 6.5 5.3 5.2 5.5 L7.7 10 H5.9 L3.5 5.8 H1.5 V10 H0 Z M1.5 1.4 V4.4 H4.1 C5.3 4.4 5.7 4 5.7 2.9 C5.7 1.9 5.2 1.4 4.1 1.4 Z" transform="translate(0.0 0)" />
+    <path d="M0 1.6 C2.3 -.9 7.4 -.5 7.4 2.7 C7.4 4 6.7 4.7 5.8 5 C8.8 5.8 8 10.3 3.8 10.3 C2 10.3 .7 9.7 0 8.8 L1.1 7.6 C3.6 9.6 6.3 9 6.1 7 C6 5.8 4 5.8 2.7 5.8 V4.2 C7.5 4.6 6.2 -.5 1.1 2.8 Z" transform="translate(8.5 0)" />
+  </g>
+</svg>

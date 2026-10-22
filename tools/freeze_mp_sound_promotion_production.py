@@ -31,10 +31,10 @@ def main():
                 'evidence_files','original_inputs','prior_pins','files','dependency_pins']:
    for path,digest in dependency.get(group,{}).items():add(prior,path,digest)
  verify(prior)
- names=['CMakeLists.txt','include/halo2/original_data.hpp','src/original_data.cpp',
- 'include/halo2/sound_promotion.hpp','src/sound_promotion.cpp','tests/sound_promotion_tests.cpp',
+ names=['CMakeLists.txt','include/halo2/original_data.hpp','src/assets/original_data.cpp',
+ 'include/halo2/sound_promotion.hpp','src/audio/sound_promotion.cpp','tests/sound_promotion_tests.cpp',
  'tests/sound_promotion_constants_tests.cpp','tools/export_mp_sound_promotion_constants.py',
- 'include/halo2/native_synchronization.hpp','src/native_synchronization.cpp',
+ 'include/halo2/native_synchronization.hpp','src/platform/native_synchronization.cpp',
  'tests/native_synchronization_tests.cpp','tools/run_owned_fixture_test.py',
  'tools/freeze_mp_sound_promotion_production.py','tools/freeze_mp_native_sound_storage.py',
  'docs/MP_SOUND_PROMOTION_PRODUCTION_RESEARCH.md']

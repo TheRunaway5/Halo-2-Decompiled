@@ -854,3 +854,126 @@ dependencies. Kill-volume death uses separate admission.
 
 No schedule is asserted. Advance by verified ownership boundaries and record
 the first unavailable dependency where original execution cannot continue.
+
+## TU1.5 player screen flashes, 2026-10-20
+
+The missing native full-screen damage response now has a separate player-view
+consumer. Authority is unchanged English TU1.5, SHA-256
+`21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd`:
+`CC590 -> 156840 -> 1578A0 -> 156E40 -> 40880`. The oracle executes the
+selection prefix, whole slot admission, whole per-user sampling and original
+`134960` color packing; it stops before sound, rumble and camera services.
+
+- `156840` selects the first response whose type differs from the current
+  shield-positive boolean. Duration and intensity must both exceed `0.05`.
+  Failing those gates does not continue to a later row.
+- It overrides the authored flash type/priority to LIGHTEN/medium and selects
+  ARGB `(1,0,.6,.8)` with shields, `(1,1,0,0)` without shields. Ordinary
+  duration is `.2`/`.3` seconds at intensity `.3`. Authored duration above
+  `.5` and actual signed seat `NONE` instead selects `.8` seconds, intensity
+  `.6`, curve1. Report scale passes through original curve2.
+- `1578A0` retains a higher-priority flash only while its remaining seconds
+  exceed the incoming duration. Duration-to-ticks truncates; sampling uses
+  the original transition tables. Repeated admitted hits replace/refresh the
+  user slot. There is no hit-count threshold in this producer.
+- `40880` follows `1977AB`'s HUD dispatch. Its LIGHTEN branch uses quantized
+  premultiplied channels, ONE/INVSRCALPHA and RGB-only writes. `134960` uses
+  x87 multiplication before integer rounding; a float-only packing substitute
+  differs, for example at `.3f * 255`.
+
+Campaign and multiplayer consume the existing admitted player-response
+journal. Event-time shield, seat and flash scale survive native LAN protocol92;
+each local viewport owns an independent timer. Late packet batches advance
+the flash by authoritative event/tick ages; a stopped simulation clock does
+not advance it.
+The renderer schedules each flash after its HUD and before pause UI. A
+nonzero global cinematic fade suppresses the damage flash. This preserves the
+current native fade adapter; exact global-script fade admission remains its
+separate source ownership boundary.
+
+`tests/fixtures/player_screen_flash_tu15/` contains 1,320 original timed samples,
+144 priority/truncation cases, eight multi-row selection cases and the two
+needed original lookup tables. `player_screen_flash_tests` also loads every
+authored Lockout damage response, including cache-interned blocks. The Vulkan
+regression checks actual native response/UDP delivery, red and blue output,
+HUD/pause ordering, two/three/four-view isolation and opaque fade suppression. Temporary
+captures belong to `HALO2_TEST_SCRATCH`.
+
+Reproduce original CPU evidence with:
+
+```sh
+python3 tools/run_test.py -- .tools/python/bin/python \
+  tools/oracle_player_screen_flash_tu15.py \
+  --output tests/fixtures/player_screen_flash_tu15
+python3 tools/run_tests.py --target player_screen_flash_kernel_tests \
+  --target player_screen_flash_tests \
+  --filter '^original_tu15_player_screen_flash(_kernel)?$'
+python3 tools/run_tests.py --target player_screen_flash_render_tests \
+  --filter '^native_player_screen_flash_render$'
+```
+
+This closes the missing damage-flash consumer, not every full-screen effect.
+The initial disc census spans 29 caches: 2,588 damage-tag appearances and 2,866
+response rows meeting the two authored flash gates. All HUD screen-effect tag references
+are NONE, including the Battle Rifle's mask-only widget; existing scope mask
+handling remains separate. The only `egor` names in that census are blur and
+desaturate. Existing cinematic fades, letterbox, crossfade, bloom and menu
+filters retain their own evidence. Cinematic depth-of-field still lacks its
+Vulkan scene/filter/composite integration, as recorded in
+`CUTSCENE_TU15_COMPARISON_20261016.md`. Other generic flash blend modes are not
+emitted by this damage wrapper and are not certified by its LIGHTEN test.
+Full source-hit coverage, original-Xbox framebuffer comparison and installed
+launcher delivery must not be inferred from these component checks.
+
+### MCC flash-tag import census
+
+Damage flashes have no separate bitmap/shader dependency: their definitions
+are inline in `jpt!` Player Responses. `tools/mcc_player_screen_flashes.py`
+now inventories that complete block, using the native unloaded-only shared
+directory merge and exact same-address/group ownership for whole-tag aliases.
+It rejects escaped pointers, missing alias backing and nonfinite flash fields.
+Checking only nonzero-sized directory entries would miss, for example,
+Cairo's Elite boarding-melee flash, which shares the Brute definition.
+
+The selected prepared MCC cache
+`assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/` contains all 100
+distinct flash-producing tag names across 43 caches: 4,298 damage-tag
+appearances, 2,596 flash-producing appearances, 4,807 admitted authored flash
+rows and 212 exact whole-tag aliases. All response fields match the installed
+MCC source copy. Flash-producing definitions in all 30 matching original
+Xbox reference caches also agree exactly (1,631 appearances / 3,020 flash
+rows); additional MCC maps have no matching original-map claim here.
+
+`player-screen-flashes.json` in that prepared cache contains every tag's full
+salted identity and every flash field as exact integer/float bits. Its hash
+and census are recorded in `provenance.json`. The fields were already present
+in the copied map metadata; no original tag injection or map rewrite was
+needed. `prepare_mcc_gameplay.py` now creates this checked inventory on each
+future import. The human-readable names and bounded source/import comparison
+receipts are in `analysis/player-screen-flash-tu15-20261020/`.
+
+`mcc_all_player_screen_flashes` opens every inventory map through the actual
+native `Cache` converter and loads every damage tag through
+`load_player_screen_responses`, including aliases and interned blocks. It
+compares all ten authored fields bit for bit and checks that no resident
+damage tag was omitted. Reproduce with:
+
+```sh
+python3 tools/run_test.py -- python3 tools/mcc_player_screen_flashes.py \
+  --mcc-root assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2 \
+  --reference-maps assets/disc/maps \
+  --output '@HALO2_TEST_SCRATCH@/flash-inventory.json'
+python3 tools/run_tests.py --target player_screen_flash_mcc_tests \
+  --filter '^mcc_all_player_screen_flashes$' \
+  --cmake-arg=-DHALO2_MCC_PLAYER_FLASH_MAPS="$PWD/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11" \
+  --cmake-arg=-DHALO2_MCC_PLAYER_FLASH_INVENTORY="$PWD/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/player-screen-flashes.json"
+```
+
+Validation on 2026-10-20 passed all four native suites (the two original
+state/content suites, Vulkan/UDP rendering, and all 43 MCC caches), plus five
+import boundary regressions. The controlled source hashes and CTest results
+are in `build/test-results/player-screen-flash-complete/`; the bounded final
+receipt and cleanup confirmation are under
+`analysis/player-screen-flash-tu15-20261020/validation/`. The disposable build,
+frozen validation copy and captures were removed. No large test artifacts or
+new launcher runtime were retained.

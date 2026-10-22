@@ -5,6 +5,7 @@
 #include "halo2/online_match_session.hpp"
 #include "halo2/source_replay_batch.hpp"
 #include "halo2/source_host_continuation_codec.hpp"
+#include "halo2/peer_snapshot_candidate.hpp"
 #include <chrono>
 #include <cstdint>
 #include <optional>
@@ -44,6 +45,13 @@ struct SourceAuthorityPublisherState {
     // successor recording/journal/encoding never rejects the immutable held
     // cut or its still-pending native acknowledgements.
     bool validation_timed_out{};
+    // Configured before negotiation: no unarmed snapshot/replay may escape
+    // while the optional direct-peer candidate protocol is unavailable.
+    bool snapshot_candidate_mode{};
+    std::optional<PeerSnapshotToken> snapshot_candidate;
+    // Producer-local lineage from the selected genuine broadcast to its
+    // encoded paired native cut. This metadata is never a receiver proof.
+    std::optional<SourceAuthorityPublisherGroupCut> snapshot_candidate_group;
 };
 // One recorder/encoder and authority chain for the supplied physical recipients.
 // The caller supplies that fixed set; this owner neither elects a host nor drops
@@ -72,6 +80,13 @@ public:
     // native boundary. Refuses overlap; unsupported capture is a diagnostic,
     // not a prepared shadow or permission to advance its delta base.
     bool capture();
+    // Requires the exact freshly emitted, all-Armed candidate at a quiescent
+    // boundary. Captured native tick and host stamps must still match. This
+    // mode captures full owning cuts and does not record successor journals.
+    bool capture_candidate(const PeerSnapshotToken &,const LanHost::CandidateEmission &);
+    // Cancellation before issuance only. An issued held cut retires through
+    // the independent common-cut Abort/Release barrier instead.
+    bool abort_snapshot_candidate(const PeerSnapshotToken &);
     // Execute real host work once. Replay mode records every complete phase
     // after capture, including while the initial cut is encoding/in flight.
     // Recording failure drops this stream, never real host work. Exceptions
@@ -105,6 +120,7 @@ public:
     // common-cut owner releases after all recipients retire the predecessor,
     // or aborts after all recipients retire the rejected pending pin.
     void set_common_cut_barrier(bool);
+    void set_snapshot_candidate_mode(bool);
     bool release_common_cut(const SourceAuthorityPublisherGroupCut &);
     bool abort_common_cut(const SourceAuthorityPublisherGroupCut &);
     SourceAuthorityPublisherState state()const;

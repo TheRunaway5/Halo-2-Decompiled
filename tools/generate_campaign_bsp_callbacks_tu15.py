@@ -13,7 +13,7 @@ CONSTRUCTED = (3,14,17,18,19,20,21,22,23,25,27,28,30,32,34,35,37,39,
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--output', type=Path, default=Path('src/campaign_bsp_callbacks_tu15.hpp'))
+    parser.add_argument('--output', type=Path, default=Path('src/campaign/campaign_bsp_callbacks_tu15.hpp'))
     parser.add_argument('--manifest', type=Path, required=True)
     args = parser.parse_args()
     assert sha(NEW_DEFAULT) == NEW_PIN

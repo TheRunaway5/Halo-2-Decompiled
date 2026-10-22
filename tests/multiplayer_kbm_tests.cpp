@@ -132,6 +132,22 @@ int main() {
               input.actions.melee && input.actions.grenade, "simulation missed queued requests");
     check(neutral(adapter.consume()), "released taps were delivered twice");
 
+    queue.button(SDL_BUTTON_RIGHT,true);queue.drain(adapter);
+    for(unsigned tick=0;tick<3;++tick) {
+      const auto held=adapter.consume();
+      for(bool inverted:{false,true}) {
+        for(bool dual:{false,true}) {
+          const auto seated=held.gameplay_controls(dual,true,inverted);
+          check(!seated.fire && !seated.fire_secondary && seated.crouch,"Held right mouse button never reaches only the original vehicle boost control bit");
+        }
+        const auto on_foot=held.gameplay_controls(false,false,inverted);
+        check(!on_foot.fire && !on_foot.fire_secondary && !on_foot.crouch,"On-foot zoom also fired or boosted");
+      }
+    }
+    queue.button(SDL_BUTTON_RIGHT,false);queue.drain(adapter);
+    check(!adapter.consume().gameplay_controls(false,true,false).crouch,"Released vehicle boost remained held");
+    queue.reset(adapter);
+
     // Pin observation time relative to the timestamp delivered by SDL. The
     // authored 233ms boundary is tested at the gameplay admission seam too.
     queue.key(SDL_SCANCODE_E,true);queue.drain(adapter);
@@ -222,8 +238,7 @@ int main() {
     check(adapter.consume().actions.switch_weapon, "fresh Tab press did not rearm");
     queue.reset(adapter);
 
-    // F1 belongs to the optional debug window. It cannot double as a held
-    // scoreboard request, even before the runtime captures the event.
+    // Unbound F1 has no gameplay action or debug overlay.
     queue.key(SDL_SCANCODE_F1, true); queue.drain(adapter);
     check(neutral(adapter.snapshot()), "F1 still admits gameplay input");
     queue.key(SDL_SCANCODE_F1, false); queue.drain(adapter);

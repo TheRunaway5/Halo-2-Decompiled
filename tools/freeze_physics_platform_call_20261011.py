@@ -10,9 +10,9 @@ BASE = ROOT / 'analysis/multiplayer/integration/physics-engine-20261010'
 PARENT_PIN = 'f97efedd92fb7bd661eccb7e512fe9a131c1f3c396e684392669e762d681a968'
 APPEND = '\ninclude(cmake/PhysicsPlatformCall.cmake)\n'
 OWNED = (
-    'src/physics_world_runtime_generated.cpp',
-    'include/halo2/physics_platform_call.hpp', 'src/physics_platform_call.cpp',
-    'src/physics_platform_call_bindings.hpp', 'tests/physics_platform_call_tests.cpp',
+    'src/physics/runtime/physics_world_runtime_generated.cpp',
+    'include/halo2/physics_platform_call.hpp', 'src/physics/physics_platform_call.cpp',
+    'src/physics/physics_platform_call_bindings.hpp', 'tests/physics_platform_call_tests.cpp',
     'cmake/PhysicsPlatformCall.cmake',
     'tools/research_physics_world_platform_runtime_20261011.py',
     'tools/generate_physics_world_platform_runtime_20261011.py',

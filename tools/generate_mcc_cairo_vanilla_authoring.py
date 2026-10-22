@@ -105,7 +105,7 @@ def generated(p):
         owner=next(b for b in p['banks']if b['name']==bank);h=restoration['postimages'][name];digest=','.join('std::byte{0x'+h[i:i+2]+'}'for i in range(0,64,2));lines.append('constexpr GuardBank final_'+name+'_postimage{'+q(bank)+','+str(owner['token'])+'u,'+str(owner['size'])+'u,{{'+digest+'}}};')
     return '\n'.join(lines)+'\n'
 def main():
-    a=argparse.ArgumentParser(description=__doc__);a.add_argument('--check',action='store_true');o=a.parse_args();result=generated(json.loads((ROOT/'tools/mcc-cairo-vanilla-authoring.json').read_text()));output=ROOT/'src/mcc_cairo_vanilla_authoring.inc'
+    a=argparse.ArgumentParser(description=__doc__);a.add_argument('--check',action='store_true');o=a.parse_args();result=generated(json.loads((ROOT/'tools/mcc-cairo-vanilla-authoring.json').read_text()));output=ROOT/'src/campaign/mcc_cairo_vanilla_authoring.inc'
     if o.check:
         if output.read_text()!=result:raise SystemExit('compiled Cairo authoring profile is stale')
     else:output.write_text(result)

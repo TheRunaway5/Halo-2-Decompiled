@@ -15,7 +15,7 @@ SOURCE = (ROOT / "tools/reference/mcc-native-template-variants.json").read_bytes
 
 class NativeVariants(unittest.TestCase):
     def test_committed_output_is_reproducible(self):
-        self.assertEqual(GENERATOR.generate(SOURCE), (ROOT / "src/mcc_native_template_variants.inc").read_text())
+        self.assertEqual(GENERATOR.generate(SOURCE), (ROOT / "src/rendering/mcc_native_template_variants.inc").read_text())
 
     def test_changed_or_unowned_evidence_is_rejected(self):
         mutations = (

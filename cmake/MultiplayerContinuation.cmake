@@ -1,26 +1,42 @@
-target_sources(halo2_systems PRIVATE src/multiplayer_continuation.cpp src/source_match_authority.cpp src/source_execution_phase.cpp)
-target_sources(halo2_systems PRIVATE src/source_execution_calls.cpp src/source_execution_lens.cpp)
-set_source_files_properties(src/source_execution_calls.cpp PROPERTIES INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/third_party/boost-pfr/include")
+target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/multiplayer_continuation.cpp src/runtime/source_match_authority.cpp src/runtime/source_execution_phase.cpp)
+target_sources(halo2_systems PRIVATE src/runtime/source_execution_calls.cpp src/runtime/source_execution_lens.cpp)
+set_source_files_properties(src/runtime/source_execution_calls.cpp PROPERTIES INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/third_party/boost-pfr/include")
 if(BUILD_TESTING)
     add_executable(effect_location_admission_tu15_tests tests/effect_location_admission_tu15_tests.cpp)
     target_include_directories(effect_location_admission_tu15_tests PRIVATE include)
     add_test(NAME original_tu15_effect_location_admission COMMAND effect_location_admission_tu15_tests
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/effect_location_world_tu15.original.bin")
-    add_executable(multiplayer_replica_refresh_tests tests/multiplayer_replica_refresh_tests.cpp src/multiplayer_runtime.cpp)
-    target_link_libraries(multiplayer_replica_refresh_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan glm::glm)
+    add_executable(multiplayer_replica_refresh_tests tests/multiplayer_replica_refresh_tests.cpp src/gameplay/multiplayer/multiplayer_runtime.cpp)
+    target_link_libraries(multiplayer_replica_refresh_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan halo2_glm)
     target_compile_definitions(multiplayer_replica_refresh_tests PRIVATE HALO2_SHADER_DIR="${CMAKE_CURRENT_BINARY_DIR}/shaders")
     add_dependencies(multiplayer_replica_refresh_tests halo2_shaders)
     add_test(NAME native_replica_refresh_runtime COMMAND multiplayer_replica_refresh_tests
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map"
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps" "${HALO2_TU15_GAMEPLAY_XBE}")
     set_tests_properties(native_replica_refresh_runtime PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240 RUN_SERIAL TRUE)
-    add_executable(multiplayer_effect_history_tests tests/multiplayer_effect_history_tests.cpp src/multiplayer_runtime.cpp)
-    target_link_libraries(multiplayer_effect_history_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan glm::glm nlohmann_json::nlohmann_json)
+    add_executable(multiplayer_effect_history_tests tests/multiplayer_effect_history_tests.cpp src/gameplay/multiplayer/multiplayer_runtime.cpp)
+    target_link_libraries(multiplayer_effect_history_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan halo2_glm nlohmann_json::nlohmann_json)
     target_compile_definitions(multiplayer_effect_history_tests PRIVATE HALO2_SHADER_DIR="${CMAKE_CURRENT_BINARY_DIR}/shaders")
     add_dependencies(multiplayer_effect_history_tests halo2_shaders)
     add_test(NAME native_online_effect_history COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/multiplayer_effect_history_http_test.py" $<TARGET_FILE:multiplayer_effect_history_tests>)
-    set_tests_properties(native_online_effect_history PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 270 RUN_SERIAL TRUE)
+    set_tests_properties(native_online_effect_history PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 270 RUN_SERIAL TRUE
+        LABELS "offline-reference")
+    set(HALO2_MCC_GAMEPLAY_TEST_CACHE "" CACHE STRING "Explicit selected prepared MCC cache for native ONLINE gameplay history tests; empty disables this route")
+    if(NOT "${HALO2_MCC_GAMEPLAY_TEST_CACHE}" STREQUAL "" AND
+       NOT "${HALO2_MCC_GAMEPLAY_TEST_CACHE}" STREQUAL "auto")
+        get_filename_component(_halo2_mcc_gameplay_cache "${HALO2_MCC_GAMEPLAY_TEST_CACHE}"
+            ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+        add_test(NAME native_online_effect_history_mcc COMMAND ${Python3_EXECUTABLE}
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/multiplayer_effect_history_http_test.py" $<TARGET_FILE:multiplayer_effect_history_tests>
+            --mcc-root "${_halo2_mcc_gameplay_cache}")
+        set_tests_properties(native_online_effect_history_mcc PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 270 RUN_SERIAL TRUE
+            LABELS "selected-mcc-native")
+        add_test(NAME native_mcc_prompt_font_owner COMMAND ${Python3_EXECUTABLE}
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_mcc_native_prompt_fonts.py"
+            --mcc-root "${_halo2_mcc_gameplay_cache}")
+        set_tests_properties(native_mcc_prompt_font_owner PROPERTIES TIMEOUT 60 LABELS "selected-mcc-font")
+    endif()
     add_test(NAME native_audio_late_join COMMAND multiplayer_audio_late_join_tests
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map"
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps" "${HALO2_TU15_GAMEPLAY_XBE}")
@@ -103,10 +119,18 @@ if(BUILD_TESTING)
     set_tests_properties(source_match_network_departure_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
     add_executable(source_host_continuation_tests tests/source_host_continuation_tests.cpp)
     add_executable(multiplayer_snapshot_origin_tests tests/multiplayer_snapshot_origin_tests.cpp)
-    target_link_libraries(multiplayer_snapshot_origin_tests PRIVATE halo2_authority_codec)
+    target_link_libraries(multiplayer_snapshot_origin_tests PRIVATE halo2_renderer)
     add_test(NAME native_snapshot_origin_tu15 COMMAND multiplayer_snapshot_origin_tests
         "${HALO2_TU15_GAMEPLAY_XBE}" "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map")
     set_tests_properties(native_snapshot_origin_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240)
+    if(NOT "${HALO2_MCC_GAMEPLAY_TEST_CACHE}" STREQUAL "" AND
+       NOT "${HALO2_MCC_GAMEPLAY_TEST_CACHE}" STREQUAL "auto")
+        add_test(NAME native_snapshot_origin_mcc COMMAND multiplayer_snapshot_origin_tests
+            --mcc "${_halo2_mcc_gameplay_cache}/halo2/h2_maps_win64_dx11/lockout.map")
+        set_tests_properties(native_snapshot_origin_mcc PROPERTIES TIMEOUT 240 RUN_SERIAL TRUE
+            LABELS "selected-mcc-native;component;locomotion-continuity"
+            ENVIRONMENT "SDL_AUDIODRIVER=dummy;SDL_VIDEODRIVER=dummy")
+    endif()
     target_link_libraries(source_host_continuation_tests PRIVATE halo2_authority_codec)
     add_test(NAME source_host_continuation_tu15 COMMAND source_host_continuation_tests
         "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"

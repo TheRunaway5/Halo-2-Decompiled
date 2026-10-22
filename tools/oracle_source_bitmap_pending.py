@@ -401,13 +401,13 @@ def main():
         tool_sha256=sha(Path(__file__).read_bytes()), allocator_report_sha256=sha(allocator_path.read_bytes()),
         header_report_sha256=sha(header_report_path.read_bytes()), manager_fixture_sha256=sha(manager_fixture.read_bytes()),
         fixture_sha256=sha(fixture.read_bytes()), native_binary_sha256=sha(args.binary.read_bytes()) if args.binary else None,
-        helper_sha256=sha((ROOT / 'src/source_bitmap_pending.cpp').read_bytes()),
+        helper_sha256=sha((ROOT / 'src/rendering/source_bitmap_pending.cpp').read_bytes()),
         header_sha256=sha((ROOT / 'include/halo2/source_bitmap_pending.hpp').read_bytes()),
         test_sha256=sha((ROOT / 'tests/source_bitmap_pending_tests.cpp').read_bytes()),
         dependencies={str(path): sha((ROOT / path).read_bytes()) for path in [
-            'src/source_bitmap_reservation.cpp', 'src/source_bitmap_manager_transition.cpp',
-            'src/source_bitmap_image_binding.cpp', 'src/source_bitmap_pending_header.cpp',
-            'src/source_bitmap_async_read.cpp', 'src/source_async_jobs.cpp']},
+            'src/rendering/source_bitmap_reservation.cpp', 'src/rendering/source_bitmap_manager_transition.cpp',
+            'src/rendering/source_bitmap_image_binding.cpp', 'src/rendering/source_bitmap_pending_header.cpp',
+            'src/rendering/source_bitmap_async_read.cpp', 'src/platform/source_async_jobs.cpp']},
         native_fixture_validation=validation, incoming_owner_records=incoming, appended_owner_banks=appended,
         initial_banks={name: dict(address=f'{address:08X}', bytes=size, sha256=sha(initial[name]))
             for name, (address, size) in sorted(specs.items())},

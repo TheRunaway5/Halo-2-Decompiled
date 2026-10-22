@@ -1,6 +1,6 @@
 include(cmake/VulkanLensRetirementObserver.cmake)
-target_sources(halo2_physics_world_runtime PRIVATE src/source_lens_query_tu15_generated.cpp)
-target_sources(halo2_renderer PRIVATE src/source_lens_query_gpu.cpp src/source_lens_query_geometry_tu15.cpp src/source_lens_query_frame_tu15.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/rendering/effects/source_lens_query_tu15_generated.cpp)
+target_sources(halo2_renderer PRIVATE src/rendering/effects/source_lens_query_gpu.cpp src/rendering/effects/source_lens_query_geometry_tu15.cpp src/rendering/effects/source_lens_query_frame_tu15.cpp)
 set(lens_query_shaders)
 foreach(shader source_lens_query.vert source_lens_query.frag)
     set(output "${CMAKE_CURRENT_BINARY_DIR}/shaders/${shader}.spv")

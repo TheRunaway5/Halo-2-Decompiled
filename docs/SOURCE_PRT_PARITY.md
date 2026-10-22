@@ -132,3 +132,106 @@ and preserves its prior baseline/illuminated images byte for byte.
 The material/presentation path still needs original gameplay admission ordering,
 per-view lifetime and live cache incident wiring across all requested entities.
 The matched-frame and installed-runtime gates remain open.
+
+
+October20 physics continuation: MCC Flood Zone campaign context32 (vehicle
+placement4/BSP0) reaches visible machine placement355 before rendering. Its
+empty SH path correctly rejects missing retained caller incident. Offline
+`analysis/multiplayer/physics-live-tu15-20261012/native-prt-caller-v1244/`
+authenticates the actual English TU1.5 code bytes: full builder4B5C0 calls23670
+at4B9E6. The original PRT cache uses up to24 records at4C51D0 with104-byte
+stride; incident is the record's+92 field. Calls23983/23BB0 pass that actual
+field into22CD0. `source_live_model_prt_bank_tu15` already reads this original
+owner record and current coefficient arena for admitted vehicle draws.
+MACH is absent from the current native model resource/selection roots and its
+resource prepass assembles PRT banks before a retained render caller is bound.
+The remaining repair must connect MACH material residency and each actual
+view's completed native cache state, including client presentation ownership;
+it must preserve checkpoint/material lifetime rules and skip no visible owner.
+No zero vector, another object's bank, recorded coefficient replay or relaxed
+incident guard has been introduced. This audit is code/ownership evidence only,
+not live qualification of that context.
+
+Offline v1276 authenticates actual per-view22830: it resets24 record owners,
+allocation tokens, coefficient offsets, node counts and515EC8. It deliberately
+leaves each record's+92..103 incident bytes untouched. For an empty/invalid
+active SH bank, the initializer exits at22C04 without replacing those retained
+incidents. A new per-object zero default would therefore lose the prior view's
+slot lifetime. The required live renderer owner must preserve this cross-view
+cache state before source23670/22CD0 consume it. Evidence is retained at
+`analysis/multiplayer/physics-live-tu15-20261012/native-prt-view-initializer-v1276/`.
+
+October20 continuation v1331 compares original and imported MCC FloodZone SH
+metadata directly: BSP0/1/2 each have zero records, BSP3 has seven and BSP4 has25,
+with matching structure ownership. Machine355 atBSP0 therefore needs the actual
+retained caller even with correct MCC conversion. Native model probe v1341
+first reaches a duplicate47524E mount inside the complete writable camera-effect
+request type table. This follows the separately authenticated450212 duplicate
+inside the complete70-byte startup table. Shared source now borrows both
+original owners; no original memory result is supplied. The active v1343 owned
+incremental diagnostic will verify those fixes before continuing the actual
+native admission/model-builder path. It uses actual MCC assets and a declared
+isolated diagnostic view, so its output remains component evidence.
+
+Native v1343 now reaches actual23670 and observes its seven source arguments
+without changing instructions, registers, memory outcomes or service results.
+A declared isolated whole-builder call produces one genuine cache record,
+two region0 node banks and the actual cold incident0/0/0. This does not admit
+machine355 into a view: actual source admission remains empty and its spatial
+reference head isNONE. The globally instantiated key is at295.7645,-73.7401,790
+with radius100; the campaign observer start is nearZ-188. Candidate v1346 fixes
+the eager presentation demand by keeping deferred resource errors until draw
+submission and testing the actual source-camera frustum first. Any in-frustum
+unresolved machine must still reject. Real per-view MACH PRT integration for
+admitted owners, later slot history and client ownership remain open. The
+v1343 private build/source are removed; required exact probe/source archive and
+small positive/negative reports remain with retention metadata.
+
+Candidate v1346's actual-MCC deferred-machine/frustum regression passes,
+including strict in-frustum failure and retirement, along with the existing
+machine presentation suite. Linked qualification remains negative29/35 because
+six checks reach one additional cold ownership regression: selector2 at47C1F8
+is inside the complete writable reaction-name table. Original image audit
+v1356 independently confirms four words0600008B..0600008E and .data flags7.
+The two older aliases now borrow that original owner, including the later
+selector0 read; no overlapping remount or readonly conversion remains. Full
+linked v1357 and fresh visible v1358/v1359 acceptance are pending. The v1346
+private build/source have been verified removed; all failure receipts remain.
+
+The v1357 factory and34 linked checks now pass after borrowing the complete
+writable reaction-name owner and adopting the existing shared multiplayer
+branch provider. Independent v1361 authenticates its19 readonly intervals
+(577 bytes) and newly reached1EF260's unsigned0..4 dispatch bound. Base live
+v1359 passes the full9-case physics core with the original submitted vehicle
+camera. Actual FloodZone v1358 still rejects machine355, exposing a second
+presentation producer mismatch: its recomputed node0 shadow sphere differs
+from the actual retained object+30/+3C admission bound. Revision v1357-r1
+looks up the latter from the current authoritative WORLD-pose snapshot by full
+generation, and uses it for machine frustum and LOD metrics. That revision
+passes34 linked checks/export and core v1365 passes9/9, but FloodZone v1364
+still fails. Read-only v1367 confirms its real radius100 sphere enters the
+ordinary camera frustum during look. Candidate v1369 adds actual full-generation
+cluster memberships from both source spatial pools, transported in protocol95,
+and requires membership in a current portal frustum before machine submission.
+All36 linked checks and immutable export pass; actual visible v1371/v1372
+qualification is running. The26-case vehicle camera/seat cohort v1373 is queued. Admitted unresolved PRT owners still fail.
+No recorded bound, incident, pose or admission result is supplied to live physics.
+
+Actual FloodZone v1371 now passes on this protocol95 candidate:102 submitted
+Phantom frames per view,16.76 units of causal original-controller response and
+185 exact same-tick LAN comparisons. v1374 recording review at20/50/85 percent
+shows the Phantom clearly in both views through approach, overhead pass and
+departure; all3 decoded review PNGs are removed. This resolves context32's
+unregistered machine355 presentation rejection. It does not establish admitted
+machine per-view PRT ownership or complete physics parity. Core, all26 camera/
+seat selections and a one-runtime47-context campaign census remain in progress.
+
+The same production native binary is now wired as v1369-r1 (protocol95).
+Qualification retains36 linked checks, core9/9,26 consolidated vehicle/seat
+selections (including explicitly declared Banshee takeoff input),54 teleporter/
+HUD/flash compatibility checks and3 validation-enabled rendered delivery checks.
+Ordinary native and wired-launcher startup pass120 frames with two players and
+MCC-only opened files. The earlier render failure was a missing installed
+validation-layer search path in the one-off harness; corrected v1390 passes3/3.
+Admitted MACH per-view PRT remains open; the full current campaign census is
+running and is not inferred from these bounded passes.

@@ -167,7 +167,8 @@ def create(source, target):
 
 
 def load_bundled(root):
-    path = Path(root) / BUNDLE
+    from installation_paths import resource_root
+    path = resource_root(root) / BUNDLE
     if not path.is_file():
         return None
     report = json.loads(path.with_suffix("").read_bytes())

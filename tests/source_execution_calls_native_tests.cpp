@@ -103,7 +103,7 @@ int main(int argc,char **argv)try {
     // The unsupported direct source tick changes the source/Match pair, so
     // repair the host through the last complete coupled cut before continuing.
     auto p=host.authority->prepare(replica.authority->checkpoint(binding),binding);check(host.authority->commit(std::move(p)),"Unsupported host work could not repair");equal(host,replica);
-    rejects([&]{host.authority->capture_execution_phase([&]{host.match->debug_settings({});});});equal(host,replica);
+    rejects([&]{host.authority->capture_execution_phase([&]{host.match->configure_first_person_event_owner({});});});equal(host,replica);
     {
         auto recording=host.authority->start_execution_phase();
         rejects([&]{host.authority->checkpoint(binding);});

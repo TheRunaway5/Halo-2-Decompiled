@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #include "halo2/multiplayer_authority.hpp"
 #include "halo2/original_data.hpp"
 #include <algorithm>
@@ -68,7 +69,7 @@ void equal(const MultiplayerMatch::AuthorityCheckpoint &a,const MultiplayerMatch
         a.rumble_serial==b.rumble_serial&&a.rumble_events.size()==b.rumble_events.size(),"Effect/rumble journal frontier changed");
 }
 void place(MultiplayerMatch &match,unsigned id,Vec3 position) {
-    Spawn spawn;spawn.position=position;DebugGameRequest request;request.kind=DebugGameRequest::Teleport;request.player=id;match.debug_request(request,&spawn);
+    Spawn spawn;spawn.position=position;test::place_player(match,id,spawn);
 }
 void run(const char *xbe,const char *map) {
     Cache ac(map,{},OriginalData::load_xbe(xbe)),bc(map,{},OriginalData::load_xbe(xbe));
@@ -90,7 +91,7 @@ void run(const char *xbe,const char *map) {
         for(unsigned i=0;i<4;++i)check(match->join("Native seat "+std::to_string(i))==i,"Four-seat native admission failed");
         const auto fp=(match==&a?ac:bc).load_first_person_binding(rules.weapon,2);
         match->configure_replicated_first_person(fp);match->configure_local_views(local,fp);match->configure_weapon_pickups();
-        DebugGameSettings settings;for(unsigned i=0;i<4;++i)settings.players[i].noclip=true;match->debug_settings(settings);
+
     }
     a.set_game_engine_presentation_owner([&](const auto&){++a_callbacks;rejects([&]{a.authority_checkpoint(binding);});});
     b.set_game_engine_presentation_owner([&](const auto&){++b_callbacks;rejects([&]{b.authority_checkpoint(binding);});if(interrupt)throw 17;});
@@ -163,7 +164,7 @@ void king(const char *xbe,const char *map) {
     std::uint32_t a_wall=200000,b_wall=900000;
     MultiplayerMatch a(first,0,ac.spawns(),rules,as,[&]{return a_wall;});ap=&a;
     MultiplayerMatch b(second,0,bc.spawns(),rules,bs,[&]{return b_wall;});bp=&b;
-    for(auto *match:{&a,&b}){match->join("King native participant");DebugGameSettings settings;settings.players[0].noclip=true;match->debug_settings(settings);}
+    for(auto *match:{&a,&b}){match->join("King native participant");}
     for(unsigned i=0;i<80;++i){place(a,0,interior(*a.source_king_state()));++a_wall;a.step({});}
     const auto saved=a.authority_checkpoint(binding);
     check(saved.result_events.index>0&&a_records>0&&saved.players[0].score>0,"Actual King scorer did not produce retained events/points");

@@ -1,4 +1,4 @@
-#include "model_skin_vertices.hpp"
+#include "rendering/models/model_skin_vertices.hpp"
 #include <bit>
 #include <fstream>
 #include <iostream>

@@ -42,7 +42,7 @@ def main():
         'tools/validate_looping_construction_operands.py','tools/freeze_looping_construction_operands.py',
         'docs/MP_LOOPING_CONSTRUCTION_OPERANDS_RESEARCH.md']
     owned={name:sha(actual(name))for name in names}
-    for name in names+['CMakeLists.txt','include/halo2/original_data.hpp','src/original_data.cpp']:copy(actual(name),FROZEN/'source'/name)
+    for name in names+['CMakeLists.txt','include/halo2/original_data.hpp','src/assets/original_data.cpp']:copy(actual(name),FROZEN/'source'/name)
     artifacts={relative(path):sha(path)for path in sorted(FROZEN.rglob('*'))if path.is_file()}
     result=dict(schema='looping-construction-operands-frozen-v1',artifact_pins=artifacts,protected_prior_pins=prior,
         owned_source_pins=owned,dependency_manifests=DEPS,original_string_fields=114,original_string_bytes_including_nul=1244,

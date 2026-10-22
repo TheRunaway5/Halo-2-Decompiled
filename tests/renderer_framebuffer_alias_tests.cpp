@@ -1,5 +1,4 @@
 #include "halo2/renderer.hpp"
-#include "halo2/debug_panel.hpp"
 #include "halo2/native_tu15_framebuffer_aliases.hpp"
 #include "halo2/source_weather_depth_alias.hpp"
 #include <bit>
@@ -134,7 +133,7 @@ int main(int argc,char** argv)try {
         SDL_SetWindowSize(window,800,600);SDL_PumpEvents();renderer->resized();require(renderer->draw(camera,output/"resized.ppm"),"Native alias resized frame failed");
         require(!aliases->valid(),"Attachment resize retained a stale native alias");rejects([&]{aliases->resolve(0x515e48);});rejects([&]{aliases->depth_producer();});rejects([&]{aliases->native_address(0x515e34);});
         aliases.emplace(factory.acquire());report["observations"].push_back(inspect(*aliases,800,600));pixels+=actual_depth_pixels(*aliases);
-        DisplaySettings display;display.internal_width=320;display.internal_height=240;renderer->debug_panel().display_settings(display);require(renderer->draw(camera,output/"internal.ppm"),"Native alias internal-size frame failed");require(!aliases->valid(),"Internal resize retained a stale alias");
+        DisplaySettings display;display.internal_width=320;display.internal_height=240;renderer->display_settings(display);require(renderer->draw(camera,output/"internal.ppm"),"Native alias internal-size frame failed");require(!aliases->valid(),"Internal resize retained a stale alias");
         aliases.emplace(factory.acquire());report["observations"].push_back(inspect(*aliases,320,240));pixels+=actual_depth_pixels(*aliases);
         const auto retired_factory=factory;renderer->release_presentation();require(!aliases->valid()&&!factory.valid(),"Presentation retirement retained native alias access");rejects([&]{aliases->depth_producer();});
         require(renderer->draw(camera,output/"recreated.ppm"),"Native alias presentation recreation failed");factory=renderer->target_resources();require(!retired_factory.valid(),"Presentation recreation revived an old alias factory");

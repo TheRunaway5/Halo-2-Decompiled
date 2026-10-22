@@ -1,4 +1,4 @@
-#include "campaign_material_selection.hpp"
+#include "campaign/campaign_material_selection.hpp"
 #include <iostream>
 using namespace halo2;
 int main()try {

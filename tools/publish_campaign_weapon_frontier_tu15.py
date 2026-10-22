@@ -50,7 +50,7 @@ def main():
         references.append(name);scratch.add(load(name)['runner_scratch'])
     checks=[dict(path=p,removed=not Path(p).exists())for p in sorted(scratch)]
     assert all(row['removed']for row in checks)
-    selected=['src/main.cpp','src/renderer.cpp','include/halo2/renderer.hpp',
+    selected=['src/app/main.cpp','src/rendering/renderer/renderer.cpp','include/halo2/renderer.hpp',
         'tools/check_campaign_weapon_application_tu15.py','tools/validate_weapon_material_snapshot_tu15.py',
         'tests/campaign_model_geometry_runtime_tu15_tests.cpp']
     pins=load('weapon-campaign-application-validation-v2/source-manifest.json')['source_files_sha256']

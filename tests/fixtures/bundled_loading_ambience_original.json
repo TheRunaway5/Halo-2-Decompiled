@@ -1,0 +1,5580 @@
+{
+  "source_sha256": "33119398d3f68ad569c5010b652039105d3ce1b6512c418508e49ce69309f109",
+  "gain_cases": [
+    {
+      "gain_bits": 0,
+      "attenuation": -5000,
+      "visits": 14
+    },
+    {
+      "gain_bits": 981668463,
+      "attenuation": -4995,
+      "visits": 14
+    },
+    {
+      "gain_bits": 990057071,
+      "attenuation": -4990,
+      "visits": 14
+    },
+    {
+      "gain_bits": 994352038,
+      "attenuation": -4985,
+      "visits": 14
+    },
+    {
+      "gain_bits": 998445679,
+      "attenuation": -4980,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1000593162,
+      "attenuation": -4975,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1002740646,
+      "attenuation": -4970,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1004888130,
+      "attenuation": -4965,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1006834287,
+      "attenuation": -4960,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1007908028,
+      "attenuation": -4955,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1008981770,
+      "attenuation": -4950,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1010055512,
+      "attenuation": -4945,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1011129254,
+      "attenuation": -4940,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1012202996,
+      "attenuation": -4935,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1013276738,
+      "attenuation": -4930,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1014350479,
+      "attenuation": -4925,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1015222895,
+      "attenuation": -4920,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1015759766,
+      "attenuation": -4915,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1016296636,
+      "attenuation": -4910,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1016833507,
+      "attenuation": -4905,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1017370378,
+      "attenuation": -4900,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1017907249,
+      "attenuation": -4895,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1018444120,
+      "attenuation": -4890,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1018980991,
+      "attenuation": -4885,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1019517862,
+      "attenuation": -4880,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1020054733,
+      "attenuation": -4875,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1020591604,
+      "attenuation": -4870,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1021128475,
+      "attenuation": -4865,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1021665346,
+      "attenuation": -4860,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1022202216,
+      "attenuation": -4855,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1022739087,
+      "attenuation": -4850,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1023275958,
+      "attenuation": -4845,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1023611503,
+      "attenuation": -4840,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1023879938,
+      "attenuation": -4835,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1024148374,
+      "attenuation": -4830,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1024416809,
+      "attenuation": -4825,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1024685244,
+      "attenuation": -4820,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1024953680,
+      "attenuation": -4815,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1025222115,
+      "attenuation": -4810,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1025490551,
+      "attenuation": -4805,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1025758986,
+      "attenuation": -4800,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1026027422,
+      "attenuation": -4795,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1026295857,
+      "attenuation": -4790,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1026564293,
+      "attenuation": -4785,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1026832728,
+      "attenuation": -4780,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1027101164,
+      "attenuation": -4775,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1027369599,
+      "attenuation": -4770,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1027638034,
+      "attenuation": -4765,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1027906470,
+      "attenuation": -4760,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1028174905,
+      "attenuation": -4755,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1028443341,
+      "attenuation": -4750,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1028711776,
+      "attenuation": -4745,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1028980212,
+      "attenuation": -4740,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1029248647,
+      "attenuation": -4735,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1029517083,
+      "attenuation": -4730,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1029785518,
+      "attenuation": -4725,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1030053954,
+      "attenuation": -4720,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1030322389,
+      "attenuation": -4715,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1030590824,
+      "attenuation": -4710,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1030859260,
+      "attenuation": -4705,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1031127695,
+      "attenuation": -4700,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1031396131,
+      "attenuation": -4695,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1031664566,
+      "attenuation": -4690,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1031865893,
+      "attenuation": -4685,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1032000111,
+      "attenuation": -4680,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1032134328,
+      "attenuation": -4675,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1032268546,
+      "attenuation": -4670,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1032402764,
+      "attenuation": -4665,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1032536982,
+      "attenuation": -4660,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1032671199,
+      "attenuation": -4655,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1032805417,
+      "attenuation": -4650,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1032939635,
+      "attenuation": -4645,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1033073852,
+      "attenuation": -4640,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1033208070,
+      "attenuation": -4635,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1033342288,
+      "attenuation": -4630,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1033476506,
+      "attenuation": -4625,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1033610723,
+      "attenuation": -4620,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1033744941,
+      "attenuation": -4615,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1033879159,
+      "attenuation": -4610,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1034013377,
+      "attenuation": -4605,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1034147594,
+      "attenuation": -4600,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1034281812,
+      "attenuation": -4595,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1034416030,
+      "attenuation": -4590,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1034550247,
+      "attenuation": -4585,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1034684465,
+      "attenuation": -4580,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1034818683,
+      "attenuation": -4575,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1034952901,
+      "attenuation": -4570,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1035087118,
+      "attenuation": -4565,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1035221336,
+      "attenuation": -4560,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1035355554,
+      "attenuation": -4555,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1035489772,
+      "attenuation": -4550,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1035623989,
+      "attenuation": -4545,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1035758207,
+      "attenuation": -4540,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1035892425,
+      "attenuation": -4535,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1036026642,
+      "attenuation": -4530,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1036160860,
+      "attenuation": -4525,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1036295078,
+      "attenuation": -4520,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1036429296,
+      "attenuation": -4515,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1036563513,
+      "attenuation": -4510,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1036697731,
+      "attenuation": -4505,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1036831949,
+      "attenuation": -4500,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1036966167,
+      "attenuation": -4495,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1037100384,
+      "attenuation": -4490,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1037234602,
+      "attenuation": -4485,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1037368820,
+      "attenuation": -4480,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1037503037,
+      "attenuation": -4475,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1037637255,
+      "attenuation": -4470,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1037771473,
+      "attenuation": -4465,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1037905691,
+      "attenuation": -4460,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1038039908,
+      "attenuation": -4455,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1038174126,
+      "attenuation": -4450,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1038308344,
+      "attenuation": -4445,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1038442562,
+      "attenuation": -4440,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1038576779,
+      "attenuation": -4435,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1038710997,
+      "attenuation": -4430,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1038845215,
+      "attenuation": -4425,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1038979432,
+      "attenuation": -4420,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1039113650,
+      "attenuation": -4415,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1039247868,
+      "attenuation": -4410,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1039382086,
+      "attenuation": -4405,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1039516303,
+      "attenuation": -4400,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1039650521,
+      "attenuation": -4395,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1039784739,
+      "attenuation": -4390,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1039918957,
+      "attenuation": -4385,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1040053174,
+      "attenuation": -4380,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1040187392,
+      "attenuation": -4375,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1040254501,
+      "attenuation": -4370,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1040321610,
+      "attenuation": -4365,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1040388719,
+      "attenuation": -4360,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1040455827,
+      "attenuation": -4355,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1040522936,
+      "attenuation": -4350,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1040590045,
+      "attenuation": -4345,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1040657154,
+      "attenuation": -4340,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1040724263,
+      "attenuation": -4335,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1040791372,
+      "attenuation": -4330,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1040858481,
+      "attenuation": -4325,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1040925590,
+      "attenuation": -4320,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1040992698,
+      "attenuation": -4315,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1041059807,
+      "attenuation": -4310,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1041126916,
+      "attenuation": -4305,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1041194025,
+      "attenuation": -4300,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1041261134,
+      "attenuation": -4295,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1041328243,
+      "attenuation": -4290,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1041395352,
+      "attenuation": -4285,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1041462460,
+      "attenuation": -4280,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1041529569,
+      "attenuation": -4275,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1041596678,
+      "attenuation": -4270,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1041663787,
+      "attenuation": -4265,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1041730896,
+      "attenuation": -4260,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1041798005,
+      "attenuation": -4255,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1041865114,
+      "attenuation": -4250,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1041932222,
+      "attenuation": -4245,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1041999331,
+      "attenuation": -4240,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1042066440,
+      "attenuation": -4235,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1042133549,
+      "attenuation": -4230,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1042200658,
+      "attenuation": -4225,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1042267767,
+      "attenuation": -4220,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1042334876,
+      "attenuation": -4215,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1042401985,
+      "attenuation": -4210,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1042469093,
+      "attenuation": -4205,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1042536202,
+      "attenuation": -4200,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1042603311,
+      "attenuation": -4195,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1042670420,
+      "attenuation": -4190,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1042737529,
+      "attenuation": -4185,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1042804638,
+      "attenuation": -4180,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1042871747,
+      "attenuation": -4175,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1042938855,
+      "attenuation": -4170,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1043005964,
+      "attenuation": -4165,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1043073073,
+      "attenuation": -4160,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1043140182,
+      "attenuation": -4155,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1043207291,
+      "attenuation": -4150,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1043274400,
+      "attenuation": -4145,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1043341509,
+      "attenuation": -4140,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1043408617,
+      "attenuation": -4135,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1043475726,
+      "attenuation": -4130,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1043542835,
+      "attenuation": -4125,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1043609944,
+      "attenuation": -4120,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1043677053,
+      "attenuation": -4115,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1043744162,
+      "attenuation": -4110,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1043811271,
+      "attenuation": -4105,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1043878380,
+      "attenuation": -4100,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1043945488,
+      "attenuation": -4095,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1044012597,
+      "attenuation": -4090,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1044079706,
+      "attenuation": -4085,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1044146815,
+      "attenuation": -4080,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1044213924,
+      "attenuation": -4075,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1044281033,
+      "attenuation": -4070,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1044348142,
+      "attenuation": -4064,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1044415250,
+      "attenuation": -4060,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1044482359,
+      "attenuation": -4055,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1044549468,
+      "attenuation": -4050,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1044616577,
+      "attenuation": -4045,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1044683686,
+      "attenuation": -4039,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1044750795,
+      "attenuation": -4035,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1044817904,
+      "attenuation": -4030,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1044885012,
+      "attenuation": -4025,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1044952121,
+      "attenuation": -4020,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1045019230,
+      "attenuation": -4014,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1045086339,
+      "attenuation": -4010,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1045153448,
+      "attenuation": -4005,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1045220557,
+      "attenuation": -4000,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1045287666,
+      "attenuation": -3995,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1045354775,
+      "attenuation": -3990,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1045421883,
+      "attenuation": -3985,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1045488992,
+      "attenuation": -3980,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1045556101,
+      "attenuation": -3975,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1045623210,
+      "attenuation": -3970,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1045690319,
+      "attenuation": -3965,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1045757428,
+      "attenuation": -3960,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1045824537,
+      "attenuation": -3955,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1045891645,
+      "attenuation": -3950,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1045958754,
+      "attenuation": -3945,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1046025863,
+      "attenuation": -3940,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1046092972,
+      "attenuation": -3935,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1046160081,
+      "attenuation": -3930,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1046227190,
+      "attenuation": -3924,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1046294299,
+      "attenuation": -3920,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1046361407,
+      "attenuation": -3915,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1046428516,
+      "attenuation": -3910,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1046495625,
+      "attenuation": -3905,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1046562734,
+      "attenuation": -3899,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1046629843,
+      "attenuation": -3895,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1046696952,
+      "attenuation": -3890,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1046764061,
+      "attenuation": -3885,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1046831170,
+      "attenuation": -3880,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1046898278,
+      "attenuation": -3875,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1046965387,
+      "attenuation": -3870,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1047032496,
+      "attenuation": -3865,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1047099605,
+      "attenuation": -3860,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1047166714,
+      "attenuation": -3855,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1047233823,
+      "attenuation": -3850,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1047300932,
+      "attenuation": -3845,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1047368040,
+      "attenuation": -3840,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1047435149,
+      "attenuation": -3835,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1047502258,
+      "attenuation": -3830,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1047569367,
+      "attenuation": -3825,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1047636476,
+      "attenuation": -3820,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1047703585,
+      "attenuation": -3815,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1047770694,
+      "attenuation": -3809,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1047837802,
+      "attenuation": -3805,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1047904911,
+      "attenuation": -3800,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1047972020,
+      "attenuation": -3795,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1048039129,
+      "attenuation": -3790,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1048106238,
+      "attenuation": -3784,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1048173347,
+      "attenuation": -3780,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1048240456,
+      "attenuation": -3775,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1048307565,
+      "attenuation": -3770,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1048374673,
+      "attenuation": -3765,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1048441782,
+      "attenuation": -3759,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1048508891,
+      "attenuation": -3755,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1048576000,
+      "attenuation": -3750,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1048609554,
+      "attenuation": -3745,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1048643109,
+      "attenuation": -3740,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1048676663,
+      "attenuation": -3735,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1048710218,
+      "attenuation": -3730,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1048743772,
+      "attenuation": -3725,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1048777327,
+      "attenuation": -3719,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1048810881,
+      "attenuation": -3715,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1048844435,
+      "attenuation": -3710,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1048877990,
+      "attenuation": -3705,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1048911544,
+      "attenuation": -3700,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1048945099,
+      "attenuation": -3694,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1048978653,
+      "attenuation": -3690,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049012208,
+      "attenuation": -3685,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049045762,
+      "attenuation": -3680,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049079316,
+      "attenuation": -3675,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049112871,
+      "attenuation": -3669,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049146425,
+      "attenuation": -3665,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049179980,
+      "attenuation": -3660,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049213534,
+      "attenuation": -3655,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049247089,
+      "attenuation": -3650,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049280643,
+      "attenuation": -3644,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049314198,
+      "attenuation": -3640,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049347752,
+      "attenuation": -3635,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049381306,
+      "attenuation": -3630,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049414861,
+      "attenuation": -3625,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049448415,
+      "attenuation": -3620,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049481970,
+      "attenuation": -3615,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049515524,
+      "attenuation": -3610,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049549079,
+      "attenuation": -3604,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049582633,
+      "attenuation": -3600,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049616187,
+      "attenuation": -3595,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049649742,
+      "attenuation": -3590,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049683296,
+      "attenuation": -3585,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049716851,
+      "attenuation": -3579,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049750405,
+      "attenuation": -3575,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049783960,
+      "attenuation": -3570,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049817514,
+      "attenuation": -3565,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049851068,
+      "attenuation": -3560,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049884623,
+      "attenuation": -3554,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049918177,
+      "attenuation": -3550,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049951732,
+      "attenuation": -3545,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1049985286,
+      "attenuation": -3540,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050018841,
+      "attenuation": -3535,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050052395,
+      "attenuation": -3529,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050085949,
+      "attenuation": -3525,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050119504,
+      "attenuation": -3520,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050153058,
+      "attenuation": -3515,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050186613,
+      "attenuation": -3510,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050220167,
+      "attenuation": -3504,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050253722,
+      "attenuation": -3500,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050287276,
+      "attenuation": -3495,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050320830,
+      "attenuation": -3490,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050354385,
+      "attenuation": -3485,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050387939,
+      "attenuation": -3480,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050421494,
+      "attenuation": -3475,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050455048,
+      "attenuation": -3470,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050488603,
+      "attenuation": -3464,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050522157,
+      "attenuation": -3460,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050555711,
+      "attenuation": -3455,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050589266,
+      "attenuation": -3450,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050622820,
+      "attenuation": -3445,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050656375,
+      "attenuation": -3439,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050689929,
+      "attenuation": -3435,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050723484,
+      "attenuation": -3430,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050757038,
+      "attenuation": -3425,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050790593,
+      "attenuation": -3420,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050824147,
+      "attenuation": -3414,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050857701,
+      "attenuation": -3410,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050891256,
+      "attenuation": -3405,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050924810,
+      "attenuation": -3400,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050958365,
+      "attenuation": -3395,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1050991919,
+      "attenuation": -3389,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051025474,
+      "attenuation": -3385,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051059028,
+      "attenuation": -3380,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051092582,
+      "attenuation": -3375,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051126137,
+      "attenuation": -3370,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051159691,
+      "attenuation": -3365,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051193246,
+      "attenuation": -3360,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051226800,
+      "attenuation": -3355,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051260355,
+      "attenuation": -3349,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051293909,
+      "attenuation": -3345,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051327463,
+      "attenuation": -3340,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051361018,
+      "attenuation": -3335,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051394572,
+      "attenuation": -3330,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051428127,
+      "attenuation": -3324,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051461681,
+      "attenuation": -3320,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051495236,
+      "attenuation": -3315,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051528790,
+      "attenuation": -3310,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051562344,
+      "attenuation": -3305,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051595899,
+      "attenuation": -3299,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051629453,
+      "attenuation": -3295,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051663008,
+      "attenuation": -3290,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051696562,
+      "attenuation": -3285,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051730117,
+      "attenuation": -3280,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051763671,
+      "attenuation": -3274,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051797225,
+      "attenuation": -3270,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051830780,
+      "attenuation": -3265,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051864334,
+      "attenuation": -3260,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051897889,
+      "attenuation": -3255,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051931443,
+      "attenuation": -3250,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051964998,
+      "attenuation": -3245,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1051998552,
+      "attenuation": -3240,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052032106,
+      "attenuation": -3235,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052065661,
+      "attenuation": -3230,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052099215,
+      "attenuation": -3225,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052132770,
+      "attenuation": -3220,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052166324,
+      "attenuation": -3215,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052199879,
+      "attenuation": -3209,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052233433,
+      "attenuation": -3205,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052266988,
+      "attenuation": -3200,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052300542,
+      "attenuation": -3195,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052334096,
+      "attenuation": -3190,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052367651,
+      "attenuation": -3184,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052401205,
+      "attenuation": -3180,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052434760,
+      "attenuation": -3175,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052468314,
+      "attenuation": -3170,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052501869,
+      "attenuation": -3165,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052535423,
+      "attenuation": -3159,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052568977,
+      "attenuation": -3155,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052602532,
+      "attenuation": -3150,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052636086,
+      "attenuation": -3145,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052669641,
+      "attenuation": -3140,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052703195,
+      "attenuation": -3134,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052736750,
+      "attenuation": -3130,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052770304,
+      "attenuation": -3125,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052803858,
+      "attenuation": -3120,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052837413,
+      "attenuation": -3115,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052870967,
+      "attenuation": -3110,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052904522,
+      "attenuation": -3105,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052938076,
+      "attenuation": -3100,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1052971631,
+      "attenuation": -3094,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053005185,
+      "attenuation": -3090,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053038739,
+      "attenuation": -3085,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053072294,
+      "attenuation": -3080,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053105848,
+      "attenuation": -3075,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053139403,
+      "attenuation": -3069,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053172957,
+      "attenuation": -3065,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053206512,
+      "attenuation": -3060,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053240066,
+      "attenuation": -3055,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053273620,
+      "attenuation": -3050,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053307175,
+      "attenuation": -3044,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053340729,
+      "attenuation": -3040,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053374284,
+      "attenuation": -3035,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053407838,
+      "attenuation": -3030,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053441393,
+      "attenuation": -3025,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053474947,
+      "attenuation": -3019,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053508502,
+      "attenuation": -3015,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053542056,
+      "attenuation": -3010,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053575610,
+      "attenuation": -3005,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053609165,
+      "attenuation": -3000,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053642719,
+      "attenuation": -2995,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053676274,
+      "attenuation": -2990,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053709828,
+      "attenuation": -2985,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053743383,
+      "attenuation": -2979,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053776937,
+      "attenuation": -2975,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053810491,
+      "attenuation": -2970,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053844046,
+      "attenuation": -2965,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053877600,
+      "attenuation": -2960,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053911155,
+      "attenuation": -2954,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053944709,
+      "attenuation": -2950,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1053978264,
+      "attenuation": -2945,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054011818,
+      "attenuation": -2940,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054045372,
+      "attenuation": -2935,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054078927,
+      "attenuation": -2929,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054112481,
+      "attenuation": -2925,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054146036,
+      "attenuation": -2920,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054179590,
+      "attenuation": -2915,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054213145,
+      "attenuation": -2910,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054246699,
+      "attenuation": -2904,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054280253,
+      "attenuation": -2900,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054313808,
+      "attenuation": -2895,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054347362,
+      "attenuation": -2890,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054380917,
+      "attenuation": -2885,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054414471,
+      "attenuation": -2879,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054448026,
+      "attenuation": -2875,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054481580,
+      "attenuation": -2870,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054515134,
+      "attenuation": -2865,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054548689,
+      "attenuation": -2860,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054582243,
+      "attenuation": -2855,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054615798,
+      "attenuation": -2850,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054649352,
+      "attenuation": -2845,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054682907,
+      "attenuation": -2839,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054716461,
+      "attenuation": -2835,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054750015,
+      "attenuation": -2830,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054783570,
+      "attenuation": -2825,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054817124,
+      "attenuation": -2820,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054850679,
+      "attenuation": -2814,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054884233,
+      "attenuation": -2810,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054917788,
+      "attenuation": -2805,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054951342,
+      "attenuation": -2800,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1054984897,
+      "attenuation": -2795,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055018451,
+      "attenuation": -2789,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055052005,
+      "attenuation": -2785,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055085560,
+      "attenuation": -2780,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055119114,
+      "attenuation": -2775,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055152669,
+      "attenuation": -2770,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055186223,
+      "attenuation": -2764,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055219778,
+      "attenuation": -2760,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055253332,
+      "attenuation": -2755,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055286886,
+      "attenuation": -2750,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055320441,
+      "attenuation": -2745,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055353995,
+      "attenuation": -2740,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055387550,
+      "attenuation": -2735,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055421104,
+      "attenuation": -2730,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055454659,
+      "attenuation": -2724,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055488213,
+      "attenuation": -2720,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055521767,
+      "attenuation": -2715,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055555322,
+      "attenuation": -2710,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055588876,
+      "attenuation": -2705,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055622431,
+      "attenuation": -2699,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055655985,
+      "attenuation": -2695,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055689540,
+      "attenuation": -2690,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055723094,
+      "attenuation": -2685,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055756648,
+      "attenuation": -2680,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055790203,
+      "attenuation": -2674,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055823757,
+      "attenuation": -2670,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055857312,
+      "attenuation": -2665,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055890866,
+      "attenuation": -2660,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055924421,
+      "attenuation": -2655,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055957975,
+      "attenuation": -2649,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1055991529,
+      "attenuation": -2645,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056025084,
+      "attenuation": -2640,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056058638,
+      "attenuation": -2635,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056092193,
+      "attenuation": -2630,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056125747,
+      "attenuation": -2625,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056159302,
+      "attenuation": -2620,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056192856,
+      "attenuation": -2615,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056226410,
+      "attenuation": -2610,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056259965,
+      "attenuation": -2605,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056293519,
+      "attenuation": -2600,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056327074,
+      "attenuation": -2595,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056360628,
+      "attenuation": -2590,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056394183,
+      "attenuation": -2584,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056427737,
+      "attenuation": -2580,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056461292,
+      "attenuation": -2575,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056494846,
+      "attenuation": -2570,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056528400,
+      "attenuation": -2565,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056561955,
+      "attenuation": -2559,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056595509,
+      "attenuation": -2555,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056629064,
+      "attenuation": -2550,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056662618,
+      "attenuation": -2545,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056696173,
+      "attenuation": -2540,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056729727,
+      "attenuation": -2534,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056763281,
+      "attenuation": -2530,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056796836,
+      "attenuation": -2525,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056830390,
+      "attenuation": -2520,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056863945,
+      "attenuation": -2515,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056897499,
+      "attenuation": -2509,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056931054,
+      "attenuation": -2505,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056964608,
+      "attenuation": -2500,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056981385,
+      "attenuation": -2495,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1056998162,
+      "attenuation": -2490,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057014940,
+      "attenuation": -2485,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057031717,
+      "attenuation": -2480,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057048494,
+      "attenuation": -2475,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057065271,
+      "attenuation": -2470,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057082049,
+      "attenuation": -2464,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057098826,
+      "attenuation": -2460,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057115603,
+      "attenuation": -2455,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057132380,
+      "attenuation": -2450,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057149157,
+      "attenuation": -2445,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057165935,
+      "attenuation": -2440,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057182712,
+      "attenuation": -2435,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057199489,
+      "attenuation": -2430,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057216266,
+      "attenuation": -2425,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057233043,
+      "attenuation": -2420,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057249821,
+      "attenuation": -2415,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057266598,
+      "attenuation": -2410,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057283375,
+      "attenuation": -2405,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057300152,
+      "attenuation": -2400,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057316930,
+      "attenuation": -2394,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057333707,
+      "attenuation": -2390,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057350484,
+      "attenuation": -2385,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057367261,
+      "attenuation": -2380,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057384038,
+      "attenuation": -2375,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057400816,
+      "attenuation": -2370,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057417593,
+      "attenuation": -2365,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057434370,
+      "attenuation": -2360,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057451147,
+      "attenuation": -2355,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057467924,
+      "attenuation": -2350,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057484702,
+      "attenuation": -2345,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057501479,
+      "attenuation": -2340,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057518256,
+      "attenuation": -2335,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057535033,
+      "attenuation": -2330,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057551811,
+      "attenuation": -2324,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057568588,
+      "attenuation": -2320,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057585365,
+      "attenuation": -2315,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057602142,
+      "attenuation": -2310,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057618919,
+      "attenuation": -2305,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057635697,
+      "attenuation": -2300,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057652474,
+      "attenuation": -2295,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057669251,
+      "attenuation": -2290,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057686028,
+      "attenuation": -2285,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057702806,
+      "attenuation": -2279,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057719583,
+      "attenuation": -2275,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057736360,
+      "attenuation": -2270,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057753137,
+      "attenuation": -2265,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057769914,
+      "attenuation": -2260,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057786692,
+      "attenuation": -2254,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057803469,
+      "attenuation": -2250,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057820246,
+      "attenuation": -2245,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057837023,
+      "attenuation": -2240,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057853800,
+      "attenuation": -2235,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057870578,
+      "attenuation": -2230,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057887355,
+      "attenuation": -2225,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057904132,
+      "attenuation": -2220,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057920909,
+      "attenuation": -2215,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057937687,
+      "attenuation": -2209,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057954464,
+      "attenuation": -2205,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057971241,
+      "attenuation": -2200,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1057988018,
+      "attenuation": -2195,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058004795,
+      "attenuation": -2190,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058021573,
+      "attenuation": -2185,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058038350,
+      "attenuation": -2180,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058055127,
+      "attenuation": -2175,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058071904,
+      "attenuation": -2170,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058088681,
+      "attenuation": -2165,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058105459,
+      "attenuation": -2160,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058122236,
+      "attenuation": -2155,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058139013,
+      "attenuation": -2150,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058155790,
+      "attenuation": -2145,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058172568,
+      "attenuation": -2139,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058189345,
+      "attenuation": -2135,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058206122,
+      "attenuation": -2130,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058222899,
+      "attenuation": -2125,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058239676,
+      "attenuation": -2120,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058256454,
+      "attenuation": -2115,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058273231,
+      "attenuation": -2110,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058290008,
+      "attenuation": -2105,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058306785,
+      "attenuation": -2100,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058323562,
+      "attenuation": -2095,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058340340,
+      "attenuation": -2090,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058357117,
+      "attenuation": -2085,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058373894,
+      "attenuation": -2080,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058390671,
+      "attenuation": -2075,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058407449,
+      "attenuation": -2069,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058424226,
+      "attenuation": -2065,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058441003,
+      "attenuation": -2060,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058457780,
+      "attenuation": -2055,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058474557,
+      "attenuation": -2050,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058491335,
+      "attenuation": -2044,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058508112,
+      "attenuation": -2040,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058524889,
+      "attenuation": -2035,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058541666,
+      "attenuation": -2030,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058558444,
+      "attenuation": -2024,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058575221,
+      "attenuation": -2019,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058591998,
+      "attenuation": -2015,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058608775,
+      "attenuation": -2010,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058625552,
+      "attenuation": -2005,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058642330,
+      "attenuation": -1999,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058659107,
+      "attenuation": -1995,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058675884,
+      "attenuation": -1990,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058692661,
+      "attenuation": -1985,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058709438,
+      "attenuation": -1980,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058726216,
+      "attenuation": -1974,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058742993,
+      "attenuation": -1970,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058759770,
+      "attenuation": -1965,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058776547,
+      "attenuation": -1960,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058793325,
+      "attenuation": -1954,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058810102,
+      "attenuation": -1949,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058826879,
+      "attenuation": -1945,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058843656,
+      "attenuation": -1940,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058860433,
+      "attenuation": -1935,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058877211,
+      "attenuation": -1929,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058893988,
+      "attenuation": -1925,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058910765,
+      "attenuation": -1920,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058927542,
+      "attenuation": -1915,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058944319,
+      "attenuation": -1910,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058961097,
+      "attenuation": -1904,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058977874,
+      "attenuation": -1900,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1058994651,
+      "attenuation": -1895,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059011428,
+      "attenuation": -1890,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059028206,
+      "attenuation": -1884,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059044983,
+      "attenuation": -1879,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059061760,
+      "attenuation": -1875,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059078537,
+      "attenuation": -1870,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059095314,
+      "attenuation": -1865,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059112092,
+      "attenuation": -1859,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059128869,
+      "attenuation": -1855,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059145646,
+      "attenuation": -1850,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059162423,
+      "attenuation": -1845,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059179201,
+      "attenuation": -1839,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059195978,
+      "attenuation": -1834,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059212755,
+      "attenuation": -1830,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059229532,
+      "attenuation": -1825,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059246309,
+      "attenuation": -1820,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059263087,
+      "attenuation": -1814,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059279864,
+      "attenuation": -1810,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059296641,
+      "attenuation": -1805,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059313418,
+      "attenuation": -1800,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059330195,
+      "attenuation": -1795,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059346973,
+      "attenuation": -1789,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059363750,
+      "attenuation": -1785,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059380527,
+      "attenuation": -1780,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059397304,
+      "attenuation": -1775,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059414082,
+      "attenuation": -1769,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059430859,
+      "attenuation": -1764,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059447636,
+      "attenuation": -1760,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059464413,
+      "attenuation": -1755,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059481190,
+      "attenuation": -1750,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059497968,
+      "attenuation": -1744,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059514745,
+      "attenuation": -1740,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059531522,
+      "attenuation": -1735,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059548299,
+      "attenuation": -1730,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059565076,
+      "attenuation": -1725,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059581854,
+      "attenuation": -1719,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059598631,
+      "attenuation": -1715,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059615408,
+      "attenuation": -1710,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059632185,
+      "attenuation": -1705,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059648963,
+      "attenuation": -1699,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059665740,
+      "attenuation": -1694,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059682517,
+      "attenuation": -1690,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059699294,
+      "attenuation": -1685,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059716071,
+      "attenuation": -1680,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059732849,
+      "attenuation": -1674,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059749626,
+      "attenuation": -1670,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059766403,
+      "attenuation": -1665,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059783180,
+      "attenuation": -1660,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059799958,
+      "attenuation": -1654,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059816735,
+      "attenuation": -1649,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059833512,
+      "attenuation": -1645,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059850289,
+      "attenuation": -1640,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059867066,
+      "attenuation": -1635,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059883844,
+      "attenuation": -1629,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059900621,
+      "attenuation": -1625,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059917398,
+      "attenuation": -1620,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059934175,
+      "attenuation": -1615,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059950952,
+      "attenuation": -1610,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059967730,
+      "attenuation": -1604,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1059984507,
+      "attenuation": -1600,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060001284,
+      "attenuation": -1595,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060018061,
+      "attenuation": -1590,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060034839,
+      "attenuation": -1584,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060051616,
+      "attenuation": -1579,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060068393,
+      "attenuation": -1575,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060085170,
+      "attenuation": -1570,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060101947,
+      "attenuation": -1565,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060118725,
+      "attenuation": -1559,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060135502,
+      "attenuation": -1555,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060152279,
+      "attenuation": -1550,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060169056,
+      "attenuation": -1545,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060185833,
+      "attenuation": -1540,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060202611,
+      "attenuation": -1534,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060219388,
+      "attenuation": -1530,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060236165,
+      "attenuation": -1525,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060252942,
+      "attenuation": -1520,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060269720,
+      "attenuation": -1514,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060286497,
+      "attenuation": -1509,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060303274,
+      "attenuation": -1505,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060320051,
+      "attenuation": -1500,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060336828,
+      "attenuation": -1495,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060353606,
+      "attenuation": -1489,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060370383,
+      "attenuation": -1485,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060387160,
+      "attenuation": -1480,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060403937,
+      "attenuation": -1475,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060420714,
+      "attenuation": -1470,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060437492,
+      "attenuation": -1464,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060454269,
+      "attenuation": -1460,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060471046,
+      "attenuation": -1455,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060487823,
+      "attenuation": -1450,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060504601,
+      "attenuation": -1444,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060521378,
+      "attenuation": -1439,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060538155,
+      "attenuation": -1435,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060554932,
+      "attenuation": -1430,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060571709,
+      "attenuation": -1425,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060588487,
+      "attenuation": -1419,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060605264,
+      "attenuation": -1415,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060622041,
+      "attenuation": -1410,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060638818,
+      "attenuation": -1405,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060655596,
+      "attenuation": -1399,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060672373,
+      "attenuation": -1394,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060689150,
+      "attenuation": -1390,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060705927,
+      "attenuation": -1385,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060722704,
+      "attenuation": -1380,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060739482,
+      "attenuation": -1374,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060756259,
+      "attenuation": -1370,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060773036,
+      "attenuation": -1365,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060789813,
+      "attenuation": -1360,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060806590,
+      "attenuation": -1355,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060823368,
+      "attenuation": -1349,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060840145,
+      "attenuation": -1345,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060856922,
+      "attenuation": -1340,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060873699,
+      "attenuation": -1335,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060890477,
+      "attenuation": -1329,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060907254,
+      "attenuation": -1324,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060924031,
+      "attenuation": -1320,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060940808,
+      "attenuation": -1315,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060957585,
+      "attenuation": -1310,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060974363,
+      "attenuation": -1304,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1060991140,
+      "attenuation": -1300,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061007917,
+      "attenuation": -1295,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061024694,
+      "attenuation": -1290,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061041471,
+      "attenuation": -1285,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061058249,
+      "attenuation": -1279,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061075026,
+      "attenuation": -1275,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061091803,
+      "attenuation": -1270,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061108580,
+      "attenuation": -1265,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061125358,
+      "attenuation": -1259,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061142135,
+      "attenuation": -1254,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061158912,
+      "attenuation": -1250,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061175689,
+      "attenuation": -1245,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061192466,
+      "attenuation": -1240,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061209244,
+      "attenuation": -1234,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061226021,
+      "attenuation": -1230,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061242798,
+      "attenuation": -1225,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061259575,
+      "attenuation": -1220,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061276353,
+      "attenuation": -1214,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061293130,
+      "attenuation": -1209,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061309907,
+      "attenuation": -1205,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061326684,
+      "attenuation": -1200,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061343461,
+      "attenuation": -1195,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061360239,
+      "attenuation": -1189,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061377016,
+      "attenuation": -1185,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061393793,
+      "attenuation": -1180,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061410570,
+      "attenuation": -1175,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061427347,
+      "attenuation": -1170,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061444125,
+      "attenuation": -1164,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061460902,
+      "attenuation": -1160,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061477679,
+      "attenuation": -1155,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061494456,
+      "attenuation": -1150,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061511234,
+      "attenuation": -1144,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061528011,
+      "attenuation": -1139,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061544788,
+      "attenuation": -1135,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061561565,
+      "attenuation": -1130,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061578342,
+      "attenuation": -1125,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061595120,
+      "attenuation": -1119,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061611897,
+      "attenuation": -1115,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061628674,
+      "attenuation": -1110,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061645451,
+      "attenuation": -1105,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061662228,
+      "attenuation": -1100,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061679006,
+      "attenuation": -1094,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061695783,
+      "attenuation": -1090,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061712560,
+      "attenuation": -1085,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061729337,
+      "attenuation": -1080,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061746115,
+      "attenuation": -1074,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061762892,
+      "attenuation": -1069,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061779669,
+      "attenuation": -1065,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061796446,
+      "attenuation": -1060,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061813223,
+      "attenuation": -1055,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061830001,
+      "attenuation": -1049,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061846778,
+      "attenuation": -1045,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061863555,
+      "attenuation": -1040,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061880332,
+      "attenuation": -1035,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061897110,
+      "attenuation": -1029,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061913887,
+      "attenuation": -1024,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061930664,
+      "attenuation": -1020,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061947441,
+      "attenuation": -1015,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061964218,
+      "attenuation": -1010,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061980996,
+      "attenuation": -1004,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1061997773,
+      "attenuation": -999,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062014550,
+      "attenuation": -995,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062031327,
+      "attenuation": -990,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062048104,
+      "attenuation": -985,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062064882,
+      "attenuation": -979,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062081659,
+      "attenuation": -974,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062098436,
+      "attenuation": -970,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062115213,
+      "attenuation": -965,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062131991,
+      "attenuation": -959,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062148768,
+      "attenuation": -954,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062165545,
+      "attenuation": -950,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062182322,
+      "attenuation": -945,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062199099,
+      "attenuation": -940,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062215877,
+      "attenuation": -934,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062232654,
+      "attenuation": -929,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062249431,
+      "attenuation": -925,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062266208,
+      "attenuation": -920,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062282985,
+      "attenuation": -915,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062299763,
+      "attenuation": -909,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062316540,
+      "attenuation": -905,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062333317,
+      "attenuation": -900,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062350094,
+      "attenuation": -895,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062366872,
+      "attenuation": -889,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062383649,
+      "attenuation": -884,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062400426,
+      "attenuation": -880,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062417203,
+      "attenuation": -875,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062433980,
+      "attenuation": -870,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062450758,
+      "attenuation": -864,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062467535,
+      "attenuation": -859,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062484312,
+      "attenuation": -855,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062501089,
+      "attenuation": -850,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062517866,
+      "attenuation": -845,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062534644,
+      "attenuation": -839,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062551421,
+      "attenuation": -835,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062568198,
+      "attenuation": -830,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062584975,
+      "attenuation": -825,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062601753,
+      "attenuation": -819,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062618530,
+      "attenuation": -814,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062635307,
+      "attenuation": -810,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062652084,
+      "attenuation": -805,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062668861,
+      "attenuation": -800,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062685639,
+      "attenuation": -794,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062702416,
+      "attenuation": -789,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062719193,
+      "attenuation": -785,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062735970,
+      "attenuation": -780,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062752748,
+      "attenuation": -774,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062769525,
+      "attenuation": -769,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062786302,
+      "attenuation": -765,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062803079,
+      "attenuation": -760,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062819856,
+      "attenuation": -755,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062836634,
+      "attenuation": -749,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062853411,
+      "attenuation": -744,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062870188,
+      "attenuation": -740,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062886965,
+      "attenuation": -735,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062903742,
+      "attenuation": -730,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062920520,
+      "attenuation": -724,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062937297,
+      "attenuation": -719,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062954074,
+      "attenuation": -715,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062970851,
+      "attenuation": -710,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1062987629,
+      "attenuation": -704,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063004406,
+      "attenuation": -699,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063021183,
+      "attenuation": -695,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063037960,
+      "attenuation": -690,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063054737,
+      "attenuation": -685,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063071515,
+      "attenuation": -679,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063088292,
+      "attenuation": -674,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063105069,
+      "attenuation": -670,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063121846,
+      "attenuation": -665,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063138623,
+      "attenuation": -660,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063155401,
+      "attenuation": -654,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063172178,
+      "attenuation": -650,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063188955,
+      "attenuation": -645,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063205732,
+      "attenuation": -640,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063222510,
+      "attenuation": -634,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063239287,
+      "attenuation": -629,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063256064,
+      "attenuation": -625,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063272841,
+      "attenuation": -620,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063289618,
+      "attenuation": -615,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063306396,
+      "attenuation": -609,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063323173,
+      "attenuation": -604,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063339950,
+      "attenuation": -600,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063356727,
+      "attenuation": -595,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063373505,
+      "attenuation": -589,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063390282,
+      "attenuation": -584,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063407059,
+      "attenuation": -580,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063423836,
+      "attenuation": -575,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063440613,
+      "attenuation": -570,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063457391,
+      "attenuation": -564,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063474168,
+      "attenuation": -559,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063490945,
+      "attenuation": -555,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063507722,
+      "attenuation": -550,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063524499,
+      "attenuation": -545,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063541277,
+      "attenuation": -539,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063558054,
+      "attenuation": -534,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063574831,
+      "attenuation": -530,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063591608,
+      "attenuation": -525,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063608386,
+      "attenuation": -519,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063625163,
+      "attenuation": -514,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063641940,
+      "attenuation": -510,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063658717,
+      "attenuation": -505,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063675494,
+      "attenuation": -500,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063692272,
+      "attenuation": -494,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063709049,
+      "attenuation": -489,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063725826,
+      "attenuation": -485,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063742603,
+      "attenuation": -480,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063759380,
+      "attenuation": -475,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063776158,
+      "attenuation": -469,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063792935,
+      "attenuation": -464,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063809712,
+      "attenuation": -460,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063826489,
+      "attenuation": -455,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063843267,
+      "attenuation": -449,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063860044,
+      "attenuation": -444,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063876821,
+      "attenuation": -440,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063893598,
+      "attenuation": -435,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063910375,
+      "attenuation": -430,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063927153,
+      "attenuation": -424,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063943930,
+      "attenuation": -419,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063960707,
+      "attenuation": -415,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063977484,
+      "attenuation": -410,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1063994262,
+      "attenuation": -404,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064011039,
+      "attenuation": -399,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064027816,
+      "attenuation": -394,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064044593,
+      "attenuation": -390,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064061370,
+      "attenuation": -385,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064078148,
+      "attenuation": -379,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064094925,
+      "attenuation": -374,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064111702,
+      "attenuation": -370,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064128479,
+      "attenuation": -365,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064145256,
+      "attenuation": -360,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064162034,
+      "attenuation": -354,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064178811,
+      "attenuation": -349,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064195588,
+      "attenuation": -345,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064212365,
+      "attenuation": -340,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064229143,
+      "attenuation": -334,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064245920,
+      "attenuation": -329,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064262697,
+      "attenuation": -325,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064279474,
+      "attenuation": -320,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064296251,
+      "attenuation": -315,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064313029,
+      "attenuation": -309,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064329806,
+      "attenuation": -304,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064346583,
+      "attenuation": -300,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064363360,
+      "attenuation": -295,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064380137,
+      "attenuation": -290,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064396915,
+      "attenuation": -284,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064413692,
+      "attenuation": -279,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064430469,
+      "attenuation": -275,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064447246,
+      "attenuation": -270,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064464024,
+      "attenuation": -264,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064480801,
+      "attenuation": -259,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064497578,
+      "attenuation": -255,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064514355,
+      "attenuation": -250,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064531132,
+      "attenuation": -245,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064547910,
+      "attenuation": -239,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064564687,
+      "attenuation": -234,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064581464,
+      "attenuation": -230,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064598241,
+      "attenuation": -225,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064615018,
+      "attenuation": -220,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064631796,
+      "attenuation": -214,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064648573,
+      "attenuation": -209,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064665350,
+      "attenuation": -205,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064682127,
+      "attenuation": -200,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064698905,
+      "attenuation": -194,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064715682,
+      "attenuation": -189,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064732459,
+      "attenuation": -185,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064749236,
+      "attenuation": -180,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064766013,
+      "attenuation": -175,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064782791,
+      "attenuation": -169,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064799568,
+      "attenuation": -164,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064816345,
+      "attenuation": -160,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064833122,
+      "attenuation": -155,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064849900,
+      "attenuation": -149,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064866677,
+      "attenuation": -144,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064883454,
+      "attenuation": -139,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064900231,
+      "attenuation": -135,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064917008,
+      "attenuation": -130,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064933786,
+      "attenuation": -124,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064950563,
+      "attenuation": -119,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064967340,
+      "attenuation": -115,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1064984117,
+      "attenuation": -110,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065000894,
+      "attenuation": -105,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065017672,
+      "attenuation": -99,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065034449,
+      "attenuation": -94,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065051226,
+      "attenuation": -90,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065068003,
+      "attenuation": -85,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065084781,
+      "attenuation": -79,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065101558,
+      "attenuation": -74,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065118335,
+      "attenuation": -69,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065135112,
+      "attenuation": -65,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065151889,
+      "attenuation": -60,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065168667,
+      "attenuation": -54,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065185444,
+      "attenuation": -49,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065202221,
+      "attenuation": -45,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065218998,
+      "attenuation": -40,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065235775,
+      "attenuation": -35,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065252553,
+      "attenuation": -29,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065269330,
+      "attenuation": -24,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065286107,
+      "attenuation": -20,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065302884,
+      "attenuation": -15,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065319662,
+      "attenuation": -9,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065336439,
+      "attenuation": -4,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065353216,
+      "attenuation": 0,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1,
+      "attenuation": -5000,
+      "visits": 14
+    },
+    {
+      "gain_bits": 8388607,
+      "attenuation": -5000,
+      "visits": 14
+    },
+    {
+      "gain_bits": 8388608,
+      "attenuation": -5000,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065353215,
+      "attenuation": 0,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1065353217,
+      "attenuation": 0,
+      "visits": 14
+    },
+    {
+      "gain_bits": 1073741824,
+      "attenuation": 0,
+      "visits": 14
+    },
+    {
+      "gain_bits": 2147483648,
+      "attenuation": -5000,
+      "visits": 14
+    },
+    {
+      "gain_bits": 2147483649,
+      "attenuation": -5000,
+      "visits": 14
+    },
+    {
+      "gain_bits": 3212836864,
+      "attenuation": -5000,
+      "visits": 10
+    },
+    {
+      "gain_bits": 3221225472,
+      "attenuation": -5000,
+      "visits": 10
+    },
+    {
+      "gain_bits": 2139095039,
+      "attenuation": -5000,
+      "visits": 10
+    },
+    {
+      "gain_bits": 2139095040,
+      "attenuation": -5000,
+      "visits": 10
+    },
+    {
+      "gain_bits": 4286578688,
+      "attenuation": -5000,
+      "visits": 10
+    },
+    {
+      "gain_bits": 2143289344,
+      "attenuation": -5000,
+      "visits": 10
+    },
+    {
+      "gain_bits": 2139095041,
+      "attenuation": -5000,
+      "visits": 10
+    },
+    {
+      "gain_bits": 4290772992,
+      "attenuation": -5000,
+      "visits": 10
+    }
+  ],
+  "worker_cases": [
+    {
+      "result": 0,
+      "events": [
+        [
+          "SetVolume",
+          25233408,
+          4294962296
+        ],
+        [
+          "SetVolume",
+          25233424,
+          4294962296
+        ],
+        [
+          "SetVolume",
+          25233440,
+          4294962296
+        ],
+        [
+          "SetVolume",
+          25233456,
+          4294962296
+        ],
+        [
+          "Play",
+          25233408,
+          0,
+          4294967295,
+          1
+        ],
+        [
+          "Play",
+          25233424,
+          0,
+          4294967295,
+          1
+        ],
+        [
+          "Play",
+          25233440,
+          0,
+          4294967295,
+          1
+        ],
+        [
+          "Play",
+          25233456,
+          0,
+          4294967295,
+          1
+        ],
+        [
+          "GetTickCount"
+        ],
+        [
+          "WaitForSingleObject",
+          53249,
+          100
+        ]
+      ],
+      "visits": 613,
+      "supplied": {
+        "clocks": [
+          1000
+        ],
+        "wait_results": [
+          0
+        ]
+      },
+      "after": [
+        -5000,
+        -5000,
+        -5000,
+        -5000
+      ]
+    },
+    {
+      "result": 0,
+      "events": [
+        [
+          "SetVolume",
+          25233408,
+          4294962296
+        ],
+        [
+          "SetVolume",
+          25233424,
+          4294962296
+        ],
+        [
+          "SetVolume",
+          25233440,
+          4294962296
+        ],
+        [
+          "SetVolume",
+          25233456,
+          4294962296
+        ],
+        [
+          "Play",
+          25233408,
+          0,
+          4294967295,
+          1
+        ],
+        [
+          "Play",
+          25233424,
+          0,
+          4294967295,
+          1
+        ],
+        [
+          "Play",
+          25233440,
+          0,
+          4294967295,
+          1
+        ],
+        [
+          "Play",
+          25233456,
+          0,
+          4294967295,
+          1
+        ],
+        [
+          "GetTickCount"
+        ],
+        [
+          "WaitForSingleObject",
+          53249,
+          100
+        ],
+        [
+          "GetTickCount"
+        ],
+        [
+          "SetVolume",
+          25233408,
+          4294963303
+        ],
+        [
+          "WaitForSingleObject",
+          53249,
+          100
+        ]
+      ],
+      "visits": 1152,
+      "supplied": {
+        "clocks": [
+          1000,
+          1100
+        ],
+        "wait_results": [
+          258,
+          0
+        ]
+      },
+      "after": [
+        -3993,
+        -5000,
+        -5000,
+        -5000
+      ]
+    },
+    {
+      "result": 0,
+      "events": [
+        [
+          "SetVolume",
+          25233408,
+          4294962296
+        ],
+        [
+          "SetVolume",
+          25233424,
+          4294962296
+        ],
+        [
+          "SetVolume",
+          25233440,
+          4294962296
+        ],
+        [
+          "SetVolume",
+          25233456,
+          4294962296
+        ],
+        [
+          "Play",
+          25233408,
+          0,
+          4294967295,
+          1
+        ],
+        [
+          "Play",
+          25233424,
+          0,
+          4294967295,
+          1
+        ],
+        [
+          "Play",
+          25233440,
+          0,
+          4294967295,
+          1
+        ],
+        [
+          "Play",
+          25233456,
+          0,
+          4294967295,
+          1
+        ],
+        [
+          "GetTickCount"
+        ],
+        [
+          "WaitForSingleObject",
+          53249,
+          100
+        ],
+        [
+          "GetTickCount"
+        ],
+        [
+          "SetVolume",
+          25233408,
+          4294963303
+        ],
+        [
+          "WaitForSingleObject",
+          53249,
+          100
+        ],
+        [
+          "GetTickCount"
+        ],
+        [
+          "SetVolume",
+          25233408,
+          4294963536
+        ],
+        [
+          "WaitForSingleObject",
+          53249,
+          100
+        ]
+      ],
+      "visits": 1691,
+      "supplied": {
+        "clocks": [
+          4294967248,
+          52,
+          152
+        ],
+        "wait_results": [
+          258,
+          258,
+          0
+        ]
+      },
+      "after": [
+        -3760,
+        -5000,
+        -5000,
+        -5000
+      ]
+    },
+    {
+      "result": 0,
+      "events": [
+        [
+          "SetVolume",
+          25233408,
+          4294962296
+        ],
+        [
+          "SetVolume",
+          25233424,
+          4294962296
+        ],
+        [
+          "SetVolume",
+          25233440,
+          4294962296
+        ],
+        [
+          "SetVolume",
+          25233456,
+          4294962296
+        ],
+        [
+          "Play",
+          25233408,
+          0,
+          4294967295,
+          1
+        ],
+        [
+          "Play",
+          25233424,
+          0,
+          4294967295,
+          1
+        ],
+        [
+          "Play",
+          25233440,
+          0,
+          4294967295,
+          1
+        ],
+        [
+          "Play",
+          25233456,
+          0,
+          4294967295,
+          1
+        ],
+        [
+          "GetTickCount"
+        ],
+        [
+          "WaitForSingleObject",
+          53249,
+          100
+        ],
+        [
+          "GetTickCount"
+        ],
+        [
+          "SetVolume",
+          25233408,
+          4294965520
+        ],
+        [
+          "SetVolume",
+          25233424,
+          4294966105
+        ],
+        [
+          "SetVolume",
+          25233440,
+          4294964897
+        ],
+        [
+          "SetVolume",
+          25233456,
+          4294962333
+        ],
+        [
+          "WaitForSingleObject",
+          53249,
+          100
+        ],
+        [
+          "GetTickCount"
+        ],
+        [
+          "SetVolume",
+          25233408,
+          4294965796
+        ],
+        [
+          "SetVolume",
+          25233424,
+          4294966776
+        ],
+        [
+          "SetVolume",
+          25233440,
+          4294965738
+        ],
+        [
+          "SetVolume",
+          25233456,
+          4294966548
+        ],
+        [
+          "WaitForSingleObject",
+          53249,
+          100
+        ],
+        [
+          "GetTickCount"
+        ],
+        [
+          "SetVolume",
+          25233408,
+          4294962512
+        ],
+        [
+          "SetVolume",
+          25233424,
+          4294962574
+        ],
+        [
+          "SetVolume",
+          25233440,
+          4294962512
+        ],
+        [
+          "SetVolume",
+          25233456,
+          4294962574
+        ],
+        [
+          "WaitForSingleObject",
+          53249,
+          100
+        ]
+      ],
+      "visits": 2383,
+      "supplied": {
+        "clocks": [
+          0,
+          5500,
+          10000,
+          20000
+        ],
+        "wait_results": [
+          258,
+          258,
+          258,
+          0
+        ]
+      },
+      "after": [
+        -4784,
+        -4722,
+        -4784,
+        -4722
+      ]
+    }
+  ],
+  "envelope_cases": [
+    {
+      "seconds_bits": 0,
+      "attenuation": -2500,
+      "crt_pow_selector": 0,
+      "crt_convert_selector": 0,
+      "result": 0,
+      "events": [
+        [
+          "SetVolume",
+          25233408,
+          4294959796
+        ],
+        [
+          "SetVolume",
+          25233424,
+          4294959796
+        ],
+        [
+          "SetVolume",
+          25233440,
+          4294959796
+        ],
+        [
+          "SetVolume",
+          25233456,
+          4294959796
+        ]
+      ],
+      "visits": 536,
+      "cached_volumes": [
+        -7500,
+        -7500,
+        -7500,
+        -7500
+      ],
+      "repeat": {
+        "result": 0,
+        "events": [],
+        "visits": 508
+      }
+    }
+  ],
+  "provenance": {
+    "kind": "subset of original instruction execution controls; no host-generated expectations",
+    "execution_sha256": "4f8efec3227999bf2d77c34512d18ebfbec13c638f6766f9147f36b02bc39184",
+    "execution_path": "analysis/frontend/vista-session-flow-audit/music-binding-20261011/loading-gain-consumer/execution.json",
+    "decoder_pcm_sha256": "b740acf4ce447da6583b4f6c7fd6696fabbb249664a53fb780b18c4dd58cd73d"
+  }
+}

@@ -1,5 +1,13 @@
 # Native ONLINE match launch
 
+Asset-policy update, 2026-10-21: MCC imports are the sole runtime donor.
+The October11 launch/protocol/donor integration below is historical; its Xbox
+executable/Vista-bank flags and captures are reference evidence, not an active
+launcher contract or current release qualification. Normal launch selects its
+authenticated MCC cache, runtime and UI/font owners without a reference-XBE
+dependency. Complete shader/movie provenance, fresh coherent delivery and
+physical acceptance remain open in [the maintained goal](online-completion-goal.md).
+
 Quickmatch, Optimatch and the party lobby's Playlists route now hand an
 authenticated solo player or accepted party into the native Slayer/Team Slayer runtime.
 Manual server discovery remains independent. The deployed lab catalog offers
@@ -8,7 +16,7 @@ with parties of two; it is not a restored original playlist rotation. Its explic
 versioned [rank progression](ranked-progression.md) uses recovered retail launch
 tables, independently of the custom search tuning in this validation catalog.
 
-## Admission and ownership
+## Historical admission and ownership (2026-10-11)
 
 1. The existing Discord authorization creates a private queue session. Screen
    names remain player chosen and may be identical; authenticated room slots
@@ -26,10 +34,11 @@ tables, independently of the custom search tuning in this validation catalog.
    starts loading. The native frontend resolves the catalog variant against the
    actual mainmenu goof row, removing only its authored U+E008 display suffix and
    preserving the source rule writes. Unsupported native rules fail admission.
-5. The shared room connection survives frontend/queue teardown. Native players
-   load the selected cache, original executable/update, runtime scene and Vista
-   HUD assets. All must report the same full-data fingerprint and native protocol
-   version28. A mismatch or missing player closes the room for everyone.
+5. That shared room connection survived frontend/queue teardown. Its native
+   players loaded the selected cache, original executable/update, runtime scene
+   and Vista HUD assets. They reported the same full-data fingerprint and native
+   protocol version28; a mismatch or missing player closed the room. This dated
+   reference route is superseded by the MCC-only asset contract above.
 6. The selected host admits the exact authenticated slots/names/teams. Clients
    retain their chosen source appearance. Gameplay begins only after every real
    participant is present; there are no generated peers or placeholder players.
@@ -42,12 +51,12 @@ tables, independently of the custom search tuning in this validation catalog.
    update private XP/skill in the same transaction as the unanimous result
    ledger; casual levels stay hidden.
 
-The game-data fingerprint covers map/shared caches, source/update executables,
-BSP/starting weapon and original font files. Admission also hashes all304 bytes
-of the actual selected source variant, including score/time/life limits. It detects differing installations;
-it is not a client integrity or anti-cheat proof. All participants require the
-same native build/protocol and gameplay data. Vista sampling assets affect
-presentation while retaining original metric/layout owners.
+That build's game-data fingerprint covered map/shared caches, source/update
+executables, BSP/starting weapon and original font files. Admission also hashed
+all304 bytes of the selected source variant, including score/time/life limits.
+This detected differing installations, not client integrity or anti-cheat.
+Participants still require matching authenticated build/protocol/gameplay data;
+the historical fingerprint inputs do not impose an XBE/Vista dependency on MCC.
 
 ## Relay contract
 
@@ -86,15 +95,20 @@ all authenticated room identities, chosen names, bounded placements, actual admi
 of extra players/teams, and sends the same publication to every participant.
 Each native client drains its final snapshots and checks the exact source variant,
 roster, chosen names, scores, original placement, kills, deaths, assists and
-suicides before confirming the SHA-256 of the entire report. Disagreement,
-missing confirmation or disconnect aborts without a stored competitive result.
+suicides before confirming the SHA-256 of the entire report. Disagreement or an
+expired review with missing confirmations leaves no stored competitive result.
 Clients do not reconstruct medals, weapons or opponent statistics from summary
 snapshots.
 
-Only after every admitted player confirms the same digest does the relay commit
+Only after every originally admitted physical connection confirms the same digest does the relay commit
 one immutable result and all participant statistics in one SQLite transaction,
 then send the completed acknowledgement. Duplicate confirmations cannot repeat
-the write. The private ledger retains playlist/revision/map/variant, completion
+the write. Departure or rebind timeout never reduces this fixed electorate.
+A confirmation already authenticated for the frozen report remains valid after
+its connection leaves; silence, departure and timeout never count as consent.
+New consensus receipts use `native-unanimous-v1` and count these retained votes;
+database upgrades preserve older `native-survivors-v1` receipts as historical data.
+The private ledger retains playlist/revision/map/variant, completion
 time, digest and numeric participant results; it does not retain Discord tokens,
 the complete report, chosen names or persistent public account identifiers.
 Validation is explicitly `native-unanimous-v1`: agreement with host snapshots
@@ -144,13 +158,15 @@ replacements for opaque platform services. The source evidence is recorded in
 
 Clan screen26 uses the actual authored640x480 canvas, eight41-pixel roster rows,
 footer and heading fields. The foreground scales uniformly inside widescreen
-windows; it is not stretched to their width. Imported Vista fonts and bitmaps
-supply sampling where authored. Vista itself retains the original clan geometry
+windows; it is not stretched to their width. The October11 captures sampled
+imported Vista fonts/bitmaps. Current delivery must use MCC owners against the
+same reference geometry. Vista itself retains the original clan geometry
 and several legacy-resolution assets; copying shared HD skin dimensions into
 that geometry would inflate the rows and overlap the footer. The member count
 uses its own50-pixel heading field and fits100 members. Native status text no
 longer creates an extra footer over the final roster row. The gameplay scoreboard
-also samples the selected Vista font while retaining source metrics.
+in those captures also sampled the selected Vista font while retaining source
+metrics; those pixels do not qualify the current MCC font route.
 
 ## Validation on 2026-10-11
 

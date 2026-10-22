@@ -182,7 +182,7 @@ void portable() {
           "Partial postimage admitted");
     ++negatives;
   }
-  constexpr std::array<std::pair<std::string_view, unsigned>, 9> operands{
+  constexpr std::array<std::pair<std::string_view, unsigned>, 15> operands{
       {{"hud_elite", 0x090005ce},
        {"hud_input1", 0x0a0005cf},
        {"hud_input2", 0x0a0005d0},
@@ -191,7 +191,13 @@ void portable() {
        {"hud_wp_alpha", 0x0c0005cb},
        {"hud_wp_theta", 0x0c0005cc},
        {"hud_wp_os_amt", 0x0d0005ca},
-       {"hud_wp_arrow_t", 0x0e0005cd}}};
+       {"hud_wp_arrow_t", 0x0e0005cd},
+       {"emblem_active", 0x0d0005ff},
+       {"emblem_foreground_index", 0x170005fa},
+       {"emblem_background_index", 0x170005fb},
+       {"emblem_toggle_foreground", 0x180005fc},
+       {"emblem_foreground_map_scale_x", 0x1d0005fd},
+       {"emblem_background_map_scale_x", 0x1d0005fe}}};
   for (const auto &[name, expected] : operands) {
     const auto actual = (unsigned(name.size()) << 24) | 0x1234u;
     check(normalize_mcc_hud_function_operand(actual, name) == expected,

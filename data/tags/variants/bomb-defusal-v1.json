@@ -1,0 +1,19 @@
+{
+  "schema": "halo2-native-assault-variant-v1",
+  "id": "bomb-defusal-v1",
+  "name": "Bomb Defusal",
+  "engine": "assault",
+  "native_ruleset": 1,
+  "settings": {
+    "2": 13,
+    "10": 150,
+    "16": 1,
+    "89": 3,
+    "94": 4,
+    "2147483650": 1350,
+    "2147483651": 120,
+    "2147483652": 180
+  },
+  "description": "One bomb, authored A/B sites on the configured MCC maps, up to 8v8 for Big Team Bomb Defusal. Red attacks first; switch sides after 12 rounds. One life, first to 13 (12-12 draw), 2:30 rounds, 45-second fuse, 4-second stationary plant and 6-second stationary defuse. Equal rifle/pistol starts and one frag, radar off, no automatic map weapons or vehicles. Halo shields and movement retained.",
+  "provenance": "Newly authored native Assault extension. References game definitions and scenario markers from the user installation; contains no extracted assets."
+}

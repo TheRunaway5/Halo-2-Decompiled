@@ -2,6 +2,7 @@
 from pathlib import Path
 import hashlib
 import json
+import lzma
 import shutil
 
 from weapon_test_cache import mcc_runtime_inputs, require_mcc_map
@@ -39,6 +40,26 @@ def retain_results(source, destination, *, video=False):
         size = path.stat().st_size
         small = path.suffix in ('.json', '.jsonl', '.log', '.txt') and size <= 1024 * 1024
         media = video and path.name in ('window.mp4', 'video-sample.png')
+        # Long live input/body traces can cross the individual report limit.
+        # Keep their exact bytes compressed within the same bounded report
+        # budget, rather than losing the diagnostic at that size boundary.
+        if (path.name in ('ticks.jsonl', 'player-body-frames.json',
+                         'authority-phantom-phase.jsonl', 'authority-velocity-stores.jsonl',
+                         'authority-machine-state.jsonl') and
+                1024 * 1024 < size <= 8 * 1024 * 1024):
+            original = path.read_bytes()
+            packed = lzma.compress(original)
+            if len(packed) <= 1024 * 1024 and report_bytes + len(packed) <= 8 * 1024 * 1024:
+                target = destination / (str(path.relative_to(source)) + '.xz')
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(packed)
+                if lzma.decompress(target.read_bytes()) != original:
+                    raise RuntimeError("Compressed native trace changed during retention")
+                retained.append(dict(path=str(target), bytes=len(packed),
+                    sha256=hashlib.sha256(packed).hexdigest(), compression='xz',
+                    original_bytes=size, original_sha256=hashlib.sha256(original).hexdigest()))
+                report_bytes += len(packed)
+                continue
         if not media and (not small or report_bytes + size > 8 * 1024 * 1024):
             omitted.append(dict(path=str(path.relative_to(source)), bytes=size))
             continue

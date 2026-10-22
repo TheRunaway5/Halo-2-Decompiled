@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #include "halo2/multiplayer.hpp"
 #include "halo2/native_weapon_inventory.hpp"
 #include <bit>
@@ -43,7 +44,7 @@ int main(int argc,char **argv)try {
       for(const auto datum:std::set{smg,first,replacement})match->configure_replicated_first_person(cache.load_first_person_binding(datum,2));
       const auto initial=match->unit(player).weapon.source_datum;
       std::array<Controls,16> controls{};
-      const auto teleport=[&]{match->debug_request({DebugGameRequest::Teleport,player},&spawn);};
+      const auto teleport=[&]{test::place_player(*match,player,spawn);};
       const auto warm=[&]{controls[player]={};for(unsigned n=0;n<120;++n)match->step(controls);};
       teleport();match->step(controls);teleport();controls[player].pickup=true;controls[player].pickup_milliseconds=233;match->step(controls);warm();
       if(match->unit(player).weapon.definition!=first)throw FormatError("Actual first passive pickup did not attach");

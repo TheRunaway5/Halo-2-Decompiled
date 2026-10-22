@@ -67,7 +67,8 @@ def _records(value, *, artwork=False):
 
 def source_manifest(root):
     """Read the bounded portable contract; payload verification is separate."""
-    root = Path(root).resolve()
+    from installation_paths import resource_root
+    root = resource_root(root)
     raw, value = _json(root / SOURCE / "manifest.json", root)
     if (not isinstance(value, dict) or value.get("schema") != SCHEMA or
             value.get("source_schema") != SOURCE_SCHEMA or type(value.get("density")) is not int or
@@ -122,7 +123,8 @@ def _inventory(directory, root, allowed):
 
 def verify_source(root):
     """Authenticate masters and runtime originals without opening Vista fonts."""
-    root = Path(root).resolve()
+    from installation_paths import resource_root
+    root = resource_root(root)
     raw, value = source_manifest(root)
     records = {**value["runtime_files"], **value["artwork_files"]}
     source = root / SOURCE
@@ -134,6 +136,8 @@ def verify_source(root):
 
 
 def _prepare(root, cache, progress, previous=None):
+    from installation_paths import resource_root
+    root = resource_root(root)
     progress("Verifying the port's authored button prompt masters and rasters…")
     raw, value, stamps = verify_source(root)
     files = value["runtime_files"]

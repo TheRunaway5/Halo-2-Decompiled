@@ -19,11 +19,12 @@ std::vector<std::byte> constant(float value) {
   return b;
 }
 int calls{};
+int callback_success{};
 RumbleOutput observed;
 int SDLCALL rumble(void *, Uint16 l, Uint16 r) {
   ++calls;
   observed = {l, r};
-  return 0;
+  return callback_success;
 }
 void rumble_output() {
   ShaderFunctionTables tables;
@@ -43,6 +44,10 @@ void rumble_output() {
   player.play(definition, false, 1);
   check(!player.evaluate(tables).left,
         "Shield selector skips unmatched response type");
+  // Original222CB0 chooses the oldest timer, including unused slots; equal
+  // cold timers select the first slot again. Age the inactive bank so this
+  // additive test actually creates two distinct active source slots.
+  player.advance(1.f);
   player.play(definition, true, 1);
   player.advance(.01f);
   player.play(definition, true, 1);
@@ -60,8 +65,19 @@ void rumble_output() {
   check(device >= 0, SDL_GetError());
   auto *pad = SDL_GameControllerOpen(device);
   check(pad, SDL_GetError());
-  check(send_controller_rumble(pad, {32123, 12345}, true, false, true) == 0,
-        SDL_GetError());
+  // Calibrate only the virtual callback ABI. SDL2 uses zero for success;
+  // some SDL2 compatibility builds forward this callback to a bool provider.
+  // Require a successful API receipt before checking the actual motor packets.
+  const auto calibration=SDL_GameControllerRumble(pad,1,1,1);
+  if(calibration && calls) {
+    callback_success=1;
+    const auto retried=SDL_GameControllerRumble(pad,2,2,1);
+    check(retried==0,"SDL virtual rumble callback success ABI is unavailable");
+    std::cout<<"SDL virtual rumble callback uses bool success ABI\n";
+  } else check(calibration==0,"SDL virtual rumble calibration failed");
+  calls=0;
+  const auto status=send_controller_rumble(pad, {32123, 12345}, true, false, true);
+  check(status==0,"SDL rumble transport failed after virtual callback calibration");
   check(calls && observed.left == 32123 && observed.right == 12345,
         "Actual SDL motor transport");
   send_controller_rumble(pad, {32123, 12345}, false, false, true);

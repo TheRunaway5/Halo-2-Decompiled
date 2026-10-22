@@ -15,7 +15,7 @@ OUT = ROOT / 'analysis/multiplayer-shading/weather-depth-alias-prototype'
 COMPOSITION = ROOT / 'analysis/multiplayer-shading/weather-depth-alias-composition'
 SOURCE = [
     'include/halo2/source_weather_depth_alias.hpp',
-    'src/source_weather_depth_alias.cpp',
+    'src/rendering/weather/source_weather_depth_alias.cpp',
     'shaders/source_weather_depth_alias.comp',
     'tests/source_weather_depth_alias_tests.cpp',
     'tests/source_weather_depth_alias_sample.comp',
@@ -23,7 +23,7 @@ SOURCE = [
     'tools/build_source_weather_depth_alias_prototype.sh',
     'tools/build_source_weather_depth_alias_composition.sh',
     'tools/freeze_source_weather_depth_alias_proof.py',
-    'src/source_weather_plate_render.cpp',
+    'src/rendering/weather/source_weather_plate_render.cpp',
     'shaders/source_weather_plate.vert',
     'shaders/source_weather_plate.frag',
 ]

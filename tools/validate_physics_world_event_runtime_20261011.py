@@ -50,7 +50,7 @@ def main():
     g = read(generated)
     assert g['correspondence_sha256'] == PAIR_PIN
     assert g['generator_sha256'] == sha(ROOT / 'tools/generate_physics_world_event_runtime_20261011.py')
-    assert g['generated_cpp_sha256'] == sha(ROOT / 'src/physics_world_runtime_generated.cpp') == sha(E / 'generated-v27-repeat/runtime.cpp')
+    assert g['generated_cpp_sha256'] == sha(ROOT / 'src/physics/runtime/physics_world_runtime_generated.cpp') == sha(E / 'generated-v27-repeat/runtime.cpp')
     assert len(g['complete_native_entries']) == 296 and len(g['lowered_instructions']) == 27033
     assert not g['production_opcode_decoder'] and not g['production_original_code_execution']
     baseline = read(E / 'disc-original-v5/fixture.json')

@@ -36,8 +36,8 @@ def main():
     args = ap.parse_args()
     assert sha(ORIGINAL.read_bytes()) == ORIGINAL_PIN
     original = json.loads(ORIGINAL.read_text())
-    files = {name: (ROOT / name).read_text() for name in ('include/halo2/water.hpp', 'src/water.cpp', 'shaders/water_copy.frag', 'src/renderer.cpp')}
-    native = files['src/water.cpp']
+    files = {name: (ROOT / name).read_text() for name in ('include/halo2/water.hpp', 'src/rendering/world/water.cpp', 'shaders/water_copy.frag', 'src/rendering/renderer/renderer.cpp')}
+    native = files['src/rendering/world/water.cpp']
     program = native[native.index('PixelProgram water_copy_program()'):native.index('std::array<ShaderVector,4> water_copy_taps')]
     taps = native[native.index('std::array<ShaderVector,4> water_copy_taps'):native.index('WaterFrame water_frame')]
     values = [0] * 60
@@ -61,7 +61,7 @@ def main():
                                native_expression_with_documented_source_dimensions_bits=expression_uv,
                                same=False))
         assert actual_uv != expression_uv
-    renderer = files['src/renderer.cpp']
+    renderer = files['src/rendering/renderer/renderer.cpp']
     start = renderer.index('if(water_copy_pass)for(')
     uniforms = renderer[start:renderer.index('measure(frame_timing.view_constants_ms)', start)]
     start = renderer.index('if(water_copy_pass && !v.water.empty())')
@@ -69,8 +69,8 @@ def main():
     result = dict(schema='static-native-water-scene-copy-comparison-v1', boundary=__doc__,
                   original_report_sha256=ORIGINAL_PIN,
                   literal_program_words=values, original_program_equal=True,
-                  native_files={name: dict(sha256=sha((ROOT / name).read_bytes()), text=text) for name, text in files.items() if name != 'src/renderer.cpp'},
-                  native_renderer=dict(sha256=sha((ROOT / 'src/renderer.cpp').read_bytes()), uniform_source=uniforms, execution_source=execution),
+                  native_files={name: dict(sha256=sha((ROOT / name).read_bytes()), text=text) for name, text in files.items() if name != 'src/rendering/renderer/renderer.cpp'},
+                  native_renderer=dict(sha256=sha((ROOT / 'src/rendering/renderer/renderer.cpp').read_bytes()), uniform_source=uniforms, execution_source=execution),
                   native_program_function=program, native_tap_function=taps,
                   captured_source_dimensions=[source['width'], source['height']],
                   captured_destination_dimensions=[destination['width'], destination['height']],

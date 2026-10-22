@@ -21,7 +21,7 @@ def main():
     fixture = args.fixture_directory.resolve()
     provenance = json.loads((fixture / 'provenance.json').read_text())
     assert sha(fixture / 'fixtures.tsv') == provenance['fixture_sha256']
-    roots = ['src/sound_admission.cpp', 'src/sound_driver_parameters.cpp', 'tests/live_sound_admission_tests.cpp']
+    roots = ['src/audio/sound_admission.cpp', 'src/audio/sound_driver_parameters.cpp', 'tests/live_sound_admission_tests.cpp']
     files, pending = set(roots), list(roots)
     while pending:
         for name in re.findall(r'#include\s+"(halo2/[^\"]+)"', (ROOT / pending.pop()).read_text()):
@@ -46,7 +46,7 @@ def main():
         return result
     run(['g++', '--version'], 'compiler-version')
     common = ['g++', '-std=c++20', '-pthread', '-Wall', '-Wextra', '-Wpedantic',
-              '-ffp-contract=off', '-fno-fast-math', '-frounding-math', '-I'+str(output / 'source/include')]
+              '-ffp-contract=off', '-fno-fast-math', '-frounding-math', '-I'+str(output / 'source/include'), '-I'+str(output /'source/src')]
     inputs = [str(output / 'source' / name) for name in roots]
     normal, sanitized = output / 'native', output / 'native-asan'
     run([*common, '-O2', *inputs, '-o', str(normal)], 'normal-build')
@@ -57,7 +57,7 @@ def main():
         env, ASAN_OPTIONS='detect_leaks=1:halt_on_error=1', UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1'))
     # Reconstruct only the previously corrected distance operand error in an
     # isolated diagnostic source. The production source is never reverted.
-    driver = output / 'source/src/sound_driver_parameters.cpp'
+    driver = output / 'source/src/audio/sound_driver_parameters.cpp'
     before = driver.read_text()
     old = before.replace('const auto denominator=minimum>distance?minimum:distance;',
                          'const auto denominator=maximum>minimum?maximum:minimum;')
@@ -67,7 +67,7 @@ def main():
     control = output / 'pre-correction-distance.cpp'
     control.write_text(old)
     red = output / 'pre-correction-native'
-    red_inputs = [str(control) if name == 'src/sound_driver_parameters.cpp' else str(output / 'source' / name) for name in roots]
+    red_inputs = [str(control) if name == 'src/audio/sound_driver_parameters.cpp' else str(output / 'source' / name) for name in roots]
     run([*common, '-O2', *red_inputs, '-o', str(red)], 'pre-correction-build')
     result = run([str(red), str(output / 'fixture/fixtures.tsv')], 'pre-correction', expected=1)
     assert 'numeric entry 12c370' in result.stderr and 'Actual game numeric admission return differs' in result.stderr

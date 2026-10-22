@@ -40,6 +40,10 @@ public:
   // Protect an existing retained physical allocation; source cache callbacks
   // own the requested address and extent after startup has joined its worker.
   void protect_pages(std::uint32_t address,std::uint32_t bytes,std::uint32_t protection);
+  // Native converted-cache allocation policy supplies its explicit token
+  // bounds. The same real page owner handles original metadata protection
+  // calls and coupled authority checkpoint/restore for this backing.
+  std::uint32_t allocate_native_pages(SourcePhysicalAllocationRequest);
   struct FileCheckpoint {
     std::uint32_t alias{},position{};
     std::string name;

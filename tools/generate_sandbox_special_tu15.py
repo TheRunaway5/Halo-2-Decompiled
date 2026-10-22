@@ -125,7 +125,7 @@ ENTRIES = (0x1f39d0, 0x1f3b80, 0x10f080, 0x30bd0,
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path,
-                        default=Path('src/source_sandbox_special_tu15_generated.cpp'))
+                        default=Path('src/gameplay/objects/source_sandbox_special_tu15_generated.cpp'))
     parser.add_argument('--directory', type=Path,
                         default=Path('analysis/sandbox-tu15-goal-20261013/special-functions'))
     args = parser.parse_args()

@@ -11,7 +11,7 @@ def main():
     manifest=SNAP/'source-manifest-final.json';m=json.loads(manifest.read_text())
     mismatch=[rel for rel,pin in m['files'].items()if sha(SNAP/rel)!=pin];assert not mismatch,mismatch
     generated=json.loads((SNAP/'tests/fixtures/unit_pickup_runtime_manifest.json').read_text())
-    assert generated['generated_cpp_sha256']==sha(SNAP/'src/unit_pickup_runtime.cpp')
+    assert generated['generated_cpp_sha256']==sha(SNAP/'src/gameplay/weapons/unit_pickup_runtime.cpp')
     assert len(generated['complete_native_entries'])==26 and len(generated['lowered_instructions'])==2144
     assert not generated['production_opcode_decoder'] and not generated['production_original_code_execution'] and not generated['captured_runtime_results_used']
     fixture=SNAP/'tests/fixtures/unit_pickup_runtime_original.tsv';original=json.loads((SNAP/'tests/fixtures/unit_pickup_runtime_original.provenance.json').read_text())

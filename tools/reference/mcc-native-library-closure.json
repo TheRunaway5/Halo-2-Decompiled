@@ -125,13 +125,51 @@
       "map": "00a_introduction",
       "canonical_sha256": "524aa9fef932f89e3110f1410c1535530d9f2470b8b4d2f3079dbe84c4ffe49a",
       "existing_records": 512,
-      "missing": []
+      "missing": [
+        [
+          "shad",
+          "objects\\weapons\\rifle\\plasma_rifle\\shaders\\plasma_rifle_current"
+        ],
+        [
+          "shad",
+          "objects\\weapons\\rifle\\plasma_rifle\\shaders\\plasma_rifle_gauge"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\plasma\\plasma_alpha_active_camo"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\transparent\\meter_active_camo"
+        ],
+        [
+          "stem",
+          "shaders\\shader_templates\\transparent\\meter_active_camo"
+        ],
+        [
+          "stem",
+          "shaders\\shader_templates\\transparent\\plasma_alpha_active_camo"
+        ]
+      ]
     },
     {
       "map": "01a_tutorial",
       "canonical_sha256": "cef811be198e2f40581f153a131f3039088eb40c53188dc468a6e0d562369a0d",
       "existing_records": 424,
-      "missing": []
+      "missing": [
+        [
+          "shad",
+          "ui\\hud\\shaders\\widget_gradient_flash_pulse"
+        ],
+        [
+          "shad",
+          "ui\\hud\\shaders\\plasma_meter"
+        ],
+        [
+          "shad",
+          "ui\\hud\\shaders\\camo_meter"
+        ]
+      ]
     },
     {
       "map": "01b_spacestation",
@@ -648,7 +686,58 @@
   "evidence": {
     "all_library_compatibility_sha256": "fcd30f246eff6d71dd2cc34d2a7b1a9eeb4c2eb91d49cfca90c76c58aa8e0a79",
     "semantic_audit_sha256": "357e7bc437430692f4f2118138302b83f6dbed25a87481a23a9b4726feb134d2",
-    "consumer_validation_sha256": "c089d4d1d21d661f3b219c3c5faaba1bc8d801d6919fe8a3e60127ebe0ca4cc9"
+    "consumer_validation_sha256": "c089d4d1d21d661f3b219c3c5faaba1bc8d801d6919fe8a3e60127ebe0ca4cc9",
+    "armory_same_name_material_equivalence_sha256": "7e9c93b188d7956607496a6c0c15f8703e67f530ee8e15a7499fd35176514188",
+    "introduction_gauge_original_authentication_sha256": "f1bf4500d98f5319b1f38f5cb56df9ea2352034dca2a12dab8a99f37c1e08788",
+    "introduction_current_original_authentication_sha256": "d1fb153d8657798ed4c134700e8f5c4efe1b17c95aa0610ae54cc4b58f50c532",
+    "introduction_shared_program_consumed_equivalence_sha256": "560887285bae499c02be3f4b327aa34890f105256919f6910dc268d282f713ed"
   },
-  "scope": "Existing retained native definitions only; complete typed closure and source programs audited; no original program replacement or runtime reference files"
+  "scope": "Existing retained native definitions only; complete typed closure and source programs audited; no original program replacement or runtime reference files",
+  "scoped_closure": [
+    [
+      "01a_tutorial",
+      "shad",
+      "ui\\hud\\shaders\\widget_gradient_flash_pulse"
+    ],
+    [
+      "01a_tutorial",
+      "shad",
+      "ui\\hud\\shaders\\plasma_meter"
+    ],
+    [
+      "01a_tutorial",
+      "shad",
+      "ui\\hud\\shaders\\camo_meter"
+    ],
+    [
+      "00a_introduction",
+      "shad",
+      "objects\\weapons\\rifle\\plasma_rifle\\shaders\\plasma_rifle_gauge"
+    ],
+    [
+      "00a_introduction",
+      "spas",
+      "shaders\\shader_passes\\transparent\\meter_active_camo"
+    ],
+    [
+      "00a_introduction",
+      "stem",
+      "shaders\\shader_templates\\transparent\\meter_active_camo"
+    ],
+    [
+      "00a_introduction",
+      "shad",
+      "objects\\weapons\\rifle\\plasma_rifle\\shaders\\plasma_rifle_current"
+    ],
+    [
+      "00a_introduction",
+      "spas",
+      "shaders\\shader_passes\\plasma\\plasma_alpha_active_camo"
+    ],
+    [
+      "00a_introduction",
+      "stem",
+      "shaders\\shader_templates\\transparent\\plasma_alpha_active_camo"
+    ]
+  ]
 }

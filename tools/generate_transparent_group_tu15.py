@@ -10,7 +10,7 @@ ENTRY=0x423b0
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--directory',type=Path,required=True)
-    p.add_argument('--output',type=Path,default=Path('src/source_transparent_group_tu15_generated.cpp'))
+    p.add_argument('--output',type=Path,default=Path('src/rendering/source_transparent_group_tu15_generated.cpp'))
     p.add_argument('--test-manifest',type=Path,help='Explicit optional test fixture output; omitted by read-only provenance audits')
     a=p.parse_args();assert sha(NEW_DEFAULT)==NEW_PIN
     image=Xbe(NEW_DEFAULT);code=_Code(image,'.text')

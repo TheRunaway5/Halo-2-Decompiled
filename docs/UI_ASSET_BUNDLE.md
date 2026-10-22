@@ -1,13 +1,30 @@
 # Local HUD, menu and prompt artwork
 
-Current MCC-only onboarding imports game artwork and fonts from MCC. The
-port-authored prompt exception is the authenticated91-file source bank at
-`resources/presentation/prompts`; only its nine runtime files enter the selected
-cache at `presentation/prompts`. This bank includes the earlier82 SVG masters
-and six exact bitmap atlases, with no reference fonts. Bundled intro/credits
-are the other explicit presentation exception. The combined local Vista/MCC
-bundle workflow below describes the older optional pack and is not a current
-MCC onboarding dependency.
+Later controller-prompt update, 2026-10-21: the user's requested revised Xbox
+and matching PlayStation SVG controls are port-owned artwork. Onboarding now
+installs both raster banks into the vanilla cache's `presentation/prompts-xbox`
+and `presentation/prompts-playstation`, including on reuse/repair. Runtime
+selection follows each local player's actual input device. These new banks
+supersede the native-controller-pixel part of the earlier policy record below;
+ordinary MCC fonts and their logical metrics keep their existing owners. See
+[controller artwork and validation](PLAYSTATION_PROMPTS.md).
+
+Asset-policy update, 2026-10-21: MCC imports are the sole runtime donor,
+including artwork, fonts, prompts, loading audio and movies. The earlier
+91-file authored prompt-bank and supplied intro/credits exceptions are
+superseded. Preserve those original files and receipts as references; normal
+MCC import/reuse/package/runtime selection does not require or copy those banks.
+Native MCC prompts use their authenticated glyphs and geometry. Classic movie
+roles remain unassigned; complete shader/movie provenance, physical and fresh
+delivery acceptance remain open in the
+[current goal](../multiplayer/docs/online-completion-goal.md).
+
+The combined local Vista/MCC bundle workflow below records the older optional
+reference package, not current onboarding or delivered-runtime instructions.
+Its paths, flags and copied payloads retain their original evidence scope and
+cannot qualify an MCC-only release.
+
+## Historical optional bundle workflow
 
 `resources/ui` is a local, optional bundle excluded by `.gitignore`. A Git
 checkout contains the import, redraw and verification tools, but no imported
@@ -30,12 +47,12 @@ remain in `tools/` alongside the source code.
 Creating MCC packs requires a user-supplied MCC installation; see the
 [HUD importer](MCC_CLASSIC_HUD_IMPORT.md) and
 [menu importer](MCC_CLASSIC_MENU_IMPORT.md). Once prepared locally, the bundle
-can be used without that installation. Original Xbox/Vista game-file setup is
-still required for gameplay, widget definitions, strings, audio and the
-original logical layout owners. Normal setup automatically installs the local
-bundle when it exists and there is no existing HUD/menu selection. Without a
-bundle, setup uses the supplied Xbox/Vista sources. Existing selections are
-preserved. To explicitly select a prepared local bundle after setup:
+could be used without that installation. The older reference route required
+Xbox/Vista game-file setup for gameplay, widget definitions, strings, audio and
+logical layout owners. Its setup installed a local bundle when no HUD/menu
+selection existed, or used the supplied Xbox/Vista sources. That behavior is
+superseded for normal MCC setup. The following preserved reference commands do
+not admit such a bank for delivered gameplay:
 
 ```sh
 python3 tools/bundle_ui_assets.py --verify

@@ -173,7 +173,7 @@ def main():
  fixture=ROOT/'tests/fixtures/retail_source_async_read.tsv';fixture.write_text('# External read/callback outcomes are controlled phase inputs, never a source I/O timeline.\n'+
   '\n'.join(' '.join(f'{v:08X}'for v in row)+' | '+' '.join(f'{v:08X}'for v in out)for row,out in zip(cases,outputs))+'\n')
  report=dict(boundary=__doc__,source_xbe_sha256=PIN,snapshot_ram_sha256=sha(s.ram),snapshot_manifest_sha256=sha((s.directory/'export.json').read_bytes()),
-  tool_sha256=sha(Path(__file__).read_bytes()),helper_sha256=sha((ROOT/'src/source_async_jobs.cpp').read_bytes()),
+  tool_sha256=sha(Path(__file__).read_bytes()),helper_sha256=sha((ROOT/'src/platform/source_async_jobs.cpp').read_bytes()),
   header_sha256=sha((ROOT/'include/halo2/source_async_jobs.hpp').read_bytes()),
   test_sha256=sha((ROOT/'tests/source_async_read_tests.cpp').read_bytes()),fixture_sha256=sha(fixture.read_bytes()),
   allocator_report_sha256=sha(allocator_report.read_bytes()),native_binary_sha256=sha(a.binary.read_bytes()),

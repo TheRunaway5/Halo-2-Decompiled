@@ -8,6 +8,9 @@
 #include "halo2/renderer.hpp"
 #include "halo2/scene.hpp"
 #include "halo2/source_scenery_idle_phase.hpp"
+#include "halo2/multiplayer_scene_runtime_values.hpp"
+#include "halo2/source_machine_scene.hpp"
+#include "halo2/render_interpolation.hpp"
 #include <algorithm>
 #include <bit>
 #include <cstring>
@@ -23,6 +26,25 @@ void require(bool condition,const char *message){if(!condition)throw FormatError
 bool same(Vec3 a,Vec3 b){return std::bit_cast<std::uint32_t>(a.x)==std::bit_cast<std::uint32_t>(b.x) &&
     std::bit_cast<std::uint32_t>(a.y)==std::bit_cast<std::uint32_t>(b.y) &&
     std::bit_cast<std::uint32_t>(a.z)==std::bit_cast<std::uint32_t>(b.z);}
+bool same_idle(const SourceSceneryIdlePhaseState &a,const SourceSceneryIdlePhaseState &b){
+    return std::bit_cast<std::uint32_t>(a.frame)==std::bit_cast<std::uint32_t>(b.frame)&&
+        std::bit_cast<std::uint32_t>(a.playback_rate)==std::bit_cast<std::uint32_t>(b.playback_rate)&&
+        a.delay==b.delay&&a.status==b.status&&a.playback_flags==b.playback_flags&&
+        a.crossed_events==b.crossed_events&&a.next_events==b.next_events;
+}
+bool same_idle_definition(const std::optional<SourceSceneryIdlePhaseDefinition> &a,
+    const std::optional<SourceSceneryIdlePhaseDefinition> &b){
+    return a.has_value()==b.has_value()&&(!a||(a->graph==b->graph&&a->animation==b->animation&&
+        a->frames==b->frames&&a->loop_frame==b->loop_frame&&a->previous_sibling==b->previous_sibling&&
+        a->next_sibling==b->next_sibling&&a->event_counts==b->event_counts));
+}
+bool same_lifetime(const MultiplayerSceneRuntimeValues::SceneryQueryLifetime &a,
+    const MultiplayerSceneRuntimeValues::SceneryQueryLifetime &b){
+    return a.placement==b.placement&&a.created_tick==b.created_tick&&a.advanced_tick==b.advanced_tick&&
+        a.native_animated_bounds_admitted==b.native_animated_bounds_admitted&&a.idle_paired==b.idle_paired&&
+        same_idle_definition(a.idle_definition,b.idle_definition)&&same_idle(a.idle_state,b.idle_state)&&
+        same_idle(a.previous_idle_state,b.previous_idle_state);
+}
 struct Counts {unsigned models{},baked{},dynamic{},unresolved{},streams{},baked_vertices{},empty{},idle{};};
 Counts verify(const std::filesystem::path &path) {
     Cache cache(path);auto content=cache.load_content(0,true);
@@ -315,6 +337,7 @@ void checkpoint_roundtrip() {
     Cache cache("assets/disc/maps/ascension.map");const auto content=cache.load_content(0,true);
     CollisionWorld collision(content.collision);Mesh mesh;SourceSceneryScene scene(cache,content.objects,0,mesh,collision);
     SceneObjects objects(content,0);unsigned animation_calls{},query_calls{},birth_calls{},reentrant_calls{};
+    MultiplayerSceneRuntimeValues callback_values;
     SourceSceneryScene::Checkpoint cut;const SourceSceneryScene::PreparedRestore *observed{};
     const auto reentrant=[&]{
         if(!observed)return;++reentrant_calls;bool capture_rejected{},prepare_rejected{};
@@ -325,21 +348,34 @@ void checkpoint_roundtrip() {
         // The existing noexcept lifetime reset must also decline reentry.
         scene.reset_lifetimes();
     };
-    scene.birth_query_capture([&](auto,auto,auto,auto,const auto &,auto){++birth_calls;});
+    scene.birth_query_capture([&](std::size_t index,std::uint32_t handle,std::uint64_t born,
+        std::uint32_t definition,const Transform &node,float scale){
+        ++birth_calls;callback_values.scenery_initial_state.capture(handle,definition,
+            cache.load_object_shadow_definition(definition),node,scale);
+        MultiplayerSceneRuntimeValues::SceneryQueryLifetime lifetime;
+        lifetime.placement=index;lifetime.created_tick=born;lifetime.advanced_tick=born;
+        require(callback_values.scenery_query_lifetimes.emplace(handle,std::move(lifetime)).second,
+            "SCEN callback values repeated an actual full lifetime");
+    });
     scene.animation_frames([&](std::size_t index,std::uint32_t handle,std::uint64_t born,std::uint64_t tick,const AnimationClip &clip){
         require(objects.get(handle).placement==index&&objects.get(handle).created_tick==born&&tick>=born,
             "SCEN checkpoint controller lost its actual full lifetime");++animation_calls;
-        const auto definition=cache.load_source_scenery_idle_phase_definition(clip);
-        auto current=source_scenery_idle_phase_initial(definition,1.f/30.f),before=current;
-        for(std::uint64_t t=born;t<tick;++t){before=current;source_scenery_idle_phase_step(current,definition,1.f/30.f);}
-        return AnimationFrameWindow{before.frame,current.frame,.375f};
+        auto &lifetime=callback_values.scenery_query_lifetimes.at(handle);
+        if(!lifetime.idle_definition){lifetime.idle_definition=cache.load_source_scenery_idle_phase_definition(clip);
+            lifetime.idle_state=source_scenery_idle_phase_initial(*lifetime.idle_definition,1.f/30.f);}
+        require(tick>=lifetime.advanced_tick,"SCEN external idle history moved backwards");
+        while(lifetime.advanced_tick<tick){lifetime.previous_idle_state=lifetime.idle_state;lifetime.idle_paired=true;
+            source_scenery_idle_phase_step(lifetime.idle_state,*lifetime.idle_definition,1.f/30.f);++lifetime.advanced_tick;}
+        lifetime.native_animated_bounds_admitted=true;
+        return AnimationFrameWindow{lifetime.previous_idle_state.frame,lifetime.idle_state.frame,callback_values.scenery_render_fraction};
     });
     scene.lighting_query_state([&](std::size_t index,std::uint32_t handle,const Transform &node,float scale){
         require(objects.get(handle).placement==index,"SCEN checkpoint query lost its actual full handle");
-        ++query_calls;reentrant();const auto sphere=source_shadow_sphere(
-            cache.load_object_shadow_definition(content.objects[index].definition),node,scale);
-        return SourceSceneryQueryState{sphere.center,sphere.radius,{},0,true};
+        ++query_calls;reentrant();const auto &state=callback_values.scenery_initial_state.refresh_cached_bounds(handle,
+            content.objects[index].definition,cache.load_object_shadow_definition(content.objects[index].definition),node,scale,true);
+        return SourceSceneryQueryState{state.sphere.center,state.sphere.radius,state.velocity,state.query_runtime_flags,state.frozen};
     });
+    callback_values.scenery_render_fraction=.375f;
     scene.synchronize(objects);scene.update_pose(10,10,mesh);
     struct Output {std::vector<Vertex> vertices;std::vector<ObjectLightingBinding> bindings;std::vector<SourceObjectViewSelection> draws;};
     const auto draw=[&](unsigned mode,bool inspect=false){Output out;
@@ -367,6 +403,9 @@ void checkpoint_roundtrip() {
                 std::bit_cast<std::uint32_t>(x.source_distance)!=std::bit_cast<std::uint32_t>(y.source_distance))return false;}
         return true;};
     (void)draw(0);const auto expected=draw(1);cut=scene.checkpoint();
+    const auto callback_cut=callback_values;
+    auto &lifetime_alias=callback_values.scenery_query_lifetimes;
+    auto &bounds_alias=callback_values.scenery_initial_state;
     require(cut.valid()&&scene.owns_checkpoint(cut)&&!expected.vertices.empty()&&birth_calls&&query_calls,
         "SCEN exact checkpoint lacks actual posed/submitted source lifetimes");
     struct Owner {std::size_t placement;std::uint32_t handle;std::uint64_t birth;std::vector<Transform> nodes;std::vector<std::uint8_t> permutations;};
@@ -374,6 +413,7 @@ void checkpoint_roundtrip() {
     for(const auto &o:scene.effect_owners())expected_owners.push_back({o.placement,o.object,o.created_tick,
         {o.nodes.begin(),o.nodes.end()},{o.permutations.begin(),o.permutations.end()}});
     const auto material_count=mesh.materials.size();const auto *material_bank=mesh.materials.data();
+    callback_values.scenery_render_fraction=.625f;
     scene.update_pose(100,31,mesh);(void)draw(2);const auto later=draw(1);
     require(scene.owns_checkpoint(cut)&&!equal_output(later,expected),"SCEN historical checkpoint expired or later authored frame did not change");
     bool hysteresis_control{};for(std::size_t i=0;i<expected.draws.size()&&i<later.draws.size();++i)
@@ -402,8 +442,45 @@ void checkpoint_roundtrip() {
         scene.reset_lifetimes();
     }catch(...){thread_error=std::current_exception();}});thread.join();if(thread_error)std::rethrow_exception(thread_error);
     const auto callbacks=std::array{animation_calls,query_calls,birth_calls};
+    const auto later_callback_values=callback_values;
     require(scene.restore_ready(prepared)&&scene.commit_restore(prepared)&&!scene.restore_ready(prepared)&&
         !scene.commit_restore(prepared)&&!scene.commit_restore(competing),"SCEN exact restore was not owner/revision-bound and single use");
+    auto retired_callback_values=callback_cut;callback_values.swap(retired_callback_values);
+    require(&lifetime_alias==&callback_values.scenery_query_lifetimes&&&bounds_alias==&callback_values.scenery_initial_state,
+        "SCEN external value publication invalidated stable callback aliases");
+    require(callback_values.scenery_render_fraction==.375f&&retired_callback_values.scenery_render_fraction==.625f,
+        "SCEN value swap lost the actual captured and retired render fractions");
+    require(callback_values.scenery_query_lifetimes.size()==callback_cut.scenery_query_lifetimes.size()&&
+        retired_callback_values.scenery_query_lifetimes.size()==later_callback_values.scenery_query_lifetimes.size(),
+        "SCEN callback value swap changed occupied lifetime coverage");
+    unsigned animated_carry{},static_carry{};
+    for(const auto &[handle,lifetime]:callback_values.scenery_query_lifetimes){
+        const auto &saved=callback_cut.scenery_query_lifetimes.at(handle);
+        const auto &future=retired_callback_values.scenery_query_lifetimes.at(handle);
+        require(same_lifetime(lifetime,saved),
+            "SCEN external copy/swap reconstructed or lost its actual idle controller carry");
+        require(same_lifetime(future,later_callback_values.scenery_query_lifetimes.at(handle)),
+            "SCEN callback value swap discarded the retired later idle history");
+        // Every admitted source owner has constructor bounds, but only the
+        // authored multi-frame idle path calls the controller phase producer.
+        const auto authored=cache.load_initialized_object_idle(content.objects.at(lifetime.placement).definition);
+        if(authored&&authored->frame_count>1){
+            ++animated_carry;
+            require(lifetime.idle_definition&&lifetime.idle_definition->graph==authored->source_graph&&
+                lifetime.idle_definition->animation==authored->source_index&&lifetime.advanced_tick==10&&
+                future.advanced_tick==100&&lifetime.idle_paired&&future.idle_paired&&
+                lifetime.native_animated_bounds_admitted&&future.native_animated_bounds_admitted&&
+                !same_idle(lifetime.idle_state,future.idle_state),
+                "SCEN animated copy/swap failed actual tick10/tick100 retained controller coverage");
+        }else{
+            ++static_carry;
+            require(!lifetime.idle_definition&&!future.idle_definition&&lifetime.advanced_tick==lifetime.created_tick&&
+                future.advanced_tick==future.created_tick&&!lifetime.idle_paired&&!future.idle_paired&&
+                !lifetime.native_animated_bounds_admitted&&!future.native_animated_bounds_admitted,
+                "SCEN static copy/swap fabricated an idle controller or advanced its constructor clock");
+        }
+    }
+    require(animated_carry==2&&static_carry>0,"SCEN callback copy corpus lost its actual animated/static owner controls");
     require(callbacks==std::array{animation_calls,query_calls,birth_calls}&&mesh.materials.size()==material_count&&mesh.materials.data()==material_bank,
         "SCEN commit invoked a source callback or replaced resident material resources");
     require(!std::memcmp(retired_owners.front().nodes.data(),retired_nodes.data(),retired_nodes.size()*sizeof(Transform)),
@@ -413,6 +490,11 @@ void checkpoint_roundtrip() {
         require(o.placement==e.placement&&o.object==e.handle&&o.created_tick==e.birth&&o.nodes.size()==e.nodes.size()&&
             !std::memcmp(o.nodes.data(),e.nodes.data(),e.nodes.size()*sizeof(Transform))&&std::ranges::equal(o.permutations,e.permutations),
             "SCEN restore changed full salted lifetime, regions or exact posed WORLD nodes");}
+    for(const auto &o:restored_owners){const auto &authored=content.objects.at(o.placement);
+        const auto &bounds=callback_values.scenery_initial_state.retained(o.object,authored.definition,o.nodes.front(),authored.scale,false);
+        const auto actual=source_shadow_sphere(cache.load_object_shadow_definition(authored.definition),o.nodes.front(),authored.scale);
+        require(same(bounds.sphere.center,actual.center)&&std::bit_cast<std::uint32_t>(bounds.sphere.radius)==std::bit_cast<std::uint32_t>(actual.radius),
+            "SCEN external historical bounds did not match the restored actual WORLD pose");}
     const auto reads=query_calls;require(equal_output(draw(1),expected)&&query_calls==reads,
         "SCEN restore lost its six posed streams, four-view LOD history or retained query/lighting cache");
     auto before_reset=scene.prepare_restore(cut);scene.reset_lifetimes();require(!scene.restore_ready(before_reset)&&draw(1).vertices.empty(),
@@ -422,6 +504,68 @@ void checkpoint_roundtrip() {
     auto before_rebind=scene.prepare_restore(cut);scene.animation_time({});
     require(!scene.owns_checkpoint(cut)&&!scene.restore_ready(before_rebind),"SCEN callback rebinding retained an incompatible checkpoint");
     std::cout<<"PASS exact owning SCEN checkpoint: authored Ascension poses, full lifetimes/regions, four-view LOD/query/lighting, cancellation/staleness/reentry/executor and deferred retirement; resident resources unchanged\n";
+    std::cout<<"PASS owning scene callback values: actual Ascension constructor bounds and retained idle carry survive historical copy/swap; field aliases remain stable\n";
+    std::cout<<"SCEN callback copy census: animated="<<animated_carry<<" static="<<static_carry<<'\n';
+}
+void callback_auxiliary_values() {
+    MultiplayerSceneRuntimeValues values;
+    require(std::ranges::all_of(values.object_light_units,[](auto unit){return unit==null_datum;})&&
+        std::ranges::none_of(values.object_light_alive,[](auto alive){return alive;})&&
+        std::ranges::none_of(values.object_light_reported,[](auto reported){return reported;}),
+        "Scene callback values changed the actual empty object-light defaults");
+    Cache prop_cache("assets/disc/maps/lockout.map");const auto prop_content=prop_cache.load_content(0,true);
+    SceneObjects prop_objects(prop_content,0);const auto prop=std::find_if(prop_objects.objects().begin(),prop_objects.objects().end(),[&](const auto &o){
+        return o.handle!=null_datum&&prop_content.objects.at(o.placement).type==11&&
+            prop_cache.load_initial_model_selection(prop_content.objects.at(o.placement).definition,
+                prop_content.objects.at(o.placement).variant).resolved();});
+    require(prop!=prop_objects.objects().end(),"Scene callback copy fixture lacks an actual Lockout prop");
+    const auto &authored=prop_content.objects.at(prop->placement);
+    const auto selected=prop_cache.load_initial_model_selection(authored.definition,authored.variant);
+    const auto model=prop_cache.load_model(authored.definition,false,authored.variant,selected);
+    const auto nodes=pose_model_nodes_world(model,scene_object_transform(*prop));
+    require(!nodes.empty(),"Actual prop constructor has no WORLD node0");
+    const auto initial=values.prop_initial_state.capture(prop->handle,authored.definition,
+        prop_cache.load_object_shadow_definition(authored.definition),nodes.front(),prop->scale);
+    values.prop_query_handles.insert(prop->handle);values.actual_prop_regions=selected;
+    Cache portal_cache("assets/map-pack/maps/gemini.map");const auto portal_content=portal_cache.load_content(0,true);
+    CollisionWorld collision(portal_content.collision);Mesh mesh;
+    SourceMachineScene machines(portal_cache,portal_content.objects,0,mesh,collision);
+    SceneObjects objects(portal_content,0);machines.synchronize(objects);
+    const auto definition=portal_cache.load_source_portal_mask_definition(0);
+    std::vector<SourcePortalOwnerState> owners;for(const auto &packet:machines.portal_owners())owners.push_back(packet.owner);
+    values.source_portal_mask.reset_acoustic();values.source_portal_mask.initialize(definition,owners);
+    for(const auto &owner:owners)values.source_portal_owners.emplace(owner.handle,owner);
+    require(std::ranges::count_if(owners,[](const auto &owner){return owner.count!=0;})==6,
+        "Scene callback copy fixture lost the six actual Gemini portal ranges");
+    machines.update_pose(1,1,mesh);
+    for(const auto &packet:machines.portal_owners())values.source_portal_mask.step(definition,
+        values.source_portal_owners.at(packet.owner.handle),packet.door);
+    values.source_portal_tick=1;const auto checkpoint=values;
+    auto &bounds_alias=values.prop_initial_state;auto &regions_alias=values.actual_prop_regions;
+    auto &mask_alias=values.source_portal_mask;auto &owners_alias=values.source_portal_owners;
+    values.prop_initial_state.destroy(prop->handle);values.prop_query_handles.clear();values.actual_prop_regions.reset();
+    for(const auto &owner:owners)values.source_portal_mask.destroy(definition,owner);
+    values.source_portal_owners.clear();
+    auto retired=checkpoint;values.swap(retired);
+    require(&bounds_alias==&values.prop_initial_state&&&regions_alias==&values.actual_prop_regions&&
+        &mask_alias==&values.source_portal_mask&&&owners_alias==&values.source_portal_owners,
+        "Auxiliary scene publication invalidated existing callback field aliases");
+    const auto &restored=values.prop_initial_state.retained(prop->handle,authored.definition,nodes.front(),prop->scale,false);
+    require(same(restored.sphere.center,initial.sphere.center)&&
+        std::bit_cast<std::uint32_t>(restored.sphere.radius)==std::bit_cast<std::uint32_t>(initial.sphere.radius)&&
+        restored.frozen==initial.frozen&&restored.query_runtime_flags==initial.query_runtime_flags&&
+        values.prop_query_handles==checkpoint.prop_query_handles&&values.actual_prop_regions&&
+        values.actual_prop_regions->permutations==selected.permutations&&values.actual_prop_regions->states==selected.states&&
+        values.source_portal_tick==1&&values.source_portal_mask.words==checkpoint.source_portal_mask.words&&
+        values.source_portal_mask.acoustic==checkpoint.source_portal_mask.acoustic&&
+        values.source_portal_owners.size()==owners.size(),"Historical scene callback values lost actual prop bounds/regions or portal banks");
+    for(const auto &owner:owners){const auto &saved=values.source_portal_owners.at(owner.handle);
+        require(saved.handle==owner.handle&&saved.first==owner.first&&saved.count==owner.count&&
+            saved.identity.unique_id==owner.identity.unique_id&&saved.identity.origin_bsp==owner.identity.origin_bsp,
+            "Historical portal copy changed the actual full owner/range identity");}
+    require(!retired.prop_initial_state.contains(prop->handle)&&retired.prop_query_handles.empty()&&
+        !retired.actual_prop_regions&&retired.source_portal_owners.empty(),"Scene value swap destroyed or mixed the retired future banks");
+    std::cout<<"PASS owning auxiliary scene values: actual Lockout prop constructor/regions and six Gemini portal ownership/mask/acoustic banks copied and restored without callbacks\n";
 }
 }
 int main(int argc,char **argv) {
@@ -430,7 +574,7 @@ int main(int argc,char **argv) {
         const auto add=[&](const auto &path){const auto c=verify(path);total.models+=c.models;total.baked+=c.baked;
             total.dynamic+=c.dynamic;total.unresolved+=c.unresolved;total.streams+=c.streams;total.baked_vertices+=c.baked_vertices;total.idle+=c.idle;};
         if(argc==2)add(std::filesystem::path(argv[1]));else {
-            prepared_scenery_birth();lifetime_inputs();animation_input();checkpoint_roundtrip();
+            prepared_scenery_birth();lifetime_inputs();animation_input();checkpoint_roundtrip();callback_auxiliary_values();
             for(const auto *map:{"ascension","beavercreek","burial_mounds","coagulation","colossus","cyclotron",
                 "foundation","headlong","lockout","midship","waterworks","zanzibar"})
                 add(std::filesystem::path("assets/disc/maps")/(std::string(map)+".map"));

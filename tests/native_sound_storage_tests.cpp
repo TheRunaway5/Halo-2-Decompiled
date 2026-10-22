@@ -47,8 +47,9 @@ void provider_checks() {
   // Explicit native alias controls. None of these are imported retail arena
   // fields or an owning game's allocator construction.
   NativeSoundStorage storage({0x11223344,0x10000000,0x10010000});
-  const auto page=storage.page_size();
-  check(page==4096, "These retained original/native address controls require4KiB host pages");
+  const auto page=storage.alias_page_size();
+  check(page==4096, "These retained original/native address controls require4KiB aliases");
+  check(storage.page_size() && !(storage.page_size()&(storage.page_size()-1)),"Native host page size is invalid");
   auto services=storage.cache_services();
   storage.map_zeroed(0x20000000,1);
   check(storage.region_count()==1, "Explicit OS mapping missing");
@@ -104,7 +105,57 @@ void provider_checks() {
   retained={};
 }
 
-void original_comparison(const char *path) {
+void host_granularity_checks() {
+  // All three private aliases fit the same numeric 16 KiB interval. Each
+  // still owns independent OS backing, including on a 16 KiB host.
+  NativeSoundStorage storage({0x11223344,0x10001000,0x10009000});
+  auto services=storage.cache_services();
+  for (std::uint32_t i=1;i<=3;++i) {
+    const auto address=0x20000000+i*4096;
+    storage.map_zeroed(address,1);
+    auto block=storage.memory(address,4096);
+    check(std::all_of(block.begin(),block.end(),[](auto b){return b==std::byte{};}),
+          "Independent host backing is not zeroed");
+    block.front()=std::byte(i);block.back()=std::byte(0x30+i);
+    services.raw_protect(address,4096,4);
+  }
+  unavailable([&]{services.memory(0x20000000,1);});
+  unavailable([&]{services.memory(0x20001fff,2);});
+  unavailable([&]{services.memory(0x20004000,1);});
+  unavailable([&]{services.raw_protect(0x20001000,8192,4);});
+  for (std::uint32_t i=1;i<=3;++i) {
+    const auto block=services.memory(0x20000000+i*4096,4096);
+    check(block.front()==std::byte(i) && block.back()==std::byte(0x30+i),
+          "Subpage protection changed an independent alias");
+  }
+  const auto first=services.raw_allocate(0x11223344,0x208c);
+  const auto second=services.raw_allocate(0x11223344,0x30fc);
+  check(first==0x10001000 && second==0x10004000,
+        "Private alias allocation changed with host granularity");
+  services.memory(first,1)[0]=std::byte{0xa1};
+  services.memory(first+0x2fff,1)[0]=std::byte{0xb2};
+  services.memory(second,1)[0]=std::byte{0xc3};
+  services.raw_protect(first+0x1000,0x1000,4);
+  services.raw_protect(first+0x2000,0x1000,4);
+  services.raw_protect(second+0x3000,0x1000,4);
+  unavailable([&]{services.memory(first+0x2fff,2);});
+  unavailable([&]{services.memory(second+0x4000,1);});
+  check(services.memory(first,1)[0]==std::byte{0xa1} &&
+        services.memory(first+0x2fff,1)[0]==std::byte{0xb2} &&
+        services.memory(second,1)[0]==std::byte{0xc3},
+        "Host-rounded protection changed source bytes");
+
+  storage.map_zeroed(0xfffff000,1);
+  services.raw_protect(0xfffff000,4096,4);
+  services.memory(0xffffffff,1)[0]=std::byte{0xd4};
+  unavailable([&]{services.memory(0xffffffff,2);});
+  unavailable([&]{services.raw_protect(0xfffff000,8192,4);});
+  check(services.memory(0xffffffff,1)[0]==std::byte{0xd4},
+        "Last source-address page lost bounded backing");
+}
+
+struct ComparisonStats { std::size_t cases=0,bytes=0,stores=0; };
+ComparisonStats original_comparison(const char *path) {
   std::ifstream input(path); check(bool(input), "Original cache constructor fixture missing");
   SoundCacheStartupConstants constants;
   std::map<std::string,Case> cases;
@@ -182,14 +233,30 @@ void original_comparison(const char *path) {
   check(exact_bytes==172032 && exact_stores==4090,"Incomplete whole original cache constructor comparison");
   std::cout<<"originalCases=6 exactOutputBytes="<<exact_bytes<<" orderedOriginalStores="<<exact_stores
            <<" fixtureAllocationCallbacks=0 sourceDeviceMapAdmission=unverified\n";
+  return {cases.size(),exact_bytes,exact_stores};
 }
 }
 
 int main(int argc,char **argv) {
+  int status=0;
+  ComparisonStats stats;
+  std::size_t host_page=0,alias_page=0;
   try {
-    check(argc==2,"Supply original cache constructor fixture");
+    check(argc==2 || argc==3,"Supply original cache constructor fixture and optional bounded report");
+    NativeSoundStorage storage({0x11223344,0x10001000,0x10009000});
+    host_page=storage.page_size();alias_page=storage.alias_page_size();
     provider_checks();
-    original_comparison(argv[1]);
+    host_granularity_checks();
+    stats=original_comparison(argv[1]);
     std::cout<<"PASS native allocation/protection/address bounds/callback ownership\n";
-  } catch (const std::exception &error) { std::cerr<<error.what()<<'\n'; return 1; }
+  } catch (const std::exception &error) { std::cerr<<error.what()<<'\n'; status=1; }
+  if (argc==3) {
+    std::ofstream report(argv[2]);
+    report<<"{\"passed\":"<<(status?"false":"true")<<",\"host_page_bytes\":"<<host_page
+          <<",\"alias_page_bytes\":"<<alias_page<<",\"original_cases\":"<<stats.cases
+          <<",\"exact_output_bytes\":"<<stats.bytes<<",\"ordered_original_stores\":"<<stats.stores
+          <<",\"source_device_map_admission\":\"unverified\"}\n";
+    if (!report) return 1;
+  }
+  return status;
 }

@@ -8,8 +8,8 @@ FIXTURE_PIN='40c2ce8f0ace2fca2df05d58b15f73b9ad3a726556a275d5394ce3cc05fa0b41'
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);a=p.parse_args();out=a.output.resolve();out.mkdir(parents=True,exist_ok=True)
  assert sha(FIXTURE)==FIXTURE_PIN
- inputs=['src/sound_driver_stream.cpp','tests/sound_driver_stream_tests.cpp']
- dependencies=subprocess.run(['g++','-std=c++20','-Iinclude','-MM',*inputs],cwd=ROOT,capture_output=True,text=True,check=True)
+ inputs=['src/audio/sound_driver_stream.cpp','tests/sound_driver_stream_tests.cpp']
+ dependencies=subprocess.run(['g++','-std=c++20','-Iinclude', '-Isrc','-MM',*inputs],cwd=ROOT,capture_output=True,text=True,check=True)
  (out/'dependencies.txt').write_text(dependencies.stdout)
  names=sorted(set(q for q in dependencies.stdout.replace('\\\n',' ').split()if not q.endswith(':')))
  pins={}
@@ -19,7 +19,7 @@ def main():
  commands=[]
  for mode in ['normal','sanitizer']:
   folder=out/mode;folder.mkdir(exist_ok=True);exe=folder/'sound_driver_stream_tests'
-  common=['g++','-std=c++20','-Wall','-Wextra','-Wpedantic','-Werror','-I'+str(out/'source/include')]
+  common=['g++','-std=c++20','-Wall','-Wextra','-Wpedantic','-Werror','-I'+str(out/'source/include'), '-I'+str(out/'source/src')]
   common+=['-O2']if mode=='normal'else['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer']
   for label,argv in [('build',common+[*[str(out/'source'/q)for q in inputs],'-o',str(exe)]),('test',[str(exe),str(FIXTURE)])]:
    env=os.environ.copy();delta={}

@@ -3,9 +3,10 @@
 #include <memory>
 
 namespace halo2 {
+namespace native_events {class Timer;}
 struct SourceRuntimeSoundInterruptGate;
 // Concrete native registration/dispatcher resources for the late389378 calls.
-// The legacy vector output is an opaque cookie bound to the retained eventfd,
+// The legacy vector output is an opaque cookie bound to the retained native event,
 // not an Xbox PCI vector or host IRQL. Full38E53D/D8 admission is still required.
 class SourceRuntimeSoundEventPort final {
 public:
@@ -52,6 +53,7 @@ private:
         const SourceRuntimeSoundResetResources::ControlLease control;
         const std::uint64_t generation;
         const int descriptor;
+        const std::shared_ptr<native_events::Timer> resource;
     };
     std::shared_ptr<const TimerLease> claim_timer_binding(const SourceRuntimeMemory&,
         const SourceRuntimeSoundResetResources::ControlLease&,SourceRuntimeSoundFrontendEvents&);

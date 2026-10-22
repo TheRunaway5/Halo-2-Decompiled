@@ -166,6 +166,18 @@ def cases(image):
  add('match-dirty-real-native-callee',0xb1a10,lambda b:b.w(E+0x24,0x1001000),args=(0x200,))
  add('client-activation-guard',0x249590,lambda b:b.w(G+0xc,4,1))
  add('actual-registry-destroy-owner-required',0x160f10,lambda b:(b.w(E+0xc18,1),b.w(E+0xc1c,0x1010000),b.w(E+0xc20,-1,2)))
+ # Ordinary selected tick keeps its phase/client guards and real objective
+ # validator. An empty declared bank reaches the unsupplied real factory;
+ # the fixture supplies no successful objective or service result.
+ add('ordinary-ctf-update-not-playing',0x24a070)
+ def playing(b):b.w(E+0x6c,1,2);b.w(E+0xc04,1)
+ add('ordinary-ctf-update-client-guard',0x24a070,lambda b:(playing(b),b.w(G+0xc,4,1)))
+ lockout=next(mm for mm in fixture['maps']if mm['name']=='mcc-lockout')
+ tick_markers=bytearray(bytes.fromhex(lockout['fill_row_hex'])*lockout['count'])
+ for row in lockout['patches']:
+  tick_markers[row['index']*32:(row['index']+1)*32]=bytes.fromhex(row['row_hex'])
+ add('ordinary-ctf-update-real-validator-factory-required',0x24a070,playing,
+     markers=tick_markers,initialize=True)
  return out
 
 class Original:
@@ -175,16 +187,17 @@ class Original:
   for sec in self.image.sections:g.mem_write(sec.va,self.image.section_bytes(sec))
   b=case['banks']
   for p,raw in b.rows.items():g.mem_write(p,bytes(raw))
-  for r,v in zip(REGS,case['gp']):g.reg_write(r,v)
+  for r,v in zip(REGS,case.get('registration_gp',case['gp'])):g.reg_write(r,v)
   for i,r in enumerate(XMM):g.reg_write(r,int.from_bytes(struct.pack('<4I',*(0x3f000000+i*0x100+j for j in range(4))),'little'))
   g.reg_write(R.UC_X86_REG_EFLAGS,0x202);g.reg_write(R.UC_X86_REG_FPCW,0x27f);g.reg_write(R.UC_X86_REG_FPSW,0);g.reg_write(R.UC_X86_REG_FPTAG,0xffff);g.reg_write(R.UC_X86_REG_MXCSR,0x1f80)
-  trace=[];stores=[];reads=set();boundary=[];last=[0]
+  trace=[];stores=[];reads=set();writes=set();boundary=[];last=[0]
   def code(u,p,n,_):
    if p==STOP:return
    if p not in self.owned:boundary.append(p);u.emu_stop();return
    if not trace or p!=trace[-1]:trace.append(p)
-   self.executed.add(p);last[0]=p
+   self.executed.add(p);last[0]=p;self.last_pc=p
   def write(u,access,p,n,v,_):
+   if not any(q<=p and p+n<=q+len(z)for q,z in b.rows.items()):writes.add((p,n,last[0]))
    # Byte-ordered records normalize host/native vector write granularity only.
    for i,x in enumerate(encoded(v,n)):stores.append((last[0],p+i,x))
   def read(u,access,p,n,v,_):
@@ -196,19 +209,36 @@ class Original:
   if case['initialize']:
    for r,v in zip(REGS,case['gp']):g.reg_write(r,v)
    g.emu_start(0x249460,STOP,count=1000000)
-  # Test entry ABI is independently declared. Prior source stores remain.
-  for r,v in zip(REGS,case['gp']):g.reg_write(r,v)
-  g.reg_write(R.UC_X86_REG_EFLAGS,0x202)
-  g.emu_start(case['entry'],STOP,count=2000000)
+  # Every step invokes the complete real callback with its declared entry
+  # ABI. Clock advancement is an explicit caller input between invocations,
+  # not a callee result or an instruction/store attributed to original code.
+  ticks=case.get('ticks',1);assert 0<ticks<=10000
+  for tick in range(ticks):
+   if tick==case.get('move_at_tick'):
+    address=case['position_address'];raw=bytes.fromhex(case['position_hex'])
+    assert len(raw)==12 and any(q<=address and address+len(raw)<=q+len(z)for q,z in b.rows.items())
+    g.mem_write(address,raw)
+   for r,v in zip(REGS,case['gp']):g.reg_write(r,v)
+   g.reg_write(R.UC_X86_REG_EFLAGS,0x202)
+   entry_start=len(trace)
+   g.emu_start(case['entry'],STOP,count=2000000)
+   if boundary or g.reg_read(R.UC_X86_REG_EIP)!=STOP:break
+   if tick+1<ticks:
+    address=case['tick_clock_address']
+    g.mem_write(address,encoded(int.from_bytes(g.mem_read(address,4),'little')+1))
   pc=g.reg_read(R.UC_X86_REG_EIP)
   if not boundary and pc!=STOP:raise RuntimeError(f"{case['name']} source budget exhausted at {pc:x}")
   if reads:raise RuntimeError(f"{case['name']} undeclared source reads: {sorted(reads)[:12]}")
+  if writes:raise RuntimeError(f"{case['name']} undeclared source writes: {sorted(writes)[:12]}")
   status=g.reg_read(R.UC_X86_REG_FPSW);tag=g.reg_read(R.UC_X86_REG_FPTAG);x87=[];empty=False
   for i in range(8):
    physical=(((status>>11)&7)+i)&7
    if ((tag>>(physical*2))&3)==3:empty=True;continue
    assert not empty,'Sparse original x87 stack needs a separate owner'
    m,e=g.reg_read(getattr(R,f'UC_X86_REG_FP{physical}'));x87.append(encoded(m,8).hex()+encoded(e,2).hex())
+  self.last_trace=tuple(trace)
+  self.last_entry_trace=tuple(trace[entry_start:])
+  self.last_banks={p:bytes(g.mem_read(p,len(b.rows[p])))for p in case.get('observe_banks',())}
   result=dict(boundary=boundary[-1]if boundary else 0,gp=[g.reg_read(r)for r in REGS],
     xmm=[list(struct.unpack('<4I',g.reg_read(r).to_bytes(16,'little')))for r in XMM],
     x87=x87,fs_base=g.reg_read(R.UC_X86_REG_FS_BASE),

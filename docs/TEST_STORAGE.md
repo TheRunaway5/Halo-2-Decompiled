@@ -56,11 +56,28 @@ Use `--report-output PATH` for bounded results and add `--retain-video` only
 when retaining the requested visible proof. The enclosing `tools/run_test.py`
 removes the private outputs after success, failure, or cancellation.
 
+Native input/body reports and authority phantom/velocity/machine traces between1 and8MiB
+may be retained losslessly as `.xz` when the compressed report fits the1MiB
+individual and8MiB total report budgets. Retention receipts record both hashes
+and sizes, and decompression is checked before raw scratch removal. This keeps
+long input/body diagnostics without retaining raw banks or build products.
+
 `tools/test_physics_multiplayer_vehicle_seats_tu15.py` uses the same
 `--mcc-root`, optional `--map`, scratch `--output`, bounded `--report-output`
 and explicit `--retain-video` contract. It records every requested seat case
 before returning a failing suite result; one red case does not hide the rest.
 Xbox executable and Vista UI arguments are not accepted by either live wrapper.
+
+Object-field acceptance requires `HALO2_TU15_PHANTOM_TRACE`,
+`HALO2_TU15_PHANTOM_OBJECT_TRACE` and the actual field definition in
+`HALO2_TU15_LIFT_DEFINITION`. The wrapper rejects missing diagnostics before
+launching, so an empty member trace cannot masquerade as a force regression.
+
+The visible physics wrapper bounds each native case to180 seconds by default
+(`--timeout-seconds` can declare a different finite budget). Expiry stops only
+that owned native process and records a failed result with `timeout_errors` in
+`execution.json`; the cohort can continue and retain its diagnostic recording.
+It never advances a stalled physics world or supplies an admission result.
 
 Every test registered by the main project runs under `tools/run_test.py`. The
 wrapper supplies unique `TMPDIR`, `TMP`, `TEMP`, and `HALO2_TEST_SCRATCH` values.
@@ -100,6 +117,38 @@ uses them. Keep the small result, commands and source hashes needed to explain
 their findings, then remove their disposable builds and duplicate captures.
 Do this as each investigation finishes; do not accumulate obsolete probes for
 a later cleanup. Regression tests still used by the project remain source.
+
+An active incremental weapon investigation may use the snapshot validator's
+`--owned-build-worker --release-only` mode from an enclosing `tools/run_test.py`
+coordinator. It invokes the existing `tools/run_tests.py --build-worker` inside
+that same owner's `HALO2_TEST_SCRATCH/build`; the coordinator can then reuse it
+through that official worker while the investigation is active. Record each
+declared source refresh and its hashes, keep bounded reports per iteration,
+and document the active path and size. Finish the enclosing owner as soon as
+the build is no longer needed. Its supervisor removes both source and build on
+completion, failure or cancellation. Never use this mode for an unowned build,
+a launcher runtime or a separate persistent checkout; verify removal afterward.
+
+When refreshing an existing snapshot, give changed files fresh modification
+times or explicitly rebuild their outputs. Preserving an older source timestamp
+can make Ninja reuse an object compiled before the refresh, even when the source
+hash changed. Retain the refresh hashes and verify the affected units rebuilt.
+
+The same owned coordinator may add `--prepare-only` to freeze/register a full
+cohort before running focused targets through the official worker. That result
+is `prepared`, with `passed: false` and `validation_not_run: true`; it is not
+test acceptance. Keep the effective source hashes and each subsequent worker
+command/result. The outer owner still removes the entire source/build context.
+
+Mac dependency investigations can use `tools/macos/test_port.py
+--owned-build-worker` from an enclosing `tools/run_test.py` owner. This keeps
+the active build at that owner's `HALO2_TEST_SCRATCH/build` for subsequent
+`tools/run_tests.py --build-worker` commands. `tools/macos/test_session.py`
+provides a finite JSON-argv session inside that owner, records command results,
+and expires after twenty idle minutes by default. Declare and authenticate
+each source/reference refresh before rerunning. Send `{"quit": true}` as soon
+as the investigation finishes, then verify removal of the owner, SDKs, reference
+copies and binaries. Do not leave the session open between completed tasks.
 
 Existing build directories need reconfiguration to pick up the CTest wrapper
 and default-build exclusion. This change does not sweep historical directories.

@@ -58,7 +58,7 @@ def main():
         original=base/path;target=out/'base'/path
         target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(original,target)
         inputs[str(original)]=sha(original);link.append(target)
-    common=['c++','-O3','-DNDEBUG','-std=c++20','-I'+str(out/'include')]
+    common=['c++','-O3','-DNDEBUG','-std=c++20','-I'+str(out/'include'), '-I'+str(out/'src')]
     built=[]
     for name in ('motion_sensor','multiplayer_hud','frontend_ui_assets','frontend_font','frontend_font_sampling','multiplayer_scoreboard'):
         target=out/(name+'.o');original=overlay/'src'/(name+'.cpp')
@@ -67,7 +67,7 @@ def main():
     link_binary(out/'halo2_native',[*built,*link])
     # An independent, unchanged pre-trial implementation checks the default
     # radar byte-for-byte. Only its public symbol is renamed for this executable.
-    original=(source/'src/motion_sensor.cpp').read_text()
+    original=(source/'src/ui/hud/motion_sensor.cpp').read_text()
     routine=original[original.index('Texture source_motion_sensor_composite('):original.rfind('} // namespace halo2')]
     routine=routine.replace('source_motion_sensor_composite(', 'baseline_motion_sensor_composite(',1)
     oracle=out/'baseline_motion_sensor.cpp'

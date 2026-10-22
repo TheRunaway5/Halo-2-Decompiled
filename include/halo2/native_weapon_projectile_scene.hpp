@@ -19,7 +19,37 @@ struct NativeWeaponProjectileDraw {
 // snapshots. Geometry/LOD/shaders use the existing source consumers. Full
 // original birth, guidance, attachment, contrail and physics remain separate.
 class NativeWeaponProjectileScene {
+    struct PreparedData;
 public:
+    // Exact local owner/lighting/LOD/pose and all four completed draw banks.
+    // Resident definitions/resources and collision producers remain unchanged;
+    // this token does not certify a native cut or complete migration readiness.
+    class Checkpoint {
+    public:
+        Checkpoint()=default;
+        bool valid()const noexcept;
+    private:
+        friend class NativeWeaponProjectileScene;
+        struct Data;std::shared_ptr<const Data> data_;
+    };
+    class PreparedRestore {
+    public:
+        ~PreparedRestore();
+        PreparedRestore(PreparedRestore &&)noexcept;
+        PreparedRestore &operator=(PreparedRestore &&)noexcept;
+    private:
+        friend class NativeWeaponProjectileScene;
+        PreparedRestore();std::unique_ptr<PreparedData> data_;
+    };
+    Checkpoint checkpoint()const;
+    bool owns_checkpoint(const Checkpoint &)const noexcept;
+    PreparedRestore prepare_restore(const Checkpoint &)const;
+    bool restore_ready(const PreparedRestore &)const noexcept;
+    // Executor-local swaps only; caller retains the consumed token until old
+    // draw/element/node spans and the enclosing publication lock have retired.
+    // References to per-view vector objects remain stable, while their former
+    // elements belong to that token. No cold reconstruction or callback runs.
+    bool commit_restore(PreparedRestore &)noexcept;
     NativeWeaponProjectileScene(const Cache&,std::size_t bsp,Mesh&,
         const CollisionWorld&,std::span<const std::uint32_t> definitions,std::size_t capacity);
     ~NativeWeaponProjectileScene();

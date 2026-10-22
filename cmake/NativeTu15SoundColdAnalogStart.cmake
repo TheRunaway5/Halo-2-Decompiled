@@ -5,7 +5,7 @@ if(BUILD_TESTING)
     list(REMOVE_ITEM _halo2_cold_analog_sources tests/native_tu15_sound_codec_events_tests.cpp)
     add_executable(native_tu15_sound_cold_analog_start_tests
         tests/native_tu15_sound_cold_analog_start_tests.cpp
-        src/source_runtime_sound_pcm_prepared_range.cpp
+        src/audio/runtime/source_runtime_sound_pcm_prepared_range.cpp
         ${_halo2_cold_analog_sources})
     # ChannelReset's private Endpoint/Consumer definitions also host the
     # cold-start implementation. Older isolated targets need its real route

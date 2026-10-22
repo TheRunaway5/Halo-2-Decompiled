@@ -4,8 +4,8 @@ import hashlib,json,re,shutil
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 E=ROOT/'analysis/multiplayer/sandbox-source/physics-early-initializer-tu15-20261012'
-OWNED=('include/halo2/physics_early_initializer_runtime.hpp','src/physics_early_initializer_runtime_generated.cpp',
- 'src/physics_early_initializer_host.cpp','src/physics_early_initializer_call_frames.hpp',
+OWNED=('include/halo2/physics_early_initializer_runtime.hpp','src/physics/physics_early_initializer_runtime_generated.cpp',
+ 'src/physics/physics_early_initializer_host.cpp','src/physics/physics_early_initializer_call_frames.hpp',
  'tests/physics_early_initializer_tests.cpp','cmake/PhysicsEarlyInitializer.cmake',
  'cmake/PhysicsPhysicalStorage.cmake','cmake/PhysicsGameArena.cmake','cmake/PhysicsPoolStartup.cmake','cmake/PhysicsMainHeap.cmake',
  'tools/research_physics_early_initializer_tu15_20261012.py','tools/generate_physics_early_initializer_tu15_20261012.py',
@@ -31,8 +31,8 @@ option(HALO2_THREAD_SANITIZER "Instrument exact cohort with TSan" OFF)
 if(HALO2_SANITIZERS AND HALO2_THREAD_SANITIZER)
  message(FATAL_ERROR "Select one sanitizer runtime")
 endif()
-add_library(halo2_physics_world_runtime STATIC src/physics_main_heap_runtime_generated.cpp)
-add_library(halo2_systems STATIC src/source_runtime_memory.cpp src/source_runtime_image.cpp src/source_runtime_host_physical_memory.cpp src/source_runtime_host_storage.cpp src/native_threads.cpp src/native_synchronization.cpp)
+add_library(halo2_physics_world_runtime STATIC src/physics/physics_main_heap_runtime_generated.cpp)
+add_library(halo2_systems STATIC src/runtime/source_runtime_memory.cpp src/runtime/source_runtime_image.cpp src/runtime/source_runtime_host_physical_memory.cpp src/runtime/source_runtime_host_storage.cpp src/platform/native_threads.cpp src/platform/native_synchronization.cpp)
 target_link_libraries(halo2_systems PUBLIC halo2_physics_world_runtime Threads::Threads)
 foreach(target IN ITEMS halo2_systems halo2_physics_world_runtime)
  target_include_directories(${target} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -55,7 +55,7 @@ include(cmake/PhysicsEarlyInitializer.cmake)
  for p,h in pins.items():assert sha(ROOT/p)==h,p
  pins['CMakeLists.txt']=sha(source/'CMakeLists.txt')
  d=dict(schema=1,files=pins,owned=OWNED,compiler_dependencies=deps,dependencies_sha256=sha(E/'dependencies.d'),
-  selected_main_source='src/physics_main_heap_runtime_generated.cpp',main_production_module_sha256=pins['cmake/PhysicsMainHeap.cmake'],
+  selected_main_source='src/physics/physics_main_heap_runtime_generated.cpp',main_production_module_sha256=pins['cmake/PhysicsMainHeap.cmake'],
   scope='Exact native fresh TU1.5 startup and early initializer prefix to required renderer owner. Idle async worker is retired before synchronous bank use. No renderer pointer, mode transition, occupied world, launcher or live multiplayer proof.')
  p=E/'source-manifest-v1.json';p.write_text(json.dumps(d,sort_keys=True,indent=2)+'\n');print(sha(p))
 if __name__=='__main__':main()

@@ -28,7 +28,7 @@ def main():
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     source = args.output / 'source'
-    pending = [Path('src/sound_sdk_spatial.cpp'), Path('tests/sound_sdk_spatial_tests.cpp')]
+    pending = [Path('src/audio/sound_sdk_spatial.cpp'), Path('tests/sound_sdk_spatial_tests.cpp')]
     pins = {}
     while pending:
         path = pending.pop()
@@ -54,10 +54,10 @@ def main():
         assert (result.returncode == 0) == expected_success, (label, result.stdout, result.stderr)
         return result
 
-    owner = source / 'src/sound_sdk_spatial.cpp'
+    owner = source / 'src/audio/sound_sdk_spatial.cpp'
     common = ['c++', '-std=c++20', '-fno-fast-math', '-ffp-contract=off',
               '-frounding-math', '-fno-associative-math', '-Wall', '-Wextra',
-              '-I' + str(source / 'include'), str(owner),
+              '-I' + str(source / 'include'), '-I'+str(source /'src'), str(owner),
               str(source / 'tests/sound_sdk_spatial_tests.cpp')]
     for kind, flags in [('normal', ['-O2']),
                         ('sanitizers', ['-O1', '-g', '-fsanitize=address,undefined',

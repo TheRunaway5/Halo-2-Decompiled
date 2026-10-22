@@ -14,7 +14,7 @@ ROOT=Path(__file__).resolve().parents[1]
 BASE_MANIFEST=ROOT/'analysis/multiplayer/game-variants/king-replication-native-20261012/verify-20261012T014047.910516Z/verification.json'
 BASE_PIN='e26168337409827cf18408575a6b595ff55f769fb4c62e74a26e62ec5a213434'
 OUT=ROOT/'analysis/multiplayer/game-variants/king-wire-native-20261012'
-OWNED=('include/halo2/source_king_wire.hpp','src/source_king_wire.cpp','tests/king_wire_tests.cpp',
+OWNED=('include/halo2/source_king_wire.hpp','src/gameplay/multiplayer/source_king_wire.cpp','tests/king_wire_tests.cpp',
  'tests/fixtures/king_wire_original.json','tools/oracle_king_wire.py','tools/verify_king_wire.py')
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def main():
@@ -29,13 +29,13 @@ def main():
  pins={p:sha(ROOT/p)for p in sorted(files)}
  for p in sorted(files):
   target=source/p;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(ROOT/p,target);assert sha(target)==pins[p]
- for p in ('include/halo2/source_king.hpp','include/halo2/source_king_replication.hpp','src/source_king_replication.cpp'):
+ for p in ('include/halo2/source_king.hpp','include/halo2/source_king_replication.hpp','src/gameplay/multiplayer/source_king_replication.cpp'):
   assert sha(ROOT/p)==sha(base/p),('Required bank ABI drift',p)
  live=(ROOT/'CMakeLists.txt').read_text();cmake=(source/'CMakeLists.txt').read_text()
  declaration=re.search(r'        add_executable\(king_wire_tests.*?king_wire_original\.json\)\n',live,re.S).group()
- line='target_sources(halo2_systems PRIVATE src/source_king_wire.cpp)\n'
+ line='target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/source_king_wire.cpp)\n'
  assert live.count(line)==1 and line not in cmake and 'add_executable(king_wire_tests'not in cmake
- anchor='target_sources(halo2_systems PRIVATE src/source_king_replication.cpp)\n';assert cmake.count(anchor)==1
+ anchor='target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/source_king_replication.cpp)\n';assert cmake.count(anchor)==1
  cmake=cmake.replace(anchor,anchor+line)
  anchor='            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/king_replication_original.json)\n';assert cmake.count(anchor)==1
  cmake=cmake.replace(anchor,anchor+declaration);(source/'CMakeLists.txt').write_text(cmake)
@@ -69,8 +69,8 @@ def main():
  assert re.search(r'100% tests passed.*out of 4',(run/'ctest.log').read_text())
  sanitized=run/'king_wire_tests_asan'
  execute('sanitizer-build',['/usr/bin/c++','-std=c++20','-O1','-g','-Wall','-Wextra','-Werror',
-  '-fsanitize=address,undefined','-fno-omit-frame-pointer','-I'+str(source/'include'),
-  source/'tests/king_wire_tests.cpp',source/'src/source_king_wire.cpp','-o',sanitized])
+  '-fsanitize=address,undefined','-fno-omit-frame-pointer','-I'+str(source/'include'), '-I'+str(source/'src'),
+  source/'tests/king_wire_tests.cpp',source/'src/gameplay/multiplayer/source_king_wire.cpp','-o',sanitized])
  execute('sanitizer-test',[sanitized,source/'tests/fixtures/king_wire_original.json'],
   {'ASAN_OPTIONS':'detect_leaks=1:halt_on_error=1','UBSAN_OPTIONS':'halt_on_error=1'})
  with concurrent.futures.ThreadPoolExecutor(max_workers=8)as pool:current=list(pool.map(lambda p:sha(source/p),frozen))

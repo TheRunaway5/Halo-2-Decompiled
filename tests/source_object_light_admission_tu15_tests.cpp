@@ -58,6 +58,19 @@ int main(int argc,char** argv)try {
                 return std::span(b).subspan(address-p,size);
             throw FormatError("Receiver memory adapter consumed an uncaptured original bank");
         }};
+    SourceObjectClusterMemberships expected_memberships;
+    for(unsigned cluster=0;cluster<collidable.heads.size();++cluster)
+        for(const auto* pool:{&collidable,&noncollidable})for(const auto& record:pool->cluster(std::int16_t(cluster))) {
+            auto& memberships=expected_memberships[record.object];
+            if(memberships.empty() || memberships.back()!=cluster)memberships.push_back(std::int16_t(cluster));
+        }
+    const auto untouched=banks;
+    require(source_object_cluster_memberships(memory,collidable.heads.size())==expected_memberships,
+        "Current cluster census differs from captured TU1.5 linked entries");
+    require(banks==untouched,"Cluster census changed captured source memory");
+    bool invalid_count=false;
+    try{(void)source_object_cluster_memberships(memory,513);}catch(const FormatError&){invalid_count=true;}
+    require(invalid_count,"Cluster census admitted a non-source cluster count");
     unsigned cases=0,words=0,records=0;
     for(const auto& c:j.at("cases")) {
         SourceObjectAdmissionInput in;in.capacity=j.at("capacity");in.flags=c.at("flags");

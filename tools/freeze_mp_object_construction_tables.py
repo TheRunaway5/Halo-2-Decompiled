@@ -40,12 +40,12 @@ def main():
     for folder in ('measured','repeated','production-normal','production-sanitizer'):
         for path in sorted((BASE/folder).rglob('*')):
             if path.is_file():copy(path,FROZEN/'evidence'/folder/path.relative_to(BASE/folder))
-    names=['include/halo2/object_construction_tables.hpp','src/object_construction_tables.cpp',
+    names=['include/halo2/object_construction_tables.hpp','src/gameplay/objects/object_construction_tables.cpp',
         'tests/object_construction_tables_tests.cpp','tools/export_object_construction_tables.py',
         'tools/validate_object_construction_tables_production.py','tools/freeze_mp_object_construction_tables.py',
         'docs/MP_OBJECT_CONSTRUCTION_TABLES_RESEARCH.md']
     owned={name:sha(actual(name)) for name in names}
-    for name in names+['CMakeLists.txt','include/halo2/original_data.hpp','src/original_data.cpp']:
+    for name in names+['CMakeLists.txt','include/halo2/original_data.hpp','src/assets/original_data.cpp']:
         copy(actual(name),FROZEN/'source'/name)
     artifacts={relative(path):sha(path) for path in sorted(FROZEN.rglob('*')) if path.is_file()}
     result=dict(schema='object-construction-provider-frozen-v1',artifact_pins=artifacts,

@@ -1,0 +1,19 @@
+{
+  "schema": "H2_BUNDLED_LOADING_AMBIENCE_V1",
+  "file": "loading-tone.xbox-adpcm",
+  "bytes": 18396,
+  "sha256": "4f61e827be9b54b71e3d37a145c9b88fb32eaf517e23746af85236ca41ba8fc9",
+  "decoded_pcm_sha256": "b740acf4ce447da6583b4f6c7fd6696fabbb249664a53fb780b18c4dd58cd73d",
+  "decoded_frames": 32704,
+  "sample_rate": 22050,
+  "channels": 1,
+  "playback_frequencies": [21738, 16290, 29008, 10876],
+  "source": {
+    "kind": "original-loading-ambience",
+    "executable_sha256": "33119398d3f68ad569c5010b652039105d3ce1b6512c418508e49ce69309f109",
+    "virtual_address": "007F4BB8",
+    "file_offset": 4148152
+  },
+  "authorization": "User approved bundling the original tone on 2026-10-20 when a 1-to-1 MCC reconstruction could not be established.",
+  "runtime_policy": "Reuse the recovered four-voice loading owner, envelopes, fade and lifetime; no original installation is required."
+}

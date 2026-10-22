@@ -3,13 +3,13 @@
 import argparse,hashlib,json,os,subprocess
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-SOURCES=['tests/vista_player_birth_tests.cpp','src/vista_player_birth.cpp','src/vista_slayer_publication.cpp']
+SOURCES=['tests/vista_player_birth_tests.cpp','src/ui/vista/vista_player_birth.cpp','src/ui/vista/vista_slayer_publication.cpp']
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def main():
  parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--asan',action='store_true');args=parser.parse_args()
  target=Path.home()/'.cache'/('vista_player_birth_tests_asan'if args.asan else'vista_player_birth_tests')
  temporary=Path.home()/'.cache'/'native-vista-birth-compiler-tmp';temporary.mkdir(parents=True,exist_ok=True)
- command=['c++','-std=c++20','-Wall','-Wextra','-Werror','-pedantic','-Iinclude']
+ command=['c++','-std=c++20','-Wall','-Wextra','-Werror','-pedantic','-Iinclude', '-Isrc']
  if args.asan:command+=['-fsanitize=address,undefined','-fno-omit-frame-pointer']
  command+=SOURCES+['-o',str(target)]
  subprocess.run(command,cwd=ROOT,env=dict(os.environ,TMPDIR=str(temporary)),check=True)

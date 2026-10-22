@@ -14,7 +14,7 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 policy = json.loads((ROOT / "tools/mcc-sound-permutation-time-reference-profiles.json").read_text())
 assert len(policy["keys"]) == 24624 and len(policy["owners"]) == 41
-expected = (ROOT / "src/mcc_sound_permutation_time_reference_profiles.inc").read_text()
+expected = (ROOT / "src/audio/mcc_sound_permutation_time_reference_profiles.inc").read_text()
 assert module.generate(policy) == expected
 small = deepcopy(policy)
 small["keys"] = small["keys"][:2]

@@ -4,6 +4,9 @@
 
 namespace halo2 {
 class PhysicsLiveWorldTu15;
+class SourceNativePublication;
+class MultiplayerAudio;
+class MccSoundTimingReadLease;
 struct MccSoundVariationProviderAccess;
 // Owned metadata from an actual converted native World. The opaque lease
 // retains its source memory and epoch; a provider can outlive the World but
@@ -11,6 +14,8 @@ struct MccSoundVariationProviderAccess;
 // Cache retains the actual MCC DAT/PCM resources and must still outlive its
 // World. Its address is borrowed equality only, never an ownership token.
 class MccSoundVariationProvider final {
+    struct NativeBindingData;
+    struct NativeHeldData;
 public:
     MccSoundVariationProvider(const MccSoundVariationProvider&)=default;
     MccSoundVariationProvider&operator=(const MccSoundVariationProvider&)=default;
@@ -27,10 +32,44 @@ public:
     // an Audio bank's private selection state remains a separate owner.
     SoundVariationDefinition load(const Cache& expected_owner,TagHandle sound,
                                   unsigned pitch=0)const;
+    // Transferable target admission: retains metadata/Cache, only a weak
+    // native-scope identity. It never retains a live gate or timing mutex.
+    class NativeBinding {
+    public:
+        NativeBinding()=default;
+        // Direct creator-only native eligibility, without a timing operation.
+        // Actual lease freshness is rechecked when acquiring HeldNativeBinding.
+        bool current()const noexcept;
+    private:
+        std::shared_ptr<const NativeBindingData> data_;
+        explicit NativeBinding(std::shared_ptr<const NativeBindingData>);
+        friend class MccSoundVariationProvider;
+    };
+    class HeldNativeBinding {
+    public:
+        ~HeldNativeBinding();
+        HeldNativeBinding(const HeldNativeBinding&)=delete;
+        HeldNativeBinding(HeldNativeBinding&&)=delete;
+        // No locks, allocation, callbacks or native-byte reads. Release this
+        // scope after SDL, before native exclusion or outgoing owner retirement.
+        bool matches(const NativeBinding&)const noexcept;
+    private:
+        std::unique_ptr<NativeHeldData> data_;
+        explicit HeldNativeBinding(std::unique_ptr<NativeHeldData>);
+        friend class MccSoundVariationProvider;
+    };
+    // Requires a genuine current takeover scope, the exact strong Cache owner
+    // and this provider's actual native timing owner, before timing/SDL holds.
+    NativeBinding native_binding(const SourceNativePublication&,
+        std::shared_ptr<const Cache>)const;
+    static HeldNativeBinding hold_native_binding(const NativeBinding&);
 private:
     struct Impl;
     std::shared_ptr<const Impl> impl_;
     explicit MccSoundVariationProvider(std::shared_ptr<const Impl>);
+    MccSoundTimingReadLease timing_lease()const;
+    static MccSoundVariationProvider binding_provider(const NativeBinding&);
+    friend class MultiplayerAudio;
     friend struct MccSoundVariationProviderAccess;
 };
 } // namespace halo2

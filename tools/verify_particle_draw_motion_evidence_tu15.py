@@ -5,6 +5,7 @@ Every weapon remains open for complete feature and visual parity. These are
 native CPU/source-bank comparisons for one manual MP Wraith charge diagnostic,
 one declared view, and its source stop request; no GPU or Xbox pixel claim.
 """
+from source_layout import source_file
 import argparse,json,struct
 from pathlib import Path
 from audit_rendering import file_sha
@@ -65,7 +66,7 @@ def main():
     generations=[]
     for name,source,count,instructions in [('particle-frame-native-functions-v10','source_effect_particle_frame_tu15_generated.cpp',53,2661),('particle-draw-native-functions-v8','source_effect_particle_draw_tu15_generated.cpp',18,1528)]:
         g=json.loads((base/name/'generation.json').read_text());assert len(g['complete_native_entries'])==count and len(g['lowered_instructions'])==instructions
-        assert g['generated_cpp_sha256']==file_sha(ROOT/'src'/source)
+        assert g['generated_cpp_sha256']==file_sha(source_file(ROOT, source))
         generations.append(dict(directory=name,functions=count,instructions=instructions,generation_sha256=file_sha(base/name/'generation.json'),source_sha256=g['generated_cpp_sha256']))
     components=json.loads((base/'particle-draw-root-components-v3/report.json').read_text());assert components['passed'] and not components['root_drift_after_compile']
     fault=json.loads((base/'particle-queued-draw-original-v2/report.json').read_text());assert not fault['completed'] and fault['exit_pc']==0x404bcd and fault['source_memory_faults'][0]['address']==8

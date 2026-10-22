@@ -1,6 +1,259 @@
 # Native frame-rate performance
 
-## Locked 60 FPS at 4K, four players — current target
+## Continued Coagulation optimization, 2026-10-22 (qualification interrupted)
+
+The new performance targets are still **unverified**. A fresh visible two-player
+Coagulation baseline at 1280x720 measured **21.36 FPS**, with all 60 measured
+frames exceeding 16.67 ms. This development host has a Ryzen 7 9800X3D and
+RTX 5080; concurrent builds became heavily contended during this follow-up.
+Component timings below are not playable frame-rate results.
+
+The current source adds five reductions in rendering preparation overhead:
+
+* Reuse the ordered memory guard/observer dispatch list while retaining the
+  original shared lock through every callback. Successful policy changes replace
+  a retained epoch identity; bank changes, recursive calls and large callback
+  banks retain checked handling. Exceptions and callback order are preserved.
+* Compile literal instruction PCs through a small inline helper after checking
+  the exact native service-site set, callback type and executor. Traces remain
+  live at every instruction; required service PCs keep their original callback.
+  The generic fallback stays out of line. A per-PC template experiment was
+  cancelled before selection because its compilation cost was excessive.
+* Memoize complete pixel FNV1a identities only for immutable pixel storage.
+  Mutable access invalidates the identity before exposing a writer. Exposed
+  pointers and iterators keep full hashing; shared immutable readers publish
+  through atomics. Bitmap shape, GPU mutation and residency checks still run.
+* Use fixed-size memmove for checked single-region scalar transfers. Extent,
+  commitment, access, guards, observers and post-guard lookup still run in their
+  original order; cross-owner staging remains intact.
+* Share exact frame-local skins for admitted players, corpses and world/held
+  weapons, extending the vehicle work below. The full owner, LOD, immutable
+  model, node bytes and floating-point controls must agree. Original ordered
+  sections, shader selection, coverage and lighting remain per view.
+
+The dispatch microbenchmark measured 39.50 -> 30.08 ns per write (elapsed-time
+medians). The final literal helper measured 6.70 -> 1.13 ns per instruction in
+its isolated cursor loop. A separate seven-pair checked-memory probe measured
+5.32 -> 4.38 ns per four-byte read and 26.43 -> 25.65 ns per write using process
+CPU time. These are bounded owner-level comparisons under changing host load.
+They do not establish an aggregate FPS gain.
+
+The standalone cursor/specialization checks and dispatch/pixel sanitizer cases
+pass. Counterfactually caching exposed writable pixels makes the exact-byte
+test fail. Full original/native CMake checks, four-player ordered unit-vertex
+comparisons, final installed-runtime qualification and matched FPS acceptance
+are still pending for this source revision. The expanded current-source build
+completed, but the user interrupted the runtime-test turn. Its owned supervisor
+removed the disposable source/build tree; no new runtime was promoted. The
+unit helper also has a subsequent local allocation cleanup that still needs
+compilation and its vertex checks. Reports are under
+`build/test-results/splitscreen-followup-20261022`; `checklist.json` records the
+remaining work. The previously qualified runtime in the next section remains
+selected. `interruption-storage.json` records cleanup and incomplete acceptance.
+
+`profile_mp_render_cpu` also accepts a final `fixed` argument after its existing
+UI argument. This mode uses actual prepared players, fixed session/auxiliary
+seeds, 60 real preparation ticks, one original 30 Hz tick per rendered frame and
+an interpolation fraction of 0.5. It records Linux main-thread CPU stamps and a
+bounded player/vehicle/pose signature alongside per-view timings and skin reuse
+counts. It compares equivalent CPU work; its accelerated tick cadence is a
+diagnostic mode and is not ordinary-playback FPS acceptance. The installed
+profiler remains available through `tools/profile_multiplayer.py`.
+
+## Installed optimization pass, 2026-10-22
+
+**The 120 FPS single-player / 60 FPS four-player targets remain unmet.** Both
+launchers now select the qualified runtime
+`bin/engine-builds/6c6a9b900ebb46e7ad3fb087d9e70fa4/halo2_native`, SHA-256
+`7db35ababe9ba5e2b351ae5a9ccb96fb5800f66d9e2b3bc14b1dbc37470e7c79`.
+
+This pass implements:
+
+* Build-local specialization of 190,096 known literal operands in 135 generated
+  modules. Canonical generated sources stay unchanged; dynamic/unmapped operands
+  keep their checked helper. Build receipts retain input/output/mapping hashes.
+* A guarded instruction cursor at 575,667 generated instruction sites. Active
+  traces, required service/exception PCs, other executors and replaced/wrapped
+  callbacks retain full delivery. The source simulation remains at 30 Hz.
+* Frame-owned vehicle skins keyed by complete owner, LOD, model, exact WORLD
+  nodes and floating-point controls. Source-selected draws skin their selected
+  LOD once; fallback PRT banks reuse complete skins across compatible views.
+  Every draw still performs its original ordered section/shader/lighting work.
+
+The [MCC investigation](MCC_HIGH_FRAMERATE_RESEARCH_20261022.md) confirms Classic
+interpolation and documents the inspected DLL. It does not establish an MCC
+GPU-skinning or worker implementation. This pass adds no GPU skinning; the
+remaining CPU skinning share is too small to explain the full FPS deficit.
+
+Three alternating reference/optimized pairs for each player count used the
+**same installed executable**, visible X11, 1280x720 rendering/presentation,
+map-authored starting weapons, native HUD, muted audio, 150 submitted frames and
+30 warmup frames. Operand specialization is enabled in both sides; only
+`HALO2_REFERENCE_INSTRUCTION_CALLBACKS=1` and
+`HALO2_REFERENCE_REPEAT_VEHICLE_SKINS=1` differ from their unset optimized values.
+These comparisons do not isolate the FPS effect of operand specialization.
+
+| Local players | Reference median | Optimized median | Target |
+| --- | ---: | ---: | ---: |
+| 1 | 39.76 FPS | 53.75 FPS | 120 FPS |
+| 2 | 30.78 FPS | 31.71 FPS | 60 FPS diagnostic gate |
+| 4 | 14.89 FPS | 16.15 FPS | 60 FPS |
+
+Host/workload variation was substantial: single-player reference samples ranged
+37.19–58.25 FPS. The first two/four-player optimized samples regressed relative
+to their adjacent references; the next two pairs improved. **A stable
+split-screen speedup is not established.** All 18 deadline gates failed. These
+RTX 5080 development-host measurements do not establish midrange-PC acceptance,
+action-heavy play or physical-display timing.
+
+A separate optimized two-player profile collected 930 CPU samples across 150
+steady frames after 60 warmup frames. Main-thread utilization averaged 98.09%
+of one core; device-wide GPU utilization averaged 13.32%. Exclusive samples
+include skinning 7.63%, write validation 6.34%, the instruction cursor 5.59%,
+memory writes 5.48%, reads 4.84% and region lookup 3.66%. Inclusive model-view
+preparation accounts for 37.74%; inclusive memory writes account for 22.47%.
+Inclusive owners overlap. The next substantial work is translated per-view
+preparation and checked memory/observer overhead. GPU migration of a 7.63%
+skinning share alone has an idealized speedup ceiling of about 1.08x.
+
+Validation: 32 focused checks pass, including original instruction/register/
+flag/memory fixtures, model skins and actual two/four-player ordered vehicle
+draws with complete vertex-byte equality. Forcing repeated skins makes the
+reuse assertion fail as intended. Eight launcher/source checks pass, and all
+ten registered maps submit four frames; Coagulation also passes with two/four
+players. This is bounded runtime/geometry evidence, not full parity acceptance.
+
+Reports and every timing sample are in
+`build/test-results/splitscreen-optimization-20261022`: `matrix/execution.json`,
+per-run reports/TSVs, `optimized-profile-2p.json`, `specialization.json`,
+`counterfactual.json`, `delivered-validation`, and `delivery`. The older copied
+reference binary was excluded after concurrent camera changes; final comparisons
+use one executable. An oversized PTY request closed the first temporary session;
+its build was removed. The final session uses file-based requests. The qualified
+runtime/resources are intentionally retained (190,837,312 bytes); original
+assets, earlier runtimes and unrelated work are preserved. See `storage.json`
+for final scratch cleanup verification.
+
+The source tree was reorganized concurrently after this runtime snapshot.
+Launcher info therefore reports source-path differences from its retained
+inventory. The tested binary above remains selected; the new source layout and
+unrelated work were preserved. The five Python specialization/cursor checks were
+also rerun successfully against the reorganized tree. Qualification here belongs
+to the frozen build recorded in `delivery/source-hashes.json`.
+
+## Coagulation CPU profiling, 2026-10-22
+
+The current targets are **120 FPS with one local player** and **60 FPS with four
+local players**, preserving graphics quality and source behavior on a modern
+midrange PC. **Both targets remain unmet.** This investigation adds an installed
+runtime profiler and baseline measurements. The installed optimization pass
+above follows this baseline; GPU migration and the FPS targets remain open.
+
+Visible X11, idle Coagulation, map-authored starting weapons, muted audio,
+1280x720 rendering and presentation, 110 submitted frames with 20 warmup frames:
+
+| Local players | Mean FPS | Mean frame interval | Renderer host time | Target |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 26.99 | 37.05 ms | 2.13 ms | 120 FPS |
+| 2 | 19.04 | 52.53 ms | 3.57 ms | 60 FPS diagnostic gate |
+| 4 | 9.08 | 110.16 ms | 7.30 ms | 60 FPS |
+
+All 90 sampled frames in each case miss their requested deadline. The separate
+two-player resolution probes measured 18.49 FPS at 640x480 and 17.63 FPS at 1920x1080.
+Existing emulator/development workloads continued throughout. This machine has
+an NVIDIA RTX 5080; these samples do not establish midrange-PC acceptance or an
+isolated before/after speedup. The runtime is the installed
+`bin/engine-builds/a1f4d063d70a48cbbda5a5ed4f90e59d/halo2_native`, SHA-256
+`bbcea619a10e4fcbe8b85c3521c01b8bb42c72c72558373bb0f349c3806233cc`.
+
+### Installed-runtime profiler
+
+`tools/profile_multiplayer.py` profiles the ordinary Linux SDL/Vulkan executable
+without rebuilding the engine. It compiles its optional sampling library inside
+`tools/run_test.py` storage and samples the actual main thread's CPU clock.
+Presentation boundaries exclude loading, warmup and device destruction. Runtime
+helper processes are excluded by executable identity, even when they inherit
+`LD_PRELOAD`. Reports reject unmatched presentation counts, out-of-range samples
+and unresolved executable samples.
+
+The bounded JSON report contains renderer host phases, actual render/presentation
+dimensions, executable/map hashes, CPU function and inclusive caller samples,
+main-thread utilization, and optional NVIDIA device utilization. Raw stack
+records, sampler binaries and raw runtime logs are removed with their scratch
+owner. Sampling adds overhead, so FPS acceptance uses the separate unsampled
+benchmark. Renderer host timings are not GPU execution timestamps. The existing
+`profile_mp_render_cpu` developer harness supplies finer per-view observer
+timings when a separately built harness is needed.
+
+```bash
+python3 tools/profile_multiplayer.py \
+  --runtime bin/engine-builds/a1f4d063d70a48cbbda5a5ed4f90e59d/halo2_native \
+  --map assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/coagulation.map \
+  --players 2 --frames 240 --warmup 30 \
+  --output analysis/framerate/coagulation-2p-profile.json
+```
+
+The tested one/two/four-player profiles contain 681/1136/2178 CPU samples across
+120 steady frames each. Main-thread utilization averages 98.48/98.87/98.42% of
+one core; corresponding device-wide GPU utilization averages 10.38/9.87/10.30%.
+GPU utilization includes other applications and NVML's sampling window.
+
+The two-player profile attributes roughly 10% of sampled CPU time to model
+skinning, 60% to the translated source-runtime execution owner, 27% to simulation
+steps and 23% to source shadow/visibility command construction. Inclusive caller
+percentages overlap and must not be added together. Source shadow command
+construction consumes CPU while the resulting rendering is already performed
+by Vulkan.
+
+### GPU offload candidates and limits
+
+* Model skinning is the clearest candidate: `src/model_pose.cpp` currently
+  transforms positions, normals, tangents and binormals on the CPU before
+  uploading them. Keep authored bone weights, inverse binds, compound nodes,
+  descending influence order and separately rounded arithmetic. Retain source
+  node banks on the CPU for attachments, bounds and gameplay. GPU output needs
+  comparison against the existing full-byte skin oracle and actual renderer
+  acceptance, including shields, PRT and first-person geometry.
+* Keep immutable model vertices resident and reuse completed skins across
+  compatible views. GPU packing or indirect draws can then reduce CPU copies
+  and uploads while preserving full draw keys, selected sections, pass order
+  and per-owner lighting. Current two-player renderer packing is around 1 ms;
+  this is a smaller cost than the source-runtime work.
+* Radar compositing is another candidate: its CPU compositor accounts for
+  roughly 2.5% of the two-player sample and 3.6% with four players. Preserve
+  source contact selection and compare exact output pixels.
+* The source-runtime instruction, memory, simulation, visibility and shadow
+  command owners need CPU optimization as well. Moving the 10% skinning share
+  entirely off the CPU has an idealized upper bound of about 1.11x CPU speedup
+  in this workload, before dispatch/upload/synchronization costs. It cannot
+  establish either FPS target by itself. Visibility decisions and ordered
+  source side effects require their original ownership and validation.
+
+The benchmark now accepts `--map`, `--shared-maps`, `--local-players`,
+`--starting-weapon 0` and `--native-hud` for this exact MCC path, and
+`--report-output` for a retained summary outside disposable raw output:
+
+```bash
+python3 tools/run_test.py --scratch-root .local/test-scratch -- \
+  python3 tools/benchmark_framerate.py \
+  --runtime bin/engine-builds/a1f4d063d70a48cbbda5a5ed4f90e59d/halo2_native \
+  --map assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/coagulation.map \
+  --shared-maps assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11 \
+  --scenario split --local-players 4 --starting-weapon 0 --native-hud \
+  --frames 210 --warmup 30 --repetitions 3 --min-fps 60 \
+  --max-frame-ms 16.666667 --output '@HALO2_TEST_SCRATCH@/frames' \
+  --report-output analysis/framerate/coagulation-4p-benchmark.json
+```
+
+Small reports, actual commands, frame interval TSVs and bounded log tails are in
+`build/test-results/splitscreen-performance-20261022`. One/two/four-player live
+profiling, the actual MCC benchmark/resolution matrix, strict sampler compilation
+and the forced-timeout cleanup check passed their diagnostic contracts. The FPS
+gates remain failing. All owned scratch directories were verified removed;
+no large generated artifacts were retained. Graphics, simulation and launcher
+runtime selection are unchanged by the profiling tools.
+
+## Historical locked 60 FPS at 4K, four players, 2026-10-11
 
 **The target remains unmet.** This pass integrates borrowed immutable frame uploads, flat stable BSP grouping, reuse of unchanged selected object views, and exact current-WORLD-node weapon skins. It preserves resolution, authored mips, visibility/LOD, effects and simulation timing.
 

@@ -1,6 +1,6 @@
 # Fixed module0 arithmetic and retained history; no install or clock capability.
 add_library(halo2_native_tu15_sound_ep_module0_numeric STATIC
-    src/native_tu15_sound_ep_module0_numeric.cpp)
+    src/audio/dsp/native_tu15_sound_ep_module0_numeric.cpp)
 target_include_directories(halo2_native_tu15_sound_ep_module0_numeric PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_native_tu15_sound_ep_module0_numeric PUBLIC cxx_std_20)

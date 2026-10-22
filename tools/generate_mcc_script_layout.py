@@ -65,7 +65,7 @@ def main():
     parser.add_argument("--check", action="store_true")
     options = parser.parse_args()
     result = generated(json.loads((ROOT / "tools/mcc-script-layout.json").read_text()))
-    output = ROOT / "src/mcc_script_layout.inc"
+    output = ROOT / "src/campaign/scripting/mcc_script_layout.inc"
     if options.check:
         if output.read_text() != result:
             raise SystemExit("compiled MCC script profile is stale")

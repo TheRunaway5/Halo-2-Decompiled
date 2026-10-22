@@ -1,13 +1,20 @@
 # Vista button prompts at 4K
 
-October19 MCC-only onboarding uses the exact earlier authored artwork restored
-at `resources/presentation/prompts`. Its82 SVG masters and six DDS atlases
-match the sealed earlier delivery. The importer copies only the nine runtime
-manifest/binding/atlas files to the selected cache's `presentation/prompts`,
-retaining MCC's own fonts. The source masters stay in the portable bundle;
-neither a Vista installation nor its reference fonts are needed at runtime.
-Native menu/HUD sampling integration is tracked separately in
+Historical artwork, not the delivered asset path: the user's 2026-10-21
+reaffirmation makes MCC imports the sole runtime donor and supersedes the
+separate authored-prompt exception. Preserve these masters, atlases, metrics
+and past captures as references. Normal import/reuse/package selection does
+not require or copy this bank; native MCC prompts use their own authenticated
+glyphs and geometry. Fresh rendered/delivery qualification remains open in
 [the current checklist](MCC_GAMEPLAY_GOAL_CHECKLIST.md).
+
+The October19 onboarding route used the exact earlier authored artwork restored
+at `resources/presentation/prompts`. Its82 SVG masters and six DDS atlases
+match the sealed earlier delivery. That importer copied only the nine runtime
+manifest/binding/atlas files to the selected cache's `presentation/prompts`,
+retaining MCC's own fonts. Its source masters stayed in that portable bundle;
+the route did not require a separate Vista installation or reference font.
+These are dated implementation records, not current onboarding instructions.
 
 The imported MCC font retains its own ordinary text and layout. For the
 authenticated authored control bank, menu selectors 1/7 and action selectors
@@ -26,9 +33,10 @@ SVG shapes, outlined letters, bevels, reflections and gradients, then rendered
 directly by librsvg into lossless RGBA textures. No image generation, embedded
 bitmap, replacement typeface or pixel-region tracing supplies the artwork.
 
-The source bundle now includes these masters, textures and native reference
-fonts in `resources/ui/vista-prompts-svg-4k`. The bundled installer selects a
-verified runtime copy under `assets/bundled-ui`; see [bundled UI assets](UI_ASSET_BUNDLE.md).
+The preserved reference bundle includes these masters, textures and native
+reference fonts in `resources/ui/vista-prompts-svg-4k`. Its earlier installer
+selected a verified copy under `assets/bundled-ui`; see the historical workflow
+in [bundled UI assets](UI_ASSET_BUNDLE.md), subject to the supersession above.
 
 The supplied Vista English font table is the reference for each selector's
 actual design. A/B/X/Y use real circles under uniform scaling. Their outlined

@@ -14,8 +14,9 @@ import sqlite3
 import time
 from aiohttp import web, WSMsgType
 from .protocol import require, Problem
-from .couch_players import NATIVE_COUCH, NATIVE_CONTINUITY, NATIVE_DIRECT
+from .couch_players import NATIVE_COUCH, NATIVE_CONTINUITY, NATIVE_DIRECT, NATIVE_EOS
 from .match_continuity import PlayerHostedContinuity
+from .voice_origin import Ed25519PrivateKey, verify_voice
 
 
 class Room:
@@ -28,12 +29,17 @@ class Room:
         self.compatibility = api.core.tickets[proposal.tickets[0]].compatibility
         self.couch_protocol = self.compatibility in NATIVE_COUCH
         self.supports_continuity = self.compatibility == NATIVE_CONTINUITY
-        self.direct_udp = self.compatibility == NATIVE_DIRECT
+        self.eos = self.compatibility == NATIVE_EOS
+        self.direct_udp = self.compatibility in (NATIVE_DIRECT, NATIVE_EOS)
+        self.eos_socket, self.eos_users = secrets.token_hex(16), {}
+        physical = sorted(set(self.owners.values()))
+        self.eos_keys = {(a, b): secrets.token_hex(32) for i, a in enumerate(physical) for b in physical[i+1:]} if self.eos else {}
         self.direct_ready, self.pending_signals, self.signaled_descriptions = {}, {}, set()
         self.signal_counts = {}
         self.players = [(p, names[p], team) for team, players in enumerate(proposal.teams) for p in players]
         self.tokens = {self.owners[p]: secrets.token_urlsafe(32) for p, _, _ in self.players}
         self.admitted_owners = frozenset(self.tokens)
+        self.voice_keys = {owner: Ed25519PrivateKey.generate() for owner in self.admitted_owners}
         self.departed_slots = 0
         self.continuity = None
         # Native per-room presentation identities; never Discord snowflakes or
@@ -56,7 +62,7 @@ class Room:
         self.result, self.result_digest, self.confirmations = b"", "", set()
         self.peers, self.samples, self.loaded = {}, {}, {}
         self.phase, self.host = "connecting", None
-        self.created, self.deadline = time.monotonic(), time.monotonic() + 25
+        self.created, self.deadline = time.monotonic(), time.monotonic() + (60 if self.eos else 25)
         self.created_wall = api.directory.store.now()
         self.closed = False
 
@@ -64,10 +70,16 @@ class Room:
         result = {"id": self.id, "token": self.tokens[player], "slot": self.index(player),
                 "players": [{"name": name, "team": team, "identity": self.identities[p]}
                             for p, name, team in self.players]}
-        if self.compatibility in ("halo2-native-queue-v10", NATIVE_CONTINUITY, NATIVE_DIRECT):
+        if self.compatibility in ("halo2-native-queue-v10", NATIVE_CONTINUITY, NATIVE_DIRECT, NATIVE_EOS):
             result["team_mode"] = self.team_mode
         if self.direct_udp:
             result["transport"] = {"kind": "direct-udp-v1", "stun_servers": list(self.api.directory.settings.peer_stun_urls)}
+        if self.eos:
+            result["transport"] = {"kind": "eos-p2p-v1", "socket": self.eos_socket,
+                "peers": [{"slot": self.index(b if a == player else a), "key": key}
+                          for (a, b), key in self.eos_keys.items() if player in (a, b)],
+                "session": {"playlist": self.proposal.playlist, "revision": self.proposal.revision,
+                            "map": self.proposal.game.map, "variant": self.proposal.game.variant}}
         if self.supports_continuity:
             result["continuity"] = "complete-world-v1"
         if self.couch_protocol:
@@ -81,6 +93,14 @@ class Room:
 
     def active_member(self, player):
         return player in self.owners and self.owners[player] in self.tokens
+
+    def voice_auth(self, player):
+        # Only this authenticated connection receives its signing seed. Public
+        # keys identify physical owners, including their admitted couch seats.
+        return json.dumps({'voice_auth': {'version': 1,
+            'seed': self.voice_keys[player].private_bytes_raw().hex(),
+            'keys': [self.voice_keys[self.owners[p]].public_key().public_bytes_raw().hex()
+                     for p, _, _ in self.players]}})
 
     def control(self):
         value = {"phase": self.phase, "host": self.host}
@@ -116,7 +136,8 @@ class Room:
 
     def retire_capability(self, player):
         self.tokens.pop(player, None)
-        self.confirmations.discard(player)
+        # Transport retirement neither revokes an authenticated digest vote
+        # nor removes its owner from the immutable result electorate.
         self.pending_signals.pop(player, None)
         self.departed_slots |= sum(1 << i for i, (p, _, _) in enumerate(self.players)
                                    if self.owners[p] == player)
@@ -139,8 +160,7 @@ class Room:
             return
         if self.phase == "running":
             # Native leave/timeout and simulation/voice remain direct UDP.
-            # Retire only this connection's future confirmation requirement;
-            # keep every admitted participant's result row and identity.
+            # The original roster and result-consent requirement remain fixed.
             return
         if self.host == self.index(player):
             self.host = min(self.index(p) for p in self.tokens)
@@ -179,7 +199,7 @@ class Room:
             await self.close("A player left before the match started.")
 
     def finish_review(self):
-        if self.phase != "reviewing" or set(self.confirmations) != set(self.tokens):
+        if self.phase != "reviewing" or self.confirmations != self.admitted_owners:
             return
         self.api.results.commit(self)
         self.phase, self.deadline = "postgame", time.monotonic() + 900
@@ -467,6 +487,7 @@ class MatchTransport:
         room.peers[player] = peer
         if previous:
             await previous.socket.close(code=1001, message=b"Master connection replaced")
+        peer.queue.put_nowait(room.voice_auth(player))
         if room.direct_udp and room.phase in ("reviewing", "postgame"):
             peer.queue.put_nowait(json.dumps({"postgame": room.result.hex()}))
         else:
@@ -502,7 +523,7 @@ class MatchTransport:
                         target, source = signal["peer"], room.index(player)
                         require(type(target) is int and 0 <= target < len(room.players) and target != source
                                 and room.index(room.owners[room.players[target][0]]) == target, "Invalid peer signal destination")
-                        require(signal["type"] in ("offer", "answer", "candidate") and isinstance(signal["payload"], str)
+                        require(signal["type"] in (("eos",) if room.eos else ("offer", "answer", "candidate")) and isinstance(signal["payload"], str)
                                 and 0 < len(signal["payload"]) <= 16384 and isinstance(signal["mid"], str)
                                 and len(signal["mid"]) <= 32, "Invalid peer signal")
                         destination = room.owners[room.players[target][0]]
@@ -515,7 +536,13 @@ class MatchTransport:
                         key = source, target
                         room.signal_counts[key] = room.signal_counts.get(key, 0) + 1
                         require(room.signal_counts[key] <= 65, "Too many peer candidates")
-                        if signal["type"] != "candidate":
+                        if room.eos:
+                            user = signal["payload"]
+                            require(len(user) == 32 and all(c in "0123456789abcdef" for c in user) and not signal["mid"], "Invalid EOS identity")
+                            require(room.eos_users.get(source, user) == user and all(slot == source or value != user
+                                    for slot, value in room.eos_users.items()), "EOS identity changed or reused")
+                            room.eos_users[source] = user
+                        elif signal["type"] != "candidate":
                             require(room.phase in ("connecting", "loading") and not signal["mid"] and key not in room.signaled_descriptions and
                                     signal["type"] == ("offer" if source < target else "answer"), "Invalid peer description")
                             room.signaled_descriptions.add(key)
@@ -584,8 +611,6 @@ class MatchTransport:
                                 peer.queue.put_nowait(json.dumps({"completed": room.result_digest}))
                                 peer.queue.put_nowait(room.voice_membership())
                             continue
-                        if len(room.confirmations) != len(room.tokens):
-                            continue
                         room.finish_review()
                     else:
                         require(False, "Unknown match control")
@@ -620,7 +645,8 @@ class MatchTransport:
                         subtype = native[7]
                         require(subtype in (0, 1, 2), "Invalid voice control")
                         if subtype == 0:
-                            require(22 < len(native) <= 278 and native[8] < len(room.players)
+                            verify_voice(room, epoch if room.supports_continuity else 0, native)
+                            require(native[8] < len(room.players)
                                     and (source == room.host or room.owners[room.players[native[8]][0]] == player), "Invalid voice identity")
                         else:
                             require(len(native) == (11 if subtype == 1 else 12) and native[8] <= 1,
@@ -652,17 +678,20 @@ class MatchTransport:
                     destination.queue.put_nowait(prefix + native)
                 else:
                     break
-        except Problem as error:
-            logging.getLogger("halo2.match").warning("Match relay closed: %s", error.message)
-            if room.supports_continuity:
-                await socket.close(code=1008, message=error.message.encode()[:120])
+        except (Problem, web.HTTPException, ValueError, KeyError, TypeError, asyncio.QueueFull) as error:
+            reason = error.message if isinstance(error, Problem) else "Invalid match control"
+            logging.getLogger("halo2.match").warning("Match peer rejected: %s", reason)
+            if room.direct_udp and room.phase in ("running", "reviewing", "postgame"):
+                if room.peers.get(player) is peer:
+                    await room.depart_direct(player)
+                await socket.close(code=1008, message=reason.encode()[:120])
+            elif room.supports_continuity:
+                await socket.close(code=1008, message=reason.encode()[:120])
             else:
-                await room.close(error.message)
+                await room.close(reason)
         except sqlite3.Error:
             logging.getLogger("halo2.match").error("Unable to save confirmed match result")
             await room.close("Unable to save the completed match. Search again.")
-        except (web.HTTPException, ValueError, KeyError, TypeError, asyncio.QueueFull):
-            pass
         finally:
             writer.cancel()
             with contextlib.suppress(asyncio.CancelledError):

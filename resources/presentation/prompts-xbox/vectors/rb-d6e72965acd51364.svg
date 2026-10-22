@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="168" height="100" viewBox="0 0 42 25" version="1.1">
+  <title>Xbox rb: custom controller prompt</title>
+  <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+  <defs>
+    <linearGradient id="shoulder-rim" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="31">
+      <stop offset="0" stop-color="#4d7da8" />
+      <stop offset="1" stop-color="#497496" />
+    </linearGradient>
+    <linearGradient id="shoulder-face" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="15" y2="29">
+      <stop offset="0" stop-color="#5789bc" />
+      <stop offset="1" stop-color="#5080a9" />
+    </linearGradient>
+    <linearGradient id="label-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="0" y2="10">
+      <stop offset="0" stop-color="#335566" />
+      <stop offset="1" stop-color="#224455" />
+    </linearGradient>
+  </defs>
+  <g transform="scale(0.70000000 0.69444444)" id="shoulder-button">
+    <g id="body" transform="translate(60 0) scale(-1 1)">
+      <path id="outer-bevel" d="M5 13 C15 13 49 11.5 58.5 8 V27.8 H6 C1 27.8 1 25.5 1 21 C1 16 1.5 13 5 13 Z" fill="url(#shoulder-rim)" />
+      <path id="button-face" d="M5 14.5 H56.8 V25.6 H5 C3 25.6 2.7 24.7 2.7 21 V19 C2.7 16 3 14.5 5 14.5 Z" fill="url(#shoulder-face)" />
+    </g>
+    <g id="label" transform="translate(12.8 14.2) scale(1 .85)">
+      <path id="letter-R" d="M0 0 H4.4 C6.5 0 7.2 1.2 7.2 3 C7.2 4.4 6.5 5.3 5.2 5.5 L7.7 10 H5.9 L3.5 5.8 H1.5 V10 H0 Z M1.5 1.4 V4.4 H4.1 C5.3 4.4 5.7 4 5.7 2.9 C5.7 1.9 5.2 1.4 4.1 1.4 Z" fill="url(#label-paint)" fill-rule="evenodd" />
+      <path id="letter-B" d="M0 0 H4 C6.2 0 7 1 7 2.6 C7 3.7 6.4 4.5 5.5 4.8 C6.8 5.1 7.5 6 7.5 7.3 C7.5 9.1 6.4 10 4.2 10 H0 Z M1.5 1.4 V4.2 H3.8 C5 4.2 5.5 3.8 5.5 2.8 C5.5 1.9 5 1.4 3.8 1.4 Z M1.5 5.6 V8.6 H4 C5.4 8.6 6 8.1 6 7.1 C6 6 5.4 5.6 4 5.6 Z" fill="url(#label-paint)" fill-rule="evenodd" transform="translate(8.7 0)" />
+    </g>
+  </g>
+</svg>

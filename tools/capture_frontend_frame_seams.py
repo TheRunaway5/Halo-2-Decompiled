@@ -17,9 +17,9 @@ def main():
     root = Path(__file__).resolve().parents[1]
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
-    paths = ["build-frontend/halo2_native", "src/renderer.cpp", "src/frontend.cpp",
-             "src/bsp_atmosphere.cpp", "include/halo2/renderer.hpp", "CMakeLists.txt",
-             "src/frontend_painter.cpp", "include/halo2/cache.hpp",
+    paths = ["build-frontend/halo2_native", "src/rendering/renderer/renderer.cpp", "src/ui/frontend.cpp",
+             "src/rendering/world/bsp_atmosphere.cpp", "include/halo2/renderer.hpp", "CMakeLists.txt",
+             "src/ui/frontend_painter.cpp", "include/halo2/cache.hpp",
              "shaders/ui.vert", "shaders/ui.frag",
              "assets/disc/maps/ui/frame_edges/left-edge.dds",
              "assets/disc/maps/ui/frame_edges/right-edge.dds"]

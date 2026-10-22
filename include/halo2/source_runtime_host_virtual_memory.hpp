@@ -4,8 +4,9 @@
 #include <memory>
 
 namespace halo2 {
-// Native Linux resource owner for the reached process-heap reserve, commit
+// Native resource owner for the reached process-heap reserve, commit
 // and release requests. This supplies host resources, not an Xbox kernel ABI.
+// Source pages remain4096 bytes even when the host mapping granule is larger.
 // The memory bank must remain in place and outlive this owner. Its reservations must be released
 // through this owner, which also releases any remaining banks on destruction.
 class SourceRuntimeHostVirtualMemory {
@@ -37,6 +38,7 @@ public:
     PreparedOwnership(PreparedOwnership &&) noexcept;
     PreparedOwnership &operator=(PreparedOwnership &&) noexcept;
     bool for_owner(const SourceRuntimeHostVirtualMemory &) const noexcept;
+    bool matches_memory(const SourceRuntimeMemory &) const noexcept;
   private:
     friend class SourceRuntimeHostVirtualMemory;
     PreparedOwnership();
@@ -46,12 +48,15 @@ public:
   OwnershipCheckpoint ownership_checkpoint() const;
   // Stage real host reservations against the complete incoming byte bank.
   // Both the current bank and ownership remain untouched if staging fails.
-  // The owner must outlive PreparedOwnership. Execution must be quiescent.
+  // Pin the exact independently restored region addresses; an equivalent
+  // second restoration cannot substitute for this prepared native backing.
+  // Owner and replacement must outlive preparation; execution is quiescent.
   PreparedOwnership prepare_ownership(const OwnershipCheckpoint &,
-                                      const SourceRuntimeMemory::Checkpoint &) const;
+      const SourceRuntimeMemory::Checkpoint &,const SourceRuntimeMemory &replacement) const;
   // Enclosing world transaction first publishes its admitted byte bank, then
   // commits all prepared resource owners and rebinds borrowed native views.
-  // No memory-bank regions are removed here; old host mappings alone retire.
+  // Reject publication before that exact bank arrives, without consuming the
+  // token. No memory-bank regions are removed; old host mappings alone retire.
   bool commit_ownership(PreparedOwnership &&) noexcept;
 
 private:

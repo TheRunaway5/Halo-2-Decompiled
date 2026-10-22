@@ -84,6 +84,12 @@ int main(int argc,char** argv)try {
         check(!value(0xdeadbeefu) && !value(0x03000573u) && !value(0x04000567u),
             "Foreign/length-mismatched/original-namespace ID became an MCC builtin");
         std::array<ObjectFunction,2> aliases{};
+        // An empty curve is original zero, not an identity function. Declare
+        // the ordinary type0 range[0,1] explicitly for these alias controls.
+        for(auto& alias:aliases) {
+            alias.curve.resize(20);
+            alias.curve[10]=std::byte{0x80};alias.curve[11]=std::byte{0x3f};
+        }
         aliases[0].output=0x0a00fe01u;aliases[0].input=0x04000573u;
         aliases[0].enable=0x040005b3u;
         check(required(aliases[0].output,aliases).value==0.f && !required(aliases[0].output,aliases).enabled,
@@ -95,9 +101,14 @@ int main(int argc,char** argv)try {
         aliases[0].scale=0x04000567u;aliases[1].output=0x04000567u;aliases[1].input=0x03000583u;
         check(required(aliases[0].output,aliases).value==.125f &&
             required(aliases[1].output,aliases).value==.25f,"Authored output/scale IDs were remapped as builtins");
+        for(const auto local:{0x030005a6u,0x040005a7u}) {
+            aliases[0].scale=local;aliases[1].output=local;
+            check(required(aliases[0].output,aliases).value==.125f &&
+                required(local,aliases).value==.25f,"Xbox constant token overrode an MCC authored function");
+        }
         aliases[1].input=0xdeadbeefu;
         check(!value(aliases[0].output,aliases),"Missing authored scale producer became zero");
-        controls+=12;
+        controls+=14;
     }
     Json report{{"passed",true},{"original_xbe_sha256",fixture["original_xbe_sha256"]},
         {"signed_counts_per_namespace",65536},{"namespaces",namespaces},{"digit_cases",digit_cases},

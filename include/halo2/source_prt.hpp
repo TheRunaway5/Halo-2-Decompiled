@@ -14,7 +14,9 @@ struct SourcePrtDefinition {
     std::vector<std::byte> stream;
 };
 struct SourcePrtVertex {float cluster{};ShaderVector weights{};};
-//24490 offsets source57 stride10 by(offset/5)*10; absent sections returnNONE.
+//24490 offsets source57/10 by(offset/5)*10. MCC56/12 expands the cluster
+// short to float, retaining the five-short LOD offset units and weight bytes.
+// Absent sections returnNONE.
 std::optional<std::vector<SourcePrtVertex>> source_prt_vertex_stream(
     const SourcePrtDefinition &,unsigned source_lod,unsigned section,unsigned vertex_count);
 struct SourcePrtSh {

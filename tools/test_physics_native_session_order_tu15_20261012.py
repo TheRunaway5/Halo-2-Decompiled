@@ -58,7 +58,7 @@ def main():
     assert sha(cache) == manifest['archives']['libhalo2_cache.a']['sha256']
     for mode in ('release', 'sanitizer'):
         b = PARENT/f'build-{mode}-v2'
-        objects = sorted((b/'CMakeFiles/physics_native_frame_tu15_tests.dir/src').glob('*.cpp.o'))
+        objects = sorted((b/'CMakeFiles/physics_native_frame_tu15_tests.dir/src').rglob('*.cpp.o'))
         assert len(objects) == 43
         pins = {str(p): sha(p) for p in objects}
         commands = json.loads((b/'compile_commands.json').read_text())

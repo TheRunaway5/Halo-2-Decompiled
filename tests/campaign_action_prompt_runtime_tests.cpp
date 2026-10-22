@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #define SDL_MAIN_HANDLED
 #include "halo2/native_action_prompt_hud.hpp"
 #include "halo2/desktop_session.hpp"
@@ -45,7 +46,7 @@ int main(int argc,char **argv)try {
     position.z=floor->position.z+.01f;
     const auto ray=sphere.center-ordinary_unit_eye(position,content.player.camera_height,content.player.crouch_camera_height,0);
     yaw=std::atan2(ray.y,ray.x);pitch=std::atan2(ray.z,std::hypot(ray.x,ray.y));
-    Spawn at;at.position=position;at.facing=yaw;at.bsp=0;simulation.debug_teleport(0,at);
+    Spawn at;at.position=position;at.facing=yaw;at.bsp=0;test::place_player(simulation,at);
     // Diagnostic initial placement only. All subsequent targeting, input,
     // collision and group state come from the actual campaign simulation.
     simulation.step({0,0,yaw,pitch});

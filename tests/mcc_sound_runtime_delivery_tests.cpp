@@ -1,6 +1,6 @@
-#include "../src/mcc_sound_class_qualified.hpp"
-#include "../src/mcc_sound_permutation_time_reference_profile.hpp"
-#include "../src/mcc_sound_stored_time_apply.hpp"
+#include "../src/audio/mcc_sound_class_qualified.hpp"
+#include "../src/audio/mcc_sound_permutation_time_reference_profile.hpp"
+#include "../src/audio/mcc_sound_stored_time_apply.hpp"
 #include "halo2/mcc_sound_timing_reference.hpp"
 #include <nlohmann/json.hpp>
 #include "halo2/mcc_sound_runtime_delivery.hpp"

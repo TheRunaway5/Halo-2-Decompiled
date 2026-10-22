@@ -10,13 +10,18 @@
 #include "halo2/source_foreground_world_handoff.hpp"
 #include "halo2/source_bsp_effect_lights.hpp"
 #include "halo2/model_selection.hpp"
+#include "halo2/cache.hpp"
+#include "halo2/mcc_sound_variation_provider.hpp"
 #include <nlohmann/json.hpp>
+#include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <thread>
 #include <deque>
+#include <exception>
 #include <set>
 
 using namespace halo2;
@@ -28,6 +33,13 @@ template<class F>void wait(F ready,const char *why){const auto until=std::chrono
     while(!ready()){check(std::chrono::steady_clock::now()<until,why);std::this_thread::sleep_for(5ms);}}
 template<class F>void rejects(F run){bool rejected{};try{run();}catch(const std::exception &){rejected=true;}
     check(rejected,"Invalid native takeover was accepted");}
+template<class F>void rejects_native_publication(F run,std::string_view reason){
+    bool rejected{};try{run();}catch(const FormatError &error){rejected=std::string_view(error.what()).find(reason)!=std::string_view::npos;}
+    check(rejected,"Native publication did not refuse at its actual exclusion boundary");
+}
+bool same_cache_owner(const std::shared_ptr<const Cache> &a,const std::shared_ptr<const Cache> &b){
+    return a&&b&&a.get()==b.get()&&!a.owner_before(b)&&!b.owner_before(a);
+}
 struct Clock final:PhysicsLiveClockSource {
     std::uint32_t milliseconds()const noexcept override{return 1000;}
     std::uint64_t cycles()const noexcept override{return 7000000;}
@@ -58,10 +70,230 @@ public:
         return count;
     }
 };
+class NativeBindingScratch {
+    std::filesystem::path path_;
+public:
+    NativeBindingScratch(){
+        const auto scratch=std::getenv("HALO2_TEST_SCRATCH");
+        check(scratch&&std::filesystem::is_directory(scratch),"Native binding fixture requires owned test scratch");
+        auto pattern=(std::filesystem::path(scratch)/"same-cache-native-provider-XXXXXX").string();
+        const auto directory=::mkdtemp(pattern.data());check(directory,"Could not create native binding fixture scratch");
+        path_=directory;
+    }
+    ~NativeBindingScratch(){std::error_code ignored;std::filesystem::remove_all(path_,ignored);}
+    const std::filesystem::path &path()const{return path_;}
+};
+void native_publication_controls(SourcePeerHostTakeover &takeover,const MultiplayerOptions &options,
+    const SourceAuthorityRetainedWorld &retained,const PeerMigrationDecision &decision,
+    const std::shared_ptr<const Cache> &resident_cache,bool shared_cache_expected) {
+    // These targets come only from the actual independently retained export
+    // and learned decision. No test-only capability constructor is available.
+    auto disposable=SourcePeerHostTakeover::prepare(options,retained,decision,std::make_shared<Clock>());
+    auto &target=takeover.world();auto *const objects=target.source_objects.get();
+    auto *const native=&objects->tu15_world();const auto cache=target.cache;
+    auto *const other_native=&disposable->world().source_objects->tu15_world();
+    const auto foreign_cache=disposable->world().cache;
+    check(cache && cache->is_mcc() && resident_cache &&
+        same_cache_owner(cache,resident_cache)==shared_cache_expected &&
+        foreign_cache && foreign_cache.get()!=cache.get() && !same_cache_owner(cache,foreign_cache),
+        "Native scope control lost its actual shared/original or independent MCC Cache owners");
+    auto provider=native->sound_variation_provider(*cache);provider.require_current(*cache);
+    if(shared_cache_expected)provider.require_current(*resident_cache);
+    else rejects([&]{provider.require_current(*resident_cache);});
+    rejects([&]{provider.require_current(*foreign_cache);});
+    rejects([&]{(void)native->sound_variation_provider(*foreign_cache);});
+    auto foreign_provider=other_native->sound_variation_provider(*foreign_cache);
+    // A second genuine native World uses the EXACT Cache owner A, but has
+    // independently constructed native timing storage. Cache equality alone
+    // must never authorize that provider for the actual takeover scope.
+    NativeBindingScratch same_cache_files;
+    auto same_cache_world=std::make_unique<PhysicsLiveWorldTu15>(*cache,same_cache_files.path(),options.bsp);
+    same_cache_world->initialize_map();
+    same_cache_world->configure_session(source_game_variant_default(0),1,30,0x12345678u);
+    auto same_cache_provider=same_cache_world->sound_variation_provider(*cache);
+    same_cache_provider.require_current(*cache);
+    auto &bank=objects->memory();const auto source=native->source_world();
+    bank.validate_mutable_view(source,4);
+    std::array<std::byte,4> original_word;bank.read(source,original_word);
+    const auto memory=bank.checkpoint();
+    const auto region=std::ranges::find_if(memory.regions,[&](const auto &row){
+        return source>=row.address && std::uint64_t(source)-row.address<row.bytes.size();
+    });
+    check(region!=memory.regions.end(),"Native scope write control lacks its actual allocated region");
+    const auto free=bank.find_unowned_range(0x10000u,0x100000000ull,4096,4096);
+    check(free.has_value(),"Native scope topology control lacks a genuine unowned range");
+    SourceRuntimeMemory empty;const auto empty_before=empty.checkpoint();
+    SourceExecutionInputs untracked_tape;
+    SourceMatchAuthority authority(target.match,*objects);const auto before=authority.execution_boundary();
+    // Deliberately INVALID negative operand: both real owners remain alive.
+    // This alias is never passed to any native read/factory or used as proof.
+    const std::shared_ptr<const Cache> wrong_control_block(foreign_cache,cache.get());
+    MccSoundVariationProvider::NativeBinding released_binding;
+    {
+        // The target's Match/Simulation/renderer/raw-span/ownership-slot
+        // writers are externally quiescent. Only rejected API probes run.
+        auto held=takeover.hold_native_publication();
+        check(held.current() && held.matches(*native,cache) && !held.matches(*other_native,cache) &&
+            held.matches(*native,resident_cache)==shared_cache_expected &&
+            !held.matches(*native,foreign_cache) && !held.matches(*native,wrong_control_block),
+            "Native scope accepted a foreign nested World or Cache control block");
+        auto binding=provider.native_binding(held,cache);released_binding=binding;
+        auto sibling_binding=provider.native_binding(held,cache);
+        check(binding.current()&&sibling_binding.current(),"Genuine native provider binding lost its live scope");
+        rejects([&]{(void)provider.native_binding(held,foreign_cache);});
+        rejects([&]{(void)provider.native_binding(held,wrong_control_block);});
+        rejects([&]{(void)foreign_provider.native_binding(held,cache);});
+        rejects_native_publication([&]{(void)same_cache_provider.native_binding(held,cache);},"different World owners");
+        {
+            auto timing=MccSoundVariationProvider::hold_native_binding(binding);
+            check(timing.matches(binding)&&!timing.matches(sibling_binding)&&binding.current(),
+                "Native timing hold accepted a sibling binding or lost its exact actual owner");
+            rejects([&]{(void)MccSoundVariationProvider::hold_native_binding(binding);});
+            rejects([&]{provider.require_current(*cache);});
+            bool foreign_binding_current=true,foreign_binding_matches=true;unsigned binding_refusals{};
+            std::exception_ptr binding_error;
+            std::thread observer([&]{try{
+                foreign_binding_current=binding.current();foreign_binding_matches=timing.matches(binding);
+                try{(void)MccSoundVariationProvider::hold_native_binding(binding);}catch(const FormatError &){++binding_refusals;}
+                try{(void)provider.native_binding(held,cache);}catch(const FormatError &){++binding_refusals;}
+            }catch(...){binding_error=std::current_exception();}});observer.join();
+            if(binding_error)std::rethrow_exception(binding_error);
+            check(!foreign_binding_current&&!foreign_binding_matches&&binding_refusals==2,
+                "Foreign executor admitted or matched a creator-held native provider binding");
+        }
+        provider.require_current(*cache);
+        rejects([&]{(void)takeover.hold_native_publication();});
+        rejects([&]{(void)takeover.world();});rejects([&]{(void)takeover.local();});
+        rejects([&]{(void)takeover.camera();});
+        unsigned callbacks{};const auto adoption=[](void *p)noexcept{++*static_cast<unsigned *>(p);return true;};
+        rejects([&]{(void)takeover.activate(adoption,&callbacks);});
+        check(!callbacks,"Held native scope entered session activation or its callback");
+        rejects_native_publication([&]{(void)objects->memory();},"native publication");
+        rejects_native_publication([&]{(void)objects->tu15_world();},"native publication");
+        rejects_native_publication([&]{(void)native->memory();},"native publication");
+        rejects_native_publication([&]{(void)native->prepare_source_call({});},"native publication");
+        bool foreign_current=true,foreign_matches=true;unsigned foreign_refusals{};std::exception_ptr foreign_error;
+        std::thread observer([&]{try{
+            foreign_current=held.current();foreign_matches=held.matches(*native,cache);
+            try{(void)objects->memory();}catch(const FormatError &){++foreign_refusals;}
+            try{(void)native->memory();}catch(const FormatError &){++foreign_refusals;}
+            try{(void)takeover.hold_native_publication();}catch(const FormatError &){++foreign_refusals;}
+        }catch(...){foreign_error=std::current_exception();}});observer.join();
+        if(foreign_error)std::rethrow_exception(foreign_error);
+        check(!foreign_current && !foreign_matches && foreign_refusals==3,
+            "Foreign executor observed or reentered the held native scope");
+        check(!source_execution_inputs(bank),"Native scope unexpectedly started with a bound execution tape");
+        rejects([&]{SourceExecutionInputBinding binding(bank,untracked_tape);});
+        check(!source_execution_inputs(bank),"Rejected untracked tape left a TLS source binding behind");
+        rejects_native_publication([&]{bank.write(source,original_word);},"Native publication cannot write");
+        rejects_native_publication([&]{(void)bank.mutable_view(source,4);},"Native publication cannot write");
+        rejects_native_publication([&]{bank.validate_mutable_view(source,4);},"Native publication cannot write");
+        rejects_native_publication([&]{bank.mount(*free,original_word,SourceRuntimeMemory::Access::ReadWrite,
+            "refused native publication fixture mount");},"Native publication cannot replace");
+        rejects_native_publication([&]{bank.reserve(*free,4096,4096,
+            "refused native publication fixture reservation");},"Native publication cannot replace");
+        rejects_native_publication([&]{bank.release(region->address);},"Native publication cannot replace");
+        rejects_native_publication([&]{bank.restore(memory);},"Native publication cannot replace");
+        rejects_native_publication([&]{bank.swap_backing(empty);},"Native publication cannot replace");
+        rejects_native_publication([&]{SourceRuntimeMemory moved(std::move(bank));},"Native publication cannot replace");
+        rejects_native_publication([&]{empty=std::move(bank);},"Native publication cannot replace");
+        // Native-only exclusion permits ordinary timing metadata reads before
+        // the future timing/SDL composition acquires its own retained locks.
+        provider.require_current(*cache);
+        check(held.current() && held.matches(*native,cache),"Rejected operations consumed the actual native scope");
+    }
+    check(!released_binding.current(),"Released native exclusion retained provider binding eligibility");
+    rejects([&]{(void)MccSoundVariationProvider::hold_native_binding(released_binding);});
+    check(authority.execution_boundary()==before && bank.checkpoint()==memory && empty.checkpoint()==empty_before,
+        "Native exclusion or its rejected mutations changed actual source bytes/topology/boundary");
+    provider.require_current(*cache);
+    {SourceExecutionInputBinding binding(bank,untracked_tape);
+        check(source_execution_inputs(bank)==&untracked_tape,"Untracked tape control was invalid outside native scope");}
+    check(!source_execution_inputs(bank),"Released outside-scope tape control leaked its TLS binding");
+    MccSoundVariationProvider::NativeBinding closed_binding;
+    {
+        // This is the real nonmovable factory result, directly elided into
+        // owned storage. Close only its wrapper, never the takeover/session,
+        // while the one timing hold retains the actual native State.
+        auto native_scope=std::unique_ptr<SourceNativePublication>(
+            new SourceNativePublication(takeover.hold_native_publication()));
+        closed_binding=provider.native_binding(*native_scope,cache);
+        auto timing=MccSoundVariationProvider::hold_native_binding(closed_binding);
+        check(timing.matches(closed_binding),"Native wrapper-close control did not start with its actual timing hold");
+        native_scope.reset();
+        check(!closed_binding.current()&&!timing.matches(closed_binding),
+            "Closing native wrapper retained provider eligibility during its timing hold");
+        rejects([&]{(void)takeover.world();});
+        rejects_native_publication([&]{bank.write(source,original_word);},"Native publication cannot write");
+    }
+    check(!closed_binding.current(),"Closed native wrapper remained eligible after retained timing release");
+    rejects([&]{(void)MccSoundVariationProvider::hold_native_binding(closed_binding);});
+    provider.require_current(*cache);
+    {auto retry=takeover.hold_native_publication();check(retry.current() && retry.matches(*native,cache),
+        "Released native scope did not permit an unchanged creator retry");}
+    std::cout<<"PASS genuine native provider binding: actual same-Cache different-World timing owner rejection, exact creator-held timing, foreign/reentry/control-block refusal, weak release and retry\n";
+    // A valid same-byte producer write changes real mutation evidence. Do
+    // this only to the disposable target, preserving the activation target.
+    auto *const disposable_native=&disposable->world().source_objects->tu15_world();
+    auto &disposable_bank=disposable->world().source_objects->memory();
+    const auto disposable_source=disposable_native->source_world();
+    disposable_bank.validate_mutable_view(disposable_source,4);
+    std::array<std::byte,4> same_word;disposable_bank.read(disposable_source,same_word);
+    disposable_native->write_source_call_input(disposable_source,same_word);
+    rejects([&]{(void)disposable->hold_native_publication();});
+    disposable.reset();
+    std::cout<<"PASS genuine current-target native publication: exact Cache control block/nested World, creator/foreign/reentry refusal, unchanged actual bank and valid write/topology/move exclusions, release/retry and stale producer refusal\n";
+
+    auto dying=SourcePeerHostTakeover::prepare(options,retained,decision,std::make_shared<Clock>());
+    auto cache_before_drop=dying->world().cache;const auto *const cache_address=cache_before_drop.get();
+    std::weak_ptr<const Cache> weak_cache=cache_before_drop;
+    auto *const dying_native=&dying->world().source_objects->tu15_world();
+    auto dying_provider=dying_native->sound_variation_provider(*cache_before_drop);
+    dying_provider.require_current(*cache_before_drop);
+    MccSoundVariationProvider::NativeBinding dying_binding;
+    std::shared_ptr<const Cache> cache_after_drop;
+    {
+        // No timing/SDL/device hold is present: normal takeover destruction
+        // may retire its host/camera/session wrappers. Only native target
+        // lifetime, owned by the actual factory-minted scope, is asserted.
+        auto held=dying->hold_native_publication();
+        check(held.current() && held.matches(*dying_native,cache_before_drop),
+            "Disposable genuine target failed native lifetime preflight");
+        dying_binding=dying_provider.native_binding(held,cache_before_drop);
+        check(dying_binding.current(),"Disposable native binding failed its actual owner admission");
+        cache_before_drop.reset();dying.reset();
+        check(!held.current() && !dying_binding.current() && !weak_cache.expired(),
+            "Closing takeover retained eligibility or destroyed the scope's actual Cache owner");
+        rejects([&]{(void)MccSoundVariationProvider::hold_native_binding(dying_binding);});
+        dying_provider.require_current(*cache_address);
+        // Lock the actual weak Cache before leaving, solely so the later
+        // provider-staleness check has a live exact borrowed Cache operand.
+        cache_after_drop=weak_cache.lock();check(bool(cache_after_drop),"Held target lost its real Cache lifetime");
+    }
+    rejects([&]{dying_provider.require_current(*cache_after_drop);});
+    check(!dying_binding.current(),"Weak metadata binding kept a retired native scope eligible");
+    rejects([&]{(void)MccSoundVariationProvider::hold_native_binding(dying_binding);});
+    // The transferable binding intentionally retains Cache metadata; the
+    // actual World/epoch was already destroyed despite that live weak token.
+    dying_binding={};
+    cache_after_drop.reset();check(weak_cache.expired(),"Retired native scope leaked the disposable Cache owner");
+    std::cout<<"PASS genuine native publication target lifetime: closed takeover loses eligibility, actual native provider/Cache survive native-only hold, final release stales provider and retires exact Cache\n";
+}
 }
 int main(int argc,char **argv)try{
-    std::cout<<std::unitbuf;check(argc==5,"Supply ORIGIN DESCRIPTORS XBE MAP");
-    if(!std::filesystem::exists(argv[3])||!std::filesystem::exists(argv[4]))return 77;
+    std::cout<<std::unitbuf;check(argc==5,"Supply ORIGIN DESCRIPTORS (XBE | --mcc) MAP");
+    const bool selected_mcc=std::string_view(argv[3])=="--mcc";
+    if(selected_mcc){
+        check(std::filesystem::is_regular_file(argv[4]),"Explicit MCC native-scope map is missing");
+        const auto map=std::filesystem::path(argv[4]);
+        const Cache cache(map,map.parent_path(),std::shared_ptr<const OriginalData>{});
+        check(cache.is_mcc() && !cache.is_vista() && cache.original_data()==OriginalData::native_tu15(),
+            "MCC native-scope route requires imported MCC assets and compiled native TU1.5 gameplay");
+        std::cout<<"OBSERVED selected MCC takeover input; external_xbe=0; no asset import performed\n";
+    }else{
+        if(!std::filesystem::is_regular_file(argv[3])||!std::filesystem::is_regular_file(argv[4]))return 77;
+        std::cout<<"REFERENCE offline Xbox TU1.5 takeover route; not MCC runtime acceptance\n";
+    }
     nlohmann::json descriptors;{std::ifstream in(argv[2]);in>>descriptors;}
     std::vector<OnlineAdmission> roster;
     for(const auto &row:descriptors.at(0).at("players")){
@@ -84,7 +316,8 @@ int main(int argc,char **argv)try{
         if(p!=old_host){if(candidate==16)candidate=p;else remote=p;}}
     check(candidate<16&&remote<16,"Missing native candidate or surviving client");
     const auto before=*sessions[old_host]->authority_context();
-    MultiplayerOptions producer_options;producer_options.gameplay_xbe=argv[3];producer_options.map=argv[4];
+    MultiplayerOptions producer_options;if(!selected_mcc)producer_options.gameplay_xbe=argv[3];producer_options.map=argv[4];
+    producer_options.shared_maps=producer_options.map.parent_path();producer_options.source_object_world=true;
     producer_options.variant=variant;producer_options.local_players=4;producer_options.session_random_seed=0x71;
     producer_options.online_match=sessions[old_host];
     std::array<std::vector<SourcePlayerConfiguration>,16> profiles;
@@ -111,6 +344,7 @@ int main(int argc,char **argv)try{
     wait([&]{healthy();for(const auto &s:sessions)if(s){const auto a=s->source_players();if(!a||a->players!=admitted)return false;}return true;},"Independent native admissions timed out");
     MultiplayerOptions remote_options=producer_options;remote_options.online_match=sessions[remote];remote_options.selected_profiles=profiles[remote];
     auto remote_resident=std::make_shared<MultiplayerPreparedWorld>(remote_options,std::nullopt,std::make_shared<Clock>());
+    const auto remote_cache_owner=remote_resident->cache;
     const auto remote_match=&remote_resident->match;
     auto remote_shadow=std::make_unique<SourceAuthorityReplayWorker>(remote_options,std::make_shared<Clock>(),std::make_shared<Clock>());
     MultiplayerRuntimeAuthority remote_runtime(remote_options,remote_resident,{},std::move(survivor_owner),std::move(remote_shadow));remote_resident.reset();
@@ -177,12 +411,31 @@ int main(int argc,char **argv)try{
     // rendering resources while a private full source world is promoted.
     auto resident=std::make_shared<MultiplayerPreparedWorld>(recipient_options,std::nullopt,std::make_shared<Clock>());
     const auto resident_cache=resident->cache.get();const auto resident_match=&resident->match;
+    std::atomic<unsigned> recovery_observer_calls{};
+    if(selected_mcc)recipient_options.source_world_observer=[&](const SourceRuntimeMemory &){
+        recovery_observer_calls.fetch_add(1);throw FormatError("Private recovery invoked an external native observer");
+    };
     stage="warm recipient native pair";
     const bool worker_retention=std::getenv("HALO2_TAKEOVER_WORKER_RETAIN");
     std::unique_ptr<SourceAuthorityReceiver> receiver;
     std::unique_ptr<SourceAuthorityReplayWorker> background;
     if(worker_retention)background=std::make_unique<SourceAuthorityReplayWorker>(recipient_options,std::make_shared<Clock>(),std::make_shared<Clock>());
     else receiver=std::make_unique<SourceAuthorityReceiver>(recipient_options,SourceAuthorityStreamMode::Replay,std::make_shared<Clock>(),std::make_shared<Clock>());
+    if(selected_mcc){
+        const auto original_cache=resident->cache;
+        resident->cache=remote_cache_owner;
+        rejects([&]{MultiplayerRuntimeAuthority invalid(recipient_options,resident,{},{});});
+        // Explicitly negative alias: both actual Cache owners stay alive.
+        // A matching pointer cannot replace the constructor's control block.
+        resident->cache=std::shared_ptr<const Cache>(remote_cache_owner,original_cache.get());
+        rejects([&]{MultiplayerRuntimeAuthority invalid(recipient_options,resident,{},{});});
+        resident->cache=original_cache;
+        bool foreign_constructor_rejected{};
+        std::thread foreign_constructor([&]{try{
+            MultiplayerRuntimeAuthority invalid(recipient_options,resident,{},{});
+        }catch(const FormatError &){foreign_constructor_rejected=true;}});foreign_constructor.join();
+        check(foreign_constructor_rejected,"Runtime admitted another thread's constructor Cache owner");
+    }
     MultiplayerRuntimeAuthority runtime(recipient_options,resident,{},std::move(promoted),std::move(background));resident.reset();
     runtime.receive();
     MultiplayerSnapshotOrigin candidate_origin,remote_origin;
@@ -194,6 +447,15 @@ int main(int argc,char **argv)try{
     recipient_options.menu_audio_update={};presentation_borrower.reset();
     check(borrowed_lifetime.expired(),"Native recovery recipe retained a presentation borrower");
     check(!runtime.prepare_takeover(),"Healthy runtime prepared an uncertified replacement");
+    if(selected_mcc){
+        auto &live=runtime.world();const auto original_cache=live.cache;
+        live.cache=remote_cache_owner;rejects([&]{(void)runtime.world();});
+        rejects([&]{(void)runtime.prepare_takeover();});
+        live.cache=std::shared_ptr<const Cache>(remote_cache_owner,original_cache.get());
+        rejects([&]{(void)runtime.world();});rejects([&]{(void)runtime.prepare_takeover();});
+        live.cache=original_cache;
+        check(same_cache_owner(runtime.world().cache,original_cache),"Runtime Cache-slot refusal lost its actual original owner");
+    }
     if(worker_retention)recipient_options.selected_profiles.front()=profile("Later Menu");
     bool foreign_rejected{};std::thread foreign([&]{try{runtime.world();}catch(const FormatError &){foreign_rejected=true;}});foreign.join();
     check(foreign_rejected,"Runtime exported a native owner to another executor");
@@ -601,9 +863,18 @@ int main(int argc,char **argv)try{
         prepared_owner=runtime.pending_takeover();
         check(prepared_owner&&runtime.prepare_takeover(std::make_shared<Clock>())&&runtime.pending_takeover()==prepared_owner,
             "Repeated preparation rebuilt or replaced the pending native owner");
+        if(selected_mcc){
+            check(same_cache_owner(prepared_owner->world().cache,runtime.world().cache)&&
+                prepared_owner->world().source_objects.get()!=runtime.world().source_objects.get()&&
+                &prepared_owner->world().tags!=&runtime.world().tags&&
+                &prepared_owner->world().content!=&runtime.world().content,
+                "Incoming runtime reconstruction did not share its original Cache with independent native/content owners");
+            std::cout<<"PASS runtime incoming shared original Cache: actual resident and incoming control block, independent content/TagSystem/native World, retired replay worker\n";
+        }
     }
     if(receiver){check(!receiver->world()&&!receiver->state().ready,"Receiver retained a second mutable native owner");
         rejects([&]{receiver->prepare_peer_host_takeover(decision);});}
+    check(!recovery_observer_calls.load(),"Native recovery retained or invoked an external policy writer");
     check(prepared_owner->world().local_slots==sessions[candidate]->local_slots()&&prepared_owner->local().slots==prepared_owner->world().local_slots,
         "New native host lost local/remote couch ownership");
     rejects([&]{prepared_owner->host().broadcast();});
@@ -624,6 +895,13 @@ int main(int argc,char **argv)try{
     }
     check(!runtime.begin_frame(),"Fenced runtime admitted another native frame");
     auto *const staged=prepared_owner;if(takeover)runtime.stage_takeover(std::move(takeover));
+    if(selected_mcc){
+        auto &incoming=staged->world();const auto original_cache=incoming.cache;
+        incoming.cache=remote_cache_owner;rejects([&]{(void)staged->world();});
+        incoming.cache=std::shared_ptr<const Cache>(remote_cache_owner,original_cache.get());
+        rejects([&]{(void)staged->world();});incoming.cache=original_cache;
+        check(same_cache_owner(staged->world().cache,original_cache),"Incoming Cache-slot refusal lost its actual original owner");
+    }
     staged->world().source_objects->inspect_render_memory([](const auto &,const auto &memory){
         check(Bytes(memory.view(0x531fbcu,4)).u32(0)==33,"Native promotion lost its query high-water count");
         source_require_retired_lens_queries(memory);
@@ -636,6 +914,14 @@ int main(int argc,char **argv)try{
     rejects([&]{remote_runtime.activate_client_rebind();});
     check(remote_frame->finish(),"Remote native frame did not close");remote_frame.reset();
     remote_runtime.receive();
+    if(selected_mcc){
+        auto scope_options=producer_options;scope_options.online_match=sessions[candidate];
+        scope_options.selected_profiles=profiles[candidate];
+        const auto resident_cache_owner=runtime.world().cache;
+        stage="genuine current-target native publication scope";
+        native_publication_controls(*staged,scope_options,*retained,decision,resident_cache_owner,worker_retention);
+        stage="native takeover transaction";
+    }
     check(survivor.state_origin().same(later_remote_origin)&&survivor.state().tick==effect_tick+1,
         "Draining the fenced survivor changed its last actual later receipt");
     const auto old_receive_count=survivor.received_states().size();
@@ -907,6 +1193,7 @@ int main(int argc,char **argv)try{
     std::cout<<"PASS 33 declared pending CPU lens requests cross the paired cut and retire through original20E30 before native adoption; no predecessor GPU samples are fabricated\n";
     std::cout<<"PASS receiver-only owning paired proof, exact four-seat client receipts, foreign/pre-admission rejection, later-cut/worker-retirement lifetime and old-generation rejection after rebind\n";
     std::cout<<"PASS bounded completed CPU effect history: exact old receipt behind same-tick refreshes, eviction refusal, duplicate idempotence, failed-capture preservation, restored group, executor confinement and independent context retirement\n";
+    if(selected_mcc)std::cout<<"PASS selected-MCC-native peer takeover scope route: genuine held controls followed by original successful activation, twelve connected native ticks and direct voice\n";
     std::cout<<"LIMIT in-process executors with three real direct sessions; internal migration gate, automatic measured candidate choice, explicit native activation, no renderer/controller/headset/WAN or default runtime acceptance\n";
     return 0;
 }catch(const std::exception &e){std::cerr<<stage<<": "<<e.what()<<'\n';return 1;}

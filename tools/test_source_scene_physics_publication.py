@@ -9,14 +9,14 @@ import shutil
 import subprocess
 
 ROOT=Path(__file__).resolve().parents[1]
-SOURCES=['tests/source_scene_physics_tests.cpp','src/source_scene_physics.cpp','src/source_world_pose_wire.cpp',
-    'src/source_runtime_memory.cpp','src/raw_datum_pool_identity.cpp','src/raw_datum_pool.cpp',
-    'src/raw_datum_pool_startup.cpp','src/datum_pool.cpp','src/native_object_lifetimes.cpp',
-    'src/scene.cpp','src/object_initialization.cpp','src/render_interpolation.cpp',
-    'src/transform.cpp','src/source_shadow.cpp']
-CONSUMERS=['src/multiplayer.cpp','src/source_prop_scene.cpp','src/source_scenery_scene.cpp',
-    'src/source_machine_scene.cpp','src/source_device_world.cpp','src/static_scenery_collision.cpp',
-    'src/prop_sandbox.cpp','src/multiplayer_runtime.cpp','src/multiplayer_network.cpp']
+SOURCES=['tests/source_scene_physics_tests.cpp','src/runtime/source_scene_physics.cpp','src/rendering/models/source_world_pose_wire.cpp',
+    'src/runtime/source_runtime_memory.cpp','src/gameplay/objects/raw_datum_pool_identity.cpp','src/gameplay/objects/raw_datum_pool.cpp',
+    'src/gameplay/objects/raw_datum_pool_startup.cpp','src/core/datum_pool.cpp','src/gameplay/objects/native_object_lifetimes.cpp',
+    'src/runtime/scene.cpp','src/gameplay/objects/object_initialization.cpp','src/rendering/renderer/render_interpolation.cpp',
+    'src/core/transform.cpp','src/rendering/shadows/source_shadow.cpp']
+CONSUMERS=['src/gameplay/multiplayer/multiplayer.cpp','src/gameplay/objects/source_prop_scene.cpp','src/gameplay/objects/source_scenery_scene.cpp',
+    'src/gameplay/objects/source_machine_scene.cpp','src/gameplay/objects/source_device_world.cpp','src/physics/collision/static_scenery_collision.cpp',
+    'src/gameplay/objects/prop_sandbox.cpp','src/gameplay/multiplayer/multiplayer_runtime.cpp','src/network/multiplayer_network.cpp']
 
 
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -30,7 +30,10 @@ def main():
     for relative in SOURCES+CONSUMERS:
         path=snapshot/relative;path.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(ROOT/relative,path)
     # Source files with private local headers consume these frozen headers too.
-    for path in (ROOT/'src').glob('*.hpp'):shutil.copy2(path,snapshot/'src'/path.name)
+    for path in (ROOT/'src').rglob('*.hpp'):
+        destination=snapshot/path.relative_to(ROOT)
+        destination.parent.mkdir(parents=True,exist_ok=True)
+        shutil.copy2(path,destination)
     archive=a.output/'libhalo2_cache.a'
     shutil.copy2(ROOT/'analysis/multiplayer/sandbox-source/physics-live-world-tu15-20261012/dev/lib/libhalo2_cache.a',archive)
     manifest={str(path.relative_to(a.output)):digest(path) for path in sorted(snapshot.rglob('*'))if path.is_file()}
@@ -39,7 +42,7 @@ def main():
     report=dict(passed=False,sanitizer=a.sanitizer,source_manifest_sha256=digest(a.output/'source-manifest.json'),
         limits='Explicit original-shaped input bank and source transform presentation tests. The reused cache archive is uninstrumented. No live solved-body gameplay acceptance is inferred.')
     flags=['-std=c++20','-O1','-g0','-fno-fast-math','-ffp-contract=off','-frounding-math',
-        '-ffunction-sections','-fdata-sections','-I'+str(snapshot/'include'),'-I/usr/include/SDL2']
+        '-ffunction-sections','-fdata-sections','-I'+str(snapshot/'include'),'-I'+str(snapshot/'src'),'-I/usr/include/SDL2']
     if a.sanitizer:flags+=['-fsanitize=address,undefined','-fno-omit-frame-pointer']
     commands=[]
     def run(name,args):

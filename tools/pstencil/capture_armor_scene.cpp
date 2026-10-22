@@ -2,7 +2,7 @@
 // live selected sections/palettes, current materials and pStencil renderer.
 // Placements, camera and steady point-light inputs are deliberately declared.
 #include "../capture_live_model_common.hpp"
-#include "../../src/source_object_geometry.hpp"
+#include "../../src/gameplay/objects/source_object_geometry.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/source_game_variant.hpp"
 #include "halo2/source_bsp_effect_lights.hpp"
@@ -23,7 +23,6 @@
 #include "halo2/model_selection.hpp"
 #include "halo2/world_material.hpp"
 #include "halo2/renderer.hpp"
-#include "halo2/debug_panel.hpp"
 #include "halo2/collision.hpp"
 #include "halo2/object_light_query.hpp"
 #include <algorithm>
@@ -373,7 +372,7 @@ int run(int argc,char**argv) {
     require(environment_responses>0,"armor scene has no matching independent environment response");
     std::cout<<"2003 resident environment response material count="<<environment_responses<<'\n';
     if(!window)throw FormatError(std::string("SDL capture window: ")+SDL_GetError());auto renderer_owner=std::make_unique<Renderer>(window.get(),mesh,true,std::span<const SourceShadowPlanMaterial>{},&bsp_shaders);auto& renderer=*renderer_owner;renderer.scene_bsp_atmosphere(atmosphere);
-    DisplaySettings settings;settings.anti_aliasing=1;renderer.debug_panel().display_settings(settings);
+    DisplaySettings settings;renderer.display_settings(settings);
     ModelView view;view.camera.position=eye;view.camera.forward=forward;view.camera.up={0,0,1};view.camera.oriented=true;view.camera.field_of_view=fov;
     view.width=640;view.height=480;view.full_surface=true;view.atmosphere=fog;view.atmosphere_source=&atmosphere;
     view.source_render_policy=source_geometry_lod_policy(1);view.source_bsp_admission=&main_bsp;
@@ -392,8 +391,8 @@ int run(int argc,char**argv) {
     view.source_view_shader_constants->reflection=view.source_view_shader_constants->world;
     const auto capture=[&](const char* name){for(unsigned i=0;i<5;++i)if(renderer.draw(view.camera,output/name,{},false,{},{},{},std::span(&view,1)))return;throw FormatError("capture did not submit");};
     view.raw_effect_lights={};capture("base-no-point-light.ppm");view.raw_effect_lights=packets;
-    settings.graphics_mode=pstencil::GraphicsMode::Original;renderer.debug_panel().display_settings(settings);capture("Original.ppm");
-    settings.graphics_mode=pstencil::GraphicsMode::pStencil;renderer.debug_panel().display_settings(settings);capture("pStencil.ppm");
+    settings.graphics_mode=pstencil::GraphicsMode::Original;renderer.display_settings(settings);capture("Original.ppm");
+    settings.graphics_mode=pstencil::GraphicsMode::pStencil;renderer.display_settings(settings);capture("pStencil.ppm");
     auto ordinary_armor_specular=packets;unsigned polish_controls{};
     for(auto& packet:ordinary_armor_specular)if(packet.pstencil_specular &&
         pstencil::arbiter_metal(mesh.materials.at(packet.material_slot).name)) {
@@ -432,7 +431,7 @@ int run(int argc,char**argv) {
     }
     view.raw_effect_lights=diffuse;capture("pStencil-diffuse.ppm");
     view.raw_effect_lights=packets;
-    settings.graphics_mode=pstencil::GraphicsMode::Original;renderer.debug_panel().display_settings(settings);capture("Original-restored.ppm");
+    settings.graphics_mode=pstencil::GraphicsMode::Original;renderer.display_settings(settings);capture("Original-restored.ppm");
     const auto file_bytes=[](const auto& path){std::ifstream f(path,std::ios::binary);return std::vector<char>{std::istreambuf_iterator<char>(f),{}};};
     require(file_bytes(output/"Original.ppm")==file_bytes(output/"Original-restored.ppm"),"Original changed after live high-resolution armor/shadow round trip");
     const auto full=file_bytes(output/"pStencil.ppm"),unshadowed=file_bytes(output/"pStencil-no-point-shadows.ppm");
@@ -444,7 +443,7 @@ int run(int argc,char**argv) {
     }
     require(darkened>10 && brightened==0,"native point-shadow control produced no darkening or added light");
     std::cout<<"Native point-shadow control: darkened_channels="<<darkened<<" brightened_channels="<<brightened<<'\n';
-    settings.graphics_mode=pstencil::GraphicsMode::pStencil;renderer.debug_panel().display_settings(settings);
+    settings.graphics_mode=pstencil::GraphicsMode::pStencil;renderer.display_settings(settings);
     if(framing=="visor") {
     const auto visor=std::find_if(mesh.materials.begin(),mesh.materials.end(),[](const auto& m){return m.name.find("visor")!=std::string::npos;});
     if(visor!=mesh.materials.end()) {
@@ -474,13 +473,13 @@ int run(int argc,char**argv) {
         Renderer control_renderer(window.get(),unreflected,true,{},&bsp_shaders);
         // Renderer borrows this bank through later swapchain preparation.
         control_renderer.scene_bsp_atmosphere(atmosphere);
-        control_renderer.debug_panel().display_settings(settings);view.raw_effect_lights=packets;
+        control_renderer.display_settings(settings);view.raw_effect_lights=packets;
         for(unsigned i=0;i<5;++i)if(control_renderer.draw(view.camera,output/"pStencil-visor-no-reflection.ppm",{},false,{},{},{},std::span(&view,1)))break;
         std::cout<<"Authored visor environment control: cubes="<<cubes<<'\n';
     }
     }
     std::ofstream report(output/"scene.txt");report<<"Staged native TU1.5 level capture; not an original matched frame or campaign event.\n"
-        <<"Map="<<argv[2]<<"\nFraming="<<framing<<"\nQuality: native LOD5, 2560x1920 output, 5120x3840 stencil/color/depth targets with 2x SSAA per axis.\nNative actors="<<actors.size()<<"\nBSP parts="<<bsp_parts.size()<<"\nRaw point-light ranges="<<packets.size()
+        <<"Map="<<argv[2]<<"\nFraming="<<framing<<"\nQuality: native LOD5, 2560x1920 native output and stencil/color/depth targets; upscaling Off.\nNative actors="<<actors.size()<<"\nBSP parts="<<bsp_parts.size()<<"\nRaw point-light ranges="<<packets.size()
         <<"\nPoint light: authored frag sphere program, steady declared diffuse RGB2, specular RGB1, neutral ambient fill RGB.18, character-only stencil casters, radius2.8, position "
         <<light.runtime.position.x<<' '<<light.runtime.position.y<<' '<<light.runtime.position.z
         <<"\nBaked-light shadow casters="<<lightmap_casters.size()<<"; native completed raw incident or declared current BSP query for resident PRT owners; one RGB152/255 multiply before environment/emission/dynamic lights.\n"

@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #include "halo2/multiplayer.hpp"
 #include <array>
 #include <bit>
@@ -17,13 +18,12 @@ Vec3 center(const Body& body) {
   return body.position+Vec3{0,0,body.height*.5f};
 }
 void place_shooter(MultiplayerMatch& match,unsigned shooter,Vec3 target) {
-  // Declared public debug setup is confined to the shooter. The victim's
+  // Declared fixture setup is confined to the shooter. The victim's
   // authored root, vitality and velocity are never assigned by this test.
   Spawn setup;setup.bsp=0;setup.position=target+Vec3{-1,0,0};
   setup.position.z-=match.unit(shooter).definition.camera_height;
   setup.facing=0;
-  DebugGameRequest request;request.kind=DebugGameRequest::Teleport;request.player=shooter;
-  match.debug_request(request,&setup);
+  test::place_player(match,shooter,setup);
 }
 }
 int main(int argc,char** argv) {
@@ -40,8 +40,7 @@ int main(int argc,char** argv) {
     for(auto* game:{&match,&unhit}) {
       check(game->join("Moving victim")==0 && game->join("SMG shooter")==1,
           "Actual Match participant allocation differs");
-      DebugGameSettings debug;debug.players[1].noclip=true;
-      game->debug_settings(debug);
+
     }
     const auto victim_datum=match.unit(0).source_datum;
     const auto owner=match.player(0).source_datum;

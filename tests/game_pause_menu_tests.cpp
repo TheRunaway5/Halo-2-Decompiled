@@ -1,6 +1,7 @@
 #include "halo2/game_pause_menu.hpp"
 #include "halo2/multiplayer_kbm.hpp"
 #include "halo2/audio.hpp"
+#include "halo2/campaign_frame_clock.hpp"
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
@@ -69,39 +70,39 @@ int main(int argc,char **argv) try {
     menu.back();check(menu.frame().screen==vista_menu(259),"Settings Back lost pause hub");
   }
   menu.set_pc_display_adapter([](const DisplaySettings &){return std::string{};});
-  menu.open_game_pause(false);choose(menu,1);choose(menu,3);choose(menu,8);choose(menu,50);
+  menu.open_game_pause(false);choose(menu,1);choose(menu,3);choose(menu,9);choose(menu,50);
   check(menu.frame().screen==vista_menu(261) && menu.pc_display_settings().field_of_view==120 &&
       menu.pc_display_settings().vehicle_field_of_view==70,"pause on-foot FOV did not apply independently");
-  choose(menu,9);choose(menu,20);
+  choose(menu,10);choose(menu,20);
   check(menu.frame().screen==vista_menu(261) && menu.pc_display_settings().vehicle_field_of_view==90,
       "pause vehicle FOV did not return to the video menu");
   check(!painter.draw(menu,2,-1,2000).vertices.empty(),"pause FOV rows did not render");
-  choose(menu,10);
-  check(menu.frame().screen==vista_menu(261) && menu.pc_display_settings().crt_filter &&
-      menu.pc_value_label(menu.frame(),10)=="On" && menu.pc_display_settings().field_of_view==120,
-      "pause CRT toggle did not apply in place or changed FOV");
-  choose(menu,10);
-  check(!menu.pc_display_settings().crt_filter && menu.pc_value_label(menu.frame(),10)=="Off",
-      "pause CRT toggle could not disable the filter");
-  check(menu.pc_value_label(menu.frame(),11)=="Horizontal","pause two-player default is not horizontal");
   choose(menu,11);
+  check(menu.frame().screen==vista_menu(261) && menu.pc_display_settings().crt_filter &&
+      menu.pc_value_label(menu.frame(),11)=="On" && menu.pc_display_settings().field_of_view==120,
+      "pause CRT toggle did not apply in place or changed FOV");
+  choose(menu,11);
+  check(!menu.pc_display_settings().crt_filter && menu.pc_value_label(menu.frame(),11)=="Off",
+      "pause CRT toggle could not disable the filter");
+  check(menu.pc_value_label(menu.frame(),12)=="Horizontal","pause two-player default is not horizontal");
+  choose(menu,12);
   check(menu.frame().screen==vista_menu(261) && menu.pc_display_settings().two_player_split==TwoPlayerSplit::Vertical &&
       menu.pc_display_settings().field_of_view==120 && !menu.pc_display_settings().crt_filter,
       "pause split toggle did not apply in place or changed other preferences");
-  choose(menu,11);check(menu.pc_display_settings().two_player_split==TwoPlayerSplit::Horizontal,
+  choose(menu,12);check(menu.pc_display_settings().two_player_split==TwoPlayerSplit::Horizontal,
       "pause split toggle could not restore horizontal layout");
-  menu.select(10);
+  menu.select(11);
   for(const auto size:{std::array<unsigned,2>{640,480},{1280,720},{2560,720}}) {
     painter.draw(menu,2,-1,2000,size);bool hit_crt=false;
     for(int y=0;y<480 && !hit_crt;y+=2)for(int x=0;x<640 && !hit_crt;x+=2)
-      if(auto hit=painter.pointer_hit(x,y);hit && hit->action==FrontendPointerAction::Entry && hit->index==10)
+      if(auto hit=painter.pointer_hit(x,y);hit && hit->action==FrontendPointerAction::Entry && hit->index==11)
         hit_crt=true;
     check(hit_crt,"pause CRT row has no mouse target after scrolling");
-    menu.select(11);painter.draw(menu,2,-1,2000,size);bool hit_split=false;
+    menu.select(12);painter.draw(menu,2,-1,2000,size);bool hit_split=false;
     for(int y=0;y<480 && !hit_split;y+=2)for(int x=0;x<640 && !hit_split;x+=2)
-      if(auto hit=painter.pointer_hit(x,y);hit && hit->action==FrontendPointerAction::Entry && hit->index==11)
+      if(auto hit=painter.pointer_hit(x,y);hit && hit->action==FrontendPointerAction::Entry && hit->index==12)
         hit_split=true;
-    check(hit_split,"pause split row has no mouse target after scrolling");menu.select(10);
+    check(hit_split,"pause split row has no mouse target after scrolling");menu.select(11);
   }
   for(unsigned row=0;row<6;++row) {
     menu.open_game_pause(false);choose(menu,1);choose(menu,0);choose(menu,row);
@@ -183,19 +184,47 @@ int main(int argc,char **argv) try {
   Mesh input_mesh;GamePauseMenu overlay(maps,assets,input_mesh,false);
   SDL_Event event{};event.type=SDL_KEYDOWN;event.key.keysym.sym=SDLK_ESCAPE;
   check(overlay.event(event) && overlay.visible(),"Escape did not open the gameplay overlay");
+  check(!overlay.pauses_game_time(),"Multiplayer overlay paused game time contrary to TU1.5");
   event.key.repeat=1;overlay.event(event);check(overlay.visible(),"Held Escape closed/reopened pause");
   event.key.repeat=0;overlay.event(event);check(!overlay.visible() && !overlay.quit_requested(),"Escape resumed by exiting the match");
+  // Both game loops drain SDL events before polling captures_game_input().
+  // Events queued behind Resume must stay with the overlay until that poll.
+  for(const auto type:{SDL_KEYDOWN,SDL_KEYUP,SDL_MOUSEMOTION,SDL_MOUSEBUTTONDOWN,SDL_MOUSEBUTTONUP,
+      SDL_MOUSEWHEEL,SDL_CONTROLLERBUTTONDOWN,SDL_CONTROLLERBUTTONUP,SDL_CONTROLLERAXISMOTION}) {
+    event={};event.type=type;
+    check(overlay.event(event),"Resume leaked queued input into gameplay before the release barrier");
+  }
+  event={};event.type=SDL_WINDOWEVENT;
+  check(!overlay.event(event),"Resume release barrier swallowed an OS window event");
+  event={};event.type=SDL_KEYDOWN;event.key.keysym.sym=SDLK_ESCAPE;overlay.event(event);
+  check(!overlay.visible(),"Queued dismissal input reopened pause before the release barrier");
+  check(!overlay.captures_game_input(),"Released Resume input never returned to gameplay");
   event={};event.type=SDL_CONTROLLERBUTTONDOWN;event.cbutton.button=SDL_CONTROLLER_BUTTON_START;
   overlay.event(event);check(overlay.visible(),"Controller Start did not open pause");overlay.event(event);check(!overlay.visible(),"Controller Start did not resume");
+  Mesh solo_mesh;GamePauseMenu solo(maps,assets,solo_mesh,true);
+  event={};event.type=SDL_KEYDOWN;event.key.keysym.sym=SDLK_ESCAPE;
+  solo.event(event);check(solo.pauses_game_time(),"Campaign pause did not freeze game time");
+  CampaignFrameClock clock(.5f);
+  const auto frozen=[&] {
+    const auto plan=clock.advance(5.f,true,solo.pauses_game_time());
+    check(plan.ticks==0 && plan.elapsed==0 && plan.fraction==0,"Campaign menu advanced its TU1.5 frame clock");
+  };
+  frozen();choose(solo.state(),3);frozen();solo.state().back();
+  choose(solo.state(),4);frozen();solo.state().back();frozen();
+  solo.event(event);check(!solo.pauses_game_time(),"Resume retained the campaign clock pause");
+  check(clock.advance(1.f/30.f,true,solo.pauses_game_time()).ticks==1,
+      "Resume accumulated time spent in campaign settings/confirmation");
   {
     AudioEngine audio(false);auto sound=std::make_shared<PcmSound>();
     sound->stereo={.1f,.2f,.3f,.4f,.5f,.6f};audio.play(sound);
     const auto first=audio.render(1);check(first[0]==.1f,"Pause audio fixture did not start");
     check(audio.speaker_layout(3).empty() && audio.output_channels()==6,"5.1 output selection did not reach the offline mixer");
-    const auto frames=audio.mixed_frames();audio.paused(true);const auto silent=audio.render(2);
+    solo.captures_game_input();solo.event(event);
+    check(solo.pauses_game_time(),"Campaign audio fixture did not open pause");
+    const auto frames=audio.mixed_frames();audio.paused(solo.pauses_game_time());const auto silent=audio.render(2);
     check(std::all_of(silent.begin(),silent.end(),[](float v){return v==0;}) && audio.mixed_frames()==frames,
         "Campaign pause advanced audio or emitted sound");
-    audio.paused(false);const auto resumed=audio.render(1);
+    solo.event(event);audio.paused(solo.pauses_game_time());const auto resumed=audio.render(1);
     check(resumed.size()==6 && resumed[0]==.3f && resumed[1]==.4f && resumed[2]==0 && resumed[5]==0,"Campaign Resume skipped paused audio samples");
   }
   std::cout<<"PASS "<<checks<<" pause source, navigation, confirmation, dialog isolation and input checks; "<<draws<<" layouts\n";

@@ -11,7 +11,7 @@ ENTRIES=(0x13da89,0x1055f0,0xd2330,0x13dc44,0x10b3d0)
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--output',type=Path,default=Path('src/source_weapon_hud_tu15_generated.cpp'))
+    p.add_argument('--output',type=Path,default=Path('src/gameplay/weapons/source_weapon_hud_tu15_generated.cpp'))
     p.add_argument('--directory',type=Path,required=True)
     a=p.parse_args();assert sha(NEW_DEFAULT)==NEW_PIN
     image=Xbe(NEW_DEFAULT);code=_Code(image,'.text')

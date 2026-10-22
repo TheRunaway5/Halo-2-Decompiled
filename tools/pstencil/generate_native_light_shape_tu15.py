@@ -42,7 +42,6 @@ generate(SimpleNamespace(output=args.output, manifest=manifest, correspondence=c
     additional_entries=Path(__file__)), paired)
 source = args.output.read_text().replace("tools/generate_physics_live_support_tu15.py",
     "tools/pstencil/generate_native_light_shape_tu15.py").replace(
-    '"physics_world_runtime_internal.hpp"', '"../physics_world_runtime_internal.hpp"').replace(
     "halo2/physics_live_support_tu15.hpp", "halo2/pstencil/native_light_shape_tu15.hpp").replace(
     "source_run_physics_live_support_tu15", "pstencil_run_native_light_shape_tu15").replace(
     "source_physics_live_support_tu15_owns_entry", "pstencil_native_light_shape_tu15_owns_entry")

@@ -10,8 +10,8 @@ FIXTURE_PIN='ff4c6b9d6eed212764971ad62da7a13c31221e7676e5eac520c1cf9a40d9184a'
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);a=p.parse_args();out=a.output.resolve()
     assert not out.exists();out.mkdir(parents=True);assert sha(FIXTURE)==FIXTURE_PIN
-    inputs=['src/sound_driver_master_gain.cpp','tests/sound_driver_master_gain_tests.cpp']
-    dependency=subprocess.run(['g++','-std=c++20','-Iinclude','-MM',*inputs],cwd=ROOT,capture_output=True,text=True,check=True)
+    inputs=['src/audio/sound_driver_master_gain.cpp','tests/sound_driver_master_gain_tests.cpp']
+    dependency=subprocess.run(['g++','-std=c++20','-Iinclude', '-Isrc','-MM',*inputs],cwd=ROOT,capture_output=True,text=True,check=True)
     (out/'dependencies.txt').write_text(dependency.stdout)
     names=sorted(set(q for q in dependency.stdout.replace('\\\n',' ').split()if not q.endswith(':')));pins={}
     for name in names:
@@ -20,7 +20,7 @@ def main():
     commands=[]
     for mode in ('normal','sanitizer'):
         folder=out/mode;folder.mkdir();exe=folder/'sound_driver_master_gain_tests'
-        argv=['g++','-std=c++20','-Wall','-Wextra','-Wpedantic','-Werror','-fno-fast-math','-ffp-contract=off','-frounding-math','-I'+str(out/'source/include')]
+        argv=['g++','-std=c++20','-Wall','-Wextra','-Wpedantic','-Werror','-fno-fast-math','-ffp-contract=off','-frounding-math','-I'+str(out/'source/include'), '-I'+str(out/'source/src')]
         argv+=['-O2']if mode=='normal'else['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer']
         for label,command in (('build',argv+[*[str(out/'source'/q)for q in inputs],'-o',str(exe)]),('test',[str(exe),str(FIXTURE)])):
             delta=dict(ASAN_OPTIONS='detect_leaks=1:halt_on_error=1',UBSAN_OPTIONS='halt_on_error=1')if mode=='sanitizer'else{}

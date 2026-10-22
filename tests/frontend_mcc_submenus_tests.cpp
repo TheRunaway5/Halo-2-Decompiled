@@ -175,6 +175,124 @@ int main(int argc, char **argv) try {
         {"projected_extent", {expected_width, expected_height}}, {"matched_quads", matched}});
   }
   require(!projection_checks.empty(), "No authored PC Settings bitmap qualified for canvas regression");
+  // The category list is a persistent screen child. Other panes replace
+  // artwork/help only; their omitted/empty list coordinates must not move it.
+  nlohmann::json selector_checks = nlohmann::json::array();
+  for (const unsigned id : {60u, 207u}) {
+    MenuState selector(content);
+    selector.open(id);
+    require(selector.frame().entries.size() == 7, "Category selector lost an engine");
+    for (unsigned row = 0; row < 7; ++row) {
+      selector.select(row);
+      for (const auto viewport : {std::array<unsigned, 2>{640,480}, {1280,720}, {2560,1080}}) {
+        const auto output = painter.draw(selector, 5, -1, 20000, viewport);
+        const auto hit = painter.pointer_hit(210, 153 + 20.f * row);
+        require(hit && hit->action == FrontendPointerAction::Entry && hit->index == row,
+                "Category list moved while scrolling screen " + std::to_string(id) +
+                " row " + std::to_string(row));
+        bool category_art = false;
+        for (std::size_t i=0;i+5<output.vertices.size();i+=6) {
+          const auto &a=output.vertices[i], &b=output.vertices[i+4];
+          const auto &name=mesh.materials.at(a.material).name;
+          if (name == "ui\\list_skins\\default\\item_background")
+            require(b.position.x < 349, "Category list overlaps its description/artwork column");
+          if (name == "ui\\screens\\game_shell\\mp_game_select\\mp_games") category_art = true;
+        }
+        require(category_art, "Category change dropped its MCC illustration");
+        selector_checks.push_back({{"screen",id},{"row",row},{"viewport",viewport},
+            {"selected_hit",{210,153+20.f*row}}});
+      }
+    }
+  }
+  const auto original_header_font = load_gameplay_font(font_source, 2);
+  const auto &header_s = original_header_font.glyphs.at('S');
+  require(std::any_of(projection_draw.vertices.begin(), projection_draw.vertices.end(), [&](const auto &v) {
+    return mesh.materials.at(v.material).name.ends_with("/original-role/2") &&
+        std::abs(v.position.x - (50 + header_s.bearing_x)) < .001f &&
+        std::abs(v.position.y - (36 + original_header_font.ascent - header_s.bearing_y)) < .001f;
+  }), "PC Settings title lost original shared shell anchor/font");
+  require(std::any_of(projection_draw.vertices.begin(), projection_draw.vertices.end(), [&](const auto &v) {
+    return mesh.materials.at(v.material).name == "ui\\global_bitmaps\\framing_center" &&
+        std::abs(v.position.y - 31) < .001f && std::abs(v.uv.y - 69.f/1303.f) < .00001f;
+  }), "PC Settings selected a different shell frame from its title/footer anchors");
+  // Original main-menu skin11 has one240x19 selection image; sign-in30
+  // uses512/256-unit panels. MCC's higher-resolution pages remain the raster
+  // owners, not the layout dimensions. See the authenticated numeric profile
+  // in frontend_mcc_logical_layout_data.inc and the October19 visual receipt.
+  nlohmann::json logical_checks = nlohmann::json::array();
+  const auto extent = [&](const UiDraw &output, const std::string &name,
+                          float width, float height) {
+    unsigned matched{};
+    for (std::size_t i = 0; i + 5 < output.vertices.size(); i += 6) {
+      const auto &a = output.vertices[i], &b = output.vertices[i + 4];
+      const auto &material = mesh.materials.at(a.material);
+      if (material.name != name) continue;
+      // The same bank also has a2x2 transparent inactive-row page. The
+      // selected image is the source-qualified full-size page under test.
+      if (material.diffuse.width == 2 && material.diffuse.height == 2) continue;
+      require(std::abs(b.position.x - a.position.x - width) < .001f &&
+              std::abs(b.position.y - a.position.y - height) < .001f,
+              "MCC raster density changed original logical extent: " + name);
+      ++matched;
+    }
+    require(matched == 1, "Original logical widget count differs: " + name);
+  };
+  const auto visual_preferences = std::filesystem::path(scratch_value) / "visual.cfg";
+  for (unsigned species : {0u, 1u}) {
+    {
+      std::ofstream file(visual_preferences);
+      file << "halo2-native-menu-v1\nprofile \"Visual Test\"\nactive \"Visual Test\"\n"
+              "option \"Visual Test\" 52 " << species << '\n';
+    }
+    MenuState visual(content, visual_preferences);
+    visual.accept();
+    choose(visual, 1, 6);
+    for (unsigned screen : {6u, 30u}) {
+      if (screen == 30) choose(visual, 2, 30);
+      for (const auto viewport : {std::array<unsigned, 2>{640, 480}, {1280, 720}, {2553, 1380}}) {
+        const auto output = painter.draw(visual, 5.f, -1, 20000, viewport);
+        if (screen == 6) {
+          extent(output, "ui\\list_skins\\main_menu\\list_bkd", 240, 19);
+          require(std::any_of(output.vertices.begin(), output.vertices.end(), [&](const auto &v) {
+            return mesh.materials.at(v.material).name.ends_with("/original-role/10");
+          }), "Main-menu text lost original logical font role");
+        } else {
+          extent(output, "ui\\screens\\game_shell\\4way_multiplayer_signin\\mp_signin", 512, 512);
+          extent(output, "ui\\global_bitmaps\\ul_09", 256, 256);
+          extent(output, "ui\\global_bitmaps\\br_09", 256, 256);
+          require(output.scenes.size() == 1, "Single signed-in player has unexpected model count");
+          const auto &scene = output.scenes.front();
+          const auto &definition = *scene.definition;
+          const auto &authored = content.screens.at(30).panes.front().scenes.at(species ? 4 : 0);
+          require(!scene.vista_viewport && definition.viewport.top == 240 &&
+                  definition.viewport.left == -320 && definition.viewport.bottom == 0 &&
+                  definition.viewport.right == 320, "Player preview lost original model viewport");
+          require(definition.objects == authored.objects && definition.lights == authored.lights &&
+                  definition.field_of_view == authored.field_of_view &&
+                  definition.camera.x == authored.camera.x && definition.camera.y == authored.camera.y &&
+                  definition.camera.z == authored.camera.z && definition.scale.x == authored.scale.x &&
+                  definition.scale.y == authored.scale.y && definition.scale.z == authored.scale.z &&
+                  definition.flags == authored.flags && definition.animation == authored.animation &&
+                  definition.delay == authored.delay, "Viewport projection changed an authored model field");
+          // Original22E3B4 admits a model widget only once its authored
+          // animation delay expires. Before that, its offset is still zero;
+          // submitting it would flash the final pose before the slide begins.
+          for (unsigned ms : {0u, 1u, 99u, 100u, 101u, 329u, 330u}) {
+            const auto transition = painter.draw(visual, float(ms)/1000.f, -1, ms, viewport);
+            if (ms < authored.delay) {
+              require(transition.scenes.empty(), "Player preview flashed before its authored slide-in delay");
+            } else {
+              require(transition.scenes.size() == 1, "Player preview missed its authored slide-in admission");
+              const float phase = std::clamp(float(ms-authored.delay)/230.f, 0.f, 1.f);
+              require(std::abs(transition.scenes.front().animation_offset.x - (1024.f-1024.f*phase)) < .001f,
+                      "Player preview changed the original230ms slide offset");
+            }
+          }
+        }
+        logical_checks.push_back({{"screen", screen}, {"species", species}, {"viewport", viewport}});
+      }
+    }
+  }
   MenuState settings(content, preferences);
   local_profile(settings);
   choose(settings, 4, vista_menu(19));
@@ -188,20 +306,20 @@ int main(int argc, char **argv) try {
   DisplaySettings applied;
   settings.set_pc_display_adapter([&](const DisplaySettings &value) { applied = value; return std::string{}; });
   settings.set_pc_video_modes({{800, 600}, {1280, 720}}, 960, 720, false);
-  choose(settings, 8, vista_menu(272));
+  choose(settings, 9, vista_menu(272));
   require(settings.frame().context == video_fov_context && settings.frame().entries.size() == 51,
           "On-foot FOV choices changed");
   choose(settings, 50, vista_menu(256));
   require(applied.field_of_view == 120, "MCC video FOV choice did not reach display adapter");
-  choose(settings, 9, vista_menu(272));
+  choose(settings, 10, vista_menu(272));
   require(settings.frame().context == video_vehicle_fov_context, "Vehicle FOV used on-foot setting");
   choose(settings, 20, vista_menu(256));
   require(applied.field_of_view == 120 && applied.vehicle_field_of_view == 90,
           "MCC vehicle FOV choice changed another setting");
   const auto before_toggle = settings.stack().size();
-  choose(settings, 10, vista_menu(256));
   choose(settings, 11, vista_menu(256));
   choose(settings, 12, vista_menu(256));
+  choose(settings, 0, vista_menu(256));
   require(applied.crt_filter && applied.two_player_split == TwoPlayerSplit::Vertical &&
           applied.graphics_mode == pstencil::GraphicsMode::pStencil && settings.stack().size() == before_toggle,
           "MCC native video toggles lost existing behavior");
@@ -217,6 +335,29 @@ int main(int argc, char **argv) try {
   choose(settings, 0, vista_menu(257));
   require(applied.volume == 0, "MCC audio choice did not reach display adapter");
   settings.open(38);
+  // Match each native destination to its semantic MCC illustration. PC pane2
+  // is Keyboard/Mouse; Voice Output must use the surviving headset artwork.
+  const auto profile_art = std::find_if(content.images.begin(), content.images.end(),
+      [](const auto &item) { return item.second.name ==
+          "ui\\screens\\game_shell\\settings_screen\\player_profile\\edit_profile"; });
+  require(profile_art != content.images.end(), "Missing MCC profile illustration bank");
+  for (const auto [row, page] : std::array<std::pair<unsigned, unsigned>, 7>{{
+      {0, 0}, {1, 1}, {2, 3}, {3, 3}, {4, 4}, {5, 5}, {6, 2}}}) {
+    settings.select(row);
+    const auto output = painter.draw(settings, 5, -1, 20000);
+    const auto &expected = profile_art->second.images.at(page);
+    bool matching_art = false;
+    for (const auto &v : output.vertices) {
+      const auto &material = mesh.materials.at(v.material);
+      if (material.name == profile_art->second.name) {
+        require(material.diffuse.pixels == expected.pixels,
+                "Profile row " + std::to_string(row) + " uses another setting's MCC illustration");
+        matching_art = true;
+      }
+    }
+    require(matching_art, "Profile row lost its semantic MCC illustration");
+  }
+  settings.select(0);
   require(settings.frame().entries.back().destination == int(vista_menu(258)),
           "Profile cannot reach keyboard and mouse settings");
   choose(settings, unsigned(settings.frame().entries.size() - 1), vista_menu(258));
@@ -241,7 +382,7 @@ int main(int argc, char **argv) try {
   MenuState video(content);
   std::array<unsigned, 3> mock_mode{960, 720, 0};
   std::vector<std::array<unsigned, 3>> mode_calls;
-  video.set_pc_video_adapter([&](unsigned width, unsigned height, bool fullscreen) {
+  video.set_pc_video_adapter([&](unsigned width, unsigned height, FullscreenMode fullscreen) {
     mock_mode = {width, height, unsigned(fullscreen)};
     mode_calls.push_back(mock_mode);
     return std::string{};
@@ -249,7 +390,7 @@ int main(int argc, char **argv) try {
   video.set_pc_video_modes({{800, 600}, {1280, 720}}, 960, 720, false);
   video.open(vista_menu(256));
   video.ui_clock(1000);
-  choose(video, 1, vista_menu(269));
+  choose(video, 2, vista_menu(269));
   choose(video, 0, vista_menu(293));
   require(mock_mode == std::array<unsigned, 3>{800, 600, 0},
           "Resolution preview did not reach mock desktop adapter");
@@ -258,7 +399,7 @@ int main(int argc, char **argv) try {
   require(video.frame().screen == vista_menu(256) && mock_mode == std::array<unsigned, 3>{960, 720, 0},
           "Cancel did not restore pre-preview resolution");
   video.ui_clock(20000);
-  choose(video, 1, vista_menu(269));
+  choose(video, 2, vista_menu(269));
   choose(video, 0, vista_menu(293));
   require(video.frame().description.find("16") != std::string::npos &&
           video.frame().description.find("\xee\x92\x92") == std::string::npos,
@@ -270,7 +411,7 @@ int main(int argc, char **argv) try {
   require(video.frame().screen == vista_menu(256) && mock_mode == std::array<unsigned, 3>{960, 720, 0},
           "Source sixteen-second timeout did not restore resolution");
   video.ui_clock(40000);
-  choose(video, 1, vista_menu(269));
+  choose(video, 2, vista_menu(269));
   choose(video, 2, vista_menu(293));
   const auto confirm_hit = draw(video, true, FrontendPointerAction::Accept);
   require(confirm_hit && video.activate_pointer(*confirm_hit) && video.frame().screen == vista_menu(256),
@@ -280,8 +421,8 @@ int main(int argc, char **argv) try {
   video.ui_clock(100000);
   require(mock_mode == std::array<unsigned, 3>{1280, 720, 0} && mode_calls.size() == confirmed_calls,
           "Confirmed resolution was reverted by stale countdown");
-  choose(video, 0, vista_menu(271));
-  choose(video, 0, vista_menu(293));
+  choose(video, 1, vista_menu(271));
+  choose(video, 1, vista_menu(293));
   require(mock_mode == std::array<unsigned, 3>{1280, 720, 1}, "Display Mode did not preview fullscreen");
   video.back();
   require(video.frame().screen == vista_menu(256) && mock_mode == std::array<unsigned, 3>{1280, 720, 0},
@@ -289,8 +430,8 @@ int main(int argc, char **argv) try {
   // Exercise each existing choice factory without account/session/network owners.
   constexpr std::array<std::pair<unsigned, unsigned>, 23> choices{{
       {42, 10}, {44, 2}, {242, 3}, {243, 4}, {245, 2}, {253, 43}, {256, 14}, {257, 4},
-      {258, 6}, {263, 11}, {267, 5}, {268, 2}, {269, 3}, {271, 2}, {272, 10}, {273, 11},
-      {274, 3}, {276, 2}, {285, 2}, {290, 3}, {294, 2}, {295, 2}, {296, 1}}};
+      {258, 6}, {263, 11}, {267, 5}, {268, 2}, {269, 3}, {271, 3}, {272, 10}, {273, 11},
+      {274, 2}, {276, 2}, {285, 2}, {290, 3}, {294, 2}, {295, 2}, {296, 1}}};
   for (const auto [id, count] : choices) {
     MenuState state(content);
     state.set_pc_video_modes({{800, 600}, {1280, 720}}, 960, 720, false);
@@ -298,6 +439,10 @@ int main(int argc, char **argv) try {
     require(state.frame().entries.size() == count, "Choice inventory differs on " + std::to_string(id));
     for (const auto &entry : state.frame().entries) require(!entry.label.empty(), "Empty MCC submenu label");
     draw(state, true);
+  }
+  for(unsigned context=1;context<=2;++context) {
+    MenuState state(content);state.open(vista_menu(274),context);
+    require(state.frame().entries.size()==(context==1?3u:6u),"Upscaling choices missing");draw(state,true);
   }
   MenuState categories(content);
   categories.open(19);
@@ -318,6 +463,29 @@ int main(int argc, char **argv) try {
           "Visible split-screen A prompt did not enter lobby");
   draw(split, true);
   require(split.frame().entries.size() == 2, "Split-screen lobby lost Start/Setup");
+  {
+    const auto lobby_view = split.lobby_view();
+    require(lobby_view && lobby_view->map, "Lobby lost its selected map");
+    const auto &map_image = content.images.at(lobby_view->map->bitmap);
+    const auto output = painter.draw(split, 5, -1, 20000);
+    bool map_visible = false;
+    for (std::size_t i = 0; i + 5 < output.vertices.size(); i += 6) {
+      const auto &a = output.vertices[i], &b = output.vertices[i + 4];
+      if (mesh.materials.at(a.material).name != map_image.name) continue;
+      require(std::abs(b.position.x - a.position.x - 220) < .001f &&
+              std::abs(b.position.y - a.position.y - 207) < .001f,
+              "Lobby map art lost its original220x207 logical extent");
+      map_visible = true;
+    }
+    require(map_visible, "Lobby projection dropped its MCC-owned selected map artwork");
+  }
+
+  for (const auto [x, row] : std::array<std::pair<float, unsigned>, 2>{{{124, 0}, {303, 1}}}) {
+    const auto target = painter.pointer_hit(x, 77);
+    require(target && target->action == FrontendPointerAction::Entry && target->index == row,
+            "Lobby Start/Setup buttons lost their original bounds below the title bar");
+  }
+
   require(split.controller_slot(41, true) == 0,
           "Split-screen host controller did not bind its existing local slot");
   const auto join = split.controller_slot(42, true);
@@ -356,6 +524,8 @@ int main(int argc, char **argv) try {
       {"drawn_screens", drawn}, {"vertices", vertices}, {"viewports", {{640, 480}, {1280, 720}}},
       {"observations", observations},
       {"pc_bitmap_projection", projection_checks},
+      {"stationary_category_selectors", selector_checks},
+      {"original_logical_layout", logical_checks},
       {"mock_video_mode_calls", mode_calls}, {"host_display_changed", false},
       {"online_scope", "Offline sign-in presentation and browser/matchmaking access gate only; no services or remote actions"}});
   std::ofstream(argv[3]) << report.dump(2) << '\n';

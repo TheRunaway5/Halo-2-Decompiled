@@ -5,7 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
-#if defined(__linux__)
+#if defined(__linux__) || defined(__APPLE__)
 #include <fcntl.h>
 #include <unistd.h>
 #endif
@@ -13,7 +13,7 @@
 using namespace halo2;
 void require(bool value, const char *message) { if (!value) throw std::runtime_error(message); }
 int main() try {
-#if !defined(__linux__)
+#if !defined(__linux__) && !defined(__APPLE__)
     return 77;
 #endif
     const auto path = std::filesystem::temp_directory_path() /
@@ -28,7 +28,7 @@ int main() try {
     require(captured && captured->bytes().size() == expected.size() + 1 &&
         std::equal(expected.begin(), expected.end(), captured->bytes().begin()) &&
         captured->bytes().back() == std::byte{0xa9}, "Captured bytes/suffix differ");
-#if defined(__linux__)
+#if defined(__linux__) || defined(__APPLE__)
     const auto source_fd = ::open(path.c_str(), O_RDONLY | O_CLOEXEC);
     require(source_fd >= 0 && ::lseek(source_fd, 37, SEEK_SET) == 37, "Capture source descriptor setup failed");
     auto from_descriptor = CacheFileSnapshot::try_capture_file(source_fd);
@@ -47,7 +47,7 @@ int main() try {
             "Source truncation changed snapshot backing");
     std::filesystem::remove(path);
     require(second->bytes()[65537] == expected[65537], "Source unlink invalidated snapshot");
-#if defined(__linux__)
+#if defined(__linux__) || defined(__APPLE__)
     require(from_descriptor->bytes()[65537] == expected[65537], "Descriptor capture lost independence after source unlink");
 #endif
     require(captured->bytes()[65537] == expected[65537], "Captured bytes lost independence after source unlink");

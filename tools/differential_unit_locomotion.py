@@ -16,7 +16,7 @@ def main():
   ordered_stores=sum(len(c['stores'])for c in original['cases']),request_and_physical_readonly=True,complete_result70_comparison=True,
   original_manifest_sha256=digest(EXPORT/'manifest.json'),original_report_sha256=manifest['original_report_sha256'],
   fixture_sha256=digest(EXPORT/'fixtures.tsv'),native_binary_sha256=digest(a.binary),tool_sha256=digest(__file__),
-  native_sources={name:digest(ROOT/name)for name in('include/halo2/unit_locomotion.hpp','src/unit_locomotion.cpp','tests/unit_locomotion_tests.cpp')},
+  native_sources={name:digest(ROOT/name)for name in('include/halo2/unit_locomotion.hpp','src/gameplay/units/unit_locomotion.cpp','tests/unit_locomotion_tests.cpp')},
   stdout=run.stdout,stderr=run.stderr,returncode=run.returncode,
   limits='Explicit non-neutral request inputs on original source-owned state1, not live device admission, physics/motion/clip/pose/frame production or CPU/hardware FP exception parity. Other physical-state dispatches remain unavailable.')
  a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(json.dumps(report,indent=2)+'\n');raise SystemExit(run.returncode)

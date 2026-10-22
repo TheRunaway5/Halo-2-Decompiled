@@ -1,5 +1,4 @@
 #include "halo2/renderer.hpp"
-#include "halo2/debug_panel.hpp"
 #include <array>
 #include <cstdlib>
 #include <fstream>
@@ -37,8 +36,8 @@ std::unique_ptr<Renderer> renderer(SDL_Window* window,const Mesh& mesh) {
 struct Case {unsigned width,height,internal_width,internal_height,aa;bool loading;};
 void configure(Renderer& renderer,const Case& test) {
     if(test.loading){renderer.prepare_loading();return;}
-    DisplaySettings settings;settings.internal_width=test.internal_width;settings.internal_height=test.internal_height;settings.anti_aliasing=test.aa;
-    renderer.debug_panel().display_settings(settings);
+    DisplaySettings settings;settings.internal_width=test.internal_width;settings.internal_height=test.internal_height;if(test.aa){settings.internal_width=(test.internal_width?test.internal_width:test.width)*2;settings.internal_height=(test.internal_height?test.internal_height:test.height)*2;}
+    renderer.display_settings(settings);
 }
 }
 

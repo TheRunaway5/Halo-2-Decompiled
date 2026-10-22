@@ -69,7 +69,7 @@ def main():
     generated = read(generated_path)
     assert generated['generator_sha256'] == sha(ROOT / 'tools/generate_physics_game_frame_runtime_20261011.py')
     assert generated['correspondence_sha256'] == PAIR_PIN
-    assert generated['generated_cpp_sha256'] == sha(ROOT / 'src/physics_world_runtime_generated.cpp') == sha(E / 'generated-repeat/runtime.cpp')
+    assert generated['generated_cpp_sha256'] == sha(ROOT / 'src/physics/runtime/physics_world_runtime_generated.cpp') == sha(E / 'generated-repeat/runtime.cpp')
     assert len(generated['complete_native_entries']) == 477 and len(generated['lowered_instructions']) == 35694
     assert not generated['production_opcode_decoder'] and not generated['production_original_code_execution']
     assert sha(E / 'capture-v1/checkpoint.json') == '6a64d10d3ac19526287985c2495d9c7262e8a5a881392b529eeb2f9aa74f230e'

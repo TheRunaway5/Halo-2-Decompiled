@@ -17,7 +17,7 @@ std::vector<std::byte> unhex(std::string_view value) {
 }
 }
 int main(int argc,char** argv)try {
-#if !defined(__linux__)
+#if !defined(__linux__) && !defined(__APPLE__)
     return 77;
 #endif
     std::size_t cases=0;

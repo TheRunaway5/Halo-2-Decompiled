@@ -57,7 +57,7 @@ def main():
     unchanged = [
         'include/halo2/content.hpp', 'include/halo2/fixed_effect_event.hpp',
         'include/halo2/muzzle_effects.hpp', 'include/halo2/effect_sound.hpp',
-        'src/muzzle_effects.cpp', 'src/effect_sound.cpp',
+        'src/rendering/effects/muzzle_effects.cpp', 'src/rendering/effects/effect_sound.cpp',
         'tests/needler_firing_tests.cpp', 'tests/native_covenant_weapon_runtime_tests.cpp',
         'tests/fixtures/needler_firing_effects_original.tsv',
         'tests/fixtures/weapon_fixed_events_original.tsv',
@@ -77,7 +77,7 @@ def main():
             external[str(path.relative_to(SOURCE))] = sha(path)
     overlay_files = {}
     patches = []
-    for name in ('src/simulation.cpp', 'src/multiplayer_runtime.cpp',
+    for name in ('src/gameplay/simulation.cpp', 'src/gameplay/multiplayer/multiplayer_runtime.cpp',
                  'tests/native_weapon_runtime_tests.cpp', 'tests/muzzle_effects_tests.cpp'):
         overlay_files[name] = sha(OVERLAY / name)
         diff = subprocess.run(['diff', '-u', str(SOURCE / name), str(OVERLAY / name)],

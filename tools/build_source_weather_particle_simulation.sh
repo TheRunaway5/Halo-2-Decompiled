@@ -8,6 +8,6 @@ task_flags=(-O2)
 if [ "$task_mode" = asan ]; then task_flags=(-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer);
 elif [ "$task_mode" != normal ]; then exit 2; fi
 c++ -std=c++20 -ffp-contract=off -fno-fast-math "${task_flags[@]}" -I"$task_root/include" \
-    "$task_root/src/source_weather_particle_simulation.cpp" "$task_root/src/source_weather_exclusion.cpp" \
+    "$task_root/src/rendering/weather/source_weather_particle_simulation.cpp" "$task_root/src/rendering/weather/source_weather_exclusion.cpp" \
     "$task_root/tests/source_weather_particle_simulation_tests.cpp" \
     -o "$task_build/source_weather_particle_simulation_tests"

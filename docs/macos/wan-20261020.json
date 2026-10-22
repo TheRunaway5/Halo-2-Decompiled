@@ -1,0 +1,973 @@
+{
+  "schema": "H2_MACOS_WAN_EVIDENCE_V1",
+  "date": "2026-10-20",
+  "status": "both Mac slices passed the existing production encrypted UDP probe against the isolated public aiortc echo endpoint",
+  "coordinator_source": "WORKER=\"import hashlib,json,os,subprocess,sys\\nfrom pathlib import Path\\nroot=Path.cwd();scratch=Path(os.environ['HALO2_TEST_SCRATCH'])\\noutput=root/'build/test-results/macos-wan-build';output.mkdir(parents=True,exist_ok=True)\\ndef digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()\\ndef emit(d):print(json.dumps(d),flush=True)\\nreport={'schema':'H2_MACOS_WAN_WORKER_V1','scratch':str(scratch),'runs':[],'retained_large_artifacts':[]}\\ntry:\\n with (scratch/'preparation.log').open('w') as log:\\n  subprocess.run([sys.executable,'-B',str(root/'tests/macos/python/prepare_sdk.py'),str(scratch/'graphics')],stdout=log,stderr=subprocess.STDOUT,check=True)\\n graphics=scratch/'graphics'\\n command=[sys.executable,'-B',str(root/'tools/run_tests.py'),'--build-worker','--source',str(root),'--output',str(output),'--target','online_peer_wan_probe','--target','vulkan_portability_tests','--filter','^vulkan_portability$','--jobs','2','--test-jobs','1','--cmake-arg=-GNinja',f'--cmake-arg=-DSDL2_DIR={graphics}/sdk/cmake/SDL2',f'--cmake-arg=-DHALO2_MOLTENVK_LIBRARY={graphics}/sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib',f'--cmake-arg=-DHALO2_MOLTENVK_LICENSE={graphics}/sdk/MoltenVK/LICENSE',f'--cmake-arg=-DHALO2_SDL_LICENSE={graphics}/SDL2-LICENSE.txt','--cmake-arg=-DHALO2_STAGE_BUILD_OUTPUT=OFF','--cmake-arg=-DHALO2_BUNDLE_MOVIES=OFF','--cmake-arg=-DHALO2_MACOS_DEPENDENCY_JOBS=4','--retain-report','macos-dependencies/openssl/manifest.json']\\n report['build_command']=command\\n with (scratch/'build-worker.log').open('w') as log:\\n  subprocess.run(command,stdout=log,stderr=subprocess.STDOUT,check=True)\\n binary=scratch/'build/online_peer_wan_probe'\\n report['binary_sha256']=digest(binary)\\n report['architectures']=subprocess.run(['lipo','-archs',str(binary)],check=True,capture_output=True,text=True).stdout.strip().split()\\n assert set(report['architectures'])=={'arm64','x86_64'}\\n sources=['CMakeLists.txt','cmake/OnlinePeers.cmake','src/online_peer_transport.cpp','include/halo2/online_peer_transport.hpp','tools/online_peer_wan_probe.cpp','tests/macos/python/prepare_sdk.py','tools/macos/test_port.py']\\n report['source_sha256']={p:digest(root/p) for p in sources}\\n report['graphics_inputs']=json.loads((graphics/'manifest.json').read_text())\\n emit({'ready':True,'metadata':report})\\n for arch in ['arm64','x86_64']:\\n  request=json.loads(sys.stdin.readline())\\n  assert request=={'start':arch}\\n  result=subprocess.run(['/usr/bin/arch','-'+arch,str(binary)],stdin=sys.stdin.buffer,stdout=sys.stdout,stderr=subprocess.PIPE,timeout=45)\\n  stderr=result.stderr\\n  row={'arch':arch,'exit_code':result.returncode,'stderr_bytes':len(stderr),'stderr_sha256':hashlib.sha256(stderr).hexdigest(),'diagnostics':[s for s in stderr.decode(errors='replace').splitlines() if s in ['WAN direct UDP did not deliver enough authenticated datagrams','Unable to establish a direct player connection.','WAN packet endpoint or size differs','WAN packet serial differs','WAN payload differs']]}\\n  report['runs'].append(row)\\n  emit({'native_exit':result.returncode,'arch':arch})\\n assert json.loads(sys.stdin.readline())=={'stop':True}\\n report['passed']=all(r['exit_code']==0 for r in report['runs'])\\nexcept BaseException as error:\\n report.update(passed=False,error_class=type(error).__name__,error=str(error)[:1500])\\n for name in ['preparation.log','build-worker.log']:\\n  path=scratch/name\\n  if path.exists():report.setdefault('failure_tails',{})[name]=path.read_text(errors='replace')[-4000:]\\n emit({'worker_error':report.get('error_class')})\\nfinally:\\n (output/'worker-result.json').write_text(json.dumps(report,indent=2)+'\\\\n')\\nsys.exit(0 if report.get('passed') else 1)\\n\"\nimport asyncio,hashlib,json,os,shlex,subprocess,sys\nfrom pathlib import Path\nROOT=Path.cwd();OUT=ROOT/'build/test-results/macos-wan';OUT.mkdir(parents=True,exist_ok=True)\nreport={'schema':'H2_MACOS_WAN_COORDINATOR_V1','scratch':os.environ['HALO2_TEST_SCRATCH'],'runs':[],'raw_signaling_retained':False,'retained_large_artifacts':[],'worker_source_sha256':hashlib.sha256(WORKER.encode()).hexdigest(),'server_source_sha256':'eda3b19ea9e20d590b1aa53c64de6ed3853ae1b075fcbab3f75e8b688ccde91b','server_aiortc':'1.14.0','server_path':'/opt/halo2/tests/online_peer_wan_echo.py','source_mac_host':'codex-mac','echo_host':'halo2-master'}\ndef safe_signal(value):\n assert set(value)=={'signal'}\n signal=value['signal']\n assert set(signal)=={'peer','type','payload','mid'}\n assert signal['type'] in ('offer','answer','candidate')\n return value\nasync def main():\n command='cd /Users/eric/Developer/Halo2-macos-port && export PATH=/opt/homebrew/bin:$PATH && '+shlex.join(['python3','-B','tools/run_test.py','--scratch-root','.local/test-scratch','--','python3','-B','-c',WORKER])\n native=await asyncio.create_subprocess_exec('ssh','-o','BatchMode=yes','-o','ConnectTimeout=15','codex-mac',command,stdin=asyncio.subprocess.PIPE,stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.PIPE)\n report['native_command']=['ssh','-o','BatchMode=yes','codex-mac','<owned worker; source retained in evidence>']\n remote=None\n try:\n  prepared=json.loads(await asyncio.wait_for(native.stdout.readline(),900))\n  assert prepared.get('ready'),prepared\n  report['prepared']=prepared['metadata']\n  for arch in ['arm64','x86_64']:\n   row={'arch':arch,'receipts':{},'signal_counts':{'native':0,'remote':0}}\n   report['runs'].append(row)\n   remote_command='PYTHONDONTWRITEBYTECODE=1 /opt/halo2/tests/direct-peer-venv/bin/python -B /opt/halo2/tests/online_peer_wan_echo.py'\n   remote=await asyncio.create_subprocess_exec('ssh','-o','BatchMode=yes','-o','ConnectTimeout=15','halo2-master',remote_command,stdin=asyncio.subprocess.PIPE,stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.PIPE)\n   native.stdin.write((json.dumps({'start':arch})+'\\n').encode());await native.stdin.drain()\n   async def from_native():\n    while line:=await native.stdout.readline():\n     value=json.loads(line)\n     if 'signal' in value:\n      safe_signal(value);row['signal_counts']['native']+=1\n      remote.stdin.write(line);await remote.stdin.drain()\n     elif 'native_exit' in value:\n      assert value['arch']==arch;row['native_exit']=value['native_exit']\n      if not remote.stdin.is_closing():\n       remote.stdin.write(b'{\"stop\":true}\\n');await remote.stdin.drain()\n      return\n     else:\n      assert set(value)<={'done','sent','received','rtt_ms'} and value.get('done')\n      row['receipts']['native']=value\n      remote.stdin.write(b'{\"stop\":true}\\n');await remote.stdin.drain()\n    raise RuntimeError('Mac worker ended before the native receipt')\n   async def from_remote():\n    while line:=await remote.stdout.readline():\n     value=json.loads(line)\n     if 'signal' in value:\n      safe_signal(value);row['signal_counts']['remote']+=1\n      native.stdin.write(line);await native.stdin.drain()\n     else:\n      assert set(value)=={'done','received'} and value.get('done')\n      row['receipts']['remote']=value\n   tasks=[asyncio.create_task(from_native()),asyncio.create_task(from_remote())]\n   try:\n    async with asyncio.timeout(60):\n     await asyncio.gather(*tasks)\n     row['remote_exit']=await remote.wait()\n     error=await remote.stderr.read();row['remote_stderr_bytes']=len(error);row['remote_stderr_sha256']=hashlib.sha256(error).hexdigest()\n    row['passed']=row.get('native_exit')==row.get('remote_exit')==0 and row['receipts'].get('native',{}).get('received',0)>=45 and row['receipts'].get('remote',{}).get('received',0)>=45\n   finally:\n    for task in tasks:\n     if not task.done():task.cancel()\n    await asyncio.gather(*tasks,return_exceptions=True)\n    if remote.returncode is None:\n     remote.kill();await remote.wait()\n    remote=None\n  native.stdin.write(b'{\"stop\":true}\\n');await native.stdin.drain()\n  native.stdin.close()\n  report['worker_exit']=await asyncio.wait_for(native.wait(),30)\n  error=await native.stderr.read();report['worker_stderr_bytes']=len(error);report['worker_stderr_sha256']=hashlib.sha256(error).hexdigest()\n  report['passed']=report['worker_exit']==0 and len(report['runs'])==2 and all(r.get('passed') for r in report['runs'])\n except BaseException as error:\n  report.update(passed=False,error_class=type(error).__name__,error=str(error)[:1200])\n finally:\n  for process in [remote,native]:\n   if process and process.returncode is None:\n    process.kill();await process.wait()\n  (OUT/'report.json').write_text(json.dumps(report,indent=2)+'\\n')\n  print(json.dumps({k:report[k] for k in ['passed','runs'] if k in report},indent=2))\nasyncio.run(main())\nsys.exit(0 if report.get('passed') else 1)\n",
+  "coordinator_source_sha256": "4f6f91f683f70ca7320394f1408d43cf1259e3625ca8649c74cd4297b79d071a",
+  "native_worker_source": "import hashlib,json,os,subprocess,sys\nfrom pathlib import Path\nroot=Path.cwd();scratch=Path(os.environ['HALO2_TEST_SCRATCH'])\noutput=root/'build/test-results/macos-wan-build';output.mkdir(parents=True,exist_ok=True)\ndef digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()\ndef emit(d):print(json.dumps(d),flush=True)\nreport={'schema':'H2_MACOS_WAN_WORKER_V1','scratch':str(scratch),'runs':[],'retained_large_artifacts':[]}\ntry:\n with (scratch/'preparation.log').open('w') as log:\n  subprocess.run([sys.executable,'-B',str(root/'tests/macos/python/prepare_sdk.py'),str(scratch/'graphics')],stdout=log,stderr=subprocess.STDOUT,check=True)\n graphics=scratch/'graphics'\n command=[sys.executable,'-B',str(root/'tools/run_tests.py'),'--build-worker','--source',str(root),'--output',str(output),'--target','online_peer_wan_probe','--target','vulkan_portability_tests','--filter','^vulkan_portability$','--jobs','2','--test-jobs','1','--cmake-arg=-GNinja',f'--cmake-arg=-DSDL2_DIR={graphics}/sdk/cmake/SDL2',f'--cmake-arg=-DHALO2_MOLTENVK_LIBRARY={graphics}/sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib',f'--cmake-arg=-DHALO2_MOLTENVK_LICENSE={graphics}/sdk/MoltenVK/LICENSE',f'--cmake-arg=-DHALO2_SDL_LICENSE={graphics}/SDL2-LICENSE.txt','--cmake-arg=-DHALO2_STAGE_BUILD_OUTPUT=OFF','--cmake-arg=-DHALO2_BUNDLE_MOVIES=OFF','--cmake-arg=-DHALO2_MACOS_DEPENDENCY_JOBS=4','--retain-report','macos-dependencies/openssl/manifest.json']\n report['build_command']=command\n with (scratch/'build-worker.log').open('w') as log:\n  subprocess.run(command,stdout=log,stderr=subprocess.STDOUT,check=True)\n binary=scratch/'build/online_peer_wan_probe'\n report['binary_sha256']=digest(binary)\n report['architectures']=subprocess.run(['lipo','-archs',str(binary)],check=True,capture_output=True,text=True).stdout.strip().split()\n assert set(report['architectures'])=={'arm64','x86_64'}\n sources=['CMakeLists.txt','cmake/OnlinePeers.cmake','src/online_peer_transport.cpp','include/halo2/online_peer_transport.hpp','tools/online_peer_wan_probe.cpp','tests/macos/python/prepare_sdk.py','tools/macos/test_port.py']\n report['source_sha256']={p:digest(root/p) for p in sources}\n report['graphics_inputs']=json.loads((graphics/'manifest.json').read_text())\n emit({'ready':True,'metadata':report})\n for arch in ['arm64','x86_64']:\n  request=json.loads(sys.stdin.readline())\n  assert request=={'start':arch}\n  result=subprocess.run(['/usr/bin/arch','-'+arch,str(binary)],stdin=sys.stdin.buffer,stdout=sys.stdout,stderr=subprocess.PIPE,timeout=45)\n  stderr=result.stderr\n  row={'arch':arch,'exit_code':result.returncode,'stderr_bytes':len(stderr),'stderr_sha256':hashlib.sha256(stderr).hexdigest(),'diagnostics':[s for s in stderr.decode(errors='replace').splitlines() if s in ['WAN direct UDP did not deliver enough authenticated datagrams','Unable to establish a direct player connection.','WAN packet endpoint or size differs','WAN packet serial differs','WAN payload differs']]}\n  report['runs'].append(row)\n  emit({'native_exit':result.returncode,'arch':arch})\n assert json.loads(sys.stdin.readline())=={'stop':True}\n report['passed']=all(r['exit_code']==0 for r in report['runs'])\nexcept BaseException as error:\n report.update(passed=False,error_class=type(error).__name__,error=str(error)[:1500])\n for name in ['preparation.log','build-worker.log']:\n  path=scratch/name\n  if path.exists():report.setdefault('failure_tails',{})[name]=path.read_text(errors='replace')[-4000:]\n emit({'worker_error':report.get('error_class')})\nfinally:\n (output/'worker-result.json').write_text(json.dumps(report,indent=2)+'\\n')\nsys.exit(0 if report.get('passed') else 1)\n",
+  "worker": {
+    "schema": "H2_MACOS_WAN_WORKER_V1",
+    "scratch": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1",
+    "runs": [
+      {
+        "arch": "arm64",
+        "exit_code": 0,
+        "stderr_bytes": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "diagnostics": []
+      },
+      {
+        "arch": "x86_64",
+        "exit_code": 0,
+        "stderr_bytes": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "diagnostics": []
+      }
+    ],
+    "retained_large_artifacts": [],
+    "build_command": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "-B",
+      "/Users/eric/Developer/Halo2-macos-port/tools/run_tests.py",
+      "--build-worker",
+      "--source",
+      "/Users/eric/Developer/Halo2-macos-port",
+      "--output",
+      "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-wan-build",
+      "--target",
+      "online_peer_wan_probe",
+      "--target",
+      "vulkan_portability_tests",
+      "--filter",
+      "^vulkan_portability$",
+      "--jobs",
+      "2",
+      "--test-jobs",
+      "1",
+      "--cmake-arg=-GNinja",
+      "--cmake-arg=-DSDL2_DIR=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/graphics/sdk/cmake/SDL2",
+      "--cmake-arg=-DHALO2_MOLTENVK_LIBRARY=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/graphics/sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib",
+      "--cmake-arg=-DHALO2_MOLTENVK_LICENSE=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/graphics/sdk/MoltenVK/LICENSE",
+      "--cmake-arg=-DHALO2_SDL_LICENSE=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/graphics/SDL2-LICENSE.txt",
+      "--cmake-arg=-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+      "--cmake-arg=-DHALO2_BUNDLE_MOVIES=OFF",
+      "--cmake-arg=-DHALO2_MACOS_DEPENDENCY_JOBS=4",
+      "--retain-report",
+      "macos-dependencies/openssl/manifest.json"
+    ],
+    "binary_sha256": "4d2aaca9a9d186f400256bab30c1c5794e5e1b1296cb07506797117034a1de35",
+    "architectures": [
+      "x86_64",
+      "arm64"
+    ],
+    "source_sha256": {
+      "CMakeLists.txt": "7060609fafba706caba45d79739b49353f3aab51520d224447a27c5230ddda9a",
+      "cmake/OnlinePeers.cmake": "5fcb199a954348f41c0192d3f4e8c491f9b61e8b15ff1d1c8a6cccb87636be77",
+      "src/online_peer_transport.cpp": "a68445f19fbe56fc1a01a37f2cf642ba9da293ae744bb58755d31ce197850f47",
+      "include/halo2/online_peer_transport.hpp": "cfeab0e68b6b217c101933163cd5c97e09bae82e774bf3a0a4e5802d6ee611fc",
+      "tools/online_peer_wan_probe.cpp": "26810db964779f17dd9a9bdf21c4e429689324fd705cca9b45008d6062f6cea8",
+      "tests/macos/python/prepare_sdk.py": "77624f7a875cd664807c1b59b3fda5264834f677dff879cbd148a06118e71c8e",
+      "tools/macos/test_port.py": "829941a4a166a7bcf4857c9f78500160b53fb05fcb46f461889bb9b9ae7a9a39"
+    },
+    "graphics_inputs": {
+      "MoltenVK-macos.tar": [
+        "https://github.com/KhronosGroup/MoltenVK/releases/download/v1.4.2/MoltenVK-macos.tar",
+        "f95765a6229cb7b915990a2890ce12ebe36a730b021545d3d52ae69ce4c4024e"
+      ],
+      "SDL2.dmg": [
+        "https://github.com/libsdl-org/SDL/releases/download/release-2.32.10/SDL2-2.32.10.dmg",
+        "4a7ac31640d70214e848f994be8a12849c0f97918a7e6c2e27a40036166d1a7f"
+      ],
+      "SDL2-LICENSE.txt": [
+        "https://raw.githubusercontent.com/libsdl-org/SDL/release-2.32.10/LICENSE.txt",
+        "97f35b302b361680ec1e891e95d2d52097bb95abff361434916d99dc1305f127"
+      ]
+    },
+    "passed": true
+  },
+  "coordinator": {
+    "schema": "H2_MACOS_WAN_COORDINATOR_V1",
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-_sihqtrq",
+    "runs": [
+      {
+        "arch": "arm64",
+        "receipts": {
+          "native": {
+            "done": true,
+            "received": 47,
+            "rtt_ms": 54,
+            "sent": 50
+          },
+          "remote": {
+            "done": true,
+            "received": 49
+          }
+        },
+        "signal_counts": {
+          "native": 6,
+          "remote": 1
+        },
+        "native_exit": 0,
+        "remote_exit": 0,
+        "remote_stderr_bytes": 0,
+        "remote_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "passed": true
+      },
+      {
+        "arch": "x86_64",
+        "receipts": {
+          "native": {
+            "done": true,
+            "received": 47,
+            "rtt_ms": 45,
+            "sent": 50
+          },
+          "remote": {
+            "done": true,
+            "received": 49
+          }
+        },
+        "signal_counts": {
+          "native": 6,
+          "remote": 1
+        },
+        "native_exit": 0,
+        "remote_exit": 0,
+        "remote_stderr_bytes": 0,
+        "remote_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "passed": true
+      }
+    ],
+    "raw_signaling_retained": false,
+    "retained_large_artifacts": [],
+    "worker_source_sha256": "560e9538eaf14af5e5141fa693546a8dfbe2cf6351b9e9200010a49d102d9c9f",
+    "server_source_sha256": "eda3b19ea9e20d590b1aa53c64de6ed3853ae1b075fcbab3f75e8b688ccde91b",
+    "server_aiortc": "1.14.0",
+    "server_path": "/opt/halo2/tests/online_peer_wan_echo.py",
+    "source_mac_host": "codex-mac",
+    "echo_host": "halo2-master",
+    "native_command": [
+      "ssh",
+      "-o",
+      "BatchMode=yes",
+      "codex-mac",
+      "<owned worker; source retained in evidence>"
+    ],
+    "prepared": {
+      "schema": "H2_MACOS_WAN_WORKER_V1",
+      "scratch": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1",
+      "runs": [],
+      "retained_large_artifacts": [],
+      "build_command": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/eric/Developer/Halo2-macos-port/tools/run_tests.py",
+        "--build-worker",
+        "--source",
+        "/Users/eric/Developer/Halo2-macos-port",
+        "--output",
+        "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-wan-build",
+        "--target",
+        "online_peer_wan_probe",
+        "--target",
+        "vulkan_portability_tests",
+        "--filter",
+        "^vulkan_portability$",
+        "--jobs",
+        "2",
+        "--test-jobs",
+        "1",
+        "--cmake-arg=-GNinja",
+        "--cmake-arg=-DSDL2_DIR=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/graphics/sdk/cmake/SDL2",
+        "--cmake-arg=-DHALO2_MOLTENVK_LIBRARY=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/graphics/sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib",
+        "--cmake-arg=-DHALO2_MOLTENVK_LICENSE=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/graphics/sdk/MoltenVK/LICENSE",
+        "--cmake-arg=-DHALO2_SDL_LICENSE=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/graphics/SDL2-LICENSE.txt",
+        "--cmake-arg=-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+        "--cmake-arg=-DHALO2_BUNDLE_MOVIES=OFF",
+        "--cmake-arg=-DHALO2_MACOS_DEPENDENCY_JOBS=4",
+        "--retain-report",
+        "macos-dependencies/openssl/manifest.json"
+      ],
+      "binary_sha256": "4d2aaca9a9d186f400256bab30c1c5794e5e1b1296cb07506797117034a1de35",
+      "architectures": [
+        "x86_64",
+        "arm64"
+      ],
+      "source_sha256": {
+        "CMakeLists.txt": "7060609fafba706caba45d79739b49353f3aab51520d224447a27c5230ddda9a",
+        "cmake/OnlinePeers.cmake": "5fcb199a954348f41c0192d3f4e8c491f9b61e8b15ff1d1c8a6cccb87636be77",
+        "src/online_peer_transport.cpp": "a68445f19fbe56fc1a01a37f2cf642ba9da293ae744bb58755d31ce197850f47",
+        "include/halo2/online_peer_transport.hpp": "cfeab0e68b6b217c101933163cd5c97e09bae82e774bf3a0a4e5802d6ee611fc",
+        "tools/online_peer_wan_probe.cpp": "26810db964779f17dd9a9bdf21c4e429689324fd705cca9b45008d6062f6cea8",
+        "tests/macos/python/prepare_sdk.py": "77624f7a875cd664807c1b59b3fda5264834f677dff879cbd148a06118e71c8e",
+        "tools/macos/test_port.py": "829941a4a166a7bcf4857c9f78500160b53fb05fcb46f461889bb9b9ae7a9a39"
+      },
+      "graphics_inputs": {
+        "MoltenVK-macos.tar": [
+          "https://github.com/KhronosGroup/MoltenVK/releases/download/v1.4.2/MoltenVK-macos.tar",
+          "f95765a6229cb7b915990a2890ce12ebe36a730b021545d3d52ae69ce4c4024e"
+        ],
+        "SDL2.dmg": [
+          "https://github.com/libsdl-org/SDL/releases/download/release-2.32.10/SDL2-2.32.10.dmg",
+          "4a7ac31640d70214e848f994be8a12849c0f97918a7e6c2e27a40036166d1a7f"
+        ],
+        "SDL2-LICENSE.txt": [
+          "https://raw.githubusercontent.com/libsdl-org/SDL/release-2.32.10/LICENSE.txt",
+          "97f35b302b361680ec1e891e95d2d52097bb95abff361434916d99dc1305f127"
+        ]
+      }
+    },
+    "worker_exit": 0,
+    "worker_stderr_bytes": 0,
+    "worker_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "passed": true
+  },
+  "build_runner": {
+    "passed": true,
+    "status": "passed",
+    "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/build",
+    "steps": [
+      {
+        "name": "configure",
+        "command": [
+          "cmake",
+          "-S",
+          "/Users/eric/Developer/Halo2-macos-port",
+          "-B",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/build",
+          "-DBUILD_TESTING=ON",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-GNinja",
+          "-DSDL2_DIR=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/graphics/sdk/cmake/SDL2",
+          "-DHALO2_MOLTENVK_LIBRARY=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/graphics/sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib",
+          "-DHALO2_MOLTENVK_LICENSE=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/graphics/sdk/MoltenVK/LICENSE",
+          "-DHALO2_SDL_LICENSE=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/graphics/SDL2-LICENSE.txt",
+          "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+          "-DHALO2_BUNDLE_MOVIES=OFF",
+          "-DHALO2_MACOS_DEPENDENCY_JOBS=4"
+        ],
+        "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-wan-build/configure.log",
+        "exit_code": 0
+      },
+      {
+        "name": "build",
+        "command": [
+          "cmake",
+          "--build",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/build",
+          "--config",
+          "Release",
+          "--parallel",
+          "2",
+          "--target",
+          "online_peer_wan_probe",
+          "vulkan_portability_tests"
+        ],
+        "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-wan-build/build.log",
+        "exit_code": 0
+      },
+      {
+        "name": "tests",
+        "command": [
+          "ctest",
+          "--test-dir",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/build",
+          "--build-config",
+          "Release",
+          "--output-on-failure",
+          "--no-tests=error",
+          "--parallel",
+          "1",
+          "--tests-regex",
+          "^vulkan_portability$"
+        ],
+        "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-wan-build/tests.log",
+        "exit_code": 0
+      }
+    ],
+    "retained_small_reports": [
+      {
+        "path": "macos-dependencies/openssl/manifest.json",
+        "status": "retained",
+        "bytes": 31459,
+        "sha256": "61740ea95738edceb012dd567c9e768d2bf652c38ebc941c7e8a9a1ae6b05452",
+        "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-wan-build/evidence/macos-dependencies/openssl/manifest.json"
+      }
+    ]
+  },
+  "build_tests_log": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/build\n    Start 185: vulkan_portability\n1/1 Test #185: vulkan_portability ...............   Passed    0.38 sec\n\n100% tests passed out of 1\n\nTotal Test time (real) =   0.42 sec\n",
+  "log_sha256": {
+    "build.log": "d160453f884c72ce2dd50fb324e32b97103a26be4305cf7dc7a6dc2848e3e8f4",
+    "configure.log": "fb25d1b635f15edb752b564d3336adda99398dd6f0a4a83bdd54420b6370c187",
+    "tests.log": "616a5cb77ac36a22ef7ac92fc0841591bfe78862ed6007037b34e34fa242451f"
+  },
+  "openssl_manifest": {
+    "schema": "H2_MACOS_OPENSSL_SDK_V1",
+    "version": "3.5.9",
+    "source_url": "https://github.com/openssl/openssl/releases/download/openssl-3.5.9/openssl-3.5.9.tar.gz",
+    "source_sha256": "603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a",
+    "architectures": [
+      "arm64",
+      "x86_64"
+    ],
+    "deployment_target": "13.0",
+    "sysroot": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+    "providers": "upstream built-in default/base/legacy via no-module",
+    "configurations": {
+      "arm64": {
+        "configure": [
+          "perl",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/build/macos-dependencies/openssl-work/openssl-3.5.9/Configure",
+          "darwin64-arm64",
+          "shared",
+          "no-apps",
+          "no-module",
+          "--prefix=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/build/macos-dependencies/openssl-work/arm64-install",
+          "--libdir=lib",
+          "--openssldir=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/build/macos-dependencies/openssl/ssl",
+          "-mmacosx-version-min=13.0",
+          "-isysroot",
+          "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk"
+        ],
+        "library_sha256": {
+          "crypto": "703ff5be6638520513ce45c336596ff0f544e3885ff6ea37dff27aeed0ce266e",
+          "ssl": "2fb99ec4dff098e351ffc9e3ef57f70fb58097626b9c62a1a11a79f2e5d5da51"
+        },
+        "configuration_sha256": "244c25a89d958d4474d116945083797f6c712d20f3e0e0489b5821d566fc4ad8"
+      },
+      "x86_64": {
+        "configure": [
+          "perl",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/build/macos-dependencies/openssl-work/openssl-3.5.9/Configure",
+          "darwin64-x86_64",
+          "shared",
+          "no-apps",
+          "no-module",
+          "--prefix=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/build/macos-dependencies/openssl-work/x86_64-install",
+          "--libdir=lib",
+          "--openssldir=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/build/macos-dependencies/openssl/ssl",
+          "-mmacosx-version-min=13.0",
+          "-isysroot",
+          "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk"
+        ],
+        "library_sha256": {
+          "crypto": "ef8a3e81bce4f43b8fee0dc1a347c0892a3d7bbcca13a87426fc45b5265c2aab",
+          "ssl": "7e038ae1a13d92a418801bd8f552d3df6b765e181668e3769975691d65889e93"
+        },
+        "configuration_sha256": "70c53fcac279f17f0f326f2124163d87d51685191b9869458239b86bde6451d1"
+      }
+    },
+    "public_headers": {
+      "openssl/aes.h": {
+        "arm64": "130e304c466bda5db6de2fdbca3a970905070ab935d702e61c8371334851ea27",
+        "x86_64": "130e304c466bda5db6de2fdbca3a970905070ab935d702e61c8371334851ea27"
+      },
+      "openssl/asn1.h": {
+        "arm64": "0f0ba318652735523d315c64c6f130a26f4ac1b3e89d26d5a8bc456f41adefb1",
+        "x86_64": "0f0ba318652735523d315c64c6f130a26f4ac1b3e89d26d5a8bc456f41adefb1"
+      },
+      "openssl/asn1err.h": {
+        "arm64": "9d60638b3d0c52170d390fe566c0b96a6381590590cc3dd71339eb85140fe1d6",
+        "x86_64": "9d60638b3d0c52170d390fe566c0b96a6381590590cc3dd71339eb85140fe1d6"
+      },
+      "openssl/asn1t.h": {
+        "arm64": "7eff649f33a50bc76b2ae456e427ab7fb26648ff6872fc8e3f4fd1968eb47d4a",
+        "x86_64": "7eff649f33a50bc76b2ae456e427ab7fb26648ff6872fc8e3f4fd1968eb47d4a"
+      },
+      "openssl/async.h": {
+        "arm64": "708d52ecd7bb5ca83d243ddecb132db0693b0809f65c093eabda549156934030",
+        "x86_64": "708d52ecd7bb5ca83d243ddecb132db0693b0809f65c093eabda549156934030"
+      },
+      "openssl/asyncerr.h": {
+        "arm64": "eb6ea0f0389aa7846ea5b8f5b7b8d2a82a7b52e7dbfa105bc137e52be1399a69",
+        "x86_64": "eb6ea0f0389aa7846ea5b8f5b7b8d2a82a7b52e7dbfa105bc137e52be1399a69"
+      },
+      "openssl/bio.h": {
+        "arm64": "32aa24bfa89aa9b07c52755bd375cd6d9f5202594b4c7880347fb4cf676f4f7c",
+        "x86_64": "32aa24bfa89aa9b07c52755bd375cd6d9f5202594b4c7880347fb4cf676f4f7c"
+      },
+      "openssl/bioerr.h": {
+        "arm64": "fe1bf57251e4eaab30d2a6aa2048ee93deb1f0f15ef6634f61093b4d405586c6",
+        "x86_64": "fe1bf57251e4eaab30d2a6aa2048ee93deb1f0f15ef6634f61093b4d405586c6"
+      },
+      "openssl/blowfish.h": {
+        "arm64": "97064924914f71425e48f5d53893abca0f07f329dde7a8b93b581dc9ee2e837a",
+        "x86_64": "97064924914f71425e48f5d53893abca0f07f329dde7a8b93b581dc9ee2e837a"
+      },
+      "openssl/bn.h": {
+        "arm64": "da179e5d98e8351e3e29f148bd88b42cba84fe60c7927a584f213bf2d09c38ed",
+        "x86_64": "da179e5d98e8351e3e29f148bd88b42cba84fe60c7927a584f213bf2d09c38ed"
+      },
+      "openssl/bnerr.h": {
+        "arm64": "beeb78746fbcc2c09e1f833f4c2ea72e845e757390aad7dc8699f7787b580204",
+        "x86_64": "beeb78746fbcc2c09e1f833f4c2ea72e845e757390aad7dc8699f7787b580204"
+      },
+      "openssl/buffer.h": {
+        "arm64": "c7b9803f89bb492176a1e2738999dad86195ab8048a26e8ec9ef6948b8882e8a",
+        "x86_64": "c7b9803f89bb492176a1e2738999dad86195ab8048a26e8ec9ef6948b8882e8a"
+      },
+      "openssl/buffererr.h": {
+        "arm64": "4dea6e8ec7f09bfbdaa85fa3e75572b95d2ea62a813e7420a04f5f56ee7ccdfd",
+        "x86_64": "4dea6e8ec7f09bfbdaa85fa3e75572b95d2ea62a813e7420a04f5f56ee7ccdfd"
+      },
+      "openssl/byteorder.h": {
+        "arm64": "f062018f5fbe9f8459967dffaaa8e27f34596fb0da21fc011d0d556384a0305c",
+        "x86_64": "f062018f5fbe9f8459967dffaaa8e27f34596fb0da21fc011d0d556384a0305c"
+      },
+      "openssl/camellia.h": {
+        "arm64": "e03acf0f3406032e5322e4f3368e8e48e5b73e8846955c3bcb3a4f1cb54d2ebc",
+        "x86_64": "e03acf0f3406032e5322e4f3368e8e48e5b73e8846955c3bcb3a4f1cb54d2ebc"
+      },
+      "openssl/cast.h": {
+        "arm64": "4fafc375a53d88fe4c709d8ee5fb74dc0fcaf91915837c3c6b4df0d916b07f0a",
+        "x86_64": "4fafc375a53d88fe4c709d8ee5fb74dc0fcaf91915837c3c6b4df0d916b07f0a"
+      },
+      "openssl/cmac.h": {
+        "arm64": "048677b08aab6fd862d2b8b15556db8355d2142b93a9431ffba1d75a25912847",
+        "x86_64": "048677b08aab6fd862d2b8b15556db8355d2142b93a9431ffba1d75a25912847"
+      },
+      "openssl/cmp.h": {
+        "arm64": "e5e65f3c31110dbcd6f12fbf3de944854b0d7a5d375cf16ef21138f41538c4a5",
+        "x86_64": "e5e65f3c31110dbcd6f12fbf3de944854b0d7a5d375cf16ef21138f41538c4a5"
+      },
+      "openssl/cmp_util.h": {
+        "arm64": "16c51c48c83c930b018ff711553e107f1870f1cedd32d94c06f15709b080c321",
+        "x86_64": "16c51c48c83c930b018ff711553e107f1870f1cedd32d94c06f15709b080c321"
+      },
+      "openssl/cmperr.h": {
+        "arm64": "220d1a903b66e25fa1de92f3ee8b3f5ef27de6dface0a4ea68e683a19e3549a7",
+        "x86_64": "220d1a903b66e25fa1de92f3ee8b3f5ef27de6dface0a4ea68e683a19e3549a7"
+      },
+      "openssl/cms.h": {
+        "arm64": "baf8646ab89d129a571dbbb267c91a698740fc458efa15fa036a7e37407d89f6",
+        "x86_64": "baf8646ab89d129a571dbbb267c91a698740fc458efa15fa036a7e37407d89f6"
+      },
+      "openssl/cmserr.h": {
+        "arm64": "1cfc091ae52fe85c79bccfe1cc2d0e2979afff511e6a91fd04142596a65ac31a",
+        "x86_64": "1cfc091ae52fe85c79bccfe1cc2d0e2979afff511e6a91fd04142596a65ac31a"
+      },
+      "openssl/comp.h": {
+        "arm64": "3f95492b4054a8064bc75f770766aa6c8c0866cbd267939460786e13092a053e",
+        "x86_64": "3f95492b4054a8064bc75f770766aa6c8c0866cbd267939460786e13092a053e"
+      },
+      "openssl/comperr.h": {
+        "arm64": "03faa7ac9cf7ec99350a55758a685056dae8f75992887e0411c23b0d8c5d83b0",
+        "x86_64": "03faa7ac9cf7ec99350a55758a685056dae8f75992887e0411c23b0d8c5d83b0"
+      },
+      "openssl/conf.h": {
+        "arm64": "0ce3c353cc9a2cf33c7ca2ba4606d37887f993a70f6417cd8722705190cd36e9",
+        "x86_64": "0ce3c353cc9a2cf33c7ca2ba4606d37887f993a70f6417cd8722705190cd36e9"
+      },
+      "openssl/conf_api.h": {
+        "arm64": "38dce9e9e0a438fcaf1d173c26e61c821bfd3756e221e3be76cf010580ac52f7",
+        "x86_64": "38dce9e9e0a438fcaf1d173c26e61c821bfd3756e221e3be76cf010580ac52f7"
+      },
+      "openssl/conferr.h": {
+        "arm64": "ea9346e399d5dd1fbcca4f34078e1acb5039333602ecaf72faa04e32cdd55484",
+        "x86_64": "ea9346e399d5dd1fbcca4f34078e1acb5039333602ecaf72faa04e32cdd55484"
+      },
+      "openssl/configuration.h": {
+        "arm64": "7d496c799aab9543e992b73749c399f5cbf1ed5d5d8cca365b4d00c24dd6de72",
+        "x86_64": "7d496c799aab9543e992b73749c399f5cbf1ed5d5d8cca365b4d00c24dd6de72"
+      },
+      "openssl/conftypes.h": {
+        "arm64": "496997cc0f4c32b840677eeefd3ecb488453254be6e228b8cd34d4a4061a9e28",
+        "x86_64": "496997cc0f4c32b840677eeefd3ecb488453254be6e228b8cd34d4a4061a9e28"
+      },
+      "openssl/core.h": {
+        "arm64": "4d4e63e2e01d06530515adbbe3c93601c5f0f5e1a96754d34d3470bccfcbdbc3",
+        "x86_64": "4d4e63e2e01d06530515adbbe3c93601c5f0f5e1a96754d34d3470bccfcbdbc3"
+      },
+      "openssl/core_dispatch.h": {
+        "arm64": "877d786bd366e80baa763d2c6c0b94e1d91c92cb0b6fa26d4004e6b0c3e6dd81",
+        "x86_64": "877d786bd366e80baa763d2c6c0b94e1d91c92cb0b6fa26d4004e6b0c3e6dd81"
+      },
+      "openssl/core_names.h": {
+        "arm64": "7b1bac21292e2e7fb8f376a5651c44afe7a6e42f57baa551f25caa2aa4950f80",
+        "x86_64": "7b1bac21292e2e7fb8f376a5651c44afe7a6e42f57baa551f25caa2aa4950f80"
+      },
+      "openssl/core_object.h": {
+        "arm64": "e8fa8c62ad1367bd325d59d721214d1a7afd5423205134152f60cc39a8590c8a",
+        "x86_64": "e8fa8c62ad1367bd325d59d721214d1a7afd5423205134152f60cc39a8590c8a"
+      },
+      "openssl/crmf.h": {
+        "arm64": "9a0e6c3e1d403c7ff0d52c5f55f881b5b16b3067b40a6a353bca745307b700cd",
+        "x86_64": "9a0e6c3e1d403c7ff0d52c5f55f881b5b16b3067b40a6a353bca745307b700cd"
+      },
+      "openssl/crmferr.h": {
+        "arm64": "9f2ff7a468b5048d543fef0324b39abdea63fa07bc915f62ff42a1937d7258c2",
+        "x86_64": "9f2ff7a468b5048d543fef0324b39abdea63fa07bc915f62ff42a1937d7258c2"
+      },
+      "openssl/crypto.h": {
+        "arm64": "9519323d30064fbbe88b34209ea93ed5ed4321e6d9f8b27ff52918be407ad312",
+        "x86_64": "9519323d30064fbbe88b34209ea93ed5ed4321e6d9f8b27ff52918be407ad312"
+      },
+      "openssl/cryptoerr.h": {
+        "arm64": "c457c0591449551657a69ff9727784a79cc1afd899ac733c682c1a41fefdaa19",
+        "x86_64": "c457c0591449551657a69ff9727784a79cc1afd899ac733c682c1a41fefdaa19"
+      },
+      "openssl/cryptoerr_legacy.h": {
+        "arm64": "985664cb71a62441b2822028340bb4ad5e3f98d6c74ba4c1bc7c997e188b97d3",
+        "x86_64": "985664cb71a62441b2822028340bb4ad5e3f98d6c74ba4c1bc7c997e188b97d3"
+      },
+      "openssl/ct.h": {
+        "arm64": "3c1aaaafe88f445fcb0c2648d9f494277db9dc991964b38a231addba09d3ad51",
+        "x86_64": "3c1aaaafe88f445fcb0c2648d9f494277db9dc991964b38a231addba09d3ad51"
+      },
+      "openssl/cterr.h": {
+        "arm64": "26d971ab2166ba4473864506dcd933290fa6c321956ef46220eb61fb33a04c89",
+        "x86_64": "26d971ab2166ba4473864506dcd933290fa6c321956ef46220eb61fb33a04c89"
+      },
+      "openssl/decoder.h": {
+        "arm64": "72dbf52e4dc4efbfaddbf31ab6f2bec3e9a5c22eed865d057b960a014a4b9ec8",
+        "x86_64": "72dbf52e4dc4efbfaddbf31ab6f2bec3e9a5c22eed865d057b960a014a4b9ec8"
+      },
+      "openssl/decodererr.h": {
+        "arm64": "c6818c667bdf8c37c5423580e0551359c69efc884198d28675db23e9fc70946e",
+        "x86_64": "c6818c667bdf8c37c5423580e0551359c69efc884198d28675db23e9fc70946e"
+      },
+      "openssl/des.h": {
+        "arm64": "420afefcf27f28046912c5f156bc9e93d71a2c8a47bf0f605695a13f391cd5f9",
+        "x86_64": "420afefcf27f28046912c5f156bc9e93d71a2c8a47bf0f605695a13f391cd5f9"
+      },
+      "openssl/dh.h": {
+        "arm64": "25080c32c48d5a88053c4b83c326e8f024b68249a0ef65d3c45af4f9aab6e0c6",
+        "x86_64": "25080c32c48d5a88053c4b83c326e8f024b68249a0ef65d3c45af4f9aab6e0c6"
+      },
+      "openssl/dherr.h": {
+        "arm64": "70f9e260865a9aae4c5f9a72d42d878e4dc216c906709245a8da2cceb79c3a14",
+        "x86_64": "70f9e260865a9aae4c5f9a72d42d878e4dc216c906709245a8da2cceb79c3a14"
+      },
+      "openssl/dsa.h": {
+        "arm64": "dac47d9779f83eb4e5a4f57c234e6eb25277cea68001384360e16c8859c38338",
+        "x86_64": "dac47d9779f83eb4e5a4f57c234e6eb25277cea68001384360e16c8859c38338"
+      },
+      "openssl/dsaerr.h": {
+        "arm64": "b8fb8dae664d18298ae4b0c5444378e3f5c5d095256acb50764230159b1a15d6",
+        "x86_64": "b8fb8dae664d18298ae4b0c5444378e3f5c5d095256acb50764230159b1a15d6"
+      },
+      "openssl/dtls1.h": {
+        "arm64": "3477022a712ecbb2bfb61b297c57026f1c354d52c638dfb22292183bd68d2e8f",
+        "x86_64": "3477022a712ecbb2bfb61b297c57026f1c354d52c638dfb22292183bd68d2e8f"
+      },
+      "openssl/e_os2.h": {
+        "arm64": "d7300e16ec04f764e8fd45ae5288c37ab5af09dd1ea204d17c54c0155c69921c",
+        "x86_64": "d7300e16ec04f764e8fd45ae5288c37ab5af09dd1ea204d17c54c0155c69921c"
+      },
+      "openssl/e_ostime.h": {
+        "arm64": "0528cffa1548778b3ad52d4abb527e5f31590fb1bab4b0f55aad391efd79fd68",
+        "x86_64": "0528cffa1548778b3ad52d4abb527e5f31590fb1bab4b0f55aad391efd79fd68"
+      },
+      "openssl/ebcdic.h": {
+        "arm64": "f50d3c91cb24772cf3155fe6464d811219b8f7c65ea3d4f974f58c03c3f27ab5",
+        "x86_64": "f50d3c91cb24772cf3155fe6464d811219b8f7c65ea3d4f974f58c03c3f27ab5"
+      },
+      "openssl/ec.h": {
+        "arm64": "2cc0edb6a18c4c1199bfce6799ca56362a6c27d41dfdfee62177a3d53a8c9a65",
+        "x86_64": "2cc0edb6a18c4c1199bfce6799ca56362a6c27d41dfdfee62177a3d53a8c9a65"
+      },
+      "openssl/ecdh.h": {
+        "arm64": "5b99fdd1dfea38640ed8a506fb9b66db381cc26a1254448a81cc6b161e41850f",
+        "x86_64": "5b99fdd1dfea38640ed8a506fb9b66db381cc26a1254448a81cc6b161e41850f"
+      },
+      "openssl/ecdsa.h": {
+        "arm64": "5b99fdd1dfea38640ed8a506fb9b66db381cc26a1254448a81cc6b161e41850f",
+        "x86_64": "5b99fdd1dfea38640ed8a506fb9b66db381cc26a1254448a81cc6b161e41850f"
+      },
+      "openssl/ecerr.h": {
+        "arm64": "c072432649cd1e4bd1eb8c1f636bc2b57045d6f620d69d61c85f589d1c6b63e3",
+        "x86_64": "c072432649cd1e4bd1eb8c1f636bc2b57045d6f620d69d61c85f589d1c6b63e3"
+      },
+      "openssl/encoder.h": {
+        "arm64": "73459b25f863cf9bbb3de66f04ffe7ddaf9450f3c26afb1d5827325fa0a89fd9",
+        "x86_64": "73459b25f863cf9bbb3de66f04ffe7ddaf9450f3c26afb1d5827325fa0a89fd9"
+      },
+      "openssl/encodererr.h": {
+        "arm64": "d010ca78b1df89c7fe3410d2aa5674179bf6750a445382ab8a0314c20a5b9799",
+        "x86_64": "d010ca78b1df89c7fe3410d2aa5674179bf6750a445382ab8a0314c20a5b9799"
+      },
+      "openssl/engine.h": {
+        "arm64": "185311cc9702aa00fcafefad6f83ca1f597659d5075b66100c61053e1be5f47d",
+        "x86_64": "185311cc9702aa00fcafefad6f83ca1f597659d5075b66100c61053e1be5f47d"
+      },
+      "openssl/engineerr.h": {
+        "arm64": "2732c698916f320ba12ba690a80c1ef0651112015c5eac6141b1c3c315d1f5fc",
+        "x86_64": "2732c698916f320ba12ba690a80c1ef0651112015c5eac6141b1c3c315d1f5fc"
+      },
+      "openssl/err.h": {
+        "arm64": "0d673984ff62d55d1fb4534d8136b7325e5264efeeb0b911cc94a4922681e080",
+        "x86_64": "0d673984ff62d55d1fb4534d8136b7325e5264efeeb0b911cc94a4922681e080"
+      },
+      "openssl/ess.h": {
+        "arm64": "e33096738fbb0aac79166028ab2cabf9e3e9a5af5e78ee946b918ce627cc1afb",
+        "x86_64": "e33096738fbb0aac79166028ab2cabf9e3e9a5af5e78ee946b918ce627cc1afb"
+      },
+      "openssl/esserr.h": {
+        "arm64": "9ab984787cce1224e1426be57987e7726d8c5d38651dd96802a7d433c5288ae4",
+        "x86_64": "9ab984787cce1224e1426be57987e7726d8c5d38651dd96802a7d433c5288ae4"
+      },
+      "openssl/evp.h": {
+        "arm64": "41b42c68adfd98b9d8a80fb2d78bbdaf1094f43dd02be045c7d8605edf36a706",
+        "x86_64": "41b42c68adfd98b9d8a80fb2d78bbdaf1094f43dd02be045c7d8605edf36a706"
+      },
+      "openssl/evperr.h": {
+        "arm64": "ee0a462f1985667434a2b8a91d5df67ce2ee74e4ad9246f660dece5fafcf4474",
+        "x86_64": "ee0a462f1985667434a2b8a91d5df67ce2ee74e4ad9246f660dece5fafcf4474"
+      },
+      "openssl/fips_names.h": {
+        "arm64": "95f0ddd1271d1bb609acbe42924e903a2dda8e224cced9eb56f5680a6ae75a8e",
+        "x86_64": "95f0ddd1271d1bb609acbe42924e903a2dda8e224cced9eb56f5680a6ae75a8e"
+      },
+      "openssl/fipskey.h": {
+        "arm64": "51517d3938008927c3497714e72563531abd46a606dcfd15afffe2216cb18bf9",
+        "x86_64": "51517d3938008927c3497714e72563531abd46a606dcfd15afffe2216cb18bf9"
+      },
+      "openssl/hmac.h": {
+        "arm64": "9caf0b993c6ae2b3c75b9b585c8539dd358ca5f4edc42447295f87fc504eb1b9",
+        "x86_64": "9caf0b993c6ae2b3c75b9b585c8539dd358ca5f4edc42447295f87fc504eb1b9"
+      },
+      "openssl/hpke.h": {
+        "arm64": "58f81dab37eddc03b86db9dd640980fca872ddf19f4477482826a64f20454cb9",
+        "x86_64": "58f81dab37eddc03b86db9dd640980fca872ddf19f4477482826a64f20454cb9"
+      },
+      "openssl/http.h": {
+        "arm64": "1f8d65d9633d54a74e8477396f2e3d34f5cdafc753fa8d56a5ee31753f5b734f",
+        "x86_64": "1f8d65d9633d54a74e8477396f2e3d34f5cdafc753fa8d56a5ee31753f5b734f"
+      },
+      "openssl/httperr.h": {
+        "arm64": "56b740a25198f30d19c8ed57b36679bbb32f8f2d97291155d4b3091c347ae423",
+        "x86_64": "56b740a25198f30d19c8ed57b36679bbb32f8f2d97291155d4b3091c347ae423"
+      },
+      "openssl/idea.h": {
+        "arm64": "d114cb69e2e820008c508b7ad9002586806d82e3006e88162bd4a7c2dcd1e801",
+        "x86_64": "d114cb69e2e820008c508b7ad9002586806d82e3006e88162bd4a7c2dcd1e801"
+      },
+      "openssl/indicator.h": {
+        "arm64": "4be987d4fe4a4b39feac27c2ee85000e1b6ca7188d8ca9f75689a8205c2b4563",
+        "x86_64": "4be987d4fe4a4b39feac27c2ee85000e1b6ca7188d8ca9f75689a8205c2b4563"
+      },
+      "openssl/kdf.h": {
+        "arm64": "a4a7c722598b9b5b5fa6e4d659a7c8cf659c5db60c7396ed021d434c45e552c6",
+        "x86_64": "a4a7c722598b9b5b5fa6e4d659a7c8cf659c5db60c7396ed021d434c45e552c6"
+      },
+      "openssl/kdferr.h": {
+        "arm64": "cbf4bd667f0a53459163f546920c2c98ce6d10b0db99176c779d8bf32f04e8b7",
+        "x86_64": "cbf4bd667f0a53459163f546920c2c98ce6d10b0db99176c779d8bf32f04e8b7"
+      },
+      "openssl/lhash.h": {
+        "arm64": "ba50a0dc4caa9662e138f913566c44454a68f6e59c405c761c1f387f58855af4",
+        "x86_64": "ba50a0dc4caa9662e138f913566c44454a68f6e59c405c761c1f387f58855af4"
+      },
+      "openssl/macros.h": {
+        "arm64": "dc27bc9e94abbb9e49bbcb604da5c061a65145586ac388c3fb4fc311daaccf96",
+        "x86_64": "dc27bc9e94abbb9e49bbcb604da5c061a65145586ac388c3fb4fc311daaccf96"
+      },
+      "openssl/md2.h": {
+        "arm64": "a8eb0a1cdd0ced053d0f5dc5d1f63fe67f96a83c1cc37b6bf7adde85a567a631",
+        "x86_64": "a8eb0a1cdd0ced053d0f5dc5d1f63fe67f96a83c1cc37b6bf7adde85a567a631"
+      },
+      "openssl/md4.h": {
+        "arm64": "75d0ff7b22daa2ab31a0cd03ce9ca10cef64f431d32c49def33d0f0164e36f0d",
+        "x86_64": "75d0ff7b22daa2ab31a0cd03ce9ca10cef64f431d32c49def33d0f0164e36f0d"
+      },
+      "openssl/md5.h": {
+        "arm64": "e22e567d09253eebf2c17f620783808f407bc7b969aa90bf3b44ac9001f6d329",
+        "x86_64": "e22e567d09253eebf2c17f620783808f407bc7b969aa90bf3b44ac9001f6d329"
+      },
+      "openssl/mdc2.h": {
+        "arm64": "740c2361d9b0ab5330ae0054e368f573416c401cb3855b72323967b29232421f",
+        "x86_64": "740c2361d9b0ab5330ae0054e368f573416c401cb3855b72323967b29232421f"
+      },
+      "openssl/ml_kem.h": {
+        "arm64": "58ecec9d4d95ab5172290a4c5725b7b6940149ecdbff5a33b93cc67ede1b25f7",
+        "x86_64": "58ecec9d4d95ab5172290a4c5725b7b6940149ecdbff5a33b93cc67ede1b25f7"
+      },
+      "openssl/modes.h": {
+        "arm64": "8ea97ace0601cdce6a12d0e1e92aefec062c299d0fcb5ff6477e3d752a9b9763",
+        "x86_64": "8ea97ace0601cdce6a12d0e1e92aefec062c299d0fcb5ff6477e3d752a9b9763"
+      },
+      "openssl/obj_mac.h": {
+        "arm64": "d51cb3f619888a0485ba46ad886f76ac605ce78a3cfbc080460947ab2dbb3a02",
+        "x86_64": "d51cb3f619888a0485ba46ad886f76ac605ce78a3cfbc080460947ab2dbb3a02"
+      },
+      "openssl/objects.h": {
+        "arm64": "b6227db488aa39ed20a29e67d48fe8fefb2f649a1afcc3149cba22ac26510057",
+        "x86_64": "b6227db488aa39ed20a29e67d48fe8fefb2f649a1afcc3149cba22ac26510057"
+      },
+      "openssl/objectserr.h": {
+        "arm64": "fc14e6c9e71fb550363394f912cb72e6078dd11e300bdddfdd17ec118c88dc4b",
+        "x86_64": "fc14e6c9e71fb550363394f912cb72e6078dd11e300bdddfdd17ec118c88dc4b"
+      },
+      "openssl/ocsp.h": {
+        "arm64": "0791de99c85f1adddc36fa858632abe2f4199085e7714f1227bae2bf64762cbe",
+        "x86_64": "0791de99c85f1adddc36fa858632abe2f4199085e7714f1227bae2bf64762cbe"
+      },
+      "openssl/ocsperr.h": {
+        "arm64": "51b319980fb406b70ff0aee9c145c260553f4ff6516305b9c2864643096cc30c",
+        "x86_64": "51b319980fb406b70ff0aee9c145c260553f4ff6516305b9c2864643096cc30c"
+      },
+      "openssl/opensslconf.h": {
+        "arm64": "7f4b522c049d0bd0d651e6f6ebe71d6df0c37231a94e32524da3f4642ebda3be",
+        "x86_64": "7f4b522c049d0bd0d651e6f6ebe71d6df0c37231a94e32524da3f4642ebda3be"
+      },
+      "openssl/opensslv.h": {
+        "arm64": "edffe7289f22bbf46e1b6499fa6747334cb2773e11811c536544de71b6d3d1e4",
+        "x86_64": "edffe7289f22bbf46e1b6499fa6747334cb2773e11811c536544de71b6d3d1e4"
+      },
+      "openssl/ossl_typ.h": {
+        "arm64": "8d430751bbcd1d9695f3dd85b16958fd6255dfbf55775207923f67cba1754548",
+        "x86_64": "8d430751bbcd1d9695f3dd85b16958fd6255dfbf55775207923f67cba1754548"
+      },
+      "openssl/param_build.h": {
+        "arm64": "f078c5549e172b49da9993ef68c7b7fedafd66b05255c9bf8a37154f0a40bdb7",
+        "x86_64": "f078c5549e172b49da9993ef68c7b7fedafd66b05255c9bf8a37154f0a40bdb7"
+      },
+      "openssl/params.h": {
+        "arm64": "b76d73449d8d44d14a7da9918caf3d1feee85b384e2d62ace73a8a1126152702",
+        "x86_64": "b76d73449d8d44d14a7da9918caf3d1feee85b384e2d62ace73a8a1126152702"
+      },
+      "openssl/pem.h": {
+        "arm64": "9098124ff7a21c8f1db5ddead59b1cf092f88c9f44bf88dacd3c8de9c67ade76",
+        "x86_64": "9098124ff7a21c8f1db5ddead59b1cf092f88c9f44bf88dacd3c8de9c67ade76"
+      },
+      "openssl/pem2.h": {
+        "arm64": "5bd104c872bbfee2d16f5af88c01b0aeee9f177ecc88c0dd237c9c9948eeedc6",
+        "x86_64": "5bd104c872bbfee2d16f5af88c01b0aeee9f177ecc88c0dd237c9c9948eeedc6"
+      },
+      "openssl/pemerr.h": {
+        "arm64": "18c1dbdde2452416b1d49c7512b7c4b8bf26ac7b83f5c0ee5e27e9bec454d2fb",
+        "x86_64": "18c1dbdde2452416b1d49c7512b7c4b8bf26ac7b83f5c0ee5e27e9bec454d2fb"
+      },
+      "openssl/pkcs12.h": {
+        "arm64": "be395276cfc011c71751fd6a506c9559dbad455dac843b0229f8dbf13841895f",
+        "x86_64": "be395276cfc011c71751fd6a506c9559dbad455dac843b0229f8dbf13841895f"
+      },
+      "openssl/pkcs12err.h": {
+        "arm64": "fbf4142e0ee58b6c6841890d873f07ba0362e21ad74702d70552122e01c096e9",
+        "x86_64": "fbf4142e0ee58b6c6841890d873f07ba0362e21ad74702d70552122e01c096e9"
+      },
+      "openssl/pkcs7.h": {
+        "arm64": "90b3f8866e1781475bd394c87c293259fa9e5e36d8052abf7c679be3b4fb973f",
+        "x86_64": "90b3f8866e1781475bd394c87c293259fa9e5e36d8052abf7c679be3b4fb973f"
+      },
+      "openssl/pkcs7err.h": {
+        "arm64": "717e017e7d0981928b33820660e19d5c264a06a5e824b94194036a8be92be07c",
+        "x86_64": "717e017e7d0981928b33820660e19d5c264a06a5e824b94194036a8be92be07c"
+      },
+      "openssl/prov_ssl.h": {
+        "arm64": "23b96759ae94e17c7c0e7ee32a531676be2a276a6d9802828e80268e20f224fd",
+        "x86_64": "23b96759ae94e17c7c0e7ee32a531676be2a276a6d9802828e80268e20f224fd"
+      },
+      "openssl/proverr.h": {
+        "arm64": "3aaec27b2bf592b5861a3524b6f03a541d7de34e6dfcbcabc2b6bc40221bc743",
+        "x86_64": "3aaec27b2bf592b5861a3524b6f03a541d7de34e6dfcbcabc2b6bc40221bc743"
+      },
+      "openssl/provider.h": {
+        "arm64": "dac4bfad226a8e5513cecf472e41e0b7ed93c95374a0ec3fd56f7b046e0aeff1",
+        "x86_64": "dac4bfad226a8e5513cecf472e41e0b7ed93c95374a0ec3fd56f7b046e0aeff1"
+      },
+      "openssl/quic.h": {
+        "arm64": "a80af6c42394132eaad8de7177c6b0b3f747711730e8dd687acdc34284b3c2f8",
+        "x86_64": "a80af6c42394132eaad8de7177c6b0b3f747711730e8dd687acdc34284b3c2f8"
+      },
+      "openssl/rand.h": {
+        "arm64": "cb240ffedfd9516ec7a8cd0796951d46a4707c0460f940371620c83f7bafd037",
+        "x86_64": "cb240ffedfd9516ec7a8cd0796951d46a4707c0460f940371620c83f7bafd037"
+      },
+      "openssl/randerr.h": {
+        "arm64": "a6acbb47da2f26fe5e572f232eb9d9ebcd65bb7c01d5984ab26229e5bf0bd45e",
+        "x86_64": "a6acbb47da2f26fe5e572f232eb9d9ebcd65bb7c01d5984ab26229e5bf0bd45e"
+      },
+      "openssl/rc2.h": {
+        "arm64": "b86a429de0c73aca6e0504b8833c1dcd9e8c7cdf65c2b31b38d0d0c7b19cc5e9",
+        "x86_64": "b86a429de0c73aca6e0504b8833c1dcd9e8c7cdf65c2b31b38d0d0c7b19cc5e9"
+      },
+      "openssl/rc4.h": {
+        "arm64": "1bb4fa9d14861cdcf0a721d8d1026be80ce019da459ffdd8b5c1d12365110e78",
+        "x86_64": "1bb4fa9d14861cdcf0a721d8d1026be80ce019da459ffdd8b5c1d12365110e78"
+      },
+      "openssl/rc5.h": {
+        "arm64": "dd71ab468383a2a8ca4ff34f9273b481c1ed518c380da6d1ab82e9ca6b7edbd9",
+        "x86_64": "dd71ab468383a2a8ca4ff34f9273b481c1ed518c380da6d1ab82e9ca6b7edbd9"
+      },
+      "openssl/ripemd.h": {
+        "arm64": "4457b36942bc0e298c993b48468ef8f3f00331a9d67bd0b894dd5bc5f58ab35d",
+        "x86_64": "4457b36942bc0e298c993b48468ef8f3f00331a9d67bd0b894dd5bc5f58ab35d"
+      },
+      "openssl/rsa.h": {
+        "arm64": "2c9780f9b4b35c3f14271962938e16b8505e9f5d38566c104bce9a82be23a0e1",
+        "x86_64": "2c9780f9b4b35c3f14271962938e16b8505e9f5d38566c104bce9a82be23a0e1"
+      },
+      "openssl/rsaerr.h": {
+        "arm64": "b4f87b5dddc672b81de0dfd7f3c4e6409887bd08b286c99ded8f1255e5836804",
+        "x86_64": "b4f87b5dddc672b81de0dfd7f3c4e6409887bd08b286c99ded8f1255e5836804"
+      },
+      "openssl/safestack.h": {
+        "arm64": "cf0ced5dfe53f1bc1d41ec6472e5d0898352b4ebef46119a92664eed5d5e0b88",
+        "x86_64": "cf0ced5dfe53f1bc1d41ec6472e5d0898352b4ebef46119a92664eed5d5e0b88"
+      },
+      "openssl/seed.h": {
+        "arm64": "75a00b017f40beba051fdaad04876e18d3c80d1b1f1c21d78fafc69ae8e3b034",
+        "x86_64": "75a00b017f40beba051fdaad04876e18d3c80d1b1f1c21d78fafc69ae8e3b034"
+      },
+      "openssl/self_test.h": {
+        "arm64": "4bb6ecb6d55e5e1bee6ef79c24bc8691174ad1b5c160f7d3daea150c140d3abb",
+        "x86_64": "4bb6ecb6d55e5e1bee6ef79c24bc8691174ad1b5c160f7d3daea150c140d3abb"
+      },
+      "openssl/sha.h": {
+        "arm64": "7e006accd6565cc97dee672c097acc5e38482be7cd4fa1e0c316bf466425b895",
+        "x86_64": "7e006accd6565cc97dee672c097acc5e38482be7cd4fa1e0c316bf466425b895"
+      },
+      "openssl/srp.h": {
+        "arm64": "fcc2eaad160591c9b1ce5144172a272bcbe6009146b57274c73410f05a69f8e8",
+        "x86_64": "fcc2eaad160591c9b1ce5144172a272bcbe6009146b57274c73410f05a69f8e8"
+      },
+      "openssl/srtp.h": {
+        "arm64": "6efa8edb1f040ba35cb05a671efc74c1494b9d4badc32d47cd5bb99e1a9cda38",
+        "x86_64": "6efa8edb1f040ba35cb05a671efc74c1494b9d4badc32d47cd5bb99e1a9cda38"
+      },
+      "openssl/ssl.h": {
+        "arm64": "58503ce277734330427133bd0f58659e546f2f71503efadfa1f13970cb150878",
+        "x86_64": "58503ce277734330427133bd0f58659e546f2f71503efadfa1f13970cb150878"
+      },
+      "openssl/ssl2.h": {
+        "arm64": "d33dc2afbcdee20f20ffcdd5cda6777c5e49a7cc37d513e4618b71a99129af20",
+        "x86_64": "d33dc2afbcdee20f20ffcdd5cda6777c5e49a7cc37d513e4618b71a99129af20"
+      },
+      "openssl/ssl3.h": {
+        "arm64": "f98e0eb1702bf99614e92e2d09f1af5b59309e156441e40ab711df7d661536aa",
+        "x86_64": "f98e0eb1702bf99614e92e2d09f1af5b59309e156441e40ab711df7d661536aa"
+      },
+      "openssl/sslerr.h": {
+        "arm64": "7a9dab7a198ea5c17fe5cf8e1905a54ae88c0044a86c1accf1e7cc9e7de374e2",
+        "x86_64": "7a9dab7a198ea5c17fe5cf8e1905a54ae88c0044a86c1accf1e7cc9e7de374e2"
+      },
+      "openssl/sslerr_legacy.h": {
+        "arm64": "988c235994713d83d73ee904804f7edb4f6e321b4ab94c5aa5a9a0c7134fb499",
+        "x86_64": "988c235994713d83d73ee904804f7edb4f6e321b4ab94c5aa5a9a0c7134fb499"
+      },
+      "openssl/stack.h": {
+        "arm64": "c81fbb17b5476dca609b96eb11372d1d246a49096838c2cf7e81ad6b25f69316",
+        "x86_64": "c81fbb17b5476dca609b96eb11372d1d246a49096838c2cf7e81ad6b25f69316"
+      },
+      "openssl/store.h": {
+        "arm64": "0fd665a474792f49055d7bd6e2bebed1449fb2dfd21ac042aa2cbc4cb6c8c66e",
+        "x86_64": "0fd665a474792f49055d7bd6e2bebed1449fb2dfd21ac042aa2cbc4cb6c8c66e"
+      },
+      "openssl/storeerr.h": {
+        "arm64": "e13ecdf3c46b4dde5d857f8a7a3e2c0a444e309aa05d789bf99d73ecefab87aa",
+        "x86_64": "e13ecdf3c46b4dde5d857f8a7a3e2c0a444e309aa05d789bf99d73ecefab87aa"
+      },
+      "openssl/symhacks.h": {
+        "arm64": "2b54552189bfbf4204c28c6a421b21702a3cd3dba37570dbcdadb7ee648f155b",
+        "x86_64": "2b54552189bfbf4204c28c6a421b21702a3cd3dba37570dbcdadb7ee648f155b"
+      },
+      "openssl/thread.h": {
+        "arm64": "583716b74d6aa0596c1d1b06cb16f657d4d9fb9c13cf30505ec0327046af6baf",
+        "x86_64": "583716b74d6aa0596c1d1b06cb16f657d4d9fb9c13cf30505ec0327046af6baf"
+      },
+      "openssl/tls1.h": {
+        "arm64": "f075f51b48cdc3503e40b8f81fb2b760ba2d4f315d2844759d9089ffb10613dc",
+        "x86_64": "f075f51b48cdc3503e40b8f81fb2b760ba2d4f315d2844759d9089ffb10613dc"
+      },
+      "openssl/trace.h": {
+        "arm64": "5b7f86a453e6b404ff019e23e84de856c2a25b8243d4bfb92c92471a3735e332",
+        "x86_64": "5b7f86a453e6b404ff019e23e84de856c2a25b8243d4bfb92c92471a3735e332"
+      },
+      "openssl/ts.h": {
+        "arm64": "3de4eecd9a731d9a05a1b7baab18cb1c62f59f8a9f9e5ed049525a8ada9207b8",
+        "x86_64": "3de4eecd9a731d9a05a1b7baab18cb1c62f59f8a9f9e5ed049525a8ada9207b8"
+      },
+      "openssl/tserr.h": {
+        "arm64": "27e66bf494926dea06d8c3800823f2485cf1a7f8f41f5628ff4a443f9bcceb87",
+        "x86_64": "27e66bf494926dea06d8c3800823f2485cf1a7f8f41f5628ff4a443f9bcceb87"
+      },
+      "openssl/txt_db.h": {
+        "arm64": "cbd03be764d6d12e12895703756fbe5f2b7611d4cd55d343837d48e8e6e60523",
+        "x86_64": "cbd03be764d6d12e12895703756fbe5f2b7611d4cd55d343837d48e8e6e60523"
+      },
+      "openssl/types.h": {
+        "arm64": "de5422d2e621df11c17ab18473ea4f2368ecc64b1e45311c4890cc62b31f81c5",
+        "x86_64": "de5422d2e621df11c17ab18473ea4f2368ecc64b1e45311c4890cc62b31f81c5"
+      },
+      "openssl/ui.h": {
+        "arm64": "9f863672b75a49d643792e472963c2aac80a3086cf0db04aed8fa947f8e85375",
+        "x86_64": "9f863672b75a49d643792e472963c2aac80a3086cf0db04aed8fa947f8e85375"
+      },
+      "openssl/uierr.h": {
+        "arm64": "a21be118ee97343a03dc28256370839e5751c82a2a7bcb4c60fcbd97a9e2bef5",
+        "x86_64": "a21be118ee97343a03dc28256370839e5751c82a2a7bcb4c60fcbd97a9e2bef5"
+      },
+      "openssl/whrlpool.h": {
+        "arm64": "d38ef40783400956d571e442d4f459e9c611239d719eb128e19bc64982d01922",
+        "x86_64": "d38ef40783400956d571e442d4f459e9c611239d719eb128e19bc64982d01922"
+      },
+      "openssl/x509.h": {
+        "arm64": "bb4c8d741b6e2ae119f9714d683a3ffbf350b154ff348877a03351694456baa7",
+        "x86_64": "bb4c8d741b6e2ae119f9714d683a3ffbf350b154ff348877a03351694456baa7"
+      },
+      "openssl/x509_acert.h": {
+        "arm64": "73f6643d80ab7afbf2f5a807eb002ef6bd28e9be8ce9fe4f79d93ad86f18873e",
+        "x86_64": "73f6643d80ab7afbf2f5a807eb002ef6bd28e9be8ce9fe4f79d93ad86f18873e"
+      },
+      "openssl/x509_vfy.h": {
+        "arm64": "0fcc3cf147a0ce4ef2a16dbe7426786dd9e997b3822376e3b5588dfcbc6cddf6",
+        "x86_64": "0fcc3cf147a0ce4ef2a16dbe7426786dd9e997b3822376e3b5588dfcbc6cddf6"
+      },
+      "openssl/x509err.h": {
+        "arm64": "be93ee6c9d58aadb5f836d5e293ec93c94ffc603c46a1d8d1c8b31cf83959fb9",
+        "x86_64": "be93ee6c9d58aadb5f836d5e293ec93c94ffc603c46a1d8d1c8b31cf83959fb9"
+      },
+      "openssl/x509v3.h": {
+        "arm64": "c9f736507fa0c9cb2a67f02a04b31fdceefb090de4d3a666da8f0986f482d089",
+        "x86_64": "c9f736507fa0c9cb2a67f02a04b31fdceefb090de4d3a666da8f0986f482d089"
+      },
+      "openssl/x509v3err.h": {
+        "arm64": "b9be8b0429bfaefb973531e81d598e40779b3788e129c4cc9e33651d2308b990",
+        "x86_64": "b9be8b0429bfaefb973531e81d598e40779b3788e129c4cc9e33651d2308b990"
+      }
+    },
+    "public_headers_identical": true,
+    "libraries": {
+      "libcrypto.3.dylib": "08d7d033f16af0a1e69cb3cc8614233aca71235baf824c84fa92239c83b37f86",
+      "libssl.3.dylib": "f9c4bd4cabb47d7eae0f607867dde30477b9f84d453731a32e03b3eeda6d1791"
+    },
+    "license_sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+    "prefix": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/build/macos-dependencies/openssl"
+  },
+  "current_local_source_sha256": {
+    "CMakeLists.txt": "cd907022dce4640053df32babf0c977ebea116fcb22c9d11567192bdc2ee982c",
+    "cmake/OnlinePeers.cmake": "5fcb199a954348f41c0192d3f4e8c491f9b61e8b15ff1d1c8a6cccb87636be77",
+    "src/online_peer_transport.cpp": "a68445f19fbe56fc1a01a37f2cf642ba9da293ae744bb58755d31ce197850f47",
+    "include/halo2/online_peer_transport.hpp": "cfeab0e68b6b217c101933163cd5c97e09bae82e774bf3a0a4e5802d6ee611fc",
+    "tools/online_peer_wan_probe.cpp": "26810db964779f17dd9a9bdf21c4e429689324fd705cca9b45008d6062f6cea8",
+    "tests/macos/python/prepare_sdk.py": "77624f7a875cd664807c1b59b3fda5264834f677dff879cbd148a06118e71c8e",
+    "tools/macos/test_port.py": "829941a4a166a7bcf4857c9f78500160b53fb05fcb46f461889bb9b9ae7a9a39"
+  },
+  "concurrent_source_difference": "The local root CMake graph subsequently gained unrelated teleporter blocked-notice test declarations, which were preserved. The Mac used the separately hashed mirror graph. All peer owner/probe and dependency preparation sources match.",
+  "cleanup": {
+    "schema": "H2_MACOS_WAN_CLEANUP_V1",
+    "audit_scratch": "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-1v8q12tm",
+    "removed_paths": {
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1": true,
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-w3paxhq1/build": true
+    },
+    "cmake_scratch_entries": [],
+    "private_test_disk_images": [],
+    "unrelated_disk_images_preserved": 11,
+    "retained_large_artifacts": [],
+    "linux_coordinator_scratch_removed": true,
+    "linux_coordinator_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-_sihqtrq",
+    "audit_scratch_removed_after_wrapper": true,
+    "remote_echo_processes_exited": true
+  },
+  "retained_large_artifacts": [],
+  "limitations": [
+    "One Mac-network to public-server path; no two-consumer-NAT acceptance.",
+    "x86_64 is Rosetta on Apple Silicon, not physical Intel.",
+    "No full engine, live gameplay, voice/headset or bandwidth-under-load acceptance.",
+    "No packaged GUI permission acceptance.",
+    "SSH carried authenticated setup and receipts only; raw signaling/candidates/credentials and packet captures were not retained.",
+    "Existing isolated server environment and source mirror are required inputs and were preserved."
+  ]
+}

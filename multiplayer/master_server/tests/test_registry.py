@@ -12,6 +12,11 @@ DATA = {"name": "Simulated server", "host": "203.0.113.10", "port": 2002, "map":
         "players": 1, "max_players": 16, "game_version": "simulator-v1", "visibility": "public", "server_type": "dedicated", "region": "US-EAST"}
 
 
+def enroll(store, provider, subject, key, ttl):
+    challenge = store.enrollment_challenge(provider, subject, public_hex(key), ttl)
+    return store.enroll(provider, subject, public_hex(key), ttl, signed(key, challenge))
+
+
 class RegistryTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
@@ -21,7 +26,7 @@ class RegistryTests(unittest.TestCase):
         self.instance = Ed25519PrivateKey.generate()
         self.store = Store(Path(self.directory.name) / "a.sqlite", self.master, 10, lambda: self.now)
         self.addCleanup(self.store.db.close)
-        self.credential = self.store.enroll("discord", "123456789012345678", public_hex(self.instance), 100)
+        self.credential = enroll(self.store, "discord", "123456789012345678", self.instance, 100)
         self.sequence = 0
 
     def announcement(self, method="POST", suffix="", data=None, **overrides):
@@ -87,12 +92,12 @@ class RegistryTests(unittest.TestCase):
         self.assertEqual([], self.store.discover())
         self.problem(403, lambda: self.send("POST", "/heartbeat", {}))
         key = Ed25519PrivateKey.generate()
-        credential = self.store.enroll("operator", "test", public_hex(key), 1)
+        credential = enroll(self.store, "operator", "test", key, 1)
         self.now += 2
         envelope, path = self.announcement(credential_id=credential["credential_id"], server_id=credential["server_id"])
         envelope = signed(key, envelope["payload"])
         self.problem(403, lambda: self.store.announce(envelope, "POST", path))
-        self.problem(409, lambda: self.store.enroll("operator", "other", public_hex(key), 100))
+        self.problem(409, lambda: enroll(self.store, "operator", "other", key, 100))
 
     def test_federation_expiry_tombstones_and_restart(self):
         other_key = Ed25519PrivateKey.generate()

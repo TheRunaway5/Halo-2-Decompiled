@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/multiplayer_scoreboard.hpp"
 #include "halo2/original_data.hpp"
@@ -35,8 +36,7 @@ void original_gates(const OriginalData& original,const std::filesystem::path& fi
 
 void place(MultiplayerMatch& match,unsigned id,Vec3 root,float yaw) {
   Spawn spawn;spawn.position=root;spawn.facing=yaw;
-  DebugGameRequest request;request.kind=DebugGameRequest::Teleport;request.player=id;
-  match.debug_request(request,&spawn);
+  test::place_player(match,id,spawn);
 }
 
 void live_cycle(const Cache& cache,const LevelContent& original,const UiVariant& variant,
@@ -49,8 +49,7 @@ void live_cycle(const Cache& cache,const LevelContent& original,const UiVariant&
   rules.score_limit=rules.time_ticks=0;rules.respawn_ticks=30;
   MultiplayerMatch match(content,0,spawns,rules);
   match.join("Shooter");match.join("Victim");
-  DebugGameSettings settings;settings.players[0].noclip=settings.players[1].noclip=true;
-  match.debug_settings(settings);
+
   std::array<Controls,multiplayer_capacity> inputs{};
   // Source automatic display excludes ticks0..90, independently of death.
   while(match.simulation().ticks()<100)match.step(inputs);

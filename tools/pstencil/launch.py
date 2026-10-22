@@ -6,6 +6,9 @@ import os
 from pathlib import Path
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from selected_runtime import selected_runtime
+
 ROOT = Path(__file__).resolve().parents[2]
 BUNDLE = ROOT / 'analysis/pstencil/surface-alignment-live-v1'
 
@@ -19,7 +22,7 @@ def verify(path, expected):
 
 
 def main():
-    manifest = json.loads((BUNDLE / 'runtime.json').read_text())
+    manifest = selected_runtime(ROOT, json.loads((BUNDLE / 'runtime.json').read_text()))
     runtime = ROOT / manifest['runtime']
     reference = Path(manifest['reference'])
     verify(runtime, manifest['runtime_sha256'])
@@ -43,7 +46,7 @@ def main():
             reference='OG Xbox English TU1.5 gameplay; May 2003 pStencil shadow and material adaptation',
             maps=str(maps), default_map='lockout.map', default_local_players=1,
             initial_graphics_mode=mode, graphics_modes=['Original', 'pStencil'],
-            live_switch='F1 > Graphics > Graphics Mode', saved_switch='Video Settings > Graphics Mode',
+            live_switch=manifest.get('live_switch','F1 > Graphics > Graphics Mode'), saved_switch='Video Settings > Graphics Mode',fullscreen_modes=manifest.get('fullscreen_modes',[]),upscaling=manifest.get('upscaling',{}),
             preferences=str(preferences), ui_assets=str(ui), ui_assets_role='Existing HUD and pause UI'), indent=2))
         return
     os.chdir(ROOT)

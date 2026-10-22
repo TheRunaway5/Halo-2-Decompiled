@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #define SDL_MAIN_HANDLED
 #include "halo2/multiplayer.hpp"
 #include "halo2/multiplayer_world.hpp"
@@ -84,7 +85,7 @@ int main(int argc,char **argv){try{
         control_initial=group.value;control_one_shot=group.flags&1;
       }
       Spawn at;at.position=position;at.bsp=0;at.facing=yaw;
-      world.match.debug_request({DebugGameRequest::Teleport,slot},&at);
+      test::place_player(world.match,slot,at);
       SDL_SetRelativeMouseMode(SDL_TRUE);SDL_Event look{};look.type=SDL_MOUSEMOTION;look.motion.windowID=window_id;
       const auto &settings=options.desktop->keyboard_settings;const float gain=.0025f*settings.sensitivity/3.f;
       look.motion.xrel=int(std::lround(std::remainder(p.yaw-yaw,6.283185307f)/gain));

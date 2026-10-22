@@ -3,6 +3,7 @@
 #include "halo2/source_combat_attachments.hpp"
 #include "halo2/peer_authority_transfer.hpp"
 #include "halo2/multiplayer_snapshot_origin.hpp"
+#include "halo2/effect_audio_auxiliary.hpp"
 #include <thread>
 
 namespace halo2 {
@@ -15,6 +16,7 @@ class EffectPresentationContinuity {
 public:
     EffectPresentationContinuity(NativeMuzzleEffects &,NativeWorldEffects &,
         SourceMapEffects &,SourceCombatAttachments &,SourceEffectRandom);
+    ~EffectPresentationContinuity();
     EffectPresentationContinuity(const EffectPresentationContinuity &)=delete;
     EffectPresentationContinuity &operator=(const EffectPresentationContinuity &)=delete;
     class Snapshot {
@@ -56,6 +58,11 @@ public:
     PreparedRestore prepare_restore(const Checkpoint &,const ValidatedAuthorityCut &expected,
         ParticleCollisionQuery muzzle_collision,ParticleCollisionQuery world_collision)const;
     bool restore_ready(const PreparedRestore &,const ValidatedAuthorityCut &expected)const noexcept;
+    // Minted only after the actual four-owner preflight for this exact cut.
+    // The agreement retains no Effects owner or replacement storage: the
+    // enclosing aggregate keeps this object, its words and wrapper alive.
+    EffectAudioAuxiliary audio_auxiliary(const PreparedRestore &,
+        const ValidatedAuthorityCut &expected)const;
     // After every enclosing GPU/device/native preparation has succeeded.
     // No allocation or callback occurs between the four swaps and RNG restore.
     // All referenced owners/words outlive this object and remain quiescent.
@@ -69,5 +76,6 @@ private:
     SourceEffectRandom random_;
     const std::thread::id executor_=std::this_thread::get_id();
     std::shared_ptr<const int> owner_=std::make_shared<const int>(0);
+    std::shared_ptr<EffectAudioAuxiliary::Owner> audio_auxiliary_owner_;
 };
 }

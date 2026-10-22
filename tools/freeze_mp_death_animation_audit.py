@@ -163,10 +163,10 @@ def main():
     paths = ['tools/research_mp_death_update_functions.py', 'tools/research_mp_sandbox_update_functions.py',
         'tools/inspect_mp_death_physics.py', 'tools/inspect_mp_death_animation.cpp',
         'tools/freeze_mp_death_animation_audit.py', 'docs/MP_DEATH_RAGDOLL_INTEGRATION_RESEARCH.md',
-        'src/multiplayer_runtime.cpp', 'src/multiplayer.cpp', 'src/simulation.cpp',
+        'src/gameplay/multiplayer/multiplayer_runtime.cpp', 'src/gameplay/multiplayer/multiplayer.cpp', 'src/gameplay/simulation.cpp',
         'include/halo2/multiplayer.hpp', 'include/halo2/simulation.hpp',
-        'include/halo2/physics_body_grouping.hpp', 'src/physics_body_grouping.cpp',
-        'include/halo2/physics_component_rebuild.hpp', 'src/physics_component_rebuild.cpp',
+        'include/halo2/physics_body_grouping.hpp', 'src/physics/physics_body_grouping.cpp',
+        'include/halo2/physics_component_rebuild.hpp', 'src/physics/physics_component_rebuild.cpp',
         'docs/MP_EQUIPPED_DEATH_TAIL_RESEARCH.md', 'docs/MP_SPARTAN_OWNED_POSE_RESEARCH.md',
         'docs/MP_LIVE_BIPED_WORLD_RESEARCH.md', 'docs/MP_PLAYER_VISIBILITY_RESEARCH.md',
         'tools/reference/assembly/src/Assembly/Plugins/Halo2/phmo.xml']

@@ -3,7 +3,7 @@
 import argparse,os,shutil,subprocess
 from pathlib import Path
 from oracle_mp_title_update_display import ROOT,sha,save,encoded
-SOURCES=('include/halo2/sound_create.hpp','src/sound_create.cpp','tests/sound_create_tests.cpp','include/halo2/sound_submit.hpp','src/sound_submit.cpp','include/halo2/sound_startup.hpp','include/halo2/sound_driver_parameters.hpp','include/halo2/native_sound_storage.hpp','src/native_sound_storage.cpp','include/halo2/sound_cache_startup.hpp')
+SOURCES=('include/halo2/sound_create.hpp','src/audio/sound_create.cpp','tests/sound_create_tests.cpp','include/halo2/sound_submit.hpp','src/audio/sound_submit.cpp','include/halo2/sound_startup.hpp','include/halo2/sound_driver_parameters.hpp','include/halo2/native_sound_storage.hpp','src/audio/native_sound_storage.cpp','include/halo2/sound_cache_startup.hpp')
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--directory',type=Path,required=True);p.add_argument('--fixture-directory',type=Path);a=p.parse_args();d=a.directory.resolve();fixture=(a.fixture_directory or a.directory).resolve();native=d/'native';native.mkdir(parents=True,exist_ok=True)
     for rel in SOURCES:
@@ -15,8 +15,8 @@ def main():
         commands.append(dict(argv=argv,cwd=str(ROOT),exit_code=r.returncode,label=label,environment_overrides={k:env[k]for k in('ASAN_OPTIONS','UBSAN_OPTIONS')}if env else{},stdout_sha256=sha(native/(label+'.stdout')),stderr_sha256=sha(native/(label+'.stderr'))))
         assert r.returncode==0,(label,r.stdout,r.stderr);return r.stdout
     version=run(['g++','--version'],'compiler-version')
-    inputs=[str(native/'source'/q)for q in('src/sound_create.cpp','src/sound_submit.cpp','src/native_sound_storage.cpp','tests/sound_create_tests.cpp')]
-    common=['g++','-std=c++20','-Wall','-Wextra','-Wpedantic','-ffp-contract=off','-fno-fast-math','-frounding-math','-fno-associative-math','-I'+str(native/'source/include')]
+    inputs=[str(native/'source'/q)for q in('src/audio/sound_create.cpp','src/audio/sound_submit.cpp','src/audio/native_sound_storage.cpp','tests/sound_create_tests.cpp')]
+    common=['g++','-std=c++20','-Wall','-Wextra','-Wpedantic','-ffp-contract=off','-fno-fast-math','-frounding-math','-fno-associative-math','-I'+str(native/'source/include'), '-I'+str(native/'source/src')]
     normal=native/'sound_create_tests';san=native/'sound_create_tests_asan'
     run([*common,'-O2',*inputs,'-o',str(normal)],'normal-build');run([str(normal),str(fixture/'fixtures.tsv')],'normal')
     run([*common,'-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer',*inputs,'-o',str(san)],'sanitizer-build')

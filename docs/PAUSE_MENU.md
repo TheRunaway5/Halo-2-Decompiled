@@ -68,9 +68,8 @@ revert/restart/settings/quit and scenario objective ownership.
 Build and run the source-asset navigation/input test:
 
 ```sh
-cmake --build build-multiplayer --target halo2_native game_pause_menu_tests game_pause_window_probe -j6
-SDL_AUDIODRIVER=dummy build-multiplayer/game_pause_menu_tests \
-  assets/disc/maps 'Halo 2 Vista installer'
+python3 tools/run_tests.py --target game_pause_menu_tests \
+  --target game_pause_window_tests --filter '^native_game_pause_(menu|window)$'
 ```
 
 `tools/test_game_pause_window_flow.py` drives declared SDL events into real
@@ -92,3 +91,78 @@ simulation clock, but failed on `hud_enable_training`. That builtin now has a
 state handler; this alone does not establish a working tutorial mission. The three full frontend inventory tests
 also remain failing on unbound Vista lobby/menu routes, including screen14.
 Their logs are retained separately from the passing pause suite.
+
+## Offline pause policy (2026-10-20)
+
+TU1.5 keeps campaign and multiplayer pause separate. Solo screen18's
+constructor `238AC2` sets `*51DF54+1` and calls audio transition `1285A0(0)`.
+The window-clear owner `14AE01` clears that byte and calls `1285A0(1)` only
+after `14BD64` reports no UI windows. Multiplayer screen195's constructor
+`14A0D9` does not pause either owner, including in local offline matches.
+The native overlay exposes this distinction through `pauses_game_time()`;
+settings and confirmations keep the campaign pause active.
+
+`Simulation::advance_frame_time` publishes the campaign pause byte to its
+retained source clock as well as gating native tick admission. Raw incoming
+camera time remains a separate original caller input; it is not replaced with
+accepted game time. Resume drains the remainder of its SDL event batch before
+the released-device poll admits gameplay input, including mouse motion and
+controller events queued behind the dismissal.
+
+The unchanged original CPU oracle is reproducible with the owned English
+TU1.5 executable (SHA-256
+`21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd`):
+
+```sh
+python3 tools/run_test.py -- .tools/python/bin/python tools/oracle_game_pause_tu15.py \
+  --xbe '/path/to/u5English/default.xbe' \
+  --output analysis/pause-offline-20261020/original-policy.json
+python3 tools/run_test.py -- .tools/python/bin/python tools/oracle_game_pause_tu15.py \
+  --xbe assets/disc/default.xbe \
+  --output analysis/pause-offline-20261020/disc-policy.json
+```
+
+Its eight cases per image execute original constructors, clock predicate, pause stores,
+window-clear resume and sound transition body without instruction patches.
+UI construction/window occupancy and sound hardware are declared controls;
+this is not physical Xbox UI or audio output evidence. The new window test
+submits actual Vista pause/settings/confirmation geometry to SDL/Vulkan and
+checks mouse ownership, Resume and a held virtual controller. The campaign
+camera tests exercise both original-backed and native-cold retained clock
+owners, pause, Resume and checkpoint restoration. These bounded checks do not
+establish a complete campaign playthrough, full multiplayer menu/session
+parity, or retail framebuffer/audio parity.
+
+The native-cold camera prerequisite also shares the authenticated immutable
+word at `46A75C` between the absent-unit camera and vehicle closure; their
+previous duplicate mounts stopped world construction before any pause input.
+The existing byte/access checks still reject conflicting values or mutable
+owners. The rumble test ages its inactive timers before testing two distinct
+active slots, matching the original oldest-timer selection. Its SDL virtual
+motor assertions use the actual callback packets, including zero output while
+paused. The virtual callback success convention is calibrated first for the
+local SDL2 compatibility provider, with successful API receipts still required.
+
+Verification: all seven focused CTests pass, including the actual SDL/Vulkan
+window with validation, campaign audio/rumble/text, source frame-clock fixture,
+checkpoints and both original-backed/native-cold camera modes. The native
+executable builds successfully. Both unchanged original executables pass eight
+policy cases each. The [receipt](../analysis/pause-offline-20261020/validation.json)
+and [test results](../analysis/pause-offline-20261020/final-tests.log) retain the
+precise scope. Owned scratch/build trees were removed; no binary, frame or
+capture artifacts were retained.
+
+Video Settings begins with Graphics Mode. Enter, controller A, or a row click
+cycles Original and pStencil in place, applies the live renderer preference,
+and saves the selection. The F1 debug menu and its cheat controls are removed.
+
+Fullscreen Mode follows Graphics Mode and offers Windowed, Fullscreen, and
+Borderless Fullscreen. Fullscreen uses SDL's exclusive display mode; Borderless
+Fullscreen uses the desktop display mode. Changes retain the existing preview
+confirmation and timeout rollback, and save the exact selected mode.
+
+Video Settings also exposes Upscaling, replacing the former SSAA choices. The
+shared submenu offers Off, FSR 3.1 and DLSS 4.5, with Native AA / DLAA through
+Ultra Performance quality modes. The title, campaign pause and multiplayer
+pause menus share the same live adapter and saved preferences. See
+[UPSCALING.md](UPSCALING.md) for the native runtime details.

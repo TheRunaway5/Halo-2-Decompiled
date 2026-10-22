@@ -1,6 +1,6 @@
-target_sources(halo2_systems PRIVATE src/native_tu15_static_registration_data.cpp src/source_static_registration_tu15_generated.cpp)
+target_sources(halo2_systems PRIVATE src/platform/native_tu15_static_registration_data.cpp src/platform/source_static_registration_tu15_generated.cpp)
 if(BUILD_TESTING)
-    target_sources(native_tu15_network_link_tests PRIVATE src/native_tu15_static_registration_data.cpp src/source_static_registration_tu15_generated.cpp)
+    target_sources(native_tu15_network_link_tests PRIVATE src/platform/native_tu15_static_registration_data.cpp src/platform/source_static_registration_tu15_generated.cpp)
     add_test(NAME native_tu15_static_registration_startup_callback COMMAND native_tu15_network_link_tests --frontier static-registration)
     add_test(NAME original_tu15_static_registration_startup_callback COMMAND native_tu15_network_link_tests --frontier static-registration
         --input-devices none

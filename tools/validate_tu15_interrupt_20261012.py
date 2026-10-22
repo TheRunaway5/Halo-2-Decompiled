@@ -7,7 +7,7 @@ ROOT=Path(__file__).resolve().parents[1]
 E=ROOT/'analysis/multiplayer/sandbox-source/tu15-interrupt-startup-20261012'
 P=ROOT/'analysis/multiplayer/sandbox-source/tu15-timer-startup-20261012'
 PIN='77deab80b735a520a47254966d2f40fe48adf51837228d3f862732420ffd6582'
-OWN=('include/halo2/source_tu15_interrupt.hpp','src/source_tu15_interrupt.cpp','src/source_tu15_interrupt_runtime_generated.cpp',
+OWN=('include/halo2/source_tu15_interrupt.hpp','src/platform/source_tu15_interrupt.cpp','src/platform/source_tu15_interrupt_runtime_generated.cpp',
  'cmake/SourceTu15Interrupt.cmake','tests/source_tu15_interrupt_tests.cpp','tools/generate_tu15_interrupt_runtime_20261012.py',
  'tools/oracle_tu15_interrupt_20261012.py','tools/capture_tu15_kernel_entry_20261012.py',
  'tools/capture_tu15_kernel_entry_boot_20261012.py','tools/validate_tu15_interrupt_20261012.py',

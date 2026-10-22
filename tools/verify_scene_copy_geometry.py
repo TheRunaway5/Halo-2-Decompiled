@@ -12,17 +12,17 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 BASE=ROOT/'analysis/multiplayer/game-variants/shader-fog-native-20261012/verify-20261012T002720.611133Z'
 OUT=ROOT/'analysis/multiplayer/game-variants/scene-copy-geometry-native-20261012'
-FILES=('include/halo2/source_scene_copy.hpp','src/source_scene_copy.cpp','tests/source_scene_copy_tests.cpp',
+FILES=('include/halo2/source_scene_copy.hpp','src/rendering/source_scene_copy.cpp','tests/source_scene_copy_tests.cpp',
  'tests/fixtures/scene_copy_geometry_original.json','tools/oracle_camouflage_scene_copy.py',
  'tools/oracle_scene_copy_rectangles.py','tools/oracle_camouflage_pass_services.py',
  'tools/differential_source_object_admission_snapshot.py','tools/verify_scene_copy_geometry.py')
 TARGETS=('source_scene_copy_tests','source_shader_fog_tests','camouflage_pass_bank_tests','water_tests')
 CHECKS=('original_scene_copy_geometry','original_shader_fog','original_camouflage_pass_banks','retail_multiplayer_water')
-SOURCE_BLOCK='''target_sources(halo2_cache PRIVATE src/source_scene_copy.cpp)
+SOURCE_BLOCK='''target_sources(halo2_cache PRIVATE src/rendering/source_scene_copy.cpp)
 if(MSVC)
-    set_source_files_properties(src/source_scene_copy.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
+    set_source_files_properties(src/rendering/source_scene_copy.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
 else()
-    set_source_files_properties(src/source_scene_copy.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
+    set_source_files_properties(src/rendering/source_scene_copy.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
 endif()
 '''
 TEST_BLOCK='''    add_executable(source_scene_copy_tests tests/source_scene_copy_tests.cpp)
@@ -47,7 +47,7 @@ def main():
   shutil.copy2(ROOT/name,destination)
  cmake=(source/'CMakeLists.txt').read_text();live=(ROOT/'CMakeLists.txt').read_text()
  assert SOURCE_BLOCK in live and TEST_BLOCK in live
- source_anchor='target_sources(halo2_cache PRIVATE src/source_shader_fog.cpp)\n'
+ source_anchor='target_sources(halo2_cache PRIVATE src/rendering/source_shader_fog.cpp)\n'
  test_anchor='''    add_test(NAME original_shader_fog COMMAND source_shader_fog_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/fog_externs_original.json)
 '''
@@ -98,7 +98,7 @@ def main():
   obj=run/(Path(name).stem+'.asan.o');command[command.index('-o')+1]=str(obj)
   command.extend(['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer'])
   execute('asan-compile-'+Path(name).stem,command,Path(entry['directory']));return obj
- owners=[sanitized(name)for name in('src/source_scene_copy.cpp','src/vertex_program.cpp','tests/source_scene_copy_tests.cpp')]
+ owners=[sanitized(name)for name in('src/rendering/source_scene_copy.cpp','src/rendering/vertex_program.cpp','tests/source_scene_copy_tests.cpp')]
  binary=run/'source_scene_copy_tests_asan'
  execute('asan-link',['c++','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer',*owners,
   build/'libhalo2_cache.a','-lz','-lglm',build/'libhalo2_native_synchronization.a','-o',binary])

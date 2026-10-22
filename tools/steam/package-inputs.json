@@ -1,0 +1,23 @@
+{
+  "schema": "H2_STEAM_PACKAGE_INPUTS_V1",
+  "sha256": {
+    "protobuf-net/3.2.56/protobuf-net.3.2.56.nupkg": "2a3c111f21b07e54038d56ae753f8d8d19df1a11dbe02a427e7f611d58b123e1",
+    "system.io.hashing/10.0.1/system.io.hashing.10.0.1.nupkg": "93c1077319cb8ad5e8d02c680d903116652524974a655b19276fbdcc331807de",
+    "protobuf-net.core/3.2.56/protobuf-net.core.3.2.56.nupkg": "355bcbade0afbef9d2fecd2cc8be7f2f7991a577acc0fec4ef50ba58ff5fd837",
+    "steamkit2/3.4.0/steamkit2.3.4.0.nupkg": "cd90b5ac507c4eba3ee3439b62b8a5dab17d687dc51dfc81202b69f6c8643153",
+    "zstdsharp.port/0.8.7/zstdsharp.port.0.8.7.nupkg": "5acb834d93afdd382213c355fd35db29130706c64a81607c88374a2abf4ebc0a",
+    "microsoft.netcore.app.runtime.linux-x64/10.0.12/microsoft.netcore.app.runtime.linux-x64.10.0.12.nupkg": "8869e2fb974bc810ffe40b8fb8e18b7ffb1d1a03e52a094c804668c4d793b1ae",
+    "microsoft.netcore.app.runtime.osx-arm64/10.0.12/microsoft.netcore.app.runtime.osx-arm64.10.0.12.nupkg": "2f0e72fdf79ead91d0e1ad4960ea3a9bdeba1b7cb08467e3ead0a427d1fd2e08",
+    "microsoft.netcore.app.runtime.osx-x64/10.0.12/microsoft.netcore.app.runtime.osx-x64.10.0.12.nupkg": "ab5c57042afdbadc29d8ddbf7753de2ae9abd983e971da8cf97a2d246ea8f72b",
+    "microsoft.aspnetcore.app.ref/10.0.12/microsoft.aspnetcore.app.ref.10.0.12.nupkg": "b2cb6e55804cc8cc82ab750b07562866088f667994dbc09e9e46df6ee44aa060",
+    "microsoft.aspnetcore.app.runtime.linux-x64/10.0.12/microsoft.aspnetcore.app.runtime.linux-x64.10.0.12.nupkg": "5e3883d280dac567a4bc19a52a75669bf96e24bd41e29ec9ea1baafbd1a6a800",
+    "microsoft.aspnetcore.app.runtime.osx-arm64/10.0.12/microsoft.aspnetcore.app.runtime.osx-arm64.10.0.12.nupkg": "8507e0d702bc6451d7cfc4303f7964fc3f97f2234fe530848844c415c102150d",
+    "microsoft.aspnetcore.app.runtime.osx-x64/10.0.12/microsoft.aspnetcore.app.runtime.osx-x64.10.0.12.nupkg": "44c29c66431c2eede507fe48fd39f04585a4f7146c3ab0dad451d5c3d90b4b19",
+    "microsoft.netcore.app.host.linux-x64/10.0.12/microsoft.netcore.app.host.linux-x64.10.0.12.nupkg": "b62638d76d67a03e7f1f905f64eba792a4ff1c1ef42875b1ad8f8f8ddea8da87",
+    "microsoft.netcore.app.host.osx-arm64/10.0.12/microsoft.netcore.app.host.osx-arm64.10.0.12.nupkg": "adbd6e6ec1911498f431aa97a2d1bba9d159ff60df0d7744cb8f0445744a1e34",
+    "microsoft.netcore.app.host.osx-x64/10.0.12/microsoft.netcore.app.host.osx-x64.10.0.12.nupkg": "17b4a60a181370cc3939d761e765eb60171939ae9dedfed0fe8c67388519c783",
+    "qrcoder/1.8.1/qrcoder.1.8.1.nupkg": "d3fe5c80c742b6a2ef8a31734c06600e2d674806a97f36f4af97b0d2871de309",
+    "system.drawing.common/6.0.0/system.drawing.common.6.0.0.nupkg": "ffd11a01b11e3a310b452319688992d4ef059947bc8f85ae154c3554eacfc80a",
+    "microsoft.win32.systemevents/6.0.0/microsoft.win32.systemevents.6.0.0.nupkg": "37d11565b979c35567332c065f26955b34fd961f3889a277683e3c848064d730"
+  }
+}

@@ -19,7 +19,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--directory', type=Path, required=True)
     parser.add_argument('--output', type=Path,
-                        default=Path('src/source_havok_static_lifetime_tu15_generated.cpp'))
+                        default=Path('src/physics/source_havok_static_lifetime_tu15_generated.cpp'))
     args = parser.parse_args()
     assert sha(NEW_DEFAULT) == NEW_PIN
     image = Xbe(NEW_DEFAULT)

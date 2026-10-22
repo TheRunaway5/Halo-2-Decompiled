@@ -28,7 +28,7 @@ def main():
     repeats={name:same_directories(E/left,E/right)for name,left,right in (
         ('correspondence','correspondence-v1','correspondence-repeat'),
         ('original','original-v4','original-v4-repeat'))}
-    assert sha(ROOT/'src/physics_pool_startup_runtime_generated.cpp')==sha(E/'generated-repeat/runtime.cpp')
+    assert sha(ROOT/'src/physics/physics_pool_startup_runtime_generated.cpp')==sha(E/'generated-repeat/runtime.cpp')
     assert sha(E/'generated-v1/manifest.json')==sha(E/'generated-repeat/manifest.json')
     fixture=json.loads((E/'original-v4/fixture.json').read_text())
     correspondence=json.loads((E/'correspondence-v1/complete-report.json').read_text())

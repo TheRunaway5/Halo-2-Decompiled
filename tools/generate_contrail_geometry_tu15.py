@@ -11,7 +11,7 @@ from generate_physics_live_support_tu15 import generate,sha
 ENTRIES=(0x42ce0,0x42c40,0xbcd80,0x17f8a0,0x13a070,0x17ead0,0x17f3d0,0x219330,0x219e40,0x219e00,0x21a2a0)
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--output',type=Path,default=Path('src/source_contrail_geometry_tu15_generated.cpp'))
+    p.add_argument('--output',type=Path,default=Path('src/rendering/effects/source_contrail_geometry_tu15_generated.cpp'))
     p.add_argument('--directory',type=Path,required=True);a=p.parse_args()
     assert sha(NEW_DEFAULT)==NEW_PIN
     image=Xbe(NEW_DEFAULT);code=_Code(image,'.text');sites,instructions,addresses,routines={},{},{},[]

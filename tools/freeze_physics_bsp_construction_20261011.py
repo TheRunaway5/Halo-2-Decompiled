@@ -10,7 +10,7 @@ BASE = ROOT / 'analysis/multiplayer/integration/physics-engine-20261010'
 PARENT_PIN = '6ef1b4a366cc16e2fd5de37f1051813eda0dd715f8ff9c065645d10920b1bf1a'
 APPEND = '\ninclude(cmake/PhysicsBspConstruction.cmake)\n'
 OWNED = (
-    'src/physics_world_runtime_generated.cpp', 'tests/physics_platform_call_tests.cpp',
+    'src/physics/runtime/physics_world_runtime_generated.cpp', 'tests/physics_platform_call_tests.cpp',
     'cmake/PhysicsBspConstruction.cmake',
     'tools/research_physics_bsp_construction_runtime_20261011.py',
     'tools/generate_physics_bsp_construction_runtime_20261011.py',

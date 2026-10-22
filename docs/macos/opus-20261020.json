@@ -1,0 +1,298 @@
+{
+  "schema": "H2_MACOS_OPUS_EVIDENCE_V1",
+  "date": "2026-10-20",
+  "architectures": [
+    "arm64",
+    "x86_64_rosetta"
+  ],
+  "opus_version": "1.6.1",
+  "source_url": "https://downloads.xiph.org/releases/opus/opus-1.6.1.tar.gz",
+  "source_sha256": "6ffcb593207be92584df15b32466ed64bbec99109f007c82205f0194572411a1",
+  "sdk_manifest": {
+    "schema": "H2_MACOS_OPUS_SDK_V1",
+    "version": "1.6.1",
+    "source_url": "https://downloads.xiph.org/releases/opus/opus-1.6.1.tar.gz",
+    "source_sha256": "6ffcb593207be92584df15b32466ed64bbec99109f007c82205f0194572411a1",
+    "architectures": [
+      "arm64",
+      "x86_64"
+    ],
+    "deployment_target": "13.0",
+    "configurations": {
+      "arm64": {
+        "configure": [
+          "cmake",
+          "-S",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-qcjdg_2z/build/macos-dependencies/opus-work/opus-1.6.1",
+          "-B",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-qcjdg_2z/build/macos-dependencies/opus-work/arm64-build",
+          "-G",
+          "Ninja",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_INSTALL_PREFIX=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-qcjdg_2z/build/macos-dependencies/opus-work/arm64-install",
+          "-DCMAKE_TOOLCHAIN_FILE=/Users/eric/Developer/Halo2-macos-port/cmake/macos/DependencyToolchain.cmake",
+          "-DHALO2_DEPENDENCY_ARCH=arm64",
+          "-DCMAKE_OSX_DEPLOYMENT_TARGET=13.0",
+          "-DCMAKE_INSTALL_NAME_DIR=@rpath",
+          "-DOPUS_BUILD_SHARED_LIBRARY=ON",
+          "-DBUILD_TESTING=OFF",
+          "-DOPUS_BUILD_TESTING=OFF",
+          "-DOPUS_BUILD_PROGRAMS=OFF",
+          "-DOPUS_FLOAT_APPROX=OFF",
+          "-DOPUS_FAST_MATH=OFF"
+        ],
+        "library_sha256": "a8e79b758b28d5563e2e7da9a2c9e1e4fd4c5b89f750295c86e0f94570620816"
+      },
+      "x86_64": {
+        "configure": [
+          "cmake",
+          "-S",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-qcjdg_2z/build/macos-dependencies/opus-work/opus-1.6.1",
+          "-B",
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-qcjdg_2z/build/macos-dependencies/opus-work/x86_64-build",
+          "-G",
+          "Ninja",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_INSTALL_PREFIX=/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-qcjdg_2z/build/macos-dependencies/opus-work/x86_64-install",
+          "-DCMAKE_TOOLCHAIN_FILE=/Users/eric/Developer/Halo2-macos-port/cmake/macos/DependencyToolchain.cmake",
+          "-DHALO2_DEPENDENCY_ARCH=x86_64",
+          "-DCMAKE_OSX_DEPLOYMENT_TARGET=13.0",
+          "-DCMAKE_INSTALL_NAME_DIR=@rpath",
+          "-DOPUS_BUILD_SHARED_LIBRARY=ON",
+          "-DBUILD_TESTING=OFF",
+          "-DOPUS_BUILD_TESTING=OFF",
+          "-DOPUS_BUILD_PROGRAMS=OFF",
+          "-DOPUS_FLOAT_APPROX=OFF",
+          "-DOPUS_FAST_MATH=OFF"
+        ],
+        "library_sha256": "0f5c94e22acd8bf0c59f7eec5870cb3a58d29f27eab161a714880ea8cfb52fef"
+      }
+    },
+    "public_headers": {
+      "opus/opus.h": "036f6a6e83a20e943505743e113e90d6278cbe8240f7d5bb90b3f86261e783e3",
+      "opus/opus_defines.h": "bbd4d4e3ba99f6982b1c8d8f5541814ad77d8e8babf3cc788cf23d517b2ca9d6",
+      "opus/opus_multistream.h": "fd99c4594b4b57e406e9cab45a777895dd1b4c8de067088aa54ed7ae100b13f0",
+      "opus/opus_projection.h": "11b3427e9ca342308a93adc9a081e2479685e5b7811a3a53540609f1bbc488ad",
+      "opus/opus_types.h": "19cb301ea1eedbcbdbb5049363de061893bf11c20e505a657b69ce6ffa5b11fa"
+    },
+    "library_sha256": "2faa74c50f835534aab64eb4b99254ef447e71e0ca1ee4fc9ab78562ba1fec93",
+    "license_sha256": "01e1167d54a096d123cf6dfbbeb19587278845c6481d2d66d545669846079551",
+    "prefix": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-qcjdg_2z/build/macos-dependencies/opus"
+  },
+  "signed_bundle_manifest": {
+    "schema": "H2_MACOS_BUNDLE_V1",
+    "architectures": [
+      "arm64",
+      "x86_64"
+    ],
+    "signing": "ad-hoc development; not notarized",
+    "files": {
+      "Frameworks/libopus.0.dylib": {
+        "bytes": 1092432,
+        "sha256": "2faa74c50f835534aab64eb4b99254ef447e71e0ca1ee4fc9ab78562ba1fec93"
+      },
+      "MacOS/macos_opus_dependency_tests": {
+        "bytes": 106096,
+        "sha256": "df2e74287670166af6b2f370e39f8aae22ddf3454e92ee939e703ea6623f46b4"
+      }
+    }
+  },
+  "macos": {
+    "passed_tests": 5,
+    "report": "build/test-results/macos-opus-closure/report.json",
+    "output": "build/test-results/macos-opus-closure/evidence/Testing/Temporary/LastTest.log"
+  },
+  "shared_portability": {
+    "macos_passed_tests": 6,
+    "linux_passed_tests": 3,
+    "macos_report": "build/test-results/macos-shared-cxx20-header-glm/report.json",
+    "linux_report": "build/test-results/macos-shared-cxx20-linux-header-glm/report.json",
+    "production_objects_compiled_both_architectures": [
+      "appearance.cpp",
+      "frontend_model.cpp",
+      "object_lighting.cpp",
+      "world_material.cpp",
+      "player_armor_emblem.cpp"
+    ]
+  },
+  "engine_graph": {
+    "macos_configured": true,
+    "macos_portability_test_passed": 1,
+    "macos_report": "build/test-results/macos-opus-engine-configure-final/report.json",
+    "linux_configured": true,
+    "linux_portability_test_passed": 1,
+    "linux_report": "build/test-results/macos-opus-linux-engine-configure/report.json",
+    "snapshot_limit": {
+      "files": [
+        "CMakeLists.txt"
+      ],
+      "reason": "Concurrent loading-audio, campaign-AI and teleporter work changed the root CMake file after the recorded configuration runs; Mac port hooks are present in both snapshots.",
+      "diff": "--- tested Mac CMake\n\n+++ workspace at recording\n\n@@ -50,6 +50,7 @@\n\n     pkg_check_modules(OPUS REQUIRED IMPORTED_TARGET opus)\n endif()\n-option(HALO2_BUILD_MCC_LOADING_AUDIO_AUDIT \"Build the offline superseded Wwise loading-track decoder\" OFF)\n-if(HALO2_BUILD_MCC_LOADING_AUDIO_AUDIT)\n+option(HALO2_BUILD_MCC_LOADING_AUDIO \"Build the genuine MCC loading-track setup decoder\" ON)\n+option(HALO2_BUILD_MCC_LOADING_AUDIO_AUDIT \"Compatibility alias enabling the MCC loading-track decoder\" OFF)\n+if(HALO2_BUILD_MCC_LOADING_AUDIO OR HALO2_BUILD_MCC_LOADING_AUDIO_AUDIT)\n     pkg_check_modules(VORBISFILE REQUIRED IMPORTED_TARGET vorbis ogg)\n     add_executable(halo2_mcc_loading_audio tools/convert_mcc_loading_audio.cpp\n@@ -2174,4 +2175,6 @@\n\n add_executable(teleporter_mcc_tu15_tests EXCLUDE_FROM_ALL tests/teleporter_mcc_tu15_tests.cpp)\n target_link_libraries(teleporter_mcc_tu15_tests PRIVATE halo2_systems halo2_authority_codec)\n+add_executable(relic_teleporter_gate_tu15_tests EXCLUDE_FROM_ALL tests/relic_teleporter_gate_tu15_tests.cpp)\n+target_link_libraries(relic_teleporter_gate_tu15_tests PRIVATE halo2_systems)\n add_executable(mcc_teleporter_gameplay_tests tests/mcc_teleporter_gameplay_tests.cpp)\n target_link_libraries(mcc_teleporter_gameplay_tests PRIVATE halo2_cache)\n@@ -2185,4 +2188,7 @@\n\n     set_tests_properties(native_mcc_teleporter_approach PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180\n         ENVIRONMENT \"HALO2_TELEPORTER_APPROACH=1\")\n+    set(HALO2_MCC_RELIC_MAP \"\" CACHE FILEPATH \"Prepared MCC Relic map for original switch/teleporter acceptance\")\n+    add_test(NAME native_mcc_relic_teleporter_gate COMMAND relic_teleporter_gate_tu15_tests \"${HALO2_MCC_RELIC_MAP}\")\n+    set_tests_properties(native_mcc_relic_teleporter_gate PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)\n endif()\n add_executable(lockout_lift_match_tests EXCLUDE_FROM_ALL tests/lockout_lift_match_tests.cpp)\n@@ -2319,4 +2325,7 @@\n\n add_dependencies(halo2_renderer halo2_shaders)\n add_executable(halo2_native src/main.cpp src/frontend.cpp src/multiplayer_runtime.cpp)\n+if(TARGET halo2_mcc_loading_audio)\n+    add_dependencies(halo2_native halo2_mcc_loading_audio)\n+endif()\n include(cmake/Movies.cmake)\n add_custom_command(TARGET halo2_native POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory\n@@ -6837,4 +6846,7 @@\n\n         \"${CMAKE_CURRENT_BINARY_DIR}/mcc-intro-gauge-publication.json\")\n     set_tests_properties(mcc_intro_gauge_cache PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)\n+    add_test(NAME mcc_intro_current_cache COMMAND mcc_intro_gauge_tests\n+        \"${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/mcc_intro_current_tu15.json\" \"${HALO2_MCC_INTRO_LUMINOUS_MAP}\")\n+    set_tests_properties(mcc_intro_current_cache PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)\n     set(HALO2_MCC_TEX_BUMP_REFERENCE_FIXTURE \"\" CACHE FILEPATH \"Optional owned paired tex_bump conversion fixture\")\n     set(HALO2_MCC_TEX_BUMP_DONOR \"\" CACHE FILEPATH \"Optional owned MCC map for native tex_bump material validation\")\n@@ -6865,5 +6877,6 @@\n\n     set(HALO2_MCC_NATIVE_LIBRARY_DIRECTORY \"\" CACHE PATH \"Optional owned retained native libraries for closure validation\")\n     add_test(NAME mcc_native_library_closure COMMAND mcc_native_library_tests \"${HALO2_MCC_NATIVE_LIBRARY_DIRECTORY}\"\n-        \"${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/mcc_intro_gauge_tu15.json\")\n+        \"${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/mcc_intro_gauge_tu15.json\"\n+        \"${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/mcc_intro_current_tu15.json\")\n     set_tests_properties(mcc_native_library_closure PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)\n     add_test(NAME mcc_native_library_closure_generator COMMAND ${Python3_EXECUTABLE} -m unittest discover\n@@ -9514,4 +9527,5 @@\n\n include(cmake/CampaignAiWorkingMask.cmake)\n include(cmake/CampaignAiChildDirectory.cmake)\n+include(cmake/CampaignAiScalarDefaults.cmake)\n include(cmake/MultiplayerEnginesTu15.cmake)\n include(cmake/MultiplayerContinuation.cmake)"
+    }
+  },
+  "verified": [
+    "pinned source download; separate target CPU configuration; universal signed Opus dylib",
+    "original production MCC framing/mono/stereo/tail/malformed-packet tests on both slices",
+    "nonzero mono/stereo packets decoded by production MCC decoder using the actual bundled SDK library",
+    "signed relocated bundle in a path with spaces executes both slices with original SDK absent",
+    "bundled Opus license exactly matches source input",
+    "C++20 shared ownership observer preserves existing texture/material isolation tests",
+    "GLM consumers select the supported header-only interface"
+  ],
+  "initial_diagnostics": [
+    {
+      "report": "build/test-results/macos-opus-initial-failure/report.json",
+      "reason": "C++20 libc++ removed shared_ptr::unique; groups.def absent from source mirror"
+    },
+    {
+      "report": "build/test-results/macos-opus-bundle-failure/report.json",
+      "reason": "Missing imported Opus install-name metadata selected a thin host fallback; glm::glm also introduced a thin compiled host library; fixed with explicit imported soname and header-only GLM target"
+    },
+    {
+      "report": "build/test-results/macos-opus-engine-configure-initial-mirror-failure/report.json",
+      "reason": "Current root CMake referenced source fragments not yet mirrored; source-only mirror refreshed, then recorded configuration passed"
+    }
+  ],
+  "scope_limits": [
+    "Decoder/resource/bundle checks; no audible output, whole-game audio or full gameplay proof",
+    "No physical Intel Mac, older macOS runtime or notarization validation",
+    "OpenSSL/FFmpeg and current Vorbis/Ogg loading-tool universal dependencies and remaining license closure are unfinished",
+    "Source exact x87/SSE numerical backend remains deferred",
+    "Graph configuration evidence covers recorded source snapshots, not concurrent root CMake changes added afterwards"
+  ],
+  "macos_source_sha256_at_recording": {
+    "CMakeLists.txt": "a31349bbbaf457da6786bd456e71959f7813e6c79c0bbb99f59f806143e8708d",
+    "cmake/Glm.cmake": "e865032e4b81550da36d87687df590a6df5a3402ff8c929f9811fe617d240505",
+    "cmake/macos/Opus.cmake": "9b8817c23e576da7fdc7c8bfe48bc0189cc4d70b27fae8ed6a6bab3c0d01be09",
+    "cmake/macos/DependencyToolchain.cmake": "f9642287c7f81e3cbd05a79ffae5c69da6580f52be872d83d1a63b5605a24812",
+    "cmake/macos/Bundle.cmake": "614b05c007e379cd45ce254557f38484bb7e982ed88e4909ffe3f665e83fd2eb",
+    "tools/macos/build_opus.py": "7d124ed96cebdf1d5108a37f541f03070e8f2b51c7da923924e2073376d800ab",
+    "tools/macos/bundle.py": "3df7356aeb946f2327d04ec0a9f6411c0446cf0bcb3112a3a8186b122588f287",
+    "tests/macos/opus/CMakeLists.txt": "dd8abcadab31cc540e2bc8fcd524eefebfc131750fdc6c70001946fa76968125",
+    "tests/macos/opus/dependency_tests.cpp": "530ae4e0db500d40ffbbe27abb4cc918dcc672c75738962c8d99e0aae0d4fd5d",
+    "tests/macos/opus/relocation_test.py": "0fa1d4485b194b4f6150c5665109886fa1f4e290b632a6be8b1aef221ccb873d",
+    "tests/macos/portability/CMakeLists.txt": "b7af456f18c56603c0b88d66bcfa57f8b06b51852b2926d5ce85b00bf0328fdd",
+    "src/mcc_audio.cpp": "53c186a6b803119ed45711638a2fb34ae1f84d100afaee40bb55abf0e0b3c161",
+    "tests/mcc_audio_tests.cpp": "c5e1475abecbac33af499a3a745574b53189e8a36b59243eaacb53a5a4f55ace",
+    "include/halo2/material_pass_bank.hpp": "826b39d121c8788ceae5fa87694e622e73ecdf011aab8a9682ac52a27f02d26b",
+    "include/halo2/texture_pixels.hpp": "c6c621d28685c95ee1d8ec2ff433de683d37a20067b0236bfa533d6640359c7f",
+    "include/halo2/frontend_material.hpp": "262fe6a61a95049174a1836d4d1727d748285311f6bca7fc6a714a0412c5e55f",
+    "src/frontend_model.cpp": "30ae94f45d8542e9ea2c6cf950f4c91a4f451f47ec310132a5a51e58b5270918",
+    "src/appearance.cpp": "3b2987bb38cf1c57dc86455ff362e205b28130b18edec62b3ebe9beb16b76f50",
+    "src/object_lighting.cpp": "0d3a81f9052dacfc469cc1841386914b21b81cdb6c39be2e5139c01e42518fc0",
+    "src/world_material.cpp": "0d1288453796f90def9a0992f01b09bcaeba327e80d80a62ec1f1d58d16b8327",
+    "src/player_armor_emblem.cpp": "2c085c47f6d7b0825ed54ac99aa0b5669d0fd49984bbe2900f009e7cac0125f6",
+    "cmake/Tags.cmake": "ff36ef0adfddd83f745253924742257c85a4c344ab30ce56cb6678d9c63473ea",
+    "cmake/WeaponBarrelTiming.cmake": "dd9f5bb4bff0ce7126c06ea7dfefddce7bdc14c69011a467d1275e090e547ca4",
+    "cmake/DeathCycle.cmake": "009df47eae08b12754ee7ec3bc276794e89d506fca0c8b6f64f5b65b11f997d5",
+    "cmake/MultiplayerContinuation.cmake": "39ba449b41567fc91da9cd5e0634883a948aad1d6b6cb4b83475bed8331ed3a9",
+    "cmake/PStencil.cmake": "10d9dfb2a9a929d2cc00cd99088f89b527631942d1cf59eca4401cff0860d343",
+    "cmake/PhysicsMultiplayerAcceptance.cmake": "5c3a745075d1d1eb12d4f6a7f11ff62f0c42d68e7ad322c5a58fa672fc1a259c",
+    "cmake/Upscaling.cmake": "fe03c9f44dbe2797587e31ac214f1af5639cb78c18f0e7bdd17e5f55ee4e58f1"
+  },
+  "workspace_source_sha256_at_recording": {
+    "CMakeLists.txt": "61ced8b7830bfcdb9fa84484866e7be17a74e8fffd33baceea512397ab5cf4d1",
+    "cmake/Glm.cmake": "e865032e4b81550da36d87687df590a6df5a3402ff8c929f9811fe617d240505",
+    "cmake/macos/Opus.cmake": "9b8817c23e576da7fdc7c8bfe48bc0189cc4d70b27fae8ed6a6bab3c0d01be09",
+    "cmake/macos/DependencyToolchain.cmake": "f9642287c7f81e3cbd05a79ffae5c69da6580f52be872d83d1a63b5605a24812",
+    "cmake/macos/Bundle.cmake": "614b05c007e379cd45ce254557f38484bb7e982ed88e4909ffe3f665e83fd2eb",
+    "tools/macos/build_opus.py": "7d124ed96cebdf1d5108a37f541f03070e8f2b51c7da923924e2073376d800ab",
+    "tools/macos/bundle.py": "3df7356aeb946f2327d04ec0a9f6411c0446cf0bcb3112a3a8186b122588f287",
+    "tests/macos/opus/CMakeLists.txt": "dd8abcadab31cc540e2bc8fcd524eefebfc131750fdc6c70001946fa76968125",
+    "tests/macos/opus/dependency_tests.cpp": "530ae4e0db500d40ffbbe27abb4cc918dcc672c75738962c8d99e0aae0d4fd5d",
+    "tests/macos/opus/relocation_test.py": "0fa1d4485b194b4f6150c5665109886fa1f4e290b632a6be8b1aef221ccb873d",
+    "tests/macos/portability/CMakeLists.txt": "b7af456f18c56603c0b88d66bcfa57f8b06b51852b2926d5ce85b00bf0328fdd",
+    "src/mcc_audio.cpp": "53c186a6b803119ed45711638a2fb34ae1f84d100afaee40bb55abf0e0b3c161",
+    "tests/mcc_audio_tests.cpp": "c5e1475abecbac33af499a3a745574b53189e8a36b59243eaacb53a5a4f55ace",
+    "include/halo2/material_pass_bank.hpp": "826b39d121c8788ceae5fa87694e622e73ecdf011aab8a9682ac52a27f02d26b",
+    "include/halo2/texture_pixels.hpp": "c6c621d28685c95ee1d8ec2ff433de683d37a20067b0236bfa533d6640359c7f",
+    "include/halo2/frontend_material.hpp": "262fe6a61a95049174a1836d4d1727d748285311f6bca7fc6a714a0412c5e55f",
+    "src/frontend_model.cpp": "30ae94f45d8542e9ea2c6cf950f4c91a4f451f47ec310132a5a51e58b5270918",
+    "src/appearance.cpp": "3b2987bb38cf1c57dc86455ff362e205b28130b18edec62b3ebe9beb16b76f50",
+    "src/object_lighting.cpp": "0d3a81f9052dacfc469cc1841386914b21b81cdb6c39be2e5139c01e42518fc0",
+    "src/world_material.cpp": "0d1288453796f90def9a0992f01b09bcaeba327e80d80a62ec1f1d58d16b8327",
+    "src/player_armor_emblem.cpp": "2c085c47f6d7b0825ed54ac99aa0b5669d0fd49984bbe2900f009e7cac0125f6",
+    "cmake/Tags.cmake": "ff36ef0adfddd83f745253924742257c85a4c344ab30ce56cb6678d9c63473ea",
+    "cmake/WeaponBarrelTiming.cmake": "dd9f5bb4bff0ce7126c06ea7dfefddce7bdc14c69011a467d1275e090e547ca4",
+    "cmake/DeathCycle.cmake": "009df47eae08b12754ee7ec3bc276794e89d506fca0c8b6f64f5b65b11f997d5",
+    "cmake/MultiplayerContinuation.cmake": "39ba449b41567fc91da9cd5e0634883a948aad1d6b6cb4b83475bed8331ed3a9",
+    "cmake/PStencil.cmake": "10d9dfb2a9a929d2cc00cd99088f89b527631942d1cf59eca4401cff0860d343",
+    "cmake/PhysicsMultiplayerAcceptance.cmake": "5c3a745075d1d1eb12d4f6a7f11ff62f0c42d68e7ad322c5a58fa672fc1a259c",
+    "cmake/Upscaling.cmake": "fe03c9f44dbe2797587e31ac214f1af5639cb78c18f0e7bdd17e5f55ee4e58f1"
+  },
+  "cleanup": {
+    "macos": {
+      "macos-opus": {
+        "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-58e9wz4y/build",
+        "removed": true,
+        "removed_build_and_sdk_owners": [
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-58e9wz4y"
+        ]
+      },
+      "macos-opus-final": {
+        "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3tbfnzfb/build",
+        "removed": true,
+        "removed_build_and_sdk_owners": [
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-3tbfnzfb"
+        ]
+      },
+      "macos-opus-closure": {
+        "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-qcjdg_2z/build",
+        "removed": true,
+        "removed_build_and_sdk_owners": [
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-qcjdg_2z"
+        ]
+      },
+      "macos-shared-cxx20": {
+        "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bndl8fgh/build",
+        "removed": true,
+        "removed_build_and_sdk_owners": [
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bndl8fgh"
+        ]
+      },
+      "macos-shared-cxx20-header-glm": {
+        "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-x5nqq5_w/build",
+        "removed": true,
+        "removed_build_and_sdk_owners": [
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-x5nqq5_w"
+        ]
+      },
+      "macos-opus-engine-configure": {
+        "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-q3ivxfr3/build",
+        "removed": true,
+        "removed_build_and_sdk_owners": [
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-q3ivxfr3",
+          "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-ihwdtcqe"
+        ]
+      },
+      "macos-opus-engine-configure-final": {
+        "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-x_256tci/build",
+        "removed": true,
+        "removed_build_and_sdk_owners": [
+          "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-x_256tci",
+          "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-mmmckhj6"
+        ]
+      },
+      "mac_private_build_parent_empty": true
+    },
+    "linux": {
+      "macos-shared-cxx20-linux": {
+        "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-w_96ew0w/build",
+        "removed": true
+      },
+      "macos-shared-cxx20-linux-header-glm": {
+        "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-icvn6ryw/build",
+        "removed": true
+      },
+      "macos-opus-linux-engine-configure": {
+        "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-61xen0qj/build",
+        "removed": true
+      },
+      "macos-codec-linux-real-output": {
+        "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-9wsjjm7t/build",
+        "removed": true
+      }
+    },
+    "retained_large_artifacts": []
+  }
+}

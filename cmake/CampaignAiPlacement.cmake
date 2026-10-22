@@ -1,8 +1,8 @@
 # Readable ai_place overloads over the one retained original campaign world.
-target_sources(halo2_systems PRIVATE src/source_ai_placement.cpp)
+target_sources(halo2_systems PRIVATE src/campaign/ai/source_ai_placement.cpp)
 if(BUILD_TESTING)
     add_executable(source_ai_placement_tests tests/source_ai_placement_tests.cpp
-        src/source_ai_placement.cpp)
+        src/campaign/ai/source_ai_placement.cpp)
     target_include_directories(source_ai_placement_tests PRIVATE include)
     target_link_libraries(source_ai_placement_tests PRIVATE nlohmann_json::nlohmann_json)
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")

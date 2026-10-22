@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #include "halo2/hud.hpp"
 #include "halo2/native_weapon_inventory.hpp"
 #include <algorithm>
@@ -34,8 +35,8 @@ int main(int argc,char **argv)try {
     match.configure_local_views(views,definitions);
     std::array<Controls,multiplayer_capacity> controls{};
     auto step=[&](){match.step(controls);++total_ticks;};
-    match.debug_request({DebugGameRequest::Teleport,player},&spawn);step();
-    match.debug_request({DebugGameRequest::Teleport,player},&spawn);
+    test::place_player(match,player,spawn);step();
+    test::place_player(match,player,spawn);
     controls[player].dual_wield=true;controls[player].dual_wield_milliseconds=233;step();
     controls={};for(unsigned n=0;n<120;++n)step();
     for(unsigned hand=0;hand<2;++hand) {
@@ -110,8 +111,8 @@ int main(int argc,char **argv)try {
     if(representation==3){profile=source_default_player_configuration();(*profile)[0x44]=1;}
     const auto player=match.join("Actual battery HUD",-1,profile);
     std::array<Controls,multiplayer_capacity> controls{};auto step=[&](){match.step(controls);++total_ticks;};
-    match.debug_request({DebugGameRequest::Teleport,player},&spawn);step();
-    match.debug_request({DebugGameRequest::Teleport,player},&spawn);
+    test::place_player(match,player,spawn);step();
+    test::place_player(match,player,spawn);
     controls[player].pickup=true;controls[player].pickup_milliseconds=233;step();controls={};
     require(match.unit(player).weapon.definition==weapon->first,"Actual battery pickup failed");
     for(unsigned n=0;n<120;++n)step();

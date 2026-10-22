@@ -13,7 +13,7 @@ from pathlib import Path
 def wire(path):
     before = path.read_text()
     if '#include "halo2/pstencil/frame.hpp"' in before:
-        for marker in ("pstencil_frame.prepare", "pstencil_frame.add", "pstencil_render->light", "->pstencil_available"):
+        for marker in ("pstencil_frame.prepare", "pstencil_frame.add", "pstencil_render->light"):
             if marker not in before:
                 raise ValueError("partial pStencil renderer integration: " + marker)
         return before, before
@@ -58,10 +58,7 @@ def wire(path):
                     pstencil_render->end(command,framebuffers[index]);
                 } else {
                     for(const auto draw:raw_light_views[i]){capture_unknown();effect_light_native->record(command,draw);}
-                }'''),
-        ('    if(!impl_->debug_panel)impl_->debug_panel=std::make_unique<DebugPanel>(impl_->window);', '''    if(!impl_->debug_panel)impl_->debug_panel=std::make_unique<DebugPanel>(impl_->window);
-    impl_->debug_panel->pstencil_available(impl_->source_world_device.depth_clamp_enabled &&
-        impl_->depth_format==VK_FORMAT_D24_UNORM_S8_UINT);''')]
+                }''')]
     result = before
     for old, new in edits:
         if result.count(old) != 1:

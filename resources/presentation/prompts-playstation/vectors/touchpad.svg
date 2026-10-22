@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="144" viewBox="0 0 60 36">
+  <title>PlayStation touchpad: standalone unbound prompt</title>
+  <defs>
+    <linearGradient id="pad-face" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#edf3fa" />
+      <stop offset="1" stop-color="#b7c7d9" />
+    </linearGradient>
+    <linearGradient id="pad-rim" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#a0b3cb" />
+      <stop offset="1" stop-color="#586b85" />
+    </linearGradient>
+  </defs>
+  <rect x="1.5" y="8.5" width="57" height="25" rx="4.5" fill="url(#pad-face)" stroke="url(#pad-rim)" stroke-width="1" />
+  <path d="M6 10 H54 Q57 10 57 13 V15 H3 V13 Q3 10 6 10 Z" fill="#ffffff" fill-opacity=".5" />
+  <circle cx="9" cy="15" r="0.7" fill="#5e7694" />
+  <circle cx="15" cy="15" r="0.7" fill="#5e7694" />
+  <circle cx="21" cy="15" r="0.7" fill="#5e7694" />
+  <circle cx="27" cy="15" r="0.7" fill="#5e7694" />
+  <circle cx="33" cy="15" r="0.7" fill="#5e7694" />
+  <circle cx="39" cy="15" r="0.7" fill="#5e7694" />
+  <circle cx="45" cy="15" r="0.7" fill="#5e7694" />
+  <circle cx="51" cy="15" r="0.7" fill="#5e7694" />
+  <circle cx="9" cy="21" r="0.7" fill="#5e7694" />
+  <circle cx="15" cy="21" r="0.7" fill="#5e7694" />
+  <circle cx="21" cy="21" r="0.7" fill="#5e7694" />
+  <circle cx="27" cy="21" r="0.7" fill="#5e7694" />
+  <circle cx="33" cy="21" r="0.7" fill="#5e7694" />
+  <circle cx="39" cy="21" r="0.7" fill="#5e7694" />
+  <circle cx="45" cy="21" r="0.7" fill="#5e7694" />
+  <circle cx="51" cy="21" r="0.7" fill="#5e7694" />
+  <circle cx="9" cy="27" r="0.7" fill="#5e7694" />
+  <circle cx="15" cy="27" r="0.7" fill="#5e7694" />
+  <circle cx="21" cy="27" r="0.7" fill="#5e7694" />
+  <circle cx="27" cy="27" r="0.7" fill="#5e7694" />
+  <circle cx="33" cy="27" r="0.7" fill="#5e7694" />
+  <circle cx="39" cy="27" r="0.7" fill="#5e7694" />
+  <circle cx="45" cy="27" r="0.7" fill="#5e7694" />
+  <circle cx="51" cy="27" r="0.7" fill="#5e7694" />
+</svg>

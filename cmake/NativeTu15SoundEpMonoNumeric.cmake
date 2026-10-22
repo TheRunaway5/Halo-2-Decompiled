@@ -1,6 +1,6 @@
 # Numeric module5 and source-format packing; no install or clock capability.
 add_library(halo2_native_tu15_sound_ep_mono_numeric STATIC
-    src/native_tu15_sound_ep_mono_numeric.cpp)
+    src/audio/dsp/native_tu15_sound_ep_mono_numeric.cpp)
 target_include_directories(halo2_native_tu15_sound_ep_mono_numeric PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_native_tu15_sound_ep_mono_numeric PUBLIC cxx_std_20)

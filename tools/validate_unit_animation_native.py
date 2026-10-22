@@ -8,13 +8,13 @@ def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--cxx',default='c++');a=p.parse_args();a.output.mkdir(parents=True,exist_ok=True)
  rows=[]
  for name,source,test,fixture in[
-  ('manager','src/unit_animation.cpp','tests/unit_animation_tests.cpp',BASE/'native-fixtures/fixtures.txt'),
-  ('pose','src/unit_animation_pose.cpp','tests/unit_animation_pose_tests.cpp',BASE/'pose/native-fixtures/fixtures.txt')]:
+  ('manager','src/gameplay/animation/unit_animation.cpp','tests/unit_animation_tests.cpp',BASE/'native-fixtures/fixtures.txt'),
+  ('pose','src/gameplay/animation/unit_animation_pose.cpp','tests/unit_animation_pose_tests.cpp',BASE/'pose/native-fixtures/fixtures.txt')]:
   for sanitized in(False,True):
    binary=a.output/f'{name}-{"sanitized"if sanitized else"normal"}'
    flags=['-std=c++20','-Wall','-Wextra','-Werror','-ffp-contract=off','-O1'if sanitized else'-O2']
    if sanitized:flags+=['-g','-fno-omit-frame-pointer','-fsanitize=address,undefined']
-   cmd=[a.cxx,*flags,'-Iinclude',source,test,'-o',str(binary)]
+   cmd=[a.cxx,*flags,'-Iinclude', '-Isrc',source,test,'-o',str(binary)]
    subprocess.run(cmd,cwd=ROOT,check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
    r=subprocess.run([str(binary),str(fixture)],cwd=ROOT,check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
    rows.append(dict(name=name,sanitized=sanitized,compile_command=cmd,run_command=[str(binary),str(fixture)],exit_code=r.returncode,stdout=r.stdout,stderr=r.stderr,fixture_sha256=sha(fixture),source_sha256=sha(ROOT/source),test_sha256=sha(ROOT/test)))

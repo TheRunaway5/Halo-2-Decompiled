@@ -26,6 +26,15 @@ ENTRIES=(
     0x160a90,0x160da0,0x160e50,0x160f10, # Missing generic objective registry lifecycle.
     0x24a2e0,0x24cd10,0x24a2f0,0xb1a10, # Slot21/23 and match dirty wrapper.
     0x15afb0,0x15a560,0x15a500,0x15d750,0x160680,0x1f1a60,0x15b840,0x15f5e0,
+    0xa6780, # Complete shared +C initializer callback selected by the original vtable.
+    0x24a810, # Complete shared +40 actual player/equipment/flag admission callback.
+    0x106350, # Complete12-site classifier over the real weapon's admitted tag.
+    0x1a87c0, # Complete11-site event-request constructor reached by flag pickup.
+    0x160d40, # Complete26-site actual carrier-player registry refresh.
+    0x24a4b0, # Complete86-site selected CTF actual objective-drop notification.
+    0x24a070,0x24dae0,0x24b6e0, # Complete source tick and real objective-bank validation producers.
+    0x24b4c0,0x249b20,0x24d5f0,0x165610,0x249a40,0x24b950,0x24c490,
+    # Complete home-marker/proximity/timer/return/score-state/overtime owners.
 )
 
 
@@ -34,7 +43,7 @@ def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--output',type=Path,default=ROOT/'src/source_ctf_activation_tu15_generated.cpp')
+    p.add_argument('--output',type=Path,default=ROOT/'src/gameplay/multiplayer/source_ctf_activation_tu15_generated.cpp')
     p.add_argument('--directory',type=Path,required=True)
     a=p.parse_args();assert Path(os.environ['HALO2_TEST_SCRATCH']).is_dir()
     assert sha(NEW_DEFAULT)==NEW_PIN

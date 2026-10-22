@@ -24,6 +24,8 @@ struct AnimationRenderObservation {
   std::span<const Transform> completed_weapon_nodes;
   // Actual retained native locomotion endpoint, before render interpolation.
   std::optional<float> completed_locomotion_frame;
+  // Third-person primary weapon geometry selected for this body submission.
+  std::span<const Vertex> weapon_vertices;
 };
 // Native high-refresh presentation policy. Endpoints are the actual clock input
 // after action selection and completed output, never predicted gameplay states.

@@ -51,7 +51,7 @@ def main():
         source_game_clock_pointer='51DF54',source_clock_tick_offset=8,weapon_tick_offset='248',
         original_clock_and_store_bytes=original.hex(),native_tick_adjustment=0,
         cases=cases,references=references,
-        production_source_sha256=sha(ROOT/'src/multiplayer.cpp'),
+        production_source_sha256=sha(ROOT/'src/gameplay/multiplayer/multiplayer.cpp'),
         tool_sha256=sha(Path(__file__)),runner_scratch=os.environ['HALO2_TEST_SCRATCH'],
         original_instruction_patches=[],supplied_callee_results=[],
         full_firing_sound_sequence_passed=all(case['versions'][1]['firing_sound_submissions']==

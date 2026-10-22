@@ -1,6 +1,6 @@
 # A single native caller ABI connects the verified world/motion/solver/contact
 # graph. The live match still needs its original memory and lower owners.
-add_library(halo2_physics_world_runtime STATIC src/physics_world_runtime_generated.cpp)
+add_library(halo2_physics_world_runtime STATIC src/physics/runtime/physics_world_runtime_generated.cpp)
 target_include_directories(halo2_physics_world_runtime PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_physics_world_runtime PUBLIC cxx_std_20)
 if(MSVC)

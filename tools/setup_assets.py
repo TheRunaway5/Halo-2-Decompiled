@@ -21,6 +21,7 @@ import zipfile
 
 from audit_rendering import Cache, FormatError, file_sha
 from disc import Disc, inspect_xbe
+from archive_io import copy_exact, stream_command
 from export_vista_menu_ui import dds_image, expand_resource, mip_shapes, safe_asset_path
 from prepare_vista_loading import prepare as prepare_loading
 
@@ -108,7 +109,75 @@ def selected_member(name, gameplay=False, loading_only=False):
         len(p.parts) == 3 and p.parts[:2] == ("maps", "fonts"))
 
 
-def extract_vista(source, target, progress=print, *, gameplay=False, loading_only=False):
+VISTA_MAX_SOURCE = 8 * 1024**3
+VISTA_MAX_MEMBERS = 4096
+VISTA_MAX_OUTPUT = 16 * 1024**3
+VISTA_MAX_RATIO = 1000
+VISTA_MAX_LISTING = 8 * 1024**2
+
+
+def vista_budget(rows, free):
+    total = 0
+    if len(rows) > VISTA_MAX_MEMBERS:
+        raise FormatError("Vista member count budget exceeded")
+    for _, size, packed in rows:
+        if size < 0 or size > 512 * 1024**2 or (packed is not None and size > max(1, packed) * VISTA_MAX_RATIO):
+            raise FormatError("Vista member size or expansion budget exceeded")
+        total += size
+    if total > VISTA_MAX_OUTPUT or total > free:
+        raise FormatError("Vista aggregate output or free-space budget exceeded")
+    return total
+
+
+def vista_zip_inventory(source):
+    # ZipFile builds its entire central directory in memory on construction.
+    # Check the bounded end records first, including ZIP64 installer bundles.
+    with source.open("rb") as stream:
+        size = source.stat().st_size
+        start = max(0, size - 65557)
+        stream.seek(start)
+        tail = stream.read(65557)
+        at = tail.rfind(b"PK\x05\x06")
+        if at < 0 or len(tail) - at < 22:
+            raise FormatError("missing Vista ZIP end record")
+        _, disk, central_disk, disk_count, count, central_size, central_at, comment = struct.unpack_from("<4s4H2IH", tail, at)
+        if disk or central_disk or at + 22 + comment != len(tail):
+            raise FormatError("unsupported Vista ZIP end record")
+        if count == 65535 or central_size == 0xffffffff or central_at == 0xffffffff:
+            stream.seek(start + at - 20)
+            locator = stream.read(20)
+            if len(locator) != 20:
+                raise FormatError("truncated Vista ZIP64 locator")
+            signature, disk, record_at, disks = struct.unpack("<4sIQI", locator)
+            if signature != b"PK\x06\x07" or disk or disks != 1 or record_at > size - 56:
+                raise FormatError("unsupported Vista ZIP64 locator")
+            stream.seek(record_at)
+            record = stream.read(56)
+            signature, length, _, _, disk, central_disk, disk_count, count, central_size, central_at = struct.unpack("<4sQ2H2I4Q", record)
+            if signature != b"PK\x06\x06" or length < 44 or disk or central_disk:
+                raise FormatError("unsupported Vista ZIP64 end record")
+        if count > VISTA_MAX_MEMBERS or disk_count != count or central_size > VISTA_MAX_LISTING:
+            raise FormatError("Vista ZIP inventory budget exceeded")
+
+
+def extract_vista(source, target, progress=print, *, gameplay=False, loading_only=False, _depth=0):
+    if _depth > 1:
+        raise FormatError("nested Vista archive depth budget exceeded")
+    target = Path(target)
+    if target.exists() or target.is_symlink():
+        raise FileExistsError(target)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="halo2-vista-", dir=target.parent) as temporary:
+        staging = Path(temporary) / "output"
+        try:
+            result = _extract_vista(source, staging, progress, gameplay=gameplay, loading_only=loading_only, _depth=_depth)
+        except ValueError as error:
+            raise FormatError(str(error)) from error
+        staging.rename(target)
+        return result
+
+
+def _extract_vista(source, target, progress=print, *, gameplay=False, loading_only=False, _depth=0):
     source = source.resolve()
     target.mkdir(parents=True)
     if source.is_dir():
@@ -122,11 +191,14 @@ def extract_vista(source, target, progress=print, *, gameplay=False, loading_onl
             if not loading_only:
                 selected += [regular(p) for p in sorted((base / "maps/fonts").iterdir())]
             selected += [regular(base / name) for name in ("loading.bin", "halo2.exe") if (base / name).exists()]
-            for path in selected:
+            selected = [(path, path.stat().st_size) for path in selected]
+            vista_budget([(str(path), size, None) for path, size in selected], shutil.disk_usage(target).free)
+            for path, size in selected:
                 relative = path.relative_to(base)
                 destination = target / relative
                 destination.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(path, destination)
+                with path.open("rb") as inp, destination.open("xb") as out:
+                    copy_exact(inp, out, size)
             return dict(path=str(source), kind="directory")
         source = regular(source / "h2pc_data.bin")
     else:
@@ -134,25 +206,34 @@ def extract_vista(source, target, progress=print, *, gameplay=False, loading_onl
         if source.suffix.lower() == ".exe":
             # Select the accompanying data archive; never execute an installer.
             source = regular(source.with_name("h2pc_data.bin"))
+    if source.stat().st_size > VISTA_MAX_SOURCE:
+        raise FormatError("Vista source archive budget exceeded")
     if zipfile.is_zipfile(source):
+        vista_zip_inventory(source)
         with zipfile.ZipFile(source) as archive:
             rows = archive.infolist()
+            if len(rows) > VISTA_MAX_MEMBERS:
+                raise FormatError("Vista member count budget exceeded")
             nested = [r for r in rows if r.filename == "h2pc_data.bin"]
             if nested:
-                if len(nested) != 1 or nested[0].file_size > 8 * 1024**3:
+                if (len(nested) != 1 or nested[0].file_size > VISTA_MAX_SOURCE or
+                    nested[0].file_size > max(1, nested[0].compress_size) * VISTA_MAX_RATIO or
+                    nested[0].file_size > shutil.disk_usage(target).free):
                     raise FormatError("invalid bundled Vista data archive")
                 progress("Reading the Vista installer data archive…")
-                with tempfile.TemporaryDirectory(prefix="halo2-vista-") as temporary:
+                with tempfile.TemporaryDirectory(prefix="halo2-vista-", dir=target.parent) as temporary:
                     payload = Path(temporary) / "h2pc_data.bin"
                     with archive.open(nested[0]) as inp, payload.open("xb") as out:
-                        shutil.copyfileobj(inp, out, 1024 * 1024)
-                    extract_vista(payload, target / "nested", progress, gameplay=gameplay, loading_only=loading_only)
+                        copy_exact(inp, out, nested[0].file_size)
+                    extract_vista(payload, target / "nested", progress, gameplay=gameplay, loading_only=loading_only, _depth=_depth+1)
                     for child in (target / "nested").iterdir():
                         child.rename(target / child.name)
                     (target / "nested").rmdir()
                     return dict(path=str(source), kind="installer-zip", sha256=file_sha(source))
+            selected = [row for row in rows if not row.is_dir() and selected_member(row.filename, gameplay, loading_only)]
+            vista_budget([(r.filename, r.file_size, r.compress_size) for r in selected], shutil.disk_usage(target).free)
             seen = set()
-            for row in rows:
+            for row in selected:
                 if row.is_dir() or not selected_member(row.filename, gameplay, loading_only):
                     continue
                 if row.filename in seen or row.file_size > 512 * 1024**2 or ((row.external_attr >> 16) & 0xf000) == 0xa000:
@@ -161,32 +242,68 @@ def extract_vista(source, target, progress=print, *, gameplay=False, loading_onl
                 destination = target / row.filename
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 with archive.open(row) as inp, destination.open("xb") as out:
-                    shutil.copyfileobj(inp, out, 1024 * 1024)
+                    copy_exact(inp, out, row.file_size)
     else:
         program = shutil.which("7z") or shutil.which("7zz")
         if not program:
             raise FormatError("Reading this installer requires 7-Zip (7z or 7zz)")
-        listing = subprocess.run([program, "l", "-slt", "--", str(source)],
-            check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True).stdout
-        names = []
-        for record in listing.split("\n\n"):
+        listing = bytearray()
+        stream_command([program, "l", "-slt", "--", str(source)], listing.extend, output_limit=VISTA_MAX_LISTING)
+        members = []
+        for record in listing.decode("utf-8").split("\n\n"):
             fields = dict(line.split(" = ", 1) for line in record.splitlines() if " = " in line)
             name = fields.get("Path", "")
             if name == str(source) or not name or fields.get("Folder") == "+":
                 continue
             if selected_member(name, gameplay, loading_only):
-                if int(fields.get("Size", "0")) > 512 * 1024**2 or "Symbolic Link" in fields:
+                if "Symbolic Link" in fields or "Hard Link" in fields:
                     raise FormatError("invalid Vista archive member")
-                names.append(name)
+                packed = fields.get("Packed Size", "")
+                members.append((name, int(fields.get("Size", "0")), int(packed) if packed else None))
+        names = [row[0] for row in members]
         if len(set(names)) != len(names) or not names:
             raise FormatError("No supported Vista UI files in the installer")
-        # Extract the exact allowlist in one pass through solid installer data.
-        # -spd prevents filenames from being treated as wildcard expressions.
-        subprocess.run([program, "x", "-y", "-spd", "-o" + str(target.resolve()),
-                        "--", str(source), *names], check=True,
-                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        for name in names:
-            regular(target / name)
+        total = vista_budget(members, shutil.disk_usage(target).free)
+        if total > max(1, source.stat().st_size) * VISTA_MAX_RATIO:
+            raise FormatError("Vista aggregate expansion budget exceeded")
+        # Listing and -so enumerate selected files in archive order. Split the
+        # bounded stdout by those exact sizes; never give 7-Zip a destination.
+        # A solid installer is decompressed once for the complete allowlist.
+        with ExitStack() as outputs:
+            member = 0
+            current = None
+            remaining = 0
+            def advance():
+                nonlocal member, current, remaining
+                while member < len(members):
+                    name, remaining, _ = members[member]
+                    member += 1
+                    destination = target / name
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    current = outputs.enter_context(destination.open("xb"))
+                    if remaining:
+                        return
+                    current.close()
+                    current = None
+            def consume(chunk):
+                nonlocal current, remaining
+                view = memoryview(chunk)
+                while view:
+                    if current is None:
+                        raise FormatError("Vista member output exceeds inventory")
+                    count = min(remaining, len(view))
+                    current.write(view[:count])
+                    view = view[count:]
+                    remaining -= count
+                    if not remaining:
+                        current.close()
+                        current = None
+                        advance()
+            advance()
+            actual = stream_command([program, "x", "-so", "-spd", "--", str(source), *names],
+                                    consume, output_limit=total)
+            if actual != total:
+                raise FormatError("short Vista archive member")
     if not loading_only:
         for name in ("mainmenu.map", "shared.map"):
             regular(target / "maps" / name)
@@ -525,7 +642,8 @@ def setup_reference(root, vista_source, xbox_source, progress=print):
             raise FormatError("source paths cannot contain control characters")
         temporary.write_text(f"{SCHEMA}\nxbox\t{paths[0]}\nvista\t{paths[1]}\n")
         os.replace(temporary, registry)
-        bundled_ui = root / "resources/ui"
+        from installation_paths import resource_root
+        bundled_ui = resource_root(root) / "resources/ui"
         if (bundled_ui / "bundle.json").is_file():
             from bundle_ui_assets import install
             install(root, bundled_ui, only_unselected=True)

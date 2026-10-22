@@ -1,6 +1,6 @@
 # Fresh main heap storage joins the shared original constructor/allocator graph.
-target_sources(halo2_physics_world_runtime PRIVATE src/physics_main_heap_runtime_generated.cpp)
-target_sources(halo2_systems PRIVATE src/physics_main_heap_host.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/physics/physics_main_heap_runtime_generated.cpp)
+target_sources(halo2_systems PRIVATE src/physics/physics_main_heap_host.cpp)
 if(BUILD_TESTING)
     add_executable(physics_main_heap_tests tests/physics_main_heap_tests.cpp)
     target_link_libraries(physics_main_heap_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)

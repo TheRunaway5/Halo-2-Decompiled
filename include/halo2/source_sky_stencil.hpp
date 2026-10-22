@@ -51,6 +51,9 @@ struct SourceSkyStencilContext {
     // Caller facts about enabled device features; physical support alone
     // does not prove vkCreateDevice enabled them.
     bool geometry_shader_enabled{},depth_clamp_enabled{};
+    // Native D24 remains the default. D32S8 requires the canonical source
+    // integer storage declaration on both the context and actual image.
+    SourceDepthStorageEncoding depth_encoding=SourceDepthStorageEncoding::native_d24;
 };
 struct SourceSkyStencilRecord {
     VkDevice command_owner{};
@@ -63,7 +66,7 @@ struct SourceSkyStencilRecord {
 // cull NONE, depth clamp, late LEQUAL/no depth writes, ALWAYS/KEEP/KEEP/
 // REPLACE FF with both masks FF. Owns no color attachment and no sky textures.
 // prepare() copies typed retained geometry and source uniforms, and borrows
-// an actual current D24S8 image. record() runs outside a caller render pass,
+// an actual current D24S8 or canonical D32S8 image. record() runs outside a caller render pass,
 // restores its supplied initialized layout, and makes stencil writes visible.
 // One caller-owned reset/unsignaled fence MUST cover the recorded command
 // and all consumers; keep image, device and fence alive until retire(). A
@@ -71,6 +74,9 @@ struct SourceSkyStencilRecord {
 // image accesses, queue transfers, prepares or records before retirement.
 // Destruction waits for a pending fence; the submission contract makes that
 // wait valid. No live Renderer activation or complete sky appearance claim.
+// When geometryShader is disabled, retained strip indices are assembled with
+// integer operations into ordered per-instance triangles. The vertex shader
+// executes the same source plane arithmetic; no CPU floating reconstruction.
 class SourceSkyStencil {
 public:
     explicit SourceSkyStencil(SourceSkyStencilContext);

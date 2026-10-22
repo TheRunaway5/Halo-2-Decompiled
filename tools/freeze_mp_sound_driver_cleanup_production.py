@@ -30,10 +30,10 @@ def main():
                 add(prior, path, digest)
     verify(prior)
     names = ['CMakeLists.txt', 'include/halo2/sound_driver_cleanup.hpp',
-             'src/sound_driver_cleanup.cpp', 'tests/sound_driver_cleanup_tests.cpp',
-             'include/halo2/sound_driver_owners.hpp', 'src/sound_driver_owners.cpp',
+             'src/audio/sound_driver_cleanup.cpp', 'tests/sound_driver_cleanup_tests.cpp',
+             'include/halo2/sound_driver_owners.hpp', 'src/audio/sound_driver_owners.cpp',
              'include/halo2/sound_driver_startup.hpp', 'include/halo2/sound_map_activation.hpp',
-             'include/halo2/native_sound_storage.hpp', 'src/native_sound_storage.cpp',
+             'include/halo2/native_sound_storage.hpp', 'src/audio/native_sound_storage.cpp',
              'include/halo2/sound_cache_startup.hpp', 'tools/run_owned_fixture_test.py',
              'tools/export_mp_sound_driver_cleanup.py',
              'docs/MP_SOUND_DRIVER_CLEANUP_PRODUCTION_RESEARCH.md',

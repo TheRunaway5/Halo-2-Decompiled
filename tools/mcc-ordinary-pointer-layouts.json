@@ -2,10 +2,10 @@
   "schema": "H2_PINNED_ORDINARY_POINTER_LAYOUTS_V1",
   "assembly_commit": "fd14ef3c46135e9422966c6a64cd926fb0bd23fb",
   "fallback": "Halo2MCC inherits Halo2 plugin paths in the pinned Engines.xml",
-  "normalized_unit_shapes": "bipd/crea sphere 0x80, pill 0x50; vehi phantom 0x2a0; src/mcc_physics.cpp",
-  "normalized_bsp_physics": "sbsp root138/c8 row+B0 reserves A0; normalized MOPP dataref64/68; src/mcc_physics.cpp",
+  "normalized_unit_shapes": "bipd/crea sphere 0x80, pill 0x50; vehi phantom 0x2a0; src/physics/mcc_physics.cpp",
+  "normalized_bsp_physics": "sbsp root138/c8 row+B0 reserves A0; normalized MOPP dataref64/68; src/physics/mcc_physics.cpp",
   "relative_fields_preserved": [
-    "scnr Script Expressions +0xc is ScriptNode::string_offset, src/content.cpp and src/scripts.cpp"
+    "scnr Script Expressions +0xc is ScriptNode::string_offset, src/assets/content.cpp and src/campaign/scripting/scripts.cpp"
   ],
   "resource_addresses_delegated": [
     "scnr Structure BSPs +8 is bound by canonical BSP resource delivery"

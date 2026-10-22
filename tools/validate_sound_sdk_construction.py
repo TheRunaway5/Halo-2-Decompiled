@@ -17,7 +17,7 @@ sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=False);frozen=args.output/'source';pins={}
-    pending=[Path(p)for p in ('src/sound_sdk_construction.cpp','tests/sound_sdk_construction_tests.cpp')]
+    pending=[Path(p)for p in ('src/audio/sound_sdk_construction.cpp','tests/sound_sdk_construction_tests.cpp')]
     while pending:
         p=pending.pop()
         if str(p)in pins:continue
@@ -25,8 +25,8 @@ def main():
         target=frozen/p;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(raw)
         pending.extend(Path('include')/p.decode()for p in re.findall(rb'#include\s+"([^"]+)"',raw))
     fixture=Path('tests/fixtures/sound_sdk_construction.original.json');original=args.output/'original.json';shutil.copy2(ROOT/fixture,original)
-    owner=frozen/'src/sound_sdk_construction.cpp'
-    common=['c++','-std=c++20','-Wall','-Wextra','-I'+str(frozen/'include'),str(owner),str(frozen/'tests/sound_sdk_construction_tests.cpp')]
+    owner=frozen/'src/audio/sound_sdk_construction.cpp'
+    common=['c++','-std=c++20','-Wall','-Wextra','-I'+str(frozen/'include'), '-I'+str(frozen/'src'),str(owner),str(frozen/'tests/sound_sdk_construction_tests.cpp')]
     commands=[]
     def run(argv,label,success=True):
         argv=[str(a)for a in argv];r=subprocess.run(argv,capture_output=True,text=True)

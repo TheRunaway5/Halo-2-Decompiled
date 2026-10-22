@@ -52,7 +52,7 @@ def main():
   label=f'L{p:x}: 'if p==0x1482c6 else ''
   lines.append(label+f'if(s.services.instruction)s.services.instruction(0x{p:x}u);'+s)
  pre='''// Generated from complete authenticated source; no production decoder.
-#include "physics_world_runtime_internal.hpp"
+#include "physics/runtime/physics_world_runtime_internal.hpp"
 #include "halo2/physics_main_heap_runtime.hpp"
 namespace halo2 { namespace {
 using namespace physics_world_runtime_detail;

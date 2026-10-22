@@ -33,7 +33,7 @@ def audit(d):
         image=images[p.stem.split('-')[0]]
         for line in p.read_text().splitlines():a,b,*_=line.split();raw=bytes.fromhex(b);assert image.read(int(a,16),len(raw))==raw;rows+=1
     for p in(d/'export-repeat').iterdir():q=d/p.name;assert p.read_bytes()==q.read_bytes();equal.append([str(p.relative_to(ROOT)),str(q.relative_to(ROOT)),sha(p)])
-    for rel in('include/halo2/sound_driver_update.hpp','src/sound_driver_update.cpp','tests/sound_driver_update_tests.cpp'):
+    for rel in('include/halo2/sound_driver_update.hpp','src/audio/sound_driver_update.cpp','tests/sound_driver_update_tests.cpp'):
         for name in('validation-v2','validation-v2-repeat','production-v2'):assert(ROOT/rel).read_bytes()==(d/name/('source'if name=='production-v2'else'native/source')/rel).read_bytes(),rel
     for name in('normal.stdout','sanitizer.stdout','normal.stderr','sanitizer.stderr'):
         a=d/'validation-v2/native'/name;b=d/'validation-v2-repeat/native'/name;assert a.read_bytes()==b.read_bytes();equal.append([str(a.relative_to(ROOT)),str(b.relative_to(ROOT)),sha(a)])
@@ -44,7 +44,7 @@ def audit(d):
     sanflags=(d/'production-v2/sanitizer/sound_driver_update_tests-flags.make').read_text();assert '-fsanitize=address,undefined'in sanflags
     for tag in('normal','sanitizer'):
         output=(d/'production-v2'/(tag+'-ctest.stdout')).read_text();assert '100% tests passed out of 2'in output and 'PASS 12 original lifecycle controls'in output and 'PASS 16 original1.1/u5 driver-prefix controls'in output
-    registration=(d/'production-v2/source/CMakeLists.txt').read_text();assert 'src/sound_cache_lifecycle.cpp src/sound_driver_update.cpp'in registration and 'NAME original_sound_driver_update'in registration
+    registration=(d/'production-v2/source/CMakeLists.txt').read_text();assert 'src/audio/sound_cache_lifecycle.cpp src/audio/sound_driver_update.cpp'in registration and 'NAME original_sound_driver_update'in registration
     result=dict(schema='sound-driver-update-audit-v1',auditor_sha256=sha(__file__),prior_pins_verified=pins,exact_repeat_pairs=equal,original_instruction_rows_checked=rows,cases=16,ordered_persistent_stores=0,actual_unavailable_device_stops=8,actual_unavailable_section_stops=8,full_fixture_region_bytes=meta['full_region_bytes'],production_command_sha256=sha(d/'production-v2/commands.json'),production_source_drift=production['source_drift'],mismatches=mismatches,successful_active_update_or_status_supplied=False)
     save(d/'audit.json',encoded(result));print(json.dumps(dict(audit_sha256=sha(d/'audit.json'),prior_pins=len(pins),equal_files=len(equal),instruction_rows=rows,mismatches=0)))
 if __name__=='__main__':

@@ -7,6 +7,9 @@ namespace halo2 {
 SourceWorldVertexInputTransform source_cpu_skin_input_transform(
     std::span<const std::byte> world_program,std::span<const std::byte> source_program,
     unsigned source_class);
+// Validate the same authored inputs without cloning completed image banks.
+// A false result lets callers retain their original material binding.
+bool cpu_skin_material_inputs_required(const Cache &,const Material &,unsigned source_class);
 // Copy-on-write children keep each selected pass's own original behavior.
 // Returns whether any pass needs a distinct material input binding.
 bool prepare_cpu_skin_material_inputs(const Cache &,Material &,unsigned source_class);

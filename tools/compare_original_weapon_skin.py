@@ -150,7 +150,7 @@ def main():
         cases.append(dict(event=event, section=draw['section'], palette_case=palette_id, vertices=expected,
                           eye=constants[7]['f32'][:3], active_influences=active))
     input_path = scratch / 'skin-input.bin'; input_path.write_bytes(fixture)
-    sources = [ROOT / 'tools/probe_original_weapon_skin.cpp', ROOT / 'src/model.cpp']
+    sources = [ROOT / 'tools/probe_original_weapon_skin.cpp', ROOT / 'src/rendering/models/model.cpp']
     commands, dependencies = [], set(sources)
     log = output / 'compile.log'; log.write_text('')
     for index, source in enumerate(sources):

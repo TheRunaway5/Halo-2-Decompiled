@@ -6,7 +6,7 @@
 #include "halo2/renderer.hpp"
 #include "halo2/scene.hpp"
 #include "halo2/math.hpp"
-#include "../src/source_object_geometry.hpp"
+#include "../src/gameplay/objects/source_object_geometry.hpp"
 #include <algorithm>
 #include <iostream>
 #include <fstream>

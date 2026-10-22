@@ -17,9 +17,41 @@ std::optional<unsigned> select_player_damage_voice(DamageVoiceState &,
     const UnitDamageVoiceEvent &,int damage_type,bool special,float first_limit,
     float second_limit,std::uint32_t &random,bool source_mode_four=false);
 class NativeUnitDamageAudio {
+  struct ContinuationSnapshot;
+  struct ContinuationPrepared;
 public:
+  class Checkpoint {
+  public:
+    Checkpoint()=default;
+  private:
+    std::shared_ptr<const ContinuationSnapshot> data_;
+    friend class NativeUnitDamageAudio;
+  };
+  class PreparedReplacement {
+  public:
+    PreparedReplacement();
+    ~PreparedReplacement();
+    PreparedReplacement(PreparedReplacement&&) noexcept;
+    PreparedReplacement& operator=(PreparedReplacement&&) noexcept;
+    PreparedReplacement(const PreparedReplacement&)=delete;
+  private:
+    std::unique_ptr<ContinuationPrepared> data_;
+    friend class NativeUnitDamageAudio;
+  };
   NativeUnitDamageAudio(const Cache &,MultiplayerAudio &,std::uint32_t &random);
   ~NativeUnitDamageAudio();
+  NativeUnitDamageAudio(const NativeUnitDamageAudio&)=delete;
+  NativeUnitDamageAudio& operator=(const NativeUnitDamageAudio&)=delete;
+  // Opt in before retaining any playback handle; Audio must already be
+  // enrolled. Ordinary users preserve their existing producer/ID behavior.
+  void enroll_continuation();
+  Checkpoint checkpoint() const;
+  PreparedReplacement prepare_restore(const Checkpoint&,
+      const MultiplayerAudio::PreparedReplacement&) const;
+  bool ready(const PreparedReplacement&,
+      const MultiplayerAudio::PreparedReplacement&) const noexcept;
+  bool commit(PreparedReplacement&,
+      const MultiplayerAudio::PreparedReplacement&) noexcept;
   void advance(std::uint64_t tick);
   void hud(unsigned view,std::uint32_t unit,bool dead,float health,float shield,
       float maximum_shield,bool charging,bool elite);
@@ -27,6 +59,6 @@ public:
   void remove(std::uint32_t unit);
 private:
   struct Impl;
-  std::unique_ptr<Impl> impl_;
+  std::shared_ptr<Impl> impl_;
 };
 }

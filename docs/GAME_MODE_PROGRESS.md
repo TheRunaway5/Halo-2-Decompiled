@@ -1,5 +1,236 @@
 # Game mode operational goal
 
+The active implementation checklist is
+[MULTIPLAYER_ENGINE_GOAL_CHECKLIST.md](MULTIPLAYER_ENGINE_GOAL_CHECKLIST.md).
+It covers all seven engine families, all 39 built-in variants, shared runtime
+dependencies, and complete local/network match acceptance.
+
+The user's 2026-10-20 priority is **TU1.5 engine parity**, with MCC tags imported
+and converted to TU1.5 equivalents. The checklist separates core engine logic
+and its converted-tag dependencies from broader conversion, rendering, weapon,
+and complete-match integration work. The broader operational requirements below
+remain useful integration tracking; the current engine work follows that
+clarified priority.
+
+The2026-10-21 natural-round cohort passes all39 canonical presets with only
+the original time-limit parameter edited to one second:50 timer-selected tied
+endings across9,388 ordinary frames,28 completed matches and11 actual resets
+into another expiring round. A separate one-point score-limit edit passes28
+distinct presets across all seven families through ordinary fatal weapon hits,
+objective possession/goals and zone capture/scoring. Original awarded wins,
+retained results and postgame or genuine continuing-round replacement units
+are checked. All39 presets additionally pass their one-point engine scoring
+boundary:14 Slayer/Juggernaut cases declare15F8B0 death events before actual
+physical cleanup, distinct from upstream projectile attribution. All seven
+round selectors pass in FFA/team Slayer through44 actual weapon-hit wins,
+30 resets and14 completed matches. All9 CTF/Assault presets pass enabled
+overtime hold/drop/distant-player expiry, and the original disabled setting
+removes that extension in all9. Initial/goal/zone positions remain explicit
+B95D0 inputs. Full edited-rule coverage, complete return/disarm variants,
+engine outputs and network acceptance remain open. Evidence and frozen source hashes are in
+`analysis/multiplayer/game-variants/engine-round-runtime-tu15-20261021`.
+
+The same pass adds a read-only original engine entity exporter, using whole
+slots44/45 with independent caller storage. Its39-preset,78-state comparison
+matches20,124 complete unchanged Xbox returns, including every slot27
+membership relationship pair. Native protocol97 now distinguishes original
+engine state from bounded custom Defusal, so original Assault no longer
+shares that payload owner. The native HUD uses the original relationship
+operand for source-owned sensor blips. All39 presets pass real loopback UDP
+join/departure/late-join checks:78 admissions and1,521 ordinary source frames,
+complete snapshot equality, actual retained departure rows and source-selected
+late factory admission. The bounded multiplayer, team and custom Defusal
+regressions also pass. This does not establish full frontend flows, network
+objective actions, cross-machine matches or visible/audio event delivery.
+
+The 2026-10-20 engine pass connects 100 direct TU1.5 callback bodies, 323 reached
+helpers and the authenticated fresh-player continuation. The ownership audit identifies 92 newly provided callback routes and
+eight replacements for prior canonical aliases. Its original/native matrix has
+1,164 complete-return cases across
+all seven source types and matches all 39 authored option buffers. It includes
+occupied scoring/death transitions and King's complete eight-group initializer
+domain, plus all five authored Assault arming thresholds and arm-progress decay
+on MCC marker inputs, plus bounded placed-item fuse/score and preserve-world
+round-reset cases. It also compiles the complete shared15EBA0 frame and compares
+seven empty client frames plus two empty host frames. Ordinary match scheduler
+integration remains required. A controlled native MCC Lockout build also completes
+startup/activation/one shared frame for all 39 variants with real joined player
+records: two in 34 variants and four in the five Juggernaut variants. All88
+current-unit handles remain NONE, so this does not qualify player-unit spawning.
+The occupied run includes12 active-round physical flag/bomb home returns.
+Two indirect ranking callbacks, their reached comparator and exact ranking data
+are now recovered and compared. The later shared phase15F450 and its 98-routine
+missing closure are now compiled, with original/native cases for phase requests,
+round timers/index limits, selected next-round resets and offline finalization.
+Normal scheduler integration and full round/outcome acceptance remain open.
+All 39 native roster variants also complete a bounded 181-call transition into
+round two using actual reset/factory services, at a fixed world clock. This is
+separate from played matches and player-unit spawning.
+All 39 also complete offline source match finalization, enter phase2, and keep
+their completed engine banks unchanged across a repeated finalizer call.
+The later1503D0 player phase and50 missing dependencies are now compiled, with
+56 complete host/client timer cases and42 active-unit-cap cases. Native local
+construction now separates the simulation machine key from the actual
+hardware-derived player ID; original69AD0/14FDC0 activation therefore reaches
+the real151DA0/B9B70 player factory. The spawn probe also owns the original
+nine-entry2446B0 mode-flag table. These bounded source phases still require
+normal full-world scheduling and consumer integration.
+The bounded native spawn cohort reaches87 actual units across all39 presets,
+with one correctly excluded2 on1 participant. Every permitted unit now spawns
+on the first delivery in round zero. The native constructor preserves the real
+allocated datum and resumes the authenticated14E73C continuation of14E730,
+including15A660's initial-lives store. Elimination, Phantom Elim and Blast Resort
+therefore begin with one life and no longer wait182 deliveries for a later
+round. Another74 complete original/native cases compare all39 fresh-player
+presets, life boundaries, departed records, failed allocation inputs and the
+actual saved-ESI continuation ABI. This closes that bounded initial-round
+startup defect; ordinary match scheduling and full mode acceptance remain open.
+The source world now schedules15EBA0 before PVS/object movement, followed by
+15F450/1503D0 after effects/lights and before first-person work and the clock.
+Canonical source-world Slayer/Team Slayer now run these original engine phases
+and13B990, consuming the real lifecycle, lives, scores/wins, finalization and
+game-over state. King, custom rules and separately declared placements retain
+their existing adapter interval. The seven-mode state/control/event bridge and
+remaining admissions stay open.
+Ordinary source-world Slayer/Team Slayer now invoke whole151DA0 instead of
+repeating spawn selection and equipment initialization in the adapter. They
+adopt the genuine source unit, pose/motion/vitality, inventory and completed
+player fields. Real movement, death and replacement-unit tests pass, including
+finite-life exhaustion; separately declared placements retain their explicit
+input owner. The original engine now owns life/score/round state on the canonical
+Slayer path; remaining mode adapters still require their coherent
+source-engine handoff, and additional ordinary mode admissions remain open.
+The linked checklist records the exact coverage, cold storage owners,
+remaining lifecycle/round/network work, and validation evidence.
+
+The subsequent prepared-mode pass adds a source-required projection for every
+original family. Canonical source matches now join the roster first and run an
+actual initial frame, letting original spawn admission decide current units.
+Parameter90 no longer reduces joined roster capacity. Runtime choices such as
+Fiesta's random weapon are made by the original factory; existing presentation
+templates observe an actually born unit's equipment afterward. King reads the
+inline engine+FC state, and player membership/camouflage come from the source
+bank. The older native-only and declared-placement paths retain their limits.
+Full objectives, roles/events, edited-rule coverage, UI admission and source
+mode replication remain separate completion requirements.
+
+All39 prepared presets now pass genuine startup (88 joined players,87 current
+units and the2 on1 cap waiter) and controlled postgame handling through211
+ordinary frames each. The actual shared match-over request reaches once-only
+source finalization, stable completed results, countdown zero and fade in all
+families. This does not establish an objective-driven winning outcome. The
+source startup frame also has an explicit native first-person setup boundary;
+real two-player local/replicated bindings and subsequent frames pass after
+fixing the previous tick-zero assumption. The detailed checklist links the
+controlled source identities, concurrent-work limits and cleanup receipts.
+
+The full source frame now also delivers teleporter outputs at the actual
+15EBEE ->1A6830 boundary. It preserves original event22, blocked messages,
+the proved immediate sound selector and retained input heading, while leaving
+the older declared-placement adapter's own interval intact. The focused
+Beaver Creek cases use genuine source-born players and explicit initialB95D0
+position inputs; both a split recipient and a recipient with no local viewport
+complete actual wait/release/traversal. Other engine event/message producers,
+broader audio policies and complete network flows remain open.
+
+The objective follow-through corrects two native integration defects. Original
+191DF0 calls13A920 to register players before15AFB0 selects initial round roles;
+the ordinary Match now preserves that order at its first step. Single Flag CTF
+therefore selects its actual defending team and births a flag immediately.
+All39 prepared presets, local views, active-unit caps and source-frame event
+regressions still pass. The objective HUD also admits neutral bomb index8 in
+the original nine-row bank. Eight added unchanged disc/TU1.5 comparisons cover
+that row, alongside the unchanged160 earlier queries.
+
+Normal delivered controls now exercise genuine item pickup, the completed
+attached hand/inventory transition and primary-trigger release. Original1529B3
+and1529C6/1529C8 own that forced-item release; inventory cycling intentionally
+retains the objective. All15 objective presets pass normal pickup, completed
+carry binding,60 holding frames and release; all six Oddball presets award two
+periodic points. All four CTF presets capture once and all five Assault presets
+arm, plant and complete their authored fuse, each awarding one point with
+actual carrier inventory release. Initial approach/goal positions
+are explicit inputs throughB95D0; no possession, timer or score result is
+supplied. The evidence and continuing all-preset qualification are under
+`analysis/multiplayer/game-variants/engine-objective-runtime-tu15-20261020`.
+Played approach routes, complete matches, broader edited settings, rendering,
+audio hardware and mode replication remain separate acceptance.
+
+The King/Territories follow-through adds ordinary source-world zone checks for
+all ten presets. King solo and contested scoring, resumed scoring and exit
+cleanup match the source banks. All five King presets also complete the full
+authored sixty-second hill interval, exact timer rollover, next-hill publication
+and the following player containment phase. No clock, timer, occupancy or
+geometry result is supplied.
+
+Territories now exercises all15 configured region/preset pairs on MCC Lockout
+in independent source worlds. Capture and defended occupancy preserve actual
+HUD progress and score banks. Hostile retake first publishes ownerNONE at the
+authored neutralization threshold, then assigns the new full player datum after
+the separate capture interval. For example3 Plots uses90+150 ordinary frames.
+The tests additionally observe real marker birth/registration, retirement of
+the neutralized marker and a new full generation on recapture. This remains
+declared-position integration, with complete match, remaining edited-rule,
+rendered/audio and source-mode replication acceptance tracked separately.
+Commands, original instruction receipts, source identities and results are in
+`analysis/multiplayer/game-variants/engine-zone-runtime-tu15-20261020`.
+
+The2026-10-21 Juggernaut follow-through qualifies all five authored presets
+through4,582 ordinary source frames: initial role selection, membership masks,
+actual trait queries and camouflage timers, role time, credited role transfer,
+role/hunter scoring, suicide reselection, genuine replacement units and retained
+departure. In2 on1, a queued fourth participant takes the first vacated unit
+slot. Original1601B0 correctly blocks the absent former holder until the test
+normally departs that spare participant; the configured cap is never changed.
+Shared original15F8B0 receives declared killer/victim/relationship/reporting
+inputs before actual physical cleanup. These cases do not qualify projectile
+hits, complete upstream attribution, full matches or mode replication.
+
+This pass also found that native session construction called69FF0 but omitted
+the rest of original new-map row23. Canonical multiplayer now calls whole692D0,
+which constructs the player/machine context and runs19A430 itself. Original
+retained recording therefore enables and records actual role-time/transfer/kill
+counters. Authenticated cold declarations now include the complete recording
+context, surrounding header/event storage, result-channel inputs, actual
+completed-result projection buffers and formatter operands. The original7
+weapon,2 PvP and32 award descriptors and their pointed names are also retained.
+No enabled flag, recorded counter, completed result row or formatted output is
+supplied by the adapter. Whole23975C writes the actual result projection.
+
+The separate recording-support module compiles76 original instructions across
+878C0 and the two retained-sort callbacks19DA10/19DA60 published by19DAB0.
+The existing877C0 and19BAA0 remain with their actual physics-live-support owner.
+Fresh source/data regeneration is byte-identical. Another816 complete unchanged
+original/native comparisons cover144 recipient admissions,576 award-writer
+calls and96 retained-sort calls, including all GP registers, retired stacks and
+tracked arithmetic flags. The fixture independently compares51,707 newly
+declared original cold bytes; the424-entry engine module and its1,164-case
+fixture remain unchanged.
+
+All15 objective carry/drop and all9 authored goal cases now pass with recording
+enabled and matching complete native/source retained banks. Every authored CTF
+records one flag-grab award and every authored Assault plant records one bomb
+plant. A further seven cases use normal aim/fire, genuine source units and
+weapons, authored clear position inputs and ordinary full frames. They reach
+actual1F2280 attribution and15F8B0 engine delivery, each publishing one kill and
+one death in both live and retained banks. The3 on1 hit transfers the role.
+These seven cases take1,113 frames; no vitality, damage, killer, callback result
+or collision removal is supplied. Raw look accumulators are steered from the
+completed original look state. This does not qualify every weapon, edited rule,
+full match or network mode. All39 enabled-recording startup/postgame cases now
+pass, including8,229 ordinary postgame frames, real header completion/freeze,
+all88 retained participant rows and40 occupied team rows in the original result
+projection. An explicit13B4A0 request starts these controlled endings;
+objective-driven winner acceptance remains open. The runtime/test files changed
+by this pass match the owned validated cohort, with independent source/data
+regeneration; concurrent live match/network/custom Defusal
+and other edits are preserved and remain outside that claim. The owner removed
+2,816,880 allocated KiB of private source/build/case storage; no large generated
+artifact is retained. Small cleanup, source-hash and concurrent-difference
+receipts remain with the evidence.
+Commands, source hashes and diagnostics are under
+`analysis/multiplayer/game-variants/engine-role-runtime-tu15-20261021`.
+
 The goal's objective includes **vanilla Halo 2's data-driven runtime**: make
 all seven game mode families, their 39 built-in variants and associated editable
 rules operational through functional original tag layouts, data types,
@@ -32,7 +263,7 @@ special cases for the 39 built-in names is not the completion target.
 
 The goal remains **active and incomplete**. All seven original game mode
 families, their 39 built-in variants, and the associated editable rules need
-working runtime behavior. The current start-action audit admits ordinary
+working runtime behavior. The recorded start-action audit admits ordinary
 free-for-all Slayer and Team Slayer. The other37 built-in variants remain
 explicitly blocked.
 Admission and startup alone do not establish a complete playable match.
@@ -231,7 +462,7 @@ IDs and engine callback registration are retained where source evidence
 requires them; authored tag values and references must still drive their
 runtime consumers.
 
-The current implementation is a mixture. It reads all39 authored rows from
+The current implementation is a mixture. It reads all 39 authored rows from
 `mainmenu.map`, preserves the304-byte settings contract and112 parameter
 descriptors, and follows actual cache references for map-default/SMG equipment.
 However, `slayer_rules` still gates other engines and many settings, and the
@@ -436,7 +667,7 @@ executes both images without replacing instructions or callback results:
 
 Retail initializer19D220, setter2373BE, getter2374F0 and normalizer19D650
 correspond to TU1A0A90,2394EA,23961C and1A0EC0. Descriptor tables470828 and477D10
-agree. Original instructions produce identical complete buffers for all39
+agree. Original instructions produce identical complete buffers for all 39
 authored variants,4368 built-in parameter reads, all seven defaults and1347
 boundary setter/getter cases. Authored override order and native map-key order
 produce the same buffers for these39 rows. Original normalization changes none
@@ -492,7 +723,7 @@ The unsupported-engine, equipment and rule gates remain: shared validation
 does not establish a runtime implementation for every source-valid setting.
 Zero native participant capacity and zero-interval team cycling also remain
 explicitly unresolved rather than receiving invented runtime semantics.
-The initial native map-key representation agreed with all39 original authored
+The initial native map-key representation agreed with all 39 original authored
 buffers but lost arbitrary reordered/duplicate writes. The ordered-setting
 recovery below replaces it. Original saved-variant codecs remain unrecovered.
 
@@ -542,7 +773,7 @@ default queries now use the shared source initializer and getter.
 unchanged retail/TU1.1 initializers, setters, getters and copy validators. Both
 images agree on3195 complete buffers and their queries/validity, covering all
 150 overlapping descriptor pairs in each of seven families, reversed/duplicate
-writes, all39 literal authored blocks and specific datatype/no-op cases. The
+writes, all 39 literal authored blocks and specific datatype/no-op cases. The
 no-locale environment is explicit. This oracle does not execute the complete
 tag builder, native menu callbacks or original preference codec.
 
@@ -1034,12 +1265,12 @@ recovered original callers remain unresolved.
 | Slayer | Rockets, Swords, Snipers | Starting weapon/sandbox |
 | Slayer | Phantoms | Motion sensor/camouflage and equipment rules |
 | Slayer | Elimination, Phantom Elim | Later rounds/full reset and remaining variant rules |
-| Oddball | Oddball, Rocketball, Swordball, Team Ball, Low Ball, Fiesta | Engine/objective lifecycle |
+| Oddball | Oddball, Rocketball, Swordball, Team Ball, Low Ball, Fiesta | Authored birth/pickup/carry/drop/scoring and representative fatal-hit recording pass; remaining edited rules, complete outcomes, output consumers and original mode transport stay open |
 | King | King, Team King, Phantom King, Crazy King, Team Crazy King | Live camouflage, authored hill/waypoint rendering, normal-world event handoff, complete retained publication and full match flows; bounded native scoring, HUD time text, announcer audio, recording and fragmented objective UDP verified |
-| Juggernaut | 2 on1,3 on1, Ninjanaut, Phantom Fodder, Dreadnaut | Engine/role lifecycle |
-| CTF | Multi Flag CTF, CTF Classic,1 Flag CTF,1 Flag CTF Fast | Engine/objective lifecycle |
-| Assault | Multi Bomb, Single Bomb, Single Bomb Fast, Neutral Bomb, Blast Resort | Engine/objective lifecycle |
-| Territories | 3 Plots, Land Grab, Gold Rush, Control Issues, Contention | Engine/objective lifecycle |
+| Juggernaut | 2 on1,3 on1, Ninjanaut, Phantom Fodder, Dreadnaut | All five pass ordinary role/time/trait/transfer/scoring/suicide/respawn/departure flows with declared shared death events; complete upstream attribution, edited rules, full outcomes, outputs and replication remain open |
+| CTF | Multi Flag CTF, CTF Classic,1 Flag CTF,1 Flag CTF Fast | All four pass authored carry/capture and recorded flag-grab awards; complete legality/returns/rounds, outputs and original mode transport remain open |
+| Assault | Multi Bomb, Single Bomb, Single Bomb Fast, Neutral Bomb, Blast Resort | All five pass authored carry/arm/plant/fuse/score and recorded plant awards; broader disarm/damage/outcome, output and original mode transport acceptance remain open |
+| Territories | 3 Plots, Land Grab, Gold Rush, Control Issues, Contention | All configured region cases pass capture/defend/two-stage retake and marker lifetimes; simultaneous zones, edited rules, complete outcomes, outputs and transport remain open |
 
 These are the first observed blockers, not an assertion that fixing each one
 alone completes its variants. The full authored overrides are retained in
@@ -1198,7 +1429,7 @@ life field without admitting Elimination or later rounds.
 signed32 configured limit, signed16 player+1AC count and original NONE sentinel.
 Initialization, the active-match decrement and player/team exhaustion queries
 come from whole retail/TU1.1/TU1.5 executions. All9,252 native comparisons pass;
-an independent execution reproduces every fixture/report byte and all39
+an independent execution reproduces every fixture/report byte and all 39
 reached-owner instruction listings.
 
 Native joins and deaths now own the count, the respawn timer receives the

@@ -1,6 +1,6 @@
-target_sources(halo2_systems PRIVATE src/native_tu15_player_startup_data.cpp)
+target_sources(halo2_systems PRIVATE src/gameplay/units/native_tu15_player_startup_data.cpp)
 if(BUILD_TESTING)
-    target_sources(native_tu15_network_link_tests PRIVATE src/native_tu15_player_startup_data.cpp)
+    target_sources(native_tu15_network_link_tests PRIVATE src/gameplay/units/native_tu15_player_startup_data.cpp)
     add_test(NAME native_tu15_player_startup_callback COMMAND native_tu15_network_link_tests --frontier players)
     add_test(NAME original_tu15_player_startup_callback COMMAND native_tu15_network_link_tests --frontier players
         --input-devices none

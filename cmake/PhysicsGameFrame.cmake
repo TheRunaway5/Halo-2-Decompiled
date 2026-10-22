@@ -1,5 +1,5 @@
 # Original outer frame, including source FP controls and object synchronization.
-target_sources(halo2_physics_world_runtime PRIVATE src/physics_game_frame_runtime.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/physics/physics_game_frame_runtime.cpp)
 if(BUILD_TESTING)
     add_executable(physics_game_frame_runtime_tests tests/physics_game_frame_runtime_tests.cpp)
     target_link_libraries(physics_game_frame_runtime_tests PRIVATE halo2_physics_world_runtime nlohmann_json::nlohmann_json)

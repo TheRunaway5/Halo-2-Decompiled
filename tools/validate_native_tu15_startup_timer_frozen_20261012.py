@@ -15,7 +15,7 @@ def main():
  for name,pin in m['files'].items():assert sha(source/name)==pin,name
  drift={name:dict(compiled_sha256=pin,current_sha256=sha(ROOT/name)) for name,pin in m['files'].items() if sha(ROOT/name)!=pin}
  # New implementation and oracle inputs must still equal this tested cohort.
- for name in ('include/halo2/native_tu15_startup_timer.hpp','src/native_tu15_startup_timer.cpp','src/native_tu15_power_dpc_generated.cpp','tests/native_tu15_startup_timer_tests.cpp','cmake/NativeTu15StartupTimer.cmake','tools/oracle_native_tu15_startup_timer_20261012.py','tools/generate_native_tu15_power_dpc_20261012.py'):
+ for name in ('include/halo2/native_tu15_startup_timer.hpp','src/platform/native_tu15_startup_timer.cpp','src/platform/native_tu15_power_dpc_generated.cpp','tests/native_tu15_startup_timer_tests.cpp','cmake/NativeTu15StartupTimer.cmake','tools/oracle_native_tu15_startup_timer_20261012.py','tools/generate_native_tu15_power_dpc_20261012.py'):
   assert name not in drift,name
  assert sha(source/'CMakeLists.txt')==m['top_sha256'] and sha(E/'dependencies.d')==m['dependencies_sha256']
  parent=E.parent/'native-tu15-startup-platform-20261012/source-manifest-v1.json';assert sha(parent)==m['parent_manifest_sha256'];p=read(parent)
@@ -49,7 +49,7 @@ def main():
   if d['boundary']:assert d['boundary']['target']==0x80000168 and d['boundary']['frame']=='ac002e00'
  g=read(E/'generated-v1.json');assert g==read(E/'generated-repeat.json')
  assert g['generator_sha256']==sha(source/'tools/generate_native_tu15_power_dpc_20261012.py')
- assert g['generated_sha256']==sha(source/'src/native_tu15_power_dpc_generated.cpp')==sha(E/'power-dpc-repeat.cpp')
+ assert g['generated_sha256']==sha(source/'src/platform/native_tu15_power_dpc_generated.cpp')==sha(E/'power-dpc-repeat.cpp')
  assert g['sites']==4 and not g['production_decoder'] and not g['production_original_code_execution']
  builds={};expected={'native_tu15_startup_without_bios','native_tu15_startup_timer','original_runtime_image_tu15'}
  for mode in ('release','sanitizer'):

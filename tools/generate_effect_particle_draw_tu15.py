@@ -18,7 +18,7 @@ ENTRIES=(0xbcdf0,0x1e0f0,0x1e4c0,0x140c80,0x140cf0,0x135970,0x136ea0,0x1373f0,0x
          0x4020d0,0x12d30,0x12f80,0x2bcb0,0x289c0,0x15c030,0x13610,
          0x132b0,0x15350,0x3ff670)
 def main():
-    ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--output',type=Path,default=Path('src/source_effect_particle_draw_tu15_generated.cpp'));ap.add_argument('--directory',type=Path,required=True);a=ap.parse_args();assert sha(NEW_DEFAULT)==NEW_PIN
+    ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--output',type=Path,default=Path('src/rendering/effects/source_effect_particle_draw_tu15_generated.cpp'));ap.add_argument('--directory',type=Path,required=True);a=ap.parse_args();assert sha(NEW_DEFAULT)==NEW_PIN
     image=Xbe(NEW_DEFAULT);code=QueryCode(image);sites,instructions,addresses,routines={},{},{},[]
     assert int.from_bytes(image.read(0x46d990,4),'little')==0x380fa0
     # Authenticated TU1.5 direct callers, the queue producer and actual

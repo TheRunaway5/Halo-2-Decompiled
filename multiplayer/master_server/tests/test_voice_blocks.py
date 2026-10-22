@@ -3,6 +3,7 @@ import unittest
 from dataclasses import replace
 from . import test_clans_http as clans
 from . import test_match_transport as match
+from .voice_signing import sign_voice
 
 
 def numeric_owners(directory):
@@ -76,6 +77,7 @@ class MatchVoiceBlockTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual((await asyncio.wait_for(queue.get(), 2))["phase"], "running")
         h = next(i for i, d in enumerate(descriptors) if d["slot"] == host)
         c, d = [i for i in range(3) if i != h]
+        room = self.api.transport.rooms[descriptors[0]['id']]
         async def blocks(actor, target):
             response = await self.client.put("/v1/account/voice-blocks", headers={"Authorization": "Bearer " + names[actor]},
                 json={"blocked": [] if target is None else [owners[names[target]]]})
@@ -83,7 +85,7 @@ class MatchVoiceBlockTests(unittest.IsolatedAsyncioTestCase):
         async def mask(i, value):
             self.assertEqual(await asyncio.wait_for(queues[i].get(), 2), {"voice_blocked": value})
         def audio(source):
-            return b"H2N2\x1c\0\x06\0" + bytes([descriptors[source]["slot"]]) + b"\0" * 14
+            return sign_voice(room, b"H2N2\x1c\0\x06\0" + bytes([descriptors[source]["slot"]]) + b"\0" * 14)
         await blocks(h, c)
         await mask(h, 1 << descriptors[c]["slot"])
         await mask(c, 1 << host)

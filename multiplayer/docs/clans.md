@@ -1,5 +1,12 @@
 # Native clans and Discord accounts
 
+Asset-policy update, 2026-10-21: all delivered clan/ONLINE fonts, bitmaps and
+prompts must come from MCC imports. Vista/TU1.5 supply reference evidence only.
+The older donor-specific captures below preserve source geometry/service
+evidence, not current MCC-only asset or launcher acceptance. U01/U02/D01,
+complete shader/movie ownership and physical/fresh-delivery checks remain open
+in [the maintained goal](online-completion-goal.md).
+
 The native ONLINE gate verifies the existing Discord PKCE authorization against
 `https://master.halotoforever.com` before admitting the player. No client secret,
 bot token, password, email permission or Discord guild membership is needed.
@@ -19,11 +26,12 @@ hidden. Voice status appears only for the opt-in clan voice connection.
 The source implementation also supports a separate presence label in the
 authored status row: ONLINE, Offline, or Playing Halo 2. A response from an older
 server leaves that label unknown rather than inventing an offline status.
-Original controls sample the launcher's imported Vista HD artwork/fonts;
-ONLINE uses the actual Vista shell background and framing. The clan roster
-retains the authored480-pixel layout with eight41-pixel rows and its own heading
-fields; Vista sampling does not stretch those bounds. Full100-member and scrolled
-rosters were captured at4:3,16:9,16:10 and ultrawide sizes.
+The historical Vista-bank controls sampled its HD artwork/fonts and shell
+framing. Those captures established the authored480-pixel clan layout with
+eight41-pixel rows and separate heading fields; sampling did not stretch those
+bounds. Full100-member and scrolled rosters were captured at4:3,16:9,16:10 and
+ultrawide sizes. The current delivered route must preserve those reference
+dimensions using authenticated MCC UI/font owners, with its own screen checks.
 
 Clan Options also offers **Join Clan Voice**. Hold **V** to talk while the game
 window has focus; typing in the keyboard pauses transmission. Mute Microphone

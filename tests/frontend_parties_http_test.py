@@ -7,6 +7,7 @@ import sys
 import tempfile
 import uuid
 from frontend_test_ports import callback_port
+from helpers.mcc_online_ui import ui_arguments
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -17,7 +18,13 @@ from multiplayer.master_server.player_identity import VerifiedOwner
 
 
 async def main():
-    captures = Path(sys.argv[sys.argv.index("--capture")+1]) if "--capture" in sys.argv else None
+    try:
+        assets = ui_arguments(ROOT, sys.argv[2:])
+    except ValueError as error:
+        print("ONLINE UI configuration failed: " + str(error), file=sys.stderr)
+        return 1
+    native_options = assets.forwarded
+    captures = Path(native_options[native_options.index("--capture")+1]) if "--capture" in native_options else None
     if captures:
         captures.mkdir(parents=True, exist_ok=True)
         for name in ("request-full-party", "full-party-complete"):
@@ -74,9 +81,9 @@ async def main():
                     await asyncio.sleep(1)
             task = asyncio.create_task(partner())
             env = os.environ | dict(SDL_AUDIODRIVER="dummy", HTTP_PROXY="http://127.0.0.1:1", NO_PROXY="", no_proxy="")
-            process = await asyncio.create_subprocess_exec(str(Path(sys.argv[1]).resolve()), str(ROOT/"assets/disc/maps"),
-                "--asset-sources", str(ROOT/"assets/asset-sources.tsv"), "--party-url", str(client.make_url("/")).rstrip("/"),
-                "--callback-port",callback_port(),*sys.argv[2:], stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, env=env)
+            process = await asyncio.create_subprocess_exec(str(Path(sys.argv[1]).resolve()), *assets.source,
+                "--party-url", str(client.make_url("/")).rstrip("/"),
+                "--callback-port",callback_port(),*native_options, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, env=env)
             try:
                 out, err = await asyncio.wait_for(process.communicate(), 600)
                 print(out.decode(), end="")
@@ -89,7 +96,8 @@ async def main():
                 await command(peer, "leave", version=party["version"])
                 directory = next(iter(app.values()))
                 assert directory.store.db.execute("SELECT count(*) FROM parties").fetchone()[0] == 0
-                print("PASS native party creation/invite/accept/leader transfer/leave, duplicate chosen names, private identity and Vista asset rendering")
+                print("PASS native party creation/invite/accept/leader transfer/leave, duplicate chosen names, private identity and " +
+                      ("MCC-only imported UI inputs" if assets.mcc_cache else "Vista asset rendering"))
             finally:
                 task.cancel()
                 with contextlib.suppress(asyncio.CancelledError):

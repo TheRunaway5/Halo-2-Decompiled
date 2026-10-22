@@ -8,7 +8,7 @@ from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
 from generate_physics_live_support_tu15 import generate,sha
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--directory',type=Path,required=True)
-parser.add_argument('--output',type=Path,default=Path('src/source_effect_light_view_tu15_generated.cpp'))
+parser.add_argument('--output',type=Path,default=Path('src/rendering/effects/source_effect_light_view_tu15_generated.cpp'))
 args=parser.parse_args();BASE=args.directory;BASE.mkdir(parents=True,exist_ok=True)
 ENTRIES=(0xc2a80,0xc3300,0xc35d0,0x16ea60)
 assert sha(NEW_DEFAULT)==NEW_PIN

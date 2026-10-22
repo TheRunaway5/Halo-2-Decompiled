@@ -9,6 +9,13 @@ inline constexpr float gameplay_camera_angle_scale=.8949999809265137f;
 // MCC 7E0F35/7E0F3D replaces the world camera's vertical angle in the
 // first-person pass, independently of the FOV slider and scope magnification.
 inline constexpr float gameplay_first_person_projection_angle=.8655884265899658f;
+inline float gameplay_first_person_camera_angle(float authored,const SourceViewGrid &layout) {
+    // MCC's fixed lens belongs to its single local view. For split-screen,
+    // retain TU1.5 174BF0 -> 2F7E0's authored, unzoomed grid/span lens. Applying
+    // the single-view lens to a horizontal pane exposes the launcher's rear.
+    if(layout.grid==std::array<std::int16_t,2>{1,1})return gameplay_first_person_projection_angle;
+    return source_camera_angles(authored,1.3333333730697632f,layout.grid,layout.span).projection_angle;
+}
 inline float gameplay_field_of_view(unsigned degrees) {
     return float(std::clamp(degrees,minimum_field_of_view,maximum_field_of_view))*.01745329238474369f;
 }

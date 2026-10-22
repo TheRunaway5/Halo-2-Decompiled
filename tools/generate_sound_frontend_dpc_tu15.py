@@ -17,7 +17,7 @@ ENTRIES=[0x38918c,0x3890f0,0x388978,0x388915,0x38cad7,0x3894e7,
          0x383d40,0x383d70,0x383d92,0x38e574,0x38524f,0x383dec]
 
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--manifest',type=Path,required=True);p.add_argument('--data-output',type=Path,default=Path('src/native_tu15_sound_frontend_dpc_data.cpp'));a=p.parse_args()
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--manifest',type=Path,required=True);p.add_argument('--data-output',type=Path,default=Path('src/audio/native_tu15_sound_frontend_dpc_data.cpp'));a=p.parse_args()
  image=Xbe(NEW_DEFAULT);assert hashlib.sha256(image.data).hexdigest()==NEW_PIN;code=_Code(image,'DSOUND')
  bodies={e:_trace(code,e,set(ENTRIES)) for e in ENTRIES};assert not any(b.tables for b in bodies.values())
  instructions={};addresses={}
@@ -73,6 +73,6 @@ def main():
  manual={f'{pc:08x}':image.read(pc,code.at(pc).size).hex() for pc in manual_sites}
  data=dict(original_xbe_sha256=NEW_PIN,ranges=[dict(source=pc,size=size,hex=image.read(pc,size).hex()) for pc,size in ranges],data_cpp_sha256=hashlib.sha256(a.data_output.read_bytes()).hexdigest())
  a.manifest.with_name('data-manifest.json').write_text(json.dumps(data,indent=2)+'\n')
- report=json.loads(a.manifest.read_text());report.update(manual_instruction_bytes=manual,manual_cpp_sha256=hashlib.sha256(Path('src/source_sound_pending_aggregate_tu15.cpp').read_bytes()).hexdigest(),sound_frontend_dpc_generator_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),generated_cpp_sha256=hashlib.sha256(a.output.read_bytes()).hexdigest());a.manifest.write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')
+ report=json.loads(a.manifest.read_text());report.update(manual_instruction_bytes=manual,manual_cpp_sha256=hashlib.sha256(Path('src/audio/source_sound_pending_aggregate_tu15.cpp').read_bytes()).hexdigest(),sound_frontend_dpc_generator_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),generated_cpp_sha256=hashlib.sha256(a.output.read_bytes()).hexdigest());a.manifest.write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')
  print(json.dumps(dict(bodies=len(ENTRIES),instructions=len(instructions))))
 if __name__=='__main__':main()

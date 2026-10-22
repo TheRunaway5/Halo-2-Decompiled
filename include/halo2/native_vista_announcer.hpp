@@ -31,13 +31,47 @@ struct NativeVistaAnnouncerSnapshot {
   bool game_over_published;
   bool pending_start_boundary;
   bool muted;
+  std::uint32_t next_token{};
+  std::uint8_t published_byte{};
 };
 
 // Native join of the separately verified PC event/queue bodies and actual SDL
 // voices. The retained PC Cache owns its distinct sound datum namespace. The
 // 32-bit queue token is an explicit native adapter, never a narrowed voice ID.
 class NativeVistaAnnouncer {
+  struct State;
+  struct SnapshotData;
+  struct PreparedData;
 public:
+  class Checkpoint {
+  public:
+    Checkpoint()=default;
+  private:
+    std::shared_ptr<const SnapshotData> data_;
+    friend class NativeVistaAnnouncer;
+  };
+  class PreparedReplacement {
+  public:
+    PreparedReplacement()=default;
+    ~PreparedReplacement();
+    PreparedReplacement(PreparedReplacement&&) noexcept;
+    PreparedReplacement& operator=(PreparedReplacement&&) noexcept;
+    PreparedReplacement(const PreparedReplacement&)=delete;
+  private:
+    std::shared_ptr<PreparedData> data_;
+    friend class NativeVistaAnnouncer;
+  };
+  class HeldPublication {
+  public:
+    ~HeldPublication();
+    HeldPublication(const HeldPublication&)=delete;
+    HeldPublication(HeldPublication&&)=delete;
+  private:
+    struct Impl;
+    explicit HeldPublication(std::unique_ptr<Impl>);
+    std::unique_ptr<Impl> impl_;
+    friend class NativeVistaAnnouncer;
+  };
   static std::unique_ptr<NativeVistaAnnouncer> open(NativeVistaAnnouncerConfiguration);
   ~NativeVistaAnnouncer();
   NativeVistaAnnouncer(const NativeVistaAnnouncer&)=delete;
@@ -69,7 +103,9 @@ public:
   std::vector<VistaAnnouncerAudioSelection> post_world_tick(bool engine_present,
       std::uint8_t actual_world_mode,bool game_over,std::uint32_t actual_tick,
       std::span<const VistaAnnouncerLocalPlayer>);
-  // Genuine packet accounting and gains, callable by the render thread.
+  // Genuine packet accounting and gains. Ordinary playback permits a render
+  // producer. Explicit continuation enrollment routes all producers through
+  // the constructing executor, including this accounting call.
   void audio_update(float actual_master_volume,
       const std::array<float,sound_class_count>& actual_class_gains);
   void stop();
@@ -78,8 +114,18 @@ public:
   const Cache& audio_cache() const;
   // Only an explicitly Manual SDL configuration admits this test provider.
   std::vector<float> render_manual(std::size_t frames);
+  // Opt in before any playback. The actual MCC producer route is synchronous
+  // with the native simulation/runtime loop; ordinary owners keep their prior
+  // mutex-serialized producer behavior until this succeeds.
+  void enroll_continuation();
+  Checkpoint checkpoint() const;
+  PreparedReplacement prepare_restore(const Checkpoint&) const;
+  // Takes announcer producer exclusion before its actual Core/SDL endpoint.
+  // Normal methods must not be called while this nontransferable hold exists.
+  HeldPublication hold_publication(PreparedReplacement&);
+  bool ready(const PreparedReplacement&,const HeldPublication&) const noexcept;
+  bool commit(PreparedReplacement&,HeldPublication&) noexcept;
 private:
-  struct State;
   explicit NativeVistaAnnouncer(std::shared_ptr<State>);
   std::shared_ptr<State> state_;
 };

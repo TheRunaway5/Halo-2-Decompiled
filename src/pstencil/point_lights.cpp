@@ -4,7 +4,12 @@
 #include "halo2/posed_collision.hpp"
 #include <algorithm>
 #include <bit>
+#include <exception>
+#include <limits>
 #include <set>
+#include <thread>
+#include <type_traits>
+#include <utility>
 
 namespace halo2::pstencil {
 namespace {
@@ -23,6 +28,44 @@ struct PointLights::Impl {
     std::map<std::uint32_t,std::vector<Attachment>> attachments;
     std::map<std::tuple<std::uint32_t,unsigned,unsigned>,Live> live;
     std::set<std::string> gaps;
+    std::optional<std::uint64_t> tick;
+    const std::thread::id executor=std::this_thread::get_id();
+    const std::shared_ptr<const void> owner=std::make_shared<const unsigned char>(0);
+    std::uint64_t revision{};
+    bool busy{},complete=true;
+    struct Dynamic {
+        SourceEffectLightDatumPool pool;
+        SourceEffectLightSpatialPool spatial;
+        SourceEffectLightQueryState queries;
+        std::array<SourceShadowSelectionCache,4> selection;
+        std::map<std::tuple<std::uint32_t,unsigned,unsigned>,Live> live;
+        std::set<std::string> gaps;
+        std::optional<std::uint64_t> tick;
+        explicit Dynamic(const Impl &s):pool(s.pool),spatial(s.spatial),queries(s.queries),selection(s.selection),
+            live(s.live),gaps(s.gaps),tick(s.tick){}
+        void exchange(Impl &s)noexcept {
+            static_assert(std::is_nothrow_swappable_v<SourceEffectLightDatumPool>);
+            static_assert(std::is_nothrow_swappable_v<SourceEffectLightSpatialPool>);
+            static_assert(std::is_nothrow_swappable_v<SourceEffectLightQueryState>);
+            static_assert(std::is_nothrow_swappable_v<decltype(selection)>);
+            using std::swap;swap(pool,s.pool);swap(spatial,s.spatial);swap(queries,s.queries);swap(selection,s.selection);
+            live.swap(s.live);gaps.swap(s.gaps);swap(tick,s.tick);
+        }
+    };
+    void own()const {
+        if(executor!=std::this_thread::get_id())throw FormatError("pStencil point lights crossed their executor");
+    }
+    void quiescent()const {own();if(busy)throw FormatError("pStencil point lights have an active mutation");}
+    struct Mutation {
+        Impl &state;const int exceptions=std::uncaught_exceptions();
+        explicit Mutation(Impl &s):state(s){
+            s.own();if(s.revision==std::numeric_limits<std::uint64_t>::max())throw FormatError("pStencil point-light revision exhausted");
+            ++s.revision;if(s.busy)throw FormatError("pStencil point-light mutation is reentrant");
+            s.busy=true;s.complete=false;
+        }
+        ~Mutation(){state.complete=std::uncaught_exceptions()==exceptions;state.busy=false;}
+        Mutation(const Mutation&)=delete;Mutation& operator=(const Mutation&)=delete;
+    };
     SourceEffectLightLifetimeWorld inputs(std::uint64_t tick)const {
         return {locations,memberships,terrain.bsps.at(0),cache.original_data()->fade_curve,
             std::uint32_t(tick),queries.epoch,30,std::int16_t(bsp),true};
@@ -68,12 +111,50 @@ struct PointLights::Impl {
 };
 PointLights::PointLights(const Cache& c,unsigned bsp):impl_(std::make_unique<Impl>(c,bsp)){}
 PointLights::~PointLights()=default;
-bool PointLights::has(std::uint32_t d)const{return impl_->attachments.contains(d);}
+struct PointLights::Checkpoint::Data {
+    std::weak_ptr<const void> owner;std::thread::id executor;Impl::Dynamic state;
+};
+struct PointLights::PreparedRestore::Data {
+    std::weak_ptr<const void> owner;std::thread::id executor;std::uint64_t revision{};
+    Impl::Dynamic replacement;bool consumed{};
+};
+bool PointLights::Checkpoint::valid()const noexcept{return data_&&!data_->owner.expired();}
+std::optional<std::uint64_t> PointLights::Checkpoint::tick()const noexcept{return data_?data_->state.tick:std::nullopt;}
+PointLights::Checkpoint PointLights::checkpoint()const {
+    const auto &s=*impl_;s.quiescent();if(!s.complete)throw FormatError("pStencil point-light checkpoint requires a completed mutation");
+    Checkpoint out;out.data_=std::make_shared<const Checkpoint::Data>(Checkpoint::Data{s.owner,s.executor,Impl::Dynamic(s)});return out;
+}
+bool PointLights::owns_checkpoint(const Checkpoint &cut)const noexcept {
+    return impl_&&impl_->executor==std::this_thread::get_id()&&cut.data_&&cut.data_->owner.lock()==impl_->owner&&
+        cut.data_->executor==impl_->executor;
+}
+PointLights::PreparedRestore::PreparedRestore()=default;
+PointLights::PreparedRestore::~PreparedRestore()=default;
+PointLights::PreparedRestore::PreparedRestore(PreparedRestore&&)noexcept=default;
+PointLights::PreparedRestore& PointLights::PreparedRestore::operator=(PreparedRestore&&)noexcept=default;
+PointLights::PreparedRestore PointLights::prepare_restore(const Checkpoint &cut)const {
+    const auto &s=*impl_;s.quiescent();if(!owns_checkpoint(cut)||s.revision==std::numeric_limits<std::uint64_t>::max())
+        throw FormatError("pStencil point-light checkpoint belongs to a different resident owner");
+    PreparedRestore out;out.data_=std::make_unique<PreparedRestore::Data>(PreparedRestore::Data{
+        s.owner,s.executor,s.revision,cut.data_->state,false});return out;
+}
+bool PointLights::restore_ready(const PreparedRestore &prepared)const noexcept {
+    if(!impl_||impl_->executor!=std::this_thread::get_id())return false;const auto *p=prepared.data_.get();
+    return !impl_->busy&&p&&!p->consumed&&p->owner.lock()==impl_->owner&&p->executor==impl_->executor&&
+        p->revision==impl_->revision&&impl_->revision!=std::numeric_limits<std::uint64_t>::max();
+}
+bool PointLights::commit_restore(PreparedRestore &prepared)noexcept {
+    if(!restore_ready(prepared))return false;auto &s=*impl_;auto &p=*prepared.data_;
+    p.replacement.exchange(s);p.consumed=true;++s.revision;s.complete=true;return true;
+}
+bool PointLights::has(std::uint32_t d)const{impl_->own();return impl_->attachments.contains(d);}
 std::vector<std::uint32_t> PointLights::definitions()const {
+    impl_->own();
     std::vector<std::uint32_t> out;for(const auto& [id,d]:impl_->definitions)out.push_back(id);return out;
 }
-std::vector<std::string> PointLights::unavailable()const{return {impl_->gaps.begin(),impl_->gaps.end()};}
+std::vector<std::string> PointLights::unavailable()const{impl_->own();return {impl_->gaps.begin(),impl_->gaps.end()};}
 void PointLights::synchronize(std::span<const PointLightOwner> owners,std::uint64_t tick) {
+    Impl::Mutation mutation(*impl_);
     auto& i=*impl_;std::set<std::tuple<std::uint32_t,unsigned,unsigned>> present;
     for(const auto& owner:owners) {
         const auto bank=i.attachments.find(owner.definition);if(bank==i.attachments.end())continue;
@@ -166,9 +247,11 @@ void PointLights::synchronize(std::span<const PointLightOwner> owners,std::uint6
         if(!present.contains(at->first)){source_standalone_effect_light_delete(i.pool,i.spatial,at->second.light);at=i.live.erase(at);}
         else ++at;
     }
+    i.tick=tick;
 }
 SourceEffectLightView PointLights::view(Vec3 camera,const SourceEffectLightCollectionContext& collection,
     const SourceEffectLightCandidateContext& candidates,std::int32_t frame) {
+    Impl::Mutation mutation(*impl_);
     auto& i=*impl_;const SourceEffectLightDefinitions definition=[&](auto id)->const EffectLightDefinition&{return i.definitions.at(id);};
     source_effect_lights_update_view(i.pool,definition,camera);
     auto result=source_effect_lights_query(i.pool,i.spatial,definition,i.queries,SourceEffectLightQueryKind::Main,collection);
@@ -176,6 +259,7 @@ SourceEffectLightView PointLights::view(Vec3 camera,const SourceEffectLightColle
 }
 std::vector<WorldEffectLightReceiver> PointLights::receivers(const SourceEffectLightView& lights,
     const SourceBspAdmissionBsp& geometry,std::span<const std::uint8_t> fog,const SourceBspAdmission* main) {
+    Impl::Mutation mutation(*impl_);
     auto& i=*impl_;std::vector<WorldEffectLightReceiver> out;
     const SourceEffectLightReceiverWorld world{i.memberships,geometry,i.locations,std::int16_t(i.bsp)};
     for(const auto& selected:lights.selected) {
@@ -190,6 +274,7 @@ std::vector<WorldEffectLightReceiver> PointLights::receivers(const SourceEffectL
     return out;
 }
 std::vector<WorldEffectLight> PointLights::lights()const {
+    impl_->own();
     const auto& i=*impl_;std::vector<WorldEffectLight> out;
     for(const auto& [key,live]:i.live) {
         const auto light=source_standalone_effect_light(i.pool,live.light);const auto& d=i.definitions.at(live.definition);

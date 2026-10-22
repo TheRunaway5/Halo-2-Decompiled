@@ -21,7 +21,7 @@ class CairoFactsTests(unittest.TestCase):
             GENERATOR.generated(changed)
 
     def test_current_generated_facts(self):
-        self.assertEqual(GENERATOR.generated(PROFILE),(ROOT/'src/mcc_cairo_vanilla_authoring.inc').read_text())
+        self.assertEqual(GENERATOR.generated(PROFILE),(ROOT/'src/campaign/mcc_cairo_vanilla_authoring.inc').read_text())
 
     def test_sound_call_namespaces_and_owners(self):
         for i,sound in enumerate(PROFILE['sound_removals']):

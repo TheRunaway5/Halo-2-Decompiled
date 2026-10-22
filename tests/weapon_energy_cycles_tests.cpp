@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #include "halo2/multiplayer.hpp"
 #include <bit>
 #include <fstream>
@@ -53,8 +54,8 @@ int main(int argc,char **argv)try {
         match->configure_local_views(views,definitions);
       }
       std::array<Controls,16> idle{};
-      match->debug_request({DebugGameRequest::Teleport,player},&placement);match->step(idle);
-      match->debug_request({DebugGameRequest::Teleport,player},&placement);
+      test::place_player(*match,player,placement);match->step(idle);
+      test::place_player(*match,player,placement);
       idle[player].pickup=true;idle[player].pickup_milliseconds=233;match->step(idle);
       if(match->unit(player).weapon.definition!=weapon->first)throw FormatError("Declared energy pickup did not attach: "+name);
       idle[player]={};

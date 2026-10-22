@@ -1,3 +1,4 @@
+#include "helpers/gameplay_fixture.hpp"
 #include "halo2/multiplayer.hpp"
 #include "halo2/native_weapon_inventory.hpp"
 #include <bit>
@@ -50,12 +51,12 @@ int main(int argc,char **argv)try {
         throw FormatError("Dual fixture lost its actual represented biped");
       match->configure_replicated_first_person(cache.load_first_person_binding(weapon->first,int(representation)));
       std::array<Controls,16> controls{};
-      match->debug_request({DebugGameRequest::Teleport,player},&spawn);match->step(controls);
-      match->debug_request({DebugGameRequest::Teleport,player},&spawn);
+      test::place_player(*match,player,spawn);match->step(controls);
+      test::place_player(*match,player,spawn);
       if(primary_pickup) {
         controls[player].pickup=true;controls[player].pickup_milliseconds=233;match->step(controls);
         controls[player]={};for(unsigned n=0;n<120;++n)match->step(controls);
-        match->debug_request({DebugGameRequest::Teleport,player},&spawn);
+        test::place_player(*match,player,spawn);
       }
       controls[player].dual_wield=true;controls[player].dual_wield_milliseconds=233;match->step(controls);
       controls[player]={};

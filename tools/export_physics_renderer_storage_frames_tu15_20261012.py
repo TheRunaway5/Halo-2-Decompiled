@@ -21,7 +21,7 @@ def main():
    actual=nc.at(row['later']);assert actual.mnemonic=='call' and actual.operands[0].type==2
    frames.append(dict(site=i.address,target=actual.operands[0].imm,return_address=actual.address+actual.size,module=module,entry=entry))
  assert frames
- h=ROOT/'src/physics_renderer_storage_call_frames.hpp'
+ h=ROOT/'src/physics/physics_renderer_storage_call_frames.hpp'
  s='#pragma once\n#include <array>\n#include <cstdint>\nnamespace halo2::physics_renderer_storage_frames {\nenum class Module { Pool, Heap, Required };\nstruct Frame {std::uint32_t site,target,return_address,entry;Module module;};\ninline constexpr std::array<Frame,'+str(len(frames))+'> frames{{\n'
  for f in frames:s+=f'{{0x{f["site"]:x}u,0x{f["target"]:x}u,0x{f["return_address"]:x}u,0x{f["entry"]:x}u,Module::{f["module"]}}},\n'
  s+='}};\n} // namespace halo2::physics_renderer_storage_frames\n';h.write_text(s)

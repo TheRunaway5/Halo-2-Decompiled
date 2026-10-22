@@ -1,0 +1,611 @@
+{
+  "schema": "halo2-native-bomb-defusal-sites-v1",
+  "provenance": "Newly authored A/B layouts referencing existing MCC scenario markers. Checked against imported BSP floors; competitive balance requires played matches. No map bytes are modified.",
+  "maps": [
+    {
+      "name": "Turf",
+      "scenario": "scenarios\\multi\\turf\\turf",
+      "team_size": 4,
+      "sites": [
+        {
+          "name": "Warehouse",
+          "marker": {
+            "index": 0,
+            "type": 10,
+            "team": 0,
+            "position": [
+              -6.138090133666992,
+              11.510000228881836,
+              -0.04054899886250496
+            ]
+          }
+        },
+        {
+          "name": "Street",
+          "marker": {
+            "index": 2,
+            "type": 10,
+            "team": 0,
+            "position": [
+              10.443038940429688,
+              -5.995398998260498,
+              0.062499966472387314
+            ]
+          }
+        }
+      ],
+      "spawns": [
+        {
+          "index": 14,
+          "type": 2,
+          "team": 0,
+          "position": [
+            -10.909616470336914,
+            -11.172764778137207,
+            2.5325469970703125
+          ]
+        },
+        {
+          "index": 11,
+          "type": 2,
+          "team": 1,
+          "position": [
+            11.331740379333496,
+            12.264913558959961,
+            0.06250032782554626
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Ivory Tower",
+      "scenario": "scenarios\\multi\\cyclotron\\cyclotron",
+      "team_size": 4,
+      "sites": [
+        {
+          "name": "West wing",
+          "marker": {
+            "index": 15,
+            "type": 10,
+            "team": 0,
+            "position": [
+              -9.5,
+              9.5,
+              0.36250120401382446
+            ]
+          }
+        },
+        {
+          "name": "East wing",
+          "marker": {
+            "index": 11,
+            "type": 10,
+            "team": 0,
+            "position": [
+              11.699999809265137,
+              5.199999809265137,
+              -0.9374987483024597
+            ]
+          }
+        }
+      ],
+      "spawns": [
+        {
+          "index": 8,
+          "type": 2,
+          "team": 0,
+          "position": [
+            0.0,
+            -5.75,
+            -0.13749001920223236
+          ]
+        },
+        {
+          "index": 7,
+          "type": 2,
+          "team": 1,
+          "position": [
+            0.0,
+            13.5,
+            -1.487513780593872
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sanctuary",
+      "scenario": "scenarios\\multi\\deltatap\\deltatap",
+      "team_size": 4,
+      "sites": [
+        {
+          "name": "Blue base",
+          "marker": {
+            "index": 18,
+            "type": 10,
+            "team": 8,
+            "position": [
+              -0.008866737596690655,
+              -3.4828362464904785,
+              1.462490200996399
+            ]
+          }
+        },
+        {
+          "name": "West walkway",
+          "marker": {
+            "index": 22,
+            "type": 10,
+            "team": 8,
+            "position": [
+              -9.876785278320312,
+              9.697726249694824,
+              0.3913448452949524
+            ]
+          }
+        }
+      ],
+      "spawns": [
+        {
+          "index": 9,
+          "type": 2,
+          "team": 0,
+          "position": [
+            0.013647311367094517,
+            31.261146545410156,
+            1.462490200996399
+          ]
+        },
+        {
+          "index": 10,
+          "type": 2,
+          "team": 1,
+          "position": [
+            -0.0047044879756867886,
+            -3.4863951206207275,
+            1.462490200996399
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Beaver Creek",
+      "scenario": "scenarios\\multi\\halo\\beavercreek\\beavercreek",
+      "team_size": 4,
+      "sites": [
+        {
+          "name": "Blue base",
+          "marker": {
+            "index": 13,
+            "type": 3,
+            "team": 1,
+            "position": [
+              16.40999984741211,
+              -0.029999999329447746,
+              -0.13749989867210388
+            ]
+          }
+        },
+        {
+          "name": "Creek",
+          "marker": {
+            "index": 17,
+            "type": 10,
+            "team": 0,
+            "position": [
+              1.106644868850708,
+              1.2958089113235474,
+              -0.8152129650115967
+            ]
+          }
+        }
+      ],
+      "spawns": [
+        {
+          "index": 7,
+          "type": 2,
+          "team": 0,
+          "position": [
+            -14.399999618530273,
+            -0.07000000029802322,
+            -0.14481113851070404
+          ]
+        },
+        {
+          "index": 8,
+          "type": 2,
+          "team": 1,
+          "position": [
+            16.40999984741211,
+            -0.029999999329447746,
+            -0.13749994337558746
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Tombstone",
+      "scenario": "scenarios\\multi\\halo\\highplains\\highplains",
+      "team_size": 4,
+      "sites": [
+        {
+          "name": "Upper base",
+          "marker": {
+            "index": 14,
+            "type": 10,
+            "team": 8,
+            "position": [
+              -8.923460006713867,
+              6.798009872436523,
+              5.5325703620910645
+            ]
+          }
+        },
+        {
+          "name": "East platform",
+          "marker": {
+            "index": 16,
+            "type": 10,
+            "team": 8,
+            "position": [
+              9.100709915161133,
+              -4.7209906578063965,
+              2.183424949645996
+            ]
+          }
+        }
+      ],
+      "spawns": [
+        {
+          "index": 18,
+          "type": 10,
+          "team": 8,
+          "position": [
+            -2.755526304244995,
+            -22.230180740356445,
+            -0.9659977555274963
+          ]
+        },
+        {
+          "index": 11,
+          "type": 4,
+          "team": 8,
+          "position": [
+            1.3783475160598755,
+            8.8951416015625,
+            0.978523850440979
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Headlong",
+      "scenario": "scenarios\\multi\\headlong\\headlong",
+      "team_size": 8,
+      "sites": [
+        {
+          "name": "Construction base",
+          "marker": {
+            "index": 8,
+            "type": 3,
+            "team": 1,
+            "position": [
+              10.0,
+              -3.0,
+              7.562498569488525
+            ]
+          }
+        },
+        {
+          "name": "East courtyard",
+          "marker": {
+            "index": 55,
+            "type": 10,
+            "team": 0,
+            "position": [
+              20.600000381469727,
+              7.300000190734863,
+              5.272070407867432
+            ]
+          }
+        }
+      ],
+      "spawns": [
+        {
+          "index": 6,
+          "type": 2,
+          "team": 0,
+          "position": [
+            -21.469003677368164,
+            11.948586463928223,
+            2.854351043701172
+          ]
+        },
+        {
+          "index": 5,
+          "type": 2,
+          "team": 1,
+          "position": [
+            24.541250228881836,
+            -3.480743169784546,
+            5.462519645690918
+          ]
+        }
+      ]
+    },
+    {
+      "name": "District",
+      "scenario": "scenarios\\multi\\street_sweeper\\street_sweeper",
+      "team_size": 8,
+      "sites": [
+        {
+          "name": "Garage",
+          "marker": {
+            "index": 60,
+            "type": 10,
+            "team": 8,
+            "position": [
+              23.97068977355957,
+              21.30223846435547,
+              2.9002435207366943
+            ]
+          }
+        },
+        {
+          "name": "East street",
+          "marker": {
+            "index": 62,
+            "type": 10,
+            "team": 8,
+            "position": [
+              38.02802276611328,
+              -1.0009922981262207,
+              2.550245761871338
+            ]
+          }
+        }
+      ],
+      "spawns": [
+        {
+          "index": 6,
+          "type": 2,
+          "team": 0,
+          "position": [
+            -7.303394794464111,
+            -20.29146957397461,
+            1.8502461910247803
+          ]
+        },
+        {
+          "index": 5,
+          "type": 2,
+          "team": 1,
+          "position": [
+            23.97068977355957,
+            21.30223846435547,
+            2.9002435207366943
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Zanzibar",
+      "scenario": "scenarios\\multi\\zanzibar\\zanzibar",
+      "team_size": 8,
+      "sites": [
+        {
+          "name": "Base",
+          "marker": {
+            "index": 8,
+            "type": 3,
+            "team": 1,
+            "position": [
+              12.490751266479492,
+              24.49542236328125,
+              -1.0727823972702026
+            ]
+          }
+        },
+        {
+          "name": "Wheel",
+          "marker": {
+            "index": 15,
+            "type": 10,
+            "team": 0,
+            "position": [
+              16.5,
+              -3.299999952316284,
+              4.162491798400879
+            ]
+          }
+        }
+      ],
+      "spawns": [
+        {
+          "index": 6,
+          "type": 2,
+          "team": 0,
+          "position": [
+            -0.10000000149011612,
+            -24.899999618530273,
+            2.3624885082244873
+          ]
+        },
+        {
+          "index": 5,
+          "type": 2,
+          "team": 1,
+          "position": [
+            12.490503311157227,
+            24.494714736938477,
+            -1.0727993249893188
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Terminal",
+      "scenario": "scenarios\\multi\\triplicate\\triplicate",
+      "team_size": 8,
+      "sites": [
+        {
+          "name": "Depot",
+          "marker": {
+            "index": 10,
+            "type": 3,
+            "team": 1,
+            "position": [
+              41.324737548828125,
+              -9.489423751831055,
+              1.5624988079071045
+            ]
+          }
+        },
+        {
+          "name": "East courtyard",
+          "marker": {
+            "index": 44,
+            "type": 10,
+            "team": 0,
+            "position": [
+              26.0,
+              2.8399999141693115,
+              -0.43750059604644775
+            ]
+          }
+        }
+      ],
+      "spawns": [
+        {
+          "index": 8,
+          "type": 2,
+          "team": 0,
+          "position": [
+            3.5001537799835205,
+            4.011804103851318,
+            -0.9357784390449524
+          ]
+        },
+        {
+          "index": 9,
+          "type": 2,
+          "team": 1,
+          "position": [
+            41.5,
+            -12.020000457763672,
+            -0.9375029802322388
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Burial Mounds",
+      "scenario": "scenarios\\multi\\burial_mounds\\burial_mounds",
+      "team_size": 8,
+      "sites": [
+        {
+          "name": "Camp",
+          "marker": {
+            "index": 31,
+            "type": 3,
+            "team": 1,
+            "position": [
+              40.85850143432617,
+              -21.455699920654297,
+              -14.24899959564209
+            ]
+          }
+        },
+        {
+          "name": "Central wreckage",
+          "marker": {
+            "index": 7,
+            "type": 10,
+            "team": 0,
+            "position": [
+              29.299999237060547,
+              6.349999904632568,
+              -11.75484561920166
+            ]
+          }
+        }
+      ],
+      "spawns": [
+        {
+          "index": 2,
+          "type": 2,
+          "team": 0,
+          "position": [
+            7.199999809265137,
+            13.699999809265137,
+            -11.147978782653809
+          ]
+        },
+        {
+          "index": 40,
+          "type": 10,
+          "team": 0,
+          "position": [
+            32.33660888671875,
+            6.3580803871154785,
+            -11.419894218444824
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Relic",
+      "scenario": "scenarios\\multi\\dune\\dune",
+      "team_size": 8,
+      "sites": [
+        {
+          "name": "Structure",
+          "marker": {
+            "index": 32,
+            "type": 10,
+            "team": 0,
+            "position": [
+              64.38203430175781,
+              -166.3727264404297,
+              2.2284157276153564
+            ]
+          }
+        },
+        {
+          "name": "East approach",
+          "marker": {
+            "index": 35,
+            "type": 10,
+            "team": 0,
+            "position": [
+              84.62381744384766,
+              -147.3291778564453,
+              -1.1005425453186035
+            ]
+          }
+        }
+      ],
+      "spawns": [
+        {
+          "index": 9,
+          "type": 2,
+          "team": 1,
+          "position": [
+            73.38455200195312,
+            -207.5082244873047,
+            -4.1266255378723145
+          ]
+        },
+        {
+          "index": 12,
+          "type": 2,
+          "team": 0,
+          "position": [
+            64.375,
+            -166.375,
+            2.2284159660339355
+          ]
+        }
+      ]
+    }
+  ]
+}

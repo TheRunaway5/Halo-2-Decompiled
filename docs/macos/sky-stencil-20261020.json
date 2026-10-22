@@ -1,0 +1,2392 @@
+{
+  "schema": "H2_MACOS_SKY_STENCIL_EVIDENCE_V1",
+  "date": "2026-10-20",
+  "passed": true,
+  "scope": "Retained source sky-stencil diagnostic with GPU triangle-plane arithmetic moved from GS to instanced VS and explicit canonical D32S8 source integer storage. No live Renderer activation or authored native VS recovery.",
+  "source_sha256": {
+    "cmake/SourceSkyStencil.cmake": "969d2ac44de1c322cc58c96f1a54add446472a1170ec3104a73b19dad6ba56a8",
+    "cmake/SourceSkyStencilReference.cmake": "a28a93e93c46d3ef0051a7b7accb83175151ddd75a2ab80e246ff94a8f741bfb",
+    "include/halo2/source_depth_storage.hpp": "711eb36ae9e7b6e9e253635e725b44b8d3d6d3af6b9b9409a0474c738804366e",
+    "include/halo2/source_sky_stencil.hpp": "918d9e5278717e38c8f1b217ac56b4e00d9b9119849441cfcac0aab459372053",
+    "include/halo2/source_weather_depth_alias.hpp": "3d89d4ebed523a1bf7e58270895b2d8afeaad438dd79a2cba18bc77ab7c4e929",
+    "shaders/source_depth_storage.glsl": "6e70c788519bc02d1184ebec9141a319d14880fde61ff4b8b255a15aef3bc111",
+    "shaders/source_sky_stencil.frag": "15a3d8169ed19a73c9e4aced17b8726c06b4a1de921ed42c876e7182d5f580ba",
+    "shaders/source_sky_stencil.geom": "a3c522faf8b23f1217597d9ab1116fb5f3a85a0443d734d802929fbb3673c7d6",
+    "shaders/source_sky_stencil.vert": "5eac10e68b2dbace8598cc9b1b771a1acb6f435a5463dcbd42689b63722aac62",
+    "shaders/source_sky_stencil_instanced.vert": "dba193f7cbf9a9047e846cfb66a169fcabbbe736aff5855c27370c2481602047",
+    "shaders/source_sky_stencil_passthrough.vert": "f41035f373112e2681aaad259090b8619af283e0bb673aeec450ffebffd1aa76",
+    "shaders/world_depth_geometry.glsl": "7747872558d5f4835d6d954f84252e46ac1c4c4d4733a659f33f315987fe91a7",
+    "src/source_sky_stencil.cpp": "b10b4425d9e396c15c84cefb5ef6c215e38991d093286fe14190fdae550728a8",
+    "tests/macos/depth_storage/gpu.hpp": "30828526469740a9206a1583429489786cfbb5917deae6e43d61bd0ae26ff331",
+    "tests/macos/sky_stencil/CMakeLists.txt": "c72847d746de3c3e892c2da339c5f3c441e82fbfaa6831e3c7c7030c66703d15",
+    "tests/macos/sky_stencil/prepare_references.py": "a5353d827bf444bd5c54d177dbd282c80d84e3103c8cead8fa6d200daad6db05",
+    "tests/macos/sky_stencil/sky_stencil_tests.cpp": "48269ac4103c2071258b22c0776727b2dc38b3672dd57e3b10c97d94d6966493"
+  },
+  "baseline_source_sha256": {
+    "src/source_sky_stencil.cpp": "37c64120dcea64937718a332f00290c72966e240a0a5eee7886d63f784821b61",
+    "include/halo2/source_sky_stencil.hpp": "dde1d0cb5f7bce5dbfc9b22f11aef1643597d4cdaf09b3346454240ad918356b",
+    "cmake/SourceSkyStencil.cmake": "7d0812847ca3f712bccd9f14b1f9174302dd7e5ddfd844ba3afb2132f5ff5b63",
+    "shaders/source_sky_stencil.frag": "8a361e3c68eb8b7078e15623afc051e8f8b41eab04d342d473385e0527dfa767",
+    "shaders/source_sky_stencil.geom": "a3c522faf8b23f1217597d9ab1116fb5f3a85a0443d734d802929fbb3673c7d6",
+    "shaders/world_depth_geometry.glsl": "7747872558d5f4835d6d954f84252e46ac1c4c4d4733a659f33f315987fe91a7"
+  },
+  "mac_source_admitted_before_test": true,
+  "mac_source_unchanged_after_test": true,
+  "macos": {
+    "runner": {
+      "passed": true,
+      "status": "passed",
+      "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4afebmks/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/Users/eric/Developer/Halo2-macos-port/tests/macos/sky_stencil",
+            "-B",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4afebmks/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-GNinja",
+            "-DSDL2_DIR=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-22lzjara/sdk/cmake/SDL2",
+            "-DHALO2_MOLTENVK_LIBRARY=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-22lzjara/sdk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib",
+            "-DHALO2_MOLTENVK_LICENSE=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-22lzjara/sdk/MoltenVK/LICENSE",
+            "-DHALO2_SDL_LICENSE=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-22lzjara/SDL2-LICENSE.txt",
+            "-DHALO2_SKY_REFERENCE_ROOT=/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-22lzjara/original-reference",
+            "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+            "-DHALO2_BUNDLE_MOVIES=OFF"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-sky-stencil-final/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4afebmks/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "vulkan_portability_tests",
+            "macos_sky_stencil_tests"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-sky-stencil-final/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4afebmks/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "1",
+            "--tests-regex",
+            "^(macos_sky_stencil_arm64|macos_sky_stencil_x86_64|vulkan_portability)$"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-sky-stencil-final/tests.log",
+          "exit_code": 0
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "sky-stencil-arm64.json",
+          "status": "retained",
+          "bytes": 3500,
+          "sha256": "a4809ebedf2ebbbf90224840c678c52dedab27e14bdde2fceac01631c2284efd",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-sky-stencil-final/evidence/sky-stencil-arm64.json"
+        },
+        {
+          "path": "sky-stencil-x86_64.json",
+          "status": "retained",
+          "bytes": 3500,
+          "sha256": "a4809ebedf2ebbbf90224840c678c52dedab27e14bdde2fceac01631c2284efd",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-sky-stencil-final/evidence/sky-stencil-x86_64.json"
+        },
+        {
+          "path": "reference-receipt.json",
+          "status": "retained",
+          "bytes": 3760,
+          "sha256": "aa0ca49de6fdda13c44ced6ae4cf11bec6599710d0dba8dbbb2cc822a4d927b3",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/macos-sky-stencil-final/evidence/reference-receipt.json"
+        }
+      ]
+    },
+    "tests_log": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-4afebmks/build\n    Start 1: vulkan_portability\n1/3 Test #1: vulkan_portability ...............   Passed    0.55 sec\n    Start 2: macos_sky_stencil_arm64\n2/3 Test #2: macos_sky_stencil_arm64 ..........   Passed    0.87 sec\n    Start 3: macos_sky_stencil_x86_64\n3/3 Test #3: macos_sky_stencil_x86_64 .........   Passed    2.66 sec\n\n100% tests passed out of 3\n\nTotal Test time (real) =   4.08 sec\n",
+    "results": {
+      "reference-receipt.json": [
+        {
+          "path": "analysis/multiplayer-shading/source-sky-stencil-prototype/8097-retained-strip.fixture",
+          "bytes": 1676,
+          "sha256": "0f3d25f06c02e05239875f2e7a34c9112ef25c3ad37cd9790345ba8518808aa8",
+          "source": "analysis/multiplayer-shading/source-sky-stencil-prototype/8097-retained-strip.fixture"
+        },
+        {
+          "path": "analysis/multiplayer-shading/source-sky-stencil-prototype/8097-retained-gsout.fixture",
+          "bytes": 14884,
+          "sha256": "49b98d0c439178a0c2fc202d587059bb690bc2474901a1bda5b3e6dadc313158",
+          "source": "analysis/multiplayer-shading/source-sky-stencil-prototype/8097-retained-gsout.fixture"
+        },
+        {
+          "path": "analysis/multiplayer-shading/original20-sky-stencil-analysis/8097-before-packed-d24s8.bin",
+          "bytes": 1228800,
+          "sha256": "98728be819022c19654a4fbf2cfc6bc6727e8ad061988caba36b6b940b2c189e",
+          "source": "analysis/multiplayer-shading/original20-sky-stencil/8097-before-depth-d24s8.raw"
+        },
+        {
+          "path": "analysis/multiplayer-shading/original20-sky-stencil-analysis/8097-after-packed-d24s8.bin",
+          "bytes": 1228800,
+          "sha256": "5248ac22b7f3ddfd2a6f3e5fec2d6b6d839b4482b343aac7b9209aacc390b856",
+          "source": "analysis/multiplayer-shading/original20-sky-stencil/8097-after-depth-d24s8.raw"
+        },
+        {
+          "path": "analysis/multiplayer-shading/source-sky-stencil-prototype/8102-retained-strip.fixture",
+          "bytes": 1192,
+          "sha256": "3cbeef14711c441094a4d1cb8ca3c50a1218358853b3bb15a696424f7807c627",
+          "source": "analysis/multiplayer-shading/source-sky-stencil-prototype/8102-retained-strip.fixture"
+        },
+        {
+          "path": "analysis/multiplayer-shading/source-sky-stencil-prototype/8102-retained-gsout.fixture",
+          "bytes": 9784,
+          "sha256": "f9cb89cfe6a55d498eb4bcf78896676192bcfe2ed7dc99d6f8d3cc551e4df826",
+          "source": "analysis/multiplayer-shading/source-sky-stencil-prototype/8102-retained-gsout.fixture"
+        },
+        {
+          "path": "analysis/multiplayer-shading/original20-sky-stencil-analysis/8102-before-packed-d24s8.bin",
+          "bytes": 1228800,
+          "sha256": "5248ac22b7f3ddfd2a6f3e5fec2d6b6d839b4482b343aac7b9209aacc390b856",
+          "source": "analysis/multiplayer-shading/original20-sky-stencil/8102-before-depth-d24s8.raw"
+        },
+        {
+          "path": "analysis/multiplayer-shading/original20-sky-stencil-analysis/8102-after-packed-d24s8.bin",
+          "bytes": 1228800,
+          "sha256": "5248ac22b7f3ddfd2a6f3e5fec2d6b6d839b4482b343aac7b9209aacc390b856",
+          "source": "analysis/multiplayer-shading/original20-sky-stencil/8102-after-depth-d24s8.raw"
+        },
+        {
+          "path": "analysis/multiplayer-shading/source-sky-stencil-prototype/8110-retained-strip.fixture",
+          "bytes": 340,
+          "sha256": "c4c98723ca9901adf05e033a79883376a996d48f6b90d199ccd6fd269a4bc302",
+          "source": "analysis/multiplayer-shading/source-sky-stencil-prototype/8110-retained-strip.fixture"
+        },
+        {
+          "path": "analysis/multiplayer-shading/source-sky-stencil-prototype/8110-retained-gsout.fixture",
+          "bytes": 604,
+          "sha256": "69b07a6681996b2db5df12f0ceff299320dd0f64f692d5bc0d4e798ee9104dc7",
+          "source": "analysis/multiplayer-shading/source-sky-stencil-prototype/8110-retained-gsout.fixture"
+        },
+        {
+          "path": "analysis/multiplayer-shading/original20-sky-stencil-analysis/8110-before-packed-d24s8.bin",
+          "bytes": 1228800,
+          "sha256": "5248ac22b7f3ddfd2a6f3e5fec2d6b6d839b4482b343aac7b9209aacc390b856",
+          "source": "analysis/multiplayer-shading/original20-moon-stencil/8110-before-depth-d24s8.raw"
+        },
+        {
+          "path": "analysis/multiplayer-shading/original20-sky-stencil-analysis/8110-after-packed-d24s8.bin",
+          "bytes": 1228800,
+          "sha256": "5248ac22b7f3ddfd2a6f3e5fec2d6b6d839b4482b343aac7b9209aacc390b856",
+          "source": "analysis/multiplayer-shading/original20-moon-stencil/8110-after-depth-d24s8.raw"
+        }
+      ],
+      "sky-stencil-arm64.json": {
+        "byte_comparison_differences": 0,
+        "depth_clamp_enabled": true,
+        "device": "Apple M2 Pro",
+        "geometry_feature_enabled": false,
+        "metrics": [
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-instanced-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-instanced-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-instanced-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-instanced-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-chain-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-instanced-chain-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-instanced-chain-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-chain-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-instanced-chain-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-instanced-chain-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-empty-region",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-lequal-fail-all-stencil-bytes",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 184901,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-signed-zero-clamp",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-leading-degenerates",
+            "stencil_differences": 0
+          }
+        ],
+        "native_d24_supported": false,
+        "passed": true,
+        "schema": "H2_MACOS_SKY_STENCIL_V1",
+        "synchronization_validation_active": false,
+        "validation_errors": 0,
+        "validation_layer_active": false
+      },
+      "sky-stencil-x86_64.json": {
+        "byte_comparison_differences": 0,
+        "depth_clamp_enabled": true,
+        "device": "Apple M2 Pro",
+        "geometry_feature_enabled": false,
+        "metrics": [
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-instanced-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-instanced-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-instanced-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-instanced-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-chain-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-instanced-chain-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-instanced-chain-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-chain-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-instanced-chain-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-instanced-chain-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-empty-region",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-lequal-fail-all-stencil-bytes",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 184901,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-signed-zero-clamp",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-leading-degenerates",
+            "stencil_differences": 0
+          }
+        ],
+        "native_d24_supported": false,
+        "passed": true,
+        "schema": "H2_MACOS_SKY_STENCIL_V1",
+        "synchronization_validation_active": false,
+        "validation_errors": 0,
+        "validation_layer_active": false
+      }
+    }
+  },
+  "linux": {
+    "runner": {
+      "passed": true,
+      "status": "passed",
+      "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-pv7excsk/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/home/eric/Developer/Halo-2-Decompiled/tests/macos/sky_stencil",
+            "-B",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-pv7excsk/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DHALO2_SKY_STENCIL_REFERENCE_TESTS=ON",
+            "-DHALO2_SKY_REFERENCE_ROOT=/tmp/halo2-test-rxnm3_8i/original-reference"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-sky-stencil-linux-validation/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-pv7excsk/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "macos_sky_stencil_tests",
+            "source_sky_stencil_tests",
+            "vulkan_portability_tests"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-sky-stencil-linux-validation/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-pv7excsk/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "1",
+            "--tests-regex",
+            "^(macos_sky_stencil_host|original_source_sky_stencil_cpu|original_source_sky_stencil_gpu|vulkan_portability)$"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-sky-stencil-linux-validation/tests.log",
+          "exit_code": 0
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "sky-stencil-host.json",
+          "status": "retained",
+          "bytes": 34105,
+          "sha256": "1deb5a4795263fd904e1cdaf46a28efadd39277adab697d9f08aaee1b6a7d58b",
+          "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-sky-stencil-linux-validation/evidence/sky-stencil-host.json"
+        },
+        {
+          "path": "reference-receipt.json",
+          "status": "retained",
+          "bytes": 3760,
+          "sha256": "aa0ca49de6fdda13c44ced6ae4cf11bec6599710d0dba8dbbb2cc822a4d927b3",
+          "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-sky-stencil-linux-validation/evidence/reference-receipt.json"
+        },
+        {
+          "path": "reference-results/source-sky-stencil/report.json",
+          "status": "retained",
+          "bytes": 3629,
+          "sha256": "3ded41079a69b4755b2c53e2eba3e611b21d2ab0a2935ca69597afc0c60c7ee1",
+          "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/macos-sky-stencil-linux-validation/evidence/reference-results/source-sky-stencil/report.json"
+        }
+      ]
+    },
+    "tests_log": "Test project /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-pv7excsk/build\n    Start 1: original_source_sky_stencil_cpu\n1/4 Test #1: original_source_sky_stencil_cpu ...   Passed    0.10 sec\n    Start 2: original_source_sky_stencil_gpu\n2/4 Test #2: original_source_sky_stencil_gpu ...   Passed    0.59 sec\n    Start 3: vulkan_portability\n3/4 Test #3: vulkan_portability ................   Passed    0.09 sec\n    Start 4: macos_sky_stencil_host\n4/4 Test #4: macos_sky_stencil_host ............   Passed    9.25 sec\n\n100% tests passed out of 4\n\nLabel Time Summary:\ncpu                   =   0.10 sec*proc (1 test)\ngpu                   =   0.59 sec*proc (1 test)\noriginal-reference    =   0.69 sec*proc (2 tests)\nsky-stencil           =   0.69 sec*proc (2 tests)\n\nTotal Test time (real) =  10.03 sec\n",
+    "results": {
+      "reference-receipt.json": [
+        {
+          "path": "analysis/multiplayer-shading/source-sky-stencil-prototype/8097-retained-strip.fixture",
+          "bytes": 1676,
+          "sha256": "0f3d25f06c02e05239875f2e7a34c9112ef25c3ad37cd9790345ba8518808aa8",
+          "source": "analysis/multiplayer-shading/source-sky-stencil-prototype/8097-retained-strip.fixture"
+        },
+        {
+          "path": "analysis/multiplayer-shading/source-sky-stencil-prototype/8097-retained-gsout.fixture",
+          "bytes": 14884,
+          "sha256": "49b98d0c439178a0c2fc202d587059bb690bc2474901a1bda5b3e6dadc313158",
+          "source": "analysis/multiplayer-shading/source-sky-stencil-prototype/8097-retained-gsout.fixture"
+        },
+        {
+          "path": "analysis/multiplayer-shading/original20-sky-stencil-analysis/8097-before-packed-d24s8.bin",
+          "bytes": 1228800,
+          "sha256": "98728be819022c19654a4fbf2cfc6bc6727e8ad061988caba36b6b940b2c189e",
+          "source": "analysis/multiplayer-shading/original20-sky-stencil/8097-before-depth-d24s8.raw"
+        },
+        {
+          "path": "analysis/multiplayer-shading/original20-sky-stencil-analysis/8097-after-packed-d24s8.bin",
+          "bytes": 1228800,
+          "sha256": "5248ac22b7f3ddfd2a6f3e5fec2d6b6d839b4482b343aac7b9209aacc390b856",
+          "source": "analysis/multiplayer-shading/original20-sky-stencil/8097-after-depth-d24s8.raw"
+        },
+        {
+          "path": "analysis/multiplayer-shading/source-sky-stencil-prototype/8102-retained-strip.fixture",
+          "bytes": 1192,
+          "sha256": "3cbeef14711c441094a4d1cb8ca3c50a1218358853b3bb15a696424f7807c627",
+          "source": "analysis/multiplayer-shading/source-sky-stencil-prototype/8102-retained-strip.fixture"
+        },
+        {
+          "path": "analysis/multiplayer-shading/source-sky-stencil-prototype/8102-retained-gsout.fixture",
+          "bytes": 9784,
+          "sha256": "f9cb89cfe6a55d498eb4bcf78896676192bcfe2ed7dc99d6f8d3cc551e4df826",
+          "source": "analysis/multiplayer-shading/source-sky-stencil-prototype/8102-retained-gsout.fixture"
+        },
+        {
+          "path": "analysis/multiplayer-shading/original20-sky-stencil-analysis/8102-before-packed-d24s8.bin",
+          "bytes": 1228800,
+          "sha256": "5248ac22b7f3ddfd2a6f3e5fec2d6b6d839b4482b343aac7b9209aacc390b856",
+          "source": "analysis/multiplayer-shading/original20-sky-stencil/8102-before-depth-d24s8.raw"
+        },
+        {
+          "path": "analysis/multiplayer-shading/original20-sky-stencil-analysis/8102-after-packed-d24s8.bin",
+          "bytes": 1228800,
+          "sha256": "5248ac22b7f3ddfd2a6f3e5fec2d6b6d839b4482b343aac7b9209aacc390b856",
+          "source": "analysis/multiplayer-shading/original20-sky-stencil/8102-after-depth-d24s8.raw"
+        },
+        {
+          "path": "analysis/multiplayer-shading/source-sky-stencil-prototype/8110-retained-strip.fixture",
+          "bytes": 340,
+          "sha256": "c4c98723ca9901adf05e033a79883376a996d48f6b90d199ccd6fd269a4bc302",
+          "source": "analysis/multiplayer-shading/source-sky-stencil-prototype/8110-retained-strip.fixture"
+        },
+        {
+          "path": "analysis/multiplayer-shading/source-sky-stencil-prototype/8110-retained-gsout.fixture",
+          "bytes": 604,
+          "sha256": "69b07a6681996b2db5df12f0ceff299320dd0f64f692d5bc0d4e798ee9104dc7",
+          "source": "analysis/multiplayer-shading/source-sky-stencil-prototype/8110-retained-gsout.fixture"
+        },
+        {
+          "path": "analysis/multiplayer-shading/original20-sky-stencil-analysis/8110-before-packed-d24s8.bin",
+          "bytes": 1228800,
+          "sha256": "5248ac22b7f3ddfd2a6f3e5fec2d6b6d839b4482b343aac7b9209aacc390b856",
+          "source": "analysis/multiplayer-shading/original20-moon-stencil/8110-before-depth-d24s8.raw"
+        },
+        {
+          "path": "analysis/multiplayer-shading/original20-sky-stencil-analysis/8110-after-packed-d24s8.bin",
+          "bytes": 1228800,
+          "sha256": "5248ac22b7f3ddfd2a6f3e5fec2d6b6d839b4482b343aac7b9209aacc390b856",
+          "source": "analysis/multiplayer-shading/original20-moon-stencil/8110-after-depth-d24s8.raw"
+        }
+      ],
+      "reference-results/source-sky-stencil/report.json": {
+        "scope": "Isolated retained original20 sky stencil-only diagnostic; no sky color or authored native vertex production",
+        "validation_errors": 0,
+        "rejected_inputs_and_ownership": 58,
+        "metrics": [
+          {
+            "path": "vsout-strip",
+            "event": 8097,
+            "depth_differences": 0,
+            "stencil_differences": 0,
+            "changed_pixels": 462,
+            "original_changed_pixels": 462,
+            "source_only_changes": 0,
+            "native_only_changes": 0
+          },
+          {
+            "path": "vsout-strip",
+            "event": 8102,
+            "depth_differences": 0,
+            "stencil_differences": 0,
+            "changed_pixels": 0,
+            "original_changed_pixels": 0,
+            "source_only_changes": 0,
+            "native_only_changes": 0
+          },
+          {
+            "path": "vsout-strip",
+            "event": 8110,
+            "depth_differences": 0,
+            "stencil_differences": 0,
+            "changed_pixels": 0,
+            "original_changed_pixels": 0,
+            "source_only_changes": 0,
+            "native_only_changes": 0
+          },
+          {
+            "path": "gsout",
+            "event": 8097,
+            "depth_differences": 0,
+            "stencil_differences": 0,
+            "changed_pixels": 462,
+            "original_changed_pixels": 462,
+            "source_only_changes": 0,
+            "native_only_changes": 0
+          },
+          {
+            "path": "gsout",
+            "event": 8102,
+            "depth_differences": 0,
+            "stencil_differences": 0,
+            "changed_pixels": 0,
+            "original_changed_pixels": 0,
+            "source_only_changes": 0,
+            "native_only_changes": 0
+          },
+          {
+            "path": "gsout",
+            "event": 8110,
+            "depth_differences": 0,
+            "stencil_differences": 0,
+            "changed_pixels": 0,
+            "original_changed_pixels": 0,
+            "source_only_changes": 0,
+            "native_only_changes": 0
+          },
+          {
+            "path": "chain-vsout-strip",
+            "event": 8097,
+            "depth_differences": 0,
+            "stencil_differences": 0,
+            "changed_pixels": 462,
+            "original_changed_pixels": 462,
+            "source_only_changes": 0,
+            "native_only_changes": 0
+          },
+          {
+            "path": "chain-vsout-strip",
+            "event": 8102,
+            "depth_differences": 0,
+            "stencil_differences": 0,
+            "changed_pixels": 0,
+            "original_changed_pixels": 0,
+            "source_only_changes": 0,
+            "native_only_changes": 0
+          },
+          {
+            "path": "chain-vsout-strip",
+            "event": 8110,
+            "depth_differences": 0,
+            "stencil_differences": 0,
+            "changed_pixels": 0,
+            "original_changed_pixels": 0,
+            "source_only_changes": 0,
+            "native_only_changes": 0
+          },
+          {
+            "path": "chain-gsout",
+            "event": 8097,
+            "depth_differences": 0,
+            "stencil_differences": 0,
+            "changed_pixels": 462,
+            "original_changed_pixels": 462,
+            "source_only_changes": 0,
+            "native_only_changes": 0
+          },
+          {
+            "path": "chain-gsout",
+            "event": 8102,
+            "depth_differences": 0,
+            "stencil_differences": 0,
+            "changed_pixels": 0,
+            "original_changed_pixels": 0,
+            "source_only_changes": 0,
+            "native_only_changes": 0
+          },
+          {
+            "path": "chain-gsout",
+            "event": 8110,
+            "depth_differences": 0,
+            "stencil_differences": 0,
+            "changed_pixels": 0,
+            "original_changed_pixels": 0,
+            "source_only_changes": 0,
+            "native_only_changes": 0
+          },
+          {
+            "path": "empty-region-control",
+            "event": 8097,
+            "depth_differences": 0,
+            "stencil_differences": 0,
+            "changed_pixels": 0,
+            "original_changed_pixels": 0,
+            "source_only_changes": 0,
+            "native_only_changes": 0
+          },
+          {
+            "path": "lequal-fail-allbyte-control",
+            "event": 8097,
+            "depth_differences": 0,
+            "stencil_differences": 0,
+            "changed_pixels": 0,
+            "original_changed_pixels": 0,
+            "source_only_changes": 0,
+            "native_only_changes": 0
+          },
+          {
+            "path": "always-replace-allbyte-control",
+            "event": 8097,
+            "depth_differences": 0,
+            "stencil_differences": 0,
+            "changed_pixels": 460,
+            "original_changed_pixels": 460,
+            "source_only_changes": 0,
+            "native_only_changes": 0
+          },
+          {
+            "path": "reuse-gsout",
+            "event": 8097,
+            "depth_differences": 0,
+            "stencil_differences": 0,
+            "changed_pixels": 0,
+            "original_changed_pixels": 0,
+            "source_only_changes": 0,
+            "native_only_changes": 0
+          },
+          {
+            "path": "reuse-gsout-repeat",
+            "event": 8097,
+            "depth_differences": 0,
+            "stencil_differences": 0,
+            "changed_pixels": 0,
+            "original_changed_pixels": 0,
+            "source_only_changes": 0,
+            "native_only_changes": 0
+          }
+        ]
+      },
+      "sky-stencil-host.json": {
+        "byte_comparison_differences": 0,
+        "depth_clamp_enabled": true,
+        "device": "NVIDIA GeForce RTX 5080",
+        "geometry_feature_enabled": true,
+        "metrics": [
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-geometry-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-geometry-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-geometry-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-geometry-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-geometry-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-geometry-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-geometry-chain-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-geometry-chain-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-geometry-chain-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-geometry-chain-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-geometry-chain-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-geometry-chain-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-geometry-empty-region",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-geometry-lequal-fail-all-stencil-bytes",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 184902,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-geometry-signed-zero-clamp",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-geometry-leading-degenerates",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-00",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-01",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-02",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-10",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-11",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-12",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-20",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-21",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-22",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-00",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-01",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-02",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-10",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-11",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-12",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-20",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-21",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-22",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-00",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-01",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-02",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-10",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-11",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-12",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-20",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-21",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-geometry-rotation-22",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-instanced-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-instanced-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-instanced-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-instanced-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-instanced-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-instanced-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-instanced-chain-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-instanced-chain-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-instanced-chain-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-instanced-chain-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-instanced-chain-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-instanced-chain-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-instanced-empty-region",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-instanced-lequal-fail-all-stencil-bytes",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 184902,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-instanced-signed-zero-clamp",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-instanced-leading-degenerates",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-00",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-01",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-02",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-10",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-11",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-12",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-20",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-21",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-22",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-00",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-01",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-02",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-10",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-11",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-12",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-20",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-21",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-22",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-00",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-01",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-02",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-10",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-11",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-12",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-20",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-21",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d24-instanced-rotation-22",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-geometry-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-geometry-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-geometry-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-geometry-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-geometry-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-geometry-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-geometry-chain-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-geometry-chain-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-geometry-chain-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-geometry-chain-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-geometry-chain-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-geometry-chain-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-geometry-empty-region",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-geometry-lequal-fail-all-stencil-bytes",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 184902,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-geometry-signed-zero-clamp",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-geometry-leading-degenerates",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-00",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-01",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-02",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-10",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-11",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-12",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-20",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-21",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-22",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-00",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-01",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-02",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-10",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-11",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-12",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-20",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-21",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-22",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-00",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-01",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-02",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-10",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-11",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-12",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-20",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-21",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-geometry-rotation-22",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-instanced-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-instanced-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-instanced-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-instanced-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-chain-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-instanced-chain-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-instanced-chain-strip",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-chain-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-instanced-chain-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-instanced-chain-gsout",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-empty-region",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-lequal-fail-all-stencil-bytes",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 184902,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-signed-zero-clamp",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-leading-degenerates",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-00",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-01",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-02",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-10",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-11",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-12",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-20",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-21",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 462,
+            "depth_differences": 0,
+            "event": 8097,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-22",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-00",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-01",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-02",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-10",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-11",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-12",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-20",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-21",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8102,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-22",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-00",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-01",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-02",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-10",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-11",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-12",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-20",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-21",
+            "stencil_differences": 0
+          },
+          {
+            "changed_pixels": 0,
+            "depth_differences": 0,
+            "event": 8110,
+            "first_differences": [],
+            "path": "d32-instanced-rotation-22",
+            "stencil_differences": 0
+          }
+        ],
+        "native_d24_supported": true,
+        "passed": true,
+        "schema": "H2_MACOS_SKY_STENCIL_V1",
+        "synchronization_validation_active": true,
+        "validation_errors": 0,
+        "validation_layer_active": true
+      }
+    }
+  },
+  "sdk_inputs": {
+    "MoltenVK-macos.tar": [
+      "https://github.com/KhronosGroup/MoltenVK/releases/download/v1.4.2/MoltenVK-macos.tar",
+      "f95765a6229cb7b915990a2890ce12ebe36a730b021545d3d52ae69ce4c4024e"
+    ],
+    "SDL2.dmg": [
+      "https://github.com/libsdl-org/SDL/releases/download/release-2.32.10/SDL2-2.32.10.dmg",
+      "4a7ac31640d70214e848f994be8a12849c0f97918a7e6c2e27a40036166d1a7f"
+    ],
+    "SDL2-LICENSE.txt": [
+      "https://raw.githubusercontent.com/libsdl-org/SDL/release-2.32.10/LICENSE.txt",
+      "97f35b302b361680ec1e891e95d2d52097bb95abff361434916d99dc1305f127"
+    ]
+  },
+  "linux_validation_layer_input": {
+    "vulkan-validation-layers-1.4.363.0-1-x86_64.pkg.tar.zst": {
+      "url": "https://geo.mirror.pkgbuild.com/extra/os/x86_64/vulkan-validation-layers-1.4.363.0-1-x86_64.pkg.tar.zst",
+      "sha256": "904f4eba2e708c9c96579900688a284309cd56dc09b5af3f78c563ffda13df9e",
+      "bytes": 9236457
+    },
+    "vulkan-validation-layers-1.4.363.0-1-x86_64.pkg.tar.zst.sig": {
+      "url": "https://geo.mirror.pkgbuild.com/extra/os/x86_64/vulkan-validation-layers-1.4.363.0-1-x86_64.pkg.tar.zst.sig",
+      "sha256": "e8f686fa461dd25015ea5a93a0cf79e0d98a4d246109e4536eba2900766e889d",
+      "bytes": 566
+    },
+    "signature": {
+      "exit_code": 0,
+      "output": "==> Checking /tmp/halo2-test-rxnm3_8i/vulkan-validation-layers-1.4.363.0-1-x86_64.pkg.tar.zst.sig... (detached)\ngpg: Signature made Tue Sep 29 06:06:45 2026 EDT\ngpg:                using RSA key 262A58EC6C51F7EA395B2E2DFDC3040B92ACA748\ngpg: Note: trustdb not writable\ngpg: Good signature from \"Robin Candau <antiz@archlinux.org>\" [full]\n"
+    }
+  },
+  "original_reference_inputs_preserved": {
+    "analysis/multiplayer-shading/source-sky-stencil-prototype/8097-retained-strip.fixture": {
+      "bytes": 1676,
+      "sha256": "0f3d25f06c02e05239875f2e7a34c9112ef25c3ad37cd9790345ba8518808aa8"
+    },
+    "analysis/multiplayer-shading/source-sky-stencil-prototype/8097-retained-gsout.fixture": {
+      "bytes": 14884,
+      "sha256": "49b98d0c439178a0c2fc202d587059bb690bc2474901a1bda5b3e6dadc313158"
+    },
+    "analysis/multiplayer-shading/original20-sky-stencil/8097-before-depth-d24s8.raw": {
+      "bytes": 1536000,
+      "sha256": "2cfe25d92524fc2795c8116ce102080e3add023b6ffceef5687adbb91ea0c87f"
+    },
+    "analysis/multiplayer-shading/original20-sky-stencil/8097-after-depth-d24s8.raw": {
+      "bytes": 1536000,
+      "sha256": "155e5057fc467d1108c9bf5cabedcea8a0d6c609295277c37c8aeae8d9c37463"
+    },
+    "analysis/multiplayer-shading/source-sky-stencil-prototype/8102-retained-strip.fixture": {
+      "bytes": 1192,
+      "sha256": "3cbeef14711c441094a4d1cb8ca3c50a1218358853b3bb15a696424f7807c627"
+    },
+    "analysis/multiplayer-shading/source-sky-stencil-prototype/8102-retained-gsout.fixture": {
+      "bytes": 9784,
+      "sha256": "f9cb89cfe6a55d498eb4bcf78896676192bcfe2ed7dc99d6f8d3cc551e4df826"
+    },
+    "analysis/multiplayer-shading/original20-sky-stencil/8102-before-depth-d24s8.raw": {
+      "bytes": 1536000,
+      "sha256": "155e5057fc467d1108c9bf5cabedcea8a0d6c609295277c37c8aeae8d9c37463"
+    },
+    "analysis/multiplayer-shading/original20-sky-stencil/8102-after-depth-d24s8.raw": {
+      "bytes": 1536000,
+      "sha256": "155e5057fc467d1108c9bf5cabedcea8a0d6c609295277c37c8aeae8d9c37463"
+    },
+    "analysis/multiplayer-shading/source-sky-stencil-prototype/8110-retained-strip.fixture": {
+      "bytes": 340,
+      "sha256": "c4c98723ca9901adf05e033a79883376a996d48f6b90d199ccd6fd269a4bc302"
+    },
+    "analysis/multiplayer-shading/source-sky-stencil-prototype/8110-retained-gsout.fixture": {
+      "bytes": 604,
+      "sha256": "69b07a6681996b2db5df12f0ceff299320dd0f64f692d5bc0d4e798ee9104dc7"
+    },
+    "analysis/multiplayer-shading/original20-moon-stencil/8110-before-depth-d24s8.raw": {
+      "bytes": 1536000,
+      "sha256": "155e5057fc467d1108c9bf5cabedcea8a0d6c609295277c37c8aeae8d9c37463"
+    },
+    "analysis/multiplayer-shading/original20-moon-stencil/8110-after-depth-d24s8.raw": {
+      "bytes": 1536000,
+      "sha256": "155e5057fc467d1108c9bf5cabedcea8a0d6c609295277c37c8aeae8d9c37463"
+    }
+  },
+  "algorithm": {
+    "triangle_assembly": "Vulkan strip primitive i uses {i, i+1+i%2, i+2-i%2}; captured cyclic rotation then selects ordered corner zero. Degenerates and parity remain in the stream.",
+    "vertex_payload": "One instance contains three bit-copied retained VSOut clip/window pairs. Three vertex invocations select clip corner and each evaluate the unchanged shared precise determinant/reciprocal-W slope. No CPU floating plane calculation.",
+    "fragment": "Existing region rejection, source W reconstruction, clamp and late LEQUAL with stencil ALWAYS/KEEP/KEEP/REPLACE are preserved. D32 uses integer carrier bits; native D24 keeps the retained one-ULP conversion adjustment.",
+    "source_domain": "Integer source depth from zero through 0xFFFFFF; context and physical image must declare matching storage encoding."
+  },
+  "coverage": {
+    "macos_cases_per_architecture": 16,
+    "linux_cases": 172,
+    "pixels_per_case": 307200,
+    "original_events": [
+      8097,
+      8102,
+      8110
+    ],
+    "native_reference_changed_pixels": [
+      462,
+      0,
+      0
+    ],
+    "mac_original_capture_comparisons": "Retained VSOut strip and independent original GSOut, each as isolated draws and actual three-producer chronology on one fence. All depth and stencil bytes compared.",
+    "controls": [
+      "empty source regions",
+      "LEQUAL failure with all stencil byte values",
+      "two leading degenerate primitives",
+      "signed-zero clamp compared with retained GSOut"
+    ],
+    "linux_differential": "Both native D24S8 and canonical D32S8; geometry-shader and instanced vertex paths; all nine captured cyclic rotation combinations on each event. The original CPU/GPU suite also passes with 17 endpoint/control rows.",
+    "metadata": "Mismatched image format/depth storage declaration rejected before recording."
+  },
+  "commands_and_lifecycle": {
+    "reference_preparation": "From tools/run_test.py, import tests/macos/sky_stencil/prepare_references.py and call prepare(Path(HALO2_TEST_SCRATCH)/original-reference). Supply its path as HALO2_SKY_REFERENCE_ROOT to tools/run_tests.py. Raw original aspect dumps are authenticated and only their packed DWORD prefix is copied; all twelve outputs must match the unchanged CMake size/SHA pins.",
+    "macos_staging": "An owned Linux coordinator tar-streamed those twelve references plus the small receipt over SSH into the Mac tools/run_test.py owner. Source hashes were compared before starting the final run. The nested tools/macos/test_port.py supplied pinned SDKs and called tools/run_tests.py with the retained runner steps.",
+    "linux": "The official signed validation-layer package was authenticated, unpacked only into tools/run_test.py scratch and exposed through VK_LAYER_PATH/LD_LIBRARY_PATH. The retained runner steps contain exact configure/build/CTest arguments. No system installation.",
+    "earlier_mac_transfer_failure": "One rsync failed with SSH banner timeout and zero received bytes. An earlier-snapshot run was excluded. The final accepted run followed a successful resync and exact source-hash admission."
+  },
+  "limits": [
+    "Retained original20 Xemu Vulkan replay inputs are the original reference here; this is not physical-Xbox framebuffer acceptance.",
+    "The diagnostic consumes captured VSOut/GSOut and does not recover authored native sky vertices, sky color/textures or preceding world depth history.",
+    "The shared live Renderer still requires its existing depth/geometry contract. Menu-world catalog, particle/decal/contrail/emblem and other geometry programs remain separate integration work.",
+    "Mac runs had no validation layer. Core and synchronization validation were active on the Linux RTX 5080 and reported zero errors.",
+    "Exact CPU x87/SSE conversion remains deferred; the loading PCM gate and playable universal-engine validation remain open."
+  ],
+  "cleanup": {
+    "linux": {
+      "scratch_exists": {
+        "/tmp/halo2-test-qp4cgtkr": false,
+        "/tmp/halo2-test-rxnm3_8i": false,
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-916rhzp6": false,
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-pv7excsk": false
+      },
+      "remaining_reference_copies": [],
+      "owned_processes": [],
+      "python_cache_exists": false,
+      "large_test_artifacts_retained": []
+    },
+    "macos": {
+      "scratch_exists": {
+        ".local/test-scratch/halo2-test-sytjswrt": false,
+        ".local/test-scratch/halo2-test-mzsgdoa2": false,
+        ".local/test-scratch/halo2-test-4afebmks": false,
+        "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-75_bvzb9": false,
+        "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-ltdcoeev": false,
+        "/private/var/folders/s_/08t9d1n51w99l9hxg31klk980000gn/T/halo2-test-22lzjara": false
+      },
+      "owned_processes": [],
+      "owned_mounts": [],
+      "source_sha256": {
+        "cmake/SourceSkyStencil.cmake": "969d2ac44de1c322cc58c96f1a54add446472a1170ec3104a73b19dad6ba56a8",
+        "cmake/SourceSkyStencilReference.cmake": "a28a93e93c46d3ef0051a7b7accb83175151ddd75a2ab80e246ff94a8f741bfb",
+        "include/halo2/source_depth_storage.hpp": "711eb36ae9e7b6e9e253635e725b44b8d3d6d3af6b9b9409a0474c738804366e",
+        "include/halo2/source_sky_stencil.hpp": "918d9e5278717e38c8f1b217ac56b4e00d9b9119849441cfcac0aab459372053",
+        "include/halo2/source_weather_depth_alias.hpp": "3d89d4ebed523a1bf7e58270895b2d8afeaad438dd79a2cba18bc77ab7c4e929",
+        "shaders/source_depth_storage.glsl": "6e70c788519bc02d1184ebec9141a319d14880fde61ff4b8b255a15aef3bc111",
+        "shaders/source_sky_stencil.frag": "15a3d8169ed19a73c9e4aced17b8726c06b4a1de921ed42c876e7182d5f580ba",
+        "shaders/source_sky_stencil.geom": "a3c522faf8b23f1217597d9ab1116fb5f3a85a0443d734d802929fbb3673c7d6",
+        "shaders/source_sky_stencil.vert": "5eac10e68b2dbace8598cc9b1b771a1acb6f435a5463dcbd42689b63722aac62",
+        "shaders/source_sky_stencil_instanced.vert": "dba193f7cbf9a9047e846cfb66a169fcabbbe736aff5855c27370c2481602047",
+        "shaders/source_sky_stencil_passthrough.vert": "f41035f373112e2681aaad259090b8619af283e0bb673aeec450ffebffd1aa76",
+        "shaders/world_depth_geometry.glsl": "7747872558d5f4835d6d954f84252e46ac1c4c4d4733a659f33f315987fe91a7",
+        "src/source_sky_stencil.cpp": "b10b4425d9e396c15c84cefb5ef6c215e38991d093286fe14190fdae550728a8",
+        "tests/macos/depth_storage/gpu.hpp": "30828526469740a9206a1583429489786cfbb5917deae6e43d61bd0ae26ff331",
+        "tests/macos/sky_stencil/CMakeLists.txt": "c72847d746de3c3e892c2da339c5f3c441e82fbfaa6831e3c7c7030c66703d15",
+        "tests/macos/sky_stencil/prepare_references.py": "a5353d827bf444bd5c54d177dbd282c80d84e3103c8cead8fa6d200daad6db05",
+        "tests/macos/sky_stencil/sky_stencil_tests.cpp": "48269ac4103c2071258b22c0776727b2dc38b3672dd57e3b10c97d94d6966493"
+      },
+      "source_admission_still_matches": true,
+      "mcc_source_preserved": true,
+      "mcc_lockout_bytes": 1820416,
+      "mcc_lockout_sha256": "97d034dca2109adde65e56c0ab78ee56f72045b56bf9b3200f304d5e1ff4c61e",
+      "python_cache_exists": false,
+      "large_test_artifacts_retained": []
+    },
+    "large_test_artifacts_retained": []
+  },
+  "primary_sources": [
+    "https://github.com/KhronosGroup/Vulkan-Docs/blob/main/chapters/drawing.adoc",
+    "https://archlinux.org/packages/extra/x86_64/vulkan-validation-layers/"
+  ]
+}

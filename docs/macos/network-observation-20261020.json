@@ -1,0 +1,90 @@
+{
+  "schema": "H2_MACOS_NETWORK_OBSERVATION_EVIDENCE_V1",
+  "date": "2026-10-20",
+  "scope": "Darwin network link/title-address observation and native API adapter execution; full original startup/gameplay remain open",
+  "macos": {
+    "passed_network_tests": 6,
+    "architectures": [
+      "arm64",
+      "x86_64_rosetta"
+    ],
+    "report": "build/test-results/macos-network-observation/report.json",
+    "output": "build/test-results/macos-network-observation/evidence/Testing/Temporary/LastTest.log",
+    "observed": {
+      "interface": "en0",
+      "kernel_mac_ipv4_cross_check": true,
+      "assignment": "dhcp",
+      "gateway_present": true,
+      "dns_entries": 2,
+      "source_link_flags": 1,
+      "speed_mbps": null,
+      "duplex": "unknown"
+    }
+  },
+  "linux": {
+    "passed_network_tests": 3,
+    "report": "build/test-results/macos-network-observation-linux/report.json"
+  },
+  "engine_configuration": {
+    "passed": true,
+    "report": "build/test-results/macos-network-engine-configure/report.json",
+    "passed_tests": 1,
+    "test": "vulkan_portability",
+    "scope": "complete engine graph configuration with added framework/source integration; only portability executable built",
+    "mac_mirror_cmake_root_sha256": "59144994ef911af98e520f048d8edd8affcaad6dcde0ea3aacb28af7f7cb265f"
+  },
+  "verified": [
+    "one SystemConfiguration snapshot for primary/service/interface/DNS/router fields",
+    "matching kernel MAC and IPv4; selected-service ownership",
+    "DHCP requires observed lease, manual/INFORM addresses require configured address match",
+    "unreported media values remain unknown; conflict/missing enabled carrier rejects",
+    "typed pending/absent state and rejection of foreign service/kernel mismatch/missing MAC/missing lease/automatic link-local fallback",
+    "native XNet/Winsock result layout, register/vector/flags preservation, reference cleanup and retained socket retirement",
+    "native title-address output record and observed flags through actual supported call frame",
+    "prior UDP socket-boundary and budget/teardown regressions on both architectures"
+  ],
+  "not_verified": [
+    "full original network startup instruction/CPU differential comparison",
+    "actual offline transitions, VPN changes or manual host configuration changes",
+    "unsupported assignment origins such as BOOTP/automatic link-local are not relabeled DHCP/static",
+    "gameplay or full engine build, numerical/depth completion, physical Intel hardware"
+  ],
+  "mac_validation_source_sha256": {
+    "cmake/macos/Network.cmake": "b93c404c1ba40cb21f9020c8ce517359e87c92472d37ac029ceea5ed42ca84c6",
+    "cmake/NativeTu15NetworkLink.cmake": "e6561efc0858e3e946de9f126aa12f9658d999c00ad7bf1160a5871f5b26dcc5",
+    "src/macos/native_network_observation.hpp": "bc8b9a142120523bffb53f4492d2afc3f4bf95ad541440df0b6d0ed74d628a90",
+    "src/macos/native_network_observation.cpp": "f34857ae343751db9ea1fa0ea4822731206923c762b12c4cf0d746b4807cc0d2",
+    "src/macos/native_datagram.hpp": "9c5e294ac6ef9407da4c35b143bd35faf94f1e463648bcbb384bd2a02cc3a102",
+    "src/native_tu15_network_link.cpp": "fcead151e002bb36955fb69d8074f80882616e0b5dddb4771af767d02dcdc861",
+    "src/native_tu15_title_address.cpp": "0a75ffc2d00fa7c8140027801f328da5200a31ffb92cf4099b65db9492f4e9f2",
+    "src/native_tu15_network_startup.cpp": "00ee2c535498742e6ce38a21dec77c99fc54e7d87e21a21676cb2dccfbf7f8d5",
+    "src/native_tu15_network_service.cpp": "3bb5ac371a67fcd302762697c27127c031b6afb15e28d4037efb4a05d6cba39c",
+    "include/halo2/native_tu15_network_link.hpp": "e46676f9f94f649ed57e1f2ac4e021b9146b4c423fb6aa622f3b4d8c7ef9a280",
+    "include/halo2/native_tu15_title_address.hpp": "713fc262238dfcc2df47364940942b9ae999c8ca0ef827766e69e54b0215ed68",
+    "include/halo2/native_tu15_network_startup.hpp": "a7937138a472a3ed2eb58ffe643f3b07cc1abace55dafb544e8d39d46aef03ee",
+    "tests/macos/CMakeLists.txt": "b80e7fec9209e3d289e90896ea13aded1fadc0cdb71d28fbcb5368977c68fd30",
+    "tests/macos/network_observation_tests.cpp": "15e841ec1efacf8bd1cee7041ecf0c00d043df00199ba29e667f4c8007ad218c"
+  },
+  "workspace_source_sha256_at_recording": {
+    "cmake/macos/Network.cmake": "b93c404c1ba40cb21f9020c8ce517359e87c92472d37ac029ceea5ed42ca84c6",
+    "cmake/NativeTu15NetworkLink.cmake": "e6561efc0858e3e946de9f126aa12f9658d999c00ad7bf1160a5871f5b26dcc5",
+    "src/macos/native_network_observation.hpp": "bc8b9a142120523bffb53f4492d2afc3f4bf95ad541440df0b6d0ed74d628a90",
+    "src/macos/native_network_observation.cpp": "f34857ae343751db9ea1fa0ea4822731206923c762b12c4cf0d746b4807cc0d2",
+    "src/macos/native_datagram.hpp": "9c5e294ac6ef9407da4c35b143bd35faf94f1e463648bcbb384bd2a02cc3a102",
+    "src/native_tu15_network_link.cpp": "fcead151e002bb36955fb69d8074f80882616e0b5dddb4771af767d02dcdc861",
+    "src/native_tu15_title_address.cpp": "0a75ffc2d00fa7c8140027801f328da5200a31ffb92cf4099b65db9492f4e9f2",
+    "src/native_tu15_network_startup.cpp": "00ee2c535498742e6ce38a21dec77c99fc54e7d87e21a21676cb2dccfbf7f8d5",
+    "src/native_tu15_network_service.cpp": "3bb5ac371a67fcd302762697c27127c031b6afb15e28d4037efb4a05d6cba39c",
+    "include/halo2/native_tu15_network_link.hpp": "e46676f9f94f649ed57e1f2ac4e021b9146b4c423fb6aa622f3b4d8c7ef9a280",
+    "include/halo2/native_tu15_title_address.hpp": "713fc262238dfcc2df47364940942b9ae999c8ca0ef827766e69e54b0215ed68",
+    "include/halo2/native_tu15_network_startup.hpp": "a7937138a472a3ed2eb58ffe643f3b07cc1abace55dafb544e8d39d46aef03ee",
+    "tests/macos/CMakeLists.txt": "b80e7fec9209e3d289e90896ea13aded1fadc0cdb71d28fbcb5368977c68fd30",
+    "tests/macos/network_observation_tests.cpp": "15e841ec1efacf8bd1cee7041ecf0c00d043df00199ba29e667f4c8007ad218c"
+  },
+  "cleanup": {
+    "owned_build_sdk_and_app_artifacts_removed": true,
+    "dedicated_mac_scratch_parent_empty": true,
+    "no_owned_disk_image_mounts": true,
+    "retained_large_artifacts": []
+  }
+}

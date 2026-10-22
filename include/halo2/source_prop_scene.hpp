@@ -2,6 +2,7 @@
 #include "halo2/cache.hpp"
 #include "halo2/source_object_view.hpp"
 #include "halo2/source_scene_effect_owner.hpp"
+#include "halo2/material_presentation_continuity.hpp"
 #include <memory>
 #include <functional>
 
@@ -57,8 +58,9 @@ public:
     // Exact completed local presentation state, including salted lifetimes,
     // posed/selected geometry, light/query caches and retained source views.
     // Resident Cache/Mesh/collision and callback owners remain here. The
-    // geometry value currently also copies its immutable CPU catalog; no
-    // material slot, native owner, resource or pose is reconstructed.
+    // Authored geometry/material catalogs remain resident; only mutable pose,
+    // selection and draw banks are copied. No material slot, native owner,
+    // resource or pose is reconstructed.
     class Checkpoint {
     public:
         Checkpoint()=default;
@@ -82,15 +84,20 @@ public:
     // Later frames do not expire a checkpoint. Replacing any callback binding
     // does: the captured values must not be paired with a different producer.
     // PRT links pin their actual resident pass. Pass replacement/COW makes that
-    // older cut ineligible; a fresh capture follows the new pass. Restoring a
-    // complete material graph remains the enclosing material owner's task.
+    // older cut ineligible through the direct overload. The TargetGraph
+    // overload proves the historical links against a prepared material graph
+    // and therefore also permits a later copy-on-write graph to be replaced.
     bool owns_checkpoint(const Checkpoint &)const noexcept;
     PreparedRestore prepare_restore(const Checkpoint &)const;
+    PreparedRestore prepare_restore(const Checkpoint &,
+        const MaterialPresentationContinuity::TargetGraph &)const;
     bool restore_ready(const PreparedRestore &)const noexcept;
     // Same executor, quiescent scene/callbacks and resident Mesh. Only swaps;
     // the caller retains the consumed token after the enclosing publication
     // lock. Previously exported ModelObjectDraw spans borrow scene storage:
     // retire them before publication, or keep the token until they are gone.
+    // A TargetGraph restore requires its exact material commit first; readiness
+    // may be checked before that commit, but scene publication cannot precede it.
     bool commit_restore(PreparedRestore &)noexcept;
     void synchronize(const SceneObjects &);
     // Completed-frame world adoption: discard handle/pose/light/view history,

@@ -1,0 +1,25 @@
+{
+  "schema": "H2_STEAM_CONTENT_PROFILE_V1",
+  "app_id": 976730,
+  "halo2_dlc_id": 1064270,
+  "halo2_multiplayer_dlc_id": 1097223,
+  "branch": "public",
+  "platform": "windows",
+  "architecture": "64",
+  "language": "english",
+  "depots": {"976731": "shared", "976735": "halo2", "976736": "halo2_multiplayer", "976737": "halo2_multiplayer"},
+  "depot_dlc": {"976731": 0, "976735": 1064270, "976736": 1097223, "976737": 1097223},
+  "shared_files": ["MCC/Content/Paks/MCC-WindowsNoEditor.pak"],
+  "halo2_prefix": "halo2/",
+  "excluded_suffixes": [".cso", ".dll", ".exe", ".flt", ".fxo", ".iso", ".pdb", ".spv", ".xbe"],
+  "excluded_prefixes": ["halo2/prebuild/shaders_2_cache/"],
+  "required_files": [
+    "MCC/Content/Paks/MCC-WindowsNoEditor.pak",
+    "halo2/h2_maps_win64_dx11/mainmenu.map",
+    "halo2/h2_maps_win64_dx11/shared.map",
+    "halo2/h2_maps_win64_dx11/single_player_shared.map",
+    "halo2/h2_maps_win64_dx11/lockout.map",
+    "halo2/h2_maps_win64_dx11/textures.dat",
+    "halo2/h2_fonts/font_table.txt"
+  ]
+}

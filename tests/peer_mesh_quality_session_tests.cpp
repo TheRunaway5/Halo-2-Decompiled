@@ -12,7 +12,7 @@ using namespace std::chrono_literals;
 using Json=nlohmann::json;
 namespace {
 void check(bool ok,const char *why){if(!ok)throw std::runtime_error(why);}
-template<class F>void wait(F ready,const char *stage){const auto until=std::chrono::steady_clock::now()+30s;
+template<class F>void wait(F ready,const char *stage){const auto until=std::chrono::steady_clock::now()+60s;
     while(!ready()){check(std::chrono::steady_clock::now()<until,stage);std::this_thread::sleep_for(5ms);}}
 }
 int main(int argc,char **argv)try{
@@ -23,6 +23,13 @@ int main(int argc,char **argv)try{
         p.peer=row.at("peer");p.guest=row.at("guest");const std::string id=row.at("identity");check(id.size()==16,"Invalid private room identity");
         for(unsigned n=0;n<8;++n)p.identity[n]=std::byte(std::stoul(id.substr(n*2,2),nullptr,16));roster.push_back(p);}
     OnlineMatchTransportOptions transport;transport.direct_udp=true;
+    if(d.contains("transport")&&d["transport"].value("kind",std::string{})=="eos-p2p-v1"){
+      const auto &value=d["transport"],&metadata=value.at("session");
+      OnlineEosOptions eos;eos.socket=value.at("socket");eos.force_relay=true;eos.sessions=true;
+      eos.playlist=metadata.at("playlist");eos.revision=metadata.at("revision");eos.map=metadata.at("map");eos.variant=metadata.at("variant");
+      for(const auto &peer:value.at("peers"))eos.peers.push_back({peer.at("slot"),peer.at("key")});
+      transport.eos=std::move(eos);
+    }
     auto session=std::make_shared<OnlineMatchSession>(argv[1],d.at("id"),d.at("token"),d.at("slot"),roster,true,false,false,transport);
     const auto healthy=[&]{if(session->phase()==OnlineMatchSession::Phase::Failed)throw std::runtime_error(session->error());};
     wait([&]{healthy();return session->phase()==OnlineMatchSession::Phase::Loading;},"Actual measured session loading timeout");
@@ -35,13 +42,24 @@ int main(int argc,char **argv)try{
     const auto self=session->self(),other=self==0?4u:0u;const bool hosting=self==session->host();
     std::vector<std::byte> sent{std::byte{'H'},std::byte{'2'},std::byte{'N'},std::byte{'2'},
         std::byte(native_multiplayer_protocol),std::byte(native_multiplayer_protocol>>8),std::byte(hosting?3:1),std::byte(self)};
-    unsigned received=0;const auto until=std::chrono::steady_clock::now()+2s;
+    unsigned received=0,voices=0,sequence=0;const auto until=std::chrono::steady_clock::now()+2s;
     while(std::chrono::steady_clock::now()<until){healthy();session->send(sent,other);std::vector<std::byte> bytes;unsigned from{};
         while(session->receive(bytes,from)){check(from==other&&bytes.size()==8&&bytes[6]==std::byte(hosting?1:3)&&bytes[7]==std::byte(other),"Direct payload or authenticated peer changed");++received;}
+        if(transport.eos){
+            GameVoiceFrame frame;frame.source=self+(sequence%4);frame.sequence=++sequence;
+            frame.opus={0x48,0x32,static_cast<std::uint8_t>(frame.source)};
+            session->voice(other,frame);
+            for(const auto &packet:session->voice_packets())if(!packet.preferences){
+                check(packet.peer==other&&packet.frame.source>=other&&packet.frame.source<other+4&&
+                    packet.frame.origin_signature&&packet.frame.opus==std::vector<std::uint8_t>{0x48,0x32,static_cast<std::uint8_t>(packet.frame.source)},
+                    "EOS voice origin, couch seat or encoded payload changed");++voices;
+            }
+        }
         std::this_thread::sleep_for(10ms);
     }
     check(received>50,"Direct game datagrams did not continue beside telemetry");
-    Json result{{"self",self},{"host",session->host()},{"received",received},{"protocol",native_multiplayer_protocol},{"candidates",Json::array()}};
+    if(transport.eos)check(voices>25,"Signed couch voice packets did not traverse EOS");
+    Json result{{"self",self},{"host",session->host()},{"received",received},{"signed_voice_packets",voices},{"protocol",native_multiplayer_protocol},{"candidates",Json::array()}};
     for(const auto &q:session->host_candidates())result["candidates"].push_back({{"peer",q.peer},{"upload",q.minimum_upload_bytes_per_second},{"rtt_ms",q.mean_rtt_ms},{"loss_per_mille",q.worst_loss_per_mille}});
     const auto output=path.parent_path()/("result-"+std::to_string(self)+".json");{std::ofstream out(output);out<<result.dump(2);}
     wait([&]{return std::filesystem::exists(path.parent_path()/("result-"+std::to_string(other)+".json"));},"Other native session did not complete");

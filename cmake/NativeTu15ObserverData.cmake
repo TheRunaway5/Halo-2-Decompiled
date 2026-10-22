@@ -1,4 +1,4 @@
-target_sources(halo2_systems PRIVATE src/native_tu15_observer_data.cpp)
+target_sources(halo2_systems PRIVATE src/gameplay/camera/native_tu15_observer_data.cpp)
 if(BUILD_TESTING)
     add_executable(native_tu15_observer_data_tests tests/native_tu15_observer_data_tests.cpp)
     target_link_libraries(native_tu15_observer_data_tests PRIVATE halo2_systems)

@@ -11,7 +11,7 @@ ENTRIES=(0x117560,0x218190,0x218070,0x2180f0,0x18c000,0x18c1f0)
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--output',type=Path,default=Path('src/source_object_sound_tu15_generated.cpp'))
+    p.add_argument('--output',type=Path,default=Path('src/gameplay/objects/source_object_sound_tu15_generated.cpp'))
     p.add_argument('--directory',type=Path,required=True)
     a=p.parse_args();assert sha(NEW_DEFAULT)==NEW_PIN
     image=Xbe(NEW_DEFAULT);code=_Code(image,'.text')

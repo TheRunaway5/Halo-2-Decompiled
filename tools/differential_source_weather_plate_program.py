@@ -195,7 +195,7 @@ def main():
             args.snapshot/'exports/physical-ram.bin',ROOT/'analysis/multiplayer-shading/weather-plate-original-reference/pixel-program-original-proof.json',
             ROOT/'analysis/multiplayer-shading/weather-plate-original-reference/event-215778/source-mode3-input52.bin',
             ROOT/'analysis/multiplayer-shading/weather-plate-original-reference/event-215778/retained-pre391F0-pixel-definition.bin']},
-        'failures':failures[:12],'native_inputs':{str(p.relative_to(ROOT)):sha(p)for p in [ROOT/'include/halo2/source_weather_plate_program.hpp',ROOT/'src/source_weather_plate_program.cpp',ROOT/'tests/source_weather_plate_program_tests.cpp',Path(__file__).resolve()]}}
+        'failures':failures[:12],'native_inputs':{str(p.relative_to(ROOT)):sha(p)for p in [ROOT/'include/halo2/source_weather_plate_program.hpp',ROOT/'src/rendering/weather/source_weather_plate_program.cpp',ROOT/'tests/source_weather_plate_program_tests.cpp',Path(__file__).resolve()]}}
     if args.write_fixture and not failures:report['fixture']={'path':str(args.write_fixture),'sha256':sha(args.write_fixture)}
     args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps({k:v for k,v in report.items()if k not in ['case_labels','authored_assets','restored_SDK_program_global_command_pages','native_inputs','source_inputs']},indent=2))

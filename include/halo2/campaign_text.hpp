@@ -2,6 +2,7 @@
 #include "halo2/frontend.hpp"
 #include "halo2/player_training.hpp"
 namespace halo2 {
+class ControllerPromptArtwork;
 // Original13CB50/13C680: a single localized cinematic line, including its
 // 1.5-second trailing fade. Kept in simulation time, so pausing freezes it.
 bool campaign_subtitles_visible(unsigned preference, unsigned game_language,
@@ -24,7 +25,7 @@ public:
   draw(const PlayerTrainingState &, const CampaignSubtitle &,
        unsigned subtitles, unsigned width, unsigned height, float letterbox,
        const std::function<std::string(const std::string &)> &substitute = {},
-       std::span<const CampaignTitle> titles = {}) const;
+       std::span<const CampaignTitle> titles = {},PromptDevice device=PromptDevice::Xbox) const;
 
 private:
   CampaignTextContent content_;
@@ -32,5 +33,6 @@ private:
   std::map<unsigned, std::pair<RetailFont, unsigned>> title_fonts_;
   unsigned training_material_{}, subtitle_material_{};
   std::array<unsigned, 4> panel_materials_{};
+  std::shared_ptr<ControllerPromptArtwork> prompt_artwork_;
 };
 } // namespace halo2

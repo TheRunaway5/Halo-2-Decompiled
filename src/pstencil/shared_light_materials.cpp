@@ -7,19 +7,24 @@
 namespace halo2::pstencil {
 struct SharedLightMaterials::Impl {
     const Cache& cache;Mesh& mesh;MaterialBank specular;
-    std::map<std::uint32_t,Material> shaders;
+    std::map<std::uint32_t,std::shared_ptr<const Material>> shaders;
     std::map<std::pair<std::uint32_t,unsigned>,std::shared_ptr<const Material>> lods;
     std::map<std::tuple<std::uint32_t,unsigned,std::uint32_t>,std::vector<Entry>> entries;
     Impl(const Cache& c,Mesh& m):cache(c),mesh(m),specular(c,m){}
     const Material& authored(std::uint32_t shader) {
         const auto found=shaders.find(shader);
-        if(found!=shaders.end())return found->second;
-        return shaders.emplace(shader,cache.load_material(shader)).first->second;
+        if(found!=shaders.end())return *found->second;
+        return *shaders.emplace(shader,std::make_shared<const Material>(cache.load_material(shader))).first->second;
     }
     std::shared_ptr<const Material> selected(std::uint32_t shader,unsigned lod) {
         const auto found=lods.find({shader,lod});if(found!=lods.end())return found->second;
-        auto value=std::make_shared<Material>(authored(shader));
-        if(lod>=value->lods.size())throw FormatError("shared light material lost its authored shader LOD");
+        const auto &source=authored(shader);
+        if(lod>=source.lods.size())throw FormatError("shared light material lost its authored shader LOD");
+        // The authored LOD is already immutable and independently owned. A
+        // selected view can retain it directly, including beyond this bank.
+        if(lod==source.selected_shader_lod)
+            return lods.emplace(std::pair{shader,lod},shaders.at(shader)).first->second;
+        auto value=std::make_shared<Material>(source);
         value->selected_shader_lod=lod;
         return lods.emplace(std::pair{shader,lod},std::move(value)).first->second;
     }

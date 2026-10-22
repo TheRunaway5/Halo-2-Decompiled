@@ -11,6 +11,7 @@
 #include "halo2/frontend_vista.hpp"
 #include "halo2/pc_settings.hpp"
 #include "halo2/controller_settings.hpp"
+#include "halo2/prompt_device.hpp"
 #include "halo2/display_settings.hpp"
 #include "halo2/discord_login.hpp"
 #include "halo2/discord_social.hpp"
@@ -258,6 +259,7 @@ struct RetailFont {
   std::map<unsigned, FontGlyphSample> sampled_glyphs;
 };
 RetailFont load_retail_font(const std::filesystem::path &);
+RetailFont decode_retail_font(std::span<const std::byte>);
 Texture prepare_ui_bitmap(const Bytes &, unsigned width, unsigned height,
                           unsigned format, unsigned flags);
 std::vector<std::uint16_t> decode_font_pixels(std::span<const std::byte>,
@@ -536,13 +538,18 @@ public:
   bool capturing_binding() const { return binding_action_.has_value(); }
   void bind_pc_input(int);
   void set_pc_video_modes(std::vector<std::pair<unsigned,unsigned>> modes,
-                         unsigned width, unsigned height, bool fullscreen);
+                         unsigned width, unsigned height, FullscreenMode fullscreen);
+  void set_pc_video_modes(std::vector<std::pair<unsigned,unsigned>> modes,
+                         unsigned width,unsigned height,bool fullscreen) {
+    set_pc_video_modes(std::move(modes),width,height,fullscreen?FullscreenMode::Fullscreen:FullscreenMode::Windowed);
+  }
   // A successful native display adapter returns an empty error string.
-  void set_pc_video_adapter(std::function<std::string(unsigned,unsigned,bool)> adapter) {
+  void set_pc_video_adapter(std::function<std::string(unsigned,unsigned,FullscreenMode)> adapter) {
     pc_video_adapter_ = std::move(adapter);
   }
   void set_pc_video_query(std::function<std::array<unsigned,3>()> query) { pc_video_query_=std::move(query); }
   FrontendAppearance profile_appearance() const;
+  std::string profile_service_tag() const;
   FrontendAppearance appearance() const;
   std::optional<FrontendLobbyView> lobby_view() const;
   void set_session_countdown(std::optional<std::int32_t> stage) { session_countdown_=stage; }
@@ -569,17 +576,18 @@ private:
   DisplaySettings pc_display_;
   std::function<std::string(const DisplaySettings &)> pc_display_adapter_;
   unsigned pc_width_{}, pc_height_{};
-  bool pc_fullscreen_{};
+  FullscreenMode pc_fullscreen_mode_{};
   std::optional<std::array<unsigned,3>> saved_pc_video_, previous_pc_video_;
   std::uint32_t video_preview_clock_{};
   void revert_pc_video();
-  std::function<std::string(unsigned,unsigned,bool)> pc_video_adapter_;
+  std::function<std::string(unsigned,unsigned,FullscreenMode)> pc_video_adapter_;
   std::function<std::array<unsigned,3>()> pc_video_query_;
   std::function<void(const FrontendLaunch &)> multiplayer_map_validator_;
   std::function<bool(FrontendLobbySessionAction)> lobby_session_action_;
   std::optional<std::uint8_t> vista_mainmenu_pbuffer_byte_;
   std::shared_ptr<DiscordLogin> discord_login_;
   std::array<std::shared_ptr<DiscordLogin>,4> local_discord_logins_{};
+  std::array<std::shared_ptr<OnlineAccount>,4> local_profile_accounts_{};
   std::function<std::shared_ptr<DiscordLogin>()> local_discord_factory_;
   std::array<std::string,4> local_discord_subjects_{};
   std::optional<unsigned> online_local_options_;
@@ -643,6 +651,7 @@ private:
   unsigned host_profile_{};
   void finish_local_signin();
   std::map<std::string, std::map<unsigned, int>> profile_values_;
+  std::map<std::string,std::string> profile_service_tags_;
   GameVariantSettings variant_values_;
   std::vector<UiVariant> saved_variants_;
   int saved_variant_ = -1;
@@ -711,7 +720,6 @@ struct FrontendOptions {
   std::string movie;
   bool skip_intro{};
   bool hidden{}, validation{}, mute{}, resize_test{}, audit{}, freeze_scene{};
-  bool debug_panel{}; // Optional F1 window initially open; ordinary startup remains clean.
   std::optional<pstencil::GraphicsMode> initial_graphics_mode;
 };
 class FrontendPainter {
@@ -721,6 +729,7 @@ public:
                   const FrontendUiAssetPack &ui_assets = {},
                   const std::filesystem::path &sampled_fonts = {});
   ~FrontendPainter();
+  void prompt_device(PromptDevice);
   UiDraw draw(const MenuState &, float seconds, int pane_override = -1,
               std::uint32_t ui_clock_ms = 0,
               std::array<unsigned, 2> viewport = {640, 480});

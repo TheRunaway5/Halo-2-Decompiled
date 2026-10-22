@@ -19,6 +19,7 @@ struct SourceWorldWeaponDefinition {
     float multiplayer_scale{},campaign_scale{};
     std::vector<std::uint32_t> widget_groups;
     std::uint32_t owner_function_count{}; // raw weap+104
+    std::int32_t barrel_count{}; // raw signed weap+2D0, used by1046C0
     std::vector<SourceWeaponMagazineDefinition> magazines;
     std::vector<ObjectFunction> functions;
 };

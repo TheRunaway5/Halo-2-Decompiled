@@ -21,7 +21,7 @@ PINS={**prior.PINS,
  'tools/oracle_canister_texture_cache_20261010.py':parent.sha(ROOT/'tools/oracle_canister_texture_cache_20261010.py'),
  'tools/oracle_sound_cache_request_native.py':parent.sha(ROOT/'tools/oracle_sound_cache_request_native.py'),
 }
-for n in('include/halo2/native_synchronization.hpp','src/native_synchronization.cpp'):
+for n in('include/halo2/native_synchronization.hpp','src/platform/native_synchronization.cpp'):
  PINS[str((NATIVE/'source'/n).relative_to(ROOT))]=parent.sha(NATIVE/'source'/n)
 for n in('provider.cpp','provider.so'):
  PINS[str((SCOPE/'native'/n).relative_to(ROOT))]=parent.sha(SCOPE/'native'/n)

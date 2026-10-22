@@ -15,7 +15,7 @@ BASE_PIN='8ba1f7bd52f15a766ecbadf279a7abccfaea21bd46df7146d47d2cd4ef7f0d43'
 REPORT=ROOT/'analysis/multiplayer/game-variants/king-visual-consumers-source-20261012/complete/report.json'
 REPORT_PIN='5921a37a3dc5c5e4af9539bf770f3455885222e1d08505c78473e174b887288a'
 OUT=ROOT/'analysis/multiplayer/game-variants/king-visual-native-20261012'
-OWNED=('include/halo2/source_king_visual.hpp','src/source_king_visual.cpp','tests/king_visual_tests.cpp',
+OWNED=('include/halo2/source_king_visual.hpp','src/gameplay/multiplayer/source_king_visual.cpp','tests/king_visual_tests.cpp',
  'tests/fixtures/king_visual_team_colors_original.json','tools/verify_king_visual_native.py')
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
@@ -25,12 +25,12 @@ def main():
  for p in OWNED:
   target=source/p;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(ROOT/p,target)
  live=(ROOT/'CMakeLists.txt').read_text();cmake=(base/'CMakeLists.txt').read_text()
- line=re.search(r'target_sources\(halo2_systems PRIVATE src/source_king_visual.cpp\)\n(?:target_sources\(halo2_systems PRIVATE src/source_king_boundary.cpp\)\n)?if\(MSVC\).*?endif\(\)\n',live,re.S).group()
- line=line.replace('target_sources(halo2_systems PRIVATE src/source_king_boundary.cpp)\n','').replace('src/source_king_visual.cpp src/source_king_boundary.cpp','src/source_king_visual.cpp')
- anchor='target_sources(halo2_systems PRIVATE src/source_score_event.cpp)\n';assert live.count(line)==1 and cmake.count(anchor)==1 and line not in cmake
+ line=re.search(r'target_sources\(halo2_systems PRIVATE src/gameplay/multiplayer/source_king_visual.cpp\)\n(?:target_sources\(halo2_systems PRIVATE src/gameplay/multiplayer/source_king_boundary.cpp\)\n)?if\(MSVC\).*?endif\(\)\n',live,re.S).group()
+ line=line.replace('target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/source_king_boundary.cpp)\n','').replace('src/gameplay/multiplayer/source_king_visual.cpp src/gameplay/multiplayer/source_king_boundary.cpp','src/gameplay/multiplayer/source_king_visual.cpp')
+ anchor='target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/source_score_event.cpp)\n';assert live.count(line)==1 and cmake.count(anchor)==1 and line not in cmake
  cmake=cmake.replace(anchor,anchor+line)
  declaration=re.search(r'        add_executable\(king_visual_tests.*?king_visual_team_colors_original\.json\)\n',live,re.S).group()
- anchor='        add_executable(king_engine_tests tests/king_engine_tests.cpp src/source_king.cpp src/slayer.cpp)\n';assert cmake.count(anchor)==1
+ anchor='        add_executable(king_engine_tests tests/king_engine_tests.cpp src/gameplay/multiplayer/source_king.cpp src/gameplay/multiplayer/slayer.cpp)\n';assert cmake.count(anchor)==1
  cmake=cmake.replace(anchor,declaration+anchor);(source/'CMakeLists.txt').write_text(cmake);(run/'live-CMakeLists.txt').write_text(live)
  (run/'cmake-overlay.json').write_text(json.dumps(dict(base_sha256=sha(base/'CMakeLists.txt'),live_sha256=sha(run/'live-CMakeLists.txt'),
   frozen_sha256=sha(source/'CMakeLists.txt'),source_line=line,test_declaration=declaration),sort_keys=True,indent=2)+'\n')
@@ -58,8 +58,8 @@ def main():
  assert re.search(r'100% tests passed.*out of 1',(run/'ctest.log').read_text())
  sanitized=run/'king_visual_tests_asan'
  execute('sanitizer-build',['/usr/bin/c++','-std=c++20','-O1','-g','-Wall','-Wextra','-Werror',
-  '-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-fast-math','-ffp-contract=off','-I'+str(source/'include'),
-  source/'tests/king_visual_tests.cpp',source/'src/source_king_visual.cpp','-o',sanitized])
+  '-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-fast-math','-ffp-contract=off','-I'+str(source/'include'), '-I'+str(source/'src'),
+  source/'tests/king_visual_tests.cpp',source/'src/gameplay/multiplayer/source_king_visual.cpp','-o',sanitized])
  execute('sanitizer-test',[sanitized,REPORT,source/'tests/fixtures/king_visual_team_colors_original.json'],
   {'ASAN_OPTIONS':'detect_leaks=1:halt_on_error=1','UBSAN_OPTIONS':'halt_on_error=1'})
  assert all(sha(p)==v for p,v in inputs.items())

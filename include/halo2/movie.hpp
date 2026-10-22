@@ -4,11 +4,15 @@
 #include <memory>
 
 namespace halo2 {
+enum class MovieDecodeMode { Automatic, Software };
 // Decode original Bink or bundled H.264/AV1 movies at their encoded frame rate.
-// One RGBA frame is exposed; audio uses the existing bounded stereo mixer.
+// Automatic mode admits an optional verified lossless HEVC intro copy and
+// hardware decoding, with software fallback. A bounded worker prepares frames;
+// one stable RGBA frame is exposed. Audio retains the existing stereo mixer.
 class Movie {
 public:
   explicit Movie(const std::filesystem::path &);
+  Movie(const std::filesystem::path &, MovieDecodeMode);
   ~Movie();
   Movie(const Movie &) = delete;
   const Texture &image() const;
@@ -18,15 +22,17 @@ public:
   unsigned frame_number() const;
   double duration() const;
   double frame_rate() const;
+  // Reports the device actually used for decoded frames, or "software".
+  const char *decode_device() const;
 
 private:
   struct Impl;
   std::unique_ptr<Impl> impl_;
 };
 PcmSound decode_movie_audio(const std::filesystem::path &);
-// Imported MCC: prefer the pinned cache bank, then the explicitly assigned
-// bundled intro/credits metadata. Empty means unavailable/unassigned (attract).
-// Legacy sources retain their original bundled/disc routing.
+// Imported MCC: empty until an authenticated MCC source is assigned to the
+// requested frontend role. Retained supplied banks are not MCC role owners.
+// Explicit non-MCC reference sources retain their bundled/disc routing.
 std::filesystem::path frontend_movie_path(const std::filesystem::path &maps,
                                         const std::filesystem::path &bundle,
                                         const std::string &name);

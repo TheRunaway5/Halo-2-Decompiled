@@ -55,7 +55,7 @@ def main():
             group, json.dumps(profile["name"]), ",".join(compiled), len(fields)))
     output.append("};")
     text = "\n".join(output) + "\n"
-    target = root / "src/mcc_gameplay_unit_scalar_profiles.inc"
+    target = root / "src/assets/mcc/mcc_gameplay_unit_scalar_profiles.inc"
     if args.check:
         if target.read_text() != text:
             raise SystemExit("Compiled unit scalar profiles differ from their reviewed manifest")

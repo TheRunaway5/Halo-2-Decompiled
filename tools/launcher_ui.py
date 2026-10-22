@@ -15,7 +15,7 @@ STALE_FRONTEND_MESSAGE = "The selected MCC menu runtime is unavailable or change
 
 
 class LauncherHome(LauncherCanvas):
-    def __init__(self, window, root, build=None, update_function=None, availability_function=None, runtime_unavailable=None, preview_maps_function=None, preview_launch_function=None, launcher_executable=None, sandbox_launch_function=None, runtime_executable=None, native_test_function=None, frontend_function=None):
+    def __init__(self, window, root, build=None, update_function=None, availability_function=None, runtime_unavailable=None, preview_maps_function=None, preview_launch_function=None, launcher_executable=None, sandbox_launch_function=None, runtime_executable=None, native_test_function=None, frontend_function=None, gameplay_function=None):
         from update_runtime import update_runtime
         from mcc_onboarding import NOT_PLAYABLE, runtime_status, preview_maps
 
@@ -43,15 +43,25 @@ class LauncherHome(LauncherCanvas):
             except (OSError, ValueError, KeyError):
                 return False
         self.frontend_available = frontend_function or validated_frontend
+        def validated_gameplay():
+            from gameplay_runtime_selection import selected_gameplay_runtime
+            try:
+                return selected_gameplay_runtime(root) is not None
+            except (OSError, ValueError, KeyError, TypeError, RuntimeError):
+                return False
+        self.gameplay_available = gameplay_function or validated_gameplay
         self.refresh_frontend()
         self.native_test = self.unavailable == NOT_PLAYABLE and self.native_test_available()
         self.preview_maps = (preview_maps_function or (lambda: preview_maps(root)))()
-        self.test_build = self.unavailable == NOT_PLAYABLE and bool(self.preview_maps) and not self.native_test and not self.frontend
+        self.test_build = self.unavailable == NOT_PLAYABLE and bool(self.preview_maps) and not self.native_test and not self.frontend and not self.gameplay
+        self.gameplay_message = "Play opens local MCC multiplayer."
         self.frontend_message = "Play opens the MCC title screen and menus."
         self.test_message = "Play opens the MCC content test build. Native gameplay and Xbox TU1.5 conversion are still in progress."
         from native_gameplay_test import MESSAGE
         self.native_test_message = MESSAGE
-        self.precompiled = (Path(root) / "PRECOMPILED_TEST_BUILD.json").is_file()
+        from installation_paths import resource_root
+        self.precompiled = (resource_root(root) != Path(root).resolve() or
+                            (Path(root) / "PRECOMPILED_TEST_BUILD.json").is_file())
         self.launcher_executable = Path(launcher_executable) if launcher_executable else Path(root) / "Halo2-Launcher"
         self.preview_launch = preview_launch_function or (lambda argv: subprocess.Popen(argv, cwd=root, start_new_session=True))
         self.sandbox_launcher = Path(root) / "Halo2-Sandbox-Test"
@@ -83,7 +93,7 @@ class LauncherHome(LauncherCanvas):
                                    wrap="word", relief="flat", padx=self.px(12), pady=self.px(12),
                                    width=1, height=1, yscrollcommand=scrollbar.set,
                                    highlightthickness=1, highlightbackground=EDGE, highlightcolor=CYAN)
-        initial_help = (STALE_FRONTEND_MESSAGE if self.frontend_stale else self.frontend_message if self.frontend else
+        initial_help = (self.gameplay_message if self.gameplay else STALE_FRONTEND_MESSAGE if self.frontend_stale else self.frontend_message if self.frontend else
                         "Play opens the validated local Lockout gameplay test. "
                         "Full gameplay, visual and audio parity remain incomplete." if self.native_test else
                         "Preview opens imported MCC map assets. Native gameplay testing requires a validated runtime.")
@@ -120,7 +130,10 @@ class LauncherHome(LauncherCanvas):
         if not choices:
             self.preview_selector.configure(state="disabled")
             self.preview_button.configure(state="disabled")
-        if self.frontend_stale:
+        if self.gameplay:
+            self.play_button.configure(text="Play multiplayer  ›")
+            self.status.configure(text=self.gameplay_message, foreground=CYAN)
+        elif self.frontend_stale:
             self.play_button.configure(state="disabled")
             self.status.configure(text=STALE_FRONTEND_MESSAGE, foreground="#ffd29b")
         elif self.frontend:
@@ -147,8 +160,9 @@ class LauncherHome(LauncherCanvas):
         # A present failed choice blocks ordinary Play, while a missing choice
         # retains the existing single-runtime/native-test fallback.
         self.frontend = bool(self.frontend_available())
+        self.gameplay = bool(getattr(self, 'gameplay_available', lambda: False)())
         selection = Path(self.root) / SELECTION
-        self.frontend_stale = (selection.exists() or selection.is_symlink()) and not self.frontend
+        self.frontend_stale = (selection.exists() or selection.is_symlink()) and not self.frontend and not self.gameplay
 
     def start_update(self):
         if self.working:
@@ -198,18 +212,18 @@ class LauncherHome(LauncherCanvas):
                     from mcc_onboarding import NOT_PLAYABLE
                     self.native_test = self.unavailable == NOT_PLAYABLE and self.native_test_available()
                     self.refresh_frontend()
-                    self.test_build = self.unavailable == NOT_PLAYABLE and bool(self.preview_maps) and not self.native_test and not self.frontend
-                    ready = not self.frontend_stale and (not self.unavailable or self.test_build or self.native_test or self.frontend)
+                    self.test_build = self.unavailable == NOT_PLAYABLE and bool(self.preview_maps) and not self.native_test and not self.frontend and not self.gameplay
+                    ready = not self.frontend_stale and (not self.unavailable or self.test_build or self.native_test or self.frontend or self.gameplay)
                     if self.native_test_button:
                         self.native_test_button.configure(state="normal" if self.native_test else "disabled")
-                    self.play_button.configure(text="Play native test  ›" if self.native_test and not self.frontend and not self.frontend_stale else "Play  ›")
+                    self.play_button.configure(text="Play multiplayer  ›" if self.gameplay else "Play native test  ›" if self.native_test and not self.frontend and not self.frontend_stale else "Play  ›")
                     self.play_button.configure(state="normal" if ready else "disabled")
                     if self.frontend_stale:
                         status_message = STALE_FRONTEND_MESSAGE
                     elif kind == "error":
                         status_message = "Update stopped. The installed build is available. See the output below." if ready else message
                     else:
-                        status_message = self.frontend_message if self.frontend else self.native_test_message if self.native_test else self.test_message if self.test_build else self.unavailable or message
+                        status_message = self.gameplay_message if self.gameplay else self.frontend_message if self.frontend else self.native_test_message if self.native_test else self.test_message if self.test_build else self.unavailable or message
                     self.status.configure(text=status_message,
                                           foreground="#ffd29b" if kind == "error" or self.test_build or (self.native_test and not self.frontend) or not ready else CYAN)
                     (self.play_button if ready else self.update_button).focus_set()

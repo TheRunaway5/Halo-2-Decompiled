@@ -15,8 +15,8 @@ class HudReferenceGeneratorTests(unittest.TestCase):
     def test_reviewed_outputs(self):
         raw = (ROOT / "tools/data/mcc-hud-reference.json").read_bytes()
         profile, hashes = generator.generate(raw)
-        self.assertEqual(profile, (ROOT / "src/mcc_hud_reference.inc").read_text())
-        self.assertEqual(hashes, (ROOT / "src/mcc_hud_reference_hashes.inc").read_text())
+        self.assertEqual(profile, (ROOT / "src/ui/hud/mcc_hud_reference.inc").read_text())
+        self.assertEqual(hashes, (ROOT / "src/ui/hud/mcc_hud_reference_hashes.inc").read_text())
 
     def test_authored_curve_mutation_rejected(self):
         data = json.loads((ROOT / "tools/data/mcc-hud-reference.json").read_bytes())
@@ -31,7 +31,7 @@ class HudReferenceGeneratorTests(unittest.TestCase):
 
     def test_geometry_reviewed_output_and_mutation_rejection(self):
         raw = (ROOT / "tools/data/mcc-hud-geometry-reference.json").read_bytes()
-        self.assertEqual(generator.generate_geometry(raw), (ROOT / "src/mcc_hud_geometry_reference.inc").read_text())
+        self.assertEqual(generator.generate_geometry(raw), (ROOT / "src/ui/hud/mcc_hud_geometry_reference.inc").read_text())
         data = json.loads(raw)
         self.assertEqual(len(data["profiles"]), 17)
         self.assertTrue(all(p["name"] != "ui\\hud\\scoreboard" for p in data["profiles"]))

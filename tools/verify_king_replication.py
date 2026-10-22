@@ -13,11 +13,11 @@ import capstone,unicorn
 ROOT=Path(__file__).resolve().parents[1]
 BASE=ROOT/'analysis/multiplayer/game-variants/scene-copy-destinations-native-20261012/verify-20261012T010411.708711Z/frozen-source'
 OUT=ROOT/'analysis/multiplayer/game-variants/king-replication-native-20261012'
-OWNED=('include/halo2/source_king_replication.hpp','src/source_king_replication.cpp',
+OWNED=('include/halo2/source_king_replication.hpp','src/gameplay/multiplayer/source_king_replication.cpp',
  'tests/king_replication_tests.cpp','tests/fixtures/king_replication_original.json','tools/oracle_king_replication.py','tools/verify_king_replication.py')
-NATIVE=('include/halo2/source_king.hpp','src/source_king.cpp','include/halo2/source_game_over.hpp',
- 'src/source_game_over.cpp','include/halo2/sound_classes.hpp','src/sound_classes.cpp',
- 'tests/king_engine_tests.cpp','tests/king_callback_tests.cpp','src/slayer.cpp','src/source_result_statistics.cpp',
+NATIVE=('include/halo2/source_king.hpp','src/gameplay/multiplayer/source_king.cpp','include/halo2/source_game_over.hpp',
+ 'src/gameplay/multiplayer/source_game_over.cpp','include/halo2/sound_classes.hpp','src/audio/sound_classes.cpp',
+ 'tests/king_engine_tests.cpp','tests/king_callback_tests.cpp','src/gameplay/multiplayer/slayer.cpp','src/gameplay/multiplayer/source_result_statistics.cpp',
  'tests/fixtures/king_engine_original.json','tests/fixtures/king_scoring_original.json','tests/fixtures/king_world_original.json',
  'tests/fixtures/king_callbacks_original.json')
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -34,11 +34,11 @@ def main():
   target=source/p;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(ROOT/p,target);assert sha(target)==pins[p]
  live_cmake=(ROOT/'CMakeLists.txt').read_text();base_cmake=(source/'CMakeLists.txt').read_text()
  declaration=re.search(r'        add_executable\(king_replication_tests.*?king_replication_original\.json\)\n',live_cmake,re.S).group()
- owned_line='target_sources(halo2_systems PRIVATE src/source_king_replication.cpp)\n'
+ owned_line='target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/source_king_replication.cpp)\n'
  assert live_cmake.count(owned_line)==1 and owned_line not in base_cmake and 'add_executable(king_replication_tests'not in base_cmake
- source_cmake=base_cmake.replace('target_sources(halo2_systems PRIVATE src/source_king.cpp)\n',
-  'target_sources(halo2_systems PRIVATE src/source_king.cpp)\n'+owned_line)
- anchor='        add_executable(king_engine_tests tests/king_engine_tests.cpp src/source_king.cpp src/slayer.cpp)\n'
+ source_cmake=base_cmake.replace('target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/source_king.cpp)\n',
+  'target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/source_king.cpp)\n'+owned_line)
+ anchor='        add_executable(king_engine_tests tests/king_engine_tests.cpp src/gameplay/multiplayer/source_king.cpp src/gameplay/multiplayer/slayer.cpp)\n'
  assert source_cmake.count(anchor)==1
  source_cmake=source_cmake.replace(anchor,anchor+declaration)
  (source/'CMakeLists.txt').write_text(source_cmake);(run/'live-CMakeLists.txt').write_text(live_cmake)
@@ -71,8 +71,8 @@ def main():
  sanitized=run/'king_replication_tests_asan'
  execute('sanitizer-build',['/usr/bin/c++','-std=c++20','-O1','-g','-Wall','-Wextra','-Werror',
   '-fno-fast-math','-ffp-contract=off','-fsanitize=address,undefined','-fno-omit-frame-pointer',
-  '-I'+str(source/'include'),source/'tests/king_replication_tests.cpp',source/'src/source_king_replication.cpp',
-  source/'src/source_king.cpp',source/'src/source_game_over.cpp',source/'src/sound_classes.cpp','-o',sanitized])
+  '-I'+str(source/'include'), '-I'+str(source/'src'),source/'tests/king_replication_tests.cpp',source/'src/gameplay/multiplayer/source_king_replication.cpp',
+  source/'src/gameplay/multiplayer/source_king.cpp',source/'src/gameplay/multiplayer/source_game_over.cpp',source/'src/audio/sound_classes.cpp','-o',sanitized])
  execute('sanitizer-test',[sanitized,source/'tests/fixtures/king_replication_original.json'],
   {'ASAN_OPTIONS':'detect_leaks=1:halt_on_error=1','UBSAN_OPTIONS':'halt_on_error=1'})
  with concurrent.futures.ThreadPoolExecutor(max_workers=8)as pool:

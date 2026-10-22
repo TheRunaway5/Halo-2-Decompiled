@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="72" viewBox="0 0 16 18" version="1.1">
+  <title>Xbox left-stick-press: custom controller prompt</title>
+  <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+  <defs>
+    <clipPath id="sphere-edge">
+      <ellipse cx="8" cy="10" rx="7.9" ry="7.9" />
+    </clipPath>
+    <linearGradient id="sphere-rim" gradientUnits="userSpaceOnUse" x1="2" x2="14" y1="2" y2="18">
+      <stop offset="0" stop-color="#c7c7c7" />
+      <stop offset="0.3" stop-color="#393939" />
+      <stop offset="0.6" stop-color="#191919" />
+      <stop offset="0.85" stop-color="#000000" />
+      <stop offset="1" stop-color="#333333" />
+    </linearGradient>
+    <radialGradient id="sphere-body" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(5 6) scale(11 11)">
+      <stop offset="0" stop-color="#2a2a2a" />
+      <stop offset="0.35" stop-color="#333333" />
+      <stop offset="0.8" stop-color="#404040" />
+      <stop offset="1" stop-color="#797979" />
+    </radialGradient>
+    <radialGradient id="sphere-reflection" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(5.3 5.8) scale(3.2 4.4)">
+      <stop offset="0" stop-opacity="1" stop-color="#3c3c3c" />
+      <stop offset="0.35" stop-opacity="0.9" stop-color="#3c3c3c" />
+      <stop offset="1" stop-opacity="0" stop-color="#3c3c3c" />
+    </radialGradient>
+    <radialGradient id="lower-reflection" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(10 12) scale(4.5 4.5)">
+      <stop offset="0" stop-opacity="1" stop-color="#787878" />
+      <stop offset="0.35" stop-opacity="0.9" stop-color="#787878" />
+      <stop offset="1" stop-opacity="0" stop-color="#787878" />
+    </radialGradient>
+  </defs>
+  <g transform="scale(1.00000000 1.00000000)" id="legacy-metal-button" clip-path="url(#sphere-edge)">
+    <ellipse id="outer-rim" cx="8" cy="10" rx="7.7" ry="7.7" fill="url(#sphere-rim)" />
+    <ellipse id="sphere-face" cx="7.8" cy="9.6" rx="6.65" ry="6.65" fill="url(#sphere-body)" />
+    <ellipse id="reflection" cx="5.3" cy="5.8" rx="3.2" ry="4.4" fill="url(#sphere-reflection)" />
+    <ellipse id="lower-reflection" cx="10" cy="12" rx="4.5" ry="4.5" fill="url(#lower-reflection)" />
+    <path id="inner-ring-highlight" d="M2.1 11 C1.6 5.9 5.6 3.3 11 3.8" fill="none" stroke="url(#sphere-rim)" stroke-width=".9" />
+    <path id="letter-L" d="M6 5.8 H7.3 V12 H10.7 V13.7 H6 Z" fill-rule="evenodd" fill="#eaeaea" />
+  </g>
+</svg>

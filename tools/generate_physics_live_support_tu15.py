@@ -343,13 +343,20 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
                 assert i.bytes.hex()=='ff5060'
                 target=get(i,op[0]);externals[f'{p:08x}']=dict(target=i.op_str,full_guest_abi=True)
                 return '{const auto target='+target+f';s.push(0x{p:x}u,{imm(next)});s.required(0x{p:x}u,target,false);'+'}'
-            if p in (0xd1fbf,0x101db8,0x183e17,0x18cefc,0x10517f,0x107c40,0x17db3b,0x17db6d):
+            if p in (0xd1fbf,0x101db8,0x183e17,0x18cefc,0x10517f,0x107c40,0x17db3b,0x17db6d,0x1185f3,0xd5506,0x1714ac,0x179063):
                 # Preserve native publication even when the complete callee
                 # becomes internal to this composition. The required owner
                 # observes the real ABI and runs the original callee itself.
                 expected={0xd1fbf:0xd13d0,0x101db8:0x178e30,0x183e17:0x439c0,0x18cefc:0x223b20,
-                          0x10517f:0x108a70,0x107c40:0x108a70,0x17db3b:0xc2380,0x17db6d:0xc2380}[p]
+                          0x10517f:0x108a70,0x107c40:0x108a70,0x17db3b:0xc2380,0x17db6d:0xc2380,
+                          0x1185f3:0x13a030,0xd5506:0x13a030,0x1714ac:0x3bca0,0x179063:0x17c6e0}[p]
                 assert op[0].type==2 and op[0].imm==expected
+                target=get(i,op[0]);externals[f'{p:08x}']=dict(target=i.op_str,full_guest_abi=True)
+                return f's.push(0x{p:x}u,{imm(next)});s.required(0x{p:x}u,{target},false);'
+            if op[0].type==2 and addresses.get(op[0].imm)==0x15ddc0:
+                # Publish the actual winner/NONE ABI even when this complete
+                # round-end body is also local to the generated composition.
+                # The live required owner runs it and observes its real return.
                 target=get(i,op[0]);externals[f'{p:08x}']=dict(target=i.op_str,full_guest_abi=True)
                 return f's.push(0x{p:x}u,{imm(next)});s.required(0x{p:x}u,{target},false);'
             if op[0].type==2 and op[0].imm in ENTRIES:
@@ -489,8 +496,77 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
             lines.append('SourceObjectAttachmentScopeTu15 attachment_scope(s.memory);')
         if entry==0xfdeb0:
             lines.append('SourceProjectileUpdateScope projectile_scope(s.memory,r(s.memory,s.gp[4]+4u,4));')
+        if entry==0x1d5320:
+            lines.append('SourceWeaponAnimationQueryScopeTu15 weapon_query_scope(s.memory,r(s.memory,s.gp[4],4),s.gp[0]);')
         for i in ins:
             translated=emit(i);lowered[f'{i.address:08x}']=dict(mnemonic=i.mnemonic,source_bytes=i.bytes.hex())
+            if entry==0x17b1f0 and i.address in (0x17b232,0x17b2ec,0x17b35d):
+                # Compiled symbol identity is an input namespace, not an
+                # authored marker value. Retain the complete original branch,
+                # flags and observations while selecting its same named MCC
+                # literal from the actual World's immutable Cache lease.
+                symbol={0x17b232:0x030000d9,0x17b2ec:0x0700054e,0x17b35d:0x0400054f}[i.address]
+                assert i.mnemonic=='cmp' and i.operands[-1].type==2 and i.operands[-1].imm==symbol
+                literal=f'selected(0x{symbol:x}u,s.image)'
+                if literal not in translated:literal=f'0x{symbol:x}u'
+                assert translated.count(literal)==1
+                translated=translated.replace(literal,f'source_effect_compiled_symbol_tu15(s.memory,{literal})')
+            if entry==0x100e70 and i.address in (0x100ea4,0x100eb0,0x100eb7,0x100f04,0x100f0b):
+                # Complete original projectile builtin callback. Compare the
+                # same named Cache symbol; preserve all source arithmetic,
+                # authored inputs, aliases and callback return paths.
+                symbol={0x100ea4:0x0f000563,0x100eb0:0x06000564,0x100eb7:0x0e000562,
+                        0x100f04:0x11000566,0x100f0b:0x12000565}[i.address]
+                assert i.mnemonic=='cmp' and i.operands[-1].type==2 and i.operands[-1].imm==symbol
+                value=get(i,i.operands[-1]);assert translated.count(value)==1
+                translated=translated.replace(value,
+                    f'source_projectile_function_symbol_tu15(s.memory,0x{i.address:x}u,'+value+')')
+            if entry==0x101bc0 and i.address in (0x101cad,0x101cc5):
+                # Complete original explosion request construction: adapt only
+                # the two compiled seed names through this World's Cache lease.
+                # Coordinates, direction, count, allocation and tags stay raw.
+                symbol=0x0700054c if i.address==0x101cad else 0x08000550
+                assert i.mnemonic=='mov' and i.operands[-1].type==2 and i.operands[-1].imm==symbol
+                value=get(i,i.operands[-1]);assert translated.count(value)==1
+                translated=translated.replace(value,
+                    f'source_projectile_explosion_location_symbol_tu15(s.memory,0x{i.address:x}u,'+value+')')
+            if i.address in (0x15cbc2,0x15ccb9,0x15ccce):
+                # These three original stores publish compiled gauss or
+                # multiplayer names. The immutable MCC Cache lease supplies
+                # their same named identifiers; authored values stay untouched.
+                symbol=0x05000694 if i.address==0x15cbc2 else 0x0b00078b
+                assert i.mnemonic=='mov' and i.operands[-1].type==2 and i.operands[-1].imm==symbol
+                literal=f'0x{symbol:x}u'
+                assert translated.count(literal)==1
+                translated=translated.replace(literal,
+                    f'source_vehicle_compiled_symbol_tu15(s.memory,0x{i.address:x}u,{literal})')
+            if entry==0x16b31b and i.address==0x16b3f1:
+                # The three complete melee callers pass compiled activities
+                # into this graph query. Preserve their canonical stack input
+                # and action state; adapt only this pushed lookup key after
+                # the World's actual Cache has qualified the named namespace.
+                assert i.bytes.hex()=='ff7508'
+                value=get(i,i.operands[0])
+                assert translated.count(value)==1
+                translated=translated.replace(value,
+                    'source_weapon_animation_query_symbol_tu15(s.memory,r(s.memory,s.gp[5]+4u,4),'+value+')')
+            if ((entry==0xeac70 and i.address==0xead6a) or
+                (entry==0x112420 and i.address in (0x1124b7,0x1125d6))):
+                # These complete equip owners copy the compiled dual class
+                # into the body lookup/setter. Preserve original algorithms
+                # and results; qualify only the actual named Cache operand.
+                assert i.mnemonic=='mov' and i.operands[-1].type==2 and i.operands[-1].imm==0x0400054b
+                value=get(i,i.operands[-1]);assert translated.count(value)==1
+                translated=translated.replace(value,
+                    f'source_weapon_animation_equip_class_symbol_tu15(s.memory,0x{i.address:x}u,'+value+')')
+            if entry==0x1e3420 and i.address==0x1e34a3:
+                #1D5320 retains canonical activity/state. Only this copied
+                # action-record search key uses its qualified FP query scope.
+                assert i.bytes.hex()=='57'
+                value=get(i,i.operands[0])
+                assert translated.count(value)==1
+                translated=translated.replace(value,
+                    'source_weapon_animation_scoped_query_symbol_tu15(s.memory,'+value+')')
             if entry==0xbaf10 and i.address==0xbaf5f:
                 translated='attachment_scope.inputs(s.gp[2],s.gp[1],s.gp[5],s.gp[7]);'+translated
             if entry==0xbaf10 and i.address==0xbb1ef:
@@ -508,7 +584,7 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
     assert used_addresses<=set(addresses),(used_addresses-set(addresses))
     preamble='''// Generated by tools/generate_physics_live_support_tu15.py.
 // Complete authenticated bodies compile to native arithmetic and static calls.
-#include "physics_world_runtime_internal.hpp"
+#include "physics/runtime/physics_world_runtime_internal.hpp"
 #include "halo2/physics_live_support_tu15.hpp"
 #include "halo2/mcc_sound_tag_layout.hpp"
 #include "halo2/source_projectile_effect_observer.hpp"
@@ -891,11 +967,11 @@ void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
     if process_heap:
         preamble=preamble.replace('tools/generate_physics_live_support_tu15.py',
             'tools/generate_source_process_heap_runtime.py')
-        preamble=preamble.replace('#include "physics_world_runtime_internal.hpp"',
-            '#include "physics_world_runtime_internal.hpp"\n#include "halo2/source_process_heap_runtime.hpp"')
+        preamble=preamble.replace('#include "physics/runtime/physics_world_runtime_internal.hpp"',
+            '#include "physics/runtime/physics_world_runtime_internal.hpp"\n#include "halo2/source_process_heap_runtime.hpp"')
         ending=ending.replace('source_run_physics_world_runtime','source_run_process_heap_runtime')
-    if runtime_header:preamble=preamble.replace('#include "physics_world_runtime_internal.hpp"',
-        '#include "physics_world_runtime_internal.hpp"\n#include "'+runtime_header+'"')
+    if runtime_header:preamble=preamble.replace('#include "physics/runtime/physics_world_runtime_internal.hpp"',
+        '#include "physics/runtime/physics_world_runtime_internal.hpp"\n#include "'+runtime_header+'"')
     if runtime_function:ending=ending.replace('source_run_physics_world_runtime',runtime_function)
     ending=ending.replace('} // namespace halo2',
         'bool source_physics_live_support_tu15_owns_entry(std::uint32_t p) {switch(p){'+
@@ -906,8 +982,8 @@ void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
         # Xbox-local-view gate. Native users retain separate input records.
         assert code.at(0xecb98).bytes.hex()=='8b0df4544f00'
         assert code.at(0xecbc6).operands[0].imm==0x18a2a0
-        preamble=preamble.replace('#include "physics_world_runtime_internal.hpp"',
-            '#include "physics_world_runtime_internal.hpp"\n#include "halo2/source_vehicle_input_tu15.hpp"')
+        preamble=preamble.replace('#include "physics/runtime/physics_world_runtime_internal.hpp"',
+            '#include "physics/runtime/physics_world_runtime_internal.hpp"\n#include "halo2/source_vehicle_input_tu15.hpp"')
         needle='if(s.services.instruction){s.services.instruction(0xecb98u);}'
         assert sum(body.count(needle) for body in bodies)==1
         bodies=[body.replace(needle,
@@ -917,6 +993,18 @@ void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
     # unused definition or unrelated declarations into every recovered module:
     # that makes unchanged modules drift whenever this owner is extended.
     body_source='\n\n'.join(bodies)
+    if any(name in body_source for name in ('source_effect_compiled_symbol_tu15(',
+            'source_projectile_explosion_location_symbol_tu15(', 'source_projectile_function_symbol_tu15(')):
+        preamble=preamble.replace('#include "physics/runtime/physics_world_runtime_internal.hpp"',
+            '#include "physics/runtime/physics_world_runtime_internal.hpp"\n#include "halo2/source_effect_compiled_symbols_tu15.hpp"')
+    if 'source_vehicle_compiled_symbol_tu15(' in body_source:
+        preamble=preamble.replace('#include "physics/runtime/physics_world_runtime_internal.hpp"',
+            '#include "physics/runtime/physics_world_runtime_internal.hpp"\n#include "halo2/source_vehicle_compiled_symbols_tu15.hpp"')
+    if any(name in body_source for name in ('source_weapon_animation_query_symbol_tu15(',
+            'source_weapon_animation_scoped_query_symbol_tu15(',
+            'source_weapon_animation_equip_class_symbol_tu15(','SourceWeaponAnimationQueryScopeTu15')):
+        preamble=preamble.replace('#include "physics/runtime/physics_world_runtime_internal.hpp"',
+            '#include "physics/runtime/physics_world_runtime_internal.hpp"\n#include "halo2/source_weapon_animation_query_symbols_tu15.hpp"')
     if 'native_sound_duration_divide(' not in body_source:
         first=preamble.index('long double native_sound_duration_divide(')
         last=preamble.index('long double native_integer_multiply(',first)

@@ -74,12 +74,88 @@ struct SdlSoundPlaybackPosition {
   // rate, bounded by supplied PCM. Underruns and canceled PCM add nothing.
   double source_frames{};
   std::uint64_t output_frames{};
+  // A restored prefix is historical observed consumption in this publication
+  // branch. Physical device frames never rewind. A resumed-frame observation
+  // is absent until this branch actually consumes PCM (even zero-valued PCM).
+  std::uint64_t publication_epoch{1};
+  std::optional<std::uint64_t> first_resumed_device_frame;
 };
 
 class SdlSoundPlatform {
+  struct State;
+  struct SnapshotData;
+  struct PreparedData;
 public:
   using Voice = std::uint64_t;
   enum class Submission { Accepted, Backpressure };
+
+  class PreparedReplacement;
+  class HeldPublication;
+  class VoiceReceipt {
+  public:
+    std::uint64_t id() const noexcept { return id_; }
+  private:
+    std::weak_ptr<State> owner_;
+    std::shared_ptr<const unsigned char> record_;
+    std::uint64_t id_{},epoch_{};
+    friend class SdlSoundPlatform;
+    friend struct State;
+    friend class PreparedReplacement;
+  };
+  class CompletionReceipt {
+  public:
+    const SdlSoundCompletion &value() const noexcept { return value_; }
+  private:
+    VoiceReceipt voice_;
+    std::shared_ptr<const unsigned char> record_;
+    SdlSoundCompletion value_{};
+    friend class SdlSoundPlatform;
+  };
+  class Checkpoint {
+  public:
+    Checkpoint() = default;
+  private:
+    std::shared_ptr<const SnapshotData> data_;
+    friend class SdlSoundPlatform;
+  };
+  class PreparedReplacement {
+  public:
+    PreparedReplacement() = default;
+    ~PreparedReplacement();
+    PreparedReplacement(PreparedReplacement&&) noexcept;
+    PreparedReplacement &operator=(PreparedReplacement&&) noexcept;
+    PreparedReplacement(const PreparedReplacement&) = delete;
+    // Authenticated saved-target handles may stage paired owners before commit.
+    // They have fresh preparation records and a future epoch: ordinary calls
+    // refuse until exactly that target publishes. Sibling/canceled preparations
+    // cannot confer authority. No live raw-ID refresh exists.
+    std::optional<VoiceReceipt> voice(Voice) const noexcept;
+    std::optional<std::size_t> voices() const noexcept;
+  private:
+    std::shared_ptr<PreparedData> data_;
+    friend class SdlSoundPlatform;
+  };
+  struct Clocks {
+    std::uint64_t physical{},elapsed{},presentation{},publication_epoch{};
+  };
+  class HeldPublication {
+  public:
+    // Non-transferable: foreign destruction terminates before unlocking SDL
+    // or touching retained storage. Prepared cancellation alone is transferable.
+    ~HeldPublication();
+    HeldPublication(const HeldPublication&) = delete;
+    HeldPublication(HeldPublication&&) = delete;
+    std::optional<Clocks> clocks() const noexcept;
+    // LIVE preimage witness; after commit this observes the installed target.
+    // It does not prove a prospective preparation's target state.
+    std::optional<SdlSoundVoiceStatus> status(const VoiceReceipt&) const noexcept;
+  private:
+    HeldPublication(std::shared_ptr<State>,std::shared_ptr<PreparedData>);
+    std::shared_ptr<State> state_;
+    std::shared_ptr<PreparedData> data_;
+    bool locked_{};
+    friend class SdlSoundPlatform;
+  };
 
   explicit SdlSoundPlatform(const SdlSoundPlatformConfiguration &);
   ~SdlSoundPlatform();
@@ -112,7 +188,7 @@ public:
   void flush(Voice);
   void destroy_voice(Voice); // Requires both retained slots to be accounted.
 
-  // Called by the actual SDL_AUDIODEVICEREMOVED event owner. Events for other
+  // Called on the creator by the actual SDL_AUDIODEVICEREMOVED event owner. Events for other
   // devices are ignored. Pending packets fail, not complete successfully.
   bool device_removed(std::uint32_t which);
 
@@ -126,11 +202,47 @@ public:
   void paused(bool);
   std::uint64_t presentation_frames() const;
 
+  // Checkpoint or typed creation enrolls exclusive constructing-executor use.
+  // Enrollment rejects prior foreign producer writes; unpublished legacy raw
+  // calls retain their original SDL-lock behavior. Once enrolled, all producer
+  // calls (including observations) use the constructing executor.
+  // Do not call ordinary methods while HeldPublication excludes the callback;
+  // use its read-only witnesses. Preparation tolerates normal callback progress.
+  // Explicit enrollment performs no allocation or capture. Failed admission
+  // leaves enrollment unchanged; success binds the creating producer once.
+  void enroll_continuation();
+  Checkpoint checkpoint() const;
+  PreparedReplacement prepare_restore(const Checkpoint&) const;
+  HeldPublication hold_publication(PreparedReplacement&);
+  bool ready(const PreparedReplacement&,const HeldPublication&) const noexcept;
+  bool commit(PreparedReplacement&,HeldPublication&) noexcept;
+  std::uint64_t elapsed_frames() const; // Restorable, advances through global pause.
+  std::uint64_t publication_epoch() const;
+
+  // Continuable PCM must have a real retaining control block and no escaped
+  // mutable writer. Const shared ownership does not authenticate sample bytes.
+  VoiceReceipt create_voice_receipt(std::uint64_t,const SdlSoundVoiceParameters&,
+                                   std::optional<std::uint64_t> deadline = {});
+  void parameters(const VoiceReceipt&,const SdlSoundVoiceParameters&);
+  Submission submit(const VoiceReceipt&,SdlSoundPacket);
+  SdlSoundVoiceStatus status(const VoiceReceipt&) const;
+  SdlSoundPlaybackPosition playback_position(const VoiceReceipt&) const;
+  std::optional<CompletionReceipt> completion(const VoiceReceipt&) const;
+  void acknowledge(const CompletionReceipt&);
+  void flush(const VoiceReceipt&);
+  void destroy_voice(const VoiceReceipt&);
+  // After first publication, legacy raw voice creators/mutators/ACK reject.
+  // This module alone does not enable receipt/global/MultiplayerAudio adoption.
+
 private:
   Voice create_voice_impl(std::uint64_t, const SdlSoundVoiceParameters &,
-                          std::optional<std::uint64_t>);
-  struct State;
-  std::unique_ptr<State> state_;
+                          std::optional<std::uint64_t>,bool raw = true);
+  void parameters_impl(Voice,const SdlSoundVoiceParameters&);
+  Submission submit_impl(Voice,SdlSoundPacket);
+  void acknowledge_impl(Voice,std::uint64_t);
+  void flush_impl(Voice);
+  void destroy_voice_impl(Voice);
+  std::shared_ptr<State> state_;
 };
 
 } // namespace halo2

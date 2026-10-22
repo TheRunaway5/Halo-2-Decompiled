@@ -14,7 +14,7 @@ ROOT=Path(__file__).resolve().parents[1]
 BASE_MANIFEST=ROOT/'analysis/multiplayer/game-variants/engine-entity-native-20261012/verify-20261012T020511.031485Z/verification.json'
 BASE_PIN='e0a137fc690247c2795b5a3436ab5608c95a8588dd6b498ad82bb1768a968fb5'
 OUT=ROOT/'analysis/multiplayer/game-variants/engine-entry-native-20261012'
-OWNED=('include/halo2/source_engine_entry.hpp','src/source_engine_entry.cpp','tests/engine_entry_tests.cpp',
+OWNED=('include/halo2/source_engine_entry.hpp','src/gameplay/multiplayer/source_engine_entry.cpp','tests/engine_entry_tests.cpp',
  'tests/fixtures/engine_entry_original.json','tools/oracle_engine_entry.py','tools/verify_engine_entry.py')
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def main():
@@ -29,13 +29,13 @@ def main():
  pins={p:sha(ROOT/p)for p in sorted(files)}
  for p in sorted(files):
   target=source/p;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(ROOT/p,target);assert sha(target)==pins[p]
- for p in ('include/halo2/source_king.hpp','include/halo2/source_king_replication.hpp','src/source_king_replication.cpp','src/source_king.cpp','src/source_game_over.cpp','src/sound_classes.cpp','include/halo2/source_engine_entity.hpp','src/source_engine_entity.cpp'):
+ for p in ('include/halo2/source_king.hpp','include/halo2/source_king_replication.hpp','src/gameplay/multiplayer/source_king_replication.cpp','src/gameplay/multiplayer/source_king.cpp','src/gameplay/multiplayer/source_game_over.cpp','src/audio/sound_classes.cpp','include/halo2/source_engine_entity.hpp','src/gameplay/multiplayer/source_engine_entity.cpp'):
   assert sha(ROOT/p)==sha(base/p),('Required entity ABI drift',p)
  live=(ROOT/'CMakeLists.txt').read_text();cmake=(source/'CMakeLists.txt').read_text()
  declaration=re.search(r'        add_executable\(engine_entry_tests.*?engine_entry_original\.json\)\n',live,re.S).group()
- line='target_sources(halo2_systems PRIVATE src/source_engine_entry.cpp)\n'
+ line='target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/source_engine_entry.cpp)\n'
  assert live.count(line)==1 and line not in cmake and 'add_executable(engine_entry_tests'not in cmake
- anchor='target_sources(halo2_systems PRIVATE src/source_engine_entity.cpp)\n';assert cmake.count(anchor)==1
+ anchor='target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/source_engine_entity.cpp)\n';assert cmake.count(anchor)==1
  cmake=cmake.replace(anchor,anchor+line)
  anchor='            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/engine_entity_original.json)\n';assert cmake.count(anchor)==1
  cmake=cmake.replace(anchor,anchor+declaration);(source/'CMakeLists.txt').write_text(cmake)
@@ -69,9 +69,9 @@ def main():
  assert re.search(r'100% tests passed.*out of 6',(run/'ctest.log').read_text())
  sanitized=run/'engine_entry_tests_asan'
  execute('sanitizer-build',['/usr/bin/c++','-std=c++20','-O1','-g','-Wall','-Wextra','-Werror',
-  '-fno-fast-math','-ffp-contract=off','-fsanitize=address,undefined','-fno-omit-frame-pointer','-I'+str(source/'include'),
-  source/'tests/engine_entry_tests.cpp',source/'src/source_engine_entry.cpp',source/'src/source_engine_entity.cpp',source/'src/source_king_replication.cpp',
-  source/'src/source_king.cpp',source/'src/source_game_over.cpp',source/'src/sound_classes.cpp','-o',sanitized])
+  '-fno-fast-math','-ffp-contract=off','-fsanitize=address,undefined','-fno-omit-frame-pointer','-I'+str(source/'include'), '-I'+str(source/'src'),
+  source/'tests/engine_entry_tests.cpp',source/'src/gameplay/multiplayer/source_engine_entry.cpp',source/'src/gameplay/multiplayer/source_engine_entity.cpp',source/'src/gameplay/multiplayer/source_king_replication.cpp',
+  source/'src/gameplay/multiplayer/source_king.cpp',source/'src/gameplay/multiplayer/source_game_over.cpp',source/'src/audio/sound_classes.cpp','-o',sanitized])
  execute('sanitizer-test',[sanitized,source/'tests/fixtures/engine_entry_original.json'],
   {'ASAN_OPTIONS':'detect_leaks=1:halt_on_error=1','UBSAN_OPTIONS':'halt_on_error=1'})
  with concurrent.futures.ThreadPoolExecutor(max_workers=8)as pool:current=list(pool.map(lambda p:sha(source/p),frozen))

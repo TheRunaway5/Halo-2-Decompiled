@@ -187,12 +187,14 @@ void reference_devices(){
  const auto selected=[&](const std::vector<Vertex>&world){std::vector<Vertex>out;for(const auto&v:world)
   if(mesh.materials[v.material].name==names[0] || mesh.materials[v.material].name==names[1])out.push_back(v);return out;};
  std::vector<Vertex>world;std::vector<ObjectLightingBinding>bindings;scene.append(world,bindings);const auto first=selected(world);
+ MaterialPresentationContinuity materials(mesh);
+ const auto material_cut=materials.checkpoint();
  const auto exact=scene.checkpoint();
  std::vector<std::pair<unsigned,std::shared_ptr<const VertexProgramBank>>> captured_banks;
  for(unsigned i=0;i<mesh.materials.size();++i){const auto &pass=mesh.materials[i].environment_pass;
   if(pass&&pass->forward_vertex==9)captured_banks.emplace_back(i,pass->vertex_bank);}
  if(captured_banks.empty())throw FormatError("Exact machine bank fixture has no actual resident PRT link");
- scene.synchronize(objects);scene.update(30,30,reference.camera_position,1,mesh);
+ materials.mutating();scene.synchronize(objects);scene.update(30,30,reference.camera_position,1,mesh);
  world.clear();bindings.clear();scene.append(world,bindings);same_pose(first,selected(world));
  for(unsigned i=0;i<2;++i){const auto material=std::find_if(mesh.materials.begin(),mesh.materials.end(),[&](const auto&m){return m.name==names[i];});
   if(material->environment_pass->vertex_bank->constants!=initial[i])throw FormatError("diagnostic device advanced its frozen source image phase");}
@@ -222,6 +224,7 @@ void reference_devices(){
  // COW rule. Scene methods accept that new graph, while this subowner refuses
  // to restore an old graph without the separate material-animation owner.
  const auto slot=captured_banks.front().first;
+ materials.mutating();
  apply_object_lighting(mesh.materials[slot],bindings.front().state);
  scene.update(1,1,reference.camera_position,1,mesh);world.clear();bindings.clear();scene.append(world,bindings);
  bool graph_rejected=false;try{(void)scene.prepare_restore(exact);}catch(const FormatError&){graph_rejected=true;}
@@ -230,6 +233,34 @@ void reference_devices(){
  if(!scene.restore_ready(current_restore)||!scene.commit_restore(current_restore))
   throw FormatError("Normal material COW prevented a new actual scene checkpoint from restoring");
  std::cout<<"PASS exact machine PRT restore: actual captured immutable bank identity, external pass/bank refusal, cancellation, stale sibling, deferred retirement and normal lighting COW with explicit external graph boundary\n";
+ const auto future_pass=mesh.materials[slot].environment_pass;
+ const auto future_bank=future_pass->vertex_bank;
+ {auto wrong_material=materials.prepare_restore(materials.checkpoint());
+  bool wrong=false;try{(void)scene.prepare_restore(exact,wrong_material.target_graph());}catch(const FormatError&){wrong=true;}
+  if(!wrong)throw FormatError("Machine scene accepted another historical material target graph");}
+ {auto cancelled_material=materials.prepare_restore(material_cut);
+  auto cancelled_scene=scene.prepare_restore(exact,cancelled_material.target_graph());
+  if(!materials.restore_ready(cancelled_material)||!scene.restore_ready(cancelled_scene)||scene.commit_restore(cancelled_scene))
+   throw FormatError("Machine/material preparation omitted complete preflight or allowed scene-first publication");}
+ if(mesh.materials[slot].environment_pass!=future_pass||future_pass->vertex_bank!=future_bank||scene.checkpoint().tick()!=1)
+  throw FormatError("Cancelled composed material/scene restore changed live owners");
+ {auto stale_material=materials.prepare_restore(material_cut);
+  auto stale_scene=scene.prepare_restore(exact,stale_material.target_graph());materials.mutating();
+  if(scene.restore_ready(stale_scene)||scene.commit_restore(stale_scene)||materials.commit_restore(stale_material))
+   throw FormatError("Changed material transaction retained a dependent scene token");}
+ auto material_restore=materials.prepare_restore(material_cut);
+ auto restored_scene=scene.prepare_restore(exact,material_restore.target_graph());
+ const auto target=material_restore.target_graph();
+ if(!materials.restore_ready(material_restore)||!scene.restore_ready(restored_scene)||
+   !materials.commit_restore(material_restore)||!target.applied()||!scene.restore_ready(restored_scene)||
+   !scene.commit_restore(restored_scene)||!target.applied()||scene.commit_restore(restored_scene)||scene.checkpoint().tick()!=0)
+  throw FormatError("Historical material graph and exact machine state did not publish in one prepared order");
+ for(const auto &[index,bank]:captured_banks)if(mesh.materials[index].environment_pass->vertex_bank!=bank)
+  throw FormatError("Composed machine commit changed the material owner's exact target PRT link");
+ world.clear();bindings.clear();scene.append(world,bindings);same_pose(first,selected(world));
+ const auto budget=material_cut.stats();
+ std::cout<<"PASS composed original machine/material COW restore: private target graph proof before mutation, mismatched/cancelled/stale refusal, material-first publication, exact captured pass/PRT identity and historical pose; roots="
+  <<budget.roots<<" nodes="<<budget.nodes<<" logical_bytes="<<budget.logical_bytes<<" resident_schema_bytes="<<budget.resident_schema_bytes<<'\n';
  std::cout<<"Source device image fixture: 2 matched placements, 314 consumed source bank words within measured bounds, frozen through synchronize/tick30\n";
 }
 void simulation_devices(){

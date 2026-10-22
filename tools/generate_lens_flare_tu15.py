@@ -15,7 +15,7 @@ ENTRIES = (0x17c710, 0x3e9b0, 0x2db80, 0x2e210, 0x20990, 0x20b20, 0x20e30, 0x32c
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path,
-                        default=Path('src/source_lens_flare_tu15_generated.cpp'))
+                        default=Path('src/rendering/effects/source_lens_flare_tu15_generated.cpp'))
     parser.add_argument('--directory', type=Path, required=True)
     args = parser.parse_args()
     assert sha(NEW_DEFAULT) == NEW_PIN

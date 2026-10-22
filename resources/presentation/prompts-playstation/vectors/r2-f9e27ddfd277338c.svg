@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="72" viewBox="0 0 45 18" version="1.1">
+  <title>Playstation r2: custom controller prompt</title>
+  <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+  <defs>
+    <mask id="triggers-opacity" maskUnits="userSpaceOnUse" x="0" y="0" width="45" height="18">
+      <rect width="45" height="18" fill="black" />
+      <g transform="scale(0.5 0.47368421052631576)">
+        <g id="left-trigger" transform="translate(0 0)">
+          <path id="shell" d="M8 .8 C15 -.2 37 5 42.5 13 C47 22 31 37 18 37 L8 36.5 C.5 36.5 -.5 33 1.8 27 L9 9 C10.2 6 7.5 6 6 3.5 C4.5 1.5 6 .8 8 .8 Z" fill="#333333" />
+          <path id="stem-panel" d="M9 7 C14 9 21 12 21 17 C22 24 22 31 20 36.8 L8 36.5 C.5 36.5 -.5 33 1.8 27 Z" fill="#333333" />
+          <path id="outer-edge" d="M8 .8 C15 -.2 37 5 42.5 13 C47 22 31 37 18 37 L8 36.5 C.5 36.5 -.5 33 1.8 27 L9 9 C10.2 6 7.5 6 6 3.5 C4.5 1.5 6 .8 8 .8 Z" fill="none" stroke="#444444" stroke-width=".85" stroke-linejoin="round" />
+          <path id="fold-highlight" d="M9 7 C14 9 21 12 21 17 C22 24 22 31 20 36.8" fill="none" stroke="#444444" stroke-width=".9" />
+        </g>
+        <g id="right-trigger" transform="translate(90 0) scale(-1 1)">
+          <path id="shell" d="M8 .8 C15 -.2 37 5 42.5 13 C47 22 31 37 18 37 L8 36.5 C.5 36.5 -.5 33 1.8 27 L9 9 C10.2 6 7.5 6 6 3.5 C4.5 1.5 6 .8 8 .8 Z" fill="#888888" />
+          <path id="stem-panel" d="M9 7 C14 9 21 12 21 17 C22 24 22 31 20 36.8 L8 36.5 C.5 36.5 -.5 33 1.8 27 Z" fill="#777777" />
+          <path id="outer-edge" d="M8 .8 C15 -.2 37 5 42.5 13 C47 22 31 37 18 37 L8 36.5 C.5 36.5 -.5 33 1.8 27 L9 9 C10.2 6 7.5 6 6 3.5 C4.5 1.5 6 .8 8 .8 Z" fill="none" stroke="#ffffff" stroke-width=".85" stroke-linejoin="round" />
+          <path id="fold-highlight" d="M9 7 C14 9 21 12 21 17 C22 24 22 31 20 36.8" fill="none" stroke="#ffffff" stroke-width=".9" />
+        </g>
+      </g>
+    </mask>
+  </defs>
+  <rect id="triggers-paint" width="45" height="18" fill="white" mask="url(#triggers-opacity)" />
+  <g transform="scale(0.5 0.47368421052631576)">
+    <g id="label-l2" transform="translate(13.5 13) scale(1.1)" fill="#5c697d" fill-rule="evenodd">
+      <path d="M0 0 H1.5 V8.5 H6 V10 H0 Z" transform="translate(0.0 0)" />
+      <path d="M0 2.7 C0 -.9 7.4 -.9 7.4 2.8 C7.4 4.7 5.2 6.1 2.2 8.5 H7.5 V10 H0 V8.3 C2 6.5 5.8 4.3 5.8 2.8 C5.8 .9 1.6 1 1.6 2.7 Z" transform="translate(8.5 0)" />
+    </g>
+    <g id="label-r2" transform="translate(59.5 13) scale(1.1)" fill="#e4edf8" fill-rule="evenodd">
+      <path d="M0 0 H4.4 C6.5 0 7.2 1.2 7.2 3 C7.2 4.4 6.5 5.3 5.2 5.5 L7.7 10 H5.9 L3.5 5.8 H1.5 V10 H0 Z M1.5 1.4 V4.4 H4.1 C5.3 4.4 5.7 4 5.7 2.9 C5.7 1.9 5.2 1.4 4.1 1.4 Z" transform="translate(0.0 0)" />
+      <path d="M0 2.7 C0 -.9 7.4 -.9 7.4 2.8 C7.4 4.7 5.2 6.1 2.2 8.5 H7.5 V10 H0 V8.3 C2 6.5 5.8 4.3 5.8 2.8 C5.8 .9 1.6 1 1.6 2.7 Z" transform="translate(8.5 0)" />
+    </g>
+  </g>
+</svg>

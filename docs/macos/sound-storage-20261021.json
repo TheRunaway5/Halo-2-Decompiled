@@ -1,0 +1,976 @@
+{
+  "schema": "macos-native-sound-storage-v1",
+  "date": "2026-10-21",
+  "scope": "Actual production NativeSoundStorage and complete source cache constructors; no map/device/voice/playback or full process acceptance.",
+  "diagnosis": {
+    "symptom": "Native arm64 rejected retained physical alias 0x82e45000 / extent 0x300000 before OS allocation; Rosetta and Linux accepted it.",
+    "paired_control": "Native arm64 accepted otherwise identical 3 MiB backing at 0x82e44000; rejected 0x82e45000. Only alias alignment changed.",
+    "cause": "Private alias validation, allocation rounding and protection alignment incorrectly used the host OS page size.",
+    "correction": "Keep 4 KiB private logical intervals, cursor increments and exposed bounds; independently round each real OS backing extent and read/write operation to host pages.",
+    "host_page_size_api": "page_size() remains the actual OS page size; alias_page_size() reports 4096.",
+    "protection_scope": "Only mode4 read/write; rounding remains inside one owned mapping. Other source-page permissions are not implemented."
+  },
+  "source_reference_admission": {
+    "schema": "macos-sound-storage-input-v1",
+    "files": {
+      "src/native_sound_storage.cpp": {
+        "bytes": 8362,
+        "sha256": "e8a70d3e863365c1af57f4a9bfce4e9e9d5a6b5abb636327b89dcafa745aeb86"
+      },
+      "src/sound_cache_startup.cpp": {
+        "bytes": 6717,
+        "sha256": "175d40fa6ab16204431a9c9da4cdd748df525a8bfe8b3fc5f8203ad4748b41ae"
+      },
+      "include/halo2/native_sound_storage.hpp": {
+        "bytes": 1695,
+        "sha256": "06abc3f76d81e05af8b7a072e9fc5f334b529ff46538ed2e5c3a73a6fca0e8ef"
+      },
+      "include/halo2/sound_cache_startup.hpp": {
+        "bytes": 2429,
+        "sha256": "f4e536716a0e549abc266637cafb321f095de2954a9c7700dc0618d9ef9318b1"
+      },
+      "tests/native_sound_storage_tests.cpp": {
+        "bytes": 13688,
+        "sha256": "da369679c1ef4c89c3d7566052c5adf243e9cf12d09a15cc2b041349422e0b90"
+      },
+      "tests/macos/sound_storage/CMakeLists.txt": {
+        "bytes": 3101,
+        "sha256": "791a6b882a472fc0b22b21c207a3598e3baa108d38c6e5397f390727291fb34c"
+      },
+      "tests/macos/sound_storage/granularity_tests.cpp": {
+        "bytes": 1959,
+        "sha256": "35eaf0bbb6e1744258ae46b734798ced6d5e4e4189f5fd139970864620bd2a16"
+      },
+      "cmake/TestStorage.cmake": {
+        "bytes": 4652,
+        "sha256": "e0c07a4eeb5af7dfff656434d2b55872d88fb02ca5fdd2f9f3cb40fe57697174"
+      },
+      "cmake/macos/Defaults.cmake": {
+        "bytes": 472,
+        "sha256": "d42969826a4378ea305593847b5e76929180cfe553ac72cd84063d86bf1c5b90"
+      },
+      "tools/run_test.py": {
+        "bytes": 6002,
+        "sha256": "89e58c88dbba78b191ff5cd961343352f439ea5824a347c546c9fea4837406d6"
+      },
+      "tools/run_tests.py": {
+        "bytes": 8743,
+        "sha256": "e78e56dd2986b34daeda33dac0f35b7dd8e17e87a9e8c0c0bd7e323e9b3e5e10"
+      },
+      "tools/macos/test_sound_storage.py": {
+        "bytes": 5416,
+        "sha256": "9e24a7075e5a252309c3d6654c7a9fcf8ac42b22ee24074a8e83b86990f1f5f6"
+      },
+      "analysis/multiplayer/integration/sound-cache-startup-native/fixtures.tsv": {
+        "bytes": 1926332,
+        "sha256": "48dba7560ccbc1e90a66b5bb39c4904a14b6347828c2b97271bc92863b84e6af"
+      }
+    },
+    "reference_provenance": {
+      "case_count": 6,
+      "exporter_sha256": "469b702a6e3f1aa30556d6974a7b3446e55d9346b8e466b2abf98ab3a44c5a55",
+      "fixture_sha256": "48dba7560ccbc1e90a66b5bb39c4904a14b6347828c2b97271bc92863b84e6af",
+      "physical_array_order": "index,lower[5],upper[5]; whole52-byte root retained independently",
+      "providers_sha256": "648d78324c1c0863b6fc22116834863583dc3db417861a352cf981ed327462dd",
+      "schema": "source-sound-cache-startup-fixtures-v1",
+      "scope": "Actual source-created normal constructor inputs plus five explicitly modified physical-limit/index branch controls. Original actual mmap/mprotect service outputs retained. Whole126B20 still stops at genuine2205C0 without a return; no device/map/voice/read completion claim.",
+      "source_report_sha256": "dcec5a5f112f44cf262af78e119b6163a643d1c1f2b09fffc694e003bb58d436",
+      "state_field_order": [
+        "general_allocator_identity",
+        "static_allocator_identity",
+        "entry_pool",
+        "page_allocator",
+        "physical_buffer"
+      ]
+    },
+    "local_scratch_owner": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-_1mm5acu"
+  },
+  "repository_head_baseline_sha256": {
+    "src/native_sound_storage.cpp": "723950f8f3bc57d2ac2b328c3b6260299430aed95d8cba8f73243591665d021a",
+    "include/halo2/native_sound_storage.hpp": "5b4fef0679298e1e547f6ff1cffada7a8992319348dd722ef299f3103a250fa0"
+  },
+  "baseline_hash_limit": "HEAD baseline hashes are recorded now; an independent exact source snapshot was not captured for the initial red executions. Final Mac input was frozen and authenticated before execution.",
+  "reference_evidence": {
+    "analysis/multiplayer/integration/sound-cache-startup-native/fixtures.json": {
+      "bytes": 979,
+      "sha256": "6f865fc22d7bf1656ff92f2194354742689ef001b95dbb4630259a2c3b88a440"
+    },
+    "analysis/multiplayer/integration/sound-cache-startup-native/audit.json": {
+      "bytes": 35852,
+      "sha256": "26f4f659d3a77a78d0e1c165a467836ec2f6b688b773bbcc2b71f07d5a55141a"
+    },
+    "analysis/multiplayer/integration/sound-cache-startup-native/paired/report.json": {
+      "bytes": 7860,
+      "sha256": "dc2c9ffcd5c9db76c2d9d5596e0e7c9165ed81c1068ba3e457a2b2c5d2aa4e1d"
+    }
+  },
+  "runs": {
+    "red_mac_full": {
+      "passed": false,
+      "status": "failed",
+      "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-iyvfdcjx/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/Users/eric/Developer/Halo2-macos-port/tests/macos/sound_storage",
+            "-B",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-iyvfdcjx/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-initial/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-iyvfdcjx/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "sound_storage_granularity_tests"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-initial/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-iyvfdcjx/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "2",
+            "--tests-regex",
+            "^sound_storage_(arm64|x86_64)$"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-initial/tests.log",
+          "exit_code": 8
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "sound-storage-arm64.json",
+          "status": "retained",
+          "bytes": 102,
+          "sha256": "a66599ef783e1cd33d368c90bfd5eb6ad1b2a90ec5f5c4de9402112efdd9727f",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-initial/evidence/sound-storage-arm64.json"
+        },
+        {
+          "path": "sound-storage-x86_64.json",
+          "status": "retained",
+          "bytes": 50,
+          "sha256": "0b9620d1155489d0b971a0cb23d8cb2da3dfb87e92ad66fd26bc8b49fbf88166",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-initial/evidence/sound-storage-x86_64.json"
+        }
+      ],
+      "retained_result_directory": "build/test-results/sound-storage-red-mac/initial",
+      "report_sha256": "1572e90d62372d5d869313ca75255f9114f95dd17110fe691ba04a7cef3c02d9",
+      "reports": {
+        "evidence/sound-storage-arm64.json": {
+          "passed": false,
+          "host_page_bytes": 16384,
+          "error": "Native sound storage alias interval is unavailable"
+        },
+        "evidence/sound-storage-x86_64.json": {
+          "passed": true,
+          "host_page_bytes": 4096,
+          "error": ""
+        }
+      },
+      "test_results_log": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-iyvfdcjx/build\n    Start 1: sound_storage_arm64\n    Start 2: sound_storage_x86_64\n1/2 Test #1: sound_storage_arm64 ..............***Failed    0.32 sec\nNative sound storage alias interval is unavailable\n\n2/2 Test #2: sound_storage_x86_64 .............   Passed    1.18 sec\n\n50% tests passed, 1 tests failed out of 2\n\nTotal Test time (real) =   1.19 sec\n\nThe following tests FAILED:\n\t  1 - sound_storage_arm64 (Failed)\nErrors while running CTest\n"
+    },
+    "red_mac_alignment_control": {
+      "passed": false,
+      "status": "failed",
+      "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-t1z9fxy7/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/Users/eric/Developer/Halo2-macos-port/tests/macos/sound_storage",
+            "-B",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-t1z9fxy7/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-controls-initial/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-t1z9fxy7/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "sound_storage_granularity_tests"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-controls-initial/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-t1z9fxy7/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "2",
+            "--tests-regex",
+            "^sound_storage_"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-controls-initial/tests.log",
+          "exit_code": 8
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "sound-storage-82e44000-arm64.json",
+          "status": "retained",
+          "bytes": 51,
+          "sha256": "38a8119922e1655314b4e1c4ef590bfbfdafbeac697bf06b9f61e7d38d0042d1",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-controls-initial/evidence/sound-storage-82e44000-arm64.json"
+        },
+        {
+          "path": "sound-storage-82e45000-arm64.json",
+          "status": "retained",
+          "bytes": 102,
+          "sha256": "a66599ef783e1cd33d368c90bfd5eb6ad1b2a90ec5f5c4de9402112efdd9727f",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-controls-initial/evidence/sound-storage-82e45000-arm64.json"
+        },
+        {
+          "path": "sound-storage-82e44000-x86_64.json",
+          "status": "retained",
+          "bytes": 50,
+          "sha256": "0b9620d1155489d0b971a0cb23d8cb2da3dfb87e92ad66fd26bc8b49fbf88166",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-controls-initial/evidence/sound-storage-82e44000-x86_64.json"
+        },
+        {
+          "path": "sound-storage-82e45000-x86_64.json",
+          "status": "retained",
+          "bytes": 50,
+          "sha256": "0b9620d1155489d0b971a0cb23d8cb2da3dfb87e92ad66fd26bc8b49fbf88166",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-controls-initial/evidence/sound-storage-82e45000-x86_64.json"
+        }
+      ],
+      "retained_result_directory": "build/test-results/sound-storage-red-mac/paired",
+      "report_sha256": "ffc3a252e83a5c0574572b047e47acfde110afcd66a304a26fbac00b653e54bc",
+      "reports": {
+        "evidence/sound-storage-82e44000-arm64.json": {
+          "passed": true,
+          "host_page_bytes": 16384,
+          "error": ""
+        },
+        "evidence/sound-storage-82e44000-x86_64.json": {
+          "passed": true,
+          "host_page_bytes": 4096,
+          "error": ""
+        },
+        "evidence/sound-storage-82e45000-arm64.json": {
+          "passed": false,
+          "host_page_bytes": 16384,
+          "error": "Native sound storage alias interval is unavailable"
+        },
+        "evidence/sound-storage-82e45000-x86_64.json": {
+          "passed": true,
+          "host_page_bytes": 4096,
+          "error": ""
+        }
+      },
+      "test_results_log": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-t1z9fxy7/build\n    Start 1: sound_storage_arm64\n    Start 2: sound_storage_82e44000_arm64\n1/6 Test #2: sound_storage_82e44000_arm64 .....   Passed    0.33 sec\n    Start 3: sound_storage_82e45000_arm64\n2/6 Test #1: sound_storage_arm64 ..............***Failed    0.34 sec\nNative sound storage alias interval is unavailable\n\n    Start 4: sound_storage_x86_64\n3/6 Test #3: sound_storage_82e45000_arm64 .....***Failed    0.13 sec\nNative sound storage alias interval is unavailable\n\n    Start 5: sound_storage_82e44000_x86_64\n4/6 Test #4: sound_storage_x86_64 .............   Passed    0.24 sec\n    Start 6: sound_storage_82e45000_x86_64\n5/6 Test #5: sound_storage_82e44000_x86_64 ....   Passed    0.11 sec\n6/6 Test #6: sound_storage_82e45000_x86_64 ....   Passed    0.11 sec\n\n67% tests passed, 2 tests failed out of 6\n\nTotal Test time (real) =   0.68 sec\n\nThe following tests FAILED:\n\t  1 - sound_storage_arm64 (Failed)\n\t  3 - sound_storage_82e45000_arm64 (Failed)\nErrors while running CTest\n"
+    },
+    "red_linux_full": {
+      "passed": true,
+      "status": "passed",
+      "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-a4pd93w9/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/home/eric/Developer/Halo-2-Decompiled/tests/macos/sound_storage",
+            "-B",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-a4pd93w9/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/sound-storage-initial-linux/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-a4pd93w9/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "sound_storage_granularity_tests"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/sound-storage-initial-linux/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-a4pd93w9/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "2",
+            "--tests-regex",
+            "^sound_storage_host$"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/sound-storage-initial-linux/tests.log",
+          "exit_code": 0
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "sound-storage-host.json",
+          "status": "retained",
+          "bytes": 50,
+          "sha256": "0b9620d1155489d0b971a0cb23d8cb2da3dfb87e92ad66fd26bc8b49fbf88166",
+          "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/sound-storage-initial-linux/evidence/sound-storage-host.json"
+        }
+      ],
+      "retained_result_directory": "build/test-results/sound-storage-initial-linux",
+      "report_sha256": "4bd0eb509ea45de6917f1f7dc2508ba1b5d1315ff160a52f4271426a3b11ae0f",
+      "reports": {
+        "evidence/sound-storage-host.json": {
+          "passed": true,
+          "host_page_bytes": 4096,
+          "error": ""
+        }
+      },
+      "test_results_log": "Test project /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-a4pd93w9/build\n    Start 1: sound_storage_host\n1/1 Test #1: sound_storage_host ...............   Passed    0.08 sec\n\n100% tests passed out of 1\n\nTotal Test time (real) =   0.09 sec\n"
+    },
+    "fixed_mac_minimal": {
+      "passed": true,
+      "status": "passed",
+      "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bi4jefsn/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/Users/eric/Developer/Halo2-macos-port/tests/macos/sound_storage",
+            "-B",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bi4jefsn/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-fixed/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bi4jefsn/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "sound_storage_granularity_tests"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-fixed/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bi4jefsn/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "2",
+            "--tests-regex",
+            "^sound_storage_"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-fixed/tests.log",
+          "exit_code": 0
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "sound-storage-arm64.json",
+          "status": "retained",
+          "bytes": 51,
+          "sha256": "38a8119922e1655314b4e1c4ef590bfbfdafbeac697bf06b9f61e7d38d0042d1",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-fixed/evidence/sound-storage-arm64.json"
+        },
+        {
+          "path": "sound-storage-x86_64.json",
+          "status": "retained",
+          "bytes": 50,
+          "sha256": "0b9620d1155489d0b971a0cb23d8cb2da3dfb87e92ad66fd26bc8b49fbf88166",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-fixed/evidence/sound-storage-x86_64.json"
+        }
+      ],
+      "retained_result_directory": "build/test-results/sound-storage-fixed-mac",
+      "report_sha256": "497b8df5e269fad7450972b2c19dff19b411924a245411d4051e35e57f998970",
+      "reports": {
+        "evidence/sound-storage-arm64.json": {
+          "passed": true,
+          "host_page_bytes": 16384,
+          "error": ""
+        },
+        "evidence/sound-storage-x86_64.json": {
+          "passed": true,
+          "host_page_bytes": 4096,
+          "error": ""
+        }
+      },
+      "test_results_log": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bi4jefsn/build\n    Start 1: sound_storage_arm64\n    Start 2: sound_storage_82e44000_arm64\n1/6 Test #2: sound_storage_82e44000_arm64 .....   Passed    0.34 sec\n    Start 3: sound_storage_82e45000_arm64\n2/6 Test #1: sound_storage_arm64 ..............   Passed    0.34 sec\n    Start 4: sound_storage_x86_64\n3/6 Test #3: sound_storage_82e45000_arm64 .....   Passed    0.13 sec\n    Start 5: sound_storage_82e44000_x86_64\n4/6 Test #4: sound_storage_x86_64 .............   Passed    0.23 sec\n    Start 6: sound_storage_82e45000_x86_64\n5/6 Test #5: sound_storage_82e44000_x86_64 ....   Passed    0.11 sec\n6/6 Test #6: sound_storage_82e45000_x86_64 ....   Passed    0.10 sec\n\n100% tests passed out of 6\n\nTotal Test time (real) =   0.67 sec\n"
+    },
+    "fixed_linux_minimal": {
+      "passed": true,
+      "status": "passed",
+      "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-1hqr126o/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/home/eric/Developer/Halo-2-Decompiled/tests/macos/sound_storage",
+            "-B",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-1hqr126o/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/sound-storage-fixed-linux/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-1hqr126o/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "sound_storage_granularity_tests"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/sound-storage-fixed-linux/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-1hqr126o/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "2",
+            "--tests-regex",
+            "^sound_storage_"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/sound-storage-fixed-linux/tests.log",
+          "exit_code": 0
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "sound-storage-host.json",
+          "status": "retained",
+          "bytes": 50,
+          "sha256": "0b9620d1155489d0b971a0cb23d8cb2da3dfb87e92ad66fd26bc8b49fbf88166",
+          "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/sound-storage-fixed-linux/evidence/sound-storage-host.json"
+        }
+      ],
+      "retained_result_directory": "build/test-results/sound-storage-fixed-linux",
+      "report_sha256": "c9d7bedf23677195b4d7725dc0984724b151b121bd255751f182e1c1a1badea6",
+      "reports": {
+        "evidence/sound-storage-host.json": {
+          "passed": true,
+          "host_page_bytes": 4096,
+          "error": ""
+        }
+      },
+      "test_results_log": "Test project /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-1hqr126o/build\n    Start 1: sound_storage_host\n    Start 2: sound_storage_82e44000_host\n1/3 Test #1: sound_storage_host ...............   Passed    0.09 sec\n    Start 3: sound_storage_82e45000_host\n2/3 Test #2: sound_storage_82e44000_host ......   Passed    0.10 sec\n3/3 Test #3: sound_storage_82e45000_host ......   Passed    0.11 sec\n\n100% tests passed out of 3\n\nTotal Test time (real) =   0.20 sec\n"
+    },
+    "final_mac": {
+      "passed": true,
+      "status": "passed",
+      "build": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-z04fv6a9/build-owners/halo2-test-aerlyrj5/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-z04fv6a9/source/tests/macos/sound_storage",
+            "-B",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-z04fv6a9/build-owners/halo2-test-aerlyrj5/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-original/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-z04fv6a9/build-owners/halo2-test-aerlyrj5/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "sound_storage_granularity_tests",
+            "native_sound_storage_tests"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-original/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-z04fv6a9/build-owners/halo2-test-aerlyrj5/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "2",
+            "--tests-regex",
+            "^sound_storage_"
+          ],
+          "log": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-original/tests.log",
+          "exit_code": 0
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "sound-storage-arm64.json",
+          "status": "retained",
+          "bytes": 51,
+          "sha256": "38a8119922e1655314b4e1c4ef590bfbfdafbeac697bf06b9f61e7d38d0042d1",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-original/evidence/sound-storage-arm64.json"
+        },
+        {
+          "path": "sound-storage-original-arm64.json",
+          "status": "retained",
+          "bytes": 185,
+          "sha256": "d78858e525694dd9edab8e9e9a7c2c26fe027fdd23da9f76f5be70dbfd6b0e4a",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-original/evidence/sound-storage-original-arm64.json"
+        },
+        {
+          "path": "sound-storage-82e44000-arm64.json",
+          "status": "retained",
+          "bytes": 51,
+          "sha256": "38a8119922e1655314b4e1c4ef590bfbfdafbeac697bf06b9f61e7d38d0042d1",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-original/evidence/sound-storage-82e44000-arm64.json"
+        },
+        {
+          "path": "sound-storage-82e45000-arm64.json",
+          "status": "retained",
+          "bytes": 51,
+          "sha256": "38a8119922e1655314b4e1c4ef590bfbfdafbeac697bf06b9f61e7d38d0042d1",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-original/evidence/sound-storage-82e45000-arm64.json"
+        },
+        {
+          "path": "sound-storage-x86_64.json",
+          "status": "retained",
+          "bytes": 50,
+          "sha256": "0b9620d1155489d0b971a0cb23d8cb2da3dfb87e92ad66fd26bc8b49fbf88166",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-original/evidence/sound-storage-x86_64.json"
+        },
+        {
+          "path": "sound-storage-original-x86_64.json",
+          "status": "retained",
+          "bytes": 184,
+          "sha256": "2b68fcb39fd4082f90142ec258010e10e9986af80100727beef1d96f9474a02d",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-original/evidence/sound-storage-original-x86_64.json"
+        },
+        {
+          "path": "sound-storage-82e44000-x86_64.json",
+          "status": "retained",
+          "bytes": 50,
+          "sha256": "0b9620d1155489d0b971a0cb23d8cb2da3dfb87e92ad66fd26bc8b49fbf88166",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-original/evidence/sound-storage-82e44000-x86_64.json"
+        },
+        {
+          "path": "sound-storage-82e45000-x86_64.json",
+          "status": "retained",
+          "bytes": 50,
+          "sha256": "0b9620d1155489d0b971a0cb23d8cb2da3dfb87e92ad66fd26bc8b49fbf88166",
+          "retained_path": "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-original/evidence/sound-storage-82e45000-x86_64.json"
+        }
+      ],
+      "retained_result_directory": "build/test-results/sound-storage-original-mac/mac",
+      "report_sha256": "d0253d074dac4974a7f8436934bec1b5e3b1779ec680d291983291da7cf09261",
+      "reports": {
+        "evidence/sound-storage-82e44000-arm64.json": {
+          "passed": true,
+          "host_page_bytes": 16384,
+          "error": ""
+        },
+        "evidence/sound-storage-82e44000-x86_64.json": {
+          "passed": true,
+          "host_page_bytes": 4096,
+          "error": ""
+        },
+        "evidence/sound-storage-82e45000-arm64.json": {
+          "passed": true,
+          "host_page_bytes": 16384,
+          "error": ""
+        },
+        "evidence/sound-storage-82e45000-x86_64.json": {
+          "passed": true,
+          "host_page_bytes": 4096,
+          "error": ""
+        },
+        "evidence/sound-storage-arm64.json": {
+          "passed": true,
+          "host_page_bytes": 16384,
+          "error": ""
+        },
+        "evidence/sound-storage-original-arm64.json": {
+          "passed": true,
+          "host_page_bytes": 16384,
+          "alias_page_bytes": 4096,
+          "original_cases": 6,
+          "exact_output_bytes": 172032,
+          "ordered_original_stores": 4090,
+          "source_device_map_admission": "unverified"
+        },
+        "evidence/sound-storage-original-x86_64.json": {
+          "passed": true,
+          "host_page_bytes": 4096,
+          "alias_page_bytes": 4096,
+          "original_cases": 6,
+          "exact_output_bytes": 172032,
+          "ordered_original_stores": 4090,
+          "source_device_map_admission": "unverified"
+        },
+        "evidence/sound-storage-x86_64.json": {
+          "passed": true,
+          "host_page_bytes": 4096,
+          "error": ""
+        }
+      },
+      "test_results_log": "Test project /Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-z04fv6a9/build-owners/halo2-test-aerlyrj5/build\n    Start 1: sound_storage_original_arm64\n    Start 2: sound_storage_arm64\n1/8 Test #2: sound_storage_arm64 ..............   Passed    0.32 sec\n    Start 3: sound_storage_82e44000_arm64\n2/8 Test #1: sound_storage_original_arm64 .....   Passed    0.36 sec\n    Start 4: sound_storage_82e45000_arm64\n3/8 Test #3: sound_storage_82e44000_arm64 .....   Passed    0.12 sec\n    Start 5: sound_storage_original_x86_64\n4/8 Test #4: sound_storage_82e45000_arm64 .....   Passed    0.10 sec\n    Start 6: sound_storage_x86_64\n5/8 Test #6: sound_storage_x86_64 .............   Passed    0.21 sec\n    Start 7: sound_storage_82e44000_x86_64\n6/8 Test #5: sound_storage_original_x86_64 ....   Passed    0.26 sec\n    Start 8: sound_storage_82e45000_x86_64\n7/8 Test #7: sound_storage_82e44000_x86_64 ....   Passed    0.10 sec\n8/8 Test #8: sound_storage_82e45000_x86_64 ....   Passed    0.10 sec\n\n100% tests passed out of 8\n\nTotal Test time (real) =   0.79 sec\n"
+    },
+    "final_linux": {
+      "passed": true,
+      "status": "passed",
+      "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-rgxpx8u5/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/home/eric/Developer/Halo-2-Decompiled/tests/macos/sound_storage",
+            "-B",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-rgxpx8u5/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/sound-storage-original-linux/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-rgxpx8u5/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "sound_storage_granularity_tests",
+            "native_sound_storage_tests"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/sound-storage-original-linux/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-rgxpx8u5/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "2",
+            "--tests-regex",
+            "^sound_storage_"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/sound-storage-original-linux/tests.log",
+          "exit_code": 0
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "sound-storage-host.json",
+          "status": "retained",
+          "bytes": 50,
+          "sha256": "0b9620d1155489d0b971a0cb23d8cb2da3dfb87e92ad66fd26bc8b49fbf88166",
+          "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/sound-storage-original-linux/evidence/sound-storage-host.json"
+        },
+        {
+          "path": "sound-storage-original-host.json",
+          "status": "retained",
+          "bytes": 184,
+          "sha256": "2b68fcb39fd4082f90142ec258010e10e9986af80100727beef1d96f9474a02d",
+          "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/sound-storage-original-linux/evidence/sound-storage-original-host.json"
+        }
+      ],
+      "retained_result_directory": "build/test-results/sound-storage-original-linux",
+      "report_sha256": "73e7e280583b4b34bf5b140827ad7482e28de322659817e139b36884ba3d9afd",
+      "reports": {
+        "evidence/sound-storage-host.json": {
+          "passed": true,
+          "host_page_bytes": 4096,
+          "error": ""
+        },
+        "evidence/sound-storage-original-host.json": {
+          "passed": true,
+          "host_page_bytes": 4096,
+          "alias_page_bytes": 4096,
+          "original_cases": 6,
+          "exact_output_bytes": 172032,
+          "ordered_original_stores": 4090,
+          "source_device_map_admission": "unverified"
+        }
+      },
+      "test_results_log": "Test project /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-rgxpx8u5/build\n    Start 1: sound_storage_original_host\n    Start 2: sound_storage_host\n1/4 Test #1: sound_storage_original_host ......   Passed    0.19 sec\n    Start 3: sound_storage_82e44000_host\n2/4 Test #2: sound_storage_host ...............   Passed    0.19 sec\n    Start 4: sound_storage_82e45000_host\n3/4 Test #4: sound_storage_82e45000_host ......   Passed    0.14 sec\n4/4 Test #3: sound_storage_82e44000_host ......   Passed    0.18 sec\n\n100% tests passed out of 4\n\nTotal Test time (real) =   0.36 sec\n"
+    },
+    "final_linux_asan_ubsan": {
+      "passed": true,
+      "status": "passed",
+      "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-r3ws497q/build",
+      "steps": [
+        {
+          "name": "configure",
+          "command": [
+            "cmake",
+            "-S",
+            "/home/eric/Developer/Halo-2-Decompiled/tests/macos/sound_storage",
+            "-B",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-r3ws497q/build",
+            "-DBUILD_TESTING=ON",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DHALO2_SANITIZERS=ON"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/sound-storage-original-sanitizers-linux/configure.log",
+          "exit_code": 0
+        },
+        {
+          "name": "build",
+          "command": [
+            "cmake",
+            "--build",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-r3ws497q/build",
+            "--config",
+            "Release",
+            "--parallel",
+            "2",
+            "--target",
+            "sound_storage_granularity_tests",
+            "native_sound_storage_tests"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/sound-storage-original-sanitizers-linux/build.log",
+          "exit_code": 0
+        },
+        {
+          "name": "tests",
+          "command": [
+            "ctest",
+            "--test-dir",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-r3ws497q/build",
+            "--build-config",
+            "Release",
+            "--output-on-failure",
+            "--no-tests=error",
+            "--parallel",
+            "2",
+            "--tests-regex",
+            "^sound_storage_"
+          ],
+          "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/sound-storage-original-sanitizers-linux/tests.log",
+          "exit_code": 0
+        }
+      ],
+      "retained_small_reports": [
+        {
+          "path": "sound-storage-host.json",
+          "status": "retained",
+          "bytes": 50,
+          "sha256": "0b9620d1155489d0b971a0cb23d8cb2da3dfb87e92ad66fd26bc8b49fbf88166",
+          "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/sound-storage-original-sanitizers-linux/evidence/sound-storage-host.json"
+        },
+        {
+          "path": "sound-storage-original-host.json",
+          "status": "retained",
+          "bytes": 184,
+          "sha256": "2b68fcb39fd4082f90142ec258010e10e9986af80100727beef1d96f9474a02d",
+          "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/sound-storage-original-sanitizers-linux/evidence/sound-storage-original-host.json"
+        }
+      ],
+      "retained_result_directory": "build/test-results/sound-storage-original-sanitizers-linux",
+      "report_sha256": "15bd45e0c8175085e49b22cccc5d8313897ce5f7031e6d299062e65764dcf8aa",
+      "reports": {
+        "evidence/sound-storage-host.json": {
+          "passed": true,
+          "host_page_bytes": 4096,
+          "error": ""
+        },
+        "evidence/sound-storage-original-host.json": {
+          "passed": true,
+          "host_page_bytes": 4096,
+          "alias_page_bytes": 4096,
+          "original_cases": 6,
+          "exact_output_bytes": 172032,
+          "ordered_original_stores": 4090,
+          "source_device_map_admission": "unverified"
+        }
+      },
+      "test_results_log": "Test project /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-r3ws497q/build\n    Start 1: sound_storage_original_host\n    Start 2: sound_storage_host\n1/4 Test #2: sound_storage_host ...............   Passed    0.25 sec\n    Start 3: sound_storage_82e44000_host\n2/4 Test #1: sound_storage_original_host ......   Passed    0.38 sec\n    Start 4: sound_storage_82e45000_host\n3/4 Test #3: sound_storage_82e44000_host ......   Passed    0.21 sec\n4/4 Test #4: sound_storage_82e45000_host ......   Passed    0.18 sec\n\n100% tests passed out of 4\n\nTotal Test time (real) =   0.56 sec\n"
+    }
+  },
+  "mac_execution": {
+    "command": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "-B",
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-z04fv6a9/source/tools/run_tests.py",
+      "--source",
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-z04fv6a9/source/tests/macos/sound_storage",
+      "--scratch-root",
+      "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-z04fv6a9/build-owners",
+      "--target",
+      "sound_storage_granularity_tests",
+      "--target",
+      "native_sound_storage_tests",
+      "--filter",
+      "^sound_storage_",
+      "--output",
+      "/Users/eric/Developer/Halo2-macos-port/build/test-results/sound-storage-original",
+      "--retain-report",
+      "sound-storage-arm64.json",
+      "--retain-report",
+      "sound-storage-original-arm64.json",
+      "--retain-report",
+      "sound-storage-82e44000-arm64.json",
+      "--retain-report",
+      "sound-storage-82e45000-arm64.json",
+      "--retain-report",
+      "sound-storage-x86_64.json",
+      "--retain-report",
+      "sound-storage-original-x86_64.json",
+      "--retain-report",
+      "sound-storage-82e44000-x86_64.json",
+      "--retain-report",
+      "sound-storage-82e45000-x86_64.json"
+    ],
+    "exit_code": 0,
+    "remote_scratch_owner": "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-z04fv6a9"
+  },
+  "mac_binary_architecture_build_log": "[ 40%] Building CXX object CMakeFiles/sound_storage.dir/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-z04fv6a9/source/src/native_sound_storage.cpp.o\n[ 40%] Building CXX object CMakeFiles/sound_storage.dir/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-z04fv6a9/source/src/sound_cache_startup.cpp.o\n[ 60%] Linking CXX static library libsound_storage.a\n[ 60%] Built target sound_storage\n[ 80%] Building CXX object CMakeFiles/sound_storage_granularity_tests.dir/granularity_tests.cpp.o\n[100%] Linking CXX executable sound_storage_granularity_tests\nx86_64 arm64\n[100%] Built target sound_storage_granularity_tests\n[ 60%] Built target sound_storage\n[ 80%] Building CXX object CMakeFiles/native_sound_storage_tests.dir/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-z04fv6a9/source/tests/native_sound_storage_tests.cpp.o\n[100%] Linking CXX executable native_sound_storage_tests\nx86_64 arm64\n[100%] Built target native_sound_storage_tests\n",
+  "reproduction_command": "python3 -B tools/run_test.py --scratch-root .local/test-scratch -- python3 -B tools/macos/test_sound_storage.py --output build/test-results/sound-storage-original-mac",
+  "final_summary": {
+    "mac_ctests_passed": 8,
+    "linux_ctests_passed": 4,
+    "linux_asan_ubsan_ctests_passed": 4,
+    "original_cases_per_execution": 6,
+    "exact_output_bytes_per_execution": 172032,
+    "ordered_original_stores_per_execution": 4090,
+    "native_arm64_host_page_bytes": 16384,
+    "rosetta_host_page_bytes": 4096,
+    "private_alias_page_bytes": 4096,
+    "binary_architectures": "lipo build.log reports x86_64 arm64 for both actual executables"
+  },
+  "cleanup": {
+    "linux_removed_owners": [
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-a4pd93w9",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-1hqr126o",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-rgxpx8u5",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-r3ws497q",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-_1mm5acu"
+    ],
+    "mac": {
+      "removed_owners": [
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-iyvfdcjx",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-t1z9fxy7",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-bi4jefsn",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-z04fv6a9/build-owners/halo2-test-aerlyrj5",
+        "/Users/eric/Developer/Halo2-macos-port/.local/test-scratch/halo2-test-z04fv6a9"
+      ],
+      "owned_test_processes_remaining": false,
+      "mcc_source_preserved": "/Users/eric/Library/Application Support/net.halo2forever/downloads/steam-mcc/e46c404c25077cdd5c064c12",
+      "lockout_sha256": "97d034dca2109adde65e56c0ab78ee56f72045b56bf9b3200f304d5e1ff4c61e"
+    },
+    "large_test_artifacts_retained": [],
+    "metadata_report_owner": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-qvhcedu6"
+  },
+  "checklist": {
+    "checked": 56,
+    "total": 68,
+    "broad_open": 12,
+    "goal_status": "active"
+  },
+  "remaining": [
+    "Complete source sound notifications/codec callbacks/process startup and audible runtime acceptance",
+    "Loading PCM admission",
+    "Deferred exact x87/SSE numerical backend",
+    "Full Renderer activation and complete source depth/geometry/cube/pixel acceptance",
+    "Playable universal engine and launcher release acceptance"
+  ]
+}

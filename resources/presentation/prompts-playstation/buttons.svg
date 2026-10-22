@@ -1,0 +1,601 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="930" viewBox="0 0 1040 930">
+  <rect width="1040" height="930" fill="#151e2d" />
+  <text x="32" y="49" fill="#edf4ff" font-family="sans-serif" font-size="27" font-weight="600">PLAYSTATION</text>
+  <text x="32" y="78" fill="#92a7c3" font-family="sans-serif" font-size="14">Custom button prompts</text>
+  <svg width="176" height="116" viewBox="0 0 32 36" version="1.1" x="62" y="108">
+    <title>Playstation cross: custom controller prompt</title>
+    <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+    <defs>
+      <clipPath id="item-3-button-edge">
+        <circle cx="16" cy="20" r="15.95" />
+      </clipPath>
+      <linearGradient id="item-3-button-body-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="4" y2="36">
+        <stop offset="0" stop-color="#222939" />
+        <stop offset="0.22" stop-color="#343c4e" />
+        <stop offset="0.52" stop-color="#202636" />
+        <stop offset="0.78" stop-color="#30394a" />
+        <stop offset="1" stop-color="#454f62" />
+      </linearGradient>
+      <linearGradient id="item-3-button-rim-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="4" y2="36">
+        <stop offset="0" stop-color="#b6c2d4" />
+        <stop offset="0.4" stop-color="#131a28" />
+        <stop offset="1" stop-color="#65748c" />
+      </linearGradient>
+      <radialGradient id="item-3-top-sheen-paint" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(15.4 6.5) scale(11.9 6.2)">
+        <stop offset="0" stop-opacity="1" stop-color="#c1cbdf" />
+        <stop offset="0.35" stop-opacity="0.9" stop-color="#c1cbdf" />
+        <stop offset="1" stop-opacity="0" stop-color="#c1cbdf" />
+      </radialGradient>
+      <radialGradient id="item-3-left-reflection-paint" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(4.9 17) scale(2.4 8.5)">
+        <stop offset="0" stop-opacity="1" stop-color="#91baff" />
+        <stop offset="0.35" stop-opacity="0.9" stop-color="#91baff" />
+        <stop offset="1" stop-opacity="0" stop-color="#91baff" />
+      </radialGradient>
+      <linearGradient id="item-3-letter-shadow-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="30">
+        <stop offset="0" stop-color="#2f3624" />
+        <stop offset="1" stop-color="#459b46" />
+      </linearGradient>
+      <linearGradient id="item-3-letter-bevel-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="30">
+        <stop offset="0" stop-color="#79c377" />
+        <stop offset="1" stop-color="#c9ffbe" />
+      </linearGradient>
+      <linearGradient id="item-3-letter-face-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="29">
+        <stop offset="0" stop-color="#e5fde4" />
+        <stop offset="0.5" stop-color="#c1fdbe" />
+        <stop offset="1" stop-color="#c1ffbf" />
+      </linearGradient>
+    </defs>
+    <g id="item-3-face-button" transform="translate(0.0 0.0) scale(1.0)" clip-path="url(#item-3-button-edge)">
+      <circle id="item-3-button-body" cx="16" cy="20" r="15.7" fill="url(#item-3-button-body-paint)" stroke="url(#item-3-button-rim-paint)" stroke-width=".5" />
+      <ellipse id="item-3-top-sheen" cx="15.4" cy="6.5" rx="11.9" ry="6.2" fill="url(#item-3-top-sheen-paint)" />
+      <path id="item-3-symbol-shadow" d="M9.2 12.8 L22.8 26.4 M22.8 12.8 L9.2 26.4" fill="none" stroke="#0b1324" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" transform="translate(.25 .65)" />
+      <path id="item-3-symbol-bevel" d="M9.2 12.8 L22.8 26.4 M22.8 12.8 L9.2 26.4" fill="none" stroke="#91baff" stroke-width="2.65" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 0)" stroke-opacity=".45" />
+      <path id="item-3-symbol-face" d="M9.2 12.8 L22.8 26.4 M22.8 12.8 L9.2 26.4" fill="none" stroke="#91baff" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 0)" />
+    </g>
+  </svg>
+  <text x="150" y="248" fill="#b7c7dc" font-family="sans-serif" font-size="15" text-anchor="middle">Cross</text>
+  <svg width="176" height="116" viewBox="0 0 32 36" version="1.1" x="314" y="108">
+    <title>Playstation circle: custom controller prompt</title>
+    <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+    <defs>
+      <clipPath id="item-5-button-edge">
+        <circle cx="16" cy="20" r="15.95" />
+      </clipPath>
+      <linearGradient id="item-5-button-body-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="4" y2="36">
+        <stop offset="0" stop-color="#222939" />
+        <stop offset="0.22" stop-color="#343c4e" />
+        <stop offset="0.52" stop-color="#202636" />
+        <stop offset="0.78" stop-color="#30394a" />
+        <stop offset="1" stop-color="#454f62" />
+      </linearGradient>
+      <linearGradient id="item-5-button-rim-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="4" y2="36">
+        <stop offset="0" stop-color="#b6c2d4" />
+        <stop offset="0.4" stop-color="#131a28" />
+        <stop offset="1" stop-color="#65748c" />
+      </linearGradient>
+      <radialGradient id="item-5-top-sheen-paint" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(15.4 6.5) scale(11.9 6.2)">
+        <stop offset="0" stop-opacity="1" stop-color="#c1cbdf" />
+        <stop offset="0.35" stop-opacity="0.9" stop-color="#c1cbdf" />
+        <stop offset="1" stop-opacity="0" stop-color="#c1cbdf" />
+      </radialGradient>
+      <radialGradient id="item-5-left-reflection-paint" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(4.9 17) scale(2.4 8.5)">
+        <stop offset="0" stop-opacity="1" stop-color="#ff8c91" />
+        <stop offset="0.35" stop-opacity="0.9" stop-color="#ff8c91" />
+        <stop offset="1" stop-opacity="0" stop-color="#ff8c91" />
+      </radialGradient>
+      <linearGradient id="item-5-letter-shadow-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="30">
+        <stop offset="0" stop-color="#4f2c2c" />
+        <stop offset="1" stop-color="#9e6464" />
+      </linearGradient>
+      <linearGradient id="item-5-letter-bevel-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="30">
+        <stop offset="0" stop-color="#bf9798" />
+        <stop offset="1" stop-color="#ef9090" />
+      </linearGradient>
+      <linearGradient id="item-5-letter-face-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="29">
+        <stop offset="0" stop-color="#f7dede" />
+        <stop offset="0.5" stop-color="#ffcece" />
+        <stop offset="1" stop-color="#ffcccc" />
+      </linearGradient>
+    </defs>
+    <g id="item-5-face-button" transform="translate(0.0 0.0) scale(1.0)" clip-path="url(#item-5-button-edge)">
+      <circle id="item-5-button-body" cx="16" cy="20" r="15.7" fill="url(#item-5-button-body-paint)" stroke="url(#item-5-button-rim-paint)" stroke-width=".5" />
+      <ellipse id="item-5-top-sheen" cx="15.4" cy="6.5" rx="11.9" ry="6.2" fill="url(#item-5-top-sheen-paint)" />
+      <path id="item-5-symbol-shadow" d="M24 20 A8 8 0 1 1 8 20 A8 8 0 1 1 24 20 Z" fill="none" stroke="#0b1324" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" transform="translate(.25 .65)" />
+      <path id="item-5-symbol-bevel" d="M24 20 A8 8 0 1 1 8 20 A8 8 0 1 1 24 20 Z" fill="none" stroke="#ff8c91" stroke-width="2.65" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 0)" stroke-opacity=".45" />
+      <path id="item-5-symbol-face" d="M24 20 A8 8 0 1 1 8 20 A8 8 0 1 1 24 20 Z" fill="none" stroke="#ff8c91" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 0)" />
+    </g>
+  </svg>
+  <text x="402" y="248" fill="#b7c7dc" font-family="sans-serif" font-size="15" text-anchor="middle">Circle</text>
+  <svg width="176" height="116" viewBox="0 0 32 36" version="1.1" x="566" y="108">
+    <title>Playstation square: custom controller prompt</title>
+    <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+    <defs>
+      <clipPath id="item-7-button-edge">
+        <circle cx="16" cy="20" r="15.95" />
+      </clipPath>
+      <linearGradient id="item-7-button-body-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="4" y2="36">
+        <stop offset="0" stop-color="#222939" />
+        <stop offset="0.22" stop-color="#343c4e" />
+        <stop offset="0.52" stop-color="#202636" />
+        <stop offset="0.78" stop-color="#30394a" />
+        <stop offset="1" stop-color="#454f62" />
+      </linearGradient>
+      <linearGradient id="item-7-button-rim-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="4" y2="36">
+        <stop offset="0" stop-color="#b6c2d4" />
+        <stop offset="0.4" stop-color="#131a28" />
+        <stop offset="1" stop-color="#65748c" />
+      </linearGradient>
+      <radialGradient id="item-7-top-sheen-paint" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(15.4 6.5) scale(11.9 6.2)">
+        <stop offset="0" stop-opacity="1" stop-color="#c1cbdf" />
+        <stop offset="0.35" stop-opacity="0.9" stop-color="#c1cbdf" />
+        <stop offset="1" stop-opacity="0" stop-color="#c1cbdf" />
+      </radialGradient>
+      <radialGradient id="item-7-left-reflection-paint" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(4.9 17) scale(2.4 8.5)">
+        <stop offset="0" stop-opacity="1" stop-color="#f3a0dc" />
+        <stop offset="0.35" stop-opacity="0.9" stop-color="#f3a0dc" />
+        <stop offset="1" stop-opacity="0" stop-color="#f3a0dc" />
+      </radialGradient>
+      <linearGradient id="item-7-letter-shadow-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="30">
+        <stop offset="0" stop-color="#6c7ba0" />
+        <stop offset="1" stop-color="#6183ca" />
+      </linearGradient>
+      <linearGradient id="item-7-letter-bevel-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="30">
+        <stop offset="0" stop-color="#c6e0ff" />
+        <stop offset="1" stop-color="#e4ffff" />
+      </linearGradient>
+      <linearGradient id="item-7-letter-face-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="29">
+        <stop offset="0" stop-color="#ceddf4" />
+        <stop offset="0.5" stop-color="#cbe2ff" />
+        <stop offset="1" stop-color="#b3d6ff" />
+      </linearGradient>
+    </defs>
+    <g id="item-7-face-button" transform="translate(0.0 0.0) scale(1.0)" clip-path="url(#item-7-button-edge)">
+      <circle id="item-7-button-body" cx="16" cy="20" r="15.7" fill="url(#item-7-button-body-paint)" stroke="url(#item-7-button-rim-paint)" stroke-width=".5" />
+      <ellipse id="item-7-top-sheen" cx="15.4" cy="6.5" rx="11.9" ry="6.2" fill="url(#item-7-top-sheen-paint)" />
+      <path id="item-7-symbol-shadow" d="M8.5 12.5 H23.5 V27.5 H8.5 Z" fill="none" stroke="#0b1324" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" transform="translate(.25 .65)" />
+      <path id="item-7-symbol-bevel" d="M8.5 12.5 H23.5 V27.5 H8.5 Z" fill="none" stroke="#f3a0dc" stroke-width="2.65" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 0)" stroke-opacity=".45" />
+      <path id="item-7-symbol-face" d="M8.5 12.5 H23.5 V27.5 H8.5 Z" fill="none" stroke="#f3a0dc" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 0)" />
+    </g>
+  </svg>
+  <text x="654" y="248" fill="#b7c7dc" font-family="sans-serif" font-size="15" text-anchor="middle">Square</text>
+  <svg width="176" height="116" viewBox="0 0 32 36" version="1.1" x="818" y="108">
+    <title>Playstation triangle: custom controller prompt</title>
+    <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+    <defs>
+      <clipPath id="item-9-button-edge">
+        <circle cx="16" cy="20" r="15.95" />
+      </clipPath>
+      <linearGradient id="item-9-button-body-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="4" y2="36">
+        <stop offset="0" stop-color="#222939" />
+        <stop offset="0.22" stop-color="#343c4e" />
+        <stop offset="0.52" stop-color="#202636" />
+        <stop offset="0.78" stop-color="#30394a" />
+        <stop offset="1" stop-color="#454f62" />
+      </linearGradient>
+      <linearGradient id="item-9-button-rim-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="4" y2="36">
+        <stop offset="0" stop-color="#b6c2d4" />
+        <stop offset="0.4" stop-color="#131a28" />
+        <stop offset="1" stop-color="#65748c" />
+      </linearGradient>
+      <radialGradient id="item-9-top-sheen-paint" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(15.4 6.5) scale(11.9 6.2)">
+        <stop offset="0" stop-opacity="1" stop-color="#c1cbdf" />
+        <stop offset="0.35" stop-opacity="0.9" stop-color="#c1cbdf" />
+        <stop offset="1" stop-opacity="0" stop-color="#c1cbdf" />
+      </radialGradient>
+      <radialGradient id="item-9-left-reflection-paint" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(4.9 17) scale(2.4 8.5)">
+        <stop offset="0" stop-opacity="1" stop-color="#7ee5bd" />
+        <stop offset="0.35" stop-opacity="0.9" stop-color="#7ee5bd" />
+        <stop offset="1" stop-opacity="0" stop-color="#7ee5bd" />
+      </radialGradient>
+      <linearGradient id="item-9-letter-shadow-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="30">
+        <stop offset="0" stop-color="#b89e79" />
+        <stop offset="1" stop-color="#a36310" />
+      </linearGradient>
+      <linearGradient id="item-9-letter-bevel-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="30">
+        <stop offset="0" stop-color="#ffffcb" />
+        <stop offset="1" stop-color="#ffffff" />
+      </linearGradient>
+      <linearGradient id="item-9-letter-face-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="29">
+        <stop offset="0" stop-color="#fcecc7" />
+        <stop offset="0.5" stop-color="#fff8c2" />
+        <stop offset="1" stop-color="#fff5b4" />
+      </linearGradient>
+    </defs>
+    <g id="item-9-face-button" transform="translate(0.0 0.0) scale(1.0)" clip-path="url(#item-9-button-edge)">
+      <circle id="item-9-button-body" cx="16" cy="20" r="15.7" fill="url(#item-9-button-body-paint)" stroke="url(#item-9-button-rim-paint)" stroke-width=".5" />
+      <ellipse id="item-9-top-sheen" cx="15.4" cy="6.5" rx="11.9" ry="6.2" fill="url(#item-9-top-sheen-paint)" />
+      <path id="item-9-symbol-shadow" d="M16 11 L25 27 H7 Z" fill="none" stroke="#0b1324" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" transform="translate(.25 .65)" />
+      <path id="item-9-symbol-bevel" d="M16 11 L25 27 H7 Z" fill="none" stroke="#7ee5bd" stroke-width="2.65" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 0)" stroke-opacity=".45" />
+      <path id="item-9-symbol-face" d="M16 11 L25 27 H7 Z" fill="none" stroke="#7ee5bd" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 0)" />
+    </g>
+  </svg>
+  <text x="906" y="248" fill="#b7c7dc" font-family="sans-serif" font-size="15" text-anchor="middle">Triangle</text>
+  <svg width="176" height="116" viewBox="0 0 60 36" version="1.1" x="62" y="268">
+    <title>Playstation l1: custom controller prompt</title>
+    <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+    <defs>
+      <linearGradient id="item-11-shoulder-rim" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="31">
+        <stop offset="0" stop-color="#507da6" />
+        <stop offset="1" stop-color="#477697" />
+      </linearGradient>
+      <linearGradient id="item-11-shoulder-face" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="15" y2="29">
+        <stop offset="0" stop-color="#598ac0" />
+        <stop offset="1" stop-color="#4f82ab" />
+      </linearGradient>
+      <linearGradient id="item-11-label-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="0" y2="10">
+        <stop offset="0" stop-color="#335566" />
+        <stop offset="1" stop-color="#224455" />
+      </linearGradient>
+    </defs>
+    <g transform="scale(1.00000000 1.00000000)" id="item-11-shoulder-button">
+      <g id="item-11-body" transform="translate(0 0)">
+        <path id="item-11-outer-bevel" d="M5 13 C15 13 49 11.5 58.5 8 V27.8 H6 C1 27.8 1 25.5 1 21 C1 16 1.5 13 5 13 Z" fill="url(#item-11-shoulder-rim)" />
+        <path id="item-11-button-face" d="M5 14.5 H56.8 V25.6 H5 C3 25.6 2.7 24.7 2.7 21 V19 C2.7 16 3 14.5 5 14.5 Z" fill="url(#item-11-shoulder-face)" />
+      </g>
+      <g id="item-11-label" transform="translate(33 14.2) scale(1 .85)">
+        <g id="item-11-label-l1" transform="translate(0 0) scale(1)" fill="#263e55" fill-rule="evenodd">
+          <path d="M0 0 H1.5 V8.5 H6 V10 H0 Z" transform="translate(0.0 0)" />
+          <path d="M1 1.8 L3.5 0 H5 V8.5 H7 V10 H1 V8.5 H3.3 V2 L1.8 3 Z" transform="translate(8.5 0)" />
+        </g>
+      </g>
+    </g>
+  </svg>
+  <text x="150" y="408" fill="#b7c7dc" font-family="sans-serif" font-size="15" text-anchor="middle">L1</text>
+  <svg width="176" height="116" viewBox="0 0 60 36" version="1.1" x="314" y="268">
+    <title>Playstation r1: custom controller prompt</title>
+    <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+    <defs>
+      <linearGradient id="item-13-shoulder-rim" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="31">
+        <stop offset="0" stop-color="#507ea7" />
+        <stop offset="1" stop-color="#467597" />
+      </linearGradient>
+      <linearGradient id="item-13-shoulder-face" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="15" y2="29">
+        <stop offset="0" stop-color="#5888bc" />
+        <stop offset="1" stop-color="#4f83ad" />
+      </linearGradient>
+      <linearGradient id="item-13-label-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="0" y2="10">
+        <stop offset="0" stop-color="#335566" />
+        <stop offset="1" stop-color="#224455" />
+      </linearGradient>
+    </defs>
+    <g transform="scale(1.00000000 1.00000000)" id="item-13-shoulder-button">
+      <g id="item-13-body" transform="translate(60 0) scale(-1 1)">
+        <path id="item-13-outer-bevel" d="M5 13 C15 13 49 11.5 58.5 8 V27.8 H6 C1 27.8 1 25.5 1 21 C1 16 1.5 13 5 13 Z" fill="url(#item-13-shoulder-rim)" />
+        <path id="item-13-button-face" d="M5 14.5 H56.8 V25.6 H5 C3 25.6 2.7 24.7 2.7 21 V19 C2.7 16 3 14.5 5 14.5 Z" fill="url(#item-13-shoulder-face)" />
+      </g>
+      <g id="item-13-label" transform="translate(12.8 14.2) scale(1 .85)">
+        <g id="item-13-label-r1" transform="translate(0 0) scale(1)" fill="#263e55" fill-rule="evenodd">
+          <path d="M0 0 H4.4 C6.5 0 7.2 1.2 7.2 3 C7.2 4.4 6.5 5.3 5.2 5.5 L7.7 10 H5.9 L3.5 5.8 H1.5 V10 H0 Z M1.5 1.4 V4.4 H4.1 C5.3 4.4 5.7 4 5.7 2.9 C5.7 1.9 5.2 1.4 4.1 1.4 Z" transform="translate(0.0 0)" />
+          <path d="M1 1.8 L3.5 0 H5 V8.5 H7 V10 H1 V8.5 H3.3 V2 L1.8 3 Z" transform="translate(8.5 0)" />
+        </g>
+      </g>
+    </g>
+  </svg>
+  <text x="402" y="408" fill="#b7c7dc" font-family="sans-serif" font-size="15" text-anchor="middle">R1</text>
+  <svg width="176" height="116" viewBox="0 0 90 38" version="1.1" x="566" y="268">
+    <title>Playstation l2: custom controller prompt</title>
+    <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+    <defs>
+      <mask id="item-15-triggers-opacity" maskUnits="userSpaceOnUse" x="0" y="0" width="90" height="38">
+        <rect width="90" height="38" fill="black" />
+        <g transform="scale(1.0 1.0)">
+          <g id="item-15-left-trigger" transform="translate(0 0)">
+            <path id="item-15-shell" d="M8 .8 C15 -.2 37 5 42.5 13 C47 22 31 37 18 37 L8 36.5 C.5 36.5 -.5 33 1.8 27 L9 9 C10.2 6 7.5 6 6 3.5 C4.5 1.5 6 .8 8 .8 Z" fill="#888888" />
+            <path id="item-15-stem-panel" d="M9 7 C14 9 21 12 21 17 C22 24 22 31 20 36.8 L8 36.5 C.5 36.5 -.5 33 1.8 27 Z" fill="#777777" />
+            <path id="item-15-outer-edge" d="M8 .8 C15 -.2 37 5 42.5 13 C47 22 31 37 18 37 L8 36.5 C.5 36.5 -.5 33 1.8 27 L9 9 C10.2 6 7.5 6 6 3.5 C4.5 1.5 6 .8 8 .8 Z" fill="none" stroke="#ffffff" stroke-width=".85" stroke-linejoin="round" />
+            <path id="item-15-fold-highlight" d="M9 7 C14 9 21 12 21 17 C22 24 22 31 20 36.8" fill="none" stroke="#ffffff" stroke-width=".9" />
+          </g>
+          <g id="item-15-right-trigger" transform="translate(90 0) scale(-1 1)">
+            <path id="item-15-shell" d="M8 .8 C15 -.2 37 5 42.5 13 C47 22 31 37 18 37 L8 36.5 C.5 36.5 -.5 33 1.8 27 L9 9 C10.2 6 7.5 6 6 3.5 C4.5 1.5 6 .8 8 .8 Z" fill="#333333" />
+            <path id="item-15-stem-panel" d="M9 7 C14 9 21 12 21 17 C22 24 22 31 20 36.8 L8 36.5 C.5 36.5 -.5 33 1.8 27 Z" fill="#333333" />
+            <path id="item-15-outer-edge" d="M8 .8 C15 -.2 37 5 42.5 13 C47 22 31 37 18 37 L8 36.5 C.5 36.5 -.5 33 1.8 27 L9 9 C10.2 6 7.5 6 6 3.5 C4.5 1.5 6 .8 8 .8 Z" fill="none" stroke="#444444" stroke-width=".85" stroke-linejoin="round" />
+            <path id="item-15-fold-highlight" d="M9 7 C14 9 21 12 21 17 C22 24 22 31 20 36.8" fill="none" stroke="#444444" stroke-width=".9" />
+          </g>
+        </g>
+      </mask>
+    </defs>
+    <rect id="item-15-triggers-paint" width="90" height="38" fill="white" mask="url(#item-15-triggers-opacity)" />
+    <g transform="scale(1.0 1.0)">
+      <g id="item-15-label-l2" transform="translate(13.5 13) scale(1.1)" fill="#e4edf8" fill-rule="evenodd">
+        <path d="M0 0 H1.5 V8.5 H6 V10 H0 Z" transform="translate(0.0 0)" />
+        <path d="M0 2.7 C0 -.9 7.4 -.9 7.4 2.8 C7.4 4.7 5.2 6.1 2.2 8.5 H7.5 V10 H0 V8.3 C2 6.5 5.8 4.3 5.8 2.8 C5.8 .9 1.6 1 1.6 2.7 Z" transform="translate(8.5 0)" />
+      </g>
+      <g id="item-15-label-r2" transform="translate(59.5 13) scale(1.1)" fill="#5c697d" fill-rule="evenodd">
+        <path d="M0 0 H4.4 C6.5 0 7.2 1.2 7.2 3 C7.2 4.4 6.5 5.3 5.2 5.5 L7.7 10 H5.9 L3.5 5.8 H1.5 V10 H0 Z M1.5 1.4 V4.4 H4.1 C5.3 4.4 5.7 4 5.7 2.9 C5.7 1.9 5.2 1.4 4.1 1.4 Z" transform="translate(0.0 0)" />
+        <path d="M0 2.7 C0 -.9 7.4 -.9 7.4 2.8 C7.4 4.7 5.2 6.1 2.2 8.5 H7.5 V10 H0 V8.3 C2 6.5 5.8 4.3 5.8 2.8 C5.8 .9 1.6 1 1.6 2.7 Z" transform="translate(8.5 0)" />
+      </g>
+    </g>
+  </svg>
+  <text x="654" y="408" fill="#b7c7dc" font-family="sans-serif" font-size="15" text-anchor="middle">L2</text>
+  <svg width="176" height="116" viewBox="0 0 90 38" version="1.1" x="818" y="268">
+    <title>Playstation r2: custom controller prompt</title>
+    <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+    <defs>
+      <mask id="item-17-triggers-opacity" maskUnits="userSpaceOnUse" x="0" y="0" width="90" height="38">
+        <rect width="90" height="38" fill="black" />
+        <g transform="scale(1.0 1.0)">
+          <g id="item-17-left-trigger" transform="translate(0 0)">
+            <path id="item-17-shell" d="M8 .8 C15 -.2 37 5 42.5 13 C47 22 31 37 18 37 L8 36.5 C.5 36.5 -.5 33 1.8 27 L9 9 C10.2 6 7.5 6 6 3.5 C4.5 1.5 6 .8 8 .8 Z" fill="#333333" />
+            <path id="item-17-stem-panel" d="M9 7 C14 9 21 12 21 17 C22 24 22 31 20 36.8 L8 36.5 C.5 36.5 -.5 33 1.8 27 Z" fill="#333333" />
+            <path id="item-17-outer-edge" d="M8 .8 C15 -.2 37 5 42.5 13 C47 22 31 37 18 37 L8 36.5 C.5 36.5 -.5 33 1.8 27 L9 9 C10.2 6 7.5 6 6 3.5 C4.5 1.5 6 .8 8 .8 Z" fill="none" stroke="#444444" stroke-width=".85" stroke-linejoin="round" />
+            <path id="item-17-fold-highlight" d="M9 7 C14 9 21 12 21 17 C22 24 22 31 20 36.8" fill="none" stroke="#444444" stroke-width=".9" />
+          </g>
+          <g id="item-17-right-trigger" transform="translate(90 0) scale(-1 1)">
+            <path id="item-17-shell" d="M8 .8 C15 -.2 37 5 42.5 13 C47 22 31 37 18 37 L8 36.5 C.5 36.5 -.5 33 1.8 27 L9 9 C10.2 6 7.5 6 6 3.5 C4.5 1.5 6 .8 8 .8 Z" fill="#888888" />
+            <path id="item-17-stem-panel" d="M9 7 C14 9 21 12 21 17 C22 24 22 31 20 36.8 L8 36.5 C.5 36.5 -.5 33 1.8 27 Z" fill="#777777" />
+            <path id="item-17-outer-edge" d="M8 .8 C15 -.2 37 5 42.5 13 C47 22 31 37 18 37 L8 36.5 C.5 36.5 -.5 33 1.8 27 L9 9 C10.2 6 7.5 6 6 3.5 C4.5 1.5 6 .8 8 .8 Z" fill="none" stroke="#ffffff" stroke-width=".85" stroke-linejoin="round" />
+            <path id="item-17-fold-highlight" d="M9 7 C14 9 21 12 21 17 C22 24 22 31 20 36.8" fill="none" stroke="#ffffff" stroke-width=".9" />
+          </g>
+        </g>
+      </mask>
+    </defs>
+    <rect id="item-17-triggers-paint" width="90" height="38" fill="white" mask="url(#item-17-triggers-opacity)" />
+    <g transform="scale(1.0 1.0)">
+      <g id="item-17-label-l2" transform="translate(13.5 13) scale(1.1)" fill="#5c697d" fill-rule="evenodd">
+        <path d="M0 0 H1.5 V8.5 H6 V10 H0 Z" transform="translate(0.0 0)" />
+        <path d="M0 2.7 C0 -.9 7.4 -.9 7.4 2.8 C7.4 4.7 5.2 6.1 2.2 8.5 H7.5 V10 H0 V8.3 C2 6.5 5.8 4.3 5.8 2.8 C5.8 .9 1.6 1 1.6 2.7 Z" transform="translate(8.5 0)" />
+      </g>
+      <g id="item-17-label-r2" transform="translate(59.5 13) scale(1.1)" fill="#e4edf8" fill-rule="evenodd">
+        <path d="M0 0 H4.4 C6.5 0 7.2 1.2 7.2 3 C7.2 4.4 6.5 5.3 5.2 5.5 L7.7 10 H5.9 L3.5 5.8 H1.5 V10 H0 Z M1.5 1.4 V4.4 H4.1 C5.3 4.4 5.7 4 5.7 2.9 C5.7 1.9 5.2 1.4 4.1 1.4 Z" transform="translate(0.0 0)" />
+        <path d="M0 2.7 C0 -.9 7.4 -.9 7.4 2.8 C7.4 4.7 5.2 6.1 2.2 8.5 H7.5 V10 H0 V8.3 C2 6.5 5.8 4.3 5.8 2.8 C5.8 .9 1.6 1 1.6 2.7 Z" transform="translate(8.5 0)" />
+      </g>
+    </g>
+  </svg>
+  <text x="906" y="408" fill="#b7c7dc" font-family="sans-serif" font-size="15" text-anchor="middle">R2</text>
+  <svg width="176" height="116" viewBox="0 0 32 36" version="1.1" x="62" y="428">
+    <title>Playstation dpad-up: custom controller prompt</title>
+    <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+    <defs />
+    <polygon id="item-19-arrow" points="0.016661373962495507,26.0140287029458 16.0,9.916890288353576 31.983338626037504,26.0140287029458" fill="#ffffff" />
+  </svg>
+  <text x="150" y="568" fill="#b7c7dc" font-family="sans-serif" font-size="15" text-anchor="middle">Dpad Up</text>
+  <svg width="176" height="116" viewBox="0 0 32 36" version="1.1" x="314" y="428">
+    <title>Playstation dpad-down: custom controller prompt</title>
+    <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+    <defs />
+    <polygon id="item-21-arrow" points="0.016661373962495507,8.9859712970542 31.983338626037504,8.9859712970542 16.0,25.083109711646426" fill="#ffffff" />
+  </svg>
+  <text x="402" y="568" fill="#b7c7dc" font-family="sans-serif" font-size="15" text-anchor="middle">Dpad Down</text>
+  <svg width="176" height="116" viewBox="0 0 18 36" version="1.1" x="566" y="428">
+    <title>Playstation dpad-left: custom controller prompt</title>
+    <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+    <defs />
+    <polygon id="item-23-arrow" points="18.01911664247272,1.92785284689777 0.9938869242825932,19.057750743619124 18.01911664247272,36.18764864034048" fill="#ffffff" />
+  </svg>
+  <text x="654" y="568" fill="#b7c7dc" font-family="sans-serif" font-size="15" text-anchor="middle">Dpad Left</text>
+  <svg width="176" height="116" viewBox="0 0 18 36" version="1.1" x="818" y="428">
+    <title>Playstation dpad-right: custom controller prompt</title>
+    <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+    <defs />
+    <polygon id="item-25-arrow" points="0.004548831446461218,2.972954551506012 17.143320048650924,20.09746935865912 0.004548831446461218,37.22198416581222" fill="#ffffff" />
+  </svg>
+  <text x="906" y="568" fill="#b7c7dc" font-family="sans-serif" font-size="15" text-anchor="middle">Dpad Right</text>
+  <svg width="176" height="116" viewBox="0 0 33 36" version="1.1" x="62" y="588">
+    <title>Playstation options: custom controller prompt</title>
+    <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+    <defs>
+      <linearGradient id="item-27-button-body" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="8" y2="34">
+        <stop offset="0" stop-color="#e8e8e8" />
+        <stop offset="0.55" stop-color="#f4f4f4" />
+        <stop offset="1" stop-color="#cbcbcb" />
+      </linearGradient>
+      <linearGradient id="item-27-button-rim" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="8" y2="34">
+        <stop offset="0" stop-color="#d0d0d0" />
+        <stop offset="1" stop-color="#848484" />
+      </linearGradient>
+      <radialGradient id="item-27-white-sheen" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(7 13) scale(13 12)">
+        <stop offset="0" stop-opacity="1" stop-color="#ffffff" />
+        <stop offset="0.35" stop-opacity="0.9" stop-color="#ffffff" />
+        <stop offset="1" stop-opacity="0" stop-color="#ffffff" />
+      </radialGradient>
+      <linearGradient id="item-27-arrow-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="14" y2="28">
+        <stop offset="0" stop-color="#cccccc" />
+        <stop offset="1" stop-color="#cccccc" />
+      </linearGradient>
+      <linearGradient id="item-27-arrow-edge" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="14" y2="28">
+        <stop offset="0" stop-color="#bbbbbb" />
+        <stop offset="1" stop-color="#aaaaaa" />
+      </linearGradient>
+    </defs>
+    <g transform="scale(1.00000000 1.00000000)" id="item-27-start-back-button">
+      <path id="item-27-rounded-body" d="M11.4 9.5 H20.5 C27.1 9.5 30.5 13.8 30.5 20.4 V23 C30.5 29.8 26.8 33.1 20.5 33.1 H11.4 C4.5 33.1 1.2 29.1 1.2 23 V20.4 C1.2 13.7 4.6 9.5 11.4 9.5 Z" fill="url(#item-27-button-body)" stroke="url(#item-27-button-rim)" stroke-width=".65" />
+      <path id="item-27-sheen" d="M11.4 9.8 H20 V14 C17 17 15 19 14 21 L8 22 H1.6 V20.4 C1.6 14 5 9.8 11.4 9.8 Z" fill="url(#item-27-white-sheen)" />
+      <g id="item-27-options" transform="translate(.5 0)" fill="none" stroke="#405269" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 15 H23 M9 21 H23 M9 27 H23" />
+      </g>
+    </g>
+  </svg>
+  <text x="150" y="728" fill="#b7c7dc" font-family="sans-serif" font-size="15" text-anchor="middle">Options</text>
+  <svg width="176" height="116" viewBox="0 0 33 36" version="1.1" x="314" y="588">
+    <title>Playstation share-create: custom controller prompt</title>
+    <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+    <defs>
+      <linearGradient id="item-29-button-body" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="8" y2="34">
+        <stop offset="0" stop-color="#e8e8e8" />
+        <stop offset="0.55" stop-color="#f4f4f4" />
+        <stop offset="1" stop-color="#cbcbcb" />
+      </linearGradient>
+      <linearGradient id="item-29-button-rim" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="8" y2="34">
+        <stop offset="0" stop-color="#d0d0d0" />
+        <stop offset="1" stop-color="#848484" />
+      </linearGradient>
+      <radialGradient id="item-29-white-sheen" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(7 13) scale(13 12)">
+        <stop offset="0" stop-opacity="1" stop-color="#ffffff" />
+        <stop offset="0.35" stop-opacity="0.9" stop-color="#ffffff" />
+        <stop offset="1" stop-opacity="0" stop-color="#ffffff" />
+      </radialGradient>
+      <linearGradient id="item-29-arrow-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="14" y2="28">
+        <stop offset="0" stop-color="#cccccc" />
+        <stop offset="1" stop-color="#cccccc" />
+      </linearGradient>
+      <linearGradient id="item-29-arrow-edge" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="14" y2="28">
+        <stop offset="0" stop-color="#bbbbbb" />
+        <stop offset="1" stop-color="#aaaaaa" />
+      </linearGradient>
+    </defs>
+    <g transform="scale(1.00000000 1.00000000)" id="item-29-start-back-button">
+      <path id="item-29-rounded-body" d="M11.4 9.5 H20.5 C27.1 9.5 30.5 13.8 30.5 20.4 V23 C30.5 29.8 26.8 33.1 20.5 33.1 H11.4 C4.5 33.1 1.2 29.1 1.2 23 V20.4 C1.2 13.7 4.6 9.5 11.4 9.5 Z" fill="url(#item-29-button-body)" stroke="url(#item-29-button-rim)" stroke-width=".65" />
+      <path id="item-29-sheen" d="M11.4 9.8 H20 V14 C17 17 15 19 14 21 L8 22 H1.6 V20.4 C1.6 14 5 9.8 11.4 9.8 Z" fill="url(#item-29-white-sheen)" />
+      <g id="item-29-share-create" transform="translate(.5 0)" fill="none" stroke="#405269" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 25 V18 M10.5 16 L7.5 13 M21.5 16 L24.5 13 M16 13 V9" />
+        <rect x="12" y="23" width="8" height="6" rx="1.4" />
+      </g>
+    </g>
+  </svg>
+  <text x="402" y="728" fill="#b7c7dc" font-family="sans-serif" font-size="15" text-anchor="middle">Share / Create</text>
+  <svg width="176" height="116" viewBox="0 0 76 38" version="1.1" x="566" y="588">
+    <title>Playstation l3: custom controller prompt</title>
+    <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+    <defs>
+      <mask id="item-31-sticks-opacity" maskUnits="userSpaceOnUse" x="0" y="0" width="76" height="38">
+        <rect width="76" height="38" fill="black" />
+        <g id="item-31-left-stick">
+          <path id="item-31-shaft" d="M9.69 23.475 H28.310000000000002 V29.65 Q28.310000000000002 37.65 19.0 37.65 Q9.69 37.65 9.69 29.65 Z" fill="#888888" />
+          <path id="item-31-shaft-rim" d="M9.69 28.935000000000002 V29.65 Q9.69 37.65 19.0 37.65 Q28.310000000000002 37.65 28.310000000000002 29.65 V28.935000000000002" fill="none" stroke="#bbbbbb" stroke-width="0.8" />
+          <ellipse id="item-31-cap" cx="19.0" cy="19.8" rx="18.75" ry="10.5" fill="#888888" stroke="#bbbbbb" stroke-width="0.9" />
+          <ellipse id="item-31-cap-inset" cx="19.0" cy="17.28" rx="13.3125" ry="6.09" fill="none" stroke="#cccccc" stroke-width="1.05" />
+          <path id="item-31-neck-shadow" d="M10.69 30.2 H27.310000000000002 L26.310000000000002 32.0 Q19.0 32.7 11.69 32.0 Z" fill="#777777" />
+          <path id="item-31-neck-crease" d="M11.69 31.400000000000002 Q19.0 33.1 26.310000000000002 31.400000000000002" fill="none" stroke="#444444" stroke-width="0.9" />
+        </g>
+        <g id="item-31-right-stick">
+          <path id="item-31-shaft" d="M47.69 15.475000000000001 H66.31 V29.65 Q66.31 37.65 57.0 37.65 Q47.69 37.65 47.69 29.65 Z" fill="#333333" />
+          <path id="item-31-shaft-rim" d="M47.69 20.935000000000002 V29.65 Q47.69 37.65 57.0 37.65 Q66.31 37.65 66.31 29.65 V20.935000000000002" fill="none" stroke="#444444" stroke-width="0.8" />
+          <ellipse id="item-31-cap" cx="57.0" cy="11.8" rx="18.75" ry="10.5" fill="#333333" stroke="#444444" stroke-width="0.9" />
+          <ellipse id="item-31-cap-inset" cx="57.0" cy="9.280000000000001" rx="13.3125" ry="6.09" fill="none" stroke="#444444" stroke-width="1.05" />
+        </g>
+      </mask>
+    </defs>
+    <rect id="item-31-sticks-paint" width="76" height="38" fill="white" mask="url(#item-31-sticks-opacity)" />
+    <g id="item-31-label-l3" transform="translate(9.34 13.762500000000001) scale(1.2075)" fill="#f2f6ff" fill-rule="evenodd">
+      <path d="M0 0 H1.5 V8.5 H6 V10 H0 Z" transform="translate(0.0 0)" />
+      <path d="M0 1.6 C2.3 -.9 7.4 -.5 7.4 2.7 C7.4 4 6.7 4.7 5.8 5 C8.8 5.8 8 10.3 3.8 10.3 C2 10.3 .7 9.7 0 8.8 L1.1 7.6 C3.6 9.6 6.3 9 6.1 7 C6 5.8 4 5.8 2.7 5.8 V4.2 C7.5 4.6 6.2 -.5 1.1 2.8 Z" transform="translate(8.5 0)" />
+    </g>
+  </svg>
+  <text x="654" y="728" fill="#b7c7dc" font-family="sans-serif" font-size="15" text-anchor="middle">L3 / press</text>
+  <svg width="176" height="116" viewBox="0 0 76 38" version="1.1" x="818" y="588">
+    <title>Playstation r3: custom controller prompt</title>
+    <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+    <defs>
+      <mask id="item-33-sticks-opacity" maskUnits="userSpaceOnUse" x="0" y="0" width="76" height="38">
+        <rect width="76" height="38" fill="black" />
+        <g id="item-33-left-stick">
+          <path id="item-33-shaft" d="M9.69 15.475000000000001 H28.310000000000002 V29.65 Q28.310000000000002 37.65 19.0 37.65 Q9.69 37.65 9.69 29.65 Z" fill="#333333" />
+          <path id="item-33-shaft-rim" d="M9.69 20.935000000000002 V29.65 Q9.69 37.65 19.0 37.65 Q28.310000000000002 37.65 28.310000000000002 29.65 V20.935000000000002" fill="none" stroke="#444444" stroke-width="0.8" />
+          <ellipse id="item-33-cap" cx="19.0" cy="11.8" rx="18.75" ry="10.5" fill="#333333" stroke="#444444" stroke-width="0.9" />
+          <ellipse id="item-33-cap-inset" cx="19.0" cy="9.280000000000001" rx="13.3125" ry="6.09" fill="none" stroke="#444444" stroke-width="1.05" />
+        </g>
+        <g id="item-33-right-stick">
+          <path id="item-33-shaft" d="M47.69 23.475 H66.31 V29.65 Q66.31 37.65 57.0 37.65 Q47.69 37.65 47.69 29.65 Z" fill="#888888" />
+          <path id="item-33-shaft-rim" d="M47.69 28.935000000000002 V29.65 Q47.69 37.65 57.0 37.65 Q66.31 37.65 66.31 29.65 V28.935000000000002" fill="none" stroke="#bbbbbb" stroke-width="0.8" />
+          <ellipse id="item-33-cap" cx="57.0" cy="19.8" rx="18.75" ry="10.5" fill="#888888" stroke="#bbbbbb" stroke-width="0.9" />
+          <ellipse id="item-33-cap-inset" cx="57.0" cy="17.28" rx="13.3125" ry="6.09" fill="none" stroke="#cccccc" stroke-width="1.05" />
+          <path id="item-33-neck-shadow" d="M48.69 30.2 H65.31 L64.31 32.0 Q57.0 32.7 49.69 32.0 Z" fill="#777777" />
+          <path id="item-33-neck-crease" d="M49.69 31.400000000000002 Q57.0 33.1 64.31 31.400000000000002" fill="none" stroke="#444444" stroke-width="0.9" />
+        </g>
+      </mask>
+    </defs>
+    <rect id="item-33-sticks-paint" width="76" height="38" fill="white" mask="url(#item-33-sticks-opacity)" />
+    <g id="item-33-label-r3" transform="translate(47.34 13.762500000000001) scale(1.2075)" fill="#f2f6ff" fill-rule="evenodd">
+      <path d="M0 0 H4.4 C6.5 0 7.2 1.2 7.2 3 C7.2 4.4 6.5 5.3 5.2 5.5 L7.7 10 H5.9 L3.5 5.8 H1.5 V10 H0 Z M1.5 1.4 V4.4 H4.1 C5.3 4.4 5.7 4 5.7 2.9 C5.7 1.9 5.2 1.4 4.1 1.4 Z" transform="translate(0.0 0)" />
+      <path d="M0 1.6 C2.3 -.9 7.4 -.5 7.4 2.7 C7.4 4 6.7 4.7 5.8 5 C8.8 5.8 8 10.3 3.8 10.3 C2 10.3 .7 9.7 0 8.8 L1.1 7.6 C3.6 9.6 6.3 9 6.1 7 C6 5.8 4 5.8 2.7 5.8 V4.2 C7.5 4.6 6.2 -.5 1.1 2.8 Z" transform="translate(8.5 0)" />
+    </g>
+  </svg>
+  <text x="906" y="728" fill="#b7c7dc" font-family="sans-serif" font-size="15" text-anchor="middle">R3 / press</text>
+  <svg width="176" height="116" viewBox="0 0 76 38" version="1.1" x="62" y="748">
+    <title>Playstation left-stick: custom controller prompt</title>
+    <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+    <defs>
+      <mask id="item-35-sticks-opacity" maskUnits="userSpaceOnUse" x="0" y="0" width="76" height="38">
+        <rect width="76" height="38" fill="black" />
+        <g id="item-35-left-stick">
+          <path id="item-35-shaft" d="M9.69 15.475000000000001 H28.310000000000002 V29.65 Q28.310000000000002 37.65 19.0 37.65 Q9.69 37.65 9.69 29.65 Z" fill="#888888" />
+          <path id="item-35-shaft-rim" d="M9.69 20.935000000000002 V29.65 Q9.69 37.65 19.0 37.65 Q28.310000000000002 37.65 28.310000000000002 29.65 V20.935000000000002" fill="none" stroke="#bbbbbb" stroke-width="0.8" />
+          <ellipse id="item-35-cap" cx="19.0" cy="11.8" rx="18.75" ry="10.5" fill="#888888" stroke="#bbbbbb" stroke-width="0.9" />
+          <ellipse id="item-35-cap-inset" cx="19.0" cy="9.280000000000001" rx="13.3125" ry="6.09" fill="none" stroke="#cccccc" stroke-width="1.05" />
+          <path id="item-35-neck-shadow" d="M10.69 22.2 H27.310000000000002 L26.310000000000002 24.0 Q19.0 24.7 11.69 24.0 Z" fill="#777777" />
+          <path id="item-35-neck-crease" d="M11.69 23.400000000000002 Q19.0 25.1 26.310000000000002 23.400000000000002" fill="none" stroke="#444444" stroke-width="0.9" />
+        </g>
+        <g id="item-35-right-stick">
+          <path id="item-35-shaft" d="M47.69 15.475000000000001 H66.31 V29.65 Q66.31 37.65 57.0 37.65 Q47.69 37.65 47.69 29.65 Z" fill="#333333" />
+          <path id="item-35-shaft-rim" d="M47.69 20.935000000000002 V29.65 Q47.69 37.65 57.0 37.65 Q66.31 37.65 66.31 29.65 V20.935000000000002" fill="none" stroke="#444444" stroke-width="0.8" />
+          <ellipse id="item-35-cap" cx="57.0" cy="11.8" rx="18.75" ry="10.5" fill="#333333" stroke="#444444" stroke-width="0.9" />
+          <ellipse id="item-35-cap-inset" cx="57.0" cy="9.280000000000001" rx="13.3125" ry="6.09" fill="none" stroke="#444444" stroke-width="1.05" />
+        </g>
+      </mask>
+    </defs>
+    <rect id="item-35-sticks-paint" width="76" height="38" fill="white" mask="url(#item-35-sticks-opacity)" />
+    <g id="item-35-label-l" transform="translate(14.17 5.762500000000001) scale(1.2075)" fill="#f2f6ff" fill-rule="evenodd">
+      <path d="M0 0 H1.5 V8.5 H6 V10 H0 Z" transform="translate(0.0 0)" />
+    </g>
+  </svg>
+  <text x="150" y="888" fill="#b7c7dc" font-family="sans-serif" font-size="15" text-anchor="middle">Left stick / move</text>
+  <svg width="176" height="116" viewBox="0 0 76 38" version="1.1" x="314" y="748">
+    <title>Playstation right-stick: custom controller prompt</title>
+    <desc>Editable vector companion to the port-authored Xbox masters. Preserves the original canvas and control placement; uses PlayStation symbols and labels. No embedded bitmap, external font, filter or recovered Sony artwork.</desc>
+    <defs>
+      <mask id="item-37-sticks-opacity" maskUnits="userSpaceOnUse" x="0" y="0" width="76" height="38">
+        <rect width="76" height="38" fill="black" />
+        <g id="item-37-left-stick">
+          <path id="item-37-shaft" d="M9.69 15.475000000000001 H28.310000000000002 V29.65 Q28.310000000000002 37.65 19.0 37.65 Q9.69 37.65 9.69 29.65 Z" fill="#333333" />
+          <path id="item-37-shaft-rim" d="M9.69 20.935000000000002 V29.65 Q9.69 37.65 19.0 37.65 Q28.310000000000002 37.65 28.310000000000002 29.65 V20.935000000000002" fill="none" stroke="#444444" stroke-width="0.8" />
+          <ellipse id="item-37-cap" cx="19.0" cy="11.8" rx="18.75" ry="10.5" fill="#333333" stroke="#444444" stroke-width="0.9" />
+          <ellipse id="item-37-cap-inset" cx="19.0" cy="9.280000000000001" rx="13.3125" ry="6.09" fill="none" stroke="#444444" stroke-width="1.05" />
+        </g>
+        <g id="item-37-right-stick">
+          <path id="item-37-shaft" d="M47.69 15.475000000000001 H66.31 V29.65 Q66.31 37.65 57.0 37.65 Q47.69 37.65 47.69 29.65 Z" fill="#888888" />
+          <path id="item-37-shaft-rim" d="M47.69 20.935000000000002 V29.65 Q47.69 37.65 57.0 37.65 Q66.31 37.65 66.31 29.65 V20.935000000000002" fill="none" stroke="#bbbbbb" stroke-width="0.8" />
+          <ellipse id="item-37-cap" cx="57.0" cy="11.8" rx="18.75" ry="10.5" fill="#888888" stroke="#bbbbbb" stroke-width="0.9" />
+          <ellipse id="item-37-cap-inset" cx="57.0" cy="9.280000000000001" rx="13.3125" ry="6.09" fill="none" stroke="#cccccc" stroke-width="1.05" />
+          <path id="item-37-neck-shadow" d="M48.69 22.2 H65.31 L64.31 24.0 Q57.0 24.7 49.69 24.0 Z" fill="#777777" />
+          <path id="item-37-neck-crease" d="M49.69 23.400000000000002 Q57.0 25.1 64.31 23.400000000000002" fill="none" stroke="#444444" stroke-width="0.9" />
+        </g>
+      </mask>
+    </defs>
+    <rect id="item-37-sticks-paint" width="76" height="38" fill="white" mask="url(#item-37-sticks-opacity)" />
+    <g id="item-37-label-r" transform="translate(52.17 5.762500000000001) scale(1.2075)" fill="#f2f6ff" fill-rule="evenodd">
+      <path d="M0 0 H4.4 C6.5 0 7.2 1.2 7.2 3 C7.2 4.4 6.5 5.3 5.2 5.5 L7.7 10 H5.9 L3.5 5.8 H1.5 V10 H0 Z M1.5 1.4 V4.4 H4.1 C5.3 4.4 5.7 4 5.7 2.9 C5.7 1.9 5.2 1.4 4.1 1.4 Z" transform="translate(0.0 0)" />
+    </g>
+  </svg>
+  <text x="402" y="888" fill="#b7c7dc" font-family="sans-serif" font-size="15" text-anchor="middle">Right stick / look</text>
+  <svg width="176" height="116" viewBox="0 0 60 36" x="566" y="748">
+    <title>PlayStation touchpad: standalone unbound prompt</title>
+    <defs>
+      <linearGradient id="item-39-pad-face" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stop-color="#edf3fa" />
+        <stop offset="1" stop-color="#b7c7d9" />
+      </linearGradient>
+      <linearGradient id="item-39-pad-rim" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stop-color="#a0b3cb" />
+        <stop offset="1" stop-color="#586b85" />
+      </linearGradient>
+    </defs>
+    <rect x="1.5" y="8.5" width="57" height="25" rx="4.5" fill="url(#item-39-pad-face)" stroke="url(#item-39-pad-rim)" stroke-width="1" />
+    <path d="M6 10 H54 Q57 10 57 13 V15 H3 V13 Q3 10 6 10 Z" fill="#ffffff" fill-opacity=".5" />
+    <circle cx="9" cy="15" r="0.7" fill="#5e7694" />
+    <circle cx="15" cy="15" r="0.7" fill="#5e7694" />
+    <circle cx="21" cy="15" r="0.7" fill="#5e7694" />
+    <circle cx="27" cy="15" r="0.7" fill="#5e7694" />
+    <circle cx="33" cy="15" r="0.7" fill="#5e7694" />
+    <circle cx="39" cy="15" r="0.7" fill="#5e7694" />
+    <circle cx="45" cy="15" r="0.7" fill="#5e7694" />
+    <circle cx="51" cy="15" r="0.7" fill="#5e7694" />
+    <circle cx="9" cy="21" r="0.7" fill="#5e7694" />
+    <circle cx="15" cy="21" r="0.7" fill="#5e7694" />
+    <circle cx="21" cy="21" r="0.7" fill="#5e7694" />
+    <circle cx="27" cy="21" r="0.7" fill="#5e7694" />
+    <circle cx="33" cy="21" r="0.7" fill="#5e7694" />
+    <circle cx="39" cy="21" r="0.7" fill="#5e7694" />
+    <circle cx="45" cy="21" r="0.7" fill="#5e7694" />
+    <circle cx="51" cy="21" r="0.7" fill="#5e7694" />
+    <circle cx="9" cy="27" r="0.7" fill="#5e7694" />
+    <circle cx="15" cy="27" r="0.7" fill="#5e7694" />
+    <circle cx="21" cy="27" r="0.7" fill="#5e7694" />
+    <circle cx="27" cy="27" r="0.7" fill="#5e7694" />
+    <circle cx="33" cy="27" r="0.7" fill="#5e7694" />
+    <circle cx="39" cy="27" r="0.7" fill="#5e7694" />
+    <circle cx="45" cy="27" r="0.7" fill="#5e7694" />
+    <circle cx="51" cy="27" r="0.7" fill="#5e7694" />
+  </svg>
+  <text x="654" y="888" fill="#b7c7dc" font-family="sans-serif" font-size="15" text-anchor="middle">Touchpad</text>
+</svg>

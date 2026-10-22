@@ -48,8 +48,8 @@ def main():
         'native-validation','production-normal','production-sanitizer'):
         for path in sorted((BASE/folder).rglob('*')):
             if path.is_file():copy(path,FROZEN/'evidence'/folder/path.relative_to(BASE/folder))
-    names=['include/halo2/raw_datum_pool.hpp','src/raw_datum_pool.cpp','include/halo2/physics_component_construction.hpp',
-        'src/physics_component_construction.cpp','tests/physics_component_construction_tests.cpp',
+    names=['include/halo2/raw_datum_pool.hpp','src/gameplay/objects/raw_datum_pool.cpp','include/halo2/physics_component_construction.hpp',
+        'src/physics/physics_component_construction.cpp','tests/physics_component_construction_tests.cpp',
         'tools/oracle_physics_component_construction_native.py','tools/research_physics_component_construction_u5.py',
         'tools/measure_physics_component_construction_controls.py','tools/export_physics_component_construction_fixtures.py',
         'tools/validate_physics_component_construction_native.py','tools/validate_physics_component_construction_production.py',

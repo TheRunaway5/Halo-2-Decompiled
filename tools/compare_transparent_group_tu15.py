@@ -202,7 +202,7 @@ def main():
     assert os.environ.get('HALO2_TEST_SCRATCH'), 'Run through tools/run_test.py'
     assert sha(a.xbe) == PIN
     manifest = json.loads(a.manifest.read_text())
-    generated = ROOT / 'src/source_transparent_group_tu15_generated.cpp'
+    generated = ROOT / 'src/rendering/source_transparent_group_tu15_generated.cpp'
     assert manifest['generated_cpp_sha256'] == sha(generated)
     original = Original(code_pages(a.xbe), manifest)
     digest = hashlib.sha256()

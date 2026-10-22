@@ -4,7 +4,7 @@ import argparse,datetime,hashlib,json,os,shutil,subprocess,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'analysis/multiplayer/game-variants/camouflage-context-native-20261011'
-OWNERS=('src/source_camouflage_context.cpp',)
+OWNERS=('src/rendering/source_camouflage_context.cpp',)
 FIXTURE='tests/fixtures/camouflage_render_context_original.json'
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def main():
@@ -44,7 +44,7 @@ def main():
  report=json.loads((original/'report.json').read_text())
  binary=run/'camouflage_context_tests_asan'
  execute('sanitizer-build',['c++','-std=c++20','-O1','-g','-fno-fast-math','-ffp-contract=off','-fsanitize=address,undefined','-fno-omit-frame-pointer',
-     '-I'+str(source/'include'),source/'tests/camouflage_context_tests.cpp',*(source/name for name in OWNERS),'-o',binary])
+     '-I'+str(source/'include'), '-I'+str(source/'src'),source/'tests/camouflage_context_tests.cpp',*(source/name for name in OWNERS),'-o',binary])
  execute('sanitizer-test',[binary,source/FIXTURE],extra={'ASAN_OPTIONS':'detect_leaks=1:halt_on_error=1','UBSAN_OPTIONS':'halt_on_error=1'})
  assert all(sha(source/name)==digest for name,digest in pins.items())
  assert all(sha(source/name)==digest for name,digest in assets.items())

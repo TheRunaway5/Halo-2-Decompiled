@@ -8,7 +8,7 @@ from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
 from generate_physics_live_support_tu15 import generate,sha,complete_body
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,default=Path('src/source_conveyor_tu15_generated.cpp'));p.add_argument('--directory',required=True,type=Path);a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,default=Path('src/rendering/world/source_conveyor_tu15_generated.cpp'));p.add_argument('--directory',required=True,type=Path);a=p.parse_args()
     assert sha(NEW_DEFAULT)==NEW_PIN;image=Xbe(NEW_DEFAULT);code=_Code(image,'.text')
     caller=code.at(0x184c9e);assert caller.mnemonic=='call' and caller.operands[0].imm==0x355d0
     entries=(0x355d0,0x1e1170,0x383420,0x383440,0x383460,0x31f720,0x31f820,0x383bf0,0x383c00,0x383c10,0x31f810,0x31f660,0x31f840,0x325e90,0x31f740)

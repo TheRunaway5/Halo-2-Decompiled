@@ -1,6 +1,6 @@
 # Complete physical-memory stage and partition paths for fresh TU1.5 startup.
-target_sources(halo2_physics_world_runtime PRIVATE src/physics_physical_storage_runtime_generated.cpp)
-target_sources(halo2_systems PRIVATE src/physics_physical_storage_host.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/physics/physics_physical_storage_runtime_generated.cpp)
+target_sources(halo2_systems PRIVATE src/physics/physics_physical_storage_host.cpp)
 if(BUILD_TESTING)
     add_executable(source_physical_allocation_requests_tests tests/source_physical_allocation_requests_tests.cpp)
     target_link_libraries(source_physical_allocation_requests_tests PRIVATE halo2_systems)

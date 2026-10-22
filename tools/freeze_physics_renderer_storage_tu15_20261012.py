@@ -4,8 +4,8 @@ import hashlib,json,re,shutil
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 E=ROOT/'analysis/multiplayer/sandbox-source/physics-renderer-storage-tu15-20261012'
-OWNED=('include/halo2/physics_renderer_storage_runtime.hpp','src/physics_renderer_storage_runtime_generated.cpp',
- 'src/physics_renderer_storage_host.cpp','src/physics_renderer_storage_call_frames.hpp',
+OWNED=('include/halo2/physics_renderer_storage_runtime.hpp','src/physics/physics_renderer_storage_runtime_generated.cpp',
+ 'src/physics/physics_renderer_storage_host.cpp','src/physics/physics_renderer_storage_call_frames.hpp',
  'tests/physics_renderer_storage_tests.cpp','cmake/PhysicsRendererStorage.cmake','cmake/PhysicsPoolStartup.cmake',
  'tools/research_physics_renderer_storage_tu15_20261012.py','tools/generate_physics_renderer_storage_tu15_20261012.py',
  'tools/export_physics_renderer_storage_frames_tu15_20261012.py','tools/oracle_physics_renderer_storage_tu15_20261012.py',
@@ -28,7 +28,7 @@ if(HALO2_SANITIZERS AND HALO2_THREAD_SANITIZER)
  message(FATAL_ERROR "Select one sanitizer runtime")
 endif()
 add_library(halo2_physics_world_runtime STATIC)
-add_library(halo2_systems STATIC src/source_runtime_memory.cpp src/source_runtime_image.cpp src/source_runtime_host_storage.cpp)
+add_library(halo2_systems STATIC src/runtime/source_runtime_memory.cpp src/runtime/source_runtime_image.cpp src/runtime/source_runtime_host_storage.cpp)
 target_link_libraries(halo2_systems PUBLIC halo2_physics_world_runtime)
 foreach(target IN ITEMS halo2_systems halo2_physics_world_runtime)
  target_include_directories(${target} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)

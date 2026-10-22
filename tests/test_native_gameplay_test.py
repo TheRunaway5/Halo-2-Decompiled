@@ -61,6 +61,21 @@ class NativeGameplayTestCapabilityTests(unittest.TestCase):
         extra.write_bytes(b'unvalidated program change')
         self.assertFalse(self.available())
 
+    def test_native_shader_family_requires_its_declared_complete_programs(self):
+        from native_renderer_shaders import PROFILE, REQUIRED_FILES
+        shutil.rmtree(self.shaders)
+        self.shaders.mkdir()
+        for name in REQUIRED_FILES:
+            path=self.shaders/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(name.encode())
+        self.report['shaders']['files']={name:self.digest(self.shaders/name) for name in REQUIRED_FILES}
+        self.publish();self.assertFalse(self.available()) # Legacy minimum remains unchanged.
+        self.report['shaders']['profile']=PROFILE;self.publish();self.assertTrue(self.available())
+        self.report['shaders']['profile']='unknown-family';self.publish();self.assertFalse(self.available())
+        self.report['shaders']['profile']=PROFILE
+        name='pstencil/normal_accumulation.frag.spv'
+        (self.shaders/name).unlink();self.report['shaders']['files'].pop(name)
+        self.publish();self.assertFalse(self.available())
+
     def packaged_capability(self):
         original = os.fsencode(self.shaders)
         payload, relocation = relocate_compiled_shader_default(elf_with_readonly_literal(original), self.shaders)

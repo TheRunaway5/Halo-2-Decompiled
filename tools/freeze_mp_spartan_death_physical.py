@@ -42,7 +42,7 @@ def main():
  paths=common+[ROOT/p for p in (
   'tools/oracle_mp_spartan_death_physical_1_1.py','tools/audit_mp_spartan_death_physical_1_1.py',
   'docs/MP_SPARTAN_MOVING_DEATH_RESEARCH.md','tests/multiplayer_death_momentum_tests.cpp',
-  'src/simulation.cpp','include/halo2/simulation.hpp','include/halo2/multiplayer.hpp','include/halo2/content.hpp','CMakeLists.txt')]
+  'src/gameplay/simulation.cpp','include/halo2/simulation.hpp','include/halo2/multiplayer.hpp','include/halo2/content.hpp','CMakeLists.txt')]
  for folder in ('moving-effect-fixed','moving-effect-fixed-repeat','unfixed','native'):paths+=descendants(moving/folder)
  paths +=[moving/'audit.json',moving/'audit-repeat.json']
  freeze(moving/'frozen',paths,dict(

@@ -1,6 +1,6 @@
 # Retained logical output values and completed native-copy receipts only.
 add_library(halo2_native_tu15_sound_gp_output STATIC
-    src/native_tu15_sound_gp_output.cpp)
+    src/audio/dsp/native_tu15_sound_gp_output.cpp)
 target_include_directories(halo2_native_tu15_sound_gp_output PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_native_tu15_sound_gp_output PUBLIC cxx_std_20)

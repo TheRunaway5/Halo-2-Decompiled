@@ -26,7 +26,7 @@ PINS={
  'tools/oracle_mp_scoreboard_draw_1_5.py':'eadeb3bea10f6946f9e26c182f4154bc858783057a6be010f0fbbf6e2164726d',
  'docs/MP_FULL_SCOREBOARD_PAINTER_RESEARCH.md':'44f0096ab038dc51aee98a7a0589ee381b2d5b2138016a47f1414a1ddf811f7d',
  'include/halo2/full_scoreboard_painter.hpp':'f0740929d70897eaf114603dd1ec429677ae389e1bd723d860db665e3b49f5ef',
- 'src/full_scoreboard_painter.cpp':'2811191b545d03e6fbc098390596382934af20051a32efb8a7199851c41008ce',
+ 'src/ui/hud/full_scoreboard_painter.cpp':'2811191b545d03e6fbc098390596382934af20051a32efb8a7199851c41008ce',
  'analysis/multiplayer/title-update-1.5/scoreboard-painter/measured/report.json':'bd98d8946b863080e8fd6ee9cb1d03dbe3934a0a01b9b48c4051cccb3a3ec443'}
 PAIRS=((0x1a40b0,0x1aa360),(0x14d600,0x14e9e0),(0x14d3d0,0x14e7b0),
  (0x14dff0,0x14f3d0),(0x1508b0,0x151c90),(0x150950,0x151d30))

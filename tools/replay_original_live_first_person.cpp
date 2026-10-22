@@ -22,7 +22,7 @@
 #include "halo2/source_campaign_audio_tu15.hpp"
 #include "halo2/source_runtime_resources.hpp"
 #include "halo2/cache.hpp"
-#include "physics_live_entries_tu15.hpp"
+#include "physics/physics_live_entries_tu15.hpp"
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <cstring>

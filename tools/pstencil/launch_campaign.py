@@ -6,6 +6,9 @@ import os
 from pathlib import Path
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from selected_runtime import selected_runtime
+
 ROOT=Path(__file__).resolve().parents[2]
 BUNDLE=ROOT/'analysis/pstencil/campaign-live-v10'
 
@@ -14,7 +17,7 @@ def verify(path,expected):
     if actual!=expected:raise SystemExit(f'Campaign input differs from the tested version: {path}')
 
 def main():
-    manifest=json.loads((BUNDLE/'runtime.json').read_text())
+    manifest=selected_runtime(ROOT,json.loads((BUNDLE/'runtime.json').read_text()))
     runtime=ROOT/manifest['runtime'];shaders=ROOT/manifest['shader_directory']
     verify(runtime,manifest['runtime_sha256'])
     reference=Path(manifest['reference']);verify(reference,manifest['reference_sha256'])
@@ -25,8 +28,8 @@ def main():
         print(json.dumps(dict(runtime=str(runtime),runtime_sha256=manifest['runtime_sha256'],
             shader_directory=str(shaders),shader_files_verified=len(manifest['shaders']),
             default_map='00a_introduction.map',viewport=[1920,1080],initial_graphics_mode='pStencil',
-            graphics_modes=['Original','pStencil'],live_switch='F1 > Graphics > Graphics Mode',
-            saved_switch='Video Settings > Graphics Mode',verification=manifest['verification'],
+            graphics_modes=['Original','pStencil'],live_switch=manifest.get('live_switch','F1 > Graphics > Graphics Mode'),
+            saved_switch='Video Settings > Graphics Mode',fullscreen_modes=manifest.get('fullscreen_modes',[]),upscaling=manifest.get('upscaling',{}),verification=manifest['verification'],
             full_presentation_verified=False),indent=2))
         return
     ui=Path(manifest['ui_assets'])

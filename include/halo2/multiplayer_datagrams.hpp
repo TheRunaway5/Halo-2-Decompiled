@@ -43,7 +43,15 @@ namespace halo2 {
 // handoff after seat release. Older peers reject those native inputs/views.
 //90 admits authoritative WORLD banks for loose weapons. Older snapshot
 // decoders do not recognize those pose owners and must reject this session.
-inline constexpr unsigned native_multiplayer_protocol = 90;
+//91 carries the original per-view objective HUD charge and territory meters.
+//92 carries the response's original flash scale and signed-seat selection.
+//93 carries completed teleport serials and the original selected activation sound.
+//94 carries literal per-recipient original HUD message rows.
+//95 carries actual source scene spatial-cluster memberships for draw admission.
+//97 carries the original seven-family engine entity state with an explicit
+//owner, separating original Assault from the bounded custom Defusal payload.
+//98 requires raw UDP endpoint proof and signed ONLINE microphone origin.
+inline constexpr unsigned native_multiplayer_protocol = 98;
 // Endpoint numbers are authenticated room slots for ONLINE, opaque UDP peers
 // for local transport. Packet contents retain the native host/client protocol.
 class MultiplayerDatagrams {

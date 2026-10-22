@@ -31,7 +31,8 @@ class FrontendLauncherRoutingTests(unittest.TestCase):
         self.launcher=self.root/'Halo2-Launcher';shutil.copyfile(LAUNCHER,self.launcher);self.launcher.chmod(0o700)
         tools=self.root/'tools';tools.mkdir()
         (tools/'setup_assets.py').write_text('# Fixture root sentinel; no setup runs.\n')
-        for name in ('native_gameplay_test.py','frontend_runtime_selection.py','packaged_shader_defaults.py'):
+        for name in ('native_gameplay_test.py','frontend_runtime_selection.py','packaged_shader_defaults.py',
+                     'native_renderer_shaders.py'):
             shutil.copyfile(R/'tools'/name,tools/name)
         for name in ('lockout.map','single_player_shared.map'):(self.maps/name).write_bytes(b'synthetic MCC metadata')
         for name in ('bitmap-resources.json','tag-conversion.json','loading/mcc-loading-assets.json'):

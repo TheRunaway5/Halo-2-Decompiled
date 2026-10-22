@@ -4,6 +4,7 @@
 #include "halo2/source_runtime_image.hpp"
 #include <openssl/evp.h>
 #include <condition_variable>
+#include <cstdlib>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -11,7 +12,7 @@
 #include <nlohmann/json.hpp>
 #include <set>
 #include <sstream>
-#if defined(__linux__)
+#if defined(__linux__) || defined(__APPLE__)
 #include <unistd.h>
 #endif
 
@@ -44,8 +45,8 @@ std::string file_digest(const std::filesystem::path& path) {
 struct Directory {
     std::filesystem::path path;
     Directory(){
-#if defined(__linux__)
-        std::string name="/tmp/halo2-native-arena-XXXXXX";check(::mkdtemp(name.data()),"Cannot create private native arena test directory");path=name;
+#if defined(__linux__) || defined(__APPLE__)
+        const auto* scratch=std::getenv("HALO2_TEST_SCRATCH");check(scratch&&*scratch,"Arena test needs owned scratch");std::string name=(std::filesystem::path(scratch)/"native-arena-XXXXXX").string();check(::mkdtemp(name.data()),"Cannot create private native arena test directory");path=name;
 #else
         throw std::runtime_error("Native arena test file owner unavailable");
 #endif
@@ -77,8 +78,11 @@ constexpr std::array steps{
     Step{0x125e50,257,true,1049652},Step{0x125e50,1024,true,1049654},Step{0x125e50,5120,true,1049656}};
 }
 int main(int argc,char** argv)try {
-#if !defined(__linux__)
+#if !defined(__linux__) && !defined(__APPLE__)
     return 77;
+#else
+    const auto* scratch=std::getenv("HALO2_TEST_SCRATCH");check(scratch&&*scratch,"Arena test needs owned scratch");
+    check(::setenv("XDG_CACHE_HOME",scratch,1)==0,"Cannot bind private arena snapshot cache");
 #endif
     std::filesystem::path reference,fixture_path,capture;
     for(int i=1;i<argc;i+=2) {
@@ -96,7 +100,9 @@ int main(int argc,char** argv)try {
     SourceRuntimeMemory declarations;mount_native_tu15_arena_data(declarations);
     std::size_t declared_bytes=0;Json fields=Json::array();
     declarations.visit_committed([&](auto p,auto bytes){declared_bytes+=bytes.size();fields.push_back({{"address",p},{"bytes",bytes.size()},{"initial_sha256",digest(bytes)}});});
-    check(declared_bytes==43562 && fields.size()==20,"Native arena data includes unclassified storage");
+    // Includes the separately declared loader-zeroed opposite-end allocation
+    // cursor at4F2958. The optional original comparison checks every byte.
+    check(declared_bytes==43566 && fields.size()==21,"Native arena data includes unclassified storage");
     if(!reference.empty()) {
         const auto original=load_source_runtime_image(reference,SourcePhysicsContactImage::TitleUpdate15);
         declarations.visit_committed([&](auto p,auto bytes){check(std::ranges::equal(bytes,original.view(p,bytes.size())),"Native arena cold declaration differs from the authenticated reference at "+std::to_string(p));});
