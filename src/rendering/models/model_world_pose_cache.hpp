@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/model.hpp"
+#include "halo2/model_skin_submission.hpp"
 #include "halo2/transform.hpp"
 #include <cfenv>
 #include <cerrno>
@@ -17,6 +18,8 @@ class ModelWorldPoseCache {
     const RenderModel *model_{};
     std::vector<Transform> nodes_;
     std::vector<Vertex> vertices_;
+    std::vector<std::array<float,12>> palette_;
+    bool gpu_{},deferred_{};
     int rounding_{};
     unsigned mxcsr_{};
     struct Effects {
@@ -56,35 +59,50 @@ class ModelWorldPoseCache {
     }
 public:
     struct Result {std::span<const Vertex> vertices;bool reused{};};
+    struct DeferredResult {ModelSkinWorldPoseView pose;bool reused{};};
     Result update(const RenderModel &model,std::span<const Transform> nodes) {
-        return update(model,nodes,false);
+        const auto result=update(model,nodes,false,false);
+        return {result.pose.vertices,result.reused};
     }
     // Selected geometry previously computed a fresh skin. Preserve its normal
     // arithmetic/errno effects or rebuild; diagnostic modes always compute.
     Result update_preserving_effects(const RenderModel &model,std::span<const Transform> nodes) {
-        return update(model,nodes,true);
+        const auto result=update(model,nodes,true,false);
+        return {result.pose.vertices,result.reused};
+    }
+    // This mode owns the same original cache policy, but a cold admitted fill
+    // retains local records and palette rows until the renderer deforms them.
+    DeferredResult update_deferred(const RenderModel &model,std::span<const Transform> nodes,
+                                  bool preserve_effects=false) {
+        return update(model,nodes,preserve_effects,true);
     }
 private:
-    Result update(const RenderModel &model,std::span<const Transform> nodes,bool preserve_effects) {
+    DeferredResult view(bool reused)const {return {{vertices_,palette_,gpu_},reused};}
+    DeferredResult update(const RenderModel &model,std::span<const Transform> nodes,
+                          bool preserve_effects,bool deferred) {
         const auto rounding=std::fegetround();unsigned mxcsr=0;
 #if defined(__SSE2__) || defined(_M_X64)
         // Ignore sticky flags; preserve rounding, exception masks, DAZ and FTZ.
         mxcsr=_mm_getcsr()&0xffc0u;
 #endif
-        const bool same=model_==&model && rounding_==rounding && mxcsr_==mxcsr && nodes_.size()==nodes.size() &&
+        const bool same=model_==&model && deferred_==deferred && rounding_==rounding && mxcsr_==mxcsr && nodes_.size()==nodes.size() &&
             (nodes.empty() || !std::memcmp(nodes_.data(),nodes.data(),nodes.size_bytes()));
-        if(same && !preserve_effects)return {vertices_,true};
+        if(same && !preserve_effects && !deferred)return view(true);
         const auto before=effects();
-        if(same && preserve_effects && contains_effects(before))return {vertices_,true};
+        if(same && !preserve_effects && before.normal)return view(true);
+        if(same && preserve_effects && contains_effects(before))return view(true);
         // Publish only a complete successful skin; failed inputs leave the
         // preceding immutable result and its key together.
-        auto vertices=skin_model_world_nodes(model,nodes);
+        ModelSkinWorldPose pose;
+        if(deferred)pose=model_skin_world_pose(model,nodes,true);
+        else pose.vertices=skin_model_world_nodes(model,nodes);
         std::vector<Transform> retained(nodes.begin(),nodes.end());
-        vertices_=std::move(vertices);nodes_=std::move(retained);
+        vertices_=std::move(pose.vertices);palette_=std::move(pose.palette);
+        gpu_=pose.gpu;nodes_=std::move(retained);
         const auto after=effects();
-        model_=&model;rounding_=rounding;mxcsr_=mxcsr;
+        model_=&model;deferred_=deferred;rounding_=rounding;mxcsr_=mxcsr;
         effects_=after;effects_ready_=eligible(before,after);
-        return {vertices_,false};
+        return view(false);
     }
 };
 }

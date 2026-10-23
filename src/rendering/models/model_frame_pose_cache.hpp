@@ -23,5 +23,11 @@ public:
         if(result.reused)++reuses_;else ++builds_;
         return result.vertices;
     }
+    ModelWorldPoseCache::DeferredResult update_deferred(std::uint32_t owner,unsigned lod,
+        const RenderModel &model,std::span<const Transform> nodes,bool preserve_effects=false) {
+        const auto result=poses_[{owner,lod}].update_deferred(model,nodes,preserve_effects);
+        if(result.reused)++reuses_;else ++builds_;
+        return result;
+    }
 };
 }

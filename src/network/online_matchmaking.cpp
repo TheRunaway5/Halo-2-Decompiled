@@ -22,6 +22,7 @@ using Clock = std::chrono::steady_clock;
 constexpr std::size_t max_body = 65536;
 void require(bool ok) { if (!ok) throw std::runtime_error("Invalid matchmaking response"); }
 struct StatusError { long status; std::string message{}; };
+struct MatchConnectionError { std::string message; };
 std::string origin(const std::string &value, bool local) {
   require(!value.empty() && value.size() <= 2048 && std::none_of(value.begin(), value.end(), [](unsigned char c) { return c <= 32 || c == 127 || c == '\\'; }));
   static const auto initialized = curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -204,7 +205,7 @@ OnlineMatchmakingOptions online_matchmaking_environment(const std::filesystem::p
   if (const auto *url = std::getenv("H2_MATCHMAKING_URL")) result.endpoint = url;
   else result.endpoint = default_online_origin;
   if(online_protocol_bridge::eos_runtime_options().transport)
-    result.compatibility="halo2-native-queue-v13";
+    result.compatibility="halo2-native-queue-v14";
   if (const auto *http = std::getenv("H2_MATCHMAKING_ALLOW_LOOPBACK_HTTP")) result.allow_loopback_http = std::string(http) == "1";
   std::error_code error;
   for (std::filesystem::directory_iterator it(maps, error), end; !error && it != end; it.increment(error))
@@ -317,7 +318,7 @@ struct OnlineMatchmaking::Impl {
           const auto authorization = login->authorization(); require(authorization.has_value());
           text(Json{{"name", screen_name}}, "name");
           auto session_body = Json{{"screen_name", screen_name}, {"maps", options.maps}, {"compatibility", options.compatibility}};
-          const bool direct=options.compatibility=="halo2-native-queue-v12"||options.compatibility=="halo2-native-queue-v13";
+          const bool direct=options.compatibility=="halo2-native-queue-v12"||options.compatibility=="halo2-native-queue-v13"||options.compatibility=="halo2-native-queue-v14";
           const bool gathering=options.compatibility=="halo2-native-queue-v8" || options.compatibility=="halo2-native-queue-v9" || options.compatibility=="halo2-native-queue-v10" || direct;
           if(gathering)session_body["language"]=options.language;
           require(additional.size()<=3);
@@ -366,9 +367,10 @@ struct OnlineMatchmaking::Impl {
           if (handed_off) continue;
           if (relay) {
             if(relay->phase()==OnlineMatchSession::Phase::Failed) {
+              const auto failure=relay->error();
               {std::lock_guard guard(mutex);match_session.reset();}
               cleanup("/v1/matchmaking/ticket");queued=false;accepted=false;id.clear();
-              throw std::runtime_error("Match connection failed");
+              throw MatchConnectionError{failure};
             }
             next.status=relay->phase()==OnlineMatchSession::Phase::Connecting ? OnlineMatchmakingStatus::CheckingConnections : OnlineMatchmakingStatus::Loading;
             next.message=next.status==OnlineMatchmakingStatus::Loading ? "Loading ONLINE match..." : "Checking connections...";
@@ -380,7 +382,7 @@ struct OnlineMatchmaking::Impl {
           bool missing; { std::lock_guard guard(mutex); missing=!match_session; }
           if(missing) {
             const auto descriptor=call("GET","/v1/matchmaking/transport");
-            const bool eos=options.compatibility=="halo2-native-queue-v13";
+            const bool eos=options.compatibility=="halo2-native-queue-v13"||options.compatibility=="halo2-native-queue-v14";
             const bool direct=options.compatibility=="halo2-native-queue-v12"||eos;
             const bool couch=descriptor.contains("local_slots");
             require(descriptor.is_object() && descriptor.size()==(direct?7u:couch?(options.compatibility=="halo2-native-queue-v10"?6u:5u):4u));
@@ -393,6 +395,7 @@ struct OnlineMatchmaking::Impl {
                 require(value.is_object()&&value.size()==4&&text(value,"kind")=="eos-p2p-v1"&&
                     value.at("peers").is_array()&&value.at("peers").size()<=15);
                 OnlineEosOptions config;config.socket=text(value,"socket",32);
+                config.account_login=options.compatibility=="halo2-native-queue-v14";
                 const auto &session=value.at("session");require(session.is_object()&&session.size()==4);
                 config.sessions=true;config.playlist=text(session,"playlist");config.revision=text(session,"revision");
                 config.map=text(session,"map");config.variant=text(session,"variant");
@@ -448,6 +451,10 @@ struct OnlineMatchmaking::Impl {
           }
         }
         publish(std::move(next), version);
+      } catch (const MatchConnectionError &e) {
+        next.status=OnlineMatchmakingStatus::Failed;next.match.reset();next.gathering.reset();
+        next.message=e.message.empty()?"The player connection failed. Retrying...":e.message;
+        publish(std::move(next),version);
       } catch (const StatusError &e) {
         if (e.status == 401) { qos.reset(); session.clear(); queued = false; accepted = false; id.clear(); }
         if (e.status == 409) { cleanup("/v1/matchmaking/ticket"); queued = false; accepted = false; id.clear(); next.playlists.clear(); }

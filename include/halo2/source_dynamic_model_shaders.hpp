@@ -17,6 +17,10 @@ public:
     // Attached and first-person callers supply the root's copied collector.
     void select(std::vector<Vertex> &,const SourceModelShaderCollector &,
                 const SourceModelShaderView &)const;
+    // Apply the identical part/material selection while retaining each
+    // expanded source ordinal in parallel. Neither bank may alias the other.
+    void select_indexed(std::vector<Vertex>&,std::vector<std::uint32_t>&,
+                const SourceModelShaderCollector&,const SourceModelShaderView&)const;
     // Append selected parts from a retained pose without copying that pose
     // into an intermediate mutable vector. Source must not alias output.
     void append_selected(std::vector<Vertex> &output,std::span<const Vertex> source,

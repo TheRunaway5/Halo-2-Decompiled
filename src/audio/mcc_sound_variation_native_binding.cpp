@@ -63,8 +63,12 @@ bool MccSoundVariationProvider::HeldNativeBinding::matches(const NativeBinding &
 MccSoundVariationProvider::HeldNativeBinding MccSoundVariationProvider::hold_native_binding(const NativeBinding &binding) {
     return HeldNativeBinding(std::make_unique<NativeHeldData>(binding.data_));
 }
-MccSoundVariationProvider MccSoundVariationProvider::binding_provider(const NativeBinding &binding) {
+MccSoundVariationProvider MccSoundVariationProvider::binding_provider(const NativeBinding &binding,
+    const std::shared_ptr<const Cache> &expected) {
     require(binding.current(),"Native metadata replacement requires its current target binding");
+    require(expected && binding.data_->cache.get()==expected.get() &&
+        !binding.data_->cache.owner_before(expected) && !expected.owner_before(binding.data_->cache),
+        "Native metadata replacement requires its exact strong Cache owner");
     binding.data_->provider.require_current(*binding.data_->cache);
     return binding.data_->provider;
 }

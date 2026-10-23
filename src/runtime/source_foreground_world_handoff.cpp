@@ -4,6 +4,7 @@
 #include "halo2/model_selection.hpp"
 #include "halo2/source_tag_metadata.hpp"
 #include <limits>
+#include <optional>
 #include <utility>
 
 namespace halo2 {
@@ -11,6 +12,9 @@ namespace {
 void need(bool value){if(!value)throw FormatError("Invalid foreground world handoff owner, cut or resident resources");}
 bool same_resources(const SourceWorldParticleDrawsTu15::ResourceState &a,const SourceWorldParticleDrawsTu15::ResourceState &b){
     return a.materials==b.materials&&a.world_systems==b.world_systems&&a.first_person_systems==b.first_person_systems;
+}
+bool same_cache_owner(const std::shared_ptr<const Cache> &a,const std::shared_ptr<const Cache> &b)noexcept{
+    return a&&b&&a.get()==b.get()&&!a.owner_before(b)&&!b.owner_before(a);
 }
 ParticleCollisionQuery target_collision(MultiplayerPreparedWorld &world){
     return [&world](std::uint32_t flags,Vec3 origin,Vec3 delta)->std::optional<ParticleCollisionHit>{
@@ -25,9 +29,11 @@ struct SourceForegroundWorldHandoff::Data {
     std::shared_ptr<const int> owner;
     std::uint64_t revision{};
     MultiplayerPreparedWorld *target{};
-    const Cache *target_cache{};
+    std::shared_ptr<const Cache> target_cache;
     MultiplayerObjectRuntime *native{},*previous_particle{},*previous_model{},*next_particle{},*next_model{};
-    std::array<std::uint64_t,2> mutations{};
+    ValidatedAuthorityCut cut;
+    SourceMatchAuthority::ExecutionBoundary boundary;
+    std::optional<SourceNativePublication::Boundary> publication;
     std::uint64_t tick{};
     ParticleCollisionQuery muzzle,world;
 };
@@ -47,8 +53,12 @@ SourceForegroundWorldHandoff::Prepared::Prepared()=default;
 SourceForegroundWorldHandoff::Prepared::~Prepared()=default;
 SourceForegroundWorldHandoff::Prepared::Prepared(Prepared &&)noexcept=default;
 SourceForegroundWorldHandoff::Prepared &SourceForegroundWorldHandoff::Prepared::operator=(Prepared &&)noexcept=default;
-const ParticleCollisionQuery &SourceForegroundWorldHandoff::Prepared::muzzle_collision()const{need(data_&&data_->owner);return data_->muzzle;}
-const ParticleCollisionQuery &SourceForegroundWorldHandoff::Prepared::world_collision()const{need(data_&&data_->owner);return data_->world;}
+const ParticleCollisionQuery &SourceForegroundWorldHandoff::Prepared::muzzle_collision()const{
+    need(data_&&data_->owner&&(!data_->publication||data_->publication->current()));return data_->muzzle;
+}
+const ParticleCollisionQuery &SourceForegroundWorldHandoff::Prepared::world_collision()const{
+    need(data_&&data_->owner&&(!data_->publication||data_->publication->current()));return data_->world;
+}
 void SourceForegroundWorldHandoff::own()const{need(std::this_thread::get_id()==executor_);}
 bool SourceForegroundWorldHandoff::resources_unchanged()const noexcept {
     return mesh_.materials.size()==materials_&&models_.resident_model_sections()==model_sections_&&
@@ -75,11 +85,13 @@ SourceForegroundWorldHandoff::Prepared SourceForegroundWorldHandoff::prepare(Mul
         checkpoint.proof().matches(checkpoint.origin())&&checkpoint.frontier().replica.matches(checkpoint.origin())&&
         checkpoint.origin().tick()==cut.seal.tick);
     Prepared out;out.data_=std::make_unique<Data>();auto &p=*out.data_;
-    p.owner=identity_;p.revision=revision_;p.target=&target;p.target_cache=target.cache.get();
+    p.owner=identity_;p.revision=revision_;p.target=&target;p.target_cache=target.cache;p.cut=cut;
     p.previous_particle=particle_slot_;p.previous_model=model_slot_;p.tick=target.match.simulation().ticks();
     if(native){
         need(target.source_objects&&target.source_objects->owns_physics()&&p.tick==cut.seal.tick);
-        p.native=target.source_objects.get();p.mutations=p.native->execution_mutations();
+        p.native=target.source_objects.get();
+        SourceMatchAuthority authority(target.match,*p.native);p.boundary=authority.execution_boundary();
+        need(p.boundary.tick==p.tick);
         // Read only actual occupied generations. No native resource loading,
         // world/model-view entry, constructors or RNG consumption is allowed.
         if(policy_.particles)(void)particles_.require_live_world_resident(p.native->memory());
@@ -94,19 +106,43 @@ SourceForegroundWorldHandoff::Prepared SourceForegroundWorldHandoff::prepare(Mul
                     throw FormatError("Target native model section was not resident before renderer upload");
             }
         }
-        need(p.native->execution_mutations()==p.mutations&&resources_unchanged());
+        need(authority.execution_boundary()==p.boundary&&resources_unchanged()&&
+            same_cache_owner(target.cache,p.target_cache)&&target.source_objects.get()==p.native);
         p.next_particle=policy_.particles?p.native:nullptr;p.next_model=policy_.models?p.native:nullptr;
     }
     p.muzzle=target_collision(target);p.world=target_collision(target);return out;
+}
+bool SourceForegroundWorldHandoff::bind_publication(Prepared &prepared,
+    const SourceNativePublication::Boundary &boundary)const noexcept {
+    try{
+        auto *p=prepared.data_.get();
+        if(std::this_thread::get_id()!=executor_||!p||p->owner!=identity_||p->revision!=revision_||
+            !p->native||!p->target||!boundary.current()||
+            (p->publication&&!p->publication->same_scope(boundary)))return false;
+        // The genuine scope retains its target. Admission precedes all raw
+        // target reads; a foreign or expired scope cannot authorize them.
+        if(!boundary.matches_prepared(*p->target,p->target_cache,p->cut,p->boundary)||
+            !resources_unchanged()||particle_slot_!=p->previous_particle||model_slot_!=p->previous_model||
+            !same_cache_owner(p->target->cache,p->target_cache)||p->target->source_objects.get()!=p->native||
+            p->target->match.simulation().ticks()!=p->tick)return false;
+        if(!p->publication)p->publication=boundary;
+        return true;
+    }catch(...){return false;}
 }
 bool SourceForegroundWorldHandoff::ready(const Prepared &prepared)const noexcept {
     try{
         const auto *p=prepared.data_.get();
         if(std::this_thread::get_id()!=executor_||!p||p->owner!=identity_||p->revision!=revision_||
-            !resources_unchanged()||particle_slot_!=p->previous_particle||model_slot_!=p->previous_model||
-            !p->target||p->target->cache.get()!=p->target_cache||p->target->source_objects.get()!=p->native||
+            (p->publication&&!p->publication->current()))return false;
+        // Bound preparations use only the actual held identity and cached
+        // derived boundary. Public native getters remain unavailable here.
+        if(p->publication&&(!p->target||
+            !p->publication->matches_prepared(*p->target,p->target_cache,p->cut,p->boundary)))return false;
+        if(!resources_unchanged()||particle_slot_!=p->previous_particle||model_slot_!=p->previous_model||
+            !p->target||!same_cache_owner(p->target->cache,p->target_cache)||p->target->source_objects.get()!=p->native||
             p->target->match.simulation().ticks()!=p->tick)return false;
-        return !p->native||p->native->execution_mutations()==p->mutations;
+        return p->publication||!p->native||p->native->execution_mutations()==
+            std::array{p->boundary.mutations[2],p->boundary.mutations[3]};
     }catch(...){return false;}
 }
 bool SourceForegroundWorldHandoff::commit(Prepared &prepared)noexcept {

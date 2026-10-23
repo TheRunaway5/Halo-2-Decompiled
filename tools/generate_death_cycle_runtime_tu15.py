@@ -91,6 +91,9 @@ ENTRIES = (
     0x1f4970,
     0x2e8fc0,
     0x1cddb0,
+    # Actual315A4C's type-pair dispatch reaches the original capsule/capsule
+    # overlap owner while constructing the admitted MCC recovery roster.
+    0x2fe0f0,
     0x315a00,
     0x304bd0,
     0x2f4de0,
@@ -362,7 +365,9 @@ def main():
     parser.add_argument('--output', type=Path, default=Path('src/gameplay/units/death_cycle_runtime_tu15_generated.cpp'))
     parser.add_argument('--directory', type=Path, default=Path('analysis/multiplayer/death-cycle-20261013/effect-owners'))
     parser.add_argument('--qualified-source', type=Path,
-        help='Append the recovered1186D0 wrapper while preserving already-qualified bodies and FP lowering')
+        help='Append explicit recovered entries while preserving already-qualified bodies and FP lowering')
+    parser.add_argument('--append-qualified-entry', action='append', type=lambda value: int(value, 0),
+        help='Exact newly recovered entry for --qualified-source; repeatable (default: 0x1186d0)')
     args = parser.parse_args()
     qualified = args.qualified_source.read_text() if args.qualified_source else None
     qualified_sha256 = sha(args.qualified_source) if args.qualified_source else None
@@ -426,26 +431,47 @@ def main():
         source = source.replace('#include "halo2/source_projectile_effect_observer.hpp"\n', '')
     if qualified is not None:
         # The shared lowerer may have newer FP emission than a qualified
-        # cohort. This four-instruction integer wrapper does not requalify or
-        # replace any existing body, helper, floating-point or observer code.
+        # cohort. Append only the explicitly selected, authenticated bodies;
+        # no existing body, helper, floating-point or observer code is replaced.
         pattern = r'static void run_([0-9a-f]+)\(WorldState &s\) \{\n(.*?)\n\}'
         old_bodies = dict(re.findall(pattern, qualified, re.S))
         new_bodies = dict(re.findall(pattern, source, re.S))
-        assert old_bodies and set(new_bodies) - set(old_bodies) == {'1186d0'}
+        appended_entries = args.append_qualified_entry or [0x1186d0]
+        assert len(set(appended_entries)) == len(appended_entries)
+        assert set(appended_entries) <= {0x1186d0, 0x2fe0f0}
+        appended = {f'{entry:x}' for entry in appended_entries}
+        assert old_bodies and set(new_bodies) - set(old_bodies) == appended
         assert set(old_bodies) < set(new_bodies)
+        # Keep original selected-image identities for every new instruction,
+        # branch and data operand. Existing selected cases remain byte-identical.
+        selection = ('std::uint32_t selected(std::uint32_t p,SourcePhysicsContactImage image)'
+            '{if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){')
+        selected_cases = r'case 0x([0-9a-f]+)u:return 0x([0-9a-f]+)u;'
+        old_selected = dict(re.findall(selected_cases, qualified.split('\n', 1)[-1].split('static void dispatch', 1)[0]))
+        new_selected = dict(re.findall(selected_cases, source.split('\n', 1)[-1].split('static void dispatch', 1)[0]))
+        required_selected = appended | set(re.findall(r'selected\(0x([0-9a-f]+)u,s.image\)',
+            ''.join(new_bodies[entry] for entry in appended)))
+        assert required_selected <= set(new_selected)
+        assert all(old_selected[address] == new_selected[address]
+            for address in required_selected & set(old_selected))
+        extra_selected = ''.join(f'case 0x{address}u:return 0x{target}u;'
+            for address, target in new_selected.items()
+            if address in required_selected and address not in old_selected)
+        first_body = next(iter(old_bodies))
         additions = {
-            'std::uint32_t selected(std::uint32_t p,SourcePhysicsContactImage image){if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){':
-                'std::uint32_t selected(std::uint32_t p,SourcePhysicsContactImage image){if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){case 0x1186d0u:return 0x1186d0u;',
+            selection: selection + extra_selected,
             'static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail){':
-                'static void run_1186d0(WorldState &);\n'
+                ''.join(f'static void run_{entry}(WorldState &);\n' for entry in sorted(appended)) +
                 'static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail){'
-                'if(target==selected(0x1186d0u,s.image)){run_1186d0(s);return;}',
-            'static void run_1c180(WorldState &s) {':
-                'static void run_1186d0(WorldState &s) {\n' + new_bodies['1186d0'] + '\n}\n'
-                'static void run_1c180(WorldState &s) {',
-            'switch(entry) {': 'switch(entry) {\ncase 0x1186d0u:run_1186d0(s);break;',
+                + ''.join(f'if(target==selected(0x{entry}u,s.image)){{run_{entry}(s);return;}}' for entry in sorted(appended)),
+            f'static void run_{first_body}(WorldState &s) {{':
+                ''.join(f'static void run_{entry}(WorldState &s) {{\n{new_bodies[entry]}\n}}\n'
+                    for entry in sorted(appended)) + f'static void run_{first_body}(WorldState &s) {{',
+            'switch(entry) {': 'switch(entry) {' + ''.join(
+                f'\ncase 0x{entry}u:run_{entry}(s);break;' for entry in sorted(appended)),
             'bool source_death_cycle_runtime_tu15_owns_entry(std::uint32_t p) {switch(p){':
-                'bool source_death_cycle_runtime_tu15_owns_entry(std::uint32_t p) {switch(p){case 0x1186d0u:',
+                'bool source_death_cycle_runtime_tu15_owns_entry(std::uint32_t p) {switch(p){' +
+                ''.join(f'case 0x{entry}u:' for entry in sorted(appended)),
         }
         source = qualified
         for old, new in additions.items():
@@ -467,7 +493,7 @@ def main():
     if qualified is not None:
         report['preserved_qualified_source_sha256'] = qualified_sha256
         report['unchanged_qualified_bodies'] = len(old_bodies)
-        report['appended_complete_entries'] = ['001186d0']
+        report['appended_complete_entries'] = [f'{entry:08x}' for entry in sorted(appended_entries)]
         report['existing_fp_lowering_changed'] = False
     (args.directory / 'generation.json').write_text(json.dumps(report, indent=2, sort_keys=True) + '\n')
 

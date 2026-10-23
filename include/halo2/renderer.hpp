@@ -1,4 +1,5 @@
 #pragma once
+#include "halo2/model_skin_submission.hpp"
 #include "halo2/pstencil/lightmap.hpp"
 #include "halo2/pstencil/point_caster.hpp"
 #include "halo2/renderer_device_lease.hpp"
@@ -93,6 +94,7 @@ struct ModelObjectDraw {
     ShaderInput shader_input; // Evaluated into this owner's independent constant bank.
     std::span<const SourcePrtMaterialBank> prt_banks;
     std::optional<float> camouflage; // Resolved source first-biped, before animation.
+    std::span<const ModelSkinSubmission> deferred_skins;
 };
 // Read-only CPU metadata for the material image cache at uniform upload.
 // A draw may instead bind a baked lightmap, accumulation/scope/water target,
@@ -206,8 +208,10 @@ struct ModelView {
     float left{}, top{}, width{}, height{}; // 640x480 UI coordinates.
     std::size_t before_ui_vertex{};
     std::span<const Vertex> vertices;
+    std::span<const ModelSkinSubmission> deferred_skins;
     bool full_surface{}; // Split-screen world: coordinates cover the entire drawable.
     std::span<const Vertex> foreground;
+    std::span<const ModelSkinSubmission> deferred_foreground_skins;
     std::span<const Vertex> background;
     // Per-view source particle submissions. Each bank owns its current camera
     // constants and is clipped to this view, including split-screen views.
@@ -322,6 +326,7 @@ public:
     // Frontend worlds and model widgets retain native resolution while
     // players edit their saved world-upscaling choices.
     void upscale_world(bool enabled);
+    bool can_skin_models() const noexcept;
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
     bool draw(const Camera& camera, const std::filesystem::path& screenshot = {},

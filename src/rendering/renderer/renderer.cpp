@@ -12,6 +12,13 @@
 #include "rendering/renderer/renderer_image_residency.hpp"
 #include "rendering/renderer/frame_vertex_reuse.hpp"
 #include "rendering/renderer/frame_vertex_upload_plan.hpp"
+#include "rendering/renderer/presentation_copy_worker.hpp"
+#include "rendering/models/model_skin_gpu.hpp"
+#include "rendering/models/model_skin_cpu_materialization.hpp"
+#include "rendering/renderer/frame_model_skin_plan.hpp"
+#include "rendering/models/model_skin_vertices.hpp"
+#include <cfenv>
+#include <cerrno>
 #include "rendering/renderer/material_descriptor_range.hpp"
 #include "rendering/renderer/material_fog_phase.hpp"
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -393,6 +400,11 @@ struct Renderer::Impl {
     VkDeviceMemory vertex_memory{};
     VkBuffer debug_buffer{};
     VkDeviceMemory debug_memory{};
+    // VkBuffer values can be recycled after retirement. The skin-input
+    // descriptor cache also needs this owner's actual allocation generation.
+    std::uint64_t debug_buffer_generation{1};
+    std::unique_ptr<PresentationCopyWorker> presentation_copy_worker;
+    std::unique_ptr<ModelSkinGpu> model_skin_gpu;
     VkBuffer light_volume_buffer{};
     VkDeviceMemory light_volume_memory{};
     std::size_t light_volume_capacity{};
@@ -774,8 +786,10 @@ struct Renderer::Impl {
     }
 
     ~Impl() {
+        presentation_copy_worker.reset();
         if (device) {
             vkDeviceWaitIdle(device);
+            model_skin_gpu.reset();
             release_texture_staging();
             release_texture_upload_pool();
             destroy_swapchain();
@@ -1210,7 +1224,7 @@ struct Renderer::Impl {
         check(vkMapMemory(device, vertex_memory, 0, bytes, 0, &mapped), "map vertices");
         if(!grouped.empty())std::memcpy(mapped,grouped.data(),grouped.size()*sizeof(Vertex));
         vkUnmapMemory(device, vertex_memory);
-        make_buffer(debug_capacity * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, debug_buffer, debug_memory);
+        make_buffer(debug_capacity * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, debug_buffer, debug_memory);
         make_textures(mesh);
         make_fog_bindings();
         make_water_bindings();
@@ -3716,6 +3730,46 @@ struct Renderer::Impl {
         bloom_scene_initialized=true;
     }
 #ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
+    void prepare_native_world(MenuWorldNativeDraw &native,
+        std::span<const MenuWorldNativeDrawInput> inputs,std::size_t &role_draws) {
+        ++frame_timing.world_native_prepare_calls;
+        using Clock=std::chrono::steady_clock;
+        const auto begin=measure_frames?Clock::now():Clock::time_point{};
+        const auto finish=[&] {
+            if(measure_frames)frame_timing.world_native_prepare_ms+=
+                std::chrono::duration<double,std::milli>(Clock::now()-begin).count();
+        };
+        try { native.prepare(inputs); }
+        catch(...) { finish();throw; }
+        finish();
+        ++frame_timing.world_native_prepare_completed_calls;
+        const auto draws=native.size();
+        if(draws)++frame_timing.world_native_prepare_nonempty_calls;
+        frame_timing.world_native_prepared_draws+=draws;role_draws+=draws;
+    }
+#endif
+    std::span<const VkDescriptorSet> upload_source_world(SourceWorldDrawStorage &storage,
+        std::span<const SourceWorldDrawUpload> inputs) {
+        ++frame_timing.world_storage_upload_calls;
+        using Clock=std::chrono::steady_clock;
+        const auto begin=measure_frames?Clock::now():Clock::time_point{};
+        const auto finish=[&] {
+            if(measure_frames)frame_timing.world_storage_upload_ms+=
+                std::chrono::duration<double,std::milli>(Clock::now()-begin).count();
+        };
+        std::span<const VkDescriptorSet> result;
+        try { result=storage.upload(inputs); }
+        catch(...) { finish();throw; }
+        finish();
+        ++frame_timing.world_storage_upload_completed_calls;
+        frame_timing.world_storage_uploaded_draws+=result.size();
+        return result;
+    }
+#ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
+    void record_native_world(const MenuWorldNativeDraw &native,VkCommandBuffer buffer,std::size_t index) {
+        native.record(buffer,index);
+        ++frame_timing.world_native_record_calls;
+    }
     static DrawKey draw_key(const Draw &draw) {
         return {draw.material,draw.lightmap,draw.cluster,draw.source_section,draw.source_part};
     }
@@ -3725,7 +3779,7 @@ struct Renderer::Impl {
         MenuWorldDrawMap selected;
         // Retire the previous per-frame descriptors/UBOs only after draw's
         // fence wait. A wider frame needs its own source visibility producer.
-        if(menu_world_native)menu_world_native->prepare({});
+        if(menu_world_native)prepare_native_world(*menu_world_native,{},frame_timing.world_native_title_prepared_draws);
         if(!world || !title_scene || extent.width*3ull!=extent.height*4ull ||
             extent.width>4095 || extent.height>4095 ||
             std::any_of(views.begin(),views.end(),[](const auto &view){return view.full_surface;}))return selected;
@@ -3857,7 +3911,7 @@ struct Renderer::Impl {
                 MenuWorldNativeDrawContext{device,physical,render_pass,texture_layout,
                     enabled.instance_api_version,enabled.geometry_shader_enabled,
                     enabled.geometry_point_size_enabled,enabled.depth_clamp_enabled,enabled.demote_to_helper_enabled,shader_directory});
-            if(menu_world_native)menu_world_native->prepare(inputs);
+            if(menu_world_native)prepare_native_world(*menu_world_native,inputs,frame_timing.world_native_title_prepared_draws);
         } catch(const FormatError &error) {
             // Storage/pipeline admission is also atomic. A failed preparation
             // invalidates the service's frame, so retain every whole CPU pair.
@@ -4191,12 +4245,22 @@ struct Renderer::Impl {
                 ++effect_light_draw_count;
             }
         }
+        FrameModelSkinPlan skin_plan;
+        for(const auto &view:views) {
+            skin_plan.add_bank(view.vertices,view.deferred_skins);
+            skin_plan.add_bank(view.foreground,view.deferred_foreground_skins);
+            for(const auto &object:view.objects) {
+                skin_plan.add_bank(object.vertices,object.deferred_skins);
+            }
+        }
+        if(skin_plan.expected_vertices() && !model_skin_gpu)
+            throw FormatError("deferred model skin has no admitted renderer compute service");
         auto required = debug.size() + first_person.size() + ui.size() + background.size();
         std::array<std::optional<SourceBspMergedDrawPlan>,4> fresh_bsp_plans;
         std::array<const SourceBspMergedDrawPlan *,4> bsp_plans{};
         const auto *fresh_plans=std::getenv("HALO2_REFERENCE_FRESH_BSP_PLANS");
         const auto *copy_bsp_objects=std::getenv("HALO2_REFERENCE_COPY_BSP_OBJECTS");
-        const bool borrow_bsp_objects=!(copy_bsp_objects && *copy_bsp_objects);
+        const bool borrow_bsp_objects=skin_plan.expected_vertices() || !(copy_bsp_objects && *copy_bsp_objects);
         std::size_t previous_ui = 0;
         for(std::size_t i=0;i<views.size();++i) {
             const auto &view=views[i];
@@ -4207,8 +4271,9 @@ struct Renderer::Impl {
                 if(view.source_bsp_resident_plan!=bsp_resident_plan)
                     throw FormatError("view BSP resident plan is not the validated renderer atlas");
                 if(fresh_plans && *fresh_plans) {
-                    fresh_bsp_plans[i]=bsp_resident_plan->merge(view.source_bsp_bindings,view.vertices,
-                        unsigned(material_count),unsigned(lightmap_textures.size()));
+                    fresh_bsp_plans[i].emplace();
+                    bsp_resident_plan->merge_into(*fresh_bsp_plans[i],view.source_bsp_bindings,view.vertices,
+                        unsigned(material_count),unsigned(lightmap_textures.size()),0,0,borrow_bsp_objects);
                     bsp_plans[i]=&*fresh_bsp_plans[i];
                 } else {
                     bsp_resident_plan->merge_into(bsp_frame_plans[i],view.source_bsp_bindings,view.vertices,
@@ -4316,6 +4381,16 @@ struct Renderer::Impl {
                     if(draw_key(vertex)!=key)
                         throw FormatError("Frame geometry groups a vertex under a different draw identity");
                 }
+            }
+            // Local bytes do not identify the pose. Every GPU-containing
+            // pack owns its destination, including section repeats and views.
+            if(skin_plan.contains_parts(parts)) {
+                const auto first=vertex_count();
+                if(copy_vertices)for(const auto part:parts)
+                    dynamic.insert(dynamic.end(),part.begin(),part.end());
+                if(plan_vertices)for(const auto part:parts)upload_plan.append_raw(part);
+                skin_plan.append_parts(parts,first);
+                return first;
             }
             std::size_t first{};
             if(copy_vertices)first=vertex_reuse.append_parts(key,parts);
@@ -5408,12 +5483,59 @@ struct Renderer::Impl {
         measure(frame_timing.view_constants_ms);
         if (required > debug_capacity) {
             // The frame fence above retires all reads from the previous buffer.
+            if(debug_buffer_generation==std::numeric_limits<std::uint64_t>::max())
+                throw FormatError("dynamic vertex buffer generation exhausted");
+            ++debug_buffer_generation;
             vkDestroyBuffer(device, debug_buffer, nullptr);
             vkFreeMemory(device, debug_memory, nullptr);
             debug_buffer = VK_NULL_HANDLE;
             debug_memory = VK_NULL_HANDLE;
             debug_capacity = std::min(dynamic_limit, std::max(required, debug_capacity * 2));
-            make_buffer(debug_capacity * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, debug_buffer, debug_memory);
+            make_buffer(debug_capacity * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, debug_buffer, debug_memory);
+        }
+        skin_plan.validate_complete();
+        std::optional<ModelSkinGpuPrepareRefusalReason> skin_cpu_fallback;
+        VkResult skin_refusal_result=VK_SUCCESS;
+        if(model_skin_gpu)try {
+            model_skin_gpu->prepare(skin_plan.records(),skin_plan.palette(),debug_buffer,vertex_count(),debug_buffer_generation);
+        } catch(const ModelSkinGpuPrepareRefused &refusal) {
+            if(model_skin_gpu->vertices())throw FormatError("refused model skin GPU prepare retained a dispatch");
+            skin_cpu_fallback=refusal.reason();skin_refusal_result=refusal.result();
+        }
+        if(model_skin_gpu) {
+            const auto &input=model_skin_gpu->prepare_stats();
+            frame_timing.model_skin_input_allocations=input.input_allocations;
+            frame_timing.model_skin_input_maps=input.input_maps;
+            frame_timing.model_skin_input_unmaps=input.input_unmaps;
+            frame_timing.model_skin_record_pack_bytes=input.record_pack_bytes;
+            frame_timing.model_skin_record_upload_bytes=input.record_upload_bytes;
+            frame_timing.model_skin_palette_upload_bytes=input.palette_upload_bytes;
+            frame_timing.model_skin_descriptor_writes=input.descriptor_writes;
+            frame_timing.model_skin_record_cache_hits=input.record_cache_hits;
+        }
+        // The prior frame fence has retired debug_memory, and the immutable
+        // prefix has no remaining writers. Keep Vulkan on this owner; only
+        // byte copying runs on the worker. The late UI tail stays editable.
+        struct VertexMapping {
+            VkDevice device;VkDeviceMemory memory;void *address{};
+            PresentationCopyWorker::Ticket copy;
+            ~VertexMapping(){unmap();}
+            void unmap()noexcept {
+                copy.join();
+                if(address){vkUnmapMemory(device,memory);address=nullptr;}
+            }
+        } vertex_mapping{device,debug_memory};
+        const auto steady_ns=[] {
+            return std::uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(
+                TimingClock::now().time_since_epoch()).count());
+        };
+        std::uint64_t copy_owner_begin{};
+        const auto *serial_copy=std::getenv("HALO2_REFERENCE_SERIAL_PRESENTATION_COPY");
+        if(borrowed_frame && presentation_copy_worker && !(serial_copy && *serial_copy) &&
+           std::size_t(ui_first)*sizeof(Vertex)>=65536) {
+            check(vkMapMemory(device,debug_memory,0,vertex_count()*sizeof(Vertex),0,&vertex_mapping.address),"map worker dynamic vertices");
+            vertex_mapping.copy=presentation_copy_worker->start(upload_plan,vertex_mapping.address,ui_first);
+            if(measure_frames)copy_owner_begin=steady_ns();
         }
         const auto bind_geometry=[&](auto &draws) {
             for(auto &draw:draws)draw.descriptor=geometry_descriptor(draw.material,draw.lightmap);
@@ -5679,7 +5801,7 @@ struct Renderer::Impl {
         if(!raw_shadow_storage && !raw_shadow_uploads.empty())
             raw_shadow_storage=std::make_unique<SourceWorldDrawStorage>(SourceWorldDrawStorageContext{
                 device,physical,texture_layout,sizeof(MaterialUniform)});
-        const auto raw_shadow_descriptors=raw_shadow_storage?raw_shadow_storage->upload(raw_shadow_uploads):
+        const auto raw_shadow_descriptors=raw_shadow_storage?upload_source_world(*raw_shadow_storage,raw_shadow_uploads):
             std::span<const VkDescriptorSet>{};
         std::array<std::vector<MenuWorldNativeDrawInput>,2> raw_shadow_inputs;
         raw_shadow_inputs[0].reserve(raw_shadow_draw_count);raw_shadow_inputs[1].reserve(raw_shadow_draw_count);
@@ -5735,7 +5857,8 @@ struct Renderer::Impl {
                     shadow_enabled.demote_to_helper_enabled,shader_directory});
             // This draw's frame fence has completed before either storage or
             // native preparation rewrites independent material/set1 slices.
-            if(raw_shadow_native[phase])raw_shadow_native[phase]->prepare(raw_shadow_inputs[phase]);
+            if(raw_shadow_native[phase])prepare_native_world(*raw_shadow_native[phase],raw_shadow_inputs[phase],
+                phase==0?frame_timing.world_native_shadow_generate_prepared_draws:frame_timing.world_native_shadow_apply_prepared_draws);
         }
 #endif
         struct EffectLightRecord {unsigned material{},first{},count{},binding{};};
@@ -5791,7 +5914,7 @@ struct Renderer::Impl {
         if(!effect_light_storage && !light_uploads.empty())
             effect_light_storage=std::make_unique<SourceWorldDrawStorage>(SourceWorldDrawStorageContext{
                 device,physical,texture_layout,sizeof(MaterialUniform)});
-        const auto light_descriptors=effect_light_storage?effect_light_storage->upload(light_uploads):std::span<const VkDescriptorSet>{};
+        const auto light_descriptors=effect_light_storage?upload_source_world(*effect_light_storage,light_uploads):std::span<const VkDescriptorSet>{};
 #ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
         std::vector<MenuWorldNativeDrawInput> raw_light_inputs;
         raw_light_inputs.reserve(raw_effect_light_draw_count);
@@ -5864,7 +5987,7 @@ struct Renderer::Impl {
             MenuWorldNativeDrawContext{device,physical,render_pass,texture_layout,enabled.instance_api_version,
                 enabled.geometry_shader_enabled,enabled.geometry_point_size_enabled,
                 enabled.depth_clamp_enabled,enabled.demote_to_helper_enabled,shader_directory});
-        if(effect_light_native)effect_light_native->prepare(raw_light_inputs);
+        if(effect_light_native)prepare_native_world(*effect_light_native,raw_light_inputs,frame_timing.world_native_light_prepared_draws);
         if(pstencil_enabled)for(std::size_t i=0;i<views.size();++i) {
             for(const auto& caster:views[i].pstencil_point_casters)pstencil_frame.add_caster(i,caster);
             for(const auto& caster:views[i].pstencil_lightmap_casters)
@@ -5903,12 +6026,93 @@ struct Renderer::Impl {
         }
         measure(frame_timing.geometry_bind_ms);
         frame_timing.geometry_pack_ms+=frame_timing.geometry_bind_ms;
+        std::vector<std::pair<std::uint32_t,std::array<std::byte,sizeof(Vertex)>>> verified_skin_vertices;
+        const bool verify_skin=std::getenv("HALO2_VERIFY_GPU_SKINNING")!=nullptr;
         if (vertex_count()) {
-            void* mapped;
-            check(vkMapMemory(device,debug_memory,0,vertex_count()*sizeof(Vertex),0,&mapped),"map dynamic vertices");
-            if(borrowed_frame)upload_plan.copy_to(mapped);
-            else std::memcpy(mapped,dynamic.data(),dynamic.size()*sizeof(Vertex));
-            vkUnmapMemory(device,debug_memory);
+            if(vertex_mapping.copy) {
+                const auto owner_end=measure_frames?steady_ns():0;
+                const auto result=vertex_mapping.copy.finish();
+                const auto joined=measure_frames?steady_ns():0;
+                if(result.executor==std::this_thread::get_id() || result.vertices!=ui_first)
+                    throw FormatError("presentation copy did not execute its complete prefix on the worker");
+                frame_timing.presentation_copy_jobs=1;
+                frame_timing.presentation_copy_bytes=result.vertices*sizeof(Vertex);
+                frame_timing.presentation_copy_separate_thread=true;
+                if(measure_frames) {
+                    frame_timing.presentation_copy_ns=result.end_ns-result.begin_ns;
+                    frame_timing.presentation_copy_wait_ns=joined-owner_end;
+                    const auto begin=std::max(copy_owner_begin,result.begin_ns),end=std::min(owner_end,result.end_ns);
+                    frame_timing.presentation_copy_overlap_ns=end>begin?end-begin:0;
+                }
+                upload_plan.copy_to(static_cast<Vertex*>(vertex_mapping.address)+ui_first,
+                    ui_first,upload_plan.size()-ui_first);
+            } else {
+                check(vkMapMemory(device,debug_memory,0,vertex_count()*sizeof(Vertex),0,&vertex_mapping.address),"map dynamic vertices");
+                if(borrowed_frame)upload_plan.copy_to(vertex_mapping.address);
+                else std::memcpy(vertex_mapping.address,dynamic.data(),dynamic.size()*sizeof(Vertex));
+            }
+            if(verify_frame && borrowed_frame && !dynamic.empty() &&
+               std::memcmp(vertex_mapping.address,dynamic.data(),dynamic.size()*sizeof(Vertex)))
+                throw FormatError("completed presentation copy differs from original staging bytes");
+            if(skin_cpu_fallback) {
+                // The immutable prefix and editable tail are complete. Join
+                // before the first CPU skin write; borrowed input banks stay
+                // unchanged, and the helper validates all records before any
+                // mutation while restoring the complete caller FP/errno owner.
+                vertex_mapping.copy.join();
+                if(!model_skin_gpu || model_skin_gpu->vertices())
+                    throw FormatError("CPU model skin fallback overlaps a pending GPU dispatch");
+                model_skin_cpu_materialize(std::span{static_cast<Vertex*>(vertex_mapping.address),vertex_count()},
+                    skin_plan.records(),skin_plan.palette());
+                frame_timing.model_skin_cpu_fallback_jobs=1;
+                frame_timing.model_skin_cpu_fallback_vertices=skin_plan.records().size();
+                frame_timing.model_skin_cpu_fallback_vulkan_result=std::int32_t(skin_refusal_result);
+                for(const auto &record:skin_plan.records()) {
+                    frame_timing.model_skin_cpu_fallback_post_identity_vertices+=record.post_identity_placement!=0;
+                    for(const auto weight:record.weights)
+                        if(std::bit_cast<std::uint32_t>(weight)&0x7fffffffu) {
+                            ++frame_timing.model_skin_cpu_fallback_deformed_vertices;break;
+                        }
+                }
+                switch(*skin_cpu_fallback) {
+                case ModelSkinGpuPrepareRefusalReason::device_quota:frame_timing.model_skin_cpu_fallback_quota_jobs=1;break;
+                case ModelSkinGpuPrepareRefusalReason::input_allocation:frame_timing.model_skin_cpu_fallback_allocation_jobs=1;break;
+                case ModelSkinGpuPrepareRefusalReason::input_mapping:frame_timing.model_skin_cpu_fallback_mapping_jobs=1;break;
+                }
+            }
+            if(verify_skin && !skin_cpu_fallback && !skin_plan.records().empty()) {
+                // Diagnostic CPU work has its own saved environment. The
+                // ordinary eliminated kernel was admitted at its source call.
+                struct SavedEnvironment {
+                    std::fenv_t fp;int error=errno;
+                    SavedEnvironment(){std::fegetenv(&fp);std::feholdexcept(&fp);std::fesetround(FE_TONEAREST);}
+                    ~SavedEnvironment(){std::fesetenv(&fp);errno=error;}
+                } saved;
+                verified_skin_vertices.reserve(skin_plan.records().size());
+                const auto *actual=static_cast<const Vertex*>(vertex_mapping.address);
+                for(const auto &record:skin_plan.records()) {
+                    Vertex expected;std::memcpy(&expected,actual+record.destination,sizeof(Vertex));
+                    SkinBinding binding;
+                    for(unsigned j=0;j<4;++j)binding.bones[j]=std::uint16_t(record.bones[j]);
+                    binding.weights=record.weights;
+                    skin_model_vertices(std::span{&expected,1},std::span{&binding,1},
+                        skin_plan.palette().subspan(record.palette,record.palette_count),true);
+                    if(record.post_identity_placement) {
+                        const Transform identity{};
+                        const auto rotate=[&](Vec3 v) {
+                            return identity.basis[0]*v.x+identity.basis[1]*v.y+identity.basis[2]*v.z;
+                        };
+                        expected.position=identity.position+rotate(expected.position)*identity.scale;
+                        expected.normal=rotate(expected.normal);
+                        expected.tangent=rotate(expected.tangent);
+                        expected.binormal=rotate(expected.binormal);
+                    }
+                    auto &bytes=verified_skin_vertices.emplace_back().second;
+                    verified_skin_vertices.back().first=record.destination;
+                    std::memcpy(bytes.data(),&expected,sizeof(Vertex));
+                }
+            }
+            vertex_mapping.unmap();
         }
         measure(frame_timing.geometry_upload_ms);
         if(const auto *path=std::getenv("HALO2_VIEW_DIAGNOSTICS")) {
@@ -5995,6 +6199,18 @@ struct Renderer::Impl {
             temporal_graphics_mode=display.graphics_mode;temporal_upscaler->begin(command);
         }
         record_dynamic_images();
+        if(model_skin_gpu && model_skin_gpu->vertices()) {
+            model_skin_gpu->record(command);
+            frame_timing.model_skin_gpu_jobs=1;
+            frame_timing.model_skin_gpu_vertices=model_skin_gpu->vertices();
+            for(const auto &record:skin_plan.records())
+                frame_timing.model_skin_gpu_post_identity_vertices+=record.post_identity_placement!=0;
+            for(const auto &record:skin_plan.records())
+                for(const auto weight:record.weights)
+                    if(std::bit_cast<std::uint32_t>(weight)&0x7fffffffu) {
+                        ++frame_timing.model_skin_gpu_deformed_vertices;break;
+                    }
+        }
         VkClearValue clear[2]{};
         clear[0].color = ui.empty()?VkClearColorValue{{0.018f, 0.026f, 0.044f, 1}}:VkClearColorValue{{0,0,0,1}};
         clear[1].depthStencil = {1, 0};
@@ -6370,7 +6586,7 @@ struct Renderer::Impl {
 #ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
                 if(!phase)if(const auto raw=source_title_draws.find(draw_key(draw));raw!=source_title_draws.end()) {
                     for(const auto &pair:raw->second) {
-                        menu_world_native->record(command,pair.first);
+                        record_native_world(*menu_world_native,command,pair.first);
                         ++source_base_recorded;
                     }
                     vkCmdBindVertexBuffers(command,0,1,&vertex_buffer,&offset);
@@ -6442,7 +6658,7 @@ struct Renderer::Impl {
 #ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
                 if(const auto raw=source_title_draws.find(draw_key(draw));raw!=source_title_draws.end()) {
                     for(const auto &pair:raw->second)if(pair.second) {
-                        menu_world_native->record(command,*pair.second);
+                        record_native_world(*menu_world_native,command,*pair.second);
                         ++source_fog_recorded;
                     }
                     vkCmdBindVertexBuffers(command,0,1,&vertex_buffer,&offset);
@@ -7047,7 +7263,7 @@ struct Renderer::Impl {
                                     const VkRect2D surface_clip{{std::int32_t(source_clip[0]),std::int32_t(source_clip[1])},
                                         {source_clip[2],source_clip[3]}};
                                     vkCmdSetScissor(buffer,0,1,&surface_clip);
-                                    raw_shadow_native[phase]->record(buffer,draw.native_index);
+                                    record_native_world(*raw_shadow_native[phase],buffer,draw.native_index);
                                 }});
                         }
                         submissions.push_back({record.source->root_owner,record.source->uniforms,
@@ -7110,7 +7326,7 @@ struct Renderer::Impl {
                         volume_camera.control={model_uniform.eye.w,1,1,0};
                         pstencil_render->light(command,light.upload,volume_camera,temporal_viewport(model_view),clip,[&] {
                             set_temporal_viewport(raw_light_viewport);vkCmdSetScissor(command,0,1,&clip);
-                            for(const auto draw:light.receivers)if(!pstencil_response_receivers.contains(draw))effect_light_native->record(command,draw);
+                            for(const auto draw:light.receivers)if(!pstencil_response_receivers.contains(draw))record_native_world(*effect_light_native,command,draw);
                             set_temporal_viewport(model_view);vkCmdSetScissor(command,0,1,&clip);
                             vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);
                             vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
@@ -7124,7 +7340,7 @@ struct Renderer::Impl {
                     }
                     pstencil_render->end(command,framebuffers[index]);
                 } else {
-                    for(const auto draw:raw_light_views[i]){capture_binding_only();effect_light_native->record(command,draw);}
+                    for(const auto draw:raw_light_views[i]){capture_binding_only();record_native_world(*effect_light_native,command,draw);}
                 }
                 if(!raw_light_views[i].empty()) {
                     {set_temporal_viewport(model_view);}
@@ -7683,7 +7899,10 @@ struct Renderer::Impl {
         }
         check(vkEndCommandBuffer(command), "end commands");
         measure(frame_timing.commands_ms);
-        if(!weather_submission.fence_reset)check(vkResetFences(device, 1, &fence), "reset frame fence");
+        if(!weather_submission.fence_reset) {
+            check(vkResetFences(device, 1, &fence), "reset frame fence");
+            weather_submission.fence_reset=true;
+        }
         const VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT|VK_PIPELINE_STAGE_TRANSFER_BIT;
         VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};
         submit.waitSemaphoreCount = 1;
@@ -7713,6 +7932,16 @@ struct Renderer::Impl {
             if(!submission)throw FormatError("cannot write live title haze submission trace");
         }
         measure(frame_timing.present_ms);
+        if(!verified_skin_vertices.empty()) {
+            check(vkWaitForFences(device,1,&fence,VK_TRUE,UINT64_MAX),"wait GPU model skin verification");
+            void *mapped{};check(vkMapMemory(device,debug_memory,0,vertex_count()*sizeof(Vertex),0,&mapped),"map completed GPU model skins");
+            struct ReadMapping {VkDevice device;VkDeviceMemory memory;~ReadMapping(){vkUnmapMemory(device,memory);}} read_mapping{device,debug_memory};
+            const auto *actual=static_cast<const Vertex*>(mapped);
+            for(const auto &[destination,expected]:verified_skin_vertices)
+                if(std::memcmp(actual+destination,expected.data(),sizeof(Vertex)))
+                    throw FormatError("ordinary GPU skin differs from complete original CPU vertex bytes at destination "+std::to_string(destination));
+            frame_timing.model_skin_gpu_verified_vertices=verified_skin_vertices.size();
+        }
         if (capture) {
             check(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX), "wait screenshot");
             void* mapped;
@@ -7763,7 +7992,32 @@ struct Renderer::Impl {
             timing_report<<'\t'<<frame_timing.materials<<'\t'<<frame_timing.dynamic_vertices
                 <<'\t'<<extent.width<<'\t'<<extent.height
                 <<'\t'<<presentation_extent.width<<'\t'<<presentation_extent.height
-                <<'\t'<<frame_timing.geometry_plan_ms<<'\t'<<frame_timing.geometry_bind_ms<<'\n';
+                <<'\t'<<frame_timing.geometry_plan_ms<<'\t'<<frame_timing.geometry_bind_ms
+                <<'\t'<<frame_timing.presentation_copy_jobs<<'\t'<<frame_timing.presentation_copy_bytes
+                <<'\t'<<frame_timing.presentation_copy_separate_thread<<'\t'<<frame_timing.presentation_copy_ns
+                <<'\t'<<frame_timing.presentation_copy_overlap_ns<<'\t'<<frame_timing.presentation_copy_wait_ns
+                <<'\t'<<frame_timing.model_skin_gpu_jobs<<'\t'<<frame_timing.model_skin_gpu_vertices
+                <<'\t'<<frame_timing.model_skin_gpu_deformed_vertices<<'\t'<<frame_timing.model_skin_gpu_verified_vertices
+                <<'\t'<<frame_timing.model_skin_gpu_post_identity_vertices
+                <<'\t'<<frame_timing.model_skin_cpu_fallback_jobs<<'\t'<<frame_timing.model_skin_cpu_fallback_vertices
+                <<'\t'<<frame_timing.model_skin_cpu_fallback_deformed_vertices<<'\t'<<frame_timing.model_skin_cpu_fallback_post_identity_vertices
+                <<'\t'<<frame_timing.model_skin_cpu_fallback_quota_jobs<<'\t'<<frame_timing.model_skin_cpu_fallback_allocation_jobs
+                <<'\t'<<frame_timing.model_skin_cpu_fallback_mapping_jobs<<'\t'<<frame_timing.model_skin_cpu_fallback_vulkan_result
+                <<'\t'<<frame_timing.model_skin_input_allocations
+                <<'\t'<<frame_timing.model_skin_input_maps
+                <<'\t'<<frame_timing.model_skin_input_unmaps
+                <<'\t'<<frame_timing.model_skin_record_pack_bytes
+                <<'\t'<<frame_timing.model_skin_record_upload_bytes
+                <<'\t'<<frame_timing.model_skin_palette_upload_bytes
+                <<'\t'<<frame_timing.model_skin_descriptor_writes
+                <<'\t'<<frame_timing.model_skin_record_cache_hits
+                <<'\t'<<frame_timing.world_native_prepare_calls<<'\t'<<frame_timing.world_native_prepare_completed_calls
+                <<'\t'<<frame_timing.world_native_prepare_nonempty_calls<<'\t'<<frame_timing.world_native_prepared_draws
+                <<'\t'<<frame_timing.world_native_record_calls<<'\t'<<frame_timing.world_native_title_prepared_draws
+                <<'\t'<<frame_timing.world_native_shadow_generate_prepared_draws<<'\t'<<frame_timing.world_native_shadow_apply_prepared_draws
+                <<'\t'<<frame_timing.world_native_light_prepared_draws<<'\t'<<frame_timing.world_storage_upload_calls
+                <<'\t'<<frame_timing.world_storage_upload_completed_calls<<'\t'<<frame_timing.world_storage_uploaded_draws
+                <<'\t'<<frame_timing.world_native_prepare_ms<<'\t'<<frame_timing.world_storage_upload_ms<<'\n';
             if(!timing_report)throw FormatError("Write renderer frame timings");
         }
         return true;
@@ -7784,13 +8038,34 @@ Renderer::Renderer(SDL_Window* window, const Mesh& mesh, bool validation,
     if(const auto *path=std::getenv("HALO2_RENDER_TIMINGS");path && *path) {
         impl_->timing_report.open(path);
         if(!impl_->timing_report)throw FormatError("Open renderer frame timings");
-        impl_->timing_report<<"frame\tinterval_ms\trenderer_ms\tfence_ms\tglobal_ms\tview_ms\tpack_ms\tupload_ms\tdiagnostics_ms\tacquire_ms\tcommands_ms\tsubmit_ms\tpresent_ms\tscreenshot_ms\tmaterials\tvertices\trender_width\trender_height\tpresent_width\tpresent_height\tgeometry_plan_ms\tgeometry_bind_ms\n";
+        impl_->timing_report<<"frame\tinterval_ms\trenderer_ms\tfence_ms\tglobal_ms\tview_ms\tpack_ms\tupload_ms\tdiagnostics_ms\tacquire_ms\tcommands_ms\tsubmit_ms\tpresent_ms\tscreenshot_ms\tmaterials\tvertices\trender_width\trender_height\tpresent_width\tpresent_height\tgeometry_plan_ms\tgeometry_bind_ms\tpresentation_copy_jobs\tpresentation_copy_bytes\tpresentation_copy_separate_thread\tpresentation_copy_ns\tpresentation_copy_overlap_ns\tpresentation_copy_wait_ns\tmodel_skin_gpu_jobs\tmodel_skin_gpu_vertices\tmodel_skin_gpu_deformed_vertices\tmodel_skin_gpu_verified_vertices\tmodel_skin_gpu_post_identity_vertices\tmodel_skin_cpu_fallback_jobs\tmodel_skin_cpu_fallback_vertices\tmodel_skin_cpu_fallback_deformed_vertices\tmodel_skin_cpu_fallback_post_identity_vertices\tmodel_skin_cpu_fallback_quota_jobs\tmodel_skin_cpu_fallback_allocation_jobs\tmodel_skin_cpu_fallback_mapping_jobs\tmodel_skin_cpu_fallback_vulkan_result\tmodel_skin_input_allocations\tmodel_skin_input_maps\tmodel_skin_input_unmaps\tmodel_skin_record_pack_bytes\tmodel_skin_record_upload_bytes\tmodel_skin_palette_upload_bytes\tmodel_skin_descriptor_writes\tmodel_skin_record_cache_hits"
+            <<"\tworld_native_prepare_calls\tworld_native_prepare_completed_calls\tworld_native_prepare_nonempty_calls\tworld_native_prepared_draws\tworld_native_record_calls"
+            <<"\tworld_native_title_prepared_draws\tworld_native_shadow_generate_prepared_draws\tworld_native_shadow_apply_prepared_draws\tworld_native_light_prepared_draws"
+            <<"\tworld_storage_upload_calls\tworld_storage_upload_completed_calls\tworld_storage_uploaded_draws\tworld_native_prepare_ms\tworld_storage_upload_ms\n";
         impl_->measure_frames=true;
     }
     impl_->bsp_resident_plan=bsp_resident_plan;
     impl_->shadow_residency(mesh,shadow_materials);
     impl_->raw_shadow_residency(mesh,raw_shadow_materials);
     impl_->initialize(window, mesh, validation,before_presentation);
+    if(ModelSkinGpu::supported(impl_->physical,impl_->source_world_device.instance_api_version) &&
+       std::filesystem::is_regular_file(impl_->shader_directory/"model_skin.comp.spv")) {
+        impl_->model_skin_gpu=std::make_unique<ModelSkinGpu>(impl_->device,impl_->physical,
+            impl_->source_world_device.instance_api_version,impl_->shader_directory/"model_skin.comp.spv");
+    }
+
+    const auto *serial=std::getenv("HALO2_REFERENCE_SERIAL_PRESENTATION_COPY");
+    if(!(serial && *serial))try {
+        impl_->presentation_copy_worker=std::make_unique<PresentationCopyWorker>();
+    }catch(const std::system_error &error) {
+        std::cerr<<"Presentation copy worker unavailable; using serial copy: "<<error.what()<<'\n';
+    }
+}
+bool Renderer::can_skin_models() const noexcept {
+    return bool(impl_->model_skin_gpu) && !impl_->temporal_upscaler &&
+        impl_->shared_display->upscaler==Upscaler::Off &&
+        impl_->shared_display->graphics_mode!=pstencil::GraphicsMode::pStencil &&
+        !std::getenv("HALO2_GROUP_INPUT_DIAGNOSTICS") && !std::getenv("HALO2_VIEW_DIAGNOSTICS");
 }
 Renderer::~Renderer() {
     device_lease_.retire();

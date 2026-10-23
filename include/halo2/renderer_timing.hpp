@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#include <cstdint>
 
 namespace halo2 {
 // Host elapsed times around the existing submission path. These are not GPU
@@ -12,5 +13,42 @@ struct RendererFrameTiming {
     unsigned width{},height{};
     double geometry_pack_ms{},geometry_upload_ms{},geometry_diagnostics_ms{};
     double geometry_plan_ms{},geometry_bind_ms{};
+    // Actual immutable-prefix jobs; overlap is intersection with render-owner
+    // draw-state preparation, measured on the same steady clock (not GPU time).
+    std::size_t presentation_copy_jobs{},presentation_copy_bytes{};
+    std::uint64_t presentation_copy_ns{},presentation_copy_overlap_ns{},presentation_copy_wait_ns{};
+    bool presentation_copy_separate_thread{};
+    std::size_t model_skin_gpu_jobs{},model_skin_gpu_vertices{},model_skin_gpu_deformed_vertices{},model_skin_gpu_verified_vertices{};
+    std::size_t model_skin_gpu_post_identity_vertices{};
+    // Actual retained skin-input operations, reset for each prepare attempt.
+    std::uint64_t model_skin_input_allocations{},
+        model_skin_input_maps{},
+        model_skin_input_unmaps{},
+        model_skin_record_pack_bytes{},
+        model_skin_record_upload_bytes{},
+        model_skin_palette_upload_bytes{},
+        model_skin_descriptor_writes{},
+        model_skin_record_cache_hits{};
+    // Actual native-world submission calls. Prepare/upload calls count attempts;
+    // completed/nonempty calls and draws count only successful returns. Records
+    // count successful command recordings, not GPU executions or visible pixels.
+    std::size_t world_native_prepare_calls{},world_native_prepare_completed_calls{},
+        world_native_prepare_nonempty_calls{},world_native_prepared_draws{},
+        world_native_record_calls{};
+    std::size_t world_native_title_prepared_draws{},
+        world_native_shadow_generate_prepared_draws{},
+        world_native_shadow_apply_prepared_draws{},world_native_light_prepared_draws{};
+    std::size_t world_storage_upload_calls{},world_storage_upload_completed_calls{},
+        world_storage_uploaded_draws{};
+    // Inclusive host elapsed time, including failed attempts. These overlap the
+    // existing renderer phases and must not be added to those phase totals.
+    double world_native_prepare_ms{},world_storage_upload_ms{};
+    // Completed mapped CPU jobs after a typed GPU prepare resource refusal.
+    // These never count as GPU dispatches or GPU readback verification.
+    std::size_t model_skin_cpu_fallback_jobs{},model_skin_cpu_fallback_vertices{},
+        model_skin_cpu_fallback_deformed_vertices{},model_skin_cpu_fallback_post_identity_vertices{};
+    std::size_t model_skin_cpu_fallback_quota_jobs{},model_skin_cpu_fallback_allocation_jobs{},
+        model_skin_cpu_fallback_mapping_jobs{};
+    std::int32_t model_skin_cpu_fallback_vulkan_result{};
 };
 }

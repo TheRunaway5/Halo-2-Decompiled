@@ -51,16 +51,20 @@ struct OnlinePeerTransport::Impl {
     bool description{};
   };
   unsigned self;
+  bool account_login{};
   std::shared_ptr<State> state=std::make_shared<State>();
   std::array<Link,16> links;
   std::mutex eos_mutex;
   std::optional<rust::Box<online_protocol_bridge::EosTransport>> eos;
-  Impl(unsigned slot,const OnlineEosOptions &options):self(slot) {
+  Impl(unsigned slot,const OnlineEosOptions &options):self(slot),account_login(options.account_login) {
     require_peer(slot<16);
     rust::Vec<online_protocol_bridge::EosPeer> peers;
     for(const auto &peer:options.peers){require_peer(peer.slot<16);peers.push_back({std::uint8_t(peer.slot),peer.key});}
     online_protocol_bridge::EosSession session{options.sessions,options.playlist,options.revision,options.map,options.variant};
-    eos.emplace(online_protocol_bridge::new_eos_transport(std::uint8_t(slot),std::move(peers),options.socket,options.force_relay,std::move(session)));
+    if(options.account_login)
+      eos.emplace(online_protocol_bridge::new_eos_account_transport(std::uint8_t(slot),std::move(peers),options.socket,options.force_relay,std::move(session)));
+    else
+      eos.emplace(online_protocol_bridge::new_eos_transport(std::uint8_t(slot),std::move(peers),options.socket,options.force_relay,std::move(session)));
   }
   Impl(unsigned slot,std::vector<unsigned> peers,const std::vector<std::string> &servers):self(slot) {
     require_peer(slot<16 && !peers.empty() && peers.size()<=16 && std::count(peers.begin(),peers.end(),slot)==1);
@@ -175,6 +179,26 @@ std::vector<OnlinePeerSignal> OnlinePeerTransport::signals() {
   }
   std::lock_guard lock(impl_->state->mutex);auto &queue=impl_->state->signals;
   std::vector<OnlinePeerSignal> result(queue.begin(),queue.end());queue.clear();return result;
+}
+OnlineEosAuthRequest OnlinePeerTransport::authentication_request() {
+  if(!impl_->eos)return {};
+  std::lock_guard lock(impl_->eos_mutex);
+  const auto request=online_protocol_bridge::eos_auth_request(**impl_->eos);
+  return {request.kind,request.ticket,std::string(request.token),std::string(request.user)};
+}
+bool OnlinePeerTransport::complete_authentication(const OnlineEosAuthResponse &value) {
+  if(!impl_->eos)return false;
+  online_protocol_bridge::EosAuthResponse response{};
+  response.kind=value.kind;response.ticket=value.ticket;response.ok=value.ok;
+  response.token=value.token;response.user=value.user;
+  response.expires_in=value.expires_in;response.status=value.status;
+  std::lock_guard lock(impl_->eos_mutex);
+  return online_protocol_bridge::eos_auth_complete(**impl_->eos,response);
+}
+bool OnlinePeerTransport::authentication_ready() const {
+  if(!impl_->account_login)return true;
+  std::lock_guard lock(impl_->eos_mutex);
+  return impl_->eos&&online_protocol_bridge::eos_auth_bound(**impl_->eos);
 }
 bool OnlinePeerTransport::ready(unsigned peer) const {
   if(impl_->eos){std::lock_guard lock(impl_->eos_mutex);return peer<16&&online_protocol_bridge::eos_ready(**impl_->eos,std::uint8_t(peer));}

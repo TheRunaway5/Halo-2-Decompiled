@@ -63,6 +63,23 @@ async def main():
                 print(process.returncode, out.decode(), err.decode(), flush=True)
                 assert process.returncode == 0, 'Native direct migration session failed'
                 result = json.loads((path / 'result.json').read_text())
+                if os.environ.get('HALO2_PEER_SELECTION_CASE'):
+                    assert result['survivor_selection_case'] == os.environ['HALO2_PEER_SELECTION_CASE']
+                    assert result['metadata_and_declared_native_fixture']
+                    assert not result['master_gameplay_relay']
+                    assert not result['native_or_rendered_migration']
+                    (output / 'results.json').write_text(json.dumps(result, indent=2) + '\n')
+                    print('PASS authenticated selection metadata and exact Ready authorization fixture')
+                    return
+                if os.environ.get('HALO2_PEER_ABORT_HANDOFF'):
+                    assert result['handoffs'] == []
+                    assert result['aborted_selected_cut_blocked']
+                    assert result['fenced_abort_acknowledgement']
+                    assert result['native_commit_callback_guard']
+                    assert not result['master_gameplay_relay']
+                    (output / 'results.json').write_text(json.dumps(result, indent=2) + '\n')
+                    print('PASS authenticated aborted-cut refusal and fenced retirement acknowledgement')
+                    return
                 automatic = bool(os.environ.get('HALO2_PEER_AUTO_SELECT'))
                 assert [r['epoch'] for r in result['handoffs']] == ([1, 2, 3] if automatic else [1, 2])
                 assert [r['seats'] for r in result['handoffs']] == ([12, 8, 4] if automatic else [12, 8])

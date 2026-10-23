@@ -1181,6 +1181,9 @@ struct MultiplayerAudio::ContinuationPrepared {
   std::vector<Receipt> receipts;
   std::vector<ScriptPreparation> preparations;
   std::optional<EffectAudioAuxiliary> auxiliary;
+  // A transferable preparation never owns a native/timing exclusion. The
+  // actual prospective aggregate retains the creator-owned native scope.
+  std::optional<MccSoundVariationProvider::NativeBinding> native_target;
   std::shared_ptr<const unsigned char> publication_record=std::make_shared<const unsigned char>(0);
   std::shared_ptr<const unsigned char> swap_publication_record=publication_record;
   std::uint64_t expected_revision{},target_epoch{},installed_revision{};
@@ -1222,14 +1225,29 @@ struct MultiplayerAudio::PublicationHold {
       core.held=false;core.held_preparation=nullptr;core.maybe_shutdown();
     }
   } busy;
+  // Member order releases SDL before timing, then the producer exclusion and
+  // retained outgoing Audio storage. Native exclusion remains aggregate-owned.
+  std::unique_ptr<MccSoundVariationProvider::HeldNativeBinding> native;
   SdlSoundPlatform::HeldPublication platform;
   PublicationHold(std::shared_ptr<State::Core>c,std::shared_ptr<ContinuationPrepared>p):
     core(std::move(c)),prepared(std::move(p)),busy(*core,*prepared),
+    native(prepared->native_target?new MccSoundVariationProvider::HeldNativeBinding(
+      MccSoundVariationProvider::hold_native_binding(*prepared->native_target)):nullptr),
     platform(core->platform.hold_publication(prepared->platform)){}
 };
 namespace {
 template<class A,class B>bool audio_same_owner(const A&a,const B&b)noexcept{
   return a.get()==b.get() && !a.owner_before(b) && !b.owner_before(a);
+}
+bool audio_same_authored_definition(const SoundVariationDefinition &a,const SoundVariationDefinition &b){
+  if(a.datum!=b.datum || a.sound!=b.sound || a.playback!=b.playback ||
+      a.sound_class!=b.sound_class || a.scale!=b.scale || a.sample_rate_index!=b.sample_rate_index ||
+      a.permutations!=b.permutations || a.pitch_ranges.size()!=b.pitch_ranges.size() ||
+      a.used.size()!=b.used.size())return false;
+  for(unsigned n=0;n<a.range.size();++n)if(n!=4&&n!=5&&a.range[n]!=b.range[n])return false;
+  for(unsigned n=0;n<a.pitch_ranges.size();++n)if(a.pitch_ranges[n].interval!=b.pitch_ranges[n].interval ||
+      a.pitch_ranges[n].permutations!=b.pitch_ranges[n].permutations)return false;
+  return true;
 }
 }
 std::optional<std::size_t> MultiplayerAudio::Checkpoint::voices()const noexcept{
@@ -1258,7 +1276,8 @@ bool MultiplayerAudio::PreparedReplacement::for_audio(const MultiplayerAudio&aud
   const auto c=data_->owner.lock();const auto phase=data_->phase.load();
   return c && c.get()==audio.state_->core.get() && c.get()==data_->owner_pointer && c->public_alive &&
     !c->closing && c->script_epoch->thread==std::this_thread::get_id() &&
-    phase!=ContinuationPrepared::Phase::CancelRequested;
+    phase!=ContinuationPrepared::Phase::CancelRequested &&
+    (phase==ContinuationPrepared::Phase::Consumed || !data_->native_target || data_->native_target->current());
 }
 bool MultiplayerAudio::PreparedReplacement::published()const noexcept{
   if(!data_ || data_->executor!=std::this_thread::get_id() || data_->phase.load()!=ContinuationPrepared::Phase::Consumed)return false;
@@ -1356,6 +1375,7 @@ bool MultiplayerAudio::PreparedReplacement::matches(const PreparationIdentity&i)
   return (phase==ContinuationPrepared::Phase::Pending ||
       (phase==ContinuationPrepared::Phase::Committing && data_->intent && c->held_preparation==data_.get())) &&
     (phase==ContinuationPrepared::Phase::Committing || data_->cancellation_ready()) &&
+    (!data_->native_target || data_->native_target->current()) &&
     c->revision==data_->expected_revision &&
     (!data_->auxiliary || data_->auxiliary->ready(data_->source->auxiliary,*data_->source->auxiliary_value));
 }
@@ -1371,8 +1391,20 @@ MultiplayerAudio::PreparedReplacement MultiplayerAudio::prepare_restore(const Ch
 MultiplayerAudio::PreparedReplacement MultiplayerAudio::prepare_restore(const Checkpoint&cp,const EffectAudioAuxiliary&auxiliary)const{
   return prepare_restore(cp,CompanionBinder{},&auxiliary);
 }
+MultiplayerAudio::PreparedReplacement MultiplayerAudio::prepare_restore(const Checkpoint&cp,
+    const MccSoundVariationProvider::NativeBinding&target)const{
+  return prepare_restore(cp,CompanionBinder{},nullptr,&target);
+}
+MultiplayerAudio::PreparedReplacement MultiplayerAudio::prepare_restore(const Checkpoint&cp,const EffectAudioAuxiliary&auxiliary,
+    const MccSoundVariationProvider::NativeBinding&target)const{
+  return prepare_restore(cp,CompanionBinder{},&auxiliary,&target);
+}
 MultiplayerAudio::PreparedReplacement MultiplayerAudio::prepare_restore(const Checkpoint&cp,const CompanionBinder&binder,
     const EffectAudioAuxiliary*auxiliary)const{
+  return prepare_restore(cp,binder,auxiliary,nullptr);
+}
+MultiplayerAudio::PreparedReplacement MultiplayerAudio::prepare_restore(const Checkpoint&cp,const CompanionBinder&binder,
+    const EffectAudioAuxiliary*auxiliary,const MccSoundVariationProvider::NativeBinding*target)const{
   const auto c=state_->core;c->script_producer();const auto source=cp.data_;
   if(!source || source->owner.lock().get()!=c.get() || source->owner_pointer!=c.get() ||
       !audio_same_owner(source->cache,c->cache_owner) || !c->continuation_enrolled.load() ||
@@ -1385,7 +1417,9 @@ MultiplayerAudio::PreparedReplacement MultiplayerAudio::prepare_restore(const Ch
     throw FormatError("Native Audio outgoing retirement requires its actual opaque completion owner");
   // These owners must provide an actual staged target binding. Never infer a
   // future native lease or restore an effects-owned word from a caller scalar.
-  if(source->values.native_metadata || c->native_metadata)
+  std::optional<MccSoundVariationProvider> target_metadata;
+  if(target)target_metadata=MccSoundVariationProvider::binding_provider(*target,source->cache);
+  else if(source->values.native_metadata || c->native_metadata)
     throw FormatError("Native Audio replacement requires its genuine target metadata binding");
   if(source->auxiliary!=c->shared_variation_random ||
       (source->auxiliary && (!auxiliary || !source->auxiliary_value ||
@@ -1399,7 +1433,19 @@ MultiplayerAudio::PreparedReplacement MultiplayerAudio::prepare_restore(const Ch
   if((out->expected_cancellation&1u) || c->cancellation->active.load() || out->expected_cancellation>=UINT64_MAX-2)
     throw FormatError("Native Audio script cancellation is in progress or exhausted");
   if(auxiliary)out->auxiliary=*auxiliary;
+  if(target)out->native_target=*target;
   out->values=source->values;out->values.script_epoch=std::make_shared<ScriptAudioEpoch>();
+  if(target_metadata){
+    for(auto &[key,bank]:out->values.banks){
+      auto definition=target_metadata->load(c->cache,TagHandle{key.first},key.second);
+      if(!audio_same_authored_definition(bank.definition,definition))
+        throw FormatError("Native Audio target authored metadata or PCM ordering differs");
+      // Native last/forced/used snapshots may differ. The captured Audio
+      // range/loop histories remain separate real owners and are not reset.
+      bank.definition=std::move(definition);
+    }
+    out->values.native_metadata=std::move(target_metadata);
+  }
   out->values.cancellation=std::make_shared<ScriptCancellationDomain>(ScriptCancellationDomain::Life::Prospective);
   out->values.preparations.clear();out->values.closers.clear();out->values.retirements.clear();
   out->platform=c->platform.prepare_restore(source->platform);
@@ -1530,7 +1576,8 @@ MultiplayerAudio::HeldPublication MultiplayerAudio::hold_publication(PreparedRep
   const auto c=state_->core;c->script_producer();const auto data=p.data_;
   if(!data || data->owner.lock().get()!=c.get() || data->owner_pointer!=c.get() ||
       data->phase.load()!=ContinuationPrepared::Phase::Pending || !c->public_alive || c->closing ||
-      c->operation_depth || c->play_depth || c->completion_depth || c->revision!=data->expected_revision)
+      c->operation_depth || c->play_depth || c->completion_depth || c->revision!=data->expected_revision ||
+      (data->native_target&&!data->native_target->current()))
     throw FormatError("Native Audio replacement is stale, busy or foreign");
   return HeldPublication(std::make_unique<PublicationHold>(c,data));
 }
@@ -1547,6 +1594,7 @@ bool MultiplayerAudio::ready(const PreparedReplacement&p,const HeldPublication&h
   else if(phase!=ContinuationPrepared::Phase::Committing || data.intent!=h.data_.get() ||
       !(data.source_cancellation->requests.load()&1u) || !(data.values.cancellation->requests.load()&1u))return false;
   if(!c->platform.ready(data.platform,h.data_->platform))return false;
+  if(data.native_target&&(!h.data_->native||!h.data_->native->matches(*data.native_target)))return false;
   if(data.auxiliary && !data.auxiliary->ready(data.source->auxiliary,*data.source->auxiliary_value))return false;
   for(const auto&clock:data.clocks)if(!clock.owner->ready(clock.prepared))return false;
   return true;

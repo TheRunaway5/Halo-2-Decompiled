@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/model.hpp"
+#include "halo2/model_skin_submission.hpp"
 #include "halo2/model_scale_reset.hpp"
 #include "halo2/source_dynamic_model_shaders.hpp"
 #include "halo2/source_object_draw_collector.hpp"
@@ -8,6 +9,13 @@
 
 namespace halo2 {
 struct SourceLiveModelBaseDrawTu15;
+// One ordinary owner's ordered selected output. CPU-fallback ranges stay posed;
+// deferred ranges retain local attributes and an immutable original palette.
+// Both vectors must remain alive through the immediate renderer submission.
+struct SourceCampaignDrawGeometry {
+    std::vector<Vertex> vertices;
+    std::vector<ModelSkinSubmission> deferred_skins;
+};
 // Definition-level capability, independent of any representative placement's
 // baked identity. The submitting unit owns the live lighting classification.
 bool source_campaign_lit_scenery(const RenderModel &,const ScenarioObject &);
@@ -42,6 +50,10 @@ public:
         std::span<const SourceLiveModelBaseDrawTu15>,
         std::span<const Transform> rendered_world_nodes,const SourceModelShaderView &,
         const BspLighting *current_lighting=nullptr)const;
+    SourceCampaignDrawGeometry draw_deferred(std::uint32_t owner,
+        std::span<const SourceLiveModelBaseDrawTu15>,
+        std::span<const Transform> rendered_world_nodes,const SourceModelShaderView &,
+        const BspLighting *current_lighting=nullptr,bool allow_gpu=true)const;
 private:
     std::vector<Vertex> vertices(unsigned lod,std::span<const unsigned> sections,
         std::span<const Transform> rendered_world_nodes,const BspLighting *lighting=nullptr,

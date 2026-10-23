@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/effect_presentation_history.hpp"
+#include "halo2/source_native_publication.hpp"
 #include "halo2/source_world_particle_draws_tu15.hpp"
 #include <memory>
 #include <thread>
@@ -42,14 +43,23 @@ public:
         const EffectPresentationHistory::RuntimeCheckpoint &)const;
     Prepared prepare_client(MultiplayerPreparedWorld &,
         const EffectPresentationHistory::RuntimeCheckpoint &)const;
+    // Bind once to the same actual native target scope that sealed this
+    // preparation's exact cut and derived execution boundary. Repeating that
+    // scope is idempotent; another scope cannot revive the prepared owner.
+    // This records weak eligibility only, never native or complete readiness.
+    bool bind_publication(Prepared &,const SourceNativePublication::Boundary &)const noexcept;
     bool ready(const Prepared &)const noexcept;
     // Caller retains/quiesces this owner, both worlds, resident Cache/Mesh and
     // resource banks through commit. Target world must then outlive all copied
     // queries; root runtime authority owns it. No native memory/model view is
-    // borrowed across calls. Commit swaps pointers/query ownership only; token
+    // borrowed across calls. Bound query getters refuse an expired scope;
+    // queries already copied out must still be retired by their actual outer
+    // owner before target teardown. Do not invoke these queries while native
+    // publication is held. Commit swaps pointers/query ownership only; token
     // retains old queries until destruction outside the session lock.
     bool commit(Prepared &)noexcept;
 private:
+    friend class MultiplayerRuntimeAuthority;
     Prepared prepare(MultiplayerPreparedWorld &,
         const EffectPresentationHistory::RuntimeCheckpoint &,bool native)const;
     void own()const;

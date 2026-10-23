@@ -61,18 +61,46 @@ async def native(binary, origin, descriptor, gameplay, map_path, *, mcc=False):
     assert not timed_out, 'Native common-cut runtime exceeded 270 seconds'
     assert process.returncode == 0, 'Native common-cut runtime failed'
     text = output[0][0].decode(errors='replace')
-    for marker in (
+    inventory_mode = os.environ.get('HALO2_COMMON_INVENTORY', '')
+    if inventory_mode == 'abort':
+        markers = ('PASS native common-cut runtime owners: two independently validated receiver pins and exact foreground receipts',
+            'PASS genuine retained inventory Abort:')
+    elif inventory_mode == 'preparation':
+        markers = ('PASS native common-cut runtime owners: two independently validated receiver pins and exact foreground receipts',
+            'PASS genuine native preparation scheduling:')
+    else:
+        markers = (
         'PASS native common-cut runtime owners: two independently validated receiver pins and exact foreground receipts',
         'PASS native common-cut delayed association survives history eviction:',
         'PASS native common-cut rejection/Abort repair preserves prior native/foreground owners',
         'PASS native common-cut two released rounds retain exact proofs without live activation',
+        )
+    if inventory_mode == 'freeze':
+        markers += ('PASS genuine retained inventory Rust freeze:',)
+    elif not inventory_mode:
+        markers += (
+        'PASS genuine retained inventory rotation:',
         'PASS native common-cut composed receipt adoption:',
         'PASS native common-cut peer audio envelopes:',
-    ):
+        )
+    for marker in markers:
         assert text.count(marker) == 1, 'Missing/duplicated native control: ' + marker
-    if mcc:
+    if mcc and not inventory_mode:
         marker = 'PASS selected-MCC-native common-cut receipt route:'
         assert text.count(marker) == 1, 'Missing/duplicated selected MCC route: ' + marker
+    if not inventory_mode:
+        marker = ('PASS Rust prospective native role:' if os.environ.get('HALO2_COMMON_PROSPECTIVE')
+            else 'PASS decision-free exact native import:')
+        assert text.count(marker) == 1, 'Missing/duplicated exact native preparation control: ' + marker
+    if os.environ.get('HALO2_COMMON_PROSPECTIVE'):
+        marker = 'PASS prospective held foreground boundary:'
+        assert text.count(marker) == 1, 'Missing/duplicated bound prospective foreground control: ' + marker
+    if os.environ.get('HALO2_COMMON_CLIENT'):
+        marker = 'PASS genuine prospective client alternatives:'
+        assert text.count(marker) == 1, 'Missing/duplicated actual prospective client control: ' + marker
+    if os.environ.get('HALO2_COMMON_CLIENT_ABORT'):
+        marker = 'PASS genuine prospective client Abort:'
+        assert text.count(marker) == 1, 'Missing/duplicated actual prospective client Abort control: ' + marker
 
 
 async def main():

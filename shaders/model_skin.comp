@@ -1,0 +1,66 @@
+#version 460
+#extension GL_EXT_spirv_intrinsics : require
+// SPV_KHR_float_controls: explicit float32 RTE and signed-zero preservation.
+// The host admits a finite arithmetic domain with no denormal intermediate;
+// this shader does not require unsupported float32 DenormPreserve devices.
+spirv_execution_mode(extensions=["SPV_KHR_float_controls"], capabilities=[4467], 4462, 32);
+spirv_execution_mode(extensions=["SPV_KHR_float_controls"], capabilities=[4466], 4461, 32);
+layout(local_size_x=64) in;
+layout(set=0,binding=0,std430) readonly buffer SkinInputs { uint inputs[]; };
+layout(set=0,binding=1,std430) buffer VertexWords { uint vertices[]; };
+layout(push_constant) uniform Layout {
+    uint count,stride,position,normal,tangent,binormal;
+} layout_;
+void main() {
+    uint i=gl_GlobalInvocationID.x;
+    if(i>=layout_.count)return;
+    uint record=i*11;
+    int last=3;
+    while(last>=0 && uintBitsToFloat(inputs[record+6+uint(last)])==0.0)--last;
+    precise float blended[12];
+    for(int j=last;j>=0;--j) {
+        uint bone=inputs[record+2+uint(j)];
+        uint base=inputs[record+1]+bone*12;
+        float weight=uintBitsToFloat(inputs[record+6+uint(j)]);
+        for(uint k=0;k<12;++k) {
+            precise float product=uintBitsToFloat(inputs[base+k])*weight;
+            if(j==last)blended[k]=product;
+            else blended[k]=blended[k]+product;
+        }
+    }
+    uint destination=inputs[record]*layout_.stride;
+    uint attributes[4]=uint[4](layout_.position,layout_.normal,layout_.tangent,layout_.binormal);
+    for(uint a=0;a<4;++a) {
+        uint at=destination+attributes[a];
+        float vx=uintBitsToFloat(vertices[at]),vy=uintBitsToFloat(vertices[at+1]),vz=uintBitsToFloat(vertices[at+2]);
+        if(last>=0)for(uint axis=0;axis<3;++axis) {
+            uint row=axis*4;
+            precise float x=blended[row]*vx;
+            precise float y=blended[row+1]*vy;
+            precise float z=blended[row+2]*vz;
+            precise float xy=x+y;
+            precise float dot_=xy+z;
+            if(a==0)dot_=dot_+blended[row+3];
+            vertices[at+axis]=floatBitsToUint(dot_);
+        }
+        if(inputs[record+10]!=0) {
+            // append(...,{}) retains this complete identity-placement graph.
+            // Skinning above must finish before reading its three components.
+            // Even an all-zero-weight authored vertex still passes through it.
+            float px=uintBitsToFloat(vertices[at]),py=uintBitsToFloat(vertices[at+1]),pz=uintBitsToFloat(vertices[at+2]);
+            const float basis[9]=float[9](1,0,0,0,1,0,0,0,1);
+            for(uint axis=0;axis<3;++axis) {
+                precise float x=basis[axis*3]*px;
+                precise float y=basis[axis*3+1]*py;
+                precise float z=basis[axis*3+2]*pz;
+                precise float xy=x+y;
+                precise float placed=xy+z;
+                if(a==0) {
+                    precise float scaled=placed*1.0;
+                    placed=0.0+scaled;
+                }
+                vertices[at+axis]=floatBitsToUint(placed);
+            }
+        }
+    }
+}

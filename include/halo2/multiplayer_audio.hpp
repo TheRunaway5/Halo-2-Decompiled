@@ -4,6 +4,7 @@
 #include "halo2/fp_registration.hpp"
 #include "halo2/sdl_sound_platform.hpp"
 #include "halo2/source_script_sound_clock_native64_tu15.hpp"
+#include "halo2/mcc_sound_variation_provider.hpp"
 #include <cstdint>
 #include <functional>
 #include <optional>
@@ -186,6 +187,17 @@ public:
   Checkpoint checkpoint() const;
   PreparedReplacement prepare_restore(const Checkpoint&) const;
   PreparedReplacement prepare_restore(const Checkpoint&,const EffectAudioAuxiliary&) const;
+  // Actual prospective native target, minted by a real retained publication
+  // scope. Keep that SAME creator-owned scope alive through the preparation
+  // wait and final publication. This value retains only its weak scope binding;
+  // it supplies no freeze, cut selection or full native/device readiness.
+  // Authored/PCM compatibility is validated without resetting saved Audio RNG,
+  // variation histories, voices or clocks. Timing/SDL holds are acquired only
+  // for final publication, in native -> timing -> SDL order.
+  PreparedReplacement prepare_restore(const Checkpoint&,
+      const MccSoundVariationProvider::NativeBinding&) const;
+  PreparedReplacement prepare_restore(const Checkpoint&,const EffectAudioAuxiliary&,
+      const MccSoundVariationProvider::NativeBinding&) const;
   HeldPublication hold_publication(PreparedReplacement&);
   bool ready(const PreparedReplacement&,const HeldPublication&) const noexcept;
   // Reserve the exact local transaction before another owner swaps. Pending
@@ -327,6 +339,8 @@ private:
   void emitter_impl(Voice,Vec3);
   PreparedReplacement prepare_restore(const Checkpoint&,const CompanionBinder&) const;
   PreparedReplacement prepare_restore(const Checkpoint&,const CompanionBinder&,const EffectAudioAuxiliary*) const;
+  PreparedReplacement prepare_restore(const Checkpoint&,const CompanionBinder&,const EffectAudioAuxiliary*,
+      const MccSoundVariationProvider::NativeBinding*) const;
   std::optional<VoiceReceipt> play_companion_impulse(std::uint32_t,float,
       MultiplayerAudioKind,std::uint32_t,unsigned,CompanionCompletion);
   friend class NativeVistaAnnouncer;

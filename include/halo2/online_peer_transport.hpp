@@ -15,6 +15,22 @@ struct OnlineEosOptions {
   bool force_relay{};
   bool sessions{};
   std::string playlist,revision,map,variant;
+  bool account_login{};
+};
+// Owned messages from Rust's account-authentication state machine. Private
+// credentials travel only between this transport and its room HTTP worker.
+struct OnlineEosAuthRequest {
+  std::uint8_t kind{};
+  std::uint64_t ticket{};
+  std::string token,user;
+};
+struct OnlineEosAuthResponse {
+  std::uint8_t kind{};
+  std::uint64_t ticket{};
+  bool ok{};
+  std::string token,user;
+  std::uint32_t expires_in{};
+  std::uint16_t status{};
 };
 // Authenticated signaling is supplied by the room coordinator. ICE finds a
 // direct UDP path; DTLS verifies the fingerprint in that signaling. The EOS
@@ -27,6 +43,9 @@ public:
   ~OnlinePeerTransport();
   void signal(const OnlinePeerSignal &);
   std::vector<OnlinePeerSignal> signals();
+  OnlineEosAuthRequest authentication_request();
+  bool complete_authentication(const OnlineEosAuthResponse &);
+  bool authentication_ready() const;
   bool ready(unsigned peer) const;
   bool failed(unsigned peer) const;
   bool relayed(unsigned peer) const;

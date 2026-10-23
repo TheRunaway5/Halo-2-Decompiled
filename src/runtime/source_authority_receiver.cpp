@@ -331,7 +331,7 @@ std::unique_ptr<SourcePeerHostTakeover> SourceAuthorityReceiver::prepare_peer_ho
     auto world=take_world_for_local_views(ready);need(bool(world));
     // Failure discards only this private candidate. It cannot reopen media or
     // mutate the old rendered world; a different cut needs a new receiver.
-    return std::unique_ptr<SourcePeerHostTakeover>(new SourcePeerHostTakeover(s.session,decision,*accepted,std::move(world),saved));
+    return std::unique_ptr<SourcePeerHostTakeover>(new SourcePeerHostTakeover(s.session,decision,*accepted,std::move(world),saved,ready));
 }
 struct SourceAuthorityReplayWorker::Impl {
     struct Request {

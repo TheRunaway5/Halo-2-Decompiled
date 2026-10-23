@@ -11,9 +11,14 @@ and invitations to the same private player record. See the
 Configure the queue origin and catalog as described in the matchmaking document.
 Persistent [clans and account sessions](../docs/clans.md) support creation,
 invitations, original role permissions, leaving, and clan text broadcasts.
-Native v12 uses authenticated Slayer admission and direct player-hosted
-gameplay/voice, with confirmed player/team results uploaded afterward. Legacy
-relay protocols remain in regression fixtures. An explicit versioned
+Packaged EOS ONLINE selects native v13, with Rust-owned EOS admission/framing,
+Sessions and player-hosted direct/relay gameplay and voice. The master retains
+Halo gathering rules and accepts confirmed player/team results afterward.
+The explicit direct-transport configuration and native migration fixtures still
+use v12; legacy relay protocols also remain in regression fixtures. EOS failure
+does not silently select either older transport. Full legacy retirement waits
+for the [remaining playable cutover checks](../docs/eos-completion-goal-20261022.md).
+An explicit versioned
 [retail launch XP policy](../docs/ranked-progression.md) updates private playlist
 skill in the result transaction and displays levels only on ranked playlists.
 Accepted parties support invitations, leader authority and per-member playlist

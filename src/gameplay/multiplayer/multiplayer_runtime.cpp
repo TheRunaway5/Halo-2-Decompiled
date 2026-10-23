@@ -9,6 +9,7 @@
 #endif
 #include "rendering/models/model_world_pose_cache.hpp"
 #include "rendering/models/model_frame_pose_cache.hpp"
+#include "rendering/models/model_skin_vertices.hpp"
 #include "gameplay/objects/source_object_geometry.hpp"
 #ifdef HALO2_PROFILE_MATERIAL_FRAME_ORACLE
 #include "rendering/renderer/material_frame_oracle.hpp"
@@ -24,6 +25,9 @@
 #include "halo2/unit_damage_audio.hpp"
 #include "halo2/source_bsp_effect_lights.hpp"
 #include "halo2/source_live_model_geometry_tu15.hpp"
+#include "halo2/model_skin_submission.hpp"
+#include <cfenv>
+#include <cerrno>
 #include "halo2/source_model_regions.hpp"
 #include "halo2/multiplayer_audio.hpp"
 #include "halo2/source_device_event.hpp"
@@ -2590,6 +2594,9 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
   std::optional<EffectPresentationHistory::RuntimeReservation> common_reservation;
   std::optional<EffectPresentationHistory::RuntimeCandidate> common_candidate;
   std::shared_ptr<PeerSnapshotCandidate> candidate_delivery;
+  // A candidate nonce is not a common seal id. Remember this lineage only
+  // after the real foreground/native association succeeds.
+  std::optional<MultiplayerRuntimeAuthority::SnapshotCandidateCut> common_candidate_cut;
   bool common_history_mode{};
   std::optional<AuthorityTransferContext> common_history_context;
   std::string effect_history_error;
@@ -2663,8 +2670,11 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       const auto pin=authority.pending_native_cut();
       if(!pin||pin->cut().context!=agreement->pending->context||pin->cut().seal!=agreement->pending->seal)return;
       try{
-        if(auto checkpoint=effect_history.bind_runtime(pin->host_proof(),*live_client(),*common_candidate))
-          authority.associate_common_cut(pin,*checkpoint);
+        if(auto checkpoint=effect_history.bind_runtime(pin->host_proof(),*live_client(),*common_candidate)){
+          if(authority.associate_common_cut(pin,*checkpoint))
+            common_candidate_cut=MultiplayerRuntimeAuthority::SnapshotCandidateCut{
+                common_candidate->token(),agreement->pending->seal};
+        }
         else options.online_match->reject_common_cut(*agreement->pending);
       }catch(const std::exception &error){
         report_effect_history(error);options.online_match->reject_common_cut(*agreement->pending);
@@ -2712,9 +2722,9 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
   std::array<std::array<NativeInteractionHold,2>,4> pad_holds{};
   MultiplayerKbm keyboard(SDL_GetWindowID(platform.window), platform.desktop->keyboard_settings);
   PcMouseLook mouse_look(.0025f);
-  std::array<std::int16_t,4> view_zoom{-1,-1,-1,-1};
-  std::array<std::uint32_t,4> view_zoom_unit{null_datum,null_datum,null_datum,null_datum};
-  std::array<std::uint32_t,4> view_zoom_reset{};
+  auto &view_zoom=pose_values.view_zoom;
+  auto &view_zoom_unit=pose_values.view_zoom_unit;
+  auto &view_zoom_reset=pose_values.view_zoom_reset;
   const auto synchronize_zoom=[&] {
     for(unsigned view=0;view<ids.size();++view) {
       const auto &player=current.players[ids[view]];
@@ -2726,8 +2736,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
   };
   synchronize_zoom();
   const auto &scope_constants=content.original_data->unit_scope_camera_constants;
-  std::array<UnitScopeCameraProducer,4> scope_producers{};
-  std::array<UnitScopeCameraState,4> scope_observers{};
+  auto &scope_producers=pose_values.scope_producers;
+  auto &scope_observers=pose_values.scope_observers;
   std::optional<NativeVehicleCamera> initial_vehicle_camera;
   if(!options.online_match && live_world()->source_objects && !live_client() && live_world()->source_objects->owns_physics())
     initial_vehicle_camera.emplace(*live_world()->source_objects,*content.original_data);
@@ -2761,7 +2771,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
   if(scope_constants)
     for(auto &observer:scope_observers)observer=source_scope_camera_initial(*scope_constants);
   bool scope_unavailable_reported{};
-  std::array<bool, 4> dead{};
+  auto &dead=pose_values.view_was_dead;
   auto &heard_shots=receipt_values.heard_shots;
   auto &heard_teleports=receipt_values.heard_teleports;
   if(client_state_bound)for(unsigned id=0;id<multiplayer_capacity;++id)
@@ -3078,7 +3088,9 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     if(!state.pending)return;
     if(state.closing){
       if(common_candidate){
-        if(effect_history.retire_runtime_candidate(*common_candidate)){common_candidate.reset();candidate_delivery.reset();}
+        if(effect_history.retire_runtime_candidate(*common_candidate)){
+          common_candidate_cut.reset();common_candidate.reset();candidate_delivery.reset();
+        }
       }else{
         // No foreground owner/fence was installed for this aborted Arm.
         // Retire only the module's real unchecked-out delivery, if present.
@@ -3097,6 +3109,33 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     try{common_candidate=effect_history.arm_runtime(*live_client(),candidate_delivery,*state.pending);}
     catch(const std::exception &error){report_effect_history(error);candidate_delivery->reject(*state.pending);}
   };
+  // Prepared collision/lens bindings borrow a staged native target. Retire
+  // them on this executor before the authority can destroy that target or
+  // acknowledge Abort. Registration is scoped after every captured holder.
+  auto retire_outer_handoff=[&](const MultiplayerRuntimeAuthority::OuterRetirement &retirement)noexcept{
+    const bool whole_context=retirement.reason==MultiplayerRuntimeAuthority::OuterRetirement::Reason::ContextRetired;
+    const auto matches=[&](const AuthorityTransferContext &context,const AuthorityCutSeal &seal){
+      return context==retirement.context&&(whole_context||seal==retirement.seal);
+    };
+    if(prepared_foreground&&matches(prepared_foreground->decision.previous,prepared_foreground->decision.value.cut))
+      prepared_foreground.reset();
+    if(retained_effect_cut&&matches(retained_effect_cut->cut().context,retained_effect_cut->cut().seal))
+      retained_effect_cut.reset();
+    if(attempted_effect_cut&&matches(attempted_effect_cut->context,attempted_effect_cut->seal))attempted_effect_cut.reset();
+    if(reserved_common_cut&&matches(reserved_common_cut->context,reserved_common_cut->seal)){
+      common_reservation.reset();reserved_common_cut.reset();
+    }
+    if(common_candidate_cut&&matches(common_candidate_cut->token.context,common_candidate_cut->seal))
+      common_candidate_cut.reset();
+    // The provisional candidate owns copied history and a separate delivery
+    // lease. Its actual retirement requires SnapshotClosing, which follows
+    // CommonAborted; waiting for it here would deadlock that handshake.
+    return true;
+  };
+  auto outer_retirement=authority.hold_outer_retirement_gate(
+      [](void *owner,const MultiplayerRuntimeAuthority::OuterRetirement &retirement)noexcept{
+        return (*static_cast<decltype(retire_outer_handoff) *>(owner))(retirement);
+      },&retire_outer_handoff);
   std::uint64_t observed_loops{},observed_input_callbacks{};
   while (running && (!options.frames || frames < options.frames)) {
     MultiplayerFrameTiming timing;timing.frame=frames;timing.views=options.local_players;
@@ -3135,8 +3174,13 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
           keyboard.handle_event(event);
         }
         int discard_x,discard_y;SDL_GetRelativeMouseState(&discard_x,&discard_y);
-        if(running&&phase==OnlineMatchSession::Phase::Migrating)authority.prepare_takeover();
-        else if(running&&phase==OnlineMatchSession::Phase::Rebinding){
+        // Abort/context retirement must still progress while gameplay is
+        // fenced. The scoped gate above removes outer borrowers first.
+        if(running)authority.service();
+        const auto serviced_phase=options.online_match->phase();
+        if(serviced_phase==OnlineMatchSession::Phase::Failed){exit_reason=MultiplayerExitReason::online_disconnected;break;}
+        if(running&&serviced_phase==OnlineMatchSession::Phase::Migrating)authority.prepare_takeover();
+        else if(running&&serviced_phase==OnlineMatchSession::Phase::Rebinding){
           const auto agreement=options.online_match->peer_migration();
           if(agreement&&agreement->decision){
             const auto checkpoint=authority.common_cut_checkpoint(agreement->decision->previous,agreement->decision->value.cut);
@@ -3989,6 +4033,10 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     std::vector<std::map<std::uint32_t,std::vector<SourceLiveModelBaseDrawTu15>>> live_prop_base(options.local_players);
     std::vector<std::map<std::uint32_t,std::vector<SourceLiveModelBaseDrawTu15>>> live_unit_base(options.local_players);
     std::vector<std::map<std::uint32_t,std::vector<Vertex>>> live_unit_vertices(options.local_players);
+    std::vector<std::map<std::uint32_t,std::shared_ptr<const ModelSkinGeometry>>> live_unit_gpu(options.local_players);
+    std::vector<std::vector<ModelSkinSubmission>> unit_skin_submissions(options.local_players);
+    std::vector<std::vector<ModelSkinSubmission>> foreground_skin_submissions(options.local_players);
+
     std::vector<std::set<std::uint32_t>> submitted_unit_base(options.local_players);
     std::vector<std::map<std::uint32_t,std::vector<Transform>>> live_vehicle_nodes(options.local_players);
     std::vector<std::map<std::pair<std::uint32_t,unsigned>,std::shared_ptr<const VertexProgramBank>>> live_vehicle_prt(options.local_players);
@@ -4265,6 +4313,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       std::vector<Vertex> body,weapon;std::vector<Transform> nodes;
       const AnimationClip *primary{};std::optional<float> frame;
       std::vector<Transform> weapon_nodes;
+      bool body_deferred{},weapon_deferred{};
     };
     // Frame-local undecorated geometry. Animation/root/time are common to all
     // views; shader choice and material offsets are still applied to each copy.
@@ -4283,6 +4332,14 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     if(!(repeat_unit_skins && *repeat_unit_skins) && !(repeat_selected_skins && *repeat_selected_skins))
       selected_unit_pose_provider=[&](std::uint32_t owner,unsigned lod,const RenderModel &model,
           std::span<const Transform> nodes){return unit_frame_poses.update_preserving_effects(owner,lod,model,nodes);};
+    const SourceLiveModelDeferredPoseProviderTu15 deferred_unit_pose_provider=
+      [&](std::uint32_t owner,unsigned lod,const RenderModel &model,std::span<const Transform> nodes) {
+        return unit_frame_poses.update_deferred(owner,lod,model,nodes).pose;
+      };
+    const SourceLiveModelPoseProviderTu15 deferred_selected_pose_provider=
+      [&](std::uint32_t owner,unsigned lod,const RenderModel &model,std::span<const Transform> nodes) {
+        return unit_frame_poses.update_deferred(owner,lod,model,nodes,true).pose.vertices;
+      };
     const auto *repeat_vehicle_skins=std::getenv("HALO2_REFERENCE_REPEAT_VEHICLE_SKINS");
     const bool reuse_vehicle_skins=!(repeat_vehicle_skins && *repeat_vehicle_skins);
     const auto completed_model=[&](std::uint32_t model)->const RenderModel* {
@@ -4314,7 +4371,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       // entries were omitted while copying; no preview LOD supplies geometry.
       const auto reused=unit_frame_poses.reuses();
       auto vertices=source_live_model_selected_vertices_tu15(owner,selected.lod,
-          visual.world_lods->at(selected.lod),nodes,selected.sections,selected_unit_pose_provider);
+          visual.world_lods->at(selected.lod),nodes,selected.sections,
+          live_unit_gpu.at(view).contains(owner)?deferred_selected_pose_provider:selected_unit_pose_provider);
       ++timing.selected_skin_requests;
       timing.selected_skin_reuses+=unit_frame_poses.reuses()-reused;
       return vertices;
@@ -4937,6 +4995,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
             const auto vehicle=std::find_if(current.world_vehicles.begin(),current.world_vehicles.end(),
                 [&](const auto& v){return v.handle==owner;});
             const Visual* unit_visual=nullptr;
+            bool gpu_character_owner{};
             std::set<std::uint32_t> separate_unit_overrides;
             const auto select_visual=[&](const Visual& candidate) {
               if(unit_visual && unit_visual!=&candidate)
@@ -4948,11 +5007,12 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
               if(!body_present(player) || !(options.capture_third_person || slot!=id || player.dead || third_person_vehicle_view))continue;
               if(owner==body_handle(player)) {
                 const auto& body=species_for(player);select_visual(body.player);
+                gpu_character_owner=true;
                 // The completed main collector contains ordinary body units
                 // and independent damage/overshield units. Overrides already
                 // submitted by append_shields use that separate path.
                 // Unknown overrides still reject the complete ordinary base.
-                if(!player.dead) {
+                {
                   const auto& actual=current.players[slot];
                   const ShieldOverlayGeometry geometry{true,true,false,1,5,0};
                   const auto overlays=select_shield_overlays(biped_for(actual).vitality,
@@ -4964,10 +5024,12 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
                   }
                 }
               }
-              if(owner==player.source_weapon && player.weapon!=null_datum)
-                select_visual(body_guns.at(player.weapon).gun);
-              if(owner==player.secondary_weapon.datum && player.secondary_weapon.definition!=null_datum)
-                select_visual(body_guns.at(player.secondary_weapon.definition).gun);
+              if(owner==player.source_weapon && player.weapon!=null_datum) {
+                select_visual(body_guns.at(player.weapon).gun);gpu_character_owner=true;
+              }
+              if(owner==player.secondary_weapon.datum && player.secondary_weapon.definition!=null_datum) {
+                select_visual(body_guns.at(player.secondary_weapon.definition).gun);gpu_character_owner=true;
+              }
             }
             if(current.source_body_poses_authoritative)for(const auto& corpse:current.corpses)
               if(owner==corpse.object)
@@ -4975,6 +5037,11 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
             for(const auto &weapon:current.world_weapons)if(weapon.handle==owner) {
               const auto visual=body_guns.find(weapon.definition);
               if(visual!=body_guns.end())select_visual(visual->second.gun);
+            }
+            if(const auto *audit=std::getenv("HALO2_MODEL_SKIN_DIAGNOSTICS");audit && *audit && !frames) {
+              std::cout<<"GPU source unit classification: view="<<i<<" owner="<<owner
+                  <<" character="<<gpu_character_owner<<" visual="<<(unit_visual?unit_visual->model.name:std::string{})
+                  <<" draws="<<draws.size()<<" shield_overrides="<<separate_unit_overrides.size()<<'\n';
             }
             if(unit_visual) {
 #ifdef HALO2_HELD_POSE_SHADING_REFERENCE
@@ -4993,10 +5060,30 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
               for(const auto& draw:draws)if(draw.override_slot==255)ordinary.push_back(draw);
               const auto pose=completed_render_nodes.find(owner);
               if(!unit_visual->world_lods || !unit_visual->shaders || pose==completed_render_nodes.end())continue;
+              // Posed CPU consumers retain the original skin. Presentation
+              // packets are admitted only before ordinary redundant skins and
+              // never substitute local records for shields/shadows/observers.
+              const auto *enable_gpu=std::getenv("HALO2_ENABLE_GPU_SKINNING");
+              const auto *reference_gpu=std::getenv("HALO2_REFERENCE_CPU_SKINNING");
+              const bool gpu_allowed=enable_gpu && *enable_gpu && renderer.can_skin_models() &&
+                  !(reference_gpu && *reference_gpu) && gpu_character_owner &&
+                  separate_unit_overrides.empty() && !options.animation_observer &&
+                  !options.unit_source_draw_observer && !options.shield_layer_observer &&
+                  !options.bsp_submission_observer && !bsp_reference_scene && !reference_shadow_frame &&
+                  render_settings.graphics_mode!=pstencil::GraphicsMode::pStencil && render_settings.upscaler==Upscaler::Off &&
+                  !std::getenv("HALO2_GROUP_INPUT_DIAGNOSTICS") && !std::getenv("HALO2_VIEW_DIAGNOSTICS") &&
+                  !(repeat_unit_skins && *repeat_unit_skins) && !(repeat_selected_skins && *repeat_selected_skins);
+              std::shared_ptr<const ModelSkinGeometry> gpu;
               auto vertices=source_live_model_base_vertices_tu15(owner,unit_visual->definition,
                   unit_visual->render_model,ordinary,*unit_visual->world_lods,*unit_visual->shaders,
-                  pose->second,source_shader_view,unit_pose_provider);
+                  pose->second,source_shader_view,unit_pose_provider,gpu_allowed?&gpu:nullptr,
+                  gpu_allowed?deferred_unit_pose_provider:SourceLiveModelDeferredPoseProviderTu15{});
+              if(const auto *audit=std::getenv("HALO2_MODEL_SKIN_DIAGNOSTICS");audit && *audit && !frames)
+                std::cout<<"GPU source unit result: view="<<i<<" owner="<<owner
+                    <<" allowed="<<gpu_allowed<<" deferred="<<bool(gpu)<<" records="<<(vertices?vertices->size():0)
+                    <<" lod="<<(ordinary.empty()?0:ordinary.front().lod)<<'\n';
               if(!vertices)continue;
+              if(gpu)live_unit_gpu[i].emplace(owner,std::move(gpu));
               live_unit_vertices[i].emplace(owner,std::move(*vertices));
               live_unit_base[i].emplace(owner,std::move(ordinary));
               continue;
@@ -5607,6 +5694,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       const auto append_unit_base=[&](std::uint32_t owner,unsigned material,const ObjectLightingCache& light) {
         const auto* vertices=retain_unit_submission(owner);if(!vertices)return false;
         const auto first=world.size();append_world(world,*vertices,material);
+        if(const auto gpu=live_unit_gpu[i].find(owner);gpu!=live_unit_gpu[i].end())
+          unit_skin_submissions[i].push_back({first,gpu->second});
         observe_unit_submission(owner,light,std::span<const Vertex>(world).subspan(first));
         return true;
       };
@@ -5707,10 +5796,21 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
               object_owner_spheres[j].radius,*object_view.shader);
           auto &cached=body_frame_poses[j];
           std::vector<Vertex> body_vertices,gun_vertices;
+          bool body_deferred{},weapon_deferred{};
           std::vector<Transform> body_nodes,held_nodes;
           const auto *copy_pose=std::getenv("HALO2_REFERENCE_COPY_BODY_VERTICES");
           const bool direct_pose=!(copy_pose && *copy_pose);
+          const bool gpu_body=live_unit_gpu[i].contains(body_handle(a));
+          const bool gpu_weapon=!a.dead && body_gun && live_unit_gpu[i].contains(a.source_weapon);
           if(options.local_players>1 && cached) {
+            // A prior view may have consumed only local GPU records. A later
+            // view with a CPU observer/override needs its own real posed bank.
+            if(!gpu_body && cached->body_deferred) {
+              cached->body=skin_model_world_nodes(player.model,cached->nodes);cached->body_deferred=false;
+            }
+            if(!gpu_weapon && !a.dead && body_gun && cached->weapon_deferred) {
+              cached->weapon=skin_model_world_nodes(body_gun->model,cached->weapon_nodes);cached->weapon_deferred=false;
+            }
             if(!direct_pose) {body_vertices=cached->body;gun_vertices=cached->weapon;}
             body_nodes=cached->nodes;
             held_nodes=cached->weapon_nodes;
@@ -5759,12 +5859,18 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
             if(!current.source_body_poses_authoritative && a.secondary_weapon.datum==null_datum)
               apply_frontend_model_weapon_ik(body.body_ik[a.native_crouching],player.model,
                   body_nodes,held_nodes,source_aim_blend_weight(aim_blends[j]));
-            gun_vertices=skin_model_world_nodes(body_gun->model,held_nodes);
+            if(gpu_weapon) {
+              auto prepared=model_skin_world_pose(body_gun->model,held_nodes,true);
+              gun_vertices=std::move(prepared.vertices);weapon_deferred=prepared.gpu;
+            } else gun_vertices=skin_model_world_nodes(body_gun->model,held_nodes);
             }
-            body_vertices=skin_model_world_nodes(player.model,body_nodes);
+            if(gpu_body) {
+              auto prepared=model_skin_world_pose(player.model,body_nodes,true);
+              body_vertices=std::move(prepared.vertices);body_deferred=prepared.gpu;
+            } else body_vertices=skin_model_world_nodes(player.model,body_nodes);
             if(options.local_players>1) {
-              if(direct_pose)cached=BodyFramePose{std::move(body_vertices),std::move(gun_vertices),body_nodes,body_clip,body_source_frame,held_nodes};
-              else cached=BodyFramePose{body_vertices,gun_vertices,body_nodes,body_clip,body_source_frame,held_nodes};
+              if(direct_pose)cached=BodyFramePose{std::move(body_vertices),std::move(gun_vertices),body_nodes,body_clip,body_source_frame,held_nodes,body_deferred,weapon_deferred};
+              else cached=BodyFramePose{body_vertices,gun_vertices,body_nodes,body_clip,body_source_frame,held_nodes,body_deferred,weapon_deferred};
             }
           }
 #ifdef HALO2_HELD_POSE_SHADING_REFERENCE
@@ -5825,7 +5931,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
                   left.idle?&*left.idle:nullptr,body_time);
             }
             auto selected=selected_world_vertices(left,a.secondary_weapon.datum,i,nodes);
-            auto vertices=selected?std::move(*selected):skin_model_world_nodes(left.model,nodes);
+            auto vertices=selected?std::move(*selected):live_unit_gpu[i].contains(a.secondary_weapon.datum)?
+                model_skin_world_pose(left.model,nodes,true).vertices:skin_model_world_nodes(left.model,nodes);
             if(!append_unit_base(a.secondary_weapon.datum,left_bank.materials[j*2+1],object_light_cache[j]))
               left.shaders->append_selected(world,vertices,collector,*object_view.shader,left_bank.materials[j*2+1]);
             bindings.push_back({left_bank.materials[j*2+1],unsigned(left.model.mesh.materials.size()),object_light_cache[j].lighting});
@@ -5963,19 +6070,52 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
               fp_view.hands[0].activity,ammunition->frame_count);
         }
         FirstPersonPose pose;
+        ModelSkinWorldPose deferred_gun,deferred_arms;
         if(source_fp) {
+          const auto *enable_gpu=std::getenv("HALO2_ENABLE_GPU_SKINNING");
+          const auto *reference_gpu=std::getenv("HALO2_REFERENCE_CPU_SKINNING");
+          const bool gpu_allowed=enable_gpu && *enable_gpu && renderer.can_skin_models() &&
+              !(reference_gpu && *reference_gpu) && !options.animation_observer &&
+              !options.shield_layer_observer && !options.effect_observer &&
+              !options.unit_source_draw_observer && !options.bsp_submission_observer &&
+              !bsp_reference_scene && !reference_shadow_frame &&
+              !std::getenv("HALO2_REFERENCE_COPY_FIRST_PERSON") &&
+              !std::getenv("HALO2_VERIFY_FIRST_PERSON_APPEND") &&
+              !(repeat_unit_skins && *repeat_unit_skins) && !(repeat_selected_skins && *repeat_selected_skins);
+          bool arms_gpu_allowed=gpu_allowed;
+          if(arms_gpu_allowed && !hand_index) {
+            // Query the exact shield owner without moving its FP effects ahead
+            // of the original weapon/arms skin and later overlay selection.
+            const auto &actual=current.players.at(id);
+            const auto &vitality=biped_for(actual).vitality;
+            const ShieldOverlayGeometry geometry{true,true,true,1,4,0};
+            std::fenv_t saved,held;const auto error=errno;
+            if(std::fegetenv(&saved)!=0)arms_gpu_allowed=false;
+            else {
+              if(std::feholdexcept(&held)!=0)arms_gpu_allowed=false;
+              else arms_gpu_allowed=select_shield_overlays(vitality,
+                  actual.damage_feedback.shield.visible,actual.shield,geometry).selected().empty();
+              const auto restored=std::fesetenv(&saved);errno=error;
+              if(restored!=0)throw FormatError("first-person shield GPU admission could not restore the CPU floating-point owner");
+            }
+            errno=error;
+          }
           if(!fp_definition)throw FormatError("Original FP draw has no native authored model binding");
           const auto draw=std::find_if(source_models.begin(),source_models.end(),[&](const auto &model) {
             return model.owner==p.source_weapon && model.render_model==fp_definition->weapon_model && model.mode==1;
           });
           if(draw==source_models.end())throw FormatError("Original FP draw has no matching native weapon model");
-          pose.weapon_nodes=draw->nodes;pose.weapon=skin_model_world_nodes(gun.model,pose.weapon_nodes);
+          pose.weapon_nodes=draw->nodes;
+          deferred_gun=model_skin_world_pose(gun.model,pose.weapon_nodes,gpu_allowed);
+          pose.weapon=std::move(deferred_gun.vertices);
           if(!hand_index) {
             const auto arms=std::find_if(source_models.begin(),source_models.end(),[&](const auto &model) {
               return model.owner==registered_view.unit && model.render_model==fp_definition->arms_model && model.mode==1;
             });
             if(arms==source_models.end())throw FormatError("Original FP draw has no matching native arms model");
-            pose.arms_nodes=arms->nodes;pose.arms=skin_model_world_nodes(hands.model,pose.arms_nodes);
+            pose.arms_nodes=arms->nodes;
+            deferred_arms=model_skin_world_pose(hands.model,pose.arms_nodes,arms_gpu_allowed);
+            pose.arms=std::move(deferred_arms.vertices);
           }
         } else pose=source_frame
             ? pose_first_person_models_world_frame(gun.model,hands.model,*clip,*source_frame,
@@ -6047,6 +6187,63 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
           gun.shaders->select(pose.weapon,owner,*object_view.shader);
           append(foregrounds[i], std::move(pose.arms), hands.material, {});
           append(foregrounds[i], std::move(pose.weapon), gun.material, {});
+          } else if(deferred_gun.gpu || deferred_arms.gpu) {
+            const auto deferred_first=foregrounds[i].size();
+            const auto append_model=[&](const Visual &visual,std::vector<Vertex> &vertices,
+                const ModelSkinWorldPose &deferred,std::uint32_t model_owner) {
+              const auto first=foregrounds[i].size();
+              if(!deferred.gpu) {
+                visual.shaders->append_selected(foregrounds[i],vertices,owner,*object_view.shader,visual.material);
+              } else {
+                auto geometry=std::make_shared<ModelSkinGeometry>();
+                geometry->owner=model_owner;geometry->definition=visual.definition;
+                geometry->render_model=visual.render_model;geometry->lod=4;
+                geometry->vertices=vertices;geometry->source_vertices.resize(vertices.size());
+                for(std::size_t v=0;v<vertices.size();++v)geometry->source_vertices[v]=std::uint32_t(v);
+                visual.shaders->select_indexed(geometry->vertices,geometry->source_vertices,owner,*object_view.shader);
+                geometry->bindings.reserve(geometry->source_vertices.size());
+                for(const auto ordinal:geometry->source_vertices)geometry->bindings.push_back(visual.model.skin.at(ordinal));
+                geometry->palette=deferred.palette;geometry->post_identity_placement=true;
+                for(auto &vertex:geometry->vertices)vertex.material+=visual.material;
+                foregrounds[i].insert(foregrounds[i].end(),geometry->vertices.begin(),geometry->vertices.end());
+                if(!geometry->vertices.empty())foreground_skin_submissions[i].push_back({first,std::move(geometry)});
+              }
+              return std::pair{first,foregrounds[i].size()-first};
+            };
+            const auto arms=append_model(hands,pose.arms,deferred_arms,registered_view.unit);
+            const auto weapon=append_model(gun,pose.weapon,deferred_gun,p.source_weapon);
+            // Preserve selection before placement, and the original arms→gun
+            // order for CPU consumers. GPU records run this graph after skin.
+            if(!deferred_arms.gpu)place_vertices(std::span{foregrounds[i]}.subspan(arms.first,arms.second),0,{});
+            if(!deferred_gun.gpu)place_vertices(std::span{foregrounds[i]}.subspan(weapon.first,weapon.second),0,{});
+            if(std::getenv("HALO2_VERIFY_GPU_FIRST_PERSON_INPUTS")) {
+              struct SavedEnvironment {
+                std::fenv_t fp;int error=errno;
+                SavedEnvironment(){std::feholdexcept(&fp);std::fesetround(FE_TONEAREST);}
+                ~SavedEnvironment(){std::fesetenv(&fp);errno=error;}
+              } saved;
+              auto expected_arms=hand_index?std::vector<Vertex>{}:skin_model_world_nodes(hands.model,pose.arms_nodes);
+              auto expected_gun=skin_model_world_nodes(gun.model,pose.weapon_nodes);
+              hands.shaders->select(expected_arms,owner,*object_view.shader);
+              gun.shaders->select(expected_gun,owner,*object_view.shader);
+              std::vector<Vertex> expected;
+              append(expected,std::move(expected_arms),hands.material,{});
+              append(expected,std::move(expected_gun),gun.material,{});
+              auto actual=std::vector<Vertex>(foregrounds[i].begin()+deferred_first,foregrounds[i].end());
+              for(const auto &submission:foreground_skin_submissions[i])if(submission.first>=deferred_first) {
+                const auto &geometry=*submission.geometry;
+                auto vertices=std::span{actual}.subspan(submission.first-deferred_first,geometry.vertices.size());
+                skin_model_vertices(vertices,geometry.bindings,geometry.palette);
+                if(geometry.post_identity_placement)place_vertices(vertices,0,{});
+              }
+              if(actual.size()!=expected.size())throw FormatError("GPU first-person source selection changed the original CPU vertex extent");
+              if(!actual.empty() && std::memcmp(actual.data(),expected.data(),actual.size()*sizeof(Vertex))) {
+                const auto a=std::as_bytes(std::span{actual}),b=std::as_bytes(std::span{expected});
+                std::size_t byte{};while(byte<a.size() && a[byte]==b[byte])++byte;
+                throw FormatError("GPU first-person source bank differs from original CPU selection/placement at vertex "+
+                    std::to_string(byte/sizeof(Vertex))+" byte "+std::to_string(byte%sizeof(Vertex)));
+              }
+            }
           } else {
             const auto first=foregrounds[i].size();
             hands.shaders->append_selected(foregrounds[i],pose.arms,owner,*object_view.shader,hands.material);
@@ -6103,8 +6300,10 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       view.width = rect.right - rect.left;
       view.height = rect.bottom - rect.top;
       view.vertices = world;
+      view.deferred_skins=unit_skin_submissions[i];
       view.full_surface = true;
       view.foreground = foregrounds[i];
+      view.deferred_foreground_skins=foreground_skin_submissions[i];
       view.camouflage=camouflage;
       view.camouflage_groups=camouflage_groups[i];
       if(options.camouflage_layer_observer)view.completed_camouflage_draw_observer=

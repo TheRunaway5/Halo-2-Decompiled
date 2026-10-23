@@ -5,6 +5,7 @@
 #include "halo2/source_cpu_skin_inputs.hpp"
 #include "halo2/world_material.hpp"
 #include <algorithm>
+#include <cstring>
 
 namespace halo2 {
 SourceDynamicModelShaders::SourceDynamicModelShaders(const Cache &cache,RenderModel &model,
@@ -108,6 +109,22 @@ void SourceDynamicModelShaders::append_selected(std::vector<Vertex> &output,std:
         }
         first=end;
     }
+}
+
+void SourceDynamicModelShaders::select_indexed(std::vector<Vertex> &vertices,
+    std::vector<std::uint32_t> &indices,const SourceModelShaderCollector &collector,
+    const SourceModelShaderView &view)const {
+    if(vertices.size()!=indices.size())throw FormatError("dynamic model source ordinals differ from vertex extent");
+    const auto selected=select_parts(collector,view);
+    std::size_t count{};
+    for(std::size_t i=0;i<vertices.size();++i) {
+        const auto binding=selected.find({vertices[i].source_section,vertices[i].source_part});
+        if(binding==selected.end())throw FormatError("dynamic model vertex lost its authored shader part");
+        if(binding->second==0xffffffffu)continue;
+        if(count!=i)std::memcpy(&vertices[count],&vertices[i],sizeof(Vertex));
+        vertices[count].material=binding->second;indices[count]=indices[i];++count;
+    }
+    vertices.resize(count);indices.resize(count);
 }
 
 }

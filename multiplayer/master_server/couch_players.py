@@ -8,17 +8,18 @@ from .protocol import fields, require, text
 NATIVE_CONTINUITY = "halo2-native-queue-v11"
 NATIVE_DIRECT = "halo2-native-queue-v12"
 NATIVE_EOS = "halo2-native-queue-v13"
-NATIVE_COUCH = ("halo2-native-queue-v9", "halo2-native-queue-v10", NATIVE_CONTINUITY, NATIVE_DIRECT, NATIVE_EOS)
+NATIVE_EOS_ACCOUNT = "halo2-native-queue-v14"
+NATIVE_COUCH = ("halo2-native-queue-v9", "halo2-native-queue-v10", NATIVE_CONTINUITY, NATIVE_DIRECT, NATIVE_EOS, NATIVE_EOS_ACCOUNT)
 NATIVE_GATHERING = ("halo2-native-queue-v8", *NATIVE_COUCH)
 
 
 def supports_compatibility(actual, required):
-    return actual == required or (required == "halo2-native-queue-v10" and actual in (NATIVE_CONTINUITY, NATIVE_DIRECT, NATIVE_EOS))
+    return actual == required or (required == "halo2-native-queue-v10" and actual in (NATIVE_CONTINUITY, NATIVE_DIRECT, NATIVE_EOS, NATIVE_EOS_ACCOUNT))
 
 
 def same_continuity_protocol(connections):
     versions = [member.compatibility for member in connections if member]
-    for exclusive in (NATIVE_CONTINUITY, NATIVE_DIRECT, NATIVE_EOS):
+    for exclusive in (NATIVE_CONTINUITY, NATIVE_DIRECT, NATIVE_EOS, NATIVE_EOS_ACCOUNT):
         if exclusive in versions:
             return all(version == exclusive for version in versions)
     return True

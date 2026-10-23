@@ -22,6 +22,7 @@ NS = "http://specs.openid.net/auth/2.0"
 SELECT = NS + "/identifier_select"
 MAX_SUBJECT_SESSIONS = 4
 REFRESH_LIFETIME = 30 * 86400
+MAX_REMEMBERED_SESSIONS = 100_000
 
 
 @dataclass
@@ -48,6 +49,9 @@ class SteamLogin:
           expires INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS steam_login_refresh_sessions(
           session_hash TEXT PRIMARY KEY, refresh_hash TEXT NOT NULL);
+        CREATE INDEX IF NOT EXISTS steam_refresh_expiry ON steam_login_refresh(expires);
+        CREATE INDEX IF NOT EXISTS steam_refresh_subject ON steam_login_refresh(subject,expires);
+        CREATE INDEX IF NOT EXISTS steam_refresh_issued ON steam_login_refresh_sessions(refresh_hash);
         """)
 
     def cleanup(self):
@@ -214,15 +218,22 @@ class SteamLogin:
             self.db.execute("DELETE FROM steam_login_refresh WHERE subject=? AND token_hash NOT IN "
                             "(SELECT token_hash FROM steam_login_refresh WHERE subject=? ORDER BY expires DESC,rowid DESC LIMIT ?)",
                             (owner.subject,owner.subject,MAX_SUBJECT_SESSIONS-1))
-            require(self.db.execute("SELECT count(*) FROM steam_login_refresh").fetchone()[0] < 1000,
-                    "Remembered sign-in capacity reached", 503)
-            self.db.execute("INSERT INTO steam_login_refresh VALUES(?,?,?,?)",
-                            (hashlib.sha256(refresh.encode()).hexdigest(),owner.subject,owner.username,int(self.clock())+REFRESH_LIFETIME))
-            self.db.execute("INSERT INTO steam_login_refresh_sessions VALUES(?,?)",
-                            (hashlib.sha256(token.encode()).hexdigest(),hashlib.sha256(refresh.encode()).hexdigest()))
+            # A remembered-session quota must never reject a verified login.
+            # Its thirty-day retention budget is independent of the much
+            # shorter active-session budget and never evicts another player.
+            if self.db.execute("SELECT count(*) FROM steam_login_refresh").fetchone()[0] < MAX_REMEMBERED_SESSIONS:
+                self.db.execute("INSERT INTO steam_login_refresh VALUES(?,?,?,?)",
+                                (hashlib.sha256(refresh.encode()).hexdigest(),owner.subject,owner.username,int(self.clock())+REFRESH_LIFETIME))
+                self.db.execute("INSERT INTO steam_login_refresh_sessions VALUES(?,?)",
+                                (hashlib.sha256(token.encode()).hexdigest(),hashlib.sha256(refresh.encode()).hexdigest()))
+            else:
+                refresh = None
         del self.pending[state]
-        return web.json_response({"state": "signed_in", "token": token, "refresh_token": refresh, "expires_in": 28800,
-                                  "identity": {"id": owner.subject, "username": owner.username, "display_name": owner.username}}, headers=headers)
+        result={"state": "signed_in", "token": token, "expires_in": 28800,
+                "identity": {"id": owner.subject, "username": owner.username, "display_name": owner.username}}
+        if refresh:
+            result["refresh_token"]=refresh
+        return web.json_response(result, headers=headers)
 
     def refresh_credential(self, request):
         token = request.headers.get("Authorization", "")

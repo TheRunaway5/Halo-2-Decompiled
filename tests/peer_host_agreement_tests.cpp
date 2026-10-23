@@ -5,6 +5,7 @@
 #include <deque>
 #include <functional>
 #include <iostream>
+#include <limits>
 #include <mutex>
 #include <random>
 #include <stdexcept>
@@ -60,6 +61,86 @@ void threshold(){
     check(solo.state(501).decision&&solo.state(501).decision->voters==0x10,"Two-PC survivor must be its one-voter majority");
     solo.observe_host(2000);check(solo.state(2000).fenced&&solo.state(2000).decision,"Late host traffic undid an accepted authority change");
     std::cout<<"PASS strict 500ms suspicion, independently retained cut, fixed physical quorum, two-PC survivor and irreversible generation fence\n";
+}
+void public_boundaries(){
+    const auto c=context();
+    for(auto self:{16u,260u,std::numeric_limits<unsigned>::max()})rejects([&]{PeerHostAgreement invalid(self,c,0);});
+    for(auto host:{16u,256u,std::numeric_limits<unsigned>::max()}){auto invalid=c;invalid.host=host;rejects([&]{PeerHostAgreement p(4,invalid,0);});}
+    auto invalid=c;invalid.session.fill(std::byte{});rejects([&]{PeerHostAgreement p(4,invalid,0);});
+    invalid=c;invalid.epoch=UINT32_MAX;rejects([&]{PeerHostAgreement p(4,invalid,0);});
+    invalid=c;invalid.membership_revision=UINT64_MAX;rejects([&]{PeerHostAgreement p(4,invalid,0);});
+    rejects([&]{PeerHostAgreement p(0,context(1),0);});
+    rejects([&]{PeerHostAgreement p(4,context(0x101),0);});
+    PeerHostAgreement publisher(4,c,0);auto wrong=cut(4,c);wrong.peer=260;
+    check(!publisher.publish_ready(wrong),"A wide physical ready peer narrowed to a valid seat");
+    wrong=cut(4,c);wrong.context.host=256;
+    check(!publisher.publish_ready(wrong),"A wide ready context host narrowed to the current host");
+    for(unsigned field=0;field<4;++field){auto bad=cut(4,c);
+        if(field==0)bad.seal.id=0;
+        if(field==1)bad.seal.bytes=0;
+        if(field==2)bad.seal.bytes=64ull*1024*1024+1;
+        if(field==3)bad.seal.digest.fill(std::byte{});
+        rejects([&]{publisher.publish_ready(bad);});
+        check(!publisher.state(0).ready[4],"Invalid retained seal changed the ready bank");
+    }
+    check(publisher.publish_ready(cut(4,c))&&publisher.publish_ready(cut(4,c)),"Exact repeated retained cut was not idempotent");
+    for(auto candidate:{16u,260u,std::numeric_limits<unsigned>::max()})
+        check(!publisher.propose(candidate,501)&&!publisher.drive(candidate,501),"A wide candidate narrowed to a ready physical peer");
+    PeerHostAgreement recipient(8,c,0);const auto outgoing=publisher.poll(501,128);
+    const auto ready=std::ranges::find_if(outgoing,[](const auto &p){return p.peer==8&&p.bytes[8]==std::byte{2};});
+    check(ready!=outgoing.end(),"Boundary fixture lacks a genuine ready datagram");
+    for(auto authenticated:{260u,std::numeric_limits<unsigned>::max()}){
+        const auto rejected=recipient.state(501).rejected;
+        check(recipient.receive(authenticated,ready->bytes,501),"Recognized wide-source packet was not claimed");
+        check(!recipient.state(501).ready[4]&&recipient.state(501).rejected==rejected+1,"A wide authenticated source impersonated a physical peer");
+    }
+    check(recipient.receive(4,ready->bytes,501)&&recipient.state(501).ready[4]==cut(4,c).seal,"Valid authenticated ready failed after wide-source rejection");
+    auto final_context=context(0x11);final_context.epoch=UINT32_MAX-1;final_context.membership_revision=UINT64_MAX-1;
+    PeerHostAgreement final_peer(4,final_context,0);auto maximum=cut(4,final_context);
+    maximum.seal.id=UINT64_MAX;maximum.seal.tick=0;maximum.seal.bytes=64ull*1024*1024;maximum.seal.digest.fill(std::byte{});maximum.seal.digest.back()=std::byte{255};
+    check(final_peer.publish_ready(maximum)&&final_peer.propose(4,501),"Valid maximum-size, zero-tick retained cut was refused");
+    const auto decision=final_peer.state(501).decision;
+    check(decision&&decision->value.cut==maximum.seal&&decision->next.epoch==UINT32_MAX&&decision->next.membership_revision==UINT64_MAX,
+        "Final representable successor generation or full-width cut changed");
+    std::cout<<"PASS public integer widths, generation exhaustion, invalid seal bounds and exact maximum-size zero-tick cut\n";
+}
+void clock_boundaries(){
+    const auto c=context(0x11);PeerHostAgreement p(4,c,1000);
+    check(p.state(9000).suspected&&!p.state(1500).suspected,"A read-only future snapshot advanced the agreement clock");
+    p.observe_host(900);check(!p.state(1500).suspected&&p.state(1501).suspected,"Backward host observation moved the monotonic origin");
+    std::array<std::byte,7> key{std::byte{0x48},std::byte{0x32},std::byte{0x4e},std::byte{0x32},std::byte{},std::byte{},std::byte{10}};
+    auto unclaimed=key;unclaimed[6]=std::byte{11};
+    check(!PeerHostAgreement::is_packet(unclaimed)&&!p.receive(4,unclaimed,9000)&&!p.state(1500).suspected&&p.state(1500).rejected==0,
+        "An unclaimed datagram changed the clock or rejection count");
+    check(PeerHostAgreement::is_packet(key)&&p.receive(4,key,1800)&&p.state(1000).suspected&&p.state(1000).rejected==1,
+        "A recognized malformed datagram did not advance the monotonic clock exactly once");
+    p.observe_host(1200);check(!p.state(2300).suspected&&p.state(2301).suspected,"Backward host observation did not use the serviced clock");
+    check(p.poll(2400,0).empty(),"A zero packet budget emitted a datagram");
+    p.observe_host(1100);check(!p.state(2900).suspected&&p.state(2901).suspected,"A zero-budget poll failed to service the monotonic clock");
+    PeerHostAgreement near_limit(4,c,UINT64_MAX-501);check(near_limit.publish_ready(cut(4,c)),"Clock limit fixture refused");
+    check(!near_limit.drive(4,UINT64_MAX-1)&&near_limit.drive(4,UINT64_MAX)&&near_limit.state(0).decision,
+        "Full-width monotonic clock changed strict suspicion or wrapped on proposal");
+    PeerHostAgreement sender(4,context(),0),recipient(8,context(),0);const auto outgoing=sender.poll(501,128);
+    const auto silence=std::ranges::find_if(outgoing,[](const auto &packet){return packet.peer==8&&packet.bytes[8]==std::byte{1};});
+    check(silence!=outgoing.end()&&recipient.receive(4,silence->bytes,501),"Clock fixture lacks a genuine silence observation");
+    check((recipient.state(801).silent&0x10)&&!(recipient.state(802).silent&0x10)&&(recipient.state(801).silent&0x10),
+        "Remote silence freshness changed its inclusive 300ms boundary or mutated during a snapshot");
+    std::cout<<"PASS read-only snapshots, backward clocks, dispatch ownership, zero-budget service and exact silence freshness\n";
+}
+void poll_boundaries(){
+    const auto c=context(0xffff);PeerHostAgreement whole(15,c,0),paced(15,c,0),wide(15,c,0);
+    for(auto *peer:{&whole,&paced,&wide})check(peer->publish_ready(cut(15,c)),"Bounded poll fixture refused");
+    const auto expected=whole.poll(501,128);check(expected.size()==45,"Full room did not queue one probe, silence and ready per remote physical peer");
+    for(unsigned i=0;i<expected.size();++i)check(expected[i].peer==i/3&&expected[i].bytes[8]==std::byte(i%3),"Initial control scan order changed");
+    check(paced.poll(501,0).empty(),"Zero-budget poll emitted pending controls");
+    std::vector<AuthorityTransferPacket> actual;
+    const unsigned budgets[]{1,2,0,4};
+    for(unsigned pass=0;pass<64&&actual.size()<expected.size();++pass)for(auto &packet:paced.poll(501,budgets[pass%4]))actual.push_back(std::move(packet));
+    const auto compare=[&](const auto &packets){check(packets.size()==expected.size(),"Bounded polls dropped, duplicated or truncated pending controls");
+        for(unsigned i=0;i<packets.size();++i)check(packets[i].peer==expected[i].peer&&packets[i].bytes==expected[i].bytes,"Bounded polling changed destination, scan order or wire bytes");};
+    compare(actual);compare(wide.poll(501,258));
+    check(paced.poll(501,128).empty(),"An exhausted pending bank replayed controls before retry time");
+    std::cout<<"PASS zero/one/two/oversized packet budgets preserve exact pending control order and bytes\n";
 }
 void ordinary(){for(auto host:{0u,4u,8u,12u}){Mesh m(0x1111,host);const auto chosen=(host+4)%16;m.ready(chosen);m.pump();
     check(m.peers[chosen]->propose(chosen,m.now),"Ready candidate could not start");m.pump();m.same(chosen);
@@ -205,5 +286,5 @@ void concurrent(){Mesh m;m.ready(4);m.pump();std::exception_ptr error;std::mutex
     std::cout<<"PASS concurrent host observation, snapshots, bounded polling and untrusted receive\n";
 }
 }
-int main()try{threshold();ordinary();partitions();healthy_majority();prior_value();malformed();parser_corpus();duplicates();schedules();automatic_schedule();concurrent();return 0;}
+int main()try{threshold();public_boundaries();clock_boundaries();poll_boundaries();ordinary();partitions();healthy_majority();prior_value();malformed();parser_corpus();duplicates();schedules();automatic_schedule();concurrent();return 0;}
 catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

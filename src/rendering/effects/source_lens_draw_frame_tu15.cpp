@@ -351,6 +351,12 @@ bool SourceLensDrawFrameTu15::rebind_ready(const PreparedRebind &prepared,const 
         source_require_retired_lens_queries(memory);return true;
     } catch(...) {return false;}
 }
+bool SourceLensDrawFrameTu15::rebind_ready_held(const PreparedRebind &prepared,const SourceRuntimeMemory &memory) const noexcept {
+    const auto &s=*impl_;const auto *p=prepared.data_.get();
+    return std::this_thread::get_id()==s.thread&&p&&p->owner==s.identity&&p->revision==s.revision&&
+        !s.active&&s.renderer&&s.lease.valid()&&p->next&&p->next->expected_source==&memory&&
+        s.source!=&memory&&s.expected_source!=&memory;
+}
 Renderer *SourceLensDrawFrameTu15::renderer_owner() const noexcept {return impl_->renderer;}
 void SourceLensDrawFrameTu15::publish_rebind(PreparedRebind &prepared) noexcept {
     impl_.swap(prepared.data_->next);prepared.data_->owner.reset();

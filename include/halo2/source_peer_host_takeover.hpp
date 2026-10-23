@@ -4,6 +4,8 @@
 #include "halo2/online_match_session.hpp"
 #include "halo2/source_match_authority.hpp"
 #include "halo2/source_native_publication.hpp"
+#include "halo2/mcc_sound_variation_provider.hpp"
+#include "halo2/peer_prospective_role.hpp"
 #include <thread>
 
 namespace halo2 {
@@ -58,6 +60,41 @@ public:
 private:
     friend class SourceAuthorityReceiver;
     friend class MultiplayerRuntimeAuthority;
+    friend class SourceForegroundWorldHandoff;
+    friend class SourceLensPresentationHandoffTu15;
+    // Typed presentation friends validate the world's original Cache through
+    // this existing native owner; the World accessor stays private.
+    static std::shared_ptr<const Cache> original_presentation_cache(const MultiplayerPreparedWorld &);
+    // Decision-free native reconstruction stays private and has no public
+    // mutable target, host transport, publication token or readiness claim.
+    // Its creator/exact cut/admissions/boundary are rechecked before the same
+    // world moves into the certificate-gated owning takeover below.
+    struct NativeImport;
+    static std::shared_ptr<NativeImport> import_native(const MultiplayerOptions &,
+        const SourceAuthorityRetainedWorld &,std::shared_ptr<PhysicsLiveClockSource>,
+        const MultiplayerPreparedWorld *);
+    static const ValidatedAuthorityCut &imported_cut(const NativeImport &);
+    // A prospective role is a private hypothesis derived by Rust, never a
+    // Decision or Ready. All camera/departure/lens mutations run once here,
+    // before a typed foreground producer can prepare against this target.
+    // Failure after consumption discards the partially finalized owner.
+    static bool prepare_prospective(std::shared_ptr<NativeImport> &,const PeerProspectiveHostRole &);
+    static bool has_prospective(const NativeImport &)noexcept;
+    static const PeerProspectiveHostRole &prospective_role(const NativeImport &);
+    // Only trusted typed producer friends may borrow before sealing. There
+    // is no public mutable target callback/getter and no borrow after seal.
+    static MultiplayerPreparedWorld &prospective_target(NativeImport &);
+    static void seal_prospective(NativeImport &);
+    // Sealed native identity only. No Session check or complete foreground /
+    // device/input readiness is implied by this direct held witness.
+    static bool prospective_ready(const NativeImport &)noexcept;
+    static MccSoundVariationProvider::NativeBinding prospective_audio_binding(const NativeImport &);
+    static SourceNativePublication::Boundary prospective_boundary_binding(NativeImport &);
+    // Refusal before consumption preserves the handle. Once role finalization
+    // consumes its world, success or an exception clears the handle; a partly
+    // finalized target is never offered again as a valid private import.
+    static std::unique_ptr<SourcePeerHostTakeover> prepare_imported(
+        std::shared_ptr<NativeImport> &,const PeerMigrationDecision &);
     // Runtime-only same-creator reconstruction after its replay executor has
     // retired. The resident supplies its private original Cache owner; no
     // shared Cache is carried by worker options or a public caller override.
@@ -70,7 +107,25 @@ private:
         const PeerMigrationDecision &,std::shared_ptr<PhysicsLiveClockSource>,
         const MultiplayerPreparedWorld *);
     SourcePeerHostTakeover(std::shared_ptr<OnlineMatchSession>,PeerMigrationDecision,
-        AcceptedSourcePlayers,std::unique_ptr<MultiplayerPreparedWorld>,const LanHost::Continuation &);
+        AcceptedSourcePlayers,std::unique_ptr<MultiplayerPreparedWorld>,const LanHost::Continuation &,
+        const ValidatedAuthorityCut &);
+    struct ProspectiveNative;
+    SourcePeerHostTakeover(std::shared_ptr<OnlineMatchSession>,PeerMigrationDecision,
+        AcceptedSourcePlayers,std::unique_ptr<ProspectiveNative>)noexcept;
+    static void prepare_role_mutations(ProspectiveNative &,const std::shared_ptr<OnlineMatchSession> &,
+        const AcceptedSourcePlayers &,SourceMatchAuthority &);
+    static void close_prospective(NativeImport &)noexcept;
+    bool has_prospective()const noexcept;
+    bool publication_held()const noexcept;
+    const PeerMigrationDecision &prospective_decision()const;
+    std::unique_ptr<SourceMatchAuthority> take_prospective_authority();
+    void refresh_prospective_local_input(const LanClient &);
+    bool activate_prospective(OnlineMatchSession::NativeCommit,void *);
+    // Successful aggregate adoption releases its actual native-only scope
+    // after Session/timing/SDL holds. Public world/host access stays excluded
+    // until then. Retirement of an unpublished owner releases it on teardown.
+    void release_prospective_publication();
+    bool held_prospective()const noexcept;
     void own()const;
     const std::thread::id executor_=std::this_thread::get_id();
     const std::shared_ptr<OnlineMatchSession> session_;
@@ -84,5 +139,11 @@ private:
     std::unique_ptr<NativeVehicleCamera> camera_;
     SourceMatchAuthority::ExecutionBoundary prepared_;
     bool active_{};
+    std::shared_ptr<const Cache> prospective_cache_;
+    const PhysicsLiveWorldTu15 *prospective_native_{};
+    std::optional<std::uint64_t> prospective_fingerprint_;
+    std::unique_ptr<SourceMatchAuthority> prospective_authority_;
+    // Last: release native exclusion before any referenced host/world owner.
+    std::unique_ptr<SourceNativePublication> prospective_publication_;
 };
 }

@@ -5,13 +5,15 @@
 #include "halo2/model_node_interpolation.hpp"
 #include "halo2/native_player_animation.hpp"
 #include "halo2/render_interpolation.hpp"
+#include "halo2/unit_scope_camera.hpp"
 #include <map>
 #include <thread>
 
 namespace halo2 {
 // Actual local pose/channel histories at a completed accepted-receipt barrier.
+// Includes the local scope producer/observer polynomial and zoom lifetimes.
 // Native locomotion executors, resident resources, scene adapter caches, HUD,
-// camera, device/input and playing audio remain independently owned. This
+// native vehicle/death cameras, physical input and playing audio remain independently owned. This
 // restores existing completed values; it neither advances a channel nor
 // reconstructs a cold pose from a decoded state or advertises full readiness.
 class MultiplayerPoseContinuity {
@@ -30,6 +32,15 @@ public:
         std::array<FirstPersonAimBlend,multiplayer_capacity> aim_blends,body_aim_blends;
         std::array<bool,multiplayer_capacity> aim_alive{};
         std::array<NativePlayerTransition,multiplayer_capacity> body_transitions;
+        // Actual preceding-render camera channels at this accepted receipt.
+        // Keep derivatives, remaining time and all polynomial coefficients;
+        // rebuilding only a target FOV changes the continuation curve.
+        std::array<UnitScopeCameraProducer,4> scope_producers{};
+        std::array<UnitScopeCameraState,4> scope_observers{};
+        std::array<std::int16_t,4> view_zoom{-1,-1,-1,-1};
+        std::array<std::uint32_t,4> view_zoom_unit{null_datum,null_datum,null_datum,null_datum};
+        std::array<std::uint32_t,4> view_zoom_reset{};
+        std::array<bool,4> view_was_dead{};
     };
     MultiplayerPoseContinuity()=default;
     MultiplayerPoseContinuity(const MultiplayerPoseContinuity &)=delete;

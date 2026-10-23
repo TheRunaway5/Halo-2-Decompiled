@@ -102,6 +102,12 @@ public:
   // its Match/world must outlive preparation; references expire on success.
   bool commit(Prepared &&)noexcept;
 private:
+  friend class SourceNativePublication;
+  // Only the coupled publication owner borrows these genuine counters, after
+  // validating the complete native boundary and before taking exclusion.
+  std::array<const std::uint64_t *,2> publication_call_counters()const {
+    return match_.execution_call_counters();
+  }
   MultiplayerMatch &match_;
   MultiplayerObjectRuntime &world_;
   mutable NativeAuthorityBoundary calls_;

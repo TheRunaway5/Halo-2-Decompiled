@@ -1,5 +1,6 @@
 #include "halo2/peer_authority_transfer.hpp"
 #include "halo2/multiplayer_datagrams.hpp"
+#include "halo2-online-protocol-bridge/src/lib.rs.h"
 #include <openssl/sha.h>
 #include <algorithm>
 #include <bit>
@@ -69,7 +70,8 @@ struct PeerAuthorityTransfer::Impl {
     bool ready_sent{};std::uint64_t ready_at{};
     std::optional<std::uint64_t> rejected;
     std::deque<ValidatedAuthorityCut> receipts;
-    unsigned cursor{};double credit{};std::uint64_t credit_at{};bool credit_started{};
+    rust::Box<online_protocol_bridge::PeerPollCursor> cursor=online_protocol_bridge::new_peer_poll_cursor();
+    double credit{};std::uint64_t credit_at{};bool credit_started{};
     Impl(unsigned s,AuthorityTransferContext c,AuthorityTransferLimits l):self(s),binding(c),limits(l),credit(double(l.burst_bytes)){
         valid(s,c);need(l.maximum_bytes&&l.maximum_bytes<=512ull*1024*1024&&l.bytes_per_second&&
             l.bytes_per_second<=1024ull*1024*1024&&l.burst_bytes>=1100&&l.burst_bytes<=1024*1024&&
@@ -144,9 +146,11 @@ std::vector<AuthorityTransferPacket> PeerAuthorityTransfer::poll(std::uint64_t n
     if(s.credit_started)s.credit=std::min(double(s.limits.burst_bytes),s.credit+double(std::min<std::uint64_t>(elapsed(now,s.credit_at),1000))*double(s.limits.bytes_per_second)/1000.0);
     s.credit_started=true;s.credit_at=now;
     std::vector<AuthorityTransferPacket> result;
-    auto emit=[&](unsigned peer,Bytes p){result.push_back({peer,std::move(p)});};
+    auto emit=[&](unsigned peer,Bytes p){result.push_back({peer,std::move(p)});
+        if(!online_protocol_bridge::peer_record_served(*s.cursor,std::uint8_t(peer)))std::terminate();};
     while(result.size()<budget){bool progress=false;
-        for(unsigned attempt=0;attempt<16&&result.size()<budget;++attempt){const unsigned peer=s.cursor++%16;
+        const auto order=online_protocol_bridge::peer_poll_order(*s.cursor);
+        for(const unsigned peer:order.peers){if(result.size()>=budget)break;
             if(peer==s.self||!member(s.binding,peer))continue;
             if(s.hello_reply[peer]){auto p=header(s.binding,peer,HelloAck,0);put(p,s.limits.maximum_bytes,8);if(s.limits.features)put(p,s.limits.features,4);emit(peer,std::move(p));s.hello_reply[peer]=false;progress=true;continue;}
             if(!s.capabilities[peer]&&(!s.hello_sent[peer]||elapsed(now,s.hello_at[peer])>=1000)){

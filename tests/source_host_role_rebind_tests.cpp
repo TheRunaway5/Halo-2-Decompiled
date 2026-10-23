@@ -21,12 +21,13 @@ struct FixedClock final:PhysicsLiveClockSource {
 };
 // Sequential logical adapter, with the accepted generation supplied separately
 // by the fixture. This does not authenticate an election or prove WAN delivery.
-struct Bus {struct Packet {unsigned from;std::vector<std::byte> bytes;};std::array<std::deque<Packet>,16> queues;};
+struct Bus {struct Packet {unsigned from;std::vector<std::byte> bytes;};std::array<std::deque<Packet>,16> queues;
+  std::array<bool,16> withhold{};};
 struct Endpoint final:MultiplayerDatagrams {
   std::shared_ptr<Bus> bus;unsigned self;
   Endpoint(std::shared_ptr<Bus> b,unsigned s):bus(std::move(b)),self(s){}
   void send(std::span<const std::byte> p,unsigned to)override{check(to<16,"Invalid peer endpoint");bus->queues[to].push_back({self,{p.begin(),p.end()}});}
-  bool receive(std::vector<std::byte> &p,unsigned &from)override{auto &q=bus->queues[self];if(q.empty())return false;
+  bool receive(std::vector<std::byte> &p,unsigned &from)override{auto &q=bus->queues[self];if(bus->withhold[self]||q.empty())return false;
     from=q.front().from;p=std::move(q.front().bytes);q.pop_front();return true;}
 };
 SourcePlayerConfiguration profile(std::string_view name){auto defaults=source_default_player_configuration();std::array<std::uint8_t,9> appearance;
@@ -49,6 +50,7 @@ int main(int argc,char **argv)try{
   std::array<Controls,4> local{};std::array<Controls,3> other{};std::array<Controls,16> commands{};
   for(unsigned n=0;n<32&&!(promoted->ready()&&remote.ready());++n){promoted->send(local);remote.send(other);host->receive(commands);host->broadcast();promoted->receive();remote.receive();}
   check(host->peers()==2&&promoted->ready()&&remote.ready(),"Eight-player native admission did not complete");
+  check(!host->activate_continuation_liveness(),"An ordinary live host acquired a continuation clock reset");
   AuthorityTransferContext before;before.session.front()=std::byte{0x71};before.epoch=3;before.membership_revision=7;
   before.peers=(1u<<0)|(1u<<1)|(1u<<5);before.host=0;
   auto after=before;++after.epoch;++after.membership_revision;after.peers&=~1u;after.host=1;
@@ -126,6 +128,20 @@ int main(int argc,char **argv)try{
     NativeVehicleCamera camera(*target.source_objects,*target.content.original_data);
     auto cp=camera.prepare(*migrated.local.camera,new_binding);check(camera.commit(std::move(cp)),"Promoted local native camera failed to restore");
     rejects([&]{camera.prepare(*migrated.local.camera,old_binding);});
+    bool foreign_clock=true,foreign_ready=true;
+    {std::jthread foreign([&]{foreign_ready=migrated.host->continuation_liveness_ready();
+        foreign_clock=migrated.host->activate_continuation_liveness();});}
+    check(!foreign_clock&&!foreign_ready&&migrated.host->continuation_liveness_ready(),
+        "Foreign executor activated or invalidated the private host liveness clock");
+    const auto before_preparation=encode_source_authority(imported.checkpoint(old_binding));
+    const auto preparation_begin=std::chrono::steady_clock::now();
+    std::this_thread::sleep_for(std::chrono::seconds(6));
+    check(std::chrono::steady_clock::now()-preparation_begin>=std::chrono::seconds(6)&&
+        migrated.host->peers()==1&&!migrated.host->last_peer_removal()&&
+        encode_source_authority(imported.checkpoint(old_binding))==before_preparation,
+        "Private preparation changed the native world or admitted a peer departure");
+    check(migrated.host->activate_continuation_liveness()&&!migrated.host->activate_continuation_liveness(),
+        "Prepared host did not activate its continuation clock exactly once");
     const auto receipt=AuthorityCutSeal{1,captured.world.match.simulation.ticks,native.size(),{std::byte{1}}};
     auto wrong=after;wrong.host=5;rejects([&]{remote.rebind_host(before,wrong,receipt);});
     rejects([&]{remote.rebind_host(before,after,{});});remote.rebind_host(before,after,receipt);
@@ -134,6 +150,19 @@ int main(int argc,char **argv)try{
     const auto old_deaths=target.match.player(0).deaths;const auto old_player=target.match.player(0).source_datum;
     target.match.depart(0);check(target.match.player(0).deaths==old_deaths&&target.match.player(0).source_datum==old_player,"Host loss fabricated a death or replaced the original result identity");
     const auto start=target.match.simulation().ticks();
+    // Model the actual asynchronous first-packet race: a genuine new-epoch
+    // input is queued, but unavailable to the first resumed host receive.
+    check(bus->queues[1].empty(),"Queued-transport clock regression inherited unrelated input");
+    bus->withhold[1]=true;remote.send(other);
+    check(!bus->queues[1].empty(),"Queued-transport clock regression lacks a real survivor input");
+    std::array<Controls,16> delayed{};migrated.host->receive(delayed);
+    check(migrated.host->peers()==1&&!migrated.host->last_peer_removal()&&!bus->queues[1].empty()&&
+        target.match.simulation().ticks()==start,
+        "Private preparation debt expired a survivor before its first queued packet arrived");
+    bus->withhold[1]=false;migrated.host->receive(delayed);
+    check(bus->queues[1].empty()&&migrated.host->peers()==1&&!migrated.host->last_peer_removal()&&
+        !migrated.host->activate_continuation_liveness(),
+        "A real resumed input was not consumed or reopened clock activation");
     for(unsigned tick=0;tick<12;++tick){std::array<Controls,16> input{};
       LanHost::receive_local_continuation(migrated.local,input);
       for(unsigned slot=1;slot<5;++slot)check(input[slot].grenade==(tick<2)&&input[slot].melee==(tick<2)&&!input[slot].pickup,
@@ -146,10 +175,22 @@ int main(int argc,char **argv)try{
     check(target.match.simulation().ticks()==start+12&&!target.match.finished(),"Migrated player-hosted match did not survive");
     const auto renewed=migrated.host->checkpoint(new_binding);const auto world=imported.checkpoint(new_binding);
     check(!encode_source_host_continuation({after,2,world,renewed}).empty(),"New host cannot export its successor world while retaining the departed host PCR row");
+    // Actual lack of traffic still invokes the original five-second policy.
+    // The activation and empty first receive must not invent input receipts.
+    const auto survivor_deaths=target.match.player(5).deaths;
+    std::this_thread::sleep_for(std::chrono::milliseconds(5100));
+    std::array<Controls,16> expired{};migrated.host->receive(expired);
+    const auto removal=migrated.host->last_peer_removal();
+    check(migrated.host->peers()==0&&removal&&removal->reason==LanHost::PeerRemovalReason::idle_timeout&&
+        removal->input_acceptances==13&&removal->last_accepted_input_at_ns&&removal->last_accepted_input_age_ns&&
+        *removal->last_accepted_input_age_ns>5'000'000'000ll&&removal->idle_age_ns>5'000'000'000ll&&
+        target.match.player(5).deaths==survivor_deaths,
+        "Resumed liveness lost ordinary expiry, genuine input ages/counts or original departure semantics");
   }catch(...){failure=std::current_exception();}});}
   if(failure)std::rethrow_exception(failure);
   std::cout<<"PASS native host-loss role rebind: eight admitted players, four promoted local seats, three surviving client seats, preserved input pulses/cookies/snapshots/cameras, old endpoint rejection, rollback to accepted cut, native departure/results and twelve subsequent connected ticks\n";
   std::cout<<"PASS promoted input rejects foreign owners, wrong contexts/slots, premature consumption and malformed owning packets; repeated included packets preserve delivery serials\n";
+  std::cout<<"PASS host continuation liveness activation: six-second private preparation, foreign/ordinary/repeated refusal, unavailable first genuine queued packet, later real receipt and unchanged five-second idle expiry with exact input acceptance count\n";
   std::cout<<"LIMIT sequential logical transport and explicitly supplied generation decision; no election, live DTLS epoch fence, runtime controller/headset or automatic migration acceptance\n";
   return 0;
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

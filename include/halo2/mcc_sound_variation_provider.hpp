@@ -68,7 +68,8 @@ private:
     std::shared_ptr<const Impl> impl_;
     explicit MccSoundVariationProvider(std::shared_ptr<const Impl>);
     MccSoundTimingReadLease timing_lease()const;
-    static MccSoundVariationProvider binding_provider(const NativeBinding&);
+    static MccSoundVariationProvider binding_provider(const NativeBinding&,
+        const std::shared_ptr<const Cache>& expected_owner);
     friend class MultiplayerAudio;
     friend struct MccSoundVariationProviderAccess;
 };

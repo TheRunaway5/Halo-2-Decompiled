@@ -4,6 +4,7 @@
 #include "halo2/source_player_admission.hpp"
 #include "halo2/peer_authority_transfer.hpp"
 #include "halo2/peer_snapshot_candidate.hpp"
+#include "halo2/peer_prospective_role.hpp"
 #include "halo2/native_vehicle_camera.hpp"
 #include "halo2/multiplayer_snapshot_origin.hpp"
 #include <memory>
@@ -151,6 +152,16 @@ public:
       std::shared_ptr<MultiplayerDatagrams>,std::uint64_t,std::vector<OnlineAdmission>,
       const Continuation &,const AuthorityTransferContext &previous,
       const AuthorityTransferContext &next,std::span<const SourcePlayerAdmission> accepted_roster);
+  // One-shot native commit companion for a still-private host-loss resume.
+  // Excludes preparation wall time from the restored liveness origin while
+  // retaining the cut's actual idle debt and every input receipt/timestamp.
+  // Call only after native adoption succeeds and before publishing its epoch.
+  // Foreign executors, ordinary hosts, repeats and any receive/broadcast use
+  // refuse without mutation. Does not hear a packet or activate transport.
+  // Preflight readiness before native adoption; no receive/broadcast/reentry
+  // may intervene before the allocation-free successful commit companion.
+  bool continuation_liveness_ready()const noexcept;
+  bool activate_continuation_liveness()noexcept;
 
 private:
   friend struct SourceHostContinuationAccess;
@@ -230,6 +241,23 @@ public:
   // live, while the enclosing adopter restores the matching scene/effect bank.
   std::unique_ptr<PreparedRebind> prepare_rebind_host(const AuthorityTransferContext &previous,
       const AuthorityTransferContext &next,const AuthorityCutSeal &,const MultiplayerSnapshotProof &)const;
+  // Pre-election exact-cut payload only. Rust validates the role-neutral
+  // descriptor; the native owner independently validates/copies this client's
+  // authenticated historical receipt once. No next endpoint is selected and
+  // can_commit_rebind_host refuses this value until explicit binding below.
+  std::unique_ptr<PreparedRebind> prepare_prospective_rebind(
+      const PeerProspectiveClientRole &,const MultiplayerSnapshotProof &)const;
+  // Current connection/cut ownership, not native/presentation/election Ready.
+  // Input sends may continue; replacing the connection or its couch IDs,
+  // revision, nonce/cookie, or retaining a live snapshot candidate refuses.
+  bool prospective_rebind_ready(const PreparedRebind &,const PeerProspectiveClientRole &)const noexcept;
+  // The caller first independently learns this exact certificate. Rust checks
+  // its role/context/cut metadata; it does not authenticate votes or authorize
+  // publication. Binding stores the successor context only, without another
+  // receipt copy, native call or allocation of a replacement payload. Refusal
+  // preserves the preparation; an identical binding is idempotent.
+  bool bind_prospective_rebind(PreparedRebind &,const PeerProspectiveClientRole &,
+      const PeerMigrationDecision &)const noexcept;
   bool can_commit_rebind_host(const PreparedRebind &)const noexcept;
   // Successful commit invalidates eligibility but leaves the caller's token
   // owning retired receive/state storage. Destroy it after locked publication.

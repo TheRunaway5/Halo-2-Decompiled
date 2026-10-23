@@ -7,15 +7,23 @@
 #include "halo2/native_player_profile.hpp"
 #include "halo2/source_execution_lens.hpp"
 #include "halo2/effect_presentation_history.hpp"
+#include "halo2/effect_sound.hpp"
 #include "halo2/source_foreground_world_handoff.hpp"
 #include "halo2/source_bsp_effect_lights.hpp"
 #include "halo2/model_selection.hpp"
 #include "halo2/cache.hpp"
 #include "halo2/mcc_sound_variation_provider.hpp"
+#include "halo2/multiplayer_audio.hpp"
+#include "helpers/source_peer_held_foreground.hpp"
+#ifdef HALO2_TAKEOVER_HELD_LENS_TEST
+#include "helpers/source_peer_held_lens.hpp"
+#endif
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <atomic>
+#include <bit>
 #include <chrono>
+#include <cmath>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -83,6 +91,127 @@ public:
     ~NativeBindingScratch(){std::error_code ignored;std::filesystem::remove_all(path_,ignored);}
     const std::filesystem::path &path()const{return path_;}
 };
+void native_audio_publication_controls(SourcePeerHostTakeover &takeover,
+    const std::shared_ptr<const Cache> &cache,const MccSoundVariationProvider &source_provider,
+    const MccSoundVariationProvider &target_provider,const std::shared_ptr<const Cache> &foreign_cache,
+    const std::shared_ptr<const Cache> &wrong_control_block,
+    const MccSoundVariationProvider::NativeBinding &released_binding) {
+    // Manual delivery still owns real queued SDL streams. The selected-MCC
+    // CTest supplies the dummy driver; direct execution must never open hardware.
+    const auto driver=std::getenv("SDL_AUDIODRIVER");
+    check(driver&&std::string_view(driver)=="dummy","Native Audio scope fixture requires the synthetic SDL dummy driver");
+    const SdlSoundPlatformConfiguration manual{SdlSoundPlatformConfiguration::Delivery::Manual,256,{}};
+    const auto sound=cache->query_tag({.handle=TagHandle{0xe268435bu},.group=TagGroup{"snd!"},.require_address=true});
+    check(sound&&sound->name.ends_with("mc_warthog_p_exit"),"Actual selected MCC native Audio sound fixture differs");
+    {
+        auto scope=takeover.hold_native_publication();
+        const auto binding=target_provider.native_binding(scope,cache);
+        // The invalid alias remains backed by both real Cache owners. It is
+        // an Audio negative operand, never a native factory or ownership proof.
+        for(const auto &invalid:{foreign_cache,wrong_control_block}){
+            MultiplayerAudio wrong(invalid,0x651d83f1u,manual);wrong.enroll_continuation();
+            const auto checkpoint=wrong.checkpoint();
+            rejects_native_publication([&]{(void)wrong.prepare_restore(checkpoint,binding);},"exact strong Cache owner");
+            check(checkpoint.voices()==0&&wrong.voices()==0,"Rejected target Cache ownership changed Audio playback");
+        }
+    }
+    std::vector<MultiplayerAudioSubmission> submitted;
+    MultiplayerAudio audio(cache,0x651d83f1u,manual,[&](const auto &packet){submitted.push_back(packet);});
+    audio.enroll_continuation();audio.bind_native_sound_metadata(source_provider);
+    const auto clock=audio.make_script_sound_clock();
+    audio.master_volume(.625f);
+    const auto original_voice=audio.play_impulse_receipt(sound->datum);
+    check(original_voice&&submitted.size()==1&&submitted.front().frames>1,
+        "Actual native metadata did not create a queued SDL voice");
+    (void)audio.render(std::min<std::size_t>(137,submitted.front().frames/2));audio.update();
+    const auto position=audio.playback_position(*original_voice);
+    const auto parameters=audio.voice_parameters(*original_voice);
+    const auto clock_rows=clock->rows();const auto checkpoint=audio.checkpoint();
+    check(checkpoint.voices()==1&&position.output_frames&&position.source_frames>0,
+        "Native Audio checkpoint omitted actual playing PCM consumption");
+    rejects_native_publication([&]{(void)audio.prepare_restore(checkpoint);},"genuine target metadata binding");
+    rejects_native_publication([&]{(void)audio.prepare_restore(checkpoint,MccSoundVariationProvider::NativeBinding{});},"current target binding");
+    rejects_native_publication([&]{(void)audio.prepare_restore(checkpoint,released_binding);},"current target binding");
+    struct Branch {std::vector<float> pcm;std::vector<MultiplayerAudioSubmission> packets;MultiplayerAudio::VoiceReceipt created;};
+    const auto branch=[&]{
+        Branch value;const auto first=submitted.size();value.pcm=audio.render(512);audio.update();
+        const auto next=audio.play_impulse_receipt(sound->datum,.8f);
+        check(bool(next),"Native Audio branch lost its actual subsequent cue");value.created=*next;
+        const auto tail=audio.render(4096);value.pcm.insert(value.pcm.end(),tail.begin(),tail.end());audio.update();
+        value.packets.assign(submitted.begin()+std::ptrdiff_t(first),submitted.end());audio.stop();return value;
+    };
+    const auto expected=branch();double audible{};
+    for(const auto sample:expected.pcm){check(std::isfinite(sample),"Native Audio branch emitted nonfinite PCM");audible=std::max(audible,std::abs(double(sample)));}
+    check(audible>0&&!expected.packets.empty(),"Native Audio reference branch did not actually mix and submit MCC PCM");
+    audio.master_volume(.125f);
+    MultiplayerAudio::PreparedReplacement expired;
+    MultiplayerAudio::PreparationIdentity expired_identity;
+    {
+        auto scope=takeover.hold_native_publication();
+        const auto binding=target_provider.native_binding(scope,cache);
+        expired=audio.prepare_restore(checkpoint,binding);expired_identity=expired.identity();
+        check(expired.for_audio(audio)&&expired.matches(expired_identity)&&expired.voices()==1,
+            "Genuine target metadata could not stage the saved playing Audio owner");
+    }
+    check(!expired.for_audio(audio)&&!expired.matches(expired_identity),
+        "Transferable Audio preparation retained native exclusion eligibility after scope retirement");
+    rejects_native_publication([&]{(void)audio.hold_publication(expired);},"stale, busy or foreign");
+    // The expired preparation holds no native/timing gate: a new genuine scope
+    // is admissible while the weak prepared value still exists.
+    {auto retry=takeover.hold_native_publication();check(retry.current(),"Weak Audio preparation retained a released native gate");}
+    expired=MultiplayerAudio::PreparedReplacement{};
+    MultiplayerAudio::PreparedReplacement prepared;
+    MultiplayerAudio::PreparationIdentity identity;
+    std::optional<MultiplayerAudio::VoiceReceipt> restored;
+    const auto physical=audio.mixed_frames();
+    {
+        auto scope=takeover.hold_native_publication();
+        const auto binding=target_provider.native_binding(scope,cache);
+        prepared=audio.prepare_restore(checkpoint,binding);identity=prepared.identity();restored=prepared.voice(*original_voice);
+        check(restored&&prepared.matches(identity)&&prepared.for_audio(audio),"Exact genuine target preparation lost its fresh voice mapping");
+        {
+            // Actual native -> timing -> SDL. Audio owns the timing/SDL holds;
+            // no synthetic current flag or reconstructed publication is used.
+            auto held=audio.hold_publication(prepared);
+            check(audio.ready(prepared,held)&&scope.current(),"Genuine native/timing/SDL Audio target was not ready");
+            rejects([&]{target_provider.require_current(*cache);});
+            rejects_native_publication([&]{audio.update();},"publication is held");
+            check(audio.begin_commit(prepared,held)&&audio.commit(prepared,held)&&prepared.published()&&prepared.matches(identity),
+                "Actual native-bound Audio did not publish its prepared playback state");
+            check(!audio.commit(prepared,held),"Actual native-bound Audio committed twice");
+        }
+        target_provider.require_current(*cache);
+    }
+    check(prepared.published()&&prepared.matches(identity)&&audio.mixed_frames()==physical,
+        "Committed Audio depended on a released temporary native scope or rewound physical output");
+    check(!audio.voice_active(*original_voice)&&!audio.voice_active(expected.created)&&audio.voice_active(*restored),
+        "Native target Audio revived old logical-ID receipts or lost the fresh playing voice");
+    const auto actual_position=audio.playback_position(*restored);
+    const auto actual_parameters=audio.voice_parameters(*restored);
+    check(actual_position.source_frames==position.source_frames&&actual_position.output_frames==position.output_frames&&
+        actual_position.first_device_frame==position.first_device_frame&&actual_position.first_presentation_frame==position.first_presentation_frame&&
+        !actual_position.first_resumed_device_frame&&actual_position.publication_epoch>position.publication_epoch,
+        "Native target Audio lost actual queued consumption history");
+    check(actual_parameters.relative_rate_bits==parameters.relative_rate_bits&&actual_parameters.volume_hundredths_db==parameters.volume_hundredths_db&&
+        actual_parameters.paused==parameters.paused&&actual_parameters.routes.size()==parameters.routes.size(),
+        "Native target Audio changed saved playback parameters");
+    for(unsigned i=0;i<parameters.routes.size();++i)check(actual_parameters.routes[i].pcm_channel==parameters.routes[i].pcm_channel&&
+        actual_parameters.routes[i].output_channel==parameters.routes[i].output_channel&&
+        std::bit_cast<std::uint32_t>(actual_parameters.routes[i].linear_gain)==std::bit_cast<std::uint32_t>(parameters.routes[i].linear_gain),
+        "Native target Audio changed exact saved route gains");
+    check(clock->rows()==clock_rows,"Native target Audio reset genuine script-clock metadata");
+    const auto replay=branch();check(replay.pcm.size()==expected.pcm.size()&&replay.packets.size()==expected.packets.size(),
+        "Native target Audio changed replay extent or actual selection count");
+    for(unsigned i=0;i<expected.pcm.size();++i)check(std::bit_cast<std::uint32_t>(replay.pcm[i])==std::bit_cast<std::uint32_t>(expected.pcm[i]),
+        "Native target Audio changed exact queued PCM replay");
+    for(unsigned i=0;i<expected.packets.size();++i){const auto &a=expected.packets[i],&b=replay.packets[i];
+        check(a.sound==b.sound&&a.voice==b.voice&&a.permutation==b.permutation&&a.pitch_range==b.pitch_range&&
+            a.frames==b.frames&&a.rng_before==b.rng_before&&a.rng_after==b.rng_after&&a.source_pitch_bits==b.source_pitch_bits,
+            "Native target metadata rebind reset actual Audio RNG/permutation/cue history");}
+    check(expected.created.id()==replay.created.id()&&!expected.created.same(replay.created),
+        "Native target Audio reused an outgoing cue's actual publication record");
+    std::cout<<"PASS actual native target Audio: strong Cache/control-block/default/stale-scope refusal, weak preparation retirement, genuine native/timing/SDL publication, playing voice/history/clock and exact PCM/RNG replay\n";
+}
 void native_publication_controls(SourcePeerHostTakeover &takeover,const MultiplayerOptions &options,
     const SourceAuthorityRetainedWorld &retained,const PeerMigrationDecision &decision,
     const std::shared_ptr<const Cache> &resident_cache,bool shared_cache_expected) {
@@ -126,7 +255,8 @@ void native_publication_controls(SourcePeerHostTakeover &takeover,const Multipla
     SourceExecutionInputs untracked_tape;
     SourceMatchAuthority authority(target.match,*objects);const auto before=authority.execution_boundary();
     // Deliberately INVALID negative operand: both real owners remain alive.
-    // This alias is never passed to any native read/factory or used as proof.
+    // This alias is never passed to a native factory or used as proof. The
+    // additive Audio control below uses it only as a live-backed negative.
     const std::shared_ptr<const Cache> wrong_control_block(foreign_cache,cache.get());
     MccSoundVariationProvider::NativeBinding released_binding;
     {
@@ -232,6 +362,10 @@ void native_publication_controls(SourcePeerHostTakeover &takeover,const Multipla
     {auto retry=takeover.hold_native_publication();check(retry.current() && retry.matches(*native,cache),
         "Released native scope did not permit an unchanged creator retry");}
     std::cout<<"PASS genuine native provider binding: actual same-Cache different-World timing owner rejection, exact creator-held timing, foreign/reentry/control-block refusal, weak release and retry\n";
+    native_audio_publication_controls(takeover,cache,same_cache_provider,provider,foreign_cache,wrong_control_block,released_binding);
+#ifdef HALO2_TAKEOVER_HELD_LENS_TEST
+    halo2::test::held_lens_controls(takeover,*disposable);
+#endif
     // A valid same-byte producer write changes real mutation evidence. Do
     // this only to the disposable target, preserving the activation target.
     auto *const disposable_native=&disposable->world().source_objects->tu15_world();
@@ -389,7 +523,7 @@ int main(int argc,char **argv)try{
     // below. Recapturing the host table after warmup would import fixture idle
     // time into its peers and change the migration/input survival control.
     auto fanout_publisher=std::make_unique<SourceAuthorityPublisher>(*original,*lan_host,
-        sessions[old_host],fanout_recipients,60s);
+        sessions[old_host],fanout_recipients);
     check(fanout_publisher->capture()&&!fanout_publisher->capture(),
         "Group publisher refused its cut or accepted overlapping capture");
     stage="encode native world";
@@ -438,6 +572,30 @@ int main(int argc,char **argv)try{
     }
     MultiplayerRuntimeAuthority runtime(recipient_options,resident,{},std::move(promoted),std::move(background));resident.reset();
     runtime.receive();
+    // Resolve declared pending CPU work before the expensive native fanout.
+    // Retain owning IDs/cues from this cache, never Xbox datums on MCC.
+    const auto [pending_effect,pending_cues]=[&]{
+        const auto &cache=*runtime.world().cache;const Tag *effect{};
+        for(const auto &tag:cache.select_tags({.group=tag_groups::effect,
+            .name="effects\\objects\\weapons\\rifle\\plasma_rifle\\upper_fire",.require_address=true,.minimum_size=1})){
+            check(!effect,"Pending cue fixture has ambiguous authored effect identity");effect=&tag;
+        }
+        check(effect,"Pending cue fixture lacks its resident authored plasma firing effect");
+        (void)cache.tag_payload(effect->handle());
+        auto cues=fixed_effect_sound_cues(cache,effect->datum);
+        check(!cues.empty(),"Pending cue fixture lost its actual authored sound schedule");
+        for(const auto &cue:cues){
+            const auto sound=cache.query_tag({.handle=TagHandle{cue.sound},.group=tag_groups::sound,
+                .require_address=true,.minimum_size=1});
+            check(sound,"Pending cue fixture references unavailable authored sound metadata");
+            (void)cache.tag_payload(sound->handle());
+        }
+        std::cout<<"MEASURE declared pending CPU sound fixture: effect="<<effect->name
+            <<" datum="<<std::hex<<effect->datum<<" first_sound="<<cues.front().sound<<std::dec
+            <<" authored_pending_cues="<<cues.size()<<'\n';
+        return std::pair{effect->datum,std::move(cues)};
+    }();
+    const auto pending_sound=pending_cues.front().sound;
     MultiplayerSnapshotOrigin candidate_origin,remote_origin;
     wait([&]{runtime.client()->receive();survivor.receive();
         for(const auto &origin:runtime.client()->received_origins())if(origin.tick()==paired.world.match.simulation.ticks)candidate_origin=origin;
@@ -447,6 +605,8 @@ int main(int argc,char **argv)try{
     recipient_options.menu_audio_update={};presentation_borrower.reset();
     check(borrowed_lifetime.expired(),"Native recovery recipe retained a presentation borrower");
     check(!runtime.prepare_takeover(),"Healthy runtime prepared an uncertified replacement");
+    check(!runtime.prepare_common_native({candidate,before,{}})&&!runtime.prepared_common_native(),
+        "A healthy runtime without an exact strong common pair imported an invented cut");
     if(selected_mcc){
         auto &live=runtime.world();const auto original_cache=live.cache;
         live.cache=remote_cache_owner;rejects([&]{(void)runtime.world();});
@@ -465,28 +625,50 @@ int main(int argc,char **argv)try{
     rejects([&]{runtime.begin_frame();});rejects([&]{runtime.service();});
     rejects([&]{runtime.suspend_publication();});
     rejects([&]{runtime.prepare_takeover();});
+    rejects([&]{runtime.prepare_common_native({candidate,before,{}});});
     const auto state=[&]{return receiver?receiver->state():*runtime.shadow_state();};
     const auto update=[&]{if(receiver)receiver->update();};
     const auto checkpoint=[&](auto ready){return receiver->checkpoint(ready);};
     wait([&]{if(receiver)receiver->warm();const auto s=state();check(s.error.empty(),s.error.c_str());return s.warmed&&s.workspace_warmed;},"Private recipient worlds did not warm");
-    const std::array<unsigned,1> targets{candidate};
     AuthorityCutSeal seal;
     std::optional<SourceAuthorityPublisherGroupCut> completed_fanout;
+    // Keep this independently admitted executor through any candidate repair.
+    // Its own native export, never a relabeled candidate proof, supplies the
+    // surviving client's exact-cut preparation metadata after election.
+    auto remote_receiver=std::make_unique<SourceAuthorityReceiver>(remote_options,SourceAuthorityStreamMode::Replay,
+        std::make_shared<Clock>(),std::make_shared<Clock>());
+    std::optional<SourceAuthorityRetainedWorld> remote_retained;
     {
         stage="independent paired publisher fanout admission";
-        SourceAuthorityReceiver remote_receiver(remote_options,SourceAuthorityStreamMode::Replay,
-            std::make_shared<Clock>(),std::make_shared<Clock>());
-        wait([&]{remote_receiver.warm();const auto s=remote_receiver.state();check(s.error.empty(),s.error.c_str());
+        wait([&]{remote_receiver->warm();const auto s=remote_receiver->state();check(s.error.empty(),s.error.c_str());
             return s.warmed&&s.workspace_warmed;},"Independent second recipient worlds did not warm");
         const auto recipients_mask=std::uint16_t((1u<<candidate)|(1u<<remote));
         auto &publisher=*fanout_publisher;
+        bool fanout_size_logged{};
         stage="candidate native ACK with delayed second recipient";
         wait([&]{publisher.update();update();const auto p=publisher.state();const auto c=state();
+            if(!p.error.empty())std::cerr<<"DIAGNOSTIC takeover candidate ACK: native_receipts="<<p.native_receipts
+                <<" validated_peers="<<p.pending_native_validated_peers<<" pending_group="<<bool(p.pending_group)
+                <<" seal_bytes="<<seal.bytes<<" payload_bytes="<<p.payload_bytes
+                <<" candidate_ready_bytes="<<(c.ready?c.ready->seal.bytes:0)
+                <<" candidate_delivered="<<sessions[old_host]->authority_delivered(candidate,before,seal)
+                <<" remote_delivered="<<sessions[old_host]->authority_delivered(remote,before,seal)
+                <<" received="<<c.received<<" prepared="<<c.prepared<<" decoding="<<c.decoding
+                <<" replaying="<<c.replaying<<" ready="<<bool(c.ready)<<" host_ready="<<c.host_ready
+                <<" error_present="<<!c.error.empty()<<'\n';
             check(p.error.empty(),p.error.c_str());check(c.error.empty(),c.error.c_str());
             if(p.pending_group){
                 check(p.pending_group->context==before&&p.pending_group->recipients==recipients_mask,
                     "Pending group relabeled its context or independent recipient set");
                 seal=p.pending_group->seal;
+                if(!fanout_size_logged){
+                    const AuthorityTransferLimits limits;
+                    std::cout<<"MEASURE paired native fanout: seal_bytes="<<seal.bytes
+                        <<" payload_bytes="<<p.payload_bytes<<" recipients="<<fanout_recipients.size()
+                        <<" bytes_per_second="<<limits.bytes_per_second<<" burst_bytes="<<limits.burst_bytes
+                        <<" idle_ms="<<limits.idle_ms<<" lifetime_ms="<<limits.lifetime_ms<<'\n';
+                    fanout_size_logged=true;
+                }
             }
             return seal.id&&c.ready&&c.ready->seal==seal&&c.host_ready&&p.native_receipts==1&&
                 sessions[old_host]->authority_delivered(remote,before,seal);
@@ -495,7 +677,7 @@ int main(int argc,char **argv)try{
         check(candidate_only.pending_group&&candidate_only.pending_group->seal==seal&&
             candidate_only.pending_native_validated_peers==std::uint16_t(1u<<candidate)&&
             !candidate_only.group_ready&&!candidate_only.ready&&candidate_only.validations==0&&
-            !remote_receiver.state().ready,
+            !remote_receiver->state().ready,
             "One native ACK or a byte-complete second peer fabricated group readiness");
         auto wrong_seal=seal;++wrong_seal.tick;
         auto wrong_context=before;++wrong_context.membership_revision;
@@ -513,11 +695,11 @@ int main(int argc,char **argv)try{
             after_duplicate.pending_native_validated_peers==std::uint16_t(1u<<candidate),
             "Duplicate/foreign ACKs completed or changed the delayed native group");
         stage="independent second paired native validation";
-        wait([&]{remote_receiver.update();publisher.update();const auto r=remote_receiver.state();const auto p=publisher.state();
+        wait([&]{remote_receiver->update();publisher.update();const auto r=remote_receiver->state();const auto p=publisher.state();
             check(r.error.empty(),r.error.c_str());check(p.error.empty(),p.error.c_str());
             return r.ready&&r.ready->seal==seal&&r.host_ready&&p.group_ready;
         },"Independent second recipient did not validate the exact common paired seal");
-        const auto c=state(),r=remote_receiver.state();const auto p=publisher.state();
+        const auto c=state(),r=remote_receiver->state();const auto p=publisher.state();
         check(c.ready&&r.ready&&c.host_proof&&r.host_proof&&
             c.ready->peer==candidate&&r.ready->peer==remote&&
             c.ready->context==before&&r.ready->context==before&&c.ready->seal==seal&&r.ready->seal==seal&&
@@ -541,12 +723,12 @@ int main(int argc,char **argv)try{
         rejects([&]{publisher.host_checkpoint(wrong_group);});
         wrong_group=*p.group_ready;++wrong_group.context.epoch;
         rejects([&]{publisher.host_checkpoint(wrong_group);});
-        {const auto remote_export=remote_receiver.checkpoint_paired(*r.ready);
+        {remote_retained=remote_receiver->checkpoint_paired(*r.ready);const auto &remote_export=*remote_retained;
             check(remote_export.cut.peer==remote&&remote_export.cut.context==before&&remote_export.cut.seal==seal&&
                 remote_export.host&&remote_export.local_views==sessions[remote]->local_slots()&&
                 remote_export.producer_views==sessions[old_host]->local_slots()&&
                 remote_export.admissions.players==admitted&&encode_source_authority(remote_export.checkpoint)==complete&&
-                remote_receiver.state().ready&&remote_receiver.state().ready->seal==seal&&remote_receiver.world(),
+                remote_receiver->state().ready&&remote_receiver->state().ready->seal==seal&&remote_receiver->world(),
                 "Nonterminal second-recipient export changed the cut, admissions, own views or live receiver");}
         if(receiver){const auto candidate_export=receiver->checkpoint_paired(*c.ready);
             check(candidate_export.cut.peer==candidate&&candidate_export.cut.seal==seal&&candidate_export.host&&
@@ -614,7 +796,9 @@ int main(int argc,char **argv)try{
     SourceCombatAttachments cpu_combat(*runtime.world().cache,cpu_world,{});
     EffectPresentationContinuity cpu_effects(cpu_muzzle,cpu_world,cpu_map,cpu_combat,effect_random);
     NativeEffectSounds pending_sounds(*runtime.world().cache);
-    pending_sounds.spawn(0xe4e0036bu,0x71370009u,{1,2,3});
+    pending_sounds.spawn(pending_effect,0x71370009u,{1,2,3});
+    check(pending_sounds.checkpoint().pending_count()==pending_cues.size(),
+        "Pending cue fixture did not retain its complete nonempty authored schedule");
     EffectPresentationHistory history(cpu_effects,pending_sounds,runtime.match().simulation(),2),
         longer(cpu_effects,pending_sounds,runtime.match().simulation(),4);
     rejects([&]{EffectPresentationHistory invalid(cpu_effects,0);});
@@ -643,12 +827,12 @@ int main(int argc,char **argv)try{
         frontier.world_effect_baseline=frontier.client_effect_baseline=true;
         frontier.device_events=NativeDeviceEventCursor(true);
         frontier.heard_prop_effects.insert(0x71370009u);frontier.attached_effect_objects.insert(0x51150009u);
-        frontier.firing_instances.emplace(std::pair<std::uint16_t,std::uint32_t>{9,0xe4e0036bu},
+        frontier.firing_instances.emplace(std::pair<std::uint16_t,std::uint32_t>{9,pending_effect},
             MultiplayerRuntimeFiringOwner{0x71370009u,0x51150009u,0x927a0009u});
         frontier.heard_shots[0]=origin.accepted_state().players[0].shot_tick;
         frontier.muzzle_pose_owners.push_back({0x71370009u,0x51150009u,0x927a0009u});
-        frontier.sounds.push_back({0xe4e1036cu,{4,5,6}});
-        frontier.weapon_sounds.emplace_back(0xe4e1036cu,0x71370009u);
+        frontier.sounds.push_back({pending_sound,{4,5,6}});
+        frontier.weapon_sounds.emplace_back(pending_sound,0x71370009u);
         return frontier;
     };
     auto initial_frontier=frontier_for(candidate_origin);
@@ -674,8 +858,11 @@ int main(int argc,char **argv)try{
     check(bound_runtime->current().tick==effect_tick&&bound_runtime->previous().tick==effect_tick&&
         bound_runtime->frontier().local_slots.size()==4&&bound_runtime->frontier().sounds.size()==1&&
         bound_runtime->frontier().weapon_sounds.size()==1&&
+        bound_runtime->frontier().sounds.front().datum==pending_sound&&
+        bound_runtime->frontier().weapon_sounds.front().first==pending_sound&&
+        bound_runtime->frontier().firing_instances.begin()->first.second==pending_effect&&
         bound_runtime->frontier().firing_instances.begin()->second.source==0x927a0009u&&
-        bound_runtime->frontier().pending_effect_sounds.pending_count()==1,
+        bound_runtime->frontier().pending_effect_sounds.pending_count()==pending_cues.size(),
         "Retained runtime frontier borrowed later caller values or lost pending work/full salts");
     const auto fresh_receipt=[&]{const auto prior=runtime.client()->received_origins().empty()?candidate_origin:runtime.client()->received_origins().back();
         lan_host->broadcast();MultiplayerSnapshotOrigin next;
@@ -751,7 +938,7 @@ int main(int argc,char **argv)try{
         "Context retirement retained stale history or invalidated the caller's owning checkpoint");
     check(!history.bind_runtime(*first_host_proof,*runtime.client())&&bound_runtime->current().tick==effect_tick&&
         bound_runtime->proof().matches(candidate_origin)&&bound_runtime->frontier().replica.matches(candidate_origin)&&
-        bound_runtime->frontier().pending_effect_sounds.pending_count()==1,
+        bound_runtime->frontier().pending_effect_sounds.pending_count()==pending_cues.size(),
         "Context retirement discarded a caller-owned runtime cut or retained stale binding eligibility");
     check(!reserved.valid()&&!history.bind_runtime(*first_host_proof,*runtime.client(),reserved)&&
         reserved_runtime->proof().matches(candidate_origin),
@@ -772,15 +959,41 @@ int main(int argc,char **argv)try{
             completed_fanout->recipients==std::uint16_t((1u<<candidate)|(1u<<remote)),
             "Original exact paired cut did not reach both native recipients and its producer");
         auto repair=paired;repair.serial=2;
-        seal=sessions[old_host]->publish_authority(before,original->execution_tick(),encode_source_host_continuation(repair),targets);
-        wait([&]{update();const auto s=state();check(s.error.empty(),s.error.c_str());return s.ready&&s.ready->seal==seal&&s.host_ready;},
-            "Native receiver did not repair its mutated private world");
+        seal=sessions[old_host]->publish_authority(before,original->execution_tick(),encode_source_host_continuation(repair),fanout_recipients);
+        wait([&]{update();remote_receiver->update();const auto s=state(),r=remote_receiver->state();
+            check(s.error.empty(),s.error.c_str());check(r.error.empty(),r.error.c_str());
+            return s.ready&&s.ready->seal==seal&&s.host_ready&&r.ready&&r.ready->seal==seal&&r.host_ready;},
+            "Independent native recipients did not validate the exact repaired paired cut");
         ready=*state().ready;
         check(encode_source_authority(checkpoint(ready))==complete,"Repaired native cut differs from its producer");
         check(state().host_proof&&state().host_proof->cut().seal==ready.seal&&
             first_host_proof->cut().seal!=ready.seal,"Later validation overwrote the owning historical proof");
         check_origins(*state().host_proof);check_origins(*first_host_proof);
     }
+    stage="retain independent surviving recipient cut";
+    const auto remote_native=remote_receiver->state();
+    check(remote_native.ready&&remote_native.ready->peer==remote&&remote_native.ready->context==before&&
+        remote_native.ready->seal==seal&&remote_native.host_ready&&remote_native.host_proof&&
+        remote_native.host_proof->cut().peer==remote&&remote_native.host_proof->cut().context==before&&
+        remote_native.host_proof->cut().seal==seal&&
+        remote_native.host_proof->prove_snapshot(survivor,remote_origin).matches(remote_origin),
+        "Surviving recipient lacks its own exact native paired proof after candidate repair");
+    remote_retained=remote_receiver->checkpoint_paired(*remote_native.ready);
+    std::optional<SourceAuthorityRetainedWorld> remote_quiesced;
+    wait([&]{remote_quiesced=remote_receiver->retain_validated_world();return bool(remote_quiesced);},
+        "Independent surviving recipient executor did not quiesce at its validated cut");
+    check(remote_retained&&remote_quiesced->cut.peer==remote_retained->cut.peer&&
+        remote_quiesced->cut.context==remote_retained->cut.context&&remote_quiesced->cut.seal==remote_retained->cut.seal&&
+        remote_quiesced->cut.peer==remote&&remote_quiesced->cut.context==before&&remote_quiesced->cut.seal==seal&&
+        remote_quiesced->host&&remote_retained->host&&
+        LanHost::encode_continuation(*remote_quiesced->host,{before,seal})==
+            LanHost::encode_continuation(*remote_retained->host,{before,seal})&&
+        remote_quiesced->local_views==sessions[remote]->local_slots()&&
+        remote_quiesced->producer_views==sessions[old_host]->local_slots()&&
+        remote_quiesced->admissions.players==admitted&&encode_source_authority(remote_quiesced->checkpoint)==complete,
+        "Quiesced surviving recipient changed its seal, native bytes, admissions or independent views");
+    remote_retained=std::move(remote_quiesced);remote_receiver.reset();
+    std::cout<<"PASS independent surviving recipient retention: exact final paired cut and own native proof, repaired fanout when required, quiesced executor with strong owning export\n";
     const auto migration_effect_cut=longer.bind(*state().host_proof,*runtime.client());
     const auto migration_runtime_cut=longer.bind_runtime(*state().host_proof,*runtime.client());
     const auto migration_host_proof=state().host_proof;
@@ -845,10 +1058,39 @@ int main(int argc,char **argv)try{
     const auto remote_decision=*sessions[remote]->peer_migration()->decision;
     check(decision.previous==remote_decision.previous&&decision.next==remote_decision.next&&decision.value==remote_decision.value&&
         decision.value.host==candidate&&decision.value.cut==seal,"Peers chose conflicting native authority or cuts");
+    stage="all-survivor exact-cut activation exclusion";
+    unsigned premature_publications{};
+    const auto premature_commit=[](void *count)noexcept{++*static_cast<unsigned *>(count);return true;};
+    for(const auto peer:fanout_recipients){
+        const auto agreement=sessions[peer]->peer_migration();const auto phase=sessions[peer]->phase();
+        check(agreement&&agreement->decision&&agreement->ready[candidate]==std::optional{seal}&&!agreement->ready[remote],
+            "Missing-survivor activation control already advertised remote native readiness");
+        check(!sessions[peer]->finish_peer_migration(*agreement->decision,premature_commit,&premature_publications)&&
+            !premature_publications&&sessions[peer]->phase()==phase&&sessions[peer]->authority_context()==before,
+            "A majority decision entered native publication before every survivor retained its exact cut");
+    }
+    check(remote_retained&&remote_retained->cut.peer==remote&&remote_retained->cut.context==decision.previous&&
+        remote_retained->cut.seal==decision.value.cut&&!sessions[remote]->prepare_peer_migration(retained->cut)&&
+        sessions[remote]->prepare_peer_migration(remote_retained->cut),
+        "Surviving recipient accepted another peer's proof or rejected its genuinely retained exact cut");
+    wait([&]{healthy();for(const auto peer:fanout_recipients){const auto agreement=sessions[peer]->peer_migration();
+        if(!agreement||!agreement->decision||agreement->ready[candidate]!=std::optional{seal}||
+            agreement->ready[remote]!=std::optional{seal})return false;}return true;},
+        "Every surviving session did not observe both independently retained exact-cut preparations");
+    std::cout<<"PASS all-survivor activation guard: majority decision alone invokes no native callback, genuine remote retained proof required, both exact preparations observed before activation\n";
     auto forged=decision;++forged.value.cut.tick;
+    // The direct-receiver route deliberately keeps its old frame outstanding
+    // for the later staging exclusion control. Quiescence is checked before
+    // certificates, so that route must reject the call rather than return false.
+    if(frame)rejects([&]{runtime.prepare_takeover(forged);});
+    else check(!runtime.prepare_takeover(forged),"Explicit wrong runtime certificate was admitted");
+    check(!runtime.pending_takeover()&&runtime.client()&&!runtime.host(),
+        "Rejected explicit runtime preparation changed native ownership");
     if(receiver)rejects([&]{receiver->prepare_peer_host_takeover(forged);});
     else rejects([&]{SourcePeerHostTakeover::prepare(recipient_options,*retained,forged);});
     check((!receiver||receiver->state().ready)&&sessions[candidate]->phase()==OnlineMatchSession::Phase::Migrating,"Rejected cut consumed the candidate or reopened media");
+    auto foreign_admissions=*retained;foreign_admissions.admissions.players.front().player^=1u;
+    rejects([&]{SourcePeerHostTakeover::prepare(recipient_options,foreign_admissions,decision,std::make_shared<Clock>());});
     stage="native takeover transaction";
     std::unique_ptr<SourcePeerHostTakeover> takeover;
     SourcePeerHostTakeover *prepared_owner{};
@@ -1005,6 +1247,8 @@ int main(int argc,char **argv)try{
     SourceBspEffectLights resident_models(*runtime.world().cache,effect_mesh,0,light_definitions,render_models);
     SourceBspEffectLights missing_models(*runtime.world().cache,effect_mesh,0,light_definitions);
     const auto frozen_materials=effect_mesh.materials.size();
+    if(selected_mcc)halo2::test::held_foreground_controls(*staged,*migration_runtime_cut,
+        runtime.world().cache,effect_mesh,source_particles,resident_models,frozen_materials);
     MultiplayerObjectRuntime *particle_route{},*model_route{};
     unsigned old_collision_calls{};
     const ParticleCollisionQuery old_collision=[&](auto,auto,auto)->std::optional<ParticleCollisionHit>{++old_collision_calls;return {};};
@@ -1134,6 +1378,15 @@ int main(int argc,char **argv)try{
     const auto heartbeat=[&]{
         std::array<Controls,16> idle_controls{};
         survivor.send(neutral);runtime.host()->receive(idle_controls);runtime.host()->broadcast();survivor.receive();
+        if(runtime.host()->peers()!=1||!survivor.error().empty()){
+            const auto removal=runtime.host()->last_peer_removal();
+            std::cerr<<"DIAGNOSTIC post-rebind heartbeat: peers="<<runtime.host()->peers()
+                <<" client_error_present="<<!survivor.error().empty()<<" removal_present="<<bool(removal);
+            if(removal)std::cerr<<" idle_timeout="<<(removal->reason==LanHost::PeerRemovalReason::idle_timeout)
+                <<" idle_age_ns="<<removal->idle_age_ns<<" accepted_inputs="<<removal->input_acceptances
+                <<" last_input_age_ns="<<removal->last_accepted_input_age_ns.value_or(-1);
+            std::cerr<<'\n';
+        }
         check(runtime.host()->peers()==1&&survivor.error().empty(),"Native peer expired during serviced background warmup");
         check(runtime.match().simulation().ticks()==warm_tick&&staged->local().received_presses==warm_received&&
             staged->local().delivered_presses==warm_delivered,"Background heartbeat stepped the world or consumed carried local input");

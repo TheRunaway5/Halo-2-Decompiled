@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <bit>
 #include <cstring>
+#include <limits>
 #include <set>
 #include <unistd.h>
 namespace halo2 {
@@ -19,9 +20,10 @@ template<class T>T read(const SourceRuntimeMemory &memory,NativeRuntimeAddress b
 }
 }
 CampaignSourceRuntime::CampaignSourceRuntime(const Cache &cache,std::size_t bsp,
-    unsigned difficulty,std::uint32_t seed):CampaignSourceRuntime(cache,{},bsp,difficulty,seed) {}
+    unsigned difficulty,std::uint32_t seed,std::optional<std::uint32_t> auxiliary):
+    CampaignSourceRuntime(cache,{},bsp,difficulty,seed,auxiliary) {}
 CampaignSourceRuntime::CampaignSourceRuntime(const Cache &cache,const std::filesystem::path &xbe,
-    std::size_t bsp,unsigned difficulty,std::uint32_t seed) {
+    std::size_t bsp,unsigned difficulty,std::uint32_t seed,std::optional<std::uint32_t> auxiliary) {
   if(!cache.original_data() || cache.original_data()->image!=OriginalData::Image::TitleUpdate15 || difficulty>3)
     throw FormatError("Campaign source ownership requires TU1.5 gameplay constants and difficulty 0..3");
   auto name=(std::filesystem::temp_directory_path()/"halo2-campaign-XXXXXX").string();
@@ -32,7 +34,37 @@ CampaignSourceRuntime::CampaignSourceRuntime(const Cache &cache,const std::files
         std::make_unique<MultiplayerObjectRuntime>(xbe,cache,bsp,files_);
     auto &world=objects_->tu15_world();world.initialize_map();
     world.configure_campaign_session(std::int16_t(difficulty),1,30,seed);
+    if(auxiliary) {
+      // configure_session owns the primary seed.146240 owns the independent
+      // auxiliary word; declare its input before any scenario factory runs.
+      // Use the ordinary external-input journal and its fault/owner boundary.
+      auto &memory=objects_->memory();
+      const auto random=Bytes(memory.view(0x4f3cd8u,4)).u32(0);
+      if(!random || random>std::numeric_limits<std::uint32_t>::max()-8u)
+        throw FormatError("Campaign reference capture has no complete original RNG owner");
+      memory.view(random,8);
+      world.write_source_call_input(random+4u,std::as_bytes(std::span(&*auxiliary,1)));
+      if(Bytes(memory.view(random+4u,4)).u32(0)!=*auxiliary)
+        throw FormatError("Campaign reference auxiliary seed was not delivered to its source owner");
+    }
   } catch(...) {std::error_code ec;std::filesystem::remove_all(files_,ec);throw;}
+}
+CampaignSourceRuntime::ReferenceState CampaignSourceRuntime::reference_state()const {
+  ReferenceState result;
+  auto &memory=objects_->memory();
+  const auto options=Bytes(memory.view(0x4f3218u,4)).u32(0);
+  if(!options)throw FormatError("Campaign reference capture lost its game-options owner");
+  result.game_options_seed=Bytes(memory.view(options,0x1c)).u32(0x18);
+  result.random_address=Bytes(memory.view(0x4f3cd8u,4)).u32(0);
+  if(!result.random_address)throw FormatError("Campaign reference capture lost its RNG owner");
+  const Bytes random(memory.view(result.random_address,8));
+  result.random_words={random.u32(0),random.u32(4)};
+  const auto native_clock=objects_->source_clock();
+  if(native_clock.is_null())throw FormatError("Campaign reference capture lost its source clock owner");
+  const auto clock=memory.view(native_clock,result.clock.size());
+  result.clock_address=memory.source_address(native_clock,result.clock.size());
+  std::copy(clock.begin(),clock.end(),result.clock.begin());
+  return result;
 }
 CampaignSourceRuntime::~CampaignSourceRuntime() {
   objects_.reset();std::error_code ec;std::filesystem::remove_all(files_,ec);

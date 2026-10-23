@@ -1,5 +1,8 @@
 //! EOS state and admission policy, with generated CXX ownership at the SDK ABI.
-use crate::{ffi, eos_config::configuration};
+use crate::{eos_config::configuration, ffi};
+use halo2_online_protocol::eos_account_auth::{
+    AccountAuth, Command, LoginResult, RequestKind, Response, SdkAction,
+};
 use halo2_online_protocol::eos_wire::{self, Reassembly};
 use std::{
     collections::{BTreeMap, BTreeSet, VecDeque},
@@ -41,6 +44,7 @@ pub struct EosTransport {
     invited: BTreeSet<u8>,
     invitations: VecDeque<(String, String)>,
     last_invite_query: Option<u64>,
+    account: Option<AccountAuth>,
 }
 
 fn valid_id(value: &str) -> bool {
@@ -60,7 +64,8 @@ fn key(value: &str) -> Result<[u8; 32], Error> {
     Ok(result)
 }
 /// Short-lived proprietary OpenID credential from the authenticated master.
-/// This identity is separate from each PC's anonymous P2P transport identity.
+/// Profile lookup uses a short-lived platform; account-bound match transport
+/// separately authenticates this account and proves its identity to the room.
 pub fn eos_account_identity(token: &str) -> Result<ffi::EosIdentity, Error> {
     if token.is_empty() || token.len() > 8192 || token.bytes().any(|b| b <= 32 || b == 127) {
         return Err("Invalid EOS account credential".into());
@@ -99,37 +104,6 @@ pub fn eos_account_identity(token: &str) -> Result<ffi::EosIdentity, Error> {
         std::thread::sleep(std::time::Duration::from_millis(2));
     }
     Err("EOS account sign-in timed out".into())
-}
-
-#[cfg(test)]
-mod lifetime_tests {
-    use super::*;
-
-    // Reaches the actual SDK adapter used by profile login followed by a match.
-    // Ordinary offline tests must not need credentials or the proprietary SDK.
-    #[test]
-    #[ignore = "requires the licensed EOS SDK and a private untrusted client configuration"]
-    fn sdk_platforms_survive_release_and_recreation() {
-        assert!(ffi::eos_sdk_available(), "The official EOS SDK is required");
-        let mut config = configuration().expect("Private client configuration");
-        let cache = std::path::PathBuf::from(&config.cache);
-        let mut platform = |name: &str| {
-            let path = cache.join(name);
-            std::fs::create_dir_all(&path).expect("Owned cache directory");
-            config.cache = path.to_string_lossy().into_owned();
-            ffi::new_raw_eos(&config).expect("EOS platform recreation must remain available")
-        };
-        drop(platform("profile"));
-        drop(platform("first-match"));
-        let active_match = platform("active-match");
-        assert!(!ffi::sdk_process_shutdown(), "An active match must retain its SDK");
-        drop(platform("concurrent-profile"));
-        drop(platform("replacement-profile"));
-        drop(active_match);
-        drop(platform("next-match"));
-        assert!(ffi::sdk_process_shutdown(), "Finalize before static destruction");
-        assert!(ffi::sdk_process_shutdown(), "Shutdown is idempotent");
-    }
 }
 
 pub fn new_eos_transport(
@@ -208,7 +182,121 @@ pub fn new_eos_transport(
         invited: BTreeSet::new(),
         invitations: VecDeque::new(),
         last_invite_query: None,
+        account: None,
     }))
+}
+
+/// The authenticated match path never creates or logs in an anonymous DeviceID.
+pub fn new_eos_account_transport(
+    self_slot: u8,
+    rows: Vec<ffi::EosPeer>,
+    socket: &str,
+    force_relay: bool,
+    session: ffi::EosSession,
+) -> Result<Box<EosTransport>, Error> {
+    let mut transport = new_eos_transport(self_slot, rows, socket, force_relay, session)?;
+    transport.account = Some(AccountAuth::new(0));
+    Ok(transport)
+}
+
+fn elapsed(t: &EosTransport) -> u64 {
+    t.started.elapsed().as_millis().min(u64::MAX as u128) as u64
+}
+
+fn platform(t: &mut EosTransport) -> Result<(), Error> {
+    if t.raw.is_null() {
+        t.raw = ffi::new_raw_eos(&t.config)?;
+        if t.account.is_none() {
+            t.raw.pin_mut().sdk_device()?;
+        }
+    }
+    Ok(())
+}
+
+fn admit_local(t: &mut EosTransport, user: &str) -> Result<(), Error> {
+    if !valid_id(user) || t.peers.values().any(|peer| peer.user == user) {
+        return Err("Invalid local EOS identity".into());
+    }
+    if t.local.is_empty() {
+        t.raw.pin_mut().sdk_socket(&t.socket, t.force)?;
+        t.local = user.to_owned();
+        t.signals = t
+            .peers
+            .keys()
+            .map(|&peer| ffi::EosSignal {
+                peer,
+                user: t.local.clone(),
+            })
+            .collect();
+    } else if t.local != user {
+        return Err("EOS identity changed on refresh".into());
+    }
+    Ok(())
+}
+
+pub fn eos_auth_request(t: &mut EosTransport) -> Result<ffi::EosAuthRequest, Error> {
+    let now = elapsed(t);
+    let request = match &mut t.account {
+        Some(account) => account.request(now)?,
+        None => None,
+    };
+    Ok(match request {
+        Some(request) => ffi::EosAuthRequest {
+            kind: request.kind as u8,
+            ticket: request.ticket,
+            token: request.token,
+            user: request.user,
+        },
+        None => ffi::EosAuthRequest {
+            kind: 0,
+            ticket: 0,
+            token: String::new(),
+            user: String::new(),
+        },
+    })
+}
+
+pub fn eos_auth_bound(t: &EosTransport) -> bool {
+    t.account.as_ref().is_some_and(AccountAuth::admitted)
+}
+
+pub fn eos_auth_complete(
+    t: &mut EosTransport,
+    response: &ffi::EosAuthResponse,
+) -> Result<bool, Error> {
+    let kind = match response.kind {
+        1 => RequestKind::IssuerToken,
+        2 => RequestKind::IdentityProof,
+        _ => return Ok(false),
+    };
+    let now = elapsed(t);
+    let Some(account) = &mut t.account else {
+        return Ok(false);
+    };
+    let completion = account.complete(
+        Response {
+            kind,
+            ticket: response.ticket,
+            status: response.status,
+            ok: response.ok,
+            token: &response.token,
+            user: &response.user,
+            expires_in: response.expires_in,
+        },
+        now,
+    )?;
+    match completion.command {
+        Command::None => {}
+        Command::ExternalLogin(token) => {
+            platform(t)?;
+            t.raw.pin_mut().sdk_external_login(&token)?;
+        }
+        Command::Admitted => {
+            let user = account.user().to_owned();
+            admit_local(t, &user)?;
+        }
+    }
+    Ok(completion.accepted)
 }
 
 pub fn eos_signal(transport: &mut EosTransport, slot: u8, user: &str) -> Result<(), Error> {
@@ -232,39 +320,50 @@ pub fn eos_signal(transport: &mut EosTransport, slot: u8, user: &str) -> Result<
     Ok(())
 }
 pub fn eos_tick(t: &mut EosTransport) -> Result<(), Error> {
-    if t.raw.is_null() {
-        t.raw = ffi::new_raw_eos(&t.config)?;
-        t.raw.pin_mut().sdk_device()?;
-    }
-    let now = t.started.elapsed().as_millis().min(u64::MAX as u128) as u64;
-    if t.local.is_empty() && now > 30000 {
+    platform(t)?;
+    let now = elapsed(t);
+    if let Some(account) = &mut t.account {
+        account.tick(now)?;
+    } else if t.local.is_empty() && now > 30000 {
         return Err("EOS sign-in timed out".into());
     }
     for event in t.raw.pin_mut().sdk_poll()? {
         if event.kind != 8 && std::env::var_os("H2_EOS_DIAGNOSTICS").is_some() {
             eprintln!("EOS event kind={} result={}", event.kind, event.code);
         }
+        if let Some(account) = &mut t.account {
+            match event.kind {
+                1 => return Err("Unexpected anonymous EOS login event".into()),
+                2 | 3 => {
+                    let result = match event.code {
+                        0 => LoginResult::Success,
+                        2 => LoginResult::InvalidUser,
+                        _ => LoginResult::Failed,
+                    };
+                    match account.sdk_login_result(event.kind == 3, result, &event.user, now)? {
+                        SdkAction::CreateInitialUser => t.raw.pin_mut().sdk_create_user()?,
+                        SdkAction::CopyIdentityProof => {
+                            let proof = t.raw.sdk_id_token()?;
+                            account.identity_proof(&proof, now)?;
+                        }
+                    }
+                    continue;
+                }
+                7 => {
+                    account.auth_expiration(now)?;
+                    continue;
+                }
+                _ => {}
+            }
+            if !account.admitted() {
+                continue;
+            }
+        }
         match event.kind {
             1 if event.code == 0 || event.code == 1 => t.raw.pin_mut().sdk_login()?,
             2 if event.code == 2 => t.raw.pin_mut().sdk_create_user()?,
             2 | 3 if event.code == 0 => {
-                if !valid_id(&event.user) || t.peers.values().any(|p| p.user == event.user) {
-                    return Err("Invalid local EOS identity".into());
-                }
-                if t.local.is_empty() {
-                    t.local = event.user;
-                    t.raw.pin_mut().sdk_socket(&t.socket, t.force)?;
-                    t.signals = t
-                        .peers
-                        .keys()
-                        .map(|&peer| ffi::EosSignal {
-                            peer,
-                            user: t.local.clone(),
-                        })
-                        .collect();
-                } else if t.local != event.user {
-                    return Err("EOS identity changed on refresh".into());
-                }
+                admit_local(t, &event.user)?;
             }
             1..=3 => return Err(format!("EOS sign-in failed (SDK result {})", event.code).into()),
             7 => t.raw.pin_mut().sdk_login()?,
@@ -306,10 +405,14 @@ pub fn eos_tick(t: &mut EosTransport) -> Result<(), Error> {
                     // Remember the request, but grant nothing until that PUID
                     // is bound to an admitted physical slot by eos_signal.
                     if event.kind == 4 && valid_id(&event.user) {
-                        if t.pending_requests.len() >= 32 {
-                            if let Some(oldest) = t.pending_requests.iter().min_by_key(|(_, at)| *at).map(|(user, _)| user.clone()) {
-                                t.pending_requests.remove(&oldest);
-                            }
+                        if t.pending_requests.len() >= 32
+                            && let Some(oldest) = t
+                                .pending_requests
+                                .iter()
+                                .min_by_key(|(_, at)| *at)
+                                .map(|(user, _)| user.clone())
+                        {
+                            t.pending_requests.remove(&oldest);
                         }
                         t.pending_requests.insert(event.user, now);
                     }
@@ -353,14 +456,14 @@ pub fn eos_tick(t: &mut EosTransport) -> Result<(), Error> {
                                 && peer.session_joined
                                 && (t.self_slot != t.session_owner || peer.registered)) =>
                     {
-                        if let Some(data) = peer.reader.receive(&event.data, now) {
-                            if t.packets.len() < 512 {
-                                t.packets.push_back(ffi::EosPacket {
-                                    present: true,
-                                    peer: slot,
-                                    data,
-                                });
-                            }
+                        if let Some(data) = peer.reader.receive(&event.data, now)
+                            && t.packets.len() < 512
+                        {
+                            t.packets.push_back(ffi::EosPacket {
+                                present: true,
+                                peer: slot,
+                                data,
+                            });
                         }
                     }
                     _ => {}
@@ -369,7 +472,14 @@ pub fn eos_tick(t: &mut EosTransport) -> Result<(), Error> {
             _ => {}
         }
     }
-    t.pending_requests.retain(|_, at| now.saturating_sub(*at) <= 30000);
+    if t.account
+        .as_ref()
+        .is_some_and(|account| !account.admitted())
+    {
+        return Ok(());
+    }
+    t.pending_requests
+        .retain(|_, at| now.saturating_sub(*at) <= 30000);
     for peer in t.peers.values_mut() {
         if !peer.user.is_empty() && t.pending_requests.remove(&peer.user).is_some() {
             peer.accepted = t.raw.pin_mut().sdk_accept(&peer.user);
@@ -483,7 +593,8 @@ pub fn eos_signals(t: &mut EosTransport) -> Vec<ffi::EosSignal> {
     std::mem::take(&mut t.signals)
 }
 pub fn eos_ready(t: &EosTransport, peer: u8) -> bool {
-    t.session_ready
+    t.account.as_ref().is_none_or(AccountAuth::admitted)
+        && t.session_ready
         && t.peers.get(&peer).is_some_and(|p| {
             p.ready
                 && (!t.session.enabled
@@ -516,4 +627,203 @@ pub fn eos_receive(t: &mut EosTransport) -> ffi::EosPacket {
         peer: 0,
         data: vec![],
     })
+}
+
+#[cfg(test)]
+mod account_tests {
+    use super::*;
+
+    const USER: &str = "0123456789abcdef0123456789abcdef";
+    const OTHER: &str = "1123456789abcdef0123456789abcdef";
+
+    fn offline_transport() -> EosTransport {
+        EosTransport {
+            config: ffi::EosConfig {
+                product: String::new(),
+                sandbox: String::new(),
+                deployment: String::new(),
+                client: String::new(),
+                secret: String::new(),
+                cache: String::new(),
+            },
+            raw: cxx::UniquePtr::null(),
+            self_slot: 0,
+            peers: BTreeMap::new(),
+            socket: "a".repeat(32),
+            force: false,
+            local: String::new(),
+            signals: vec![],
+            packets: VecDeque::new(),
+            pending_requests: BTreeMap::new(),
+            sequence: 0,
+            started: Instant::now(),
+            last_hello: 0,
+            session: ffi::EosSession {
+                enabled: false,
+                playlist: String::new(),
+                revision: String::new(),
+                map: String::new(),
+                variant: String::new(),
+            },
+            session_owner: 0,
+            session_started: false,
+            session_ready: true,
+            session_joining: false,
+            invited: BTreeSet::new(),
+            invitations: VecDeque::new(),
+            last_invite_query: None,
+            account: Some(AccountAuth::new(0)),
+        }
+    }
+
+    fn prepare_proof(t: &mut EosTransport) -> ffi::EosAuthRequest {
+        let account = t.account.as_mut().unwrap();
+        let request = account.request(0).unwrap().unwrap();
+        account
+            .complete(
+                Response {
+                    kind: request.kind,
+                    ticket: request.ticket,
+                    status: 200,
+                    ok: true,
+                    token: "issuer.jwt",
+                    user: "",
+                    expires_in: 120,
+                },
+                0,
+            )
+            .unwrap();
+        account
+            .sdk_login_result(false, LoginResult::Success, USER, 0)
+            .unwrap();
+        account.identity_proof("actual.sdk.proof", 0).unwrap();
+        eos_auth_request(t).unwrap()
+    }
+
+    #[test]
+    fn account_http_request_boundary_is_single_dispatch_and_stale_safe_without_sdk() {
+        let mut t = offline_transport();
+        let request = eos_auth_request(&mut t).unwrap();
+        assert_eq!(request.kind, 1);
+        assert_ne!(request.ticket, 0);
+        assert!(request.token.is_empty() && request.user.is_empty());
+        assert_eq!(eos_auth_request(&mut t).unwrap().kind, 0);
+        let wrong = ffi::EosAuthResponse {
+            kind: 2,
+            ticket: request.ticket,
+            status: 200,
+            ok: true,
+            token: String::new(),
+            user: USER.to_owned(),
+            expires_in: 0,
+        };
+        assert!(!eos_auth_complete(&mut t, &wrong).unwrap());
+        assert!(!eos_auth_bound(&t));
+        assert!(t.raw.is_null() && eos_signals(&mut t).is_empty());
+        let failed = ffi::EosAuthResponse {
+            kind: 1,
+            ticket: request.ticket,
+            status: 200,
+            ok: false,
+            token: String::new(),
+            user: String::new(),
+            expires_in: 0,
+        };
+        assert!(eos_auth_complete(&mut t, &failed).is_err());
+        assert!(!eos_auth_bound(&t) && t.raw.is_null());
+    }
+
+    #[test]
+    fn proof_payload_and_wrong_server_ack_cannot_publish_identity_or_socket() {
+        let mut t = offline_transport();
+        let proof = prepare_proof(&mut t);
+        assert_eq!(proof.kind, 2);
+        assert_eq!(proof.token, "actual.sdk.proof");
+        assert_eq!(proof.user, USER);
+        assert!(!eos_auth_bound(&t));
+        assert!(eos_signals(&mut t).is_empty());
+        let ack = ffi::EosAuthResponse {
+            kind: 2,
+            ticket: proof.ticket,
+            status: 200,
+            ok: true,
+            token: String::new(),
+            user: OTHER.to_owned(),
+            expires_in: 0,
+        };
+        assert!(eos_auth_complete(&mut t, &ack).is_err());
+        assert!(!eos_auth_bound(&t));
+        assert!(t.local.is_empty() && t.raw.is_null() && eos_signals(&mut t).is_empty());
+    }
+
+    #[test]
+    fn authenticated_peer_identity_can_arrive_early_but_self_alias_refuses_before_sdk_socket() {
+        let mut t = offline_transport();
+        t.peers.insert(
+            1,
+            Peer {
+                key: [0; 32],
+                user: String::new(),
+                accepted: false,
+                ready: false,
+                failed: false,
+                relayed: false,
+                session_joined: false,
+                registration_requested: false,
+                registered: false,
+                reader: Reassembly::default(),
+            },
+        );
+        eos_signal(&mut t, 1, USER).unwrap();
+        assert!(t.local.is_empty() && t.raw.is_null());
+        let proof = prepare_proof(&mut t);
+        let ack = ffi::EosAuthResponse {
+            kind: 2,
+            ticket: proof.ticket,
+            status: 200,
+            ok: true,
+            token: String::new(),
+            user: USER.to_owned(),
+            expires_in: 0,
+        };
+        assert!(eos_auth_complete(&mut t, &ack).is_err());
+        assert!(t.raw.is_null() && t.local.is_empty() && eos_signals(&mut t).is_empty());
+    }
+}
+
+#[cfg(test)]
+mod lifetime_tests {
+    use super::*;
+
+    // Reaches the actual SDK adapter used by profile login followed by a match.
+    // Ordinary offline tests must not need credentials or the proprietary SDK.
+    #[test]
+    #[ignore = "requires the licensed EOS SDK and a private untrusted client configuration"]
+    fn sdk_platforms_survive_release_and_recreation() {
+        assert!(ffi::eos_sdk_available(), "The official EOS SDK is required");
+        let mut config = configuration().expect("Private client configuration");
+        let cache = std::path::PathBuf::from(&config.cache);
+        let mut platform = |name: &str| {
+            let path = cache.join(name);
+            std::fs::create_dir_all(&path).expect("Owned cache directory");
+            config.cache = path.to_string_lossy().into_owned();
+            ffi::new_raw_eos(&config).expect("EOS platform recreation must remain available")
+        };
+        drop(platform("profile"));
+        drop(platform("first-match"));
+        let active_match = platform("active-match");
+        assert!(
+            !ffi::sdk_process_shutdown(),
+            "An active match must retain its SDK"
+        );
+        drop(platform("concurrent-profile"));
+        drop(platform("replacement-profile"));
+        drop(active_match);
+        drop(platform("next-match"));
+        assert!(
+            ffi::sdk_process_shutdown(),
+            "Finalize before static destruction"
+        );
+        assert!(ffi::sdk_process_shutdown(), "Shutdown is idempotent");
+    }
 }

@@ -1,4 +1,6 @@
 #pragma once
+#include "halo2/peer_authority_transfer.hpp"
+#include "halo2/source_match_authority.hpp"
 #include <memory>
 #include <thread>
 
@@ -8,6 +10,8 @@ class PhysicsLiveWorldTu15;
 class MultiplayerPreparedWorld;
 class SourcePeerHostTakeover;
 class MccSoundVariationProvider;
+class SourceForegroundWorldHandoff;
+class SourceLensPresentationHandoffTu15;
 
 // Current-target native exclusion minted only by an actual owning takeover.
 // It is neither a replacement bank nor a session/decision/readiness proof.
@@ -17,7 +21,27 @@ class MccSoundVariationProvider;
 // Retention prevents normal outer-wrapper/drop teardown. It does not make an
 // escaped target.source_objects.reset() or Cache-slot replacement safe.
 class SourceNativePublication {
+    struct Owner;
+    struct State;
 public:
+    // A weak witness of one actual publication scope's sealed source boundary.
+    // It owns no target and proves neither a decision nor complete readiness.
+    // Reacquiring a different scope never revives a released witness.
+    class Boundary {
+    public:
+        Boundary()=default;
+        bool current()const noexcept;
+        bool same_scope(const Boundary &)const noexcept;
+    private:
+        explicit Boundary(const std::shared_ptr<State> &);
+        bool matches_prepared(const MultiplayerPreparedWorld &,
+            const std::shared_ptr<const Cache> &,const ValidatedAuthorityCut &,
+            const SourceMatchAuthority::ExecutionBoundary &)const noexcept;
+        std::weak_ptr<State> state_;
+        friend class SourceNativePublication;
+        friend class SourceForegroundWorldHandoff;
+        friend class SourceLensPresentationHandoffTu15;
+    };
     // Destruction and final retained-state retirement belong to the creator.
     // Foreign destruction terminates before touching gates or storage. Drop
     // this wrapper only outside SDL; future timing holders must release their
@@ -33,13 +57,13 @@ public:
     bool current()const noexcept;
     bool matches(const PhysicsLiveWorldTu15 &,
         const std::shared_ptr<const Cache> &)const noexcept;
+    Boundary boundary()const;
 private:
-    struct Owner;
-    struct State;
     explicit SourceNativePublication(std::shared_ptr<State>);
     // Only the trusted private factory path supplies this real shared target,
     // formed by moving its unique owner before exposing mutable references.
-    static std::shared_ptr<Owner> make_owner(std::shared_ptr<MultiplayerPreparedWorld>);
+    static std::shared_ptr<Owner> make_owner(std::shared_ptr<MultiplayerPreparedWorld>,
+        const ValidatedAuthorityCut &);
     static SourceNativePublication acquire(const std::shared_ptr<Owner> &);
     static void close_owner(const std::shared_ptr<Owner> &)noexcept;
     static bool owner_available(const std::shared_ptr<Owner> &)noexcept;

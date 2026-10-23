@@ -1,5 +1,7 @@
 #include "halo2/math.hpp"
 #include "halo2/model.hpp"
+#include "halo2/model_skin_submission.hpp"
+#include "halo2/model_skin_gpu_admission.hpp"
 #include "halo2/model_interpolation.hpp"
 #include "halo2/render_interpolation.hpp"
 #include <glm/gtc/quaternion.hpp>
@@ -234,7 +236,7 @@ SampledSkeleton sample_skeleton(const RenderModel &model,
     resolve(i);
   return {std::move(world), std::move(mapping)};
 }
-std::vector<Vertex> skin_model(const RenderModel &model,
+std::vector<std::array<float,12>> skin_palette(const RenderModel &model,
                                const std::vector<Transform> &world,
                                const std::vector<int> &mapping) {
   if (model.skin.size() != model.mesh.vertices.size() ||
@@ -255,7 +257,10 @@ std::vector<Vertex> skin_model(const RenderModel &model,
   //1376C0 composes the original Transform bank before flattening its rows.
   auto skin=source_model_skin_palette(model_world,inverse);
   append_source_model_compounds(skin,model.compound_nodes);
-  auto vertices = model.mesh.vertices;
+  return skin;
+}
+void finish_skin(const RenderModel &model,std::vector<Vertex> &vertices,
+                 std::span<const std::array<float,12>> skin) {
   const auto *reference=std::getenv("HALO2_REFERENCE_SCALAR_SKINNING");
   skin_model_vertices(vertices,model.skin,skin,!(reference && *reference));
   if(const auto *verify=std::getenv("HALO2_VERIFY_SIMD_SKINNING");verify && *verify) {
@@ -264,6 +269,13 @@ std::vector<Vertex> skin_model(const RenderModel &model,
     if(!vertices.empty() && std::memcmp(vertices.data(),expected.data(),vertices.size()*sizeof(Vertex)))
       throw FormatError("SIMD skin differs from complete original scalar posed vertices");
   }
+}
+std::vector<Vertex> skin_model(const RenderModel &model,
+                               const std::vector<Transform> &world,
+                               const std::vector<int> &mapping) {
+  auto skin=skin_palette(model,world,mapping);
+  auto vertices=model.mesh.vertices;
+  finish_skin(model,vertices,skin);
   return vertices;
 }
 std::vector<Transform> model_order_nodes(const SampledSkeleton &pose) {
@@ -276,6 +288,26 @@ std::vector<Transform> model_order_nodes(const SampledSkeleton &pose) {
   return nodes;
 }
 } // namespace
+std::vector<std::array<float,12>> model_skin_world_palette(const RenderModel &model,
+                                                        std::span<const Transform> nodes) {
+  if(nodes.size()!=model.bones.size())throw FormatError("posed model world bank count changed");
+  std::vector<int> mapping(nodes.size());
+  for(std::size_t i=0;i<mapping.size();++i)mapping[i]=int(i);
+  return skin_palette(model,std::vector<Transform>(nodes.begin(),nodes.end()),mapping);
+}
+ModelSkinWorldPose model_skin_world_pose(const RenderModel &model,
+    std::span<const Transform> nodes,bool allow_gpu) {
+  ModelSkinWorldPose result;
+  result.palette=model_skin_world_palette(model,nodes);
+  result.vertices=model.mesh.vertices;
+  const auto *scalar=std::getenv("HALO2_REFERENCE_SCALAR_SKINNING");
+  const auto *verify=std::getenv("HALO2_VERIFY_SIMD_SKINNING");
+  result.gpu=allow_gpu && !(scalar && *scalar) && !(verify && *verify) &&
+      model_skin_gpu_host_effects_admitted() &&
+      model_skin_gpu_arithmetic_admitted(result.vertices,model.skin,result.palette);
+  if(!result.gpu)finish_skin(model,result.vertices,result.palette);
+  return result;
+}
 std::vector<Vertex> skin_model_world_nodes(const RenderModel &model,
                                           std::span<const Transform> nodes) {
   if(nodes.size()!=model.bones.size())throw FormatError("posed model world bank count changed");

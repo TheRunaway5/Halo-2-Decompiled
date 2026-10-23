@@ -7,10 +7,13 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <limits>
+#include <mutex>
 #include <random>
 #include <set>
 #include <stdexcept>
 #include <tuple>
+#include <thread>
 
 using namespace halo2;
 namespace {
@@ -246,6 +249,65 @@ void lossy_schedules(){
     }
     std::cout<<"PASS common-cut bounded four-packet retries with first-datagram loss, reordering/duplicates, four sparse hosts, sixteen physical peers and 32 delayed-owner schedules\n";
 }
+void public_boundaries(){
+    const auto c=context();
+    for(auto self:{16u,260u,std::numeric_limits<unsigned>::max()})rejects([&]{PeerCommonCutAgreement p(self,c);});
+    for(auto host:{16u,256u,std::numeric_limits<unsigned>::max()}){auto invalid=c;invalid.host=host;rejects([&]{PeerCommonCutAgreement p(4,invalid);});}
+    auto maximum=c;maximum.epoch=UINT32_MAX;maximum.membership_revision=UINT64_MAX;
+    PeerCommonCutAgreement publisher(0,maximum),recipient(4,maximum);
+    auto value=cut(maximum,UINT64_MAX,UINT64_MAX);value.seal.bytes=64ull*1024*1024;value.seal.digest.fill(std::byte{});value.seal.digest.back()=std::byte{255};
+    check(publisher.context()==maximum&&publisher.offer(value),"Common metadata wrongly exhausted a context it never increments or narrowed full-width fields");
+    auto foreign=value;foreign.context.host=256;
+    check(!publisher.offer(foreign)&&!publisher.confirm_native(foreign)&&!publisher.abort(foreign),"A wide common context host wrapped into the current physical host");
+    const auto packets=publisher.poll(0,128);const auto offered=std::ranges::find_if(packets,[](const auto &p){return p.peer==4&&type(p.bytes)==Offer;});
+    check(offered!=packets.end(),"Maximum common-cut fixture lacks a genuine host Offer");
+    for(auto source:{256u,std::numeric_limits<unsigned>::max()}){
+        const auto rejected=recipient.state().rejected;
+        check(recipient.receive(source,offered->bytes,0)&&recipient.state().rejected==rejected+1&&!recipient.state().pending,
+            "A wide authenticated source impersonated the physical host");
+    }
+    check(recipient.receive(0,offered->bytes,0)&&recipient.state().pending==value&&recipient.context()==maximum,
+        "Valid full-width common-cut fields changed across the native bridge");
+    auto wrapped=value;wrapped.seal.id=0;
+    check(!publisher.offer(wrapped)&&publisher.state().pending==value,"Exhausted seal ID wrapped into a fresh round");
+    std::cout<<"PASS common-cut native integer boundaries: wide peer/context rejection, full-width epoch/revision/seal fields and exact maximum-size cut\n";
 }
-int main()try{constructor_and_local_barriers();abort_and_repair();packet_attacks();parser_corpus();host_loss_every_phase();lossy_schedules();return 0;}
+void clock_and_poll_boundaries(){
+    const auto c=context();const auto value=cut(c);
+    PeerCommonCutAgreement whole(0,c),paced(0,c);check(whole.offer(value)&&paced.offer(value),"Polling boundary fixture refused");
+    const auto expected=whole.poll(1000,258);
+    check(expected.size()==2&&paced.poll(1000,0).empty(),"Zero or oversized control budget changed the two physical destinations");
+    const auto first=paced.poll(900,1),last=paced.poll(0,2);
+    check(first.size()==1&&last.size()==1&&first[0].peer==expected[0].peer&&first[0].bytes==expected[0].bytes&&
+        last[0].peer==expected[1].peer&&last[0].bytes==expected[1].bytes,"Partial or backwards polling changed control order, bytes or the serviced clock");
+    check(paced.poll(1099,128).empty()&&paced.poll(1100,128).size()==2,"Common-cut retry changed the exact 100ms threshold");
+    PeerCommonCutAgreement dispatcher(0,c);check(dispatcher.offer(value)&&dispatcher.poll(0,128).size()==2,"Dispatch clock fixture refused");
+    std::array<std::byte,7> key{std::byte{0x48},std::byte{0x32},std::byte{0x4e},std::byte{0x32},std::byte{},std::byte{},std::byte{11}};
+    auto unclaimed=key;unclaimed[6]=std::byte{12};
+    check(!dispatcher.receive(4,unclaimed,9000)&&dispatcher.poll(99,128).empty()&&dispatcher.state().rejected==0,
+        "Unclaimed control bytes advanced the clock or rejection count");
+    check(dispatcher.receive(4,key,100)&&dispatcher.state().rejected==1&&dispatcher.poll(0,128).size()==2,
+        "Recognized malformed control did not service the monotonic clock exactly once");
+    check(dispatcher.poll(UINT64_MAX-99,0).empty()&&dispatcher.poll(UINT64_MAX-100,128).size()==2&&
+        dispatcher.poll(UINT64_MAX-1,128).empty()&&dispatcher.poll(UINT64_MAX,128).empty(),
+        "Full-width control clock wrapped, regressed or reset a zero-budget refresh");
+    std::cout<<"PASS common-cut bounded packet ordering, zero-budget service, dispatcher ownership and monotonic full-width retry clock\n";
+}
+void concurrent_boundaries(){
+    const auto c=context();const auto value=cut(c);PeerCommonCutAgreement node(0,c);check(node.offer(value),"Concurrent common fixture refused");
+    std::exception_ptr failure;std::mutex mutex;
+    const auto run=[&](auto work){try{for(unsigned i=0;i<1000;++i)work(i);}catch(...){std::lock_guard lock(mutex);failure=std::current_exception();}};
+    {
+        std::jthread context_reader([&]{run([&](unsigned){check(node.context()==c,"Concurrent immutable context changed");});});
+        std::jthread snapshot_reader([&]{run([&](unsigned){check(node.state().pending==value,"Concurrent snapshot changed pending cut");});});
+        std::jthread poller([&]{run([&](unsigned i){(void)node.poll(i,2);});});
+        std::jthread offerer([&]{run([&](unsigned){check(node.offer(value),"Concurrent exact repeated Offer refused");});});
+        std::jthread receiver([&]{run([&](unsigned i){check(node.receive(4,std::array<std::byte,7>{std::byte{0x48},std::byte{0x32},std::byte{0x4e},std::byte{0x32},std::byte{},std::byte{},std::byte{11}},i),"Concurrent recognized malformed packet was not claimed");});});
+    }
+    if(failure)std::rethrow_exception(failure);
+    check(node.state().rejected==1000&&node.state().pending==value&&!node.state().commit,"Concurrent borrowed calls lost a rejection or fabricated Commit");
+    std::cout<<"PASS common-cut concurrent immutable context, snapshots, bounded polls, idempotent Offers and malformed receives\n";
+}
+}
+int main()try{constructor_and_local_barriers();abort_and_repair();packet_attacks();parser_corpus();host_loss_every_phase();lossy_schedules();public_boundaries();clock_and_poll_boundaries();concurrent_boundaries();return 0;}
 catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

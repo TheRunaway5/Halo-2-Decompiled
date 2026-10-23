@@ -19,6 +19,7 @@
 #include "multiplayer_hud_group_fixture.hpp"
 #define HALO2_LOCOMOTION_GROUP_STORAGE_AUDIT
 #include "multiplayer_locomotion_group_fixture.hpp"
+#include "helpers/multiplayer_scope_continuity.hpp"
 
 using namespace halo2;
 namespace {
@@ -75,6 +76,8 @@ void pose_roundtrip(const Cache &cache,std::span<const SceneObjects::Object> ear
     const MultiplayerPoseContinuity::FpPoseKey fp_key{early_pose->object,render_model,0};
     check(cache.original_data()&&cache.original_data()->unit_constructor_tail_constants,"Pose transition control lacks original operands");
     const auto &transition_constants=*cache.original_data()->unit_constructor_tail_constants;
+    check(cache.original_data()->unit_scope_camera_constants.has_value(),"Scope continuation lacks authenticated original operands");
+    const auto &scope_constants=*cache.original_data()->unit_scope_camera_constants;
     std::vector<BonePose> bind_locals;for(const auto &bone:model->bones)bind_locals.push_back(bone.bind);
     auto transition_locals=bind_locals;transition_locals.front().translation.x+=1;
     MultiplayerPoseContinuity poses,foreign;
@@ -108,6 +111,16 @@ void pose_roundtrip(const Cache &cache,std::span<const SceneObjects::Object> ear
             }else v.body_transitions[slot].tick(0x0a000014u,false,transition_locals,transition_constants);
             source_aim_blend_advance(v.aim_blends[slot]);source_aim_blend_advance(v.body_aim_blends[slot]);
         }
+        if(first)test::prime_scope_continuity(v,scope_constants,origin);
+        else for(unsigned view=0;view<origin.local_slots().size();++view){
+            v.view_zoom[view]=-1;
+            // Declared local storage controls, never native unit admissions.
+            // Every lifetime differs so omitting any field from restore fails.
+            v.view_zoom_unit[view]^=0x01000000u;
+            v.view_zoom_reset[view]^=1u;
+            v.view_was_dead[view]=!v.view_was_dead[view];
+            for(unsigned frame=0;frame<12;++frame)test::scope_continuity_step(v,scope_constants,view,false);
+        }
     };
     auto &aliased_render=poses.state().source_render_interpolation;
     populate(poses.state(),early,early_scene,true);
@@ -121,10 +134,15 @@ void pose_roundtrip(const Cache &cache,std::span<const SceneObjects::Object> ear
     rejects([&]{poses.prepare_restore(snapshot,later_proof);});
     rejects([&]{foreign.prepare_restore(snapshot,early_proof);});
     populate(poses.state(),later,later_scene,false);
+    check(test::scope_continuity_words(std::as_const(poses).state())!=test::scope_continuity_words(initial),
+        "Scope rollback control did not advance past its retained polynomial");
+    const auto later_scope=test::scope_continuity_words(std::as_const(poses).state());
+    const auto scope_unchanged=[&]{return test::scope_continuity_words(std::as_const(poses).state())==later_scope;};
     check(poses.owns_snapshot(snapshot)&&std::as_const(poses).state().source_render_interpolation.at(key).paired(),
         "A later real native tick expired the historical owner or failed to populate paired pose storage");
     {auto cancelled=poses.prepare_restore(snapshot,early_proof);check(poses.ready(cancelled,early_proof),"Valid pose preparation refused");}
-    check(std::as_const(poses).state().source_render_interpolation.at(key).paired(),"Cancelling a pose preparation changed live history");
+    check(std::as_const(poses).state().source_render_interpolation.at(key).paired()&&scope_unchanged(),
+        "Cancelling a pose preparation changed live history");
     auto stale=poses.prepare_restore(snapshot,early_proof);
     poses.mutating();aliased_render.at(key).capture_render(*later.tick(),later_pose->nodes);
     check(!poses.ready(stale,early_proof)&&!poses.commit(stale),"Retained-alias mutation did not invalidate preparation");
@@ -138,10 +156,13 @@ void pose_roundtrip(const Cache &cache,std::span<const SceneObjects::Object> ear
         check(!poses.owns_snapshot(snapshot)&&!poses.ready(prepared,early_proof)&&!poses.commit(prepared),"Foreign executor published pose history");
         rejects([&]{poses.capture(early);});rejects([&]{poses.prepare_restore(snapshot,early_proof);});rejects([&]{(void)std::as_const(poses).state();});
     }catch(...){error=std::current_exception();}});other.join();if(error)std::rethrow_exception(error);
+    check(scope_unchanged(),"Rejected pose preparations changed the later scope polynomial or unit/reset/death lifetimes");
     const auto *retired=&std::as_const(poses).state().source_render_interpolation.at(key);
     const auto old_live_nodes=retired->sample(*model,1);
     check(poses.ready(prepared,early_proof)&&poses.commit(prepared),"Exact pose restoration failed after controls");
     const auto &restored=std::as_const(poses).state();
+    check(test::scope_continuity_words(restored)==test::scope_continuity_words(initial),
+        "Pose restoration lost local scope derivatives, polynomial, zoom selectors or full unit lifetimes");
     check(&aliased_render==&restored.source_render_interpolation&&!restored.source_render_interpolation.at(key).paired()&&
         same_nodes(restored.source_render_interpolation.at(key).sample(*model,1),early_pose->nodes)&&
         same_nodes(restored.source_body_interpolation.sample(early_pose->object,1),early_pose->nodes)&&
@@ -172,7 +193,19 @@ void pose_roundtrip(const Cache &cache,std::span<const SceneObjects::Object> ear
     auto query=*next_owner;query.position.x+=3;if(query.solved_transform)query.solved_transform->position.x+=3;
     const auto before=scene_object_transform(*scene_owner),after=continued.sample(query,0);
     check(!std::memcmp(&before,&after,sizeof(Transform)),"Restored scene history did not supply its owning previous endpoint to the next real native tick");
+    auto expected_scope=initial;
+    for(unsigned frame=0;frame<28;++frame){
+        auto &actual_scope=poses.state();
+        for(unsigned view=0;view<early.local_slots().size();++view){
+            const bool zoomed=frame<8 || frame>=20;
+            test::scope_continuity_step(expected_scope,scope_constants,view,zoomed);
+            test::scope_continuity_step(actual_scope,scope_constants,view,zoomed);
+        }
+        check(test::scope_continuity_words(actual_scope)==test::scope_continuity_words(expected_scope),
+            "Restored scope history changed its exact future FOV, derivatives or transition expiry");
+    }
     std::cout<<"PASS exact proof-bound local pose/FP history rollback: actual two native ticks, four couch views, owning WORLD/node/scene endpoints, salted clocks, aliases, cancellation/staleness/foreign executor, consumed and deferred retirement\n";
+    std::cout<<"PASS four-view local scope history: unfinished source polynomials, persistent targets, zoom/unit/reset lifetimes, exact 28-frame suffix after native-proof-bound rollback\n";
     std::cout<<"LIMIT pose fixture uses real received native cuts and authored metadata; declared FP storage/CPU transition controls do not qualify native FP/locomotion, HUD, renderer or playing-audio adoption\n";
 }
 }

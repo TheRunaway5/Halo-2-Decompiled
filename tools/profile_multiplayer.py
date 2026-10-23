@@ -98,6 +98,7 @@ def cpu_functions(runtime, scratch, warmup, frames):
         raise RuntimeError('Runtime has no function symbols; use an unstripped development runtime')
     starts = [address for address, _ in symbols]
     leaf, inclusive, sampled_frames = Counter(), Counter(), Counter()
+    skin_paths = Counter()
     data = (scratch / 'samples.bin').read_bytes()
     if len(data) % RECORD.size:
         raise RuntimeError('Incomplete CPU sample record')
@@ -119,6 +120,20 @@ def cpu_functions(runtime, scratch, warmup, frames):
             continue
         leaf[names[0]] += 1
         inclusive.update(set(names))
+        skin = [i for i, name in enumerate(names) if any(token in name for token in
+                ('::skin_model(', '::finish_skin(', '::skin_model_world_nodes(',
+                 '::model_skin_world_pose(', '::model_skin_vertices('))]
+        if skin:
+            # One context per sample. Ignore the interrupted helper's variable
+            # instruction PC, but retain full caller return PCs/names for exact
+            # call-site attribution, including calls within run_multiplayer_impl.
+            resolved = [(address, symbols[index][1], address - symbols[index][0])
+                        for address in executable
+                        if (index := bisect.bisect_right(starts, address) - 1) >= 0]
+            anchor = skin[-1]
+            context = 'kernel' if any('::finish_skin(' in name or '::model_skin_vertices(' in name
+                                      for name in names) else 'skin_or_pose_preparation'
+            skin_paths[(context, names[anchor], tuple(resolved[anchor + 1:]))] += 1
     if not samples or outside:
         raise RuntimeError(f'CPU sampler boundary failed: {samples} in range, {outside} outside')
     if not leaf:
@@ -126,12 +141,30 @@ def cpu_functions(runtime, scratch, warmup, frames):
     def top(counts):
         return [{'function': name, 'samples': count, 'percent': 100 * count / samples}
                 for name, count in counts.most_common(70)]
+    focused = []
+    for (context, anchor, callers), count in skin_paths.most_common(24):
+        focused.append({'context': context, 'outermost_skin_helper': anchor[:700],
+                        'helper_name_truncated': len(anchor) > 700,
+                        'samples': count, 'percent': 100 * count / samples,
+                        'caller_frames_truncated': len(callers) > 8,
+                        'caller_frames': [{'function': name[:700], 'name_truncated': len(name) > 700,
+                                           'relative_return_pc': hex(address),
+                                           'symbol_offset': hex(offset),
+                                           'source_lookup_relative_pc': hex(address - 1)}
+                                          for address, name, offset in callers[:8]]})
     return {'samples': samples, 'sampled_frame_count': len(sampled_frames),
             'sample_limit_reached': samples >= 100000,
             'first_sampled_frame': min(sampled_frames), 'last_sampled_frame': max(sampled_frames),
             'outside_requested_frames': outside, 'external_only_samples': external,
             'executable_range': [hex(base), hex(end)], 'first_stack': first_stack,
             'leaf_executable_function_or_external_caller': top(leaf), 'inclusive': top(inclusive),
+            'skin_call_contexts': {'matched_samples': sum(skin_paths.values()),
+                                   'distinct_paths': len(skin_paths), 'top': focused,
+                                   'limits': 'CPU sample contexts, not invocation counts. Kernel means a '
+                                             'finish_skin/model_skin_vertices frame was present; other '
+                                             'skin/pose helpers can perform admission/palette work alone. '
+                                             'Full names and caller PCs group paths before display truncation. '
+                                             'Inlining or the48-frame unwind bound can hide callers.'},
             'boundaries': boundaries,
             'limits': 'Statistical main-thread CPU time. Inclusive rows overlap. '
                       'An external-library sample is charged to its first executable caller.'}
@@ -145,6 +178,10 @@ def worker(args):
     command = [str(args.runtime), '--multiplayer', '--map', str(args.map),
                '--shared-maps', str(args.shared_maps), '--local-players', str(args.players),
                '--frames', str(args.frames), '--viewport', str(args.width), str(args.height)]
+    if args.render_size is not None:
+        command.extend(['--render-size', *(str(value) for value in args.render_size)])
+    if args.starting_weapon is not None:
+        command.extend(['--mp-starting-weapon', str(args.starting_weapon)])
     if not args.audio:
         command.append('--mute')
     environment = dict(os.environ)
@@ -162,9 +199,13 @@ def worker(args):
     environment['LD_PRELOAD'] = str(library) + (':' + environment['LD_PRELOAD']
                                                if environment.get('LD_PRELOAD') else '')
     report = {'schema': 'H2_MULTIPLAYER_PROFILE_V1', 'completed': False,
+              'profiler_source_sha256': digest(Path(__file__)),
+              'sampler_source_sha256': digest(ROOT / 'tools/native_cpu_profiler.c'),
               'runtime': str(args.runtime), 'runtime_sha256': digest(args.runtime),
               'map': str(args.map), 'map_sha256': digest(args.map), 'players': args.players,
               'frames': args.frames, 'warmup': args.warmup, 'sample_hz': args.sample_hz,
+              'requested_render_size': args.render_size,
+              'requested_starting_weapon': args.starting_weapon,
               'command': command, 'scratch': str(scratch),
               'reference_controls': {name: environment.get(name) for name in
                   ('HALO2_REFERENCE_REPEAT_VEHICLE_SKINS', 'HALO2_REFERENCE_INSTRUCTION_CALLBACKS',
@@ -184,7 +225,6 @@ def worker(args):
     try:
         subprocess.run(['cc', '-shared', '-fPIC', '-O2', str(ROOT / 'tools/native_cpu_profiler.c'),
                         '-o', str(library), '-ldl', '-pthread', '-lrt'], check=True)
-        report['sampler_source_sha256'] = digest(ROOT / 'tools/native_cpu_profiler.c')
         deadline = time.monotonic() + args.timeout
         previous = None
         ticks = os.sysconf('SC_CLK_TCK')
@@ -230,6 +270,59 @@ def worker(args):
                                       for key in sampled[0] if key.endswith('_ms')}
         report['render_sizes'] = sorted({(int(row['render_width']), int(row['render_height'])) for row in sampled})
         report['present_sizes'] = sorted({(int(row['present_width']), int(row['present_height'])) for row in sampled})
+        work_totals = ('model_skin_gpu_jobs', 'model_skin_gpu_vertices',
+                       'model_skin_gpu_deformed_vertices', 'model_skin_cpu_fallback_jobs',
+                       'model_skin_cpu_fallback_vertices', 'model_skin_input_allocations',
+                       'model_skin_input_maps', 'model_skin_input_unmaps',
+                       'model_skin_record_pack_bytes', 'model_skin_record_upload_bytes',
+                       'model_skin_palette_upload_bytes', 'model_skin_descriptor_writes',
+                       'model_skin_record_cache_hits')
+        work_columns = set(work_totals) | {'model_skin_gpu_verified_vertices',
+                                         'presentation_copy_separate_thread', 'presentation_copy_jobs'}
+        available = set(sampled[0])
+        def total(column):
+            return sum(int(row[column]) for row in sampled) if column in available else None
+        def count_frames(columns, predicate):
+            if not set(columns) <= available:
+                return None
+            return sum(predicate(*(int(row[column]) for column in columns)) for row in sampled)
+        report['renderer_work'] = {
+            'sampled_frames': len(sampled),
+            'real_gpu_frames': count_frames(('model_skin_gpu_vertices',), lambda vertices: vertices > 0),
+            'separate_worker_frames': count_frames(
+                ('presentation_copy_separate_thread', 'presentation_copy_jobs'),
+                lambda separate, jobs: separate == 1 and jobs > 0),
+            'verification_vertices': total('model_skin_gpu_verified_vertices'),
+            'cpu_fallback_frames': count_frames(
+                ('model_skin_cpu_fallback_jobs', 'model_skin_cpu_fallback_vertices'),
+                lambda jobs, vertices: jobs > 0 or vertices > 0),
+            'missing_columns': sorted(work_columns - available),
+            **{column: total(column) for column in work_totals}}
+        world_totals = ('world_native_prepare_calls', 'world_native_prepare_completed_calls',
+                        'world_native_prepare_nonempty_calls', 'world_native_prepared_draws',
+                        'world_native_record_calls', 'world_native_title_prepared_draws',
+                        'world_native_shadow_generate_prepared_draws',
+                        'world_native_shadow_apply_prepared_draws', 'world_native_light_prepared_draws',
+                        'world_storage_upload_calls', 'world_storage_upload_completed_calls',
+                        'world_storage_uploaded_draws')
+        world_times = ('world_native_prepare_ms', 'world_storage_upload_ms')
+        report['world_submission'] = {
+            'sampled_frames': len(sampled),
+            'native_prepare_frames': count_frames(('world_native_prepare_calls',), lambda calls: calls > 0),
+            'native_record_frames': count_frames(('world_native_record_calls',), lambda calls: calls > 0),
+            'storage_upload_frames': count_frames(('world_storage_upload_calls',), lambda calls: calls > 0),
+            'missing_columns': sorted((set(world_totals) | set(world_times)) - available),
+            'host_ms': {column: summarize([float(row[column]) for row in sampled])
+                        if column in available else None for column in world_times},
+            'semantics': 'Calls count prepare/upload attempts; completed calls, prepared/uploaded draws '
+                         'and command records count successful returns. Host times include failed attempts '
+                         'and overlap renderer phases; service construction is excluded. These uploads cover '
+                         'SourceWorldDrawStorage only, excluding object/packed-shadow storage. Records do not '
+                         'establish GPU execution or visible pixels.',
+            **{column: total(column) for column in world_totals}}
+        if args.render_size is not None and report['render_sizes'] != [tuple(args.render_size)]:
+            raise RuntimeError(f'Requested internal render size {args.render_size}, '
+                               f'got sampled sizes {report["render_sizes"]}')
         report['cpu'] = cpu_functions(args.runtime, scratch, args.warmup, args.frames)
         bounds = report['cpu']['boundaries']
         samples = [sample for sample in samples if bounds['begin_ns'] <=
@@ -266,6 +359,10 @@ def main():
     parser.add_argument('--warmup', type=int, default=30)
     parser.add_argument('--width', type=int, default=1280)
     parser.add_argument('--height', type=int, default=720)
+    parser.add_argument('--render-size', type=int, nargs=2, metavar=('W', 'H'),
+                        help='Require this internal render size independently of the viewport (64..4096)')
+    parser.add_argument('--starting-weapon', type=int, choices=(0, 5),
+                        help='Pass the declared multiplayer starting weapon; omitted by default')
     parser.add_argument('--sample-hz', type=int, default=250)
     parser.add_argument('--video-driver', choices=('x11', 'wayland'), default='x11')
     parser.add_argument('--timeout', type=float, default=180)
@@ -276,6 +373,7 @@ def main():
         parser.error('Installed-runtime CPU sampling currently supports Linux')
     if not (0 < args.warmup < args.frames <= 100000 and 50 <= args.sample_hz <= 1000
             and 64 <= args.width <= 4096 and 64 <= args.height <= 4096
+            and (args.render_size is None or all(64 <= value <= 4096 for value in args.render_size))
             and math.isfinite(args.timeout) and args.timeout > 0):
         parser.error('Require positive warmup below frames, 50..1000 Hz, 64..4096 dimensions and a finite positive timeout')
     args.runtime = args.runtime.resolve(strict=True)

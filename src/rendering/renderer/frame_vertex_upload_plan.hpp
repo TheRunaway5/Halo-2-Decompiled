@@ -66,6 +66,7 @@ public:
     void copy_to(void *destination,std::size_t first,std::size_t count) const {
         if(first>size_ || count>size_-first)throw FormatError("frame vertex copy range escapes its plan");
         if(count && !destination)throw FormatError("frame vertex copy lacks its destination");
+        if(!count)return;
         auto *output=static_cast<std::byte *>(destination);
         for(const auto part:chunks_) {
             if(first>=part.size()){first-=part.size();continue;}

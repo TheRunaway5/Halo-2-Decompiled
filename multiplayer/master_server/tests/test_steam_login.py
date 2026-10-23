@@ -152,6 +152,13 @@ class SteamLoginTests(unittest.IsolatedAsyncioTestCase):
         r=await self.client.post("/v1/auth/steam/resume",headers={"Authorization":"Bearer "+b["refresh_token"]},json={})
         self.assertEqual(r.status,401)
 
+    async def test_refresh_capacity_does_not_block_verified_sign_in(self):
+        with patch("multiplayer.master_server.steam_login.MAX_REMEMBERED_SESSIONS",0):
+            _,result=await self.complete()
+        self.assertNotIn("refresh_token",result)
+        r=await self.client.post("/v1/account/session",headers={"Authorization":"Bearer "+result["token"]},json={"screen_name":"Pilot"})
+        self.assertEqual(r.status,201,await r.text())
+
     async def test_steam_friends_private_online_identity_and_party_invites(self):
         from dataclasses import replace
         self.directory.settings=replace(self.directory.settings,steam_key="1"*32)

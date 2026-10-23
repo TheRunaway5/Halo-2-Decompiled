@@ -33,7 +33,9 @@ int main(int argc,char **argv)try{
     std::array<std::unique_ptr<OnlineMatchSession>,16> sessions;std::array<unsigned,16> games{},voices{},sequences{};
     const bool decoded_audio=std::getenv("HALO2_PEER_AUDIO_HANDOFF");
     const bool automatic=std::getenv("HALO2_PEER_AUTO_SELECT");
+    const bool abort_selected=std::getenv("HALO2_PEER_ABORT_HANDOFF");
     check(!automatic||!decoded_audio,"Automatic preference and in-flight device gates use separate fixtures");
+    check(!abort_selected||(!automatic&&!decoded_audio),"Aborted-cut refusal uses its own fixture");
     std::array<std::shared_ptr<GameVoice>,16> audio;
     std::array<std::shared_ptr<test::VoiceQueueState>,16> devices;
     std::array<std::optional<GameVoiceFrame>,16> old_microphone,old_received;
@@ -60,10 +62,10 @@ int main(int argc,char **argv)try{
         std::vector<std::byte> bytes;unsigned from{};while(s->receive(bytes,from)){
             check(bytes.size()==8&&from==std::to_integer<unsigned>(bytes[7])&&bytes[6]==std::byte(self==host?1:3),"Direct gameplay changed source or role");++games[self];}
         for(auto &packet:s->voice_packets()){check(!packet.preferences&&packet.peer==(self==host?packet.frame.source:host),"Direct voice changed authenticated route");
-            check(packet.frame.sequence!=0xff000100u&&packet.frame.sequence!=0xff000101u,"Delayed malicious voice reached ordinary delivery");
+            check(packet.frame.sequence!=0xff000101u,"Delayed malformed voice reached ordinary delivery");
             if(packet.frame.sequence==0xff000110u || packet.frame.sequence==0xff000111u)continue;
             ++voices[self];
-            if(audio[self]){old_received[self]=packet.frame;audio[self]->receive(std::move(packet.frame));}}}};
+            old_received[self]=packet.frame;if(audio[self])audio[self]->receive(std::move(packet.frame));}}};
     const auto exercise=[&](auto duration){const auto until=std::chrono::steady_clock::now()+duration;
         while(std::chrono::steady_clock::now()<until){healthy();for(unsigned self=0;self<16;++self)if(auto &s=sessions[self]){
             check(s->host()==host&&s->phase()==OnlineMatchSession::Phase::Running,"Committed peers lost their running generation");
@@ -81,10 +83,15 @@ int main(int argc,char **argv)try{
     stage="authenticated voice rejection";
     unsigned attacker=0;while(attacker==host || !sessions[attacker])++attacker;
     if(decoded_audio)check(old_microphone[attacker].has_value(),"Real attacker capture baseline was not observed");
+    check(old_received[attacker]&&old_received[attacker]->source==host&&old_received[attacker]->origin_signature,
+        "Wrong-seat replay lacks the host's independently signed delivered voice frame");
     auto baseline=decoded_audio?*old_microphone[attacker]:GameVoiceFrame{attacker,0,false,{1,1},{0x60}};
     for(unsigned attack=0;attack<2;++attack){
         auto poison=baseline,control=baseline;poison.sequence=0xff000100u+attack;control.sequence=0xff000110u+attack;
-        if(attack==0)poison.source=host; // Claim a seat owned by another physical PC.
+        // voice() correctly refuses to sign a foreign speaker locally. Replay
+        // the actual host-signed body through this different authenticated PC
+        // so origin verification succeeds and the receiver's seat check runs.
+        if(attack==0)poison=*old_received[attacker];
         else poison.gains.left=std::numeric_limits<float>::infinity();
         const auto before=sessions[host]->rejected_direct_dispatches();bool valid_received=false;
         auto heartbeat=std::chrono::steady_clock::now();
@@ -96,9 +103,10 @@ int main(int argc,char **argv)try{
             }
             sessions[attacker]->voice(host,poison);sessions[attacker]->voice(host,control);
             for(auto &packet:sessions[host]->voice_packets()){
-                check(packet.frame.sequence!=poison.sequence,"Authenticated forged/malformed voice reached its consumer");
+                check(packet.frame.source!=poison.source||packet.frame.sequence!=poison.sequence,
+                    "Authenticated wrong-seat/malformed voice reached its consumer");
                 if(packet.frame.sequence==control.sequence){
-                    check(!packet.preferences&&packet.peer==attacker&&packet.frame.source==attacker,
+                    check(!packet.preferences&&packet.peer==attacker&&packet.frame.source==attacker&&packet.frame.origin_signature,
                         "Valid voice control lost its actual authenticated sender");valid_received=true;
                 }
             }
@@ -114,12 +122,29 @@ int main(int argc,char **argv)try{
         // Declared native-owner completion is a fixture. The production caller
         // must actually retain/import the paired world and change native roles.
         std::array<std::optional<ValidatedAuthorityCut>,16> ready_cuts;
-        for(unsigned p=0;p<16;++p)if(sessions[p]&&p!=host&&(automatic||p==candidate)){
-            ready_cuts[p]=ValidatedAuthorityCut{p,before,{7+round*16+p,100+round,8192,{std::byte(0x51+round+p)}}};
-            if(!automatic)check(sessions[p]->prepare_peer_migration(*ready_cuts[p]),"Retained paired-cut fixture refused");
+        for(unsigned p=0;p<16;++p)if(sessions[p]&&p!=host){
+            ready_cuts[p]=ValidatedAuthorityCut{p,before,{7+round*16,100+round,8192,{std::byte(0x51+round)}}};
+            if(!automatic&&p==candidate)check(sessions[p]->prepare_peer_migration(*ready_cuts[p]),"Retained paired-cut fixture refused");
         }
         if(!automatic)wait([&]{healthy();for(auto &s:sessions)if(s){const auto state=s->peer_migration();
-            for(unsigned p=0;p<16;++p)if(ready_cuts[p]&&(!state||!state->ready[p]))return false;}return true;},"Ready cuts did not reach admitted peers");
+            if(!state||!state->ready[candidate])return false;}return true;},"Candidate ready cut did not reach admitted peers");
+        std::optional<PeerCommonCut> aborted;
+        if(round==0){
+            stage="predecessor common-cut Abort";
+            // The selected-cut refusal and unrelated-cut positive control use
+            // actual authenticated common controls on all four workers. Leave
+            // ACKs pending until after the peer vote fences this generation.
+            const auto seal=abort_selected?ready_cuts[candidate]->seal:
+                AuthorityCutSeal{901,901,8192,{std::byte{0xa1}}};
+            aborted=PeerCommonCut{before,seal,std::uint16_t(before.peers&~(1u<<host))};
+            wait([&]{healthy();for(auto &s:sessions)if(s&&!s->common_cut())return false;return true;},"Common-cut feature negotiation timeout");
+            check(sessions[host]->offer_common_cut(*aborted),"Actual predecessor refused its common-cut offer");
+            wait([&]{healthy();for(auto &s:sessions)if(s){const auto state=s->common_cut();
+                if(!state||state->pending!=aborted)return false;}return true;},"Common-cut offer did not reach admitted peers");
+            check(sessions[host]->abort_common_cut(*aborted),"Actual predecessor refused pre-Commit Abort");
+            wait([&]{healthy();for(auto &s:sessions)if(s){const auto state=s->common_cut();
+                if(!state||state->pending!=aborted||!state->abort)return false;}return true;},"Authenticated common-cut Abort did not arrive");
+        }
         wait([&]{
             for(unsigned p=0;p<16;++p)if(sessions[p]&&p!=host)sessions[host]->send(game(host,true),p);
             drain();
@@ -160,6 +185,42 @@ int main(int argc,char **argv)try{
             check(!s->finish_peer_migration(forged,commit_probe,&untrusted)&&!untrusted.calls,"Caller-invented certificate reached a native commit");
             std::vector<std::byte> bytes;unsigned from{};check(!s->receive(bytes,from)&&s->voice_packets().empty(),"Queued predecessor gameplay/voice survived its fence");}
         stage="native completion barrier "+std::to_string(round+1);const auto successor=*decisions[candidate];CommitProbe native;
+        if(!automatic){
+            for(unsigned p=0;p<16;++p)if(auto &s=sessions[p]){CommitProbe blocked;blocked.accept=true;
+                const auto state=s->peer_migration();
+                check(state.has_value(),"Candidate-only control lost its local agreement");
+                bool missing{};for(unsigned q=0;q<16;++q)if(sessions[q]&&!state->ready[q])missing=true;
+                check(state->ready[candidate]&&*state->ready[candidate]==decisions[p]->value.cut&&missing,
+                    "Candidate-only control lacks an exact candidate cut and an unprepared physical survivor");
+                check(!s->finish_peer_migration(*decisions[p],commit_probe,&blocked)&&!blocked.calls&&s->authority_context()==before,
+                    "Candidate-only readiness reached native publication before every physical survivor prepared");}
+            for(unsigned p=0;p<16;++p)if(sessions[p]&&p!=candidate){
+                check(ready_cuts[p]&&ready_cuts[p]->seal==successor.value.cut&&
+                    sessions[p]->prepare_peer_migration(*ready_cuts[p]),"Survivor exact-cut preparation fixture refused");
+            }
+        }
+        wait([&]{healthy();for(auto &s:sessions)if(s){const auto state=s->peer_migration();
+            if(!state)return false;
+            for(unsigned p=0;p<16;++p)if(sessions[p]&&
+                (!state->ready[p]||*state->ready[p]!=successor.value.cut))return false;
+        }return true;},"Every fixed physical survivor's exact-cut preparation did not arrive");
+        if(aborted){
+            for(unsigned p=0;p<16;++p)if(auto &s=sessions[p]){
+                if(abort_selected){CommitProbe blocked;blocked.accept=true;
+                    check(!s->finish_peer_migration(*decisions[p],commit_probe,&blocked)&&!blocked.calls&&s->authority_context()==before,
+                        "Aborted selected cut reached native publication or changed generation");}
+                check(s->acknowledge_common_cut_abort(*aborted),"Fenced recipient could not acknowledge retired Abort");
+            }
+            if(abort_selected){
+                Json result{{"handoffs",Json::array()},{"aborted_selected_cut_blocked",true},{"fenced_abort_acknowledgement",true},
+                    {"native_cut_and_role_completion","declared fixture"},{"master_gameplay_relay",false},
+                    {"native_commit_callback_guard",true},{"authenticated_voice_rejection",true}};
+                {std::ofstream out(std::filesystem::path(argv[2]).parent_path()/"result.json");out<<result.dump(2);}
+                std::cout<<"PASS authenticated selected-cut Abort survives host loss: exact learned certificates cannot invoke native commit or publish an epoch, and fenced recipients can acknowledge retirement\n";
+                std::cout<<"LIMIT declared native preparation, local DTLS/account fixtures; no rendered/native-owner or WAN acceptance\n";
+                return 0;
+            }
+        }
         if(decoded_audio){
             check(!sessions[candidate]->finish_peer_migration(successor,commit_probe,&native)&&!native.calls,"Native commit ran while old device playback was in flight");
             check(sessions[candidate]->phase()==OnlineMatchSession::Phase::Migrating,"Pending device retirement lost the native barrier");

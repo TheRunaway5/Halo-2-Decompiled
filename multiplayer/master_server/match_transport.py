@@ -13,8 +13,8 @@ import statistics
 import sqlite3
 import time
 from aiohttp import web, WSMsgType
-from .protocol import require, Problem
-from .couch_players import NATIVE_COUCH, NATIVE_CONTINUITY, NATIVE_DIRECT, NATIVE_EOS
+from .protocol import require, Problem, fields
+from .couch_players import NATIVE_COUCH, NATIVE_CONTINUITY, NATIVE_DIRECT, NATIVE_EOS, NATIVE_EOS_ACCOUNT
 from .match_continuity import PlayerHostedContinuity
 from .voice_origin import Ed25519PrivateKey, verify_voice
 
@@ -29,9 +29,11 @@ class Room:
         self.compatibility = api.core.tickets[proposal.tickets[0]].compatibility
         self.couch_protocol = self.compatibility in NATIVE_COUCH
         self.supports_continuity = self.compatibility == NATIVE_CONTINUITY
-        self.eos = self.compatibility == NATIVE_EOS
-        self.direct_udp = self.compatibility in (NATIVE_DIRECT, NATIVE_EOS)
+        self.eos_account = self.compatibility == NATIVE_EOS_ACCOUNT
+        self.eos = self.compatibility in (NATIVE_EOS, NATIVE_EOS_ACCOUNT)
+        self.direct_udp = self.compatibility in (NATIVE_DIRECT, NATIVE_EOS, NATIVE_EOS_ACCOUNT)
         self.eos_socket, self.eos_users = secrets.token_hex(16), {}
+        self.eos_verified = {}
         physical = sorted(set(self.owners.values()))
         self.eos_keys = {(a, b): secrets.token_hex(32) for i, a in enumerate(physical) for b in physical[i+1:]} if self.eos else {}
         self.direct_ready, self.pending_signals, self.signaled_descriptions = {}, {}, set()
@@ -62,7 +64,7 @@ class Room:
         self.result, self.result_digest, self.confirmations = b"", "", set()
         self.peers, self.samples, self.loaded = {}, {}, {}
         self.phase, self.host = "connecting", None
-        self.created, self.deadline = time.monotonic(), time.monotonic() + (60 if self.eos else 25)
+        self.created, self.deadline = time.monotonic(), time.monotonic() + (120 if self.eos_account else 60 if self.eos else 25)
         self.created_wall = api.directory.store.now()
         self.closed = False
 
@@ -70,7 +72,7 @@ class Room:
         result = {"id": self.id, "token": self.tokens[player], "slot": self.index(player),
                 "players": [{"name": name, "team": team, "identity": self.identities[p]}
                             for p, name, team in self.players]}
-        if self.compatibility in ("halo2-native-queue-v10", NATIVE_CONTINUITY, NATIVE_DIRECT, NATIVE_EOS):
+        if self.compatibility in ("halo2-native-queue-v10", NATIVE_CONTINUITY, NATIVE_DIRECT, NATIVE_EOS, NATIVE_EOS_ACCOUNT):
             result["team_mode"] = self.team_mode
         if self.direct_udp:
             result["transport"] = {"kind": "direct-udp-v1", "stun_servers": list(self.api.directory.settings.peer_stun_urls)}
@@ -136,6 +138,7 @@ class Room:
 
     def retire_capability(self, player):
         self.tokens.pop(player, None)
+        self.eos_verified.pop(player, None)
         # Transport retirement neither revokes an authenticated digest vote
         # nor removes its owner from the immutable result electorate.
         self.pending_signals.pop(player, None)
@@ -411,6 +414,45 @@ class MatchTransport:
         room = self.rooms[ident]
         return web.json_response(room.descriptor(session.player))
 
+    def eos_owner(self, request, previous=None):
+        room = self.rooms.get(request.match_info["room"])
+        require(room is not None and not room.closed and time.monotonic() <= room.deadline and
+                (previous is None or room is previous[0]), "Match no longer exists", 404)
+        require(room.eos_account, "Match does not use account-authenticated EOS transport", 409)
+        bearer = request.headers.get("Authorization", "")
+        require(bearer.startswith("Bearer ") and len(bearer) < 128, "Match authorization required", 401)
+        player = next((p for p, token in room.tokens.items() if secrets.compare_digest(token, bearer[7:])), None)
+        require(player is not None and player not in room.guests and room.owners.get(player) == player and
+                (previous is None or player == previous[1]), "Match authorization required", 401)
+        return room, player
+
+    async def eos_token(self, request):
+        owner = self.eos_owner(request)
+        body = await self.api.directory.body(request)
+        fields(body, ())
+        room, player = self.eos_owner(request, owner)
+        self.api.directory.rate("eos-room:" + player, 120)
+        name = next(name for p, name, _ in room.players if p == player)
+        token = self.api.directory.eos_identity.token(player, name)
+        return web.json_response(dict(token=token, expires_in=120))
+
+    async def eos_proof(self, request):
+        owner = self.eos_owner(request)
+        body = await self.api.directory.body(request)
+        fields(body, ("token",))
+        owner = self.eos_owner(request, owner)
+        self.api.directory.rate("eos-room:" + owner[1], 120)
+        identity = self.api.directory.eos_identity
+        puid = identity.proof_subject(body["token"])
+        account = await identity.verify(puid, body["token"])
+        room, player = self.eos_owner(request, owner)
+        require(account == player, "EOS identity belongs to another account", 403)
+        # No await separates capability revalidation, immutable binding and the
+        # room-local proof receipt. Social/account sessions are left untouched.
+        identity.bind_player(player, puid)
+        room.eos_verified[player] = puid
+        return web.json_response(dict(eos_product_user_id=puid))
+
     async def writer(self, room, player, peer):
         blocked = 0
         async def failed_reader():
@@ -539,6 +581,9 @@ class MatchTransport:
                         if room.eos:
                             user = signal["payload"]
                             require(len(user) == 32 and all(c in "0123456789abcdef" for c in user) and not signal["mid"], "Invalid EOS identity")
+                            if room.eos_account:
+                                require(room.eos_verified.get(player) == user,
+                                        "EOS identity has not been verified for this match", 403)
                             require(room.eos_users.get(source, user) == user and all(slot == source or value != user
                                     for slot, value in room.eos_users.items()), "EOS identity changed or reused")
                             room.eos_users[source] = user
@@ -721,5 +766,7 @@ class MatchTransport:
 
     def routes(self):
         return [web.get("/v1/matchmaking/transport", self.descriptor),
+                web.post("/v1/matches/{room}/eos-token", self.eos_token),
+                web.post("/v1/matches/{room}/eos-proof", self.eos_proof),
                 web.get("/v1/matches/{room}/signal", self.connect),
                 web.get("/v1/matches/{room}/relay", self.connect)]

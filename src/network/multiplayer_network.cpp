@@ -1761,6 +1761,8 @@ struct LanHost::Impl {
   std::uint64_t fingerprint;
   Packet session_configuration;
   std::vector<Peer> peers;
+  const std::thread::id liveness_executor=std::this_thread::get_id();
+  bool continuation_liveness_pending{};
   std::optional<PeerRemoval> last_removal;
   std::uint64_t removals{};
   Clock::time_point next_repeat_response{};
@@ -2155,7 +2157,23 @@ LanHost::HostLossResume LanHost::resume_after_host_loss(MultiplayerMatch &match,
   Continuation incoming;incoming.data_=std::move(rebound);
   auto host=resume(match,std::move(transport),fingerprint,std::move(admissions),incoming,after_binding,accepted);
   if(authority.execution_boundary()!=before)throw FormatError("Host role transition changed its native world");
+  host->impl_->continuation_liveness_pending=true;
   return {std::move(host),std::move(local)};
+}
+bool LanHost::continuation_liveness_ready()const noexcept{
+  const auto &h=*impl_;
+  return std::this_thread::get_id()==h.liveness_executor&&h.continuation_liveness_pending;
+}
+bool LanHost::activate_continuation_liveness()noexcept{
+  auto &h=*impl_;
+  if(!continuation_liveness_ready())return false;
+  const auto activated=Clock::now();
+  // No actual peer traffic arrived while SourcePeerHostTakeover kept this
+  // owner private. Preserve its saved idle offset; heard() would erase that
+  // debt and falsely claim a newly accepted input. Diagnostic receipt ages
+  // and acceptance counters remain untouched.
+  for(auto &peer:h.peers)peer.last=activated;
+  h.continuation_liveness_pending=false;return true;
 }
 void LanHost::receive_local_continuation(LocalContinuation &saved,std::array<Controls,multiplayer_capacity> &input){
   if(saved.slots.empty()||saved.slots.size()>4)throw FormatError("Local continuation has no admitted couch seats");
@@ -2181,6 +2199,7 @@ void LanHost::receive_local_continuation(LocalContinuation &saved,std::array<Con
 void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
   auto &h = *impl_;
   h.own();
+  h.continuation_liveness_pending=false;
   ++h.candidate_revision;
   Packet p;
   sockaddr_in from{};
@@ -2358,6 +2377,7 @@ void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
 }
 void LanHost::broadcast() {
   impl_->own();
+  impl_->continuation_liveness_pending=false;
   for (auto &peer : impl_->peers)
     impl_->respond(peer);
 }
@@ -2389,6 +2409,7 @@ LanHost::CandidateBroadcast LanHost::broadcast_candidate(
     endpoints|=std::uint16_t(1u<<endpoint);
   }
   if(endpoints!=token.recipients)return {};
+  h.continuation_liveness_pending=false;
   std::vector<PeerSnapshotArchive> archives;archives.reserve(h.peers.size());emission->peers.reserve(h.peers.size());
   try{
     for(auto &peer:h.peers){const auto endpoint=ntohl(peer.address.sin_addr.s_addr)-1;
@@ -2932,7 +2953,8 @@ struct LanClient::PreparedRebind::Impl {
   AuthorityCutSeal cut;
   std::uint64_t revision{},nonce{},cookie{};
   std::array<unsigned,4> slots{};unsigned count{};
-  bool consumed{};
+  bool bound{},consumed{};
+  std::optional<PeerProspectiveClientRole> prospective;
   MultiplayerSnapshotProof proof;
   std::optional<MultiplayerState> state;
   // Swap the predecessor's owning storage here. Its destruction belongs to
@@ -2942,6 +2964,12 @@ struct LanClient::PreparedRebind::Impl {
   std::vector<MultiplayerSnapshotOrigin> retired_origins;
   MultiplayerSnapshotOrigin retired_origin;
   std::string retired_error;
+  bool connection_current(const LanClient::Impl &v)const noexcept{
+    return (!v.candidate||v.candidate->retired)&&!consumed&&owner==&v&&owner_identity==v.snapshot_owner&&
+        v.udp.relay&&v.connected&&v.continuity&&*v.continuity==previous&&
+        v.rebind_revision==revision&&v.rebind_revision<UINT64_MAX&&v.nonce==nonce&&v.cookie==cookie&&
+        v.ids.size()==count&&std::equal(v.ids.begin(),v.ids.end(),slots.begin());
+  }
 };
 LanClient::PreparedRebind::PreparedRebind():impl_(std::make_unique<Impl>()){}
 LanClient::PreparedRebind::~PreparedRebind()=default;
@@ -2953,7 +2981,7 @@ std::unique_ptr<LanClient::PreparedRebind> LanClient::prepare_rebind_host(
       std::ranges::all_of(cut.digest,[](auto b){return b==std::byte{};}))
     throw FormatError("Client host rebind has a stale context, unadmitted role or missing accepted cut");
   auto prepared=std::unique_ptr<PreparedRebind>(new PreparedRebind);auto &p=*prepared->impl_;
-  p.owner=&v;p.owner_identity=v.snapshot_owner;p.previous=previous;p.next=next;p.cut=cut;
+  p.owner=&v;p.owner_identity=v.snapshot_owner;p.previous=previous;p.next=next;p.cut=cut;p.bound=true;
   p.revision=v.rebind_revision;p.nonce=v.nonce;p.cookie=v.cookie;
   p.count=v.ids.size();std::copy(v.ids.begin(),v.ids.end(),p.slots.begin());return prepared;
 }
@@ -2973,11 +3001,48 @@ std::unique_ptr<LanClient::PreparedRebind> LanClient::prepare_rebind_host(
   prepared->impl_->proof=proof;prepared->impl_->state=origin.data_->decoded->state;
   return prepared;
 }
+std::unique_ptr<LanClient::PreparedRebind> LanClient::prepare_prospective_rebind(
+    const PeerProspectiveClientRole &role,const MultiplayerSnapshotProof &proof)const{
+  const auto &v=*impl_;
+  if(role!=derive_peer_prospective_client_role(role.previous,role.cut,role.self)||
+      role.self!=v.physical_self||!v.udp.relay||!v.connected||!v.continuity||*v.continuity!=role.previous||
+      v.ids.empty()||v.ids.size()>4||v.rebind_revision==UINT64_MAX)
+    throw FormatError("Prospective client rebind has a stale connection or role descriptor");
+  if(!proof.data_)throw FormatError("Prospective client rebind requires its exact authenticated snapshot proof");
+  const auto &origin=proof.data_->origin;
+  if(proof.data_->cut.peer!=role.self||proof.data_->cut.context!=role.previous||proof.data_->cut.seal!=role.cut||
+      !origin.data_||!origin.data_->decoded||origin.data_->owner!=v.snapshot_owner||origin.data_->context!=v.continuity||
+      origin.data_->self!=v.physical_self||origin.data_->revision!=v.rebind_revision||
+      origin.data_->stamp.fingerprint!=v.fingerprint||origin.data_->stamp.nonce!=v.nonce||
+      origin.data_->stamp.cookie!=v.cookie||origin.data_->stamp.tick!=role.cut.tick||
+      origin.data_->decoded->state.tick!=role.cut.tick||origin.data_->decoded->slots!=v.ids)
+    throw FormatError("Prospective client rebind proof has a different connection, receipt or accepted cut");
+  auto prepared=std::unique_ptr<PreparedRebind>(new PreparedRebind);auto &p=*prepared->impl_;
+  p.owner=&v;p.owner_identity=v.snapshot_owner;p.previous=role.previous;p.cut=role.cut;p.prospective=role;
+  p.revision=v.rebind_revision;p.nonce=v.nonce;p.cookie=v.cookie;
+  p.count=v.ids.size();std::copy(v.ids.begin(),v.ids.end(),p.slots.begin());
+  p.proof=proof;p.state=origin.data_->decoded->state;return prepared;
+}
+bool LanClient::prospective_rebind_ready(const PreparedRebind &prepared,const PeerProspectiveClientRole &role)const noexcept{
+  try{
+    const auto &v=*impl_;const auto &p=*prepared.impl_;
+    return p.prospective&&*p.prospective==role&&
+        role==derive_peer_prospective_client_role(role.previous,role.cut,role.self)&&role.self==v.physical_self&&
+        p.previous==role.previous&&p.cut==role.cut&&p.proof.data_&&p.state&&p.connection_current(v);
+  }catch(...){return false;}
+}
+bool LanClient::bind_prospective_rebind(PreparedRebind &prepared,const PeerProspectiveClientRole &role,
+    const PeerMigrationDecision &decision)const noexcept{
+  try{
+    if(!prospective_rebind_ready(prepared,role))return false;
+    const auto next=bind_peer_prospective_client_role(role,decision);auto &p=*prepared.impl_;
+    if(p.bound)return p.next==next;
+    p.next=next;p.bound=true;return true;
+  }catch(...){return false;}
+}
 bool LanClient::can_commit_rebind_host(const PreparedRebind &prepared)const noexcept{
   const auto &v=*impl_;const auto &p=*prepared.impl_;
-  return (!v.candidate||v.candidate->retired)&&!p.consumed&&p.owner==&v&&p.owner_identity==v.snapshot_owner&&v.udp.relay&&v.connected&&v.continuity&&*v.continuity==p.previous&&
-      v.rebind_revision==p.revision&&v.rebind_revision<UINT64_MAX&&v.nonce==p.nonce&&v.cookie==p.cookie&&
-      v.ids.size()==p.count&&std::equal(v.ids.begin(),v.ids.end(),p.slots.begin());
+  return p.bound&&p.connection_current(v);
 }
 bool LanClient::commit_rebind_host(std::unique_ptr<PreparedRebind> &&prepared)noexcept{
   static_assert(std::is_nothrow_swappable_v<MultiplayerState>);

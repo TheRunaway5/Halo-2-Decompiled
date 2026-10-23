@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <bit>
 #include <map>
+#include <set>
 
 namespace halo2 {
 bool source_campaign_lit_scenery(const RenderModel &model,const ScenarioObject &object) {
@@ -201,6 +202,85 @@ std::vector<Vertex> SourceCampaignModel::draw(std::uint32_t owner,
         if(at->second.empty())throw FormatError("Campaign main unit has no selected resident vertices");
         (baked?baked_shaders_:shaders_)->append_selected(result,at->second,{0,draw.coverage},view,
             baked?baked_material_base_:material_base_);
+    }
+    return result;
+}
+SourceCampaignDrawGeometry SourceCampaignModel::draw_deferred(std::uint32_t owner,
+    std::span<const SourceLiveModelBaseDrawTu15> draws,std::span<const Transform> nodes,
+    const SourceModelShaderView &view,const BspLighting *current_lighting,bool allow_gpu)const {
+    if(!allow_gpu)return {draw(owner,draws,nodes,view,current_lighting),{}};
+    if(!shaders_)throw FormatError("Campaign source model has no resident shader bank");
+    using Key=std::pair<unsigned,unsigned>;
+    // The original cache key has no lighting-class component. If a class1
+    // instance shares a key with class2, preserve its existing CPU reuse too.
+    std::set<Key> baked_keys;
+    for(const auto &draw:draws)if(draw.lighting_class==1)
+        baked_keys.emplace(draw.unit.words[3]>>9&511u,draw.unit.words[3]>>18&2047u);
+    struct Pose {
+        ModelSkinWorldPose pose;
+        std::vector<std::uint32_t> ordinals;
+    };
+    std::map<Key,Pose> posed;
+    SourceCampaignDrawGeometry result;
+    for(const auto &draw:draws) {
+        if(draw.object!=owner || draw.definition!=definition_ || draw.unit.words[1]!=render_model_)
+            throw FormatError("Campaign main unit lost its full owner/definition/render-model identity");
+        if((draw.lighting_class!=1 && draw.lighting_class!=2) ||
+            draw.lighting_class!=(draw.unit.words[0]>>29) || draw.override_slot!=255 || !(draw.unit.words[0]&1u))
+            throw FormatError("Campaign ordinary draw received an unsupported class or override unit");
+        if(draw.lod>=6 || draw.lod!=draws.front().lod)
+            throw FormatError("Campaign main units lost their single selected geometry LOD");
+        if(!draw.geometry.geometry.resident)continue;
+        const bool baked=draw.lighting_class==1;
+        if(baked && (!baked_shaders_ || !current_lighting))
+            throw FormatError("Campaign class1 unit has no resident baked lighting owner: "+baked_failure_);
+        const auto instance=baked?(draw.unit.words[3]>>18&2047u):2047u;
+        const auto section=draw.unit.words[3]>>9&511u;
+        const Key key{section,instance};
+        auto at=posed.find(key);
+        if(at==posed.end()) {
+            Pose prepared;
+            const std::array sections{section};
+            if(baked || baked_keys.contains(key)) {
+                prepared.pose.vertices=vertices(draw.lod,sections,nodes,baked?current_lighting:nullptr,instance);
+            } else {
+                const auto &resource=*lods_[draw.lod];
+                if(nodes.size()!=resource.bones.size())
+                    throw FormatError("Campaign model requires its complete rendered WORLD pose");
+                if(std::ranges::find(sections_[draw.lod],section)==sections_[draw.lod].end())
+                    throw FormatError("Campaign source selected an unprepared section");
+                // Match vertices(): construct only the selected section, then
+                // run its original palette at the existing final-kernel point.
+                RenderModel selected;
+                selected.bones=resource.bones;selected.compound_nodes=resource.compound_nodes;
+                selected.checksum=resource.checksum;
+                for(unsigned i=0;i<resource.mesh.vertices.size();++i)if(resource.mesh.vertices[i].source_section==section) {
+                    selected.mesh.vertices.push_back(resource.mesh.vertices[i]);selected.skin.push_back(resource.skin.at(i));
+                    selected.vertex_origins.push_back(resource.vertex_origins.at(i));
+                    prepared.ordinals.push_back(i);
+                }
+                prepared.pose=model_skin_world_pose(selected,nodes,true);
+            }
+            at=posed.emplace(key,std::move(prepared)).first;
+        }
+        const auto &prepared=at->second;
+        if(prepared.pose.vertices.empty())throw FormatError("Campaign main unit has no selected resident vertices");
+        if(!prepared.pose.gpu) {
+            (baked?baked_shaders_:shaders_)->append_selected(result.vertices,prepared.pose.vertices,{0,draw.coverage},view,
+                baked?baked_material_base_:material_base_);
+            continue;
+        }
+        auto selected=prepared.pose.vertices;auto ordinals=prepared.ordinals;
+        shaders_->select_indexed(selected,ordinals,{0,draw.coverage},view);
+        if(selected.empty())continue;
+        for(auto &vertex:selected)vertex.material+=material_base_;
+        auto geometry=std::make_shared<ModelSkinGeometry>();
+        geometry->owner=owner;geometry->definition=definition_;geometry->render_model=render_model_;geometry->lod=draw.lod;
+        geometry->vertices=selected;geometry->palette=prepared.pose.palette;geometry->source_vertices=std::move(ordinals);
+        geometry->bindings.reserve(geometry->source_vertices.size());
+        for(const auto ordinal:geometry->source_vertices)geometry->bindings.push_back(lods_[draw.lod]->skin.at(ordinal));
+        result.deferred_skins.push_back({result.vertices.size(),std::move(geometry)});
+        result.vertices.insert(result.vertices.end(),selected.begin(),selected.end());
     }
     return result;
 }

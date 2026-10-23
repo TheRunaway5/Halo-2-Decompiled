@@ -67,6 +67,7 @@
 #include "halo2/source_lens_query_frame_tu15.hpp"
 #include "halo2/source_lens_draw_frame_tu15.hpp"
 #include "halo2/pstencil/campaign.hpp"
+#include "campaign_reference_capture.hpp"
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <SDL.h>
@@ -115,6 +116,7 @@ void usage() {
       << "  --mp-reference-player PATH replays retained original player/camera/shader inputs.\n"
       << "  --mp-reference-render-fraction 0..1 fixes diagnostic interpolation for finite local tick captures.\n"
       << "  --mp-reference-auxiliary-seed N --mp-reference-tick-cadence controls finite input-script capture RNG and one-frame-per-tick timing.\n"
+      << "  --campaign-reference-capture INTERVAL FRACTION AUX_SEED TRACE.jsonl requires a finite muted campaign screenshot; declares neutral input and a caller interval without replacing source timing/AI.\n"
       << "               [--shared-maps PATH] (shared resources for external maps)\n"
       << "               [--gameplay-xbe PATH] (TU1.5 automatically enables its physics/death world)\n"
       << "  --mp-source-object-world DIRECTORY explicitly selects retained-world savegame storage.\n"
@@ -240,6 +242,8 @@ int main(int argc, char **argv) {
     bool multiplayer=false,mcc_preview=false,map_supplied=false;
     std::size_t bsp = 0;
     unsigned frame_limit = 0;
+    std::optional<halo2::campaign_reference_capture::Options> reference_capture;
+    std::unique_ptr<halo2::campaign_reference_capture::Trace> reference_trace;
     std::string first_person_action;
     unsigned first_person_frame = 0, viewport_width = 1280, viewport_height = 720;
     bool hidden = false, validation = false, use_overview = false,
@@ -395,6 +399,14 @@ int main(int argc, char **argv) {
         play = true;
       else if (arg == "--campaign")
         campaign = play = true;
+      else if(arg=="--campaign-reference-capture") {
+        if(reference_capture)throw halo2::FormatError("Campaign reference capture may be declared only once");
+        halo2::campaign_reference_capture::Options capture;
+        capture.interval=halo2::campaign_reference_capture::real(next());
+        capture.fraction=halo2::campaign_reference_capture::real(next());
+        capture.auxiliary_seed=halo2::campaign_reference_capture::seed(next());
+        capture.trace=next();reference_capture=std::move(capture);
+      }
       else if (arg == "--multiplayer") multiplayer=true;
       else if(arg=="--custom-slayer" || arg=="--custom-mode") {
         const auto requested=next();const auto variants=halo2::bundled_slayer_variants();
@@ -519,6 +531,40 @@ int main(int argc, char **argv) {
         diagnostic = true;
       else
         throw std::runtime_error("unknown option: " + arg);
+    }
+    if(reference_capture) {
+      // Admit before the ordinary screenshot convenience default or any early
+      // inspection/menu exit. An authored --place-squad fixture is explicit;
+      // it never becomes a claim that the mission started naturally.
+      halo2::campaign_reference_capture::validate(*reference_capture,
+          {campaign || (play && !squad_name.empty()),play,multiplayer,menu,map_supplied,mute,
+           bool(mcc_preview || prepared_mcc_cache_root || inspect || validate || inspect_systems ||
+             validate_systems || simulate || bsp_replay || resize_test || diagnostic || use_overview ||
+             !weapon_name.empty() || !script_name.empty() || !camera_graph.empty() ||
+             !first_person_action.empty() || !sound_name.empty() || !play_sound_name.empty() ||
+             !loop_sound_name.empty() || !audio_output.empty() || !multiplayer_options.gameplay_xbe.empty() ||
+             desktop->display_settings.graphics_mode!=halo2::pstencil::GraphicsMode::Original ||
+             desktop->display_settings.upscaler!=halo2::Upscaler::Off ||
+             (desktop->display_settings.internal_width && desktop->display_settings.internal_width!=viewport_width) ||
+             (desktop->display_settings.internal_height && desktop->display_settings.internal_height!=viewport_height)),
+           frame_limit,screenshot});
+      for(const auto *name:{"HALO2_PSTENCIL_CAMPAIGN_CAPTURES","HALO2_PSTENCIL_CAMPAIGN_CAPTURE_TICK_RANGE",
+          "HALO2_PSTENCIL_CAMPAIGN_MATERIAL_CONTROLS","HALO2_PSTENCIL_CAMPAIGN_MODE_CONTROLS",
+          "HALO2_PSTENCIL_CAMPAIGN_PROJECTED_CONTROLS","HALO2_PSTENCIL_CAMPAIGN_SHADOW_CONTROLS",
+          "HALO2_PSTENCIL_CAMPAIGN_TRACE","HALO2_REFERENCE_TICK_CAMERA","HALO2_TEST_CAMPAIGN_WEAPON_GPU_REPORT"})
+        if(std::getenv(name))throw halo2::FormatError(std::string("Campaign reference capture conflicts with ")+name);
+      halo2::campaign_reference_capture::owned_output(screenshot);
+      if(screenshot.extension()!=".ppm" || screenshot==reference_capture->trace)
+        throw halo2::FormatError("Campaign reference capture requires distinct PPM and JSONL output paths");
+      reference_trace=std::make_unique<halo2::campaign_reference_capture::Trace>(reference_capture->trace);
+      reference_trace->record([&]{return nlohmann::json{{"event","configuration"},{"schema","H2_CAMPAIGN_SKIN_REFERENCE_V1"},
+          {"frames",frame_limit},{"interval_bits",std::bit_cast<std::uint32_t>(reference_capture->interval)},
+          {"render_fraction_bits",std::bit_cast<std::uint32_t>(reference_capture->fraction)},
+          {"auxiliary_seed",reference_capture->auxiliary_seed},
+          {"primary_seed",multiplayer_options.session_random_seed.value_or(0x12345678u)},
+          {"scenario_start_requested",campaign},{"place_squad_fixture",squad_name},
+          {"natural_startup",campaign && squad_name.empty()},{"neutral_input",true},
+          {"width",viewport_width},{"height",viewport_height}};});
     }
     if(mcc_preview && !map_supplied)
       throw halo2::FormatError("MCC content preview requires --map with an imported MCC map");
@@ -753,6 +799,9 @@ int main(int argc, char **argv) {
     const halo2::Cache cache=prepared_mcc_cache_root
         ?halo2::Cache(map,multiplayer_options.shared_maps,gameplay_data,*prepared_mcc_cache_root)
         :halo2::Cache(map,multiplayer_options.shared_maps,gameplay_data);
+    if(reference_capture && (!cache.is_mcc() || !cache.original_data() ||
+        cache.original_data()->image!=halo2::OriginalData::Image::TitleUpdate15))
+      throw halo2::FormatError("Campaign reference capture requires genuine MCC content with the TU1.5 source owner");
     if(campaign_weapon_gpu_trace.is_open())trace_campaign_weapon({{"event","timing"},{"stage","cache_end"}});
     if(mcc_preview && !cache.is_mcc())
       throw halo2::FormatError("MCC content preview requires an imported Halo MCC map");
@@ -791,8 +840,15 @@ int main(int argc, char **argv) {
     const auto campaign_source=[&](std::size_t selected) -> std::shared_ptr<halo2::CampaignSourceRuntime> {
       if(!play || !content || content->multiplayer_spawn ||
           cache.original_data()->image!=halo2::OriginalData::Image::TitleUpdate15)return {};
-      if(cache.is_mcc())return std::make_shared<halo2::CampaignSourceRuntime>(cache,
-          selected,menu_difficulty,multiplayer_options.session_random_seed.value_or(0x12345678u));
+      if(cache.is_mcc()) {
+        auto result=std::make_shared<halo2::CampaignSourceRuntime>(cache,
+            selected,menu_difficulty,multiplayer_options.session_random_seed.value_or(0x12345678u),
+            reference_capture?std::optional(reference_capture->auxiliary_seed):std::nullopt);
+        if(reference_trace)reference_trace->record([&]{return nlohmann::json{{"event","source_state"},
+            {"stage","before_scenario_factories"},{"bsp",selected},
+            {"state",halo2::campaign_reference_capture::state(*result)}};});
+        return result;
+      }
       return std::make_shared<halo2::CampaignSourceRuntime>(cache,cache.original_data()->source,
           selected,menu_difficulty,multiplayer_options.session_random_seed.value_or(0x12345678u));
     };
@@ -812,6 +868,8 @@ int main(int argc, char **argv) {
     if (play || simulate || !weapon_name.empty() || !squad_name.empty() ||
         !script_name.empty()) {
       content = cache.load_content(bsp);
+      if(reference_capture && content->multiplayer_spawn)
+        throw halo2::FormatError("Campaign reference capture rejects a multiplayer scenario");
       if (spawns.empty())
         throw std::runtime_error(
             "BSP has no authored player start for simulation");
@@ -831,6 +889,11 @@ int main(int argc, char **argv) {
             else if (p.kind == halo2::Simulation::Prediction::Object) residency.object(p.datum);
             else residency.structure(p.datum,p.section,p.instances);
           },std::nullopt,std::nullopt,halo2::SourceSceneObjectOwner{},campaign_source(bsp));
+      if(reference_trace) {
+        if(!simulation->campaign_source())throw halo2::FormatError("Campaign reference scene has no actual campaign source owner");
+        reference_trace->record([&]{return nlohmann::json{{"event","source_state"},{"stage","after_scenario_factories"},
+            {"state",halo2::campaign_reference_capture::state(*simulation->campaign_source())}};});
+      }
       simulation->controller_look_settings([&]{return desktop->controller_settings.invert;},[&](bool value){desktop->controller_settings.invert=value;});
       simulation->cinematic_animation_assets(std::make_shared<halo2::CinematicAnimationAssets>(cache));
       bind_cinematic_text();
@@ -1740,10 +1803,25 @@ int main(int argc, char **argv) {
     // capacity across frames so appending objects does not repeatedly relocate
     // the complete accumulated vertex bank.
     std::vector<halo2::Vertex> debug,foreground,background,campaign_world;
+    const auto render_fraction=[&](bool paired,float unpaired) {
+      if(!paired)return unpaired;
+      return reference_capture?reference_capture->fraction:std::clamp(simulation->frame_fraction(),0.f,1.f);
+    };
+    const auto reference_state=[&](const char *stage) {
+      if(reference_trace)reference_trace->record([&]{return nlohmann::json{{"event","source_state"},
+          {"stage",stage},{"frame",frames},{"tick",simulation->ticks()},
+          {"state",halo2::campaign_reference_capture::state(*simulation->campaign_source())}};});
+    };
+    if(reference_capture && (!simulation || !simulation->campaign_source()))
+      throw halo2::FormatError("Campaign reference startup did not construct its actual source owner");
+    if(reference_capture && !simulation->scripts().diagnostics().empty())
+      throw halo2::FormatError("Campaign reference source startup fault: "+simulation->scripts().diagnostics().front());
+    reference_state("before_frames");
     while (running && (!frame_limit || frames < frame_limit)) {
+      reference_state("frame_begin");
       if(campaign_weapon_gpu_trace.is_open())trace_campaign_weapon({{"event","timing"},{"stage","frame_begin"},{"frame",frames}});
       const auto now = Clock::now();
-      const float audio_dt=std::chrono::duration<float>(now-last).count();
+      const float audio_dt=reference_capture?reference_capture->interval:std::chrono::duration<float>(now-last).count();
       const float dt = std::min(audio_dt, 0.05f);
       last = now;
       SDL_Event event;
@@ -1754,6 +1832,10 @@ int main(int argc, char **argv) {
             (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED ||
              event.window.event == SDL_WINDOWEVENT_RESTORED))
           renderer->resized();
+        // A finite neutral capture declares no desktop/controller gameplay
+        // input. Lifecycle/resize events remain real and an early quit fails
+        // the required submitted-frame count below.
+        if(reference_capture)continue;
         prompt_devices.event(event,SDL_GetWindowID(window),0);
         if(pause_menu && pause_menu->event(event)) {gameplay_keyboard.release();continue;}
         gameplay_keyboard.handle_event(event);
@@ -1839,7 +1921,8 @@ int main(int argc, char **argv) {
       }
       const auto keys = SDL_GetKeyboardState(nullptr);
       const bool game_paused=pause_menu && pause_menu->pauses_game_time();
-      const bool menu_capture=pause_menu && pause_menu->captures_game_input();
+      const bool menu_capture=reference_capture || (pause_menu && pause_menu->captures_game_input());
+      if(reference_capture && game_paused)throw halo2::FormatError("Campaign reference capture entered a paused source frame");
       gameplay_keyboard.settings(desktop->keyboard_settings);
       if(menu_capture)gameplay_keyboard.release();
       const auto host_snapshot=gameplay_keyboard.snapshot(camera.yaw,camera.pitch);
@@ -2017,7 +2100,7 @@ int main(int argc, char **argv) {
         update_bsp();
         if (audio) audio->class_gains(simulation->sound_classes().gains());
         const auto &player = simulation->player();
-        const float fraction=presentation_paired?std::clamp(simulation->frame_fraction(),0.f,1.f):1.f;
+        const float fraction=render_fraction(presentation_paired,1.f);
         if (play) {
           camera.field_of_view = float(desktop->display_settings.field_of_view);
           if(campaign_scope && content->binocular_zoom) {
@@ -2055,6 +2138,7 @@ int main(int argc, char **argv) {
                                    (presentation_paired?std::lerp(previous_player.crouch,player.crouch,fraction):player.crouch);
         }
         const auto &faults = simulation->scripts().diagnostics();
+        if(reference_capture && !faults.empty())throw halo2::FormatError("Campaign reference source script fault: "+faults.front());
         if (reported_faults > faults.size())
           reported_faults = 0;
         while (reported_faults < faults.size())
@@ -2066,6 +2150,19 @@ int main(int argc, char **argv) {
                                  .c_str());
       }
       if(campaign_weapon_gpu_trace.is_open() && simulation)trace_campaign_weapon({{"event","timing"},{"stage","simulation_end"},{"frame",frames},{"tick",simulation->ticks()}});
+      reference_state("simulation_end");
+      if(reference_trace)reference_trace->record([&] {
+        auto actors=nlohmann::json::array();
+        for(const auto &actor:simulation->actors())actors.push_back({{"owner",actor.source_datum},
+            {"definition",actor.definition.datum},{"exists",actor.exists},{"dead",actor.vitality.dead},
+            {"visible",actor.visible},{"bsp_hidden",actor.bsp_hidden},{"bsp",actor.bsp},
+            {"position_bits",std::array{std::bit_cast<std::uint32_t>(actor.body.position.x),
+                std::bit_cast<std::uint32_t>(actor.body.position.y),std::bit_cast<std::uint32_t>(actor.body.position.z)}}});
+        return nlohmann::json{{"event","actors"},{"frame",frames},{"tick",simulation->ticks()},
+            {"paired",presentation_paired},{"source_fraction_bits",std::bit_cast<std::uint32_t>(simulation->frame_fraction())},
+            {"render_fraction_bits",std::bit_cast<std::uint32_t>(render_fraction(presentation_paired,1.f))},
+            {"actors",std::move(actors)}};
+      });
       if (!play) {
         camera.position.x +=
             (std::cos(camera.yaw) * forward + std::sin(camera.yaw) * right) *
@@ -2091,7 +2188,7 @@ int main(int argc, char **argv) {
         if(campaign_frame_trace)diagnostic_source_camera=*completed;
         *completed=cinematic_camera_interpolation.sample({simulation->ticks(),simulation->cinematic_camera_discontinuity(),
             simulation->checkpoint_restores(),simulation->bsp_revision(),presentation_paired,
-            presentation_paired?std::clamp(simulation->frame_fraction(),0.f,1.f):1.f,*completed});
+            render_fraction(presentation_paired,1.f),*completed});
         render_camera.position=completed->position;render_camera.forward=completed->forward;render_camera.up=completed->up;
         render_camera.oriented=true;render_camera.horizontal_field_of_view=true;
         render_camera.field_of_view=completed->horizontal_field_of_view*57.295779513f;
@@ -2101,7 +2198,7 @@ int main(int argc, char **argv) {
       } else if(simulation && play) {
         cinematic_camera_interpolation.clear();
         render_camera=simulation->presentation().camera(camera,
-            presentation_paired?std::clamp(simulation->frame_fraction(),0.f,1.f):0.f);
+            render_fraction(presentation_paired,0.f));
       } else cinematic_camera_interpolation.clear();
       std::optional<halo2::MultiplayerState::Player> campaign_hud_snapshot;
       bool campaign_vehicle_view=false;
@@ -2229,6 +2326,7 @@ int main(int argc, char **argv) {
           cinematic?cinematic->bloom:halo2::CinematicBloomOverride{});
       if(simulation)renderer->campaign_cinematic_crossfade(simulation->cinematic_crossfade_frame());
       std::vector<std::vector<halo2::Vertex>> character_poses;
+      std::vector<std::vector<halo2::ModelSkinSubmission>> character_skin_submissions;
       std::vector<halo2::ModelObjectDraw> character_draws;
       std::map<std::size_t,std::array<std::uint32_t,3>> campaign_weapon_draw_owners;
       std::vector<halo2::SourceModelTransparentDraw> campaign_transparent_models;
@@ -2346,6 +2444,23 @@ int main(int argc, char **argv) {
           }
           source_frame=source_view->collect(simulation->campaign_source()->objects().tu15_world(),
               input,*character_atmosphere,*character_fog);
+          if(reference_trace)reference_trace->record([&] {
+            auto units=nlohmann::json::array();
+            for(const auto &draw:source_frame->base_draws)units.push_back({{"owner",draw.object},
+                {"definition",draw.definition},{"ordinal",draw.ordinal},{"unit_words",draw.unit.words},
+                {"lod",draw.lod},{"coverage",draw.coverage},{"lighting_class",draw.lighting_class},
+                {"override_slot",draw.override_slot},{"shader_override",draw.shader_override},
+                {"packed_colors",draw.packed_colors},{"color_count",draw.color_count},
+                {"resident",draw.geometry.geometry.resident}});
+            const auto vector_bits=[](halo2::Vec3 v) {return std::array{
+                std::bit_cast<std::uint32_t>(v.x),std::bit_cast<std::uint32_t>(v.y),std::bit_cast<std::uint32_t>(v.z)};};
+            return nlohmann::json{{"event","main_view"},{"frame",frames},{"tick",simulation->ticks()},
+                {"eye_bits",vector_bits(render_camera.position)},{"forward_bits",vector_bits(forward)},
+                {"up_bits",vector_bits(up)},{"projection_angle_bits",std::bit_cast<std::uint32_t>(projection.projection_angle)},
+                {"viewport",projection.outer},{"main_commands_completed",source_frame->main_commands_completed},
+                {"source_particle_commands",source_frame->source_particle_commands},{"ordered_main_units",std::move(units)},
+                {"state",halo2::campaign_reference_capture::state(*simulation->campaign_source())}};
+          });
           if(campaign_weapon_gpu_trace.is_open())trace_campaign_weapon({{"event","source_frame"},{"frame",frames},
               {"tick",simulation->ticks()},{"eye",{render_camera.position.x,render_camera.position.y,render_camera.position.z}},
               {"forward",{forward.x,forward.y,forward.z}},{"up",{up.x,up.y,up.z}},
@@ -2412,7 +2527,7 @@ int main(int argc, char **argv) {
         out.insert(out.end(), vertices.begin(), vertices.end());
       };
       if (simulation) {
-        const float fraction=presentation_paired?std::clamp(simulation->frame_fraction(),0.f,1.f):1.f;
+        const float fraction=render_fraction(presentation_paired,1.f);
         const double render_tick=presentation_paired?double(simulation->ticks()-1)+fraction:double(simulation->ticks());
         character_time=float(render_tick)*halo2::tick_seconds;
         auto *source=simulation->campaign_source()?&simulation->campaign_source()->objects():nullptr;
@@ -2613,6 +2728,7 @@ int main(int argc, char **argv) {
                 v->second.source_actor_inputs.get():v->second.character_shaders.get();
             halo2::ShadowCasterSphere sphere;
             std::vector<halo2::Vertex> vertices;
+            std::vector<halo2::ModelSkinSubmission> deferred_skins;
             if(v->second.source_actor_model) {
               if(!source || !source_frame)
                 throw halo2::FormatError("Campaign actor lost its actual source view owner");
@@ -2649,8 +2765,43 @@ int main(int argc, char **argv) {
               sphere=source->object_sphere(actor.source_datum);
               auto &history=cinematic_render_interpolation[actor.source_datum];
               history.capture_render(simulation->ticks(),*nodes);
-              vertices=v->second.source_actor_model->draw(actor.source_datum,ordinary,
-                  history.sample_render(v->second.source_actor_model->hierarchy(),fraction,{},v->second.source_actor_model->scale_resets()),*character_shader_view);
+              const auto *enable_gpu=std::getenv("HALO2_ENABLE_GPU_SKINNING");
+              const auto *reference_gpu=std::getenv("HALO2_REFERENCE_CPU_SKINNING");
+              const bool defer=enable_gpu && *enable_gpu && !(reference_gpu && *reference_gpu) &&
+                  renderer->can_skin_models();
+              auto geometry=reference_trace?[&] {
+                auto sampled=history.sample_render(v->second.source_actor_model->hierarchy(),fraction,{},v->second.source_actor_model->scale_resets());
+                reference_trace->record([&] {
+                  auto units=nlohmann::json::array();
+                  for(const auto &draw:ordinary)units.push_back({{"ordinal",draw.ordinal},{"unit_words",draw.unit.words},
+                      {"lod",draw.lod},{"coverage",draw.coverage},{"lighting_class",draw.lighting_class},
+                      {"override_slot",draw.override_slot},{"shader_override",draw.shader_override}});
+                  return nlohmann::json{{"event","actor_pose"},{"frame",frames},{"owner",actor.source_datum},
+                      {"definition",source->object_definition(actor.source_datum)},
+                      {"builder_rows",halo2::Bytes(selected->second.bytes).u16(0x166)},
+                      {"ordinary_main_units",std::move(units)},
+                      {"WORLD_node_bits",halo2::campaign_reference_capture::nodes(*nodes)},
+                      {"sampled_node_bits",halo2::campaign_reference_capture::nodes(sampled)}};
+                });
+                return v->second.source_actor_model->draw_deferred(actor.source_datum,ordinary,sampled,*character_shader_view,nullptr,defer);
+              }():v->second.source_actor_model->draw_deferred(actor.source_datum,ordinary,
+                  history.sample_render(v->second.source_actor_model->hierarchy(),fraction,{},v->second.source_actor_model->scale_resets()),
+                  *character_shader_view,nullptr,defer);
+              vertices=std::move(geometry.vertices);deferred_skins=std::move(geometry.deferred_skins);
+              if(reference_trace)reference_trace->record([&]{return nlohmann::json{{"event","actor_geometry"},
+                  {"frame",frames},{"owner",actor.source_datum},{"vertices",vertices.size()},
+                  {"complete_materialized_vertex_sha256",halo2::campaign_reference_capture::geometry(vertices,deferred_skins)}};});
+              if(reference_trace)reference_trace->record([&] {
+                std::size_t records=0,weighted=0;
+                for(const auto &submission:deferred_skins) {
+                  if(!submission.geometry)throw halo2::FormatError("Campaign actor GPU receipt lost its immutable owner");
+                  records+=submission.geometry->vertices.size();
+                  for(const auto &binding:submission.geometry->bindings)
+                    if(std::ranges::any_of(binding.weights,[](float value){return (std::bit_cast<std::uint32_t>(value)&0x7fffffffu)!=0;}))++weighted;
+                }
+                return nlohmann::json{{"event","actor_gpu_submission"},{"frame",frames},{"owner",actor.source_datum},
+                    {"packets",deferred_skins.size()},{"records",records},{"weighted_records",weighted}};
+              });
               if(frame_limit) {
                 constexpr char hex[]="0123456789abcdef";
                 std::string clock;
@@ -2700,6 +2851,8 @@ int main(int argc, char **argv) {
             character_poses.push_back(std::move(vertices));
             character_draws.push_back({character_poses.back(),light.lighting,{},
                 inputs->input(actor,float(render_tick)*halo2::tick_seconds)});
+            character_skin_submissions.push_back(std::move(deferred_skins));
+            character_draws.back().deferred_skins=character_skin_submissions.back();
           } else append_pose(debug,v->second,clip,time,position,body_yaw,0);
         }
         if(source_weapon_models && source && source_frame && character_shader_view) {
@@ -2805,8 +2958,7 @@ int main(int argc, char **argv) {
         debug.insert(debug.end(), proxies.begin(), proxies.end());
       }
       auto effects = simulation && play
-                               ? simulation->presentation().effects(presentation_paired
-                                     ? std::clamp(simulation->frame_fraction(),0.f,1.f) : 0.f)
+                               ? simulation->presentation().effects(render_fraction(presentation_paired,0.f))
                                : halo2::ScreenEffects{};
       if(simulation && play)effects.flash=screen_flash.evaluate(*rumble_tables);
       if(campaign && simulation && (simulation->ticks()==0 || simulation->level_finished() ||
@@ -2982,6 +3134,7 @@ int main(int argc, char **argv) {
       };
       if(pstencil_controls)halo2::pstencil::campaign_capture_controls(*renderer,*campaign_view,
           pstencil_capture,draw_pstencil_capture);
+      reference_state("before_render");
       const bool campaign_submitted=renderer->draw(
               render_camera, !pstencil_capture.empty()?pstencil_capture:capture ? screenshot : std::filesystem::path{},
               campaign_view?std::span<const halo2::Vertex>{}:std::span<const halo2::Vertex>{debug},
@@ -2999,6 +3152,26 @@ int main(int argc, char **argv) {
         auto& world=simulation->campaign_source()->objects().tu15_world();
         campaign_lens_queries->finish(world,campaign_submitted);
         campaign_lens_draws->finish(campaign_submitted);
+      }
+      if(reference_trace) {
+        reference_trace->record([&] {
+          const auto timing=renderer->frame_timing();
+          return nlohmann::json{{"event","renderer"},{"frame",frames},{"submitted",campaign_submitted},
+              {"device",renderer->device_name()},{"measured",timing.measured},{"width",timing.width},{"height",timing.height},
+              {"gpu_jobs",timing.model_skin_gpu_jobs},{"gpu_vertices",timing.model_skin_gpu_vertices},
+              {"gpu_deformed_vertices",timing.model_skin_gpu_deformed_vertices},
+              {"gpu_verified_vertices",timing.model_skin_gpu_verified_vertices},
+              {"gpu_post_identity_vertices",timing.model_skin_gpu_post_identity_vertices},
+              {"cpu_fallback_jobs",timing.model_skin_cpu_fallback_jobs},
+              {"cpu_fallback_vertices",timing.model_skin_cpu_fallback_vertices},
+              {"cpu_fallback_deformed_vertices",timing.model_skin_cpu_fallback_deformed_vertices},
+              {"cpu_fallback_post_identity_vertices",timing.model_skin_cpu_fallback_post_identity_vertices},
+              {"cpu_fallback_quota_jobs",timing.model_skin_cpu_fallback_quota_jobs},
+              {"cpu_fallback_allocation_jobs",timing.model_skin_cpu_fallback_allocation_jobs},
+              {"cpu_fallback_mapping_jobs",timing.model_skin_cpu_fallback_mapping_jobs},
+              {"cpu_fallback_vulkan_result",timing.model_skin_cpu_fallback_vulkan_result}};
+        });
+        reference_state("after_render");
       }
       if(campaign_submitted)
         ++frames;
@@ -3021,6 +3194,8 @@ int main(int argc, char **argv) {
       if(simulation && renderer->cinematic_crossfade_captured())simulation->cinematic_crossfade_capture_complete();
     }
     std::cout << "Rendered " << frames << " frames\n";
+    if(reference_capture && frames!=frame_limit)
+      throw halo2::FormatError("Campaign reference capture did not submit every declared frame");
     if(controller)SDL_GameControllerRumble(controller.get(),0,0,0);
     if (simulation)
       std::cout << simulation->status() << " level_finished=" << simulation->level_finished() << '\n';

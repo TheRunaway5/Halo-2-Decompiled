@@ -62,6 +62,9 @@ public:
 private:
     friend class SourceLensPresentationHandoffTu15;
     Renderer *renderer_owner() const noexcept;
+    // Only the paired owner may use this after verifying a genuine retained
+    // full native Boundary. This checks local/GPU owners and reads no ring.
+    bool rebind_ready_held(const PreparedRebind &,const SourceRuntimeMemory &) const noexcept;
     void publish_rebind(PreparedRebind &) noexcept;
     struct Impl;
     std::unique_ptr<Impl> impl_;

@@ -156,6 +156,24 @@ acceptance separately. Component results do not complete the goal.
 
 ## CPU/GPU offload track
 
+- [x] Implement and component-qualify MCC-style retained skin-input storage:
+      persistently mapped coherent bank, exact CPU record shadow, palette-only
+      warm updates, allocation-generation-qualified descriptor reuse and
+      same-binary streaming control. Preserve all per-call admission and fault
+      controls. [Implementation and evidence](MCC_GPU_SKIN_RESIDENT_INPUT_20261023.md).
+- [ ] Establish an ordinary FPS benefit and full current runtime quality for
+      that retained-input candidate; traffic reduction alone is insufficient.
+- [x] Fresh actual4K/720p-presented main-thread profiles for CPU/retained GPU,
+      one/four players:8,292 bounded samples, real worker/GPU route receipts and
+      raw cleanup. Source effect-light/shadow costs overlap; no CPU/GPU total
+      percentage or speedup follows from them.
+      [World CPU/GPU split and concrete next boundaries](MCC_WORLD_RENDERING_GPU_SPLIT_20261023.md).
+- [ ] Measure actual world/light submission calls, draw counts and host time;
+      implement generation/fence-qualified resource reuse only if this owner
+      materially contributes to ordinary frame cost. Triangle-metadata resources
+      belong to an alternate backend; ordinary Linux uses indexed geometry.
+      Keep source draw admission/callback order and mutable palette updates exact.
+
 The user explicitly requested implementation as a goal. The dedicated
 [presentation offload checklist](PRESENTATION_OFFLOAD_GOAL_CHECKLIST.md) is
 authoritative for its worker, ordinary-character GPU and 1:1 acceptance gates.
@@ -165,7 +183,7 @@ authoritative for its worker, ordinary-character GPU and 1:1 acceptance gates.
       already exist. Ordinary base-model CPU skinning and serial host
       preparation remain candidates. See the
       [offload assessment](MCC_PERFORMANCE_OFFLOAD_20261022.md).
-- [ ] Prototype a worker on immutable completed-frame inputs for host
+- [x] Prototype a worker on immutable completed-frame inputs for host
       palette/skinning or vertex packing. Preserve lifetime, math/FP controls,
       original result/effect ordering and the current presentation endpoint;
       join before consumption without introducing an extra frame of delay.
@@ -300,3 +318,71 @@ All CMake validation uses `tools/run_tests.py`. Other probes use
 `tools/run_test.py` and `HALO2_TEST_SCRATCH`; small reports remain outside
 scratch. See [test storage](TEST_STORAGE.md). Existing assets, frozen evidence,
 installed runtimes and unrelated active work are preservation inputs.
+
+- 2026-10-23: The dedicated offload track implements an enabled immutable
+  vertex-upload prefix worker and exact ordinary GPU skinning behind its
+  qualification switch. Current source/native/components and all12 normal
+  first-person CPU/GPU actual4K pairs pass(17,822,520 complete GPU records,
+  exact fullframes/sourceRNGtraces,zeroVulkanmessages). The first GPU version
+  regressed fixed-work CPU due to added planning costs; its intended growth
+  regression is repaired and passes Release/sanitizer gates. Current runtime
+  fallback controls pass separately. Three clean interleaved actual4K pairs
+  measure median CPU→GPU FPS of71.109→65.319(1p) and19.287→17.828(4p), regressions
+  of8.14% and7.56%. GPU skinning stays opt-in while its added CPU cost is profiled.
+  No120/60FPS, campaign-full-frame, default-GPU or launcher gate is closed.
+
+- 2026-10-23: User prioritized performance measurement immediately and the
+  owned full12 quality run was canceled; two completed1080p pairs do not
+  qualify the full set. Twelve ordinary FPS cases (three interleaved CPU/GPU
+  pairs each1p/4p) complete on the physical monitor, with internal3840x2160
+  rendering and actual1920x1080 presentation. Median1p CPU/GPU: 65.552/60.834FPS (-7.20%). Median4p: 18.846/17.187FPS (-8.81%).
+  Unrelated repository tests overlap EVERY case; this is a requested
+  current-load snapshot, not clean optimization acceptance. All sampled frames
+  execute the real presentation worker; GPU-on performs weighted deformation
+  with no verification readback or CPU fallback, CPU controls dispatch none.
+  All raw/caches/pinned-reference storage is removed with its benchmark owner;
+  compact JSON/TSVs remain underphysical-c50-immediate-performance. Targets
+  remain unmet, GPU stays opt-in, launcher/default/full-quality gates stayopen.
+
+- 2026-10-23: Direct MCC architectural follow-up now traces its named render
+  worker queue into per-worker native contexts and command-list jobs rather
+  than relying on imports alone. The evidence pack separates compiled paths
+  from live activation, and maps useful transfers to current port gaps.
+  [Architecture evidence and acceptance plan](MCC_CLASSIC_ARCHITECTURE_BORROW_AUDIT_20261023.md).
+  Native completed-owner execution, resident ordinary-model data and immutable
+  packing work are implementation priorities; existing caches/resident BSP
+  resources are already present. No percentage gain follows from static code.
+- 2026-10-23: Referenced-row summary trial rebuilt and passed its GPU component.
+  Three complete1p GPU-on old/new pairs:61.646→62.175FPS (+0.857%);4p/full-cohort
+  input closure failed when the parent test runtime disappeared. Partial results
+  are preserved without target/default acceptance. Parent and benchmark scratch
+  are verified removed; any further executable trial needs a new frozen owner.
+  [Trial receipts](../build/test-results/presentation-offload-20261022/row-cache-physical-trial/).
+
+- 2026-10-23: Implemented retained coherent skin-input storage, an exact48-byte
+  CPU record shadow, palette updates and descriptor reuse qualified by an
+  explicit destination-allocation generation. All existing validation remains
+  per call; zero generation conservatively refreshes descriptors. Release and
+  ASan/UBSan bounds cohorts pass934,515 complete vertices across57 real GPU jobs,
+  151 warm traffic checks,212 full FP/errno checks, refusal/growth/empty/stale
+  controls and zero Vulkan errors, in addition to the existing15,606 vertices
+  and37,440 row cases. The old streaming policy passes correctness and fails
+  the new traffic gate; disabling dispatch fails actual output bytes. Leak
+  checking was explicitly disabled for the Vulkan bounds run; its separate
+  unresolved leak gate remains open. All completed component scratch is removed.
+  [Component receipts](../build/test-results/presentation-offload-20261022/resident-skin-input-20261023/component-attempt2/execution.json).
+  Fresh owned baseline/candidate rebuilds and ordinary-runtime measurements
+  remain underway; no full-frame, FPS, default-GPU, latency or launcher gate is
+  accepted by these component results. The goal remains active.
+
+- 2026-10-23: The fresh retained-input six-file candidate builds12 targets and
+  passes11 focused checks. Eighteen ordinary4K-internal/720p-presented cases
+  complete: median CPU / streaming GPU / retained GPU FPS is64.092 /58.840 /
+  56.796 (1p),18.248 /17.354 /16.555 (4p). All18 are contended by unrelated
+  repository tests, so no clean regression or stable gain is accepted. Actual
+  record packing/uploads fall91.85%/100%; this does not meet the120/60FPS
+  targets. Raw FPS owners/reference copies are removed. A test-only extent
+  harness refresh passes13 contract tests while110 production artifacts,
+  native/profile binaries and97 shaders remain identical. The full12 current
+  world-body frame/source-trace cohort is running at4K internal/720p presented.
+  [Retained-input implementation, measurements and remaining boundaries](MCC_GPU_SKIN_RESIDENT_INPUT_20261023.md).

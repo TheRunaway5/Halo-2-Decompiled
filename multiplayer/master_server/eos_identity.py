@@ -13,7 +13,7 @@ import re
 from aiohttp import web
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
-from .protocol import fields, require
+from .protocol import fields, require, parse
 from .player_statistics import enqueue
 
 
@@ -107,16 +107,39 @@ class EosIdentity:
         # this exact account session remains active.
         _,current=self.directory.clans.session(request)
         require(current==who,'Account session changed',401)
+        self.bind_player(who,body['puid'])
+        return web.json_response({'linked':True})
+
+    @staticmethod
+    def proof_subject(token):
+        # This is only a bounded routing hint for the official SDK verifier.
+        # Neither this decoded subject nor any other unverified JWT claim
+        # authorizes a player or establishes an EOS binding.
+        require(type(token) is str and 1<=len(token)<=8192 and
+                all(32<ord(c)<127 for c in token),'Invalid EOS identity proof')
+        parts=token.split('.')
+        require(len(parts)==3 and all(parts),'Invalid EOS identity proof')
+        try:
+            payload=base64.b64decode(parts[1]+'='*(-len(parts[1])%4),altchars=b'-_',validate=True)
+        except (ValueError,UnicodeError):
+            require(False,'Invalid EOS identity proof')
+        claims=parse(payload)
+        require(type(claims) is dict and type(claims.get('sub')) is str and
+                re.fullmatch(r'[0-9a-f]{32}',claims['sub']),'Invalid EOS identity proof')
+        return claims['sub']
+
+    def bind_player(self,who,puid):
+        # Callers must have checked the SDK-verified account and revalidated
+        # their still-current capability after the asynchronous verification.
         db=self.directory.store.db
         with db:
             old=db.execute('SELECT puid FROM eos_players WHERE player=?',(who,)).fetchone()
-            require(old is None or old[0]==body['puid'],'EOS identity migration requires explicit recovery',409)
-            linked=db.execute('SELECT player FROM eos_players WHERE puid=?',(body['puid'],)).fetchone()
+            require(old is None or old[0]==puid,'EOS identity migration requires explicit recovery',409)
+            linked=db.execute('SELECT player FROM eos_players WHERE puid=?',(puid,)).fetchone()
             require(linked is None or linked[0]==who,'EOS identity already linked',409)
             if old is None:
-                db.execute('INSERT INTO eos_players VALUES(?,?)',(who,body['puid']))
+                db.execute('INSERT INTO eos_players VALUES(?,?)',(who,puid))
                 enqueue(db,who)
-        return web.json_response({'linked':True})
 
     async def close(self,_):
         process,self.process=self.process,None

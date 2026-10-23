@@ -6,9 +6,11 @@ namespace halo2 {
 // Simulation retains script/presentation values and borrows this owner's pool.
 class CampaignSourceRuntime {
 public:
-  CampaignSourceRuntime(const Cache &,std::size_t bsp,unsigned difficulty,std::uint32_t seed);
+  CampaignSourceRuntime(const Cache &,std::size_t bsp,unsigned difficulty,std::uint32_t seed,
+      std::optional<std::uint32_t> reference_auxiliary_seed={});
   CampaignSourceRuntime(const Cache &,const std::filesystem::path &xbe,
-      std::size_t bsp,unsigned difficulty,std::uint32_t seed);
+      std::size_t bsp,unsigned difficulty,std::uint32_t seed,
+      std::optional<std::uint32_t> reference_auxiliary_seed={});
   ~CampaignSourceRuntime();
   NativeObjectLifetimes lifetimes();
   SourceSceneObjectOwner scene_owner(const LevelContent &);
@@ -31,6 +33,19 @@ public:
   std::size_t place_squad(Simulation &,std::size_t);
   MultiplayerState::Player hud_player(const Simulation &);
   MultiplayerObjectRuntime &objects(){return *objects_;}
+  // Read-only capture receipt from this actual World, never a replay bank.
+  // The optional constructor input is delivered after session configuration,
+  // before Simulation can invoke scenario factories (same146240 auxiliary
+  // stream as the finite multiplayer reference capture).
+  struct ReferenceState {
+    // Stable original SOURCE tokens; native host addresses are read locally
+    // and reverse-mapped before a fresh-process comparison receipt is emitted.
+    std::uint32_t random_address{},clock_address{};
+    std::uint32_t game_options_seed{};
+    std::array<std::uint32_t,2> random_words{};
+    std::array<std::byte,0x24> clock{};
+  };
+  ReferenceState reference_state()const;
   struct Checkpoint {
     MultiplayerObjectRuntime::AuthorityCheckpoint objects;
     NativeObjectLifetimes::SourceAuthorityCheckpoint lifetimes;

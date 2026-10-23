@@ -10453,6 +10453,13 @@ include(cmake/SourceRuntimeVectorRead.cmake)
 include(cmake/MotionSensorComposite.cmake)
 include(cmake/SelectedSkinReuse.cmake)
 include(cmake/PresentationOffload.cmake)
+include(cmake/ModelSkinGpu.cmake)
+include(cmake/ModelSkinGpuAdmission.cmake)
+include(cmake/ModelSkinCpuMaterialization.cmake)
+include(cmake/FrameModelSkinPlan.cmake)
+include(cmake/ModelSkinRuntime.cmake)
+include(cmake/CampaignModelSkinHandoff.cmake)
+include(cmake/CampaignReferenceCapture.cmake)
 foreach(native_target halo2_systems halo2_physics_world_runtime halo2_shadow_array_swap_tu15
         halo2_physics_vehicle_runtime halo2_physics_vehicle_update halo2_physics_vehicle_motion
         halo2_physics_vehicle_motion_math halo2_physics_vehicle_environment_state

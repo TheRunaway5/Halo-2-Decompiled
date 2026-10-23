@@ -6,9 +6,10 @@
 
 namespace halo2 {
 // One renderer owns this persistent, single-job byte-copy service. It never
-// calls source owners or Vulkan. A ticket joins before borrowed frame data or
+// calls source owners or Vulkan. Only one ticket may be outstanding. It joins before borrowed frame data or
 // mapped destination storage can be edited, unmapped or destroyed.
 class PresentationCopyWorker {
+    friend struct PresentationCopyWorkerTestAccess;
     struct Impl;
     std::shared_ptr<Impl> impl_;
     using Copy=void(*)(const void*,void*,std::size_t);

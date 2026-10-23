@@ -136,10 +136,14 @@ async def main(args):
                 if args.mcc_root is not None:
                     markers += ['PASS genuine current-target native publication:',
                         'PASS genuine native provider binding:',
+                        'PASS actual native target Audio:',
+                        'PASS held native foreground boundary:',
                         'PASS genuine native publication target lifetime:',
                         'PASS selected-MCC-native peer takeover scope route:']
                     if os.environ.get('HALO2_TAKEOVER_WORKER_RETAIN'):
                         markers += ['PASS runtime incoming shared original Cache:']
+                    if os.environ.get('HALO2_TAKEOVER_HELD_LENS_TEST'):
+                        markers += ['PASS held native lens boundary:']
                 for marker in markers:
                     assert text.count(marker) == 1, 'Missing/duplicated native control: ' + marker
                 directory = next(iter(app.values()))

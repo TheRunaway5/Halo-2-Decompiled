@@ -135,6 +135,91 @@ void pipeline_delivery(){
     rejects([&]{modern.publish_ahead(context(),single,2,second,4,100);});
     std::cout<<"PASS negotiated two-cut delivery, withheld executor readiness, bounded third-cut rejection, earlier/native validation under lost Ready, context reset and legacy refusal\n";
 }
+bool default_credit_fanout(unsigned packet_budget){
+    auto binding=context();binding.peers|=std::uint16_t(1u<<8);
+    const AuthorityTransferLimits defaults;
+    std::array<std::unique_ptr<PeerAuthorityTransfer>,16> owners;
+    const std::array<unsigned,3> physical{0,4,8};
+    const std::array<unsigned,2> recipients{4,8};
+    for(auto peer:physical)owners[peer]=std::make_unique<PeerAuthorityTransfer>(peer,binding);
+    std::uint64_t now{};
+    struct Receipt {
+        std::optional<ReceivedAuthorityCut> cut;
+        std::vector<std::uint8_t> chunks;
+        std::uint64_t distinct{},first_chunk{},last_chunk{},largest_gap{},completed_at{},delivered_at{};
+    };
+    std::array<Receipt,16> receipts;
+    const auto pump=[&] {
+        now+=2;
+        for(auto source:physical)for(auto &packet:owners[source]->poll(now,packet_budget)){
+            check(packet.peer<owners.size()&&owners[packet.peer],"Fanout packet escaped the fixed physical membership");
+            if(source==0&&packet.bytes.size()>=69&&packet.bytes[8]==std::byte{3}){
+                auto &receipt=receipts[packet.peer];std::uint32_t index{};
+                for(unsigned byte=0;byte<4;++byte)
+                    index|=std::to_integer<std::uint32_t>(packet.bytes[65+byte])<<(byte*8);
+                check(index<receipt.chunks.size(),"Fanout fragment escaped the actual published cut");
+                if(!receipt.chunks[index]){
+                    receipt.chunks[index]=1;++receipt.distinct;
+                    if(!receipt.first_chunk)receipt.first_chunk=now;
+                    else receipt.largest_gap=std::max(receipt.largest_gap,now-receipt.last_chunk);
+                    receipt.last_chunk=now;
+                }
+            }
+            // The sender is the established owner used to deliver this real
+            // encoded packet. No packet field supplies authentication or ACKs.
+            check(owners[packet.peer]->receive(source,packet.bytes,now),"Actual authority packet was not consumed");
+        }
+    };
+    for(unsigned step=0;step<1000;++step){
+        bool supported=true;
+        for(auto peer:recipients)supported&=owners[0]->supported(peer)&&owners[peer]->supported(0);
+        if(supported)break;pump();
+    }
+    for(auto peer:recipients)check(owners[0]->supported(peer)&&owners[peer]->supported(0),
+        "Default-budget fanout did not independently admit both physical recipients");
+    std::vector<std::byte> bytes(8u*1024u*1024u+137u);
+    for(std::size_t index=0;index<bytes.size();++index)bytes[index]=std::byte((index*37+index/13)&255u);
+    const auto seal=owners[0]->publish(binding,123,bytes,recipients,now);
+    const auto started=now,total_chunks=(seal.bytes+1023u)/1024u;
+    for(auto peer:recipients)receipts[peer].chunks.resize(total_chunks);
+    const auto finished=[&]{return std::ranges::all_of(recipients,[&](unsigned peer){
+        return receipts[peer].cut&&receipts[peer].delivered_at;});};
+    // More than the lossless wire/credit lower bound, still less than one
+    // fake minute. Normal default expiry, retry, burst and rate stay intact.
+    for(unsigned step=0;step<29'999&&!finished();++step){
+        pump();
+        for(auto peer:recipients){auto &receipt=receipts[peer];
+            if(!receipt.cut)if(auto cut=owners[peer]->take_completed()){
+                check(cut->peer==0&&cut->context==binding&&cut->seal==seal&&*cut->bytes==bytes,
+                    "Default-budget fanout changed the source, complete cut or exact bytes");
+                receipt.cut=std::move(cut);receipt.completed_at=now;
+            }
+            if(!receipt.delivered_at&&owners[0]->delivered_to(binding,seal,peer))receipt.delivered_at=now;
+        }
+    }
+    check(owners[0]->validated_cuts().empty(),"Fanout byte delivery invented native-world validation");
+    const auto charged_bytes=std::uint64_t(recipients.size())*(seal.bytes+69u*total_chunks);
+    const auto minimum_ms=((charged_bytes-defaults.burst_bytes)*1000u+defaults.bytes_per_second-1u)/defaults.bytes_per_second;
+    check(minimum_ms<59'998,"Fanout fixture observation is shorter than its actual wire/credit lower bound");
+    const bool passed=finished();
+    std::cout<<(passed?"PASS":"DIAGNOSTIC")<<" default-credit physical fanout: packet_budget="<<packet_budget
+        <<" pump_ms=2 cut_bytes="<<seal.bytes<<" recipients="<<recipients.size()
+        <<" bytes_per_second="<<defaults.bytes_per_second<<" burst_bytes="<<defaults.burst_bytes
+        <<" idle_ms="<<defaults.idle_ms<<" minimum_wire_ms="<<minimum_ms<<" elapsed_ms="<<now-started;
+    for(auto peer:recipients){const auto &receipt=receipts[peer];
+        const auto gap=receipt.cut?receipt.largest_gap:
+            receipt.last_chunk?std::max(receipt.largest_gap,now-receipt.last_chunk):now-started;
+        std::cout<<" peer="<<peer<<" distinct_chunks="<<receipt.distinct<<'/'<<total_chunks
+            <<" first_ms="<<(receipt.first_chunk?receipt.first_chunk-started:0)
+            <<" last_ms="<<(receipt.last_chunk?receipt.last_chunk-started:0)
+            <<" largest_gap_ms="<<gap<<" complete="<<bool(receipt.cut)
+            <<" complete_ms="<<(receipt.completed_at?receipt.completed_at-started:0)
+            <<" byte_ack_ms="<<(receipt.delivered_at?receipt.delivered_at-started:0)
+            <<" byte_ack="<<bool(receipt.delivered_at)
+            <<" byte_ack_current="<<owners[0]->delivered_to(binding,seal,peer);
+    }
+    std::cout<<'\n';return passed;
+}
 void run(){
     {
         auto enabled=limits();enabled.features=authority_feature_source_replay;
@@ -192,6 +277,8 @@ void run(){
     check(!expired.b.take_completed(),"Timed-out transfer identifier was revived");
     PeerAuthorityTransfer alone(0,AuthorityTransferContext{context().session,0,0,1,0});check(alone.poll(0).empty(),"Couch-only room generated a self route");
     pipeline_delivery();concurrent_delivery();
+    const bool default_fanout=default_credit_fanout(4),session_fanout=default_credit_fanout(2);
+    check(default_fanout&&session_fanout,"Default-credit multi-recipient delivery starved an independently admitted physical peer");
     std::cout<<"PASS bounded peer authority delivery under deterministic loss/reorder/duplicates, explicit validated-world acknowledgements, context/source/timeout/corruption guards and couch-only rooms\n";
 }
 }

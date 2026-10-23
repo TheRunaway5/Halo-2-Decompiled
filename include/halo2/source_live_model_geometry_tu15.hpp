@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/source_bsp_part_commands.hpp"
+#include "halo2/model_skin_submission.hpp"
 #include "halo2/source_draw_unit.hpp"
 #include "halo2/source_object_draw_collector.hpp"
 #include "halo2/object_lighting.hpp"
@@ -11,6 +12,7 @@ namespace halo2 {
 class PhysicsLiveWorldTu15;
 struct SourcePrtDefinition;
 struct RenderModel;
+struct ModelSkinGeometry;
 class SourceDynamicModelShaders;
 struct SourceModelShaderView;
 // An owned main-view handoff. Secondary queries reuse the source cache and
@@ -45,6 +47,8 @@ bool source_live_model_base_matches_tu15(const SourceLiveModelBaseDrawTu15&,
 // call. Ordered section selection and per-view shader evaluation stay here.
 using SourceLiveModelPoseProviderTu15=std::function<std::span<const Vertex>(
     std::uint32_t,unsigned,const RenderModel&,std::span<const Transform>)>;
+using SourceLiveModelDeferredPoseProviderTu15=std::function<ModelSkinWorldPoseView(
+    std::uint32_t,unsigned,const RenderModel&,std::span<const Transform>)>;
 // Completed body/held-weapon selections retain section order and duplicates.
 // The provider must preserve the fresh skin's arithmetic/diagnostic effects;
 // shading, materials, coverage and camera-dependent selection stay with callers.
@@ -55,7 +59,9 @@ std::optional<std::vector<Vertex>> source_live_model_base_vertices_tu15(
     std::uint32_t owner,std::uint32_t definition,std::uint32_t render_model,
     std::span<const SourceLiveModelBaseDrawTu15>,std::span<const RenderModel,6>,
     const SourceDynamicModelShaders&,std::span<const Transform>,const SourceModelShaderView&,
-    const SourceLiveModelPoseProviderTu15& = {});
+    const SourceLiveModelPoseProviderTu15& = {},
+    std::shared_ptr<const ModelSkinGeometry>* deferred_skin = nullptr,
+    const SourceLiveModelDeferredPoseProviderTu15& = {});
 class SourceLiveModelBaseSelectionTu15 {
 public:
     // Observe each completed4B5D0 output, including recursively built children.

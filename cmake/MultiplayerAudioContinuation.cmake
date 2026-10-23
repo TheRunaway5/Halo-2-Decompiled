@@ -17,6 +17,9 @@ if(BUILD_TESTING)
             src/audio/vista_audio_framing.cpp
             src/campaign/scripting/source_script_sound_clock_native64_tu15.cpp
             src/audio/mcc_sound_variation_provider.cpp
+            src/audio/mcc_sound_variation_native_binding.cpp
+            src/runtime/source_native_publication.cpp
+            src/gameplay/multiplayer/multiplayer_object_runtime.cpp
             src/campaign/scripting/mcc_script_sound_world_access.cpp
             src/physics/physics_live_world_tu15.cpp
             src/runtime/source_runtime_memory.cpp

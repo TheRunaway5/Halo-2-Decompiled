@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 from pathlib import Path
 import statistics
 import subprocess
@@ -211,6 +212,24 @@ def main():
             parser.error('Profiler requires --gameplay-xbe, visible muted playback and a 16:9 render size')
         if any(scene not in ('match', 'split') for scene in scenarios):
             parser.error('Profiler supports only match/split scenarios')
+    # Output-less Xwayland can advertise FIFO yet release an image roughly
+    # once per second. A visible SDL window alone does not admit playback FPS.
+    # Headless captures and fixed CPU diagnostics have their separate tools.
+    if not args.hidden and not args.profile_multiplayer and os.environ.get('SDL_VIDEODRIVER') == 'x11':
+        xrandr = shutil.which('xrandr')
+        if xrandr:
+            probe = subprocess.run([xrandr, '--current'], capture_output=True, text=True, timeout=5)
+            if probe.returncode == 0 and re.search(r'\bcurrent\s+0\s+x\s+0\b', probe.stdout):
+                rejection = {'passed': False, 'status': 'presentation unavailable',
+                             'reason': 'X11 reports a 0x0 screen without active presentation outputs; playback FPS is not admitted.',
+                             'command': [xrandr, '--current'], 'stdout': probe.stdout, 'stderr': probe.stderr}
+                payload = json.dumps(rejection, indent=2) + '\n'
+                (args.output / 'presentation-preflight.json').write_text(payload)
+                if args.report_output:
+                    args.report_output.parent.mkdir(parents=True, exist_ok=True)
+                    args.report_output.with_name(args.report_output.stem + '-presentation-rejection.json').write_text(payload)
+                print(rejection['reason'], flush=True)
+                return 1
     runs = [measure(args, scenario, repetition) for repetition in range(args.repetitions)
             for scenario in scenarios]
     medians = {scenario: statistics.median(run['fps'] for run in runs if run['scenario'] == scenario)

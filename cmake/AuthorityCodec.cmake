@@ -54,6 +54,33 @@ if(BUILD_TESTING)
         set_tests_properties(source_peer_host_takeover_mcc_http PROPERTIES TIMEOUT 600 RUN_SERIAL TRUE
             LABELS "selected-MCC-native"
             ENVIRONMENT "SDL_AUDIODRIVER=dummy;SDL_VIDEODRIVER=dummy")
+        if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang"
+            AND NOT BUILD_SHARED_LIBS)
+            # This separately selected renderer control never opens a window on
+            # the user's display or selects a physical Vulkan device.
+            find_program(HALO2_MCC_HELD_LENS_XVFB_RUN NAMES xvfb-run REQUIRED)
+            find_file(HALO2_MCC_HELD_LENS_SOFTWARE_ICD NAMES lvp_icd.json
+                PATHS /usr/share/vulkan/icd.d /etc/vulkan/icd.d REQUIRED)
+            include(cmake/VulkanLensRetirementObserver.cmake)
+            add_executable(source_peer_host_held_lens_tests tests/source_peer_host_takeover_tests.cpp)
+            target_compile_definitions(source_peer_host_held_lens_tests PRIVATE HALO2_TAKEOVER_HELD_LENS_TEST=1)
+            target_link_options(source_peer_host_held_lens_tests PRIVATE
+                "LINKER:--wrap=_ZNK5halo219SourceRuntimeMemory4viewEjm")
+            halo2_observe_vulkan_lens_retirement(source_peer_host_held_lens_tests)
+            target_link_libraries(source_peer_host_held_lens_tests PRIVATE halo2_renderer nlohmann_json::nlohmann_json)
+            add_test(NAME source_peer_host_held_lens_mcc_http
+                COMMAND "${HALO2_MCC_HELD_LENS_XVFB_RUN}" -a -s "-screen 0 640x480x24"
+                ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_peer_host_takeover_http_test.py"
+                $<TARGET_FILE:source_peer_host_held_lens_tests>
+                --mcc-root "${HALO2_MCC_NATIVE_SCOPE_TEST_ROOT}" ${_halo2_native_scope_mcc_map_args})
+            set_tests_properties(source_peer_host_held_lens_mcc_http PROPERTIES TIMEOUT 600 RUN_SERIAL TRUE
+                LABELS "selected-MCC-native"
+                ENVIRONMENT "HALO2_TAKEOVER_HELD_LENS_TEST=1;HALO2_TAKEOVER_HELD_LENS_PRIVATE_XVFB=1;SDL_AUDIODRIVER=dummy;SDL_VIDEODRIVER=x11;VK_ICD_FILENAMES=${HALO2_MCC_HELD_LENS_SOFTWARE_ICD}")
+            if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.tools/validation/usr/share/vulkan/explicit_layer.d/VkLayer_khronos_validation.json")
+                set_property(TEST source_peer_host_held_lens_mcc_http APPEND PROPERTY ENVIRONMENT_MODIFICATION
+                    "VK_LAYER_PATH=set:${CMAKE_CURRENT_SOURCE_DIR}/.tools/validation/usr/share/vulkan/explicit_layer.d;LD_LIBRARY_PATH=path_list_prepend:${CMAKE_CURRENT_SOURCE_DIR}/.tools/validation/usr/lib")
+            endif()
+        endif()
         unset(_halo2_native_scope_mcc_map_args)
     elseif(HALO2_MCC_NATIVE_SCOPE_TEST_MAP)
         message(FATAL_ERROR "HALO2_MCC_NATIVE_SCOPE_TEST_MAP requires HALO2_MCC_NATIVE_SCOPE_TEST_ROOT")
@@ -82,6 +109,44 @@ if(BUILD_TESTING)
         set_tests_properties(source_common_cut_runtime_mcc_http PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE
             LABELS "selected-MCC-native"
             ENVIRONMENT "SDL_AUDIODRIVER=dummy;SDL_VIDEODRIVER=dummy")
+        add_test(NAME source_common_cut_prospective_mcc_http COMMAND ${Python3_EXECUTABLE}
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_common_cut_runtime_http_test.py"
+            $<TARGET_FILE:source_common_cut_runtime_tests>
+            --mcc-root "${HALO2_MCC_COMMON_CUT_TEST_ROOT}" ${_halo2_common_cut_mcc_map_args})
+        set_tests_properties(source_common_cut_prospective_mcc_http PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE
+            LABELS "selected-MCC-native"
+            ENVIRONMENT "HALO2_COMMON_PROSPECTIVE=1;SDL_AUDIODRIVER=dummy;SDL_VIDEODRIVER=dummy")
+        foreach(_halo2_inventory_case IN ITEMS abort freeze)
+            add_test(NAME source_common_cut_inventory_${_halo2_inventory_case}_mcc_http COMMAND ${Python3_EXECUTABLE}
+                "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_common_cut_runtime_http_test.py"
+                $<TARGET_FILE:source_common_cut_runtime_tests>
+                --mcc-root "${HALO2_MCC_COMMON_CUT_TEST_ROOT}" ${_halo2_common_cut_mcc_map_args})
+            set_tests_properties(source_common_cut_inventory_${_halo2_inventory_case}_mcc_http PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE
+                LABELS "selected-MCC-native"
+                ENVIRONMENT "HALO2_COMMON_INVENTORY=${_halo2_inventory_case};SDL_AUDIODRIVER=dummy;SDL_VIDEODRIVER=dummy")
+        endforeach()
+        unset(_halo2_inventory_case)
+        add_test(NAME source_common_cut_prospective_client_mcc_http COMMAND ${Python3_EXECUTABLE}
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_common_cut_runtime_http_test.py"
+            $<TARGET_FILE:source_common_cut_runtime_tests>
+            --mcc-root "${HALO2_MCC_COMMON_CUT_TEST_ROOT}" ${_halo2_common_cut_mcc_map_args})
+        set_tests_properties(source_common_cut_prospective_client_mcc_http PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE
+            LABELS "selected-MCC-native"
+            ENVIRONMENT "HALO2_COMMON_CLIENT=1;HALO2_COMMON_PROSPECTIVE=1;SDL_AUDIODRIVER=dummy;SDL_VIDEODRIVER=dummy")
+        add_test(NAME source_common_cut_prospective_client_abort_mcc_http COMMAND ${Python3_EXECUTABLE}
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_common_cut_runtime_http_test.py"
+            $<TARGET_FILE:source_common_cut_runtime_tests>
+            --mcc-root "${HALO2_MCC_COMMON_CUT_TEST_ROOT}" ${_halo2_common_cut_mcc_map_args})
+        set_tests_properties(source_common_cut_prospective_client_abort_mcc_http PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE
+            LABELS "selected-MCC-native"
+            ENVIRONMENT "HALO2_COMMON_INVENTORY=abort;HALO2_COMMON_CLIENT_ABORT=1;SDL_AUDIODRIVER=dummy;SDL_VIDEODRIVER=dummy")
+        add_test(NAME source_common_cut_preparation_mcc_http COMMAND ${Python3_EXECUTABLE}
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_common_cut_runtime_http_test.py"
+            $<TARGET_FILE:source_common_cut_runtime_tests>
+            --mcc-root "${HALO2_MCC_COMMON_CUT_TEST_ROOT}" ${_halo2_common_cut_mcc_map_args})
+        set_tests_properties(source_common_cut_preparation_mcc_http PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE
+            LABELS "selected-MCC-native"
+            ENVIRONMENT "HALO2_COMMON_INVENTORY=preparation;SDL_AUDIODRIVER=dummy;SDL_VIDEODRIVER=dummy")
         unset(_halo2_common_cut_mcc_map_args)
     elseif(HALO2_MCC_COMMON_CUT_TEST_MAP)
         message(FATAL_ERROR "HALO2_MCC_COMMON_CUT_TEST_MAP requires HALO2_MCC_COMMON_CUT_TEST_ROOT")

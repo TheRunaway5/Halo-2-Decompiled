@@ -3,6 +3,7 @@
 #include "halo2/source_prt.hpp"
 #include "halo2/source_dynamic_model_shaders.hpp"
 #include "halo2/model.hpp"
+#include "halo2/model_skin_submission.hpp"
 #include <algorithm>
 #include <bit>
 #include <cstring>
@@ -37,8 +38,12 @@ std::optional<std::vector<Vertex>> source_live_model_base_vertices_tu15(
     std::uint32_t owner,std::uint32_t definition,std::uint32_t render_model,
     std::span<const SourceLiveModelBaseDrawTu15> draws,std::span<const RenderModel,6> lods,
     const SourceDynamicModelShaders& shaders,std::span<const Transform> nodes,
-    const SourceModelShaderView& view,const SourceLiveModelPoseProviderTu15& provide_pose) {
+    const SourceModelShaderView& view,const SourceLiveModelPoseProviderTu15& provide_pose,
+    std::shared_ptr<const ModelSkinGeometry>* deferred_skin,
+    const SourceLiveModelDeferredPoseProviderTu15& provide_deferred) {
+    if(deferred_skin)deferred_skin->reset();
     if(draws.empty() || nodes.empty())return std::nullopt;
+    std::shared_ptr<ModelSkinGeometry> gpu;
     std::vector<Vertex> owned_pose;
     std::span<const Vertex> posed;
     bool pose_ready{};
@@ -56,7 +61,22 @@ std::optional<std::vector<Vertex>> source_live_model_base_vertices_tu15(
             throw FormatError("source unit base lacks its completed render WORLD hierarchy");
         if(!pose_ready) {
             // The guard above admits exactly one LOD for this complete owner.
-            if(provide_pose)posed=provide_pose(owner,draw.lod,model,nodes);
+            if(deferred_skin) {
+                ModelSkinWorldPose owned;
+                ModelSkinWorldPoseView prepared;
+                if(provide_deferred)prepared=provide_deferred(owner,draw.lod,model,nodes);
+                else {
+                    owned=model_skin_world_pose(model,nodes,true);
+                    prepared={owned.vertices,owned.palette,owned.gpu};
+                }
+                if(prepared.gpu) {
+                    gpu=std::make_shared<ModelSkinGeometry>();
+                    gpu->owner=owner;gpu->definition=definition;gpu->render_model=render_model;
+                    gpu->lod=draw.lod;gpu->palette.assign(prepared.palette.begin(),prepared.palette.end());
+                }
+                if(provide_deferred)posed=prepared.vertices;
+                else {owned_pose=std::move(owned.vertices);posed=owned_pose;}
+            } else if(provide_pose)posed=provide_pose(owner,draw.lod,model,nodes);
             else {owned_pose=skin_model_world_nodes(model,nodes);posed=owned_pose;}
             if(posed.size()!=model.mesh.vertices.size())
                 throw FormatError("source unit pose provider lost its complete model vertex bank");
@@ -64,12 +84,21 @@ std::optional<std::vector<Vertex>> source_live_model_base_vertices_tu15(
         }
         const auto section=draw.unit.words[3]>>9&511u;
         std::vector<Vertex> vertices;
-        for(const auto& vertex:posed)if(vertex.source_section==section)vertices.push_back(vertex);
+        std::vector<std::uint32_t> ordinals;
+        for(std::size_t n=0;n<posed.size();++n)if(posed[n].source_section==section) {
+            vertices.push_back(posed[n]);
+            if(gpu)ordinals.push_back(std::uint32_t(n));
+        }
         if(vertices.empty())return std::nullopt;
-        shaders.select(vertices,SourceModelShaderCollector{0,draw.coverage},view);
+        if(gpu)shaders.select_indexed(vertices,ordinals,SourceModelShaderCollector{0,draw.coverage},view);
+        else shaders.select(vertices,SourceModelShaderCollector{0,draw.coverage},view);
+        if(gpu)for(const auto ordinal:ordinals) {
+            gpu->source_vertices.push_back(ordinal);gpu->bindings.push_back(model.skin.at(ordinal));
+        }
         result.insert(result.end(),vertices.begin(),vertices.end());
     }
     if(result.empty())return std::nullopt;
+    if(gpu) {gpu->vertices=result;*deferred_skin=std::move(gpu);}
     return result;
 }
 namespace {
