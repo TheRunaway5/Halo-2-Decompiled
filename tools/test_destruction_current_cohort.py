@@ -23,6 +23,7 @@ CASES = {'warthog': 'coagulation', 'warthog_gauss': 'coagulation', 'ghost': 'coa
          'power_module': 'lockout', 'fusion_coil': 'foundation', 'gas_container_full': 'colossus',
          'terrain_glass': 'zanzibar'}
 CASES.update(coil_to_warthog='headlong', warthog_to_coil='headlong')
+CASES.update(coil_to_scenery='zanzibar', coil_to_crate='foundation')
 
 
 def main():
@@ -94,7 +95,7 @@ def main():
             'after': sha(path), 'original_instruction_bodies_changed': [], 'partitions': 12}
         save()
     text = '''\nadd_executable(destruction_runtime_tu15_tests tests/destruction_runtime_tu15_tests.cpp)
-target_link_libraries(destruction_runtime_tu15_tests PRIVATE halo2_systems)
+target_link_libraries(destruction_runtime_tu15_tests PRIVATE halo2_systems halo2_authority_codec OpenSSL::Crypto)
 '''
     for case in cases:
         text += (f'add_test(NAME destruction_mcc_{case} COMMAND ${{Python3_EXECUTABLE}} '
@@ -113,18 +114,25 @@ target_link_libraries(destruction_runtime_tu15_tests PRIVATE halo2_systems)
     report['registered_cmake_sha256'] = sha(source / 'CMakeLists.txt');save()
     command = [sys.executable, str(ROOT / 'tools/run_tests.py'), '--build-worker',
                '--source', str(source), '--target', 'destruction_runtime_tu15_tests',
+               '--target', 'destruction_lan_identity_tu15_tests',
                '--target', 'source_bsp_breakable_visibility_tu15_tests',
                '--target', 'mcc_destruction_effect_scalar_tests', '--target', 'mcc_gameplay_scalar_tests',
                '--filter', '^(destruction_|source_bsp_breakable_visibility_tu15$|mcc_gameplay_scalar_|mcc_destruction_effect_)',
                '--jobs', str(args.jobs), '--test-jobs', '1',
+               '--cmake-arg=-DHALO2_DESTRUCTION_MCC_MAPS=' + str(maps),
                '--output', str(args.output / 'validation')]
+    command += ['--retain-report', 'destruction-lan-identity.json']
     for case in cases:
         command += ['--retain-report', f'destruction-{case}.json']
     report['command'] = command;save()
-    code = subprocess.run(command, check=False).returncode
+    # The runner already retains bounded build/test logs. Large generated-code
+    # warnings must not fill an interactive coordinator's terminal transcript.
+    print(json.dumps({'status': 'validating', 'report': str(args.output / 'validation/report.json')}), flush=True)
+    code = subprocess.run(command, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT).returncode
     report['returncode'] = code
     report['passed'] = code == 0
     save()
+    print(json.dumps({'passed': report['passed'], 'returncode': code, 'report': str(receipt)}), flush=True)
     return code
 
 

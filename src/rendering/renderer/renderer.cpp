@@ -25,6 +25,7 @@
 #include "halo2/math.hpp"
 #include "halo2/vertex_program.hpp"
 #include "halo2/world_material_uniform.hpp"
+#include "halo2/world_material.hpp"
 #include "halo2/presentation_format.hpp"
 #include "halo2/pstencil/capture_presentation.hpp"
 #include "halo2/sampler.hpp"
@@ -34,6 +35,10 @@
 #include "halo2/cinematic_crossfade_render.hpp"
 #include "halo2/texture.hpp"
 #include "halo2/source_weather_depth_alias.hpp"
+#include "halo2/source_scene_copy_gpu.hpp"
+#include "halo2/source_camouflage_material.hpp"
+#include "halo2/source_vertex_extern.hpp"
+#include "halo2/source_shader_state.hpp"
 #include "halo2/scope_render.hpp"
 #include "halo2/menu_projection.hpp"
 #include "halo2/frontend_canvas.hpp"
@@ -325,6 +330,17 @@ struct Renderer::Impl {
     std::vector<std::array<unsigned,2>> source_material_identities;
     std::vector<std::vector<unsigned>> source_layer15_passes;
     std::vector<std::vector<unsigned>> world_before, world_after, world_bloom;
+    std::vector<std::array<unsigned,5>> camouflage_variants;
+    std::vector<std::uint32_t> camouflage_original_layers;
+    std::vector<bool> camouflage_scene_materials;
+    std::vector<bool> camouflage_group_materials;
+    std::array<std::vector<VkDescriptorSet>,4> camouflage_descriptors;
+    std::array<std::unique_ptr<SourceSceneCopyGpu>,4> camouflage_copies;
+    std::array<bool,4> camouflage_copy_pending{};
+    std::unique_ptr<SourceWeatherDepthAlias> camouflage_alias;
+    bool camouflage_alias_pending{};
+    VkRenderPass camouflage_alias_pass{};
+    VkFramebuffer camouflage_alias_framebuffer{};
     std::vector<bool> baked_materials;
     std::map<std::pair<unsigned,unsigned>,VkDescriptorSet> geometry_descriptors;
     VkPipelineLayout pipeline_layout{};
@@ -353,6 +369,7 @@ struct Renderer::Impl {
         std::optional<std::array<std::uint32_t,60>> controls;
         bool emblem_w_depth{};
         bool pstencil_mask{};
+        bool camouflage_alias{};
     };
     static std::array<std::uint32_t,60> combiner_controls(std::array<std::uint32_t,60> program) {
         std::fill(program.begin()+10,program.begin()+26,0);
@@ -1820,6 +1837,30 @@ struct Renderer::Impl {
                 pstencil_environment_carrier_layer:source_material_layer(*material));
         for(const auto *material:materials)
             source_material_identities.push_back({material->source_shader_datum,material->selected_shader_lod});
+        camouflage_variants.resize(material_count,{~0u,~0u,~0u,~0u,~0u});
+        camouflage_original_layers.resize(material_count);
+        for(unsigned root=0;root<material_count;++root) {
+            const auto &m=mesh.materials[root];
+            if(m.selected_shader_lod<m.lods.size())
+                camouflage_original_layers[root]=m.lods[m.selected_shader_lod].available_layers;
+            for(const auto child:world_after[root]) {
+                const auto layer=source_material_layers[child];
+                if(!materials[child]->camouflage_group_pass)continue;
+                const auto implementation=materials[child]->passes.at(materials[child]->forward_pass_index).implementation;
+                const auto slot=layer==1?4u:layer==19?3u:implementation;
+                if(slot>=5 || camouflage_variants[root][slot]!=~0u)
+                    throw FormatError("Camouflage root has duplicate or invalid authored variants");
+                camouflage_variants[root][slot]=child;
+                if(layer==18) {
+                    const auto &selected=*materials[child];
+                    camouflage_original_layers[root]=selected.lods.at(selected.selected_shader_lod).available_layers;
+                }
+            }
+        }
+        for(const auto *material:materials) {
+            camouflage_scene_materials.push_back(material->camouflage_scene_texture);
+            camouflage_group_materials.push_back(material->camouflage_group_pass);
+        }
         pstencil_caster_materials.clear();
         for(const auto* material:materials) {
             const auto lod=material->selected_shader_lod;
@@ -1910,7 +1951,8 @@ struct Renderer::Impl {
         for(const auto &binding:mesh.resident_material_lightmaps)
             add_geometry_pair(binding[0],binding[1]);
         const auto scope_count=std::count_if(materials.begin(),materials.end(),[](const auto *m){return m->scope_texture;});
-        const auto resident_sets=std::uint64_t(count)+geometry_pairs.size()+std::uint64_t(scope_count);
+        const auto camouflage_count=std::count(camouflage_scene_materials.begin(),camouflage_scene_materials.end(),true);
+        const auto resident_sets=std::uint64_t(count)+geometry_pairs.size()+std::uint64_t(scope_count)+4ull*camouflage_count;
         if(resident_sets>std::numeric_limits<std::uint32_t>::max()/12u)
             throw FormatError("resident material descriptors exceed Vulkan count range");
         const auto sets = static_cast<std::uint32_t>(resident_sets);
@@ -2049,7 +2091,7 @@ struct Renderer::Impl {
                 // Bit zero selects pixel coordinates; bits 1..4 preserve
                 // which channels have been signed before texture filtering.
                 uniform.texture_effects[stage]={state.alpha_kill,
-                    (stage==0 && material.accumulation_texture?1u:0u)|((state.color_sign>>28)<<1),stage_textures[stage]->depth?1u:0u,state.key_color};
+                    ((stage==0 && material.accumulation_texture) || (stage==2 && material.camouflage_scene_texture)?1u:0u)|((state.color_sign>>28)<<1),stage_textures[stage]->depth?1u:0u,state.key_color};
                 if(stage==0 && pstencil::texture_masked_specular_material(material))uniform.texture_effects[stage][1]|=32u;
             }
             const auto &pixel_program=material.forward_pass?material.forward_program:material.lightmap_program;
@@ -2137,22 +2179,23 @@ struct Renderer::Impl {
                 (material.world_pass || material.forward_blend || material.accumulation_texture || material.environment_pass)) {
                 const bool emblem_w_depth=!pstencil_response_phases[i] && material.template_name.ends_with("\\emblem_overlay_simple");
                 const bool pstencil_mask=pstencil_response_phases[i]!=3 && (source_material_layers[i]==13 || pstencil_response_phases[i]!=0);
+                const bool alias=source_material_layers[i]==19;
                 const auto found=std::find_if(forward_pipelines.begin(),forward_pipelines.end(),
                     [&](const auto &p){return p.blend==material.forward_blend && p.state==material.forward_raster &&
-                        p.extended_vertex_bank==bool(material.vertex_bank) && !p.controls && p.emblem_w_depth==emblem_w_depth && p.pstencil_mask==pstencil_mask;});
+                        p.extended_vertex_bank==bool(material.vertex_bank) && !p.controls && p.emblem_w_depth==emblem_w_depth && p.pstencil_mask==pstencil_mask && p.camouflage_alias==alias;});
                 const auto index=unsigned(found-forward_pipelines.begin());
                 if(found==forward_pipelines.end())
-                    forward_pipelines.push_back({material.forward_blend,material.forward_raster,{},{},bool(material.vertex_bank),{},emblem_w_depth,pstencil_mask});
+                    forward_pipelines.push_back({material.forward_blend,material.forward_raster,{},{},bool(material.vertex_bank),{},emblem_w_depth,pstencil_mask,alias});
                 forward_pipeline_indices.push_back(index);
                 unsigned specialized=~0u;
                 if(specialize_combiners && !pstencil_response_phases[i]) {
                     const auto controls=combiner_controls(material_uniforms[i].program);
                     const auto found_specialized=std::find_if(forward_pipelines.begin(),forward_pipelines.end(),
                         [&](const auto &p){return p.blend==material.forward_blend && p.state==material.forward_raster &&
-                            p.extended_vertex_bank==bool(material.vertex_bank) && p.controls==controls && p.emblem_w_depth==emblem_w_depth && p.pstencil_mask==pstencil_mask;});
+                            p.extended_vertex_bank==bool(material.vertex_bank) && p.controls==controls && p.emblem_w_depth==emblem_w_depth && p.pstencil_mask==pstencil_mask && p.camouflage_alias==alias;});
                     specialized=unsigned(found_specialized-forward_pipelines.begin());
                     if(found_specialized==forward_pipelines.end())
-                        forward_pipelines.push_back({material.forward_blend,material.forward_raster,{},{},bool(material.vertex_bank),controls,emblem_w_depth,pstencil_mask});
+                        forward_pipelines.push_back({material.forward_blend,material.forward_raster,{},{},bool(material.vertex_bank),controls,emblem_w_depth,pstencil_mask,alias});
                 }
                 specialized_pipeline_indices.push_back(specialized);
             } else {
@@ -2257,6 +2300,10 @@ struct Renderer::Impl {
             descriptor(i,0,textures[i].descriptor);
             if(scope_materials[i])descriptor(i,0,scope_descriptors[i]);
         }
+        for(auto &view:camouflage_descriptors) {
+            view.resize(count);
+            for(unsigned m=0;m<count;++m)if(camouflage_scene_materials[m])descriptor(m,0,view[m]);
+        }
         for(const auto &[material,lightmap]:geometry_pairs)
             descriptor(material,lightmap,geometry_descriptors[{material,lightmap}]);
         flush_descriptors();
@@ -2277,6 +2324,13 @@ struct Renderer::Impl {
     void retire_weather_aliases() {
         for(std::size_t i=0;i<weather_aliases.size();++i)if(weather_alias_pending[i]) {
             weather_aliases[i]->retire(fence);weather_alias_pending[i]=false;
+        }
+        for(unsigned i=0;i<camouflage_copies.size();++i)if(camouflage_copy_pending[i]) {
+            if(!camouflage_copies[i]->retire())throw FormatError("Camouflage scene copy outlived the completed frame fence");
+            camouflage_copy_pending[i]=false;
+        }
+        if(camouflage_alias_pending) {
+            camouflage_alias->retire(fence);camouflage_alias_pending=false;
         }
     }
     void swap_native_ui_targets() {
@@ -2355,6 +2409,11 @@ struct Renderer::Impl {
         weather_line_renderers.clear();
         weather_plate_renderers.clear();weather_aliases.clear();weather_alias_pending.clear();
         source_framebuffer_depth_aliases.reset();
+        if(camouflage_alias_framebuffer)vkDestroyFramebuffer(device,camouflage_alias_framebuffer,nullptr);
+        camouflage_alias_framebuffer={};camouflage_alias.reset();camouflage_alias_pending=false;
+        for(auto &copy:camouflage_copies)copy.reset();camouflage_copy_pending={};
+        if(camouflage_alias_pass)vkDestroyRenderPass(device,camouflage_alias_pass,nullptr);
+        camouflage_alias_pass={};
         for(auto &[source,texture]:weather_sprites) {
             if(texture.view)vkDestroyImageView(device,texture.view,nullptr);
             if(texture.image)vkDestroyImage(device,texture.image,nullptr);
@@ -2691,7 +2750,9 @@ struct Renderer::Impl {
             method==Upscaler::Off && settings.internal_height?settings.internal_height:presentation_extent.height,method,settings.upscaling_quality):
             std::pair{presentation_extent.width,presentation_extent.height};
         extent={render_size.first,render_size.second};
-        const bool offscreen=active_upscaler!=Upscaler::Off || source_double_buffer || extent.width!=presentation_extent.width || extent.height!=presentation_extent.height;
+        const bool offscreen=active_upscaler!=Upscaler::Off || source_double_buffer ||
+            std::any_of(camouflage_scene_materials.begin(),camouflage_scene_materials.end(),[](bool x){return x;}) ||
+            extent.width!=presentation_extent.width || extent.height!=presentation_extent.height;
         scene_layout=offscreen?VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
         if(offscreen && !(capabilities.supportedUsageFlags&VK_IMAGE_USAGE_TRANSFER_DST_BIT))
             throw FormatError("Surface does not support native internal-resolution presentation.");
@@ -2885,6 +2946,13 @@ struct Renderer::Impl {
             check(vkCreateRenderPass(device,&ui_render,nullptr,&native_ui_pass),"create native interface pass");
         }
         check(vkCreateRenderPass(device,&continuation,nullptr,&continuation_pass),"create fog continuation pass");
+        if(std::any_of(forward_pipelines.begin(),forward_pipelines.end(),[](const auto &p){return p.camouflage_alias;})) {
+            auto alias_attachments=loaded;
+            alias_attachments[0].format=VK_FORMAT_R8G8B8A8_UNORM;
+            alias_attachments[0].initialLayout=alias_attachments[0].finalLayout=VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            auto alias=continuation;alias.pAttachments=alias_attachments.data();
+            check(vkCreateRenderPass(device,&alias,nullptr,&camouflage_alias_pass),"create camouflage depth-color alias pass");
+        }
         if(!shadow_materials.empty() || !raw_shadow_materials.empty()) {
             shadow_render=std::make_unique<SourceShadowRender>(SourceShadowRenderContext{
                 device,physical,extent,continuation_pass,shader_directory});
@@ -2961,6 +3029,7 @@ struct Renderer::Impl {
             {vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
         }
         if(!pstencil_environment_companion_slots.empty() ||
+           std::any_of(camouflage_group_materials.begin(),camouflage_group_materials.end(),[](bool present){return present;}) ||
            std::any_of(accumulation_materials.begin(),accumulation_materials.end(),[](bool present){return present;})) {
             auto accumulation_attachments=std::array{attachments[0],attachments[1]};
             accumulation_attachments[0].finalLayout=VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -3269,7 +3338,7 @@ struct Renderer::Impl {
                 throw FormatError("unsupported retail forward cull state");
             raster.cullMode=p.state.cull==0x901?VK_CULL_MODE_FRONT_BIT:
                 p.state.cull==0x900?VK_CULL_MODE_BACK_BIT:VK_CULL_MODE_NONE;
-            info.renderPass=normal_producer?pstencil_render->normal_pass():
+            info.renderPass=p.camouflage_alias?camouflage_alias_pass:normal_producer?pstencil_render->normal_pass():
                 (p.blend==pstencil::light_utility_blend_2003 || normal_utility)?pstencil_render->utility_pass():render_pass;
             check(vkCreateGraphicsPipelines(device,pipeline_cache->get(),1,&info,nullptr,&p.handle),"create forward material pipeline");observe_pipeline(p.handle,info);
             raster.depthClampEnable=VK_TRUE;raster.cullMode=VK_CULL_MODE_NONE;
@@ -4527,6 +4596,36 @@ struct Renderer::Impl {
             check(vkWaitForFences(device,1,&fence,VK_TRUE,UINT64_MAX),"wait frame fence");
             measure(frame_timing.fence_ms);
         }
+        retire_weather_aliases();
+        for(unsigned i=0;i<views.size();++i) {
+            const auto &view=views[i];
+            if(std::none_of(view.camouflage.begin(),view.camouflage.end(),[](const auto& b){return b.primary>0.f;}))continue;
+            if(!can_capture || scene_layout!=VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                throw FormatError("Camouflage requires the readable current scene target");
+            auto &copy=camouflage_copies[i];
+            if(!copy)copy=std::make_unique<SourceSceneCopyGpu>(SourceSceneCopyGpuContext{
+                physical,device,queue_family,format,shader_directory});
+            const SourceSceneCopyContext source{{std::int16_t(view.top),std::int16_t(view.left),
+                std::int16_t(view.top+view.height),std::int16_t(view.left+view.width)},320,240,.015625f,1024.f};
+            const auto binding=copy->prepare({source,{640,480},extent});
+            for(unsigned m=0;m<camouflage_scene_materials.size();++m)if(camouflage_scene_materials[m]) {
+                const VkDescriptorImageInfo image{stage_samplers[m][2],binding.view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+                VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};write.dstSet=camouflage_descriptors[i][m];
+                write.dstBinding=2;write.descriptorCount=1;write.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;write.pImageInfo=&image;
+                vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);
+            }
+            if(view.camouflage_fog && camouflage_alias_pass && !camouflage_alias_framebuffer) {
+                camouflage_alias=std::make_unique<SourceWeatherDepthAlias>(SourceWeatherDepthAliasContext{
+                    physical,device,queue_family,shader_directory});
+                camouflage_alias->prepare(extent);
+                const auto alias=camouflage_alias->prepared_binding();
+                const VkImageView attachments[]{alias.view,depth_attachment_view};
+                VkFramebufferCreateInfo framebuffer{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
+                framebuffer.renderPass=camouflage_alias_pass;framebuffer.attachmentCount=2;framebuffer.pAttachments=attachments;
+                framebuffer.width=extent.width;framebuffer.height=extent.height;framebuffer.layers=1;
+                check(vkCreateFramebuffer(device,&framebuffer,nullptr,&camouflage_alias_framebuffer),"create camouflage color/depth alias framebuffer");
+            }
+        }
         if(cinematic_crossfade) {
             cinematic_crossfade->reconfigure(format,fog_pass);
             cinematic_crossfade->prepare(campaign_crossfade);
@@ -5096,6 +5195,7 @@ struct Renderer::Impl {
             std::array<ShaderVector,1> direction{};
             MenuFogExterns fog_externs{};
             std::vector<const ObjectLightingState *> lighting;
+            std::vector<float> camouflage;
         };
         std::vector<PreparedViewMaterialInputs> prepared_views;
         prepared_views.reserve(views.size());
@@ -5111,6 +5211,18 @@ struct Renderer::Impl {
             // Rebuild from the current view every frame; no lighting/pose state
             // is retained across frames or shared between local players.
             prepared.lighting.resize(material_count);
+            prepared.camouflage.resize(material_count);
+            std::vector<bool> camouflage_bound(material_count);
+            for(const auto &binding:view.camouflage) {
+                (void)source_camouflage_fade_byte(binding.primary);
+                if(binding.first_material>material_count || binding.material_count>material_count-binding.first_material)
+                    throw FormatError("Camouflage owner range outside resident materials");
+                for(unsigned root=binding.first_material;root<binding.first_material+binding.material_count;++root) {
+                    if(camouflage_bound[root] && prepared.camouflage[root]!=binding.primary)
+                        throw FormatError("Camouflage root has conflicting owners in one view");
+                    camouflage_bound[root]=true;prepared.camouflage[root]=binding.primary;
+                }
+            }
             std::size_t unbound=material_count;
             for(const auto &binding:view.object_lighting) {
                 // Once all roots have their first match, the old root-major
@@ -5139,11 +5251,27 @@ struct Renderer::Impl {
         const bool cache_view_bindings=!(uncached_bindings && *uncached_bindings);
         const auto view_material_uniform=[&](const ModelView &view,std::size_t m,
                                              const ObjectLightingState *owner_light=nullptr,
-                                             const ObjectColors *owner_colors=nullptr,const ShaderInput *owner_input=nullptr) {
+                                             const ObjectColors *owner_colors=nullptr,const ShaderInput *owner_input=nullptr,
+                                             const float *owner_camouflage=nullptr,std::uint32_t *owner_blend=nullptr) {
 
             const auto &prepared=prepared_views[std::size_t(&view-views.data())];
             const auto pass=fog_material_passes.find(unsigned(m));
             auto uniform=material_uniforms[m];
+            if(source_material_layers[m]==18 || source_material_layers[m]==19) {
+                const auto &selected=fog_material_passes.at(unsigned(m));
+                std::array<float,40> scalars{};scalars[37]=prepared.camouflage[material_roots[m]];
+                std::array<ShaderVector,42> colors{};
+                if(view.camouflage_fog) {
+                    const auto fog=source_shader_fog_externs(*view.camouflage_fog);
+                    scalars[39]=fog.scalar39;
+                    std::copy(fog.color41.begin(),fog.color41.end(),colors[41].begin());
+                }
+                PixelProgram program{uniform.program,material_fragment_offsets[m]};
+                remap_pixel_externs(program,scalars,colors,selected.pixel_externs,selected.fragments,fog_material_switches.at(unsigned(m)));
+                ShaderConstants constants{uniform.vertex_attributes,uniform.vertex_constants};
+                (void)remap_source_vertex_externs(constants,scalars,colors,selected.vertex_externs);
+                uniform.program=program.words;uniform.vertex_attributes=constants[0];uniform.vertex_constants=constants[1];
+            }
             if(view.source_view_shader_constants) {
                 const auto &source=*view.source_view_shader_constants;
                 uniform.source_camera_world=source.world;
@@ -5177,6 +5305,16 @@ struct Renderer::Impl {
                     source_object_render_colors(*owner_colors),fog_material_switches.at(unsigned(m)));
                 uniform.program=program.words;
                 uniform.vertex_attributes=constants[0];uniform.vertex_constants=constants[1];
+            }
+            if(owner_blend)*owner_blend=material_blend_colors[m];
+            if(owner_camouflage && pass!=fog_material_passes.end()) {
+                PixelProgram program{uniform.program,material_fragment_offsets[m]};
+                ShaderConstants constants{uniform.vertex_attributes,uniform.vertex_constants};
+                auto blend=material_blend_colors[m];
+                bind_object_camouflage_constants(program,constants,blend,pass->second,
+                    fog_material_switches.at(unsigned(m)),*owner_camouflage);
+                uniform.program=program.words;uniform.vertex_attributes=constants[0];uniform.vertex_constants=constants[1];
+                if(owner_blend)*owner_blend=blend;
             }
             if(owner_input && pass!=fog_material_passes.end()) {
                 if(const auto animation=owner_material_animations.find(unsigned(m));animation!=owner_material_animations.end()) {
@@ -5287,11 +5425,13 @@ struct Renderer::Impl {
         for(auto &draws:view_reflection_background)bind_geometry(draws);
         std::vector<std::map<std::pair<unsigned,unsigned>,std::size_t>> object_aliases;
         std::vector<MaterialUniform> object_uniforms;
+        std::vector<std::uint32_t> object_blend_colors;
         std::vector<std::optional<VertexBankUniform>> object_vertex_banks;
         std::vector<VkDescriptorSet> object_residents;
         const auto alias_owner=[&](const ModelView &view,std::span<Draw> list,
                                    const ObjectLightingState *lighting,const ObjectColors *colors=nullptr,const ShaderInput *input=nullptr,
-                                   std::span<const SourcePrtMaterialBank> prt_banks=std::span<const SourcePrtMaterialBank>{}) {
+                                   std::span<const SourcePrtMaterialBank> prt_banks=std::span<const SourcePrtMaterialBank>{},
+                                   const float *camouflage=nullptr) {
             const auto owner=object_aliases.size();object_aliases.emplace_back();
             auto &aliases=object_aliases.back();
             std::map<unsigned,VertexBankUniform> banks;
@@ -5311,10 +5451,14 @@ struct Renderer::Impl {
                 if(water_materials[material] || scope_materials[material])
                     throw FormatError("owner draw cannot supply water or first-person external targets");
                 aliases.emplace(std::pair{material,lightmap},object_uniforms.size());
-                object_uniforms.push_back(view_material_uniform(view,material,lighting,colors,input));
+                std::uint32_t blend{};
+                object_uniforms.push_back(view_material_uniform(view,material,lighting,colors,input,camouflage,&blend));
+                object_blend_colors.push_back(blend);
                 const auto bank=banks.find(material);
                 object_vertex_banks.push_back(bank==banks.end()?std::nullopt:std::optional{bank->second});
-                object_residents.push_back(geometry_descriptor(material,lightmap));
+                const auto view_index=std::size_t(&view-views.data());
+                object_residents.push_back(camouflage_scene_materials[material]?
+                    camouflage_descriptors[view_index][material]:geometry_descriptor(material,lightmap));
             };
             for(auto &draw:list) {
                 draw.object_alias=owner;add(draw.material,draw.lightmap);
@@ -5332,7 +5476,8 @@ struct Renderer::Impl {
             const auto &view=views[range.view];const auto &object=view.objects[range.object];
             alias_owner(view,std::span{view_draws[range.view]}.subspan(range.first,range.count),
                 object.lighting?&*object.lighting:nullptr,object.colors?&*object.colors:nullptr,
-                object.shader_input?&object.shader_input:nullptr,object.prt_banks);
+                object.shader_input?&object.shader_input:nullptr,object.prt_banks,
+                object.camouflage?&*object.camouflage:nullptr);
         }
         for(std::size_t i=0;i<views.size();++i)for(auto &phase:transparent_views[i])for(auto &step:phase) {
             bind_geometry(step.geometry);
@@ -5829,6 +5974,12 @@ struct Renderer::Impl {
                         renderer.weather_aliases[i]->discard_unsubmitted(renderer.command);
                         renderer.weather_alias_pending[i]=false;
                     }
+                    for(unsigned i=0;i<renderer.camouflage_copies.size();++i)if(renderer.camouflage_copy_pending[i]) {
+                        renderer.camouflage_copies[i]->discard_unsubmitted(renderer.command);renderer.camouflage_copy_pending[i]=false;
+                    }
+                    if(renderer.camouflage_alias_pending) {
+                        renderer.camouflage_alias->discard_unsubmitted(renderer.command);renderer.camouflage_alias_pending=false;
+                    }
                     VkSubmitInfo empty{VK_STRUCTURE_TYPE_SUBMIT_INFO};
                     check(vkQueueSubmit(renderer.queue,1,&empty,renderer.fence),"restore discarded weather frame fence");
                     check(vkWaitForFences(renderer.device,1,&renderer.fence,VK_TRUE,UINT64_MAX),"retire discarded weather frame");
@@ -5967,6 +6118,7 @@ struct Renderer::Impl {
         {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(camera_uniform),&camera_uniform);capture_push(&camera_uniform,sizeof(camera_uniform));}
         std::uint32_t material_bank_offset=0;
         bool sky_raster=false,first_person_draw=false;
+        const PreparedViewMaterialInputs *camouflage_view=nullptr;
         const auto material_descriptor=[&](unsigned material,unsigned lightmap) {
             return first_person_draw && scope_descriptors[material]?scope_descriptors[material]:geometry_descriptor(material,lightmap);
         };
@@ -5978,11 +6130,12 @@ struct Renderer::Impl {
             vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,&descriptor,1,&bank);
             return std::pair{descriptor,bank};
         };
-        auto material_pipeline=[&](unsigned m) {const auto index=active_forward_pipeline_indices[m];
+        auto material_pipeline=[&](unsigned m,const Draw *draw=nullptr) {const auto index=active_forward_pipeline_indices[m];
             const auto handle=index!=~0u?(sky_raster?forward_pipelines.at(index).sky_handle:forward_pipelines.at(index).handle):
                 (sky_raster?sky_pipeline:pipeline);
             vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,handle);
-            const auto color=material_blend_colors[m];
+            const auto color=draw && draw->object_alias!=std::numeric_limits<std::size_t>::max()?
+                object_blend_colors.at(object_aliases.at(draw->object_alias).at({m,draw->lightmap})):material_blend_colors[m];
             const float constants[]{float((color>>16)&255)/255.f,float((color>>8)&255)/255.f,
                 float(color&255)/255.f,float(color>>24)/255.f};
             vkCmdSetBlendConstants(command,constants);return std::tuple{handle,index,std::array<float,4>{constants[0],constants[1],constants[2],constants[3]}};};
@@ -5992,6 +6145,9 @@ struct Renderer::Impl {
         bool source_transparency_active=false;
         const auto layer_enabled=[&](unsigned material) {
             const auto layer=source_material_layers.at(material);
+            if(camouflage_group_materials[material])return false; // Owned by the copied-scene group below.
+            if(camouflage_view && camouflage_view->camouflage[material_roots[material]]>0.f &&
+                camouflage_variants[material_roots[material]][0]!=~0u)return false;
             if(source_transparency_active && layer==15)return false;
             return !source_policy || !layer || source_render_layer_enabled(*source_policy,*layer);
         };
@@ -6006,7 +6162,7 @@ struct Renderer::Impl {
             return buffer;
         };
         const auto emit_bsp_draw=[&](const Draw& draw,unsigned material,VkBuffer ordinary,RendererBspDrawPhase phase) {
-            const auto [handle,index,blend_constants]=material_pipeline(material);
+            const auto [handle,index,blend_constants]=material_pipeline(material,&draw);
             const auto [descriptor,dynamic_offset]=bind_material(draw,material);
             const auto buffer=bind_draw_vertices(draw,ordinary);
             if(draw.observed_bsp_token && bsp_capture.view && bsp_capture.view->completed_bsp_draw_observer) {
@@ -6218,14 +6374,14 @@ struct Renderer::Impl {
                     continue;
                 }
 #endif
-                material_pipeline(draw.material);
+                material_pipeline(draw.material,&draw);
                 vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,&draw.descriptor,1,&material_bank_offset);
                 vkCmdDraw(command,draw.count,1,draw.first,0);
             }
         };
         draw_world_phase(0);
         for(const auto &draw:draws) if(!full_surface_scene && environment_materials[draw.material]!=~0u) {
-            const auto material=environment_materials[draw.material];material_pipeline(material);
+            const auto material=environment_materials[draw.material];material_pipeline(material,&draw);
             const auto descriptor=geometry_descriptor(material,draw.lightmap);
             vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,&descriptor,1,&material_bank_offset);
             vkCmdDraw(command,draw.count,1,draw.first,0);
@@ -6291,7 +6447,7 @@ struct Renderer::Impl {
                 }
 #endif
                 if(submerged || !draw.count || planar_materials[draw.material]==~0u)continue;
-                const auto material=planar_materials[draw.material];material_pipeline(material);
+                const auto material=planar_materials[draw.material];material_pipeline(material,&draw);
                 vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,&textures[material].descriptor,1,&material_bank_offset);
                 vkCmdDraw(command,draw.count,1,draw.first,0);
             }
@@ -6594,6 +6750,112 @@ struct Renderer::Impl {
                 const CameraUniform model_uniform{model_matrix,glm::vec4(view_forward.x,view_forward.y,view_forward.z,v.atmosphere && source_depth_mode==2?1.f:0.f),
                     glm::vec4(v.camera.position.x,v.camera.position.y,v.camera.position.z,1),
                     glm::vec4(model_view.x,model_view.y,model_view.width,model_view.height)};
+                camouflage_view=&prepared_views[i];
+                const auto draw_camouflage=[&](const std::vector<Draw>& list,bool foreground) {
+                    std::vector<std::vector<std::uint32_t>> separate;
+                    auto groups=v.camouflage_groups;
+                    if(foreground || groups.empty()) {
+                        std::set<std::uint32_t> completed;
+                        for(const auto &binding:v.camouflage)if(binding.primary>0.f && completed.insert(binding.owner).second)
+                            separate.push_back({binding.owner});
+                        groups=separate;
+                    }
+                    for(const auto &group:groups) {
+                        const auto owner_range=[&](const Draw& draw)->const CamouflageBinding* {
+                            const auto found=std::find_if(v.camouflage.begin(),v.camouflage.end(),[&](const auto &range) {
+                                return range.primary>0.f && std::find(group.begin(),group.end(),range.owner)!=group.end() &&
+                                    draw.material>=range.first_material && draw.material-range.first_material<range.material_count;
+                            });
+                            return found==v.camouflage.end()?nullptr:&*found;
+                        };
+                        const auto admitted=[&](const Draw& draw) {
+                            return draw.count && draw_visible(draw) && camouflage_variants[draw.material][0]!=~0u && owner_range(draw);
+                        };
+                        if(std::none_of(list.begin(),list.end(),admitted))continue;
+                        //41CC0: current-frame four-tap target19 precedes this
+                        //group's layer18; another owner gets a fresh copy.
+                        vkCmdEndRenderPass(command);
+                        if(!weather_submission.fence_reset) {
+                            check(vkResetFences(device,1,&fence),"reset camouflage frame fence");weather_submission.fence_reset=true;
+                        }
+                        camouflage_copies[i]->record({device,command,images[index],format,extent,
+                            VK_IMAGE_USAGE_TRANSFER_SRC_BIT,scene_layout,VK_SAMPLE_COUNT_1_BIT,1,1,queue_family,fence,true,true});
+                        camouflage_copy_pending[i]=true;
+                        auto resumed=render;resumed.renderPass=continuation_pass;resumed.clearValueCount=0;resumed.pClearValues=nullptr;
+                        vkCmdBeginRenderPass(command,&resumed,VK_SUBPASS_CONTENTS_INLINE);capture_target(resumed);
+                        auto push=model_uniform;
+                        if(foreground) {
+                            push.matrix=foreground_matrix;push.position.w=2;
+                            if(v.atmosphere){push.matrix*=.15f;push.eye.w=.15f;}
+                        }
+                        const auto restore=[&] {
+                            set_temporal_viewport(model_view);vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);
+                            vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(push),&push);capture_push(&push,sizeof(push));
+                        };
+                        restore();
+                        //The global override's layer1 is texaccum_disabled:
+                        //its authored depth writes establish the equality
+                        //test consumed by partial layer18 and layer19. Target1
+                        //keeps those color writes separate from scene color.
+                        vkCmdEndRenderPass(command);
+                        auto base=resumed;base.renderPass=foreground_accumulation_pass;base.framebuffer=accumulation_framebuffer;
+                        vkCmdBeginRenderPass(command,&base,VK_SUBPASS_CONTENTS_INLINE);capture_target(base);restore();
+                        for(const auto &draw:list)if(admitted(draw)) {
+                            const auto material=camouflage_variants[draw.material][4];
+                            material_pipeline(material);bind_material(draw,material);bind_draw_vertices(draw,debug_buffer);
+                            vkCmdDraw(command,draw.count,1,draw.first,0);
+                        }
+                        vkCmdEndRenderPass(command);
+                        vkCmdBeginRenderPass(command,&resumed,VK_SUBPASS_CONTENTS_INLINE);capture_target(resumed);restore();
+                        for(const auto &draw:list)if(admitted(draw)) {
+                            const auto &binding=*owner_range(draw);
+                            const auto fade=source_camouflage_fade_byte(binding.primary);
+                            const auto implementation=source_camouflage_implementation(camouflage_original_layers[draw.material],fade);
+                            const auto material=camouflage_variants[draw.material][implementation];
+                            material_pipeline(material);
+                            std::array<std::uint32_t,256> states{};states[75]=material_blend_colors[material];
+                            std::array<ShaderVector,41> colors{};colors[40]={binding.primary,binding.primary,binding.primary,0};
+                            for(const auto &write:remap_source_shader_states(states,{},colors,
+                                fog_material_passes.at(material).state_externs,0x023f)) {
+                                if(write.index!=75)throw FormatError("Camouflage group has an unsupported authored state extern");
+                                const auto c=write.value;const float value[]{float(c>>16&255)/255.f,float(c>>8&255)/255.f,float(c&255)/255.f,float(c>>24)/255.f};
+                                vkCmdSetBlendConstants(command,value);
+                            }
+                            if(draw.object_alias!=std::numeric_limits<std::size_t>::max())bind_material(draw,material);
+                            else {
+                                const auto descriptor=camouflage_scene_materials[material]?camouflage_descriptors[i][material]:geometry_descriptor(material,draw.lightmap);
+                                vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,&descriptor,1,&material_bank_offset);
+                            }
+                            bind_draw_vertices(draw,debug_buffer);vkCmdDraw(command,draw.count,1,draw.first,0);
+                            if(v.completed_camouflage_draw_observer)
+                                v.completed_camouflage_draw_observer(binding.owner,18,implementation,foreground,binding.primary,draw.count);
+                        }
+                        const auto fog_admitted=[&](const Draw& draw) {
+                            return admitted(draw) && source_camouflage_fade_byte(owner_range(draw)->primary)!=255;
+                        };
+                        if(v.camouflage_fog && std::any_of(list.begin(),list.end(),fog_admitted)) {
+                            vkCmdEndRenderPass(command);
+                            SourceWeatherDepthAliasRecord record{};
+                            record.source={device,depth,depth_format,extent,source_depth_usage,
+                                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,VK_SAMPLE_COUNT_1_BIT,1,1,queue_family,VK_SHARING_MODE_EXCLUSIVE};
+                            record.command_owner=device;record.command=command;record.completion=fence;
+                            record.command_queue_family=queue_family;record.outside_render_pass=record.exclusive_access=true;
+                            camouflage_alias->begin_color(record);camouflage_alias_pending=true;
+                            auto alias=resumed;alias.renderPass=camouflage_alias_pass;alias.framebuffer=camouflage_alias_framebuffer;
+                            vkCmdBeginRenderPass(command,&alias,VK_SUBPASS_CONTENTS_INLINE);capture_target(alias);restore();
+                            for(const auto &draw:list)if(fog_admitted(draw)) {
+                                const auto &binding=*owner_range(draw);
+                                const auto material=camouflage_variants[draw.material][3];
+                                material_pipeline(material);bind_material(draw,material);bind_draw_vertices(draw,debug_buffer);
+                                vkCmdDraw(command,draw.count,1,draw.first,0);
+                                if(v.completed_camouflage_draw_observer)
+                                    v.completed_camouflage_draw_observer(binding.owner,19,0,foreground,binding.primary,draw.count);
+                            }
+                            vkCmdEndRenderPass(command);camouflage_alias->end_color(command);
+                            vkCmdBeginRenderPass(command,&resumed,VK_SUBPASS_CONTENTS_INLINE);capture_target(resumed);restore();
+                        }
+                    }
+                };
                 const auto draw_transparent=[&](unsigned phase) {
                     for(const auto &step:transparent_views[i][phase]) {
                         if(step.contrail_source) {
@@ -6638,9 +6900,10 @@ struct Renderer::Impl {
                         }
                         {set_temporal_viewport(model_view);}{vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);}
                         {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(push),&push);capture_push(&push,sizeof(push));}
-                        for(const auto &draw:step.geometry)if(draw.count)
+                        for(const auto &draw:step.geometry)if(draw.count &&
+                            !(camouflage_view->camouflage[draw.material]>0.f && camouflage_variants[draw.material][0]!=~0u))
                             for(auto material:source_layer15_passes[draw.material]) {
-                                material_pipeline(material);bind_material(draw,material);
+                                material_pipeline(material,&draw);bind_material(draw,material);
                                 bind_draw_vertices(draw,debug_buffer);
                                 vkCmdDraw(command,draw.count,1,draw.first,0);
                             }
@@ -6973,13 +7236,14 @@ struct Renderer::Impl {
                     // Retain those raw values for later18540 particle writes.
                     for(unsigned stage=1;stage<4;++stage)for(unsigned component=0;component<4;++component)
                         particle_sampler_state[stage][component]=std::bit_cast<std::uint32_t>(v.water[definition].bump_matrices[stage][component]);
-                    material_pipeline(draw.material);
+                    material_pipeline(draw.material,&draw);
                     vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,&draw.descriptor,1,&material_bank_offset);
                     bind_draw_vertices(draw,debug_buffer);
                     vkCmdDraw(command,draw.count,1,draw.first,0);
                 }
                 // 2BCE0 -> 3C3C0 -> 2C340: independent water precedes the
                 // authored transparent queue (highest-LOD layer 15).
+                draw_camouflage(view_draws[i],false);
                 if(v.atmosphere)draw_dynamic(view_draws[i],1);
                 draw_overlays(view_draws[i],false,debug_buffer,true);
                 if(v.world_transparent || sorted_world_effects[i])draw_transparent(0);
@@ -7065,6 +7329,7 @@ struct Renderer::Impl {
                         {vkCmdBeginRenderPass(command,&resumed,VK_SUBPASS_CONTENTS_INLINE);capture_target(resumed);}
                     }
                     if(!v.atmosphere)vkCmdClearAttachments(command,1,&depth_clear,1,&area);
+                    draw_camouflage(view_foreground[i],true);
                     draw_dynamic(view_foreground[i]);draw_environment(view_foreground[i]);
                     draw_overlays(view_foreground[i],false,debug_buffer,true);
                     first_person_draw=false;
@@ -7083,7 +7348,7 @@ struct Renderer::Impl {
                     vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
                     for(const auto &draw:view_draws[i])if(draw_visible(draw))for(const auto material:world_bloom[draw.material]) {
                         if(!layer_enabled(material))continue;
-                        material_pipeline(material);
+                        material_pipeline(material,&draw);
                         bind_material(draw,material);
                         bind_draw_vertices(draw,debug_buffer);
                         vkCmdDraw(command,draw.count,1,draw.first,0);

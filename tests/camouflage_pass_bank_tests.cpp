@@ -42,13 +42,16 @@ int main(int argc,char **argv)try {
         check(selected!=material.passes.end(),label+": authored pass missing");
         material.forward_pass=true;material.forward_pass_index=unsigned(selected-material.passes.begin());
         auto &pass=material.passes[material.forward_pass_index];
-        const auto before=row.at("initial_bank_hex").get<std::string>();
-        const auto after=row.at("final_bank_hex").get<std::string>();
+        const bool compact=row.contains("initial_pixel_hex");
+        const auto before=compact?row.at("initial_vertex_hex").get<std::string>():row.at("initial_bank_hex").get<std::string>();
+        const auto after=compact?row.at("final_vertex_hex").get<std::string>():row.at("final_bank_hex").get<std::string>();
+        const auto expected_pixel=compact?row.at("final_pixel_hex").get<std::string>():after;
+        const auto vertex_offset=compact?0u:0x1530u;
         // Whole16B90 preserves unmentioned vertex words from its caller's
         // bank. Start from that declared original bank, then apply actual
         // authored parameter remaps rather than assuming zero registers.
         for(unsigned bank=0;bank<2;++bank)for(unsigned reg=0;reg<16;++reg)for(unsigned axis=0;axis<4;++axis)
-            material.program_constants[bank][reg][axis]=std::bit_cast<float>(word(before,0x1530+bank*256+reg*16+axis*4));
+            material.program_constants[bank][reg][axis]=std::bit_cast<float>(word(before,vertex_offset+bank*256+reg*16+axis*4));
         remap_vertex_constants(material.program_constants,material.vertex_constants,pass.vertex_remaps);
         pass.constants=material.program_constants;material.forward_program=pass.program;
         material.forward_blend_color=row.at("state75_at_binder_entry");
@@ -69,12 +72,12 @@ int main(int argc,char **argv)try {
         if(layer==19 && fog.datum!=0xffffffffu)++fog_cases;
         check(material.forward_blend_color==row.at("state75"),label+": state75 differs");
         for(unsigned n=0;n<60;++n) {
-            const auto expected=word(after,0x1424+n*4);
+            const auto expected=word(expected_pixel,(compact?0u:0x1424u)+n*4);
             check(material.forward_program.words[n]==expected && pass.program.words[n]==expected,
                 label+": live/retained pixel word "+std::to_string(n)+" differs");
         }
         for(unsigned bank=0;bank<2;++bank)for(unsigned reg=0;reg<16;++reg)for(unsigned axis=0;axis<4;++axis) {
-            const auto expected=word(after,0x1530+bank*256+reg*16+axis*4);
+            const auto expected=word(after,vertex_offset+bank*256+reg*16+axis*4);
             check(std::bit_cast<std::uint32_t>(material.program_constants[bank][reg][axis])==expected &&
                 std::bit_cast<std::uint32_t>(pass.constants[bank][reg][axis])==expected,
                 label+": live/retained vertex register differs");

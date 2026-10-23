@@ -15,6 +15,7 @@
 
 using namespace halo2;
 namespace {
+bool validation=true;
 void check(bool value,const char *message){if(!value)throw FormatError(message);}
 struct Image {unsigned width{},height{};std::vector<unsigned char> rgb;};
 Image read(const std::filesystem::path &path) {
@@ -27,7 +28,7 @@ Image read(const std::filesystem::path &path) {
 }
 Image capture(SDL_Window *window,const Mesh &mesh,const Camera &camera,const std::filesystem::path &path,
     const SourceTransparentDrawBank *bank=nullptr,bool first_person=false) {
-    Renderer renderer(window,mesh,true);renderer.scene_clear_color({.025f,.035f,.045f});
+    Renderer renderer(window,mesh,validation);renderer.scene_clear_color({.025f,.035f,.045f});
     ModelView view;view.camera=camera;view.width=640;view.height=480;view.vertices=mesh.vertices;view.full_surface=true;
     if(bank) {
         if(first_person){view.vertices={};view.foreground=mesh.vertices;view.foreground_transparent=*bank;}
@@ -73,13 +74,15 @@ unsigned differences(const Image &a,const Image &b) {
     check(a.width==b.width&&a.height==b.height&&a.rgb.size()==b.rgb.size(),"Shield inspection extent changed");
     unsigned result=0;for(unsigned i=0;i<a.rgb.size();++i)result+=a.rgb[i]!=b.rgb[i];return result;
 }
-void animate(Mesh &mesh,const Cache &cache,std::uint32_t biped,float recent) {
+void animate(Mesh &mesh,const Cache &cache,std::uint32_t biped,float recent,float shield=.625f,
+    float camouflage=0.f) {
     const auto functions=cache.load_object_functions(biped);DamageFeedbackState feedback;feedback.shield.visible=recent;
     for(auto &material:mesh.materials) {
+        bind_object_camouflage(material,camouflage);
         check(animate_forward_material(material,.375,[&](auto name) {
             return evaluate_object_function(functions,*material.animation.tables,name,0,{},
                 [&](auto requested)->std::optional<FunctionValue> {
-                    if(const auto value=damage_feedback_input(feedback,1,.625f,false,requested))
+                    if(const auto value=damage_feedback_input(feedback,1,shield,false,requested))
                         return FunctionValue{value->value,value->active};
                     return {};
                 }).value;
@@ -89,14 +92,16 @@ void animate(Mesh &mesh,const Cache &cache,std::uint32_t biped,float recent) {
 }
 int main(int argc,char **argv) {
     try {
-        check(argc==2,"Supply shield inspection output directory");
+        check(argc==2 || (argc==3 && std::string(argv[2])=="--no-validation"),
+            "Supply shield inspection output directory and optional --no-validation");
+        validation=argc==2;
         const auto root=std::filesystem::path(HALO2_SOURCE_DIR),directory=std::filesystem::path(argv[1]);
         const auto path=root/"assets/disc/maps/lockout.map";if(!std::filesystem::exists(path))return 77;
         std::filesystem::create_directories(directory);Cache cache(path);const auto content=cache.load_content(0,true);
         check(SDL_Init(SDL_INIT_VIDEO)==0,"Shield inspection SDL initialization failed");
         auto *window=SDL_CreateWindow("Original shield material inspection",0,0,640,480,SDL_WINDOW_VULKAN|SDL_WINDOW_HIDDEN);
         check(window,"Shield inspection window unavailable");unsigned cases=0,changed=0,local_controls=0;
-        for(unsigned representation:{2u,3u})for(bool first_person:{false,true}) {
+        for(unsigned representation:{2u,3u})for(bool first_person:{false,true})for(bool overshield:{false,true}) {
             const auto &r=content.player_representations.at(representation);
             auto model=cache.load_model(first_person?r.hands:r.biped.model,false);
             std::vector<BonePose> locals;for(const auto &bone:model.bones)locals.push_back(bone.bind);
@@ -105,7 +110,10 @@ int main(int argc,char **argv) {
             auto &q=locals[std::size_t(hand-model.bones.begin())].rotation;const auto old=q;
             constexpr float s=.3826834323650898f,k=.9238795325112867f;
             q={old[0]*k+old[3]*s,old[1]*k+old[2]*s,old[2]*k-old[1]*s,old[3]*k-old[0]*s};
-            const auto shader=first_person?r.biped.vitality.shield_damaged_first_person_shader:r.biped.vitality.shield_damaged_shader;
+            const auto &vitality=r.biped.vitality;
+            const auto shader=overshield?
+                (first_person?vitality.overshield_first_person_shader:vitality.overshield_shader):
+                (first_person?vitality.shield_damaged_first_person_shader:vitality.shield_damaged_shader);
             const auto header=cache.load_source_tag_metadata(r.biped.model);
             const auto mode=first_person?r.hands:Bytes(header.bytes_at(header.source_address(),8)).u32(4);
             SourceShieldModelShaders bank(cache,model,mode,shader);
@@ -122,9 +130,10 @@ int main(int argc,char **argv) {
             const auto center=(low+high)*.5f;const float radius=length(high-low)*.5f;
             Camera camera;camera.oriented=true;camera.position=center+Vec3{radius*2.5f,0,0};
             camera.forward={-1,0,0};camera.up={0,0,1};camera.field_of_view=60;
-            const auto name=std::string(representation==2?"spartan":"elite")+(first_person?"-fp":"-world");
-            animate(mesh,cache,r.biped.datum,0);const auto zero=capture(window,mesh,camera,directory/(name+"-zero.ppm"));
-            animate(mesh,cache,r.biped.datum,.8f);const auto hit=capture(window,mesh,camera,directory/(name+"-hit.ppm"));
+            const auto name=std::string(representation==2?"spartan":"elite")+(first_person?"-fp":"-world")+
+                (overshield?"-overshield":"-damaged");
+            animate(mesh,cache,r.biped.datum,0,1);const auto zero=capture(window,mesh,camera,directory/(name+"-zero.ppm"));
+            animate(mesh,cache,r.biped.datum,.8f,overshield?2.f:.625f);const auto hit=capture(window,mesh,camera,directory/(name+"-hit.ppm"));
             const auto repeated=capture(window,mesh,camera,directory/(name+"-repeat.ppm"));
             check(differences(hit,repeated)==0,"Shield renderer retained nondeterministic object state");
             const auto ordered=capture_queue(window,mesh,camera,directory/(name+"-ordered-world.ppm"),false);
@@ -135,10 +144,28 @@ int main(int argc,char **argv) {
             Mesh control=mesh;for(auto &material:control.materials)material.world_vertex_input_transform=SourceWorldVertexInputTransform::Preserve;
             const auto wrong=capture(window,control,camera,directory/(name+"-posed-noise-control.ppm"));
             const auto local=differences(hit,wrong);check(local>0,"Shield renderer did not consume retained local noise coordinates");local_controls+=local;
+            if(overshield) {
+                std::vector<std::array<std::uint32_t,60>> programs;
+                for(const auto &material:mesh.materials)programs.push_back(material.forward_program.words);
+                animate(mesh,cache,r.biped.datum,.8f,2,1.f);
+                bool remapped=false;
+                for(unsigned n=0;n<mesh.materials.size();++n)
+                    remapped|=programs[n]!=mesh.materials[n].forward_program.words;
+                check(remapped,"Overshield ignored its owner's original scalar37 program remap");
+                const auto cloaked=capture(window,mesh,camera,directory/(name+"-camouflage.ppm"));
+                // Exact original19CA0/17420 bank comparisons certify this
+                // input. A changed alpha constant need not change RGB under
+                // the authored ONE/ONE blend, especially on the FP shader.
+                std::cout<<name<<": scalar37 program remap, "<<differences(hit,cloaked)<<" camouflage RGB bytes\n";
+                animate(mesh,cache,r.biped.datum,.8f,2,0);
+                const auto restored=capture(window,mesh,camera,directory/(name+"-restored.ppm"));
+                check(differences(hit,restored)==0,"Overshield retained another owner's camouflage scalar");
+            }
             check(hit.width==640&&hit.height==480,"Shield inspection ignored its drawable extent");
             std::cout<<name<<": "<<response<<" input-response and "<<local<<" local-coordinate control RGB bytes\n";++cases;
         }
         SDL_DestroyWindow(window);SDL_Quit();
+        check(cases==8,"Incomplete damaged/overshield species/view coverage");
         std::cout<<cases<<" actual authored shield materials rendered deterministically, "<<changed<<" input-response and "<<local_controls
                  <<" local-coordinate control RGB bytes. Ordered world/FP callback consumers match inspection RGB, retain prefix/null semantics and reject missing group services. Controlled bind channels plus left-hand rotation and bounds camera; no original gameplay-frame or live collector admission claim.\n";
         return 0;

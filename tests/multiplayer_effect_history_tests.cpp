@@ -322,14 +322,13 @@ public:
                 // even though its final304 native bytes were equal.
                 const auto &variant=world->match.session_configuration();check(variant.has_value(),"Native host lost its resolved configuration");
                 // Match the production runtime's prepared-world operands.
-                // A source-owned engine selects its real loadout at birth;
-                // the cache's legacy starting-weapon adapter is not this
-                // world's pre-admission rules.weapon identity.
+                // Native equipment is selected at birth. Compatibility uses
+                // the admitted selector even before a peer has a unit.
                 const auto fingerprint=custom_slayer_fingerprint(multiplayer_fingerprint(options.map,
-                    world->cache->shared_directory(),std::uint32_t(options.bsp),world->rules.weapon,
+                    world->cache->shared_directory(),std::uint32_t(options.bsp),world->network_starting_weapon_identity(),
                     options.gameplay_xbe),*variant);
                 std::cout<<"OBSERVED native host loading identity: fingerprint="<<fingerprint
-                    <<" prepared_weapon="<<world->rules.weapon
+                    <<" configured_weapon_identity="<<world->network_starting_weapon_identity()
                     <<" legacy_adapter_weapon="<<world->cache->slayer_starting_weapon(options.starting_weapon)
                     <<" source_engine_required="<<world->rules.requires_source_engine
                     <<" native_protocol="<<native_multiplayer_protocol<<'\n';

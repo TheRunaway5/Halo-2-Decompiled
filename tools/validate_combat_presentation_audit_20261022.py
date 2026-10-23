@@ -107,7 +107,10 @@ def main():
                 '<<" foreground_vertices="<<foregrounds[i].size()'
                 '<<" viewport="<<physical(rect).left<<\',\'<<physical(rect).top<<\',\''
                 '<<physical(rect).width<<\',\'<<physical(rect).height<<\'\\n\';\n      ' + needle)
-            needle = 'view.light_volumes=weapon_projectile_scene.light_volume_view(i,view_forward,render_camera,physical(rect),1024.f);'
+            text = text.replace(needle, needle + '\n      if(std::getenv("HALO2_COMBAT_AUDIT_HIDE_FOREGROUND"))view.foreground={};')
+            needle = next((line.strip() for line in text.splitlines()
+                if line.strip().startswith('view.light_volumes=weapon_projectile_scene.light_volume_view(')), None)
+            assert needle
             assert text.count(needle) == 1
             text = text.replace(needle, needle + '\n      if(std::getenv("HALO2_COMBAT_AUDIT_HIDE_GLOW"))view.light_volumes={};')
             needle = ('const float foreground_projection_angle=user_fov?\n'
@@ -116,6 +119,30 @@ def main():
             text = text.replace(needle, ('const float foreground_projection_angle=std::getenv("HALO2_COMBAT_AUDIT_SCOPE_LENS") && '
                 'p.source_zoom.current>=0?source_angles.projection_angle:user_fov?\n'
                 '          gameplay_first_person_camera_angle(biped.camera_field_of_view,layout):source_angles.projection_angle;'))
+            needle = '    timing.submitted=renderer.draw(views.front().camera,'
+            assert text.count(needle) == 1
+            text = text.replace(needle, '''    if(capture)if(const auto *directory=std::getenv("HALO2_COMBAT_AUDIT_PAIR_DIRECTORY")) {
+      const auto before=renderer.bsp_postprocess_state();
+      for(const auto label:{"repeat","control"}) {
+        auto paired=views;
+        for(auto &view:paired) {
+          // Only the actual submission below issues the original query IDs.
+          // Lens colors/visibility and every source pose are the SAME inputs.
+          view.lens_queries={};view.light_volume_observer={};
+          view.completed_material_upload_observer={};view.completed_bsp_draw_observer={};
+          view.completed_object_draw_observer={};
+          if(std::string_view(label)=="control") {
+            if(std::getenv("HALO2_COMBAT_AUDIT_PAIR_GLOW"))view.light_volumes={};
+            else view.foreground={};
+          }
+        }
+        if(!renderer.draw(paired.front().camera,std::filesystem::path(directory)/(std::string(label)+".ppm"),
+            {},false,{},{},hud_vertices,paired,{},pause_backdrops))
+          throw FormatError("Combat paired GPU control was not submitted");
+        if(before)renderer.restore_bsp_postprocess_state(*before);
+      }
+    }
+''' + needle)
         else:
             needle = 'check(mcc && name=="ghost","Ghost projectile rendering requires its prepared MCC driver");'
             assert text.count(needle) == 1
@@ -144,6 +171,21 @@ def main():
             text = text.replace(needle, 'check(fire_inputs>0 && observed_live_projectiles.size()>1 && '
                 '(std::getenv("HALO2_COMBAT_AUDIT_HIDE_GLOW") || (projectile_owners.size()>1 && glow_draws>0)),')
             text = text.replace('options.frames=ghost_fire?90u:', 'options.frames=ghost_fire?180u:')
+            text = text.replace('options.frames=ghost_fire?180u:',
+                'options.frames=ghost_fire?(std::getenv("HALO2_COMBAT_AUDIT_PIXEL_CAPTURE")?140u:180u):')
+            needle = 'options.frames=ghost_fire?(std::getenv("HALO2_COMBAT_AUDIT_PIXEL_CAPTURE")?140u:180u):rocket_explosion?24u:4u;options.mute=true;options.screenshot=argv[4];'
+            assert text.count(needle) == 1
+            text = text.replace(needle, needle + '\n      if(const auto *frame=std::getenv("HALO2_COMBAT_AUDIT_PIXEL_FRAME"))options.frames=unsigned(std::stoul(frame));')
+            text = text.replace(needle, '''if(ghost_fire && std::getenv("HALO2_COMBAT_AUDIT_FLY")) {
+        const auto point=cache.spawns().front().position+Vec3{0,0,12};
+        const auto below=world.match.simulation().collision().raycast(point,{0,0,-1},1000.f);
+        check(below && below->distance>5.f,"Airborne setup lacks an actual clear BSP column");
+        world.source_objects->tu15_world().set_object_position(p.source_parent,point);
+        row["declared_airborne_setup"]={{"original_entry","B95D0"},{"vehicle",p.source_parent},
+          {"position",{point.x,point.y,point.z}},{"initial_BSP_clearance",below->distance},
+          {"supplied_fire_physics_or_render_results",false}};
+      }
+      ''' + needle)
             text = text.replace('tick==start+2 || tick==start+35', 'tick==start+30 || tick==start+150')
             text = text.replace('tick==start+2?SDL_MOUSEBUTTONDOWN', 'tick==start+30?SDL_MOUSEBUTTONDOWN')
             # Observe the same original constructor/retirement seam already
@@ -152,6 +194,12 @@ def main():
                 old.read_text().index('if(std::getenv("HALO2_TEST_VEHICLE_WEAPON_FIRE"))'))
             end = old.read_text().index('      std::uint64_t contact_frontier{};', begin)
             observer = old.read_text()[begin:end]
+            observer = observer.replace('row["type"]=5;row["actual_definition"]=definition;',
+                '''row["type"]=5;row["actual_definition"]=definition;
+            const auto body=word(header+8u);
+            row["parent"]=word(body+0x14u);
+            row["position"]={std::bit_cast<float>(word(body+0x64u)),std::bit_cast<float>(word(body+0x68u)),std::bit_cast<float>(word(body+0x6cu))};
+            row["velocity"]={std::bit_cast<float>(word(body+0x88u)),std::bit_cast<float>(word(body+0x8cu)),std::bit_cast<float>(word(body+0x90u))};''')
             needle = '      unsigned submitted{};'
             assert text.count(needle) == 1
             text = text.replace(needle, '''      auto &firing=row["source_projectile_trace"];
@@ -161,6 +209,46 @@ def main():
       std::set<std::uint32_t> expected_projectiles;
       if(ghost_fire)expected_projectiles.insert(content.weapons.at(actual.definition).projectile);
 ''' + observer + needle)
+            needle = '        options.input_observer=[&,start,window](unsigned tick,std::span<const Controls> input,const auto &) {'
+            assert text.count(needle) == 1
+            text = text.replace(needle, needle + '''
+          if(std::getenv("HALO2_COMBAT_AUDIT_FLY") && (tick==0 || tick==90)) {
+            if(tick==90) {
+              SDL_Event motion{};motion.type=SDL_MOUSEMOTION;
+              motion.motion.windowID=SDL_GetWindowID(window);motion.motion.yrel=-220;
+              check(SDL_PushEvent(&motion)==1,"Queue actual Banshee flight look");
+            }
+            for(const auto key:std::array{tick==0?SDL_SCANCODE_W:SDL_SCANCODE_SPACE}) {
+              SDL_Event event{};event.type=SDL_KEYDOWN;event.key.windowID=SDL_GetWindowID(window);
+              event.key.keysym.scancode=key;event.key.keysym.sym=SDL_GetKeyFromScancode(key);
+              check(SDL_PushEvent(&event)==1,"Queue actual Banshee flight control");
+            }
+          }
+          row["flight_input_samples"].push_back({{"step",tick},{"forward",input[player].forward},
+            {"jump",input[player].jump},{"pitch",input[player].pitch}});
+''')
+            needle = '        if(ghost_fire)for(const auto &p:frame.weapon_projectiles)'
+            assert text.count(needle) == 1
+            text = text.replace(needle, '''        if(ghost_fire) {
+          nlohmann::json live=nlohmann::json::array();
+          for(const auto &p:frame.weapon_projectiles)
+            if(p.definition==content.weapons.at(actual.definition).projectile)live.push_back(p.datum);
+          row["projectile_frame_samples"].push_back({{"tick",frame.tick},{"owners",live}});
+          const auto parent=frame.players[player].source_parent;
+          for(const auto &vehicle:frame.world_vehicles)if(vehicle.handle==parent) {
+            const auto point=vehicle.transform.position;
+            const auto below=world.match.simulation().collision().raycast(point,{0,0,-1},1000.f);
+            row["flight_samples"].push_back({{"tick",frame.tick},{"position",{point.x,point.y,point.z}},
+              {"ground_clearance",below?below->distance:-1.f}});
+          }
+          for(const auto &event:frame.grenade_detonations)
+            if(event.definition==content.weapons.at(actual.definition).projectile &&
+               (row["source_contact_samples"].empty() || event.serial>row["source_contact_samples"].back()["serial"].get<std::uint64_t>()))
+              row["source_contact_samples"].push_back({{"serial",event.serial},{"tick",event.tick},
+                {"projectile",event.projectile},{"unit",event.unit},{"source_effect_instance",event.source_effect_instance},
+                {"position",{event.position.x,event.position.y,event.position.z}}});
+        }
+''' + needle)
         write_changed(source / relative, text)
         files[str(relative)] = {'before': sha(old), 'after': sha(source / relative)}
     cmake = source / 'CMakeLists.txt'
@@ -185,6 +273,8 @@ add_dependencies(combat_presentation_audit halo2_shaders)
     tests = [('projectiles', '$<TARGET_FILE:combat_presentation_audit>', 'projectiles', ''),
              ('metadata', '$<TARGET_FILE:combat_presentation_audit>', 'metadata', '')]
     tests += [(name, '$<TARGET_FILE:combat_presentation_audit>', 'zoom-visual', f'{weapon} {presses}')
+              for name, weapon, presses in CASES]
+    tests += [('full-' + name, '$<TARGET_FILE:combat_presentation_audit>', 'zoom-full-visual', f'{weapon} {presses}')
               for name, weapon, presses in CASES]
     # Spectre is contrail-only; requiring an unauthored MGS2 draw would be a
     # false failure. This fixture isolates the two model-less MGS2/lens bolts.
@@ -212,8 +302,8 @@ add_dependencies(combat_presentation_audit halo2_shaders)
         if args.case and name not in args.case:
             continue
         command += ['--retain-report', f'combat-audit-{name}.json']
-        if mode in ('zoom-visual', 'vehicle-visual'):
-            for suffix in ('baseline', 'repeat', 'without-glow' if mode == 'vehicle-visual' else 'without-arms'):
+        if mode in ('zoom-visual', 'zoom-full-visual', 'vehicle-visual'):
+            for suffix in ('baseline', 'repeat', 'without-glow' if mode == 'vehicle-visual' else 'without-foreground' if mode == 'zoom-full-visual' else 'without-arms'):
                 command += ['--retain-report', f'combat-audit-{name}-{suffix}.json']
                 command += ['--retain-report', f'combat-audit-{name}-{suffix}.log']
         else:

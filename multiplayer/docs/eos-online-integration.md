@@ -123,18 +123,18 @@ schemas, storage quotas, stat budgets, identity requirements and official source
 | Peer NAT traversal and relay fallback | EOS | Native live qualification passed |
 | Private match session/invites/join | EOS | Native + master handoff qualification passed |
 | Halo matchmaking/rank/party rules | Master | Retained |
-| General verified lifetime counters | EOS Stats | Trusted publisher/outbox deployed; real-player linkage acceptance pending |
+| General verified lifetime counters | EOS Stats | Real-player binding and 27-field read-back passed; completed-match publication pending |
 | Top 25 per playlist | EOS Leaderboards | Nine definitions and public cached read path deployed |
 | Full carnage reports and each player's match index | Master | Retained |
-| Combined Halo profile view | Game/website joins identity + EOS stats + master history | API and website deployed; delivered-client acceptance pending |
+| Combined Halo profile view | Game/website joins identity + EOS stats + master history | Installed client binding and public EOS-backed profile response passed |
 | Versioned static playlist catalog | EOS Title Storage | Feasible future delivery offload; rules remain ours |
 
 The master retains its deduplicated accepted-result journal and rank transaction.
 The website-owned Rust publisher drains a recoverable outbox and checks SDK
 read-back before acknowledging a revision. Lifetime counters use absolute MAX
 values; mutable ranks and appearance use LATEST. No client can award its own
-rank or statistics. A real player's first account-linked publication still
-requires delivered-client acceptance.
+rank or statistics. A real player's first account-linked profile publication
+passed from the installed client; an actual completed match remains to be verified.
 
 ## Validation and remaining acceptance
 
@@ -204,10 +204,11 @@ Trusted stat credentials are separate from the user-required game client.
 The new website route `/v1/history/top25?playlist=...` reads cached EOS standings.
 The previous website SQL leaderboard and its sort/pagination implementation were
 removed locally. Halo skill calculations, result validation and carnage/history
-SQL are still required. Legacy direct-peer transport remains in use by the
-current default deployment; removing it requires EOS cutover and actual runtime
-acceptance first. The master/profile/population API and website are deployed;
-native gameplay cutover and production player-account migration remain pending.
+SQL are still required. Legacy direct-peer transport remains available for
+existing v12 clients; removing it requires gameplay cutover acceptance first.
+The master/profile/population API and website are deployed, and the installed
+native client's first real account binding passed. Completed-match publication
+and full gameplay cutover remain pending.
 
 The master also owns `/v1/online/status`: unique recently authenticated accounts,
 separate transient guest seats, and per-playlist queued/joining/playing/postgame
@@ -225,7 +226,8 @@ clears and a ranked-level decrease. OpenID trust is mapped to Live. A JWT signed
 by the production master passed the real EOS Connect exchange, and the trusted
 production SDK worker verified the returned token's exact account subject and
 product/client/sandbox/deployment scope. No master account was created by that
-qualification. Real player login/profile binding from a delivered native client
+qualification. Real player login/profile binding and profile publication from
+the installed native client subsequently passed. Completed-match publication
 and two-machine relay gameplay remain acceptance work. The website was published
 through TheRunaway5; its worker runbook contains the current evidence and
 deployment workflow.
@@ -249,7 +251,7 @@ repository's ignored `.local/deploy/eos-transport` receipts.
 
 The scoped master image passed startup with the actual nine-playlist catalog,
 then deployed with a protected SQLite backup and automatic health rollback.
-Real player account linkage, a playable two-consumer-network match, microphone
+Completed-match publication, a playable two-consumer-network match, microphone
 playback, complete-world host migration and legacy transport removal remain
 acceptance work. EOS Title Storage playlist distribution remains optional future
 work.
@@ -270,34 +272,40 @@ editing a secondary profile cannot replace the primary account's customization.
 The account regression and all three changed UI translation-unit syntax checks
 passed.
 
-The full native source build, transitive wiring audit and launcher routing checks
-passed. Automatic runtime promotion did **not** pass: eight of twelve actual MCC
-frame cases passed, including Lockout, Gemini, Containment, Headlong, Warlock,
-Waterworks, and Coagulation with two/four local players. Ascension and Beaver
-Creek timed out; Dune exited with zero submitted frames. One-player Coagulation
-was intentionally interrupted for diagnosis and is not an independent failure.
-The previously selected runtime, which has no EOS library linked, also failed
-the same Ascension check. A bounded one-frame debugger sample found active MCC
-texture decompression before frame submission; it did not identify a complete
-root cause. No gameplay/source state was fabricated to bypass these checks.
+The complete EOS source build, transitive wiring audit, launcher routing checks
+and all twelve MCC map/frame cases passed on an isolated NVIDIA display. The
+already selected runtime had an identical source cohort; its binaries, resources
+and weapon-audio proof were preserved while EOS settings were packaged beside
+it. All twelve cases then passed with EOS enabled. The official SDK import and
+local library resolution were verified; the settings file is mode 0600. Receipts
+are in `analysis/eos-client-release-isolated-20261022` and
+`analysis/eos-client-configuration-20261022`, with the concise current status in
+`analysis/eos-client-delivery-status-20261022.json`. Earlier desktop failures did
+not establish an EOS defect; their bounded diagnostics remain preserved.
 
-The selected launcher runtime remains unchanged. The failed candidate, SDK
-extraction, object archives and owned build scratch were removed. Small source
-hashes, commands, traces and results remain under
-`analysis/eos-client-release-fixed-20261022`, with the concise receipt at
-`analysis/eos-client-delivery-status-20261022.json`. Native changes remain local
-in the game checkout. Real Steam/Discord profile binding through a delivered
-client, completed-match publication, two-consumer-network play, microphone
-playback and complete-world host migration still need runtime acceptance.
+The launcher home has one Play control. Both shortcut names use the supplied
+intro, title screen and main menu; previews and gameplay tests are explicit
+diagnostic CLI modes. The installed runtime is now
+`bin/engine-builds/4a9dcc67f41a4169bcd6ac1ab1a5a088/halo2_native`.
+Its full build, native wiring audit and all twelve MCC frame cases passed.
+Both installed launchers passed startup checks, and natural intro playback plus
+actual keyboard navigation reached the title, local profile picker, main menu
+and ONLINE sign-in. Seven launcher/movie regression groups and sixteen
+build-promotion policy tests passed. Future engine builds qualify and activate
+their matching frontend selection. Receipts are in
+`analysis/single-play-engine-20261022`, `analysis/single-play-menu-20261022` and
+`analysis/single-play-installed-20261022`.
 
-A subsequent diagnostic ran the previously selected client on an isolated Xvfb
-display using the same NVIDIA GPU, four-frame CLI and 180-second budget.
-Ascension passed in 117 seconds and Dune in 69 seconds. Both submitted all four
-frames. This does not establish why the earlier desktop runs failed, or qualify
-the EOS candidate. A fresh EOS source build is running the complete matrix on an
-isolated display, recorded in `analysis/eos-client-release-isolated-20261022`.
-The reference diagnostic scratch was removed; its small receipt remains at
-`analysis/eos-isolated-display-20261022.json`.
+The user's Steam login in this installed build created an EOS binding. The
+trusted publisher's 27 expected profile/stat fields matched SDK read-back at the
+current master revision, and the public website profile response serves
+EOS-backed statistics with customization. The existing account's join date was
+already unknown before this login and stays unknown; new registrations record
+their actual creation time. The identity-free receipt is
+`analysis/eos-real-account-20261022/report.json`. Native game changes remain local
+in the dirty game checkout. Completed-match publication, two-consumer-network
+play, microphone playback and complete-world host migration still require
+runtime acceptance. Legacy v12 transport remains necessary for existing clients.
 
 The subsequent production image `halo2-master-eos:20261022T235241Z-profile-cache`
 adds a bounded cache to the master profile reader. Unchanged native heartbeats
@@ -308,3 +316,9 @@ the cache is limited to 1,024 players. A direct regression reproduced the prior
 scan, and all 25 scoped production-master tests plus the deployment-image cache
 check passed. Rollout retained a SQLite backup and the previous transport image
 for rollback. The website repository owns the source patch and deployment receipt.
+
+Image `halo2-master-eos:20261023T000037Z-career-indexes` adds player-scoped indexes
+for career accuracy and report coverage. The before-fix query-plan regression
+found a global weapon-table scan. Both deployed-image query plans now search
+the selected player's index, and the 26-test scoped cohort passed. Raw carnage
+data, rank calculations and public response fields are unchanged.

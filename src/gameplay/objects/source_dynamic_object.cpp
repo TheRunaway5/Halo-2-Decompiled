@@ -12,10 +12,12 @@ void validate_source_dynamic_objects(std::span<const SourceDynamicObject> object
     for(const auto &o:objects) {
         const auto &s=o.regions.selection;const auto count=s.permutations.size();
         if(!identity(o.object) || !indices.insert(o.object&65535u).second || o.definition==0xffffffffu ||
-            (o.parent!=0xffffffffu && !identity(o.parent)) || (o.type!=3 && o.type!=4 && o.type!=11) ||
+            (o.parent!=0xffffffffu && !identity(o.parent)) ||
+            (o.type!=3 && o.type!=4 && o.type!=11 && !(o.type==5 && o.parent!=0xffffffffu)) ||
             !std::isfinite(o.transform.scale) || !(o.transform.scale>0) || !finite(o.transform.position) ||
             !std::all_of(o.transform.basis.begin(),o.transform.basis.end(),finite) || !finite(o.velocity) ||
             !finite(o.sphere.center) || !std::isfinite(o.sphere.radius) || o.sphere.radius<0 ||
+            !std::isfinite(o.camouflage) || o.camouflage<0 || o.camouflage>1 ||
             count>16 || s.states.size()!=count || o.regions.looping_effects.size()!=count ||
             !s.resolved() || s.variant_index< -1 || s.variant_index>127 || o.colors.size()>4 ||
             !std::all_of(o.colors.begin(),o.colors.end(),finite))

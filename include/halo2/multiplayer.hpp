@@ -795,6 +795,7 @@ struct MultiplayerOptions {
   // model. This observes admission and cannot force damage or a visible layer.
   std::function<void(unsigned,unsigned,bool,std::uint32_t,std::uint32_t,
       std::span<const Vertex>)> shield_layer_observer;
+  std::function<void(unsigned,std::uint32_t,unsigned,unsigned,bool,float,unsigned)> camouflage_layer_observer;
   // Read-only carried weapon material and its actual per-owner shader inputs,
   // after animation and before GPU upload. Never supplies a shader value.
   std::function<void(std::uint32_t,std::uint32_t,const Material&,

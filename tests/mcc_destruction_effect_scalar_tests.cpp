@@ -34,19 +34,20 @@ void check_cache(const nlohmann::json &manifest,const char *map,const char *maps
         if(tag.name!=row.at("name").get<std::string>())continue;
         const auto flags=Bytes(cache.read_tag_bytes(tag.address,4)).u32(0);
         if(flags!=bits(row.at("target_bits")))
-            throw std::runtime_error("Cache did not publish the original destruction-effect RNG flags: "+tag.name);
+            throw std::runtime_error("Cache did not publish the original effect RNG flags: "+tag.name);
         ++matched;
     }
-    check(matched>0,"MCC map has none of the source-backed destruction effects");
-    std::cout<<"PASS MCC cache admission of "<<matched<<" exact destruction-effect flag words\n";
+    check(matched>0,"MCC map has none of the source-backed named effects");
+    std::cout<<"PASS MCC cache admission of "<<matched<<" exact effect flag words\n";
 }
 #endif
 }
 int main(int argc,char **argv)try {
     check(argc==2 || argc==4,"Supply PROFILE_MANIFEST [MCC_MAP MCC_MAPS]");
     std::ifstream input(argv[1]);const auto manifest=nlohmann::json::parse(input);
-    check(manifest.at("schema")=="H2_MCC_TU15_DESTRUCTION_EFFECT_FLAGS_V1","Wrong effect profile authority");
-    check(manifest.at("profiles").size()==25,"Incomplete destruction effect census");
+    const bool turret=manifest.at("schema")=="H2_MCC_TU15_TURRET_EFFECT_FLAGS_V1";
+    check(turret || manifest.at("schema")=="H2_MCC_TU15_DESTRUCTION_EFFECT_FLAGS_V1","Wrong effect profile authority");
+    check(manifest.at("profiles").size()==(turret?5u:25u),"Incomplete named effect census");
 #ifdef HALO2_DESTRUCTION_CACHE_CHECK
     if(argc==4)check_cache(manifest,argv[2],argv[3]);
 #else
@@ -62,7 +63,7 @@ int main(int argc,char **argv)try {
         check(event_words(donor)!=event_words(target),"Regression does not distinguish the wrong original RNG stream");
         const auto receipt=convert_mcc_gameplay_scalar(tag_groups::effect,name,bytes);
         check(receipt && receipt->status==MccGameplayScalarStatus::Converted && bytes==expected,
-            "Named MCC destruction effect retains the wrong TU1.5 event RNG selector");
+            "Named MCC effect retains the wrong TU1.5 event RNG selector");
         check(event_words(Bytes(bytes).u32(0))==event_words(target),"Converted effect advances the wrong original RNG word");
         const auto again=convert_mcc_gameplay_scalar(tag_groups::effect,name,bytes);
         check(again && again->status==MccGameplayScalarStatus::AlreadyEquivalent && bytes==expected,"Effect conversion is not idempotent");
@@ -74,6 +75,11 @@ int main(int argc,char **argv)try {
             "Effect conversion changed a custom named effect");
         check(!convert_mcc_gameplay_scalar(tag_groups::damage_effect,name,bytes) && bytes==custom,
             "Effect conversion reinterpreted a different tag group");
+        auto short_bytes=std::vector<std::byte>(3,std::byte{0x57});const auto short_before=short_bytes;
+        bool rejected=false;
+        try{(void)convert_mcc_gameplay_scalar(tag_groups::effect,name,short_bytes);}
+        catch(const FormatError&){rejected=true;}
+        check(rejected && short_bytes==short_before,"Truncated effect flags were partially converted");
         ++converted;
     }
     std::cout<<"PASS "<<converted<<" exact effect tuples, source event RNG words, idempotence and custom-content guards\n";

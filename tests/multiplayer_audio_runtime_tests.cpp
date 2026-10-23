@@ -20,6 +20,9 @@ void reload(Uint32 window){SDL_Event e{};e.type=SDL_KEYDOWN;e.key.windowID=windo
   e.type=SDL_KEYUP;e.key.state=SDL_RELEASED;push(e);}
 void walk(Uint32 window,bool down){SDL_Event e{};e.type=down?SDL_KEYDOWN:SDL_KEYUP;e.key.windowID=window;
   e.key.keysym.scancode=SDL_SCANCODE_W;e.key.keysym.sym=SDLK_w;e.key.state=down?SDL_PRESSED:SDL_RELEASED;push(e);}
+std::shared_ptr<const OriginalData> original(const MultiplayerOptions &options) {
+  return options.gameplay_xbe.empty()?std::shared_ptr<const OriginalData>{}:OriginalData::load_xbe(options.gameplay_xbe);
+}
 struct Host {
   Cache cache;LevelContent content;std::uint32_t starting_sound;MultiplayerMatch match;LanHost host;
   std::uint32_t effect_primary{0x12345678u},effect_auxiliary{0x12345678u};
@@ -31,7 +34,7 @@ struct Host {
   std::vector<SourceImpulse> starting_impulses;
   std::exception_ptr error;std::mutex mutex;std::jthread worker;
   static SlayerRules rules(const Cache &c){auto r=slayer_rules(UiVariant{"Slayer",0,{{2,0},{10,0},{89,5}}});r.weapon=c.slayer_starting_weapon(5);return r;}
-  Host(const MultiplayerOptions &o):cache(o.map,o.shared_maps,OriginalData::load_xbe(o.gameplay_xbe)),
+  Host(const MultiplayerOptions &o):cache(o.map,o.shared_maps,original(o)),
     content(cache.load_content(0,true)),starting_sound(content.weapons.at(cache.slayer_starting_weapon(5)).sound),
     match(content,0,cache.spawns(),rules(cache)),host(match,0,
       multiplayer_fingerprint(o.map,cache.shared_directory(),0,cache.slayer_starting_weapon(5),o.gameplay_xbe)),effects(cache,SourceEffectRandom{effect_primary,effect_auxiliary}){
@@ -89,7 +92,8 @@ int main(int argc,char **argv){try{
     else if(arg=="--cycles" && at+1<argc){cycles=unsigned(std::stoul(argv[++at]));check(cycles>=1 && cycles<=10,"Audio cycles must be 1..10");}
     else throw FormatError("Unknown live audio option");}
   check(!slow_client||lan,"Slow-client delivery check requires a real independently ticking authority");
-  Cache cache(options.map,options.shared_maps,OriginalData::load_xbe(options.gameplay_xbe));
+  if(lan){Cache admitted(options.map,options.shared_maps);if(admitted.is_mcc())options.gameplay_xbe.clear();}
+  Cache cache(options.map,options.shared_maps,original(options));
   const auto fp=cache.load_first_person_binding(cache.slayer_starting_weapon(5),2);std::set<std::uint32_t> reload_tags;
   for(const auto &clip:fp.clock_clips)if(clip.activity==0x0b000065||clip.activity==0x0c000064)
     for(const auto &e:clip.events)if(e.type==1&&e.tag!=null_datum)reload_tags.insert(e.tag);
@@ -145,6 +149,12 @@ int main(int argc,char **argv){try{
     if(start&&tick==*start+cycles*180-10){SDL_Event e{};e.type=SDL_QUIT;push(e);}
   };
   options.audio_observer=[&](const auto &s){check(s.frames>0&&s.voice!=0,"Real SDL voice packet lost resource/handle");
+    if(cache.is_mcc()) {
+      const auto tag=cache.query_tag({.handle=TagHandle{s.sound},.group=TagGroup::from_string("snd!"),
+          .require_address=true,.minimum_size=28});
+      check(tag && !(Bytes(cache.read_tag_bytes(tag->address,28)).u16(0)&0x800u),
+          "Classic runtime submitted a remastered-only MCC sound layer");
+    }
     if(s.kind==MultiplayerAudioKind::Ambient)++ambient;
     if(s.kind==MultiplayerAudioKind::Impulse)++impulses;
     if(s.sound==starting_sound){

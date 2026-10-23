@@ -22,6 +22,8 @@ from validate_disposable_weapon_runtime_tu15 import has_writer, sha
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build-report', type=Path)
+    parser.add_argument('--allow-compiled-parent', action='store_true',
+                        help='Run independent diagnostics after a successful link even if the parent CTest phase failed; retain that failure')
     parser.add_argument('--build-current', action='store_true')
     parser.add_argument('--mcc-root', type=Path)
     parser.add_argument('--jobs', type=int, default=8)
@@ -29,14 +31,17 @@ def main():
     parser.add_argument('--image', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--wait-seconds', type=float, default=2400)
-    parser.add_argument('--case', action='append', choices=('coagulation1','coagulation2','coagulation4','lockout1'))
+    defaults=('coagulation1','coagulation2','coagulation4','lockout1')
+    parser.add_argument('--case', action='append', choices=(*defaults,'coagulation-lan1','coagulation-lan2',
+                        'coagulation-lan4','coagulation-lan-slow'))
+    parser.add_argument('--walking', action='store_true', help='Also require the actual movement/footstep replay')
     parser.add_argument('--cycles', type=int, choices=range(1,11), default=3)
     parser.add_argument('--timeout', type=float, default=300)
     args = parser.parse_args()
     scratch = Path(os.environ['HALO2_TEST_SCRATCH']).resolve()
     args.output.mkdir(parents=True, exist_ok=True)
     report = dict(passed=False, status='waiting', cases=[], runner_scratch=str(scratch),
-                  scope='Actual local weapon shots/reloads and BSP ambient; walking acceptance separate',
+                  scope='Actual local/LAN weapon shots/reloads and BSP ambient; walking is required only with --walking',
                   walking_acceptance_verified=False, full_tu15_audio_parity=False,
                   large_artifacts_retained=[], tool_sha256=sha(Path(__file__)))
     execution=tempfile.TemporaryDirectory(prefix='weapon-audio-',dir=scratch)
@@ -82,7 +87,11 @@ def main():
         while time.monotonic()<deadline:
             parent = json.loads(args.build_report.read_text())
             if parent['status'] in ('failed', 'interrupted'):
-                raise RuntimeError('Parent build failed before runtime validation')
+                compiled=any(step['name']=='build' and step.get('exit_code')==0 for step in parent.get('steps',[]))
+                if not (args.allow_compiled_parent and compiled):
+                    raise RuntimeError('Parent build failed before runtime validation')
+                report.update(parent_validation_status=parent['status'],parent_build_only_admission=True,
+                              parent_report=str(args.build_report.resolve()))
             build = Path(parent['build'])
             source = build/'multiplayer_audio_runtime_tests'
             if source.is_file() and os.access(source, os.X_OK):
@@ -104,11 +113,20 @@ def main():
         for name,map_name,flags in [('coagulation1','coagulation',[]),
                                     ('coagulation2','coagulation',['--split2']),
                                     ('coagulation4','coagulation',['--split4']),
-                                    ('lockout1','lockout',[])]:
-            if args.case and name not in args.case:continue
+                                    ('lockout1','lockout',[]),
+                                    ('coagulation-lan1','coagulation',['--lan']),
+                                    ('coagulation-lan2','coagulation',['--lan','--split2']),
+                                    ('coagulation-lan4','coagulation',['--lan','--split4']),
+                                    ('coagulation-lan-slow','coagulation',['--lan','--slow-client'])]:
+            if name not in (args.case or defaults):continue
+            # The native renderer's compiled shader directory stays alive in
+            # the owning build for these real network runs. Local capture
+            # cadence/pinned-capture flags explicitly reject a LAN session.
+            capture=[] if '--lan' in flags else ['--shaders',str(shaders)]
             command=['xvfb-run','-a','-s','-screen 0 800x600x24',str(binary),
                      str((args.maps/(map_name+'.map')).resolve()),str(args.maps.resolve()),
-                     str(args.image.resolve()),*flags,'--weapons','--shaders',str(shaders),'--cycles',str(args.cycles)]
+                     str(args.image.resolve()),*flags,*([] if args.walking else ['--weapons']),
+                     *capture,'--cycles',str(args.cycles)]
             process=subprocess.Popen(command,env=env,stdout=subprocess.PIPE,
                                      stderr=subprocess.STDOUT,text=True,start_new_session=True)
             try:
@@ -122,7 +140,8 @@ def main():
             row=dict(name=name,command=command,exit_code=code,passed=code==0,
                      audio_lines=selected[-100:],tail=lines[-8:])
             report['cases'].append(row);save();print(json.dumps(row),flush=True)
-        report.update(passed=all(row['passed'] for row in report['cases']),status='complete')
+        report.update(passed=bool(report['cases']) and all(row['passed'] for row in report['cases']),status='complete',
+                      walking_acceptance_verified=args.walking and bool(report['cases']) and all(row['passed'] for row in report['cases']))
     except Exception as error:
         report.update(status='failed',error=str(error));print(str(error),flush=True)
     finally:

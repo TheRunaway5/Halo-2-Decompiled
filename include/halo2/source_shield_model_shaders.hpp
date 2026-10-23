@@ -18,7 +18,7 @@ struct SourceShieldPartBinding {
     std::int32_t selected_lod{};
     std::uint16_t shader_priority_flags{},shader_command_flags{};
 };
-// Resident actual plasma-shield override, over the caller's copied accepted
+// Resident authored damaged-shield/overshield override over copied accepted
 // posed geometry. This owns material/input banks and41040's part admission;
 // it does not choose geometry, clone an owner, or schedule transparent draws.
 class SourceShieldModelShaders {

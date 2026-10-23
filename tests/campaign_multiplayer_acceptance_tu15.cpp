@@ -115,7 +115,7 @@ struct Authority {
         world.match.configure_replicated_first_person(definition);
         neutral.match.configure_replicated_first_person(definition);
       }
-    LanHost transport(world.match,0,multiplayer_fingerprint(options.map,world.cache->shared_directory(),options.bsp,world.rules.weapon,options.gameplay_xbe),options.variant);
+    LanHost transport(world.match,0,multiplayer_fingerprint(options.map,world.cache->shared_directory(),options.bsp,world.network_starting_weapon_identity(),options.gameplay_xbe),options.variant);
     port=transport.port();
     test::LivePhysicsEntryCaptureTu15 controller(output/"original-live-unit-input-capture"),object_frame(output/"original-live-object-capture"),solve(output/"original-live-world-capture"),look_animation(output/"original-live-look-animation-capture"),look_rotation(output/"original-live-look-rotation-capture"),body_phase(output/"original-live-body-capture"),unit_view_reset(output/"original-unit-view-reset-capture");
     SourcePhysicsEntryObserverBinding observation(world.source_objects->memory(),[&](bool entering,std::uint32_t entry,const auto &abi) {

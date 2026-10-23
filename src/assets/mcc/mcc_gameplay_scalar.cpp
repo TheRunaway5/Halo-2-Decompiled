@@ -49,7 +49,21 @@ constexpr std::array profiles{
     Profile{tag_groups::weapon,"objects\\weapons\\rifle\\beam_rifle\\beam_rifle",
         "tu15-beam-rifle-authored-flags",{{{0x12c,0x00000820,0x00004820,4},{},{}}},1},
     Profile{tag_groups::weapon,"objects\\weapons\\rifle\\beam_rifle\\beam_rifle_noplayer",
-        "tu15-beam-rifle-noplayer-authored-flags",{{{0x12c,0x20000820,0x20004820,4},{},{}}},1}
+        "tu15-beam-rifle-noplayer-authored-flags",{{{0x12c,0x20000820,0x20004820,4},{},{}}},1},
+    // The turret weapon/projectile reference closure exposes five further
+    // authored event selectors beyond the destruction-model closure below.
+    // TU1.5 17AAB0 selects the primary RNG word for bit2, auxiliary otherwise.
+    // Exact map observations: tools/mcc-turret-effect-scalar-profiles.json.
+    Profile{tag_groups::effect,"effects\\objects\\vehicles\\warthog\\gauss\\gauss_fire",
+        "tu15-turret-effect-event-rng",{{{0,0,4,4},{},{}}},1},
+    Profile{tag_groups::effect,"effects\\objects\\weapons\\fixed\\plasma_cannon\\plasma_cannon_fire",
+        "tu15-turret-effect-event-rng",{{{0,0,4,4},{},{}}},1},
+    Profile{tag_groups::effect,"effects\\objects\\weapons\\rifle\\plasma_rifle\\overheated",
+        "tu15-turret-effect-event-rng",{{{0,0,4,4},{},{}}},1},
+    Profile{tag_groups::effect,"objects\\vehicles\\phantom\\plasma_turret\\weapons\\effects\\phantom_turret_impact",
+        "tu15-turret-effect-event-rng",{{{0,2,6,4},{},{}}},1},
+    Profile{tag_groups::effect,"effects\\impact\\explosion_large\\scorpion_shell\\shell_explosion",
+        "tu15-turret-effect-event-rng",{{{0,2,6,4},{},{}}},1}
 };
 // MCC18090AC30 uses its resolved jpt root at18090AEFC/18090AF05.
 //18090B318's added +0C bit2 gates direct area delivery18090EB80.

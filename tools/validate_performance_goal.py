@@ -64,14 +64,18 @@ def worker(args):
     args.output.mkdir(parents=True,exist_ok=True)
     report={'schema':'H2_PERFORMANCE_GOAL_COHORT_V1','runtime':str(args.runtime),
         'runtime_sha256':digest(args.runtime),'map':str(args.map),'map_sha256':digest(args.map),
+        'reference_runtime':str(args.reference_runtime) if args.reference_runtime else None,
+        'reference_runtime_sha256':digest(args.reference_runtime) if args.reference_runtime else None,
         'helper_sha256':digest(__file__),'scratch':str(scratch),'stages':args.stage,
         'render_size':args.render_size,'present_window':[1280,720],
         'capture_window':args.render_size,
         'capture_provider':'Isolated X11 at full scene resolution; quality evidence only, never FPS acceptance',
         'steps':[],'captures':[],'benchmarks':[],'profiles':[],
         'cohort_gates_passed':False,
-        'limits':'One map and this host; reference/optimized controls use one executable. '
-                 'A/B framebuffer equality is not full OG Xbox parity. CPU sampling is '
+        'limits':'One map and this host. '
+                 'A separate reference executable uses the same vector path; without it, '
+                 'the scalar-vector environment control is used. A/B framebuffer equality '
+                 'is not full OG Xbox parity. CPU sampling is '
                  'separate from unsampled FPS acceptance. No physical-display timing claim.'}
     def save():
         (args.output/'cohort.json').write_text(json.dumps(report,indent=2)+'\n')
@@ -84,7 +88,7 @@ def worker(args):
             MESA_SHADER_CACHE_DIR=str(scratch/'mesa-cache'),
             __GL_SHADER_DISK_CACHE_PATH=str(scratch/'nvidia-cache'))
         env.pop(REFERENCE,None)
-        if reference:env[REFERENCE]='1'
+        if reference and not args.reference_runtime:env[REFERENCE]='1'
         return env
     def run(name,command,reference=False,timeout=None,extra_env=None):
         env=environment(reference);log=scratch/(name+'.log')
@@ -127,12 +131,13 @@ def worker(args):
                         for t in range(tick) for p in range(players)))
                     images=[];failures=[]
                     for reference in (True,False):
+                        runtime=args.reference_runtime if reference and args.reference_runtime else args.runtime
                         name=f'{action}-{players}p-'+('reference' if reference else 'optimized')
                         image=scratch/(name+'.ppm')
                         timing=scratch/(name+'-timing.tsv')
                         command=['xvfb-run','--auto-servernum','--server-args',
                             f'-screen 0 {args.render_size[0]}x{args.render_size[1]}x24',
-                            str(args.runtime),'--multiplayer','--map',str(args.map),
+                            str(runtime),'--multiplayer','--map',str(args.map),
                             '--shared-maps',str(args.shared_maps),'--local-players',str(players),
                             '--viewport',*map(str,args.render_size),'--render-size',*map(str,args.render_size),
                             '--mp-input-script',str(script),'--mp-capture-tick',str(tick),
@@ -163,11 +168,12 @@ def worker(args):
             for players in args.players:
                 for pair in range(args.repetitions):
                     for reference in ((True,False) if pair%2==0 else (False,True)):
+                        runtime=args.reference_runtime if reference and args.reference_runtime else args.runtime
                         name=f'{players}p-pair{pair+1}-'+('reference' if reference else 'optimized')
                         output=scratch/name;summary=args.output/(name+'.json')
                         target=120 if players==1 else 60
                         command=[sys.executable,'-B',str(ROOT/'tools/benchmark_framerate.py'),
-                            '--runtime',str(args.runtime),'--map',str(args.map),
+                            '--runtime',str(runtime),'--map',str(args.map),
                             '--shared-maps',str(args.shared_maps),'--scenario','split',
                             '--local-players',str(players),'--starting-weapon','0','--native-hud',
                             '--width','1280','--height','720','--render-size',*map(str,args.render_size),
@@ -181,13 +187,16 @@ def worker(args):
                                'exit_code':step['exit_code'],'target_fps':target}
                         if summary.exists():
                             data=json.loads(summary.read_text());sample=data['runs'][0]
-                            if data['runtime_sha256']!=report['runtime_sha256']:
+                            expected=report['reference_runtime_sha256'] if reference and args.reference_runtime else report['runtime_sha256']
+                            if data['runtime_sha256']!=expected:
                                 raise RuntimeError('Benchmark executable identity changed')
                             entry.update(complete=True,fps=data['median_fps']['split'],
                                 frame_budget=sample['frame_budget'],dimensions=sample['dimensions'])
-                            for timing in output.glob('*.tsv'):
-                                if timing.stat().st_size>1024*1024:raise RuntimeError('Timing report exceeds budget')
-                                (args.output/(name+'-'+timing.name)).write_bytes(timing.read_bytes())
+                        # Rejected dimensions or a runtime failure can prevent
+                        # summary creation. Keep their bounded timing evidence too.
+                        for timing in output.glob('*.tsv'):
+                            if timing.stat().st_size>1024*1024:raise RuntimeError('Timing report exceeds budget')
+                            (args.output/(name+'-'+timing.name)).write_bytes(timing.read_bytes())
                         report['benchmarks'].append(entry);save()
         if 'profile' in args.stage:
             for players in (1,2,4):
@@ -214,6 +223,8 @@ def worker(args):
         report['requested_stage_gates_passed']=all(gates[stage] for stage in args.stage)
         report['cohort_gates_passed']=set(args.stage)==set(gates) and all(gates.values())
         report['runtime_identity_preserved']=digest(args.runtime)==report['runtime_sha256']
+        if args.reference_runtime:
+            report['runtime_identity_preserved'] &= digest(args.reference_runtime)==report['reference_runtime_sha256']
         if not report['runtime_identity_preserved']:raise RuntimeError('Runtime changed during cohort')
     finally:
         save()
@@ -226,6 +237,8 @@ def worker(args):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--runtime',type=Path,required=True)
+    parser.add_argument('--reference-runtime',type=Path,
+        help='Compare a separate hash-pinned executable with the same vector path; defaults to the scalar-vector control')
     parser.add_argument('--map',type=Path,required=True)
     parser.add_argument('--shared-maps',type=Path)
     parser.add_argument('--output',type=Path,required=True)
@@ -243,6 +256,7 @@ def main():
             all(64<=n<=4096 for n in args.render_size)):
         parser.error('Require bounded positive workload, warmup below frames and64..4096 scene dimensions')
     args.runtime=args.runtime.resolve(strict=True);args.map=args.map.resolve(strict=True)
+    if args.reference_runtime:args.reference_runtime=args.reference_runtime.resolve(strict=True)
     args.shared_maps=(args.shared_maps or args.map.parent).resolve(strict=True)
     args.output=args.output.resolve();args.players=list(dict.fromkeys(args.players or [1,4]))
     args.stage=list(dict.fromkeys(args.stage or ['capture','benchmark','profile']))

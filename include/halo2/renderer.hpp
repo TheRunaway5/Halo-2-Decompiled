@@ -41,6 +41,7 @@
 #include "halo2/source_weather_plate_render.hpp"
 #include "halo2/source_decal_draw.hpp"
 #include "halo2/source_contrail_draw.hpp"
+#include "halo2/source_shader_fog.hpp"
 #include <SDL.h>
 #include <array>
 #include <functional>
@@ -65,6 +66,11 @@ struct ObjectLightingBinding {
     unsigned first_material{}, material_count{};
     ObjectLightingState state;
 };
+struct CamouflageBinding {
+    unsigned first_material{},material_count{};
+    float primary{};
+    std::uint32_t owner{}; // One collector copy covers every range for this full owner.
+};
 struct SourceViewShaderConstants {
     std::array<ShaderVector,7> world{},reflection{}; // Originalc0..6.
     std::array<ShaderVector,4> foreground{}; // Original12D50 BL=1 c0..3.
@@ -86,6 +92,7 @@ struct ModelObjectDraw {
     std::optional<ObjectColors> colors;
     ShaderInput shader_input; // Evaluated into this owner's independent constant bank.
     std::span<const SourcePrtMaterialBank> prt_banks;
+    std::optional<float> camouflage; // Resolved source first-biped, before animation.
 };
 // Read-only CPU metadata for the material image cache at uniform upload.
 // A draw may instead bind a baked lightmap, accumulation/scope/water target,
@@ -227,6 +234,15 @@ struct ModelView {
     PlayerScreenFlash screen_flash;
     std::optional<std::size_t> screen_flash_after_ui_vertex;
     std::span<const ObjectLightingBinding> object_lighting;
+    std::span<const CamouflageBinding> camouflage;
+    // Actual420A0 groups in1E370 order, each naming its completed owners.
+    // Foreground collectors retain their separate per-unit group below.
+    std::span<const std::vector<std::uint32_t>> camouflage_groups;
+    // Original41CC0's fog admission and actual3385D/33EF9 input bank.
+    std::optional<SourceShaderFogContext> camouflage_fog;
+    // Synchronous observation after the actual vkCmdDraw. Owner, layer,
+    // implementation, FP projection, primary and submitted vertex count.
+    std::function<void(std::uint32_t,unsigned,unsigned,bool,float,unsigned)> completed_camouflage_draw_observer;
     std::span<const ModelObjectDraw> objects;
     std::optional<ScopeCopyFrame> scope;
     // Actual 2C490 bank for original world/first-person pass scheduling.

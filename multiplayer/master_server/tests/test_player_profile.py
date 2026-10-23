@@ -93,7 +93,7 @@ class PlayerProfileTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(newer['statistics']['kills'],first['statistics']['kills']+1)
         self.assertTrue(any('FROM match_result_players' in q for q in queries))
 
-    async def test_cached_totals_expire_even_without_an_outbox_revision(self):
+    async def test_cached_totals_expire_without_an_outbox_revision_change(self):
         room,_=await self.completed()
         headers=await self.login()
         db=self.api.directory.store.db
@@ -105,3 +105,13 @@ class PlayerProfileTests(unittest.IsolatedAsyncioTestCase):
         with patch('multiplayer.master_server.player_profile.monotonic',return_value=401):
             refreshed=await (await self.client.get('/v1/account/profile',headers=headers)).json()
         self.assertEqual(refreshed['statistics']['kills'],first['statistics']['kills']+1)
+
+    async def test_career_accuracy_queries_search_only_the_selected_player(self):
+        db=self.api.directory.store.db
+        queries=["SELECT field,sum(value) FROM carnage_weapon_stats WHERE player=? "
+                 "AND weapon BETWEEN 5 AND 38 AND field IN (4,5) GROUP BY field",
+                 "SELECT count(*) FROM carnage_players WHERE player=?"]
+        for query in queries:
+            plan=' '.join(row[3] for row in db.execute('EXPLAIN QUERY PLAN '+query,('fixture-player',)))
+            self.assertIn('SEARCH',plan,'Career queries must avoid scans of every player: '+plan)
+            self.assertNotIn('SCAN',plan)

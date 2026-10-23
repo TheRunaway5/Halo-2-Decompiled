@@ -22,7 +22,9 @@ LanSessionDescription query_lan_session(std::shared_ptr<MultiplayerDatagrams>,un
 // Native port protocol. It does not speak the retail Xbox System Link protocol.
 // Paths themselves are excluded: identical imported data may live in different
 // directories on each computer. Every supported shared cache and font is part
-// of the identity, together with the BSP and selected starting weapon.
+// of the identity, together with the BSP and starting-weapon identity. Prepared
+// MCC worlds supply their validated configured selector through
+// network_starting_weapon_identity(), rather than a birth-dependent live tag.
 // MCC v13 additionally identifies native TU1.5 gameplay and its actual resource
 // banks/h2_fonts; it never reads or accepts an original executable as input.
 std::uint64_t multiplayer_fingerprint(const std::filesystem::path &map,

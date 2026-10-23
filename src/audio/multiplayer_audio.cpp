@@ -391,6 +391,17 @@ struct MultiplayerAudio::State {
     for(auto&close:script_closers)close();
     script_epoch->alive.store(false);script_preparations.clear();script_closers.clear();script_retirements.clear();script_clocks.clear();
   }
+  bool classic_sound(std::uint32_t sound)const {
+    metadata_current();
+    if(!cache.is_mcc())return true;
+    const auto *tag=cache.query_tag({.handle=TagHandle{sound},
+        .group=TagGroup::from_string("snd!"),.require_address=true,.minimum_size=28});
+    if(!tag)throw FormatError("Classic playback lost its resident MCC sound record");
+    // Pinned Halo2MCC snd! bit11 is Play Only In Remastered Mode. Apply
+    // this before resource loading, variation and voice creation for every
+    // native caller, including replicated FP clocks and world effects.
+    return !(Bytes(cache.read_tag_bytes(tag->address,28)).u16(0)&0x800u);
+  }
   Bank &bank(std::uint32_t sound,unsigned pitch=0){
     script_producer();metadata_current();
     const auto key=std::pair{sound,pitch};
@@ -492,6 +503,7 @@ struct MultiplayerAudio::State {
     if(closing)throw FormatError("Native audio is being destroyed");
     Phase phase(play_depth);
     drain_script_cancellations();
+    if(!classic_sound(sound))return 0;
     const auto expected_auxiliary_seed=first_selection && shared_variation_random?
         std::optional<std::uint32_t>(*shared_variation_random):std::nullopt;
     auto &b=bank(sound);float extra=0;
@@ -648,7 +660,7 @@ void MultiplayerAudio::bind_native_sound_metadata(const MccSoundVariationProvide
   state->close_script_bindings();state->banks.clear();
   state->native_metadata=provider;state->script_epoch=std::move(epoch);state->script_bound.store(true);
 }
-void MultiplayerAudio::prepare(std::uint32_t sound){auto state=state_->core;State::Core::Mutation mutation(*state);state->script_producer();if(sound!=none)(void)state->bank(sound);}
+void MultiplayerAudio::prepare(std::uint32_t sound){auto state=state_->core;State::Core::Mutation mutation(*state);state->script_producer();if(sound!=none && state->classic_sound(sound))(void)state->bank(sound);}
 void MultiplayerAudio::first_person(unsigned view,const FirstPersonViewBinding &binding,const FirstPersonAnimationEvent &event){
   if(event.type!=1 || event.tag==none || binding.unit==none || binding.hands[0].weapon==none ||
       (binding.hands[0].flags&6)!=6)return;
@@ -658,16 +670,7 @@ std::optional<MultiplayerAudio::Voice> MultiplayerAudio::source_impulse(std::uin
     std::span<const std::byte,160> request,MultiplayerAudioKind kind,unsigned view){
   auto state=state_->core;State::Core::Mutation mutation(*state);state->script_producer();
   if(sound==none)return std::nullopt;
-  if(state->cache.is_mcc()) {
-    const auto *tag=state->cache.query_tag({.handle=TagHandle{sound},
-        .group=TagGroup::from_string("snd!"),.require_address=true,.minimum_size=28});
-    if(!tag)throw FormatError("Source impulse lost its resident MCC sound record");
-    // Pinned Halo2MCC snd! bit11 is Play Only In Remastered Mode.
-    // TU1.5 stereo delivery excludes these additional MCC effect layers
-    // before decoding, consuming variation or constructing a native voice.
-    if(Bytes(state->cache.read_tag_bytes(tag->address,28)).u16(0)&0x800u)
-      return std::nullopt;
-  }
+  if(!state->classic_sound(sound))return std::nullopt;
   const Bytes raw(request);const auto flags=raw.u32(0);
   if(flags&(0x10u|0x400u))throw FormatError("Source impulse requires its controller/forced-selection owner");
   const auto control=raw.f32(0x10);
@@ -915,8 +918,8 @@ std::vector<MultiplayerAudio::Voice> MultiplayerAudio::interface_loop(std::uint3
       const auto &track=definition.tracks[n];
       if(track.start!=none || track.end!=none || track.fade_in!=0)
         throw FormatError("Interface loop requires additional authored start/end/fade-in owner");
-      if(track.loop!=none)voices.push_back(state->play(track.loop,track.gain_db,
-          MultiplayerAudioKind::Shield,owner,view,true,tag,n));
+      if(track.loop!=none)if(const auto voice=state->play(track.loop,track.gain_db,
+          MultiplayerAudioKind::Shield,owner,view,true,tag,n))voices.push_back(voice);
     }
   }catch(...) {for(const auto id:voices)stop_voice_impl(id);throw;}
   return voices;
@@ -958,7 +961,7 @@ void MultiplayerAudio::ambient(std::span<const MultiplayerAmbientTarget> targets
         // a voice without the separate actual alternate/weather producer.
         // Unchanged Base/1.1/1.5 slices cover every resident track on23 maps.
         if(track.loop==none)continue;
-        a.voices.push_back(state->play(track.loop,track.gain_db,MultiplayerAudioKind::Ambient,none,0,true,target.sound,i,a.gain*a.linear_db));}}
+        if(const auto voice=state->play(track.loop,track.gain_db,MultiplayerAudioKind::Ambient,none,0,true,target.sound,i,a.gain*a.linear_db))a.voices.push_back(voice);}}
       catch(...){for(auto v:a.voices)state->erase(v);throw;}
       found=state->ambience.emplace(target.sound,std::move(a)).first;
     }

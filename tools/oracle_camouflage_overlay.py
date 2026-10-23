@@ -10,6 +10,7 @@ This does not produce a resident draw or supply a successful rendering service.
 """
 import argparse
 import collections
+import hashlib
 import itertools
 import json
 import struct
@@ -19,11 +20,13 @@ from oracle_shield_overlay import OverlayOracle
 from oracle_multiplayer_hud_positions import ROOT, STOP, PIN, Xbe
 from oracle_mp_spawn import Cache, CACHE_PIN
 from oracle_damage_feedback import bits
-from oracle_camouflage_render_context import sha
 from unicorn.x86_const import UC_X86_REG_EIP, UC_X86_REG_ESP, UC_X86_REG_EAX, UC_X86_REG_ECX, UC_X86_REG_EDI
 
 OUT = ROOT / 'analysis/multiplayer/game-variants/camouflage-overlay-20261011'
 HANDLE = 0x12340000
+
+def sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 class CamouflageOverlay(OverlayOracle):

@@ -63,7 +63,7 @@ struct SourceDynamicObjectScene::Impl {
     Impl(const Cache &c,std::size_t bsp,Mesh &mesh,const CollisionWorld &world)
         :cache(c),collision(world),sh(c.load_source_prt_lighting(bsp)),lighting(c.load_bsp_lighting(bsp)),
          surface(c.load_bsp_surface_lighting(bsp)),conversion(c.load_object_lighting_definition()) {
-        for(const auto &tag:c.select_tags())if(tag.group=="eqip" || tag.group=="garb" || tag.group=="bloc") {
+        for(const auto &tag:c.select_tags())if(tag.group=="eqip" || tag.group=="garb" || tag.group=="bloc" || tag.group=="proj") {
             const auto before=mesh.materials.size();
             try {
                 const auto metadata=c.load_source_tag_metadata(tag.datum);
@@ -138,7 +138,7 @@ struct SourceDynamicObjectScene::Impl {
             for(unsigned i=0;i<o.colors.size();++i)colors[i]=o.colors[i];
             const auto &draw=geometry.view(view.view_index);
             out.push_back({id,o.definition,draw.vertices,owner.light.lighting,draw.ordinary_lighting,colors,
-                geometry.owner_banks(cache,nodes,sh,selected.lod)});
+                geometry.owner_banks(cache,nodes,sh,selected.lod),o.camouflage});
         }
         return out;
     }

@@ -51,7 +51,7 @@ Json xyz(Vec3 v){return Json::array({v.x,v.y,v.z});}
 bool same_dynamic(const SourceDynamicObject &a,const SourceDynamicObject &b) {
   return a.object==b.object && a.definition==b.definition && a.parent==b.parent && a.type==b.type &&
     a.runtime_flags==b.runtime_flags && a.control_flags==b.control_flags && a.visible==b.visible &&
-    a.frozen==b.frozen && a.has_world_nodes==b.has_world_nodes &&
+    a.frozen==b.frozen && a.has_world_nodes==b.has_world_nodes && a.camouflage==b.camouflage &&
     !std::memcmp(&a.transform,&b.transform,sizeof(Transform)) && !std::memcmp(&a.velocity,&b.velocity,sizeof(Vec3)) &&
     !std::memcmp(&a.sphere,&b.sphere,sizeof(a.sphere)) &&
     a.regions.selection.variant_index==b.regions.selection.variant_index &&
@@ -779,7 +779,7 @@ struct Host {
       }
       auto effective_variant=options.variant;
       if(options.starting_weapon)effective_variant.values.set(89,int(options.starting_weapon));
-      LanHost transport(world.match,0,multiplayer_fingerprint(options.map,world.cache->shared_directory(),0,world.rules.weapon,options.gameplay_xbe),effective_variant);
+      LanHost transport(world.match,0,multiplayer_fingerprint(options.map,world.cache->shared_directory(),0,world.network_starting_weapon_identity(),options.gameplay_xbe),effective_variant);
       initial_inventory=inventory(world);content=std::make_shared<LevelContent>(world.content);
       port=transport.port();host_slot=world.local_slots.front();
       started=true;startup.set_value();
@@ -1439,6 +1439,7 @@ int main(int argc,char **argv) try {
   }
   const bool vehicle_collision_test=vehicle && std::getenv("HALO2_TU15_VEHICLE_COLLISION_INPUT");
   const bool vehicle_blast_test=vehicle && std::getenv("HALO2_TU15_VEHICLE_BLAST_INPUT");
+  check(!vehicle_blast_test || lan,"Vehicle blast diagnostics require the actual LAN authority; select lan-vehicle");
   std::optional<unsigned> vehicle_blast_started;
   const bool vehicle_weapon_test=vehicle_blast_test && std::getenv("HALO2_TU15_VEHICLE_WEAPON_INPUT");
   bool vehicle_weapon_pressed{},vehicle_reload_pressed{};unsigned vehicle_weapon_commands{},vehicle_reload_commands{};

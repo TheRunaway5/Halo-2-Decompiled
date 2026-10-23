@@ -156,7 +156,7 @@ pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], 
         self.assertIn('Native MCC gameplay ready: no', result.stdout)
         self.assertIn('Native MCC gameplay test: available', result.stdout)
         self.assertFalse((self.root / 'saves').exists(), 'Read-only info created storage')
-        result = self.run_launcher('--launch-game', '--hidden', '--frames', '1')
+        result = self.run_launcher('--native-test', '--hidden', '--frames', '1')
         self.assertEqual(result.returncode, 0, result.stderr)
         args = self.call('runtime')['argv']
         self.assertIn('--multiplayer', args)
@@ -203,7 +203,7 @@ pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], 
         self.assertEqual(result.returncode, 0, result.stderr)
         args = self.call('runtime')['argv']
         self.assertIn('--menu-screen', args)
-        self.assertEqual('--skip-intro' in args, 'Title' in LAUNCHER.name)
+        self.assertNotIn('--skip-intro', args)
         self.assertEqual(args[args.index('--menu-maps') + 1], str(self.maps))
         self.assertNotIn('--multiplayer', args)
         self.assertNotIn('--mcc-preview', args)
@@ -239,10 +239,13 @@ pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], 
             self.assertFalse((self.root / 'runtime-call.json').exists())
         binary.with_name(binary.name + '.frontend-test.json').unlink()
         result = self.run_launcher('--launch-game', '--hidden', '--frames', '1')
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertFalse((self.root / 'runtime-call.json').exists())
+        result = self.run_launcher('--native-test', '--hidden', '--frames', '1')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('--multiplayer', self.call('runtime')['argv'])
 
-    def test_native_test_stale_hash_or_shader_retains_preview(self):
+    def test_stale_native_test_blocks_play_and_keeps_preview_explicit(self):
         self.ready_assets()
         self.runtime()
         binary = self.native_test_capability()
@@ -251,6 +254,9 @@ pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], 
         report['runtime']['sha256'] = '0' * 64
         sidecar.write_text(json.dumps(report))
         result = self.run_launcher('--launch-game', '--hidden', '--frames', '1')
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertFalse((self.root / 'runtime-call.json').exists())
+        result = self.run_launcher('--preview-mcc', '--hidden', '--frames', '1')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('--mcc-preview', self.call('runtime')['argv'])
         self.assertNotIn('--mp-source-object-world', self.call('runtime')['argv'])
@@ -283,7 +289,7 @@ pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], 
         foreign = self.root / 'foreign-save'
         foreign.mkdir()
         (self.root / 'saves').symlink_to(foreign, target_is_directory=True)
-        result = self.run_launcher('--launch-game')
+        result = self.run_launcher('--native-test')
         self.assertEqual(result.returncode, 1)
         self.assertIn('save directory must be owned', result.stderr)
         result = self.run_launcher('--preview-mcc', '--frames', '1')
@@ -373,7 +379,7 @@ pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], 
         self.assertIn('Native MCC gameplay ready: no', result.stdout)
         self.assertNotIn('Default gameplay XBE:', result.stdout)
 
-    def test_incomplete_readiness_flags_launch_only_test_build(self):
+    def test_incomplete_readiness_blocks_play_and_keeps_preview_explicit(self):
         self.ready_assets()
         self.runtime()
         for active, parity in ((True, False), (False, True), ('true', True)):
@@ -381,11 +387,15 @@ pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], 
             report.update(runtime_active=active, full_tu15_parity=parity)
             (self.cache / 'provenance.json').write_text(json.dumps(report))
             result = self.run_launcher('--launch-game', '--hidden', '--frames', '1')
+            self.assertEqual(result.returncode, 1, result.stderr)
+            self.assertFalse((self.root / 'runtime-call.json').exists())
+            result = self.run_launcher('--preview-mcc', '--hidden', '--frames', '1')
             self.assertEqual(result.returncode, 0, result.stderr)
             args = self.call('runtime')['argv']
             self.assertIn('--mcc-preview', args)
             self.assertNotIn('--menu-screen', args)
             self.assertNotIn('--multiplayer', args)
+            (self.root / 'runtime-call.json').unlink()
         self.assertIn('Native MCC gameplay ready: no', self.run_launcher('--launcher-info').stdout)
 
     def test_incomplete_selected_cache_reopens_mcc_setup(self):
@@ -421,7 +431,7 @@ pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], 
         self.assertEqual(record['cwd'], str(self.root))
         self.assertEqual(record['discord'], str(self.launcher))
         self.assertEqual(args[:2], ['--menu-screen', '9'])
-        self.assertEqual('--skip-intro' in args, 'Title' in LAUNCHER.name)
+        self.assertNotIn('--skip-intro', args)
         for option, value in (('--menu-maps', self.maps), ('--map', self.maps / 'lockout.map'), ('--shared-maps', self.maps)):
             self.assertEqual(args[args.index(option) + 1], str(value))
         for option in ('--gameplay-xbe', '--menu-vista-settings', '--menu-loading-assets',
@@ -452,14 +462,14 @@ pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], 
         self.assertEqual(result.returncode, 17, result.stderr)
         self.assertFalse((self.root / 'runtime-call.json').exists())
 
-    def test_precompiled_play_never_uses_the_automatic_build(self):
+    def test_precompiled_preview_never_uses_the_automatic_build(self):
         self.ready_assets()
         binary = self.runtime()
         source = binary.read_text()
         binary.write_text(source.replace('import json, os, pathlib, sys\n',
             'import json, os, pathlib, sys\nif "--help" in sys.argv: raise SystemExit(1)\n'))
         (self.root / 'PRECOMPILED_TEST_BUILD.json').write_text('{}')
-        result = self.run_launcher('--launch-game', '--frames', '1', '--hidden')
+        result = self.run_launcher('--preview-mcc', '--frames', '1', '--hidden')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('--mcc-preview', self.call('runtime')['argv'])
         self.assertNotIn('Updating the runtime', result.stdout)

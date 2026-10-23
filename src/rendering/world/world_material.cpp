@@ -8,6 +8,7 @@
 #include "halo2/object_lighting.hpp"
 #include "halo2/source_shadow.hpp"
 #include "halo2/source_hologram_material.hpp"
+#include "halo2/source_camouflage_material.hpp"
 #include "halo2/effect_light.hpp"
 #include "halo2/pstencil/material.hpp"
 #include "halo2/pstencil/projected_light_material.hpp"
@@ -67,7 +68,8 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
                                   const EffectLightUniforms *effect_light=nullptr,
                                   const EffectLightDefinition *projected_definition=nullptr,
                                   bool load_images=true,
-                                  bool hologram_copy=false) {
+                                  bool hologram_copy=false,
+                                  const Material *camouflage_original=nullptr) {
   const auto &p = m.passes.at(selected);
   // No unresolved uniform is silently substituted. Pixel brightness externs
   // 21/22 were resolved from the shader by Cache::load_material (1BBF0).
@@ -78,6 +80,9 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
         // The world overlay uses the default ObjectChangePrimary RGB.
         // 19BE0 encodes component/mode in destination, not byte +2.
         return !(r.destination==0x1c8a && r.source==3) &&
+            !(camouflage_original && ((r.source==37 && ((r.destination>>5)&31)<4) ||
+                (r.source==39 && ((r.destination>>5)&31)<4) ||
+                (r.source==41 && ((r.destination>>5)&31)==4))) &&
             !(lighting && lighting_source(r.source) && ((r.destination>>5)&31)==4);
       }) ||
       std::any_of(p.pixel_externs.begin(), p.pixel_externs.end(), [&](const auto &r) {
@@ -162,6 +167,13 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
     //19530's extern17 is target19. Its typed layer21 caller retains this
     // dependency separately and must bind an actual produced scene copy.
     if(hologram_copy && binding.external==17 && binding.stage==0)continue;
+    if(camouflage_original && binding.external==17 && binding.stage==2) {
+      pass->camouflage_scene_texture=true;continue;
+    }
+    if(camouflage_original && binding.external==26) {
+      const auto bitmap=source_shader_texture_reference(cache,camouflage_original->source_shader_datum,26);
+      *stages[binding.stage]=cache.load_bitmap(bitmap.bitmap,bitmap.frame);continue;
+    }
     if(effect_light && binding.external==9) {
       *stages[binding.stage]=cache.load_effect_light_attenuation_bitmap();
       continue;
@@ -246,7 +258,7 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
     else if (source == 0x306 && destination == 0x300) pass->forward_blend = 6;
     else if (source == 0x305 && destination == 0x304) pass->forward_blend = 7;
     else if (source == 0x304 && destination == 1) pass->forward_blend = 8;
-    else if (shadow_opacity && source == 0x306 && destination == 0) pass->forward_blend = 9;
+    else if ((shadow_opacity || camouflage_original) && source == 0x306 && destination == 0) pass->forward_blend = 9;
     // Sphere light passes use ONE + CONSTANT_COLOR with literal00FFFFFF:
     // RGB accumulates, while destination alpha contributes zero.
     else if(effect_light && source==1 && destination==0x8001 && blend_color==0x00ffffff)
@@ -367,29 +379,36 @@ void bind_object_camouflage(Material &material,float camouflage,std::uint16_t co
   if(material.forward_pass_index>=material.passes.size())
     throw FormatError("Camouflage selected pass outside material bank");
   auto &pass=material.passes[material.forward_pass_index];
+  bind_object_camouflage_constants(material.forward_program,material.program_constants,
+      material.forward_blend_color,pass,material.shader_switches,camouflage,control);
+  bind_object_camouflage_constants(pass.program,pass.constants,
+      material.forward_blend_color,pass,material.shader_switches,camouflage,control);
+}
+
+void bind_object_camouflage_constants(PixelProgram &program,ShaderConstants &constants,
+    std::uint32_t &blend_color,const MaterialPass &pass,
+    const std::array<std::int32_t,8> &switches,float camouflage,std::uint16_t control) {
+  if(!std::isfinite(camouflage) || camouflage<0 || camouflage>1)
+    throw FormatError("Camouflage material context outside finite unit range");
   std::vector<ShaderRemap> mappings;
   for(const auto &mapping:pass.pixel_externs)
     if(mapping.source==37 && (mapping.component&7)<4)mappings.push_back(mapping);
   std::array<float,256> scalars{};scalars[37]=camouflage;
-  // Keep the live bank for a pass with no animated overlays, and update the
-  // retained base from which17420 reconstructs the next animated bank.
-  remap_pixel_externs(material.forward_program,scalars,{},mappings,pass.fragments,material.shader_switches);
-  remap_pixel_externs(pass.program,scalars,{},mappings,pass.fragments,material.shader_switches);
+  remap_pixel_externs(program,scalars,{},mappings,pass.fragments,switches);
   mappings.clear();
   for(const auto &mapping:pass.vertex_externs)
     if(mapping.source==37 && ((mapping.destination>>5)&31)<4)mappings.push_back(mapping);
-  (void)remap_source_vertex_externs(material.program_constants,scalars,{},mappings);
-  (void)remap_source_vertex_externs(pass.constants,scalars,{},mappings);
+  (void)remap_source_vertex_externs(constants,scalars,{},mappings);
   mappings.clear();
   for(const auto &mapping:pass.state_externs)
     if((mapping.destination>>8)!=1 && mapping.source==40)mappings.push_back(mapping);
   if(!mappings.empty()) {
     std::array<std::uint32_t,256> states{};
-    states[75]=material.forward_blend_color;
+    states[75]=blend_color;
     std::array<ShaderVector,41> colors{};colors[40]={camouflage,camouflage,camouflage,0};
     for(const auto &write:remap_source_shader_states(states,{},colors,mappings,control)) {
       if(write.index!=75)throw FormatError("Camouflage color requires its separate raster state consumer");
-      material.forward_blend_color=write.value;
+      blend_color=write.value;
     }
   }
 }
@@ -570,9 +589,18 @@ bool prepare_shield_overlay_material(const Cache &cache,Material &material) {
       pass.pixel_externs.size()==2 &&
       pass.pixel_externs[0].source==3 && pass.pixel_externs[0].component==4 && pass.pixel_externs[0].destination==0x00c0 &&
       pass.pixel_externs[1].source==3 && pass.pixel_externs[1].component==4 && pass.pixel_externs[1].destination==0x04c0;
-  if((!plain && !change_color) || !pass.vertex_shader.ends_with("\\transparent_generic_offset") ||
+  // The independent overshield pass uses the same local-coordinate vertex
+  // family, but retains scalar37 in pixel alpha. Its vitality animation reads
+  // the authored overshield object function; camouflage remains a separate
+  // per-owner input, initially zero until the draw context is bound.
+  const bool overshield=pass.name=="shaders\\shader_passes\\plasma\\overshield" &&
+      pass.pixel_externs.size()==1 && pass.pixel_externs[0].source==37 &&
+      pass.pixel_externs[0].component==3 && pass.pixel_externs[0].destination==0x0180;
+  if((!plain && !change_color && !overshield) || !pass.vertex_shader.ends_with("\\transparent_generic_offset") ||
      !pass.vertex_externs.empty())return false;
-  auto bound=bind_pass(cache,material,selected.front(),1,false,nullptr,true);
+  const float camouflage=0.f;
+  auto bound=bind_pass(cache,material,selected.front(),1,false,nullptr,true,nullptr,
+      overshield?&camouflage:nullptr);
   if(!bound)return false;
   material=std::move(*bound);return true;
 }
@@ -810,5 +838,47 @@ bool prepare_water_material(const Cache &cache,Material &material,bool infinite)
   for(const auto &gap:material.rendering_gaps)
     if(gap.starts_with("bitmap "))result->rendering_gaps.push_back(gap);
   material=std::move(*result);return true;
+}
+
+std::uint8_t source_camouflage_fade_byte(float value) {
+  if(!std::isfinite(value) || value<0.f || value>1.f)
+    throw FormatError("Camouflage collector primary outside finite unit range");
+  return std::uint8_t(std::min(int(value*256.f),255));
+}
+unsigned source_camouflage_implementation(std::uint32_t layers,std::uint8_t fade) {
+  return (layers&0x8000u)?2u:fade==255?1u:0u;
+}
+Material prepare_camouflage_material(const Cache &cache,const Material &original,
+    unsigned layer,unsigned implementation,float primary) {
+  if((layer!=1 && layer!=18 && layer!=19) || implementation>(layer==18?3u:0u))
+    throw FormatError("Camouflage pass outside authored layer/implementation bank");
+  auto authored=cache.load_material(source_camouflage_shader(cache));
+  const auto choices=layer_passes(authored,layer,implementation);
+  if(choices.size()!=1)throw FormatError("Camouflage global shader has no unique authored pass");
+  const auto &p=authored.passes[choices[0]];
+  const auto expected=layer==1?"shaders\\shader_passes\\texture_mapping\\texaccum_disabled":
+      layer==18?"shaders\\shader_passes\\active_camo\\active_camo_opaque":
+      "shaders\\shader_passes\\active_camo\\active_camo_opaque_stencil_modulate";
+  if(p.name!=expected)throw FormatError("Camouflage global pass family changed");
+  auto bound=bind_pass(cache,authored,choices[0],1,false,nullptr,true,nullptr,&primary,
+      nullptr,nullptr,true,false,&original);
+  if(!bound)throw FormatError("Camouflage authored pass requires unresolved inputs");
+  bound->camouflage_group_pass=true;
+  return std::move(*bound);
+}
+void prepare_camouflage_materials(const Cache &cache,Material &original) {
+  if(original.source_shader_datum==0xffffffffu || original.lods.empty())return;
+  //133AB0/133F70 place the global shader in the draw-unit override table.
+  //41040 then queues THAT shader;4D0B0 publishes it at485B50 (+8 of the
+  //binder bank). A biped clone therefore resolves extern26 and its initial
+  //LOD mask through the global shader, not through the replaced body part.
+  const auto selected=cache.load_material(source_camouflage_shader(cache));
+  for(unsigned implementation=0;implementation<3;++implementation)
+    original.world_overlays_after.push_back(std::make_shared<Material>(
+        prepare_camouflage_material(cache,selected,18,implementation)));
+  original.world_overlays_after.push_back(std::make_shared<Material>(
+      prepare_camouflage_material(cache,selected,19,0)));
+  original.world_overlays_after.push_back(std::make_shared<Material>(
+      prepare_camouflage_material(cache,selected,1,0)));
 }
 }

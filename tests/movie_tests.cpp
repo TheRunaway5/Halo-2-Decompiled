@@ -88,8 +88,7 @@ void mcc_movie_routing() {
     write(cache / "halo2/prebuild/video" / (role + ".bk2"), "unassigned collection movie fixture");
   }
   unavailable();
-  // A complete, self-consistent historical supplied-bank receipt remains a
-  // different source owner; it cannot grant an MCC frontend assignment.
+  // The imported user-supplied bank explicitly assigns intro and credits.
   Json source{{"schema", "halo2-upscaled-movies-v1"}, {"description", "fixture"}, {"files", Json::object()}};
   Json roles = Json::object();
   for (const std::string role : {"intro", "credits"}) {
@@ -113,7 +112,14 @@ void mcc_movie_routing() {
        {"path", "presentation/movies/manifest.json"}, {"sha256", sha(manifest.dump())}, {"roles", roles}}}};
   write(bank / "manifest.json", manifest.dump());
   write(cache / "provenance.json", report.dump());
-  unavailable();
+  const auto assigned = tree();
+  for (const std::string role : {"intro", "credits"})
+    check(frontend_movie_path(maps, bundle, role) == bank / (role + "_60.mp4"),
+          "Play skipped the authenticated supplied intro/credits bank");
+  check(frontend_movie_path(maps, bundle, "attract").empty(), "supplied bank assigned an attract reel");
+  check(tree() == assigned, "movie selection rewrote the supplied bank");
+  write(bank / "intro_60.mp4", "modified intro fixture");
+  check(frontend_movie_path(maps, bundle, "intro").empty(), "modified movie payload was accepted");
   write(cache / "provenance.json", "malformed foreign provenance");
   write(bank / "manifest.json", "malformed retained movie manifest");
   write(bundle / "manifest.json", "malformed supplied bundle");
@@ -136,7 +142,7 @@ void mcc_movie_routing() {
   unavailable();
   for (const std::string name : {"../intro", "Intro", "intro_60.mp4", ""})
     rejects([&] { frontend_movie_path(maps, bundle, name); });
-  std::cout << "PASS MCC frontend movie policy: intro/credits/attract unavailable; retained supplied/foreign banks unchanged\n";
+  std::cout << "PASS supplied intro/credits playback; missing, modified and foreign banks remain unavailable\n";
 }
 void routing_and_canvas() {
   const auto directory = std::filesystem::temp_directory_path() /

@@ -81,7 +81,6 @@ struct NativeWeaponProjectileScene::Impl {
         const auto metadata=cache.load_source_tag_metadata(definition);
         const Bytes object(metadata.bytes_at(metadata.source_address(),0x9c));
         if(metadata.group()!="proj" || object.u16(0)!=5)throw FormatError("Projectile glow lost its actual definition type");
-        if(object.u32(0x38)!=0xffffffffu)return; // Posed model markers retain their own owner.
         std::vector<LightAttachment> attachments;
         const auto descriptor=read_tag_block_descriptor(object,0x94);
         const auto extent=descriptor.extent(0x18,4095);
@@ -89,9 +88,10 @@ struct NativeWeaponProjectileScene::Impl {
         for(unsigned n=0;n<unsigned(descriptor.count);++n) {
             const auto at=n*0x18;
             if(rows.u32(at)!=0x4d475332u || rows.u32(at+4)==0xffffffffu)continue;
-            // Whole41980/B8D30/BE6D0 on these actual no-model/free tags:
-            // marker0 falls back to the completed root; no opacity function,
-            // object fade or color selector means literal one/white.
+            // TU1.5 41970/BAD60/C0700 collects modelled and model-less
+            // attachments alike. Marker0 falls back to the completed first
+            // WORLD node; no opacity function, fade or color selector means
+            // literal one/white. Nontrivial model/marker owners still reject.
             if(rows.u32(at+8) || rows.u32(at+0x10) || rows.u16(at+0xc) || (object.u16(2)&0x200u))
                 throw FormatError("Projectile glow requires its original marker/function/fade/color producer");
             const auto tag=rows.u32(at+4);
@@ -253,12 +253,10 @@ struct NativeWeaponProjectileScene::Impl {
         return out;
     }
     const std::vector<SourceLightVolumeDraw>& lights(unsigned view,Vec3 forward,const SourceViewProjectionBank &camera,
-        RenderViewport viewport,float distance) {
+        RenderViewport viewport,float distance,std::span<const SourceProjectileGlowOwner> attached) {
         auto &out=light_draws.at(view);out.clear();
-        for(auto handle:order) {
-            const auto &p=owners.at(handle).projectile;
-            const auto found=light_banks.find(p.definition);if(found==light_banks.end())continue;
-            const auto root=source_object_transform(p.position,p.forward,p.up,1.f,false);
+        const auto append=[&](std::uint32_t handle,std::uint32_t definition,const Transform &root) {
+            const auto found=light_banks.find(definition);if(found==light_banks.end())return;
             for(const auto &attachment:found->second) {
                 SourceLightVolumeDraw draw;draw.object=handle;draw.definition=attachment.definition;
                 for(const auto &v:attachment.volume->volumes)
@@ -272,6 +270,20 @@ struct NativeWeaponProjectileScene::Impl {
                 draw.camera=camera;draw.viewport=viewport;draw.actual_w_distance=distance;
                 out.push_back(std::move(draw));
             }
+        };
+        std::set<std::uint32_t> present;std::set<std::uint16_t> slots;
+        for(auto handle:order) {
+            present.insert(handle);slots.insert(std::uint16_t(handle));const auto &p=owners.at(handle).projectile;
+            auto root=source_object_transform(p.position,p.forward,p.up,1.f,false);
+            if(const auto model=banks.find(p.definition);model!=banks.end())
+                root=pose_model_nodes_world(model->second.geometry.model(),root).at(0);
+            append(handle,p.definition,root);
+        }
+        for(const auto &p:attached) {
+            if(p.object==0xffffffffu || p.definition==0xffffffffu || (p.object&65535u)>=capacity ||
+                !present.insert(p.object).second || !slots.insert(std::uint16_t(p.object)).second)
+                throw FormatError("Attached projectile glow lost its unique completed source owner");
+            append(p.object,p.definition,p.first_world_node);
         }
         return out;
     }
@@ -321,5 +333,6 @@ void NativeWeaponProjectileScene::reset_lifetimes() noexcept {
 void NativeWeaponProjectileScene::synchronize(std::span<const NativeWeaponProjectile> p){Impl::Mutation mutation(*impl_);impl_->synchronize(p);}
 const std::vector<NativeWeaponProjectileDraw>& NativeWeaponProjectileScene::draw_view(std::int32_t frame,const SourceObjectViewLod &v){Impl::Mutation mutation(*impl_);return impl_->draw(frame,v);}
 const std::vector<SourceLightVolumeDraw>& NativeWeaponProjectileScene::light_volume_view(unsigned view,Vec3 forward,
-    const SourceViewProjectionBank &camera,RenderViewport viewport,float distance){Impl::Mutation mutation(*impl_);return impl_->lights(view,forward,camera,viewport,distance);}
+    const SourceViewProjectionBank &camera,RenderViewport viewport,float distance,
+    std::span<const SourceProjectileGlowOwner> attached){Impl::Mutation mutation(*impl_);return impl_->lights(view,forward,camera,viewport,distance,attached);}
 }

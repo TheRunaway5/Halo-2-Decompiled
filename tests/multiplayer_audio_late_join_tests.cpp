@@ -38,7 +38,7 @@ struct Host {
       const auto firing_sound=world.content.weapons.at(world.rules.weapon).sound;
       check(firing_sound!=null_datum,"Authored starting SMG sound is unavailable");
       match.configure_replicated_first_person(cache.load_first_person_binding(world.rules.weapon,2));
-      LanHost host(match,0,multiplayer_fingerprint(server.map,cache.shared_directory(),0,world.rules.weapon,server.gameplay_xbe));
+      LanHost host(match,0,multiplayer_fingerprint(server.map,cache.shared_directory(),0,world.network_starting_weapon_identity(),server.gameplay_xbe));
       std::uint32_t effect_primary=0x12345678u,effect_auxiliary=0x12345678u;
       NativeMuzzleEffects effects(cache,SourceEffectRandom{effect_primary,effect_auxiliary});
       std::uint64_t effect_serial{};

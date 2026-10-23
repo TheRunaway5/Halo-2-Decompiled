@@ -1,146 +1,142 @@
-# Weapon and vehicle sound audit
+# Weapon and vehicle sound checkpoint — 2026-10-22
 
-The request covers every weapon and vehicle sound against original Xbox
-TU1.5. Full audio parity is **not certified**. The reported missing shots and
-reloads on Coagulation have a measured source-request delivery correction.
-Repeated final Classic-mode acceptance and launcher delivery are pending.
-The [100-root matrix](../analysis/weapon-vehicle-audio-20261022/completion-matrix.json)
-keeps every weapon and vehicle in scope without certifying untested behavior.
+The missing local source-owned shot/reload route on Coagulation is corrected
+and delivered through both launchers. Full weapon/vehicle TU1.5 audio parity
+is **not certified**. The [100-root matrix](../analysis/weapon-vehicle-audio-20261022/completion-matrix.json)
+keeps every original weapon and vehicle in scope; untested behavior remains open.
+The [accepted checkpoint](../analysis/weapon-vehicle-audio-20261022/accepted-checkpoint.json)
+links the bounded evidence.
 
-## Reference inventory
+## Correction and ownership
 
-The pinned 38-map Xbox scope contains 63 weapon paths and 37 vehicle paths
-(1,664 map-specific definitions). Traversing declared audio references in
-`weap`, `vehi`, `proj`, `hlmt`, `jmad`, `effe`, `lsnd`, `jpt!` and `foot`
-finds 422 distinct sound paths and 68 looping-sound paths.
+Source-owned matches use the original first-person clock and skip the legacy
+native clock callback. Their actual original sound requests had no native
+consumer. The new observer copies the original 160-byte `18CEFC -> 223B20`
+caller request, executes the unchanged original admission call, and publishes
+the caller intent afterward. Actual local weapon ownership selects the view;
+the native stereo adapter consumes the caller's sound, control and gain.
+No sound is inferred from ammunition, shot counters, animation names or render
+frames, and no authority clock is advanced again.
 
-[The inventory](../analysis/weapon-vehicle-audio-20261022/authored-sound-presence-final.json)
-records each owner, its sounds, loops and compared maps. It uses Assembly
-commit `fd14ef3c46135e9422966c6a64cd926fb0bd23fb`. Animation event indices and
-prefetch resource indices are not mistaken for full-salt tag references.
-Implicit global/material/script dependencies remain outside this traversal.
-The Xbox `vehi` override has the same 27 typed reference offsets/strides as
-the generic schema. Its `jmad` override adds a compiled resource-directory
-edge; all 14,338 such rows across the 38 maps refer to their own animation
-graph, adding no sound dependency. The semantic sound-reference offsets agree.
+The original ABI/result, including `NONE` at the current cold-driver gate,
+remains unchanged. No source readiness, voice identity, capability or DSP result
+is supplied. Controller/loop requests and forced selection keep their explicit
+owner boundaries. Full original admission/arbitration and spatial/DSP output
+remain separate work.
 
-Eleven reference sound/loop paths are absent from the corresponding MCC tag
-namespaces. These include the Phantom turret flyby, Wraith mortar charge,
-chain-gun fire, Hunter cannon, Sentinel Enforcer and sniper zoom paths listed
-in the inventory. A missing name does not establish a missing audible asset:
-its actual MCC reference and payload correspondence still need qualification.
-The [shared-bank check](../analysis/weapon-vehicle-audio-20261022/shared-sound-namespace-check.json)
-finds eight of these eleven paths in both MCC shared banks. That is asset
-namespace evidence; each actual map reference still needs its owning binding.
-Only the two Sentinel Enforcer paths and Phantom turret flyby lack exact
-matches in those shared banks as well. The final Xbox `highplains2.map` has no same-named MCC file; its namespace was
-left uncompared. No alias or replacement sound was invented.
+The native source-impulse adapter also honors MCC `snd!` bit11, explicitly
+named `Play Only In Remastered Mode` in the pinned Assembly schema. It rejects
+these additional layers before decoding, consuming variation or creating an
+SDL voice. The mode regression fails before the correction and passes after;
+caller bytes and RNG remain unchanged on rejection.
 
-The [declared-field follow-up](../analysis/weapon-vehicle-audio-20261022/qualified-sound-bindings-merged.json)
-checks 419 references to those eleven names in 36 map contexts with no schema
-errors. It uses the pinned `Halo2MCC` plugins and their explicitly declared
-`Halo2` fallback, and the native loader's exact full-datum/group/path shared
-merge policy. 253 stored fields preserve the name; 166 differ. For example,
-Coagulation's shared Phantom projectile selects
-`sound_remastered\vehicles\phantom\phantom_turr_flyby`; the Sentinel
-projectile selects a remastered laser pass-by. Hunter charge, battle-rifle zoom
-and chain-gun definitions also select differently named sounds. One Sentinel
-material row has a null sound reference. These are stored-cache field findings
-before runtime projection, with block rows paired by ordinal only. Material
-identity, payload correspondence and actual runtime use still need qualification;
-they are not proof of an audible missing sound or an authorized substitute.
+## Actual delivery evidence
 
-The independent [resource-range audit](../analysis/weapon-vehicle-audio-20261022/original-resource-audit/report.json)
-checks all 347,922 nonempty Xbox chunk descriptors across those 38 maps.
-Every exact and sector-rounded file range exists, including 73,842 distinct
-ranges. This establishes reference-resource availability, not decoding,
-event selection, playback or waveform equality.
+Ten release/launcher/audio CTests pass with no skips. This includes 48 MCC
+codec/rate/PCM controls, remastered-only rejection and the authored-audio suite.
+The promotion policy also passes 13 synthetic policy tests; those establish
+selection/cleanup behavior, not gameplay parity.
 
-The [weapon/vehicle payload check](../analysis/weapon-vehicle-audio-20261022/weapon-vehicle-resource-decode/report.json)
-then exports the declared dependency closure independently from the native
-loader. All 38 maps, 63 weapon paths, 37 vehicle paths and 422 sound paths are
-covered. The native loader matches **39,884** literal encoded cases
-(2,022,771,816 compared bytes), and all **1,289** distinct payload/format
-combinations decode to usable PC PCM: zero failures and zero silent resources,
-106,396,121 stereo frames. Its large fixture is removed. This is offline
-reference loading/PC decoding; it does not certify MCC payload correspondence,
-original Xbox decoding or live sound selection. The two historical whole-map
-CTest fixtures are absent and skipped; those skips supply no acceptance.
+Actual SDL input and device submissions pass three stationary fire/reload
+cycles in each of four cases:
 
-## Coagulation regression
+| Map | Local players | Source shot cues / SDL submissions | Reload submissions |
+|---|---:|---:|---:|
+| Coagulation | 1 | 24 / 24 | 3 |
+| Coagulation | 2 | 24 / 24 | 3 |
+| Coagulation | 4 | 24 / 24 | 3 |
+| Lockout | 1 | 24 / 24 | 3 |
 
-The launcher-selected runtime was SHA-256
-`7db35ababe9ba5e2b351ae5a9ccb96fb5800f66d9e2b3bc14b1dbc37470e7c79`.
-The finite MCC Coagulation replay fired and reloaded through 260 ticks, ending
-with 60 loaded rounds and 118 reserve rounds. Its first-person native audio
-consumer received no events and neither observed impulse route received calls.
-The [completed baseline](../analysis/weapon-vehicle-audio-20261022/coagulation-source-submits.json)
-retains the command, binary/map hashes and actual observations. Its separate
-startup-entry counter does not observe the map-support module's submit owner.
-A later two-player trace with that additional breakpoint timed out and is not
-positive runtime evidence.
+The [four-case report](../analysis/weapon-vehicle-audio-20261022/session-v4/delivery/weapon-audio/report.json)
+compares firing against actual authority effect requests and reloads against
+authored clock references. It requires real voice handles/resources and no
+duplicate firing voice. Walking acceptance is explicitly separate. The first
+combined replay's zero-footstep failure remains retained; the unchanged default
+runtime test still injects walking and requires footsteps.
 
-Source-owned matches deliberately skip the legacy native animation clock and
-its first-person callback. The candidate connects their actual original
-`18CEFC -> 223B20` caller requests to native stereo playback. It copies the
-160-byte caller backing before admission and publishes that intent only after
-the unchanged original call returns. It preserves the original ABI/result,
-including `NONE`; no readiness bit or source voice is supplied. Actual local
-weapon ownership, centered audibility, caller control and gain select this
-bounded native route. It does not infer events from ammo, shot counters,
-render frames or animation names, or advance an authority clock again.
+The [direct installed-executable replay](../analysis/weapon-vehicle-audio-20261022/coagulation-installed-final.json)
+repeats the original 260-tick Coagulation script through the shipped executable.
+Its two Classic fire requests and two reload requests all reach actual SDL
+submission; two remastered-only requests reach none. Classification uses actual
+resident class4/class6 metadata. A diagnostic signed-register decoding error was
+corrected by normalizing the captured unsigned 32-bit ABI values, with the raw
+report retained and the postprocessing recorded; no runtime rerun or altered
+request is claimed. Physical speakers remain unmeasured.
 
-Original controller/loop and forced-selection requests retain explicit owner
-boundaries. ONLINE continuation, remote delivery, voice interruption/stop
-ownership and full original admission/arbitration/DSP remain separate work.
+## Resource and namespace coverage
 
-The regression uses actual SDL input and submissions, source effect-request
-counts and authored reload references. It repeats three fire/reload cycles on
-Coagulation with one, two and four local players and on Lockout with one player.
-The raw-request component additionally compares real mixed PCM with the
-existing semantic native request and checks that caller bytes remain unchanged.
-Results belong in
-`analysis/weapon-vehicle-audio-20261022/session-v4`.
-The earlier v2 build failed and does not provide runtime acceptance. The v3
-cohort has a coherent source manifest and passed syntax preflight for all six
-affected implementation/test units before its official CMake build.
+The pinned 38-map Xbox inventory contains 63 weapon paths and 37 vehicle paths
+(1,664 map-specific definitions), with 422 sound paths and 68 looping-sound paths
+in the explicit `weap`, `vehi`, `proj`, `hlmt`, `jmad`, `effe`, `lsnd`, `jpt!`
+and `foot` reference closure. Implicit global/material/script dependencies remain
+outside this traversal. Assembly commit is
+`fd14ef3c46135e9422966c6a64cd926fb0bd23fb`.
 
-The first actual v3 Coagulation run delivers all **8/8** authority SMG shot
-cues and **1** authored reload, with 8 ambient packets. Its combined assertion
-fails on zero footsteps, which is retained as a separate result. The explicit
-`--weapons` mode now repeats stationary fire/reload input; the unchanged default
-continues to inject walking and require footstep delivery. No footstep fix or
-acceptance is inferred from the weapon test.
+The Xbox `vehi` override agrees on all 27 typed reference offsets/strides.
+Its `jmad` override adds a compiled resource-directory edge: all 14,338 such
+rows across the scope refer to their own graph, adding no sound dependency.
 
-The new source impulse route also rejects MCC `snd!` bit11, explicitly named
-`Play Only In Remastered Mode` in the pinned schema, before decoding or RNG.
-The negative test first attempts to load the absent remastered bank and fails;
-with the guard, the 48 codec/rate/PCM controls, mode rejection and authored-audio
-component tests pass. Extra remastered effect layers do not become Classic
-weapon sounds. The source driver's original cold admission result remains
-unchanged. Its loop/controller, interruption and DSP owners remain open.
+| Check | Coverage | Result |
+|---|---|---|
+| Xbox resource ranges | 347,922 nonempty descriptors / 73,842 distinct ranges | All raw and sector-rounded ranges present |
+| Xbox literal loading and PC decoding | 38 maps / 39,884 encoded cases / 1,289 distinct payload-format combinations | Exact bytes; zero decode failures or silent resources |
+| MCC Classic literal loading and PC decoding | 37 paired maps / 41,251 encoded cases / 1,351 distinct payload-format combinations | Exact bytes; zero decode failures or silent resources |
 
-The v3 owner was removed by the cleanup supervisor after a turn interruption.
-Its final build-only journal entry is stale, with no positive result; the
-interruption receipt records that cleanup. V4 builds the engine and audio tests
-together and requires all four actual repeated weapon cases before promotion.
+The [Xbox check](../analysis/weapon-vehicle-audio-20261022/weapon-vehicle-resource-decode-final/report.json)
+compares 2,022,771,816 encoded bytes and decodes 106,396,121 stereo frames.
+The [MCC check](../analysis/weapon-vehicle-audio-20261022/mcc-resource-decode-admitted/report.json)
+compares 1,035,951,082 encoded bytes and decodes 112,365,022 stereo frames.
+Expectations come independently from declared metadata and actual resource
+files. Both large fixtures are removed. PC decoding does not establish Xbox
+decoder output or equality between Xbox and MCC waveforms.
 
-## Completion gates
+MCC's actual directory globals datum selects the sound-class owner. Shared
+metadata is admitted only when the level has nonresident directory entries,
+matching the native loader. The initial wider audit incorrectly merged unused
+shared entries into self-contained campaign maps; its diagnostic remains
+retained. The admitted-namespace rerun passes all 37 paired maps. The two older
+whole-map CTest fixture files are absent and skipped; those skips are not used
+as acceptance.
 
-- [x] Inventory the 63 weapon and 37 vehicle reference paths.
-- [x] Verify all reference sound chunk ranges are present.
-- [x] Verify native loading and PC decoding for the explicit audio closure.
-- [x] Reproduce missing local Coagulation shot/reload delivery.
-- [ ] Pass the candidate's component and repeated actual runtime regressions.
-- [ ] Verify delivery through the selected launcher runtime.
-- [ ] Qualify the map/shared bindings, three remaining exact-path differences
-  and final-DLC map pairing.
-- [ ] Exercise every applicable fire, reload, ready, dry-fire, charge, vent,
-  engine, movement, boost, horn, seat, damage, destruction and loop transition.
-- [ ] Verify interruption, release, respawn, split-screen and remote ownership.
-- [ ] Compare timing, variation, gain, pitch, placement, routing and actual
-  output against substantiated TU1.5 audio references.
+Eleven original exact sound/loop names differ in per-map MCC namespaces. Eight
+exist in shared resource banks; the two Sentinel Enforcer names and Phantom
+flyby lack exact matches there too. The [declared-field follow-up](../analysis/weapon-vehicle-audio-20261022/qualified-sound-bindings-admitted.json)
+checks 419 references with no schema errors: 250 preserve the name and 169
+differ or lack a paired owner/field. For example, Coagulation's shared Phantom
+projectile selects `sound_remastered\vehicles\phantom\phantom_turr_flyby`.
+Material rows are paired by ordinal only; material identity and final runtime
+projection still need qualification. No substitute or audible equivalence is
+inferred. Xbox `highplains2.map` has no same-named MCC file and remains unpaired.
 
-Generated builds, source copies, PCM, frames and debugger files belong to
-`tools/run_test.py` scratch. Keep bounded reports and hashes; completed scratch
-must be checked for removal before accepting this checkpoint.
+## Delivered build and storage
+
+Both launchers select
+`bin/engine-builds/2bba11f861bf41328cde22faaf8a6ff1/halo2_native`.
+Runtime SHA-256:
+`4173a97cf66badbc27f0e464eb251e01cac9e74196f78041a520a0a92ec6a356`.
+All 12 selected-map startup cases pass four actual submitted frames, including
+Coagulation with two/four players. The promotion requires all four repeated
+audio cases before changing the selection. The prior runtime is preserved.
+
+The [source check](../analysis/weapon-vehicle-audio-20261022/delivered-audio-source-check.json)
+binds the delivered audio files/fragments to the tested cohort. Later unrelated
+shield/model/rendering edits remain in the working tree. Historical failed
+builds and the interrupted v3 journal supply no additional acceptance.
+Temporary builds, source copies, fixtures, PCM and frames belong to the owned
+scratch lifecycle. Final cleanup and retained runtime size are recorded in
+`analysis/weapon-vehicle-audio-20261022/final-cleanup.json`. The 2.5 GiB private
+build/source tree is removed; the installed runtime/resources retain
+300,771,138 bytes (about 287 MiB). No large test captures or fixtures remain.
+
+## Remaining acceptance
+
+- [x] Inventory all 63 weapon and 37 vehicle reference paths.
+- [x] Verify reference ranges and explicit-closure native loading/PC decoding.
+- [x] Verify admitted MCC Classic resource loading/PC decoding.
+- [x] Reproduce and correct local Coagulation shot/reload delivery.
+- [x] Pass repeated one/two/four-player source-owned weapon replays.
+- [x] Verify the selected installed executable and preserve prior runtimes.
+- [ ] Exercise every applicable weapon action and vehicle engine/movement/boost/horn/seat/damage/destruction transition.
+- [ ] Verify loop start/update/stop, interruption, respawn and remote/ONLINE ownership.
+- [ ] Qualify changed sound bindings, original/MCC payload correspondence and final-DLC map pairing.
+- [ ] Match TU1.5 timing, variation, gain, pitch, placement, arbitration and actual output, including spatial/DSP behavior.

@@ -1,6 +1,7 @@
 #include "halo2/multiplayer_world.hpp"
 #include "halo2/hud.hpp"
 #include "halo2/native_unit_interaction.hpp"
+#include "halo2/native_vehicle_camera.hpp"
 #include "halo2/multiplayer_object_runtime.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/source_physics_entry_observation.hpp"
@@ -14,6 +15,7 @@
 #include "halo2/desktop_session.hpp"
 #include "halo2/source_light_volume_draw.hpp"
 #include "halo2/particle_draw.hpp"
+#include "halo2/multiplayer_audio.hpp"
 #endif
 #include <algorithm>
 #include <bit>
@@ -61,7 +63,8 @@ Entrance entrance(const Cache &cache,const LevelContent &content,std::string_vie
     const auto &definition=assets.units.at(content.objects.at(target).definition);
     const auto nodes=pose_model_nodes_world(definition.hierarchy,root);
     for(unsigned index=0;index<definition.seats.size();++index) {
-      const auto &seat=definition.seats[index];if(child?index!=0:!(seat.flags&4u))continue;
+      const bool fixed=name=="h_turret_ap" || name=="c_turret_ap";
+      const auto &seat=definition.seats[index];if((child || fixed)?index!=0:!(seat.flags&4u))continue;
       const auto marker=definition.markers.find(seat.entry_marker);if(marker==definition.markers.end())continue;
       const auto entrances=pose_model_markers(marker->second,nodes,definition.permutations,{},1);if(entrances.empty())continue;
       Spawn spawn;spawn.position=entrances.front().world.position+entrances.front().world.basis[0]*(seat.radius*.5f);
@@ -212,9 +215,10 @@ int main(int argc,char **argv) {VehicleHudReport report;try {
   report.data["map"]=argv[1];
   const auto selected_case=std::getenv("HALO2_TEST_VEHICLE_WEAPON_HUD_CASE");
   unsigned worlds{},seated{},weapon_huds{};
-  for(const auto &[name,child,parameter,choice]:std::array<std::tuple<std::string_view,bool,unsigned,int>,7>{{
+  for(const auto &[name,child,parameter,choice]:std::array<std::tuple<std::string_view,bool,unsigned,int>,9>{{
       {"ghost",false,76,3},{"banshee",false,76,1},{"scorpion",false,78,1},
-      {"wraith",false,78,2},{"warthog",true,76,1},{"warthog",true,76,2},{"spectre",true,76,5}}}) {
+      {"wraith",false,78,2},{"warthog",true,76,1},{"warthog",true,76,2},{"spectre",true,76,5},
+      {"h_turret_ap",false,81,1},{"c_turret_ap",false,81,4}}}) {
     const auto case_name=name=="warthog"?std::string(choice==1?"warthog-mg":"warthog-gauss"):std::string(name);
     if(selected_case && case_name!=selected_case)continue;
 #ifdef HALO2_VEHICLE_HUD_GPU
@@ -308,7 +312,8 @@ int main(int argc,char **argv) {VehicleHudReport report;try {
       check(!vertices.empty(),"Live source vehicle and seat HUDs submitted no authored widgets");
       row["authored_HUD_vertices"]=vertices.size();row["actual_HUD_source_fields_match"]=true;
 #ifdef HALO2_VEHICLE_HUD_GPU
-      const bool ghost_fire=std::getenv("HALO2_TEST_GHOST_PROJECTILE_RENDER")!=nullptr;
+      const bool turret_audio=std::getenv("HALO2_TEST_TURRET_AUDIO")!=nullptr;
+      const bool ghost_fire=std::getenv("HALO2_TEST_GHOST_PROJECTILE_RENDER")!=nullptr || turret_audio;
       const bool rocket_explosion=std::getenv("HALO2_TEST_ROCKET_EXPLOSION_RENDER")!=nullptr;
       unsigned explosion_draws{};std::map<std::uint32_t,unsigned> particle_definitions;
       if(rocket_explosion) {
@@ -322,11 +327,69 @@ int main(int argc,char **argv) {VehicleHudReport report;try {
           }
         };
       }
-      options.frames=ghost_fire?90u:rocket_explosion?24u:4u;options.mute=true;options.screenshot=argv[4];
+      options.frames=ghost_fire?90u:rocket_explosion?24u:4u;options.mute=!turret_audio;options.screenshot=argv[4];
       unsigned glow_draws{},glow_vertices{},fire_inputs{};
       std::set<std::uint32_t> projectile_owners;
+      unsigned constructed_shots{},sound_submissions{};
+      std::vector<bool> pending_projectiles;
+      std::unique_ptr<SourcePhysicsEntryObserverBinding> shot_observer;
+      struct AudioSubmitTraceScope {
+        PhysicsLiveWorldTu15 *world{};
+        ~AudioSubmitTraceScope(){if(world)world->observe_sound_submissions({});}
+      } audio_trace;
+      if(turret_audio) {
+        auto &result=row["turret_audio"];
+        result={{"passed",false},{"source_weapon",actual.weapon.datum},
+            {"submissions",nlohmann::json::array()},{"other_submissions",nlohmann::json::array()},
+            {"original_sound_requests",nlohmann::json::array()},
+            {"physical_speakers_verified",false}};
+        audio_trace.world=&world.source_objects->tu15_world();
+        audio_trace.world->observe_sound_submissions([&](bool before,std::uint32_t sound,
+            std::uint32_t request,const auto &,const auto &memory,auto,auto) {
+          auto &rows=result["original_sound_requests"];if(!before || rows.size()>=64)return;
+          const Bytes data(memory.view(request,160));
+          rows.push_back({{"sound",sound},{"flags",data.u32(0)},
+              {"location",unsigned(data.u32(0xc)>>24)&15u},{"owner",data.u32(0x50)}});
+        });
+        const auto &memory=world.source_objects->memory();
+        const auto word=[&](std::uint32_t address){return Bytes(memory.view(address,4)).u32(0);};
+        std::set<std::uint32_t> projectiles;
+        const auto &weapon=content.weapons.at(actual.definition);
+        if(weapon.projectile!=null_datum)projectiles.insert(weapon.projectile);
+        for(const auto &barrel:weapon.barrel_views)if(barrel && barrel->projectile!=null_datum)
+          projectiles.insert(barrel->projectile);
+        shot_observer=std::make_unique<SourcePhysicsEntryObserverBinding>(memory,
+            [&,word,projectiles](bool before,std::uint32_t entry,const auto &abi) {
+          if(entry!=0xb9b70u)return;
+          if(before)pending_projectiles.push_back(projectiles.contains(word(word(abi.gp[4]+4u))));
+          else {
+            check(!pending_projectiles.empty(),"Unpaired turret audio shot observation");
+            if(pending_projectiles.back() && abi.gp[0]!=null_datum) {
+              const SourceRawDatumPoolServices storage{.read=[&](auto p,auto n){return memory.view(p,n);}};
+              const auto header=source_raw_datum_lookup(word(0x4ecbd0u),abi.gp[0],storage);
+              check(header && memory.view(header+3u,1)[0]==std::byte{5} &&
+                  projectiles.contains(word(word(header+8u))),
+                  "Turret audio shot is not a full live authored projectile generation");
+              ++constructed_shots;
+            }
+            pending_projectiles.pop_back();
+          }
+        });
+        options.audio_observer=[&](const MultiplayerAudioSubmission &submission) {
+          if(submission.owner!=actual.weapon.datum) {
+            auto &others=result["other_submissions"];
+            if(others.size()<64)others.push_back({{"sound",submission.sound},{"owner",submission.owner},
+                {"voice",submission.voice},{"frames",submission.frames},{"view",submission.view}});
+            return;
+          }
+          check(submission.voice && submission.frames,"Turret sound lacks an actual PCM voice/resource");
+          ++sound_submissions;
+          result["submissions"].push_back({{"sound",submission.sound},{"owner",submission.owner},
+              {"voice",submission.voice},{"frames",submission.frames},{"view",submission.view}});
+        };
+      }
       if(ghost_fire) {
-        check(mcc && name=="ghost","Ghost projectile rendering requires its prepared MCC driver");
+        check(mcc && (turret_audio || name=="ghost"),"Projectile rendering requires its prepared MCC armed seat");
         options.reference_tick_cadence=true;options.reference_render_fraction=.5f;
         options.desktop=std::make_shared<DesktopSession>();
         auto *window=options.desktop->window(800,600,false);
@@ -335,7 +398,8 @@ int main(int argc,char **argv) {VehicleHudReport report;try {
         options.input_observer=[&,start,window](unsigned tick,std::span<const Controls> input,const auto &) {
           if(tick==start+2 || tick==start+35) {
             SDL_Event event{};event.type=tick==start+2?SDL_MOUSEBUTTONDOWN:SDL_MOUSEBUTTONUP;
-            event.button.button=SDL_BUTTON_LEFT;event.button.windowID=SDL_GetWindowID(window);
+            event.button.button=turret_audio && std::getenv("HALO2_TEST_VEHICLE_WEAPON_SECONDARY")?SDL_BUTTON_RIGHT:SDL_BUTTON_LEFT;
+            event.button.windowID=SDL_GetWindowID(window);
             check(SDL_PushEvent(&event)==1,"Queue actual Ghost fire input");
           }
           fire_inputs+=unsigned(input[player].fire);
@@ -362,7 +426,13 @@ int main(int argc,char **argv) {VehicleHudReport report;try {
       if(ghost_fire) {
         row["projectile_render"]={{"fire_input_ticks",fire_inputs},{"glow_draws",glow_draws},
             {"glow_vertices",glow_vertices},{"actual_projectile_owners",projectile_owners}};
-        check(fire_inputs>0 && projectile_owners.size()>1 && glow_draws>0,
+        if(turret_audio) {
+          row["turret_audio"]["constructed_shots"]=constructed_shots;
+          row["turret_audio"]["sound_submissions"]=sound_submissions;
+          check(constructed_shots>0,"Turret audio regression never fired an actual source projectile");
+          check(sound_submissions>0,"Actual turret firing submitted no weapon-owned PCM voice");
+          row["turret_audio"]["passed"]=true;
+        }else check(fire_inputs>0 && projectile_owners.size()>1 && glow_draws>0,
             "Actual Ghost firing did not submit authored projectile light volumes");
       }
       if(rocket_explosion) {
@@ -463,6 +533,88 @@ int main(int argc,char **argv) {VehicleHudReport report;try {
           {"multiplayer_third_input_suppression_checks",0},
           {"native_effect_frame_after_each_game_tick",true},
           {"audio_or_Xbox_pixels_certified",false}};
+      struct SoundTraceScope {
+        MultiplayerObjectRuntime *world{};
+        ~SoundTraceScope(){if(world)world->observe_sound_requests({});}
+      } sound_trace;
+      if(std::getenv("HALO2_TEST_TURRET_SOUND_TRACE")) {
+        sound_trace.world=world.source_objects.get();
+        firing["original_sound_requests"]=nlohmann::json::array();
+        sound_trace.world->observe_sound_requests([&](std::uint32_t sound,std::span<const std::byte,160> request) {
+          auto &rows=firing["original_sound_requests"];if(rows.size()>=64)return;
+          const Bytes data(request);
+          rows.push_back({{"sound",sound},{"flags",data.u32(0)},
+              {"location",std::to_integer<unsigned>(request[0xf])&15u},
+              {"owner",data.u32(0x50)},{"control_bits",data.u32(0x10)}});
+        });
+      }
+      const bool target_damage=std::getenv("HALO2_TEST_TURRET_TARGET_DAMAGE")!=nullptr;
+      const auto target_slot=world.local_slots.at(1);
+      const auto target_unit=world.match.state().players[target_slot].source_unit;
+      const auto shooter_kills_before=world.match.state().players[player].kills;
+      float target_health{},target_shield{},minimum_health{},minimum_shield{};
+      std::set<std::uint64_t> target_damage_events;
+      unsigned attributed_target_damage{};
+      std::optional<NativeVehicleCamera> aim_camera;
+      std::optional<std::uint32_t> aim_camera_tick;
+      std::optional<Vec3> aim_camera_position;
+      if(target_damage)aim_camera.emplace(*world.source_objects,*content.original_data);
+      const auto source_eye=[&] {
+        const auto state=world.match.state();const auto &p=state.players[player];
+        if(!aim_camera_tick || *aim_camera_tick!=state.tick) {
+          // Use the same complete original seated camera owner as gameplay,
+          // once per completed game step. A bare unit-eye call omits its
+          // actual observer/controller/world setup while seated.
+          const auto view=aim_camera->update_player(0,p.source_player,p.source_flags,tick_seconds);
+          check(view.has_value(),"Seated turret target has no completed original vehicle camera");
+          aim_camera_position=view->position;aim_camera_tick=state.tick;
+        }
+        return *aim_camera_position;
+      };
+      const auto aim_target=[&] {
+        const auto state=world.match.state();
+        if(state.players[target_slot].dead || state.players[target_slot].source_unit!=target_unit)return;
+        // Aim from the current source weapon WORLD root. A third-person
+        // camera is displaced behind the turret and introduces parallax.
+        const auto delta=world.source_objects->object_sphere(target_unit).center-
+            world.source_objects->object_transform(weapon).position;
+        controls[player].yaw=std::atan2(delta.y,delta.x);
+        controls[player].pitch=std::atan2(delta.z,std::hypot(delta.x,delta.y));
+      };
+      if(target_damage) {
+        check(target_unit!=null_datum,"Turret target has no naturally constructed player unit");
+        for(unsigned tick=0;tick<30;++tick){world.match.step(controls);(void)source_eye();}
+        const auto state=world.match.state();
+        const auto root=world.source_objects->object_transform(state.players[player].source_parent);
+        const auto eye=source_eye();CollisionWorld terrain(content.collision);
+        Spawn target;bool clear=false;
+        for(const float distance:{12.f,18.f,24.f}) {
+          for(const float offset:{0.f,.2f,-.2f,.4f,-.4f}) {
+            const float yaw=std::atan2(root.basis[0].y,root.basis[0].x)+offset;
+            auto candidate=root.position+Vec3{std::cos(yaw)*distance,std::sin(yaw)*distance,0};
+            const auto floor=terrain.raycast(candidate+Vec3{0,0,10},{0,0,-1},20);
+            if(!floor)continue;
+            candidate.z=floor->position.z+content.player.radius;
+            const auto delta=candidate+Vec3{0,0,content.player.height*.5f}-eye;
+            if(terrain.raycast(eye,normalized(delta),length(delta)))continue;
+            target.position=candidate;clear=true;break;
+          }
+          if(clear)break;
+        }
+        check(clear,"Turret target scene has no supported forward terrain sightline");
+        test::place_player(world.match,target_slot,target);
+        world.source_objects->tu15_world().set_object_position(target_unit,target.position);
+        for(unsigned tick=0;tick<30;++tick){aim_target();world.match.step(controls);}
+        const auto settled=world.match.state();const auto &p=settled.players[target_slot];
+        check(!p.dead && p.source_unit==target_unit,"Declared turret target died before any fire input");
+        target_health=minimum_health=p.health;target_shield=minimum_shield=p.shield;
+        firing["target_damage"]={{"passed",false},{"unit",target_unit},
+            {"declared_scene_position",{target.position.x,target.position.y,target.position.z}},
+            {"initial_health",target_health},{"initial_shield",target_shield},
+            {"source_shooter_kills_before",shooter_kills_before},
+            {"source_damage_effects",nlohmann::json::array()},
+            {"damage_or_vitality_supplied",false}};
+      }
       const auto read_prepared=[&] {
         std::array<std::uint16_t,2> counts{};
         const auto body=world.source_objects->object_body(weapon);
@@ -503,6 +655,13 @@ int main(int argc,char **argv) {VehicleHudReport report;try {
             check(definition==row.at("definition").get<std::uint32_t>(),
                 "Original projectile constructor changed its authored definition");
             row["type"]=5;row["actual_definition"]=definition;
+            const auto body=word(header+8u);
+            const auto vector=[&](unsigned offset) {
+              return std::array{std::bit_cast<float>(word(body+offset)),
+                  std::bit_cast<float>(word(body+offset+4u)),std::bit_cast<float>(word(body+offset+8u))};
+            };
+            row["source_origin"]=vector(0x64);row["source_forward"]=vector(0x70);
+            row["source_owner_player"]=word(body+0xc4u);row["source_owner_unit"]=word(body+0xc8u);
             constructed.insert(abi.gp[0]);
           }
         } else if(entry==0xba490u) {
@@ -526,6 +685,7 @@ int main(int argc,char **argv) {VehicleHudReport report;try {
         contact_frontier=std::max(contact_frontier,event.serial);
       for(unsigned tick=0;tick<180;++tick) {
         const bool held=tick>=30 && tick<150;
+        if(target_damage)aim_target();
         controls[player].fire=trigger_input==0 && held;
         controls[player].fire_secondary=trigger_input==1 && held;
         controls[player].melee=trigger_input==2 && held;
@@ -540,6 +700,26 @@ int main(int argc,char **argv) {VehicleHudReport report;try {
           firing["multiplayer_third_input_suppression_checks"]=tick+1;
         }
         const auto state=world.match.state();const auto &p=state.players[player];
+        if(target_damage) {
+          const auto &target=state.players[target_slot];
+          if(target.source_unit==target_unit || target.dead) {
+            minimum_health=std::min(minimum_health,target.health);
+            minimum_shield=std::min(minimum_shield,target.shield);
+          }
+          auto &result=firing["target_damage"];
+          for(const auto &event:state.unit_damage_effects) {
+            if(event.target!=target_unit || event.effect.kind==UnitDamageEffectKind::ShieldRecharging ||
+                !target_damage_events.insert(event.serial).second)continue;
+            const bool attributed=event.owner.player==state.players[player].source_player;
+            attributed_target_damage+=unsigned(attributed);
+            result["source_damage_effects"].push_back({{"tick",event.tick},{"serial",event.serial},
+                {"target",event.target},{"owner_player",event.owner.player},{"owner_unit",event.owner.unit},
+                {"attributed_to_shooter",attributed}});
+          }
+          result["minimum_health"]=minimum_health;result["minimum_shield"]=minimum_shield;
+          if(tick<30)check(minimum_health>=target_health && minimum_shield>=target_shield,
+              "Turret target lost vitality before the firing interval");
+        }
         check(p.source_vehicle_hud.weapon.present &&
             p.source_vehicle_hud.ownership.vehicle_weapon==weapon,
             "Vehicle firing lost its genuine source weapon ownership");
@@ -589,6 +769,18 @@ int main(int argc,char **argv) {VehicleHudReport report;try {
         check(preparations>0,"Real vehicle trigger input prepared no source shot");
         check(!constructed.empty(),
             "Real vehicle trigger input has no validated constructor,live projectile or source contact");
+      }
+      if(target_damage) {
+        check(minimum_health<target_health || minimum_shield<target_shield,
+            "Actual turret firing never damaged its clear-lane source target");
+        const auto final=world.match.state();
+        const auto kills=final.players[player].kills;
+        firing["target_damage"]["source_shooter_kills_after"]=kills;
+        // Shield-effect attachment can carry the original default owner.
+        // Source kill credit independently proves lethal damage attribution.
+        check(attributed_target_damage>0 || kills>shooter_kills_before,
+            "Turret target damage has no source shooter attribution or kill credit");
+        firing["target_damage"]["passed"]=true;
       }
       firing["passed"]=true;
     }

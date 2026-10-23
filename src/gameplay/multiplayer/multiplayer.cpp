@@ -23,6 +23,7 @@
 #include "halo2/source_model_admission.hpp"
 #include "halo2/source_effect_world_locations.hpp"
 #include "halo2/raw_datum_pool.hpp"
+#include "halo2/source_camouflage_context.hpp"
 #include <algorithm>
 #include <limits>
 #include <bit>
@@ -2830,11 +2831,34 @@ MultiplayerState MultiplayerMatch::state() const {
     SourceModelResourceWorld visibility;auto &bank=source_object_world_->memory();
     visibility.banks.objects=source_object_world_->source_object_pool();
     visibility.banks.read=[&bank](auto p,auto n){return bank.view(p,n);};
+    const auto raw_body=[&](std::uint32_t datum) {
+      const auto headers=Bytes(bank.view(visibility.banks.objects+0x44u,4)).u32(0);
+      return Bytes(bank.view(headers+(datum&65535u)*12u+8u,4)).u32(0);
+    };
+    const auto camouflage_object=[&](std::uint32_t datum)->std::optional<SourceCamouflageObjectView> {
+      const auto body=raw_body(datum);if(!body)return {};
+      const auto type=std::to_integer<std::uint8_t>(bank.view(body+0xaau,1)[0]);
+      return SourceCamouflageObjectView{type,type?Bytes(bank.view(body+0x14u,4)).u32(0):null_datum};
+    };
+    SourceCamouflageContextServices camouflage;
+    camouflage.initial=[&](std::uint32_t datum)->std::optional<SourceCamouflageObjectView> {
+      if(!source_raw_datum_lookup(visibility.banks.objects,datum,{.read=visibility.banks.read}))return {};
+      return camouflage_object(datum);
+    };
+    camouflage.parent=camouflage_object;
+    camouflage.primary=[&](std::uint32_t datum){return Bytes(bank.view(raw_body(datum)+0x2b0u,4)).f32(0);};
     for(const auto &object:source_object_world_->live_objects()) {
-      if((object.type!=3 && object.type!=4 && object.type!=11) || placed.contains(object.object))continue;
+      if((object.type!=3 && object.type!=4 && object.type!=5 && object.type!=11) || placed.contains(object.object))continue;
+      // Free shots and grenades have their own presentation owners. An
+      // attached type5 needs its actual parent-composed WORLD hierarchy,
+      // region selection and colors just like the other dynamic objects.
+      if(object.type==5 && (object.parent==null_datum ||
+          std::any_of(result.grenade_projectiles.begin(),result.grenade_projectiles.end(),
+              [&](const auto &g){return g.datum==object.object;})))continue;
       const auto body=source_object_world_->source_object_body(object.object);
       SourceDynamicObject dynamic;dynamic.object=object.object;dynamic.definition=object.definition;
       dynamic.parent=object.parent;dynamic.type=object.type;
+      dynamic.camouflage=source_object_camouflage(object.object,camouflage);
       dynamic.transform=source_object_world_->object_transform(object.object);
       dynamic.velocity=source_object_world_->object_linear_velocity(object.object);
       dynamic.sphere=source_object_world_->object_sphere(object.object);

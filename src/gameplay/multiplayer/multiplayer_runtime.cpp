@@ -19,6 +19,7 @@
 #include "halo2/source_map_effects.hpp"
 #include "halo2/source_world_particle_draws_tu15.hpp"
 #include "halo2/source_lens_query_frame_tu15.hpp"
+#include "halo2/source_model_build.hpp"
 #include "halo2/source_lens_draw_frame_tu15.hpp"
 #include "halo2/unit_damage_audio.hpp"
 #include "halo2/source_bsp_effect_lights.hpp"
@@ -78,6 +79,7 @@
 #include "halo2/source_shield_model_shaders.hpp"
 #include "halo2/shield_overlay.hpp"
 #include "halo2/source_camouflage_context.hpp"
+#include "halo2/source_camouflage_material.hpp"
 #include "halo2/world_material.hpp"
 #include "halo2/source_netgame_weapon_scene.hpp"
 #include "halo2/first_person_ik.hpp"
@@ -372,7 +374,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     std::cerr<<"Grenades unavailable: selected executable has no verified projectile operands\n";
   const auto fingerprint = options.host_port || !options.join.empty() || options.online_match
       ? custom_slayer_fingerprint(multiplayer_fingerprint(options.map, cache.shared_directory(),
-                                std::uint32_t(options.bsp), rules.weapon, options.gameplay_xbe),variant)
+                                std::uint32_t(options.bsp), world->network_starting_weapon_identity(), options.gameplay_xbe),variant)
       : 0;
   if(advertised_fingerprint && *advertised_fingerprint!=fingerprint)
     throw FormatError("Host map, shared game data or executable differs after configuration adoption");
@@ -677,6 +679,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         v.world_lods=std::move(banks);
       } else v.shaders.emplace(cache,v.model,mode,2,camouflage);
     }
+    if(dynamic_lighting && camouflage)for(auto &material:v.model.mesh.materials)
+      prepare_camouflage_materials(cache,material);
 #ifdef HALO2_HELD_POSE_SHADING_REFERENCE
     // Explicit storage control for retained render-input experiments. The
     // original GL capture's decoded cube bytes are compared independently;
@@ -868,10 +872,10 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       v.first_person_body=common->second.first_person_body;
       v.first_person_body_materials=common->second.first_person_body_materials;
     } else {
-      v.player=visual(authored.biped.datum,&colors,nullptr,true,std::nullopt,true);
-      v.hands=visual(authored.hands,&colors,nullptr,true);
+      v.player=visual(authored.biped.datum,&colors,nullptr,true,0.f,true);
+      v.hands=visual(authored.hands,&colors,nullptr,true,0.f);
       if(v.first_person_body_model!=null_datum) {
-        v.first_person_body=visual(v.first_person_body_model,&colors,nullptr,true);
+        v.first_person_body=visual(v.first_person_body_model,&colors,nullptr,true,0.f);
         v.first_person_body_materials[0]=v.first_person_body.material;
         for(unsigned i=1;i<object_slots;++i) {
           v.first_person_body_materials[i]=unsigned(mesh.materials.size());
@@ -969,7 +973,9 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
   const auto make_shields=[&](const RenderModel &model,std::uint32_t mode,
       const VitalityDefinition &vitality,bool first_person) {
     std::map<std::uint32_t,SpeciesVisual::ShieldVisual> result;
-    const std::array shaders{first_person?vitality.shield_damaged_first_person_shader:vitality.shield_damaged_shader};
+    const std::array shaders{
+        first_person?vitality.shield_damaged_first_person_shader:vitality.shield_damaged_shader,
+        first_person?vitality.overshield_first_person_shader:vitality.overshield_shader};
     for(const auto shader:shaders)if(shader!=null_datum && !result.contains(shader)) {
       auto &layer=result[shader];layer.render_model=mode;std::vector<Material> materials;
       layer.shaders.emplace(cache,model,mode,shader,materials);layer.count=unsigned(materials.size());
@@ -3388,6 +3394,9 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         if(!pending_replica_batch){live_client()->receive();if(options.frame_observer)++timing.schedule.receive_calls;}
         authority.receive();}
       if (!live_client()->error().empty()) {
+        if(options.frame_observer && live_client()->rejected_packet_count())
+          std::cerr<<"LAN snapshot admission rejected "<<live_client()->rejected_packet_count()
+              <<" packets; last: "<<live_client()->last_packet_rejection()<<std::endl;
         if(options.online_match&&(live_client()->ready()||options.online_match->phase()==OnlineMatchSession::Phase::Failed)){
           exit_reason=MultiplayerExitReason::online_disconnected;break;
         }
@@ -3888,6 +3897,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     std::vector<std::vector<SourceDecalDraw>> source_decals(options.local_players);
     std::vector<std::vector<SourceContrailDraw>> contrail_draws(options.local_players);
     std::vector<std::vector<ObjectLightingBinding>> light_bindings(options.local_players);
+    std::vector<std::vector<CamouflageBinding>> camouflage_bindings(options.local_players);
+    std::vector<std::vector<std::vector<std::uint32_t>>> camouflage_groups(options.local_players);
     std::vector<SourceEffectLightView> effect_light_views(options.local_players);
     std::vector<std::vector<WorldEffectLightReceiver>> effect_light_receivers(options.local_players);
     std::vector<std::vector<EffectLightRawDraw>> raw_effect_lights(options.local_players);
@@ -4170,6 +4181,11 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       const std::array camouflage{
           source_object_camouflage(owner.source_weapon,context),
           source_object_camouflage(owner.secondary_weapon.datum,context)};
+      const auto unit_camouflage=source_object_camouflage(owner.source_unit,context);
+      for(const auto &[representation,body]:species)
+        for(const auto *layers:{&body.body_shields,&body.hand_shields})
+          for(const auto &[shader,layer]:*layers)
+            camouflage_range(layer.materials[j],layer.count,unit_camouflage);
       for(const auto &[definition,bank]:body_guns)
         for(unsigned hand=0;hand<2;++hand)
           camouflage_range(bank.materials[j*2+hand],unsigned(bank.gun.model.mesh.materials.size()),camouflage[hand]);
@@ -4253,9 +4269,6 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       const auto selected=select_shield_overlays(biped_for(owner).vitality,
           owner.damage_feedback.shield.visible,owner.shield,geometry);
       for(const auto &overlay:selected.selected()) {
-        // This resident bank owns the authored damaged-plasma pass. The
-        // separate overshield shader family retains its own pass binding.
-        if(overlay.kind!=ShieldOverlayKind::Damaged)continue;
         const auto &layer=layers.at(overlay.shader);
         std::vector<Vertex> vertices(posed.begin(),posed.end());
         layer.shaders->select(vertices,collector,shader_view);
@@ -4834,6 +4847,18 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         };
         models.main_draws=[&](const auto& units) {
           const auto snapshots=selected.copy(source,units,[&](const auto& unit){return source_model_roots.contains(unit.words[1]);});
+          std::vector<SourceTransparentCommand> groups;
+          source_transparent_append_groups(std::span(units.sections).first(units.section_highwater),groups,0);
+          for(const auto ordinal:source_transparent_sort(groups,camera.position)) {
+            const auto &group=groups[ordinal];if(group.callback!=0x41cc0u)continue;
+            auto &owners=camouflage_groups[i].emplace_back();
+            for(unsigned member=0;member<group.payload[0];++member)for(const auto &draw:snapshots) {
+              if(((draw.unit.words[3]>>4)&31u)!=group.payload[member+1])continue;
+              for(const auto &player:current.players)if(draw.object==player.source_unit ||
+                  draw.object==player.source_weapon || draw.object==player.secondary_weapon.datum)
+                if(std::find(owners.begin(),owners.end(),player.source_unit)==owners.end())owners.push_back(player.source_unit);
+            }
+          }
           std::map<std::uint32_t,std::vector<SourceLiveModelBaseDrawTu15>> owners;
           for(const auto& draw:snapshots) {
             owners[draw.object].push_back(draw);
@@ -4860,21 +4885,20 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
               if(!body_present(player) || !(options.capture_third_person || slot!=id || player.dead || third_person_vehicle_view))continue;
               if(owner==body_handle(player)) {
                 const auto& body=species_for(player);select_visual(body.player);
-                // The completed main collector contains both ordinary body
-                // units and damaged-plasma units. Only the latter already
-                // submitted by append_shields may use that separate path.
+                // The completed main collector contains ordinary body units
+                // and independent damage/overshield units. Overrides already
+                // submitted by append_shields use that separate path.
                 // Unknown overrides still reject the complete ordinary base.
                 if(!player.dead) {
                   const auto& actual=current.players[slot];
                   const ShieldOverlayGeometry geometry{true,true,false,1,5,0};
                   const auto overlays=select_shield_overlays(biped_for(actual).vitality,
                       actual.damage_feedback.shield.visible,actual.shield,geometry);
-                  for(const auto& overlay:overlays.selected())
-                    if(overlay.kind==ShieldOverlayKind::Damaged) {
-                      const auto layer=body.body_shields.find(overlay.shader);
-                      if(layer!=body.body_shields.end() && layer->second.shaders)
-                        separate_unit_overrides.insert(overlay.shader);
-                    }
+                  for(const auto& overlay:overlays.selected()) {
+                    const auto layer=body.body_shields.find(overlay.shader);
+                    if(layer!=body.body_shields.end() && layer->second.shaders)
+                      separate_unit_overrides.insert(overlay.shader);
+                  }
                 }
               }
               if(owner==player.source_weapon && player.weapon!=null_datum)
@@ -5043,6 +5067,29 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         if(options.effect_observer)options.effect_observer(i,current.tick,world_particles[i]);
       }
       auto &bindings=light_bindings[i];
+      auto &camouflage=camouflage_bindings[i];
+      const auto camouflage_range=[&](unsigned first,unsigned count,const auto &owner) {
+        if(count)camouflage.push_back({first,count,std::clamp(owner.source_camouflage.primary,0.f,1.f),owner.source_unit});
+      };
+      for(unsigned j=0;j<multiplayer_capacity;++j)if(shown.players[j].connected) {
+        const auto &owner=current.players[j];const auto &body=species_for(shown.players[j]);
+        camouflage_range(body.player_materials[j],unsigned(body.player.model.mesh.materials.size()),owner);
+        camouflage_range(body.first_person_body_materials[j],unsigned(body.first_person_body.model.mesh.materials.size()),owner);
+        if(owner.weapon!=null_datum) {
+          const auto &held=body_guns.at(owner.weapon);
+          camouflage_range(held.materials[j*2],unsigned(held.gun.model.mesh.materials.size()),owner);
+        }
+        if(owner.secondary_weapon.definition!=null_datum) {
+          const auto &held=body_guns.at(owner.secondary_weapon.definition);
+          camouflage_range(held.materials[j*2+1],unsigned(held.gun.model.mesh.materials.size()),owner);
+        }
+      }
+      const auto &local_camouflage=current.players[id];
+      camouflage_range(hands.material,unsigned(hands.model.mesh.materials.size()),local_camouflage);
+      for(const auto &[key,body]:species)for(unsigned hand=0;hand<2;++hand)if(!body.guns.empty()) {
+        const auto &held=body.guns.at(i*2+hand);
+        camouflage_range(held.material,unsigned(held.model.mesh.materials.size()),local_camouflage);
+      }
       //3DFE0 deduplicates an actual query, not a visit by an earlier view.
       // Snapshot each submitted view's bank before a later view can update it.
       for(unsigned j=0;j<multiplayer_capacity;++j)
@@ -5351,7 +5398,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       for(const auto &draw:dynamic_objects.draw_view(std::int32_t(current.tick),dynamic_view,
           [&](std::uint32_t owner){return source_body_interpolation.sample(owner,blend);})) {
         model_object_draws[i].push_back({draw.vertices,draw.ordinary_lighting?
-            std::optional{draw.lighting}:std::nullopt,draw.colors,{},draw.prt});
+            std::optional{draw.lighting}:std::nullopt,draw.colors,{},draw.prt,draw.camouflage});
         if(options.dynamic_draw_observer && !draw.vertices.empty())
           options.dynamic_draw_observer(i,draw.object,draw.definition,draw.vertices);
       }
@@ -5758,7 +5805,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         const auto foreground=std::count_if(source_models.begin(),source_models.end(),[](const auto &model){return model.mode==1;});
         if(unsigned(foreground)!=expected)throw FormatError("Original FP draw contains an unbound native foreground model");
         const auto &body=species_for(p);
-        for(const auto &model:source_models)if(model.mode!=1) {
+        for(const auto &model:source_models)if(model.mode!=1 && source_foreground_models_admitted(view_zoom[i])) {
           //168DED can additionally submit the looking-down body in WORLD
           //mode. Its original output supplies every node; never substitute
           //an idle pose or reject it as an unexpected third FP model.
@@ -5922,41 +5969,43 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
           foreground_particles[i].insert(foreground_particles[i].end(),particles.begin(),particles.end());
           if(options.effect_observer)options.effect_observer(i,current.tick,foreground_particles[i]);
         }
-        const auto owner=source_model_shader_collector(object_owner_spheres[id].center,
-            object_owner_spheres[id].radius,*object_view.shader);
-        bindings.push_back({hands.material,unsigned(hands.model.mesh.materials.size()),first_person_lighting});
-        bindings.push_back({gun.material,unsigned(gun.model.mesh.materials.size()),first_person_lighting});
-        // Original133AB0 shield recursion reaches133F70 with owner filtering:
-        // pose.arms is the complete character FP model: arms, hands and fingers.
-        // The weapon's separate object owner is excluded from this layer.
-        append_shields(foregrounds[i],pose.arms,v.hand_shields,i,id,true,owner,*object_view.shader);
-        const auto *reference_append=std::getenv("HALO2_REFERENCE_COPY_FIRST_PERSON");
-        if(reference_append && *reference_append) {
-        hands.shaders->select(pose.arms,owner,*object_view.shader);
-        gun.shaders->select(pose.weapon,owner,*object_view.shader);
-        append(foregrounds[i], std::move(pose.arms), hands.material, {});
-        append(foregrounds[i], std::move(pose.weapon), gun.material, {});
-        } else {
-          const auto first=foregrounds[i].size();
-          hands.shaders->append_selected(foregrounds[i],pose.arms,owner,*object_view.shader,hands.material);
-          gun.shaders->append_selected(foregrounds[i],pose.weapon,owner,*object_view.shader,gun.material);
-          // Keep append's original identity placement arithmetic, including
-          // its signed-zero behavior. Selection and the material base are
-          // already applied once per accepted part in the destination bank.
-          place_vertices(std::span{foregrounds[i]}.subspan(first),0,{});
+        if(source_foreground_models_admitted(view_zoom[i])) {
+          const auto owner=source_model_shader_collector(object_owner_spheres[id].center,
+              object_owner_spheres[id].radius,*object_view.shader);
+          bindings.push_back({hands.material,unsigned(hands.model.mesh.materials.size()),first_person_lighting});
+          bindings.push_back({gun.material,unsigned(gun.model.mesh.materials.size()),first_person_lighting});
+          // Original133AB0 shield recursion reaches133F70 with owner filtering:
+          // pose.arms is the complete character FP model: arms, hands and fingers.
+          // The weapon's separate object owner is excluded from this layer.
+          append_shields(foregrounds[i],pose.arms,v.hand_shields,i,id,true,owner,*object_view.shader);
+          const auto *reference_append=std::getenv("HALO2_REFERENCE_COPY_FIRST_PERSON");
+          if(reference_append && *reference_append) {
+          hands.shaders->select(pose.arms,owner,*object_view.shader);
+          gun.shaders->select(pose.weapon,owner,*object_view.shader);
+          append(foregrounds[i], std::move(pose.arms), hands.material, {});
+          append(foregrounds[i], std::move(pose.weapon), gun.material, {});
+          } else {
+            const auto first=foregrounds[i].size();
+            hands.shaders->append_selected(foregrounds[i],pose.arms,owner,*object_view.shader,hands.material);
+            gun.shaders->append_selected(foregrounds[i],pose.weapon,owner,*object_view.shader,gun.material);
+            // Keep append's original identity placement arithmetic, including
+            // its signed-zero behavior. Selection and the material base are
+            // already applied once per accepted part in the destination bank.
+            place_vertices(std::span{foregrounds[i]}.subspan(first),0,{});
 #ifdef HALO2_PROFILE_MATERIAL_FRAME_ORACLE
-          if(std::getenv("HALO2_VERIFY_FIRST_PERSON_APPEND")) {
-            std::vector<Vertex> expected;
-            hands.shaders->select(pose.arms,owner,*object_view.shader);
-            gun.shaders->select(pose.weapon,owner,*object_view.shader);
-            append(expected,std::move(pose.arms),hands.material,{});
-            append(expected,std::move(pose.weapon),gun.material,{});
-            const auto actual=std::span{foregrounds[i]}.subspan(first);
-            if(actual.size()!=expected.size() || (!actual.empty() &&
-                std::memcmp(actual.data(),expected.data(),actual.size_bytes())))
-                throw FormatError("direct first-person append changed complete original posed vertices");
-          }
+            if(std::getenv("HALO2_VERIFY_FIRST_PERSON_APPEND")) {
+              std::vector<Vertex> expected;
+              hands.shaders->select(pose.arms,owner,*object_view.shader);
+              gun.shaders->select(pose.weapon,owner,*object_view.shader);
+              append(expected,std::move(pose.arms),hands.material,{});
+              append(expected,std::move(pose.weapon),gun.material,{});
+              const auto actual=std::span{foregrounds[i]}.subspan(first);
+              if(actual.size()!=expected.size() || (!actual.empty() &&
+                  std::memcmp(actual.data(),expected.data(),actual.size_bytes())))
+                  throw FormatError("direct first-person append changed complete original posed vertices");
+            }
 #endif
+          }
         }
       }
       }
@@ -5993,6 +6042,22 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       view.vertices = world;
       view.full_surface = true;
       view.foreground = foregrounds[i];
+      view.camouflage=camouflage;
+      view.camouflage_groups=camouflage_groups[i];
+      if(options.camouflage_layer_observer)view.completed_camouflage_draw_observer=
+          [&,i](auto owner,auto layer,auto implementation,auto first_person,auto primary,auto count) {
+            options.camouflage_layer_observer(i,owner,layer,implementation,first_person,primary,count);
+          };
+      //12E5E0's patchy bank occupies+6C..98 of the published fog state:
+      //datum, density pair and distance pair feed41CC0/3385D/33EF9.
+      if(fog.patchy_datum!=null_datum && fog.patchy &&
+          std::max(fog.patchy->density[0],fog.patchy->density[1])>0.f) {
+        if(!(fog.patchy->distance[1]>fog.patchy->distance[0]))
+          throw FormatError("Camouflage patchy fog has no source finite interval");
+        view.camouflage_fog=SourceShaderFogContext{fog.patchy_datum,
+            fog.patchy->distance[0],fog.patchy->distance[1],{view_forward.x,view_forward.y,view_forward.z},
+            {}}; // Valid interval does not consume the retained default-color pointer.
+      }
       if(user_fov)view.foreground_projection_vertical_angle=foreground_projection_angle;
       if(!options.capture_third_person)view.foreground_particles=foreground_particles[i];
       view.world_particles=world_particles[i];
@@ -6000,7 +6065,13 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       view.lens_draws=lens_draws[i];
       if(const auto *hide=std::getenv("HALO2_REFERENCE_LENS_DRAWS_HIDE");hide && *hide)
         view.lens_draws={}; // Pixel isolation; original callbacks and query/RNG state still run.
-      view.light_volumes=weapon_projectile_scene.light_volume_view(i,view_forward,render_camera,physical(rect),1024.f);
+      std::vector<SourceProjectileGlowOwner> attached_projectile_glows;
+      for(const auto &object:current.source_dynamic_objects)if(object.type==5 && object.visible && object.has_world_nodes) {
+        const auto nodes=source_body_interpolation.sample(object.object,blend);
+        if(nodes.empty())throw FormatError("Attached projectile glow has no completed WORLD node");
+        attached_projectile_glows.push_back({object.object,object.definition,nodes.front()});
+      }
+      view.light_volumes=weapon_projectile_scene.light_volume_view(i,view_forward,render_camera,physical(rect),1024.f,attached_projectile_glows);
       view.light_volume_observer=[&,i](const SourceLightVolumeDraw &draw) {
         if(options.weapon_light_volume_observer)options.weapon_light_volume_observer(i,current.tick,draw);
       };

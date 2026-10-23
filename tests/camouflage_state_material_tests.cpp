@@ -1,6 +1,7 @@
 #include "halo2/world_material.hpp"
 #include <nlohmann/json.hpp>
 #include <bit>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 
@@ -27,7 +28,9 @@ int main(int argc,char **argv)try {
     const auto binder=read(argv[1]),passes=read(argv[2]);
     unsigned cases=0;
     for(const auto &row:binder.at("state_cases")) {
-        const auto &prior=passes.at("cases").at(row.at("prior_case").get<unsigned>());
+        const auto original_case=row.at("prior_case").get<unsigned>();
+        const auto source_case=passes.contains("case_indices")?passes.at("case_indices").at(original_case).get<unsigned>():original_case;
+        const auto &prior=passes.at("cases").at(source_case);
         Material material;material.forward_pass=true;material.forward_pass_index=0;material.passes.emplace_back();
         auto &pass=material.passes[0];
         const auto initial=prior.at("initial_vertex_hex").get<std::string>();
@@ -47,7 +50,14 @@ int main(int argc,char **argv)try {
         // untouched. Scalar37 is the camouflage input for the pixel/vertex
         // consumers, including passes with an empty render-state range.
         const auto input=std::bit_cast<float>(prior.at("scalar_bits").at("37").get<std::uint32_t>());
+        auto alias_program=material.forward_program;auto alias_constants=material.program_constants;
+        auto alias_blend=material.forward_blend_color;
+        bind_object_camouflage_constants(alias_program,alias_constants,alias_blend,pass,
+            material.shader_switches,input,row.at("requested_fpcw"));
         bind_object_camouflage(material,input,row.at("requested_fpcw"));
+        check(alias_blend==row.at("state75") && alias_program.words==material.forward_program.words &&
+            !std::memcmp(&alias_constants,&material.program_constants,sizeof(alias_constants)),
+            "Independent draw camouflage state differs from original composition");
         check(material.forward_blend_color==row.at("state75"),"Native camouflage state75 differs from whole original composition");
         for(unsigned bank=0;bank<2;++bank)for(unsigned reg=0;reg<16;++reg)for(unsigned axis=0;axis<4;++axis) {
             const auto bits=word(expected,bank*256+reg*16+axis*4);

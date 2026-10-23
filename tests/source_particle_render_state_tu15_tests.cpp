@@ -48,6 +48,13 @@ int main(int argc,char **argv)try {
                 equal(std::array{bits(in.position.x),bits(in.position.y),bits(in.position.z)},"position");
                 equal(std::array{bits(in.direction.x),bits(in.direction.y),bits(in.direction.z)},"direction");
                 equal(std::array{bits(in.color[0]),bits(in.color[1]),bits(in.color[2]),bits(in.color[3])},"color");
+                // Original particle creation stores packed color at +3C;
+                // +34 is the independently changing float angular velocity.
+                const auto word=[&](std::uint32_t p){return Bytes(memory.view(p,4)).u32(0);};
+                const auto pool=word(0x52d714u),rows=word(pool+0x44u);
+                const auto record=rows+std::uint32_t(particle&65535u)*64u;
+                if(in.seed_color!=word(record+0x3cu))
+                    throw FormatError("Live particle color reads angular velocity instead of its original packed color");
                 ++count;
             });
         if(cursor!=row.at("callbacks").size())throw FormatError("Original callback count differs");

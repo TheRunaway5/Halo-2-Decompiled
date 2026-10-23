@@ -94,6 +94,14 @@ int main(int argc,char** argv){
       const auto before=request;
       check(!audio.source_impulse(sound_id,request,MultiplayerAudioKind::FirstPerson,0),
             "Remastered-only MCC layer became a TU1.5 source impulse");
+      // Replicated FP clocks and authored world effects use the ordinary
+      // native admission seam. They obey the same Classic-mode rule.
+      check(!audio.play_impulse(sound_id),"Remastered-only MCC layer became an ordinary Classic impulse");
+      check(!audio.play_impulse_at(sound_id,{0,0,0}),"Remastered-only MCC layer became a spatial Classic impulse");
+      FirstPersonViewBinding view;view.unit=0x12340001u;
+      view.hands[0].weapon=0x12340002u;view.hands[0].flags=6;
+      FirstPersonAnimationEvent event;event.type=1;event.tag=sound_id;
+      audio.first_person(0,view,event);
       const auto pcm=audio.render(64);
       check(!packets&&!audio.voices()&&shared_seed==0x31415926&&request==before&&
           std::ranges::all_of(pcm,[](float x){return x==0;}),

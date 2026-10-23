@@ -79,6 +79,10 @@ public:
   void bind_source_local_views(std::span<const unsigned>);
 
   bool matches(const MultiplayerOptions&) const;
+  // MCC native equipment is selected by the source engine at player birth.
+  // Loading identity uses the validated selector, independent of whether a
+  // local unit exists yet. Legacy caches retain their definition identity.
+  std::uint32_t network_starting_weapon_identity() const;
   std::shared_ptr<const Cache> cache;
   TagSystem tags;
   LevelContent content;

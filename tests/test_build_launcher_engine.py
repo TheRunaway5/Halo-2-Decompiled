@@ -182,6 +182,41 @@ class EnginePromotionTests(unittest.TestCase):
             self.assertEqual((self.root / name).read_bytes(), (runtime.parent / name).read_bytes())
         self.assertTrue((runtime.parent / 'source-hashes.json').is_file())
 
+    def test_menu_failure_preserves_the_installed_launcher_and_selection(self):
+        (self.maps / 'mainmenu.map').write_bytes(b'synthetic menu')
+        with patch('qualify_frontend_runtime.qualify', side_effect=RuntimeError('menu check failed')):
+            with self.assertRaisesRegex(RuntimeError, 'menu check failed'):
+                self.attempt(dict(passed=True))
+        self.assertEqual(self.selection.read_bytes(), self.original_selection)
+        self.assertEqual((self.root / 'Halo2-Launcher').read_text(), 'previous launcher')
+        self.assertEqual(list((self.root / 'bin/engine-builds').iterdir()), [])
+
+    def test_future_engine_builds_select_the_same_qualified_menu_owner(self):
+        (self.maps / 'mainmenu.map').write_bytes(b'synthetic menu')
+        frontend = self.root / 'frontend-runtime-selection.json'
+        frontend.write_text('previous menu owner')
+        def menu(root, runtime, *_):
+            return dict(runtime=runtime.relative_to(root).as_posix(), runtime_sha256=engine.digest(runtime))
+        with patch('qualify_frontend_runtime.qualify', side_effect=menu):
+            self.attempt(dict(passed=True))
+        game = json.loads(self.selection.read_text())
+        menu = json.loads(frontend.read_text())
+        self.assertEqual(menu['runtime'], game['runtime'])
+        self.assertEqual(menu['runtime_sha256'], game['runtime_sha256'])
+
+    def test_concurrent_menu_selection_is_preserved_during_engine_validation(self):
+        (self.maps / 'mainmenu.map').write_bytes(b'synthetic menu')
+        frontend = self.root / 'frontend-runtime-selection.json'
+        frontend.write_text('previous menu owner')
+        def changed(*_):
+            frontend.write_text('another task selected its menu')
+            return dict(runtime='candidate')
+        with patch('qualify_frontend_runtime.qualify', side_effect=changed):
+            with self.assertRaisesRegex(RuntimeError, 'Another task changed the frontend'):
+                self.attempt(dict(passed=True))
+        self.assertEqual(frontend.read_text(), 'another task selected its menu')
+        self.assertEqual(self.selection.read_bytes(), self.original_selection)
+
     def test_status_ignores_test_only_snapshot_files_and_detects_new_engine_modules(self):
         (self.scratch / 'source-hashes.json').write_text(json.dumps(
             dict(engine.source_hashes(self.root), **{'tests/legacy.cpp': 'old test hash'})))

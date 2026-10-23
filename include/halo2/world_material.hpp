@@ -9,6 +9,11 @@ struct SourceShaderFogContext;
 // context. Call before animate_forward_material:17420 masks run afterward.
 // Clones shared child passes so another object's bank remains independent.
 void bind_object_camouflage(Material &,float,std::uint16_t x87_control_word=0x023f);
+// The same selected-pass remaps for an independent draw alias. Images and
+// retained material bases remain shared; the caller owns all three outputs.
+void bind_object_camouflage_constants(PixelProgram &,ShaderConstants &,std::uint32_t &blend_color,
+    const MaterialPass &,const std::array<std::int32_t,8> &switches,float,
+    std::uint16_t x87_control_word=0x023f);
 // Original layer19 scalar39/color41 on this selected pass only. Updates
 // live/retained vertex banks before authored animation; caller owns view/fog
 // and the actual pointer-backed default RGB. Child passes bind separately.
@@ -35,7 +40,7 @@ bool prepare_default_object_material(const Cache &,Material &,
 // lighting implementation to select. Retain those authored independent passes
 // when an ordinary scene model reaches the shared world renderer.
 bool prepare_independent_object_material(const Cache &,Material &);
-// Original plasma_shield layer15/implementation0. Binding its authored pass
+// Original damaged-shield/overshield layer15/implementation0. Binding a pass
 // does not establish CPU-posed geometry equivalence: the local/skinned program
 // uses local position for noise coordinates and posed position for projection.
 // Callers must separately preserve that vertex-input contract before drawing.

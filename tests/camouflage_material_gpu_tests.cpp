@@ -45,7 +45,8 @@ int main(int argc,char **argv)try {
     return r.source==37 && (r.component&7)<4;
   }) && !material.animation.overlays.empty(),"Authored animated camouflage fixture changed");
   apply_object_colors(material,cache.load_object_colors(weapon.datum));
-  Mesh mesh;mesh.materials={material,material};const unsigned bank=1;
+  const bool aliases=std::getenv("HALO2_TEST_CAMOUFLAGE_OBJECT_ALIASES")!=nullptr;
+  Mesh mesh;mesh.materials=aliases?std::vector<Material>{material}:std::vector<Material>{material,material};const unsigned bank=1;
   Camera camera;
   // Declared front-facing test surfaces isolate the actual compiled display
   // programs, textures, raster state and animation. This is GPU uniform
@@ -55,21 +56,25 @@ int main(int argc,char **argv)try {
     for(const auto uv:std::array{Vec2{0,0},Vec2{1,0},Vec2{1,1},Vec2{0,0},Vec2{1,1},Vec2{0,1}}) {
       Vertex v;v.position={2,(uv.x*2-1)*.5f,(1-uv.y*2)*.5f};v.uv=uv;
       v.color={1,1,1};v.normal={-1,0,0};v.tangent={0,1,0};v.binormal={0,0,-1};
-      v.material=owner;vertices[owner].push_back(v);
+      v.material=aliases?0:owner;vertices[owner].push_back(v);
     }
   SDL_SetMainReady();check(SDL_Init(SDL_INIT_VIDEO)==0,SDL_GetError());
   std::unique_ptr<SDL_Window,decltype(&SDL_DestroyWindow)> window(SDL_CreateWindow("Original camouflage material owners",0,0,1280,480,
       SDL_WINDOW_VULKAN|SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIDDEN),&SDL_DestroyWindow);check(bool(window),SDL_GetError());
   const std::filesystem::path output=argv[2];std::filesystem::create_directories(output);
   {
-    Renderer renderer(window.get(),mesh,true);
+    Renderer renderer(window.get(),mesh,!aliases);
     for(const auto size:std::array<std::array<int,2>,2>{{{1280,480},{1920,720}}}) {
       SDL_SetWindowSize(window.get(),size[0],size[1]);SDL_PumpEvents();renderer.resized();
       std::array<ModelView,2> views;
+      std::array<std::array<ModelObjectDraw,1>,2> objects;
       for(unsigned i=0;i<2;++i){auto &v=views[i];v.camera=camera;v.left=float(i*320);v.width=320;v.height=480;
-        v.full_surface=true;v.foreground=vertices[i];}
+        v.full_surface=true;
+        if(aliases) {objects[i][0].vertices=vertices[i];objects[i][0].shader_input=[](auto){return 1.f;};v.objects=objects[i];}
+        else v.foreground=vertices[i];}
       const auto capture=[&](float a,float b,const char *label){
-        for(unsigned i=0;i<mesh.materials.size();++i) {
+        if(aliases)for(unsigned i=0;i<2;++i)objects[i][0].camouflage=i?b:a;
+        else for(unsigned i=0;i<mesh.materials.size();++i) {
           auto &material=mesh.materials[i];bind_object_camouflage(material,i<bank?a:b);
           const auto animate=[&](auto&self,Material&m)->void {
             if(m.forward_pass)animate_forward_material(m,0,[](auto){return 1.f;});

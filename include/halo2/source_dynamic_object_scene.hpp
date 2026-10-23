@@ -15,6 +15,7 @@ struct SourceDynamicObjectDraw {
     bool ordinary_lighting{};
     ObjectColors colors;
     std::vector<SourcePrtMaterialBank> prt;
+    float camouflage{};
 };
 class SourceDynamicObjectScene {
     struct PreparedData;

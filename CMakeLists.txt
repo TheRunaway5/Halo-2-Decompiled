@@ -2515,6 +2515,10 @@ add_executable(source_shield_live_runtime_tests tests/source_shield_live_runtime
 target_link_libraries(source_shield_live_runtime_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan halo2_glm)
 target_compile_definitions(source_shield_live_runtime_tests PRIVATE HALO2_SHADER_DIR="${HALO2_RUNTIME_SHADER_DIR}")
 add_dependencies(source_shield_live_runtime_tests halo2_shaders)
+add_executable(equipment_live_render_tests tests/equipment_live_render_tests.cpp src/gameplay/multiplayer/multiplayer_runtime.cpp)
+target_link_libraries(equipment_live_render_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan halo2_glm)
+target_compile_definitions(equipment_live_render_tests PRIVATE HALO2_SHADER_DIR="${HALO2_RUNTIME_SHADER_DIR}")
+add_dependencies(equipment_live_render_tests halo2_shaders)
 add_executable(source_shield_cycle_runtime_tests tests/source_shield_cycle_runtime_tests.cpp src/gameplay/multiplayer/multiplayer_runtime.cpp)
 target_link_libraries(source_shield_cycle_runtime_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan halo2_glm)
 target_compile_definitions(source_shield_cycle_runtime_tests PRIVATE HALO2_SHADER_DIR="${HALO2_RUNTIME_SHADER_DIR}")
@@ -4013,12 +4017,38 @@ if(BUILD_TESTING)
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
         ${CMAKE_CURRENT_SOURCE_DIR}/analysis/damage-shields-goal-20261011/shield-overlay.tsv)
     set_tests_properties(original_shield_overlay PROPERTIES SKIP_RETURN_CODE 77)
+    add_executable(equipment_material_tests tests/equipment_material_tests.cpp)
+    target_link_libraries(equipment_material_tests PRIVATE halo2_cache)
+    add_test(NAME original_equipment_materials COMMAND equipment_material_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps ${CMAKE_CURRENT_SOURCE_DIR}/assets/map-pack/maps)
+    set_tests_properties(original_equipment_materials PROPERTIES SKIP_RETURN_CODE 77)
+    set(HALO2_MCC_EQUIPMENT_MAPS "" CACHE PATH "Prepared MCC maps directory for equipment shader validation")
+    add_test(NAME mcc_equipment_materials COMMAND equipment_material_tests "${HALO2_MCC_EQUIPMENT_MAPS}"
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps ${CMAKE_CURRENT_SOURCE_DIR}/assets/map-pack/maps)
+    set_tests_properties(mcc_equipment_materials PROPERTIES SKIP_RETURN_CODE 77)
+    add_executable(equipment_runtime_tu15_tests tests/equipment_runtime_tu15_tests.cpp)
+    target_link_libraries(equipment_runtime_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    set(HALO2_MCC_EQUIPMENT_MAP "" CACHE FILEPATH "Prepared MCC Headlong map for equipment pickup acceptance")
+    add_test(NAME native_mcc_equipment_pickups COMMAND equipment_runtime_tu15_tests
+        "${HALO2_MCC_EQUIPMENT_MAP}" ${CMAKE_CURRENT_BINARY_DIR}/equipment-pickups.json)
+    set_tests_properties(native_mcc_equipment_pickups PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 600)
+    add_test(NAME native_mcc_powerups_all_maps COMMAND equipment_runtime_tu15_tests
+        "${HALO2_MCC_EQUIPMENT_MAPS}" ${CMAKE_CURRENT_BINARY_DIR}/equipment-all-map-powerups.json --all-maps)
+    set_tests_properties(native_mcc_powerups_all_maps PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1200)
     add_executable(source_shield_material_tests tests/source_shield_material_tests.cpp)
     target_link_libraries(source_shield_material_tests PRIVATE halo2_systems)
     add_test(NAME original_shield_material COMMAND source_shield_material_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
         ${CMAKE_CURRENT_SOURCE_DIR}/analysis/damage-shields-goal-20261011/shield-material.tsv)
     set_tests_properties(original_shield_material PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME original_overshield_material COMMAND source_shield_material_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/overshield_material_original.tsv)
+    set_tests_properties(original_overshield_material PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME original_overshield_camouflage_material COMMAND source_shield_material_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/overshield_camouflage_material_original.tsv --camouflage)
+    set_tests_properties(original_overshield_camouflage_material PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(source_shield_model_shaders_tests tests/source_shield_model_shaders_tests.cpp)
     target_link_libraries(source_shield_model_shaders_tests PRIVATE halo2_cache)
     target_compile_definitions(source_shield_model_shaders_tests PRIVATE HALO2_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
@@ -4418,8 +4448,8 @@ if(BUILD_TESTING)
     add_executable(camouflage_state_material_tests tests/camouflage_state_material_tests.cpp)
     target_link_libraries(camouflage_state_material_tests PRIVATE halo2_cache nlohmann_json::nlohmann_json)
     add_test(NAME original_camouflage_state_material COMMAND camouflage_state_material_tests
-        ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/game-variants/camouflage-binder-20261011/binder-report.json
-        ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/game-variants/camouflage-pass-20261011/report.json)
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/camouflage_state_banks_original.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/camouflage_state_inputs_original.json)
     add_executable(source_shader_state_tests tests/source_shader_state_tests.cpp)
     target_link_libraries(source_shader_state_tests PRIVATE halo2_cache nlohmann_json::nlohmann_json)
     add_test(NAME original_shader_state COMMAND source_shader_state_tests
@@ -4428,7 +4458,7 @@ if(BUILD_TESTING)
     target_link_libraries(camouflage_pass_bank_tests PRIVATE halo2_cache nlohmann_json::nlohmann_json)
     add_test(NAME original_camouflage_pass_banks COMMAND camouflage_pass_bank_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
-        ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/game-variants/camouflage-pass-services-20261011/report.json)
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/camouflage_pass_banks_original.json)
     add_executable(source_shader_fog_tests tests/source_shader_fog_tests.cpp)
     target_link_libraries(source_shader_fog_tests PRIVATE halo2_cache nlohmann_json::nlohmann_json)
     add_test(NAME original_shader_fog COMMAND source_shader_fog_tests
@@ -7235,11 +7265,20 @@ if(BUILD_TESTING)
     add_executable(mcc_gameplay_scalar_tests tests/mcc_gameplay_scalar_tests.cpp)
     target_link_libraries(mcc_gameplay_scalar_tests PRIVATE halo2_cache)
     add_test(NAME mcc_gameplay_scalar_profiles COMMAND mcc_gameplay_scalar_tests)
+    add_executable(destruction_lan_identity_tu15_tests tests/destruction_lan_identity_tu15_tests.cpp)
+    target_link_libraries(destruction_lan_identity_tu15_tests PRIVATE halo2_systems)
+    set(HALO2_DESTRUCTION_MCC_MAPS "" CACHE PATH "Prepared MCC maps with native banks for destruction admission regression")
+    add_test(NAME destruction_lan_identity_tu15 COMMAND destruction_lan_identity_tu15_tests
+        "${HALO2_DESTRUCTION_MCC_MAPS}/coagulation.map" "${HALO2_DESTRUCTION_MCC_MAPS}"
+        "${CMAKE_CURRENT_BINARY_DIR}/destruction-lan-identity.json")
+    set_tests_properties(destruction_lan_identity_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
     add_executable(mcc_destruction_effect_scalar_tests tests/mcc_destruction_effect_scalar_tests.cpp)
     target_link_libraries(mcc_destruction_effect_scalar_tests PRIVATE halo2_cache)
     target_compile_definitions(mcc_destruction_effect_scalar_tests PRIVATE HALO2_DESTRUCTION_CACHE_CHECK)
     add_test(NAME mcc_destruction_effect_scalar_profiles COMMAND mcc_destruction_effect_scalar_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/tools/mcc-destruction-effect-scalar-profiles.json)
+    add_test(NAME mcc_turret_effect_scalar_profiles COMMAND mcc_destruction_effect_scalar_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/mcc-turret-effect-scalar-profiles.json)
     add_test(NAME mcc_gameplay_scalar_profile_manifest COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_mcc_gameplay_scalar_profiles.py --check)
     add_executable(mcc_gameplay_reference_tests tests/mcc_gameplay_reference_tests.cpp)
@@ -7464,6 +7503,25 @@ if(BUILD_TESTING)
         add_test(NAME camouflage_material_owner_isolation COMMAND camouflage_material_gpu_tests
             ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps ${CMAKE_CURRENT_BINARY_DIR}/camouflage-material-test)
         set_tests_properties(camouflage_material_owner_isolation PROPERTIES SKIP_RETURN_CODE 77)
+        add_test(NAME camouflage_object_owner_isolation COMMAND camouflage_material_gpu_tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps ${CMAKE_CURRENT_BINARY_DIR}/camouflage-object-test)
+        set_tests_properties(camouflage_object_owner_isolation PROPERTIES SKIP_RETURN_CODE 77
+            ENVIRONMENT "HALO2_TEST_CAMOUFLAGE_OBJECT_ALIASES=1")
+        add_executable(camouflage_render_tests tests/camouflage_render_tests.cpp)
+        target_link_libraries(camouflage_render_tests PRIVATE halo2_renderer)
+        add_test(NAME camouflage_scene_composition COMMAND camouflage_render_tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map ${CMAKE_CURRENT_BINARY_DIR}/camouflage-composition)
+        set_tests_properties(camouflage_scene_composition PROPERTIES SKIP_RETURN_CODE 77)
+        add_executable(equipment_render_tests tests/equipment_render_tests.cpp)
+        target_link_libraries(equipment_render_tests PRIVATE halo2_renderer)
+        add_test(NAME mcc_equipment_renderer_gpu COMMAND equipment_render_tests
+            "${HALO2_MCC_EQUIPMENT_MAP}" ${CMAKE_CURRENT_BINARY_DIR}/equipment-model-captures
+            ${CMAKE_CURRENT_BINARY_DIR}/equipment-model-render.json)
+        set_tests_properties(mcc_equipment_renderer_gpu PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+        add_test(NAME native_mcc_equipment_render COMMAND equipment_live_render_tests
+            "${HALO2_MCC_EQUIPMENT_MAP}" ${CMAKE_CURRENT_BINARY_DIR}/equipment-live-captures
+            ${CMAKE_CURRENT_BINARY_DIR}/equipment-live-render.json)
+        set_tests_properties(native_mcc_equipment_render PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1200)
         add_executable(shader_state_gpu_tests tests/shader_state_gpu_tests.cpp)
         target_link_libraries(shader_state_gpu_tests PRIVATE halo2_renderer)
         add_test(NAME shader_state_color_delivery COMMAND shader_state_gpu_tests
@@ -10359,6 +10417,7 @@ include(cmake/NativeTu15ColdData.cmake)
 include(cmake/EngineWiring.cmake)
 include(cmake/SourceShadowArraySwap.cmake)
 include(cmake/SourceRuntimeVectorRead.cmake)
+include(cmake/MotionSensorComposite.cmake)
 foreach(native_target halo2_systems halo2_physics_world_runtime halo2_shadow_array_swap_tu15
         halo2_physics_vehicle_runtime halo2_physics_vehicle_update halo2_physics_vehicle_motion
         halo2_physics_vehicle_motion_math halo2_physics_vehicle_environment_state

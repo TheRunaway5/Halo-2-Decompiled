@@ -602,11 +602,33 @@ std::filesystem::path frontend_movie_path(const std::filesystem::path &maps,
                                         const std::string &name) {
   if (name != "intro" && name != "credits" && name != "attract")
     throw FormatError("unknown frontend movie: " + name);
-  // No authenticated MCC source has been assigned to these frontend roles.
-  // Retained supplied banks and arbitrary collection .bk2 files do not establish
-  // that ownership; leave the menu active without opening their metadata.
-  if (maps.filename() == "h2_maps_win64_dx11" && maps.parent_path().filename() == "halo2")
+  // Intro and credits use the user's separately imported movie bank. This
+  // does not assign arbitrary MCC collection videos or a supplied attract reel.
+  if (maps.filename() == "h2_maps_win64_dx11" && maps.parent_path().filename() == "halo2") {
+    if (name == "attract") return {};
+    const auto bank = maps.parent_path().parent_path() / "presentation/movies";
+    try {
+      if (!owned(bank / "manifest.json")) return {};
+      const auto record = metadata(bounded_metadata(bank / "manifest.json", 64 * 1024));
+      if (record.value("schema", std::string{}) != "H2_PORT_BUNDLED_MOVIES_V1" ||
+          !record.value("complete", false) ||
+          record.value("source_schema", std::string{}) != "halo2-upscaled-movies-v1" ||
+          !record.value("copied_without_transcoding", false) ||
+          !record.contains("roles") || !record["roles"].contains(name))
+        return {};
+      const auto &role = record["roles"][name];
+      movie_record(role, true);
+      const auto filename = name + "_60.mp4";
+      if (role.at("path").get<std::string>() != filename) return {};
+      const auto movie = bank / filename;
+      if (!owned(movie) || std::filesystem::file_size(movie) != role["bytes"].get<std::uint64_t>() ||
+          file_sha(movie) != role["sha256"].get<std::string>()) return {};
+      return movie;
+    } catch (const std::exception &error) {
+      std::clog << "Supplied movie bank ignored: " << error.what() << '\n';
+    }
     return {};
+  }
   if (name != "attract") {
     const auto replacement = bundle / (name + "_60.mp4");
     if (!bundle.empty() && std::filesystem::is_regular_file(replacement))

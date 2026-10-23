@@ -51,7 +51,9 @@ namespace halo2 {
 //97 carries the original seven-family engine entity state with an explicit
 //owner, separating original Assault from the bounded custom Defusal payload.
 //98 requires raw UDP endpoint proof and signed ONLINE microphone origin.
-inline constexpr unsigned native_multiplayer_protocol = 98;
+//99 publishes attached source projectiles with their completed WORLD poses.
+//100 retains their resolved first-biped camouflage scalar.
+inline constexpr unsigned native_multiplayer_protocol = 100;
 // Endpoint numbers are authenticated room slots for ONLINE, opaque UDP peers
 // for local transport. Packet contents retain the native host/client protocol.
 class MultiplayerDatagrams {

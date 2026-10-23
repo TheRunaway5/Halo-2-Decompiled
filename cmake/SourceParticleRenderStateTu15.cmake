@@ -1,9 +1,12 @@
 target_sources(halo2_systems PRIVATE src/rendering/effects/source_particle_render_state_tu15.cpp)
 if(BUILD_TESTING)
     add_executable(source_particle_render_state_tu15_tests
-        tests/source_particle_render_state_tu15_tests.cpp)
+        tests/source_particle_render_state_tu15_tests.cpp
+        src/rendering/effects/source_particle_render_state_tu15.cpp
+        src/gameplay/objects/raw_datum_pool_identity.cpp
+        src/runtime/source_runtime_memory.cpp)
     target_link_libraries(source_particle_render_state_tu15_tests PRIVATE
-        halo2_systems nlohmann_json::nlohmann_json)
+        halo2_cache halo2_snapshot_storage Threads::Threads nlohmann_json::nlohmann_json)
     add_test(NAME original_tu15_particle_pool_render_inputs
         COMMAND source_particle_render_state_tu15_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/map-pack/maps/backwash.map

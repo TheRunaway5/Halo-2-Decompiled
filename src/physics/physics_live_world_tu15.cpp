@@ -42,6 +42,7 @@
 #include "halo2/source_renderer_tail_storage_tu15.hpp"
 #include "halo2/source_object_velocity_read_only_tu15.hpp"
 #include "halo2/source_object_sound_tu15.hpp"
+#include "halo2/source_object_loop_audio_tu15.hpp"
 #include "halo2/source_weapon_hud_tu15.hpp"
 #include "halo2/source_crt_float_tu15.hpp"
 #include "campaign/campaign_bsp_callbacks_tu15.hpp"
@@ -470,6 +471,7 @@ struct PhysicsLiveWorldTu15::Impl {
     SourceFirstPersonPhaseObserverTu15 first_person_phase_observer;
     SourceSoundSubmitObserverTu15 sound_submit_observer;
     SourceSoundRequestObserverTu15 sound_request_observer;
+    SourceLoopSoundRequestObserverTu15 loop_sound_request_observer;
     SourceEffectLightBirthObserverTu15 effect_light_birth_observer;
     bool first_person_phase_active{};
     std::vector<std::uint32_t> first_person_phase_trace;
@@ -1351,6 +1353,17 @@ struct PhysicsLiveWorldTu15::Impl {
             m.read(motion,event.after);body_impulse_observer(event);return;
         }
 
+        if(c.target==0x220c60u && !c.tail && loop_sound_request_observer &&
+            (c.instruction==0x18d7fau || c.instruction==0x18d93bu || c.instruction==0x224342u)) {
+            const auto sp=a.gp[4];
+            if(word(m,sp)!=c.instruction+5u)throw FormatError("Original loop sound caller differs");
+            SourceLoopSoundRequestTu15 request;
+            for(unsigned i=0;i<request.arguments.size();++i)request.arguments[i]=word(m,sp+4u+i*4u);
+            m.read(request.arguments[4],request.location);
+            required(m,{c.target,c.target,false},a,o);
+            SourceExecutionObserverScope read_only(bank);
+            loop_sound_request_observer(request);return;
+        }
         if(c.instruction==0x18cefcu && c.target==0x223b20u && !c.tail && (sound_submit_observer || sound_request_observer)) {
             const auto sp=a.gp[4],request=a.gp[0],sound=word(m,sp+4u);
             if(word(m,sp)!=0x18cf01u)throw FormatError("Original sound submit caller differs");
@@ -1783,6 +1796,9 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         if(source_object_sound_tu15_owns_entry(c.target)) {
             source_run_object_sound_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(source_object_loop_audio_tu15_owns_entry(c.target)) {
+            source_run_object_loop_audio_tu15(m,c.target,a,fp,services(),o);return;
         }
         if(source_weapon_hud_tu15_owns_entry(c.target)) {
             source_run_weapon_hud_tu15(m,c.target,a,fp,services(),o);return;
@@ -3882,6 +3898,9 @@ void PhysicsLiveWorldTu15::observe_sound_submissions(SourceSoundSubmitObserverTu
 }
 void PhysicsLiveWorldTu15::observe_sound_requests(SourceSoundRequestObserverTu15 observer) {Impl::PublicCall active(*impl_);
     impl_->sound_request_observer=std::move(observer);
+}
+void PhysicsLiveWorldTu15::observe_loop_sound_requests(SourceLoopSoundRequestObserverTu15 observer) {Impl::PublicCall active(*impl_);
+    impl_->loop_sound_request_observer=std::move(observer);
 }
 void PhysicsLiveWorldTu15::observe_first_person_phase(SourceFirstPersonPhaseObserverTu15 observer) {Impl::PublicCall active(*impl_);
     impl_->first_person_phase_observer=std::move(observer);

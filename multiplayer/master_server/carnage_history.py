@@ -37,6 +37,7 @@ class ReportHistory:
           appearance BLOB NOT NULL CHECK(length(appearance)=16),
           PRIMARY KEY(match,player), UNIQUE(match,slot),
           FOREIGN KEY(match,player) REFERENCES match_result_players(match,player));
+        CREATE INDEX IF NOT EXISTS career_report_players ON carnage_players(player);
         CREATE TABLE IF NOT EXISTS carnage_general_stats(
           match TEXT NOT NULL, player TEXT NOT NULL, stat INTEGER NOT NULL CHECK(stat BETWEEN 0 AND 44),
           value INTEGER NOT NULL CHECK(value BETWEEN 1 AND 32767), PRIMARY KEY(match,player,stat),
@@ -51,6 +52,8 @@ class ReportHistory:
           value INTEGER NOT NULL CHECK(value BETWEEN 1 AND 32767),
           PRIMARY KEY(match,player,weapon,field),
           FOREIGN KEY(match,player) REFERENCES carnage_players(match,player));
+        CREATE INDEX IF NOT EXISTS career_weapon_accuracy ON carnage_weapon_stats(player,field,value)
+          WHERE weapon BETWEEN 5 AND 38 AND field IN (4,5);
         CREATE TABLE IF NOT EXISTS carnage_opponents(
           match TEXT NOT NULL, player TEXT NOT NULL, opponent TEXT NOT NULL,
           field0 INTEGER NOT NULL CHECK(field0 BETWEEN 0 AND 32767),

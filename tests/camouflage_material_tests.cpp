@@ -42,10 +42,16 @@ int main(int argc,char **argv)try {
     auto material=decode(row);const auto original=material;
     const float camouflage=std::bit_cast<float>(row.at("camouflage").get<std::uint32_t>());
     const float seconds=std::bit_cast<float>(row.at("seconds").get<std::uint32_t>());
+    auto alias_program=original.forward_program;auto alias_constants=original.program_constants;
+    auto alias_blend=original.forward_blend_color;
+    bind_object_camouflage_constants(alias_program,alias_constants,alias_blend,
+        original.passes[0],original.shader_switches,camouflage);
     bind_object_camouflage(material,camouflage);
     const auto before=row.at("before_animation").get<std::array<std::uint32_t,60>>();
     check(material.forward_program.words==before,"Original19CA0 camouflage bank differs");
     check(material.passes[0].program.words==before,"Retained camouflage base differs");
+    check(alias_program.words==before && alias_constants==material.program_constants &&
+        alias_blend==material.forward_blend_color,"Independent draw camouflage differs from original material binding");
     check(animate_forward_material(material,seconds,{}),"Camouflage animation not admitted");
     const auto after=row.at("after_animation").get<std::array<std::uint32_t,60>>();
     if(material.forward_program.words!=after)throw FormatError("Original camouflage/animation mismatch case "+std::to_string(cases));

@@ -3,6 +3,12 @@
 #include "halo2/source_model_node_bank.hpp"
 
 namespace halo2 {
+// TU1.5 4B5C0 rejects the foreground models when the actual local-view input
+// selector (4F9B54 + view*94 +42) is anything other than NONE. Pose production
+// still runs; this is model admission, independently of camera magnification.
+inline bool source_foreground_models_admitted(std::int16_t view_zoom) {
+    return view_zoom==-1;
+}
 struct SourceModelBuildWorld {
     SourceModelAdmissionWorld admission;
     SourceModelNodeWorld nodes;

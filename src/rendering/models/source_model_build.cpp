@@ -51,7 +51,7 @@ void source_model_build(std::uint32_t owner,float metric,float lighting_metric,
     const auto requested=read<std::int8_t>(w,scratch+0x15);
     put(w,out+0x164,std::int16_t(requested));
     if(read<std::uint8_t>(w,out+0x168) && world.view_owner!=0xffffffffu &&
-        read<std::int16_t>(w,world.view_players+world.view_owner*0x94+0x42)!=-1)models=0;
+        !source_foreground_models_admitted(read<std::int16_t>(w,world.view_players+world.view_owner*0x94+0x42)))models=0;
     put<std::uint16_t>(w,out+0x162,0);
     const auto header=read<std::uint32_t>(w,w.banks.objects+0x44)+(owner&65535u)*12;
     std::uint16_t auxiliary=65535;

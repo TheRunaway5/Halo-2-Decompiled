@@ -22,6 +22,7 @@
 #include "halo2/pstencil/campaign_materials.hpp"
 #include "halo2/sky.hpp"
 #include "halo2/source_model_transparent_order.hpp"
+#include "halo2/source_model_build.hpp"
 #include "halo2/renderer.hpp"
 #include "halo2/game_pause_menu.hpp"
 #include "halo2/campaign_text.hpp"
@@ -2777,8 +2778,10 @@ int main(int argc, char **argv) {
             }
             foreground.insert(foreground.end(), vertices.begin(), vertices.end());
           };
-          append_first_person(pose.arms, arms->material_base);
-          append_first_person(pose.weapon, gun->material_base);
+          if(halo2::source_foreground_models_admitted(campaign_view_zoom)) {
+            append_first_person(pose.arms, arms->material_base);
+            append_first_person(pose.weapon, gun->material_base);
+          }
         }
         std::vector<std::uint32_t> rendered_models;
         for (const auto &[id, v] : actor_visuals)

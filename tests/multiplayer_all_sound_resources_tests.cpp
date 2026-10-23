@@ -24,7 +24,8 @@ std::uint64_t fnv(std::span<const std::byte> bytes) {
 
 int main(int argc, char **argv) {
   try {
-    check(argc == 3, "Supply literal whole-map sound fixture and owned project root");
+    check(argc == 3 || argc == 4, "Supply literal sound fixture, owned project root and optional MCC shared directory");
+    const bool mcc = argc == 4;
     if (!std::filesystem::exists(argv[1]))
       return 77;
     const std::filesystem::path root(argv[2]);
@@ -50,7 +51,12 @@ int main(int argc, char **argv) {
       if (!std::filesystem::exists(map))
         return 77;
       if (map != current_map) {
-        cache = std::make_unique<halo2::Cache>(map, root / "assets/disc/maps");
+        try {
+          cache = std::make_unique<halo2::Cache>(map, mcc ? std::filesystem::path(argv[3]) : root / "assets/disc/maps");
+        } catch(const std::exception& error) {
+          throw halo2::FormatError("Native cache construction failed for " + map.string() + ": " + error.what());
+        }
+        check(cache->is_mcc() == mcc, "Literal fixture resource namespace differs from its cache format");
         current_map = map;
         maps.insert(map);
       }
@@ -62,8 +68,8 @@ int main(int argc, char **argv) {
         std::size_t offset, size;
         check(bool(chunk >> kind >> std::quoted(source) >> offset >> size >> pointer >> size_flags) && kind == "C",
               "Incomplete original sound chunk descriptor");
-        check((std::stoul(pointer, nullptr, 16) & 0x3fffffffu) == offset &&
-                  (std::stoul(size_flags, nullptr, 16) & 0x3fffffffu) == size,
+        check((std::stoul(pointer, nullptr, 16) & (mcc ? 0xffffffffu : 0x3fffffffu)) == offset &&
+                  (std::stoul(size_flags, nullptr, 16) & (mcc ? 0x1fffffffu : 0x3fffffffu)) == size,
               "Literal original sound descriptor disagrees with owned-file range");
         const ResourceKey key{source, offset, size};
         auto found = resources.find(key);
@@ -83,7 +89,13 @@ int main(int argc, char **argv) {
         }
         expected.insert(expected.end(), found->second.begin(), found->second.end());
       }
-      const auto encoded = cache->load_sound(std::stoul(datum, nullptr, 16), pitch, permutation);
+      const auto encoded = [&] {
+        try { return cache->load_sound(std::stoul(datum, nullptr, 16), pitch, permutation); }
+        catch(const std::exception& error) {
+          throw halo2::FormatError("Native sound load failed map=" + map.string() + " sound=" + datum +
+              " pitch=" + std::to_string(pitch) + " permutation=" + std::to_string(permutation) + ": " + error.what());
+        }
+      }();
       check(encoded.codec == codec && encoded.channels == channels &&
                 encoded.sample_rate == rate && encoded.sound_class == sound_class &&
                 encoded.samples == samples && encoded.data == expected,
@@ -114,7 +126,8 @@ int main(int argc, char **argv) {
       }
     }
     check(cases > 0 && !maps.empty(), "No authored whole-map sound cases");
-    std::cout << "ownedMaps=" << maps.size() << " originalEncodedCases=" << cases
+    std::cout << (mcc ? "runtimeMccMaps=" : "ownedMaps=") << maps.size()
+              << (mcc ? " literalEncodedCases=" : " originalEncodedCases=") << cases
               << " exactEncodedBytes=" << checked_bytes << " originalChunkRanges=" << resources.size()
               << " uniqueDecodedResources=" << decoded.size() << " decodeFailures=" << decode_failures
               << " silentResources=" << silent_resources << " pcDecodedStereoFrames=" << decoded_frames

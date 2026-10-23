@@ -8,6 +8,12 @@
 
 namespace halo2 {
 class CollisionWorld;
+// Completed first WORLD node of an attached source projectile. Its parent
+// transform and animation have already been evaluated by the source owner.
+struct SourceProjectileGlowOwner {
+    std::uint32_t object{},definition{};
+    Transform first_world_node;
+};
 struct NativeWeaponProjectileDraw {
     std::uint32_t owner{},definition{};
     std::vector<Vertex> vertices;
@@ -60,7 +66,8 @@ public:
     void synchronize(std::span<const NativeWeaponProjectile>);
     const std::vector<NativeWeaponProjectileDraw>& draw_view(std::int32_t,const SourceObjectViewLod&);
     const std::vector<SourceLightVolumeDraw>& light_volume_view(unsigned,Vec3 actual_camera_forward,
-        const SourceViewProjectionBank &,RenderViewport,float actual_w_distance);
+        const SourceViewProjectionBank &,RenderViewport,float actual_w_distance,
+        std::span<const SourceProjectileGlowOwner> attached={});
 private:
     struct Impl;std::unique_ptr<Impl> impl_;
 };

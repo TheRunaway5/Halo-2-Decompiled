@@ -30,7 +30,7 @@ struct Host {
             MultiplayerPreparedWorld world(server);world.bind_source_local_views(world.local_slots);
             auto &match=world.match;const auto &cache=*world.cache;
             match.configure_replicated_first_person(cache.load_first_person_binding(world.rules.weapon,2));
-            const auto fingerprint=multiplayer_fingerprint(server.map,cache.shared_directory(),0,world.rules.weapon,server.gameplay_xbe);
+            const auto fingerprint=multiplayer_fingerprint(server.map,cache.shared_directory(),0,world.network_starting_weapon_identity(),server.gameplay_xbe);
             LanHost host(match,0,fingerprint);ready.set_value(host.port());published=true;
             std::array<Controls,multiplayer_capacity> controls{};std::unique_ptr<LanClient> late;
             std::array<std::optional<unsigned>,multiplayer_capacity> initial_ammunition;

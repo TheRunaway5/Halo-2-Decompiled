@@ -24,7 +24,7 @@ SourceShieldModelShaders::SourceShieldModelShaders(const Cache &cache,const Rend
     if(!prepare_shield_overlay_material(cache,material))
     {
         const auto tag=cache.query_tag({.handle=TagHandle{shader}});
-        std::string detail="source shield override requires a proved plasma pass: "+(tag?tag->name:std::to_string(shader));
+        std::string detail="source shield override requires a supported damaged-shield or overshield pass: "+(tag?tag->name:std::to_string(shader));
         for(const auto &pass:material.passes)detail+=" ["+pass.name+" vertex="+pass.vertex_shader+" vertex_externs="+std::to_string(pass.vertex_externs.size())+" pixel_externs="+std::to_string(pass.pixel_externs.size())+"]";
         throw FormatError(detail);
     }

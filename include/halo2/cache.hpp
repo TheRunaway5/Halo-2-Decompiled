@@ -240,6 +240,8 @@ struct Material {
     std::array<std::shared_ptr<Material>,3> world_planar_passes;
     bool water_reflection_texture{},water_refraction_texture{},water_pass{};
     bool scope_texture{}; // Original texture extern27, target16 during first person.
+    bool camouflage_scene_texture{}; // Original extern17 at stage2 of layer18; produced target19.
+    bool camouflage_group_pass{}; // Submitted only inside the source camouflage group.
     int water_definition=-1;
     std::vector<std::string> rendering_gaps;
     std::uint32_t source_shader_datum=0xffffffffu;

@@ -9,6 +9,12 @@ std::array<std::byte,4> encode(std::uint32_t value) {
 }
 }
 void mount_native_tu15_scalar_state_data(SourceRuntimeMemory& memory) {
+    // Original TU1.5 .data byte01, registered by47EE50 and read at1872C0
+    // before breakable-surface effect/fragment construction. This is cold
+    // loader state, kept writable and checkpointed with the source bank;
+    // never reapply its initial value during a map tick or restore.
+    memory.mount(0x47a2b0u,std::array{std::byte{1}},SourceRuntimeMemory::Access::ReadWrite,
+        "source1872C0 loader-initialized registered breakable effect flag");
     memory.mount(0x450268,encode(0x40857af5),SourceRuntimeMemory::Access::ReadOnly,"source1F3830 first scalar operand");
     memory.mount(0x450270,encode(0x3a902de0),SourceRuntimeMemory::Access::ReadOnly,"source1F3830 third scalar operand");
     memory.mount(0x474d04,encode(0x44abec),SourceRuntimeMemory::Access::ReadOnly,"source1F3830 vector identity");

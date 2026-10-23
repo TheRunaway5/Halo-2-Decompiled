@@ -4,6 +4,7 @@
 
 namespace halo2 {
 // Completed original object state for source-created equipment/debris/crates
+// and attached projectiles
 // without an authored placement. No parallel body, local birth time or model
 // animation is invented. WORLD nodes travel in the shared source pose bank.
 struct SourceDynamicObject {
@@ -14,6 +15,7 @@ struct SourceDynamicObject {
     ShadowCasterSphere sphere;
     std::uint32_t runtime_flags{};
     std::uint16_t control_flags{};
+    float camouflage{}; // Completed TU33660 first-biped scalar37.
     bool visible{},frozen{},has_world_nodes{};
     SourceModelRegionBank regions;
     std::vector<Vec3> colors;

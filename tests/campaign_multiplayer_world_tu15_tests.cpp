@@ -248,7 +248,7 @@ int main(int argc,char **argv) {
         }
         if(world.match.state().finished)throw FormatError("Campaign inherited multiplayer round end without a registered original engine");
         report["stage"]="admit the complete actual campaign state over loopback UDP";
-        const auto fingerprint=multiplayer_fingerprint(options.map,world.cache->shared_directory(),options.bsp,world.rules.weapon,options.gameplay_xbe);
+        const auto fingerprint=multiplayer_fingerprint(options.map,world.cache->shared_directory(),options.bsp,world.network_starting_weapon_identity(),options.gameplay_xbe);
         LanHost host(world.match,0,fingerprint,options.variant);
         LanClient peer("127.0.0.1:"+std::to_string(host.port()),fingerprint,1);
         for(unsigned attempt=0;attempt<64 && !peer.ready();++attempt) {

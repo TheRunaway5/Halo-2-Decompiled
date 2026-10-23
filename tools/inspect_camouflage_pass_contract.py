@@ -15,10 +15,9 @@ import json
 import struct
 from pathlib import Path
 
-from oracle_camouflage_overlay import CamouflageOverlay, HANDLE
-from oracle_camouflage_render_context import Context, HudCache, ROOT, sha
+from oracle_camouflage_overlay import CamouflageOverlay, HANDLE, sha
 from oracle_mp_spawn import Cache
-from oracle_multiplayer_hud_positions import PIN, STOP
+from oracle_multiplayer_hud_positions import PIN, STOP, ROOT, Xbe
 from oracle_damage_feedback import bits
 from unicorn.x86_const import UC_X86_REG_EAX, UC_X86_REG_ECX, UC_X86_REG_ESP, UC_X86_REG_EDI, UC_X86_REG_ESI, UC_X86_REG_XMM0
 from disasm import listing
@@ -55,12 +54,12 @@ def main():
     ap.add_argument('--output', type=Path, default=OUT)
     a = ap.parse_args()
     a.output.mkdir(parents=True, exist_ok=True)
-    static = Context('retail', HudCache(ROOT / 'assets/disc/maps/lockout.map'))
+    static = Xbe(ROOT / 'assets/disc/default.xbe')
     rows = read_rows(FUNCTIONS_CSV)
     listings = []
     for name, entry in OWNERS.items():
         row = rows[entry]
-        data = static.image.read(entry, int(row['size']))
+        data = static.read(entry, int(row['size']))
         p = a.output / f'{name}-{entry:08x}.asm'
         p.write_text(f'{entry:08x} indexed_bytes={len(data)} sha256={hashlib.sha256(data).hexdigest()}\n'
                      + '\n'.join(listing(data, entry, rows)) + '\n')

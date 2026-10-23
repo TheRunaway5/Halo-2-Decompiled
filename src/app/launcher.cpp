@@ -30,6 +30,8 @@
 #endif
 
 namespace {
+// Keep the legacy executable names for shortcuts and release forwarding.
+// Both entry points now play the intro before the title screen.
 #ifdef HALO2_TITLE_FIRST
 constexpr bool title_first = true;
 #else
@@ -511,12 +513,12 @@ int main(int argc, char **argv) {
     bool frontend=!frontend_owner.empty();
     const bool help=has("--help") || has("-h");
     if(has("--launcher-info")) {
-      const bool stale_frontend=has_frontend_selection(installation.root) && !frontend && !installation.qualified_multiplayer;
+      const bool stale_frontend=has_frontend_selection(installation.root) && !frontend;
       std::cout << "Project: " << installation.root.string() << '\n'
                 << "Resources: " << installation.resources.string() << '\n'
                 << "Runtime: " << (installation.runtime.empty()?"not built":installation.runtime.string()) << '\n'
                 << "Frontend runtime: " << (frontend_owner.empty()?"unavailable":frontend_owner.string()) << '\n'
-                << (installation.qualified_multiplayer?"Default: qualified MCC multiplayer\n":title_first?"Default: title screen (skip boot intro) and menus\n":"Default: startup intro, title screen and menus\n")
+                << "Default: startup intro, title screen and menus\n"
                 << "Asset source: Halo MCC only\n"
                 << "MCC cache prepared: " << (sources.ready()?"yes":"no — scan MCC with --setup") << '\n'
                 << "MCC cache: " << sources.cache.string() << '\n'
@@ -526,9 +528,9 @@ int main(int argc, char **argv) {
                 << "Native MCC frontend: " << (frontend?"available":"unavailable") << '\n'
                 << "Qualified MCC multiplayer: " << (installation.qualified_multiplayer?"available":"unavailable") << '\n'
                 << "Gameplay default video driver: " << (installation.multiplayer_video_driver.empty()?"SDL default":installation.multiplayer_video_driver) << '\n'
-                << "Play: " << (installation.qualified_multiplayer?"MCC multiplayer":stale_frontend?"unavailable (selected independent MCC frontend is unavailable or changed)":frontend?"MCC title screen and menus":sources.playable?"native gameplay":native_test?"native Lockout gameplay test":sources.ready()?"MCC content test build":"import MCC first") << '\n'
+                << "Play: " << (frontend?"MCC intro, title screen and menus":stale_frontend?"unavailable (selected independent MCC frontend is unavailable or changed)":"unavailable (game menu needs validation)") << '\n'
                 << "MCC content preview: " << (sources.ready()?"available":"import MCC first") << '\n'
-                << "Status: " << (installation.qualified_multiplayer?"Play opens the qualified MCC multiplayer runtime.":stale_frontend?"The selected independent MCC menu runtime is unavailable or changed. Repair its selection to enable Play.":!sources.problem.empty()?sources.problem:
+                << "Status: " << (frontend?"Play opens the intro, title screen and main menu.":stale_frontend?"The selected independent MCC menu runtime is unavailable or changed. Repair its selection to enable Play.":!sources.problem.empty()?sources.problem:
                     !sources.ready()?"MCC has not been imported yet. Run --setup.":
                     !sources.playable?(native_test?"Interim native gameplay test; full Xbox TU1.5 gameplay, visual and audio parity remain incomplete.":not_playable):"MCC detection and private-cache import selected") << '\n'
                 << "Shaders: existing native Vulkan shaders\n" << std::flush;
@@ -546,10 +548,10 @@ int main(int argc, char **argv) {
           "--launcher-info reports cache and native-gameplay readiness.\n"
           "--build-engine builds current local engine sources, checks MCC frame submission, and selects the passing runtime.\n"
           "An exact validated native-test build can expose local Lockout testing independently of full TU1.5 parity.\n"
-          "A separately validated MCC frontend opens the title and menus by default; --native-test opens Lockout.\n"
+          "Play opens the intro, title screen and main menu; --native-test opens Lockout.\n"
           "--preview-mcc [--map NAME] previews imported map assets with the existing renderer.\n"
           "--update downloads verified prebuilt binaries for this platform; --launch-game skips the launcher home.\n"
-          "Without frontend or native-test validation, Play and --launch-game open the MCC content preview.\n";
+          "Play requires a validated menu runtime. Diagnostic modes remain explicit command-line options.\n";
       return 0;
     }
     if(update) {
@@ -594,10 +596,12 @@ int main(int argc, char **argv) {
         has("--simulate") || has("--host") || has("--join") || has("--dedicated");
     const bool menu_requested=has("--menu") || has("--menu-screen") || has("--menu-audit") ||
         has("--menu-sweep") || has("--menu-maps") || has("--menu-movie");
-    const bool multiplayer_route=installation.qualified_multiplayer && !preview && !menu_requested;
+    const bool multiplayer_route=installation.qualified_multiplayer && !preview && !menu_requested && (gameplay_requested || native_requested);
     const bool frontend_route=frontend && !preview && !native_requested && !gameplay_requested && !multiplayer_route;
     if(has_frontend_selection(installation.root) && !frontend && !preview && !native_requested && !gameplay_requested && !multiplayer_route)
       throw std::runtime_error("The selected independent MCC frontend is unavailable or changed. The native Lockout test remains available through --native-test.");
+    if(!preview && !native_requested && !gameplay_requested && !frontend && !sources.playable)
+      throw std::runtime_error("The game menu is unavailable. Update or repair the installed game files.");
     if(multiplayer_route) {
       std::vector<std::string> validation{installation.python(),installation.tool("gameplay_runtime_selection.py").string(),
           "--root",installation.root.string(),"--runtime",installation.runtime.string(),"--"};
@@ -684,12 +688,9 @@ int main(int argc, char **argv) {
     if (frontend_route && !has("--menu-screen") && !has("--menu-audit") &&
         !has("--menu-sweep") && !has("--menu-movie")) {
       arguments.insert(arguments.end(),{"--menu-screen","9"});
-      if(title_first && !has("--skip-intro"))arguments.push_back("--skip-intro");
     } else if (!custom) {
       arguments.push_back("--menu-screen");
       arguments.push_back("9");
-      if (title_first)
-        arguments.push_back("--skip-intro");
     }
     const bool menu_route = frontend_route || !custom || has("--menu") || has("--menu-screen") ||
                             has("--menu-sweep") || has("--menu-audit") ||

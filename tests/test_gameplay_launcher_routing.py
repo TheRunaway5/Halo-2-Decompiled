@@ -69,17 +69,25 @@ class GameplayLauncherRoutingTests(unittest.TestCase):
         self.assertEqual(rows[0]['owner'], 'selected-gameplay')
         return rows[0]['argv']
 
-    def test_play_uses_selected_runtime_multiplayer_defaults(self):
-        argv = self.routed('--launch-game', '--frames', '6', '--mute')
+    def test_play_opens_intro_and_menus_even_when_multiplayer_is_qualified(self):
+        # Menu assets must belong to the admitted frontend, just as at launch.
+        for path in (self.cache/'ui').iterdir(): path.unlink()
+        (self.cache/'ui').rmdir()
+        result = self.run_launcher('--launch-game', '--frames', '6', '--mute')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        row = next(json.loads(line[7:]) for line in result.stdout.splitlines() if line.startswith('ROUTED '))
+        self.assertEqual(row['owner'], 'frontend')
+        self.assertIn('--menu-screen', row['argv'])
+        self.assertNotIn('--skip-intro', row['argv'])
+        self.assertNotIn('--multiplayer', row['argv'])
+
+    def test_explicit_multiplayer_uses_qualified_defaults(self):
+        argv = self.routed('--multiplayer', '--frames', '6', '--mute')
         self.assertEqual(argv[0], str(self.runtime))
-        self.assertIn('--multiplayer', argv)
         self.assertEqual(argv[argv.index('--map')+1], str(self.maps/'coagulation.map'))
         self.assertEqual(argv[argv.index('--local-players')+1], '2')
         self.assertNotIn('--menu-screen', argv)
-        self.assertNotIn('--mp-source-object-world', argv)
         self.assertNotIn('--hud-ui-assets', argv)
-        self.assertNotIn('--pause-ui-assets', argv)
-        self.assertFalse(json.loads((self.cache/'provenance.json').read_text())['full_tu15_parity'])
 
     def test_explicit_map_and_split_count_reach_the_selected_owner(self):
         argv = self.routed('--multiplayer', '--map', 'beavercreek.map', '--local-players', '4')
@@ -91,7 +99,7 @@ class GameplayLauncherRoutingTests(unittest.TestCase):
         result = self.run_launcher('--launcher-info')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('Runtime: '+str(self.runtime), result.stdout)
-        self.assertIn('Play: MCC multiplayer', result.stdout)
+        self.assertIn('Play: unavailable', result.stdout)
         self.assertIn('Native MCC gameplay ready: no', result.stdout)
         self.assertNotIn('ROUTED ', result.stdout)
 
@@ -110,7 +118,7 @@ class GameplayLauncherRoutingTests(unittest.TestCase):
             with self.subTest(path=path):
                 old = path.read_bytes()
                 path.write_bytes(old+b'changed')
-                result = self.run_launcher('--launch-game')
+                result = self.run_launcher('--multiplayer')
                 self.assertNotEqual(result.returncode, 0)
                 self.assertNotIn('ROUTED ', result.stdout)
                 path.write_bytes(old)
@@ -119,13 +127,13 @@ class GameplayLauncherRoutingTests(unittest.TestCase):
         for name in ('../escape', str(self.runtime), 'delivery/../delivery/halo2_native'):
             with self.subTest(name=name):
                 self.manifest.write_text(json.dumps(dict(self.record, runtime=name)))
-                self.assertNotEqual(self.run_launcher('--launch-game').returncode, 0)
+                self.assertNotEqual(self.run_launcher('--multiplayer').returncode, 0)
         self.publish()
         for args in (('--map', str(self.root/'foreign.map')), ('--campaign',),
                      ('--gameplay-xbe', '/original/default.xbe'),
                      ('--map', 'coagulation.map', '--map', 'beavercreek.map')):
             with self.subTest(args=args):
-                result = self.run_launcher('--launch-game', *args)
+                result = self.run_launcher('--multiplayer', *args)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertNotIn('ROUTED ', result.stdout)
 
@@ -135,7 +143,7 @@ class GameplayLauncherRoutingTests(unittest.TestCase):
         for override, expected in ((None, 'x11'), ('dummy', 'dummy')):
             if override is not None:
                 self.base.env['SDL_VIDEODRIVER'] = override
-            result = self.run_launcher('--launch-game', '--frames', '1')
+            result = self.run_launcher('--multiplayer', '--frames', '1')
             self.assertEqual(result.returncode, 0, result.stderr)
             row = next(json.loads(line[7:]) for line in result.stdout.splitlines() if line.startswith('ROUTED '))
             self.assertEqual(row['video_driver'], expected)

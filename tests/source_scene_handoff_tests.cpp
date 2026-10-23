@@ -64,7 +64,7 @@ template<class Scene,class Mutate>void restore_guards(Scene &scene,Scene &foreig
     check(!scene.restore_ready(ready),"Callback draw failed to invalidate preparation revision");
 }
 void dynamic_exact(const SourceDynamicObjectDraw &a,const SourceDynamicObjectDraw &b){
-    model(a,b);check(a.object==b.object&&same(a.colors,b.colors)&&a.prt.size()==b.prt.size(),"Dynamic exact checkpoint changed owner/colors/PRT");
+    model(a,b);check(a.object==b.object&&a.camouflage==b.camouflage&&same(a.colors,b.colors)&&a.prt.size()==b.prt.size(),"Dynamic exact checkpoint changed owner/colors/PRT/camouflage");
     for(std::size_t n=0;n<a.prt.size();++n)check(a.prt[n].material==b.prt[n].material&&a.prt[n].section==b.prt[n].section&&a.prt[n].bank==b.prt[n].bank,"Dynamic exact checkpoint changed owning PRT draw links");
 }
 void glow_exact(const SourceLightVolumeDraw &a,const SourceLightVolumeDraw &b){

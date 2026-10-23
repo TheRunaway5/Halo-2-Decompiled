@@ -364,6 +364,12 @@ MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& opt
       }
   }
 }
+std::uint32_t MultiplayerPreparedWorld::network_starting_weapon_identity() const {
+  if(!cache->is_mcc())return rules.weapon;
+  const auto &configuration=match.session_configuration();
+  if(!configuration)throw FormatError("MCC loading identity requires its admitted configuration");
+  return std::uint32_t(source_game_variant_get(source_game_variant(*configuration),89));
+}
 void MultiplayerPreparedWorld::bind_source_local_views(std::span<const unsigned> locals) {
   if(!source_objects||!source_objects->owns_physics()||!cache->original_data()||cache->original_data()->image!=OriginalData::Image::TitleUpdate15)
     throw FormatError("Source local views require this world's actual TU1.5 owner");

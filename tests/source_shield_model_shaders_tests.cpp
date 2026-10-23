@@ -37,7 +37,7 @@ void original(const std::filesystem::path &path) {
 }
 void models(const Cache &cache) {
     const auto content=cache.load_content(0,true);unsigned models=0,parts=0,vertices=0,views=0,geometry_banks=0;
-    for(unsigned representation:{2u,3u})for(bool first_person:{false,true}) {
+    for(unsigned representation:{2u,3u})for(bool first_person:{false,true})for(bool overshield:{false,true}) {
         const auto &r=content.player_representations.at(representation);
         const auto header=cache.load_source_tag_metadata(r.biped.model);
         const auto mode=first_person?r.hands:Bytes(header.bytes_at(header.source_address(),8)).u32(4);
@@ -59,7 +59,10 @@ void models(const Cache &cache) {
             }
         }
         const auto initial=model.mesh.vertices;
-        const auto shader=first_person?r.biped.vitality.shield_damaged_first_person_shader:r.biped.vitality.shield_damaged_shader;
+        const auto &vitality=r.biped.vitality;
+        const auto shader=overshield?
+            (first_person?vitality.overshield_first_person_shader:vitality.overshield_shader):
+            (first_person?vitality.shield_damaged_first_person_shader:vitality.shield_damaged_shader);
         SourceShieldModelShaders resident(cache,model,mode,shader);
         check(model.mesh.vertices.size()==initial.size()&&std::memcmp(model.mesh.vertices.data(),initial.data(),initial.size()*sizeof(Vertex))==0,
               "Shield resident bank changed source geometry");
@@ -104,8 +107,8 @@ void models(const Cache &cache) {
         }
         ++models;
     }
-    check(models==4&&geometry_banks==14&&vertices>1000&&parts>0,"Incomplete actual shield resident coverage");
-    std::cout<<models<<" actual body/arms models across "<<geometry_banks<<" authored geometry banks, "<<views<<" independent view selections, "<<parts<<" part checks and "<<vertices<<" unchanged posed vertices\n";
+    check(models==8&&geometry_banks==28&&vertices>1000&&parts>0,"Incomplete actual shield resident coverage");
+    std::cout<<models<<" body/arms override cases across "<<geometry_banks<<" authored geometry bank selections, "<<views<<" independent view selections, "<<parts<<" part checks and "<<vertices<<" unchanged posed vertices\n";
 }
 }
 int main(int argc,char **argv) {

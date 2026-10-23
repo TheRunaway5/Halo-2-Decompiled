@@ -972,6 +972,7 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     for(const auto &v:o.transform.basis)for(float f:{v.x,v.y,v.z})put_float(p,f);
     for(const auto v:{o.transform.position,o.velocity,o.sphere.center})for(float f:{v.x,v.y,v.z})put_float(p,f);
     put_float(p,o.sphere.radius);put(p,o.runtime_flags,4);put(p,o.control_flags,2);
+    put_float(p,o.camouflage);
     const auto &s=o.regions.selection;put(p,std::bit_cast<std::uint32_t>(s.variant_index),4);put(p,s.permutations.size(),1);
     for(unsigned i=0;i<s.permutations.size();++i) {
       put(p,s.permutations[i],1);put(p,std::uint8_t(s.states[i].variant_permutation),1);
@@ -1582,6 +1583,7 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     o.transform.scale=r.real();for(auto &v:o.transform.basis)v={r.real(),r.real(),r.real()};
     o.transform.position={r.real(),r.real(),r.real()};o.velocity={r.real(),r.real(),r.real()};
     o.sphere.center={r.real(),r.real(),r.real()};o.sphere.radius=r.real();o.runtime_flags=r.get(4);o.control_flags=r.get(2);
+    o.camouflage=r.real();
     auto &model=o.regions.selection;model.variant_index=r.integer();const auto count=r.get(1);
     if(count>16)throw FormatError("Source dynamic region count exceeds original16 slots");
     for(unsigned i=0;i<count;++i) {

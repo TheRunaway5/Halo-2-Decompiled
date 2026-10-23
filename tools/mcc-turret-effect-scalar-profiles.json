@@ -1,0 +1,127 @@
+{
+  "schema": "H2_MCC_TU15_TURRET_EFFECT_FLAGS_V1",
+  "scope": "Exact turret firing, impact, shell-explosion and shared overheat effect RNG selectors. No sound or particle equivalence is inferred.",
+  "behavioral_authority": "TU1.5 17AAB0 selects 4F3CD8 word0 for effe bit2 and word1 otherwise; original instructions and map metadata are the authority.",
+  "reference_scope_sha256": "6855b4f33585b332ca82e4b688b9e29c6a7a04eca5757c1bc8fe9b20640c6a1b",
+  "source_census": "analysis/turrets-tu15-20261022/contracts-v2.json",
+  "source_census_sha256": "4c4fdd3407971390bfef3eb102c5e33558047474da817766f62bdedcee749a1a",
+  "profiles": [
+    {
+      "group": "effe",
+      "name": "effects\\objects\\vehicles\\warthog\\gauss\\gauss_fire",
+      "offset": 0,
+      "bytes": 4,
+      "donor_bits": "00000000",
+      "target_bits": "00000004",
+      "observed_maps": [
+        "01b_spacestation.map",
+        "03a_oldmombasa.map",
+        "03b_newmombasa.map",
+        "05a_deltaapproach.map",
+        "06b_floodzone.map",
+        "ascension.map",
+        "beavercreek.map",
+        "burial_mounds.map",
+        "coagulation.map",
+        "colossus.map",
+        "cyclotron.map",
+        "foundation.map",
+        "headlong.map",
+        "lockout.map",
+        "midship.map",
+        "waterworks.map",
+        "zanzibar.map",
+        "containment.map",
+        "warlock.map",
+        "deltatap.map",
+        "turf.map",
+        "backwash.map",
+        "dune.map",
+        "elongation.map",
+        "gemini.map",
+        "triplicate.map",
+        "derelict.map",
+        "highplains2.map"
+      ]
+    },
+    {
+      "group": "effe",
+      "name": "effects\\objects\\weapons\\fixed\\plasma_cannon\\plasma_cannon_fire",
+      "offset": 0,
+      "bytes": 4,
+      "donor_bits": "00000000",
+      "target_bits": "00000004",
+      "observed_maps": [
+        "01b_spacestation.map",
+        "03a_oldmombasa.map",
+        "03b_newmombasa.map",
+        "04a_gasgiant.map",
+        "04b_floodlab.map",
+        "05a_deltaapproach.map",
+        "05b_deltatowers.map",
+        "06b_floodzone.map",
+        "07a_highcharity.map"
+      ]
+    },
+    {
+      "group": "effe",
+      "name": "effects\\objects\\weapons\\rifle\\plasma_rifle\\overheated",
+      "offset": 0,
+      "bytes": 4,
+      "donor_bits": "00000000",
+      "target_bits": "00000004",
+      "observed_maps": [
+        "03a_oldmombasa.map",
+        "05a_deltaapproach.map"
+      ]
+    },
+    {
+      "group": "effe",
+      "name": "objects\\vehicles\\phantom\\plasma_turret\\weapons\\effects\\phantom_turret_impact",
+      "offset": 0,
+      "bytes": 4,
+      "donor_bits": "00000002",
+      "target_bits": "00000006",
+      "observed_maps": [
+        "03a_oldmombasa.map",
+        "05a_deltaapproach.map"
+      ]
+    },
+    {
+      "group": "effe",
+      "name": "effects\\impact\\explosion_large\\scorpion_shell\\shell_explosion",
+      "offset": 0,
+      "bytes": 4,
+      "donor_bits": "00000002",
+      "target_bits": "00000006",
+      "observed_maps": [
+        "03b_newmombasa.map",
+        "05a_deltaapproach.map",
+        "06b_floodzone.map",
+        "ascension.map",
+        "beavercreek.map",
+        "burial_mounds.map",
+        "coagulation.map",
+        "colossus.map",
+        "cyclotron.map",
+        "foundation.map",
+        "headlong.map",
+        "lockout.map",
+        "midship.map",
+        "waterworks.map",
+        "zanzibar.map",
+        "containment.map",
+        "warlock.map",
+        "deltatap.map",
+        "turf.map",
+        "backwash.map",
+        "dune.map",
+        "elongation.map",
+        "gemini.map",
+        "triplicate.map",
+        "derelict.map",
+        "highplains2.map"
+      ]
+    }
+  ]
+}

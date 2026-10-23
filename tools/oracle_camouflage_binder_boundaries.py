@@ -16,7 +16,6 @@ import struct
 from pathlib import Path
 
 from oracle_camouflage_overlay import CamouflageOverlay
-from oracle_camouflage_render_context import ROOT, sha
 from oracle_damage_feedback import bits
 from oracle_mp_spawn import Cache, CACHE_PIN
 from oracle_multiplayer_hud_positions import PIN, STOP
@@ -24,6 +23,10 @@ from unicorn.x86_const import UC_X86_REG_EAX, UC_X86_REG_EBX, UC_X86_REG_ECX, UC
 from disasm import listing
 from inventory import read_rows
 from xbe import FUNCTIONS_CSV
+
+ROOT = Path(__file__).resolve().parents[1]
+def sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 OUT = ROOT / 'analysis/multiplayer/game-variants/camouflage-binder-20261011'
 PRIOR = ROOT / 'analysis/multiplayer/game-variants/camouflage-pass-20261011/report.json'
@@ -103,9 +106,12 @@ def command_context(o):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--output', type=Path, default=OUT)
+    ap.add_argument('--prior',type=Path,default=PRIOR)
+    ap.add_argument('--prior-sha256',default=PRIOR_PIN,
+                    help='Explicit digest for a freshly regenerated original pass corpus')
     args = ap.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
-    assert sha(PRIOR) == PRIOR_PIN
+    assert sha(args.prior) == args.prior_sha256
     assert sha(ROOT / 'assets/disc/maps/lockout.map') == CACHE_PIN
     cache = Cache(ROOT / 'assets/disc/maps/lockout.map')
     o = BinderTrace(cache)
@@ -113,7 +119,7 @@ def main():
     bank = o.alloc(bytes(0x1800))
     command = command_context(o)
     o.recording = True
-    source_rows = json.loads(PRIOR.read_text())['cases']
+    source_rows = json.loads(args.prior.read_text())['cases']
     state_cases = []
     for index, source in enumerate(source_rows):
         post, impl = program(o, source['layer'], source['implementation'])
@@ -215,7 +221,7 @@ def main():
     dependencies = [Path(__file__).resolve(), ROOT / 'tools/oracle_camouflage_overlay.py', ROOT / 'tools/oracle_shield_overlay.py',
                     ROOT / 'tools/oracle_damage_feedback.py', ROOT / 'tools/oracle_multiplayer_hud_positions.py',
                     ROOT / 'tools/oracle_camouflage_render_context.py', ROOT / 'tools/oracle_mp_spawn.py',
-                    ROOT / 'assets/disc/maps/lockout.map', PRIOR]
+                    ROOT / 'assets/disc/maps/lockout.map', args.prior]
     report = dict(schema='original-camouflage-binder-boundaries-v1', boundary=__doc__, xbe_sha256=PIN, cache_sha256=CACHE_PIN,
                   state_cases=state_cases, pass_entry_prefixes=prefix_cases, owners=owners,
                   literal_state_slot0_hex=o.image.read(0x467020, 4).hex(),

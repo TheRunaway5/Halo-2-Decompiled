@@ -60,7 +60,9 @@ SourceParticleRenderStateTu15 source_particle_render_state_tu15(
             ParticleRenderParticle value;value.identity=particle;
             value.values={scalar(p+8),scalar(p+0x10),scalar(p+0x38),vector(p+0x1c),
                 {short_word(p+0x14),short_word(p+0x16),short_word(p+0x18),short_word(p+0x1a)}};
-            value.velocity=vector(p+0x28);value.seed_color=word(p+0x34);
+            // +34 is angular velocity. Original224550 consumes the packed
+            // lighting color at +3C, after the independent +38 phase.
+            value.velocity=vector(p+0x28);value.seed_color=word(p+0x3c);
             emitter.particles.push_back(value);particle=word(p+4);
         }
         if(emitter.particles.size()!=short_word(e+2))

@@ -117,11 +117,16 @@ Texture source_motion_sensor_composite(const MotionSensorRenderPlan &plan,
     if(!t->width || !t->height || t->format!=11 ||
        t->pixels.size()<std::size_t(t->width)*t->height*4)
       throw FormatError("Original motion-sensor artwork must be decoded RGBA");
-  auto sample=[](const Texture &t,float u,float v,float lod,float border_alpha=0.f) {
+  struct PreparedSample {const Texture *texture;unsigned width,height;std::size_t offset;};
+  auto prepare=[](const Texture &t,float lod) {
     const auto level=t.mips.empty()?0u:unsigned(std::clamp(int(std::floor(lod+.5f)),0,int(t.mips.size()-1)));
     const auto width=t.mips.empty()?t.width:t.mips[level].width,
                height=t.mips.empty()?t.height:t.mips[level].height;
     const auto offset=t.mips.empty()?0:t.mips[level].offset;
+    return PreparedSample{&t,width,height,offset};
+  };
+  auto sample=[](const PreparedSample &s,float u,float v,float border_alpha=0.f) {
+    const auto &t=*s.texture;const auto width=s.width,height=s.height;const auto offset=s.offset;
     const float x=u*width-.5f,y=v*height-.5f;
     const int ix=int(std::floor(x)),iy=int(std::floor(y));
     const float fx=x-ix,fy=y-iy;
@@ -164,21 +169,25 @@ Texture source_motion_sensor_composite(const MotionSensorRenderPlan &plan,
           right=std::min(int(raster_size),int(std::ceil(x1*density-.5f))),
           top=std::max(0,int(std::ceil(y0*density-.5f))),
           bottom=std::min(int(raster_size),int(std::ceil(y1*density-.5f)));
+      if(left>=right || top>=bottom)continue;
+      const auto prepared_blip=prepare(texture,
+          std::log2(std::max(float(texture.width)/((x1-x0)*density),
+                            float(texture.height)/((y1-y0)*density))));
       for(int y=top;y<bottom;++y)for(int x=left;x<right;++x) {
-        const auto texel=sample(texture,((x+.5f)/density-x0)/(x1-x0),
-                                (y1-(y+.5f)/density)/(y1-y0),
-                                std::log2(std::max(float(texture.width)/((x1-x0)*density),
-                                                  float(texture.height)/((y1-y0)*density))));
+        const auto texel=sample(prepared_blip,((x+.5f)/density-x0)/(x1-x0),
+                                (y1-(y+.5f)/density)/(y1-y0));
         auto &pixel=target[y*raster_size+x];
         const std::array<float,3> rgb{b.color.x,b.color.y,b.color.z};
         for(unsigned c=0;c<3;++c)pixel[c]=quantize(pixel[c]+texel[c]*b.scale*rgb[c]);
       }
     }
+    const auto prepared_sweep=prepare(art.sweep,
+        std::log2(plan.pulse*(raster_size==64?1.f:float(art.sweep.width)/raster_size)));
+    const auto prepared_mask=prepare(art.mask,0);
     for(unsigned y=0;y<raster_size;++y)for(unsigned x=0;x<raster_size;++x) {
       const float u=(x+.5f)/raster_size,v=(y+.5f)/raster_size;
-      const auto sweep=sample(art.sweep,.5f+plan.pulse*(.5f-u),
-                                        .5f+plan.pulse*(v-.5f),
-                                        std::log2(plan.pulse*(raster_size==64?1.f:float(art.sweep.width)/raster_size)),70.f/255);
+      const auto sweep=sample(prepared_sweep,.5f+plan.pulse*(.5f-u),
+                                        .5f+plan.pulse*(v-.5f),70.f/255);
       auto &pixel=target[y*raster_size+x];
       const std::array<float,3> rgb{color.x,color.y,color.z};
       for(unsigned c=0;c<3;++c)pixel[c]=quantize(sweep[c]*rgb[c]+pixel[c]*sweep[3]);
@@ -187,12 +196,13 @@ Texture source_motion_sensor_composite(const MotionSensorRenderPlan &plan,
       // sweep and mask. Their source alpha controls RGB blending, but must
       // not become destination alpha: the final ONE/INVSRCALPHA pass would
       // otherwise darken the authored background and expose a square pulse.
-      const float mask=sample(art.mask,1-u,v,0,70.f/255)[3];
+      const float mask=sample(prepared_mask,1-u,v,70.f/255)[3];
       for(auto &channel:pixel)channel=quantize(channel*mask);
     }
   }
+  auto *output_bytes=out.pixels.data();
   for(unsigned p=0;p<target.size();++p)for(unsigned c=0;c<4;++c)
-    out.pixels[p*4+c]=std::byte(unsigned(std::round(target[p][c]*255)));
+    output_bytes[p*4+c]=std::byte(unsigned(std::round(target[p][c]*255)));
   return out;
 }
 } // namespace halo2

@@ -87,6 +87,14 @@ using SourceSoundSubmitObserverTu15=std::function<void(bool,std::uint32_t,
 // admission/voice result. Independent of diagnostic instruction tracing.
 using SourceSoundRequestObserverTu15=std::function<void(std::uint32_t,
     std::span<const std::byte,160>)>;
+// Actual220C60 call arguments and its full68-byte caller location, copied
+// before the unchanged original call. arguments[4] is historical source
+// backing, never a pointer for a native consumer to retain or dereference.
+struct SourceLoopSoundRequestTu15 {
+    std::array<std::uint32_t,8> arguments;
+    std::array<std::byte,68> location;
+};
+using SourceLoopSoundRequestObserverTu15=std::function<void(const SourceLoopSoundRequestTu15 &)>;
 struct SourceTeleporterActivationTu15 {
     std::uint32_t player{},sound=0xffffffffu;
 };
@@ -292,6 +300,7 @@ public:
     void observe_first_person_phase(SourceFirstPersonPhaseObserverTu15);
     void observe_sound_submissions(SourceSoundSubmitObserverTu15);
     void observe_sound_requests(SourceSoundRequestObserverTu15);
+    void observe_loop_sound_requests(SourceLoopSoundRequestObserverTu15);
     void observe_effect_light_births(SourceEffectLightBirthObserverTu15);
     // Bind an actual owned EEPROM resource before source audio construction.
     // This retains only its immutable non-key UserSettings section; absence

@@ -16,11 +16,14 @@ std::vector<std::uint32_t> words(const Material &m) {
   return result;
 }
 struct Result {FunctionValue input;std::vector<std::uint32_t> baseline,animated;};
-Result evaluate(const Cache &cache,std::span<const std::uint32_t> row) {
+Result evaluate(const Cache &cache,std::span<const std::uint32_t> row,float camouflage=0.f) {
   check(row.size()==8,"Shield material fixture fields");
   auto material=cache.load_material(row[0]);
   check(!material.forward_pass,"Unresolved shield pass was admitted by ordinary material binder");
   check(prepare_shield_overlay_material(cache,material),"Authored shield pass binding failed");
+  bind_object_camouflage(material,camouflage);
+  const bool overshield=material.passes.at(material.forward_pass_index).name==
+      "shaders\\shader_passes\\plasma\\overshield";
   check(material.source_shader_datum==row[0]&&material.selected_shader_lod==0&&
         material.forward_pass_index==0&&material.forward_vertex==1&&material.forward_blend==3,
         "Shield authored pass selection changed");
@@ -43,7 +46,8 @@ Result evaluate(const Cache &cache,std::span<const std::uint32_t> row) {
           return {};
         });
   };
-  Result result;result.input=input(row[1]==0xea1b0896u?0x12001a0bu:0x0a0012b4u);
+  Result result;result.input=input(overshield?0x1800055au:
+      row[1]==0xea1b0896u?0x12001a0bu:0x0a0012b4u);
   result.baseline=words(material);
   const double seconds=std::bit_cast<double>(std::uint64_t(row[6])|(std::uint64_t(row[7])<<32));
   check(animate_forward_material(material,seconds,[&](auto name){return input(name).value;}),
@@ -58,16 +62,18 @@ Result evaluate(const Cache &cache,std::span<const std::uint32_t> row) {
 }
 int main(int argc,char **argv) {
   try {
-    check(argc==3,"Supply Lockout and shield material fixture/--probe");
+    check(argc==3 || (argc==4 && std::string(argv[3])=="--camouflage"),
+        "Supply Lockout and shield material fixture/--probe, optionally --camouflage");
     if(!std::filesystem::exists(argv[1]))return 77;
-    Cache cache(argv[1]);const bool probe=std::string(argv[2])=="--probe";
+    Cache cache(argv[1]);const bool camouflaged=std::string(argv[2])=="--probe-camouflaged" || argc==4;
+    const bool probe=std::string(argv[2])=="--probe" || std::string(argv[2])=="--probe-camouflaged";
     std::ifstream file;if(!probe){if(!std::filesystem::exists(argv[2]))return 77;file.open(argv[2]);}
     auto &stream=probe?std::cin:file;unsigned count=0;bool responds=false;
     for(std::string line;std::getline(stream,line);) {
       if(line.empty()||line[0]=='#')continue;
       std::istringstream row(line);row>>std::hex;std::array<std::uint32_t,8> fields{};
       for(auto &value:fields)check(bool(row>>value),"Truncated shield material input");
-      const auto result=evaluate(cache,fields);
+      const auto result=evaluate(cache,fields,camouflaged?1.f:0.f);
       std::vector<std::uint32_t> actual{std::bit_cast<std::uint32_t>(result.input.value),result.input.enabled};
       if(probe)actual.insert(actual.end(),result.baseline.begin(),result.baseline.end());
       actual.insert(actual.end(),result.animated.begin(),result.animated.end());

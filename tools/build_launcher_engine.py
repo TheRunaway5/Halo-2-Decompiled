@@ -230,6 +230,8 @@ def worker(args):
     # while this build is in flight.
     selection = root / SELECTION
     previous = selection.read_bytes() if selection.is_file() else None
+    frontend_selection = root / 'frontend-runtime-selection.json'
+    previous_frontend = frontend_selection.read_bytes() if frontend_selection.is_file() else None
     prior = selected_gameplay_runtime(root)
     cache = selected(root)
     if cache is None:
@@ -357,10 +359,18 @@ def worker(args):
         if report['unresolved_case_failures']:
             raise RuntimeError('Current engine did not complete its actual MCC frame check: ' +
                                ', '.join(report['unresolved_case_failures']))
+        frontend_record = None
+        if (maps / 'mainmenu.map').is_file():
+            from qualify_frontend_runtime import qualify
+            frontend_record = qualify(root, runtime, cache[0], output / 'frontend', scratch)
+            atomic_json(destination / 'frontend-selection.json', frontend_record)
+            report['frontend'] = dict(passed=True, runtime=frontend_record['runtime'])
         if source_hashes(source) != pins or any(digest(maps / name) != pin for name, pin in map_pins.items()):
             raise RuntimeError('Frozen engine source or MCC maps changed during validation; existing runtime retained')
         if (selection.read_bytes() if selection.is_file() else None) != previous:
             raise RuntimeError('Another task changed the launcher selection during validation; its selection retained')
+        if frontend_record and (frontend_selection.read_bytes() if frontend_selection.is_file() else None) != previous_frontend:
+            raise RuntimeError('Another task changed the frontend selection during validation; its selection retained')
         atomic_json(destination / 'source-hashes.json', pins)
         inventory = {p.relative_to(destination).as_posix(): dict(sha256=digest(p), bytes=p.stat().st_size)
                      for p in destination.rglob('*') if p.is_file()}
@@ -392,6 +402,8 @@ def worker(args):
                 temporary.unlink(missing_ok=True)
         atomic_json(selection, record)
         promoted = True
+        if frontend_record:
+            atomic_json(frontend_selection, frontend_record)
         print(f'Both launchers now select {runtime}\nRetained runtime/resources: {report["retained_bytes"]} bytes', flush=True)
     except BaseException as error:
         report.update(passed=False, error=str(error))

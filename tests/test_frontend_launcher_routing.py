@@ -78,6 +78,7 @@ class FrontendLauncherRoutingTests(unittest.TestCase):
         self.assertEqual(argv[0],str(self.f.runtime))
         for option,value in (('--menu-screen','9'),('--menu-maps',str(self.maps))):
             self.assertEqual(argv[argv.index(option)+1],value)
+        self.assertNotIn('--skip-intro',argv)
         self.assertNotIn('--multiplayer',argv);self.assertNotIn('--mp-source-object-world',argv)
         self.assertEqual(before,{p:self.f.digest(p) for p in before})
 
@@ -98,7 +99,7 @@ class FrontendLauncherRoutingTests(unittest.TestCase):
         self.assertIn('Runtime: '+str(self.gameplay)+'\n',result.stdout)
         self.assertIn('Frontend runtime: '+str(self.f.runtime)+'\n',result.stdout)
         self.assertIn('Native MCC frontend: available',result.stdout)
-        self.assertIn('Play: MCC title screen and menus',result.stdout);self.assertNotIn('ROUTED ',result.stdout)
+        self.assertIn('Play: MCC intro, title screen and menus',result.stdout);self.assertNotIn('ROUTED ',result.stdout)
 
     def test_stale_explicit_frontend_blocks_play_but_preserves_native_test(self):
         self.manifest.write_text(json.dumps(dict(self.record,runtime_sha256='0'*64)))
@@ -119,7 +120,9 @@ class FrontendLauncherRoutingTests(unittest.TestCase):
 
     def test_no_selection_retains_existing_single_runtime_routes(self):
         self.manifest.unlink()
-        self.assertEqual(self.run_launcher('--launch-game')['owner'],'gameplay')
+        result=subprocess.run([str(self.launcher),'--launch-game'],cwd=self.root,env=self.env,capture_output=True,text=True,timeout=30)
+        self.assertNotEqual(result.returncode,0)
+        self.assertNotIn('ROUTED ',result.stdout)
         report=dict(self.f.report,runtime=self.native['runtime'],shaders=self.native['shaders'])
         self.gameplay.with_name(self.gameplay.name+'.frontend-test.json').write_text(json.dumps(report))
         row=self.run_launcher('--launch-game')
