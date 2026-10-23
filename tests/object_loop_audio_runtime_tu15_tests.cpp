@@ -3,6 +3,7 @@
 #include "halo2/native_unit_interaction.hpp"
 #include "halo2/math.hpp"
 #include "halo2/player_action_edges.hpp"
+#include <algorithm>
 #include <bit>
 #include <fstream>
 #include <iostream>
@@ -53,8 +54,8 @@ int main(int argc,char **argv) {
       {"source_admission_or_voice_results_supplied",false},{"full_audio_parity",false}};
   std::filesystem::path output;
   try {
-    check(argc==5,"Supply MCC_MAP MCC_MAPS REPORT baseline|source-frame|listeners-and-source-frame");output=argv[3];
-    const std::string mode=argv[4];check(mode=="baseline"||mode=="source-frame"||mode=="listeners-and-source-frame","Unknown object-loop mode");
+    check(argc==5,"Supply MCC_MAP MCC_MAPS REPORT baseline|source-frame|listeners-and-source-frame|nonspatial-control");output=argv[3];
+    const std::string mode=argv[4];check(mode=="baseline"||mode=="source-frame"||mode=="listeners-and-source-frame"||mode=="nonspatial-control","Unknown object-loop mode");
     report["mode"]=mode;report["map"]=argv[1];
     MultiplayerOptions options;options.map=argv[1];options.shared_maps=argv[2];
     options.local_players=1;options.starting_weapon=5;options.source_object_world=true;options.mute=true;
@@ -89,6 +90,7 @@ int main(int argc,char **argv) {
       return rows;
     };
     report["initial_loops"]=loops();
+    report["source_game_loaded"]=word(memory,word(memory,0x4f3218u)+0x1120u,1);
     unsigned tick{},requests{};
     native.observe_loop_sound_requests([&](const auto &request) {
       const auto &args=request.arguments;
@@ -98,6 +100,20 @@ int main(int argc,char **argv) {
           {"name",tag?tag->name:""},{"location_type",std::to_integer<unsigned>(request.location[3])&15u},
           {"control_bits",Bytes(request.location).u32(4)}});
     });
+    std::uint32_t control_loop=null_datum;
+    if(mode=="nonspatial-control") {
+      // Independent boundary control: actual18D390 takes EAX=lsnd,
+      // EDI=object and XMM0=control. Its unchanged18BD80 child allocates
+      // the actual pool record;18D390 owns flags/control. This explicit
+      // nonspatial API command is not vehicle/listener/audio acceptance.
+      check(!report["initial_loops"].empty(),"Nonspatial control lacks a resident authored loop");
+      const auto tag=report["initial_loops"][0]["definition"].get<std::uint32_t>();
+      auto abi=native.prepare_source_call({});abi.gp[0]=tag;abi.gp[7]=null_datum;
+      abi.xmm[0][0]=std::bit_cast<std::uint32_t>(1.f);native.run_actual(0x18d390u,abi);
+      control_loop=abi.gp[0];check(control_loop!=null_datum,"Actual original nonspatial loop allocation failed");
+      report["explicit_nonspatial_control"]={{"definition",tag},{"datum",control_loop},
+          {"vehicle_playback_verified",false},{"native_PCM_verified",false}};
+    }
     std::array<Controls,multiplayer_capacity> commands{};
     const auto initial=world.match.state();const auto slot=world.local_slots.at(0);
     commands[slot].yaw=initial.players[slot].yaw;commands[slot].pitch=initial.players[slot].pitch;
@@ -106,10 +122,30 @@ int main(int argc,char **argv) {
     unsigned seated{};
     const auto threshold=source_pickup_hold_threshold(world.content.pickup_hold_seconds);
     for(tick=0;tick<180;++tick) {
+      if(mode=="nonspatial-control" && tick==120u) {
+        const auto active=loops();
+        const bool retained=std::any_of(active.begin(),active.end(),[&](const auto &row) {
+          return row.at("datum").template get<std::uint32_t>()==control_loop;
+        });
+        if(retained) {
+          auto abi=native.prepare_source_call({});abi.gp[0]=control_loop;native.run_actual(0x18d3d0u,abi);
+        }else report["original_control_retired_before_stop"]=true;
+      }
       // Explicit composition of actual13A9D8's audio child. The ordinary
       // object step and its clock are left responsible for all simulation.
       if(mode=="listeners-and-source-frame")native.call_actual(0x129f10u,std::array{0u});
-      if(mode!="baseline")native.call_actual(0x18ee50u,std::array{std::bit_cast<std::uint32_t>(tick_seconds)});
+      if(mode=="nonspatial-control") {
+        const auto active=loops();
+        if(std::any_of(active.begin(),active.end(),[&](const auto &row) {
+            return row.at("datum").template get<std::uint32_t>()==control_loop;
+        }))native.call_actual(0x18d5a0u,std::array{control_loop});
+      }else if(mode!="baseline")native.call_actual(0x18ee50u,std::array{std::bit_cast<std::uint32_t>(tick_seconds)});
+      if(!tick) {
+        const auto sound=word(memory,0x4f2c50u);
+        report["source_sound_availability"]={word(memory,sound+0x78u,1),word(memory,sound+0x79u,1),word(memory,sound+0x7au,1)};
+        report["listener_active"]=Json::array();
+        for(unsigned view=0;view<4;++view)report["listener_active"].push_back(word(memory,sound+0x8eu+view*0x48u,1));
+      }
       const auto player=world.match.state().players[slot];
       commands[slot].vehicle_interaction_target=player.action_prompt.target;
       if(player.source_parent==null_datum) {

@@ -19,9 +19,14 @@ def main():
     owner = Path(os.environ['HALO2_TEST_SCRATCH'])
     report = Path(report_name).resolve()
     map_ = require_mcc_map(map_name)
+    cache = Path(os.environ.get('HALO2_TURRET_GRAPHICS_CACHE', str(owner / 'cache'))).resolve()
+    parents = [owner] + [path for path in owner.parents if path.name.startswith('halo2-test-')]
+    if not any(cache.is_relative_to(path) for path in parents):
+        raise ValueError('Turret graphics cache must remain inside an active test owner')
     with private_display(owner) as display:
         env = dict(os.environ, DISPLAY=display, SDL_VIDEODRIVER='x11', SDL_AUDIODRIVER='dummy',
-                   XDG_CACHE_HOME=str(owner / 'cache'), HALO2_TEST_TURRET_AUDIO='1',
+                   XDG_CACHE_HOME=str(cache), HALO2_PIPELINE_CACHE_DIRECTORY=str(cache / 'pipelines'),
+                   HALO2_TEST_TURRET_AUDIO='1',
                    HALO2_TEST_VEHICLE_WEAPON_HUD_CASE=case,
                    HALO2_VEHICLE_HUD_GPU_NAME='warthog' if case.startswith('warthog-') else case,
                    HALO2_TEST_VEHICLE_WEAPON_HUD_REPORT=str(report))

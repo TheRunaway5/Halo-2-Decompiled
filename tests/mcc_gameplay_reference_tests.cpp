@@ -151,7 +151,7 @@ std::vector<std::uint32_t> locations(const Cache& cache,const Tag& tag,unsigned 
 void actual(const std::filesystem::path& reference,const std::filesystem::path& donor) {
     const Cache xbox(reference,{},OriginalData::native_tu15()),mcc(donor);
     require(!xbox.is_mcc() && mcc.is_mcc(),"Reference integration requires actual Xbox and MCC banks");
-    unsigned matched{},required{};
+    unsigned matched{},required{},map_gauss{};
     for(const auto& c:cases) {
         const auto* source=xbox.query_tag({.group=c.group,.name=c.name});
         const auto* converted=mcc.query_tag({.group=c.group,.name=c.name});
@@ -171,8 +171,29 @@ void actual(const std::filesystem::path& reference,const std::filesystem::path& 
             missing?++required:++matched;
         }
     }
-    require(matched+required!=0,"No reviewed reference profile exists in this map pair");
+    // The Gauss null/non-null difference belongs to authenticated complete
+    // map authoring, rather than the name-only reference profiles above.
+    // Check the actual Cache publication against this exact original map.
+    constexpr auto gauss="objects\\vehicles\\warthog\\turrets\\gauss\\weapon\\gauss_bullet";
+    const auto *source=xbox.query_tag({.group=tag_groups::projectile,.name=gauss,.require_address=true});
+    const auto *converted=mcc.query_tag({.group=tag_groups::projectile,.name=gauss,.require_address=true});
+    if(source && converted) {
+        const Bytes expected(xbox.read_tag_bytes(source->address+0x138,8));
+        const Bytes actual(mcc.read_tag_bytes(converted->address+0x138,8));
+        require(expected.u32(0)==actual.u32(0),"Map-specific Gauss flyby changed its original reference group");
+        if(expected.u32(4)==0xffffffffu)
+            require(actual.u32(4)==0xffffffffu,"Authenticated map retained a Gauss flyby absent in TU1.5");
+        else {
+            const auto *a=xbox.query_tag({.handle=TagHandle{expected.u32(4)}});
+            const auto *b=mcc.query_tag({.handle=TagHandle{actual.u32(4)}});
+            require(a && b && a->type()==b->type() && a->name==b->name,
+                "Authenticated map lost its original non-null Gauss flyby identity");
+        }
+        ++map_gauss;
+    }
+    require(matched+required+map_gauss!=0,"No reviewed reference profile exists in this map pair");
     std::cout<<"PASS "<<mcc.name()<<": "<<matched<<" exact vanilla dependency identities / "<<required<<" missing-local requirements\n";
+    std::cout<<"PASS "<<map_gauss<<" original map-specific Gauss flyby references\n";
 }
 }
 int main(int argc,char** argv)try {

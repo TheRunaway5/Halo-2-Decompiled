@@ -7,6 +7,7 @@ struct EosConfig;
 struct EosEvent;
 struct EosSession;
 struct EosInviteInfo;
+bool sdk_process_shutdown()noexcept;
 class RawEos {
 public:
   explicit RawEos(const EosConfig &);

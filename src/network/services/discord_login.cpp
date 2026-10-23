@@ -269,6 +269,9 @@ std::shared_ptr<DiscordLogin> DiscordLogin::steam(OpenBrowser browser, Http http
   return login;
 }
 bool DiscordLogin::uses_steam()const{return bool(impl_->steam);}
+void DiscordLogin::bind_profile(std::string scope,std::string profile){if(impl_->steam)impl_->steam->bind_profile(std::move(scope),std::move(profile));}
+void DiscordLogin::restore(){if(impl_->steam)impl_->steam->restore();}
+void DiscordLogin::sign_out(){if(impl_->steam)impl_->steam->sign_out();else cancel();}
 bool DiscordLogin::link_discord(std::string token){return impl_->steam&&impl_->steam->link_discord(std::move(token));}
 DiscordLinkSnapshot DiscordLogin::discord_link()const{return impl_->steam?impl_->steam->discord_link():DiscordLinkSnapshot{};}
 void DiscordLogin::cancel_discord_link(){if(impl_->steam)impl_->steam->cancel_discord_link();}

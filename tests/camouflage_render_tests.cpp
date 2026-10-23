@@ -4,6 +4,7 @@
 #include "halo2/content.hpp"
 #include "halo2/object_lighting.hpp"
 #include "halo2/source_camouflage_material.hpp"
+#include "halo2/source_frustum_camera.hpp"
 #include "halo2/world_material.hpp"
 #include <algorithm>
 #include <fstream>
@@ -34,7 +35,7 @@ int main(int argc,char** argv)try {
         SDL_WINDOW_VULKAN|SDL_WINDOW_HIDDEN),&SDL_DestroyWindow);check(bool(window),SDL_GetError());
     const std::filesystem::path output=argv[2];std::filesystem::create_directories(output);
     unsigned cases{},responses{};
-    for(unsigned species:{2u,3u})for(bool first_person:{false,true}) {
+    for(unsigned species:{2u,3u})for(bool first_person:{false,true})for(bool native_camera:{false,true}) {
         const auto &r=content.player_representations.at(species);
         auto model=cache.load_model(first_person?r.hands:r.biped.model,true);
         for(auto &m:model.mesh.materials) {
@@ -69,27 +70,48 @@ int main(int argc,char** argv)try {
         const auto capture=[&](float a,float b,const char* label,bool fog=false) {
             std::array<CamouflageBinding,2> bindings{{{0,root_count,a},{0,root_count,b}}};
             std::array<ModelView,2> views;
+            std::array<ModelObjectDraw,2> owners;
             for(unsigned i=0;i<2;++i) {
                 auto &v=views[i];v.camera=camera;v.left=i*320.f;v.width=320;v.height=480;v.full_surface=true;
                 v.background=backdrop;v.camouflage={&bindings[i],1};
                 if(first_person)v.foreground=posed;else v.vertices=posed;
+                if(native_camera) {
+                    SourceFrustumProjectionInput input;
+                    input.projection_angle=camera_vertical_field_of_view(camera,4.f/3.f)*.0174532925199433f;
+                    input.outer=input.safe={0,std::int16_t(i*640),480,std::int16_t((i+1)*640)};
+                    const auto bank=source_view_projection({camera.position,{-1,0,0},{0,0,1},.015625f,1024.f,{},
+                        source_frustum_projection(input).projection_program});
+                    SourceViewShaderConstants constants;constants.world=source_view_shader_constants(bank,1024.f,false);
+                    constants.reflection=constants.world;
+                    const auto fp=source_view_shader_constants(bank,1024.f,true);
+                    std::copy_n(fp.begin(),4,constants.foreground.begin());v.source_view_shader_constants=constants;
+                    if(!first_person) {
+                        v.vertices={};owners[i].vertices=posed;owners[i].camouflage=i?b:a;
+                        v.objects={&owners[i],1};
+                    }
+                }
                 if(fog)v.camouflage_fog=SourceShaderFogContext{0x12340000u,1.f,30.f,{-1,0,0},{0,0,0}};
             }
-            const auto path=output/(std::to_string(species)+(first_person?"-fp-":"-world-")+label+".ppm");
+            const auto path=output/(std::to_string(species)+(first_person?"-fp-":"-world-")+(native_camera?"native-":"fallback-")+label+".ppm");
             for(unsigned n=0;n<4;++n)if(renderer.draw(camera,path,{},false,{},{},{},views))return read(path);
             throw FormatError("Camouflage did not render");
         };
         const auto zero=capture(0,0,"zero"),mixed=capture(.75f,0,"mixed"),full=capture(1,0,"full");
         auto saved_pose=std::move(posed);posed.clear();const auto background_only=capture(0,0,"background");posed=std::move(saved_pose);
-        unsigned opaque_before{},opaque_after{};
+        unsigned opaque_before{},opaque_after{};std::uint64_t full_error{},normal_error{};
         for(unsigned y=0;y<zero.height;++y)for(unsigned x=0;x<zero.width/2;++x) {
             const auto n=(y*zero.width+x)*3;
             if(!zero.rgb[n] && !zero.rgb[n+1] && !zero.rgb[n+2] &&
                 std::max({background_only.rgb[n],background_only.rgb[n+1],background_only.rgb[n+2]})>32) {
                 ++opaque_before;opaque_after+=!full.rgb[n] && !full.rgb[n+1] && !full.rgb[n+2];
+                for(unsigned c=0;c<3;++c) {
+                    full_error+=unsigned(std::abs(int(full.rgb[n+c])-int(background_only.rgb[n+c])));
+                    normal_error+=background_only.rgb[n+c];
+                }
             }
         }
         check(opaque_before>100 && opaque_after*10<opaque_before,"Full camouflage retained opaque body parts");
+        check(full_error*8<normal_error,"Full camouflage did not reconstruct the scene behind its silhouette");
         const auto repeat=capture(.75f,0,"repeat"),swapped=capture(0,.75f,"swapped"),reset=capture(0,0,"reset");
         check(!difference(zero,mixed,1),"Camouflage changed the other player's view");
         check(!difference(mixed,repeat,0) && !difference(mixed,repeat,1),"Camouflage retained another frame's scene");
@@ -98,10 +120,16 @@ int main(int argc,char** argv)try {
         const auto changed=difference(zero,mixed,0),complete=difference(zero,full,0);
         check(changed>100 && complete>100,"Camouflage clone produced no measured scene response");
         const auto fog=capture(.5f,0,"fog",true);check(!difference(zero,fog,1),"Camouflage alias changed another view");
+        const auto both_fog=capture(.5f,.5f,"both-fog",true),both_fog_repeat=capture(.5f,.5f,"both-fog-repeat",true);
+        check(difference(zero,both_fog,0)>100 && difference(zero,both_fog,1)>100 &&
+            !difference(both_fog,both_fog_repeat,0) && !difference(both_fog,both_fog_repeat,1),
+            "Two camouflage fog phases lost their shared command/fence lifecycle or view isolation");
         responses+=changed+complete;++cases;
-        std::cout<<species<<' '<<(first_person?"FP":"world")<<": scene response "<<changed<<'/'<<complete<<" bytes; owner/reset/alias controls passed\n";
+        std::cout<<species<<' '<<(first_person?"FP":"world")<<" native_camera="<<native_camera
+            <<": scene response "<<changed<<'/'<<complete<<" bytes; reconstruction "<<full_error<<'/'<<normal_error
+            <<"; owner/reset/alias controls passed\n";
     }
-    check(cases==4 && source_camouflage_fade_byte(.99609375f)==255 &&
+    check(cases==8 && source_camouflage_fade_byte(.99609375f)==255 &&
         source_camouflage_implementation(0,254)==0 && source_camouflage_implementation(0,255)==1 &&
         source_camouflage_implementation(0x8000,255)==2,"Camouflage variant boundary changed");
     std::cout<<cases<<" posed species/view compositions, "<<responses<<" response bytes\n";return 0;

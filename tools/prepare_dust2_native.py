@@ -310,6 +310,18 @@ def publish(source, buckets, imported, output, report, main_hud, reference_cache
             replaced+=1
     assert replaced==3
     records[('shad',sand['name'])]=sand
+    cache_names={t['name'].replace('/','\\') for t in MccCache(target).tags.values() if t['group']=='shad'}
+    road_name=r'scenarios\multi\dust2_mombasa\shaders\polished_road'
+    if road_name in cache_names:
+        road=copy.deepcopy(records[('shad',r'scenarios\shaders\solo\earthcity\base_paver')])
+        road['name']=road_name
+        replaced=0
+        for ref in road['references']:
+            if ref[1]==['bitm',r'scenarios\bitmaps\solo\earthcity\base_road1']:
+                ref[1][1]=r'scenarios\multi\dust2_mombasa\bitmaps\polished_road'
+                replaced+=1
+        assert replaced==3, 'Preserve authored parameter and both original implementation bitmap references'
+        records[('shad',road_name)]=road
     rasterizer = first['rasterizer']
     shutil.copyfile(imported/f'native-shaders/{donor_names[0]}/payloads'/rasterizer['payload'], bank/'payloads'/rasterizer['payload'])
     first.update(map='dust2_mombasa',shader_tags=list(records.values()),custom_authoring=dict(donors=donors,

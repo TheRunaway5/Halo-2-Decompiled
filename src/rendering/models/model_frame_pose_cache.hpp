@@ -17,5 +17,11 @@ public:
     }
     unsigned builds() const noexcept{return builds_;}
     unsigned reuses() const noexcept{return reuses_;}
+    std::span<const Vertex> update_preserving_effects(std::uint32_t owner,unsigned lod,
+        const RenderModel &model,std::span<const Transform> nodes) {
+        const auto result=poses_[{owner,lod}].update_preserving_effects(model,nodes);
+        if(result.reused)++reuses_;else ++builds_;
+        return result.vertices;
+    }
 };
 }

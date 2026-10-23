@@ -4,6 +4,7 @@
 #include <openssl/evp.h>
 #include <algorithm>
 #include <iostream>
+#include <map>
 #include <thread>
 using namespace halo2;
 using Json=nlohmann::json;
@@ -63,5 +64,35 @@ int main(){try{
   invalid.start();check(wait(invalid).status==DiscordLoginStatus::Failed,"Insecure public origin accepted");
   login->start();const auto before=std::chrono::steady_clock::now();login->cancel();
   check(std::chrono::steady_clock::now()-before<std::chrono::seconds(1),"Cancellation blocked while waiting");
+  // Re-enter ONLINE and restart under two local profiles without opening a
+  // browser or reusing another profile's refresh credential.
+  std::map<std::string,std::string> saved;
+  SteamLoginOptions cache;
+  cache.load=[&](const auto &base,const auto &scope,const auto &profile){check(base==default_online_origin && scope=="test-preferences","Saved identity lost its origin/namespace");return saved[profile];};
+  cache.save=[&](const auto &,const auto &,const auto &profile,const auto &value){saved[profile]=value;};
+  cache.erase=[&](const auto &,const auto &,const auto &profile){saved.erase(profile);};
+  const std::string refresh_a="h2r_"+std::string(43,'a'),refresh_b="h2r_"+std::string(43,'b');
+  saved["Spartan"]=refresh_a;saved["Elite"]=refresh_b;
+  bool revoked{},unavailable{};unsigned resumed{};
+  auto resume_http=[&](const DiscordHttpRequest &r,std::stop_token){
+    check(r.url==std::string(default_online_origin)+"/v1/auth/steam/resume" || r.url==std::string(default_online_origin)+"/v1/auth/steam/forget","Restore opened browser authorization");
+    check(r.bearer==refresh_a || r.bearer==refresh_b,"Restore sent another profile's credential");
+    if(r.url.ends_with("/forget")){revoked=true;return DiscordHttpResponse{200,R"({"state":"signed_out"})"};}
+    ++resumed;if(unavailable)return DiscordHttpResponse{503,"{}"};
+    auto response=Json{{"token",bearer},{"expires_in",28800},{"identity",{{"id",r.bearer==refresh_a?"76561197960287930":"76561197960287931"},{"username","Same Persona"},{"display_name","Same Persona"}}}};
+    return DiscordHttpResponse{200,response.dump()};
+  };
+  {
+    SteamLogin remembered([](const auto&){throw std::runtime_error("Restore opened a browser");return false;},cache,resume_http);
+    remembered.bind_profile("test-preferences","Spartan");remembered.restore();
+    check(wait(remembered).identity->id=="76561197960287930","Profile A restored a different identity");
+    remembered.cancel();remembered.restore();check(wait(remembered).identity.has_value(),"Returning ONLINE lost remembered sign-in");
+    remembered.bind_profile("test-preferences","Elite");check(!remembered.authorization(),"Profile switch retained previous authorization");
+    remembered.restore();check(wait(remembered).identity->id=="76561197960287931","Identical personas mixed local profile identities");
+  }
+  SteamLogin restarted({},cache,resume_http);restarted.bind_profile("test-preferences","Spartan");restarted.restore();
+  check(wait(restarted).identity.has_value(),"Restart did not restore remembered profile");
+  restarted.cancel();unavailable=true;restarted.restore();check(wait(restarted).status==DiscordLoginStatus::Failed && saved["Spartan"]==refresh_a,"Transient outage erased remembered sign-in");
+  unavailable=false;restarted.sign_out();restarted.cancel();check(revoked && !saved.contains("Spartan") && saved["Elite"]==refresh_b,"Explicit sign-out did not revoke just the selected profile");
   std::cout<<"Steam identity proof, fixed endpoints, privacy, rejection, cancellation and sign-out passed\n";
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}

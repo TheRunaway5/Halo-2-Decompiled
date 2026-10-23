@@ -21,15 +21,15 @@ the source clock, RNG, full object generations, attribution, and source ordering
 | D01 | Inventory every vehicle and damageable environment definition, section, response, material, damage/effect/constraint reference and BSP breakable family | Object contracts, response graphs, placements and BSP surface comparisons retained; original gates and remaining consumers still need qualification | [ ] |
 | D02 | Direct projectile, melee, collision and radial damage select the actual node, material and damage section | Existing source dispatcher and posed collision owners; all destruction producers need current MCC coverage | [ ] |
 | D03 | Partial damage thresholds, shield/body coupling, rider/occupant coupling and special-death/skip gates | Preserve original damage-info and response consumers; no replacement health thresholds | [ ] |
-| D04 | Every authored vehicle destruction class, including chassis/attached turret and campaign-only vehicles | Seven MCC multiplayer variants pass ordinary rockets, original death and debris births; campaign and individually stimulated attached branches remain required | [ ] |
+| D04 | Every authored vehicle destruction class, including chassis/attached turret and campaign-only vehicles | Seven chassis variants and five attached turrets pass bounded native death/region checks; all37 complete-definition gates remain open | [ ] |
 | D05 | Pending responses, delayed effects, model-region/permutation changes and subsequent collisions | Host prop tests cover one module's six-tick delay; native TU1.5/MCC path and other responses remain required | [ ] |
 | D06 | Destruction damage/effects use current marker/world location, source owner and strength | Original `DC660 -> DC3C0 -> D91D0`; verify real requests rather than reconstructing events from names | [ ] |
 | D07 | Explosive-to-explosive chains, multiple simultaneous/delayed blasts and reciprocal vehicle/prop damage | Native module chain and both vehicle/coil directions pass with pristine witnesses and distant controls; simultaneous/delayed families remain | [ ] |
-| D08 | Explosives affect nonexplosive damageable scenery, machines, equipment and breakable BSP materials | Zanzibar terrain bit/collision removal and coil-to-nonexplosive scenery pass; crate positive, other materials and fragments remain | [ ] |
+| D08 | Explosives affect nonexplosive damageable scenery, machines, equipment and breakable BSP materials | Terrain bit/collision removal, coil-to-scenery and coil-to-crate pass; other materials and fragments remain | [ ] |
 | D09 | Blast candidate selection, obstruction, falloff, directional/stochastic branches and physical impulse | Actual original radius/per-target owners; a health reduction does not establish impulse or obstruction | [ ] |
 | D10 | Detached parts, constraints, debris births, solved motion, wreck collision, occupant exit/death and object retirement | Historical vehicle/debris evidence is bounded; current MCC path and every authored transition remain required | [ ] |
-| D11 | Multiplayer state, late join, replay/takeover and repeated snapshots preserve destruction and chains | Six post-destruction cases match complete worlds after repeated restores/replays; MCC loading identity fix passes; live snapshot timeout, late join and takeover remain | [ ] |
-| D12 | Visible damage states, explosions, debris and authored audio reach normal single/split/LAN consumers | Native/acceptance builds pass; rendered LAN reaches its first frame then times out; full visual/audio acceptance remains | [ ] |
+| D11 | Multiplayer state, late join, replay/takeover and repeated snapshots preserve destruction and chains | Twenty post-destruction cases match complete worlds after repeated restores/replays; MCC loading identity and1,753 exact UDP comparisons pass; destruction transport, late join and takeover remain | [ ] |
+| D12 | Visible damage states, explosions, debris and authored audio reach normal single/split/LAN consumers | Native/acceptance builds and rendered LAN driving/camera pass; rendered destruction remains red; full visual/audio acceptance remains | [ ] |
 
 ## Existing evidence boundaries
 
@@ -261,10 +261,15 @@ Both use actual source-born participants, a declared supported coil placement,
 ordinary SMG commands, a pristine witness at the first original initiator blast,
 subsequent source-owned witness damage and a distant same-class negative control.
 Their nonexplosive witness contracts are retained in the object census.
-Coil-to-scenery passes actual native damage/retirement. The crate initiator
-dies and produces its original blast, but its pristine witness stays unchanged;
-this is an unaccepted positive, requiring original location/obstruction/material
-diagnosis rather than an assigned damage result.
+Coil-to-scenery passes actual native damage/retirement. The earlier crate
+placement had a real intervening BSP surface. A corrected supported placement
+requires a clear predicted center ray before moving the coil; actual contact,
+motion and damage still run through original owners. The
+[clear crate regression](../analysis/destruction-goal-20261022/runtime-crate-clear-v1/validation/evidence/destruction-coil_to_crate.json)
+passes four SMG shots, one initiator blast, pristine witness until that tick,
+actual blast distance1.114m with a clear BSP ray, crate body reduction from1
+to-0.559608 and unchanged32m distant control. No destruction damage or material
+implementation changed to obtain this result.
 
 Optional `HALO2_DESTRUCTION_CONTINUATION` captures the complete native/Match
 cut after a successful destruction regression, records eight ordinary neutral
@@ -272,8 +277,8 @@ frames including actual effect updates, restores the cut twice, and replays
 each encoded call/clock journal through the original APIs. Each resulting
 complete encoded world must match its SHA256; repeated restoration must also
 match the initial bytes. Cuts stay in memory and are not retained. This gate
-passes on Warthog, glass, modules, both vehicle/coil directions and scenery:
-six distinct cases with16 complete-world comparisons each. Earlier live-clock
+passes on Warthog, glass, modules, both vehicle/coil directions, scenery and crate:
+seven distinct cases with16 complete-world comparisons each. Earlier live-clock
 comparisons differed solely in advancing external clock fields; their source
 banks and every other encoded value matched. No continuation behavior was
 changed to pass that input issue. This does not establish delayed in-flight response cuts,
@@ -317,10 +322,15 @@ passes both worlds, presentation-field independence, another-selector rejection,
 and the existing raw asset identity suite. MCC peers need the corresponding
 rebuilt identity behavior on both ends.
 
-The subsequent rendered LAN run passes loading admission and reaches an actual
-first frame, then reports a host timeout. The next diagnostic retains the last
-rejected packet reason rather than inferring whether packets stopped arriving
-or failed admission. This is still a failed visible/LAN case.
+The third rendered LAN run completes1,753 exact UDP comparisons over1,383
+rendered frames. Driver entry, movement, steering, exit and source camera
+checks pass. The destruction gate remains red: vehicle body stays1, with no
+observed death/debris or point impulses despite19 firing-command frames.
+Its host used the older declared-spawn adapter. The next fixture uses the
+complete original multiplayer engine for player birth and applies only the
+declared scene position through the original object-position API. It requires
+source ownership explicitly. The earlier first-frame timeout remains recorded;
+this later completed run does not independently establish its cause or fix.
 
 A separate local invocation of the old blast fixture segfaulted before firing.
 An authenticated unchanged211,306,720-byte ELF replay under GDB locates the null
@@ -330,9 +340,122 @@ fix or local-renderer acceptance. The first debugger prefix was clipped and
 cannot establish a replay result; the second retains the final stack. Both
 required ELF copies and probe scratch were removed after bounded diagnostics.
 
-The first crate-location diagnostic incorrectly read private compiled-call
-stack fields through the inactive public memory bank; those location/ray fields
-are invalid and establish no obstruction result. Actual original marker stores
-atDC420/DC43C/DC42B are now captured as produced bytes and matched toDC4A0's
-stack identity. Their instruction offsets are independently authenticated from
-the pinned TU1.5 executable. The corrected diagnostic remains pending.
+The early blast-location diagnostics used the wrong request-field semantics
+and missed two argument pushes; their location/ray fields are invalid. The
+corrected producer is authenticated by19 unchanged original instructions:
+DC464,DC47B andDC486 store actualZ,X,Y, andDC4A0 follows two argument pushes.
+Its request+24 point is the emitter-store address+0C. The originalD9249
+consumer takes that exact field. The [corrected native probe](../analysis/destruction-goal-20261022/runtime-blast-diagnostic-v5/refresh.json)
+passes both vehicle/coil directions and scenery, with unobstructed analytic
+BSP rays. The crate witness stays pristine1.742m from the actual coil blast,
+but its BSP ray hits surface3667, plane1383, material104 after0.290m. This
+independent geometry observation motivates a clear supported placement; it does
+not by itself authenticate the original damage obstruction branch. No crate
+positive acceptance or material-gate change is claimed.
+
+
+The complete-source-engine LAN fixture completes1,805 exact UDP comparisons
+but never admits vehicle entry, so it supplies no destruction stimulus. Player
+birth and declared position inputs are recorded. A bounded diagnostic compares
+the original retained action target with the published prompt to identify this
+pre-destruction failure. This run does not establish driver/camera acceptance;
+the preceding1,753-comparison run's driving result belongs to its older host path.
+
+
+## Attached vehicle and cleanup owners
+
+The expanded native fixture selects actual original-born chaingun, Gauss,
+Scorpion MP cannon, Wraith MP mortar and Spectre plasma-turret child handles,
+preserving their full parent identities and variant inputs. The first pass
+completes Wraith retirement/continuation, but leaves four cases red. Two reach
+missing cleanup entry1186D0. Two set original damage flags12 and change authored
+regions while retaining body0.0001; the old fixture incorrectly required body
+less than or equal to zero as well as the original dead flag.
+
+[Original instructions](../analysis/destruction-goal-20261022/original-death-flag-v1.json)
+authenticateD8D8A's `object+10A |=4`, its following originalBABA0 callback and
+the subsequent bit2 consumer. The fixture now requires an observed original
+flag transition and body reduction, with region changes for these attached
+cases. Whole chassis cases retain their debris-birth requirement. This bounded
+attached scope does not certify every parent, debris or occupant consequence.
+
+[Original1186D0](../analysis/destruction-goal-20261022/owner-1186d0-original-v1.json)
+is a complete four-instruction light-receiver pool deletion wrapper: read the
+argument, read4ECC04, call16E8A0, return4. It is appended to the native death
+owner without replacing any of its309 qualified bodies, FP helpers or observers.
+The append workflow takes a hash-recorded qualified source because newer shared
+lowering also emits unrelated FP changes. Its first component run rejected a
+missing identity-selector registration; the corrected wrapper is rebuilding.
+Thirty-two new unchanged-original executions stop at the genuine16E8A0 boundary,
+checking literal arguments, GP/SSE state, flags, ordered stores and stack bytes;
+they supply no pool-deletion result. The480 previous cases remain byte-identical
+in the required1,383,790-byte reference fixture. Native cleanup acceptance is
+still pending the live runs.
+
+
+[Runtime-v6](../analysis/destruction-goal-20261022/runtime-v6-native-summary.json)
+passes all20 declared native cases in one authenticated production build and
+320 complete encoded-world comparisons after repeated restores/replays. This
+includes all seven chassis variants, five attached turret definitions, three
+explosive prop families, terrain glass, both vehicle/coil directions and
+nonexplosive scenery/crate interactions. Every attached turret is observed at
+actualD8D8A changing flag0 to4, changing model regions and retaining the actual
+positive0.0001 body floor. The fixture does not impose another health threshold.
+The [37-definition matrix](../analysis/destruction-goal-20261022/vehicle-acceptance-matrix-v4.json)
+links thirteen bounded vehicle cases across twelve distinct definitions; none
+closes its complete-definition acceptance gates. The source512-case helper
+suite and actual asset identity also pass, and native/visible executables build.
+
+The subsequent native LAN case reaches entry, driving, exit and ordinary rocket
+fire but the actor dies before a later disconnect. It records no further
+missing1186D0 error; this alone does not authenticate that wrapper's live call.
+The next declared firing approach separates the actual target sphere from both
+the incoming rocket's upper blast radius and the vehicle model's direct authored
+response-damage radii, plus the player capsule radius. It changes input planning,
+not damage or motion. A bounded failure receipt now survives a runtime exception.
+No rendered destruction or connection-timeout fix is claimed from this retry.
+
+
+The [explicit native teardown](../analysis/destruction-goal-20261022/runtime-cleanup-call-v1/validation/evidence/destruction-warthog.json)
+now independently observes1186D0's actual CALL store at1186DA, completes original
+16E8A0 and retires the remaining full Warthog generation through the original
+deletion API. Natural destruction and replay precede that declared teardown
+input. This authenticates the complete new wrapper in the live composition;
+it does not certify automatic wreck-retirement timing.
+
+The radius-aware LAN retry completes2,208 exact comparisons and source driving/
+camera checks, but the vehicle stays at body1. Its first actual rocket detonates
+beside the shooter at tick1219 while raw PC pitch is saturated at-1.8. TU1.5
+18A300 consumes deltas in raw PC samples; vehicle reorientation can change the
+processed source view separately. The test's absolute aiming helper incorrectly
+compared its desired world angle to raw input. The corrected helper uses the
+actual source view for angular error, issues one correction per observed world
+tick, and fires only when the source view ray enters the actual target sphere.
+These are input-planning changes. The corrected rendered run remains pending.
+
+
+Foundation's fixed human turret now passes two ordinary rockets, original dead
+flag, model-region change, one authored destruction blast and16 complete-world
+comparisons. Its first fixture rejected the absence of crate-object debris.
+The [original effect graph](../analysis/destruction-goal-20261022/human-turret-object-parts-v1.json)
+has light, sound and decal parts plus five particle systems, and no object part.
+The [corrected bounded case](../analysis/destruction-goal-20261022/runtime-human-turret-v2/validation/evidence/destruction-h_turret_ap.json)
+therefore requires death/region/blast, with particle-fragment and presentation
+gates still separate. It supplies no fragment object or new damage behavior;
+the differing response bit25 remains unconverted and unresolved.
+
+The processed-view aiming retry keeps the actor alive and reaches vehicle body
+0.9043 over1,911 exact UDP comparisons, with driving/camera gates passing. Four
+actual rocket detonations lie beyond the vehicle. The next read-only input
+planner tests the real collision model against current authoritative WORLD
+nodes/permutations and chooses a solid authored surface. A broad bound-centre
+ray alone cannot establish a physical hit. Native projectile and damage results
+remain entirely original-owned; the new rendered result is pending.
+
+
+The first posed-planner invocation does not reach entry (3,322 exact UDP
+comparisons), so it provides no new collision or destruction stimulus. The same
+raw/processed angle distinction also applies to the entry/departure helper.
+The next built fixture uses actual source-view angular errors for those stages,
+once per observed source tick, and starts its input sequence only after the real
+player unit exists. Native runtime behavior is unchanged by these test inputs.

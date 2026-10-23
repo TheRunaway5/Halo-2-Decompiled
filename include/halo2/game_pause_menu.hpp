@@ -18,6 +18,9 @@ public:
   ~GamePauseMenu();
   void bind(SDL_Window *, DesktopSession &, Renderer &);
   void audio(AudioEngine *);
+  void party_notices(std::function<std::optional<FrontendInviteNotice>()> query,std::function<bool(bool)> action) {
+    party_notice_=std::move(query);party_notice_action_=std::move(action);
+  }
   void audio_layout(std::function<std::string(unsigned)> value){audio_layout_=std::move(value);}
   bool event(const SDL_Event &);
   UiDraw draw(unsigned width,unsigned height);
@@ -48,5 +51,8 @@ private:
   std::uint32_t entered_{};
   std::uint32_t axis_repeat_{};
   std::function<std::string(GamePauseAction)> command_;
+  std::function<std::optional<FrontendInviteNotice>()> party_notice_;
+  std::function<bool(bool)> party_notice_action_;
+  std::optional<FrontendInviteNotice> drawn_notice_;
 };
 } // namespace halo2

@@ -29,7 +29,16 @@ using enum EOS_ERelayControl;
 using enum EOS_EPacketReliability;
 namespace {
 std::recursive_mutex sdk_mutex;
-unsigned sdk_owners{};
+// EOS_Shutdown finalizes the SDK permanently. Releasing the short-lived
+// profile platform must not prevent the next match from creating its platform.
+// Shutdown is explicit, after all platforms retire and before C++/SDK static
+// destruction. An atexit destructor can run after the SDK's own lazy globals.
+struct SdkLifetime {
+  bool initialized{};
+  bool finalized{};
+  unsigned platforms{};
+};
+SdkLifetime &sdk_lifetime(){static SdkLifetime owner;return owner;}
 void check(EOS_EResult result) {
   if(result!=EOS_Success)throw std::runtime_error(std::string("EOS SDK: ")+EOS_EResult_ToString(result));
 }
@@ -61,8 +70,11 @@ struct RawEos::Impl {
   bool owns{};
   explicit Impl(const EosConfig &config) {
     std::lock_guard lock(sdk_mutex);
-    if(!sdk_owners){EOS_InitializeOptions options{};options.ApiVersion=EOS_INITIALIZE_API_LATEST;
+    auto &lifetime=sdk_lifetime();
+    if(lifetime.finalized)throw std::runtime_error("EOS SDK process has already shut down.");
+    if(!lifetime.initialized){EOS_InitializeOptions options{};options.ApiVersion=EOS_INITIALIZE_API_LATEST;
       options.ProductName="H2Forever";options.ProductVersion="1";check(EOS_Initialize(&options));
+      lifetime.initialized=true;
       if(std::getenv("H2_EOS_DIAGNOSTICS")){
         EOS_Logging_SetCallback([](const EOS_LogMessage *message){
           if(!message||!message->Category||!message->Message)return;
@@ -76,7 +88,7 @@ struct RawEos::Impl {
         EOS_Logging_SetLogLevel(EOS_ELogCategory::EOS_LC_Sessions,EOS_ELogLevel::EOS_LOG_VeryVerbose);
       }
     }
-    ++sdk_owners;owns=true;
+    ++lifetime.platforms;owns=true;
     try {
       auto strings=config; // rust::String::c_str() may add its terminator.
       EOS_Platform_Options options{};options.ApiVersion=EOS_PLATFORM_OPTIONS_API_LATEST;
@@ -111,7 +123,7 @@ struct RawEos::Impl {
       // Platform release cancels pending callbacks before their ClientData dies.
       EOS_Platform_Release(platform);platform=nullptr;
     }
-    if(owns){owns=false;if(!--sdk_owners)EOS_Shutdown();}
+    if(owns){owns=false;--sdk_lifetime().platforms;}
   }
   ~Impl(){std::lock_guard lock(sdk_mutex);release();}
   void event(std::uint8_t kind,int32_t code,EOS_ProductUserId user=nullptr,const EOS_P2P_SocketId *id=nullptr) {
@@ -341,10 +353,18 @@ void RawEos::sdk_session_join(rust::Str invite){std::lock_guard lock(sdk_mutex);
     auto &self=*static_cast<Impl*>(data->ClientData);self.session_active=data->ResultCode==EOS_Success;self.event(11,outcome(data->ResultCode));});
 }
 bool eos_sdk_available()noexcept{return true;}
+bool sdk_process_shutdown()noexcept{
+  std::lock_guard lock(sdk_mutex);auto &lifetime=sdk_lifetime();
+  if(lifetime.platforms)return false;
+  if(!lifetime.initialized)return true;
+  if(EOS_Shutdown()!=EOS_Success)return false;
+  lifetime.initialized=false;lifetime.finalized=true;return true;
+}
 #else
 struct RawEos::Impl {};
 RawEos::RawEos(const EosConfig &){throw std::runtime_error("This build has no EOS SDK. Configure HALO2_EOS_SDK_ROOT or HALO2_EOS_SDK_ARCHIVE.");}
 RawEos::~RawEos()=default;
+bool sdk_process_shutdown()noexcept{return true;}
 void RawEos::sdk_device(){}
 void RawEos::sdk_login(){}
 void RawEos::sdk_external_login(rust::Str){}

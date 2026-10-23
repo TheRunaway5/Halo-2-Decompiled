@@ -169,6 +169,7 @@ void MenuState::clear_runtime_adapters() noexcept {
   online_voice_.reset(); voice_={};
   if (online_account_) online_account_->sign_out();
   account_ = {}; account_name_.clear();
+  pending_ui_sounds_.clear();
   if (online_matchmaking_) online_matchmaking_->sign_out();
   matchmaking_active_ = quickmatch_pending_ = false;
   pc_display_adapter_ = nullptr;

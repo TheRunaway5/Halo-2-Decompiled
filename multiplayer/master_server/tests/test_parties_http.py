@@ -23,7 +23,7 @@ class PartiesHttpTests(unittest.IsolatedAsyncioTestCase):
         return await response.json()
 
     async def command(self, headers, action, status=200, **kw):
-        if action in ("invite","invite_discord","invite_clan","cancel","leave","remove","transfer","ready","unready") and "version" not in kw:
+        if action in ("invite","invite_discord","invite_steam","invite_member","invite_clan","cancel","leave","remove","transfer","ready","unready") and "version" not in kw:
             kw["version"] = (await self.view(headers))["party"]["version"]
         body = dict(action=action,request_id=str(uuid.uuid4())) | kw
         response = await self.client.post("/v1/party/commands",headers=headers,json=body)
@@ -81,6 +81,38 @@ class PartiesHttpTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotEqual(first["party"]["members"][0]["handle"],next(iter(private_ids)))
         await self.command(self.c,"invite",403,username="pilot_four")
         await self.command(self.a,"invite",409,version=1,username="pilot_four")
+
+    async def test_selected_clan_member_requires_current_membership_and_presence(self):
+        await self.clan_command(self.a,"create",name="Clan")
+        await self.clan_command(self.a,"invite",username="pilot_two")
+        invite=(await clans.ClansHttpTests.view(self,self.b))["invitations"][0]["id"]
+        await self.clan_command(self.b,"accept",target=invite)
+        roster=(await clans.ClansHttpTests.view(self,self.b))["clan"]["members"]
+        peer=next(row["id"] for row in roster if row["self"])
+        await self.command(self.a,"create")
+        await self.command(self.a,"invite_member",target=peer)
+        self.assertEqual(len((await self.view(self.b))["invitations"]),1)
+        await self.clan_command(self.b,"leave")
+        await self.command(self.a,"invite_member",403,target=peer)
+
+    async def test_roster_appearance_uses_current_accepted_member_profiles(self):
+        await self.command(self.a, "create")
+        await self.join(self.a, self.b, "pilot_two")
+        raw = "080c0901011a098100"
+        response = await self.client.put("/v1/account/profile", headers=self.b,
+                                       json={"appearance": raw})
+        self.assertEqual(response.status, 200, await response.text())
+        response = await self.client.get("/v1/party?local_players=1&appearance=1", headers=self.a)
+        self.assertEqual(response.status, 200)
+        members = (await response.json())["party"]["members"]
+        self.assertEqual([m["appearance"] for m in members], [None, raw])
+        # Display names are deliberately identical. Only accepted identity may
+        # select a profile; invitees and unrelated accounts cannot supply it.
+        await self.command(self.a, "invite", username="pilot_three")
+        self.assertEqual(len(members), 2)
+        legacy = (await self.view(self.a))["party"]["members"]
+        self.assertTrue(all("appearance" not in m for m in legacy))
+        self.assertEqual((await self.client.get("/v1/party?appearance=1")).status, 401)
 
     async def test_sdk_subject_invite_survives_recycled_username_and_preserves_privacy(self):
         db=self.directory.store.db

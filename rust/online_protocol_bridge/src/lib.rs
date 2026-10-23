@@ -5,8 +5,14 @@ use halo2_online_protocol::native_requests::{NativeRequest, decode_request};
 use halo2_online_protocol::{DecodeError, ParsedVoice, decode_voice};
 mod eos_transport;
 mod eos_config;
+mod steam_credentials;
+use steam_credentials::{steam_saved_login, steam_save_login, steam_forget_login};
 use eos_config::eos_runtime_options;
 use eos_transport::{EosTransport, new_eos_transport, eos_tick, eos_signal, eos_signals, eos_ready, eos_failed, eos_send, eos_receive, eos_relayed, eos_account_identity};
+
+fn eos_process_shutdown() -> bool {
+    ffi::sdk_process_shutdown()
+}
 
 // CXX generates the ABI shims. No handwritten pointer conversion or unsafe
 // operation belongs here. The exception to deny(unsafe_code) is this schema.
@@ -46,6 +52,7 @@ mod ffi {
         include!("src/eos_sdk.hpp");
         type RawEos;
         fn eos_sdk_available() -> bool;
+        fn sdk_process_shutdown() -> bool;
         fn new_raw_eos(config: &EosConfig) -> Result<UniquePtr<RawEos>>;
         fn sdk_device(self: Pin<&mut RawEos>) -> Result<()>;
         fn sdk_login(self: Pin<&mut RawEos>) -> Result<()>;
@@ -64,7 +71,11 @@ mod ffi {
         fn sdk_session_join(self: Pin<&mut RawEos>, invite: &str) -> Result<()>;
     }
     extern "Rust" {
+        fn steam_saved_login(origin: &str, credential_namespace: &str, profile: &str) -> Result<String>;
+        fn steam_save_login(origin: &str, credential_namespace: &str, profile: &str, value: &str) -> Result<()>;
+        fn steam_forget_login(origin: &str, credential_namespace: &str, profile: &str) -> Result<()>;
         fn eos_runtime_options() -> Result<EosRuntimeOptions>;
+        fn eos_process_shutdown() -> bool;
         type EosTransport;
         fn eos_account_identity(token: &str) -> Result<EosIdentity>;
         fn new_eos_transport(self_slot: u8, peers: Vec<EosPeer>, socket: &str, force_relay: bool, session: EosSession) -> Result<Box<EosTransport>>;

@@ -171,8 +171,11 @@ class Directory:
         self.party_voice = PartyVoice(self.clans, self.parties)
         from .steam_login import SteamLogin
         self.steam = SteamLogin(self)
+        from .steam_friends import SteamFriends
+        self.steam_friends = SteamFriends(self)
 
     async def verify_identity(self, token):
+        require(not token.startswith("h2r_"), "Saved sign-in is only valid for session renewal", 401)
         if token.startswith("h2s_"):
             require(self.settings.steam_enabled, "Steam sign-in is not configured", 503)
             return await self.steam.owner(token)
@@ -432,6 +435,7 @@ def create_app(settings, owner_verifier=None, clock=time.time):
     ])
     app.add_routes(directory.matchmaking.routes())
     app.add_routes(directory.steam.routes())
+    app.add_routes(directory.steam_friends.routes())
     app.add_routes(directory.history.routes())
     from .search_qos import SearchQos
     directory.search_qos = SearchQos(directory.matchmaking)

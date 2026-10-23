@@ -196,6 +196,13 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
         "native TU1.5 cold512-cluster render visibility union");
     mount_native_tu15_renderer_tail_storage_data(memory);
     mount_native_tu15_renderer_transparent_storage_data(memory);
+    //22570 also resets the cold renderer query/debug banks. Retain the same
+    // exact loader-zero4112-byte declaration used by1EFD0's optional graphics
+    // constructor; no debug texture or initialized-GPU flag is manufactured.
+    memory.mount(0x4c2ac0u,std::array<std::byte,4112>{},SourceRuntimeMemory::Access::ReadWrite,
+        "source1EFD0 cold debugger bitmap binding, counters and512 row slots");
+    memory.mount(0x492278u,std::array<std::byte,4>{},SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 cold 22570 final renderer new-map scalar");
     mount_native_tu15_prt_cache_data(memory);
     mount_native_tu15_main_view_data(memory);
     mount_native_tu15_camera_packet_data(memory);
@@ -1931,6 +1938,13 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
         "native TU1.5 loader-zeroed 382230 spatial threshold destination");
     memory.mount(0x55d728u,std::array{std::byte{},std::byte{}},SourceRuntimeMemory::Access::ReadWrite,
         "native TU1.5 loader-zeroed 27DF0E contact query ushort scalar");
+    // Actual18F900 clears ceil(active BSP clusters/32) DWORDs here before
+    // listener-distance publication;18EE50 then tests this independent sound
+    // visibility vector. Retain the original loader-zero64-byte prefix for
+    // the source's512-cluster domain. These are backing bytes, not an active
+    // listener, visible-cluster mask or successful sound-system result.
+    memory.mount(0x55d730u,std::array<std::byte,64>{},SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 loader-zeroed sound cluster visibility backing");
     // Actual CRT row46D978 selects380E70. Its26 absolute stores bound this
     // fallback effect data;1024C0 returns its base at102545.
     // Keep loader bytes cold. The complete constructor produces the tags,
@@ -2062,6 +2076,13 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
     // scale. Keep16384.0f's exact bits and original writable policy (v1093).
     memory.mount(0x48c770u,encode(std::array{0x46800000u}),SourceRuntimeMemory::Access::ReadWrite,
         "native TU1.5 authored packed color interpolation scale");
+    // Actual151630 copies this initialized overshield player response
+    // before1578A0.151540's distinct camouflage descriptor is already owned
+    // above. These are exact writable .data words from authenticated TU1.5.
+    memory.mount(0x48c778u,encode(std::array{
+        0x40000000u,0x3eb33333u,0x3eb33333u,0x3f800000u,0x00000002u}),
+        SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 authored overshield player response");
     memory.mount(0x474d9du,std::array{std::byte{}},SourceRuntimeMemory::Access::ReadWrite,
         "native TU1.5 authored 12F96A resource cache request policy");
     memory.mount(0x474d9cu,std::array{std::byte{}},SourceRuntimeMemory::Access::ReadWrite,

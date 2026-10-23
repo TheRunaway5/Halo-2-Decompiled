@@ -1,4 +1,5 @@
 #include "halo2/frontend.hpp"
+#include "halo2/audio.hpp"
 #include "halo2/frontend_online.hpp"
 #include "halo2/online_service.hpp"
 #include "halo2/frontend_ui_assets.hpp"
@@ -31,6 +32,25 @@
 using namespace halo2;
 namespace {
 void check(bool value, const char *message) { if (!value) throw std::runtime_error(message); }
+void party_notifications() {
+  OnlineAccountSnapshot before,after;
+  before.authenticated=after.authenticated=true;
+  before.party=OnlineParty{};
+  before.party->members={{"one","Same Name",{},true,true,true}};
+  after=before;after.party->members.push_back({"two","Same Name",{},false,false,true});
+  check(frontend_party_notification_sounds(before,after)==std::vector{FrontendUiSound::Advance},"Duplicate names suppressed a real party join cue");
+  check(frontend_party_notification_sounds(after,before)==std::vector{FrontendUiSound::Back},"Party leave cue missing");
+  check(frontend_party_notification_sounds(after,after).empty(),"Unchanged poll repeats membership cues");
+  before=after;after.party->members[0].name="Changed";after.party->members[1].leader=true;
+  after.party->members[1].appearance=FrontendAppearance{};
+  check(frontend_party_notification_sounds(before,after).empty(),"Presentation or leadership change fabricated a party join");
+  before=after;after.party_invitations.push_back({"invite","Same Name",1});
+  check(frontend_party_notification_sounds(before,after)==std::vector{FrontendUiSound::ReceiveMessage},"Party invitation cue missing");
+  before.authenticated=false;
+  check(frontend_party_notification_sounds(before,after).empty(),"Initial account snapshot replayed old party notifications");
+  before=after;before.busy=true;after.party_message="Party changed; refresh it";
+  check(frontend_party_notification_sounds(before,after)==std::vector{FrontendUiSound::Error},"Failed party action has no error cue");
+}
 std::size_t discard(char *, std::size_t size, std::size_t count, void *) { return size * count; }
 struct Preferences {
   std::filesystem::path path = std::filesystem::temp_directory_path() /
@@ -85,11 +105,12 @@ void private_identity(const MenuState &menu) {
 }
 int main(int argc, char **argv) {
   try {
+    party_notifications();
     if (argc < 2) return 77;
     std::filesystem::path maps(argv[1]), sampled, selected_menu_assets, captures;
     std::string matchmaking_url, account_url, capture_prefix;
     unsigned callback_port=42103;
-    bool party_run{}, gathering_run{}, capture_validation=true;
+    bool party_run{}, gathering_run{}, party_render{}, capture_validation=true;
     std::shared_ptr<OnlineAccount> account;
     for (int i = 2; i < argc; ++i) {
       const std::string option(argv[i]);
@@ -98,6 +119,7 @@ int main(int argc, char **argv) {
       if (option == "--account-url") account_url = value.string();
       else if(option=="--party-url"){account_url=value.string();party_run=true;}
       else if(option=="--gathering-ui")gathering_run=value=="1";
+      else if(option=="--party-render")party_render=value=="1";
       else if(option=="--validation") {
         check(value=="0" || value=="1","Invalid Vulkan validation option");
         capture_validation=value=="1";
@@ -260,6 +282,19 @@ int main(int argc, char **argv) {
     auto audit_vista = [&](const MenuState &state, const UiDraw &draw,
                            std::array<unsigned,2> viewport = {640,480}) {
       if (sampled.empty() && !cache.is_mcc()) return;
+      // Notice/prompt materials may be reserved lazily. Admit a clone only
+      // when its exact raster already belongs to a verified imported bank.
+      if(vista_fonts.size()<mesh.materials.size()) {
+        const auto count=vista_fonts.size();
+        vista_fonts.resize(mesh.materials.size());vista_bitmaps.resize(mesh.materials.size());
+        for(auto i=count;i<mesh.materials.size();++i)for(std::size_t j=0;j<count;++j) {
+          const auto &a=mesh.materials[i].diffuse,&b=mesh.materials[j].diffuse;
+          if(a.width==b.width && a.height==b.height && a.format==b.format && a.pixels==b.pixels) {
+            vista_fonts[i]=vista_fonts[i] || vista_fonts[j];
+            vista_bitmaps[i]=vista_bitmaps[i] || vista_bitmaps[j];
+          }
+        }
+      }
       const auto surface=frontend_canvas(viewport[0],viewport[1]);
       const float surface_left=draw.full_surface_bounds?-surface.left/surface.scale:0;
       const float surface_top=draw.full_surface_bounds?-surface.top/surface.scale:0;
@@ -279,7 +314,17 @@ int main(int argc, char **argv) {
                 "Clan dialog retains the roster beneath it");
         if(state.frame().screen==26)
           check(name.find("rank_icons")==std::string::npos,"Social screen rendered an unowned placeholder rank");
-        if (name.starts_with("font/")) {
+        const auto &material=mesh.materials.at(v.material);
+        if(material.ui_emblem_pass) {
+          check(std::any_of(content.emblem_shaders.begin(),content.emblem_shaders.end(),[&](const auto &shader){
+            return shader.second.name==name && shader.second.ui_emblem_pass;
+          }),"ONLINE emblem does not belong to its selected native shader bank");
+          check(material.forward_vertex==11 && material.forward_blend==1 &&
+                material.animated_textures[0].size()==32 && material.animated_textures[1].size()==64 &&
+                material.texture_frames[0]<32 && material.texture_frames[1]<64,
+                "ONLINE emblem lost its source pass or bounded foreground/background pages");
+          bitmap=true; // The verified emblem pass samples the imported bitmap banks.
+        } else if (name.starts_with("font/")) {
           check(vista_fonts.at(v.material), "ONLINE text fell back from the selected imported font atlas");
           if(!std::isfinite(v.position.x) || !std::isfinite(v.position.y) ||
              v.position.x<surface_left-.001f || v.position.x>surface_right+.001f ||
@@ -300,7 +345,9 @@ int main(int argc, char **argv) {
         for(const auto &name:missing)message+='\n'+name;
         throw std::runtime_error(message);
       }
-      check(font && bitmap, "ONLINE panel has no imported Vista font/bitmap drawing");
+      if(!font || (!bitmap && !state.party_invite_picker()))throw FormatError("ONLINE panel "+std::to_string(state.frame().screen)+
+          " context "+std::to_string(state.frame().context)+" has imported font="+std::to_string(font)+
+          " bitmap="+std::to_string(bitmap));
       sampled_online_font |= font; sampled_online_bitmap |= bitmap;
       audited_panels.emplace(state.frame().screen,state.frame().context);
       if(cache.is_mcc() && state.screen_layout(state.frame())==vista_menu(13)) {
@@ -391,10 +438,16 @@ int main(int argc, char **argv) {
         const float top=240-grid.position.y-name->bounds.top;
         const float bottom=240-grid.position.y-name->bounds.bottom-
             float(lobby->party_names->size()-1)*grid.step.y;
-        for(const auto &v:draw.vertices)
-          check(!mesh.materials.at(v.material).name.starts_with("font/") ||
-              v.color.z<=v.color.x+.1f || v.position.x<left || v.position.y<top || v.position.y>bottom,
-              "ONLINE party help text overlaps roster names");
+        // Names now use source profile colors, including blue. Color alone
+        // cannot distinguish a legitimate name from the old help overlay.
+        check(state.online_party_text(state.frame(),47).empty(),
+              "ONLINE party still binds the obsolete help field over player names");
+        for(const unsigned helper:{4u,5u,6u}) {
+          if(state.online_party_text(state.frame(),helper).empty())continue;
+          const auto &bounds=pane.texts.at(helper).bounds;
+          check(320+bounds.right<left || 240-bounds.top>bottom || 240-bounds.bottom<top,
+                "ONLINE party helper bounds overlap roster names");
+        }
       }
       for(const auto [width,height]:viewports) {
         if(draw.full_surface_bounds && (width!=viewport[0] || height!=viewport[1]))continue;
@@ -937,6 +990,89 @@ int main(int argc, char **argv) {
       wait_queue([](const auto &s) { return s.status == OnlineMatchmakingStatus::Idle; });
     }
     if(party_run) {
+      const auto discard_old_sounds=menu.take_ui_sounds();
+      {
+        AudioEngine mixer(false); // SDL device stays paused; render drives the real callback.
+        std::set<std::uint32_t> decoded;
+        for(const auto datum:content.sounds)if(datum!=0xffffffffu && decoded.insert(datum).second) {
+          const auto clip=std::make_shared<PcmSound>(decode_sound(cache.load_sound(datum)));
+          check(clip->frames()>0 && clip->rate>0,"Authored party/menu sound failed to decode");
+          mixer.stop();mixer.play(clip,frontend_ui_sound_request_scale);
+          const auto samples=mixer.render(clip->frames()*48000/clip->rate+1024);
+          check(std::any_of(samples.begin(),samples.end(),[](float sample){return std::abs(sample)>0;}),
+                "Authored party/menu cue produced silent native mixer output");
+        }
+        check(decoded.size()==10,"Authored menu sound bank lost a cue or its aliases");
+      }
+      auto verify_party_rows=[&](unsigned players) {
+        const auto draw=painter.draw(menu,5,-1,10000);
+        const auto &pane=native_layout.screen(14).panes.at(2);
+        const auto &skin=native_layout.skin_groups.at(pane.grids.front().skin);
+        const auto background=[&](std::uint32_t id) {
+          const auto tag=detail::frontend_compiled_string_id(content,id);
+          const auto b=std::find_if(skin.bitmaps.begin(),skin.bitmaps.end(),[&](const auto &b){return b.placeholder==tag;});
+          check(b!=skin.bitmaps.end(),"Source player skin lost its background binding");
+          return native_layout.images.at(b->datum).name;
+        };
+        const auto primary=background(0x1400069a);
+        const std::string box="ui\\list_skins\\matchmaking\\player_in";
+        const std::string blank="ui\\list_skins\\matchmaking\\item_background";
+        unsigned emblems{},stripes{},empty{},boxes{},speakers{};
+        std::set<unsigned> banks;
+        const auto speaker=native_layout.images.at(pane.bitmaps.at(21).datum).name;
+        for(unsigned i=0;i+5<draw.vertices.size();i+=6) {
+          const auto &m=mesh.materials.at(draw.vertices[i].material);
+          if(m.ui_emblem_pass){++emblems;banks.insert(draw.vertices[i].material);}
+          stripes+=m.name==primary;empty+=m.name==blank;boxes+=m.name==box;speakers+=m.name==speaker;
+        }
+        check(emblems==players && banks.size()==players,"Party rows omitted or shared profile emblem banks");
+        check(stripes==players && empty==16-players && boxes==16-players,
+              "Party rows lost occupied stripes, empty bars or the separate empty-slot square");
+        check(speakers<=players,"An empty party slot drew a speaker icon");
+        if(party_render && std::getenv("DISPLAY") && std::getenv("HALO2_TEST_SCRATCH")) {
+          auto *window=capture_desktop->window(640,480,true);
+          check(capture_desktop->apply_video(640,480,false).empty(),"Party render mode failed");
+          if(!capture_renderer)capture_renderer=std::make_unique<Renderer>(window,mesh,capture_validation);
+          else capture_renderer->resized();
+          const auto path=std::filesystem::path(std::getenv("HALO2_TEST_SCRATCH"))/
+              ("party-roster-smoke-"+std::to_string(players)+".ppm");
+          capture_renderer->update_material_constants(mesh.materials);
+          bool captured{};
+          for(unsigned attempt=0;attempt<3 && !captured;++attempt)
+            captured=capture_renderer->draw(Camera{},path,{},false,{}, {},draw.vertices);
+          check(captured,"Native Vulkan party roster capture failed");
+          std::ifstream pixels(path,std::ios::binary);
+          std::string magic;unsigned width{},height{},maximum{};
+          pixels>>magic>>width>>height>>maximum;pixels.get();
+          check(magic=="P6" && width==640 && height==480 && maximum==255,"Invalid native party capture");
+          std::vector<unsigned char> actual(width*height*3);
+          pixels.read(reinterpret_cast<char*>(actual.data()),actual.size());check(bool(pixels),"Incomplete party framebuffer");
+          std::vector<Vertex> suppressed;
+          for(unsigned i=0;i+5<draw.vertices.size();i+=6)
+            if(!mesh.materials.at(draw.vertices[i].material).ui_emblem_pass)
+              suppressed.insert(suppressed.end(),draw.vertices.begin()+i,draw.vertices.begin()+i+6);
+          const auto control=path.parent_path()/"party-roster-without-emblems.ppm";
+          captured=false;
+          for(unsigned attempt=0;attempt<3 && !captured;++attempt)
+            captured=capture_renderer->draw(Camera{},control,{},false,{}, {},suppressed);
+          check(captured,"Party emblem framebuffer control failed");
+          std::ifstream comparison(control,std::ios::binary);
+          comparison>>magic>>width>>height>>maximum;comparison.get();
+          std::vector<unsigned char> absent(actual.size());
+          comparison.read(reinterpret_cast<char*>(absent.data()),absent.size());check(bool(comparison),"Incomplete emblem control");
+          for(unsigned i=0;i+5<draw.vertices.size();i+=6) {
+            if(!mesh.materials.at(draw.vertices[i].material).ui_emblem_pass)continue;
+            const auto &a=draw.vertices[i],&b=draw.vertices[i+4];unsigned changed{};
+            for(int y=std::max(0,int(a.position.y));y<std::min(480,int(b.position.y)+1);++y)
+              for(int x=std::max(0,int(a.position.x));x<std::min(640,int(b.position.x)+1);++x) {
+                const auto offset=(y*640+x)*3;
+                changed+=!std::equal(actual.begin()+offset,actual.begin()+offset+3,absent.begin()+offset);
+              }
+            check(changed>0,"Party profile emblem submitted no visible framebuffer pixels");
+          }
+          std::cout<<"PASS native party roster pixels "<<path<<std::endl;
+        }
+      };
       auto wait_party=[&](auto predicate) {
         const auto until=std::chrono::steady_clock::now()+std::chrono::seconds(15);
         while(!predicate(account->snapshot()) && std::chrono::steady_clock::now()<until){menu.update_online_login();std::this_thread::sleep_for(std::chrono::milliseconds(5));}
@@ -951,6 +1087,14 @@ int main(int argc, char **argv) {
       menu.select(2);menu.accept();
       wait_party([](const auto &s){return s.party && !s.busy;});
       check(menu.frame().screen==14 && account->snapshot().party->leader,"Create Party lost native leader lobby");
+      check(menu.take_ui_sounds()==std::vector{FrontendUiSound::Advance},"Accepted party entry did not request its authored UI cue once");
+      menu.update_online_login();
+      check(menu.take_ui_sounds().empty(),"Unchanged party polling repeated the join sound");
+      const auto party_draw=painter.draw(menu,5);
+      check(std::any_of(party_draw.vertices.begin(),party_draw.vertices.end(),[&](const auto &v){
+        return mesh.materials.at(v.material).ui_emblem_pass;
+      }),"ONLINE party lobby omitted the actual local profile emblem");
+      verify_party_rows(1);
       check(!has_logo(menu),"Title logo overlaps ONLINE party");capture("party-created");
       choose("Party Options");capture("party-options");choose("Join Party Voice");
       const auto voice_until=std::chrono::steady_clock::now()+std::chrono::seconds(4);
@@ -959,6 +1103,15 @@ int main(int argc, char **argv) {
       menu.voice_push_to_talk(true);capture("party-voice");menu.voice_push_to_talk(false);
       choose("Party Options");choose("Mute Microphone");choose("Party Options");capture("party-voice-options");choose("Unmute Microphone");
       choose("Party Options");choose("Invite Player");
+      check(menu.party_invite_picker() && menu.party_invite_tab()==0,"Invite Player did not open Steam friends tab");
+      capture("party-invite-steam-tab");
+      const auto tab_revision=menu.revision;
+      check(menu.activate_pointer({FrontendPointerAction::InviteTab,1,tab_revision}) && menu.party_invite_tab()==1,
+            "Clan tab header did not switch invite source");
+      check(!menu.activate_pointer({FrontendPointerAction::InviteTab,0,tab_revision}),"Stale invite-tab geometry changed source");
+      capture("party-invite-clan-tab");
+      check(menu.switch_invite_tab(-1) && menu.party_invite_tab()==0,"Shoulder tab navigation did not return to Steam friends");
+      choose("Search Discord Username");
       check(menu.frame().screen==167 && menu.frame().title=="INVITE TO PARTY","Party invitation reused clan/name keyboard purpose");
       capture("party-invite-entry");menu.back();
       const auto discord_friend=std::make_shared<FriendsFixture>();
@@ -968,11 +1121,18 @@ int main(int argc, char **argv) {
       check(menu.frame().screen==31 && menu.frame().context==43,"Discord friend selection lost options");
       capture("party-discord-friend-options");choose("Invite To Party");
       wait_party([](const auto &s){return s.party && s.party->members.size()==2 && !s.busy;});
+      check(menu.take_ui_sounds()==std::vector{FrontendUiSound::Advance},"Remote accepted member did not request one party join sound");
       menu.set_discord_social({});
       check(menu.frame().screen==26 && menu.frame().context==2,"Invitation completion lost party members tab");
       check(account->snapshot().party->members[0].handle!=account->snapshot().party->members[1].handle &&
             account->snapshot().party->members[0].name==account->snapshot().party->members[1].name,"Duplicate chosen names changed party authority");
       private_identity(menu);capture("party-members");
+      while(menu.frame().screen!=14)menu.back();
+      wait_party([](const auto &s){return s.party && s.party->members.size()==2 && s.party->members[1].appearance.has_value();});
+      check(account->snapshot().party->members[1].appearance->foreground==26 &&
+            account->snapshot().party->members[1].appearance->colors[0]==8,
+            "Remote party row lost the accepted member's saved emblem/color bytes");
+      verify_party_rows(2);capture("party-two-profile-lobby");menu.players();
       if(!captures.empty()) {
         std::ofstream(captures/"request-full-party")<<"ready\n";
         for(unsigned i=0;i<14;++i) {
@@ -1007,9 +1167,27 @@ int main(int argc, char **argv) {
       capture("party-follower-lobby");
       menu.players();menu.select(0);menu.accept();choose("Leave Party");
       wait_party([](const auto &s){return !s.party && !s.busy && !s.party_invitations.empty();});capture("party-invitation");
-      menu.select(1);menu.accept();capture("party-invite-options");choose("Accept Party Invite");
+      const auto notice=menu.invite_notice();check(notice && notice->can_accept && !notice->accepting,"Incoming real party invitation has no corner notice");
+      painter.prompt_device(PromptDevice::Xbox);
+      const auto resident_materials=mesh.materials.size();
+      const auto corner=painter.draw_invite_notice(*notice,{1920,1080});
+      check(!corner.vertices.empty() && mesh.materials.size()==resident_materials,"Incoming notification changed the resident GPU material table");
+      bool project_buttons=false;
+      for(const auto &v:corner.vertices) {
+        check(v.position.x>=0 && v.position.x<=640 && v.position.y>=0 && v.position.y<=480 &&
+              mesh.materials.at(v.material).ui_full_surface,"Widescreen corner notification escaped the full-screen viewport");
+        project_buttons|=mesh.materials.at(v.material).name.starts_with("controller-prompts/xbox/");
+      }
+      check(project_buttons,"Corner invitation used bundled controller glyphs instead of project artwork");
+      painter.draw(menu,5,-1,10000);
+      std::optional<FrontendPointerTarget> popup_accept;
+      for(float y=0;y<130 && !popup_accept;++y)for(float x=320;x<640 && !popup_accept;++x)
+        if(const auto hit=painter.pointer_hit(x,y);hit && hit->action==FrontendPointerAction::InviteAccept)popup_accept=hit;
+      check(popup_accept && menu.activate_pointer(*popup_accept),"Corner Accept button did not submit the real party invitation");
+      check(!menu.act_invite_notice(true),"Repeated toast acceptance submitted another party mutation");
       wait_party([](const auto &s){return s.party && s.party->members.size()==2 && !s.party->leader && !s.busy;});
       check(menu.frame().screen==14,"Accepted party did not enter native lobby");capture("party-accepted-lobby");
+      check(!menu.invite_notice(),"Accepted invitation remained visible in corner");
       menu.players();menu.select(1);menu.accept();choose("Leave Party");
       wait_party([](const auto &s){return !s.party && !s.busy;});
       menu.back();check(menu.frame().screen==186,"Party completion lost ONLINE parent");
@@ -1120,7 +1298,9 @@ int main(int argc, char **argv) {
     check(!has_logo(menu), "Title logo overlaps the account panel");
     private_identity(menu);
     menu.select(1); menu.accept();
-    check(menu.frame().screen == 167 && menu.keyboard_text == "Pilot", "Account screen cannot edit the screen name");
+    if(menu.frame().screen!=167 || menu.keyboard_text!="Pilot")
+      throw FormatError("Account name editor: screen="+std::to_string(menu.frame().screen)+
+          " context="+std::to_string(menu.frame().context)+" text="+menu.keyboard_text);
     check(!has_logo(menu), "Title logo overlaps ONLINE name entry");
     menu.text("Custom Pilot"); menu.commit_text();
     check(menu.frame().screen == 20 && menu.profile_name() == "Custom Pilot" && menu.signed_in_profile() == "Custom Pilot", "Screen name edit did not update the selected player");
@@ -1176,6 +1356,11 @@ int main(int argc, char **argv) {
           {"identity",{{"id","76561197960287930"},{"username","Steam Persona"},{"display_name","Steam Persona"}}}}.dump()};
       });
     menu.set_online_account({});menu.set_discord_login(steam);menu.open(20);
+    const auto restore_deadline=std::chrono::steady_clock::now()+std::chrono::seconds(5);
+    while(steam->snapshot().status==DiscordLoginStatus::Verifying && std::chrono::steady_clock::now()<restore_deadline) {
+      menu.update_online_login();std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+    menu.update_online_login();
     check(menu.frame().entries[0].label=="Sign in with Steam","Native ONLINE does not offer Steam sign-in");
     menu.accept();
     const auto steam_deadline=std::chrono::steady_clock::now()+std::chrono::seconds(5);

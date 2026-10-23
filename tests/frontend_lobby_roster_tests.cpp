@@ -116,6 +116,14 @@ int main(int argc, char **argv) { try {
     check(bool(row), "original roster fixture row is incomplete");
   }
   check(cases == 144 && rows + hidden == cases * 16, "original roster coverage changed");
+  FrontendLobbyRosterPlayer player;player.member_count=4;
+  FrontendLobbyRosterInput tu15;tu15.valid_session=1;tu15.tu15=true;
+  tu15.players=std::span{&player,1};tu15.appearance_palette=palette;
+  check(frontend_lobby_roster(tu15)[0].background_frame==0,"TU1.5 four-player quantity was not normalized to one");
+  player.appearance_available=false;
+  const auto unknown=frontend_lobby_roster(tu15)[0];
+  check(!unknown.emblem_visible && !unknown.background_visible && unknown.name==player.name,
+        "Missing remote appearance fabricated profile artwork");
   std::cout << cases << " unchanged original roster cases; " << rows << " occupied and "
             << hidden << " hidden slots passed\n";
   return 0;

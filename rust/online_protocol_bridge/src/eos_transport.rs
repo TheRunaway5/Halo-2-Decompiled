@@ -101,6 +101,37 @@ pub fn eos_account_identity(token: &str) -> Result<ffi::EosIdentity, Error> {
     Err("EOS account sign-in timed out".into())
 }
 
+#[cfg(test)]
+mod lifetime_tests {
+    use super::*;
+
+    // Reaches the actual SDK adapter used by profile login followed by a match.
+    // Ordinary offline tests must not need credentials or the proprietary SDK.
+    #[test]
+    #[ignore = "requires the licensed EOS SDK and a private untrusted client configuration"]
+    fn sdk_platforms_survive_release_and_recreation() {
+        assert!(ffi::eos_sdk_available(), "The official EOS SDK is required");
+        let mut config = configuration().expect("Private client configuration");
+        let cache = std::path::PathBuf::from(&config.cache);
+        let mut platform = |name: &str| {
+            let path = cache.join(name);
+            std::fs::create_dir_all(&path).expect("Owned cache directory");
+            config.cache = path.to_string_lossy().into_owned();
+            ffi::new_raw_eos(&config).expect("EOS platform recreation must remain available")
+        };
+        drop(platform("profile"));
+        drop(platform("first-match"));
+        let active_match = platform("active-match");
+        assert!(!ffi::sdk_process_shutdown(), "An active match must retain its SDK");
+        drop(platform("concurrent-profile"));
+        drop(platform("replacement-profile"));
+        drop(active_match);
+        drop(platform("next-match"));
+        assert!(ffi::sdk_process_shutdown(), "Finalize before static destruction");
+        assert!(ffi::sdk_process_shutdown(), "Shutdown is idempotent");
+    }
+}
+
 pub fn new_eos_transport(
     self_slot: u8,
     rows: Vec<ffi::EosPeer>,

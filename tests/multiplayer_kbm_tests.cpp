@@ -139,6 +139,9 @@ int main() {
         for(bool dual:{false,true}) {
           const auto seated=held.gameplay_controls(dual,true,inverted);
           check(!seated.fire && !seated.fire_secondary && seated.crouch,"Held right mouse button never reaches only the original vehicle boost control bit");
+          const auto armed=held.gameplay_controls(dual,true,inverted,true);
+          check(!armed.fire && armed.fire_secondary && armed.crouch,
+              "Authored vehicle secondary trigger did not retain held right-click independently of dual invert");
         }
         const auto on_foot=held.gameplay_controls(false,false,inverted);
         check(!on_foot.fire && !on_foot.fire_secondary && !on_foot.crouch,"On-foot zoom also fired or boosted");
@@ -146,6 +149,8 @@ int main() {
     }
     queue.button(SDL_BUTTON_RIGHT,false);queue.drain(adapter);
     check(!adapter.consume().gameplay_controls(false,true,false).crouch,"Released vehicle boost remained held");
+    check(!adapter.consume().gameplay_controls(false,true,false,true).fire_secondary,
+        "Released vehicle secondary trigger remained held");
     queue.reset(adapter);
 
     // Pin observation time relative to the timestamp delivered by SDL. The

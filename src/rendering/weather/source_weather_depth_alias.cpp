@@ -63,7 +63,7 @@ struct SourceWeatherDepthAlias::Impl {
     VkFence pending{};
     VkCommandBuffer pending_command{};
     bool previous_recorded{};
-    bool color_open{};
+    bool color_open{},color_chain_ready{};
     SourceWeatherDepthAliasImage color_source{};
     struct Buffer {VkBuffer handle{};VkDeviceMemory memory{};VkDeviceSize size{};};
     struct Resources {
@@ -172,11 +172,17 @@ struct SourceWeatherDepthAlias::Impl {
         vkUpdateDescriptorSets(context.device,writes.size(),writes.data(),0,nullptr);
         resources=std::move(r);
     }
-    void record(const SourceWeatherDepthAliasRecord &record) {
+    void record(const SourceWeatherDepthAliasRecord &record,bool color_chain=false) {
         const auto &s=record.source;
         const auto encoding=encoding_index(s);
         if(!resources||!record.command||!record.completion||!s.image)throw FormatError("weather depth alias requires prepared resources and actual command/image/fence handles");
-        if(pending)throw FormatError("weather depth alias submission must be retired before reuse");
+        // Camouflage can finish several color aliases in one frame (groups
+        // and split-screen views). A completed color phase may continue only
+        // in the same unsubmitted command/fence; ordinary weather records
+        // retain their single-submission ownership contract.
+        if(pending && (!color_chain || !color_chain_ready || color_open || pending!=record.completion || pending_command!=record.command))
+            throw FormatError("weather depth alias submission must be retired before reuse");
+        const bool chained=bool(pending);
         if(record.command_owner!=context.device||s.owner!=context.device || record.command_queue_family!=context.queue_family||s.queue_family!=context.queue_family || s.sharing!=VK_SHARING_MODE_EXCLUSIVE || !record.exclusive_access||!record.outside_render_pass)
             throw FormatError("weather depth alias requires exclusive same-device/same-family ownership outside a render pass");
         if(s.samples!=VK_SAMPLE_COUNT_1_BIT || s.mip_levels!=1||s.array_layers!=1 || s.type!=VK_IMAGE_TYPE_2D||s.tiling!=VK_IMAGE_TILING_OPTIMAL||s.create_flags || (s.usage&(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT))!=(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT) || s.extent.width!=resources->extent.width||s.extent.height!=resources->extent.height || s.image==resources->image)
@@ -188,13 +194,14 @@ struct SourceWeatherDepthAlias::Impl {
         if(status==VK_SUCCESS)throw FormatError("weather depth alias completion fence must be reset/unsignaled");
         if(status!=VK_NOT_READY)check(status);
         auto &r=*resources;const auto command=record.command;
-        VkBufferMemoryBarrier validation{VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER};validation.srcAccessMask=VK_ACCESS_HOST_READ_BIT|VK_ACCESS_SHADER_WRITE_BIT;validation.dstAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;validation.srcQueueFamilyIndex=validation.dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;validation.buffer=r.validation.handle;validation.size=4;
-        vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_HOST_BIT|VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,0,0,nullptr,1,&validation,0,nullptr);vkCmdFillBuffer(command,r.validation.handle,0,4,0);
+        VkBufferMemoryBarrier validation{VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER};validation.srcAccessMask=VK_ACCESS_HOST_READ_BIT|VK_ACCESS_SHADER_WRITE_BIT|VK_ACCESS_TRANSFER_WRITE_BIT;validation.dstAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;validation.srcQueueFamilyIndex=validation.dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;validation.buffer=r.validation.handle;validation.size=4;
+        vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_HOST_BIT|VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT|VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,0,0,nullptr,1,&validation,0,nullptr);vkCmdFillBuffer(command,r.validation.handle,0,4,0);
         validation.srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;validation.dstAccessMask=VK_ACCESS_SHADER_READ_BIT|VK_ACCESS_SHADER_WRITE_BIT;vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0,0,nullptr,1,&validation,0,nullptr);
         const Scope transfer_read{VK_PIPELINE_STAGE_TRANSFER_BIT,VK_ACCESS_TRANSFER_READ_BIT},transfer_write{VK_PIPELINE_STAGE_TRANSFER_BIT,VK_ACCESS_TRANSFER_WRITE_BIT},compute_read{VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,VK_ACCESS_SHADER_READ_BIT},compute_write{VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,VK_ACCESS_SHADER_WRITE_BIT},sample_read{VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT|VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,VK_ACCESS_SHADER_READ_BIT};
         std::array<VkBufferMemoryBarrier,2> buffers{};
-        for(unsigned i=0;i<2;++i){buffers[i]={VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER};buffers[i].srcAccessMask=r.recorded?VK_ACCESS_SHADER_READ_BIT:0;buffers[i].dstAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;buffers[i].srcQueueFamilyIndex=buffers[i].dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;buffers[i].buffer=r.buffers[i].handle;buffers[i].size=r.buffers[i].size;}
-        vkCmdPipelineBarrier(command,r.recorded?VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT:VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,0,0,nullptr,buffers.size(),buffers.data(),0,nullptr);
+        for(unsigned i=0;i<2;++i){buffers[i]={VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER};buffers[i].srcAccessMask=r.recorded?VK_ACCESS_SHADER_READ_BIT:0;if(chained)buffers[i].srcAccessMask|=VK_ACCESS_SHADER_WRITE_BIT|VK_ACCESS_TRANSFER_READ_BIT;buffers[i].dstAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;buffers[i].srcQueueFamilyIndex=buffers[i].dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;buffers[i].buffer=r.buffers[i].handle;buffers[i].size=r.buffers[i].size;}
+        const auto prior_stages=r.recorded?VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT|(chained?VK_PIPELINE_STAGE_TRANSFER_BIT:0):VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        vkCmdPipelineBarrier(command,prior_stages,VK_PIPELINE_STAGE_TRANSFER_BIT,0,0,nullptr,buffers.size(),buffers.data(),0,nullptr);
         image_barrier(command,s.image,VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT,s.layout,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,scope,transfer_read);
         // Allocate and initialize the complete final uint so odd extents never
         // cause a shader read past the stencil descriptor or undefined tail.
@@ -214,7 +221,8 @@ struct SourceWeatherDepthAlias::Impl {
         vkCmdDispatch(command,(s.extent.width+7)/8,(s.extent.height+7)/8,1);
         validation.srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT|VK_ACCESS_SHADER_WRITE_BIT;validation.dstAccessMask=VK_ACCESS_HOST_READ_BIT;vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT|VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,VK_PIPELINE_STAGE_HOST_BIT,0,0,nullptr,1,&validation,0,nullptr);
         image_barrier(command,r.image,VK_IMAGE_ASPECT_COLOR_BIT,VK_IMAGE_LAYOUT_GENERAL,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,compute_write,sample_read);
-        previous_recorded=r.recorded;r.recorded=true;pending=record.completion;pending_command=record.command;
+        if(!pending)previous_recorded=r.recorded;
+        r.recorded=true;pending=record.completion;pending_command=record.command;color_chain_ready=false;
     }
     void prepare_color_pipeline(const SourceWeatherDepthAliasImage &source) {
         const auto encoding=encoding_index(source);
@@ -242,7 +250,7 @@ struct SourceWeatherDepthAlias::Impl {
         if((std::uint64_t(pixels)+255)/256>properties.limits.maxComputeWorkGroupCount[0])
             throw FormatError("depth color alias writeback extent exceeds actual dispatch limits");
         prepare_color_pipeline(input.source);
-        record(input);
+        record(input,true);
         image_barrier(input.command,resources->image,VK_IMAGE_ASPECT_COLOR_BIT,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             {VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT|VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,VK_ACCESS_SHADER_READ_BIT},
@@ -276,7 +284,7 @@ struct SourceWeatherDepthAlias::Impl {
         copy.imageSubresource.aspectMask=VK_IMAGE_ASPECT_STENCIL_BIT;vkCmdCopyBufferToImage(command,r.buffers[1].handle,color_source.image,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1,&copy);
         image_barrier(command,color_source.image,VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,color_source.layout,transfer_write,source_access);
         image_barrier(command,r.image,VK_IMAGE_ASPECT_COLOR_BIT,VK_IMAGE_LAYOUT_GENERAL,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,compute_read,sample_read);
-        color_open=false;color_source={};
+        color_open=false;color_source={};color_chain_ready=true;
     }
 };
 SourceWeatherDepthAlias::SourceWeatherDepthAlias(SourceWeatherDepthAliasContext c):impl_(std::make_unique<Impl>(std::move(c))){}
@@ -313,14 +321,14 @@ void SourceWeatherDepthAlias::discard_unsubmitted(VkCommandBuffer command) {
         throw FormatError("weather depth alias discard requires its exact never-submitted reset command");
     const auto status=vkGetFenceStatus(impl_->context.device,impl_->pending);
     if(status!=VK_NOT_READY){if(status!=VK_SUCCESS)check(status);throw FormatError("weather depth alias cannot discard a completed submission");}
-    impl_->resources->recorded=impl_->previous_recorded;impl_->pending={};impl_->pending_command={};impl_->color_open=false;impl_->color_source={};
+    impl_->resources->recorded=impl_->previous_recorded;impl_->pending={};impl_->pending_command={};impl_->color_open=false;impl_->color_source={};impl_->color_chain_ready=false;
 }
 void SourceWeatherDepthAlias::retire(VkFence fence) {
     if(!fence||fence!=impl_->pending)throw FormatError("weather depth alias requires its outstanding submission fence");
     if(impl_->color_open)throw FormatError("depth color alias cannot retire an unfinished writeback phase");
     const auto status=vkGetFenceStatus(impl_->context.device,fence);
     if(status!=VK_SUCCESS){if(status!=VK_NOT_READY)check(status);throw FormatError("weather depth alias submission has not completed");}
-    impl_->pending={};impl_->pending_command={};
+    impl_->pending={};impl_->pending_command={};impl_->color_chain_ready=false;
     if(*static_cast<const std::uint32_t*>(impl_->resources->validation_mapped)) {
         impl_->resources->recorded=false;
         throw FormatError("source D24 carrier contains a noncanonical physical depth word");

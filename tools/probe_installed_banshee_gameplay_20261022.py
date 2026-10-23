@@ -6,7 +6,7 @@ one seated-vehicle placement are declared fixture inputs. Entry, flight, fire,
 source physics, lens queries and the final GPU frame remain actual gameplay.
 No instruction body, admission, hit, lifetime or GPU result is supplied.
 """
-import ctypes,hashlib,json,math,os,struct,subprocess,time
+import ctypes,hashlib,json,math,os,signal,struct,subprocess,time
 from pathlib import Path
 from PIL import Image
 from validate_weapon_runtime_tu15 import private_display
@@ -21,7 +21,7 @@ python
 import gdb,json,struct
 from pathlib import Path
 config=json.loads(Path(CONFIG).read_text());root=Path(config['scratch']);setup=config['setup'];symbols=config['symbols']
-world=0;match=0;steps=0;placed=False;seated=False;observations=[];publications=[]
+world=0;match=0;steps=0;placed=False;seated=False;vehicle=0xffffffff;observations=[];publications=[];audio_requests=[];audio_voices=[]
 def pointer(key):return int(gdb.parse_and_eval("(void*)&'"+symbols[key]+"'"))
 def call_pointer(key,obj,arg=None):
     args=str(obj)+('' if arg is None else ','+str(arg));types='void*'+('' if arg is None else ',unsigned')
@@ -42,7 +42,7 @@ class WorldEntry(gdb.Breakpoint):
         self.enabled=False;WorldReturn(gdb.newest_frame(),internal=True);return False
 class Step(gdb.Breakpoint):
     def stop(self):
-        global match,steps,placed,seated
+        global match,steps,placed,seated,vehicle
         steps+=1
         if not world or steps<20:return False
         try:
@@ -60,7 +60,7 @@ class Step(gdb.Breakpoint):
                 record('placed',dict(unit=datum,position=setup['position'],yaw=readfloat(unit+setup['unit_yaw_offset']),step=steps));return False
             parent=read32(unit+setup['unit_parent_offset'])
             if parent!=0xffffffff and not seated:
-                place(parent,setup['airborne']);seated=True
+                place(parent,setup['airborne']);seated=True;vehicle=parent
                 record('seated',dict(unit=datum,parent=parent,position=setup['airborne'],step=steps))
             return False
         except Exception as error:
@@ -74,11 +74,27 @@ class Published(gdb.Breakpoint):
             if len(publications)%20==0:record('publications-observed',dict(samples=len(publications),published_frames=sum(p['count']>0 for p in publications),maximum_live_projectiles=max(p['count'] for p in publications)))
         return False
 Published(symbols['published'],internal=True)
+class AudioReturn(gdb.FinishBreakpoint):
+    def __init__(self,frame,event):
+        super().__init__(frame,internal=True);self.event=event
+    def stop(self):
+        voice=int(gdb.parse_and_eval('$rax'));engaged=int(gdb.parse_and_eval('$rdx'))&255
+        audio_voices.append(dict(**self.event,voice=voice,engaged=engaged))
+        return False
+class Audio(gdb.Breakpoint):
+    def stop(self):
+        if not seated:return False
+        raw=int(gdb.parse_and_eval('$rdx'));owner=read32(raw+0x50)
+        if owner!=vehicle:return False
+        event=dict(step=steps,sound=int(gdb.parse_and_eval('$esi'))&0xffffffff,owner=owner,view=int(gdb.parse_and_eval('$r8d'))&0xffffffff)
+        audio_requests.append(event);AudioReturn(gdb.newest_frame(),event);return False
+if 'audio' in symbols:Audio(symbols['audio'],internal=True)
 end
 run
 python
 record('finished',dict(steps=steps,placed=placed,seated=seated,delivered_fire_steps=sum(o['fire'] for o in observations),
-    published_frames=sum(p['count']>0 for p in publications),maximum_live_projectiles=max((p['count'] for p in publications),default=0)))
+    published_frames=sum(p['count']>0 for p in publications),maximum_live_projectiles=max((p['count'] for p in publications),default=0),
+    audio_requests=audio_requests,audio_voices=audio_voices))
 end
 '''
 class Inputs:
@@ -109,11 +125,19 @@ def main():
  table=subprocess.check_output(['nm','--defined-only',str(exe)],text=True).splitlines();symbols={}
  for key,fragment in [('world','MultiplayerObjectRuntime10tu15_world'),('unit','MultiplayerMatch4unitEj'),('step','MultiplayerMatch4step'),('position','PhysicsLiveWorldTu1519set_object_position'),('published','NativeWeaponProjectileScene11synchronize')]:
   found=[line.split()[2] for line in table if len(line.split())==3 and line.split()[1]=='T' and fragment in line.split()[2]];assert len(found)==1,(key,found);symbols[key]=found[0]
+ audible=bool(os.environ.get('HALO2_COMBAT_INSTALLED_AUDIO'))
+ if audible:
+  found=[line.split()[2] for line in table if len(line.split())==3 and line.split()[1]=='T' and 'MultiplayerAudio14source_impulse' in line.split()[2]];assert len(found)==1,found;symbols['audio']=found[0]
  config=scratch/'config.json';config.write_text(json.dumps(dict(scratch=str(scratch),setup=setup,symbols=symbols)));script=scratch/'probe.gdb';script.write_text(GDB.replace('CONFIG',repr(str(config))))
  from mcc_content import directory
  maps=directory(ROOT/selected['cache'])/'h2_maps_win64_dx11';capture=scratch/'final.ppm';log=scratch/'runtime.log'
  command=['gdb','-q','-nx','-batch','-x',str(script),'--args',str(exe),'--multiplayer','--map',str(maps/'coagulation.map'),'--shared-maps',str(maps),'--local-players','2','--frames','120','--mute','--viewport','800','450','--screenshot',str(capture)]
- actions=[];start=time.monotonic();code=124
+ through_launcher=bool(os.environ.get('HALO2_COMBAT_INSTALLED_LAUNCHER'))
+ if through_launcher:
+  assert exe==ROOT/selected['runtime'],'Launcher probe requires the actual selected runtime'
+  command[command.index('--args')+1]=str(ROOT/'Halo2-Launcher')
+ if audible:command.remove('--mute')
+ actions=[];start=time.monotonic();code=124;controlled_stop=None
  with private_display(scratch) as display,log.open('w') as stream:
   env=dict(os.environ,DISPLAY=display,SDL_VIDEODRIVER='x11',SDL_AUDIODRIVER='dummy',XDG_CACHE_HOME=str(owner/'graphics-cache'))
   process=subprocess.Popen(command,env=env,stdout=stream,stderr=subprocess.STDOUT);input_=Inputs(display);turned=False;fire=False
@@ -128,6 +152,17 @@ def main():
      input_.key('e',True);turned=True;actions.append(dict(action='actual_XTest_mouse_look_and_E_hold',delta=delta,at=time.monotonic()-start))
     if not fire and (scratch/'seated.json').exists():
      input_.key('e',False);input_.key('w',True);input_.key('space',True);input_.move(0,-80);input_.button(True);fire=True;actions.append(dict(action='actual_XTest_flight_and_continuous_primary_fire',at=time.monotonic()-start))
+    if capture.exists() and capture.stat().st_size>=800*450*3:
+     try:
+      with Image.open(capture) as im:im.load();assert im.size==(800,450)
+     except (OSError,AssertionError):pass
+     else:
+      controlled_stop=dict(reason='Controlled debugger stop after the complete finite GPU capture; natural process shutdown is not acceptance',at_seconds=time.monotonic()-start)
+      (scratch/'capture-stop.json').write_text(json.dumps(controlled_stop,indent=2)+'\n')
+      process.send_signal(signal.SIGINT)
+      try:code=process.wait(timeout=15)
+      except subprocess.TimeoutExpired:pass
+      break
     time.sleep(.05)
    if process.poll() is None:process.terminate()
    code=process.wait(timeout=15)
@@ -135,12 +170,16 @@ def main():
    for key in ['e','w','space']:input_.key(key,False)
    input_.button(False)
    if process.poll() is None:process.kill();process.wait()
- keep_log(log,out/'runtime.log');result=dict(scope=__doc__,command=command,runtime_sha256=sha(exe),selected_at_start=exe==ROOT/selected['runtime'],selection_changed=selection.read_bytes()!=selected_bytes,source_header_sha256=pins['include/halo2/simulation.hpp'],exit_code=code,actions=actions,elapsed_seconds=time.monotonic()-start,original_Xbox_pixels_compared=False)
+ keep_log(log,out/'runtime.log');result=dict(scope=__doc__,command=command,runtime_sha256=sha(exe),through_launcher=through_launcher,launcher_sha256=sha(ROOT/'Halo2-Launcher') if through_launcher else None,selected_at_start=exe==ROOT/selected['runtime'],selection_changed=selection.read_bytes()!=selected_bytes,source_header_sha256=pins['include/halo2/simulation.hpp'],exit_code=code,actions=actions,elapsed_seconds=time.monotonic()-start,original_Xbox_pixels_compared=False,controlled_stop=controlled_stop,natural_process_shutdown_verified=controlled_stop is None and code==0)
  for name in ['placed','seated','finished','debugger-error','inputs-observed','publications-observed']:
   if(scratch/(name+'.json')).exists():result[name]=json.loads((scratch/(name+'.json')).read_text())
  if capture.exists():
   with Image.open(capture) as im:im.convert('RGB').crop((0,0,800,225)).save(scratch/'pilot.png')
   p=scratch/'pilot.png';assert p.stat().st_size<1024*1024;target=out/'pilot.png';target.write_bytes(p.read_bytes());result['retained_reference_image']=dict(path=str(target),bytes=target.stat().st_size,sha256=sha(target))
  result['gameplay_completed']=code==0 and fire and capture.exists() and result.get('finished',{}).get('delivered_fire_steps',0)>0 and result.get('finished',{}).get('published_frames',0)>0
+ if audible:
+  voices=result.get('finished',{}).get('audio_voices',[])
+  result['audio_completed']=bool(voices) and all(v['engaged']==1 and v['voice']>0 and v['view']==0 for v in voices)
+  result['gameplay_completed']&=result['audio_completed']
  (out/'report.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True);return 0 if result['gameplay_completed'] else 1
 if __name__=='__main__':raise SystemExit(main())

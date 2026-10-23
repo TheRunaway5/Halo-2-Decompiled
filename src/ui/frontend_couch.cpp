@@ -81,6 +81,7 @@ bool MenuState::accept_online_couch() {
     unavailable("Finish the current account sign-in first.");return true;
   }
   if(!login)login=local_discord_factory_();
+  login->bind_profile(preferences_.empty()?std::string{}:std::filesystem::absolute(preferences_).lexically_normal().string(),profile_login_key(local_profiles_[controller]));
   login->start();++revision;return true;
 }
 void MenuState::update_online_couch() {

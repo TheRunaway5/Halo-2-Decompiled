@@ -1,11 +1,12 @@
 #include "halo2/multiplayer_kbm.hpp"
 
 namespace halo2 {
-Controls MultiplayerKbmInput::gameplay_controls(bool dual,bool seated,bool inverted) const {
+Controls MultiplayerKbmInput::gameplay_controls(bool dual,bool seated,bool inverted,bool vehicle_secondary) const {
   auto result=controls;
   dual&=!seated;
   result.fire=dual?(inverted?actions.dual_secondary:actions.dual_primary):controls.fire;
   result.fire_secondary=dual && (inverted?actions.dual_primary:actions.dual_secondary);
+  if(seated && vehicle_secondary)result.fire_secondary=actions.dual_secondary;
   // TU1.5 F297A consumes vehicle+148 bit0 as boost. The original driver
   // propagation copies the low control word; ordinary unit bit0 is crouch.
   // Keep this context change in the host adapter, before the existing command

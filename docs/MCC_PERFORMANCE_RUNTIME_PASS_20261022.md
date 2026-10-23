@@ -184,17 +184,37 @@ The subsequent [ASan/UBSan differential](../build/test-results/mcc-performance-g
 passes all 339 cases. Its private build and the completed runtime cohort owner,
 including raw captures/timing files/caches, were verified removed.
 
-The next bounded experiment is [selective LTO](MCC_PERFORMANCE_SELECTIVE_LTO_20261022.md)
-over the complete memory, live-world and specialized shadow translation units.
-It uses private replacement objects and a separate runtime output inside the
-same owned session, preserving the normal executable and archives. No compiler
-gain is established until link closure, actual code generation, semantic and
-runtime checks pass.
+The subsequent [selective LTO trial](MCC_PERFORMANCE_SELECTIVE_LTO_TRIAL_20261022.md)
+passes semantic and 4K image checks but fails to establish consistent CPU
+benefit. It is rejected for production and its private products are removed.
 
-The full runtime build is still required for this active goal and remains
-inside its finite owned session. Completed measurement, sanitizer and preview
-owners have been removed. No generated game binary or framebuffer has been
-retained as a delivery artifact.
-Close the session and verify cleanup after the active
-runtime investigation no longer needs it; the
-[goal checklist](MCC_PERFORMANCE_GOAL_CHECKLIST.md) remains open.
+The [selected WORLD skin trial](MCC_PERFORMANCE_SELECTED_SKIN_TRIAL_20261022.md)
+then eliminates verified repeated host skins while preserving complete selected
+vertices/poses and four 4K neutral/fire image pairs. Its tightened synthetic
+component improves 9.898x. The ordinary native candidate is
+`861e1f997c615c67c85201ab1af89ef7ea73eb942a315f885812b9586fef4def`.
+All three four-player FPS pairs improve (7.2%/25.1%/19.0%), but the reference
+drifts substantially and single-player results are mixed. Every one of 2,880
+sampled ordinary frames misses its target deadline. A corrected equal-work
+diagnostic matches source/geometry signatures and eliminates 378/1,080 selected
+requests per run; its CPU ratios are 1.024x/1.022x/0.977x. No consistently positive
+whole-frame CPU gain or MCC-class performance is established.
+
+Both completed measurement owners, sanitizer builds, superseded reference
+copies, assembly probes, helper sources and copied caches are removed; bounded
+reports preserve results, controls and failures. The initial CPU diagnostic's
+non-submitting window is retained as rejected evidence. The corrected harness
+fails closed on any non-submitted fixed frame and uses isolated X11 only for
+diagnostic CPU work. The ordinary native binary and launcher selection are
+preserved through that diagnostic-only rebuild. The next material owner is the
+authenticated plane-volume MOPP query; its actual execution oracle remains
+required before a native replacement can be admitted.
+
+The finite runtime session has subsequently closed. Its journal reports
+`closed`, the monitor process is absent and the entire owned source/build tree
+is verified removed. Completed measurement, sanitizer and preview owners are
+also removed; no private game binary or framebuffer is retained. The
+[goal checklist](MCC_PERFORMANCE_GOAL_CHECKLIST.md) remains open. The
+[current-source offload audit](MCC_PERFORMANCE_OFFLOAD_20261022.md) identifies
+worker/GPU candidates; further executable validation needs a new declared
+source snapshot.

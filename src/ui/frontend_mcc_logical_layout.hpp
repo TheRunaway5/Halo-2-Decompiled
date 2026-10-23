@@ -2,6 +2,7 @@
 #include "halo2/frontend.hpp"
 #include "ui/mcc_frontend_string_ids.hpp"
 #include <nlohmann/json.hpp>
+#include <algorithm>
 #include <optional>
 #include <fstream>
 #include <string_view>
@@ -482,6 +483,20 @@ inline std::optional<View> make_view(const FrontendContent &source) {
     out.images.emplace(id, std::move(logical));
   }
   for (const auto &[id, actual] : source.images) {
+    // MCC retains these raster tags after removing the Xbox matchmaking
+    // player-skin group. Their stock32px pages serve the source empty-row
+    // widgets; no missing group datum or alternate raster is manufactured.
+    if(actual.name=="ui\\list_skins\\matchmaking\\player_in" ||
+       actual.name=="ui\\list_skins\\matchmaking\\item_background") {
+      const bool square=actual.name.ends_with("\\player_in");
+      if(actual.images.size()!=(square?2u:1u) ||
+          std::any_of(actual.images.begin(),actual.images.end(),[&](const auto &t){
+            return t.width!=(square?32u:256u) || t.height!=32;
+          }))throw FormatError("MCC empty-party bitmap differs from its stock source descriptor");
+      view.rasters.emplace(actual.name,actual.images);
+      out.images.emplace(id,actual);
+      continue;
+    }
     const auto expected = original.at("map_images").find(actual.name);
     if (expected == original.at("map_images").end()) continue;
     view.rasters.emplace(actual.name, actual.images);

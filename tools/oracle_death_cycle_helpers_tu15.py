@@ -35,7 +35,7 @@ def main():
     assert hashlib.sha256(NEW_DEFAULT.read_bytes()).hexdigest() == NEW_PIN
     image = Xbe(NEW_DEFAULT)
     cases = []
-    for entry in (0x17b0d0, 0x11e7b0, 0x4057f0, 0x178d80, 0xd2ad0, 0x179700, 0xdcfa0, 0x1706f0, 0x1054b0, 0x118760, 0x282780):
+    for entry in (0x17b0d0, 0x11e7b0, 0x4057f0, 0x178d80, 0xd2ad0, 0x179700, 0xdcfa0, 0x1706f0, 0x1054b0, 0x118760, 0x1186d0, 0x282780):
         for variant in range(32):
             uc = Uc(UC_ARCH_X86, UC_MODE_32)
             end = max((section.va+section.vsize+4095)&~4095 for section in image.sections)
@@ -85,6 +85,14 @@ def main():
                 for n in range(4):put(0x6000+n*0xa0+4,(0x12345678,0xffffefff,0xffffffff,0x1000)[n])
                 uc.mem_write(0x52be5c,struct.pack('<I',BASE+0x5000))
                 globals_before=[(0x52be5c,struct.pack('<I',BASE+0x5000))]
+            elif entry == 0x1186d0:
+                # Stop at the genuine external datum-pool deletion entry.
+                # Authenticate the full argument/register/stack boundary;
+                # supply no deletion result or callback return.
+                helper_stop=0x16e8a0
+                put(0x7f04,0xee610000|variant)
+                uc.mem_write(0x4ecc04,struct.pack('<I',BASE+0x1000))
+                globals_before=[(0x4ecc04,struct.pack('<I',BASE+0x1000))]
             elif entry == 0x118760:
                 # Whole nonzero-low-word bypass, or explicit stop before
                 # the mode0 external geometry owner. Unused pool is absent.

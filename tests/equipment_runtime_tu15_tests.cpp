@@ -119,8 +119,8 @@ int main(int argc,char **argv)try {
                 const Bytes definition(metadata.bytes_at(metadata.source_address(),metadata.size()));
                 check(definition.f32(0x130)==0.f && !consumed && objects.netgame_object(c.row)==object &&
                     after.grenades==before.grenades && after.source_camouflage.primary==before.source_camouflage.primary,
-                    "Zero-duration authored ammo box changed its original no-powerup behavior");
-                row["expected_behavior"]="Original151EA0 rejects zero-duration equipment before application/deletion";
+                    "Nonmatching ammo contact changed powerup/grenade state or consumed the box");
+                row["expected_behavior"]="Nonmatching starting weapon retains this ammo box; matching-weapon transfers have a separate regression";
             }
             if(c.type==2) {
                 check(after.shield>1.f,"Consumed overshield did not charge the actual source shield");
@@ -159,14 +159,26 @@ int main(int argc,char **argv)try {
                 }
                 const auto old=respawn_row==c.row?object:null_datum;
                 std::uint32_t replacement=null_datum;unsigned waited{};
-                const auto seconds=content.netgame_equipment.at(respawn_row).respawn_seconds;
-                check(seconds>0,"Respawn control requires an authored positive timer");
+                const auto &placement=content.netgame_equipment.at(respawn_row);
+                // Original netgame scheduling falls back to the collection
+                // delay, then30 seconds, when the scenario override is zero.
+                const auto seconds=placement.respawn_seconds?placement.respawn_seconds:
+                    (placement.collection_delay?placement.collection_delay:30);
+                check(seconds>0,"Authored netgame timer disables this respawn");
+                row["effective_respawn_seconds"]=seconds;
                 for(;waited<unsigned(seconds)*30u+300u;++waited) {
                     match.step({});replacement=objects.netgame_object(respawn_row);
                     if(replacement!=null_datum && replacement!=old) {++waited;break;}
                 }
                 row["respawn_row"]=respawn_row;row["respawn_wait_frames"]=waited;row["replacement"]=replacement;
                 check(replacement!=null_datum && replacement!=old,"Ordinary source netgame frames did not create a new equipment generation");
+            }
+            if(c.type==2) {
+                unsigned waited{};
+                for(;waited<6000 && match.state().players.at(slot).shield>1.f;++waited)match.step({});
+                row["shield_expiry_wait_frames"]=waited;row["expired_shield"]=match.state().players.at(slot).shield;
+                check(match.player(slot).source_current_object==unit && !match.state().players.at(slot).dead &&
+                    match.state().players.at(slot).shield<=1.f,"Overshield did not drain back to normal on its original unit");
             }
             if(c.type==3) {
                 unsigned waited{};

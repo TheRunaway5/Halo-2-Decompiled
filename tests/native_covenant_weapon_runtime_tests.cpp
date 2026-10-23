@@ -19,6 +19,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <nlohmann/json.hpp>
 #include <set>
 using namespace halo2;
@@ -51,7 +52,6 @@ int main(int argc,char **argv)try {
   const bool plasma_pistol=std::string(argv[4])=="plasma_pistol";
   const bool charge_cycle=argc==7 && std::string(argv[6])=="charge";
   const bool reload_cycle=argc==7 && std::string(argv[6])=="reload";
-  check(!reload_cycle || shotgun,"Staged reload probe requires shotgun");
   const bool pistol_tap=argc==7 && std::string(argv[6])=="tap";
   check(!charge_cycle || plasma_pistol,"Charge probe requires plasma pistol");
   check(!pistol_tap || plasma_pistol,"Tap probe requires plasma pistol");
@@ -61,6 +61,7 @@ int main(int argc,char **argv)try {
   const bool native_motion=std::getenv("HALO2_TEST_ALLOW_NATIVE_MOTION")!=nullptr;
   const auto *source_trace_path=std::getenv("HALO2_TEST_WEAPON_STATE_REPORT");
   const bool verify_source_shot_tick=std::getenv("HALO2_TEST_VERIFY_SOURCE_SHOT_TICK")!=nullptr;
+  const bool verify_source_audio=std::getenv("HALO2_TEST_VERIFY_WEAPON_AUDIO_REQUESTS")!=nullptr;
   const bool clear_firing_lane=std::getenv("HALO2_TEST_CLEAR_FIRING_LANE")!=nullptr;
   const bool needler_clear_lane=std::getenv("HALO2_TEST_NEEDLER_CLEAR_LANE")!=nullptr;
   check(!needler_clear_lane || (needler && mcc),"Needler clear-lane diagnostic requires the prepared MCC case");
@@ -113,6 +114,7 @@ int main(int argc,char **argv)try {
     return p.second.name.ends_with(sword?std::string("\\energy_blade"):std::string("\\")+argv[4]);
   });check(weapon!=c.weapons.end(),"Authored target weapon absent");
   const auto target=weapon->first;const auto &w=weapon->second;
+  check(!reload_cycle || (w.capacity>0 && !w.energy),"Reload audio replay requires an authored magazine weapon");
   // Material callbacks consume the owning cache's authored identifiers.
   // Independently check each paired name instead of applying an index delta
   // or requesting an Xbox identifier from an MCC shader input callback.
@@ -154,6 +156,8 @@ int main(int argc,char **argv)try {
   std::vector<std::size_t> weapon_effect_pending;
   nlohmann::json source_sound_submissions=nlohmann::json::array();
   std::vector<std::size_t> sound_submit_pending;
+  using AudioCue=std::pair<std::uint32_t,std::uint32_t>; // full owner, resident sound
+  std::map<AudioCue,unsigned> original_audio_cues,submitted_audio_cues;
   nlohmann::json sword_selection_calls=nlohmann::json::array();
   std::vector<std::size_t> sword_selection_pending;
   unsigned sword_selection_depth{};
@@ -170,14 +174,25 @@ int main(int argc,char **argv)try {
   std::set<std::uint32_t> traced_projectiles;
   std::vector<std::size_t> projectile_birth_pending;
   std::optional<SourcePhysicsEntryObserverBinding> projectile_birth_observer;
-  if(std::getenv("HALO2_TEST_TRACE_PROJECTILE_BIRTHS") || std::getenv("HALO2_TEST_TRACE_WEAPON_EFFECT_REQUESTS") || trace_sword_selection || trace_reload_timing) {
+  if(std::getenv("HALO2_TEST_TRACE_PROJECTILE_BIRTHS") || std::getenv("HALO2_TEST_TRACE_WEAPON_EFFECT_REQUESTS") || verify_source_audio || trace_sword_selection || trace_reload_timing) {
     auto *source=o.prepared_world->match.source_object_runtime();
     check(source && source->owns_physics(),"Projectile birth trace requires actual source storage");
     const auto &memory=source->memory();
     const auto word=[&memory](std::uint32_t at){return Bytes(memory.view(at,4)).u32(0);};
-    if(std::getenv("HALO2_TEST_TRACE_WEAPON_EFFECT_REQUESTS")) {
+    if(std::getenv("HALO2_TEST_TRACE_WEAPON_EFFECT_REQUESTS") || verify_source_audio) {
       source->observe_sound_submissions([&](bool before,std::uint32_t sound,std::uint32_t request,
           const auto &abi,const auto &bank,auto instructions,auto) {
+        if(verify_source_audio && before) {
+          const Bytes raw(bank.view(request,160));
+          const auto tag=cache.query_tag({.handle=TagHandle{sound},.group=TagGroup::from_string("snd!"),
+              .require_address=true,.minimum_size=28});
+          check(tag,"Original sound request lost its resident sound tag");
+          const bool classic=!cache.is_mcc() || !(Bytes(cache.read_tag_bytes(tag->address,28)).u16(0)&0x800u);
+          if(classic && (raw.u32(0)&8u) && !(raw.u32(0)&0x10u) &&
+              (std::to_integer<unsigned>(raw.slice(0xf,1)[0])&15u)<=1u && raw.u32(0x50)!=null_datum)
+            ++original_audio_cues[{raw.u32(0x50),sound}];
+        }
+        if(!std::getenv("HALO2_TEST_TRACE_WEAPON_EFFECT_REQUESTS"))return;
         std::array<std::uint32_t,40> words{};
         const auto bytes=bank.view(request,sizeof(words));std::memcpy(words.data(),bytes.data(),bytes.size());
         if(before) {
@@ -405,6 +420,7 @@ int main(int argc,char **argv)try {
   nlohmann::json staged_reload_timeline=nlohmann::json::array(),staged_reload_poses=nlohmann::json::array();
   unsigned ignition_particles{},ready_sounds{},hidden_blade_draws{},lit_blade_draws{};
   unsigned firing_particles{},firing_sounds{},fired_rounds{};
+  std::set<std::uint32_t> firing_sound_tags;
   unsigned rocket_exhaust_draws{};
   std::uint32_t rocket_exhaust=null_datum;
   if(rocket)for(const auto &tag:cache.tags())
@@ -718,7 +734,7 @@ int main(int argc,char **argv)try {
     if(sample.first_person && sample.weapon==owner)observe_selected_sword_attack();
     if(SDL_GetKeyboardFocus()!=window){SDL_RaiseWindow(window);SDL_SetWindowInputFocus(window);}
     if(sample.first_person && sample.weapon==owner && !sample.vertices.empty())carried_pose=true;
-    if(reload_cycle && sample.first_person && sample.weapon==owner && staged_reload_poses.size()<512) {
+    if(reload_cycle && shotgun && sample.first_person && sample.weapon==owner && staged_reload_poses.size()<512) {
       auto *source=o.prepared_world->match.source_object_runtime();
       check(source && source->owns_physics(),"Staged reload poses require their actual source owner");
       const auto hand=source->tu15_world().first_person_view(0).hands[0];
@@ -910,11 +926,21 @@ int main(int argc,char **argv)try {
     check(value==1.f,"World sword lost original turned_on input");shader=true;++materials;
   };
   o.audio_observer=[&](const MultiplayerAudioSubmission &s){
+    if(verify_source_audio && (s.kind==MultiplayerAudioKind::FirstPerson || s.kind==MultiplayerAudioKind::Impulse))
+      ++submitted_audio_cues[{s.owner,s.sound}];
+    const auto sound_tag=cache.query_tag({.handle=TagHandle{s.sound},
+        .group=TagGroup::from_string("snd!"),.require_address=true,.minimum_size=20});
+    check(sound_tag!=nullptr,"Actual audio packet lost its resident sound metadata");
+    const auto sound_metadata=cache.read_tag_bytes(sound_tag->address,20);
+    check(!cache.is_mcc() || !(Bytes(sound_metadata).u16(0)&0x800u),
+        "Classic handheld replay submitted a remastered-only sound layer");
     if(s.owner==owner)observe_selected_sword_attack();
     if(s.owner==owner && attack_sounds.contains(s.sound))++sounds;
-    if(!sword && s.sound==firing_sound) {
+    // Plasma rifles alternate two authored Classic snd! identities. The
+    // owning cache's weapon_fire class4 covers both; w.sound is one cue.
+    if(!sword && std::to_integer<unsigned>(sound_metadata[2])==4u) {
       check(s.owner==owner,"Firing sound bypassed its actual picked effect owner");
-      check(s.frames>0,"Firing sound submitted an empty PCM packet");++firing_sounds;
+      check(s.frames>0,"Firing sound submitted an empty PCM packet");++firing_sounds;firing_sound_tags.insert(s.sound);
     }
     if(s.owner==owner && s.sound==0xe2fc0187u) {
       ++ready_sounds;ready_sound_tick=tick;
@@ -1044,6 +1070,36 @@ int main(int argc,char **argv)try {
   std::cout<<"Pickup gate observations: requested="<<requested.value_or(0)<<" picked="<<picked.value_or(0)
       <<" focus="<<focus_samples<<" pickup_inputs="<<pickup_input_samples
       <<" maximum_pickup_ms="<<maximum_pickup_milliseconds<<'\n';
+  nlohmann::json audio_delivery=nlohmann::json::array();
+  if(verify_source_audio) {
+    unsigned expected{},actual{},source_reload_cues{},native_reload_cues{};
+    std::set<AudioCue> keys;
+    for(const auto &[cue,count]:original_audio_cues)if(cue.first==owner)keys.insert(cue);
+    for(const auto &[cue,count]:submitted_audio_cues)if(cue.first==owner)keys.insert(cue);
+    for(const auto &cue:keys) {
+      const auto source=original_audio_cues[cue],native=submitted_audio_cues[cue];
+      const auto tag=cache.query_tag({.handle=TagHandle{cue.second}});
+      check(tag,"Compared weapon sound lost its resident metadata");
+      const auto sound_class=std::to_integer<unsigned>(cache.read_tag_bytes(tag->address,3)[2]);
+      audio_delivery.push_back({{"owner",cue.first},{"sound",cue.second},{"name",tag?tag->name:""},
+          {"sound_class",sound_class},{"original_requests",source},{"SDL_submissions",native}});
+      if(sound_class==6u){source_reload_cues+=source;native_reload_cues+=native;}
+      expected+=source;actual+=native;
+    }
+    if(source_trace_path) {
+      std::ofstream audit(std::string(source_trace_path)+".audio.json");
+      audit<<nlohmann::json{{"picked_weapon",owner},{"cues",audio_delivery},
+          {"source_reload_cues",source_reload_cues},{"native_reload_cues",native_reload_cues},
+          {"full_audio_parity",false}}.dump(2)<<'\n';
+      check(bool(audit),"Cannot record actual weapon audio request comparison");
+    }
+    std::cout<<"Original weapon audio requests: "<<expected<<"; actual SDL submissions: "<<actual<<'\n';
+    if(!sword)check(!keys.empty(),"Weapon audio request check observed no actual original or SDL cues");
+    for(const auto &cue:keys)check(original_audio_cues[cue]==submitted_audio_cues[cue],
+        "Actual weapon sound request count differs from SDL submission count");
+    if(reload_cycle)check(source_reload_cues>0 && source_reload_cues==native_reload_cues,
+        "Completed source reload produced no matching authored reload sound packets");
+  }
   if(source_trace_path) {
     check(weapon_effect_pending.empty(),"Original weapon-effect observation did not complete");
     check(sound_submit_pending.empty(),"Original sound-submit observation did not complete");
@@ -1058,13 +1114,16 @@ int main(int argc,char **argv)try {
         {"source_model_particle_observations",source_model_particle_observations},
         {"runtime_cache_source",cache.is_mcc()?"MCC":"Xbox reference"},
         {"runtime_cache_path",cache.path().string()},{"native_world_constructor",o.gameplay_xbe.empty()},
+        {"tested_weapon_definition",target},{"tested_weapon_path",w.name},{"tested_weapon_owner",owner},
+        {"tested_action",argc==7?argv[6]:sword?"strike":"fire"},
         {"cache_local_material_symbols",{{"one",material_one},{"turned_on",material_turned_on},
             {"heat",material_heat},{"age",material_age},{"primary_ammunition",material_ammunition},{"alive",material_alive}}},
         {"weapon_effect_requests",weapon_effect_requests},
         {"source_sound_submissions",source_sound_submissions},
+        {"original_to_SDL_audio_delivery",audio_delivery},
         {"source_shot_tick_equality_checked",verify_source_shot_tick},
         {"picked_tick",picked.value_or(0)},{"legacy_fired_rounds",fired_rounds},
-        {"firing_sound_submissions",firing_sounds},{"maximum_heat",maximum_heat},
+        {"firing_sound_submissions",firing_sounds},{"firing_sound_tags",firing_sound_tags},{"maximum_heat",maximum_heat},
         {"maximum_spent",maximum_spent},{"actual_gauge_material_observations",gauge_input_observations},
         {"original_source_position_owner",true},{"samples",source_trace}};
     trace["projectile_births"]=projectile_births;
@@ -1215,11 +1274,11 @@ int main(int argc,char **argv)try {
       "Actual attack did not submit advancing authored poses");
   check(pose_hashes.size()>=minimum_samples,"Authored attack clock advanced without moving the rendered weapon vertices");
   if(reload_cycle) {
-    check(staged_reload_requested && staged_reload_refilled,"Actual shotgun did not complete its staged reload and return to idle");
+    check(staged_reload_requested && staged_reload_refilled,"Actual magazine did not complete its reload and return to idle");
     check(state.players[slot].loaded==w.capacity &&
         staged_reload_reserve-state.players[slot].reserve==w.capacity-staged_reload_loaded,
         "Staged reload did not conserve actual source magazine/reserve ammunition");
-    for(const auto activity:{0x0c0005aeu,0x140005b0u,0x0b0005b1u}) {
+    if(shotgun)for(const auto activity:{0x0c0005aeu,0x140005b0u,0x0b0005b1u}) {
       std::set<float> phase_frames;std::set<std::uint64_t> phase_poses;
       for(const auto &pose:staged_reload_poses)if(pose.at("activity").get<std::uint32_t>()==activity) {
         check(pose.at("vertices").get<unsigned>()>0,"Staged reload submitted an empty authored pose");
@@ -1227,7 +1286,8 @@ int main(int argc,char **argv)try {
       }
       check(phase_frames.size()>=2 && phase_poses.size()>=2,"Staged reload lost advancing enter/continue/exit geometry");
     }
-    std::cout<<"Staged reload: actual enter/continue/exit geometry and conserved source ammunition\n";
+    if(shotgun)std::cout<<"Staged reload: actual enter/continue/exit geometry and conserved source ammunition\n";
+    else std::cout<<"Magazine reload: actual original completion, idle return and conserved source ammunition\n";
   }
   if(ready){
     std::cout<<"Ready observations: hidden="<<hidden_blade_draws<<" lit="<<lit_blade_draws

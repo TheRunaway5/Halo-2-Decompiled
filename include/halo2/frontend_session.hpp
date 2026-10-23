@@ -24,8 +24,8 @@ public:
   FrontendSession &operator=(const FrontendSession &) = delete;
   FrontendSession(FrontendSession &&) = delete;
   FrontendSession &operator=(FrontendSession &&) = delete;
-  // OAuth lives for the application session, across world/renderer teardown.
-  // Credentials remain memory-only and explicit Sign Out still cancels it.
+  // The current session survives world/renderer teardown. Steam refresh
+  // credentials are scoped to a local profile in the OS credential store.
   std::shared_ptr<DiscordLogin> discord_login;
   std::shared_ptr<DiscordSocial> discord_social;
 

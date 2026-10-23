@@ -2,6 +2,7 @@
 """Lower complete authenticated TU1.5 death, detachment and observer owners."""
 import argparse
 import json
+import re
 from pathlib import Path
 from types import SimpleNamespace
 from oracle_smg_firing_1_1 import Xbe, _Code
@@ -242,6 +243,9 @@ ENTRIES = (
     # ActualD72D6 reaches this original light-receiver instance callback.
     # Mode1 returns without reading its pool; mode0 keeps47860 external.
     0x118760,
+    # ActualD6FF4 object cleanup retires the same light-receiver pool entry.
+    # Keep the complete four-instruction wrapper and original16E8A0 owner.
+    0x1186d0,
     # Actual311522 cleanup callback reached after the live grenade replay.
     # Complete source body clears its selected physical record flag.
     0x282780,
@@ -357,7 +361,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, default=Path('src/gameplay/units/death_cycle_runtime_tu15_generated.cpp'))
     parser.add_argument('--directory', type=Path, default=Path('analysis/multiplayer/death-cycle-20261013/effect-owners'))
+    parser.add_argument('--qualified-source', type=Path,
+        help='Append the recovered1186D0 wrapper while preserving already-qualified bodies and FP lowering')
     args = parser.parse_args()
+    qualified = args.qualified_source.read_text() if args.qualified_source else None
+    qualified_sha256 = sha(args.qualified_source) if args.qualified_source else None
     assert sha(NEW_DEFAULT) == NEW_PIN
     image = Xbe(NEW_DEFAULT)
     banks = [_Code(image, section) for section in image.sections if section.name in ('.text', 'D3D')]
@@ -416,6 +424,35 @@ def main():
     # observers when none of its authenticated instruction sites use them.
     if 'SourceProjectileUpdateScope' not in source and 'source_begin_projectile_contact_effect_tu15' not in source:
         source = source.replace('#include "halo2/source_projectile_effect_observer.hpp"\n', '')
+    if qualified is not None:
+        # The shared lowerer may have newer FP emission than a qualified
+        # cohort. This four-instruction integer wrapper does not requalify or
+        # replace any existing body, helper, floating-point or observer code.
+        pattern = r'static void run_([0-9a-f]+)\(WorldState &s\) \{\n(.*?)\n\}'
+        old_bodies = dict(re.findall(pattern, qualified, re.S))
+        new_bodies = dict(re.findall(pattern, source, re.S))
+        assert old_bodies and set(new_bodies) - set(old_bodies) == {'1186d0'}
+        assert set(old_bodies) < set(new_bodies)
+        additions = {
+            'std::uint32_t selected(std::uint32_t p,SourcePhysicsContactImage image){if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){':
+                'std::uint32_t selected(std::uint32_t p,SourcePhysicsContactImage image){if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){case 0x1186d0u:return 0x1186d0u;',
+            'static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail){':
+                'static void run_1186d0(WorldState &);\n'
+                'static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail){'
+                'if(target==selected(0x1186d0u,s.image)){run_1186d0(s);return;}',
+            'static void run_1c180(WorldState &s) {':
+                'static void run_1186d0(WorldState &s) {\n' + new_bodies['1186d0'] + '\n}\n'
+                'static void run_1c180(WorldState &s) {',
+            'switch(entry) {': 'switch(entry) {\ncase 0x1186d0u:run_1186d0(s);break;',
+            'bool source_death_cycle_runtime_tu15_owns_entry(std::uint32_t p) {switch(p){':
+                'bool source_death_cycle_runtime_tu15_owns_entry(std::uint32_t p) {switch(p){case 0x1186d0u:',
+        }
+        source = qualified
+        for old, new in additions.items():
+            assert source.count(old) == 1
+            source = source.replace(old, new)
+        assert all(dict(re.findall(pattern, source, re.S))[entry] == body
+                   for entry, body in old_bodies.items())
     args.output.write_text(source)
     report = json.loads((args.directory / 'generation.json').read_text())
     report['bounded_blocks'] = {'000dbd64': {'stop_before': '000dbfcc',
@@ -427,6 +464,11 @@ def main():
     report['complete_native_entries'] = [entry for entry in report['complete_native_entries']
         if entry not in ('000dbd64','000d9ab2','000d9acc')]
     report['generated_cpp_sha256'] = sha(args.output)
+    if qualified is not None:
+        report['preserved_qualified_source_sha256'] = qualified_sha256
+        report['unchanged_qualified_bodies'] = len(old_bodies)
+        report['appended_complete_entries'] = ['001186d0']
+        report['existing_fp_lowering_changed'] = False
     (args.directory / 'generation.json').write_text(json.dumps(report, indent=2, sort_keys=True) + '\n')
 
 if __name__ == '__main__':

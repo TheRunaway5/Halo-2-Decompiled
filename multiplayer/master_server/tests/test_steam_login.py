@@ -119,6 +119,80 @@ class SteamLoginTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await r.json(), {"state": "pending"})
         self.assertFalse(self.calls)
 
+    async def test_remembered_profile_resumes_after_session_expiry_and_revokes(self):
+        _,result=await self.complete()
+        refresh=result["refresh_token"]
+        self.assertTrue(refresh.startswith("h2r_"))
+        self.assertNotIn(refresh,repr(self.steam.db.execute("SELECT * FROM steam_login_refresh").fetchall()))
+        self.now+=28801
+        headers={"Authorization":"Bearer "+refresh}
+        r=await self.client.post("/v1/auth/steam/resume",headers=headers,json={})
+        self.assertEqual(r.status,200,await r.text())
+        resumed=await r.json();self.assertEqual(resumed["identity"],result["identity"])
+        self.assertNotEqual(resumed["token"],result["token"])
+        self.assertEqual(r.headers["Cache-Control"],"no-store")
+        # Refresh credentials cannot directly authorize an account session.
+        r=await self.client.post("/v1/account/session",headers=headers,json={"screen_name":"Pilot"})
+        self.assertEqual(r.status,401)
+        r=await self.client.post("/v1/auth/steam/forget",headers=headers,json={})
+        self.assertEqual(r.status,200)
+        r=await self.client.post("/v1/auth/steam/resume",headers=headers,json={})
+        self.assertEqual(r.status,401)
+        r=await self.client.post("/v1/account/session",headers={"Authorization":"Bearer "+resumed["token"]},json={"screen_name":"Pilot"})
+        self.assertEqual(r.status,401)
+
+    async def test_remembered_login_has_fixed_expiry_and_account_isolation(self):
+        _,a=await self.complete()
+        _,b=await self.complete("76561197960287931")
+        await self.client.post("/v1/auth/steam/forget",headers={"Authorization":"Bearer "+a["refresh_token"]},json={})
+        r=await self.client.post("/v1/auth/steam/resume",headers={"Authorization":"Bearer "+b["refresh_token"]},json={})
+        self.assertEqual(r.status,200)
+        self.assertEqual((await r.json())["identity"],b["identity"])
+        self.now+=30*86400+1
+        r=await self.client.post("/v1/auth/steam/resume",headers={"Authorization":"Bearer "+b["refresh_token"]},json={})
+        self.assertEqual(r.status,401)
+
+    async def test_steam_friends_private_online_identity_and_party_invites(self):
+        from dataclasses import replace
+        self.directory.settings=replace(self.directory.settings,steam_key="1"*32)
+        # No external calls during this independently verified OpenID handoff.
+        with patch.object(self.steam,"profile",return_value="Same Persona"):
+            _,a=await self.complete()
+            _,b=await self.complete("76561197960287931")
+        async def account(result):
+            r=await self.client.post("/v1/account/session",headers={"Authorization":"Bearer "+result["token"]},json={"screen_name":"Same Halo Name"})
+            self.assertEqual(r.status,201,await r.text())
+            return {"Authorization":"Bearer "+(await r.json())["token"]}
+        first=await account(a);second=await account(b)
+        calls=[];private=False
+        def provider(url,*,params,allow_redirects):
+            self.assertFalse(allow_redirects);self.assertEqual(params["key"],"1"*32);calls.append(url)
+            if "GetFriendList" in url:
+                self.assertEqual(params["steamid"],a["identity"]["id"])
+                return Response(json.dumps({"friendslist":{"friends":[{"steamid":b["identity"]["id"],"relationship":"friend"},
+                    {"steamid":"76561197960287932","relationship":"friend"}]}}).encode(),403 if private else 200)
+            return Response(json.dumps({"response":{"players":[{"steamid":b["identity"]["id"],"personaname":"Same Persona","personastate":1},
+                    {"steamid":"76561197960287932","personaname":"Offline Friend","personastate":0},
+                    {"steamid":"76561197960287999","personaname":"Not a Friend","personastate":1}]}}).encode())
+        with patch.object(self.directory.session,"get",provider):
+            self.assertEqual((await self.client.get("/v1/account/steam-friends")).status,401)
+            r=await self.client.get("/v1/account/steam-friends",headers=first)
+            self.assertEqual(r.status,200,await r.text());friends=await r.json()
+            self.assertEqual(friends["friends"],[{"id":b["identity"]["id"],"name":"Same Persona","registered":True,"halo_online":True}])
+            await self.client.get("/v1/account/steam-friends",headers=first)
+            self.assertEqual(len(calls),2,"Repeated native refresh bypassed upstream cache")
+            r=await self.client.post("/v1/party/commands",headers=first,json={"action":"create","request_id":__import__('uuid').uuid4().__str__()})
+            version=(await r.json())["party"]["version"]
+            command={"action":"invite_steam","request_id":str(__import__('uuid').uuid4()),"version":version,"steam_id":b["identity"]["id"]}
+            r=await self.client.post("/v1/party/commands",headers=first,json=command)
+            self.assertEqual(r.status,200,await r.text())
+            r=await self.client.get("/v1/party",headers=second);self.assertEqual(len((await r.json())["invitations"]),1)
+            command.update(request_id=str(__import__('uuid').uuid4()),steam_id="76561197960287999")
+            r=await self.client.post("/v1/party/commands",headers=first,json=command);self.assertEqual(r.status,403)
+            self.directory.steam_friends.cache.clear();private=True
+            r=await self.client.get("/v1/account/steam-friends",headers=first)
+            self.assertEqual((await r.json())["state"],"private")
+
     async def test_dual_proof_retains_discord_clan_and_rejects_duplicate_couch_owner(self):
         r = await self.client.post("/v1/account/session", headers={"Authorization":"Bearer legacy"}, json={"screen_name":"Retained Pilot"})
         legacy = (await r.json())["token"]

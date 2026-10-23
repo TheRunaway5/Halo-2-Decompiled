@@ -6,8 +6,33 @@
 #include <algorithm>
 #include <bit>
 #include <cstring>
+#include <cstdlib>
 
 namespace halo2 {
+std::vector<Vertex> source_live_model_selected_vertices_tu15(std::uint32_t owner,unsigned lod,
+    const RenderModel& model,std::span<const Transform> nodes,std::span<const unsigned> sections,
+    const SourceLiveModelPoseProviderTu15& provide_pose) {
+    if(nodes.size()!=model.bones.size())throw FormatError("posed model world bank count changed");
+    if(model.skin.size()!=model.mesh.vertices.size())throw FormatError("invalid model skin mapping");
+    std::vector<Vertex> owned_pose;
+    std::span<const Vertex> posed;
+    const auto *scalar=std::getenv("HALO2_REFERENCE_SCALAR_SKINNING");
+    const auto *verify=std::getenv("HALO2_VERIFY_SIMD_SKINNING");
+    if(provide_pose && !(scalar && *scalar) && !(verify && *verify))
+        posed=provide_pose(owner,lod,model,nodes);
+    else {owned_pose=skin_model_world_nodes(model,nodes);posed=owned_pose;}
+    if(posed.size()!=model.mesh.vertices.size())
+        throw FormatError("Selected WORLD pose provider lost its complete model vertex bank");
+    std::vector<Vertex> vertices;
+    for(auto section:sections) {
+        bool resident=false;
+        for(const auto& vertex:posed)if(vertex.source_section==section) {
+            resident=true;vertices.push_back(vertex);
+        }
+        if(!resident)throw FormatError("Third-person collector selected an unprepared original section");
+    }
+    return vertices;
+}
 std::optional<std::vector<Vertex>> source_live_model_base_vertices_tu15(
     std::uint32_t owner,std::uint32_t definition,std::uint32_t render_model,
     std::span<const SourceLiveModelBaseDrawTu15> draws,std::span<const RenderModel,6> lods,

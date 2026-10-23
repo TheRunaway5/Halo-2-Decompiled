@@ -188,6 +188,10 @@ bool GamePauseMenu::event(const SDL_Event &e) {
       e.type==SDL_MOUSEMOTION || e.type==SDL_MOUSEWHEEL ||
       e.type==SDL_CONTROLLERBUTTONDOWN || e.type==SDL_CONTROLLERBUTTONUP ||
       e.type==SDL_CONTROLLERAXISMOTION;
+  if(!visible_) {
+    if(e.type==SDL_KEYDOWN || e.type==SDL_MOUSEBUTTONDOWN)painter_->prompt_device(PromptDevice::KeyboardMouse);
+    else if(e.type==SDL_CONTROLLERBUTTONDOWN)painter_->prompt_device(controller_prompt_device(SDL_GameControllerFromInstanceID(e.cbutton.which)));
+  }
   // Both gameplay loops drain events before polling captures_game_input().
   // Keep the rest of a dismissal's event batch here, including releases and
   // relative motion. Only the subsequent released-device poll lifts this gate.
@@ -202,6 +206,18 @@ bool GamePauseMenu::event(const SDL_Event &e) {
         e.type==SDL_MOUSEBUTTONUP || e.type==SDL_MOUSEMOTION || e.type==SDL_MOUSEWHEEL))return game_input;
   }
   state_->ui_clock(SDL_GetTicks());
+  if(party_notice_ && party_notice_action_ && drawn_notice_) {
+    const auto current=party_notice_();
+    if(current && current->id==drawn_notice_->id) {
+      const bool dismiss=(e.type==SDL_KEYDOWN && !e.key.repeat && e.key.keysym.sym==SDLK_F10) ||
+        (visible_ && e.type==SDL_CONTROLLERBUTTONDOWN && e.cbutton.button==SDL_CONTROLLER_BUTTON_LEFTSTICK);
+      if(dismiss && party_notice_action_(false)){drawn_notice_.reset();return true;}
+      if(visible_ && e.type==SDL_MOUSEBUTTONDOWN && e.button.button==SDL_BUTTON_LEFT)
+        if(const auto target=pointer(e.button.x,e.button.y);target && target->action==FrontendPointerAction::InviteDismiss && party_notice_action_(false)) {
+          drawn_notice_.reset();return true;
+        }
+    }
+  }
   if(e.type==SDL_KEYDOWN && e.key.keysym.sym==SDLK_ESCAPE) {
     if(!visible_) {input_instance_=-1;painter_->prompt_device(PromptDevice::KeyboardMouse);}
     if(!e.key.repeat) {if(visible_)state_->back();else show();}
@@ -273,9 +289,11 @@ bool GamePauseMenu::event(const SDL_Event &e) {
   return game_input;
 }
 UiDraw GamePauseMenu::draw(unsigned width,unsigned height) {
-  if(!visible_)return {};
   const auto now=SDL_GetTicks();state_->ui_clock(now);
   if(screen_!=state_->frame().screen) {screen_=state_->frame().screen;entered_=now;}
-  return painter_->draw(*state_,float(now-entered_)/1000,-1,now,{width,height});
+  auto result=visible_?painter_->draw(*state_,float(now-entered_)/1000,-1,now,{width,height}):UiDraw{};
+  drawn_notice_=party_notice_?party_notice_():std::nullopt;
+  if(drawn_notice_)result=painter_->draw_invite_notice(*drawn_notice_,{width,height},visible_);
+  return result;
 }
 } // namespace halo2

@@ -58,10 +58,16 @@ vec4 fetchStage3D(uint stage,vec3 p) {
     if(stage==2u)return texture(volumeTextures[2],p);
     return texture(volumeTextures[3],p);
 }
+vec2 stageTextureExtent(uint stage) {
+    if(stage==0u)return vec2(textureSize(diffuse,0));
+    if(stage==1u)return vec2(textureSize(detail,0));
+    if(stage==2u)return vec2(textureSize(bump,0));
+    return vec2(textureSize(lightmap,0));
+}
 vec4 fetchStage2D(uint stage,vec2 p) {
-    // Retail texture extern 3 is a linear render target: oT0 is in pixels.
-    // Vulkan normalized sampling uses the dimensions of the actual target.
-    if(stage==0u && (material.textureEffects[0].y&1u)!=0u)p/=vec2(textureSize(diffuse,0));
+    // Linear external targets use pixel coordinates at their authored stage:
+    // accumulation at0 and camouflage's current scene copy at2.
+    if((material.textureEffects[stage].y&1u)!=0u)p/=stageTextureExtent(stage);
     if(stage==0u)return texture(diffuse,p);
     if(stage==1u)return texture(detail,p);
     if(stage==2u)return texture(bump,p);
@@ -78,10 +84,8 @@ vec4 fetchStageProjected2D(uint stage) {
     vec3 p=vec3(stageCoordinates[stage].xy,TEXTURE_COORDINATE_W(stage));
     // The retained TU1.5 shader normalizes linear-image S/T before
     // textureProj divides by Q. Reversing those operations changes pixels.
-    if(stage==0u) {
-        if((material.textureEffects[0].y&1u)!=0u)p.xy/=vec2(textureSize(diffuse,0));
-        return textureProj(diffuse,p);
-    }
+    if((material.textureEffects[stage].y&1u)!=0u)p.xy/=stageTextureExtent(stage);
+    if(stage==0u)return textureProj(diffuse,p);
     if(stage==1u)return textureProj(detail,p);
     if(stage==2u)return textureProj(bump,p);
     return textureProj(lightmap,p);

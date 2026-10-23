@@ -45,6 +45,12 @@ bool source_live_model_base_matches_tu15(const SourceLiveModelBaseDrawTu15&,
 // call. Ordered section selection and per-view shader evaluation stay here.
 using SourceLiveModelPoseProviderTu15=std::function<std::span<const Vertex>(
     std::uint32_t,unsigned,const RenderModel&,std::span<const Transform>)>;
+// Completed body/held-weapon selections retain section order and duplicates.
+// The provider must preserve the fresh skin's arithmetic/diagnostic effects;
+// shading, materials, coverage and camera-dependent selection stay with callers.
+std::vector<Vertex> source_live_model_selected_vertices_tu15(std::uint32_t owner,unsigned lod,
+    const RenderModel&,std::span<const Transform>,std::span<const unsigned> sections,
+    const SourceLiveModelPoseProviderTu15& = {});
 std::optional<std::vector<Vertex>> source_live_model_base_vertices_tu15(
     std::uint32_t owner,std::uint32_t definition,std::uint32_t render_model,
     std::span<const SourceLiveModelBaseDrawTu15>,std::span<const RenderModel,6>,

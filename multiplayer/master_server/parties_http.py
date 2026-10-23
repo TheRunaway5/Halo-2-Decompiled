@@ -96,7 +96,7 @@ class PartyApi:
         if party:
             with self.db: self.changed(party[0])
 
-    def view(self, who, *, local_players=False):
+    def view(self, who, *, local_players=False, appearance=False):
         from .player_presence import observed
         presence = observed(self.directory)
         party = self.party(who)
@@ -111,11 +111,19 @@ class PartyApi:
                      "outgoing": [{"id": r[0], "name": r[1]} for r in self.db.execute(
                          "SELECT i.id,p.screen_name FROM party_invites i JOIN player_profiles p ON p.player=i.target "
                          "WHERE i.party=? ORDER BY i.expires,i.id", (pid,))] if leader == who else []}
-        if value and local_players:
+        def profile(player):
+            row = self.db.execute("SELECT appearance FROM player_customization WHERE player=?", (player,)).fetchone()
+            return bytes(row[0]).hex() if row else None
+
+        if value and (local_players or appearance):
             for member, stored in zip(value["members"], self.members(party[0])):
+                if appearance:
+                    member["appearance"] = profile(stored[0])
                 session = self.queue_session(stored[0])
-                if session and len(session.seats()) > 1:
-                    member["local_players"] = [{"name": p.screen_name, "guest": p.guest} for p in session.seats()[1:]]
+                if local_players and session and len(session.seats()) > 1:
+                    member["local_players"] = [dict(name=p.screen_name, guest=p.guest,
+                        **({"appearance": profile(p.player) if not p.guest else None} if appearance else {}))
+                        for p in session.seats()[1:]]
         incoming = [{"id": r[0], "name": r[1], "version": r[2]} for r in self.db.execute(
             "SELECT i.id,p.screen_name,g.version FROM party_invites i JOIN parties g ON g.id=i.party "
             "JOIN player_profiles p ON p.player=g.leader WHERE i.target=? ORDER BY i.expires,i.id LIMIT 100", (who,))]
@@ -124,7 +132,8 @@ class PartyApi:
     async def get(self, request):
         self.cleanup()
         _, who = self.directory.clans.session(request)
-        return web.json_response(self.view(who, local_players=request.query.get("local_players") == "1"))
+        return web.json_response(self.view(who, local_players=request.query.get("local_players") == "1",
+                                           appearance=request.query.get("appearance") == "1"))
 
     async def activity(self, request):
         """Private SDK handoff; possession does not replace a target invitation.
@@ -203,9 +212,9 @@ class PartyApi:
 
     async def command(self, request):
         body = await self.directory.body(request)
-        fields(body, ("action", "request_id"), ("version", "username", "discord_id", "target", "playlist_id", "revision", "join_secret"))
+        fields(body, ("action", "request_id"), ("version", "username", "discord_id", "steam_id", "target", "playlist_id", "revision", "join_secret"))
         action, rid = text(body["action"]), identifier(body["request_id"])
-        options = {"create": (), "invite": ("version","username"), "invite_discord": ("version","discord_id"), "invite_clan": ("version",),
+        options = {"create": (), "invite": ("version","username"), "invite_discord": ("version","discord_id"), "invite_steam": ("version","steam_id"), "invite_member": ("version","target"), "invite_clan": ("version",),
                    "accept": ("version","target"), "decline": ("target",), "block": ("target",),
                    "cancel": ("version","target"), "leave": ("version",),
                    "remove": ("version","target"), "transfer": ("version","target"),
@@ -215,6 +224,18 @@ class PartyApi:
         self.cleanup()
         _, who = self.directory.clans.session(request)
         payload = canonical(body).decode()
+        previous=self.db.execute("SELECT payload FROM party_requests WHERE player=? AND request=?",(who,rid)).fetchone()
+        if previous:
+            require(previous[0]==payload,"Party request ID already used differently",409)
+            return web.json_response(self.view(who))
+        if action=="invite_steam":
+            subject=text(body["steam_id"],17)
+            require(re.fullmatch(r"[1-9][0-9]{16}",subject),"Invalid Steam invitation target")
+            friends=await self.directory.steam_friends.lookup(who)
+            require(friends["state"]=="ready" and any(row["id"]==subject for row in friends["friends"]),
+                    "Refresh Steam friends before inviting this player",403)
+            # The upstream await cannot retain an expired account capability.
+            _,who=self.directory.clans.session(request)
         db = self.db
         with db:
             old = db.execute("SELECT payload FROM party_requests WHERE player=? AND request=?", (who,rid)).fetchone()
@@ -275,6 +296,18 @@ class PartyApi:
                                         "SELECT player FROM player_identities WHERE provider='discord' AND subject=? LIMIT 1", (subject,subject)).fetchone()
                     require(target is not None, "Player must sign into ONLINE first", 404)
                     self.invite(pid,who,target[0])
+                elif action == "invite_steam":
+                    target=db.execute("SELECT player FROM player_identities WHERE provider='steam' AND subject=?",(subject,)).fetchone()
+                    require(target is not None,"Player must sign into ONLINE first",404)
+                    require(not db.execute("SELECT 1 FROM party_blocks WHERE player=? AND inviter=?",(who,target[0])).fetchone(),"Player is blocked",403)
+                    self.invite(pid,who,target[0])
+                elif action == "invite_member":
+                    target=identifier(body["target"])
+                    clan=self.directory.clans.member(who)
+                    require(clan is not None and db.execute("SELECT 1 FROM clan_members WHERE clan=? AND player=?",(clan[0],target)).fetchone(),
+                            "Player is no longer in your clan",403)
+                    require(self.online(target),"Clan member is offline",409)
+                    self.invite(pid,who,target)
                 elif action == "invite_clan":
                     clan = self.directory.clans.member(who)
                     require(clan is not None and clan[1] >= 1, "Clan recruiting permission required", 403)

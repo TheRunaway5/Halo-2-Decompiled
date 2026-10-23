@@ -101,6 +101,15 @@ def review(root,runtime,mode='fiesta'):
                 ('native-b-site',[-16,21,.85,0,-1,-.12,0,0,1]),
                 ('native-upper-tunnel',[-15,1,.65,0,1,-.03,0,0,1])]:
             capture(name,mode,idle,30,camera=view)
+        authored_views=root/'native-review-cameras.json'
+        if authored_views.exists():
+            views=json.loads(authored_views.read_text())['cameras']
+            assert 1<=len(views)<=24
+            for view in views:
+                pose=view['pose'];assert len(pose)==9 and np.isfinite(pose).all()
+                capture(view['name'],mode,idle,30,camera=pose)
+            result['authored_camera_review']=dict(cameras=len(views),
+                source=str(authored_views),scope='Authored Blender camera poses converted to native world units; engine FOV, shaders and baked lighting reviewed independently')
         if mode:
             lighting,text=capture('native-lighting-regression-slayer','',idle,30,allow_failure=True)
             if lighting['passed'] and (evidence/'native-before-shared-collision.png').exists():

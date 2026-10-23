@@ -129,6 +129,22 @@ acceptance separately. Component results do not complete the goal.
 - [ ] Reduce verified repeated model/shadow/visibility preparation across
       compatible calls; retain camera-specific selection and mutable source
       owner boundaries.
+      The [selected WORLD skin trial](MCC_PERFORMANCE_SELECTED_SKIN_TRIAL_20261022.md)
+      passes its red/green component gate and 384 exact FP/vertex cases. Its
+      synthetic repeated workload improves 9.160x. The four-view live differential
+      passes 36 exact selected submissions with 17/32 selected requests reused;
+      all four complete 4K neutral/fire image pairs match with zero Vulkan
+      validation errors. All twelve ordinary FPS runs complete; every one of
+      2,880 sampled frames misses its deadline. Four-player pairs improve
+      7.2%/25.1%/19.0%, but reference drift and mixed single-player results leave
+      isolated CPU attribution and stable target acceptance open.
+      The corrected equal-work diagnostic matches all source/geometry
+      signatures and eliminates 378/1,080 selected requests per run. Its CPU
+      ratios are 1.024x/1.022x/0.977x, so a consistently positive whole-frame
+      CPU gain has not been established. Completed trial copies, private
+      assemblies/helpers and child owners are removed. The finite incremental
+      session has subsequently closed and its entire owner is verified removed;
+      the next executable experiment needs a new declared source snapshot.
 - [ ] Reuse immutable hierarchy/section/palette inputs where profiling and full
       cache identities justify it.
 - [ ] Expand resident raw GPU geometry/skinning where it provides a measured
@@ -138,11 +154,42 @@ acceptance separately. Component results do not complete the goal.
       profiles justify them. Do not claim MCC's static code presence proves
       its live scheduling or an available percentage gain.
 
+## CPU/GPU offload track
+
+The user explicitly requested implementation as a goal. The dedicated
+[presentation offload checklist](PRESENTATION_OFFLOAD_GOAL_CHECKLIST.md) is
+authoritative for its worker, ordinary-character GPU and 1:1 acceptance gates.
+
+- [x] Audit current source and the pinned MCC binary for actual offload seams.
+      Resident raw model/BSP geometry and admitted GPU vertex processing
+      already exist. Ordinary base-model CPU skinning and serial host
+      preparation remain candidates. See the
+      [offload assessment](MCC_PERFORMANCE_OFFLOAD_20261022.md).
+- [ ] Prototype a worker on immutable completed-frame inputs for host
+      palette/skinning or vertex packing. Preserve lifetime, math/FP controls,
+      original result/effect ordering and the current presentation endpoint;
+      join before consumption without introducing an extra frame of delay.
+- [ ] Extend ordinary base-model GPU vertex processing through the existing raw
+      geometry/palette path, family by family. Preserve declarations, weights,
+      lighting/PRT, materials, shadows, shields and per-view LOD/section order;
+      retain CPU nodes and required CPU geometry consumers.
+- [ ] Measure per-thread command recording only after the preparation cost is
+      isolated. Give workers independent command/descriptor pools and keep
+      resource updates, dependency barriers and submission ownership explicit.
+- [ ] Validate one/two/four-player outputs and gameplay/input/tick traces,
+      synchronization/lifecycle failure paths, full GPU images and unsampled
+      FPS. The source arenas, callbacks and source visibility/shadow writers
+      cannot be parallelized merely by putting the current view loop in jobs.
+
 ## Correctness and runtime validation
 
 - [ ] Red/green differential at the actual changed boundary: registers, flags,
       complete memory/vertex outputs, fault behavior and ordered effects.
 - [ ] Relevant original-owner, lifecycle, source-memory and concurrency checks.
+      Next material source candidate: obtain an actual before/after execution
+      oracle for the authenticated `2E79A0`/`2E6290` plane-volume MOPP query
+      and both ordered output streams. The 146-case shadow fixture does not
+      cover this owner; no native replacement is admitted without that proof.
 - [ ] Relevant sanitizer checks where ownership or memory accesses change.
 - [ ] One/two/four-view integration, including different cameras, owner reuse,
       vehicle entry/exit, attachments and interpolation discontinuities.

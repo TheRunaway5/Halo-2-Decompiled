@@ -5,6 +5,7 @@
 #include <nlohmann/json.hpp>
 #include <openssl/rand.h>
 #include <algorithm>
+#include <bit>
 #include <condition_variable>
 #include <cctype>
 #include <cstdlib>
@@ -168,6 +169,19 @@ std::uint64_t version(const Json &r) {
   return v.get<std::uint64_t>();
 }
 void parse_party(const Json &root, OnlineAccountSnapshot &s) {
+  const auto appearance=[](const Json &row)->std::optional<FrontendAppearance> {
+    if(!row.contains("appearance") || row.at("appearance").is_null())return {};
+    const auto encoded=text(row,"appearance",18);
+    require(encoded.size()==18);
+    std::array<std::uint8_t,9> bytes;
+    auto nibble=[](char c)->unsigned {
+      require((c>='0' && c<='9') || (c>='a' && c<='f'));
+      return c<='9'?unsigned(c-'0'):unsigned(c-'a'+10);
+    };
+    for(unsigned i=0;i<bytes.size();++i)bytes[i]=std::uint8_t(nibble(encoded[2*i])*16+nibble(encoded[2*i+1]));
+    require(bytes[4]<=1);
+    return std::bit_cast<FrontendAppearance>(bytes);
+  };
   require(root.is_object() && root.size()==2);
   auto next=s;next.party.reset();next.party_invitations.clear();
   const auto &invitations=root.at("invitations");require(invitations.is_array() && invitations.size()<=100);
@@ -184,13 +198,14 @@ void parse_party(const Json &root, OnlineAccountSnapshot &s) {
     const auto &members=p.at("members");require(members.is_array() && !members.empty() && members.size()<=16);
     unsigned selves{},leaders{};ids.clear();
     for(const auto &r:members) {
-      require(r.is_object() && (r.size()==6 || (r.size()==7 && r.contains("local_players"))));
+      require(r.is_object() && r.size()==6+unsigned(r.contains("local_players"))+unsigned(r.contains("appearance")));
       OnlinePartyMember member{text(r,"handle",36),text(r,"name"),text(r,"ready_playlist",64,true),
                                boolean(r,"self"),boolean(r,"leader"),boolean(r,"online")};
       require(ids.insert(member.handle).second);
+      member.appearance=appearance(r);
       if(r.contains("local_players")) {
         const auto &locals=r.at("local_players");require(locals.is_array() && locals.size()<=3);
-        for(const auto &local:locals){require(local.is_object() && local.size()==2);member.local_players.push_back({text(local,"name"),boolean(local,"guest")});}
+        for(const auto &local:locals){require(local.is_object() && local.size()==2+unsigned(local.contains("appearance")));member.local_players.push_back({text(local,"name"),boolean(local,"guest"),appearance(local)});}
       }
       if(member.self){++selves;require(member.leader==party.leader);}
       leaders+=member.leader;party.members.push_back(std::move(member));
@@ -236,7 +251,7 @@ struct OnlineAccount::Impl {
   mutable std::mutex mutex;
   std::condition_variable_any wake;
   OnlineAccountSnapshot state;
-  bool configured{}, active{}, pending{};
+  bool configured{}, active{}, pending{},steam_friends_requested{};
   std::string name;
   std::optional<Json> desired_profile;
   std::uint64_t profile_serial{};
@@ -322,6 +337,7 @@ struct OnlineAccount::Impl {
       if (stop.stop_requested()) break;
       const auto was_authenticated = state.authenticated; const auto enabled = active; const auto value = name; const auto version = generation;
       const auto profile = desired_profile; const auto profile_version = profile_serial;
+      const auto fetch_friends=steam_friends_requested;steam_friends_requested=false;
       auto cmd = std::move(command); command.reset(); pending = false;
       const auto path=command_path;
       const auto requested_subject=command_subject;
@@ -400,6 +416,24 @@ struct OnlineAccount::Impl {
           if(!cancelled.stop_requested())publish(std::move(next),version,session,expires,{},session_subject,{});
           continue;
         }
+        if(fetch_friends && login->uses_steam()) {
+          try {
+            const auto list=call("GET","/v1/account/steam-friends",{},session);
+            auto state=text(list,"state",16);require(state=="ready" || state=="private");
+            const auto &rows=list.at("friends");require(rows.is_array() && rows.size()<=1000);
+            std::vector<OnlineSteamFriend> friends;std::set<std::string> seen;
+            for(const auto &row:rows) {
+              auto id=text(row,"id",17);require(id.size()==17 && id.front()!='0' && std::all_of(id.begin(),id.end(),[](char c){return c>='0'&&c<='9';}) && seen.insert(id).second);
+              friends.push_back({id,text(row,"name",128),row.at("registered").get<bool>(),row.at("halo_online").get<bool>()});
+            }
+            next.steam_friends=std::move(friends);next.steam_friends_state=state;
+            next.steam_friends_message=state=="private"?"Your Steam friend list is private. Make Friends List visible in Steam privacy settings, or invite clan members.":
+              list.value("truncated",false)?"Showing the first 1,000 Steam friends. Refresh to update online status.":"Online Steam friends. Players must have signed into Halo ONLINE before receiving party invites.";
+          }catch(...) {
+            if(cancelled.stop_requested() || session.empty())throw;
+            next.steam_friends.clear();next.steam_friends_state="unavailable";next.steam_friends_message="Steam friends are temporarily unavailable. Refresh to try again.";
+          }
+        }
         if (cmd) {
           const auto current=login->service_identity();
           if(!current || current->subject!=requested_subject) {
@@ -431,7 +465,7 @@ struct OnlineAccount::Impl {
         } else social(call("GET","/v1/clans?presence=1",{},session),next);
         if(cmd && path=="/v1/party/commands")social(call("GET","/v1/clans?presence=1",{},session),next);
         if(options.enable_parties && (!cmd || path!="/v1/party/commands")) {
-          try {parse_party(call("GET","/v1/party?local_players=1",{},session),next);next.party_message.clear();}
+          try {parse_party(call("GET","/v1/party?local_players=1&appearance=1",{},session),next);next.party_message.clear();}
           catch(const HttpError &e){if(session.empty())throw;next.party_message=e.what();}
         }
         if(link &&
@@ -542,6 +576,8 @@ std::uint64_t OnlineAccount::Impl::party_command(OnlinePartyCommand c,unsigned a
   }
   else if(c.action=="invite")body["username"]=c.value;
   else if(c.action=="invite_discord")body["discord_id"]=c.value;
+  else if(c.action=="invite_steam")body["steam_id"]=c.value;
+  else if(c.action=="invite_member")body["target"]=c.value;
   else if(c.action=="accept" || c.action=="decline" || c.action=="block" || c.action=="cancel" ||
           c.action=="remove" || c.action=="transfer")body["target"]=c.value;
   else if(c.action=="ready"){body["playlist_id"]=c.playlist;body["revision"]=c.revision;}
@@ -561,12 +597,19 @@ std::uint64_t OnlineAccount::Impl::party_command(OnlinePartyCommand c,unsigned a
   }
   // Target-specific invitations do not change the shared party capability.
   // Structural mutations revoke it immediately, before their HTTP response.
-  if(c.action!="invite" && c.action!="invite_discord" && c.action!="cancel" && c.action!="decline" && c.action!="block") {
+  if(c.action!="invite" && c.action!="invite_discord" && c.action!="invite_steam" && c.action!="invite_member" && c.action!="cancel" && c.action!="decline" && c.action!="block") {
     party_link.reset();party_link_subject.clear();discord_result.link.reset();
   }
   ++state.revision;wake.notify_all();return activity?queued_discord_operation:1;
 }
 bool OnlineAccount::party_command(OnlinePartyCommand c) {return impl_->party_command(std::move(c))!=0;}
+void OnlineAccount::refresh_steam_friends() {
+  std::lock_guard lock(impl_->mutex);
+  if(!impl_->active || !impl_->state.authenticated || !impl_->login->uses_steam() || impl_->options.profile_only)return;
+  impl_->steam_friends_requested=true;impl_->pending=true;
+  impl_->state.steam_friends_state="loading";impl_->state.steam_friends_message="Loading Steam friends...";
+  ++impl_->state.revision;impl_->wake.notify_all();
+}
 std::uint64_t OnlineAccount::begin_discord_invite(const std::string &subject) {
   return impl_->party_command({"invite_discord",subject,{},{},0},1);
 }

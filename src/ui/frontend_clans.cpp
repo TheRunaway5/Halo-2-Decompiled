@@ -16,6 +16,8 @@ void MenuState::set_online_account(std::shared_ptr<OnlineAccount> client) {
   if (online_voice_) online_voice_->leave();
   if (online_account_) online_account_->sign_out();
   online_account_ = std::move(client); account_ = {}; account_name_.clear();
+  pending_ui_sounds_.clear();
+  dismissed_party_invites_.clear();
   if(discord_social_)discord_social_->bind_account(online_account_);
   online_voice_ = online_account_ ? std::make_shared<OnlineVoice>(online_account_) : nullptr;
   voice_party_=false;
@@ -47,10 +49,14 @@ void MenuState::update_online_account() {
   auto next = online_account_->snapshot();
   auto voice = online_voice_ ? online_voice_->snapshot() : OnlineVoiceSnapshot{};
   if (next.revision == account_.revision && voice.revision == voice_.revision) return;
+  const auto notifications=frontend_party_notification_sounds(account_,next);
+  // Bound a delayed UI consumer while preserving one-shot ordered events.
+  for(const auto cue:notifications)if(pending_ui_sounds_.size()<16)pending_ui_sounds_.push_back(cue);
   const bool departed_party=account_.party.has_value() && !next.party && next.authenticated;
   const bool joined_party=!account_.party && next.party && next.authenticated;
   auto previous_account=std::move(account_);
   account_ = std::move(next);
+  std::erase_if(dismissed_party_invites_,[&](const auto &id){return std::none_of(account_.party_invitations.begin(),account_.party_invitations.end(),[&](const auto &i){return i.id==id;});});
   voice_ = std::move(voice);
   // Discord acceptance uses the account worker outside the menu's command
   // wrapper. Enter the actual party lobby only after authoritative membership,

@@ -20,7 +20,12 @@ CASES = {'human-fixed': ('h_turret_ap', False), 'covenant-fixed': ('c_turret_ap'
          'warthog-mg': ('warthog-mg', False), 'warthog-gauss': ('warthog-gauss', False),
          'scorpion-cannon': ('scorpion', False), 'scorpion-mg': ('scorpion', True)}
 FILES = ('src/assets/mcc/mcc_gameplay_scalar.cpp',
+         'src/audio/multiplayer_audio.cpp',
+         'src/input/multiplayer_kbm.cpp', 'include/halo2/multiplayer_kbm.hpp',
+         'tests/multiplayer_kbm_tests.cpp',
+         'cmake/SourceContrailGraphics.cmake',
          'tests/mcc_destruction_effect_scalar_tests.cpp',
+         'tests/mcc_gameplay_reference_tests.cpp',
          'tests/vehicle_weapon_hud_world_tests.cpp',
          'tools/mcc-turret-effect-scalar-profiles.json', 'tools/run_turret_audio_tu15.py')
 
@@ -65,8 +70,11 @@ def main():
     for name in FILES:
         target = source / name
         before = sha(target) if target.exists() else None
+        current = sha(ROOT / name)
         shutil.copyfile(ROOT / name, target)
         refreshed[name] = sha(target)
+        if refreshed[name] != current or sha(ROOT / name) != current:
+            raise ValueError('Workspace source changed during named refresh: ' + name)
         changes.append({'path': name, 'before': before, 'after': refreshed[name]})
     maps = Path(prior['runtime_cache_inputs']['maps_directory'])
     map_ = require_mcc_map(maps / 'coagulation.map')
@@ -93,7 +101,8 @@ def main():
                 '$<TARGET_FILE:vehicle_weapon_hud_runtime_tests> '
                 f'"{map_}" "{selected}" "${{CMAKE_CURRENT_BINARY_DIR}}/turret-{case}.json" '
                 + ('secondary' if secondary else '') + ')\n'
-                f'set_tests_properties(turret_mcc_{case} PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE)\n')
+                f'set_tests_properties(turret_mcc_{case} PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE '
+                f'ENVIRONMENT "HALO2_TURRET_GRAPHICS_CACHE={owner / "turret-graphics-cache"}")\n')
             continue
         text += (f'add_test(NAME turret_mcc_{case} COMMAND "${{Python3_EXECUTABLE}}" '
                  '"${CMAKE_CURRENT_SOURCE_DIR}/tools/run_test.py" -- '
@@ -111,7 +120,8 @@ def main():
                '--source', str(source), '--target',
                'vehicle_weapon_hud_runtime_tests' if args.audio else 'vehicle_weapon_hud_world_tests',
                '--target', 'mcc_destruction_effect_scalar_tests',
-               '--filter', '^(turret_mcc_|turret_effect_)',
+               '--target', 'multiplayer_kbm_tests',
+               '--filter', '^(turret_mcc_|turret_effect_|multiplayer_kbm_bindings$)',
                '--jobs', str(args.jobs), '--test-jobs', '1', '--output', str(args.output / 'validation')]
     for case in cases:
         command += ['--retain-report', f'turret-{case}.json']

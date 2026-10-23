@@ -45,6 +45,8 @@ def finalize_lightmaps(native,imported,main_hud,evidence,scratch):
 
 def build(package,installed,imported,main_hud,output_root,replace_cache_sha256=None,quality='medium'):
     scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve(strict=True)
+    assert main_hud.is_file(), 'main_hud must be the exported main-hud.json file'
+    assert json.loads(main_hud.read_text())['schema']=='H2_DUST2_MAIN_GAME_HUD_V1'
     assert json.loads((package/'architecture-plan.json').read_text())['name']=='Deserted'
     geometry=json.loads((output_root/'evidence/geometry-final.json').read_text())
     routes=json.loads((output_root/'evidence/routes-final.json').read_text())
@@ -59,6 +61,7 @@ def build(package,installed,imported,main_hud,output_root,replace_cache_sha256=N
     evidence=output_root/'evidence';evidence.mkdir(exist_ok=True)
     kit=scratch/'kit';interface=scratch/'tag-interface'
     start=time.monotonic();state=dict(status='building',quality=quality,scratch=str(scratch),steps=[])
+    (output_root/'build-progress.json').write_text(json.dumps(state,indent=2)+'\n')
 
     def progress(name):
         state['steps'].append(dict(name=name,elapsed_seconds=round(time.monotonic()-start,3)))
@@ -77,7 +80,7 @@ def build(package,installed,imported,main_hud,output_root,replace_cache_sha256=N
         with (scratch/(name+'.log')).open('w') as log:
             command=['wine','tool_fast.exe','-batch',*args]
             result=subprocess.run(command,cwd=kit,env=environment,stdout=log,stderr=subprocess.STDOUT,
-                timeout=3600 if name=='lightmaps-final' else 600)
+                timeout=7200 if name=='lightmaps-final' else 600)
         text=(scratch/(name+'.log')).read_text(errors='replace').replace('\r','\n')
         errors=[line for line in text.splitlines() if '### ERROR' in line]
         assert result.returncode==0,(name,result.returncode)
@@ -90,6 +93,11 @@ def build(package,installed,imported,main_hud,output_root,replace_cache_sha256=N
         subprocess.run(['git','-C',str(interface),'checkout','--quiet','7b01076b485cb851277c14defb71c8f88e214de4'],check=True)
         stage(installed,package,kit)
         configure(kit,package,interface/'tag_interface',evidence/'configure-final.json',False,False,'district')
+        if (package/'native-material-variants.json').exists():
+            compiler('bitmaps-final',['bitmaps',r'scenarios\multi\dust2_mombasa\bitmaps'])
+            for row in json.loads((package/'native-material-variants.json').read_text())['variants']:
+                bitmap=kit/'tags'/(row['bitmap'].replace('\\','/')+'.bitmap')
+                assert bitmap.is_file() and bitmap.stat().st_size>1000, ('Bitmap import produced no tag',str(bitmap))
         ass=kit/'data/scenarios/multi/dust2_mombasa/structure/dust2_mombasa.ass'
         assemble(package,ass,evidence/'assembly-final.json',6000,True,set(),{},True)
         validate(package,ass,evidence/'assembly-validation-final.json')
@@ -106,6 +114,14 @@ def build(package,installed,imported,main_hud,output_root,replace_cache_sha256=N
         compiler('cache-final',['build-cache-file',r'scenarios\multi\dust2_mombasa\dust2_mombasa','win64'])
         source=kit/'h2_maps_win64_dx11/dust2_mombasa.map'
         assert source.is_file() and source.stat().st_size>1000000
+        checkpoint=output_root/'baked-inputs';checkpoint.mkdir()
+        shutil.copyfile(source,checkpoint/'dust2_mombasa.map')
+        shutil.copytree(kit/'tags/scenarios/multi/dust2_mombasa',checkpoint/'tags')
+        pins={str(p.relative_to(checkpoint)):dict(bytes=p.stat().st_size,sha256=hashlib.sha256(p.read_bytes()).hexdigest())
+            for p in checkpoint.rglob('*') if p.is_file()}
+        (checkpoint/'retention.json').write_text(json.dumps(dict(schema='H2_DESERTED_REQUIRED_BAKED_INPUTS_V1',
+            files=pins,reason='Required real baked inputs until native publication and review complete'),indent=2)+'\n')
+        progress('Real baked cache and authoring inputs pinned before native postprocessing')
         native=scratch/'native'
         publish(source,None,imported,native,evidence/'native-preparation-final.json',main_hud,
             compiled_lighting=True,output_name='deserted')

@@ -19,6 +19,7 @@
 #include "halo2/raw_datum_pool.hpp"
 #include "halo2/source_dynamic_object_scene.hpp"
 #include "halo2/native_unit_interaction.hpp"
+#include "halo2/posed_collision.hpp"
 #include "halo2/player_action_edges.hpp"
 #include "halo2/source_camera.hpp"
 #include "halo2/source_light_volume_draw.hpp"
@@ -669,8 +670,61 @@ struct Host {
       bool started=false;try {
       // Construction, all source calls and retirement share one executor.
       const bool scripted=script_input.has_value();
+      const auto source_scene_spawns=std::getenv("HALO2_TU15_VEHICLE_BLAST_INPUT")?
+          std::exchange(options.native_spawn_inputs,std::vector<Spawn>{}):std::vector<Spawn>{};
       MultiplayerPreparedWorld world(options,std::move(script_input));
+      if(!source_scene_spawns.empty()) {
+        check(world.match.source_engine_owned() && world.source_objects,
+            "Vehicle destruction acceptance requires the complete original multiplayer engine");
+        world.bind_source_local_views(world.local_slots);
+      }
       world.match.configure_replicated_first_person(world.cache->load_first_person_binding(world.rules.weapon,2));
+      std::array<Controls,multiplayer_capacity> controls{};
+      std::set<std::uint32_t> scene_positioned_units;
+      std::set<std::string> observed_scene_action_targets;
+      const auto save_scene_evidence=[&] {
+        std::ofstream file(options.source_object_savegame_directory.parent_path()/"authority-source-scene-inputs.json");
+        file<<scene_lifecycle.dump(2)<<'\n';
+        check(bool(file),"Could not retain original scene-input/action-target observations");
+      };
+      const auto place_source_scene_units=[&] {
+        if(source_scene_spawns.empty())return false;
+        bool moved=false;const auto state=world.match.state();
+        for(unsigned slot=0;slot<state.players.size();++slot) {
+          const auto &player=state.players[slot];
+          if(!player.connected || player.dead || player.source_unit==null_datum ||
+              !scene_positioned_units.insert(player.source_unit).second)continue;
+          if(slot==0)continue; // The authority's own player keeps its authored start.
+          check(player.source_parent==null_datum,"New source player already has a parent before scene placement");
+          auto position=source_scene_spawns.front().position;
+          if(slot>=2) {
+            // Separate real colliding bipeds. The watcher receives a declared
+            // supported approach rather than the driver's identical point.
+            const CollisionWorld terrain(world.content.collision);bool supported=false;
+            for(unsigned direction=0;direction<32 && !supported;++direction) {
+              const float angle=float(direction)*.19634954084936207f;
+              const auto candidate=position+Vec3{std::cos(angle),std::sin(angle),0}*3.f;
+              const auto floor=terrain.raycast(candidate+Vec3{0,0,2},{0,0,-1},4);
+              if(!floor || floor->normal.z<world.content.player.maximum_slope_cosine)continue;
+              const auto placed=floor->position+Vec3{0,0,world.content.player.radius};
+              if(terrain.overlaps(placed,world.content.player.height,world.content.player.radius))continue;
+              const auto delta=position-placed;
+              if(terrain.raycast(placed+Vec3{0,0,world.content.player.camera_height},
+                  normalized(delta),length(delta)))continue;
+              position=placed;supported=true;
+            }
+            check(supported,"No supported separated watcher position for vehicle destruction scene");
+          }
+          world.source_objects->tu15_world().set_object_position(player.source_unit,position);
+          controls[slot].yaw=player.yaw;controls[slot].pitch=player.pitch;
+          scene_lifecycle.push_back({{"phase","declared_position_after_original_player_birth"},
+              {"tick",state.tick},{"slot",slot},{"unit",player.source_unit},{"requested",xyz(position)},
+              {"original_source_engine",true},{"damage_or_physics_result_supplied",false}});
+          moved=true;
+        }
+        if(moved)save_scene_evidence();
+        return moved;
+      };
       std::ofstream support_field_trace;
       struct SupportStoreBinding {
         MultiplayerObjectRuntime *owner{};
@@ -779,11 +833,14 @@ struct Host {
       }
       auto effective_variant=options.variant;
       if(options.starting_weapon)effective_variant.values.set(89,int(options.starting_weapon));
+      if(place_source_scene_units()) {
+        world.match.step(controls);world.source_objects->advance_effect_frame(tick_seconds);
+      }
       LanHost transport(world.match,0,multiplayer_fingerprint(options.map,world.cache->shared_directory(),0,world.network_starting_weapon_identity(),options.gameplay_xbe),effective_variant);
       initial_inventory=inventory(world);content=std::make_shared<LevelContent>(world.content);
+      initial_inventory["original_source_engine_owned"]=world.match.source_engine_owned();
       port=transport.port();host_slot=world.local_slots.front();
       started=true;startup.set_value();
-      std::array<Controls,multiplayer_capacity> controls{};
       std::set<std::uint32_t> observed_source_generations;
       std::ofstream machine_trace;
       if(scripted || support_object || std::getenv("HALO2_TU15_MACHINE_TRACE")) {
@@ -1045,6 +1102,24 @@ struct Host {
         // HELLO can publish a new participant at the existing world clock,
         // before the next physics frame. Retain that actual sent-state phase.
         const auto before=world.match.state();
+        if(!source_scene_spawns.empty() && scene_lifecycle.size()<40u)
+          for(unsigned slot=0;slot<before.players.size();++slot) {
+            const auto &p=before.players[slot];
+            if(!p.connected || p.source_unit==null_datum)continue;
+            const auto target=world.source_objects->tu15_world().player_action_target(
+                p.source_player,p.source_unit).value_or(SourcePlayerActionTarget{});
+            const auto &published=p.action_prompt.target;
+            const auto key=std::to_string(slot)+":"+std::to_string(target.action)+":"+
+                std::to_string(target.index)+":"+std::to_string(target.object)+":"+
+                std::to_string(published.action)+":"+std::to_string(published.object);
+            if(!observed_scene_action_targets.insert(key).second)continue;
+            scene_lifecycle.push_back({{"phase","observed_original_action_target"},{"tick",before.tick},
+                {"slot",slot},{"unit",p.source_unit},
+                {"original_target",{{"action",target.action},{"index",target.index},{"object",target.object}}},
+                {"published_target",{{"action",published.action},{"index",published.index},{"object",published.object}}},
+                {"position",xyz(p.position)}, {"yaw",p.yaw},{"pitch",p.pitch}});
+            save_scene_evidence();
+          }
         if(std::getenv("HALO2_TU15_AUTHORITY_RESTORE") && !source_authority_restored &&
             std::ranges::any_of(before.players,[](const auto &p){return p.connected && p.source_parent!=null_datum && p.source_seat>=0;}) &&
             std::ranges::any_of(before.world_vehicles,[](const auto &v){return length(v.lighting_velocity)>.1f;})) {
@@ -1185,6 +1260,12 @@ struct Host {
         if(world.source_objects && world.source_objects->owns_physics())
           world.source_objects->advance_effect_frame(
               world.match.simulation().ticks()==source_tick_before+1u?tick_seconds:0.f);
+        if(place_source_scene_units()) {
+          // Publish only after the next genuine source frame has solved and
+          // synchronized the declared position. No stale Match/source pair
+          // leaves this boundary, and no clock or solved pose is assigned.
+          next+=std::chrono::microseconds(33333);std::this_thread::sleep_until(next);continue;
+        }
         if(turret_weapon_trace.is_open() && vehicle_attack_target.load()!=null_datum) {
           const auto target=vehicle_attack_target.load();const auto &memory=world.source_objects->memory();
           const auto word=[&](auto p){return Bytes(memory.view(p,4)).u32(0);};
@@ -1405,7 +1486,7 @@ struct Host {
     }});
     ready.get();
   }
-  void finish(){worker.request_stop();worker.join();if(error)std::rethrow_exception(error);}
+  void finish(){worker.request_stop();if(worker.joinable())worker.join();if(error)std::rethrow_exception(error);}
 };
 }
 int main(int argc,char **argv) try {
@@ -1444,6 +1525,8 @@ int main(int argc,char **argv) try {
   const bool vehicle_weapon_test=vehicle_blast_test && std::getenv("HALO2_TU15_VEHICLE_WEAPON_INPUT");
   bool vehicle_weapon_pressed{},vehicle_reload_pressed{};unsigned vehicle_weapon_commands{},vehicle_reload_commands{};
   unsigned vehicle_weapon_press_tick{},vehicle_last_shot{},vehicle_loaded_before{};
+  std::optional<std::uint32_t> vehicle_blast_aim_tick;
+  std::optional<std::uint32_t> vehicle_entry_aim_tick;
 
   const unsigned vehicle_blast_count=vehicle_blast_test && std::getenv("HALO2_TU15_VEHICLE_BLAST_COUNT")?std::stoul(std::getenv("HALO2_TU15_VEHICLE_BLAST_COUNT")):1u;
   check(!vehicle_blast_test || (vehicle_blast_count>=1 && vehicle_blast_count<=2),"Vehicle blast uses the ordinary one/two starting grenades");
@@ -1561,7 +1644,8 @@ int main(int argc,char **argv) try {
   std::map<std::uint32_t,Vec3> turret_projectile_births;
   float turret_projectile_travel{},turret_projectile_speed{};
   std::array<unsigned,2> turret_projectile_draws{},turret_glow_draws{},turret_contrail_draws{},turret_visible_contrail_draws{};
-  float vehicle_weapon_blast_radius{};
+  float vehicle_weapon_blast_radius{},vehicle_response_blast_radius{};
+  std::optional<ModelCollision> vehicle_blast_model;
   if(vehicle_weapon_test) {
     const Cache cache(o.map,o.shared_maps);
     const auto damage=std::find_if(cache.tags().begin(),cache.tags().end(),[](const Tag &t){return t.group=="jpt!" &&
@@ -1821,6 +1905,34 @@ int main(int argc,char **argv) try {
       const auto &definition=content.unit_interactions->units.at(placement.definition);
       const auto nodes=pose_model_nodes_world(definition.hierarchy,vehicle_start->root);
       report["selected_vehicle_definition"]=placement.definition;
+      if(vehicle_weapon_test) {
+        // Scene input clearance includes original direct destruction blasts,
+        // whose authored radius can exceed the incoming rocket's radius.
+        const auto object=cache.load_source_tag_metadata(placement.definition);
+        const Bytes object_bytes(object.bytes_at(object.source_address(),object.size()));
+        const auto model=cache.load_source_tag_metadata(object_bytes.u32(0x38u));
+        check(model.group()=="hlmt","Vehicle standoff requires its original model damage owner");
+        vehicle_blast_model=cache.load_model_collision(model.datum());
+        const Bytes head(model.bytes_at(model.source_address(),model.size()));
+        const auto read=[&](std::uint32_t at,std::size_t size){return Bytes(cache.read_tag_bytes(at,size));};
+        std::set<std::uint32_t> references;
+        for(unsigned info=0;info<head.u32(0x60u);++info) {
+          const auto damage=read(head.u32(0x64u)+info*0xf8u,0xf8u);
+          for(unsigned section=0;section<damage.u32(0xbcu);++section) {
+            const auto part=read(damage.u32(0xc0u)+section*0x38u,0x38u);
+            for(unsigned response=0;response<part.u32(0xcu);++response) {
+              const auto effect=read(part.u32(0x10u)+response*0x50u,0x50u).u32(0x18u);
+              if(effect==null_datum || !references.insert(effect).second)continue;
+              const auto metadata=cache.load_source_tag_metadata(effect);
+              check(metadata.group()=="jpt!","Vehicle response damage reference has another source class");
+              const auto radius=Bytes(metadata.bytes_at(metadata.source_address(),metadata.size())).f32(4u);
+              check(std::isfinite(radius) && radius>=0,"Vehicle response blast has an invalid original radius");
+              vehicle_response_blast_radius=std::max(vehicle_response_blast_radius,radius);
+              report["declared_vehicle_response_blasts"].push_back({{"definition",effect},{"outer_radius",radius}});
+            }
+          }
+        }
+      }
       if(turret_damage_test) {
         for(const auto &target:cache.tags())if(target.group=="vehi") {
           const auto tag=cache.load_source_tag_metadata(target.datum);
@@ -2304,6 +2416,8 @@ int main(int argc,char **argv) try {
       for(unsigned n=0;n<s.players.size();++n)
         if(s.players[n].connected && (!lan || n!=host->host_slot))local_slots.push_back(n);
       if(local_slots.size()<=actor_view)return;
+      if(vehicle && (s.players[local_slots[actor_view]].source_unit==null_datum ||
+          s.players[local_slots[actor_view]].dead))return;
       local_slot=local_slots[actor_view];
       const auto &p=s.players[local_slot];started=true;start_step=step;start_authority_tick=s.tick;initial=p.position;
       if(support_start && std::getenv("HALO2_TU15_SUPPORT_DEFINITION"))host->support_client_ready.store(true);
@@ -2581,15 +2695,16 @@ int main(int argc,char **argv) try {
         // and attachment remain the only success signal.
         entry_press.reset();entry_released=false;
       }
-      if(entry_target && !entry_press && elapsed%5==0) {
+      if(entry_target && !entry_press && elapsed%5==0 && vehicle_entry_aim_tick!=s.tick) {
+        vehicle_entry_aim_tick=s.tick;
         focus(window);check(SDL_SetRelativeMouseMode(SDL_TRUE)==0,"Could not enable actual vehicle-test mouse input");
         const auto look=*entry_target-(p.position+Vec3{0,0,interaction_content.player.camera_height});
         const float pitch=std::atan2(look.z,std::hypot(look.x,look.y));
         const float yaw=std::atan2(look.y,look.x);
         const auto &settings=o.desktop->keyboard_settings;const float gain=.0025f*float(settings.sensitivity)/3.f;
         check(gain>0,"Invalid actual mouse gain");SDL_Event e{};e.type=SDL_MOUSEMOTION;e.motion.windowID=window_id;
-        e.motion.xrel=-int(std::lround(std::remainder(yaw-c.yaw,6.283185307f)/gain));
-        e.motion.yrel=-int(std::lround((pitch-c.pitch)/gain))*(settings.invert?-1:1);
+        e.motion.xrel=-int(std::lround(std::remainder(yaw-p.yaw,6.283185307f)/gain));
+        e.motion.yrel=-int(std::lround((pitch-p.pitch)/gain))*(settings.invert?-1:1);
         check(SDL_PushEvent(&e)==1,"SDL rejected vehicle-entry look input");
       }
       const int pickup=o.desktop->keyboard_settings.bindings[unsigned(PcAction::Pickup)];
@@ -2612,12 +2727,12 @@ int main(int argc,char **argv) try {
           check(gain>0,"Invalid actual departure mouse gain");
           SDL_Event look{};look.type=SDL_MOUSEMOTION;look.motion.windowID=window_id;
           const auto yaw=std::atan2(vehicle_forward->y,vehicle_forward->x);
-          look.motion.xrel=-int(std::lround(std::remainder(yaw-c.yaw,6.283185307f)/gain));
+          look.motion.xrel=-int(std::lround(std::remainder(yaw-p.yaw,6.283185307f)/gain));
           // A declared flight look is ordinary mouse input before throttle.
           // It leaves original controller/contact results and all flight
           // distance/climb gates unchanged.
           const float departure_pitch=takeoff_pitch_input.value_or(0.f);
-          look.motion.yrel=-int(std::lround((departure_pitch-c.pitch)/gain))*(settings.invert?-1:1);
+          look.motion.yrel=-int(std::lround((departure_pitch-p.pitch)/gain))*(settings.invert?-1:1);
           check(SDL_PushEvent(&look)==1,"SDL rejected vehicle departure look input");
         }
       }
@@ -2709,16 +2824,72 @@ int main(int argc,char **argv) try {
       if(vehicle_blast_test && vehicle_exited && p.source_parent==null_datum && !p.dead && vehicle_position) {
         const auto pose=std::find_if(s.source_body_poses.begin(),s.source_body_poses.end(),[&](const auto &pose){return pose.object==driven_vehicle;});
         check(pose!=s.source_body_poses.end(),"Vehicle blast lost its actual target sphere");
-        const auto delta=pose->sphere.center-(p.position+Vec3{0,0,interaction_content.player.camera_height});
+        const auto eye=p.position+Vec3{0,0,interaction_content.player.camera_height};
+        auto target=pose->sphere.center;
+        bool collision_aim_ready=!vehicle_weapon_test;
+        std::optional<PosedCollisionHit> current_view_hit;
+        if(vehicle_weapon_test) {
+          const auto vehicle=std::ranges::find_if(s.world_vehicles,[&](const auto &v){return v.handle==driven_vehicle;});
+          check(vehicle_blast_model && vehicle!=s.world_vehicles.end() && vehicle->regions && !pose->nodes.empty(),
+              "Vehicle weapon input planning requires actual model collision, nodes and current source permutations");
+          const auto query=[&](Vec3 ray){return posed_collision(*vehicle_blast_model,pose->nodes,
+              vehicle->regions->selection.permutations,*interaction_content.original_data,eye,ray,2u);};
+          // Original lower-query bit1 admits an outside-to-solid crossing.
+          // A zero mask does not admit that surface traversal.
+          const auto center_ray=(target-eye)*2.f;
+          const auto center_hit=query(center_ray);
+          row["vehicle_bound_center_collision_hit"]=bool(center_hit);
+          std::optional<PosedCollisionHit> planned=center_hit;
+          Vec3 planned_ray=center_ray;
+          if(!planned)for(float z:{-.5f,0.f,.5f}) {
+            for(float x:{0.f,-.5f,.5f}) {
+              for(float y:{0.f,-.5f,.5f}) {
+                const auto &basis=pose->nodes.front().basis;
+                const auto point=pose->sphere.center+
+                    (basis[0]*x+basis[1]*y+basis[2]*z)*pose->sphere.radius;
+                const auto ray=(point-eye)*2.f;
+                if(const auto hit=query(ray)){planned=hit;planned_ray=ray;break;}
+              }
+              if(planned)break;
+            }
+            if(planned)break;
+          }
+          if(planned) {
+            target=eye+planned_ray*planned->fraction;collision_aim_ready=true;
+            row["declared_vehicle_collision_aim"]={{"point",xyz(target)},{"region",planned->region},
+                {"node",planned->node},{"surface",planned->surface},{"material",planned->global_material},
+                {"scope","Read-only authored posed-collision input planning; actual projectile impact is not supplied"}};
+          }
+          current_view_hit=query(direction(p.yaw,p.pitch)*(length(target-eye)*2.f));
+        }
+        const auto delta=target-eye;
         const auto &settings=o.desktop->keyboard_settings;const float gain=.0025f*float(settings.sensitivity)/3.f;
-        if(elapsed%5==0) {
+        if(elapsed%5==0 && vehicle_blast_aim_tick!=s.tick) {
+          vehicle_blast_aim_tick=s.tick;
           SDL_Event look{};look.type=SDL_MOUSEMOTION;look.motion.windowID=window_id;
-          look.motion.xrel=-int(std::lround(std::remainder(std::atan2(delta.y,delta.x)-c.yaw,6.283185307f)/gain));
-          look.motion.yrel=-int(std::lround((std::atan2(delta.z,std::hypot(delta.x,delta.y))-c.pitch)/gain))*(settings.invert?-1:1);
+          // Native18A300 consumes changes in raw PC samples. Vehicle turns
+          // can reorient the processed source view independently of that raw
+          // baseline, so steer by the error in the actual source view.
+          look.motion.xrel=-int(std::lround(std::remainder(std::atan2(delta.y,delta.x)-p.yaw,6.283185307f)/gain));
+          look.motion.yrel=-int(std::lround((std::atan2(delta.z,std::hypot(delta.x,delta.y))-p.pitch)/gain))*(settings.invert?-1:1);
           if(look.motion.xrel || look.motion.yrel)check(SDL_PushEvent(&look)==1,"SDL rejected ordinary vehicle-blast aim");
         }
         const auto range=std::hypot(p.position.x-vehicle_position->x,p.position.y-vehicle_position->y);
         if(vehicle_weapon_test) {
+          const auto minimum_range=length(pose->sphere.center-*vehicle_position)+pose->sphere.radius+
+              std::max(vehicle_weapon_blast_radius,vehicle_response_blast_radius)+interaction_content.player.radius;
+          report["declared_weapon_minimum_root_range"]=minimum_range;
+          report["weapon_standoff_inputs"]={{"actual_target_sphere_radius",pose->sphere.radius},
+              {"actual_center_to_root",length(pose->sphere.center-*vehicle_position)},
+              {"authored_blast_outer_radius",vehicle_weapon_blast_radius},
+              {"authored_vehicle_response_outer_radius",vehicle_response_blast_radius},
+              {"authored_player_radius",interaction_content.player.radius}};
+          const auto aim_error=std::acos(std::clamp(dot(normalized(delta),direction(p.yaw,p.pitch)),-1.f,1.f));
+          const auto aim_limit=std::asin(std::clamp(pose->sphere.radius/length(delta),0.f,1.f));
+          row["vehicle_weapon_aim"]={{"source_look",{p.yaw,p.pitch}},{"raw_input",{c.yaw,c.pitch}},
+              {"error",aim_error},{"target_sphere_angle",aim_limit},
+              {"posed_view_collision_hit",bool(current_view_hit)},
+              {"fire_input",c.fire},{"loaded",p.loaded},{"shot_tick",p.shot_tick}};
           vehicle_weapon_commands+=c.fire;vehicle_reload_commands+=c.reload;
           const auto fire=[&](bool down) {
             const int binding=settings.bindings[unsigned(PcAction::Fire)];
@@ -2734,14 +2905,16 @@ int main(int argc,char **argv) try {
             if(vehicle_weapon_pressed){fire(false);vehicle_weapon_pressed=false;}
             key(window_id,SDL_SCANCODE_S,false);
             if(elapsed>=vehicle_last_shot+100)key(window_id,SDL_SCANCODE_W,range>3*interaction_content.player.height);
-          } else if(range<vehicle_weapon_blast_radius+interaction_content.player.height) {
+          } else if(range<minimum_range) {
+            if(vehicle_weapon_pressed){fire(false);vehicle_weapon_pressed=false;vehicle_last_shot=elapsed;}
             key(window_id,SDL_SCANCODE_S,true);
           } else {
             key(window_id,SDL_SCANCODE_S,false);
             if(vehicle_weapon_pressed && (unsigned(p.loaded)<vehicle_loaded_before || elapsed>=vehicle_weapon_press_tick+20)) {
               fire(false);vehicle_weapon_pressed=false;vehicle_last_shot=elapsed;
             }
-            if(!vehicle_weapon_pressed && p.loaded>0 && elapsed>=vehicle_last_shot+75) {
+            if(!vehicle_weapon_pressed && p.loaded>0 && elapsed>=vehicle_last_shot+75 &&
+                collision_aim_ready && current_view_hit && aim_error<aim_limit) {
               vehicle_loaded_before=p.loaded;vehicle_weapon_press_tick=elapsed;fire(true);vehicle_weapon_pressed=true;
             }
             const int reload=settings.bindings[unsigned(PcAction::Reload)];
@@ -3069,7 +3242,29 @@ int main(int argc,char **argv) try {
   // Finite local screenshots retain all earlier real input delivery. Network
   // exit uses SDL_QUIT because exact tick capture deliberately rejects LAN.
   if(!lan){o.capture_tick=vehicle?(long_vehicle_sequence?901:451):181;o.screenshot=output/"frame.ppm";}
-  const int result=run_multiplayer(o);if(host)host->finish();trace.close();
+  int result{};
+  try {result=run_multiplayer(o);if(host)host->finish();}
+  catch(const std::exception &error) {
+    if(vehicle_blast_test && host) {
+      try {host->finish();}catch(const std::exception &authority_error) {
+        report["authority_error"]=authority_error.what();
+      }
+      report["acceptance_passed"]=false;report["error"]=error.what();
+      report["original_player_birth_scene_inputs"]=host->scene_lifecycle;
+      report["actual_authority_point_impulses"]=host->impulses.size();
+      report["target_vitality_on_failure"]=Json::array();
+      for(const auto &sample:host->vehicle_vitality_samples)
+        if(sample.at("object")==driven_vehicle) {
+          auto &retained=report["target_vitality_on_failure"];
+          if(retained.size()==32u)retained.erase(retained.begin());
+          retained.push_back(sample);
+        }
+      std::ofstream(output/"failure.json")<<report.dump(2)<<'\n';
+    }
+    throw;
+  }
+  trace.close();
+  if(vehicle_blast_test && host)report["original_player_birth_scene_inputs"]=host->scene_lifecycle;
   if(support_test) {
     std::ofstream file(output/"authority-support-samples.json");file<<host->support_samples.dump(2)<<'\n';
     check(bool(file),"Could not retain original rotating support observations");

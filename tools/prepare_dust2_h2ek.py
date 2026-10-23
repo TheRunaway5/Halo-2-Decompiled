@@ -98,6 +98,8 @@ def background_selection(package):
 
 def assemble(package,output,report,limit,precise,split_render_batches,collision_plan,primary_background):
     materials=[];objects=[];stats=[]
+    background_policy=package/'assembly-background.json'
+    explicit_background=json.loads(background_policy.read_text()) if background_policy.exists() else None
     selected_background=background_selection(package) if primary_background else set()
     background_at=0;primary_vertices=[];primary_triangles=[]
     with tempfile.TemporaryDirectory(prefix='dust2-ass-',dir=os.environ.get('HALO2_TEST_SCRATCH')) as owned:
@@ -109,11 +111,13 @@ def assemble(package,output,report,limit,precise,split_render_batches,collision_
             background_materials={i for i,(name,_) in enumerate(palette)
                 if any(s in name for s in ('city ec_ocean_floor','dust2 desert_sand','dust2 desert_sedimentary',
                     'zanzibar zanzibar_ground_beach','zanzibar zanzibar_cliff1'))}
-            for name,variant in palette:
+            if role=='render' and explicit_background is not None:
+                background_materials=set(explicit_background['material_indices'])
+                assert all(0<=i<len(palette) for i in background_materials)
+            for mi,(name,variant) in enumerate(palette):
                 if role=='render' and precise:name=name[:-1]+')"'
                 if role=='collision' and '%' not in name:name=name[:-1]+'%"'
-                if role=='render' and any(s in name for s in ('city ec_ocean_floor','dust2 desert_sand','dust2 desert_sedimentary',
-                        'zanzibar zanzibar_ground_beach','zanzibar zanzibar_cliff1')):
+                if role=='render' and mi in background_materials:
                     # Kilometres of distant terrain do not need the playable
                     # streets' texel density. Keep their lightmaps bounded.
                     name=name[:-1]+' lm:0.01"'

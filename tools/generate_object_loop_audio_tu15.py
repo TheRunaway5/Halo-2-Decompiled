@@ -15,7 +15,7 @@ from research_mp_sandbox_update_functions import NEW_DEFAULT, NEW_PIN
 from generate_physics_live_support_tu15 import generate, sha
 
 ROOT = Path(__file__).resolve().parents[1]
-ENTRIES = (0x18ee50, 0x18f900, 0x18e970, 0x18ed80, 0x129dd0,
+ENTRIES = (0x18d390, 0x18d3d0, 0x18ee50, 0x18f900, 0x18e970, 0x18ed80, 0x129dd0,
            0x18d5a0, 0x18f9b0, 0x190460, 0x1904d0, 0x18ffb0,
            0x220640, 0x220c60, 0x18dc70, 0x18d960, 0x190a80,
            0x129170, 0x18f510, 0x253070, 0x22c560, 0x223da0)
@@ -33,6 +33,9 @@ def main():
     assert sha(NEW_DEFAULT) == NEW_PIN
     image = Xbe(NEW_DEFAULT)
     code = _Code(image, '.text')
+    # Literal initial bytes of the separately mounted sound-visibility prefix.
+    # Actual18F900 supplies its clear/publication; this supplies no mask bits.
+    assert image.read(0x55d730, 64) == bytes(64)
     # Genuine13A9B0 pre-object audio phase and both loop-update call sites.
     for pc, target in ((0x13a9d8, 0x18ee50), (0x18ef76, 0x18d5a0),
                        (0x18f01d, 0x18d5a0), (0x18d7fa, 0x220c60),
@@ -85,13 +88,24 @@ def main():
     internal = 'case 0x220c60u:run_220c60(s);return;'
     assert source.count(internal) == 1
     source = source.replace(internal, 'case 0x220c60u:s.required(site,target,tail);return;')
+    # The lowerer emits direct calls between bodies in this closure as well.
+    # Those must cross the same observer boundary; replacing only dispatch's
+    # switch arm leaves the genuine per-object callers invisible.
+    for site in (0x18d7fa, 0x18d93b):
+        direct = f's.push(0x{site:x}u,0x{site+5:x}u);run_220c60(s);'
+        assert source.count(direct) == 1
+        source = source.replace(direct,
+            f's.push(0x{site:x}u,0x{site+5:x}u);s.required(0x{site:x}u,0x220c60u,false);')
     temporary = args.output.with_name(args.output.name+'.tmp')
     temporary.write_text(source)
     os.replace(temporary, args.output)
     report = json.loads(manifest.read_text())
     report.update(generated_cpp_sha256=sha(args.output), generator_sha256=sha(Path(__file__)),
                   inventory_sha256=sha(inventory), device_or_voice_results_supplied=False,
-                  external_native_dispatch_boundaries=['00220c60'])
+                  external_native_dispatch_boundaries=['00220c60'],
+                  observed_direct_call_sites=['0018d7fa', '0018d93b'],
+                  loader_zero_prefix=dict(address='0055d730', bytes=64,
+                                          original_hex=image.read(0x55d730,64).hex()))
     manifest.write_text(json.dumps(report, indent=2, sort_keys=True)+'\n')
     if args.report_output:
         args.report_output.parent.mkdir(parents=True, exist_ok=True)

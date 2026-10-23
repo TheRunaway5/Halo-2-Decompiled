@@ -865,6 +865,10 @@ struct PhysicsLiveWorldTu15::Impl {
         call_actual(0x14e0b0u);
         call_actual(0x125eb0u); // Actual191A57 cache activation/reset.
         call_actual(0x130600u); // Actual191A89 model-resource activation/reset.
+        // Complete renderer new-map callback publishes4922A0 from the
+        // resident matg Rasterizer Data block.4BCC0's camouflage admission
+        // consumes that actual pointer; cold loader backing is not publication.
+        call_actual(0x22570u);
         call_actual(0x1f4760u); // Actual44B310 resets scenario kill-volume state.
         call_actual(0x118430u); // Actual473A04 activates/resets antenna storage.
         call_actual(0x180170u); // Actual44B40C activates/resets the decal pool and per-cluster links.

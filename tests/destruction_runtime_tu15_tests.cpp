@@ -123,6 +123,26 @@ void destruction_continuation(MultiplayerPreparedWorld &world,
       {"complete_encoded_world_sha256_comparisons",compared},{"cut_bytes",initial.size()},
       {"peer_transport_or_presentation_acceptance",false},{"raw_snapshots_retained",false}};
 }
+void explicit_cleanup_receipt(MultiplayerPreparedWorld &world,std::uint32_t target,Report &report){
+  if(!std::getenv("HALO2_DESTRUCTION_FINAL_CLEANUP_INPUT"))return;
+  auto &source=*world.source_objects;unsigned calls{};
+  check(std::ranges::any_of(source.live_objects(),[&](const auto &object){return object.object==target;}),
+      "Explicit original teardown requires the actual remaining target generation");
+  source.observe_physics_stores([&](std::uint32_t,const SourcePhysicsContactRecordStore &store){
+    // Complete1186D0's CALL pushes this literal return address before
+    // the actual16E8A0 pool deletion. No callee result is supplied here.
+    if(store.instruction==0x1186dau && store.written.size()==4 &&
+        Bytes(store.written).u32(0)==0x1186dfu)++calls;
+  });
+  StoreObservation observation{source};
+  source.destroy_object(target);
+  const auto after=source.live_objects();
+  const bool gone=std::ranges::none_of(after,[&](const auto &object){return object.object==target;});
+  report.data["explicit_original_teardown"]={{"requested_full_object",target},
+      {"original_light_receiver_delete_calls",calls},{"full_generation_retired",gone},
+      {"scope","Explicit original deletion API input after natural destruction/replay; automatic retirement timing is not certified"}};
+  check(calls && gone,"Original explicit teardown did not execute its light-receiver deletion and retire the full object");
+}
 void reciprocal_damage(MultiplayerPreparedWorld &world,const Cache &cache,const LevelContent &content,
     unsigned slot,std::array<Controls,multiplayer_capacity> &commands,bool coil_first,Report &report,
     unsigned witness_type=1,std::string_view witness_suffix="\\warthog"){
@@ -162,17 +182,20 @@ void reciprocal_damage(MultiplayerPreparedWorld &world,const Cache &cache,const 
       for(unsigned layer=0;layer<8 && remaining>0;++layer){
         const auto support=terrain.raycast(origin,{0,0,-1},remaining);if(!support)break;
         candidate.z=support->position.z+coil_root.position.z-original_floor->position.z;
-        if(length(candidate+center_offset-vehicle_center)<2.f &&
+        const auto blast_approach=vehicle_center-(candidate+center_offset);
+        if(length(blast_approach)<2.f &&
             support->normal.z>=content.player.maximum_slope_cosine &&
+            !terrain.raycast(candidate+center_offset,normalized(blast_approach),length(blast_approach)) &&
             interaction_firing_lane(content,terrain,candidate+center_offset,candidate-vehicle_center,coil_distances)){
           coil_position=candidate;floor=support;planned=true;
-          report.data["declared_coil_plan"]={{"side",side},{"floor_layer",layer}};break;
+          report.data["declared_coil_plan"]={{"side",side},{"floor_layer",layer},
+              {"predicted_center_bsp_ray_clear",true}};break;
         }
         const float step=content.player.radius*.1f;remaining-=support->distance+step;
         origin=support->position-Vec3{0,0,step};
       }
     }
-    check(planned,"Actual BSP has no supported coil position with a clear shooting approach");
+    check(planned,"Actual BSP has no supported coil position with clear shooting and blast approaches");
   }
   check(bool(floor),"Reciprocal scene has no real terrain-supported coil position");
   coil_position.z=floor->position.z+coil_root.position.z-original_floor->position.z;
@@ -436,11 +459,18 @@ int main(int argc,char **argv){Report report;try {
   MultiplayerOptions options;options.map=argv[1];options.shared_maps=argv[2];
   options.local_players=1;options.source_object_world=true;options.mute=true;
   options.session_random_seed=0x22de570u;
+  const std::map<std::string,std::string> attached_targets{
+      {"warthog_chaingun","objects\\vehicles\\warthog\\turrets\\chaingun\\chaingun"},
+      {"warthog_gauss_turret","objects\\vehicles\\warthog\\turrets\\gauss\\gauss"},
+      {"scorpion_cannon_mp","objects\\vehicles\\scorpion\\turrets\\cannon\\cannon_mp"},
+      {"wraith_mortar_mp","objects\\vehicles\\wraith\\turrets\\mortar\\mortar_mp"},
+      {"spectre_plasma_turret","objects\\vehicles\\spectre\\turrets\\plasma\\plasma_turret"}};
+  const auto attached=attached_targets.find(name);
   if(name=="ghost")options.variant.values.set(76,3);
-  if(name=="spectre")options.variant.values.set(76,5);
-  if(name=="warthog_gauss")options.variant.values.set(76,2);
-  if(name=="scorpion")options.variant.values.set(78,1);
-  if(name=="wraith")options.variant.values.set(78,2);
+  if(name=="spectre" || name=="spectre_plasma_turret")options.variant.values.set(76,5);
+  if(name=="warthog_gauss" || name=="warthog_gauss_turret")options.variant.values.set(76,2);
+  if(name=="scorpion" || name=="scorpion_cannon_mp")options.variant.values.set(78,1);
+  if(name=="wraith" || name=="wraith_mortar_mp")options.variant.values.set(78,2);
   Cache cache(options.map,options.shared_maps);check(cache.is_mcc(),"Destruction runtime requires an MCC v13 cache");
   const auto content=cache.load_content(0,true,source_game_variant(options.variant));
   const auto choices=cache.multiplayer_weapon_choices();bool selected=false;
@@ -474,13 +504,16 @@ int main(int argc,char **argv){Report report;try {
         name=="coil_to_scenery"?6:11,name=="coil_to_scenery"?"\\no_swimming":"\\military\\case\\case");return 0;
   }
   if(name=="terrain_glass"){terrain_breakage(world,cache,content,slot,commands,report);return 0;}
-  const auto target_suffix=name=="warthog_gauss"?std::string("warthog"):name;
+  const auto target_suffix=attached!=attached_targets.end()?attached->second:
+      name=="warthog_gauss"?std::string("warthog"):name;
   std::uint32_t target=null_datum,witness=null_datum,far_control=null_datum;
   std::vector<std::uint32_t> candidates;
   for(const auto &object:source.live_objects()){
-    if(object.parent!=null_datum || (prop?object.type!=11:object.type!=1))continue;
+    if((attached==attached_targets.end()?object.parent!=null_datum:object.parent==null_datum) ||
+        (prop?object.type!=11:object.type!=1))continue;
     const auto tag=cache.query_tag({.handle=TagHandle{object.definition}});
-    if(tag && tag->name.ends_with("\\"+target_suffix))candidates.push_back(object.object);
+    if(tag && (attached!=attached_targets.end()?tag->name==target_suffix:
+        tag->name.ends_with("\\"+target_suffix)))candidates.push_back(object.object);
   }
   if(!candidates.empty())target=candidates.front();
   const bool chain=name=="power_module";
@@ -502,6 +535,13 @@ int main(int argc,char **argv){Report report;try {
   }
   check(target!=null_datum,"No source-created target with the requested authored definition");
   const auto target_definition=source.object_definition(target);
+  if(attached!=attached_targets.end()) {
+    const auto objects=source.live_objects();
+    const auto found=std::ranges::find_if(objects,[&](const auto &object){return object.object==target;});
+    check(found!=objects.end() && found->parent!=null_datum,"Attached destruction target lost its original parent");
+    report.data["actual_attached_target"]={{"name",attached->second},{"object",target},
+        {"parent",found->parent},{"parent_definition",source.object_definition(found->parent)}};
+  }
   const auto sphere=source.object_sphere(target);const auto root=source.object_transform(target);
   report.data["target"]=target;report.data["definition"]=target_definition;
   // A supported clear firing lane is scene setup only. All subsequent shots,
@@ -565,6 +605,9 @@ int main(int argc,char **argv){Report report;try {
   std::set<std::uint32_t> initial,created_debris,projectiles;
   for(const auto &object:source.live_objects())initial.insert(object.object);
   const auto initial_vitality=source.object_vitality(target);float minimum=initial_vitality.body;
+  const auto target_body=source.source_object_body(target);
+  check(!(word(target_body+0x108u)&0x40000u),"Destruction target already carries the original dead flag");
+  report.data["original_dead_flag_stores"]=Json::array();
   bool dead=false,retired=false,regions_changed=false;unsigned shots=0;std::uint64_t frontier=0;
   std::optional<unsigned> death_tick;
   const auto regions=source.object_model_regions(target);
@@ -574,6 +617,15 @@ int main(int argc,char **argv){Report report;try {
   float witness_body_at_target_blast=1.f;
   std::map<std::uint32_t,unsigned> destruction_requests;
   source.observe_physics_stores([&](std::uint32_t,const SourcePhysicsContactRecordStore &store){
+    const auto flag=target_body+0x10au;
+    if(store.address<=flag && flag-store.address<store.written.size()) {
+      const auto offset=flag-store.address;
+      if(!(std::to_integer<unsigned>(store.before.at(offset))&4u) &&
+          (std::to_integer<unsigned>(store.written.at(offset))&4u))
+        report.data["original_dead_flag_stores"].push_back({{"instruction",store.instruction},
+            {"address",store.address},{"before",std::to_integer<unsigned>(store.before[offset])},
+            {"after",std::to_integer<unsigned>(store.written[offset])}});
+    }
     // Complete original DC3C0 writes its owning full object at DC4A0,
     // immediately before DC4A4 calls the original radius owner D91D0.
     // Observe the actual store, without admitting or reconstructing a blast.
@@ -616,7 +668,10 @@ int main(int argc,char **argv){Report report;try {
     if(!retired){
       const auto vitality=source.object_vitality(target);minimum=std::min(minimum,vitality.body);
       const auto flags=word(source.object_body(target)+0x108u)>>16u;
-      dead|=vitality.body<=0 && (flags&4u);
+      // OriginalD8D8A publishes death independently of the remaining body
+      // fraction. Attached damage-sharing units may retain a positive floor.
+      // Observe that original transition rather than imposing a host threshold.
+      dead|=bool(flags&4u);
       if(dead && !death_tick)death_tick=tick;
       regions_changed|=source.object_model_regions(target).selection.permutations!=regions.selection.permutations;
       if(tick%30==0 || dead)report.data["samples"].push_back({{"tick",state.tick},
@@ -657,6 +712,8 @@ int main(int argc,char **argv){Report report;try {
   check(shots>0,"Ordinary source weapon commands produced no shots");
   check(minimum<initial_vitality.body || retired,"Ordinary source projectiles never damaged the requested target");
   check(dead || retired,"Actual source damage did not complete the target death transition");
+  if(dead)check(!report.data["original_dead_flag_stores"].empty(),
+      "Dead target has no observed original source death-flag transition");
   if(prop)check(retired,"Explosive death did not deliver its delayed destruction/retirement response");
   if(chain){
     check(witness_pristine_at_target_blast,"Chain witness was already damaged before the target's original blast");
@@ -667,8 +724,22 @@ int main(int argc,char **argv){Report report;try {
         !destruction_requests.contains(far_control),"Distant source module was damaged or emitted a fabricated chain blast");
     report.data["far_control_unchanged"]=true;
   }
-  if(!prop)check(!created_debris.empty(),"Vehicle death produced no source-created debris");
-  destruction_continuation(world,commands,report);report.data["passed"]=true;
+  if(!prop && attached==attached_targets.end() && name!="h_turret_ap")
+    check(!created_debris.empty(),"Vehicle death produced no source-created debris");
+  if(name=="h_turret_ap") {
+    // The original destroyed_explosion graph has light, sound, decal and
+    // particle systems, with no authored object part. Particle fragments
+    // require their separate presentation/physics gate, not a fabricated bloc.
+    check(regions_changed && destruction_requests[target]==1,
+        "Fixed human turret did not change its original regions and emit its authored destruction blast");
+    report.data["fixed_turret_acceptance_scope"]="Original death/region/blast; authored particle fragments, sound and complete visual delivery remain separate";
+    report.data["object_debris_contract_evidence"]="human-turret-object-parts-v1.json";
+  }
+  if(attached!=attached_targets.end()) {
+    check(regions_changed,"Attached target death did not change its actual authored model regions");
+    report.data["attached_acceptance_scope"]="Original death-flag transition and model-region change under ordinary rockets; full parent/debris/occupant gates remain separate";
+  }
+  destruction_continuation(world,commands,report);explicit_cleanup_receipt(world,target,report);report.data["passed"]=true;
   std::cout<<"PASS MCC destruction target="<<name<<" shots="<<shots<<" body="<<minimum
       <<" source_dead="<<dead<<" retired="<<retired<<" debris="<<created_debris.size()<<'\n';
   return 0;

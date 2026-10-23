@@ -26,6 +26,8 @@ def install_main_hud(cache, exported, imported):
     source = {(t['group'],t['name']):t for t in donor.tags.values()}
     shared_source = {(t['group'],t['name']):t for t in shared_donor.tags.values()}
     data = cache.data
+    reused_metadata = 0
+    reused_partitions = 0
     table_magic = cache.u32(cache.index)-cache.index-32
     table = cache.pointer(cache.u32(cache.index+8),table_magic,len(cache.tags)*16)
     strings_at,strings_size,indices = (cache.u32(n) for n in (52,56,60))
@@ -45,11 +47,17 @@ def install_main_hud(cache, exported, imported):
         data.extend(bytes((-len(data))%16))
 
     def publish(tag, payload, pointers):
-        align();at=len(data);address=at+cache.magic
+        nonlocal reused_metadata
+        reuse=tag['address'] and tag['size']==len(payload)
+        if reuse:
+            at=tag['offset'];address=tag['address'];reused_metadata+=1
+        else:
+            align();at=len(data);address=at+cache.magic
         for field,relative in pointers:
             assert 0<=field<=len(payload)-4 and 0<=relative<len(payload)
             struct.pack_into('<I',payload,field,address+relative)
-        data.extend(payload)
+        if reuse:data[at:at+len(payload)]=payload
+        else:data.extend(payload)
         struct.pack_into('<II',data,table+(tag['datum']&65535)*16+8,address,len(payload))
         tag.update(offset=at,address=address,size=len(payload))
 
@@ -79,6 +87,7 @@ def install_main_hud(cache, exported, imported):
                 bitmap_donor=shared_donor
             assert owner['address'],f'Missing main-game HUD bitmap metadata: {key}'
             root=owner['offset'];payload=bytearray(bitmap_donor.data[root:root+76]);pointers=[]
+            current_images=cache.block(tag['offset']+68,168) if tag['address'] else []
 
             def block(descriptor,stride,destination):
                 rows=bitmap_donor.block(descriptor,stride)
@@ -94,7 +103,7 @@ def install_main_hud(cache, exported, imported):
             for old,new in sequences:block(old+52,32,new+52)
             images=block(root+68,168,68)
             partitions=[]
-            for old,new in images:
+            for image_index,(old,new) in enumerate(images):
                 block(old+32,12,new+32) # Native mip information, if authored.
                 for channel in range(3):
                     pointer,size=bitmap_donor.u32(old+56+channel*4),bitmap_donor.u32(old+80+channel*4)
@@ -106,8 +115,14 @@ def install_main_hud(cache, exported, imported):
                     # metadata address. Keep the exact encoded partition.
                     textures.seek(pointer&0x3fffffff);raw=textures.read(size)
                     assert len(raw)==size
-                    align();at=len(data);assert at+size<0x40000000
-                    data.extend(raw)
+                    current=current_images[image_index] if len(current_images)==len(images) else None
+                    previous=cache.u32(current+56+channel*4) if current is not None else 0
+                    previous_size=cache.u32(current+80+channel*4) if current is not None else 0
+                    if previous and previous>>30==0 and previous_size==size and data[previous:previous+size]==raw:
+                        at=previous;reused_partitions+=1
+                    else:
+                        align();at=len(data);assert at+size<0x40000000
+                        data.extend(raw)
                     struct.pack_into('<I',payload,new+56+channel*4,at)
                     partitions.append(dict(channel=channel,bytes=size,sha256=hashlib.sha256(raw).hexdigest()))
             publish(tag,payload,pointers)
@@ -120,4 +135,5 @@ def install_main_hud(cache, exported, imported):
     return dict(source='ordinary prepared Lockout HUD through Cache',source_map_sha256=hashlib.sha256(donor_path.read_bytes()).hexdigest(),
                 shared_bitmap_metadata_sha256=hashlib.sha256(shared_path.read_bytes()).hexdigest(),
                 export_sha256=hashlib.sha256(export_bytes).hexdigest(),definitions=definitions,bitmaps=bitmap_rows,
+                metadata_allocations_reused=reused_metadata,encoded_partitions_reused=reused_partitions,
                 renderer='existing MultiplayerHud',new_hud_renderer=False)

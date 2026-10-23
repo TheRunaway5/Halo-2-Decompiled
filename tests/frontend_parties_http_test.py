@@ -44,6 +44,9 @@ async def main():
                 assert response.status == 201, await response.text()
                 return {"Authorization":"Bearer "+(await response.json())["token"]}
             peer = await sign_in("peer", "Pilot")  # Deliberate same chosen name.
+            response = await client.put("/v1/account/profile", headers=peer,
+                json={"appearance": "080c0901011a098100"})
+            assert response.status == 200, await response.text()
             guests = [await sign_in("layout_"+str(i), "W"*31 if i == 13 else "Party Member "+str(i).zfill(2))
                       for i in range(14)] if captures else []
             async def view(headers):

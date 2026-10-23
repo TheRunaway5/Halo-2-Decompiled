@@ -24,6 +24,10 @@ CASES = {'warthog': 'coagulation', 'warthog_gauss': 'coagulation', 'ghost': 'coa
          'terrain_glass': 'zanzibar'}
 CASES.update(coil_to_warthog='headlong', warthog_to_coil='headlong')
 CASES.update(coil_to_scenery='zanzibar', coil_to_crate='foundation')
+CASES.update({case: 'coagulation' for case in (
+    'warthog_chaingun', 'warthog_gauss_turret', 'scorpion_cannon_mp',
+    'wraith_mortar_mp', 'spectre_plasma_turret')})
+CASES['h_turret_ap'] = 'foundation'
 
 
 def main():

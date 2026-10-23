@@ -4,21 +4,72 @@
 namespace halo2 {
 namespace {
 constexpr unsigned party_context=42;
+constexpr unsigned invite_context=45;
+}
+std::vector<FrontendUiSound> frontend_party_notification_sounds(
+    const OnlineAccountSnapshot &before,const OnlineAccountSnapshot &after) {
+  // The first authenticated snapshot is a baseline. Polls, name/profile
+  // edits, readiness, leadership and voice activity never imply membership.
+  if(!before.authenticated || !after.authenticated)return {};
+  std::vector<FrontendUiSound> sounds;
+  if(!before.party && after.party)sounds.push_back(FrontendUiSound::Advance);
+  else if(before.party && !after.party)sounds.push_back(FrontendUiSound::Back);
+  else if(before.party && after.party) {
+    const auto added=[](const OnlineParty &a,const OnlineParty &b) {
+      return std::any_of(b.members.begin(),b.members.end(),[&](const auto &m) {
+        const auto old=std::find_if(a.members.begin(),a.members.end(),[&](const auto &p){return p.handle==m.handle;});
+        return old==a.members.end() || old->local_players.size()<m.local_players.size();
+      });
+    };
+    if(added(*after.party,*before.party))sounds.push_back(FrontendUiSound::Back);
+    if(added(*before.party,*after.party))sounds.push_back(FrontendUiSound::Advance);
+  }
+  if(std::any_of(after.party_invitations.begin(),after.party_invitations.end(),[&](const auto &invite) {
+    return std::none_of(before.party_invitations.begin(),before.party_invitations.end(),[&](const auto &old){return old.id==invite.id;});
+  }))sounds.push_back(FrontendUiSound::ReceiveMessage);
+  if(before.busy && !after.busy && !after.party_message.empty())sounds.push_back(FrontendUiSound::Error);
+  return sounds;
+}
+std::vector<FrontendUiSound> MenuState::take_ui_sounds() {
+  auto sounds=std::move(pending_ui_sounds_);pending_ui_sounds_.clear();return sounds;
+}
+std::optional<FrontendInviteNotice> MenuState::invite_notice() const {
+  if(!account_.authenticated || signed_in_.empty())return {};
+  for(const auto &invite:account_.party_invitations)
+    if(std::find(dismissed_party_invites_.begin(),dismissed_party_invites_.end(),invite.id)==dismissed_party_invites_.end())
+      return FrontendInviteNotice{invite.id,invite.name,account_.busy,!account_.busy && !account_.party && !launch &&
+        matchmaking_.status!=OnlineMatchmakingStatus::CheckingConnections &&
+        matchmaking_.status!=OnlineMatchmakingStatus::AwaitingTransport && matchmaking_.status!=OnlineMatchmakingStatus::Loading};
+  return {};
+}
+bool MenuState::act_invite_notice(bool accept) {
+  const auto notice=invite_notice();if(!notice)return false;
+  const auto invite=std::find_if(account_.party_invitations.begin(),account_.party_invitations.end(),[&](const auto &i){return i.id==notice->id;});
+  if(invite==account_.party_invitations.end())return false;
+  if(!accept){dismissed_party_invites_.push_back(invite->id);++revision;return true;}
+  if(!notice->can_accept || !online_account_)return false;
+  // Remain on this screen until the worker confirms actual membership.
+  if(!online_account_->party_command({"accept",invite->id,{},{},invite->version}))return false;
+  if(online_matchmaking_)online_matchmaking_->cancel_queue();
+  update_online_account();++revision;return true;
 }
 std::vector<OnlinePartyMember> MenuState::online_party_members() const {
   std::vector<OnlinePartyMember> result;
   if(!account_.party)return result;
   for(const auto &member:account_.party->members) {
-    result.push_back(member);
+    auto primary=member;
+    if(member.self)primary.appearance=appearance_for_profile(signed_in_);
+    result.push_back(std::move(primary));
     if(member.self) {
       for(const auto &p:local_players())if(p.controller) {
         auto local=member;local.name=p.name;local.leader=false;local.local_players.clear();
         local.local_controller=int(p.controller);
+        local.appearance=p.appearance;
         local.guest=!local_discord_logins_[p.controller] || !local_discord_logins_[p.controller]->authorization();
         result.push_back(std::move(local));
       }
     } else for(const auto &p:member.local_players) {
-      auto local=member;local.name=p.name;local.leader=false;local.local_players.clear();local.guest=p.guest;
+      auto local=member;local.name=p.name;local.leader=false;local.local_players.clear();local.guest=p.guest;local.appearance=p.appearance;
       // Remote couch seats belong to the primary's connection. They cannot
       // transfer leadership or leave the accepted party independently.
       local.local_controller=-2;result.push_back(std::move(local));
@@ -28,10 +79,38 @@ std::vector<OnlinePartyMember> MenuState::online_party_members() const {
 }
 bool MenuState::online_party_screen(const MenuFrame &f) const {
   return (f.screen==14 && mode_==3) || (f.screen==26 && f.context==2) || (f.screen==216 && f.context==0) ||
-         (f.screen==31 && f.context==party_context);
+         (f.screen==31 && (f.context==party_context || f.context==invite_context));
+}
+bool MenuState::party_invite_picker() const {return frame().screen==31 && frame().context==invite_context;}
+bool MenuState::switch_invite_tab(int direction) {
+  if(!party_invite_picker())return false;
+  if(direction)party_invite_tab_=1-party_invite_tab_;
+  auto &f=stack_.back();f.entries.clear();f.selected=0;populate_online_party(f);++revision;return true;
 }
 void MenuState::populate_online_party(MenuFrame &f) const {
   f.description.clear();
+  if(f.screen==31 && f.context==invite_context) {
+    f.title="INVITE TO PARTY";
+    if(party_invite_tab_==0) {
+      f.description=account_.steam_friends_message;
+      for(unsigned i=0;i<account_.steam_friends.size();++i) {
+        const auto &p=account_.steam_friends[i];
+        f.entries.push_back({p.name+(p.halo_online?" - Halo ONLINE":!p.registered?" - Not signed into Halo":" - Steam Online"),-36,int(i)});
+      }
+      if(account_.steam_friends.empty())f.entries.push_back({account_.steam_friends_state=="loading"?"Loading Steam friends...":"No visible online Steam friends",-82,0});
+      f.entries.push_back({"Refresh Steam Friends",-36,-1});
+    } else {
+      f.description=account_.clan?"Select an online clan member to invite.":"Join a clan to invite its members.";
+      if(account_.clan)for(unsigned i=0;i<account_.clan->members.size();++i) {
+        const auto &p=account_.clan->members[i];
+        if(!p.self && (p.presence==OnlineClanPresence::Online || p.presence==OnlineClanPresence::Playing))
+          f.entries.push_back({p.name+(p.presence==OnlineClanPresence::Playing?" - In match":""),-37,int(i)});
+      }
+      if(f.entries.empty())f.entries.push_back({"No available online clan members",-82,0});
+    }
+    f.entries.push_back({"Search Discord Username",167,9});
+    f.entries.push_back({"Back",-5,0});return;
+  }
   if(f.screen==14) {
     f.title="ONLINE PARTY";
     if(account_.party)f.entries={{"Playlists",219,0},{"Party Options",216,0}};
@@ -52,7 +131,7 @@ void MenuState::populate_online_party(MenuFrame &f) const {
     if(!account_.party){f.entries={{"Create Party",-33,0},{"Party Invitations",26,0}};return;}
     f.entries.push_back({"Playlists",219,0});
     if(account_.party->leader) {
-      f.entries.push_back({"Invite Player",167,9});
+      f.entries.push_back({"Invite Player",31,int(invite_context)});
       if(account_.clan && account_.clan->role>=1)f.entries.push_back({"Invite Clan To Party",-33,1});
     }
     f.entries.push_back({"Party Members",26,0});
@@ -86,6 +165,7 @@ void MenuState::populate_online_party(MenuFrame &f) const {
   }
 }
 std::string MenuState::online_party_text(const MenuFrame &f,unsigned i) const {
+  if(f.screen==31 && f.context==invite_context)return i==0?f.description:std::string{};
   if(f.screen==14) {
     if(i==0)return account_.busy?"Updating party...":!account_.party_message.empty()?account_.party_message:
         !account_.party?account_.message:voice_party_ && voice_.revision>1?voice_.message:"Choose a playlist together.";
@@ -140,6 +220,23 @@ bool MenuState::accept_online_party() {
   const auto f=frame();if(!online_party_screen(f))return false;
   if(f.entries.empty() || f.selected>=f.entries.size())return true;
   const auto entry=f.entries[f.selected];
+  if(f.screen==216 && entry.destination==31 && entry.value==int(invite_context)) {
+    party_invite_tab_=0;
+    if(online_account_)online_account_->refresh_steam_friends();
+    update_online_account();open(31,invite_context);return true;
+  }
+  if(f.context==invite_context && (entry.destination==-36 || entry.destination==-37)) {
+    if(entry.value==-1){if(online_account_)online_account_->refresh_steam_friends();update_online_account();return true;}
+    const auto i=unsigned(entry.value);
+    if(!account_.party || !account_.party->leader || account_.busy)return true;
+    if(entry.destination==-36 && i<account_.steam_friends.size()) {
+      const auto &p=account_.steam_friends[i];
+      if(!p.registered){unavailable("This Steam friend needs to sign into Halo ONLINE before receiving an invitation.");return true;}
+      party_command({"invite_steam",p.id});
+    } else if(entry.destination==-37 && account_.clan && i<account_.clan->members.size())
+      party_command({"invite_member",account_.clan->members[i].id});
+    return true;
+  }
   if(f.screen==14 && entry.destination>0){if(!account_.party || account_.party->leader)open(unsigned(entry.destination),unsigned(entry.value));return true;}
   if(f.screen==26 && entry.destination==31) {
     const auto i=unsigned(entry.value);party_target_version_=0;

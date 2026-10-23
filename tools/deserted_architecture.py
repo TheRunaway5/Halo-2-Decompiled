@@ -12,6 +12,10 @@ SHADERS = {
     'scenarios/shaders/multi/turf/light_long_a',
     'scenarios/shaders/solo/earthcity/base_paver',
     'scenarios/shaders/solo/earthcity/base_sidewalk',
+    'scenarios/shaders/solo/earthcity/base_stucco1_door',
+    'scenarios/shaders/solo/earthcity/base_metal',
+    'scenarios/shaders/solo/earthcity/base_concrete1',
+    'scenarios/multi/dust2_mombasa/shaders/polished_road',
 }
 
 

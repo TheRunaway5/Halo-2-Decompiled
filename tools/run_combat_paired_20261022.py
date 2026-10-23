@@ -42,7 +42,10 @@ def main():
   with Image.open(scratch/(name+'.ppm')) as im:images.append(im.convert('RGB').crop(bounds))
  baseline,repeat,control=images;equal=lambda a,b:sum(x!=y for x,y in zip(a.getdata(),b.getdata()))
  noise=equal(baseline,repeat);difference=equal(baseline,control);diff=ImageChops.difference(baseline,control)
+ brighter=sum(sum(a)>sum(b) for a,b in zip(baseline.getdata(),control.getdata()))
+ darker=sum(sum(a)<sum(b) for a,b in zip(baseline.getdata(),control.getdata()))
  result.update(audit_completed=True,same_source_frame=True,paired_frame_query_issuance_count=1,repeat_changed_pixels=noise,changed_pixels=difference,difference_bounds=diff.getbbox(),pilot_view=pilot,view_rectangle=bounds,original_Xbox_pixels_compared=False)
+ result.update(brighter_pixels=brighter,darker_pixels=darker)
  if mode=='zoom':
   selector=data['final_zoom'];assert selector==data['views'][-1]['zoom']
   result.update(actual_zoom=selector,foreground_invisible=difference==0)
@@ -50,7 +53,9 @@ def main():
  else:
   actual=data['cases'][0] if mode=='vehicle' else data
   result['projectile_render']=actual.get('projectile_render',{k:actual[k] for k in ['live_projectiles','attached_projectiles','raw_source_attached_projectiles','attached_model_projectiles','glow_projectiles','glow_draws'] if k in actual})
-  passed=noise==0 and difference>0
+  # The original non-fuzzy light program contributes RGB with final alpha0.
+  # A zero/unuploaded program drew dark quads and passed an absolute delta.
+  passed=noise==0 and brighter>0 and darker==0
   if mode=='fire' and subject=='needler':
    attached=set(actual['raw_source_attached_projectiles'])
    models=bool(attached) and attached<=set(actual['attached_projectiles']) and attached<=set(actual['attached_model_projectiles'])

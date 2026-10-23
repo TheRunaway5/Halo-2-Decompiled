@@ -6,6 +6,7 @@
 #include "halo2/frontend_appearance.hpp"
 #include "halo2/frontend_ui_assets.hpp"
 #include "halo2/frontend_lobby.hpp"
+#include "halo2/frontend_lobby_roster.hpp"
 #include "halo2/frontend_lobby_team.hpp"
 #include "halo2/source_game_variant.hpp"
 #include "halo2/frontend_vista.hpp"
@@ -43,6 +44,10 @@ enum class FrontendUiSound : unsigned {
 inline constexpr unsigned frontend_ui_sound_slot_count = 13;
 // Vista61DDEA/61DE1A both FLD1 before the source playback request.
 inline constexpr float frontend_ui_sound_request_scale = 1.f;
+// Native accepted-party notifications reuse authored UI sounds. Membership
+// delta policy belongs to the replacement service, not the retired Live wire.
+std::vector<FrontendUiSound> frontend_party_notification_sounds(
+    const OnlineAccountSnapshot &, const OnlineAccountSnapshot &);
 struct UiRect {
   float top{}, left{}, bottom{}, right{};
 };
@@ -370,6 +375,7 @@ struct FrontendLobbyView {
   std::array<std::optional<std::string>, 5> quick_options;
   std::optional<std::vector<std::string>> party_names;
   std::vector<unsigned> party_speakers;
+  std::vector<FrontendLobbyRosterPlayer> party_players;
 };
 struct FrontendLocalPlayer {
   unsigned controller{};
@@ -397,7 +403,8 @@ struct FrontendLaunch {
 enum class FrontendLobbySessionAction { Start, Setup, Back, Auxiliary };
 // Native pointer actions share the menu's existing command handlers. Prompt
 // targets come from the actual clipped text layout, including Vista scaling.
-enum class FrontendPointerAction { Entry, Accept, Back, Auxiliary, Players, CommitText, ClearBinding };
+enum class FrontendPointerAction { Entry, Accept, Back, Auxiliary, Players, CommitText, ClearBinding, InviteAccept, InviteDismiss, InviteTab };
+struct FrontendInviteNotice { std::string id,name; bool accepting{},can_accept{}; };
 enum class GamePauseAction { Resume, Revert, Restart, Quit };
 struct FrontendPointerTarget {
   FrontendPointerAction action{};
@@ -463,6 +470,12 @@ public:
   void auxiliary();
   void players();
   bool activate_pointer(FrontendPointerTarget);
+  std::optional<FrontendInviteNotice> invite_notice() const;
+  void poll_party_notices() { update_online_account(); }
+  bool act_invite_notice(bool accept);
+  bool switch_invite_tab(int direction);
+  bool party_invite_picker() const;
+  unsigned party_invite_tab() const { return party_invite_tab_; }
   void text(const std::string &);
   void erase_text();
   void commit_text();
@@ -505,6 +518,7 @@ public:
   void set_online_voice(std::shared_ptr<OnlineVoice>);
   void voice_push_to_talk(bool);
   void update_online_account();
+  std::vector<FrontendUiSound> take_ui_sounds();
   bool online_clan_screen(const MenuFrame &) const;
   std::string online_clan_text(const MenuFrame &, unsigned) const;
   std::string online_clan_column(const MenuFrame &, unsigned, unsigned) const;
@@ -610,6 +624,7 @@ private:
   OnlineVoiceSnapshot voice_;
   bool voice_party_{}, party_voice_wanted_{};
   OnlineAccountSnapshot account_;
+  std::vector<FrontendUiSound> pending_ui_sounds_;
   std::string account_name_, clan_target_;
   unsigned clan_target_kind_{}, clan_message_page_{};
   std::optional<OnlineClanCommand> clan_confirmation_;
@@ -623,6 +638,8 @@ private:
   std::string party_target_;
   unsigned party_target_kind_{};
   std::uint64_t party_target_version_{};
+  std::vector<std::string> dismissed_party_invites_;
+  unsigned party_invite_tab_{};
 
   std::shared_ptr<OnlineDirectory> online_directory_;
   OnlineDirectorySnapshot online_servers_;
@@ -639,6 +656,8 @@ private:
   void populate_online_matchmaking(MenuFrame &) const;
   unsigned pending_online_screen_ = 186, pending_online_context_{};
   bool awaiting_discord_login_{};
+  bool saved_login_suppressed_{};
+  std::string login_profile_;
   std::filesystem::path preferences_;
   std::vector<MenuFrame> stack_;
   std::uint32_t ui_clock_{};
@@ -652,6 +671,9 @@ private:
   void finish_local_signin();
   std::map<std::string, std::map<unsigned, int>> profile_values_;
   std::map<std::string,std::string> profile_service_tags_;
+  std::map<std::string,std::string> profile_login_keys_;
+  std::string profile_login_key(const std::string &);
+  void bind_primary_login();
   GameVariantSettings variant_values_;
   std::vector<UiVariant> saved_variants_;
   int saved_variant_ = -1;
@@ -733,6 +755,7 @@ public:
   UiDraw draw(const MenuState &, float seconds, int pane_override = -1,
               std::uint32_t ui_clock_ms = 0,
               std::array<unsigned, 2> viewport = {640, 480});
+  UiDraw draw_invite_notice(const FrontendInviteNotice &,std::array<unsigned,2> viewport,bool append=false);
   std::optional<unsigned> hit(float x, float y) const;
   std::optional<FrontendPointerTarget> pointer_hit(float x, float y) const;
 

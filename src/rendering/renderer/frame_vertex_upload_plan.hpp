@@ -59,9 +59,20 @@ public:
         size_+=vertices.size();return first;
     }
     void copy_to(void *destination) const {
+        copy_to(destination,0,size_);
+    }
+    // The finalized prefix can be copied independently of the editable UI
+    // tail. Both source storage and destination must outlive the copy.
+    void copy_to(void *destination,std::size_t first,std::size_t count) const {
+        if(first>size_ || count>size_-first)throw FormatError("frame vertex copy range escapes its plan");
+        if(count && !destination)throw FormatError("frame vertex copy lacks its destination");
         auto *output=static_cast<std::byte *>(destination);
         for(const auto part:chunks_) {
-            std::memcpy(output,part.data(),part.size_bytes());output+=part.size_bytes();
+            if(first>=part.size()){first-=part.size();continue;}
+            const auto n=std::min(count,part.size()-first);
+            if(n)std::memcpy(output,part.data()+first,n*sizeof(Vertex));
+            output+=n*sizeof(Vertex);count-=n;first=0;
+            if(!count)break;
         }
     }
     void write_to(std::ostream &output) const {

@@ -12,6 +12,8 @@ crate-type = ["staticlib", "rlib"]
 [dependencies]
 halo2-online-protocol = { path = "../online_protocol" }
 cxx = "=1.0.205"
+keyring = "=4.2.0"
+sha2 = "=0.10.9"
 
 [build-dependencies]
 cxx-build = "=1.0.205"

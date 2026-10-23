@@ -5518,7 +5518,10 @@ struct Renderer::Impl {
                 // source layer admission remain in the command recorder.
                 collect(view_draws[i]);collect(view_foreground[i]);
                 collect(view_background[i]);collect(view_reflection_background[i]);
-                for(const auto &phase:transparent_views[i])for(const auto &step:phase)collect(step.geometry);
+                for(const auto &phase:transparent_views[i])for(const auto &step:phase) {
+                    collect(step.geometry);
+                    collect(step.lights);
+                }
                 auto &initialized=view_material_initialized[i];
                 initialized.resize(material_uniforms.size());
                 for(const auto m:materials) {

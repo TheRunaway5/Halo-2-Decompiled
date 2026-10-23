@@ -1,4 +1,5 @@
 #include "halo2/custom_slayer.hpp"
+#include "halo2-online-protocol-bridge/src/lib.rs.h"
 #include "halo2/audio.hpp"
 #include "halo2/multiplayer_audio.hpp"
 #include "halo2/source_script_sound_admission_tu15.hpp"
@@ -197,6 +198,10 @@ int validate_maps(const std::filesystem::path &directory) {
 } // namespace
 
 int main(int argc, char **argv) {
+  struct EosShutdown {
+    ~EosShutdown(){if(!halo2::online_protocol_bridge::eos_process_shutdown())
+      std::cerr<<"EOS shutdown retained an active platform.\n";}
+  } eos_shutdown;
   try {
     // Feature discovery must not initialize settings, assets or a desktop.
     if(argc==2 && std::string_view(argv[1])=="--mcc-preview-capabilities") {
@@ -665,6 +670,14 @@ int main(int argc, char **argv) {
           runtime.variant=launch->variant;runtime.selected_profiles=launch->selected_profiles;
           runtime.selected_teams=launch->selected_teams;runtime.input_instances=launch->input_instances;runtime.online_match=launch->online_match;
           runtime.match_voice=launch->match_voice;
+          runtime.party_notice=[session=frontend.session] {
+            auto &menu=session->state();menu.poll_party_notices();
+            auto notice=menu.invite_notice();if(notice)notice->can_accept=false;
+            return notice;
+          };
+          runtime.party_notice_action=[session=frontend.session](bool accept) {
+            return !accept && session->state().act_invite_notice(false);
+          };
           halo2::MultiplayerRuntimeOutcome outcome;
           const auto result=halo2::run_multiplayer(runtime,outcome,online_recovery);
           if(result || outcome.reason==halo2::MultiplayerExitReason::window_quit || frame_limit || simulate)return result;

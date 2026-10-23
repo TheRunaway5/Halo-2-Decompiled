@@ -525,7 +525,9 @@ FrontendContent Cache::load_frontend() const {
   for (const auto &t : select_tags())
     if (t.group == "bitm" &&
         (t.name.starts_with("ui\\code_global_bitmaps\\") ||
-         t.name.starts_with("ui\\global_bitmaps\\emblems\\")))
+         t.name.starts_with("ui\\global_bitmaps\\emblems\\") ||
+         t.name == "ui\\list_skins\\matchmaking\\player_in" ||
+         t.name == "ui\\list_skins\\matchmaking\\item_background"))
       image_ref(t.datum);
   for (auto datum : requested_images) {
     const auto p = offset(datum, "bitm", 76);

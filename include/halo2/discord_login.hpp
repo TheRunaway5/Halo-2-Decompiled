@@ -50,7 +50,10 @@ public:
   DiscordLogin(const DiscordLogin &) = delete;
   DiscordLogin &operator=(const DiscordLogin &) = delete;
   void start();
-  void cancel(); // Also signs out; credentials are never persisted.
+  void cancel(); // Cancel an operation and clear the in-memory session.
+  void bind_profile(std::string preferences_namespace, std::string profile);
+  void restore();
+  void sign_out();
   DiscordLoginSnapshot snapshot() const;
   // Private service handoff only. Never put this credential in UI snapshots,
   // preferences or logs. It expires with the existing Discord sign-in.

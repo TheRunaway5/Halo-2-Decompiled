@@ -136,6 +136,7 @@ struct FrontendPainter::Impl {
   const FrontendContent &content;
   std::vector<RetailFont> fonts;
   std::vector<unsigned> font_materials;
+  std::map<unsigned,unsigned> notice_materials;
   std::shared_ptr<ControllerPromptArtwork> prompt_artwork;
   PromptDevice prompt_device=PromptDevice::Xbox;
   std::map<std::uint32_t, std::vector<unsigned>> images;
@@ -158,6 +159,7 @@ struct FrontendPainter::Impl {
   std::map<const UiEmblem *, unsigned> emblem_materials;
   std::map<const UiGrid *, std::vector<std::vector<unsigned>>> grid_emblem_materials;
   std::map<const UiList *, std::vector<std::vector<unsigned>>> profile_emblem_materials;
+  std::vector<UiBitmap> empty_party_bitmaps;
   UiDraw output;
   FrontendCanvas canvas = frontend_canvas(640, 480);
   bool imported_mcc_canvas{};
@@ -225,6 +227,19 @@ struct FrontendPainter::Impl {
     background_dim = unsigned(mesh.materials.size());
     mesh.materials.push_back({"ui/background-dim"});
     mesh.materials.back().ui_widescreen_background = true;
+    if(original_layout || !detail::mcc_frontend_content(c)) {
+      // Literal retail mainmenu skin E5200300 children1/3, retained by
+      // TU1.5 257A86. MCC retains both bitmaps but removes this skin group.
+      // Bind the actual bitmap datums to those two source widget definitions.
+      for(const auto name:{"ui\\list_skins\\matchmaking\\player_in",
+                           "ui\\list_skins\\matchmaking\\item_background"})
+        for(const auto &[id,image]:c.images)if(image.name==name) {
+          UiBitmap b;b.flags=1;b.animation=11;b.delay=250;b.layer=10;
+          b.position={image.name.ends_with("\\player_in")?-20.f:0.f,5};b.datum=id;
+          b.placeholder=detail::frontend_compiled_string_id(c,0x0e00069b).value_or(0);
+          empty_party_bitmaps.push_back(b);
+        }
+    }
     pcr_black = unsigned(mesh.materials.size());
     mesh.materials.push_back({"ui/vista-pcr-intro-black"});
     mesh.materials.back().ui_widescreen_background = true;
@@ -480,6 +495,25 @@ struct FrontendPainter::Impl {
         logical->full_surface_friends = logical_view->full_surface_friends;
         vista->mcc_browser = logical_view->browser;
         vista->browser_frame_height_delta = logical_view->browser_frame_height_delta;
+      }
+    }
+    // Reserve notice materials before the renderer freezes its resident table.
+    // TexturePixels copies share immutable residency with the source atlas.
+    std::vector<unsigned> notice_sources{white};
+    if(!font_materials.empty())notice_sources.push_back(font_materials.front());
+    const auto count=mesh.materials.size();
+    for(unsigned i=0;i<count;++i) {
+      const auto &name=mesh.materials[i].name;
+      if(name.starts_with("controller-prompts/") && name.find("/atlases/0.dds/")!=std::string::npos && name.find("/party-notice/")==std::string::npos)
+        notice_sources.push_back(i);
+    }
+    for(const auto id:notice_sources) {
+      const auto name=mesh.materials.at(id).name+"/party-notice/"+std::to_string(id);
+      const auto found=std::find_if(mesh.materials.begin(),mesh.materials.end(),[&](const auto &m){return m.name==name;});
+      if(found!=mesh.materials.end())notice_materials[id]=unsigned(found-mesh.materials.begin());
+      else {
+        auto material=mesh.materials.at(id);material.name=name;material.ui_full_surface=true;
+        notice_materials[id]=unsigned(mesh.materials.size());mesh.materials.push_back(std::move(material));
       }
     }
   }
@@ -1240,15 +1274,24 @@ struct FrontendPainter::Impl {
     if (lobby) {
       lobby_policy = frontend_lobby_presentation(lobby->input);
       if(lobby->party_names) {
-        // Accepted native membership owns names and the opted-in voice
-        // channel owns speaker state. Unavailable profile/rank art stays hidden.
-        roster=FrontendLobbyRoster{};
-        for(unsigned i=0;i<roster->size();++i) {
-          auto &row=(*roster)[i];row.text_a=27+i;row.text_b=11+i;
-          if(i<lobby->party_names->size()) {
-            row.visible=true;row.name=lobby->party_names->at(i);row.name_color={1,1,1};
-            row.speaker_visible=lobby->party_speakers.at(i)<=2;row.speaker_frame=lobby->party_speakers.at(i);
-          }
+        FrontendLobbyRosterInput input;
+        input.pane=lobby_policy->pane;input.valid_session=1;
+        input.session_present=true;input.matchmaking=input.session_enum_is_six=true;
+        input.tu15=true;
+        input.players=lobby->party_players;input.appearance_palette=content.appearance_palette;
+        roster=frontend_lobby_roster(input);
+        for(unsigned i=0;i<lobby->party_speakers.size();++i) {
+          auto &row=roster->at(i);
+          row.speaker_visible=lobby->party_speakers[i]<=2;
+          row.speaker_frame=lobby->party_speakers[i];
+        }
+        // Original251778 -> 22F042(flags20,value5e=true) uses the
+        // secondary skin background for an empty matchmaking slot and
+        // Original251963 hides its speaker. Keep those source leaves when
+        // presenting the native accepted party in the sixteen-slot lobby.
+        for(unsigned i=unsigned(lobby->party_players.size());i<roster->size();++i) {
+          auto &row=roster->at(i);row.visible=true;row.item_flags=0x20;
+          row.secondary_background_visible=true;
         }
       } else {
       std::vector<FrontendLobbyRosterPlayer> players;
@@ -1648,6 +1691,16 @@ struct FrontendPainter::Impl {
             const auto index = row_index++;
             if (index >= roster->size() || !(*roster)[index].visible) return;
             const auto &row = (*roster)[index];
+            const bool empty_party_slot=lobby->party_names && index>=lobby->party_players.size();
+            if(empty_party_slot) {
+              if(empty_party_bitmaps.size()!=2)
+                throw FormatError("Source empty-party square/bar bitmaps are unavailable");
+              for(auto b:empty_party_bitmaps) {
+                b.position.y+=content.images.at(b.datum).images.at(0).height;
+                bitmap(b,origin,1,0);
+              }
+              return;
+            }
             const auto &group = content.skin_groups.at(grid.skin);
             // Live original group0 layers: emblem0, primary bar10, rank11,
             // name15. The left edge of the bar overlaps the emblem quad.
@@ -2251,6 +2304,78 @@ struct FrontendPainter::Impl {
     return std::any_of(model_viewports.begin(), model_viewports.end(),
         [&](const auto &entry) { return &entry.second == scene; });
   }
+  void invite_overlays(const MenuState &state) {
+    // These are native service controls. Use the same authenticated project
+    // prompt banks as the rest of the frontend, including PS artwork.
+    const auto label=[&](const std::string &value,float x,float y,float width,float height,UiColor color=UiColor{}) {
+      UiText t;t.font=0;t.color=color;t.bounds={240-y,x-320,240-y-height,x+width-320};
+      text(t,value);
+    };
+    if(state.party_invite_picker()) {
+      constexpr float left=50,top=62,width=270,height=30;
+      for(unsigned tab=0;tab<2;++tab) {
+        const float x=left+float(tab)*width;
+        const bool selected=tab==state.party_invite_tab();
+        quad(x,top,width-2,height,white,selected?UiColor{1,.12f,.32f,.48f}:UiColor{1,.025f,.09f,.15f});
+        const auto icon=prompt_device==PromptDevice::KeyboardMouse?std::string(tab?"[PgDn] ":"[PgUp] "):
+          std::string(tab?"\xee\x84\x85 ":"\xee\x84\x84 ");
+        label(icon+(tab?"CLAN MEMBERS":"STEAM FRIENDS"),x+7,top+5,width-14,24);
+        hits.push_back({x,top,x+width-2,top+height,tab,FrontendPointerAction::InviteTab});
+      }
+    }
+    if(const auto notice=state.invite_notice())paint_invite_notice(*notice);
+  }
+  void paint_invite_notice(const FrontendInviteNotice &value) {
+    const auto first=output.vertices.size();
+    const auto *notice=&value;
+    const auto label=[&](const std::string &value,float x,float y,float width,float height,UiColor color=UiColor{}) {
+      UiText t;t.font=0;t.color=color;t.bounds={240-y,x-320,240-y-height,x+width-320};text(t,value);
+    };
+    const float right=(canvas.surface_width-canvas.left)/canvas.scale-12;
+    const float x=right-300,y=-canvas.top/canvas.scale+12;
+    quad(x,y,300,104,white,{.97f,.02f,.07f,.13f});
+    quad(x,y,3,104,white,{1,.25f,.65f,.9f});
+    label("PARTY INVITATION",x+12,y+7,276,22,{1,.6f,.85f,1});
+    label(notice->name,x+12,y+30,276,24);
+    const auto accept=prompt_device==PromptDevice::KeyboardMouse?std::string("[F9] "):std::string("\xee\x84\x91 ");
+    const auto dismiss=prompt_device==PromptDevice::KeyboardMouse?std::string("[F10] "):std::string("\xee\x84\x90 ");
+    label(notice->accepting?"Updating party...":notice->can_accept?accept+"Accept":"Leave party or match to accept",x+12,y+64,170,32,
+          notice->can_accept?UiColor{}:UiColor{1,.5f,.6f,.7f});
+    label(dismiss+"Dismiss",x+188,y+64,108,32);
+    if(notice->can_accept)hits.push_back({x+8,y+58,x+183,y+102,0,FrontendPointerAction::InviteAccept});
+    hits.push_back({x+184,y+58,right-4,y+102,0,FrontendPointerAction::InviteDismiss});
+    // Only the notice uses a full-screen pass. Preserve the underlying menu's
+    // canvas/scissor and its original frame-extension arithmetic.
+    for(auto i=first;i<output.vertices.size();++i) {
+      auto &v=output.vertices[i];
+      auto found=notice_materials.find(v.material);
+      if(found==notice_materials.end())throw FormatError("Party notice material was not reserved before renderer creation");
+      v.material=found->second;
+      if(!output.full_surface_bounds) {
+        v.position.x=(canvas.left+v.position.x*canvas.scale)*640/canvas.surface_width;
+        v.position.y=(canvas.top+v.position.y*canvas.scale)*480/canvas.surface_height;
+      }
+    }
+  }
+  void invite_picker(const MenuState &state) {
+    output.full_surface_bounds=true;
+    quad(-canvas.left/canvas.scale,-canvas.top/canvas.scale,canvas.surface_width/canvas.scale,canvas.surface_height/canvas.scale,white,{1,.02f,.055f,.1f});
+    const auto label=[&](const std::string &value,float x,float y,float width,float height,UiColor color=UiColor{}) {
+      UiText t;t.font=0;t.color=color;t.bounds={240-y,x-320,240-y-height,x+width-320};text(t,value);
+    };
+    label("INVITE TO PARTY",50,25,540,30);
+    const auto &f=state.frame();
+    constexpr unsigned visible=12;
+    const auto first=f.selected>=visible?f.selected-visible+1:0;
+    for(unsigned row=first;row<f.entries.size() && row<first+visible;++row) {
+      const float y=104+float(row-first)*23;
+      if(row==f.selected)quad(50,y,540,23,white,{1,.1f,.3f,.46f});
+      label(f.entries[row].label,58,y+2,524,22,f.entries[row].destination==-82?UiColor{1,.45f,.55f,.65f}:UiColor{});
+      hits.push_back({50,y,590,y+23,row,FrontendPointerAction::Entry});
+    }
+    label(f.description,50,389,540,52,{1,.6f,.75f,.85f});
+    label(prompt_device==PromptDevice::KeyboardMouse?"[Enter] Invite    [Esc] Back":"\xee\x84\x80 Invite    \xee\x84\x81 Back",50,449,540,25);
+  }
   UiDraw draw(const MenuState &state, float elapsed, int pane_override,
               std::uint32_t clock_ms) {
     const bool online_active=online_panel(state);
@@ -2316,6 +2441,7 @@ struct FrontendPainter::Impl {
            canvas.surface_width / canvas.scale, canvas.surface_height / canvas.scale,
            white, clan_background_color);
     }
+    if(state.party_invite_picker()) {invite_picker(state);invite_overlays(state);return output;}
     // 2234E0 ->13870 owns this normal mainmenu world view: mode3, one
     // canonical640x480 view, neither offscreen guard. The scenario's constant
     // interpolator selects E4380218 before UI, independently of screen ID.
@@ -2396,6 +2522,7 @@ struct FrontendPainter::Impl {
       }
     }
     screen(frame, state, true, pane_override);
+    invite_overlays(state);
     return output;
   }
 };
@@ -2419,6 +2546,11 @@ UiDraw FrontendPainter::draw(const MenuState &state, float seconds, int pane,
                              std::uint32_t ui_clock_ms, std::array<unsigned, 2> viewport) {
   impl_->canvas = frontend_canvas(viewport[0], viewport[1]);
   return impl_->draw(state, seconds, pane, ui_clock_ms);
+}
+UiDraw FrontendPainter::draw_invite_notice(const FrontendInviteNotice &notice,std::array<unsigned,2> viewport,bool append) {
+  impl_->canvas=frontend_canvas(viewport[0],viewport[1]);
+  if(!append){impl_->output={};impl_->hits.clear();}
+  impl_->paint_invite_notice(notice);return impl_->output;
 }
 std::optional<unsigned> FrontendPainter::hit(float x, float y) const {
   for (const auto &h : impl_->hits)

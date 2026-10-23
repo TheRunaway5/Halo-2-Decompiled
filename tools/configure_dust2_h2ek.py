@@ -41,6 +41,16 @@ def configure(kit,package,interface,report,unlimited,materials_only,style='new-m
                 stage.replace(path)
             return dict(path=relative,sha256=sha(path),bytes=path.stat().st_size)
         result={}
+        variants=package/'native-material-variants.json'
+        if variants.exists():
+            result['candidate_material_variants']=[]
+            for row in json.loads(variants.read_text())['variants']:
+                relative=row['shader'].replace('\\','/')+'.shader'
+                assert relative.startswith('scenarios/multi/dust2_mombasa/shaders/')
+                shader=read(row['source_shader'].replace('\\','/')+'.shader')
+                bitmap=next(p for p in shader['Data']['parameters'] if p['name']=='base_map')['bitmap']
+                bitmap['path']=row['bitmap'].replace('\\','/');bitmap['length']=len(bitmap['path'])
+                result['candidate_material_variants'].append(write(relative,shader))
         material=read('scenarios/shaders/solo/earthcity/ec_ocean_floor.shader')
         base=next(p for p in material['Data']['parameters'] if p['name']=='base_map')['bitmap']
         base['path']='scenarios/bitmaps/detail_maps/nature/rock/sedimentary_rock_a'

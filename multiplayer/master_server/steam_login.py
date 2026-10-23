@@ -21,6 +21,7 @@ OP = "https://steamcommunity.com/openid/login"
 NS = "http://specs.openid.net/auth/2.0"
 SELECT = NS + "/identifier_select"
 MAX_SUBJECT_SESSIONS = 4
+REFRESH_LIFETIME = 30 * 86400
 
 
 @dataclass
@@ -42,6 +43,11 @@ class SteamLogin:
           expires INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS steam_login_nonces(
           nonce TEXT PRIMARY KEY, expires INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS steam_login_refresh(
+          token_hash TEXT PRIMARY KEY, subject TEXT NOT NULL, name TEXT NOT NULL,
+          expires INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS steam_login_refresh_sessions(
+          session_hash TEXT PRIMARY KEY, refresh_hash TEXT NOT NULL);
         """)
 
     def cleanup(self):
@@ -50,6 +56,8 @@ class SteamLogin:
         with self.db:
             self.db.execute("DELETE FROM steam_login_sessions WHERE expires<=?", (now,))
             self.db.execute("DELETE FROM steam_login_nonces WHERE expires<=?", (now,))
+            self.db.execute("DELETE FROM steam_login_refresh WHERE expires<=?", (now,))
+            self.db.execute("DELETE FROM steam_login_refresh_sessions WHERE session_hash NOT IN (SELECT token_hash FROM steam_login_sessions)")
 
     def enabled(self):
         require(self.directory.settings.steam_enabled, "Steam sign-in is not configured", 503)
@@ -191,6 +199,7 @@ class SteamLogin:
         owner = pending.identity
         self.cleanup()
         token = "h2s_" + secrets.token_urlsafe(32)
+        refresh = "h2r_" + secrets.token_urlsafe(32)
         with self.db:
             # The first DELETE acquires the write transaction before counting
             # capacity. Retain the newest sessions and rotate this subject's
@@ -202,9 +211,54 @@ class SteamLogin:
                     "Steam identity capacity reached", 503)
             self.db.execute("INSERT INTO steam_login_sessions VALUES(?,?,?,?)",
                             (hashlib.sha256(token.encode()).hexdigest(), owner.subject, owner.username, int(self.clock()) + 28800))
+            self.db.execute("DELETE FROM steam_login_refresh WHERE subject=? AND token_hash NOT IN "
+                            "(SELECT token_hash FROM steam_login_refresh WHERE subject=? ORDER BY expires DESC,rowid DESC LIMIT ?)",
+                            (owner.subject,owner.subject,MAX_SUBJECT_SESSIONS-1))
+            require(self.db.execute("SELECT count(*) FROM steam_login_refresh").fetchone()[0] < 1000,
+                    "Remembered sign-in capacity reached", 503)
+            self.db.execute("INSERT INTO steam_login_refresh VALUES(?,?,?,?)",
+                            (hashlib.sha256(refresh.encode()).hexdigest(),owner.subject,owner.username,int(self.clock())+REFRESH_LIFETIME))
+            self.db.execute("INSERT INTO steam_login_refresh_sessions VALUES(?,?)",
+                            (hashlib.sha256(token.encode()).hexdigest(),hashlib.sha256(refresh.encode()).hexdigest()))
         del self.pending[state]
-        return web.json_response({"state": "signed_in", "token": token, "expires_in": 28800,
+        return web.json_response({"state": "signed_in", "token": token, "refresh_token": refresh, "expires_in": 28800,
                                   "identity": {"id": owner.subject, "username": owner.username, "display_name": owner.username}}, headers=headers)
+
+    def refresh_credential(self, request):
+        token = request.headers.get("Authorization", "")
+        require(re.fullmatch(r"Bearer h2r_[A-Za-z0-9_-]{43}", token), "Saved Steam sign-in rejected", 401)
+        return hashlib.sha256(token[7:].encode()).hexdigest()
+
+    async def resume(self, request):
+        self.enabled()
+        self.directory.rate("steam-resume:"+self.directory.source(request), 30)
+        fields(await self.directory.body(request), ())
+        digest = self.refresh_credential(request)
+        self.cleanup()
+        row = self.db.execute("SELECT subject,name,expires FROM steam_login_refresh WHERE token_hash=?", (digest,)).fetchone()
+        require(row and row[2]>self.clock(), "Saved Steam sign-in expired", 401)
+        token = "h2s_"+secrets.token_urlsafe(32)
+        with self.db:
+            self.db.execute("DELETE FROM steam_login_sessions WHERE subject=? AND token_hash NOT IN "
+                            "(SELECT token_hash FROM steam_login_sessions WHERE subject=? ORDER BY expires DESC,rowid DESC LIMIT ?)",
+                            (row[0],row[0],MAX_SUBJECT_SESSIONS-1))
+            require(self.db.execute("SELECT count(*) FROM steam_login_sessions").fetchone()[0]<1000,
+                    "Steam identity capacity reached",503)
+            self.db.execute("INSERT INTO steam_login_sessions VALUES(?,?,?,?)",
+                            (hashlib.sha256(token.encode()).hexdigest(),row[0],row[1],int(self.clock())+28800))
+            self.db.execute("INSERT INTO steam_login_refresh_sessions VALUES(?,?)",(hashlib.sha256(token.encode()).hexdigest(),digest))
+        return web.json_response({"state":"signed_in","token":token,"expires_in":28800,
+            "identity":{"id":row[0],"username":row[1],"display_name":row[1]}},headers={"Cache-Control":"no-store"})
+
+    async def forget(self, request):
+        self.directory.rate("steam-forget:"+self.directory.source(request),30)
+        fields(await self.directory.body(request), ())
+        digest = self.refresh_credential(request)
+        with self.db:
+            self.db.execute("DELETE FROM steam_login_refresh WHERE token_hash=?",(digest,))
+            self.db.execute("DELETE FROM steam_login_sessions WHERE token_hash IN (SELECT session_hash FROM steam_login_refresh_sessions WHERE refresh_hash=?)",(digest,))
+            self.db.execute("DELETE FROM steam_login_refresh_sessions WHERE refresh_hash=?",(digest,))
+        return web.json_response({"state":"signed_out"},headers={"Cache-Control":"no-store"})
 
     async def owner(self, token):
         require(bool(re.fullmatch(r"h2s_[A-Za-z0-9_-]{43}", token)), "Steam identity rejected", 401)
@@ -290,4 +344,6 @@ class SteamLogin:
                 web.get("/v1/auth/steam/complete", self.complete_page),
                 web.get("/v1/auth/steam/callback/{state}", self.callback),
                 web.post("/v1/auth/steam/poll", self.poll),
+                web.post("/v1/auth/steam/resume", self.resume),
+                web.post("/v1/auth/steam/forget", self.forget),
                 web.post("/v1/account/link-discord", self.link_discord)]

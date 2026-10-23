@@ -17,6 +17,7 @@
 #include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <openssl/rand.h>
 namespace halo2 {
 namespace {
 // A painter may render several disposable MenuState objects. Its screen
@@ -123,6 +124,10 @@ MenuState::MenuState(const FrontendContent &content,
           if(file>>std::quoted(tag) && tag.size()<=4 &&
              tag.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")==std::string::npos)
             profile_service_tags_[name]=tag;
+        } else if(kind=="login_key" && file>>std::quoted(name)) {
+          std::string id;
+          if(file>>std::quoted(id) && id.size()==32 && id.find_first_not_of("0123456789abcdef")==std::string::npos)
+            profile_login_keys_[name]=id;
         } else if (kind == "option" &&
                    file >> std::quoted(name) >> key >> value) {
           if (key < 65536 && value >= 0 && value <= 1000)
@@ -191,10 +196,34 @@ void MenuState::set_multiplayer_map_validator(std::function<void(const FrontendL
 void MenuState::set_discord_login(std::shared_ptr<DiscordLogin> login) {
   discord_login_ = std::move(login);
 }
+std::string MenuState::profile_login_key(const std::string &name) {
+  if(name.empty())return {};
+  if(const auto it=profile_login_keys_.find(name);it!=profile_login_keys_.end())return it->second;
+  std::array<unsigned char,16> bytes{};
+  if(RAND_bytes(bytes.data(),int(bytes.size()))!=1)throw FormatError("Could not prepare the profile's saved sign-in slot");
+  constexpr char hex[]="0123456789abcdef";std::string id;
+  for(const auto value:bytes){id+=hex[value>>4];id+=hex[value&15];}
+  profile_login_keys_[name]=id;save();return id;
+}
+void MenuState::bind_primary_login() {
+  if(!discord_login_ || !discord_login_->uses_steam())return;
+  const auto key=profile_login_key(signed_in_);
+  if(login_profile_==key)return;
+  discord_login_->bind_profile(preferences_.empty()?std::string{}:std::filesystem::absolute(preferences_).lexically_normal().string(),key);
+  login_profile_=key;saved_login_suppressed_=false;
+  if(online_account_)online_account_->sign_out();account_={};
+  if(online_matchmaking_)online_matchmaking_->sign_out();
+  matchmaking_active_=quickmatch_pending_=false;
+  if(online_voice_)online_voice_->leave();
+  if(discord_social_)discord_social_->disconnect();
+  dismissed_party_invites_.clear();
+}
 void MenuState::return_online(std::string message) {
   // Allocate fresh ONLINE navigation after world teardown or local PCR Done.
   stack_.clear();launch.reset();quit=false;mode_=3;
-  open(6);awaiting_discord_login_=true;open(186);
+  // An authenticated party/postgame return has already completed sign-in.
+  // A stale pending flag would redirect the next Account action into Quickmatch.
+  open(6);awaiting_discord_login_=!online_identity();open(186);
   if(!message.empty())unavailable(std::move(message));
 }
 std::optional<DiscordIdentity> MenuState::online_identity() const {
@@ -202,6 +231,7 @@ std::optional<DiscordIdentity> MenuState::online_identity() const {
   return discord_login_ ? discord_login_->snapshot().identity : std::nullopt;
 }
 void MenuState::update_online_login() {
+  bind_primary_login();
   update_online_couch();
   update_online_friends();
   update_online_account();
@@ -662,7 +692,7 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
     if(online_couch_screen(f)){populate_online_couch(f);break;}
     if(context==43 || context==44){populate_online_friends(f);break;}
     if (context == 41) { populate_online_clans(f); break; }
-    if(context==42){populate_online_party(f);break;}
+    if(context==42 || context==45){populate_online_party(f);break;}
     add(0x2a6, 215);
     add(0x2a7, 211);
     add(0x2ac, 34);
@@ -798,6 +828,13 @@ void MenuState::open(unsigned screen, unsigned context) {
   if(screen==vista_menu(16) || screen==vista_menu(185))
     throw FormatError("Vista PCR requires its retained source owner factory");
   if (screen == 21) screen = 20; // Legacy Xbox password entry is replaced by browser OAuth.
+  if(discord_login_ && discord_login_->uses_steam() &&
+     (screen==20 || online_screen(screen) || (mode_==3 && screen==14))) {
+    bind_primary_login();
+    if(!saved_login_suppressed_ && !discord_login_->authorization()) {
+      discord_login_->restore();awaiting_discord_login_=true;
+    }
+  }
   if ((online_screen(screen) || (mode_ == 3 && (screen == 14 || screen == 204 || screen == 231))) && !online_identity()) {
     pending_online_screen_ = screen;
     pending_online_context_ = context;
@@ -1198,6 +1235,9 @@ void MenuState::accept() {
         keyboard_text = profile_name();
         open(167, keyboard_text.empty() ? 0 : 1);
       }
+      else if(f.entries[f.selected].destination==167 && f.entries[f.selected].value==10) {
+        keyboard_text=profile_service_tag();open(167,10);
+      }
       else {
         if (online_matchmaking_) online_matchmaking_->sign_out();
         matchmaking_active_ = quickmatch_pending_ = false;
@@ -1205,7 +1245,7 @@ void MenuState::accept() {
         if (online_voice_) online_voice_->leave();
         party_voice_wanted_=false;
         if(discord_social_)discord_social_->disconnect();
-        discord_login_->cancel();
+        saved_login_suppressed_=true;discord_login_->sign_out();
         clear_online_couch();
         if (online_directory_) online_directory_->cancel();
         online_directory_active_ = false;
@@ -1473,6 +1513,7 @@ void MenuState::accept() {
     }
     profile_values_.erase(profile_name());
     profile_service_tags_.erase(profile_name());
+    profile_login_keys_.erase(profile_name());
     profiles_.erase(profiles_.begin() + profile_);
     profile_ = 0;
     save();
@@ -1655,6 +1696,11 @@ bool MenuState::activate_pointer(FrontendPointerTarget target) {
   using Action = FrontendPointerAction;
   if (binding_action_ && target.action != Action::Back && target.action != Action::ClearBinding) return false;
   switch (target.action) {
+  case Action::InviteAccept: return act_invite_notice(true);
+  case Action::InviteDismiss: return act_invite_notice(false);
+  case Action::InviteTab:
+    if(!party_invite_picker() || target.index>1)return false;
+    return switch_invite_tab(target.index==party_invite_tab_?0:1);
   case Action::Entry:
     if (target.index >= frame().entries.size() ||
         (frame().screen == 167 && !keyboard_key_enabled(target.index)) ||
@@ -1728,11 +1774,13 @@ void MenuState::commit_text() {
       // host preference map to that new name.
       commit_appearance_edit();
       const auto previous_name = profile_name();
+      const auto saved_login_key=profile_login_keys_.extract(previous_name);
       const auto tag=profile_service_tag();
       profile_service_tags_.erase(previous_name);
       auto values = profile_values_[profile_name()];
       profile_values_.erase(profile_name());
       profiles_[profile_] = keyboard_text;
+      if(!saved_login_key.empty())profile_login_keys_[profile_name()]=saved_login_key.mapped();
       profile_values_[profile_name()] = std::move(values);
       profile_service_tags_[profile_name()]=tag;
       if (signed_in_ == previous_name) signed_in_ = profile_name();
@@ -1959,6 +2007,8 @@ void MenuState::save() const {
     file << "profile " << std::quoted(name) << '\n';
   for(const auto &[name,tag]:profile_service_tags_)
     file<<"service_tag "<<std::quoted(name)<<' '<<std::quoted(tag)<<'\n';
+  for(const auto &[name,key]:profile_login_keys_)
+    file<<"login_key "<<std::quoted(name)<<' '<<std::quoted(key)<<'\n';
   for (const auto &[name, values] : profile_values_)
     for (const auto &[key, value] : values)
       file << "option " << std::quoted(name) << ' ' << key << ' ' << value
@@ -1990,7 +2040,15 @@ std::optional<FrontendLobbyView> MenuState::lobby_view() const {
     view.input.max_players=16;view.input.player_count=int(online_party_members().size());
     view.party_names=std::vector<std::string>{};
     for(const auto &m:online_party_members()) {
+      if(view.party_players.size()==16)break; // Authored lobby capacity; social list retains every member.
       view.party_names->push_back(m.name);
+      FrontendLobbyRosterPlayer player;
+      player.session_index=int(view.party_players.size());player.name=m.name;
+      player.appearance_available=m.appearance.has_value();
+      if(m.appearance)player.appearance=*m.appearance;
+      // A service party has no recovered Xbox subparty quantity/rank owner.
+      // Keep the authored single-player stripe page and hide rank artwork.
+      view.party_players.push_back(std::move(player));
       const bool talking=voice_party_ && voice_.joined && ((m.self && voice_.transmitting) ||
           std::find(voice_.talking.begin(),voice_.talking.end(),m.handle)!=voice_.talking.end());
       const bool muted=std::find(voice_.muted.begin(),voice_.muted.end(),m.handle)!=voice_.muted.end();

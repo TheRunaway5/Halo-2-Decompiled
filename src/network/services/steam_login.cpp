@@ -1,4 +1,5 @@
 #include "halo2/steam_login.hpp"
+#include "halo2-online-protocol-bridge/src/lib.rs.h"
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 #include <openssl/evp.h>
@@ -104,14 +105,40 @@ struct SteamLogin::Impl {
   DiscordLogin::OpenBrowser browser;SteamLoginOptions options;DiscordLogin::Http http;
   mutable std::mutex mutex;DiscordLoginSnapshot state;std::string token;Clock::time_point expires{};
   DiscordLinkSnapshot link;
+  std::string profile_namespace,profile_name;
   std::jthread worker;
   void publish(DiscordLoginSnapshot s,std::string t={},Clock::time_point e={}) {
     std::lock_guard lock(mutex);state=std::move(s);token=std::move(t);expires=e;
   }
-  void run(std::stop_token stop) {
+  bool cached() const { return !profile_namespace.empty() && !profile_name.empty(); }
+  void admit(const Json &result,std::string bearer) {
+    const auto seconds=result.at("expires_in").get<int>();const auto &user=result.at("identity");
+    DiscordIdentity identity{user.at("id").get<std::string>(),user.at("username").get<std::string>(),user.at("display_name").get<std::string>()};
+    require(bearer.starts_with("h2s_")&&proof(bearer.substr(4))&&seconds>0&&seconds<=28800&&
+      identity.id.size()==17&&identity.id.front()!='0'&&std::all_of(identity.id.begin(),identity.id.end(),[](char c){return c>='0'&&c<='9';})&&
+      name(identity.username)&&name(identity.display_name));
+    publish({DiscordLoginStatus::SignedIn,identity,"Signed in as "+identity.display_name},std::move(bearer),Clock::now()+std::chrono::seconds(seconds));
+  }
+  void run(std::stop_token stop,bool browser_allowed) {
     try {
       const auto base=origin(options.origin,options.allow_loopback_http);
       require(options.timeout.count()>0);
+      if(cached()) {
+        std::string saved;
+        try {saved=options.load(base,profile_namespace,profile_name);}catch(...){}
+        if(!saved.empty()) {
+          require(saved.starts_with("h2r_")&&proof(saved.substr(4)));
+          const auto resumed=http({base+"/v1/auth/steam/resume","{}",saved},stop);
+          if(stop.stop_requested())return;
+          if(resumed.status==200) {
+            const auto result=Json::parse(resumed.body);
+            admit(result,result.at("token").get<std::string>());return;
+          }
+          if(resumed.status!=401)throw std::runtime_error("Could not restore your saved Steam sign-in. Please try again.");
+          try {options.erase(base,profile_namespace,profile_name);}catch(...){}
+        }
+      }
+      if(!browser_allowed){publish({});return;}
       const auto verifier=random_proof();
       const auto started=http({base+"/v1/auth/steam/start",Json{{"challenge",digest(verifier)}}.dump(),{}},stop);
       if(stop.stop_requested())return;
@@ -138,13 +165,15 @@ struct SteamLogin::Impl {
         if(status=="declined")throw std::runtime_error("Steam sign-in was declined. Try again when ready.");
         if(status=="failed")throw std::runtime_error("Steam could not complete sign-in. Please try again.");
         require(status=="signed_in");
-        auto bearer=result.at("token").get<std::string>();const auto seconds=result.at("expires_in").get<int>();
-        const auto &user=result.at("identity");
-        DiscordIdentity identity{user.at("id").get<std::string>(),user.at("username").get<std::string>(),user.at("display_name").get<std::string>()};
-        require(bearer.starts_with("h2s_")&&proof(bearer.substr(4))&&seconds>0&&seconds<=28800&&
-          identity.id.size()==17&&identity.id.front()!='0'&&std::all_of(identity.id.begin(),identity.id.end(),[](char c){return c>='0'&&c<='9';})&&
-          name(identity.username)&&name(identity.display_name));
-        publish({DiscordLoginStatus::SignedIn,identity,"Signed in as "+identity.display_name},std::move(bearer),Clock::now()+std::chrono::seconds(seconds));return;
+        // Validate before persisting anything. Older services may omit refresh.
+        admit(result,result.at("token").get<std::string>());
+        if(cached() && result.contains("refresh_token")) {
+          const auto refresh=result.at("refresh_token").get<std::string>();
+          require(refresh.starts_with("h2r_")&&proof(refresh.substr(4)));
+          try {options.save(base,profile_namespace,profile_name,refresh);}
+          catch(...) {std::lock_guard lock(mutex);state.message+=". Secure storage is unavailable; sign-in was not remembered.";}
+        }
+        return;
       }
       if(!stop.stop_requested())throw std::runtime_error("Steam sign-in timed out. Please try again.");
     }catch(const Json::exception &) {
@@ -154,10 +183,36 @@ struct SteamLogin::Impl {
 };
 SteamLogin::SteamLogin(DiscordLogin::OpenBrowser browser,SteamLoginOptions options,DiscordLogin::Http http):impl_(std::make_unique<Impl>()) {
   impl_->browser=std::move(browser);impl_->options=std::move(options);impl_->http=http?std::move(http):transport;
+  auto &o=impl_->options;
+  if(!o.load)o.load=[](const auto &base,const auto &scope,const auto &profile){return std::string(online_protocol_bridge::steam_saved_login(base,scope,profile));};
+  if(!o.save)o.save=[](const auto &base,const auto &scope,const auto &profile,const auto &token){online_protocol_bridge::steam_save_login(base,scope,profile,token);};
+  if(!o.erase)o.erase=[](const auto &base,const auto &scope,const auto &profile){online_protocol_bridge::steam_forget_login(base,scope,profile);};
 }
 SteamLogin::~SteamLogin(){cancel();}
 void SteamLogin::start(){cancel();impl_->publish({DiscordLoginStatus::Verifying,{},"Preparing Steam sign-in..."});
-  impl_->worker=std::jthread([p=impl_.get()](std::stop_token stop){p->run(stop);});}
+  impl_->worker=std::jthread([p=impl_.get()](std::stop_token stop){p->run(stop,true);});}
+void SteamLogin::bind_profile(std::string scope,std::string profile) {
+  if(impl_->profile_namespace==scope && impl_->profile_name==profile)return;
+  cancel();impl_->profile_namespace=std::move(scope);impl_->profile_name=std::move(profile);
+}
+void SteamLogin::restore(){
+  const auto status=snapshot().status;
+  if(!impl_->cached() || status==DiscordLoginStatus::SignedIn || status==DiscordLoginStatus::Waiting || status==DiscordLoginStatus::Verifying)return;
+  cancel();impl_->publish({DiscordLoginStatus::Verifying,{},"Restoring Steam sign-in..."});
+  impl_->worker=std::jthread([p=impl_.get()](std::stop_token stop){p->run(stop,false);});
+}
+void SteamLogin::sign_out(){
+  cancel();
+  impl_->worker=std::jthread([p=impl_.get()](std::stop_token stop){
+    if(!p->cached())return;
+    try {
+      const auto base=origin(p->options.origin,p->options.allow_loopback_http);
+      const auto saved=p->options.load(base,p->profile_namespace,p->profile_name);
+      p->options.erase(base,p->profile_namespace,p->profile_name);
+      if(!saved.empty())p->http({base+"/v1/auth/steam/forget","{}",saved},stop);
+    }catch(...) {if(!stop.stop_requested())p->publish({DiscordLoginStatus::Failed,{},"Could not remove saved sign-in. Please try Sign Out again."});}
+  });
+}
 void SteamLogin::cancel(){if(impl_->worker.joinable()){impl_->worker.request_stop();impl_->worker.join();}impl_->publish({});
   std::lock_guard lock(impl_->mutex);impl_->link={};}
 DiscordLoginSnapshot SteamLogin::snapshot()const {

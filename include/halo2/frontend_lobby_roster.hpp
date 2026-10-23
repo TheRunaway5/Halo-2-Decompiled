@@ -37,6 +37,8 @@ struct FrontendLobbyRosterPlayer {
   FrontendAppearance appearance;
   int team = -1, rank_value = -1, member_count = -1;
   bool voice_port_flag0_only{}, voice_query_53750{};
+  // Native services can lack a remote profile. Do not invent its emblem.
+  bool appearance_available = true;
 };
 //24FD74 supplies19AA17's controller mapping. Only matching valid local team
 // edits override a player's session team, as250503..25059C proves.
@@ -53,6 +55,7 @@ struct FrontendLobbyRosterInput {
   std::span<const Vec3> appearance_palette;
   std::span<const Vec3> team_palette = frontend_lobby_team_colors;
   std::span<const FrontendLobbyRankRange> rank_ranges = frontend_lobby_rank_ranges;
+  bool tu15{};
 };
 struct FrontendLobbyRosterSlot {
   bool visible{}, speaker_visible{};
@@ -92,7 +95,7 @@ inline FrontendLobbyRoster frontend_lobby_roster(const FrontendLobbyRosterInput 
     slot.session_index = player.session_index;
     slot.name = player.name;
     slot.appearance = player.appearance;
-    slot.item_flags = 0x103; // Name+appearance+value64, original250484..2504BD.
+    slot.item_flags = player.appearance_available ? 0x103 : 0x101;
     for (unsigned range = 0; range < input.rank_ranges.size(); ++range)
       if (player.rank_value >= input.rank_ranges[range].lower &&
           player.rank_value <= input.rank_ranges[range].upper) {
@@ -118,7 +121,7 @@ inline FrontendLobbyRoster frontend_lobby_roster(const FrontendLobbyRosterInput 
         break;
       }
     const auto colors = frontend_appearance_colors(player.appearance, input.appearance_palette);
-    slot.primary_color = colors[0];
+    slot.primary_color = player.appearance_available ? colors[0] : Vec3{1,1,1};
     if (slot.no_team)
       slot.primary_color = {1, 1, 1}; // Literal g468710,7F790(use_default=true).
     else if (slot.team != -1)
@@ -128,15 +131,18 @@ inline FrontendLobbyRoster frontend_lobby_roster(const FrontendLobbyRosterInput 
     slot.name_color = source_profile_name_color(slot.primary_color);
     // Literal default skin contains name0/B000698, primary bitmap0/1400069A,
     // conditional bitmap1/E00069B, rank bitmap2/900069C, emblem0.
-    slot.background_visible = true;
-    const int background = player.member_count > 1 ? player.member_count - 1 : 0;
+    slot.background_visible = player.appearance_available || slot.team!=-1;
+    // TU1.5 25676C..25677E normalizes the four-player quantity to one;
+    // the older25042D producer passed it through unchanged.
+    const int quantity = input.tu15 && player.member_count==4 ? 1 : player.member_count;
+    const int background = quantity > 1 ? quantity - 1 : 0;
     if (background < 7) // Actual item_background contains7 pages;2B0A14 clamps.
       slot.background_frame = unsigned(background);
     slot.secondary_background_visible = false; //25042D never sets item bit5.
     slot.rank_visible = slot.rank_range != -1;
     if (slot.rank_range >= 0 && slot.rank_range < 50)
       slot.rank_frame = unsigned(slot.rank_range); // Literal rank_icons_sm50pages.
-    slot.emblem_visible = true; // Literal emblem flags1;2B12CA tests flags2.
+    slot.emblem_visible = player.appearance_available;
     slot.speaker_frame = player.voice_port_flag0_only ? !player.voice_query_53750 : 2;
   }
   return output;

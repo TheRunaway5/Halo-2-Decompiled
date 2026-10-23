@@ -35,14 +35,15 @@ def audit(model, report):
         for primitive in mesh['primitives']:
             p = scene.array(primitive['attributes']['POSITION']).astype(float)
             p = p @ world[:3, :3].T + world[:3, 3]
-            t = scene.array(primitive['indices'])[:, 0].reshape(-1, 3)
+            t = scene.array(primitive['indices'])[:, 0].astype(np.int64).reshape(-1, 3)
             uv=scene.array(primitive['attributes']['TEXCOORD_0']).astype(float)
             normal=scene.array(primitive['attributes']['NORMAL']).astype(float)
             invalid_attributes+=int(not (np.isfinite(p).all() and np.isfinite(uv).all() and np.isfinite(normal).all()))
             cross=np.cross(p[t[:,1]]-p[t[:,0]],p[t[:,2]]-p[t[:,0]])
             area=np.linalg.norm(cross,axis=1)
             degenerate+=int((area<=1e-12).sum())
-            if name in ('architecture_floor','architecture_road','architecture_walkway'):
+            palette = scene.doc['materials'][primitive['material']].get('extras', {}).get('halo_palette')
+            if name in ('architecture_floor','architecture_road','architecture_walkway') or palette in ('floor','road','walkway'):
                 # glTF Y is Halo Z. Upward floor faces must have real UV area;
                 # a top-down projection of a vertical wall is not a floor.
                 top=cross[:,1]>.5*area

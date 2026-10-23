@@ -1311,6 +1311,8 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
       if(event.type==SDL_KEYDOWN && state.joining_controller() && state.frame().screen!=167)continue;
       if (event.type == SDL_KEYDOWN && !event.key.repeat) {
         const auto key = event.key.keysym.sym;
+        if(state.frame().screen!=167 && (key==SDLK_F9 || key==SDLK_F10) && state.act_invite_notice(key==SDLK_F9))continue;
+        if(state.party_invite_picker() && (key==SDLK_PAGEUP || key==SDLK_PAGEDOWN) && state.switch_invite_tab(key==SDLK_PAGEUP?-1:1))continue;
         if (key == SDLK_ESCAPE)
           back();
         else if (key == SDLK_RETURN || key == SDLK_KP_ENTER) {
@@ -1358,6 +1360,18 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
           continue;
         }
         switch (event.cbutton.button) {
+        case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
+          if(state.act_invite_notice(true))sound(FrontendUiSound::Forward);
+          break;
+        case SDL_CONTROLLER_BUTTON_LEFTSTICK:
+          if(state.act_invite_notice(false))sound(FrontendUiSound::Back);
+          break;
+        case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+          if(state.switch_invite_tab(-1))sound(FrontendUiSound::Cursor);
+          break;
+        case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+          if(state.switch_invite_tab(1))sound(FrontendUiSound::Cursor);
+          break;
         case SDL_CONTROLLER_BUTTON_A:
           accept();
           break;
@@ -1429,6 +1443,7 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
       }
     }
     if(options.session_update && options.session_update(state,ui_clock_ms,sound))break;
+    for(const auto cue:state.take_ui_sounds())sound(cue);
     painter.prompt_device(menu_prompt_devices.at(state.joining_controller().value_or(0)));
     SDL_GameController* navigation_controller{};
     for(const auto& pad:controllers) {

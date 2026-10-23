@@ -1056,9 +1056,9 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
   if(source_lens_resources)source_lens_draws=std::make_unique<SourceLensDrawFrameTu15>(cache,mesh);
 #if HALO2_SOURCE_DECALS_AVAILABLE
   SourceDecalScene cached_decals(cache);
+#endif
 #if HALO2_SOURCE_CONTRAILS_AVAILABLE
   SourceContrailScene source_contrails(cache);
-#endif
 #endif
   if(live_world()->source_objects && live_world()->source_objects->owns_physics())
     world_effects.collision_query([&](auto flags,Vec3 origin,Vec3 delta) {
@@ -1459,7 +1459,24 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     if(weapon.projectile!=null_datum)projectile_definitions.push_back(weapon.projectile);
     for(const auto &barrel:weapon.barrel_views)
       if(barrel->projectile!=null_datum)projectile_definitions.push_back(barrel->projectile);
+    // barrel_views contains the charged-weapon presentation views, rather
+    // than every native barrel. The original source can also publish an
+    // authored secondary projectile (Scorpion coaxial input1/barrel1).
+    // Prepare resources from its actual resident definition before drawing.
+    const auto *tag=cache.query_tag({.handle=TagHandle{datum},.group=tag_groups::weapon,
+        .require_address=true,.minimum_size=0x2d8});
+    if(!tag)throw FormatError("Projectile preparation lost its resident weapon definition");
+    const Bytes root(cache.read_tag_bytes(tag->address+0x2d0,8));
+    const auto barrels=read_tag_block_descriptor(root,0);
+    const auto extent=barrels.extent(0xec,4095);
+    const Bytes rows(barrels.count?cache.read_tag_bytes(barrels.address,extent):std::span<const std::byte>{});
+    for(unsigned barrel=0;barrel<unsigned(barrels.count);++barrel) {
+      const auto projectile=rows.u32(barrel*0xecu+0x90u);
+      if(projectile!=null_datum)projectile_definitions.push_back(projectile);
+    }
   }
+  std::ranges::sort(projectile_definitions);
+  projectile_definitions.erase(std::unique(projectile_definitions.begin(),projectile_definitions.end()),projectile_definitions.end());
   NativeWeaponProjectileScene weapon_projectile_scene(cache,options.bsp,mesh,
       object_light_collision,projectile_definitions,live_match().native_object_capacity());
   auto combat_attachment_definitions=projectile_definitions;
@@ -1604,6 +1621,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     std::unique_ptr<char,decltype(&SDL_free)> pref(SDL_GetPrefPath("Halo2Native","Halo2"),SDL_free);
     pause_menu=std::make_unique<GamePauseMenu>(cache.shared_directory(),options.ui_assets,mesh,false,
         pref?std::filesystem::path(pref.get())/"menu.cfg":std::filesystem::path{},options.menu_ui_assets);
+    pause_menu->party_notices(options.party_notice,options.party_notice_action);
   }
   std::optional<unsigned> session_black_material;
   if(options.session_view_black) {
@@ -1731,7 +1749,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       // substitute an original admission/voice result. Controllers retain
       // their separate source loop/stop owner.
       if(!(request.u32(0)&8u) || (request.u32(0)&0x10u) ||
-          (std::to_integer<unsigned>(raw[0xf])&15u))return;
+          (std::to_integer<unsigned>(raw[0xf])&15u)>1u)return;
       SourceWeaponAudio::Request event{sound,{}};
       std::copy(raw.begin(),raw.end(),event.raw.begin());
       source_weapon_audio.pending.push_back(std::move(event));
@@ -1763,6 +1781,41 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
   auto &client_state_bound=receipt_values.client_state_bound;
   client_state_bound=live_client() && live_client()->ready();
   MultiplayerState current = client_state_bound ? live_client()->state() : live_match().state(), previous = current;
+  const auto local_vehicle_sound_view=[&](std::uint32_t owner,bool source_owner)->std::optional<unsigned> {
+    if(owner==null_datum || !source_weapon_audio.world)return {};
+    for(unsigned view=0;view<ids.size();++view) {
+      const auto &p=current.players[ids[view]];const auto &hud=p.source_vehicle_hud;
+      const auto weapon=hud.ownership.vehicle_weapon;
+      if(!p.connected || p.dead || !hud.ownership.seated || !hud.weapon.present ||
+          weapon==null_datum || hud.weapon.datum!=weapon || p.source_parent==null_datum)continue;
+      if(!source_owner) {if(owner==weapon)return view;continue;}
+      // The original effect caller owns its sound on the armed unit, not
+      // necessarily on the weapon object. Scorpion's cannon is a child of
+      // the occupied chassis; a Warthog gunner occupies the turret itself.
+      // Require the full weapon ancestry to reach that actual seated parent.
+      bool matched=false;auto object=weapon;
+      for(unsigned depth=0;depth<0x800 && object!=null_datum;++depth) {
+        matched|=object==owner;
+        if(object==p.source_parent){if(matched)return view;break;}
+        object=source_weapon_audio.world->object_parent(object);
+      }
+    }
+    return {};
+  };
+  const auto local_vehicle_input_definition=[&](unsigned view)->const WeaponDefinition* {
+    if(view>=ids.size())return nullptr;
+    const auto &p=current.players[ids[view]];const auto &hud=p.source_vehicle_hud;
+    if(!hud.ownership.seated || !hud.weapon.present ||
+        hud.ownership.vehicle_weapon==null_datum || hud.weapon.datum!=hud.ownership.vehicle_weapon)return nullptr;
+    const auto found=content.weapons.find(hud.definition);
+    return found==content.weapons.end()?nullptr:&found->second;
+  };
+  const auto vehicle_secondary_fire=[&](unsigned view) {
+    const auto *weapon=local_vehicle_input_definition(view);
+    return weapon && std::any_of(weapon->triggers.begin(),weapon->triggers.end(),[](const auto &trigger) {
+      return trigger.input==1 && trigger.primary_barrel>=0;
+    });
+  };
   const auto deliver_source_weapon_audio=[&]{
     for(const auto &event:source_weapon_audio.pending) {
       const auto owner=Bytes(event.raw).u32(0x50);
@@ -1771,8 +1824,12 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         const auto &p=current.players[id];
         return p.connected && (p.source_weapon==owner || p.secondary_weapon.datum==owner);
       });
-      if(local==ids.end())continue;
-      try{audio->source_impulse(event.sound,event.raw,MultiplayerAudioKind::FirstPerson,unsigned(local-ids.begin()));}
+      const auto view=local!=ids.end()?std::optional<unsigned>(unsigned(local-ids.begin())):
+          local_vehicle_sound_view(owner,true);
+      if(!view)continue;
+      const auto kind=(std::to_integer<unsigned>(event.raw[0xf])&15u)==1u?
+          MultiplayerAudioKind::Impulse:MultiplayerAudioKind::FirstPerson;
+      try{audio->source_impulse(event.sound,event.raw,kind,*view);}
       catch(const std::exception &error){std::cerr<<"Source weapon audio: "<<error.what()<<'\n';}
     }
     source_weapon_audio.pending.clear();
@@ -2255,7 +2312,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     }
     world_effects.advance(current.tick,tick_seconds);
     for(const auto &sound:world_effects.take_sounds())
-      if(audio)try{audio->impulse_at(sound.sound,sound.position,sound.gain,
+      if(audio && !local_vehicle_sound_view(sound.owner,false))try{audio->impulse_at(sound.sound,sound.position,sound.gain,
           MultiplayerAudioKind::Impulse,sound.owner);}
       catch(const FormatError &error){
         if(reported_world_effect_gaps.insert(error.what()).second)
@@ -2443,7 +2500,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     muzzle_effects.advance(current.tick,tick_seconds);
   };
   const auto deliver_muzzle_sounds=[&] {
-    for(const auto &sound:muzzle_effects.take_sounds())if(audio)try {
+    for(const auto &sound:muzzle_effects.take_sounds())if(audio && !local_vehicle_sound_view(sound.owner,false))try {
       if(sound.position)audio->impulse_at(sound.cue.sound,*sound.position,sound.cue.gain,MultiplayerAudioKind::Impulse,sound.owner);
       else audio->impulse(sound.cue.sound,sound.cue.gain,MultiplayerAudioKind::Impulse,sound.owner);
     }catch(const std::exception &e){std::cerr<<"Ready effect sound: "<<e.what()<<'\n';}
@@ -3329,8 +3386,11 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         pad_zoom_pending[i]|=mapped.zoom&&!pad_zoom_held[i];pad_zoom_held[i]=mapped.zoom;
         pad_input.jump=mapped.jump;death_cycle_pressed[i]|=pad_input.jump&&!pad_previous[i].jump;
         pad_input.crouch=mapped.crouch;pad_input.reload=mapped.reload;pad_input.fire=mapped.fire;
-        const bool dual=i<ids.size()&&current.players[ids[i]].secondary_weapon.datum!=null_datum;
-        pad_input.fire_secondary=dual&&mapped.secondary;pad_input.grenade=!dual&&mapped.grenade;
+        const bool armed_vehicle=local_vehicle_input_definition(i)!=nullptr;
+        const bool dual=!armed_vehicle && i<ids.size()&&current.players[ids[i]].secondary_weapon.datum!=null_datum;
+        pad_input.fire_secondary=(dual || vehicle_secondary_fire(i))&&mapped.secondary;
+        pad_input.grenade=!dual&&mapped.grenade;
+        if(armed_vehicle)pad_input.crouch|=mapped.secondary;
         pad_input.melee=mapped.melee;pad_input.switch_grenade=mapped.switch_grenade;
         pad_input.pickup=mapped.pickup;pad_input.dual_wield=mapped.dual_wield;pad_input.switch_weapon=mapped.switch_weapon;
         const auto held_pad=pad_input;
@@ -3655,7 +3715,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
           const bool dual=keyboard_view<ids.size() && current.players[ids[keyboard_view]].secondary_weapon.datum!=null_datum;
           const bool inverted=platform.desktop->keyboard_settings.dual_wield_invert;
           const bool seated=keyboard_view<ids.size() && current.players[ids[keyboard_view]].source_parent!=null_datum;
-          const auto gameplay=input.gameplay_controls(dual,seated,inverted);
+          const auto gameplay=input.gameplay_controls(dual,seated,inverted,vehicle_secondary_fire(keyboard_view));
           local[keyboard_view].crouch = gameplay.crouch || pad_controls[keyboard_view].crouch;
           local[keyboard_view].fire = gameplay.fire || pad_controls[keyboard_view].fire;
           local[keyboard_view].grenade = input.controls.grenade || pad_controls[keyboard_view].grenade;
@@ -3841,10 +3901,12 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
           std::cerr << "Multiplayer sound: " << e.what() << '\n';
         }
     if(audio)for(const auto &[datum,owner]:weapon_effect_sounds)try {
+      if(local_vehicle_sound_view(owner,false))continue;
       audio->impulse(datum,1,MultiplayerAudioKind::Impulse,owner);
     }catch(const std::exception &e){std::cerr<<"Weapon event sound: "<<e.what()<<'\n';}
     weapon_effect_sounds.clear();
     effect_sounds.advance(audio_elapsed,[&](const EffectSoundCue &cue,std::uint32_t owner,Vec3 position){
+      if(local_vehicle_sound_view(owner,false))return;
       if(audio)try{audio->impulse_at(cue.sound,position,cue.gain,MultiplayerAudioKind::Impulse,owner);}
       catch(const std::exception &error){std::cerr<<"Prop effect sound: "<<error.what()<<'\n';}
     });
@@ -4216,6 +4278,11 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     if(!(repeat_unit_skins && *repeat_unit_skins))
       unit_pose_provider=[&](std::uint32_t owner,unsigned lod,const RenderModel &model,
           std::span<const Transform> nodes){return unit_frame_poses.update(owner,lod,model,nodes);};
+    SourceLiveModelPoseProviderTu15 selected_unit_pose_provider;
+    const auto *repeat_selected_skins=std::getenv("HALO2_REFERENCE_REPEAT_SELECTED_SKINS");
+    if(!(repeat_unit_skins && *repeat_unit_skins) && !(repeat_selected_skins && *repeat_selected_skins))
+      selected_unit_pose_provider=[&](std::uint32_t owner,unsigned lod,const RenderModel &model,
+          std::span<const Transform> nodes){return unit_frame_poses.update_preserving_effects(owner,lod,model,nodes);};
     const auto *repeat_vehicle_skins=std::getenv("HALO2_REFERENCE_REPEAT_VEHICLE_SKINS");
     const bool reuse_vehicle_skins=!(repeat_vehicle_skins && *repeat_vehicle_skins);
     const auto completed_model=[&](std::uint32_t model)->const RenderModel* {
@@ -4243,17 +4310,13 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       }
       if(!visual.world_lods || visual.render_model!=selected.model || selected.lod>=6)
         throw FormatError("Third-person draw lost the original selected model/LOD");
-      const auto posed=skin_model_world_nodes(visual.world_lods->at(selected.lod),nodes);
-      std::vector<Vertex> vertices;
       // The collector retains region order and can repeat a section. Its NONE
       // entries were omitted while copying; no preview LOD supplies geometry.
-      for(auto section:selected.sections) {
-        bool resident=false;
-        for(const auto& vertex:posed)if(vertex.source_section==section) {
-          resident=true;vertices.push_back(vertex);
-        }
-        if(!resident)throw FormatError("Third-person collector selected an unprepared original section");
-      }
+      const auto reused=unit_frame_poses.reuses();
+      auto vertices=source_live_model_selected_vertices_tu15(owner,selected.lod,
+          visual.world_lods->at(selected.lod),nodes,selected.sections,selected_unit_pose_provider);
+      ++timing.selected_skin_requests;
+      timing.selected_skin_reuses+=unit_frame_poses.reuses()-reused;
       return vertices;
     };
     const auto append_shields=[&](std::vector<Vertex> &out,std::span<const Vertex> posed,
@@ -6265,7 +6328,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     timing.unit_skin_builds=unit_frame_poses.builds();
     timing.unit_skin_reuses=unit_frame_poses.reuses();
     std::vector<UiBackdrop> pause_backdrops;
-    if(pause_menu && pause_menu->visible()) {
+    if(pause_menu) {
       auto overlay=pause_menu->draw(drawable_w,drawable_h);
       for(auto backdrop:overlay.backdrops) {
         backdrop.before_vertex+=hud_vertices.size();pause_backdrops.push_back(backdrop);

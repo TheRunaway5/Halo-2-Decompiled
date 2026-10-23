@@ -82,6 +82,7 @@ struct MultiplayerFrameTiming {
   unsigned frame{},views{},bodies_drawn{},body_pose_builds{};
   unsigned vehicle_skin_builds{},vehicle_skin_reuses{};
   unsigned unit_skin_builds{},unit_skin_reuses{};
+  unsigned selected_skin_requests{},selected_skin_reuses{};
   double input_ms{},common_ms{},renderer_ms{},wall_ms{};
   bool submitted{};
   std::array<View,4> view;
@@ -696,6 +697,8 @@ struct MultiplayerOptions {
   // Retained frontend music device/state; once per actual world presentation
   // update, independent of the optional source lifecycle/announcer adapters.
   std::function<void()> menu_audio_update;
+  std::function<std::optional<FrontendInviteNotice>()> party_notice;
+  std::function<bool(bool)> party_notice_action;
   std::filesystem::path map = "assets/disc/maps/lockout.map", screenshot, shared_maps;
   // Finite captures can pin unchanged compiled shader assets independently
   // from concurrent builds. Ordinary sessions retain their configured path.

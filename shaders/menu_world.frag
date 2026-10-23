@@ -53,17 +53,22 @@ layout(set=1,binding=1,std140) uniform MenuWorldFragmentUniforms {
     vec4 combinerConstants[18];
 } menuWorldDepth;
 vec4 stageCoordinates[4];
+vec2 stageTextureExtent(uint stage) {
+    if(stage==0u)return vec2(textureSize(diffuse,0));
+    if(stage==1u)return vec2(textureSize(detail,0));
+    if(stage==2u)return vec2(textureSize(bump,0));
+    return vec2(textureSize(lightmap,0));
+}
 vec4 fetchStage2D(uint stage,vec2 p) {
+    if((material.textureEffects[stage].y&1u)!=0u)p/=stageTextureExtent(stage);
     if(stage==0u)return texture(diffuse,p);
     if(stage==1u)return texture(detail,p);
     if(stage==2u)return texture(bump,p);
     return texture(lightmap,p);
 }
 vec4 fetchStageProjected2D(uint stage,vec4 p) {
-    if(stage==0u) {
-        if((material.textureEffects[0].y&1u)!=0u)p.xy/=vec2(textureSize(diffuse,0));
-        return textureProj(diffuse,p.xyw);
-    }
+    if((material.textureEffects[stage].y&1u)!=0u)p.xy/=stageTextureExtent(stage);
+    if(stage==0u)return textureProj(diffuse,p.xyw);
     if(stage==1u)return textureProj(detail,p.xyw);
     if(stage==2u)return textureProj(bump,p.xyw);
     return textureProj(lightmap,p.xyw);

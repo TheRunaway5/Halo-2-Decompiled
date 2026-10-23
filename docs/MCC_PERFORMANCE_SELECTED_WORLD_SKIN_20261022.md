@@ -1,6 +1,6 @@
 # Selected WORLD skin: one remaining cache bypass
 
-2026-10-22. Static read-only audit of the active frozen source at `/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-0yux_h0i/source` (F below). No compiler, build, game, profiler or probe ran. Only this note was written. The performance goal remains unmet; the separate LTO experiment has not admitted a production setting.
+2026-10-22. Initial static audit of the active frozen source at `/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-0yux_h0i/source` (F below). Sections through the initial source hashes describe that first inspection. The final section separately pins the parent's subsequent source refreshes and the linked normal x64 images. This research agent launched no compiler, build, game or profiler; its later `nm`/`objdump` helpers ran through the existing owned command session. The performance goal remains unmet; the separate LTO experiment has not admitted a production setting.
 
 **Candidate: route `selected_world_vertices` through the frame's existing unit pose provider, borrowing only its full immutable skin.** Keep every selected-section copy, duplicate, missing-section error, shader choice, material offset, lighting, camera and source callback at its present position. This is justified for a bounded differential/component experiment, not yet for production admission: cache hits' FP/diagnostic behavior needs direct proof.
 
@@ -30,7 +30,7 @@ else {
 // Existing ordered section loop remains here, writing its own vector.
 ```
 
-`model` is the validated `visual.world_lods->at(selected.lod)`, never `visual.model` or another preview LOD. No new provider implementation is needed: F4199–4202 already supplies `unit_frame_poses.update(owner,lod,model,nodes)`. The same cache can return a miss/rebuild if a later source query changed the nodes. Do not add an early empty-section return that skips existing model/pose validation.
+`model` is the validated `visual.world_lods->at(selected.lod)`, never `visual.model` or another preview LOD. No new skin provider implementation is needed for the component experiment: F4199–4202 already supplies `unit_frame_poses.update(owner,lod,model,nodes)`, using the synchronous span contract at [F public header:46](/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-0yux_h0i/source/include/halo2/source_live_model_geometry_tu15.hpp:46). The same cache can return a miss/rebuild if a later source query changed the nodes. The pseudocode is the mechanical reuse seam, not the strict FP admission implementation: a strict selected-only lambda/forwarder would need the receipt policy below while ordinary-base calls retain their default policy. Do not add an early empty-section return that skips existing model/pose validation.
 
 ## Complete ownership and invalidation boundary
 
@@ -52,6 +52,21 @@ The implemented cache contract is at [F model_frame_pose_cache.hpp:8](/home/eric
 
 Equal vertices do not prove equal terminal FP state. A direct negative control should clear exception flags between identical requests, seed errno/status, and compare fresh versus borrowed execution. Also compare rounding, DAZ/FTZ, exception masks and x87 controls, signed zero/subnormals, and an intervening valid callback that changes controls. Repeated arithmetic can raise sticky flags again; the current cache does not replay them. Unmasked traps, allocation-failure timing and arbitrary model mutation are not established safe by this audit. A mismatch requires a proven admission/fallback boundary or rejection of the candidate; do not silently weaken the contract.
 
+### Assessment of a conservative post-MXCSR receipt
+
+The proposed receipt can supply a **conditional terminal SSE sticky-flag admission rule**, without clearing flags or synthesizing exceptions. Intel documents MXCSR status bits 0–5 as sticky and mask bits 7–12 as set for masked exceptions ([Intel SDM Volume 1, §10.2.3.1](https://cdrdv2-public.intel.com/843827/253665-sdm-vol-1-dec-24.pdf#page=252)). The following is an inference from that hardware rule: for a fixed, deterministic skin kernel with identical immutable inputs and arithmetic controls, masked SSE exceptions only add sticky bits. If an eligible successful fill records `post_flags = post_mxcsr & 0x3f`, a later request with `(current_mxcsr & post_flags) == post_flags` already contains every flag observed after that fill. Under those assumptions, repeating the arithmetic cannot add a missing bit. Recording the full post-mask, including flags inherited by the fill, is conservative: an inherited unrelated bit can cause an unnecessary rebuild, not an unsound hit. This is a static argument, not verified compiled-code evidence.
+
+Required gates and implementation traps are:
+
+- Require all six SSE exception masks, `(current_mxcsr & 0x1f80u) == 0x1f80u`, and the existing exact geometry/control key. Record both pre/post controls and reject receipt eligibility if they changed during the fill. Matching controls plus this mask condition must hold at the eligible fill and the hit; a prior scalar or VERIFY fill cannot produce a usable SIMD receipt.
+- Require scalar/VERIFY diagnostics off at **both** fill and hit. Current environment values alone cannot establish how an older entry was built. Keep the existing fresh reference route and make the process/environment stability assumption explicit. Rechecking these flags does not reproduce all effects of running their original reads inside the skipped function.
+- Publish receipt validity with the completed key, vertices and retained-node bank only after success. Missing metadata is a miss. Exceptions during skinning or the retained-node copy must not relabel the previous entry. Capturing immediately after the skin rather than after all successful miss bookkeeping also needs an ordering/side-effect audit; an allocator is an external call.
+- A strict rejection must actually rebuild. Calling the existing `update(model,nodes)` as fallback would immediately accept its ordinary geometry/control hit and skip the skin again. A strict overload needs a shared explicit fresh-build path, with hit/build counters reflecting the real outcome. Successful ordinary misses can record eligible receipts for later strict selected requests, while the default overload retains its present hit behavior.
+
+The visible arithmetic closure is `skin_model_world_nodes`/`skin_model` → palette/compounds → `compose_transform` and the SSE2/scalar vertex kernel ([F model_pose.cpp:279](/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-0yux_h0i/source/src/rendering/models/model_pose.cpp:279), [F source_model_palette.cpp:6](/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-0yux_h0i/source/src/rendering/models/source_model_palette.cpp:6), [F transform.cpp:36](/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-0yux_h0i/source/src/core/transform.cpp:36)). It contains floats and explicit SSE intrinsics, with no explicit x87 arithmetic, `long double`, FP-environment clearing or math-library call. That does **not** prove the linked x64 closure has no x87 effects. Inspect its actual instructions and callees, including allocator/diagnostic paths, and verify that the post-MXCSR read remains after all relevant arithmetic. `-ffp-contract=off` and the pose file's `-fno-fast-math` constrain arithmetic but do not by themselves prove receipt capture ordering or complete fenv observability. The initial static phase had no disassembly; the follow-up below addresses instruction choice/order for two exact linked images.
+
+The receipt also does not settle errno, allocation/new-handler effects, `bad_alloc` timing, arbitrary diagnostic changes, or other x87 status/control effects. The host skin closure has no `SourceRuntimeMemory` observer callback, so skipping it does not directly skip an original memory observer; this narrower fact does not discharge those C++/FP effects. Full observational equivalence remains unproved. Extend the direct negative controls with each sticky bit absent/present, inherited unrelated flags, cleared flags after a fill, changed masks/rounding/DAZ/FTZ, scalar/VERIFY fill-to-hit transitions, failed fill/retained-copy publication, and exact fresh versus strict-build counters. Compare terminal SSE **and** x87 state, errno, all vertex bytes, selected ordering and downstream draws. Admit no gain from an all-miss guard or from a fixture that never reaches the selected-world path.
+
 The existing [F model_skin_simd_tests.cpp:83](/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-0yux_h0i/source/tests/model_skin_simd_tests.cpp:83) is a useful component starting point: it checks one build/eleven reuses across four views/three sections, distinct owners/LODs, changed nodes, rounding and FTZ/DAZ, plus complete posed vertex bytes across403 authored models. It does not check this selected-section lambda or full FP/errno effects. Extend a scratch-only component driver with the unchanged F4214–4241 section routine as reference and the provider variant above. Warm it through an ordinary-base-style request first, then test body/right/left requests, section order such as`{2,0,2}`, absent selections, absent sections/errors, distinct model identities and generation/LOD/node changes. Count provider builds/hits specifically at the selected-world seam; an unexecuted or all-miss cohort proves no eliminated work. Compare every `Vertex` byte and the exact output/order/error before timing modest fixed work.
 
 The existing [F unit_skin_reuse_runtime_tests.cpp:58](/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-0yux_h0i/source/tests/unit_skin_reuse_runtime_tests.cpp:58) compares ordinary source-base submissions using `unit_source_draw_observer`. That observer alone would miss a regression in selected body/held/shield inputs. Extend it with the existing `animation_observer` (F5670) and relevant final draw/image checks, actual1..4 views, different view LOD/regions, attached/secondary weapons, shields, death/respawn and changed nodes. Retain source-built ordered collector/pose/palette receipts and the existing original-backed builder/palette/vertex-input regressions; component equality is not physical-Xbox framebuffer proof.
@@ -60,7 +75,7 @@ For an isolated performance comparison use the unchanged frozen executable versu
 
 ## Scoped files and hashes
 
-A future narrow implementation should initially touch only the selected-world lambda in `src/gameplay/multiplayer/multiplayer_runtime.cpp`, its direct component/runtime regressions and their test registration. It needs no change to the original model builder, skin kernel or cache key. FP findings may block that scope; this note does not authorize broad cache redesign.
+A future narrow implementation would touch the selected-world lambda in `src/gameplay/multiplayer/multiplayer_runtime.cpp`, its direct component/runtime regressions and their test registration. If the strict receipt is proved, also scope `src/rendering/models/model_world_pose_cache.hpp` for receipt eligibility/forced rebuild and `model_frame_pose_cache.hpp` for strict forwarding/counters. It needs no change to the original model builder, skin kernel or geometry identity key. Keep default cache-hit behavior scoped; unresolved FP/allocator findings can still block the extension. This note does not authorize broad cache redesign.
 
 The audit read the runtime, the two pose-cache headers, `model_pose.cpp`, `model_skin_vertices.hpp`, `source_live_model_geometry_tu15.{cpp,hpp}`, `source_model_build.{cpp,hpp}`, `source_model_palette.cpp`, the relevant frozen live-world builder/observer boundaries, and the named tests/profile records. Source hashes below are relative to F:
 
@@ -72,9 +87,67 @@ The audit read the runtime, the two pose-cache headers, `model_pose.cpp`, `model
 | `src/rendering/models/model_pose.cpp` | `7a5a8f2042390e93286f1482885b3cbadfd02a55c6f01469216ee4d61457651c` |
 | `src/rendering/models/model_skin_vertices.hpp` | `852ae52b48a8adbfa33806487f80c76e5686239fcf1aa46a4f1bf6bc04172f0b` |
 | `src/rendering/models/source_live_model_geometry_tu15.cpp` | `41626b00566c303a1cf7f25081a0dee31656d8f88c6b350882cabe86637020cc` |
+| `include/halo2/source_live_model_geometry_tu15.hpp` | `b9070f4a548e2d799e9a240701b85f59f98a741b979771aa6ad443045f880c17` |
 | `src/rendering/models/source_model_build.cpp` | `57cbd0b5187538f5448069c9095c25981de81a8a16690c71fc100ca4c8334a81` |
 | `src/rendering/models/source_model_palette.cpp` | `8ca0694aa069cc0d5a0f8ed83cd86faa12cb7b8195f4ba5723496d4fa88e531b` |
+| `src/core/transform.cpp` | `b0f45198199258ca9802474fd0258c2ed2e44556d940efd6eaa907c557cbffbd` |
 
 Canonical current hashes match the two caches, pose/skin implementation and live geometry helper. Canonical runtime differs (`365a47eb43d3a2ba2c522654a6d61dc11284a92e3e5e857a414311379bf6f4c5`); its selected-world direct skin remains at4246, but unrelated material/network/shield work has drifted. Canonical `source_model_build.cpp` also differs (`3278cc32e96118418559a81005202687814619e638ea06a113da6e1ec1f0bab7`). These are drift observations only; the analysis and line citations above use F.
 
-No active owner/reference asset was modified or copied. No temporary outputs or large artifacts were created; retention is this small Markdown note only.
+## Linked normal x64 follow-up
+
+Two read-only inspections ran in the active `tools/run_test.py` owner, queued through `build/test-results/mcc-performance-goal-20261022/runtime-attempt3/commands.pipe` after the parent's builds. The helper used `nm -S --defined-only`, `c++filt`, then bounded `objdump -d -w -C -M intel --no-show-raw-insn --start-address=... --stop-address=...`. Exact mangled/demangled symbols, instruction addresses, call targets, capture excerpts, source hashes and every command are retained in these compact reports:
+
+| Image | SHA-256 | Bounded report |
+| --- | --- | --- |
+| Initial selected-skin integration, **before** receipt-order tightening | `33adc3fc35c0583a0fcaca8a434350ecb620d3db7b244f8de0362922b6c35889` | [initial JSON](/home/eric/Developer/Halo-2-Decompiled/build/test-results/mcc-performance-goal-20261022/selected-skin/linked-x64-audit.json), 48,101 bytes |
+| Tightened normal integration | `861e1f997c615c67c85201ab1af89ef7ea73eb942a315f885812b9586fef4def` | [tightened JSON](/home/eric/Developer/Halo-2-Decompiled/build/test-results/mcc-performance-goal-20261022/selected-skin/linked-x64-audit-tightened.json), 48,935 bytes |
+
+The second inspection covered 14 complete functions / 15,716 machine bytes, including the four skin/palette cold clones and bounded direct cache/STL callees. No root exceeded the budget; no inspected function had an indirect call/jump. This is the executable's internal closure, **stopping at PLT/external calls**, not a complete audit of libc/libstdc++ or interposed implementations. The helper confirmed that the executable hash stayed unchanged during each inspection. The tightened [integration result](/home/eric/Developer/Halo-2-Decompiled/build/test-results/mcc-performance-goal-20261022/selected-skin/integration-result.json) independently records the same candidate hash and success; this instruction audit is not another game or performance measurement.
+
+Final normal-image symbols (virtual addresses in that linked ELF):
+
+| Symbol | Start | Bytes | Actual internal arithmetic/calls |
+| --- | --- | --- | --- |
+| `halo2::skin_model_world_nodes` | `0x0a1879a0` | 674 | Builds mapping/WORLD copy; calls anonymous `skin_model` at `0x0a187b6e` and `0x0a187bf5`. No FP arithmetic in this wrapper. |
+| `halo2::(anonymous namespace)::skin_model` | `0x0a1825e0` | 7,876 | Contains inlined vertex kernels, SSE scalar/packed arithmetic and diagnostic branches. Calls palette at `0x0a1826d4`, compounds at `0x0a1826fb`. |
+| `halo2::source_model_skin_palette` | `0x0a2dd700` | 989 | Nine static `mulss` instructions; calls `compose_transform` at `0x0a2dd803`. |
+| `halo2::append_source_model_compounds` | `0x0a2ddae0` | 841 | `mulss`, `addss`, `subss`, `addps`; vector allocation/copy/delete calls. |
+| `halo2::compose_transform` | `0x0a189530` | 772 | Forty `mulss`, 27 `addss`; no calls. |
+| `halo2::ModelWorldPoseCache::update(...,bool)` | `0x009d8090` | 1,568 | Integer/key/receipt logic, FP status reads and explicit external calls. |
+| `halo2::ModelFramePoseCache::update` | `0x009ea710` | 294 | Map lookup/insert, world-cache call and counters. |
+
+**Observed:** every inspected skin/palette/compound/transform normal/cold body has zero x87-family instructions and zero MXCSR writes. The cache's only x87 instructions are `fnstcw`/`fnstsw` reads; its MXCSR instructions are `stmxcsr` reads. The vertex functions have no separate emitted symbol/call in this image; their loops are folded into anonymous `skin_model`, which contains `mulps`/`addps` as well as scalar operations. A short actual SIMD sequence is `0x0a1830d6: mulps xmm2,xmm3`, `0x0a1830d9: mulps xmm0,xmm3`, `0x0a1830dc: mulps xmm1,xmm3`, then `0x0a18310e: mulps xmm3,xmm4` and `0x0a183111: addps xmm2,xmm3`. No direct math-library call appears in the inspected closure. These are code-presence/instruction findings, not a dynamic path-frequency claim.
+
+The normal/cold bodies explicitly reach `operator new` (`0x154b10@plt`), sized `operator delete` (`0x1531a0@plt`), `memcpy`/`memset`/`memcmp`, `getenv`, `fegetround`, `__errno_location`, `__cxa_allocate_exception`/`__cxa_throw`/`__cxa_free_exception`, `std::runtime_error`, length errors, stack failure and `_Unwind_Resume`. These external bodies were not disassembled or certified. No original source-memory callback is present inside these inspected skin bodies; the original builder and per-view work remain outside the proposed borrow as established above.
+
+### Actual receipt ordering and remaining limits
+
+The **initial** binary confirms the two source caveats: post `stmxcsr`/`fnstcw`/`fnstsw` at `0x9d82e8`/`0x9d82f5`/`0x9d82f9` precedes diagnostic `getenv` calls at `0x9d8309`/`0x9d8318`, and old-bank deletes at `0x9d8410`/`0x9d8467`. Do not cite that image as evidence for the tightened ordering.
+
+The **tightened** binary gives this normal successful miss sequence, preserving the returned arithmetic before the receipt:
+
+```text
+0x9d8200  call skin_model_world_nodes
+0x9d822d  call operator new       ; retained WORLD copy allocation
+0x9d824b  call memcpy             ; retained WORLD copy
+0x9d8290  call operator delete    ; old posed vertex bank, if present
+0x9d82b6  call operator delete    ; old retained node bank, if present
+0x9d82cb  call getenv             ; scalar diagnostic mode
+0x9d82da  call getenv             ; VERIFY mode
+0x9d8303  mov eax,[r14]           ; errno value, TLS pointer obtained earlier
+0x9d830a  stmxcsr [rsp+0x34]
+0x9d8317  fnstcw  [rsp+0x44]
+0x9d831b  fnstsw  [rsp+0x46]
+0x9d83a6  mov [r15+0x40],rax      ; receipt publication begins
+```
+
+The pre-skin diagnostic reads likewise precede raw errno/MXCSR/x87 snapshots. There is still a conditional moved-from temporary delete at `0x9d8422` in the emitted return tail: the successful vector move zeros that temporary's capacity at `0x9d8260` and its pointer/size at `0x9d827e`, so its zero-pointer branch bypasses this call on the ordinary successful path. This distinction matters; the disassembly does not support claiming there are no cleanup/failure calls anywhere after the snapshot.
+
+The final source pins are world-cache header `88218a532386c99f317edca94cad0fd05dc48a8e5925241df09bf1d5ec89b01a`, frame-cache header `db07ee678cb80f365093f4ad48d389ca37075c4c56f8359ab82c288fab568198`, and runtime `b2b80938bafbaf497dc33cf61d0bff2bd9ff540f7b636aa8cb587ead2e42cca7`; the four pose/skin/palette/transform hashes still match the initial table. The initial linked world-cache header was `6b2211d4f26f9a61bac5a312224bad32a2c8925c40e8e5d9d4423e5187c33f1e`. Both reports retain the full pin sets. The new header places diagnostics before snapshots and old-vector retirement before the post receipt at [current owned header:30](/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-0yux_h0i/source/src/rendering/models/model_world_pose_cache.hpp:30) and [line 80](/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-0yux_h0i/source/src/rendering/models/model_world_pose_cache.hpp:80).
+
+This closes the narrow normal-x64 internal x87/instruction-order uncertainty for the pinned image. It does **not** prove unconditional observational parity: hits still omit allocations and their possible `new_handler`/failure timing, cold diagnostic/exception paths and external-library effects. A successful recorded fill does not predict arbitrary future allocator/interposition behavior; the normal stable-environment admission and direct state/output regressions remain necessary. Other architectures, toolchains, changed source, LTO and future binaries require fresh admission. No integrated FPS gain or goal completion follows from this audit.
+
+### Helper lifecycle
+
+No production source, build graph, reference asset or binary was changed by this research helper. It created no binary/object/archive copies. The two JSON reports retain 97,036 bytes of bounded evidence. Temporary selected disassembly remains **only inside the already active owner**: `selected-skin-linked-audit-initial/` (200,610 bytes) and `selected-skin-linked-audit-tightened/` (199,397 bytes); `selected_skin_linked_audit.py` is 7,654 bytes. A crossed FIFO write queued an identical final inspection twice; the helper detects the completed matching binary hash and returns without reinspection. The current unsampled cohort must finish before cleanup commands run. The parent should then retire exactly those two private directories and the helper, verify their absence, and preserve the owner's unrelated build/reference/runtime inputs and the two compact JSON reports. Their continued temporary presence is explicit, not reported as completed cleanup.

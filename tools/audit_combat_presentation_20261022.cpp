@@ -14,6 +14,8 @@
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/particle_draw.hpp"
+#include "halo2/world_effects.hpp"
+#include "halo2/effect_light_draw.hpp"
 #include "../tests/helpers/gameplay_fixture.hpp"
 #include <algorithm>
 #include <bit>
@@ -141,6 +143,25 @@ Json zoom_draws(const std::filesystem::path &map,std::string_view name,unsigned 
   require(selected,"Requested authored starting weapon absent");
   options.prepared_world=std::make_shared<MultiplayerPreparedWorld>(options);
   auto &world=*options.prepared_world;world.bind_source_local_views(world.local_slots);
+  Json light_births=Json::array(),native_lights=Json::array(),source_light_census=Json::array();
+  struct LightBirthScope {
+    PhysicsLiveWorldTu15 *source{};
+    ~LightBirthScope(){if(source)source->observe_effect_light_births({});}
+  } light_birth_scope;
+  if(firing || throwing) {
+    light_birth_scope.source=&world.source_objects->tu15_world();
+    light_birth_scope.source->observe_effect_light_births([&](bool before,const auto &birth,const auto &,const SourceRuntimeMemory &memory) {
+      if(before || birth.light==null_datum || light_births.size()>=256)return;
+      const auto word=[&](unsigned at){return Bytes(memory.view(at,4)).u32(0);};
+      const auto row=word(0x4f0414u)+(birth.definition&65535u)*16u;
+      require(word(row+4)==birth.definition,"Observed effect light lost its full resident definition");
+      const auto tag=cache.query_tag({.handle=TagHandle{birth.definition}});
+      light_births.push_back({{"tick",birth.source_tick},{"light",birth.light},
+          {"definition",birth.definition},{"flags",word(word(row+8))},
+          {"name",tag?tag->name:std::string{}},{"parent_effect",birth.parent_effect},
+          {"event",birth.event_ordinal},{"part",birth.part_ordinal}});
+    });
+  }
   const auto player=world.local_slots.at(0);
   std::array<Controls,multiplayer_capacity> controls{};
   for(const auto slot:world.local_slots) {
@@ -270,6 +291,17 @@ Json zoom_draws(const std::filesystem::path &map,std::string_view name,unsigned 
     };
   }
   Json samples=Json::array(),views=Json::array();unsigned frames=0,scoped_draws=0,unscoped_draws=0;
+  options.effect_light_capture_request=[&](unsigned view,std::uint32_t tick,
+      std::span<const EffectLightRawDraw> packets,std::span<const WorldEffectLight> lights) {
+    if(view)return false;
+    for(const auto &light:lights)if(light.flags&0x20u) {
+      const auto tag=cache.query_tag({.handle=TagHandle{light.definition}});
+      native_lights.push_back({{"tick",tick},{"identity",light.identity},{"definition",light.definition},
+          {"name",tag?tag->name:std::string{}},{"flags",light.flags},{"effect",light.effect_definition},
+          {"packets",std::count_if(packets.begin(),packets.end(),[&](const auto &packet){return packet.light_identity==light.identity;})}});
+    }
+    return false;
+  };
   std::set<std::uint32_t> live_shots,attached_shots,glow_shots,model_shots,raw_attached_shots;
   Json camouflage_samples=Json::array();
   unsigned glow_draws{},glow_vertices{};
@@ -277,6 +309,24 @@ Json zoom_draws(const std::filesystem::path &map,std::string_view name,unsigned 
   if(firing) {
     options.view_state_observer=[&](unsigned view,const MultiplayerState &state,const Camera &) {
       if(view)return;
+      const auto &source_memory=world.source_objects->memory();
+      const auto source_word=[&](unsigned at){return Bytes(source_memory.view(at,4)).u32(0);};
+      const auto pool=source_word(0x4ecbdcu),high=source_word(pool+0x38),rows=source_word(pool+0x44),bits=source_word(pool+0x48);
+      require(source_word(pool+0x20)==350 && source_word(pool+0x24)==0x110 && high<=350,
+          "Observed source light census lost its actual pool contract");
+      for(unsigned index=0;index<high;++index)if(source_word(bits+index/32*4)&(1u<<(index%32))) {
+        const auto body=rows+index*0x110,definition=source_word(body+4);
+        if(definition==null_datum)continue;
+        const auto row=source_word(0x4f0414u)+(definition&65535u)*16;
+        require(source_word(row+4)==definition,"Observed source light census lost its full definition");
+        const auto flags=source_word(source_word(row+8));
+        if(!(flags&0x20u))continue;
+        const auto tag=cache.query_tag({.handle=TagHandle{definition}});
+        source_light_census.push_back({{"tick",state.tick},{"identity",(source_word(body)&65535u)*65536u+index},
+            {"definition",definition},{"flags",flags},{"owner",source_word(body+0x4c)},
+            {"name",tag?tag->name:std::string{}},{"node",Bytes(source_memory.view(body+0x54,2)).u16(0)},
+            {"cluster",Bytes(source_memory.view(body+0x48,2)).u16(0)}});
+      }
       for(const auto &p:state.weapon_projectiles)if(p.definition==projectile)live_shots.insert(p.datum);
       for(const auto &p:state.source_dynamic_objects)if(p.type==5 && p.definition==projectile) {
         attached_shots.insert(p.object);
@@ -349,6 +399,9 @@ Json zoom_draws(const std::filesystem::path &map,std::string_view name,unsigned 
       {"scoped_first_person_draws",scoped_draws},{"unscoped_first_person_draws",unscoped_draws},
       {"final_zoom",world.match.state().players[player].source_zoom.current},{"samples",samples},{"views",views},
       {"input_samples",input_samples},
+      {"actual_source_light_births",light_births},
+      {"actual_native_first_person_light_records",native_lights},
+      {"actual_source_first_person_light_census",source_light_census},
       {"firing",firing},{"firing_setup",firing_setup},{"live_projectiles",live_shots},
       {"attached_projectile_udp",wire},
       {"camouflage_samples",camouflage_samples},

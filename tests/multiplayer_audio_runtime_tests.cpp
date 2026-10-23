@@ -2,9 +2,12 @@
 #include "halo2/multiplayer_audio.hpp"
 #include "halo2/multiplayer.hpp"
 #include "halo2/multiplayer_network.hpp"
+#include "halo2/multiplayer_world.hpp"
+#include "halo2/multiplayer_object_runtime.hpp"
 #include "halo2/muzzle_effects.hpp"
 #include "halo2/desktop_session.hpp"
 #include <iostream>
+#include <future>
 #include <mutex>
 #include <set>
 #include <thread>
@@ -24,7 +27,7 @@ std::shared_ptr<const OriginalData> original(const MultiplayerOptions &options) 
   return options.gameplay_xbe.empty()?std::shared_ptr<const OriginalData>{}:OriginalData::load_xbe(options.gameplay_xbe);
 }
 struct Host {
-  Cache cache;LevelContent content;std::uint32_t starting_sound;MultiplayerMatch match;LanHost host;
+  Cache cache;LevelContent content;std::uint32_t starting_sound;unsigned port{};
   std::uint32_t effect_primary{0x12345678u},effect_auxiliary{0x12345678u};
   NativeMuzzleEffects effects;
   struct SourceImpulse {std::uint32_t tick;SoundEvent event;};
@@ -33,14 +36,27 @@ struct Host {
   // generic shot notifications nor ammo-derived cadence supplies expectations.
   std::vector<SourceImpulse> starting_impulses;
   std::exception_ptr error;std::mutex mutex;std::jthread worker;
-  static SlayerRules rules(const Cache &c){auto r=slayer_rules(UiVariant{"Slayer",0,{{2,0},{10,0},{89,5}}});r.weapon=c.slayer_starting_weapon(5);return r;}
   Host(const MultiplayerOptions &o):cache(o.map,o.shared_maps,original(o)),
     content(cache.load_content(0,true)),starting_sound(content.weapons.at(cache.slayer_starting_weapon(5)).sound),
-    match(content,0,cache.spawns(),rules(cache)),host(match,0,
-      multiplayer_fingerprint(o.map,cache.shared_directory(),0,cache.slayer_starting_weapon(5),o.gameplay_xbe)),effects(cache,SourceEffectRandom{effect_primary,effect_auxiliary}){
+    effects(cache,SourceEffectRandom{effect_primary,effect_auxiliary}){
     check(starting_sound!=null_datum,"Authored starting SMG firing sound is unavailable");
-    match.configure_replicated_first_person(cache.load_first_person_binding(cache.slayer_starting_weapon(5),2));
-    match.configure_weapon_effect_owner([&](const Unit &,const WeaponEffectInput &input){
+    std::promise<void> ready;auto prepared=ready.get_future();
+    worker=std::jthread([this,o,&ready](std::stop_token stop){bool announced=false;try{
+      // A current MCC client requires the real completed source model/prop
+      // replica. Construct and service the authority on its retained executor,
+      // just as the dedicated runtime does; a legacy match is insufficient.
+      auto server=o;server.local_players=0;server.dedicated=true;server.mute=true;
+      server.variant=UiVariant{"Slayer",0,{{2,0},{10,0},{89,5}}};server.starting_weapon=5;
+      server.source_object_world=true;
+      server.source_object_savegame_directory=std::filesystem::path(std::getenv("HALO2_TEST_SCRATCH"))/"lan-source-host";
+      MultiplayerPreparedWorld world(server);auto &match=world.match;
+      check(world.source_objects && world.source_objects->owns_physics(),"LAN audio authority lacks its original source world");
+      check(bool(match.session_configuration()),"Audio authority has no admitted session configuration");
+      match.configure_replicated_first_person(cache.load_first_person_binding(cache.slayer_starting_weapon(5),2));
+      LanHost host(match,0,custom_slayer_fingerprint(multiplayer_fingerprint(server.map,world.cache->shared_directory(),
+          0,world.network_starting_weapon_identity(),server.gameplay_xbe),*match.session_configuration()),*match.session_configuration());
+      port=host.port();
+      match.configure_weapon_effect_owner([&](const Unit &,const WeaponEffectInput &input){
       if(input.effect==null_datum)return input.previous_handle;
       const auto tag=std::find_if(cache.tags().begin(),cache.tags().end(),[&](const auto &t){return t.datum==input.effect;});
       check(tag!=cache.tags().end(),"Authority weapon effect lost its authored tag");
@@ -48,8 +64,9 @@ struct Host {
       if(tag->group=="snd!"&&input.effect==starting_sound)
         starting_impulses.push_back({std::uint32_t(match.simulation().ticks()+1),{input.effect,{}}});
       return null_datum;
-    });
-    worker=std::jthread([this](std::stop_token stop){try{std::array<Controls,16> controls{};auto next=std::chrono::steady_clock::now();
+      });
+      announced=true;ready.set_value();
+      std::array<Controls,16> controls{};auto next=std::chrono::steady_clock::now();
       while(!stop.stop_requested()){host.receive(controls);
         const auto roster=match.state();
         if(std::any_of(roster.players.begin(),roster.players.end(),[](const auto&p){return p.connected;}))match.step(controls);
@@ -61,7 +78,9 @@ struct Host {
           starting_impulses.push_back({sound_tick,{sound.cue.sound,{},sound.cue.gain}});
         host.broadcast();
         next+=std::chrono::microseconds(33333);std::this_thread::sleep_until(next);}}
-      catch(...){std::lock_guard lock(mutex);error=std::current_exception();}});
+      catch(...){const auto failure=std::current_exception();{std::lock_guard lock(mutex);error=failure;}
+        if(!announced)ready.set_exception(failure);}});
+    prepared.get();
   }
   void finish(){worker.request_stop();worker.join();std::lock_guard lock(mutex);if(error)std::rethrow_exception(error);}
 };
@@ -97,7 +116,7 @@ int main(int argc,char **argv){try{
   const auto fp=cache.load_first_person_binding(cache.slayer_starting_weapon(5),2);std::set<std::uint32_t> reload_tags;
   for(const auto &clip:fp.clock_clips)if(clip.activity==0x0b000065||clip.activity==0x0c000064)
     for(const auto &e:clip.events)if(e.type==1&&e.tag!=null_datum)reload_tags.insert(e.tag);
-  std::unique_ptr<Host> host;if(lan){host=std::make_unique<Host>(options);options.join="127.0.0.1:"+std::to_string(host->host.port());}
+  std::unique_ptr<Host> host;if(lan){host=std::make_unique<Host>(options);options.join="127.0.0.1:"+std::to_string(host->port);}
   const auto [starting_sound,starting_effect]=[&]{
     const auto selected=cache.slayer_starting_weapon(5);
     const auto pick=[&](const LevelContent &content){const auto &w=content.weapons.at(selected);
