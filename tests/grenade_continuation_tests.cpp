@@ -32,6 +32,13 @@ void same(const NativeGrenadeDetonation &a,const NativeGrenadeDetonation &b){
         std::tie(b.serial,b.tick,b.projectile,b.definition,b.effect,b.player,b.unit,b.colors.a,b.colors.b,b.source_effect_instance) &&
         same(a.position,b.position)&&same(a.forward,b.forward)&&same(a.up,b.up)&&same(a.controls.a,b.controls.a)&&same(a.controls.b,b.controls.b)&&
         a.source_locations.size()==b.source_locations.size(),"Restored grenade detonation/journal differs");
+    check(a.replica_render.has_value()==b.replica_render.has_value(),"Restored replica effect render provenance disappeared");
+    if(a.replica_render) {
+        const auto &x=*a.replica_render,&y=*b.replica_render;
+        check(x.identity==y.identity&&x.attached_owner==y.attached_owner&&x.local_view==y.local_view&&x.flags==y.flags&&
+            x.root_owner==y.root_owner&&x.root_type==y.root_type&&
+            same(x.color,y.color)&&same(x.velocity,y.velocity),"Restored replica effect render fields changed");
+    }
     for(unsigned i=0;i<a.source_locations.size();++i)check(a.source_locations[i].name==b.source_locations[i].name &&
         same(a.source_locations[i].frame,b.source_locations[i].frame),"Restored completed source effect location differs");
 }
@@ -123,12 +130,14 @@ void source_bridge(const char *map,const char *xbe) {
     a.adopt_source_projectiles({p},owners);rejects([&]{a.authority_checkpoint({});});
     SourceProjectileDetonationTu15 event{};event.projectile=p.datum;event.definition=p.definition;event.effect=123;
     event.effect_instance=0xe2000004;event.player=p.player;event.unit=p.unit;event.controls={.25f,.75f};event.colors={0x12345678,0x87654321};
+    event.replica_render=SourceEffectReplicaRenderTu15{event.effect_instance,null_datum,null_datum,1,{.25f,.5f,1.5f},{}};
     Transform frame;frame.position={4,5,6};event.effect_locations.push_back({42,frame});
     for(unsigned i=0;i<70;++i)a.adopt_source_detonations(100+i,std::span(&event,1));
     const auto saved=a.authority_checkpoint({},true);check(saved.detonations.size()==64 && saved.detonation_serial==70,"Source journal retention/frontier changed");
     for(const auto& d:saved.detonations)check(d.source_effect_instance==event.effect_instance,"Source effect-instance provenance was dropped");
     auto invalid=saved;invalid.detonations.front().source_effect_instance=4;rejects([&]{b.prepare_authority(invalid,{},true);});
     invalid=saved;invalid.detonations.front().source_effect_instance=0xe2000100;rejects([&]{b.prepare_authority(invalid,{},true);});
+    invalid=saved;invalid.detonations.front().replica_render->identity^=0x10000u;rejects([&]{b.prepare_authority(invalid,{},true);});
     rejects([&]{b.prepare_authority(saved,{});});auto staged=b.prepare_authority(saved,{},true);
     check(b.commit_authority(std::move(staged)),"Qualified source grenade presentation import failed");same(saved,b.authority_checkpoint({},true));
     auto malformed=event;malformed.effect_locations.clear();rejects([&]{b.adopt_source_detonations(200,std::span(&malformed,1));});

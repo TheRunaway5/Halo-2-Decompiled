@@ -60,7 +60,8 @@ SceneObjects::SceneObjects(const LevelContent &content, std::size_t bsp,
       names_(content.object_names.size(), null_datum) {
   if(!shared_lifetimes_)local_lifetimes_.emplace();
   if(bool(source_owner_.create)!=bool(source_owner_.destroy) ||
-      (source_owner_.create && !shared_lifetimes_) || (source_owner_.adopt_child && !source_owner_.create))
+      (source_owner_.create && !shared_lifetimes_) || (source_owner_.adopt_child && !source_owner_.create) ||
+      (source_owner_.birth_placement && !source_owner_.create))
     throw FormatError("Source scene ownership requires paired birth/retirement and its shared pool");
   // D5560 attempts types0..12, then each authored placement ordinal.
   // Native factory admission remains separate from that ordering.
@@ -173,16 +174,6 @@ std::uint32_t SceneObjects::place(std::size_t placement,
     ++slot;
   if (slot == objects_.size() && slot >= 2048)
     throw FormatError("scene object capacity exhausted");
-  std::optional<bool> render_attribution_at_birth;
-  if (render_attribution_definition_) {
-    const auto definition = render_attribution_definition_(p.definition);
-    if (definition && definition->datum != p.definition)
-      throw FormatError("scene render attribution definition identity mismatch");
-    // Only the construction predicate survives. Scratch zero is not exposed
-    // as complete native body flags or a later/current object flag31 word.
-    render_attribution_at_birth = source_object_render_flag31_construction_event(
-        0, definition).model_attribution_available;
-  }
   if(attachment_parent!=null_datum && !p.model_attachment)
     throw FormatError("An unattached scene placement cannot adopt a parent generation");
   if(p.model_attachment && (attachment_parent!=null_datum || source_owner_.adopt_child)) {
@@ -205,9 +196,27 @@ std::uint32_t SceneObjects::place(std::size_t placement,
       " ordinal="+std::to_string(p.placement)+" definition="+std::to_string(p.definition)+
       " netgame_row="+std::to_string(p.netgame_row) : "shared native object capacity exhausted");
   if(slots_.contains(handle))throw FormatError("source object generation already belongs to another scene placement");
+  if(source_owner_.birth_placement) {
+    const auto selected=source_owner_.birth_placement(p,placement,handle);
+    if(selected>=content_.objects.size())throw FormatError("Source birth selected an absent cold template");
+    const auto& actual=content_.objects[selected];
+    if(selected!=placement && (p.netgame_row<0 || actual.netgame_row!=p.netgame_row ||
+        actual.type!=p.type || p.model_attachment || actual.model_attachment || p.name>=0 || actual.name>=0))
+      throw FormatError("Source birth changed another placement owner");
+    placement=selected;
+  }
+  const auto& actual=content_.objects[placement];
+  std::optional<bool> render_attribution_at_birth;
+  if(render_attribution_definition_) {
+    const auto definition=render_attribution_definition_(actual.definition);
+    if(definition && definition->datum!=actual.definition)
+      throw FormatError("scene render attribution definition identity mismatch");
+    render_attribution_at_birth=source_object_render_flag31_construction_event(
+        0,definition).model_attribution_available;
+  }
   if(source_owner_.create)lifetime_owner().observe_source_birth(handle);
   if (slot == objects_.size())objects_.push_back({});
-  objects_[slot] = {handle, placement, p.position, p.rotation, p.scale, true, false, false, false, int(bsp_)};
+  objects_[slot] = {handle, placement, actual.position, actual.rotation, actual.scale, true, false, false, false, int(bsp_)};
   objects_[slot].created_tick = creation_tick;
   objects_[slot].attachment_parent=attachment_parent;
   objects_[slot].render_attribution_at_birth = render_attribution_at_birth;

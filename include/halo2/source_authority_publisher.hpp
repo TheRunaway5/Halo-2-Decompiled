@@ -91,6 +91,8 @@ public:
     // after capture, including while the initial cut is encoding/in flight.
     // Recording failure drops this stream, never real host work. Exceptions
     // from the supplied native work itself propagate to its original caller.
+    // A local-only capability disables journals for this generation; later
+    // complete checkpoint captures continue without restarting unsafe tapes.
     bool execute(const std::function<void()> &);
     class Frame {
     public:

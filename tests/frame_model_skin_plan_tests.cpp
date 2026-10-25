@@ -283,13 +283,31 @@ void empty_submissions_preserve_registered_plan() {
          "Rejected late empty submissions changed completed records");
 }
 }
+void banded_local_mismatch() {
+    // The per-vertex local comparison scans in bands; a mismatch anywhere,
+    // including a partial final band and the first vertex, must still be
+    // rejected, and an unaltered bank must still be admitted.
+    constexpr std::size_t count=10000;
+    auto pose=geometry(count);
+    // The shared helper's weights grow past1 beyond eight vertices; keep
+    // every influence inside the admitted normal domain for this large bank.
+    for(auto &binding:pose->bindings)binding.weights[0]=.5f;
+    {FrameModelSkinPlan plan;plan.add_bank(pose->vertices,submission(0,pose));plan.append(pose->vertices,0);plan.validate_complete();
+     need(plan.records().size()==count,"Admitted banded bank lost records");}
+    for(const std::size_t index:{std::size_t{0},std::size_t{5000},count-1}) {
+        auto bank=pose->vertices;bank[index].position.x+=1.f;
+        FrameModelSkinPlan plan;
+        rejects([&]{plan.add_bank(bank,submission(0,pose));},"Banded scan accepted a mismatched local vertex");
+        need(!plan.contains(bank),"Rejected mismatched bank was retained");
+    }
+}
 int main()try {
     empty_and_bounds();grouped_parts_and_repeated_copies();owner_identity_and_source_aliases();
     foreground_post_modes_and_lifetime();
     section_duplicates_completion_and_failures();
     fragmented_ranges_and_atomic_aliases();dense_and_sparse_ordinal_bindings();
     shared_packet_geometry_and_bank_validation();bounded_fragmented_storage_growth();
-    empty_submissions_preserve_registered_plan();
+    empty_submissions_preserve_registered_plan();banded_local_mismatch();
     std::cout<<"PASS frame model skin source/owner/grouped destination provenance and rejection gates\n";
     return 0;
 }catch(const std::exception &error) {std::cerr<<error.what()<<'\n';return 1;}

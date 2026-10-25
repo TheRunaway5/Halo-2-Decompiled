@@ -16,12 +16,17 @@
 #include "halo2/pstencil/shared_light_materials.hpp"
 #include "halo2/pstencil/caster.hpp"
 #include "halo2/menu_world_depth.hpp"
+#include "halo2/source_portal_visibility.hpp"
+#include "halo2/source_bsp_ranges.hpp"
+#include "halo2/source_runtime_write_protection.hpp"
 #include <algorithm>
 #include <cstring>
 #include <map>
 #include <set>
 #include <bit>
 #include <tuple>
+#include <iostream>
+#include <cstdlib>
 #include <optional>
 
 namespace halo2 {
@@ -157,14 +162,7 @@ struct SourceBspEffectLights::Impl {
             const Bytes root(tag.bytes_at(tag.source_address(),0x68));
             for(unsigned n=0;n<root.u32(0x60);++n) {
                 const auto id=Bytes(tag.bytes_at(root.u32(0x64)+n*32u,32)).u32(12);
-                if(id==0xffffffffu || shaders.contains(id))continue;
-                SourceBspCommandShader value;value.lod=cache.load_source_shader_lod_definition(id);
-                const auto& shad=metadata.definition(id);
-                const auto stem=Bytes(metadata.read(Bytes(metadata.read(shad.source_address(),0x28)).u32(0x24),4)).u32(0);
-                const auto& st=metadata.definition(stem);
-                const auto post=Bytes(metadata.read(Bytes(metadata.read(st.source_address(),0x60)).u32(0x5c),8));
-                for(unsigned lod=0;lod<post.u32(0);++lod)value.layers.push_back(Bytes(metadata.read(post.u32(4)+lod*10,10)).u32(2));
-                shaders.emplace(id,std::move(value));
+                if(id!=0xffffffffu)shader_for(id);
             }
             for(unsigned section=0;section<root.u32(0x24);++section) {
                 const auto row=Bytes(tag.bytes_at(root.u32(0x28)+section*92u,92));
@@ -190,19 +188,21 @@ struct SourceBspEffectLights::Impl {
         const auto cluster_count=word(root+0x9cu),cluster_base=word(root+0xa0u);
         const auto definition_count=word(root+0x138u),definition_base=word(root+0x13cu);
         const auto instance_count=word(root+0x140u),instance_base=word(root+0x144u);
-        std::set<std::uint32_t> sections;
+        std::map<std::uint32_t,SectionKey> sections;
         for(const auto& row:main.clusters) {
             if(row.id>=cluster_count)throw FormatError("TU1.5 BSP render cluster escapes the current source bank");
-            sections.insert(cluster_base+row.id*0xb0u);
+            sections.emplace(cluster_base+row.id*0xb0u,SectionKey{false,row.id});
         }
+        // Instance definitions are requested by each appended unit's449D0
+        // admission (definition_resident), as2CBF0 does; zero-alpha instances
+        // never request their geometry.
         for(const auto& row:main.instances) {
             if(row.id>=instance_count)throw FormatError("TU1.5 BSP render instance escapes the current source bank");
             const auto definition=std::bit_cast<std::int16_t>(Bytes(memory.view(instance_base+row.id*0x58u+0x34u,2)).u16(0));
             if(definition<0 || std::uint32_t(definition)>=definition_count)
                 throw FormatError("TU1.5 BSP render instance lacks its actual authored definition");
-            sections.insert(definition_base+std::uint32_t(definition)*0xc8u);
         }
-        for(const auto section:sections) {
+        for(const auto& [section,key]:sections) {
             //449D0 selects the literal BSP+28 resource header and returns
             // its completed+50 geometry pointer. Use the same whole130980
             // request/fixup owner as native model publication; never set it.
@@ -210,10 +210,348 @@ struct SourceBspEffectLights::Impl {
             const auto header=section+0x28u;
             auto ready=world.request_render_geometry(2u,header);
             if(!ready)ready=world.request_render_geometry(0u,header);
-            if(!ready || !word(section+0x50u))
-                throw FormatError("TU1.5 original BSP resource publication did not finish: section="+
-                    std::to_string(section)+" resource="+std::to_string(word(header)));
+            if(ready && word(section+0x50u))continue;
+            // A failed request makes449D0 return NULL, so2CBF0 drops this
+            // frame's units for the section rather than drawing it.
+            unavailable_sections.insert(key);
+            if(reported_unavailable.insert(key).second)
+                std::cerr<<"TU1.5 BSP section not resident this frame: "<<(key.first?"definition ":"cluster ")<<
+                    key.second<<" resource=0x"<<std::hex<<word(header)<<std::dec<<'\n';
         }
+    }
+    // Original449D0 for an appended instance unit: request flags3, then the
+    // published geometry. A failed request drops the unit for this frame.
+    bool definition_resident(PhysicsLiveWorldTu15& world,unsigned definition,bool request) {
+        const auto& memory=world.memory();
+        const auto word=[&](std::uint32_t p){return Bytes(memory.view(p,4)).u32(0);};
+        const auto root=word(0x4ecc18u);
+        if(!root || definition>=word(root+0x138u))
+            throw FormatError("TU1.5 BSP instance definition escapes the current source bank");
+        const auto section=word(root+0x13cu)+definition*0xc8u;
+        if(request && !world.request_render_geometry(3u,section+0x28u)) {
+            if(reported_unavailable.insert({true,definition}).second)
+                std::cerr<<"TU1.5 BSP section not resident this frame: definition "<<definition<<'\n';
+            return false;
+        }
+        return definitions.at(definition).resident && word(section+0x50u);
+    }
+    // Clusters whose130980 request failed for the current draw.
+    std::set<SectionKey> unavailable_sections,reported_unavailable;
+    // Census of translated main40E80 stores: address → (hits, max size). The
+    // observer sees each store before it lands; it changes nothing. Ranges
+    // are reported coalesced so the native oracle's snapshot set is exact.
+    struct MainCommandsCensus {
+        std::map<std::uint32_t,std::pair<std::uint64_t,std::uint32_t>> stores;
+        std::uint64_t views{},total{};
+    } commands_census;
+    // Oracle foundation for native main40E80: hash the closed observable
+    // write set before/after the translated call and prove every observed
+    // store lands inside it, the emulated stack, or the physical namespace.
+    struct MainCommandsOracle {
+        std::uint64_t views{},in_set{},stack{},physical{},outside{};
+        std::map<std::uint32_t,std::uint64_t> outside_addresses;
+        std::uint64_t digest_sum{};
+    } commands_oracle;
+    struct CommandBankSet {
+        static constexpr std::uint32_t headers=0x4ce268u,header_stride=0x18u,header_bytes=0x48u;
+        static constexpr std::array<std::uint32_t,2> words[]{{0x486040u,8},{0x4c2aa0u,8},{0x4d4f60u,64},{0x515f1cu,4}};
+        std::array<std::pair<std::uint32_t,std::uint32_t>,3> storage{}; // data, bytes (capacity×24)
+        static CommandBankSet read(const SourceRuntimeMemory& memory) {
+            CommandBankSet set;
+            for(unsigned b=0;b<3;++b) {
+                const auto h=headers+b*header_stride;
+                const auto capacity=Bytes(memory.view(h,4)).u32(0),data=Bytes(memory.view(h+0x14u,4)).u32(0);
+                set.storage[b]={data,capacity*24u};
+            }
+            return set;
+        }
+        bool contains(std::uint32_t address,std::size_t bytes)const {
+            const auto end=std::uint64_t(address)+bytes;
+            const auto inside=[&](std::uint32_t first,std::uint64_t size){return address>=first && end<=std::uint64_t(first)+size;};
+            if(inside(headers,header_bytes))return true;
+            for(const auto& [first,size]:words)if(inside(first,size))return true;
+            for(const auto& [data,size]:storage)if(data && inside(data,size))return true;
+            return false;
+        }
+        std::uint64_t digest(const SourceRuntimeMemory& memory)const {
+            std::uint64_t h=1469598103934665603ull;
+            const auto mix=[&](std::uint32_t first,std::size_t size){for(auto byte:memory.view(first,size))h=(h^std::to_integer<std::uint8_t>(byte))*1099511628211ull;};
+            mix(headers,header_bytes);
+            for(const auto& [first,size]:words)mix(first,size);
+            for(unsigned b=0;b<3;++b) {
+                const auto count=Bytes(memory.view(headers+b*header_stride+4u,4)).u32(0);
+                if(storage[b].first && count*24u<=storage[b].second)mix(storage[b].first,count*24u);
+            }
+            return h;
+        }
+    };
+    void main_commands_oracle(PhysicsLiveWorldTu15& world,const std::function<void()>& translated) {
+        auto& memory=world.memory();
+        const auto set=CommandBankSet::read(memory);
+        struct Observer {
+            SourceRuntimeMemory& bank;MainCommandsOracle& oracle;const CommandBankSet& set;
+            Observer(SourceRuntimeMemory& b,MainCommandsOracle& o,const CommandBankSet& s):bank(b),oracle(o),set(s) {
+                source_runtime_register_write_observer(bank,this,[this](std::uint32_t address,std::size_t bytes) {
+                    if(set.contains(address,bytes))++oracle.in_set;
+                    else if(address>=0x600e0000u && address<0x60100000u)++oracle.stack;
+                    else if(address>=0x80000000u)++oracle.physical;
+                    else {++oracle.outside;++oracle.outside_addresses[address];}
+                });
+            }
+            ~Observer(){source_runtime_unregister_write_observer(bank,this);}
+        } observer{memory,commands_oracle,set};
+        translated();
+        commands_oracle.digest_sum+=set.digest(memory);
+        if(++commands_oracle.views%240)return;
+        std::cerr<<"Main commands oracle: views="<<commands_oracle.views<<" in_set="<<commands_oracle.in_set<<
+            " stack="<<commands_oracle.stack<<" physical="<<commands_oracle.physical<<" outside="<<commands_oracle.outside<<
+            " digest_sum="<<std::hex<<commands_oracle.digest_sum<<std::dec;
+        unsigned shown=0;for(const auto& [address,hits]:commands_oracle.outside_addresses){if(shown++==8)break;std::cerr<<" ["<<std::hex<<address<<std::dec<<"x"<<hits<<"]";}
+        std::cerr<<'\n';
+    }
+    // Native main40E80 for accelerated BSP units. The existing native
+    //44AC0→45CE0→460D0→41040→40E30→3B9D0 kernel builds their command records
+    // from the live draw units, masks, coverage and shader tables. Those units
+    // are hidden from translated40E80 (flag1 cleared, as a culled-out unit),
+    // which still produces model, special and object records and performs the
+    // reset. The two record streams merge by the original ordering key: word3
+    // token=(coverage<<16|ordinal)<<8|part, emitted by44AC0 in ascending
+    // (ordinal,part). Header count and layers follow3B9D0 exactly.
+    struct MainCommandsStats {std::uint64_t views{},native_units{},native_model_units{},native_records{},translated_units{},model_units{},model_unresident{},fallbacks{},mismatches{};} main_commands_stats;
+    void main_commands_native(PhysicsLiveWorldTu15& world,unsigned players,std::array<std::int16_t,4> viewport,
+        bool view_modifier,bool oracle,const std::function<void()>& translated) {
+        constexpr std::uint32_t units_at=0x4c6958u,headers=CommandBankSet::headers;
+        auto& memory=world.memory();
+        const auto word=[&](std::uint32_t p){return Bytes(memory.view(p,4)).u32(0);};
+        const auto draw_count=word(0x4cd398u),main_prefix=word(0x4cd39cu);
+        if(draw_count>850 || main_prefix>draw_count || word(0x4cd3a0u)!=0x556e18u){translated();return;}
+        std::vector<SourceCullDrawUnit> units(draw_count);
+        if(draw_count)std::memcpy(units.data(),memory.view(units_at,draw_count*32u).data(),draw_count*32u);
+        // Eligible: culled-in (flag1), not special (flag400), and either
+        // resident BSP geometry this owner resolved, or a model unit whose
+        //449D0 request (flags3 on the section's +0x38 header, through the
+        // native request owner) succeeds. A failed request drops the unit for
+        // the frame exactly as449D0 returning NULL does, so it stays translated.
+        std::vector<unsigned> eligible;std::uint64_t remaining{};
+        std::map<std::array<std::uint32_t,8>,SourceModelCommandGeometry> live_models;
+        for(unsigned n=0;n<main_prefix;++n) {
+            const auto& u=units[n].words;
+            if(!(u[0]&1u) || (u[0]&0x400u)){continue;}
+            if(u[1]!=0xffffffffu) {
+                ++main_commands_stats.model_units;
+                bool ready=false;
+                try {
+                    const auto header=source_live_model_section_header_tu15(world,units[n]);
+                    ready=world.request_render_geometry(3u,header);
+                    if(ready) {
+                        auto geometry=source_live_model_command_geometry_tu15(world,units[n]);
+                        ready=geometry.geometry.resident;
+                        if(ready)live_models.emplace(u,std::move(geometry));
+                    }
+                } catch(const std::exception&){ready=false;}
+                if(!ready){++remaining;++main_commands_stats.model_unresident;continue;}
+                eligible.push_back(n);++main_commands_stats.native_model_units;continue;
+            }
+            const SourceBspCommandGeometry* geometry=nullptr;
+            if(u[0]&0x1000u){const auto instance=u[3]>>18&2047u;
+                if(instance<instance_definitions.size()){const auto d=instance_definitions[instance];if(d>=0 && unsigned(d)<definition_commands.size())geometry=&definition_commands[unsigned(d)];}}
+            else {const auto cluster=u[3]>>9&511u;if(cluster<cluster_commands.size())geometry=&cluster_commands[cluster];}
+            if(!geometry || !geometry->resident){++remaining;continue;}
+            eligible.push_back(n);
+        }
+        ++main_commands_stats.views;
+        if(eligible.empty()){main_commands_stats.translated_units+=remaining;translated();return;}
+        // Live inputs the translated kernel reads: coverage, override slots,
+        // overrides, mask arena, and the three bank headers' capacities.
+        std::array<std::uint8_t,850> coverage{},override_slots{};std::array<std::uint32_t,192> overrides{};
+        std::memcpy(coverage.data(),memory.view(0x4cd3a4u,draw_count).data(),draw_count);
+        std::memcpy(override_slots.data(),memory.view(0x4cd6f6u,draw_count).data(),draw_count);
+        const auto override_count=std::min<std::uint32_t>(word(0x4cdd48u),192u);
+        if(override_count)std::memcpy(overrides.data(),memory.view(0x4cda48u,override_count*4u).data(),override_count*4u);
+        SourceBspRangeArena arena;
+        std::memcpy(arena.words.data(),memory.view(0x556e18u+0x25cu,sizeof(arena.words)).data(),sizeof(arena.words));
+        SourceBspPartCommandState native;
+        for(unsigned b=0;b<3;++b) {
+            const auto h=headers+b*CommandBankSet::header_stride;
+            native.banks[b].header[0]=word(h);native.banks[b].storage.resize(native.banks[b].header[0]);
+        }
+        SourceBspPartCommandContext context;
+        context.mode=0;context.flag_mask=0xffffffffu;context.group=31;
+        context.callback_geometry=0x4cbe0u;context.callback_light=0x4d0a0u; // TU1.5 image.
+        context.main_prefix=main_prefix;context.draw_count=draw_count;context.mask_arena_address=0x556e18u+0x25cu;
+        context.lod_view=source_shader_lod_view(viewport[0],viewport[2],false,false);
+        context.player_multiplier=source_shader_lod_player_multiplier(players);context.view_modifier=view_modifier;
+        context.coverage=std::span<const std::uint8_t>(coverage).first(draw_count);
+        context.override_slots=std::span<const std::uint8_t>(override_slots).first(draw_count);
+        context.overrides=std::span<const std::uint32_t>(overrides).first(override_count);
+        SourceBspPartCommandWorld world_inputs{cluster_commands,definition_commands,instance_definitions,materials,
+            visibility,std::int16_t(bsp_index),[&](auto datum)->const SourceBspCommandShader&{return shaders.at(datum);}};
+        world_inputs.model=[&](const SourceCullDrawUnit& unit)->const SourceModelCommandGeometry& {
+            const auto at=live_models.find(unit.words);
+            if(at==live_models.end())throw FormatError("native main commands consumed an unselected model unit");
+            return at->second;
+        };
+        world_inputs.shader=[&](auto datum)->const SourceBspCommandShader&{return shader_for(datum);};
+        // Only eligible units are visible to the native pass.
+        auto native_units=units;
+        for(unsigned n=0;n<main_prefix;++n)
+            if(std::find(eligible.begin(),eligible.end(),n)==eligible.end())native_units[n].words[0]&=~1u;
+        try{source_bsp_append_part_commands(native,native_units,arena,world_inputs,context);}
+        catch(const std::exception& error) {
+            if(!main_commands_stats.fallbacks++)std::cerr<<"Native main commands fell back to TU1.5: "<<error.what()<<'\n';
+            translated();return;
+        }
+        main_commands_stats.native_units+=eligible.size();main_commands_stats.translated_units+=remaining;
+        for(const auto& bank:native.banks)main_commands_stats.native_records+=bank.header[1];
+        const auto write=[&](std::uint32_t address,std::span<const std::byte> bytes){world.write_source_call_input(address,bytes);};
+        const auto write_word=[&](std::uint32_t address,std::uint32_t value){write(address,std::as_bytes(std::span(&value,1)));};
+        // Merge: read a live bank's records, insert native records by token.
+        const auto merge=[&](unsigned b,bool apply) {
+            const auto h=headers+b*CommandBankSet::header_stride;
+            const auto capacity=word(h),count=word(h+4u),data=word(h+0x14u);
+            const auto& mine=native.banks[b];
+            if(!mine.header[1])return true;
+            if(!data || count>capacity)return false;
+            std::vector<SourcePartCommand> live(count);
+            if(count)std::memcpy(live.data(),memory.view(data,count*24u).data(),count*24u);
+            // 3B9D0 refuses past capacity; the merged stream must too, in the
+            // original emission order, so recount as if emitted together.
+            std::vector<SourcePartCommand> merged;merged.reserve(count+mine.header[1]);
+            std::size_t a=0,n=0;std::uint32_t layers=0;
+            const auto token=[](const SourcePartCommand& c){return c.words[3];};
+            while(a<live.size() || n<mine.header[1]) {
+                const bool take_native=n<mine.header[1] && (a>=live.size() || token(mine.storage[n])<token(live[a]));
+                const auto& next=take_native?mine.storage[n++]:live[a++];
+                if(merged.size()>=capacity)break;
+                merged.push_back(next);layers|=next.words[4];
+            }
+            if(!apply)return true;
+            write(data,std::as_bytes(std::span(merged)));
+            write_word(h+4u,std::uint32_t(merged.size()));write_word(h+8u,word(h+8u)|layers);
+            return true;
+        };
+        if(oracle) {
+            // Translated alone is the reference; the native pass over all
+            // eligible units must reproduce exactly the records it emitted for
+            // them. Compare per bank the subsequence of records whose token
+            // ordinal names an eligible unit.
+            translated();
+            for(unsigned b=0;b<3;++b) {
+                const auto h=headers+b*CommandBankSet::header_stride;
+                const auto count=word(h+4u),data=word(h+0x14u);
+                std::vector<SourcePartCommand> live(count);
+                if(count && data)std::memcpy(live.data(),memory.view(data,count*24u).data(),count*24u);
+                std::vector<SourcePartCommand> reference;
+                for(const auto& c:live) {
+                    const auto ordinal=(c.words[3]>>8)&65535u;
+                    if(std::find(eligible.begin(),eligible.end(),ordinal)!=eligible.end())reference.push_back(c);
+                }
+                const auto& mine=native.banks[b];
+                const auto same=reference.size()==mine.header[1] &&
+                    std::equal(reference.begin(),reference.end(),mine.storage.begin(),[](const auto& x,const auto& y){
+                        // Word5 low16 is retained storage3B9D0 does not write.
+                        return x.words[0]==y.words[0] && x.words[1]==y.words[1] && x.words[2]==y.words[2] &&
+                               x.words[3]==y.words[3] && x.words[4]==y.words[4] && (x.words[5]&0xffff0000u)==(y.words[5]&0xffff0000u);});
+                if(!same && main_commands_stats.mismatches++<6) {
+                    std::cerr<<"Native main commands bank"<<b<<" differs: reference="<<reference.size()<<" native="<<mine.header[1];
+                    for(std::size_t k=0;k<std::min<std::size_t>(reference.size(),mine.header[1]);++k)
+                        if(reference[k].words!=mine.storage[k].words){std::cerr<<" first at "<<k<<std::hex<<" ref=";for(auto w:reference[k].words)std::cerr<<w<<",";std::cerr<<" nat=";for(auto w:mine.storage[k].words)std::cerr<<w<<",";std::cerr<<std::dec;break;}
+                    std::cerr<<'\n';
+                }
+            }
+            if(main_commands_stats.views==1) {
+                // Live bank headers. The slot after bank2 (0x4CE2B0) is not
+                // mapped, so40E20 has exactly three banks here.
+                std::cerr<<"Native main commands headers:"<<std::hex;
+                for(unsigned b=0;b<3;++b){const auto h=headers+b*CommandBankSet::header_stride;
+                    std::cerr<<" ["<<b<<"] cap="<<word(h)<<" count="<<word(h+4u)<<" layers="<<word(h+8u)<<" data="<<word(h+0x14u);}
+                std::cerr<<std::dec<<'\n';
+            }
+            if(main_commands_stats.views%240==0)std::cerr<<"Native main commands oracle: views="<<main_commands_stats.views<<
+                " native_units="<<main_commands_stats.native_units<<" native_records="<<main_commands_stats.native_records<<
+                " translated_units="<<main_commands_stats.translated_units<<" model_units="<<main_commands_stats.model_units<<
+                " native_model_units="<<main_commands_stats.native_model_units<<" model_unresident="<<main_commands_stats.model_unresident<<" mismatches="<<main_commands_stats.mismatches<<
+                " fallbacks="<<main_commands_stats.fallbacks<<'\n';
+            return;
+        }
+        for(auto n:eligible)write_word(units_at+n*32u,units[n].words[0]&~1u);
+        translated();
+        for(auto n:eligible)write_word(units_at+n*32u,units[n].words[0]);
+        for(unsigned b=0;b<3;++b)if(!merge(b,true)){
+            if(!main_commands_stats.fallbacks++)std::cerr<<"Native main commands could not merge bank "<<b<<'\n';
+        }
+    }
+    // Per-entry store census for any translated per-view call, keyed by
+    // entry address (HALO2_VIEW_CALL_CENSUS=1). Same coalesced report.
+    std::map<std::uint32_t,MainCommandsCensus> view_call_census;
+    struct ViewCallCensusReport {
+        Impl& owner;
+        ~ViewCallCensusReport(){for(const auto& [entry,census]:owner.view_call_census)if(census.views%240)owner.report_view_call_census(entry,census,true);}
+    } view_call_census_report{*this};
+    void view_call_census_run(PhysicsLiveWorldTu15& world,std::uint32_t entry,const std::function<void()>& translated) {
+        auto& census=view_call_census[entry];
+        auto& memory=world.memory();
+        struct Observer {
+            SourceRuntimeMemory& bank;MainCommandsCensus& census;
+            Observer(SourceRuntimeMemory& b,MainCommandsCensus& c):bank(b),census(c) {
+                source_runtime_register_write_observer(bank,this,[this](std::uint32_t address,std::size_t bytes) {
+                    auto& entry=census.stores[address];++entry.first;
+                    entry.second=std::max(entry.second,std::uint32_t(bytes));++census.total;
+                });
+            }
+            ~Observer(){source_runtime_unregister_write_observer(bank,this);}
+        } observer{memory,census};
+        translated();
+        ++census.views;
+        report_view_call_census(entry,census);
+    }
+    void report_view_call_census(std::uint32_t entry,const MainCommandsCensus& census,bool final=false) {
+        if(!final && census.views%240)return;
+        std::cerr<<"View call census "<<std::hex<<entry<<std::dec<<": views="<<census.views<<" stores="<<census.total<<" ranges:";
+        std::uint64_t first=0,end=0,hits=0;unsigned ranges=0;
+        const auto flush=[&]{if(end){std::cerr<<" ["<<std::hex<<first<<","<<end<<")x"<<std::dec<<hits;++ranges;}};
+        for(const auto& [address,e]:census.stores) {
+            if(end && address<=end){end=std::max(end,std::uint64_t(address)+e.second);hits+=e.first;continue;}
+            flush();first=address;end=std::uint64_t(address)+e.second;hits=e.first;
+        }
+        flush();std::cerr<<" ("<<ranges<<" ranges)"<<'\n';
+    }
+    void main_commands_census(PhysicsLiveWorldTu15& world,const std::function<void()>& translated) {
+        auto& memory=world.memory();
+        struct Observer {
+            SourceRuntimeMemory& bank;MainCommandsCensus& census;
+            Observer(SourceRuntimeMemory& b,MainCommandsCensus& c):bank(b),census(c) {
+                source_runtime_register_write_observer(bank,this,[this](std::uint32_t address,std::size_t bytes) {
+                    auto& entry=census.stores[address];++entry.first;
+                    entry.second=std::max(entry.second,std::uint32_t(bytes));++census.total;
+                });
+            }
+            ~Observer(){source_runtime_unregister_write_observer(bank,this);}
+        } observer{memory,commands_census};
+        translated();
+        if(++commands_census.views%240)return;
+        // Coalesce into [first,end) ranges where consecutive stores touch.
+        std::cerr<<"Main commands census: views="<<commands_census.views<<" stores="<<commands_census.total<<" ranges:";
+        std::uint64_t first=0,end=0,hits=0;unsigned ranges=0;
+        const auto flush=[&]{if(end){std::cerr<<" ["<<std::hex<<first<<","<<end<<")x"<<std::dec<<hits;++ranges;}};
+        for(const auto& [address,entry]:commands_census.stores) {
+            if(end && address<=end){end=std::max(end,std::uint64_t(address)+entry.second);hits+=entry.first;continue;}
+            flush();first=address;end=std::uint64_t(address)+entry.second;hits=entry.first;
+        }
+        flush();std::cerr<<" ("<<ranges<<" ranges)"<<'\n';
+    }
+    // Shader LOD/layer table for any authored shader, loaded from the cache on
+    // first use. The light preload fills the few light-receiving models; main
+    // mode draws every live model, so its shaders load the same way on demand.
+    const SourceBspCommandShader& shader_for(std::uint32_t id) {
+        if(const auto at=shaders.find(id);at!=shaders.end())return at->second;
+        SourceBspCommandShader value;value.lod=cache.load_source_shader_lod_definition(id);
+        const auto& shad=metadata.definition(id);
+        const auto stem=Bytes(metadata.read(Bytes(metadata.read(shad.source_address(),0x28)).u32(0x24),4)).u32(0);
+        const auto& st=metadata.definition(stem);
+        const auto post=Bytes(metadata.read(Bytes(metadata.read(st.source_address(),0x60)).u32(0x5c),8));
+        for(unsigned lod=0;lod<post.u32(0);++lod)value.layers.push_back(Bytes(metadata.read(post.u32(4)+lod*10,10)).u32(2));
+        return shaders.emplace(id,std::move(value)).first->second;
     }
     SectionKey key(const SourceCullDrawUnit& unit) const {
         if(unit.words[1]!=0xffffffffu)throw FormatError("BSP light bank consumes a dynamic model owner");
@@ -223,7 +561,113 @@ struct SourceBspEffectLights::Impl {
         }
         return {false,unit.words[3]>>9&511u};
     }
-
+    struct MainCullStats {
+        std::uint64_t views{},native_units{},translated_units{},fallbacks{},
+            unit_mismatches{},mask_mismatches{},shared_mask_words{};
+    } main_cull_stats;
+    // Main mode0 44710 over the actual published draw units, arena and
+    // associations. Accelerated BSP units run the native 44E80 corridor;
+    // flag40 hides them from the translated call, which keeps every other
+    // unit. The cull only sets flag1 and mask bits, so OR-merging the native
+    // arena into the translated one reproduces the whole translated result.
+    void main_cull(PhysicsLiveWorldTu15& world,const SourcePortalVisibilitySet* visibility,
+        const std::function<void()>& translated) {
+        static const bool oracle=[]{const auto* p=std::getenv("HALO2_MAIN_CULL_ORACLE");return p && *p;}();
+        constexpr std::uint32_t context=0x556e18u,units_at=0x4c6958u,arena_at=context+0x25cu;
+        const auto& memory=world.memory();
+        const auto word=[&](std::uint32_t p){return Bytes(memory.view(p,4)).u32(0);};
+        const auto half=[&](std::uint32_t p){return Bytes(memory.view(p,2)).u16(0);};
+        const auto draw_count=word(0x4cd398u),main_prefix=word(0x4cd39cu);
+        if(!visibility || word(0x4cd3a0u)!=context || word(context+0x2a78u) || word(context+0x2a7cu) ||
+           draw_count>850 || main_prefix>draw_count){translated();return;}
+        const auto read_units=[&] {
+            std::vector<SourceCullDrawUnit> out(draw_count);
+            if(draw_count)std::memcpy(out.data(),memory.view(units_at,draw_count*sizeof(SourceCullDrawUnit)).data(),
+                draw_count*sizeof(SourceCullDrawUnit));
+            return out;
+        };
+        const auto read_arena=[&] {
+            SourceBspRangeArena out;
+            std::memcpy(out.words.data(),memory.view(arena_at,sizeof(out.words)).data(),sizeof(out.words));
+            out.used=half(context+0xa5cu);return out;
+        };
+        const auto before=read_units();const auto arena=read_arena();
+        std::vector<std::array<std::uint32_t,4>> associations(half(context+0xa5eu));
+        if(!associations.empty())std::memcpy(associations.data(),
+            memory.view(context+0xa60u,associations.size()*sizeof(associations[0])).data(),associations.size()*sizeof(associations[0]));
+        auto native=before;std::vector<SourceBspFrustumDrawBank> banks(draw_count);
+        std::vector<unsigned> eligible;std::uint64_t remaining{};
+        for(unsigned n=0;n<main_prefix;++n) {
+            auto& unit=native[n];const auto flags=unit.words[0];
+            if((flags&1u) || !(flags&0x40u))continue;
+            const Section* section=nullptr;std::optional<Transform> transform;
+            if(unit.words[1]==0xffffffffu) {
+                const auto instance=unit.words[3]>>18&2047u;
+                const auto found=(flags&0x1000u) && instance>=bsp.instances.size()?sections.end():sections.find(key(unit));
+                if(found!=sections.end() && found->second.ranges.accelerator_count>0 &&
+                   (!(flags&0x1000u) || instance<transforms.size()))section=&found->second;
+                if(flags&0x1000u && section)transform=transforms[instance];
+            }
+            // The native corridor never visits units it does not own.
+            if(!section){unit.words[0]&=~0x40u;++remaining;continue;}
+            banks[n]={&section->ranges,true,transform};eligible.push_back(n);
+        }
+        ++main_cull_stats.views;
+        if(eligible.empty()){main_cull_stats.translated_units+=remaining;translated();return;}
+        auto native_arena=arena;
+        try {
+            source_bsp_frustum_cull(native,banks,native_arena,{main_prefix,draw_count,0,0,arena_at},
+                *visibility,associations);
+        } catch(const FormatError& error) {
+            if(!main_cull_stats.fallbacks++)std::cerr<<"Native main cull fell back to TU1.5: "<<error.what()<<'\n';
+            translated();return;
+        }
+        main_cull_stats.native_units+=eligible.size();main_cull_stats.translated_units+=remaining;
+        const auto write=[&](std::uint32_t address,const auto& value) {
+            world.write_source_call_input(address,std::as_bytes(std::span(&value,1)));
+        };
+        if(oracle) {
+            translated();
+            const auto after=read_units();const auto merged=read_arena();
+            std::vector<bool> owned(arena.words.size()),shared(arena.words.size());
+            const auto region=[&](const SourceCullDrawUnit& unit,std::size_t words,std::vector<bool>& marks) {
+                if(!(unit.words[0]&0x40u) || !unit.words[5] || unit.words[5]<arena_at)return;
+                for(std::size_t k=(unit.words[5]-arena_at)/4,end=std::min(k+words,marks.size());k<end;++k)marks[k]=true;
+            };
+            const auto mask_words=[](const SourceBspRangeGeometry& g){return (std::size_t(std::max(g.subpart_count,0))+31)/32;};
+            for(auto n:eligible)region(before[n],mask_words(*banks[n].geometry),owned);
+            for(unsigned n=0;n<main_prefix;++n) {
+                if(std::find(eligible.begin(),eligible.end(),n)!=eligible.end())continue;
+                std::size_t words=512;
+                try {
+                    if(before[n].words[1]!=0xffffffffu)words=mask_words(model(before[n]).ranges);
+                    else if(const auto found=sections.find(key(before[n]));found!=sections.end())words=mask_words(found->second.ranges);
+                } catch(const std::exception&) {}
+                region(before[n],words,shared);
+            }
+            for(auto n:eligible)if(after[n].words!=native[n].words) {
+                if(main_cull_stats.unit_mismatches++<8)std::cerr<<"Native main cull unit "<<n<<" flags native=0x"<<std::hex<<
+                    native[n].words[0]<<" translated=0x"<<after[n].words[0]<<std::dec<<'\n';
+            }
+            for(std::size_t k=0;k<owned.size();++k)if(owned[k] && merged.words[k]!=native_arena.words[k]) {
+                if(shared[k]){++main_cull_stats.shared_mask_words;continue;}
+                if(main_cull_stats.mask_mismatches++<8)std::cerr<<"Native main cull mask word "<<k<<" native=0x"<<std::hex<<
+                    native_arena.words[k]<<" translated=0x"<<merged.words[k]<<std::dec<<'\n';
+            }
+            if(main_cull_stats.views%240==0)std::cerr<<"Native main cull oracle: views="<<main_cull_stats.views<<
+                " native_units="<<main_cull_stats.native_units<<" translated_units="<<main_cull_stats.translated_units<<
+                " unit_mismatches="<<main_cull_stats.unit_mismatches<<" mask_mismatches="<<main_cull_stats.mask_mismatches<<
+                " shared_mask_words="<<main_cull_stats.shared_mask_words<<" fallbacks="<<main_cull_stats.fallbacks<<'\n';
+            return;
+        }
+        for(auto n:eligible)write(units_at+n*32u,native[n].words[0]&~0x40u);
+        translated();
+        for(auto n:eligible)write(units_at+n*32u,native[n].words[0]);
+        const auto current=read_arena();
+        for(std::size_t k=0;k<current.words.size();++k)
+            if(const auto merged=current.words[k]|native_arena.words[k];merged!=current.words[k])
+                write(arena_at+std::uint32_t(k*4),merged);
+    }
 };
 SourceBspEffectLights::SourceBspEffectLights(const Cache& c,Mesh& mesh,std::size_t bsp,
     std::span<const std::uint32_t> ids,std::span<const std::uint32_t> models)
@@ -240,19 +684,32 @@ bool SourceBspEffectLights::resident_model_section(std::uint32_t model,unsigned 
 }
 const Cache &SourceBspEffectLights::resident_cache()const noexcept {return impl_->cache;}
 const Mesh &SourceBspEffectLights::resident_mesh()const noexcept {return impl_->mesh_owner;}
-std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLightView& lights,
-    std::span<const WorldEffectLightReceiver> receivers,const SourceBspAdmission& main,
+std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLightView& initial_lights,
+    std::span<const WorldEffectLightReceiver> initial_receivers,const SourceBspAdmission& main,
     const SourceViewProjectionBank& camera,const BspFogSample& fog,Vec3 eye,
     std::array<std::int16_t,4> viewport,std::array<std::uint32_t,2> surface,unsigned players,
     SourceEffectLightModelViewTu15* objects,std::vector<pstencil::PointCaster>* point_casters,
     std::uint32_t light_domain) {
     auto& i=*impl_;std::vector<EffectLightRawDraw> output;
+    i.unavailable_sections.clear();
     if(objects)i.preload_native_bsp_resources(objects->world,main);
-    if(receivers.empty() && (!objects || (!objects->main_draws && !objects->main_collected)))return output;
+    if(initial_receivers.empty() && (!objects ||
+        (!objects->main_draws && !objects->main_collected && !objects->current_lights)))return output;
     std::optional<SourceBspBreakableVisibilityTu15> current_visibility;
     if(objects)current_visibility=source_bsp_breakable_visibility_tu15(objects->world.memory());
     const auto coverage=source_shader_coverage_camera(camera);
     SourceBspDrawWorld draw_world{i.bsp,i.clusters,i.definitions,i.instances,i.lightmap_matches};
+    // The collector's449E0 admission follows this frame's actual requests.
+    std::vector<SourceBspDrawGeometry> resident_clusters,resident_definitions;
+    if(!i.unavailable_sections.empty()) {
+        resident_clusters=i.clusters;resident_definitions=i.definitions;
+        for(const auto& [instance,section]:i.unavailable_sections)
+            (instance?resident_definitions:resident_clusters).at(section).resident=false;
+        draw_world.clusters=resident_clusters;draw_world.definitions=resident_definitions;
+    }
+    if(objects)draw_world.definition_resident=[&](unsigned definition,bool request) {
+        return i.definition_resident(objects->world,definition,request);
+    };
     auto admission=main;
     const bool completed_main=objects && objects->completed_campaign_main;
     if(!completed_main) {
@@ -291,12 +748,30 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
         const std::uint32_t main_context=0x556e18u;
         objects->world.write_source_call_input(0x4cd3a0u,std::as_bytes(std::span(&main_context,1)));
         source_live_shadow_main_inputs_tu15(objects->world,context);
+        //4C3AE0 is the optional render-object override consumed by3D2B0.
+        // Original127FE initializes it to NONE in the D3D startup owner.
+        // This native renderer supplies its actual configured override as a
+        // caller input, separately from original device initialization.
+        if(objects->first_person_object_override!=0xffffffffu)
+            (void)objects->world.source_object_body(objects->first_person_object_override);
+        objects->world.write_source_call_input(0x4c3ae0u,
+            std::as_bytes(std::span(&objects->first_person_object_override,1)));
+        // Original2BABC completes the actual per-view FP cache before2BAC6
+        // updates light fades and before the main model collector consumes it.
+        //3D2B0 owns every mode/unit/count decision and calls complete168DED.
+        auto first_person=objects->world.prepare_source_call();
+        if(objects->view_calls)objects->view_calls(true,0x3d2b0u,first_person,objects->world.memory());
+        static const bool view_census=[]{const auto* p=std::getenv("HALO2_VIEW_CALL_CENSUS");return p && *p;}();
+        if(view_census)i.view_call_census_run(objects->world,0x3d2b0u,[&]{objects->world.run_actual(0x3d2b0u,first_person);});
+        else objects->world.run_actual(0x3d2b0u,first_person);
+        if(objects->view_calls)objects->view_calls(false,0x3d2b0u,first_person,objects->world.memory());
         // Actual2BAC6 completes native per-view light fades before main
         // collection. It consumes the current eye, light pool/authored tables;
-        //2C470/1BE90 above own main policy/LOD, not complete3D2B0 FP setup.
+        //2C470/1BE90 above own main policy/LOD.
         auto light_view=objects->world.prepare_source_call();
         if(objects->view_calls)objects->view_calls(true,0xc35d0u,light_view,objects->world.memory());
-        objects->world.run_actual(0xc35d0u,light_view);
+        if(view_census)i.view_call_census_run(objects->world,0xc35d0u,[&]{objects->world.run_actual(0xc35d0u,light_view);});
+        else objects->world.run_actual(0xc35d0u,light_view);
         if(objects->view_calls)objects->view_calls(false,0xc35d0u,light_view,objects->world.memory());
         source_live_model_draws_tu15(objects->world,objects->main,i.units,context);
         if(objects->main_draws)objects->main_draws(i.units);
@@ -312,9 +787,38 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
 
         // Original335D0 follows ordinary draw preparation and precedes
         //31C80's secondary light queries. Retain the same completed queues.
+        static const bool reference_cull=[]{const auto* p=std::getenv("HALO2_REFERENCE_MAIN_CULL");return p && *p;}();
+        struct MainCullScope {
+            SourceEffectLightModelViewTu15& objects;
+            ~MainCullScope(){objects.main_cull=nullptr;}
+        } main_cull_scope{*objects};
+        if(!reference_cull)objects->main_cull=[&](const std::function<void()>& translated) {
+            i.main_cull(objects->world,objects->visibility,translated);
+        };
+        static const bool commands_census=[]{const auto* p=std::getenv("HALO2_MAIN_COMMANDS_CENSUS");return p && *p;}();
+        struct MainCommandsScope {
+            SourceEffectLightModelViewTu15& objects;
+            ~MainCommandsScope(){objects.main_commands=nullptr;}
+        } main_commands_scope{*objects};
+        static const bool commands_oracle=[]{const auto* p=std::getenv("HALO2_MAIN_COMMANDS_ORACLE");return p && *p;}();
+        static const bool commands_containment=[]{const auto* p=std::getenv("HALO2_MAIN_COMMANDS_CONTAINMENT");return p && *p;}();
+        static const bool reference_commands=[]{const auto* p=std::getenv("HALO2_REFERENCE_MAIN_COMMANDS");return p && *p;}();
+        if(commands_census)objects->main_commands=[&](const std::function<void()>& translated) {
+            i.main_commands_census(objects->world,translated);
+        };
+        else if(commands_containment)objects->main_commands=[&](const std::function<void()>& translated) {
+            i.main_commands_oracle(objects->world,translated);
+        };
+        else if(!reference_commands)objects->main_commands=[&](const std::function<void()>& translated) {
+            i.main_commands_native(objects->world,players,viewport,objects->context.view_modifier,commands_oracle,translated);
+        };
         if(objects->main_collected)objects->main_collected(admission,objects->main,context);
     }
     i.main_arena=i.units.arena;
+    std::optional<std::pair<SourceEffectLightView,std::vector<WorldEffectLightReceiver>>> current_lights;
+    if(objects && objects->current_lights)current_lights=objects->current_lights();
+    const auto& lights=current_lights?current_lights->first:initial_lights;
+    const auto receivers=current_lights?std::span<const WorldEffectLightReceiver>(current_lights->second):initial_receivers;
     SourceBspPartCommandWorld command_world{i.cluster_commands,i.definition_commands,i.instance_definitions,
         i.materials,current_visibility?std::span<const std::byte>(*current_visibility):std::span<const std::byte>(i.visibility),
         std::int16_t(i.bsp_index),[&](auto datum)->const SourceBspCommandShader&{return i.shaders.at(datum);}};

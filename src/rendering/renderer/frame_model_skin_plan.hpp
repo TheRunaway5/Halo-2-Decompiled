@@ -1,6 +1,8 @@
 #pragma once
 #include "halo2/model_skin_submission.hpp"
 #include "rendering/models/model_skin_gpu.hpp"
+#include "halo2/native_parallel.hpp"
+#include <atomic>
 #include <algorithm>
 #include <cstring>
 #include <limits>
@@ -62,7 +64,8 @@ class FrameModelSkinPlan {
         if(geometry.bindings.size()!=count || geometry.source_vertices.size()!=count)
             throw FormatError("frame model skin geometry lost its parallel bindings/source ordinals");
         if(geometry.palette.size()>std::numeric_limits<std::uint32_t>::max() ||
-           !model_skin_gpu_arithmetic_admitted(geometry.vertices,geometry.bindings,geometry.palette))
+           !(geometry.arithmetic_admitted ||
+             model_skin_gpu_arithmetic_admitted(geometry.vertices,geometry.bindings,geometry.palette)))
             throw FormatError("frame model skin geometry leaves its admitted palette/local domain");
         // A section can appear repeatedly, with a different selected material.
         // Its original expanded ordinal must still name the same deformation.
@@ -116,8 +119,19 @@ public:
             // its arithmetic and expanded-ordinal scan for another bank.
             if(!palettes.contains(&geometry))geometry_valid(geometry);
             const auto source=vertices.subspan(submission.first,count);
-            for(std::size_t i=0;i<count;++i)if(!same_local(source[i],geometry.vertices[i]))
-                throw FormatError("frame model skin source differs from its admitted local attributes");
+            // Pure per-vertex comparison; bands scan together and any
+            // mismatch raises the same exception the serial scan did.
+            {
+                constexpr std::size_t band=4096;
+                const auto bands=(count+band-1)/band;
+                std::atomic<bool> mismatch{false};
+                native_parallel_for(bands,[&](std::size_t b) {
+                    const auto first=b*band,last=std::min(count,first+band);
+                    for(std::size_t i=first;i<last;++i)
+                        if(!same_local(source[i],geometry.vertices[i])){mismatch.store(true,std::memory_order_relaxed);return;}
+                });
+                if(mismatch.load())throw FormatError("frame model skin source differs from its admitted local attributes");
+            }
             if(!count)continue;
             const auto range=address(source);
             for(const auto &prior:sources_)if(overlaps(range,address(prior.vertices)))

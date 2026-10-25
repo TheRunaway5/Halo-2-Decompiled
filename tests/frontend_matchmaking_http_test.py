@@ -65,6 +65,17 @@ async def main():
                 session_creations.append(True)
         app.on_response_prepare.append(observe_session)
         api = next(iter(app.values())).matchmaking
+        rank_run = "--rank-ui" in native_options
+        def set_display_rank(player, level):
+            with api.directory.store.db:
+                api.directory.store.db.execute("INSERT OR REPLACE INTO playlist_ranks VALUES(?,?,?)",
+                                               (player,"ranked",level))
+        if rank_run:
+            async def seed_rank(request, response):
+                if request.path=="/v1/matchmaking/session" and request.method=="POST" and response.status==201:
+                    for session in api.sessions.values():
+                        set_display_rank(session.player,37 if session.screen_name!="Peer Pilot" else 19)
+            app.on_response_prepare.append(seed_rank)
         async with TestClient(TestServer(app)) as client:
             response = await client.post("/v1/matchmaking/session", headers={"Authorization": "Bearer peer-token"},
                 json=dict(screen_name="Peer Pilot", maps=["lockout"],

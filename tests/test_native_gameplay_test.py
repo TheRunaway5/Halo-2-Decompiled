@@ -50,6 +50,27 @@ class NativeGameplayTestCapabilityTests(unittest.TestCase):
     def available(self):
         return native_gameplay_test_available(self.root, self.runtime, self.cache)
 
+    def test_declared_sdk_worker_must_keep_its_owned_executable_bytes(self):
+        from native_gameplay_test import eos_worker_descriptor
+        worker = self.runtime.with_name('eos_sdk_worker')
+        worker.write_bytes(b'synthetic SDK worker')
+        worker.chmod(0o700)
+        self.report['eos_worker'] = eos_worker_descriptor(self.runtime)
+        self.publish()
+        self.assertTrue(self.available())
+        worker.write_bytes(b'changed SDK worker')
+        self.assertFalse(self.available())
+        worker.write_bytes(b'synthetic SDK worker')
+        worker.chmod(0o600)
+        self.assertFalse(self.available())
+        worker.chmod(0o700)
+        foreign = worker.with_name('foreign-worker')
+        worker.rename(foreign)
+        worker.symlink_to(foreign)
+        self.assertFalse(self.available())
+        worker.unlink()
+        self.assertFalse(self.available())
+
     def test_expanded_renderer_inventory_requires_every_added_file_to_be_pinned(self):
         self.publish()
         extra=self.shaders/'pstencil/normal_accumulation.frag.spv'

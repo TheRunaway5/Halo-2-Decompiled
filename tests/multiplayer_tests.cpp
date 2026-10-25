@@ -1,5 +1,6 @@
 #include "halo2/math.hpp"
 #include "halo2/multiplayer_network.hpp"
+#include "halo2/lan_packet_auth.hpp"
 #include <algorithm>
 #include <chrono>
 #include <fstream>
@@ -9,6 +10,9 @@
 #include <mutex>
 #include <deque>
 #include <bit>
+#include <map>
+#include <optional>
+#include <random>
 #ifndef _WIN32
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -630,6 +634,18 @@ void network() {
             two.slots()[0] != two.slots()[1],
         "LAN local players shared a slot");
   const auto shooter = one.slots()[0], target = two.slots()[0];
+  const auto deliver_current=[&] {
+    const auto tick=match.state().tick;
+    const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(3);
+    while((one.state().tick!=tick || two.state().tick!=tick) && std::chrono::steady_clock::now()<deadline) {
+      // Delivery follows the acknowledged stream's real budget. Service
+      // transport/acks without advancing the authoritative combat clock.
+      one.send(i1);two.send(i2);host.receive(controls);host.broadcast();one.receive();two.receive();
+      std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+    check(match.state().tick==tick && one.state().tick==tick && two.state().tick==tick,
+        "Bounded UDP delivery did not retain the actual completed simulation tick");
+  };
   const auto delta =
       match.unit(target).body.position - match.unit(shooter).body.position;
   i1[0].yaw = std::atan2(delta.y, delta.x);
@@ -640,7 +656,9 @@ void network() {
   host.broadcast();
   one.receive();
   two.receive();
-  check(match.player(shooter).score == 1 && two.state().players[target].dead &&
+  check(match.player(shooter).score==1,"Host combat did not award its actual fixture score");
+  deliver_current();
+  check(two.state().players[target].dead &&
             two.state().players[shooter].score == 1,
         "Host combat/score not replicated to actual UDP client");
   check(!one.state().rumble_events.empty() &&
@@ -665,6 +683,7 @@ void network() {
   host.broadcast();
   one.receive();
   two.receive();
+  deliver_current();
   check(two.state().players[shooter].reload_empty &&
             two.state().players[shooter].reload_seconds > 0,
         "Original empty-reload action state not replicated to actual UDP client");
@@ -712,6 +731,7 @@ void network() {
   match.step(controls);
   host.broadcast();
   one.receive();
+  deliver_current();
   check(std::count_if(one.state().players.begin(), one.state().players.end(),
                       [](const auto &p) { return p.connected; }) == 16,
         "Maximum-sized snapshot truncated");
@@ -744,10 +764,182 @@ void network_startup_delay() {
   check(client.ready() && client.slots().size()==1 && host.peers()==1,
         "Delayed-start actual UDP client did not join");
 }
+#ifndef _WIN32
+// Scoped H2_NET_PROFILE for snapshot streams created inside one fixture.
+struct NetProfile {
+  std::optional<std::string> previous;
+  explicit NetProfile(const char *value) {
+    if(const char *old=std::getenv("H2_NET_PROFILE"))previous=old;
+    setenv("H2_NET_PROFILE",value,1);
+  }
+  ~NetProfile(){if(previous)setenv("H2_NET_PROFILE",previous->c_str(),1);else unsetenv("H2_NET_PROFILE");}
+};
+// Loopback proxy: forwards client datagrams to the host, holds host datagrams
+// for the fixture to deliver, drop, reorder or tamper, and counts UDP bytes.
+struct UdpProxy {
+  int fd=::socket(AF_INET,SOCK_DGRAM,0);
+  sockaddr_in self{},host{},client{};
+  bool client_known{};
+  std::uint64_t delivered_bytes{};
+  explicit UdpProxy(unsigned host_port) {
+    check(fd>=0,"Create stream proxy");
+    self.sin_family=AF_INET;self.sin_addr.s_addr=htonl(INADDR_LOOPBACK);
+    check(bind(fd,reinterpret_cast<sockaddr*>(&self),sizeof(self))==0,"Bind stream proxy");
+    socklen_t size=sizeof(self);
+    check(getsockname(fd,reinterpret_cast<sockaddr*>(&self),&size)==0,"Read stream proxy address");
+    host=self;host.sin_port=htons(host_port);
+  }
+  ~UdpProxy(){close(fd);}
+  UdpProxy(const UdpProxy &)=delete;
+  std::string address()const{return "127.0.0.1:"+std::to_string(ntohs(self.sin_port));}
+  std::vector<std::vector<char>> pump() {
+    std::vector<std::vector<char>> held;std::array<char,1501> bytes{};
+    for(;;) {
+      sockaddr_in from{};socklen_t size=sizeof(from);
+      const auto n=recvfrom(fd,bytes.data(),bytes.size(),MSG_DONTWAIT,reinterpret_cast<sockaddr*>(&from),&size);
+      if(n<0)break;
+      check(n<=1400,"Every native datagram stays within 1400 bytes");
+      if(from.sin_port==host.sin_port){held.emplace_back(bytes.begin(),bytes.begin()+n);continue;}
+      client=from;client_known=true;
+      sendto(fd,bytes.data(),n,0,reinterpret_cast<const sockaddr*>(&host),sizeof(host));
+    }
+    return held;
+  }
+  void deliver(const std::vector<char> &packet) {
+    check(client_known,"Stream proxy has no client endpoint");
+    check(sendto(fd,packet.data(),packet.size(),0,reinterpret_cast<const sockaddr*>(&client),sizeof(client))==
+        int(packet.size()),"Deliver host datagram");
+    delivered_bytes+=packet.size()+28;
+  }
+};
+bool same_positions(const MultiplayerState &a,const MultiplayerState &b) {
+  for(unsigned i=0;i<a.players.size();++i) {
+    const auto &x=a.players[i],&y=b.players[i];
+    if(x.connected!=y.connected)return false;
+    if(x.connected&&(std::bit_cast<std::uint32_t>(x.position.x)!=std::bit_cast<std::uint32_t>(y.position.x)||
+        std::bit_cast<std::uint32_t>(x.position.y)!=std::bit_cast<std::uint32_t>(y.position.y)||
+        std::bit_cast<std::uint32_t>(x.yaw)!=std::bit_cast<std::uint32_t>(y.yaw)||x.name!=y.name))return false;
+  }
+  return true;
+}
+#endif
+// Acknowledged delta stream over real UDP: a multi-datagram keyframe joins
+// out of order, a lost message is recovered from the acknowledged baseline,
+// tampered and stale datagrams change nothing, the consumed raw look is named
+// for client look prediction, and moving players receive every tick at a
+// small fraction of complete-snapshot traffic.
+void network_snapshot_stream() {
+#ifndef _WIN32
+  const auto content=arena();const auto spawn=starts();const auto selected=rules();
+  {
+    NetProfile profile("unlimited");
+    MultiplayerMatch match(content,0,spawn,selected);
+    std::mt19937 random(105);
+    for(unsigned i=0;i<15;++i) {
+      std::string name="Stream "+std::to_string(i);
+      while(name.size()<5000)name.push_back(char('a'+random()%26));
+      match.join(name);
+    }
+    LanHost host(match,0,654);
+    UdpProxy proxy(host.port());
+    LanClient client(proxy.address(),654,1);
+    std::array<Controls,1> local{};std::array<Controls,16> controls{};
+    client.send(local);proxy.pump();host.receive(controls);
+    const auto challenge=proxy.pump();
+    check(challenge.size()==1,"Raw join is challenged before its keyframe");
+    proxy.deliver(challenge.front());client.receive();
+    proxy.pump();host.receive(controls);
+    const auto keyframe=proxy.pump();
+    check(keyframe.size()>=2,"Incompressible roster keyframe uses several datagrams");
+    proxy.deliver(keyframe.back());proxy.deliver(keyframe.back());client.receive();
+    check(!client.ready(),"Incomplete and duplicate stream fragments cannot publish a roster");
+    for(std::size_t i=keyframe.size()-1;i>0;--i)proxy.deliver(keyframe[i-1]);
+    client.receive();
+    check(client.ready()&&same_positions(client.state(),match.state()),"Out-of-order stream keyframe joins exactly");
+    local[0].forward=1;
+    const auto tick=[&](bool deliver) {
+      client.send(local);proxy.pump();host.receive(controls);match.step(controls);host.broadcast();
+      auto packets=proxy.pump();
+      if(deliver){for(const auto &packet:packets)proxy.deliver(packet);client.receive();}
+      return packets;
+    };
+    local[0].yaw=0.25f;local[0].pitch=0.125f;
+    tick(true);
+    check(client.state().tick==match.state().tick&&same_positions(client.state(),match.state()),
+        "Delta follows the acknowledged keyframe exactly");
+    const auto consumed=client.consumed_look(0);
+    check(consumed&&std::bit_cast<std::uint32_t>((*consumed)[0])==std::bit_cast<std::uint32_t>(local[0].yaw)&&
+        std::bit_cast<std::uint32_t>((*consumed)[1])==std::bit_cast<std::uint32_t>(local[0].pitch)&&!client.consumed_look(1),
+        "Snapshot does not name the raw look its processed angles consumed");
+    const auto before=client.state().tick;
+    const auto lost=tick(false);
+    check(!lost.empty()&&client.state().tick==before,"Lost delta leaves the accepted state intact");
+    tick(true);
+    check(client.state().tick==match.state().tick&&same_positions(client.state(),match.state()),
+        "Delta after a lost message recovers from the acknowledged baseline");
+    const auto genuine=tick(false);
+    for(auto packet:genuine){packet[packet.size()/2]^=1;proxy.deliver(packet);}
+    client.receive();
+    check(client.state().tick!=match.state().tick,"Tampered stream datagrams cannot publish");
+    for(const auto &packet:genuine)proxy.deliver(packet);
+    client.receive();
+    check(client.state().tick==match.state().tick&&same_positions(client.state(),match.state()),
+        "Genuine datagrams survive tampered copies");
+    for(const auto &packet:keyframe)proxy.deliver(packet);
+    for(const auto &packet:lost)proxy.deliver(packet);
+    client.receive();
+    check(client.state().tick==match.state().tick&&client.error().empty(),"Stale stream datagrams cannot roll back");
+  }
+  struct Measure {std::uint64_t bytes{};double seconds{};unsigned states{},ticks{};bool exact{};};
+  const auto measure=[&](const char *name,unsigned ticks) {
+    NetProfile profile(name);
+    MultiplayerMatch match(content,0,spawn,selected);
+    std::vector<unsigned> bots;
+    for(unsigned i=0;i<7;++i)bots.push_back(match.join("Bot "+std::to_string(i)));
+    LanHost host(match,0,987);
+    UdpProxy proxy(host.port());
+    LanClient client(proxy.address(),987,1);
+    std::array<Controls,1> local{};std::array<Controls,16> controls{};
+    for(unsigned i=0;i<200&&!client.ready();++i) {
+      client.send(local);proxy.pump();host.receive(controls);host.broadcast();
+      for(const auto &packet:proxy.pump())proxy.deliver(packet);
+      client.receive();std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+    check(client.ready(),"Budget fixture client joins");
+    std::map<std::uint32_t,MultiplayerState> history;
+    Measure result;result.ticks=ticks;
+    const auto start=std::chrono::steady_clock::now();const auto counted=proxy.delivered_bytes;
+    for(unsigned n=0;n<ticks;++n) {
+      std::this_thread::sleep_until(start+std::chrono::microseconds(33333)*(n+1));
+      local[0].forward=1;local[0].yaw=0.05f*float(n);
+      client.send(local);proxy.pump();host.receive(controls);
+      for(unsigned b=0;b<bots.size();++b){controls[bots[b]].forward=1;controls[bots[b]].yaw=0.07f*float(n)+float(b);}
+      match.step(controls);history.emplace(match.state().tick,match.state());host.broadcast();
+      for(const auto &packet:proxy.pump())proxy.deliver(packet);
+      client.receive();result.states+=unsigned(client.received_states().size());
+    }
+    result.seconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count();
+    result.bytes=proxy.delivered_bytes-counted;
+    const auto found=history.find(client.state().tick);
+    result.exact=found!=history.end()&&same_positions(client.state(),found->second)&&client.error().empty();
+    return result;
+  };
+  const auto budgeted=measure("original",150),complete=measure("complete",150);
+  const auto rate=[](const Measure &m){return double(m.bytes)*8/m.seconds/1000;};
+  std::cout<<"Snapshot stream: original budget "<<rate(budgeted)<<" kbit/s, "<<budgeted.states<<"/"<<budgeted.ticks
+      <<" states; complete snapshots "<<rate(complete)<<" kbit/s, "<<complete.states<<"/"<<complete.ticks<<" states\n";
+  check(budgeted.exact&&complete.exact,"Budgeted and complete streams publish exact host states");
+  // Game state reaches the client every tick; the budget bounds poses only.
+  check(budgeted.states==budgeted.ticks,"Budgeted stream skipped a game-state tick");
+  check(budgeted.bytes*20<complete.bytes,"Delta stream did not substantially reduce snapshot traffic");
+#endif
+}
 void network_snapshot_fragments() {
 #ifndef _WIN32
   // Disposable native transport fixture: this tests real UDP reassembly and
   // publication, not original gameplay behavior or Xbox protocol parity.
+  // Complete snapshots remain the migration-candidate and fallback format.
+  NetProfile complete_snapshots("complete");
   auto content=arena();auto spawn=starts();auto selected=rules();
   MultiplayerMatch match(content,0,spawn,selected);
   // Explicit transport stress names make this complete snapshot exceed the
@@ -829,21 +1021,20 @@ void network_snapshot_fragments() {
   for(const auto &packet:dropped)deliver(packet);
   for(const auto &packet:first)deliver(packet);
   check(client.state().tick==2,"Stale fragments cannot roll back the roster");
-  // A conflicting duplicate invalidates only its unfinished message.
+  // A forged duplicate fails authentication without poisoning genuine parts.
   match.step(controls);host.broadcast();const auto conflicting=receive();
   deliver(conflicting.front());auto corrupted=conflicting.front();corrupted.back()^=1;deliver(corrupted);
   for(std::size_t i=1;i<conflicting.size();++i)deliver(conflicting[i]);
-  check(client.state().tick==2,"Conflicting duplicate cannot publish mixed snapshot bytes");
+  check(client.state().tick==3,"Unauthenticated duplicate poisoned a genuine complete snapshot");
   match.step(controls);host.broadcast();const auto recovered=receive();
   for(const auto &packet:recovered)deliver(packet);
   check(client.state().tick==4 && client.error().empty(),"Client recovers after conflicting fragments");
-  // Tiny tails with rotating sequence numbers must allocate received bytes,
-  // never the host's declared multi-megabyte complete snapshot size.
-  constexpr unsigned chunk=1400-35,total=(8*1024*1024/chunk)*chunk+1;
+  // Forged tiny tails cannot allocate the declared multi-megabyte body.
+  constexpr unsigned envelope=45,chunk=1400-35-LanPacketAuth::overhead,total=(8*1024*1024/chunk)*chunk+1;
   constexpr unsigned parts=(total+chunk-1)/chunk;
   for(unsigned sequence=1000;sequence<1500;++sequence){
-    auto tail=first.front();tail.resize(36);
-    const auto field=[&](unsigned at,unsigned value,unsigned size){for(unsigned i=0;i<size;++i)tail[at+i]=char(value>>(8*i));};
+    auto tail=first.front();tail.resize(envelope+36+32);
+    const auto field=[&](unsigned at,unsigned value,unsigned size){for(unsigned i=0;i<size;++i)tail[envelope+at+i]=char(value>>(8*i));};
     field(23,sequence,4);field(27,parts-1,2);field(29,parts,2);field(31,total,4);
     deliver(tail);
     check(client.snapshot_buffered_bytes()<=4,"Tiny snapshot tails allocated a declared full body");
@@ -930,7 +1121,8 @@ void retail(const std::filesystem::path &maps) {
 int main(int argc, char **argv) {
   try {
     if(argc==2 && std::string(argv[1])=="--admission-security") {
-      raw_lan_admission_security();std::cout<<"Raw UDP requires endpoint proof before allocation and amplified configuration replies\n";return 0;
+      raw_lan_admission_security();network();network_snapshot_fragments();
+      std::cout<<"Raw UDP endpoint proof, authenticated controls/leave and reordered/tampered snapshot recovery passed\n";return 0;
     }
     if(argc==2 && std::string(argv[1])=="--asset-identity") {
       asset_identity(); mcc_asset_identity();
@@ -963,6 +1155,11 @@ int main(int argc, char **argv) {
     if(argc==2 && std::string(argv[1])=="--crouch") {
       sneaking_presentation();
       std::cout<<"Sneaking stance follows actual capsule release and blocked stand-up\n";
+      return 0;
+    }
+    if(argc==2 && std::string(argv[1])=="--snapshot-stream") {
+      network_snapshot_stream();
+      std::cout<<"Acknowledged delta snapshots join, recover and stay within the retail budget over actual UDP\n";
       return 0;
     }
     if(argc==2 && std::string(argv[1])=="--startup-delay") {

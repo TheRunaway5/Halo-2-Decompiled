@@ -5,7 +5,7 @@ import os
 from pathlib import Path, PurePosixPath
 import sys
 
-from native_gameplay_test import _digest, _file_digest
+from native_gameplay_test import _digest, _file_digest, validate_eos_worker
 
 SCHEMA = 'H2_LOCAL_GAMEPLAY_RUNTIME_SELECTION_V1'
 SELECTION = 'gameplay-runtime-selection.json'
@@ -28,10 +28,11 @@ def _file(root, name):
     return path
 
 
-def selected_gameplay_runtime(root, *, selection_name=SELECTION):
+def selected_gameplay_runtime(root, *, selection_name=SELECTION, cache_candidate=None):
     """Absent means no override; an invalid explicit choice raises and never falls back.
 
-    Builders may check a project-owned candidate selection before publishing it.
+    Builders may check a project-owned candidate selection and an explicitly
+    verified private cache without changing either ROOT selection.
     """
     root = Path(root).resolve(strict=True)
     selection = root / selection_name
@@ -59,6 +60,15 @@ def selected_gameplay_runtime(root, *, selection_name=SELECTION):
     if inventory.parent != runtime.parent or _file_digest(inventory) != _digest(record['inventory_sha256']):
         raise ValueError('Gameplay runtime inventory changed')
     files = json.loads(inventory.read_text())
+    if 'eos_worker' in qualification or 'eos_worker' in record:
+        declaration = qualification.get('eos_worker')
+        if declaration != record.get('eos_worker'):
+            raise ValueError('Gameplay EOS worker qualification changed')
+        validate_eos_worker(runtime, declaration)
+        item = files.get(declaration['name'], {})
+        if (item.get('sha256') != declaration['sha256'] or
+                item.get('bytes') != declaration['bytes']):
+            raise ValueError('Gameplay EOS worker inventory changed')
     shaders = runtime.parent / 'shaders'
     actual = {p.relative_to(shaders).as_posix() for p in shaders.rglob('*') if p.is_file() or p.is_symlink()}
     expected = {name[len('shaders/'):] for name in files if name.startswith('shaders/')}
@@ -76,8 +86,14 @@ def selected_gameplay_runtime(root, *, selection_name=SELECTION):
                 raise ValueError('Gameplay runtime resource changed: ' + name)
     if not os.access(runtime, os.X_OK) or _file_digest(runtime, embedded=os.fsencode(shaders)) != pin:
         raise ValueError('Gameplay executable or compiled shader binding changed')
-    from mcc_onboarding import selected
-    source = selected(root)
+    if cache_candidate is None:
+        from mcc_onboarding import selected
+        source = selected(root)
+    else:
+        from mcc_onboarding import private_cache
+        candidate = Path(cache_candidate)
+        source = private_cache(root, candidate if candidate.is_absolute() else root / candidate,
+                               verify=True)
     if source is None or str(source[0].relative_to(root)) != record['cache']:
         raise ValueError('Gameplay selection requires its qualified prepared MCC cache')
     maps = source[0] / 'halo2/h2_maps_win64_dx11'

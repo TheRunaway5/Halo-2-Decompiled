@@ -141,8 +141,11 @@ unsigned source_retire_lens_queries(PhysicsLiveWorldTu15 &world) {
 }
 void source_execute_lens_query(PhysicsLiveWorldTu15 &world,std::uint32_t entry,
     SourcePhysicsWorldRuntimeAbi &abi,SourcePhysicsContactMemory *device) {
+    source_execute_lens_query(world.memory(),entry,abi,device);
+}
+void source_execute_lens_query(SourceRuntimeMemory &source,std::uint32_t entry,
+    SourcePhysicsWorldRuntimeAbi &abi,SourcePhysicsContactMemory *device) {
     if(!source_lens_query_tu15_owns_entry(entry))throw FormatError("Unowned original lens query entry");
-    auto &source=world.memory();
     SourceExecutionCallScope journal(&source,SourceExecutionCallKind::LensQuery,[&]{return source_execution_arguments(entry,abi);});
     QueryMemory memory(source,device);SourcePhysicsWorldRuntimeServices services;
     services.required_owner=[&](auto &m,const auto &call,auto &state,const auto &observe) {
@@ -153,10 +156,12 @@ void source_execute_lens_query(PhysicsLiveWorldTu15 &world,std::uint32_t entry,
     journal.complete([&]{return source_execution_lens_result(abi,memory.finish());});
 }
 void source_finish_lens_query(PhysicsLiveWorldTu15 &world,bool submitted,std::span<const SourceLensQueryRollback> rollback) {
+    source_finish_lens_query(world.memory(),submitted,rollback);
+}
+void source_finish_lens_query(SourceRuntimeMemory &source,bool submitted,std::span<const SourceLensQueryRollback> rollback) {
     if(rollback.size()>source_lens_query_capacity)throw FormatError("Lens query rollback exceeds its ring");
     for(const auto &saved:rollback)if(saved.id>=source_lens_query_capacity||saved.area>65535)
         throw FormatError("Invalid original lens query rollback");
-    auto &source=world.memory();
     SourceExecutionCallScope journal(&source,SourceExecutionCallKind::LensQueryFinish,[&]{return source_execution_arguments(submitted,rollback);});
     if(submitted) {
         // Whole13EF0:14172/1417C and ADC high, after a genuine submission.
@@ -174,12 +179,11 @@ bool source_lens_draw_execution_entry(std::uint32_t entry) {
 }
 namespace {
 struct WorldPassBoundary {std::array<std::uint32_t,6> arguments;};
-SourceLensWorldPass draw(PhysicsLiveWorldTu15 &world,std::uint32_t entry,SourcePhysicsWorldRuntimeAbi &abi,
+SourceLensWorldPass draw(SourceRuntimeMemory &source,std::uint32_t entry,SourcePhysicsWorldRuntimeAbi &abi,
     bool planning,std::span<const SourceLensDeviceRegion> regions,const SourceLensDeviceDomains *domains,
     SourcePhysicsContactMemory *device) {
     if(!source_lens_draw_execution_entry(entry))throw FormatError("Unowned original lens drawing entry");
     if(!domains)validate_source_lens_device_regions(regions);
-    auto &source=world.memory();
     SourceExecutionCallScope journal(&source,SourceExecutionCallKind::LensDraw,[&]{
         return domains?source_execution_arguments(entry,abi,planning,*domains):source_execution_arguments(entry,abi,planning,regions);});
     QueryMemory memory(source,device,true,regions,domains);
@@ -207,10 +211,18 @@ SourceLensWorldPass draw(PhysicsLiveWorldTu15 &world,std::uint32_t entry,SourceP
 }
 SourceLensWorldPass source_execute_lens_draw(PhysicsLiveWorldTu15 &world,std::uint32_t entry,
     SourcePhysicsWorldRuntimeAbi &abi,bool planning,std::span<const SourceLensDeviceRegion> regions,SourcePhysicsContactMemory *device) {
-    return draw(world,entry,abi,planning,regions,nullptr,device);
+    return draw(world.memory(),entry,abi,planning,regions,nullptr,device);
 }
 SourceLensWorldPass source_execute_lens_draw(PhysicsLiveWorldTu15 &world,std::uint32_t entry,
     SourcePhysicsWorldRuntimeAbi &abi,bool planning,const SourceLensDeviceDomains &domains,SourcePhysicsContactMemory &device) {
-    return draw(world,entry,abi,planning,{},&domains,&device);
+    return draw(world.memory(),entry,abi,planning,{},&domains,&device);
+}
+SourceLensWorldPass source_execute_lens_draw(SourceRuntimeMemory &source,std::uint32_t entry,
+    SourcePhysicsWorldRuntimeAbi &abi,bool planning,std::span<const SourceLensDeviceRegion> regions,SourcePhysicsContactMemory *device) {
+    return draw(source,entry,abi,planning,regions,nullptr,device);
+}
+SourceLensWorldPass source_execute_lens_draw(SourceRuntimeMemory &source,std::uint32_t entry,
+    SourcePhysicsWorldRuntimeAbi &abi,bool planning,const SourceLensDeviceDomains &domains,SourcePhysicsContactMemory &device) {
+    return draw(source,entry,abi,planning,{},&domains,&device);
 }
 }

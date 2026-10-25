@@ -34,6 +34,27 @@ if(BUILD_TESTING)
             "VK_LAYER_PATH=set:${CMAKE_CURRENT_SOURCE_DIR}/.tools/validation/usr/share/vulkan/explicit_layer.d;LD_LIBRARY_PATH=path_list_prepend:${CMAKE_CURRENT_SOURCE_DIR}/.tools/validation/usr/lib")
     endif()
 endif()
+if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT MSVC AND
+   CMAKE_SYSTEM_PROCESSOR MATCHES "^([xX]86_64|[aA][mM][dD]64|[xX]64)$")
+    # The test supplies Vulkan entry points itself; linking the loader would
+    # invalidate its deterministic constructor-failure controls.
+    add_executable(model_skin_gpu_initialization_tests EXCLUDE_FROM_ALL
+        tests/model_skin_gpu_initialization_tests.cpp
+        src/rendering/models/model_skin_gpu.cpp)
+    target_include_directories(model_skin_gpu_initialization_tests PRIVATE
+        include src ${Vulkan_INCLUDE_DIRS})
+    target_compile_features(model_skin_gpu_initialization_tests PRIVATE cxx_std_20)
+    target_compile_options(model_skin_gpu_initialization_tests PRIVATE
+        -fno-fast-math -ffp-contract=off -frounding-math)
+    if(HALO2_SANITIZERS)
+        target_compile_options(model_skin_gpu_initialization_tests PRIVATE
+            -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(model_skin_gpu_initialization_tests PRIVATE
+            -fsanitize=address,undefined)
+    endif()
+    add_test(NAME native_model_skin_gpu_initialization COMMAND model_skin_gpu_initialization_tests)
+    set_tests_properties(native_model_skin_gpu_initialization PROPERTIES TIMEOUT 60)
+endif()
 if(BUILD_TESTING AND NOT MSVC AND CMAKE_SYSTEM_PROCESSOR MATCHES "^([xX]86_64|[aA][mM][dD]64|[xX]64)$")
     add_executable(model_skin_handoff_tests tests/model_skin_handoff_tests.cpp)
     target_include_directories(model_skin_handoff_tests PRIVATE include src)

@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 import shlex
 import shutil
+import stat
 import subprocess
 import sys
 
@@ -25,6 +26,42 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def worker_link_arguments(target, linker, flags, sdk_library=None, sdk_import=None):
+    """Link the process-main worker using the same selected native SDK input."""
+    result = ['-C', f'linker={linker}']
+    for value in shlex.split(flags, posix='windows-msvc' not in target):
+        result += ['-C', f'link-arg={value}']
+    if sdk_library is not None:
+        if 'windows' in target:
+            if sdk_import is None:
+                raise ValueError('The Windows SDK worker requires its selected import library')
+            result += ['-C', f'link-arg={sdk_import}']
+        else:
+            suffix = '.dylib' if 'apple-darwin' in target else '.so'
+            name = sdk_library.name
+            if not name.startswith('lib') or not name.endswith(suffix):
+                raise ValueError('Unexpected selected EOS shared-library filename')
+            # Link by the actual selected filename, retaining a relocatable
+            # DT_NEEDED entry even when the vendor ELF has no SONAME.
+            result += ['-L', f'native={sdk_library.parent}', '-l', f'dylib={name[3:-len(suffix)]}']
+    if 'apple-darwin' in target:
+        result += ['-C', 'link-arg=-Wl,-rpath,@loader_path']
+    elif 'linux' in target:
+        result += ['-C', 'link-arg=-Wl,-rpath,$ORIGIN']
+    return result
+
+
+def stage_worker(slices, destination, cwd, env):
+    for source in slices:
+        if not source.is_file() or (os.name != 'nt' and not source.stat().st_mode & 0o111):
+            raise ValueError(f'Missing executable Rust SDK worker: {source}')
+    if len(slices) == 1:
+        shutil.copy2(slices[0], destination)
+    else:
+        run(['lipo', '-create', *map(str, slices), '-output', str(destination)], cwd, env)
+        destination.chmod(stat.S_IMODE(slices[0].stat().st_mode))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--manifest', type=Path, required=True)
@@ -36,11 +73,24 @@ def main():
     parser.add_argument('--cxx', required=True)
     parser.add_argument('--cxx-flags', default='')
     parser.add_argument('--library-name', required=True)
+    parser.add_argument('--security-library-name')
     parser.add_argument('--deployment-target', default='')
     parser.add_argument('--sysroot', default='')
     parser.add_argument('--offline', action='store_true')
     parser.add_argument('--eos-sdk-root', type=Path)
+    parser.add_argument('--eos-sdk-library', type=Path)
+    parser.add_argument('--eos-sdk-import-library', type=Path)
+    parser.add_argument('--worker-link-flags', default='')
+    parser.add_argument('--worker-linker')
     args = parser.parse_args()
+    sdk_library = args.eos_sdk_library.resolve(strict=True) if args.eos_sdk_library else None
+    sdk_import = args.eos_sdk_import_library.resolve(strict=True) if args.eos_sdk_import_library else None
+    if bool(args.eos_sdk_root) != bool(sdk_library) or (sdk_import and not sdk_library):
+        raise ValueError('SDK worker linking requires the actual selected SDK library')
+    windows = ['windows' in target for target in args.target]
+    if any(windows) != all(windows):
+        raise ValueError('SDK worker targets cannot mix executable formats')
+    worker_name = 'eos_sdk_worker.exe' if all(windows) else 'eos_sdk_worker'
     manifest = args.manifest.resolve(strict=True)
     output = args.output.resolve()
     if output == manifest.parent or output.is_relative_to(manifest.parent):
@@ -53,8 +103,10 @@ def main():
     if args.eos_sdk_root:
         env['HALO2_EOS_SDK_ROOT'] = str(args.eos_sdk_root.resolve(strict=True))
     flags = args.cxx_flags
+    worker_flags = args.worker_link_flags
     if args.sysroot:
         flags += ' -isysroot ' + shlex.quote(args.sysroot)
+        worker_flags += ' -isysroot ' + shlex.quote(args.sysroot)
     env['CXXFLAGS'] = flags
     if args.deployment_target:
         env['MACOSX_DEPLOYMENT_TARGET'] = args.deployment_target
@@ -64,6 +116,8 @@ def main():
     lock = manifest.parent/'Cargo.lock'
     before_lock = digest(lock)
     archives, native_flags, headers = [], None, None
+    security_libraries = []
+    workers = []
     for target in args.target:
         command = [args.cargo, 'rustc', '--manifest-path', str(manifest), '--locked',
                    '--release', '--lib', '--target', target]
@@ -82,6 +136,20 @@ def main():
         if not archive.is_file():
             raise ValueError(f'Missing compiled Rust archive: {archive}')
         archives.append(archive)
+        command = [args.cargo, 'rustc', '--manifest-path', str(manifest), '--locked',
+                   '--release', '--bin', 'eos_sdk_worker', '--target', target]
+        if args.offline:
+            command.append('--offline')
+        command += ['--', *worker_link_arguments(target, args.worker_linker or args.cxx, worker_flags,
+                                               sdk_library, sdk_import)]
+        run(command, manifest.parent, env)
+        workers.append(output/'cargo'/target/'release'/worker_name)
+        if args.security_library_name:
+            security_manifest=manifest.parent.parent/'online_security_ffi'/'Cargo.toml'
+            command=[args.cargo,'build','--manifest-path',str(security_manifest),'--locked','--release','--target',target]
+            if args.offline:command.append('--offline')
+            run(command,security_manifest.parent,env)
+            security_libraries.append(output/'cargo'/target/'release'/args.security_library_name)
         include = output/'cargo'/'cxxbridge'
         names = ['rust/cxx.h', 'halo2-online-protocol-bridge/src/lib.rs.h']
         current = {name: (include/name).read_bytes() for name in names}
@@ -95,6 +163,14 @@ def main():
     else:
         run(['lipo', '-create', *map(str, archives), '-output', str(destination)],
             manifest.parent, env)
+    if security_libraries:
+        security_destination=output/args.security_library_name
+        if len(security_libraries)==1:shutil.copyfile(security_libraries[0],security_destination)
+        else:run(['lipo','-create',*map(str,security_libraries),'-output',str(security_destination)],manifest.parent,env)
+    worker_destination = output/worker_name
+    stage_worker(workers, worker_destination, manifest.parent, env)
+    if sdk_library:
+        shutil.copy2(sdk_library, output/sdk_library.name)
     for name, data in headers.items():
         path = output/'include'/name
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -106,11 +182,13 @@ def main():
     (output/'native-libs.rsp').write_text(response+'\n')
     if digest(lock) != before_lock:
         raise ValueError('Locked Rust build changed Cargo.lock')
-    report = {'scope': 'Rust static library and generated CXX interface, not runtime acceptance',
+    report = {'scope': 'Rust static library, process-main SDK worker and generated CXX interface, not runtime acceptance',
               'rustc': version, 'targets': args.target, 'lock_sha256': before_lock,
               'cxx_version': '1.0.205', 'native_flags': native_flags,
               'requested_cxx': args.cxx, 'requested_cxx_flags': env['CXXFLAGS'],
               'archive': str(destination), 'archive_sha256': digest(destination),
+              'worker': str(worker_destination), 'worker_sha256': digest(worker_destination),
+              'worker_link_flags': worker_flags,
               'header_sha256': {name: hashlib.sha256(data).hexdigest() for name, data in headers.items()},
               'cargo_target_dir': env['CARGO_TARGET_DIR']}
     (output/'build-report.json').write_text(json.dumps(report, indent=2)+'\n')

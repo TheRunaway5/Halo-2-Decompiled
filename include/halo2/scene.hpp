@@ -48,6 +48,10 @@ struct SourceSceneObjectOwner {
   // Actual TU1.5 11EBA0 ->11EAB0 reads named parents and their current
   // WORLD nodes from this scene's retained source world.
   std::function<bool(std::size_t,Vec3)> contains_trigger;
+  // A netgame birth may choose another cold template through the original
+  // per-birth selector. Bind the completed full generation before publishing
+  // placement, bounds, attachment children or presentation metadata.
+  std::function<std::size_t(const ScenarioObject &,std::size_t,std::uint32_t)> birth_placement;
 };
 class SceneObjects {
 public:

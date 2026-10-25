@@ -2,6 +2,7 @@
 // Synthetic projectile inputs below test definition admission, never births.
 #define SDL_MAIN_HANDLED
 #include "halo2/multiplayer_world.hpp"
+#include "halo2/multiplayer_audio.hpp"
 #include "halo2/multiplayer_object_runtime.hpp"
 #include "halo2/source_runtime_memory.hpp"
 #include "halo2/animation_presentation.hpp"
@@ -24,6 +25,7 @@
 #include <iostream>
 #include <map>
 #include <set>
+#include <tuple>
 #include <nlohmann/json.hpp>
 using namespace halo2;
 using Json=nlohmann::json;
@@ -130,9 +132,15 @@ Json zoom_draws(const std::filesystem::path &map,std::string_view name,unsigned 
   options.local_players=1;options.source_object_world=true;options.session_random_seed=0x105240u;
   if(firing || throwing)options.local_players=2;
   const bool camouflaged=std::getenv("HALO2_COMBAT_AUDIT_CAMOUFLAGE")!=nullptr;
+  const bool muzzle_light=std::getenv("HALO2_AUDIT_FP_MUZZLE_LIGHT")!=nullptr;
+  const bool muzzle_tap=std::getenv("HALO2_AUDIT_FP_LIGHT_TAP")!=nullptr;
+  require(!muzzle_tap || muzzle_light,"Muzzle tap requires the declared first-person muzzle case");
+  const bool light_floor=muzzle_light || std::getenv("HALO2_AUDIT_LIGHT_FLOOR")!=nullptr;
+  require(!light_floor || (firing && name=="plasma_pistol"),"Light-floor input requires the declared plasma charge case");
   if(throwing)options.variant.values.set(83,name=="plasma"?15:16);
   if(const auto *players=std::getenv("HALO2_AUDIT_LOCAL_PLAYERS"))options.local_players=unsigned(std::stoul(players));
-  require(!firing || options.local_players==2,"Firing fixture requires its actual target player");
+  require(!firing || options.local_players==2 || (options.local_players==1 && name=="plasma_pistol"),
+      "Firing fixture requires its target player except the declared held plasma-light case");
   bool selected=false;std::uint32_t selected_definition=null_datum;const auto choices=cache.multiplayer_weapon_choices();
   for(unsigned option=3;option<=20;++option) {
     std::uint32_t seed{};const auto id=source_starting_weapon(null_datum,option,null_datum,choices,seed);
@@ -144,6 +152,18 @@ Json zoom_draws(const std::filesystem::path &map,std::string_view name,unsigned 
   options.prepared_world=std::make_shared<MultiplayerPreparedWorld>(options);
   auto &world=*options.prepared_world;world.bind_source_local_views(world.local_slots);
   Json light_births=Json::array(),native_lights=Json::array(),source_light_census=Json::array();
+  Json raw_fp_light_packets=Json::array();
+  Json builtin_controls=Json::array();
+  Json authored_functions=Json::array();
+  for(const auto &function:cache.load_object_functions(selected_definition)) {
+    const auto named=[&](auto id){return id?cache.string_id(id):std::string{};};
+    authored_functions.push_back({{"flags",function.flags},{"input",function.input},{"input_name",named(function.input)},
+        {"output",function.output},{"output_name",named(function.output)},
+        {"enable",function.enable},{"enable_name",named(function.enable)},
+        {"scale",function.scale},{"scale_name",named(function.scale)},
+        {"curve_bytes",function.curve.size()}});
+  }
+  const bool explicit_light_update=std::getenv("HALO2_AUDIT_EXPLICIT_LIGHT_UPDATE")!=nullptr;
   struct LightBirthScope {
     PhysicsLiveWorldTu15 *source{};
     ~LightBirthScope(){if(source)source->observe_effect_light_births({});}
@@ -163,6 +183,17 @@ Json zoom_draws(const std::filesystem::path &map,std::string_view name,unsigned 
     });
   }
   const auto player=world.local_slots.at(0);
+  for(const auto &[name,expected,enabled]:std::array<std::tuple<std::uint32_t,float,bool>,3>{{
+      {0u,1.f,true},{0x030005b2u,1.f,true},{0x040005b3u,0.f,false}}}) {
+    const auto actual_name=name?cache.string_id(name):std::string("implicit one");
+    require(!name || actual_name==(name==0x030005b2u?"one":"zero"),"Named MCC builtin identity differs");
+    constexpr std::uint32_t out=0x6005bc00u;
+    auto &source=world.source_objects->tu15_world();
+    const auto active=source.call_actual(0xbcb70u,std::array{world.match.state().players[player].source_unit,name,out});
+    const auto value=Bytes(source.memory().view(out,4)).f32(0);
+    builtin_controls.push_back({{"name",actual_name},{"authored",name},{"value",value},{"active",bool(active&255)},
+        {"expected",expected},{"expected_active",enabled},{"passed",value==expected&&bool(active&255)==enabled}});
+  }
   std::array<Controls,multiplayer_capacity> controls{};
   for(const auto slot:world.local_slots) {
     controls[slot].yaw=world.match.state().players[slot].yaw;
@@ -170,14 +201,14 @@ Json zoom_draws(const std::filesystem::path &map,std::string_view name,unsigned 
   }
   for(unsigned tick=0;tick<60;++tick)world.match.step(controls);
   if(camouflaged) {
-    require(firing,"Camouflage attachment fixture requires its actual target");
+    require(firing && options.local_players==2,"Camouflage attachment fixture requires its actual target");
     auto &source=world.source_objects->tu15_world();auto abi=source.prepare_source_call({});
     abi.gp[0]=world.match.player(world.local_slots.at(1)).source_datum;
     abi.gp[2]=0;abi.gp[7]=300;
     source.run_actual(0x154bd0u,abi); // Complete TU1.5 powerup grant; EAX/EDX/EDI inputs.
   }
   Json firing_setup=Json::object();
-  if(firing || throwing) {
+  if((firing && options.local_players==2) || throwing) {
     const auto state=world.match.state();const auto target=world.local_slots.at(1);
     const auto &biped=content.player_representations.at(2).biped;
     const auto eye=state.players[player].position+Vec3{0,0,biped.camera_height};
@@ -236,7 +267,17 @@ Json zoom_draws(const std::filesystem::path &map,std::string_view name,unsigned 
   options.desktop->auxiliary_random()=0x2468ace0u;
   options.desktop->display_settings.field_of_view=78;
   options.desktop->keyboard_settings=PcKeyboardSettings{};
-  options.frames=throwing?150:firing?30:36;options.width=640;options.height=480;options.mute=true;
+  options.frames=light_floor?90:throwing?150:firing?30:36;options.width=640;options.height=480;options.mute=true;
+  Json audio_packets=Json::array();
+  if(std::getenv("HALO2_AUDIT_ENABLE_AUDIO")) {
+    options.mute=false;
+    options.audio_observer=[&](const MultiplayerAudioSubmission& packet) {
+      audio_packets.push_back({{"sound",packet.sound},{"owner",packet.owner},{"view",packet.view},
+          {"voice",packet.voice},{"pitch_range",packet.pitch_range},{"permutation",packet.permutation},
+          {"source_pitch_bits",packet.source_pitch_bits},{"frames",packet.frames}});
+    };
+  }
+  options.capture_tick=world.match.state().tick+options.frames;options.frames=0;
   if(const auto *capture=std::getenv("HALO2_COMBAT_AUDIT_CAPTURE"))options.screenshot=capture;
   options.reference_tick_cadence=true;options.reference_render_fraction=.5f;
   Json input_samples=Json::array();
@@ -245,7 +286,8 @@ Json zoom_draws(const std::filesystem::path &map,std::string_view name,unsigned 
   bool grenade_prepared{},grenade_released{};std::uint64_t detonation_frontier{};
   options.input_observer=[&,window](unsigned step,std::span<const Controls> input,const auto &state) {
     input_samples.push_back({{"step",step},{"source_tick",state.tick},{"delivered_zoom",input.front().zoom},
-        {"source_zoom",state.players[player].source_zoom.current},{"fire",input.front().fire}});
+        {"source_zoom",state.players[player].source_zoom.current},{"fire",input.front().fire},
+        {"delivered_pitch",input.front().pitch},{"source_pitch",state.players[player].pitch}});
     if(throwing) {
       grenade_pulses+=input[player].grenade;
       for(const auto &g:state.grenade_projectiles)if(g.unit==state.players[player].source_unit) {
@@ -270,9 +312,19 @@ Json zoom_draws(const std::filesystem::path &map,std::string_view name,unsigned 
     if(step==0) {
       SDL_Event focus{};focus.type=SDL_WINDOWEVENT;focus.window.windowID=SDL_GetWindowID(window);
       focus.window.event=SDL_WINDOWEVENT_FOCUS_GAINED;require(SDL_PushEvent(&focus)==1,"Cannot queue owned window focus");
+      if(muzzle_tap) {
+        SDL_RaiseWindow(window);require(SDL_SetWindowInputFocus(window)==0,"Cannot focus actual muzzle-light window");
+        require(SDL_SetRelativeMouseMode(SDL_TRUE)==0,"Cannot enable actual relative mouse input before the later tap");
+      }
     }
-    if(firing && (step==2 || step==12)) {
-      SDL_Event event{};event.type=step==2?SDL_MOUSEBUTTONDOWN:SDL_MOUSEBUTTONUP;
+    if(light_floor && step>=4 && step<8) {
+      SDL_Event look{};look.type=SDL_MOUSEMOTION;look.motion.windowID=SDL_GetWindowID(window);
+      look.motion.yrel=100;require(SDL_PushEvent(&look)==1,"Cannot queue actual mouse look toward the floor");
+    }
+    const unsigned fire_press=muzzle_tap?30u:2u;
+    const unsigned fire_release=muzzle_tap?32u:((light_floor && !muzzle_light)?72u:12u);
+    if(firing && (step==fire_press || step==fire_release)) {
+      SDL_Event event{};event.type=step==fire_press?SDL_MOUSEBUTTONDOWN:SDL_MOUSEBUTTONUP;
       event.button.button=SDL_BUTTON_LEFT;event.button.windowID=SDL_GetWindowID(window);
       require(SDL_PushEvent(&event)==1,"Cannot queue actual Needler fire input");
     }
@@ -294,13 +346,36 @@ Json zoom_draws(const std::filesystem::path &map,std::string_view name,unsigned 
   options.effect_light_capture_request=[&](unsigned view,std::uint32_t tick,
       std::span<const EffectLightRawDraw> packets,std::span<const WorldEffectLight> lights) {
     if(view)return false;
+    bool first_person_packet{};
+    for(const auto &packet:packets) {
+      if(packet.light_definition==null_datum)continue;
+      const auto metadata=cache.load_source_tag_metadata(packet.light_definition);
+      const auto flags=Bytes(metadata.bytes_at(metadata.source_address(),4)).u32(0);
+      if(!(flags&0x20u))continue;
+      if(muzzle_light && (flags&0x40000u))continue;
+      bool mature=true;
+      if(light_floor && !muzzle_light) {
+        const auto record=word(word(0x4ecbdcu)+0x44u)+(packet.light_identity&65535u)*272u;
+        require(Bytes(memory.view(record,2)).u16(0)==std::uint16_t(packet.light_identity>>16),
+            "Pixel capture lost its actual native light generation");
+        mature=Bytes(memory.view(record+0xc4u,4)).f32(0)>=.95f;
+      }
+      first_person_packet|=mature;
+      const auto &receiver=packet.source.owner();
+      Json row{{"tick",tick},{"identity",packet.light_identity},{"definition",packet.light_definition},
+          {"flags",flags},{"receiver_kind",unsigned(receiver.kind)},
+          {"receiver_scope",receiver.scope_datum},{"receiver_ordinal",receiver.ordinal},
+          {"vertex_shader",packet.source.vertex_shader()}};
+      if(receiver.generation)row["receiver_generation"]=*receiver.generation;
+      raw_fp_light_packets.push_back(std::move(row));
+    }
     for(const auto &light:lights)if(light.flags&0x20u) {
       const auto tag=cache.query_tag({.handle=TagHandle{light.definition}});
       native_lights.push_back({{"tick",tick},{"identity",light.identity},{"definition",light.definition},
           {"name",tag?tag->name:std::string{}},{"flags",light.flags},{"effect",light.effect_definition},
           {"packets",std::count_if(packets.begin(),packets.end(),[&](const auto &packet){return packet.light_identity==light.identity;})}});
     }
-    return false;
+    return std::getenv("HALO2_AUDIT_CAPTURE_FP_LIGHT") && first_person_packet;
   };
   std::set<std::uint32_t> live_shots,attached_shots,glow_shots,model_shots,raw_attached_shots;
   Json camouflage_samples=Json::array();
@@ -309,6 +384,9 @@ Json zoom_draws(const std::filesystem::path &map,std::string_view name,unsigned 
   if(firing) {
     options.view_state_observer=[&](unsigned view,const MultiplayerState &state,const Camera &) {
       if(view)return;
+      // Independent scheduler boundary control. This complete original call
+      // receives the current world unchanged; it is not natural frame proof.
+      if(explicit_light_update)world.source_objects->tu15_world().call_actual(0xc3430u);
       const auto &source_memory=world.source_objects->memory();
       const auto source_word=[&](unsigned at){return Bytes(source_memory.view(at,4)).u32(0);};
       const auto pool=source_word(0x4ecbdcu),high=source_word(pool+0x38),rows=source_word(pool+0x44),bits=source_word(pool+0x48);
@@ -317,15 +395,24 @@ Json zoom_draws(const std::filesystem::path &map,std::string_view name,unsigned 
       for(unsigned index=0;index<high;++index)if(source_word(bits+index/32*4)&(1u<<(index%32))) {
         const auto body=rows+index*0x110,definition=source_word(body+4);
         if(definition==null_datum)continue;
-        const auto row=source_word(0x4f0414u)+(definition&65535u)*16;
-        require(source_word(row+4)==definition,"Observed source light census lost its full definition");
-        const auto flags=source_word(source_word(row+8));
+        const auto tag_row=source_word(0x4f0414u)+(definition&65535u)*16;
+        require(source_word(tag_row+4)==definition,"Observed source light census lost its full definition");
+        const auto flags=source_word(source_word(tag_row+8));
         if(!(flags&0x20u))continue;
         const auto tag=cache.query_tag({.handle=TagHandle{definition}});
-        source_light_census.push_back({{"tick",state.tick},{"identity",(source_word(body)&65535u)*65536u+index},
+        Json row{{"tick",state.tick},{"identity",(source_word(body)&65535u)*65536u+index},
             {"definition",definition},{"flags",flags},{"owner",source_word(body+0x4c)},
             {"name",tag?tag->name:std::string{}},{"node",Bytes(source_memory.view(body+0x54,2)).u16(0)},
-            {"cluster",Bytes(source_memory.view(body+0x48,2)).u16(0)}});
+            {"cluster",Bytes(source_memory.view(body+0x48,2)).u16(0)},
+            {"held_by_observed_player",source_word(body+0x4c)==state.players[player].source_weapon}};
+        if(row["held_by_observed_player"].get<bool>()) {
+          static constexpr char hex[]="0123456789abcdef";std::string bytes;
+          for(const auto b:source_memory.view(body,0x110)) {
+            const auto value=std::to_integer<unsigned>(b);bytes+=hex[value>>4];bytes+=hex[value&15];
+          }
+          row["actual_record_hex"]=std::move(bytes);
+        }
+        source_light_census.push_back(std::move(row));
       }
       for(const auto &p:state.weapon_projectiles)if(p.definition==projectile)live_shots.insert(p.datum);
       for(const auto &p:state.source_dynamic_objects)if(p.type==5 && p.definition==projectile) {
@@ -399,9 +486,14 @@ Json zoom_draws(const std::filesystem::path &map,std::string_view name,unsigned 
       {"scoped_first_person_draws",scoped_draws},{"unscoped_first_person_draws",unscoped_draws},
       {"final_zoom",world.match.state().players[player].source_zoom.current},{"samples",samples},{"views",views},
       {"input_samples",input_samples},
+      {"audio_packets",audio_packets},
       {"actual_source_light_births",light_births},
       {"actual_native_first_person_light_records",native_lights},
       {"actual_source_first_person_light_census",source_light_census},
+      {"actual_raw_first_person_light_packets",raw_fp_light_packets},
+      {"actual_original_builtin_controls",builtin_controls},
+      {"authored_weapon_functions",authored_functions},
+      {"explicit_additional_original_light_update",explicit_light_update},
       {"firing",firing},{"firing_setup",firing_setup},{"live_projectiles",live_shots},
       {"attached_projectile_udp",wire},
       {"camouflage_samples",camouflage_samples},

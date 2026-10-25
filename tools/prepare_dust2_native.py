@@ -322,6 +322,16 @@ def publish(source, buckets, imported, output, report, main_hud, reference_cache
                 replaced+=1
         assert replaced==3, 'Preserve authored parameter and both original implementation bitmap references'
         records[('shad',road_name)]=road
+    for leaf in ('polished_arch_emitter','polished_practical_emitter'):
+        name='scenarios\\multi\\dust2_mombasa\\shaders\\'+leaf
+        if name not in cache_names:continue
+        emitter=copy.deepcopy(records[('shad',r'scenarios\shaders\multi\turf\light_long_a')])
+        emitter['name']=name;replaced=0
+        for ref in emitter['references']:
+            if ref[1]==['bitm',r'scenarios\bitmaps\multi\turf\light_long_ilum_turf']:
+                ref[1][1]=r'scenarios\bitmaps\solo\earthcity\light_long';replaced+=1
+        assert replaced==3,'Retain the original fixture program and all three emission-map references'
+        records[('shad',name)]=emitter
     rasterizer = first['rasterizer']
     shutil.copyfile(imported/f'native-shaders/{donor_names[0]}/payloads'/rasterizer['payload'], bank/'payloads'/rasterizer['payload'])
     first.update(map='dust2_mombasa',shader_tags=list(records.values()),custom_authoring=dict(donors=donors,

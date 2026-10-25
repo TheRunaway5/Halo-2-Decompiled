@@ -67,11 +67,26 @@ struct Partial {
 pub struct Reassembly {
     pending: BTreeMap<u32, Partial>,
     completed: VecDeque<u32>,
+    statistics: ReassemblyStatistics,
+}
+/// Local counters only; these do not change framing, admission or expiry.
+#[derive(Clone, Copy, Default)]
+pub struct ReassemblyStatistics {
+    pub expired: u64,
+    pub capacity_dropped: u64,
 }
 impl Reassembly {
+    pub fn statistics(&self) -> ReassemblyStatistics {
+        self.statistics
+    }
     pub fn receive(&mut self, packet: &[u8], now_ms: u64) -> Option<Vec<u8>> {
+        let before = self.pending.len();
         self.pending
             .retain(|_, part| now_ms.saturating_sub(part.created) < 250);
+        self.statistics.expired = self
+            .statistics
+            .expired
+            .saturating_add((before - self.pending.len()) as u64);
         if packet.len() <= HEADER || packet.len() > MAX_PACKET || packet[..4] != [b'H', b'2', 1, 1]
         {
             return None;
@@ -93,6 +108,7 @@ impl Reassembly {
             return None;
         }
         if !self.pending.contains_key(&sequence) && self.pending.len() >= 64 {
+            self.statistics.capacity_dropped = self.statistics.capacity_dropped.saturating_add(1);
             return None;
         }
         let part = self.pending.entry(sequence).or_insert_with(|| Partial {
@@ -165,6 +181,21 @@ mod tests {
             bad[index] = 255;
             assert_eq!(Reassembly::default().receive(&bad, 0), None);
         }
+    }
+    #[test]
+    fn actual_partial_capacity_and_expiry_are_observable_without_changing_delivery() {
+        let mut reader = Reassembly::default();
+        for sequence in 0..64 {
+            assert_eq!(reader.receive(&fragments(sequence, &[7; 1404])[0], 0), None);
+        }
+        let next = fragments(64, &[8; 1404]);
+        assert_eq!(reader.receive(&next[0], 249), None);
+        assert_eq!(reader.statistics().capacity_dropped, 1);
+        assert_eq!(reader.statistics().expired, 0);
+        assert_eq!(reader.receive(&next[0], 250), None);
+        assert_eq!(reader.statistics().expired, 64);
+        assert_eq!(reader.receive(&next[1], 250), Some(vec![8; 1404]));
+        assert_eq!(reader.statistics().capacity_dropped, 1);
     }
     #[test]
     fn admission_is_pair_and_room_specific() {

@@ -45,12 +45,22 @@ std::array<std::size_t,2> children(const Code&c,std::size_t pc,unsigned op) {
     return {pc+length,pc+length+c.byte(pc+length-1)};
 }
 void validate(const Code&c) {
-    std::set<std::size_t> seen;
-    std::vector<std::size_t> pending{0};
+    // One visited bit per bytecode offset, reused across queries. Offsets past
+    // the tree are never revisited: their first byte read throws.
+    thread_local std::vector<std::uint64_t> seen;
+    thread_local std::vector<std::size_t> pending;
+    seen.assign(c.bytes.size()/64+1,0);pending.assign(1,0);
+    std::size_t visited=0;
+    const auto first_visit=[&](std::size_t pc) {
+        if(pc>=c.bytes.size())return true;
+        auto &word=seen[pc/64];const auto bit=std::uint64_t{1}<<(pc%64);
+        if(word&bit)return false;
+        word|=bit;return true;
+    };
     while(!pending.empty()) {
         auto pc=pending.back();pending.pop_back();
-        while(seen.insert(pc).second) {
-            if(seen.size()>1000000)throw FormatError("BSP accelerator instruction budget exceeded");
+        while(first_visit(pc)) {
+            if(++visited>1000000)throw FormatError("BSP accelerator instruction budget exceeded");
             const auto op=c.byte(pc),length=size(op);(void)c.byte(pc+length-1);
             if(op==0||terminal(op))break;
             if(branch(op)) {

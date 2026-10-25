@@ -16,6 +16,7 @@ from pathlib import Path
 import re
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import uuid
@@ -194,6 +195,152 @@ def atomic_json(path, value):
         temporary.unlink(missing_ok=True)
 
 
+def publication_identity(path):
+    """Read a regular publication file without adopting a concurrent rewrite."""
+    try:
+        before = path.lstat()
+    except FileNotFoundError:
+        return None
+    if not stat.S_ISREG(before.st_mode):
+        raise RuntimeError('Publication file is not regular: ' + path.name)
+    pin = digest(path)
+    after = path.lstat()
+    stable = lambda value: (value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns,
+                            value.st_ctime_ns, value.st_mode)
+    if stable(before) != stable(after):
+        raise RuntimeError('Publication file changed while reading: ' + path.name)
+    # Rename may change ctime. The incoming inode, contents, mtime and mode
+    # remain usable even if os.replace commits and then raises/interruption.
+    return (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns,
+            stat.S_IMODE(after.st_mode), pin)
+
+
+def publish_runtime_files(root, destination, scratch, record, frontend_record, report, expected,
+                          *, cache_choice=None):
+    """Rollback only this transaction's still-owned root files on any failure."""
+    backup = scratch / ('engine-publication-' + uuid.uuid4().hex)
+    backup.mkdir()
+    state = report['publication'] = dict(complete=False, rollback_failed=False, files=[])
+    changes, temporary_files = [], []
+    entries = [(root / name, destination / name, None)
+               for name in ('Halo2-Launcher', 'Halo2-Title-Launcher')]
+    entries.append((root / 'gameplay-runtime-selection.json', None, record))
+    if frontend_record:
+        entries.append((root / 'frontend-runtime-selection.json', None, frontend_record))
+    if cache_choice is not None:
+        from mcc_onboarding import REGISTRY, SCHEMA, private_cache
+        candidate = Path(cache_choice)
+        cache, _ = private_cache(root, candidate if candidate.is_absolute() else root / candidate,
+                                 verify=True)
+        relative = cache.relative_to(root).as_posix()
+        if any(c in relative for c in '\t\r\n\0') or record.get('cache') != relative:
+            raise ValueError('Publication cache differs from its qualified runtime')
+        # Onboarding's selection is a two-line TSV contract, not JSON.
+        entries.append((root / REGISTRY, None, (SCHEMA + '\ncache\t' + relative + '\n').encode()))
+    try:
+        for target, source, value in entries:
+            name = target.relative_to(root).as_posix()
+            previous = expected[name]
+            if publication_identity(target) != previous:
+                raise RuntimeError('Another task changed publication file: ' + name)
+            saved = backup / target.name
+            if previous is not None:
+                shutil.copy2(target, saved)
+                if digest(saved) != previous[-1] or publication_identity(target) != previous:
+                    raise RuntimeError('Publication backup changed: ' + target.name)
+            row = dict(name=name, previous_sha256=previous[-1] if previous else None,
+                       candidate_sha256=None, outcome='unchanged')
+            state['files'].append(row)
+            changes.append(dict(target=target, source=source, value=value, previous=previous,
+                                saved=saved, candidate=None, row=row))
+        for change in changes:
+            target = change['target']
+            temporary = target.with_name('.' + target.name + '-' + uuid.uuid4().hex)
+            temporary_files.append(temporary)
+            if change['source'] is not None:
+                shutil.copy2(change['source'], temporary)
+            elif isinstance(change['value'], bytes):
+                temporary.write_bytes(change['value'])
+            else:
+                temporary.write_text(json.dumps(change['value'], indent=2, sort_keys=True) + '\n')
+            change['candidate'] = publication_identity(temporary)
+            change['row']['candidate_sha256'] = change['candidate'][-1]
+            if publication_identity(target) != change['previous']:
+                raise RuntimeError('Another task changed publication file: ' + target.name)
+            # Register the exact incoming inode before rename, including the
+            # failure window after rename but before this call returns.
+            change['row']['outcome'] = 'attempted'
+            os.replace(temporary, target)
+            change['row']['outcome'] = 'published'
+        if cache_choice is not None:
+            from gameplay_runtime_selection import selected_gameplay_runtime
+            if selected_gameplay_runtime(root) != record:
+                raise RuntimeError('Published gameplay/cache selection failed final admission')
+        state['complete'] = True
+    except BaseException:
+        # If cancellation interrupts rollback itself, conservatively keep the
+        # candidate; a later finally must not delete a referenced runtime.
+        state['rollback_failed'] = True
+        failed = False
+        for change in reversed(changes):
+            if change['candidate'] is None:
+                continue
+            target = change['target']
+            try:
+                if publication_identity(target) != change['candidate']:
+                    change['row']['outcome'] = 'foreign_or_missing_preserved'
+                    continue
+                if change['previous'] is None:
+                    target.unlink()
+                else:
+                    temporary = target.with_name('.' + target.name + '-restore-' + uuid.uuid4().hex)
+                    temporary_files.append(temporary)
+                    shutil.copy2(change['saved'], temporary)
+                    if digest(temporary) != change['previous'][-1]:
+                        raise RuntimeError('Publication backup is no longer authentic')
+                    if publication_identity(target) != change['candidate']:
+                        change['row']['outcome'] = 'foreign_or_missing_preserved'
+                        continue
+                    os.replace(temporary, target)
+                change['row']['outcome'] = 'rolled_back'
+            except BaseException as error:
+                failed = True
+                change['row'].update(outcome='rollback_failed', error_class=type(error).__name__)
+        state['rollback_failed'] = failed
+        raise
+    finally:
+        for path in temporary_files:
+            path.unlink(missing_ok=True)
+
+
+def candidate_references(root, destination, publication):
+    """Fail closed for root files that still contain a candidate path/binary."""
+    expected = {row['name']: row['candidate_sha256'] for row in publication.get('files', [])}
+    needles = (str(destination).encode(), destination.relative_to(root).as_posix().encode())
+    references = []
+    for name in ('Halo2-Launcher', 'Halo2-Title-Launcher',
+                 'gameplay-runtime-selection.json', 'frontend-runtime-selection.json'):
+        path = root / name
+        try:
+            identity = publication_identity(path)
+            if identity is None:
+                continue
+            found = identity[-1] == expected.get(name)
+            with path.open('rb') as stream:
+                tail = b''
+                while not found and (part := stream.read(65536)):
+                    data = tail + part
+                    found = any(needle in data for needle in needles)
+                    tail = data[-max(map(len, needles)):]
+            if publication_identity(path) != identity:
+                raise RuntimeError('Publication reference changed while reading')
+            if found:
+                references.append(dict(name=name, status='candidate_reference'))
+        except BaseException as error:
+            references.append(dict(name=name, status='reference_unknown', error_class=type(error).__name__))
+    return references
+
+
 def weapon_audio(build, source, maps, image, output, build_report):
     """Require the actual repeated local weapon scenario before promotion."""
     helper = source / 'tools/validate_weapon_audio_runtime.py'
@@ -223,17 +370,30 @@ def weapon_audio(build, source, maps, image, output, build_report):
 
 def worker(args):
     from gameplay_runtime_selection import SELECTION, selected_gameplay_runtime
-    from mcc_onboarding import selected
+    from mcc_onboarding import REGISTRY, private_cache, selected
     root = args.root.resolve(strict=True)
     scratch = Path(os.environ['HALO2_TEST_SCRATCH'])
+    prepare_only = getattr(args, 'prepare_only', False)
     # Preserve the exact existing selection if another task promotes a runtime
     # while this build is in flight.
     selection = root / SELECTION
     previous = selection.read_bytes() if selection.is_file() else None
     frontend_selection = root / 'frontend-runtime-selection.json'
     previous_frontend = frontend_selection.read_bytes() if frontend_selection.is_file() else None
+    cache_candidate = getattr(args, 'cache_candidate', None)
+    publication_names = ('Halo2-Launcher', 'Halo2-Title-Launcher', SELECTION, 'frontend-runtime-selection.json')
+    if cache_candidate is not None:
+        publication_names += (REGISTRY,)
+    publication_baseline = {} if prepare_only else {
+        name: publication_identity(root / name) for name in
+        publication_names}
     prior = selected_gameplay_runtime(root)
-    cache = selected(root)
+    if cache_candidate is None:
+        cache = selected(root)
+    else:
+        candidate = Path(cache_candidate)
+        cache = private_cache(root, candidate if candidate.is_absolute() else root / candidate,
+                              verify=True)
     if cache is None:
         raise RuntimeError('Prepare the private MCC cache before building the launcher engine')
     maps = cache[0] / 'halo2/h2_maps_win64_dx11'
@@ -284,11 +444,19 @@ def worker(args):
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     atomic_json(output / 'source-hashes.json', pins)
-    report = dict(passed=False, scope='Current source build, launcher routing checks and MCC submitted-frame smoke',
+    report = dict(passed=False,
+                  scope='qualified_candidate_only' if prepare_only else
+                      'Current source build, launcher routing checks and MCC submitted-frame smoke',
+                  status='building', qualified_candidate=False, runtime_installed=False,
                   runtime=destination.relative_to(root).as_posix() + '/halo2_native',
-                  unresolved_case_failures=[], limits=['No full gameplay, Xbox framebuffer or audio parity claim'])
+                  unresolved_case_failures=[], accepted_case_failures=[],
+                  limits=['No full gameplay, Xbox framebuffer or audio parity claim'])
     report['reused_active_owned_build'] = reuse_owned_build
+    if cache_candidate is not None:
+        report['cache_candidate'] = cache[0].relative_to(root).as_posix()
     promoted = False
+    prepared = False
+    candidate_qualified = False
     try:
         print('Building the complete engine and both launchers in disposable storage…', flush=True)
         command = [sys.executable, '-B', str(root / 'tools/run_tests.py'), '--build-worker',
@@ -329,7 +497,7 @@ def worker(args):
             raise RuntimeError('Engine sources are missing from the runtime link graph: ' +
                                ', '.join(report['wiring']['unexpected_unwired_sources']))
         destination.mkdir(parents=True, exist_ok=False)
-        for name in ('halo2_native', 'Halo2-Launcher', 'Halo2-Title-Launcher'):
+        for name in ('halo2_native', 'Halo2-Launcher', 'Halo2-Title-Launcher', 'eos_sdk_worker'):
             shutil.copy2(build / name, destination / name)
         for name in ('libEOSSDK-Linux-Shipping.so', 'eos-client.env'):
             if (build / name).is_file():
@@ -340,6 +508,8 @@ def worker(args):
             if (build / name).is_dir():
                 shutil.copytree(build / name, destination / name)
         runtime = destination / 'halo2_native'
+        from native_gameplay_test import eos_worker_descriptor, validate_eos_worker
+        report['eos_worker'] = eos_worker_descriptor(runtime)
         if audio_image:
             report['weapon_audio'] = weapon_audio(build, source, maps, audio_image,
                 output / 'weapon-audio', output / 'validation/report.json')
@@ -355,27 +525,36 @@ def worker(args):
                          prior.get('video_driver', '') if prior else '')
             report['smoke'].append(case)
             if not case['passed']:
-                report['unresolved_case_failures'].append(f'{name}:{count}')
+                key = f'{name}:{count}'
+                # An explicitly accepted case stays recorded as failed in the
+                # qualification; it no longer blocks this one publication.
+                if key in (getattr(args, 'accept_smoke_failure', None) or []):
+                    print(f'Accepted failing smoke case {key}; recorded in the qualification', flush=True)
+                    report['accepted_case_failures'].append(key)
+                else:
+                    report['unresolved_case_failures'].append(key)
         if report['unresolved_case_failures']:
             raise RuntimeError('Current engine did not complete its actual MCC frame check: ' +
                                ', '.join(report['unresolved_case_failures']))
         frontend_record = None
         if (maps / 'mainmenu.map').is_file():
             from qualify_frontend_runtime import qualify
-            frontend_record = qualify(root, runtime, cache[0], output / 'frontend', scratch)
+            frontend_record = qualify(root, runtime, cache[0], output / 'frontend', scratch,
+                                      report['eos_worker'])
             atomic_json(destination / 'frontend-selection.json', frontend_record)
             report['frontend'] = dict(passed=True, runtime=frontend_record['runtime'])
         if source_hashes(source) != pins or any(digest(maps / name) != pin for name, pin in map_pins.items()):
             raise RuntimeError('Frozen engine source or MCC maps changed during validation; existing runtime retained')
-        if (selection.read_bytes() if selection.is_file() else None) != previous:
+        if not prepare_only and (selection.read_bytes() if selection.is_file() else None) != previous:
             raise RuntimeError('Another task changed the launcher selection during validation; its selection retained')
-        if frontend_record and (frontend_selection.read_bytes() if frontend_selection.is_file() else None) != previous_frontend:
+        if not prepare_only and frontend_record and (frontend_selection.read_bytes() if frontend_selection.is_file() else None) != previous_frontend:
             raise RuntimeError('Another task changed the frontend selection during validation; its selection retained')
         atomic_json(destination / 'source-hashes.json', pins)
+        validate_eos_worker(runtime, report['eos_worker'])
         inventory = {p.relative_to(destination).as_posix(): dict(sha256=digest(p), bytes=p.stat().st_size)
                      for p in destination.rglob('*') if p.is_file()}
         atomic_json(destination / 'runtime-files.json', inventory)
-        report.update(passed=True, runtime_sha256=digest(runtime),
+        report.update(passed=True, status='prepared', qualified_candidate=True, runtime_sha256=digest(runtime),
                       retained_bytes=sum(p.stat().st_size for p in destination.rglob('*') if p.is_file()))
         atomic_json(destination / 'qualification.json', report)
         record = dict(schema='H2_LOCAL_GAMEPLAY_RUNTIME_SELECTION_V1', runtime=report['runtime'],
@@ -384,33 +563,46 @@ def worker(args):
                       qualification_sha256=digest(destination / 'qualification.json'),
                       inventory=(destination / 'runtime-files.json').relative_to(root).as_posix(),
                       inventory_sha256=digest(destination / 'runtime-files.json'),
+                      eos_worker=report['eos_worker'],
                       cache=cache[0].relative_to(root).as_posix(), maps=map_pins,
                       default_map=default_map, local_players=players)
         if prior and prior.get('video_driver'):
             record['video_driver'] = prior['video_driver']
         candidate_selection = destination / 'selection.json'
         atomic_json(candidate_selection, record)
-        selected_gameplay_runtime(root, selection_name=candidate_selection.relative_to(root).as_posix())
-        # Install the compiled launcher entry points too. Replace by rename so
-        # an already running launcher can finish using its existing inode.
-        for name in ('Halo2-Launcher', 'Halo2-Title-Launcher'):
-            temporary = root / ('.' + name + '-' + uuid.uuid4().hex)
-            try:
-                shutil.copy2(destination / name, temporary)
-                os.replace(temporary, root / name)
-            finally:
-                temporary.unlink(missing_ok=True)
-        atomic_json(selection, record)
-        promoted = True
-        if frontend_record:
-            atomic_json(frontend_selection, frontend_record)
-        print(f'Both launchers now select {runtime}\nRetained runtime/resources: {report["retained_bytes"]} bytes', flush=True)
+        admission = dict(selection_name=candidate_selection.relative_to(root).as_posix())
+        if cache_candidate is not None:
+            admission['cache_candidate'] = cache[0]
+        selected_gameplay_runtime(root, **admission)
+        candidate_qualified = True
+        if prepare_only:
+            # Qualification and the actual admission reader have passed.
+            # Keep this explicit candidate without adopting any ROOT selection.
+            prepared = True
+            print(f'Qualified candidate prepared at {runtime}\nROOT launchers/selections were not published; '
+                  f'retained runtime/resources: {report["retained_bytes"]} bytes', flush=True)
+        else:
+            # Existing launchers can finish using their inode; the publication
+            # transaction also preserves them if a later root write fails.
+            publication = dict(cache_choice=cache[0]) if cache_candidate is not None else {}
+            publish_runtime_files(root, destination, scratch, record, frontend_record, report,
+                                  publication_baseline, **publication)
+            promoted = True
+            report.update(status='published', runtime_installed=True)
+            print(f'Both launchers now select {runtime}\nRetained runtime/resources: {report["retained_bytes"]} bytes', flush=True)
     except BaseException as error:
-        report.update(passed=False, error=str(error))
+        report.update(passed=False, status='failed', qualified_candidate=candidate_qualified, error=str(error))
         raise
     finally:
-        if not promoted and destination.exists():
-            shutil.rmtree(destination)
+        if not (promoted or prepared) and destination.exists():
+            publication = report.setdefault('publication', {})
+            references = candidate_references(root, destination, publication)
+            publication['candidate_references'] = references
+            publication['candidate_retained'] = bool(references or publication.get('rollback_failed'))
+            if publication['candidate_retained']:
+                report['retained_bytes'] = sum(p.stat().st_size for p in destination.rglob('*') if p.is_file())
+            else:
+                shutil.rmtree(destination)
         atomic_json(output / 'report.json', report)
 
 
@@ -429,6 +621,13 @@ def main():
     parser.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--reuse-owned-build', action='store_true',
                         help='Reuse source/build inside an active run_test.py coordinator; requires --worker')
+    parser.add_argument('--accept-smoke-failure', action='append', default=[], metavar='MAP:PLAYERS',
+                        help='Publish even if this smoke case fails (for example elongation.map:1); '
+                             'the failure is recorded as accepted in the qualification')
+    parser.add_argument('--prepare-only', action='store_true',
+                        help='Qualify and retain a candidate without publishing ROOT launchers or selections')
+    parser.add_argument('--cache-candidate', type=Path,
+                        help='Qualify this verified private MCC cache without selecting it during preparation')
     args = parser.parse_args()
     if args.reuse_owned_build and (not args.worker or not os.environ.get('HALO2_TEST_SCRATCH')):
         parser.error('--reuse-owned-build requires --worker inside an active run_test.py coordinator')

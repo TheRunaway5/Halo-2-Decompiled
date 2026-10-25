@@ -37,6 +37,16 @@ pub struct InputControl {
     pub completed_vehicle: Option<VehicleIntent>,
 }
 
+/// Snapshot stream acknowledgement carried by every input packet: the newest
+/// decoded snapshot sequence, the 32 before it as a bit mask, and flags
+/// (bit 0 requests a self-contained reset).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct SnapshotAck {
+    pub latest: u32,
+    pub mask: u32,
+    pub flags: u8,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum NativeRequest {
     Hello {
@@ -49,6 +59,7 @@ pub enum NativeRequest {
         cookie: u64,
         sequence: u32,
         controls: Vec<InputControl>,
+        ack: SnapshotAck,
     },
     Leave {
         nonce: u64,
@@ -206,11 +217,20 @@ pub fn decode_request(packet: &[u8], protocol: u16) -> Result<NativeRequest, Dec
             for _ in 0..count {
                 controls.push(reader.control()?);
             }
+            let ack = SnapshotAck {
+                latest: reader.u32()?,
+                mask: reader.u32()?,
+                flags: reader.u8()?,
+            };
+            if ack.flags > 1 {
+                return Err(DecodeError::InvalidControl);
+            }
             NativeRequest::Input {
                 nonce,
                 cookie,
                 sequence,
                 controls,
+                ack,
             }
         }
         4 => NativeRequest::Leave {
@@ -255,6 +275,9 @@ mod tests {
         }
         value.extend_from_slice(&[1, 4, 0, 63, 0, 0x34, 0x12, 1, 0x80]);
         value.extend_from_slice(&[1, 0, 0, 0, 0, 255, 255, 255, 255]);
+        value.extend_from_slice(&0x0102_0304u32.to_le_bytes());
+        value.extend_from_slice(&0x8000_0001u32.to_le_bytes());
+        value.push(1);
         value
     }
 
@@ -295,10 +318,19 @@ mod tests {
             cookie,
             sequence,
             controls,
+            ack,
         } = decode_request(&input(), 97).unwrap()
         else {
             panic!("wrong kind")
         };
+        assert_eq!(
+            ack,
+            SnapshotAck {
+                latest: 0x0102_0304,
+                mask: 0x8000_0001,
+                flags: 1
+            }
+        );
         assert_eq!(nonce, 0x123456789abcdef0);
         assert_eq!(cookie, u64::MAX);
         assert_eq!(sequence, u32::MAX);
@@ -345,6 +377,9 @@ mod tests {
                 Err(DecodeError::InvalidControl)
             );
         }
+        let mut flags = valid.clone();
+        *flags.last_mut().unwrap() = 2;
+        assert_eq!(decode_request(&flags, 97), Err(DecodeError::InvalidControl));
         let mut trailing = valid.clone();
         trailing.push(0);
         assert_eq!(

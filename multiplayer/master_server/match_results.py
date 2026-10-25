@@ -1,4 +1,4 @@
-"""Private, idempotent ledger of unanimously confirmed native Slayer results.
+"""Private ledger of unanimously confirmed native Slayer/CTF/Assault results.
 
 Agreement is a consistency check, not server simulation or cheat detection.
 The retired Live skill service is not inferred from a host's report.
@@ -9,6 +9,14 @@ import json
 import logging
 
 from .protocol import require
+
+# Exact original mainmenu preset names, as admitted by the native queue.
+# Unrecognized/custom names retain the existing Slayer-only result policy.
+OBJECTIVE_ENGINES = {
+    "Multi Flag CTF": 1, "CTF Classic": 1, "1 Flag CTF": 1, "1 Flag CTF Fast": 1,
+    "Multi Bomb": 9, "Single Bomb": 9, "Single Bomb Fast": 9,
+    "Neutral Bomb": 9, "Blast Resort": 9,
+}
 
 
 class MatchResults:
@@ -63,9 +71,12 @@ class MatchResults:
         require(isinstance(report, str) and len(report) == 2 * 0xdc78
                 and all(c in "0123456789abcdef" for c in report), "Invalid postgame report")
         raw = bytes.fromhex(report)
+        engine = struct.unpack_from("<I", raw, 0x64)[0]
+        expected_engine = OBJECTIVE_ENGINES.get(room.proposal.game.variant, 2)
         require(raw[0:2] == b"\x01\x01" and raw[0x10:0x12] == b"\x01\x01"
-                and raw[0x13] == int(room.team_mode) and raw[0x64:0x68] == b"\x02\x00\x00\x00"
-                and (raw[0x68] & 1) == int(room.team_mode), "Unfinished admitted Slayer postgame report")
+                and raw[0x13] == int(room.team_mode) and engine == expected_engine
+                and (engine == 2 or room.team_mode)
+                and (raw[0x68] & 1) == int(room.team_mode), "Unfinished admitted multiplayer postgame report")
         teams = {team for _, _, team in room.players} if room.team_mode else set()
         require(all(0 <= team < 8 for team in teams), "Invalid admitted teams")
         for slot, (member, name, team) in enumerate(room.players):
@@ -132,6 +143,6 @@ class MatchResults:
                 if member not in getattr(room,"guests",()):
                     enqueue(db,member)
         logging.getLogger("halo2.results").info(json.dumps({"event": "carnage_report_committed",
-            "match": public, "format": "vista-pcr-consumed-v1",
+            "match": public, "format": "native-verified-summary-v2",
             "published_players": len(room.players)-len(getattr(room, "guests", ())) }))
 

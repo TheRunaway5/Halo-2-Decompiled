@@ -86,6 +86,58 @@ void run(int argc,char **argv){
             check(entry.identity!=prototypes[i].identity,"Receiver trusted its separately minted source prototype identity");accepted.push_back(entry);}
     }
     check(!std::filesystem::exists(files/"trusted-source-admissions"),"Source identity exchange still used a private fixture file");
+    if(std::getenv("HALO2_PUBLISHER_SECURITY_REPAIR")){
+        // Repeated checkpoints must not advance the fixture's probe-on-read
+        // counter. Actual Match steps still advance its independent time.
+        world.clock->cycle_stride=0;if(workspace)workspace->clock->cycle_stride=0;
+        const auto context=*session->authority_context();const auto binding=source_authority_binding(context);
+        if(hosting){
+            SourceAuthorityPublisher guarded(*world.authority,session,other,SourceAuthorityStreamMode::Replay,60s);
+            check(guarded.capture(),"Security regression could not capture its initial base");
+            const auto before=world.match->simulation().ticks();
+            check(!guarded.execute([&]{
+                world.step({});auto &bank=world.world->memory();const auto old=bank.view(0x4c65f0u,8);
+                const std::vector<std::byte> same(old.begin(),old.end());
+                world.world->tu15_world().write_source_call_input(0x4c65f0u,same);
+            }),"Raw caller capability entered a network replay journal");
+            check(world.match->simulation().ticks()==before+1&&!guarded.state().tracking_replay,
+                "Denied journal stopped real gameplay or retained its stream");
+            wait([&]{guarded.update();return !guarded.state().encoding;},"Denied journal encoder did not retire");
+            const auto expected=world.match->simulation().ticks();
+            write(files/"repair-world",encode_source_authority(world.authority->checkpoint(binding)));
+            std::vector<std::byte> tick;put(tick,expected,8);write(files/"repair-tick",tick);
+            check(guarded.capture()&&!guarded.state().tracking_replay&&!guarded.record_frame(),
+                "Checkpoint repair restarted the denied execution grammar");
+            wait([&]{guarded.update();const auto state=guarded.state();
+                check(state.error.empty(),state.error.c_str());
+                return state.ready&&state.ready->seal.tick==expected&&!state.encoding&&!state.awaiting_validation;
+            },"Safe checkpoint fallback never reached native receiver validation");
+            write(files/"repair-host-checked",std::array<std::byte,1>{std::byte{1}});
+            wait([&]{return std::filesystem::exists(files/"repair-receiver-checked");},"Receiver did not confirm safe repair");
+        }else{
+            world.local_views(host_locals);
+            wait([&]{
+                auto cut=session->received_authority();if(!cut)return false;
+                const auto saved=decode_source_authority(*cut->bytes);
+                const auto admitted=session->source_players();
+                check(admitted&&admitted->context==cut->context,"Checkpoint repair lost independent source admissions");
+                // Replay targets retain the producer view mapping. Validate
+                // every identity through the independently accepted roster.
+                auto prepared=world.authority->prepare(saved,binding,admitted->players);
+                check(world.authority->commit(std::move(prepared)),"Checkpoint repair failed native preparation");
+                check(session->acknowledge_authority(cut->context,cut->seal),"Checkpoint repair ACK rejected");
+                if(!std::filesystem::exists(files/"repair-tick"))return false;
+                const auto tick_bytes=read(files/"repair-tick");const Bytes tick(tick_bytes);
+                if(cut->seal.tick!=(std::uint64_t(tick.u32(0))|(std::uint64_t(tick.u32(4))<<32)))return false;
+                check(encode_source_authority(world.authority->checkpoint(binding))==read(files/"repair-world"),
+                    "Checkpoint fallback changed the captured complete world");
+                write(files/"repair-receiver-checked",std::array<std::byte,1>{std::byte{1}});return true;
+            },"Receiver did not validate the checkpoint after a denied journal");
+            wait([&]{return std::filesystem::exists(files/"repair-host-checked");},"Host did not observe repair validation");
+        }
+        std::cout<<"PASS Rust-denied raw journal preserves real host work and completes a native checkpoint repair without restarting replay\n";
+        return;
+    }
     if(hosting){
         for(unsigned i=0;i<20;++i){std::array<Controls,16> input{};for(unsigned j=0;j<8;++j)input[j].yaw=world.match->unit(j).yaw;input[0].fire=i<10;world.step(input);}
         SourceAuthorityPublisher publisher(*world.authority,session,other,60s);unsigned captures=0,encoding_ticks=0;bool cancelling=false;

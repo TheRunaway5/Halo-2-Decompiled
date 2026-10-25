@@ -10,6 +10,7 @@
 #endif
 #include <exception>
 #include <iostream>
+#include <limits>
 #include <thread>
 
 namespace {
@@ -262,6 +263,91 @@ void same_parameters(const SdlSoundVoiceParameters&a,const SdlSoundVoiceParamete
       std::bit_cast<std::uint32_t>(a.routes[i].linear_gain)==std::bit_cast<std::uint32_t>(b.routes[i].linear_gain),
       "Core restore changed route bits");
 }
+void loop_packet_continuation(const std::shared_ptr<const Cache>&cache,std::uint32_t loop){
+  const auto sound=cache->load_looping_sound(loop).tracks.at(0).loop;
+  const auto metadata=cache->load_sound_variation(sound);
+  const auto center=std::bit_cast<std::int16_t>(Bytes(metadata.pitch_ranges.at(0).interval).u16(0));
+  unsigned packets{};std::size_t packet_frames{};
+  MultiplayerAudio audio(cache,0x4c173a2bu,manual,[&](const auto&packet){
+    if(packet.kind!=MultiplayerAudioKind::Ambient)return;
+    need(packet.sound==sound && packet.pitch_range==0 && packet.permutation==0 &&
+        packet.rng_before==packet.rng_after,"Selected loop packet reran selection or changed its authored range");
+    ++packets;
+    packet_frames=packet.frames;
+  });
+  audio.enroll_continuation();audio.listeners(std::array<Vec3,1>{{{0,0,0}}});
+  // This output-port test supplies a selected nonspatial packet. Spatial and
+  //layer policy require the actual converted World provider, exercised by
+  //the object-loop source-frame regression rather than raw MCC flags here.
+  const MultiplayerLoopPacketTu15 input{sound,0x6d0bu,1,0,0,{float(center),-3,1},{}};
+  auto invalid=input;invalid.permutation=unsigned(metadata.permutations.size());
+  rejects([&]{(void)audio.play_loop_packet(invalid);},"selected authored permutation",
+      "Invalid loop permutation created native playback");
+  invalid=input;invalid.parameters.pitch_cents=std::numeric_limits<float>::quiet_NaN();
+  rejects([&]{(void)audio.play_loop_packet(invalid);},"finite authored pitch/gain",
+      "Nonfinite loop input reached native playback");
+  need(audio.voices()==0 && packets==0,"Rejected loop input allocated or submitted a native voice");
+  const auto original=audio.play_loop_packet(input,audio.presentation_frames()+3000);
+  need(bool(original) && packets==1,"Selected loop packet did not reach actual retained SDL output");
+  need(audio.loop_packet_accepts_input(*original) && audio.queue_loop_packet(*original,0) && packets==2,
+      "Second selected permutation did not reach the retained native stream");
+  need(!audio.loop_packet_accepts_input(*original) && !audio.queue_loop_packet(*original,0) && packets==2,
+      "Full native loop queue consumed another selected permutation");
+  audio.loop_packet_parameters(*original,{float(center)+1200,-12,.5f});
+  const auto parameters=audio.voice_parameters(*original);
+  const auto prefix_frames=3000+std::size_t(std::ceil(double(packet_frames)/std::bit_cast<float>(parameters.relative_rate_bits)))+32;
+  const auto saved=audio.checkpoint();const auto expected=audio.render(prefix_frames);audio.update();
+  need(std::ranges::any_of(expected,[](float sample){return std::abs(sample)>0;}),
+      "Actual loop packet continuity control consumed only silence");
+  auto replacement=audio.prepare_restore(saved);const auto target=replacement.voice(*original);
+  need(bool(target),"Actual loop packet receipt has no prepared target");
+  {auto held=audio.hold_publication(replacement);need(publish(audio,replacement,held),"Loop packet publication failed");}
+  same_parameters(parameters,audio.voice_parameters(*target));
+  rejects([&]{audio.loop_packet_parameters(*original,input.parameters);},"stale or foreign",
+      "Loop packet source receipt survived publication");
+  same_pcm(expected,audio.render(prefix_frames));
+  // This also proves that the restored voice retained its loop-packet kind.
+  if(audio.voice_active(*target))audio.loop_packet_parameters(*target,input.parameters);
+  audio.update();audio.stop();need(audio.voices()==0,"Loop packet restore/stop retained a native voice");
+  unsigned completions{};std::optional<SdlSoundCompletionStatus> status;
+  const auto queued=audio.play_loop_packet(input,audio.presentation_frames()+48000,[&](const auto&completion){
+    ++completions;status=completion.status;
+  });
+  need(bool(queued),"Native loop packet completion control was rejected");
+  need(audio.queue_loop_packet(*queued,0),"Completion control did not queue its second actual packet");
+  const auto rate=std::bit_cast<float>(audio.voice_parameters(*queued).relative_rate_bits);
+  const auto plain_volume=audio.voice_parameters(*queued).volume_hundredths_db;
+  (void)audio.render(48000+std::size_t(std::ceil(double(packet_frames)/rate))+1);audio.update();
+  need(audio.voice_active(*queued) && completions==0 && audio.loop_packet_accepts_input(*queued),
+      "First packet completion retired its still-playing native loop stream");
+  audio.stop_voice(*queued);audio.stop();
+  need(completions==1 && status==SdlSoundCompletionStatus::Flushed,
+      "Loop packet did not report its single actual flushed completion");
+  const auto ordinary=audio.play_impulse_receipt(sound);
+  need(bool(ordinary),"Loop packet type control lacks an ordinary actual voice");
+  rejects([&]{audio.loop_packet_parameters(*ordinary,input.parameters);},"actual loop packet voice",
+      "An ordinary impulse acquired loop-packet parameter ownership");
+  audio.stop();
+  const auto fade_ms=std::max(1u,std::min(100u,unsigned(double(packet_frames)/rate/192.)));
+  auto fading=input;fading.fade_in_seconds=float(fade_ms)/1000.f;
+  const auto rising=audio.play_loop_packet(fading);
+  const auto first_volume=rising?audio.voice_parameters(*rising).volume_hundredths_db:0;
+  if(!rising || first_volume>=plain_volume)throw std::runtime_error("Initial loop fade first="+
+      std::to_string(first_volume)+" plain="+std::to_string(plain_volume)+" ms="+std::to_string(fade_ms)+
+      " frames="+std::to_string(packet_frames)+" rate="+std::to_string(rate));
+  (void)audio.render(fade_ms*24u);audio.update();
+  need(audio.voice_active(*rising),"Rising loop fade retired live PCM");
+  (void)audio.render(fade_ms*24u+96u);audio.update();
+  need(audio.voice_active(*rising) && audio.voice_parameters(*rising).volume_hundredths_db==plain_volume,
+      "Completed loop fade-in did not retain its actual output");
+  audio.stop();
+  MultiplayerAudio foreign(cache,0x1934,manual);foreign.enroll_continuation();
+  const auto other=foreign.play_loop_packet(input);
+  need(bool(other),"Foreign receipt control has no actual packet");
+  rejects([&]{audio.loop_packet_parameters(*other,input.parameters);},"stale or foreign",
+      "A foreign loop packet receipt acquired this output port");
+  foreign.stop();
+}
 void continuation(const std::shared_ptr<const Cache>&cache,std::uint32_t sound,std::uint32_t loop){
   std::vector<MultiplayerAudioSubmission> submitted;
   MultiplayerAudio audio(cache,0x651d83f1,manual,[&](const auto&p){submitted.push_back(p);});
@@ -445,6 +531,7 @@ int main(int argc,char**argv){try{
   equal(ordinary(cache,sound,false),ordinary(cache,sound,true));failed_observer(cache,sound);
   need(script_fade(cache,sound,false)==script_fade(cache,sound,true),"Enrollment changed logical fade behavior before restoration");
   const auto loop=loop_sound(*cache);need(looping(cache,loop,false)==looping(cache,loop,true),"Enrollment changed actual loop permutation/packet behavior");
+  stage("loop packet continuation",[&]{loop_packet_continuation(cache,loop);});
   stage("PCM suffix",[&]{continuation(cache,sound,loop);});stage("active previous script",[&]{script_continuation(cache,sound,false);});stage("retired previous script",[&]{script_continuation(cache,sound,true);});stage("held owner retirement",[&]{held_owner_retirement(cache,sound);});
   stage("script cancellation",[&]{script_cancellation(cache,sound);});stage("legacy callback retirement",[&]{callback_owner_retirement(cache,sound,loop,false);});stage("enrolled callback retirement",[&]{callback_owner_retirement(cache,sound,loop,true);});
   std::cout<<"PASS genuine MCC Core local continuation: retaining Cache, invalid aliases, legacy foreign producer, creator/reentry/pending guards, pre-emplace observation, exact PCM/RNG/completion, failure cleanup, actual loops, typed script and logical fade\n";

@@ -18,10 +18,12 @@ int main()try {
       object=0xe1000000,effect=0xe6650000,tag=0xe5500001;
   SourceRuntimeMemory m;m.mount(objects,std::vector<std::byte>(0x50000),SourceRuntimeMemory::Access::ReadWrite,"Declared attachment banks");
   m.mount(0x4f0000,std::vector<std::byte>(0x8000),SourceRuntimeMemory::Access::ReadWrite,"Declared TU1.5 globals");
+  m.mount(0x4ecbd0,std::array<std::byte,4>{},SourceRuntimeMemory::Access::ReadWrite,"Declared object pool binding");
   for(auto p:{objects,effects,locations})put(m,p+0x29,1,1);
   put(m,objects+0x20,2048);put(m,objects+0x24,12);put(m,objects+0x38,1);
   put(m,objects+0x44,headers);put(m,objects+0x48,object_bits);put(m,object_bits,1);
   put(m,headers,object>>16,2);put(m,headers+6,0x300,2);put(m,headers+8,body);
+  put(m,headers+3,6,1);put(m,body+0x14,0xffffffffu);
   put(m,body+0x11c,24,2);put(m,body+0x11e,0x140,2);
   put(m,body+0x140,0,1);put(m,body+0x144,0xeeee0000);
   put(m,body+0x148,2,1);put(m,body+0x14c,effect);
@@ -29,6 +31,7 @@ int main()try {
   put(m,effects+0x20,256);put(m,effects+0x24,400);put(m,effects+0x38,1);
   put(m,effects+0x44,data);put(m,effects+0x48,effect_bits);put(m,effect_bits,1);
   put(m,data,effect>>16,2);put(m,data+2,0x83,2);put(m,data+4,tag);put(m,data+0x48,object);
+  put(m,0x4ecbd0,objects);put(m,0x4f720c,effects);put(m,data+0x58,0xffffffffu);
   put(m,data+0x6c,0x80000000u);put(m,data+0x70,0x3f800000);
   put(m,data+0x104,0x01234567);put(m,data+0x108,0x89abcdef);
   for(unsigned i=0;i<32;++i)put(m,data+0x7c+i*4,0xffffffffu);
@@ -48,6 +51,9 @@ int main()try {
       v.colors==std::array<std::uint32_t,2>{0x01234567,0x89abcdef},"Readback changed completed effect identity/controls/colors");
   check(v.locations.size()==2 && v.locations[0].node==0 && v.locations[1].node==-1 &&
       v.locations[0].name==0x070000c0 && !std::memcmp(&v.locations[0].local,&local,sizeof(local)),"Readback changed actual local location matrices or names");
+  check(v.render&&v.render->identity==effect&&v.render->attached_owner==object&&
+      v.render->root_owner==object&&v.render->root_type==6&&v.render_clock.flags==0x83,
+      "Readback lost the actual attached render root or current event clock");
   check(rows[1].instance==0xffffffffu && rows[1].locations.empty(),"Absent source allocation became a replacement effect");
   check(!std::memcmp(saved.data(),m.view(objects,saved.size()).data(),saved.size()),"Readback mutated original banks");
   rejects([&]{source_attached_effects_tu15(m,native_objects,native_effects,object+0x10000u);});

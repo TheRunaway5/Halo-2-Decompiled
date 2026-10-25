@@ -3,6 +3,7 @@
 #include "physics/runtime/physics_world_runtime_internal.hpp"
 #include "halo2/source_map_world_support_tu15.hpp"
 #include "halo2/physics_live_support_tu15.hpp"
+#include "halo2/source_effect_compiled_symbols_tu15.hpp"
 namespace halo2 {
 namespace {
 using namespace physics_world_runtime_detail;
@@ -3000,17 +3001,17 @@ if(s.services.instruction){s.services.instruction(0x10be4cu);} s.set(0,s.flags.l
 if(s.services.instruction){s.services.instruction(0x10be51u);} s.set(0,s.flags.shift(s.reg(0,4,0),selected(0x4u,s.image),4),4,0);
 if(s.services.instruction){s.services.instruction(0x10be54u);} s.set(2,r(s.memory,(selected(0x8u,s.image)+s.gp[0]+s.gp[2]*1u),4),4,0);
 if(s.services.instruction){s.services.instruction(0x10be58u);} s.set(0,r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4),4,0);
-if(s.services.instruction){s.services.instruction(0x10be5cu);} s.flags.minus(s.reg(0,4,0),selected(0x6000560u,s.image),4);
+if(s.services.instruction){s.services.instruction(0x10be5cu);} s.flags.minus(s.reg(0,4,0),source_object_function_compiled_symbol_tu15(s.memory,0x10be5cu,selected(0x6000560u,s.image)),4);
 if(s.services.instruction){s.services.instruction(0x10be61u);} s.push(0x10be61u,s.reg(3,4,0));
 if(s.services.instruction){s.services.instruction(0x10be62u);} s.set(3,selected(0x1u,s.image),1,0);
 if(s.services.instruction){s.services.instruction(0x10be64u);} s.xmm[0]=s.xmm[1];
 if(s.services.instruction){s.services.instruction(0x10be67u);} if(!s.flags.zf&&(s.flags.sf==s.flags.of))goto L10bf78;
 if(s.services.instruction){s.services.instruction(0x10be6du);} if(s.flags.zf)goto L10bef6;
-if(s.services.instruction){s.services.instruction(0x10be73u);} s.flags.minus(s.reg(0,4,0),selected(0x40005abu,s.image),4);
+if(s.services.instruction){s.services.instruction(0x10be73u);} s.flags.minus(s.reg(0,4,0),source_object_function_compiled_symbol_tu15(s.memory,0x10be73u,selected(0x40005abu,s.image)),4);
 if(s.services.instruction){s.services.instruction(0x10be78u);} if(s.flags.zf)goto L10becc;
 if(s.services.instruction){s.services.instruction(0x10be7au);} s.flags.minus(s.reg(0,4,0),selected(0x5000081u,s.image),4);
 if(s.services.instruction){s.services.instruction(0x10be7fu);} if(s.flags.zf)goto L10bebf;
-if(s.services.instruction){s.services.instruction(0x10be81u);} s.flags.minus(s.reg(0,4,0),selected(0x5000561u,s.image),4);
+if(s.services.instruction){s.services.instruction(0x10be81u);} s.flags.minus(s.reg(0,4,0),source_object_function_compiled_symbol_tu15(s.memory,0x10be81u,selected(0x5000561u,s.image)),4);
 if(s.services.instruction){s.services.instruction(0x10be86u);} if(!s.flags.zf)goto L10bf95;
 if(s.services.instruction){s.services.instruction(0x10be8cu);} s.xmm[3]=_mm_set_ss(f(r(s.memory,(selected(0x10cu,s.image)+s.gp[2]),4)));
 if(s.services.instruction){s.services.instruction(0x10be94u);} s.flags.scalar_compare(s.xmm[3],s.xmm[1],false);
@@ -3070,9 +3071,9 @@ L10bf70: if(s.services.instruction){s.services.instruction(0x10bf70u);} s.xmm[0]
 if(s.services.instruction){s.services.instruction(0x10bf73u);} goto L10c082;
 L10bf78: if(s.services.instruction){s.services.instruction(0x10bf78u);} s.flags.minus(s.reg(0,4,0),selected(0x8000080u,s.image),4);
 if(s.services.instruction){s.services.instruction(0x10bf7du);} if(s.flags.zf)goto L10c064;
-if(s.services.instruction){s.services.instruction(0x10bf83u);} s.flags.minus(s.reg(0,4,0),selected(0xf00055eu,s.image),4);
+if(s.services.instruction){s.services.instruction(0x10bf83u);} s.flags.minus(s.reg(0,4,0),source_object_function_compiled_symbol_tu15(s.memory,0x10bf83u,selected(0xf00055eu,s.image)),4);
 if(s.services.instruction){s.services.instruction(0x10bf88u);} if(s.flags.zf)goto L10c025;
-if(s.services.instruction){s.services.instruction(0x10bf8eu);} s.flags.minus(s.reg(0,4,0),selected(0x1200055fu,s.image),4);
+if(s.services.instruction){s.services.instruction(0x10bf8eu);} s.flags.minus(s.reg(0,4,0),source_object_function_compiled_symbol_tu15(s.memory,0x10bf8eu,selected(0x1200055fu,s.image)),4);
 if(s.services.instruction){s.services.instruction(0x10bf93u);} if(s.flags.zf)goto L10bf9b;
 L10bf95: if(s.services.instruction){s.services.instruction(0x10bf95u);} s.set(0,s.flags.logic((s.reg(0,1,0))^(s.reg(0,1,0)),1),1,0);
 if(s.services.instruction){s.services.instruction(0x10bf97u);} s.set(3,s.pop(),4,0);

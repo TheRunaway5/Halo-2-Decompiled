@@ -1,11 +1,14 @@
 #pragma once
 #include "halo2/source_hud_messages.hpp"
+#include "halo2/source_multiplayer_event_tu15.hpp"
 #include "halo2/source_control_target.hpp"
 #include "halo2/source_execution_inputs.hpp"
 #include "halo2/source_main_camera_receipt_tu15.hpp"
 #include "halo2/source_scenario_birth.hpp"
 #include "halo2/weapon_hud.hpp"
 #include "halo2/physics_world_runtime.hpp"
+#include "halo2/source_object_audio_views_tu15.hpp"
+#include "halo2/source_loop_sound_request_tu15.hpp"
 #include "halo2/source_effect_light_birth_tu15.hpp"
 #include "halo2/source_runtime_memory.hpp"
 #include "halo2/source_multiplayer_engine_entity_tu15.hpp"
@@ -19,6 +22,7 @@
 #include "halo2/source_vehicle_director_tu15.hpp"
 #include "halo2/melee_impact.hpp"
 #include "halo2/source_effect_location.hpp"
+#include "halo2/source_effect_replica_render_tu15.hpp"
 #include "halo2/unit_damage.hpp"
 #include "halo2/particle_collision.hpp"
 #include "halo2/source_weapon_shader_input.hpp"
@@ -87,13 +91,6 @@ using SourceSoundSubmitObserverTu15=std::function<void(bool,std::uint32_t,
 // admission/voice result. Independent of diagnostic instruction tracing.
 using SourceSoundRequestObserverTu15=std::function<void(std::uint32_t,
     std::span<const std::byte,160>)>;
-// Actual220C60 call arguments and its full68-byte caller location, copied
-// before the unchanged original call. arguments[4] is historical source
-// backing, never a pointer for a native consumer to retain or dereference.
-struct SourceLoopSoundRequestTu15 {
-    std::array<std::uint32_t,8> arguments;
-    std::array<std::byte,68> location;
-};
 using SourceLoopSoundRequestObserverTu15=std::function<void(const SourceLoopSoundRequestTu15 &)>;
 struct SourceTeleporterActivationTu15 {
     std::uint32_t player{},sound=0xffffffffu;
@@ -135,6 +132,7 @@ struct SourceProjectileDetonationTu15 {
     std::vector<SourceEffectLocation> effect_locations;
     SourceEffectColors colors;
     SourceEffectControls controls;
+    std::optional<SourceEffectReplicaRenderTu15> replica_render;
 };
 // Actual168DED draw records: model, owner, mode and original model-order
 // world matrices. Skinning consumes these completed records without sampling
@@ -189,6 +187,13 @@ public:
     PhysicsLiveWorldTu15(const Cache &,const std::filesystem::path &xbe,
                         const std::filesystem::path &savegame_directory,std::size_t bsp,
                         std::shared_ptr<PhysicsLiveClockSource>);
+    // Isolated diagnostic operand tape, bound before native startup and kept
+    // through world teardown. A null clock selects the actual platform source.
+    // The creator must release this world before sealing the owning tape.
+    // Complete-call journals and foreign-executor inputs are not admitted.
+    PhysicsLiveWorldTu15(const Cache &,const std::filesystem::path &xbe,
+                        const std::filesystem::path &savegame_directory,std::size_t bsp,
+                        std::shared_ptr<PhysicsLiveClockSource>,std::shared_ptr<SourceExecutionInputs>);
     ~PhysicsLiveWorldTu15();
     PhysicsLiveWorldTu15(const PhysicsLiveWorldTu15 &)=delete;
     PhysicsLiveWorldTu15 &operator=(const PhysicsLiveWorldTu15 &)=delete;
@@ -279,6 +284,9 @@ public:
     SourceMultiplayerEngineStateTu15 multiplayer_engine_state() const;
     SourceMultiplayerEngineEntityTu15 multiplayer_engine_entity() const;
     void observe_multiplayer_round_end(std::function<void(const SourceMultiplayerRoundEndTu15 &)>);
+    // Copies actual common event dispatch inputs. The callback is read-only
+    // and supplies no event, RNG, audio admission or gameplay service result.
+    void observe_multiplayer_events(std::function<void(const SourceMultiplayerEventTu15 &)>);
     // Native roster input, before player allocation/configuration. Original
     // team-mask and existing-player configuration owners consume the change.
     void publish_roster_team(unsigned user,std::int8_t team);
@@ -301,6 +309,10 @@ public:
     void observe_sound_submissions(SourceSoundSubmitObserverTu15);
     void observe_sound_requests(SourceSoundRequestObserverTu15);
     void observe_loop_sound_requests(SourceLoopSoundRequestObserverTu15);
+    // Native presentation's actual local camera inputs. Complete18EE50,
+    //18F900 and190460 compute every scheduling/PVS/distance result. The
+    // legacy listener bank and Xbox driver/map availability stay untouched.
+    void step_native_object_audio(const SourceObjectAudioViewsTu15&,float elapsed);
     void observe_effect_light_births(SourceEffectLightBirthObserverTu15);
     // Bind an actual owned EEPROM resource before source audio construction.
     // This retains only its immutable non-key UserSettings section; absence
@@ -383,6 +395,8 @@ public:
     SourceWeaponHudState weapon_hud_state(std::uint32_t weapon);
     VehicleWeaponHudStatus vehicle_weapon_hud(std::uint32_t unit);
     std::optional<ParticleCollisionHit> particle_collision(std::uint32_t flags,Vec3 origin,Vec3 displacement);
+    bool objective_waypoint_occluded(Vec3 origin,Vec3 endpoint,std::uint32_t flags,
+        std::uint32_t ignore_viewer,std::uint32_t ignore_target);
     // Complete original scheduler over a private native view context. Retains
     // authored entry/exit timers, producer state and observer registration.
     DeathCameraPacket player_camera_packet(std::uint32_t player,float seconds,

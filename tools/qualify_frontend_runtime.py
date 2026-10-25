@@ -16,9 +16,52 @@ def digest(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
-def qualify(root, runtime, cache, output, scratch):
+def _readmit_frontend_owner(root, runtime, cache, sidecar, receipt, capability):
+    from native_gameplay_test import NativeTestOwnerChanged, _check
+
+    pins = capability['resources']
+    pinned_paths = {cache/name for name in pins}
+    runtime_pin = capability['runtime']['sha256']
+    receipt_pin = capability['validation']['report_sha256']
+    sidecar_pin = hashlib.sha256((json.dumps(capability, indent=2)+'\n').encode('utf-8')).hexdigest()
+    diagnostic = dict(passed=False, maximum_attempts=3, attempts=[],
+        runtime_sha256=runtime_pin, frame_report_sha256=receipt_pin, capability_sha256=sidecar_pin,
+        identity_fields=['device', 'inode', 'bytes', 'mtime_ns', 'ctime_ns'])
+    diagnostic_path = receipt.parent/'frontend-owner-readmission.json'
+
+    def record():
+        diagnostic_path.write_text(json.dumps(diagnostic, indent=2)+'\n')
+
+    for attempt in range(1, 4):
+        row = dict(attempt=attempt, passed=False)
+        diagnostic['attempts'].append(row)
+        try:
+            if digest(runtime)!=runtime_pin or any(digest(cache/name)!=value for name,value in pins.items()):
+                raise RuntimeError('Frontend owner changed during validation')
+            if digest(sidecar)!=sidecar_pin or digest(receipt)!=receipt_pin:
+                raise RuntimeError('Frontend validation receipt or capability changed during readmission')
+            _check(root, runtime, cache, frontend=True)
+        except NativeTestOwnerChanged as error:
+            retry = error.path in pinned_paths and error.path.is_relative_to(cache) and attempt<3
+            row.update(error=type(error).__name__, path=str(error.path), before=error.before,
+                after_fd=error.after_fd, after_path=error.after_path, retry_allowed=retry)
+            record()
+            if not retry:
+                raise
+        except BaseException as error:
+            row.update(error=type(error).__name__, message=str(error))
+            record()
+            raise
+        else:
+            row['passed'] = True
+            diagnostic['passed'] = True
+            record()
+            return
+
+
+def qualify(root, runtime, cache, output, scratch, eos_worker=None):
     from native_gameplay_test import (FRONTEND_CAPABILITY, FRONTEND_MAP, FRONTEND_SCHEMA,
-                                     FRONTEND_SCOPE, _check)
+                                     FRONTEND_SCOPE)
     from native_renderer_shaders import PROFILE
     root, runtime, cache = root.resolve(), runtime.resolve(strict=True), cache.resolve(strict=True)
     if not runtime.is_relative_to(root):
@@ -29,9 +72,14 @@ def qualify(root, runtime, cache, output, scratch):
     maps = cache/'halo2/h2_maps_win64_dx11'
     output.mkdir(parents=True, exist_ok=True)
     pin = digest(runtime)
+    if eos_worker is not None:
+        from native_gameplay_test import validate_eos_worker
+        validate_eos_worker(runtime, eos_worker)
     resources = [maps/name for name in ('shared.map', 'textures.dat', 'sounds_neutral.dat')]
     resources += [p for p in (cache/'halo2/h2_fonts').rglob('*') if p.is_file()]
     resources += [cache/'presentation/loading-v3'/name for name in ('manifest.json','glow-mask.dds','loading.wav')]
+    if (cache/'frontend-map-bindings.json').exists():
+        resources.append(cache/'frontend-map-bindings.json')
     # Match the frontend reader: loose reference pages are not an active pack.
     if (cache/'ui/pack.tsv').is_file():
         resources += [p for p in (cache/'ui').rglob('*') if p.is_file()]
@@ -65,6 +113,9 @@ def qualify(root, runtime, cache, output, scratch):
         if not passed: raise RuntimeError('Frontend check failed: '+name)
     if digest(runtime)!=pin or any(digest(cache/name)!=value for name,value in pins.items()):
         raise RuntimeError('Frontend owner changed during validation')
+    if eos_worker is not None:
+        validate_eos_worker(runtime, eos_worker)
+        report['eos_worker'] = eos_worker
     report.update(passed=True,limits='Four rendered frames per screen and supplied intro frame 100; real account sign-in and completed online gameplay remain unverified.')
     receipt = output/'report.json'
     receipt.write_text(json.dumps(report,indent=2)+'\n')
@@ -76,9 +127,11 @@ def qualify(root, runtime, cache, output, scratch):
             mcc_loading_presentation_profile='mcc-logo-glow-mcc-track-oneshot-v1',
             mcc_prompt_font_profile='mcc-native-control-fonts-v1',original_loading_ambience=False,
             full_game_parity=False,limits=report['limits']))
+    if eos_worker is not None:
+        capability['eos_worker'] = eos_worker
     with sidecar.open('x') as stream:
         stream.write(json.dumps(capability,indent=2)+'\n')
-    try: _check(root,runtime,cache,frontend=True)
+    try: _readmit_frontend_owner(root,runtime,cache,sidecar,receipt,capability)
     except BaseException:
         sidecar.unlink()
         raise

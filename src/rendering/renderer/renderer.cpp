@@ -3,6 +3,7 @@
 #include "rendering/renderer/renderer_pipeline_cache.hpp"
 #include "rendering/renderer/renderer_upload_batch.hpp"
 #include "halo2/vulkan_portability.hpp"
+#include "halo2/source_shadow_native_prefix_tu15.hpp"
 #include "halo2/macos/bundle.hpp"
 #include "halo2/macos/vulkan_math.hpp"
 #include <functional>
@@ -55,6 +56,7 @@
 #include "halo2/source_decal_renderer.hpp"
 #include "halo2/source_contrail_renderer.hpp"
 #include "halo2/source_bsp_resident_plan.hpp"
+#include "halo2/native_parallel.hpp"
 #include "halo2/source_render_policy.hpp"
 #include "halo2/source_bsp_admission.hpp"
 #include "halo2/source_shader_lod.hpp"
@@ -194,6 +196,7 @@ struct Renderer::Impl {
     bool measure_frames{};
     RendererFrameTiming frame_timing;
     std::ofstream timing_report;
+    SourceShadowNativePrefixTu15Stats timing_previous_shadow_prefix{};
     unsigned timing_frame{};
     std::chrono::steady_clock::time_point timing_previous{};
     bool group_input_diagnostic_done{};
@@ -636,6 +639,15 @@ struct Renderer::Impl {
     std::map<unsigned,std::array<std::int32_t,8>> fog_material_switches;
     std::vector<unsigned> material_roots;
     std::vector<std::vector<ShaderRemap>> view_direction_remaps,view_fog_remaps;
+    // The map and authored mappings are immutable after initialization. Keep
+    // its order and stable pass addresses without walking unrelated nodes.
+    std::vector<std::pair<unsigned,const MaterialPass *>> view_direction_materials;
+    const bool reference_view_direction_scan=[] {
+        const auto saved_errno=errno;
+        const auto *value=std::getenv("HALO2_REFERENCE_VIEW_DIRECTION_SCAN");
+        const bool enabled=value && *value;
+        errno=saved_errno;return enabled;
+    }();
     std::array<std::vector<bool>,4> view_material_initialized;
     std::vector<std::array<float,2>> material_lighting_brightness;
     std::vector<int> water_material_definitions;
@@ -1912,7 +1924,8 @@ struct Renderer::Impl {
         // These authored mappings never change when animation updates the
         // live program words. Retain their exact order once per material.
         view_direction_remaps.resize(materials.size());view_fog_remaps.resize(materials.size());
-        for(const auto &[index,pass]:fog_material_passes)
+        view_direction_materials.clear();
+        for(const auto &[index,pass]:fog_material_passes) {
             for(const auto &mapping:pass.pixel_externs) {
                 const auto component=mapping.component&7;
                 if(component==4 && mapping.source==0)
@@ -1924,6 +1937,9 @@ struct Renderer::Impl {
                 const bool color=component==4 && mapping.source>=25 && mapping.source<=32;
                 if(scalar || color)view_fog_remaps[index].push_back(mapping);
             }
+            if(!view_direction_remaps[index].empty())
+                view_direction_materials.emplace_back(index,&pass);
+        }
         material_roots.resize(materials.size());
         material_lighting_brightness.resize(materials.size());
         for(unsigned i=0;i<material_count;++i) {
@@ -2894,6 +2910,18 @@ struct Renderer::Impl {
     }
 
     void make_pipeline() {
+        VkPipelineCreateFlags specialized_compile_flags{};
+#if defined(__linux__)
+        // This measured device/driver stalls in forward specialization before
+        // the first frame. Preserve every shader/control/raster input while
+        // selecting Vulkan's creation-time optimization policy. Other hosts
+        // retain their existing policy; see VEHICLE_CONTRAIL_SNAPSHOT_TU15.md.
+        VkPhysicalDeviceProperties compile_properties{};
+        vkGetPhysicalDeviceProperties(physical,&compile_properties);
+        if(compile_properties.vendorID==0x10deu && compile_properties.deviceID==0x2c02u &&
+            compile_properties.driverVersion==0x99d38200u)
+            specialized_compile_flags=VK_PIPELINE_CREATE_DISABLE_OPTIMIZATION_BIT;
+#endif
         VkAttachmentDescription attachments[2]{};
         attachments[0].format = format;
         attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
@@ -3307,6 +3335,7 @@ struct Renderer::Impl {
             check(vkCreateShaderModule(device,&module,nullptr,&texture_accumulation_fragment),"create pStencil texture accumulation shader");observe_shader(texture_accumulation_fragment,words);
         }
         for(auto &p:forward_pipelines) {
+            info.flags=p.controls?specialized_compile_flags:0;
             std::array<std::uint32_t,61> constants{};
             std::array<VkSpecializationMapEntry,61> entries{};
             VkSpecializationInfo specialization{};
@@ -3359,6 +3388,7 @@ struct Renderer::Impl {
             check(vkCreateGraphicsPipelines(device,pipeline_cache->get(),1,&info,nullptr,&p.sky_handle),"create original sky material pipeline");observe_pipeline(p.sky_handle,info);
             raster.depthClampEnable=VK_FALSE;
         }
+        info.flags=0;
         stages[1].pSpecializationInfo=nullptr;
         info.renderPass=render_pass;
         stages[1].module=frag;
@@ -4104,7 +4134,7 @@ struct Renderer::Impl {
         }
         return true;
     }
-    bool draw(const Camera& camera, const std::filesystem::path& screenshot, std::span<const Vertex> debug, bool reticle, std::span<const Vertex> first_person, ScreenEffects effects, std::span<const Vertex> ui, std::span<const ModelView> views, std::span<const Vertex> background, std::span<const UiBackdrop> backdrops, const BspFogSample *mainmenu_fog, const MainmenuWorldDraw *mainmenu_world, bool ui_full_surface_bounds) {
+    bool draw(const Camera& camera, const std::filesystem::path& screenshot, std::span<const Vertex> debug, bool reticle, std::span<const Vertex> first_person, ScreenEffects effects, std::span<const Vertex> ui, std::span<const ModelView> views, std::span<const Vertex> background, std::span<const UiBackdrop> backdrops, const BspFogSample *mainmenu_fog, const MainmenuWorldDraw *mainmenu_world, bool ui_full_surface_bounds, const RendererHostPreparationTiming *host_preparation) {
         touch_lens_queries();
         // Reject unsupported captured resource/history states before recording
         // commands or resizing any attachments. Admitted plans have no
@@ -4261,6 +4291,19 @@ struct Renderer::Impl {
         const auto *fresh_plans=std::getenv("HALO2_REFERENCE_FRESH_BSP_PLANS");
         const auto *copy_bsp_objects=std::getenv("HALO2_REFERENCE_COPY_BSP_OBJECTS");
         const bool borrow_bsp_objects=skin_plan.expected_vertices() || !(copy_bsp_objects && *copy_bsp_objects);
+        // Each view's BSP merge reads only the immutable resident atlas and
+        // writes its own plan, so the views merge together. The ordered loop
+        // below keeps every check and rethrows a merge failure at its view.
+        std::array<std::exception_ptr,4> merge_errors{};
+        native_parallel_for(views.size(),[&](std::size_t i) {
+            const auto &view=views[i];
+            if(!view.source_bsp_resident_plan || view.source_bsp_resident_plan!=bsp_resident_plan)return;
+            try {
+                auto &plan=(fresh_plans && *fresh_plans)?fresh_bsp_plans[i].emplace():bsp_frame_plans[i];
+                bsp_resident_plan->merge_into(plan,view.source_bsp_bindings,view.vertices,
+                    unsigned(material_count),unsigned(lightmap_textures.size()),0,0,borrow_bsp_objects);
+            } catch(...){merge_errors[i]=std::current_exception();}
+        });
         std::size_t previous_ui = 0;
         for(std::size_t i=0;i<views.size();++i) {
             const auto &view=views[i];
@@ -4270,16 +4313,8 @@ struct Renderer::Impl {
             if(view.source_bsp_resident_plan) {
                 if(view.source_bsp_resident_plan!=bsp_resident_plan)
                     throw FormatError("view BSP resident plan is not the validated renderer atlas");
-                if(fresh_plans && *fresh_plans) {
-                    fresh_bsp_plans[i].emplace();
-                    bsp_resident_plan->merge_into(*fresh_bsp_plans[i],view.source_bsp_bindings,view.vertices,
-                        unsigned(material_count),unsigned(lightmap_textures.size()),0,0,borrow_bsp_objects);
-                    bsp_plans[i]=&*fresh_bsp_plans[i];
-                } else {
-                    bsp_resident_plan->merge_into(bsp_frame_plans[i],view.source_bsp_bindings,view.vertices,
-                        unsigned(material_count),unsigned(lightmap_textures.size()),0,0,borrow_bsp_objects);
-                    bsp_plans[i]=&bsp_frame_plans[i];
-                }
+                if(merge_errors[i])std::rethrow_exception(merge_errors[i]);
+                bsp_plans[i]=(fresh_plans && *fresh_plans)?&*fresh_bsp_plans[i]:&bsp_frame_plans[i];
                 required+=bsp_plans[i]->dynamic_vertices.size()+bsp_plans[i]->borrowed_object_vertices;
             } else {
                 if(!view.source_bsp_bindings.empty())throw FormatError("view BSP bindings have no resident owner");
@@ -5162,18 +5197,25 @@ struct Renderer::Impl {
         }
         // 33980's view-direction RGB extern also belongs to the main camera
         // path. Per-view banks below replace only these selected channels.
-        for(const auto &[index,pass]:fog_material_passes) {
-            if(!global_material_roots[material_roots[index]])continue;
+        const auto update_view_direction=[&](unsigned index,const MaterialPass &pass) {
+            if(!global_material_roots[material_roots[index]])return;
             const auto &mappings=view_direction_remaps[index];
-            if(mappings.empty())continue;
+            if(mappings.empty())return;
             auto &uniform=material_uniforms[index];
             PixelProgram program{uniform.program,material_fragment_offsets[index]};
             const auto forward=camera.oriented?camera.forward:direction(camera.yaw,camera.pitch);
             const std::array<ShaderVector,1> colors{{{forward.x,forward.y,forward.z,0}}};
             remap_pixel_externs(program,{},colors,mappings,pass.fragments,fog_material_switches.at(index));
-            if(uniform.program==program.words)continue;
+            if(uniform.program==program.words)return;
             uniform.program=program.words;
             mark_material_changed(index);
+        };
+        if(reference_view_direction_scan) {
+            for(const auto &[index,pass]:fog_material_passes)
+                update_view_direction(index,pass);
+        } else {
+            for(const auto &[index,pass]:view_direction_materials)
+                update_view_direction(index,*pass);
         }
         for(std::size_t i=0;i<animated_textures.size();++i) for(unsigned stage=0;stage<4;++stage) {
             if(wanted_frames[i][stage]==bound_frames[i][stage]) continue;
@@ -5615,7 +5657,14 @@ struct Renderer::Impl {
         if(!views.empty()) {
             void *mapped{};
             mapped=material_mapping;
-            for(std::size_t i=0;i<views.size();++i) {
+            // Each view collects its own material set, builds uniforms from
+            // immutable per-frame tables and writes only its own stride of
+            // the mapped buffer, so the views run together. The upload
+            // observer is an ordered diagnostic contract: keep it serial.
+            const bool observed_upload=std::any_of(views.begin(),views.end(),
+                [](const auto &v){return bool(v.completed_material_upload_observer);});
+            std::array<std::exception_ptr,4> upload_errors{};
+            const auto upload_view=[&](std::size_t i) {
                 const auto &view=views[i];
                 std::vector<bool> used(material_uniforms.size());
                 std::vector<unsigned> materials;
@@ -5707,6 +5756,13 @@ struct Renderer::Impl {
                             sizeof(uniform)-tail);
                     }
                 }
+            };
+            if(observed_upload)for(std::size_t i=0;i<views.size();++i)upload_view(i);
+            else {
+                native_parallel_for(views.size(),[&](std::size_t i) {
+                    try{upload_view(i);}catch(...){upload_errors[i]=std::current_exception();}
+                });
+                for(const auto &error:upload_errors)if(error)std::rethrow_exception(error);
             }
         }
         struct ShadowDrawRecord {
@@ -6154,10 +6210,21 @@ struct Renderer::Impl {
         } capture_guard{device, capture, capture_memory};
         Capture depth_capture_guard{device,depth_capture,depth_capture_memory};
         const VkDeviceSize depth_capture_size = VkDeviceSize(extent.width) * extent.height * 4;
-        const VkDeviceSize capture_size = VkDeviceSize(presentation_extent.width) * presentation_extent.height * 4;
+        // Test-only source selection for the existing requested screenshot.
+        // No environment lookup, buffer or GPU work on ordinary frames.
+        const bool capture_internal_color=!screenshot.empty() && [] {
+            const auto *value=std::getenv("HALO2_INTERNAL_COLOR_DIAGNOSTICS");
+            return value && std::strcmp(value,"1")==0;
+        }();
+        const auto capture_extent=capture_internal_color?extent:presentation_extent;
+        const VkDeviceSize capture_size = VkDeviceSize(capture_extent.width) * capture_extent.height * 4;
         const VkDeviceSize stencil_capture_size=VkDeviceSize(extent.width)*extent.height;
         if (!screenshot.empty()) {
             if (!can_capture) throw std::runtime_error("surface does not support frame readback");
+            if(capture_internal_color && (temporal_upscaler || scene_targets.empty() ||
+               (source_double_buffer && images.size()!=2) ||
+               (format!=VK_FORMAT_B8G8R8A8_UNORM && format!=VK_FORMAT_R8G8B8A8_UNORM)))
+                throw FormatError("Internal RGB diagnostic requires a complete offscreen RGBA8/BGRA8 UNORM target without temporal upscaling");
             make_buffer(capture_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, capture, capture_memory);
             if(std::getenv("HALO2_DEPTH_DIAGNOSTICS"))
                 make_buffer(depth_capture_size+stencil_capture_size,VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -6367,7 +6434,9 @@ struct Renderer::Impl {
             if(camouflage_group_materials[material])return false; // Owned by the copied-scene group below.
             if(camouflage_view && camouflage_view->camouflage[material_roots[material]]>0.f &&
                 camouflage_variants[material_roots[material]][0]!=~0u)return false;
-            if(source_transparency_active && layer==15)return false;
+            // TU1.5 3EDD0 -> 4C680 owns the dedicated sky independently of
+            // the ordinary layer15 transparent drain, including reflections.
+            if(source_transparency_active && !sky_raster && layer==15)return false;
             return !source_policy || !layer || source_render_layer_enabled(*source_policy,*layer);
         };
         std::vector<std::uint32_t> visible_clusters;
@@ -7860,26 +7929,35 @@ struct Renderer::Impl {
             vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_HOST_BIT,
                 0,0,nullptr,1,&host,0,nullptr);
         }
+        if(capture_internal_color && (native_composite || native_ui_active || temporal_upscaler))
+            throw FormatError("Internal RGB diagnostic cannot label a separate native-UI/upscaled composite");
         const auto presentation_layout=present_color(index,presentation_index,native_composite);
         if (capture) {
             VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
-            barrier.srcAccessMask = scene_targets.empty()?VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT:VK_ACCESS_TRANSFER_WRITE_BIT;
+            // present_color reads/blits this internal image without changing
+            // its pixels. Its complete pre-downsample RGB remains available
+            // in TRANSFER_SRC layout; normal screenshots select the surface.
+            const auto capture_image=capture_internal_color?images[index]:presentation_images[presentation_index];
+            barrier.srcAccessMask = capture_internal_color?VK_ACCESS_TRANSFER_READ_BIT:
+                scene_targets.empty()?VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT:VK_ACCESS_TRANSFER_WRITE_BIT;
             barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-            barrier.oldLayout = presentation_layout;
+            barrier.oldLayout = capture_internal_color?VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:presentation_layout;
             barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
             barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.image = presentation_images[presentation_index];
+            barrier.image = capture_image;
             barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
             vkCmdPipelineBarrier(command, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT|VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
             VkBufferImageCopy copy{};
             copy.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
-            copy.imageExtent = {presentation_extent.width, presentation_extent.height, 1};
-            vkCmdCopyImageToBuffer(command, presentation_images[presentation_index], VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, capture, 1, &copy);
-            barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-            barrier.dstAccessMask = 0;
-            barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-            barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-            vkCmdPipelineBarrier(command, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+            copy.imageExtent = {capture_extent.width, capture_extent.height, 1};
+            vkCmdCopyImageToBuffer(command, capture_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, capture, 1, &copy);
+            if(!capture_internal_color) {
+                barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+                barrier.dstAccessMask = 0;
+                barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+                barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+                vkCmdPipelineBarrier(command, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+            }
             VkBufferMemoryBarrier host{VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER};
             host.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
             host.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
@@ -7888,7 +7966,7 @@ struct Renderer::Impl {
             host.size = VK_WHOLE_SIZE;
             vkCmdPipelineBarrier(command, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT, 0, 0, nullptr, 1, &host, 0, nullptr);
         }
-        if(!capture && presentation_layout!=VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
+        if((!capture || capture_internal_color) && presentation_layout!=VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
             VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
             barrier.srcAccessMask=scene_targets.empty()?VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT:VK_ACCESS_TRANSFER_WRITE_BIT;
             barrier.oldLayout=presentation_layout;barrier.newLayout=VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
@@ -7950,10 +8028,10 @@ struct Renderer::Impl {
             if (!screenshot.parent_path().empty()) std::filesystem::create_directories(screenshot.parent_path());
             std::ofstream file(screenshot, std::ios::binary);
             if (!file) throw std::runtime_error("cannot write screenshot " + screenshot.string());
-            file << "P6\n" << presentation_extent.width << ' ' << presentation_extent.height << "\n255\n";
+            file << "P6\n" << capture_extent.width << ' ' << capture_extent.height << "\n255\n";
             const auto pixels = static_cast<const unsigned char*>(mapped);
             const bool bgra = format == VK_FORMAT_B8G8R8A8_SRGB || format == VK_FORMAT_B8G8R8A8_UNORM;
-            const auto pixel_count=std::size_t(presentation_extent.width)*presentation_extent.height;
+            const auto pixel_count=std::size_t(capture_extent.width)*capture_extent.height;
             std::vector<char> rgb(pixel_count*3);
             for (std::size_t i = 0; i < pixel_count; ++i) {
                 rgb[i*3]=char(pixels[i*4+(bgra?2:0)]);
@@ -7962,7 +8040,10 @@ struct Renderer::Impl {
             }
             file.write(rgb.data(),std::streamsize(rgb.size()));
             if (!file) throw std::runtime_error("failed writing screenshot");
-            std::cout << "Captured " << screenshot.string() << " (" << presentation_extent.width << 'x' << presentation_extent.height << ")\n";
+            std::cout << (capture_internal_color?"Captured internal RGB ":"Captured ") << screenshot.string()
+                << " (" << capture_extent.width << 'x' << capture_extent.height << ')';
+            if(capture_internal_color)std::cout<<" format="<<unsigned(format)<<" rgb_bytes="<<rgb.size();
+            std::cout<<'\n';
             if(depth_capture) {
                 void *depth_mapped;
                 check(vkMapMemory(device,depth_capture_memory,0,depth_capture_size+stencil_capture_size,0,&depth_mapped),
@@ -8017,7 +8098,35 @@ struct Renderer::Impl {
                 <<'\t'<<frame_timing.world_native_shadow_generate_prepared_draws<<'\t'<<frame_timing.world_native_shadow_apply_prepared_draws
                 <<'\t'<<frame_timing.world_native_light_prepared_draws<<'\t'<<frame_timing.world_storage_upload_calls
                 <<'\t'<<frame_timing.world_storage_upload_completed_calls<<'\t'<<frame_timing.world_storage_uploaded_draws
-                <<'\t'<<frame_timing.world_native_prepare_ms<<'\t'<<frame_timing.world_storage_upload_ms<<'\n';
+                <<'\t'<<frame_timing.world_native_prepare_ms<<'\t'<<frame_timing.world_storage_upload_ms;
+            const auto prefix=source_shadow_native_prefix_tu15_stats();
+            timing_report<<'\t'<<prefix.attempts-timing_previous_shadow_prefix.attempts
+                <<'\t'<<prefix.admitted-timing_previous_shadow_prefix.admitted
+                <<'\t'<<prefix.declined_reference-timing_previous_shadow_prefix.declined_reference
+                <<'\t'<<prefix.declined_instruction-timing_previous_shadow_prefix.declined_instruction
+                <<'\t'<<prefix.declined_view-timing_previous_shadow_prefix.declined_view
+                <<'\t'<<prefix.declined_numeric-timing_previous_shadow_prefix.declined_numeric;
+            // Append only: the original timing columns retain their order and
+            // meaning. A missing caller packet is explicit, not measured zero.
+            const RendererHostPreparationTiming absent;
+            const auto &host=host_preparation?*host_preparation:absent;
+            timing_report<<'\t'<<bool(host_preparation)<<'\t'<<host.frame<<'\t'<<host.views
+                <<'\t'<<host.tick_begin<<'\t'<<host.tick_end
+                <<'\t'<<host.input_ms<<'\t'<<host.common_ms<<'\t'<<host.pre_render_ms;
+            for(const auto &view:host.view)
+                for(const auto value:{view.camera_lighting_ms,view.static_world_ms,view.objects_ms,
+                    view.body_ms,view.first_person_ms,view.hud_ms})timing_report<<'\t'<<value;
+            const auto returned=[&](const RendererHostPreparationTiming::ReturnedCall &work) {
+                timing_report<<'\t'<<double(work.nanoseconds)*1.e-6<<'\t'<<work.calls;
+            };
+            returned(host.match_step);returned(host.state_projection);returned(host.post_step);
+            timing_report<<'\t'<<double(host.shared_pre_view_ns)*1.e-6;
+            for(const auto &view:host.native_view) {
+                returned(view.model_collection);returned(view.main_cull);returned(view.main_commands);
+                returned(view.shadow_selection);returned(view.shadow_roots);
+            }
+            timing_report<<'\n';
+            timing_previous_shadow_prefix=prefix;
             if(!timing_report)throw FormatError("Write renderer frame timings");
         }
         return true;
@@ -8041,7 +8150,22 @@ Renderer::Renderer(SDL_Window* window, const Mesh& mesh, bool validation,
         impl_->timing_report<<"frame\tinterval_ms\trenderer_ms\tfence_ms\tglobal_ms\tview_ms\tpack_ms\tupload_ms\tdiagnostics_ms\tacquire_ms\tcommands_ms\tsubmit_ms\tpresent_ms\tscreenshot_ms\tmaterials\tvertices\trender_width\trender_height\tpresent_width\tpresent_height\tgeometry_plan_ms\tgeometry_bind_ms\tpresentation_copy_jobs\tpresentation_copy_bytes\tpresentation_copy_separate_thread\tpresentation_copy_ns\tpresentation_copy_overlap_ns\tpresentation_copy_wait_ns\tmodel_skin_gpu_jobs\tmodel_skin_gpu_vertices\tmodel_skin_gpu_deformed_vertices\tmodel_skin_gpu_verified_vertices\tmodel_skin_gpu_post_identity_vertices\tmodel_skin_cpu_fallback_jobs\tmodel_skin_cpu_fallback_vertices\tmodel_skin_cpu_fallback_deformed_vertices\tmodel_skin_cpu_fallback_post_identity_vertices\tmodel_skin_cpu_fallback_quota_jobs\tmodel_skin_cpu_fallback_allocation_jobs\tmodel_skin_cpu_fallback_mapping_jobs\tmodel_skin_cpu_fallback_vulkan_result\tmodel_skin_input_allocations\tmodel_skin_input_maps\tmodel_skin_input_unmaps\tmodel_skin_record_pack_bytes\tmodel_skin_record_upload_bytes\tmodel_skin_palette_upload_bytes\tmodel_skin_descriptor_writes\tmodel_skin_record_cache_hits"
             <<"\tworld_native_prepare_calls\tworld_native_prepare_completed_calls\tworld_native_prepare_nonempty_calls\tworld_native_prepared_draws\tworld_native_record_calls"
             <<"\tworld_native_title_prepared_draws\tworld_native_shadow_generate_prepared_draws\tworld_native_shadow_apply_prepared_draws\tworld_native_light_prepared_draws"
-            <<"\tworld_storage_upload_calls\tworld_storage_upload_completed_calls\tworld_storage_uploaded_draws\tworld_native_prepare_ms\tworld_storage_upload_ms\n";
+            <<"\tworld_storage_upload_calls\tworld_storage_upload_completed_calls\tworld_storage_uploaded_draws\tworld_native_prepare_ms\tworld_storage_upload_ms"
+            <<"\tshadow_prefix_attempts\tshadow_prefix_admitted\tshadow_prefix_declined_reference"
+            <<"\tshadow_prefix_declined_instruction\tshadow_prefix_declined_view\tshadow_prefix_declined_numeric"
+            <<"\thost_timings_present\thost_frame\thost_views\thost_tick_begin\thost_tick_end"
+            <<"\thost_input_ms\thost_common_ms\thost_pre_render_ms";
+        for(unsigned view=0;view<4;++view)
+            for(const auto *phase:{"camera_lighting_ms","static_world_ms","objects_ms","body_ms","first_person_ms","hud_ms"})
+                impl_->timing_report<<"\thost_view"<<view<<'_'<<phase;
+        for(const auto *phase:{"match_step","state_projection","post_step"})
+            impl_->timing_report<<"\thost_"<<phase<<"_ms\thost_"<<phase<<"_calls";
+        impl_->timing_report<<"\thost_shared_pre_view_ms";
+        for(unsigned view=0;view<4;++view)
+            for(const auto *phase:{"model_collection","main_cull","main_commands","shadow_selection","shadow_roots"})
+                impl_->timing_report<<"\thost_view"<<view<<'_'<<phase<<"_ms\thost_view"<<view<<'_'<<phase<<"_calls";
+        impl_->timing_report<<'\n';
+        impl_->timing_previous_shadow_prefix=source_shadow_native_prefix_tu15_stats();
         impl_->measure_frames=true;
     }
     impl_->bsp_resident_plan=bsp_resident_plan;
@@ -8050,7 +8174,7 @@ Renderer::Renderer(SDL_Window* window, const Mesh& mesh, bool validation,
     impl_->initialize(window, mesh, validation,before_presentation);
     if(ModelSkinGpu::supported(impl_->physical,impl_->source_world_device.instance_api_version) &&
        std::filesystem::is_regular_file(impl_->shader_directory/"model_skin.comp.spv")) {
-        impl_->model_skin_gpu=std::make_unique<ModelSkinGpu>(impl_->device,impl_->physical,
+        impl_->model_skin_gpu=ModelSkinGpu::create_optional(impl_->device,impl_->physical,
             impl_->source_world_device.instance_api_version,impl_->shader_directory/"model_skin.comp.spv");
     }
 
@@ -8080,11 +8204,11 @@ void Renderer::release_presentation(){
     check(vkDeviceWaitIdle(impl_->device),"retire presentation before renderer handoff");
     impl_->destroy_swapchain();impl_->dirty=true;
 }
-bool Renderer::draw(const Camera& camera, const std::filesystem::path& screenshot, std::span<const Vertex> debug, bool reticle, std::span<const Vertex> first_person, ScreenEffects effects, std::span<const Vertex> ui, std::span<const ModelView> views, std::span<const Vertex> background, std::span<const UiBackdrop> backdrops, const BspFogSample *mainmenu_fog, const MainmenuWorldDraw *mainmenu_world, bool ui_full_surface_bounds) {
+bool Renderer::draw(const Camera& camera, const std::filesystem::path& screenshot, std::span<const Vertex> debug, bool reticle, std::span<const Vertex> first_person, ScreenEffects effects, std::span<const Vertex> ui, std::span<const ModelView> views, std::span<const Vertex> background, std::span<const UiBackdrop> backdrops, const BspFogSample *mainmenu_fog, const MainmenuWorldDraw *mainmenu_world, bool ui_full_surface_bounds, const RendererHostPreparationTiming *host_preparation) {
     impl_->touch_lens_queries();
     if(impl_->source_coordinate_registers!=renderer_passthrough_registers)
         throw FormatError("Native texture coordinates differ from the retained programmable shader contract");
-    return impl_->draw(camera, screenshot, debug, reticle, first_person, effects, ui, views, background, backdrops, mainmenu_fog, mainmenu_world, ui_full_surface_bounds);
+    return impl_->draw(camera, screenshot, debug, reticle, first_person, effects, ui, views, background, backdrops, mainmenu_fog, mainmenu_world, ui_full_surface_bounds, host_preparation);
 }
 void Renderer::resized() { impl_->touch_lens_queries();impl_->dirty = true; }
 void Renderer::upscale_world(bool enabled) {
@@ -8094,6 +8218,7 @@ const DisplaySettings& Renderer::display_settings() const { return *impl_->share
 void Renderer::display_settings(DisplaySettings value) { *impl_->shared_display=value; }
 void Renderer::share_display_settings(DisplaySettings& value) { impl_->shared_display=&value; }
 void Renderer::measure_frames(bool enabled) { impl_->measure_frames=enabled || impl_->timing_report.is_open(); }
+bool Renderer::writes_frame_timings() const noexcept { return impl_->timing_report.is_open(); }
 RendererFrameTiming Renderer::frame_timing() const { return impl_->frame_timing; }
 std::size_t Renderer::resident_material_images() const {
     std::set<VkImage> images;

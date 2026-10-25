@@ -4,9 +4,11 @@
 #include "halo2/native_grenade_constants.hpp"
 #include "halo2/source_shadow.hpp"
 #include "halo2/source_effect_location.hpp"
+#include "halo2/source_effect_replica_render_tu15.hpp"
 #include "halo2/native_authority_boundary.hpp"
 #include <functional>
 #include <map>
+#include <optional>
 
 namespace halo2 {
 struct Unit;
@@ -60,6 +62,8 @@ struct NativeGrenadeDetonation {
   // Local source provenance. Qualified local checkpoints retain this handle;
   // network imports leave NONE and do not authenticate another world's pool.
   std::uint32_t source_effect_instance=0xffffffffu;
+  // Remote presentation provenance stays distinct from the local pool owner.
+  std::optional<SourceEffectReplicaRenderTu15> replica_render;
 };
 // FCF90 entry through FD0F8, before any world query. Source constructor
 // supplies timer_step/arming_step; contact flags are actual backend inputs.

@@ -5,7 +5,9 @@
 namespace halo2 {
 namespace {
 std::uint32_t word(const SourceRuntimeMemory &m,std::uint32_t p,unsigned n=4) {
-    const auto bytes=m.view(p,n);std::uint32_t v=0;
+    // read() copies the same checked bytes as view() and takes the direct
+    // committed-page path; this is a per-frame, per-object reader.
+    std::array<std::byte,4> bytes{};m.read(p,std::span(bytes).first(n));std::uint32_t v=0;
     for(unsigned i=0;i<n;++i)v|=std::to_integer<std::uint32_t>(bytes[i])<<(i*8);
     return v;
 }

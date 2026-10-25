@@ -44,8 +44,9 @@ def validate(cache,package,report):
     lighting_authoring=package/'lighting_authoring.json'
     lighting_policy=json.loads(lighting_authoring.read_text()) if lighting_authoring.exists() else None
     native_trees=lighting_policy['native_tree_scenery'] if lighting_policy else []
+    native_props=lighting_policy.get('native_prop_scenery',[]) if lighting_policy else []
     scenery=c.block(s+0x50,0x5c)
-    assert len(scenery)==2+len(native_trees)
+    assert len(scenery)==2+len(native_trees)+len(native_props)
     authoring=json.loads((package/'scenario_authoring.json').read_text())
     fitted=authoring['sender_fit']
     sender=c.block(s+0x50,0x5c)[0]
@@ -57,7 +58,7 @@ def validate(cache,package,report):
     assert lo[2]>=opening_lo[2]-2e-6 and hi[2]<=opening_hi[2]+2e-6
     assert hi[1]<=opening_lo[1]+2e-6
     palette=c.block(s+0x58,40)
-    for at,tree in zip(scenery[2:],native_trees):
+    for at,tree in zip(scenery[2:],native_trees+native_props):
         definition=c.tags[c.u32(palette[c.u16(at)]+4)]
         assert definition['group']=='scen' and definition['name']==tree['target'].replace('/','\\')
         assert max(abs(a-b) for a,b in zip(struct.unpack_from('<3f',c.data,at+8),tree['source']['position']))<2e-6
@@ -93,6 +94,7 @@ def validate(cache,package,report):
     available=list(instances);max_instance_error=0.;max_prototype_error=0.
     for item in scenery_report['placement_transforms']:
         if native_trees and '/trees/' in item['target']:continue
+        if item in native_props:continue
         yaw,pitch,roll=item['source']['rotation']
         cy,sy=math.cos(yaw),math.sin(yaw);cp,sp=math.cos(pitch),math.sin(pitch);cr,sr=math.cos(roll),math.sin(roll)
         rx=np.array([[1,0,0],[0,cr,-sr],[0,sr,cr]])
@@ -128,6 +130,7 @@ def validate(cache,package,report):
         halo2_sender_fits_original_opening=True,
         halo2_tree_placements=33,ce_tree_geometry_retained=False,
         native_tree_scenery=len(native_trees),world_render_in_primary_bsp=bool(lighting_policy),
+        native_prop_scenery=len(native_props),
         omitted_health_pack_spawns=len(authoring['omitted_equipment']),
         source_static_scenery_placements=163,native_halo2_scenery_placements=163,compiled_bsp_instances=len(instances),
         max_native_scenery_transform_error=max_instance_error,

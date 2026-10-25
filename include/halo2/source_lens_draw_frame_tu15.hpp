@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/source_lens_draw_geometry_tu15.hpp"
 #include "halo2/source_view_projection.hpp"
+#include "halo2/source_lens_frame_world_tu15.hpp"
 #include <memory>
 namespace halo2 {
 class Renderer;
@@ -42,17 +43,26 @@ public:
     // until destruction outside the enclosing commit. No Vulkan calls occur.
     bool commit_rebind(PreparedRebind &&,const SourceRuntimeMemory &) noexcept;
     void begin();
+    // Preserve the physical-world ABI for existing compiled callers.
     std::vector<SourceLensDraw> view(PhysicsLiveWorldTu15 &,unsigned,
+        Vec3,Vec3,Vec3,float,const SourceViewProjectionBank &,
+        std::array<std::int16_t,4>,unsigned,unsigned);
+    std::vector<SourceLensDraw> view(PhysicsLiveWorldTu15 &,unsigned,
+        Vec3,Vec3,Vec3,float,const SourceViewProjectionBank &,
+        std::array<std::int16_t,4>,unsigned,unsigned,Vec2);
+    std::vector<SourceLensDraw> view(SourceLensFrameWorldTu15 ,unsigned,
         Vec3 position,Vec3 forward,Vec3 up,float angle,
         const SourceViewProjectionBank &,std::array<std::int16_t,4> rectangle,
         unsigned logical_width,unsigned logical_height);
-    std::vector<SourceLensDraw> view(PhysicsLiveWorldTu15 &,unsigned,
+    std::vector<SourceLensDraw> view(SourceLensFrameWorldTu15 ,unsigned,
         Vec3 position,Vec3 forward,Vec3 up,float angle,const SourceViewProjectionBank &,
         std::array<std::int16_t,4> rectangle,unsigned logical_width,unsigned logical_height,Vec2 clip_planes);
     void finish(bool submitted);
 private:
     friend class SourceLensPresentationHandoffTu15;
+    friend class NativeLensPresentationTu15;
     Renderer *renderer_owner() const noexcept;
+    bool accepts_source(const SourceRuntimeMemory &)const noexcept;
     // Private paired-owner path after authentic full native Boundary binding;
     // validates local presentation identity only, never native ring storage.
     bool rebind_ready_held(const PreparedRebind &,const SourceRuntimeMemory &) const noexcept;

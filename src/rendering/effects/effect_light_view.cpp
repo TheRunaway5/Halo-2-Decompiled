@@ -15,7 +15,7 @@ SourceEffectLightRuntime runtime(const Record& r,std::uint32_t id) {
     return {id,r[0x4c/4],std::uint8_t(r[0]>>16),std::int16_t(r[0x54/4]),
         std::int16_t(r[0x48/4]),std::bit_cast<std::int32_t>(r[2]),scalar(r,0x24),scalar(r,0x100),
         vector(r,0x18),vector(r,0x84),vector(r,0xac),vector(r,0xb8),
-        {scalar(r,0xc4),scalar(r,0xd0),vector(r,0xd4),vector(r,0xe0),scalar(r,0xec)}};
+        {scalar(r,0xc4),scalar(r,0xd0),vector(r,0xd4),vector(r,0xe0),scalar(r,0xec)},scalar(r,0xc8)};
 }
 }
 void source_effect_lights_update_view(SourceEffectLightDatumPool& pool,

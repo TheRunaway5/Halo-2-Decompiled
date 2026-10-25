@@ -125,7 +125,8 @@ public:
   // both source name/party owners. Unsupported loaded-world/team services,
   // authored-name fallback, optional admission and remote IO reject if reached.
   void reconcile_offline(std::uint32_t map_status,std::uint32_t map_progress,
-      NativeVistaWorldKind world=NativeVistaWorldKind::unloaded);
+      NativeVistaWorldKind world=NativeVistaWorldKind::unloaded,
+      std::optional<std::uint16_t> actual_world_teams={});
   // Compatibility for an actual unloaded predicate; true cannot identify the
   // loaded game's team owner and therefore rejects.
   void reconcile_offline(std::uint32_t map_status,std::uint32_t map_progress,bool world_ready);

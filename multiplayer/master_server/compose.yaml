@@ -1,6 +1,6 @@
 # Local two-master demonstration. Public deployments use compose.production.yaml.
 x-master: &master
-  build: .
+  build: {context: ../.., dockerfile: multiplayer/master_server/Dockerfile}
   image: halo2-master-local:v1
   restart: unless-stopped
   read_only: true
@@ -19,7 +19,7 @@ x-master: &master
 
 services:
   init:
-    build: .
+    build: {context: ../.., dockerfile: multiplayer/master_server/Dockerfile}
     image: halo2-master-local:v1
     profiles: [tools]
     command: [python, -m, multiplayer.master_server.cli, init-demo, --a, /state/a, --b, /state/b, --a-url, "http://master-a:8080", --b-url, "http://master-b:8080"]

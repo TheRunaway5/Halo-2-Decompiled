@@ -20,14 +20,16 @@ SourceRuntimeMemory::SourceRuntimeMemory(SourceRuntimeMemory &&other) {
   source_runtime_validate_topology(*this,0,0);source_runtime_validate_topology(other,0,0);
   source_runtime_observe_topology(*this,0,0);source_runtime_observe_topology(other,0,0);
   regions_=std::move(other.regions_);native_regions_=std::move(other.native_regions_);
-  source_pages_=std::move(other.source_pages_);
+  source_pages_=std::move(other.source_pages_);direct_index_=std::move(other.direct_index_);
+  publish_direct_index();other.publish_direct_index();
 }
 SourceRuntimeMemory &SourceRuntimeMemory::operator=(SourceRuntimeMemory &&other) {
   if(this==&other)return *this;
   source_runtime_validate_topology(*this,0,0);source_runtime_validate_topology(other,0,0);
   source_runtime_observe_topology(*this,0,0);source_runtime_observe_topology(other,0,0);
   regions_=std::move(other.regions_);native_regions_=std::move(other.native_regions_);
-  source_pages_=std::move(other.source_pages_);
+  source_pages_=std::move(other.source_pages_);direct_index_=std::move(other.direct_index_);
+  publish_direct_index();other.publish_direct_index();
   return *this;
 }
 void SourceRuntimeMemory::swap_backing(SourceRuntimeMemory &other) {
@@ -35,7 +37,8 @@ void SourceRuntimeMemory::swap_backing(SourceRuntimeMemory &other) {
   source_runtime_validate_topology(*this,0,0);source_runtime_validate_topology(other,0,0);
   source_runtime_observe_topology(*this,0,0);source_runtime_observe_topology(other,0,0);
   regions_.swap(other.regions_);native_regions_.swap(other.native_regions_);
-  source_pages_.swap(other.source_pages_);
+  source_pages_.swap(other.source_pages_);direct_index_.swap(other.direct_index_);
+  publish_direct_index();other.publish_direct_index();
 }
 namespace {
 const bool reference_small_transfers=[] {
@@ -44,6 +47,8 @@ const bool reference_small_transfers=[] {
 const bool reference_scalar_vector_reads=[] {
   const auto *p=std::getenv("HALO2_REFERENCE_SCALAR_VECTOR_READS");return p && *p;
 }();
+// Reference transfer modes keep every access on the original checked route.
+const bool direct_pages_enabled=!reference_small_transfers && !reference_scalar_vector_reads;
 inline void transfer(void *destination,const void *source,std::size_t bytes) {
   // Generated scalar instructions overwhelmingly transfer four bytes. Keep
   // memmove's complete overlap contract, with fixed extents the compiler can
@@ -132,6 +137,7 @@ void SourceRuntimeMemory::bind_backing(const CheckpointRegion &expected,
   if(region.shared)region.shared->mounted_.store(false);
   region.shared=std::move(backing);
   std::vector<std::byte>().swap(region.bytes);
+  refresh_direct_region(found);
 }
 bool SourceRuntimeMemory::has_backing(std::uint32_t p,
     const std::shared_ptr<SourceRuntimeMemoryBacking> &backing) const noexcept {
@@ -160,6 +166,7 @@ std::shared_ptr<SourceRuntimeMemoryBacking> SourceRuntimeMemory::prepare_snapsho
   SourceRuntimePolicyChange policy(*this);
   bind_backing(expected,backing); // Full admission before changing a guard.
   backing->write_guard_=std::move(guard);
+  refresh_direct_region(found);
   return backing;
 }
 void SourceRuntimeMemory::check_extent(std::uint32_t p, std::size_t bytes) const {
@@ -216,6 +223,7 @@ void SourceRuntimeMemory::commit(std::uint32_t p,
       region.committed[page] = true;
     }
   }
+  refresh_direct_region(found);
 }
 void SourceRuntimeMemory::release(std::uint32_t p) {
   const auto found=regions_.find(p);
@@ -314,11 +322,13 @@ void SourceRuntimeMemory::restore(const Checkpoint &saved) {
     restored.page_bytes=region.page_bytes;
     restored.committed.reserve(region.committed.size());
     for(auto page:region.committed)restored.committed.push_back(page!=0);
+    replacement.refresh_direct_region(replacement.regions_.find(region.address));
   }
   replacement.rebuild_native_index();
   source_runtime_observe_topology(*this,0,0);
   regions_.swap(replacement.regions_);native_regions_.swap(replacement.native_regions_);
-  source_pages_.swap(replacement.source_pages_);
+  source_pages_.swap(replacement.source_pages_);direct_index_.swap(replacement.direct_index_);
+  publish_direct_index();replacement.publish_direct_index();
 }
 void SourceRuntimeMemory::index_source_region(Position found) {
   const auto first=(std::uint64_t(found->first)+4095)&~std::uint64_t{4095};
@@ -330,13 +340,43 @@ void SourceRuntimeMemory::index_source_region(Position found) {
     if(!block)block=std::make_unique<SourcePageBlock>();
     (*block)[page&1023]=found;
   }
+  refresh_direct_region(found);
 }
 void SourceRuntimeMemory::unindex_source_region(Position found) noexcept {
   if(!source_pages_)return;
   const auto first=(std::uint64_t(found->first)+4095)&~std::uint64_t{4095};
   const auto limit=(std::uint64_t(found->first)+found->second.storage().size())&~std::uint64_t{4095};
-  for(auto page=first>>12;page<limit>>12;++page)
+  for(auto page=first>>12;page<limit>>12;++page) {
     if(auto &block=(*source_pages_)[page>>10])(*block)[page&1023]=Position{};
+    if(direct_index_)if(auto &block=direct_index_->blocks[page>>10])(*block)[page&1023]={};
+  }
+}
+void SourceRuntimeMemory::publish_direct_index() noexcept {
+  direct_pages_=direct_pages_enabled?direct_index_.get():nullptr;
+}
+void SourceRuntimeMemory::refresh_direct_region(Position found) {
+  if(!direct_pages_enabled)return;
+  const auto base=std::uint64_t(found->first);
+  const auto &region=found->second;
+  const auto first=(base+4095)&~std::uint64_t{4095};
+  const auto limit=(base+region.storage().size())&~std::uint64_t{4095};
+  if(first>=limit)return;
+  if(!direct_index_){direct_index_=std::make_unique<SourceDirectPageIndex>();publish_direct_index();}
+  // Allocate before publishing, so a failure cannot leave a stale backing.
+  for(auto page=first>>12;page<limit>>12;++page)
+    if(auto &block=direct_index_->blocks[page>>10];!block)block=std::make_unique<SourceDirectPageIndex::Block>();
+  const bool writable=region.access==Access::ReadWrite && !(region.shared && region.shared->write_guard_);
+  // The owner's bank is mutable; Position is only a const map iterator.
+  auto *const bytes=const_cast<std::byte*>(region.storage().data());
+  for(auto page=first>>12;page<limit>>12;++page) {
+    const auto offset=(page<<12)-base;
+    bool committed=true;
+    if(region.page_bytes)
+      for(auto commit=offset/region.page_bytes;commit<=(offset+4095)/region.page_bytes;++commit)
+        if(!region.committed[commit]){committed=false;break;}
+    (*direct_index_->blocks[page>>10])[page&1023]=committed?
+        SourceDirectPageIndex::Page{bytes+offset,writable}:SourceDirectPageIndex::Page{};
+  }
 }
 SourceRuntimeMemory::Position
 SourceRuntimeMemory::locate(std::uint32_t p) const {
@@ -400,6 +440,9 @@ std::optional<std::uint32_t> SourceRuntimeMemory::find_unowned_range(
 }
 void SourceRuntimeMemory::read(std::uint32_t p,
                                std::span<std::byte> output) const {
+  if(const auto *page=direct_page(p,output.size())) {
+    transfer(output.data(),page->bytes+(p&4095u),output.size());return;
+  }
   const auto limit=end(p,output.size());
   if (output.empty()) return;
   const auto first = locate(p);
@@ -436,10 +479,45 @@ void SourceRuntimeMemory::read_vector(std::uint32_t p,std::span<std::byte,16> ou
   }
   read(p,output);
 }
+std::optional<std::span<const std::byte>> SourceRuntimeMemory::try_read_view(
+    std::uint32_t p,std::size_t n) const noexcept {
+  if(reference_small_transfers || reference_scalar_vector_reads ||
+     n>(std::uint64_t{1}<<32)-p)return std::nullopt;
+  Position found{};
+  if(source_pages_)
+    if(const auto &block=(*source_pages_)[p>>22])found=(*block)[(p>>12)&1023];
+  if(found==Position{}) {
+    found=regions_.upper_bound(p);
+    if(found==regions_.begin())return std::nullopt;
+    --found;
+  }
+  const auto &region=found->second;
+  const auto bytes=region.storage();
+  const auto offset=std::uint64_t(p)-found->first;
+  if(offset>=bytes.size() || n>bytes.size()-offset)return std::nullopt;
+  if(region.page_bytes && n) {
+    const auto first=offset/region.page_bytes,last=(offset+n-1)/region.page_bytes;
+    if(last>=region.committed.size())return std::nullopt;
+    for(auto page=first;page<=last;++page)
+      if(!region.committed[page])return std::nullopt;
+  }
+  return bytes.subspan(std::size_t(offset),n);
+}
 void SourceRuntimeMemory::write(std::uint32_t p,
                                 std::span<const std::byte> input) {
-  validate(p, input.size(), true);
-  if (input.empty()) return;
+  // A writable direct page already proves the extent, region, ReadWrite
+  // access, commitment and absent backing guard that validate() checks.
+  // Registry guards and observers still run before the store, in order.
+  if(const auto *page=direct_page(p,input.size()); page && page->writable) {
+    source_runtime_validate_write(*this,p,input.size(),true);
+    // Policies may change topology; then store exactly as the checked route.
+    if(const auto *after=direct_page(p,input.size()); after && after->writable) {
+      transfer(after->bytes+(p&4095u),input.data(),input.size());return;
+    }
+  } else {
+    validate(p, input.size(), true);
+    if (input.empty()) return;
+  }
   const auto found = locate(p);
   // locate already established this stable map node after every write guard.
   // This method owns mutable memory; its const lookup iterator does not make

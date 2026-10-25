@@ -30,7 +30,21 @@ int main(int argc,char **argv)try{
  request(PTRACE_SINGLESTEP,child);wait();J trace=J::array();user_regs_struct regs{};
  request(PTRACE_GETREGS,child,nullptr,&regs);const auto entry_flags=regs.eflags;
  for(unsigned n=0;n<5000000;++n){
-  require(WIFSTOPPED(status)&&WSTOPSIG(status)==SIGTRAP,"Original hardware execution fault");request(PTRACE_GETREGS,child,nullptr,&regs);
+  if(!(WIFSTOPPED(status)&&WSTOPSIG(status)==SIGTRAP)) {
+    J fault{{"status",status},{"original_instructions",trace.size()},{"entry_eflags",entry_flags}};
+    J tail=J::array();const auto begin=trace.size()>64?trace.size()-64:0;
+    for(auto i=begin;i<trace.size();++i)tail.push_back(trace[i]);fault["instructions_tail"]=tail;
+    if(WIFSTOPPED(status)) {
+      request(PTRACE_GETREGS,child,nullptr,&regs);siginfo_t info{};
+      request(PTRACE_GETSIGINFO,child,nullptr,&info);
+      fault["signal"]=WSTOPSIG(status);fault["fault_instruction"]=regs.rip;
+      fault["fault_address"]=reinterpret_cast<std::uintptr_t>(info.si_addr);
+      fault["gp"]=J::array({regs.rax,regs.rcx,regs.rdx,regs.rbx,regs.rsp,regs.rbp,regs.rsi,regs.rdi});
+    }
+    std::ofstream out(argv[6]);out<<fault.dump()<<'\n';
+    throw std::runtime_error("Original hardware execution fault; bounded registers/signal journal retained");
+  }
+  request(PTRACE_GETREGS,child,nullptr,&regs);
   if(regs.rip==target)break;
   if(!(regs.rip>=0x12000 && regs.rip<text_end) && !authenticated.contains(regs.rip)) {
     std::ofstream out(argv[6]);out<<J{{"instructions",trace},{"original_instructions",trace.size()},

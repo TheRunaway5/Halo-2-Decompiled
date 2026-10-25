@@ -19,7 +19,7 @@ from mcc_native_map_owner_publication import publish_staged_owner_index
 from validate_dire_valley_geometry import validate as validate_geometry
 
 
-def publish(source,imported,output,main_hud,report):
+def publish(source,imported,output,main_hud,report,material_polish=False):
     scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve(strict=True)
     output=output.resolve()
     assert output.is_relative_to(scratch) and not output.exists()
@@ -57,6 +57,9 @@ def publish(source,imported,output,main_hud,report):
         donors=donors,source='Danger Canyon CE geometry with Halo 2 shader bindings',
         teleporters='Halo 2 2way_teleporter base and receiver; original CE channel/destinations'))
     save(bank/'library.json',first)
+    if material_polish:
+        from polish_dire_valley import repair_native_bank
+        repair_native_bank(bank)
     for dest in [bank/'function-tables.bin',output/'native-shaders/function-tables.bin']:
         shutil.copyfile(source_banks/'function-tables.bin',dest)
     save(output/'native-shaders/catalog.json',dict(schema='H2_PRESERVED_NATIVE_SHADER_CATALOG_V1',maps=[]))
@@ -81,4 +84,5 @@ def publish(source,imported,output,main_hud,report):
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     for flag in ['source','imported','output','main-hud','report']:p.add_argument('--'+flag,required=True,type=Path)
+    p.add_argument('--material-polish',action='store_true')
     publish(**vars(p.parse_args()))

@@ -109,6 +109,13 @@ if(BUILD_TESTING)
         set_tests_properties(source_common_cut_runtime_mcc_http PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE
             LABELS "selected-MCC-native"
             ENVIRONMENT "SDL_AUDIODRIVER=dummy;SDL_VIDEODRIVER=dummy")
+        add_test(NAME source_common_cut_disconnect_mcc_http COMMAND ${Python3_EXECUTABLE}
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_common_cut_runtime_http_test.py"
+            $<TARGET_FILE:source_common_cut_runtime_tests>
+            --mcc-root "${HALO2_MCC_COMMON_CUT_TEST_ROOT}" ${_halo2_common_cut_mcc_map_args})
+        set_tests_properties(source_common_cut_disconnect_mcc_http PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE
+            LABELS "selected-MCC-native"
+            ENVIRONMENT "HALO2_COMMON_DISCONNECT=1;SDL_AUDIODRIVER=dummy;SDL_VIDEODRIVER=dummy")
         add_test(NAME source_common_cut_prospective_mcc_http COMMAND ${Python3_EXECUTABLE}
             "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_common_cut_runtime_http_test.py"
             $<TARGET_FILE:source_common_cut_runtime_tests>
@@ -194,9 +201,16 @@ if(BUILD_TESTING)
         ENVIRONMENT "HALO2_RECEIVER_COLD_FROM_CUT=1;HALO2_PUBLISHER_TEST_OUTPUT=${CMAKE_CURRENT_BINARY_DIR}/test-artifacts/source-authority-receiver-cold")
     add_executable(source_authority_publisher_tests tests/source_authority_publisher_tests.cpp)
     target_link_libraries(source_authority_publisher_tests PRIVATE halo2_authority_publisher halo2_authority_delta LibDataChannel::LibDataChannelStatic)
+    add_dependencies(source_authority_publisher_tests source_authority_replay_tests multiplayer_tests)
     add_test(NAME source_authority_publisher_http COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_authority_publisher_http_test.py" $<TARGET_FILE:source_authority_publisher_tests>)
     set_tests_properties(source_authority_publisher_http PROPERTIES TIMEOUT 330)
+    # Denied replay capabilities must preserve live host work and still permit
+    # a complete, independently prepared checkpoint publication.
+    add_test(NAME source_authority_publisher COMMAND ${Python3_EXECUTABLE}
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_authority_security_http_test.py"
+        $<TARGET_FILE:source_authority_publisher_tests> $<TARGET_FILE:source_authority_replay_tests>)
+    set_tests_properties(source_authority_publisher PROPERTIES TIMEOUT 660)
     add_executable(source_authority_delta_tests tests/source_authority_delta_tests.cpp)
     target_link_libraries(source_authority_delta_tests PRIVATE halo2_authority_delta)
     add_test(NAME source_authority_delta COMMAND source_authority_delta_tests)

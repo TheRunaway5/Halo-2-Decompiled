@@ -1,6 +1,7 @@
 #include "halo2/mcc_cpu_bitmap_projection.hpp"
 #include "rendering/mcc_cpu_bitmap_backing.hpp"
 #include "halo2/source_lens_draw_tu15.hpp"
+#include "halo2/source_memory_read_alias_observation_tu15.hpp"
 #include <algorithm>
 #include <bit>
 #include <map>
@@ -248,6 +249,8 @@ void WorldProjection::lookup(SourcePhysicsWorldRuntimeAbi& abi,SourcePhysicsFact
     // canonical source again after that publication, before original lookup.
     state.current(active);
     DescriptorRead memory(state.bank,active.root+0x48u,active.rows.base());
+    observe_source_memory_read_alias_tu15(state.bank,{0x13a030u,word(state.bank,abi.gp[4]),
+        active.root+0x48u,word(state.bank,active.root+0x48u),active.rows.base(),bitmap.value,unsigned(frame)});
     source_run_lens_draw_tu15(memory,0x13a030u,abi,fp,services,observe);
     require(abi.gp[0]==known->second.retained.row(),
         "Original13A030 did not return its actual owned116-byte CPU row");

@@ -22,6 +22,7 @@ from types import SimpleNamespace
 from oracle_smg_firing_1_1 import ROOT, Xbe, _Code, _trace
 from research_mp_sandbox_update_functions import NEW_DEFAULT, NEW_PIN
 from generate_physics_live_support_tu15 import generate
+from objective_native_tu15_injection import inject_native_objective_owners
 
 REGISTRATION = ((1, 'CTF', 0x47d174), (2, 'Slayer', 0x4822a0),
                 (3, 'Oddball', 0x4822a4), (4, 'King', 0x4822a8),
@@ -66,7 +67,7 @@ FRESH_PLAYER_CONTINUATION = (0x14e737, 0x16e7f0, 0x14e73c)
 # Compile their unchanged whole bodies into a test-only composition; no return
 # value or side effect is substituted for an unavailable runtime service.
 TEST_SERVICES = (0x154ef0, 0x15dd10, 0x15e1e0, 0x15e070, 0x15ddc0,
-                 0x19b1d0, 0x19b180, 0x19bb20, 0x19de80, 0x1a8740, 0x14e9e0,
+                 0x19b1d0, 0x19b180, 0x19baa0, 0x19bb20, 0x19de80, 0x1a8740, 0x14e9e0,
                  0x1f20d0, 0x19b2b0, 0xb1e80, 0x13b4a0, 0x16e940,
                  0x164ab0, 0x1a79a0, 0x1a7a30, 0x1a83b0, 0x1f1fc0, 0x1a87a0,
                  0x1601b0, 0x160570, 0xb1c30, 0x150990, 0xce230, 0x106350,
@@ -138,6 +139,22 @@ def existing_aliases():
                for entry, canonical, module in rows}
     assert len(aliases) == len(rows)
     return aliases, {str(path.relative_to(ROOT)):sha(path)}
+
+
+def inject_native_objective_kernels(source):
+    """Semantic native rule math; retain literal bodies for traced controls."""
+    include='#include "gameplay/multiplayer/source_objective_native_tu15_internal.hpp"\n'
+    if include not in source:source=include+source
+    for pc,call,continuation in ((0x249866,'arm',0x24989a),(0x24991c,'decay',0x249934)):
+        marker=f'if(s.services.instruction){{s.services.instruction(0x{pc:x}u);}}'
+        guard=f'if(source_objective_native_tu15_detail::{call}(s))goto L{continuation:x};\n'
+        assert source.count(marker)==1
+        if guard not in source:source=source.replace(marker,guard+marker,1)
+        target=f'if(s.services.instruction){{s.services.instruction(0x{continuation:x}u);}}'
+        if f'L{continuation:x}: '+target not in source:
+            assert source.count(target)==1
+            source=source.replace(target,f'L{continuation:x}: '+target,1)
+    return source
 
 
 def main():
@@ -320,6 +337,8 @@ def main():
         f'source_{prefix}_owns_entry').replace(
         'source_run_physics_live_support_tu15',
         f'source_run_{prefix}'))
+    if not args.test_services:
+        args.output.write_text(inject_native_objective_owners(inject_native_objective_kernels(args.output.read_text())))
     report = json.loads(manifest.read_text())
     alias_replacements = {f'{entry:08x}':dict(**aliases[entry], callback=entry in roots)
                           for entry in sorted(bodies.keys() & aliases.keys())} if not args.test_services else {}

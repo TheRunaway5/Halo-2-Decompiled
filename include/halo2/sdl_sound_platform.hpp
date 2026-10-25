@@ -17,6 +17,9 @@ struct SdlSoundPacket {
   std::size_t first_frame;
   std::size_t frame_count;
   std::uint64_t packet_context;
+  // Optional native packet attenuation. A queued permutation keeps its own
+  // volume while sharing its stream's current rate, pause and output routes.
+  std::optional<std::int32_t> volume_hundredths_db;
 };
 
 // Supported host routing is an explicitly supplied stereo matrix. There is
@@ -176,6 +179,7 @@ public:
                        const SdlSoundVoiceParameters &,
                        std::uint64_t presentation_frame);
   void parameters(Voice, const SdlSoundVoiceParameters &);
+  void packet_volume(Voice,std::uint64_t packet_context,std::int32_t hundredths_db);
   Submission submit(Voice, SdlSoundPacket);
   SdlSoundVoiceStatus status(Voice) const;
   SdlSoundPlaybackPosition playback_position(Voice) const;
@@ -224,6 +228,7 @@ public:
   VoiceReceipt create_voice_receipt(std::uint64_t,const SdlSoundVoiceParameters&,
                                    std::optional<std::uint64_t> deadline = {});
   void parameters(const VoiceReceipt&,const SdlSoundVoiceParameters&);
+  void packet_volume(const VoiceReceipt&,std::uint64_t packet_context,std::int32_t hundredths_db);
   Submission submit(const VoiceReceipt&,SdlSoundPacket);
   SdlSoundVoiceStatus status(const VoiceReceipt&) const;
   SdlSoundPlaybackPosition playback_position(const VoiceReceipt&) const;
@@ -238,6 +243,7 @@ private:
   Voice create_voice_impl(std::uint64_t, const SdlSoundVoiceParameters &,
                           std::optional<std::uint64_t>,bool raw = true);
   void parameters_impl(Voice,const SdlSoundVoiceParameters&);
+  void packet_volume_impl(Voice,std::uint64_t,std::int32_t);
   Submission submit_impl(Voice,SdlSoundPacket);
   void acknowledge_impl(Voice,std::uint64_t);
   void flush_impl(Voice);

@@ -1621,12 +1621,9 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
     }
     const auto symbol=[](unsigned action) -> std::uint32_t {
       // Complete1680B3/169493 table entries reached by the magazine owners.
-      switch(action) {
-        case 0:return 0x0400000cu;case 7:return 0x0c000064u;case 8:return 0x0b000065u;
-        case 9:return 0x0c0005aeu;case 10:return 0x150005afu;case 11:return 0x140005b0u;
-        case 12:return 0x0b0005b1u;
-        default:throw FormatError("Magazine action exceeds its original dispatch contract");
-      }
+      if(action!=0 && (action<7 || action>12))
+        throw FormatError("Magazine action exceeds its original dispatch contract");
+      return weapon_magazine_activity_symbol(action);
     };
     auto &services=magazine_services;
     services.transfer.available=[&]{return weapon_reserve_available(ammunition,0);};

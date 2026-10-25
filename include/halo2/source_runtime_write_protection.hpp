@@ -1,7 +1,9 @@
 #pragma once
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <thread>
 namespace halo2 {
 class SourceRuntimeMemory;
@@ -49,6 +51,10 @@ private:
 using SourceRuntimeWriteGuard=std::function<void(std::uint32_t,std::size_t)>;
 void source_runtime_register_write_guard(const SourceRuntimeMemory &,const void *owner,
     SourceRuntimeWriteGuard);
+// For a guard with no effect on writes ending at or below inert_through,
+// dispatch skips those writes instead of calling it.
+void source_runtime_register_write_guard(const SourceRuntimeMemory &,const void *owner,
+    SourceRuntimeWriteGuard,std::uint64_t inert_through);
 void source_runtime_unregister_write_guard(const SourceRuntimeMemory &,const void *owner);
 void source_runtime_validate_write(const SourceRuntimeMemory &,std::uint32_t,std::size_t);
 // Mutation auditing is separate from resource permission. Validation-only
@@ -56,6 +62,22 @@ void source_runtime_validate_write(const SourceRuntimeMemory &,std::uint32_t,std
 void source_runtime_register_write_observer(const SourceRuntimeMemory &,const void *owner,SourceRuntimeWriteGuard);
 void source_runtime_unregister_write_observer(const SourceRuntimeMemory &,const void *owner);
 void source_runtime_validate_write(const SourceRuntimeMemory &,std::uint32_t,std::size_t,bool observe);
+// Equivalent to a write observer that only increments its own counter: counts
+// every observed write admitted by all write guards since construction. One
+// per-bank counter serves every subscriber, without a callback per store.
+class SourceRuntimeWriteSerial final {
+public:
+    explicit SourceRuntimeWriteSerial(const SourceRuntimeMemory &);
+    ~SourceRuntimeWriteSerial();
+    SourceRuntimeWriteSerial(const SourceRuntimeWriteSerial &)=delete;
+    SourceRuntimeWriteSerial &operator=(const SourceRuntimeWriteSerial &)=delete;
+    std::uint64_t load() const noexcept;
+    struct Counters;
+private:
+    const SourceRuntimeMemory *memory_;
+    std::shared_ptr<const Counters> counters_;
+    std::uint64_t base_{};
+};
 // Permission is checked for all owners before any topology notification or
 // backing change. Observers must not throw and never grant permission.
 void source_runtime_register_topology_guard(const SourceRuntimeMemory &,const void *owner,SourceRuntimeWriteGuard);

@@ -5,6 +5,7 @@
 #include "halo2/sdl_sound_platform.hpp"
 #include "halo2/source_script_sound_clock_native64_tu15.hpp"
 #include "halo2/mcc_sound_variation_provider.hpp"
+#include "halo2/source_loop_sound_request_tu15.hpp"
 #include <cstdint>
 #include <functional>
 #include <optional>
@@ -52,6 +53,19 @@ struct MultiplayerAudioSubmission {
   std::optional<Vec3> position;
 };
 using MultiplayerAudioObserver=std::function<void(const MultiplayerAudioSubmission &)>;
+// A completed native loop-controller packet selection. Authored pitch and
+// permutation ordinals remain distinct from native playback identities.
+// The controller owns selection, transitions and subsequent packets.
+struct MultiplayerLoopPacketParametersTu15 {
+  float pitch_cents{},gain_db{},gain_control=1;
+};
+struct MultiplayerLoopPacketTu15 {
+  std::uint32_t sound=0xffffffffu,owner=0xffffffffu;
+  unsigned view{},pitch_range{},permutation{};
+  MultiplayerLoopPacketParametersTu15 parameters;
+  std::optional<Vec3> position;
+  std::optional<float> fade_in_seconds;
+};
 
 // One pending actual-Audio/clock admission. Destruction only requests
 // cancellation, including on a foreign thread; the Audio producer drains it.
@@ -221,6 +235,33 @@ public:
   // result, manufacture a source voice, or implement controller/loop ownership.
   std::optional<Voice> source_impulse(std::uint32_t sound,
       std::span<const std::byte,160> request,MultiplayerAudioKind,unsigned view);
+  // Actual SDL output for one already selected loop-controller packet.
+  // This creates no Xbox voice or readiness result, and schedules no future
+  // loop phase. Completion/receipt ownership matches play_impulse_receipt.
+  std::optional<VoiceReceipt> play_loop_packet(const MultiplayerLoopPacketTu15&,
+      std::optional<std::uint64_t> presentation_frame={},Completion={});
+  // Update only this packet's actual native gain/pitch. Its selected sound,
+  // pitch range, PCM, permutation and completion identity remain retained.
+  void loop_packet_parameters(const VoiceReceipt&,const MultiplayerLoopPacketParametersTu15&);
+  bool loop_packet_accepts_input(const VoiceReceipt&) const;
+  // Queue another controller-selected permutation on this actual native
+  // stream. Backpressure leaves selection and both retained packets intact.
+  bool queue_loop_packet(const VoiceReceipt&,unsigned permutation);
+  // Continue a retained stream with another authored phase whose driver
+  // controls are exactly equivalent. Phase/RNG choice stays with its caller.
+  // Reject differing controls until their actual in-place parameter owner
+  // is supported; never retire/recreate this voice to disguise a queue gap.
+  bool queue_loop_packet_phase(const VoiceReceipt&,std::uint32_t sound,
+                               unsigned pitch_range,unsigned permutation);
+  void loop_packet_fade(const VoiceReceipt&,float seconds,bool fade_in,std::uint16_t curve);
+  // Actual copied object-loop intent. The current ordinary-track lane rejects
+  // missing transition/detail/synchronization owners instead of substituting
+  // a normal packet for a different authored controller.
+  void object_loop_request(const SourceLoopSoundRequestTu15&);
+  void object_loop_frame(float elapsed);
+  // Retained actual platform148DB0 supplier (DesktopSession's clock/CRT
+  //owner). Bind before playback; this is not a source readiness/RNG setter.
+  void bind_object_loop_random_source(std::function<std::uint32_t()>);
   // Source caller control interpolates authored gain and pitch bounds.
   void impulse(std::uint32_t sound,float control=1,
       MultiplayerAudioKind=MultiplayerAudioKind::Impulse,

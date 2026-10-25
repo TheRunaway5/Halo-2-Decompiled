@@ -48,6 +48,16 @@ struct MccMultiplayerWeaponTableReceipt {
 std::optional<MccMultiplayerWeaponTableReceipt> convert_mcc_multiplayer_weapon_table(
     TagGroup,std::string_view name,std::uint32_t root,const MccGameplayReferenceAccess&);
 
+struct MccMultiplayerVehicleTableReceipt {
+    MccGameplayReferenceStatus status{};
+    std::uint32_t count_address{},entries_address{},before_count{},after_count{};
+};
+// TU1.5 has11 references, with literal NONE at6/8/9. Match the whole known
+// MCC14-entry tuple before restoring slot6 and the original table count.
+// Unknown/custom tuples and all retained local full identities stay intact.
+std::optional<MccMultiplayerVehicleTableReceipt> convert_mcc_multiplayer_vehicle_table(
+    TagGroup,std::string_view name,std::uint32_t root,const MccGameplayReferenceAccess&);
+
 struct MccBspInstanceTransformReceipt {
     MccGameplayReferenceStatus status{};
     std::uint32_t address{};

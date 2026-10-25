@@ -126,7 +126,8 @@ def main():
     source,n=re.subn(r'bool source_ai_frame_tu15_owns_entry\(std::uint32_t p\) \{[^\n]+',
         'bool source_ai_frame_tu15_owns_entry(std::uint32_t p) {return '+
         ' || '.join(f'p==0x{p:x}u' for p in [0x1d0670,*exported_helpers])+';}',source);assert n==1
-    a.output.write_text(add_hooks(source))
+    from native_difficulty_parameter_kernel_tu15 import install_native_difficulty_routes
+    a.output.write_text(install_native_difficulty_routes(add_hooks(source),'actual'))
     report=json.loads((a.directory/'generation.json').read_text())
     report.update(generated_cpp_sha256=sha(a.output),module_generator_sha256=sha(Path(__file__)),
         original_reference_report_sha256=sha(references[0]/'report.json'),hardware_report_sha256=sha(references[0]/'hardware/report.json'),

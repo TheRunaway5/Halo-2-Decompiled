@@ -110,7 +110,7 @@ BIND(NativeUnitSeatAnimations::Entry,v.clip,v.initial)
 BIND(NativeUnitSeatAnimations,v.entries,v.idle,v.board,v.exit)
 BIND(NativeUnitInteractionDefinition,v.unit_flags,v.vehicle_flags,v.seats,v.bound_offset,v.bound_radius,
     v.flip_message,v.flip_minimum,v.flip_maximum,v.seat_animations,v.hierarchy,v.permutations,v.markers,v.idle)
-BIND(NativeUnitInteractionAssets,v.units,v.flipped_up_threshold,v.netgame_placements)
+BIND(NativeUnitInteractionAssets,v.units,v.flipped_up_threshold,v.netgame_placements,v.netgame_templates)
 BIND(NetgameEquipment::Item,v.weight,v.group,v.definition,v.variant)
 BIND(NetgameEquipment,v.flags,v.modes,v.team,v.respawn_seconds,v.empty_seconds,v.timer_start,v.classification,
     v.position,v.rotation,v.collection_group,v.collection,v.collection_delay,v.items)

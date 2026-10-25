@@ -1,18 +1,24 @@
 #include "halo2/online_peer_transport.hpp"
+#include "halo2-online-protocol-bridge/src/lib.rs.h"
 #include <chrono>
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
 #include <filesystem>
 #include <stdexcept>
+#include <string_view>
 #include <thread>
 using namespace halo2;
 using namespace std::chrono_literals;
-int main(){
+int main(int argc,char **argv){
+  if(argc==2&&std::string_view(argv[1])=="--eos-sdk-worker")
+    return online_protocol_bridge::eos_sdk_worker_main();
   // Live relay qualification is explicit: ordinary offline CTest must not
   // create users or depend on external credentials/network availability.
   if(!std::getenv("H2_EOS_LIVE_TEST"))return 77;
   try{
+    struct Shutdown {~Shutdown(){online_protocol_bridge::eos_process_shutdown();}} shutdown;
+    online_protocol_bridge::eos_sdk_register_host();
     std::cerr<<"EOS_TEST starting\n";
     const auto *socket=std::getenv("H2_EOS_TEST_SOCKET");
     const auto *key=std::getenv("H2_EOS_TEST_KEY");

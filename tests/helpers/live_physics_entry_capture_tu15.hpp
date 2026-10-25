@@ -15,7 +15,9 @@ class LivePhysicsEntryCaptureTu15 {
   std::filesystem::path directory_;
   Json record_;
   bool active_{},complete_{};
+  bool retain_entry_record_{};
   std::uint32_t entry_{};
+  unsigned entry_depth_{};
   static void require(bool yes,const char *why){if(!yes)throw FormatError(why);}
   static std::string hex(std::span<const std::byte> bytes){
     constexpr char digits[]="0123456789abcdef";std::string s;s.reserve(2*bytes.size());
@@ -34,13 +36,14 @@ class LivePhysicsEntryCaptureTu15 {
     require(bool(out),"Cannot retain actual original physics entry memory");
   }
 public:
-  explicit LivePhysicsEntryCaptureTu15(std::filesystem::path path):directory_(std::move(path)){}
+  explicit LivePhysicsEntryCaptureTu15(std::filesystem::path path,bool retain_entry_record=false)
+      :directory_(std::move(path)),retain_entry_record_(retain_entry_record){}
   void observe(bool entering,const SourcePhysicsWorldRuntimeAbi &state,const SourceRuntimeMemory &memory,
       std::uint32_t entry){
     if(complete_)return;
     const auto word=[&](auto address){return Bytes(memory.view(address,4)).u32(0);};
     if(entering){
-      if(active_)return;
+      if(active_){if(entry==entry_)++entry_depth_;return;}
       std::filesystem::create_directories(directory_);
       record_={{"entry",entry},{"return",word(state.gp[4])},{"before",abi(state)},{"regions",Json::array()},
           {"reference","English TU1.5 only"},{"boundary","Read-only actual live physics entry input/output; no supplied physical result"}};
@@ -48,8 +51,14 @@ public:
         const auto file="before-"+std::to_string(address)+".bin";write(directory_/file,bytes);
         record_["regions"].push_back({{"address",address},{"size",bytes.size()},{"before_file",file}});
       });
-      entry_=entry;active_=true;
+      if(retain_entry_record_) {
+        std::ofstream out(directory_/"capture-entry.json");out<<record_.dump(2)<<'\n';
+        require(bool(out),"Cannot retain actual original physics entry ABI");
+      }
+      entry_=entry;entry_depth_=1;active_=true;
     }else if(active_ && entry==entry_){
+      require(entry_depth_>0,"Unbalanced original physics entry capture");
+      if(--entry_depth_)return;
       record_["after"]=abi(state);
       for(auto &region:record_["regions"]){
         const auto size=region.at("size").get<std::size_t>();

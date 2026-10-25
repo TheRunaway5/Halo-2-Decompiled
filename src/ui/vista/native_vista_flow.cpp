@@ -13,6 +13,7 @@
 #include "halo2/vista_player_birth.hpp"
 #include "halo2/vista_slayer_publication.hpp"
 #include "halo2/menu_music.hpp"
+#include "halo2/vista_lobby_metadata.hpp"
 #include <algorithm>
 #include <bit>
 #include <iostream>
@@ -98,6 +99,7 @@ struct NativeVistaOfflineFlow::Impl {
   VistaPcrOfflineAchievementOwner achievements;
   VistaGameplayFadeState gameplay_fade;
   std::unique_ptr<NativeVistaAnnouncer> announcer;
+  std::vector<std::int8_t> selected_teams;
   std::array<std::optional<VistaPlayerBirthConsumed>,multiplayer_capacity> player_births;
   std::array<bool,multiplayer_capacity> activated{};
   std::optional<VistaLocalActivationIdentity> activation_identity;
@@ -179,6 +181,7 @@ NativeVistaOfflineFlow::NativeVistaOfflineFlow(FrontendSession& frontend,std::fi
       throw FormatError("Native Vista world task has no matching launch owner");
     auto request=impl_->runtime_options;
     request.map=launch_->map;request.local_players=launch_->local_players;
+    if(!launch_->shared_maps.empty())request.shared_maps=launch_->shared_maps;
     request.variant=launch_->variant;request.selected_profiles=launch_->selected_profiles;
     request.selected_teams=launch_->selected_teams;
     request.session_random_seed=get(options,0x18);
@@ -198,7 +201,10 @@ NativeVistaOfflineFlow::NativeVistaOfflineFlow(FrontendSession& frontend,std::fi
         std::span<const std::byte,6>(session_.bank().subspan(0x92,6)));
     impl_->player_births={};impl_->activated={};impl_->activation_identity=identity;
     impl_->activation_notifications.clear();impl_->player_activation_count=0;
-    request.defer_initial_player_spawn=true;
+    const auto engine=source_game_variant_type(source_game_variant(request.variant));
+    const bool objective=engine==1 || engine==9;
+    request.defer_initial_player_spawn=!objective;
+    if(!objective) {
     request.player_birth_owner=[this,initialized_options,actual_players](MultiplayerPlayer& player,unsigned slot) {
       const auto actual=std::find_if(actual_players.begin(),actual_players.end(),[&](const auto& p){return p.player==slot;});
       if(slot>=impl_->player_births.size() || impl_->player_births[slot] || !player.connected ||
@@ -217,6 +223,7 @@ NativeVistaOfflineFlow::NativeVistaOfflineFlow(FrontendSession& frontend,std::fi
       impl_->player_births[slot]=birth;
     };
     request.pre_player_update_owner=[this](MultiplayerMatch& match){player_activation_tick(match);};
+    }
     if(impl_->resource_load_begin)impl_->resource_load_begin();
     auto assets=impl_->pending_assets.valid()?impl_->pending_assets.get():std::shared_ptr<MultiplayerMapAssets>{};
     impl_->pending_assets={};
@@ -325,11 +332,18 @@ bool NativeVistaOfflineFlow::lobby_action(FrontendLobbySessionAction action) {
 }
 bool NativeVistaOfflineFlow::supports(const FrontendLaunch& launch) {
   if(!launch.multiplayer || launch.campaign || !launch.local_players || launch.local_players>4 || launch.host_port ||
-      launch.online_match || launch.selected_profiles.size()!=launch.local_players || !launch.selected_teams.empty())return false;
+      launch.online_match || launch.selected_profiles.size()!=launch.local_players)return false;
   try {
     const auto variant=source_game_variant(launch.variant);
-    if(source_game_variant_get(variant,91)!=0)return false;
-    (void)vista_pcr_slayer_variant(variant);
+    const auto type=source_game_variant_type(variant);
+    if(type==1 || type==9) {
+      if(launch.selected_teams.size()!=launch.local_players ||
+          std::ranges::any_of(launch.selected_teams,[](auto team){return team<0 || team>7;}))return false;
+      (void)vista_pcr_objective_variant(variant);
+    } else {
+      if(source_game_variant_get(variant,91)!=0 || !launch.selected_teams.empty())return false;
+      (void)vista_pcr_slayer_variant(variant);
+    }
     for(const auto& profile:launch.selected_profiles)(void)native_vista_selected_profile_payload(profile);
     return true;
   } catch(const std::exception&){return false;}
@@ -347,7 +361,9 @@ void NativeVistaOfflineFlow::configure_lobby(const FrontendLaunch& request,const
   }
   if(get(session_.bank(),0x73a0)==0 && !session_.birth_local().accepted)
     throw FormatError("Native Vista local session birth failed");
-  variant_=vista_pcr_slayer_variant(source_game_variant(request.variant));
+  const auto selected=source_game_variant(request.variant);
+  const auto type=source_game_variant_type(selected);
+  variant_=(type==1 || type==9)?vista_pcr_objective_variant(selected):vista_pcr_slayer_variant(selected);
   //617138(2)->6169C5 supplies campaign ID NONE for the selected multiplayer
   // map. Passing cache type2 here instead makes615EA9 classify this as co-op.
   if(!vista_session_select_map(session_.bank(),null_datum,std::uint32_t(map.map_id),wide(map.scenario_path)) ||
@@ -356,10 +372,20 @@ void NativeVistaOfflineFlow::configure_lobby(const FrontendLaunch& request,const
   impl_->selected_file=request.map;
   if(impl_->selected_file.is_relative())impl_->selected_file=maps_/impl_->selected_file;
   impl_->selected_profiles=request.selected_profiles;
+  impl_->selected_teams=request.selected_teams;
   impl_->selected_map=map;
   begun_=true;world_ready_=true;world_mainmenu_=true;pump();
   for(unsigned controller=0;controller<request.local_players;++controller)
     if(!session_.player_for_controller(controller))throw FormatError("Actual offline reconciliation has not inserted the selected player");
+  if(type==1 || type==9) {
+    // Original local-user insertion auto-assigns a playing team and writes
+    // controller0's team field. The native lobby has already accepted each
+    // user's explicit selection. Publish that actual profile input after the
+    // genuine insertion; normal reconciliation/countdown delivers it before
+    // the world options are copied. Never change the Xbox gameplay roster.
+    for(unsigned controller=0;controller<request.local_players;++controller)
+      session_.publish_profile(controller,native_vista_selected_profile_payload(request.selected_profiles[controller]));
+  }
 }
 void NativeVistaOfflineFlow::begin(const FrontendLaunch& request,const UiLobbyMap& map) {
   configure_lobby(request,map);
@@ -370,6 +396,7 @@ void NativeVistaOfflineFlow::begin(const FrontendLaunch& request,const UiLobbyMa
     throw FormatError("Original Vista countdown admission rejected the native lobby");
   auto resources=impl_->runtime_options;
   resources.map=launch_->map;resources.variant=launch_->variant;
+  if(!launch_->shared_maps.empty())resources.shared_maps=launch_->shared_maps;
   impl_->pending_assets=frontend_.prepare_multiplayer_assets(resources);
   std::cout<<"Vista lifecycle: actual offline lobby countdown started\n";
 }
@@ -383,6 +410,28 @@ VistaFrontendReadinessQueries NativeVistaOfflineFlow::readiness() const {
   q.map_progress=map_readiness_.progress;q.local_map_status=map_readiness_.status;
   q.variant=VistaFrontendVariantView{std::bit_cast<std::int32_t>(get(variant_.bytes,0x44)),
       std::uint8_t(get(variant_.bytes,0x48,1))};q.countdown=countdown();
+  const auto selected=selected_map(session_.bank());
+  q.map=VistaFrontendMapView{selected.id,0};
+  if(const auto& metadata=frontend_.content().vista->vista_lobby_metadata) {
+    const auto found=std::ranges::find(metadata->multiplayer,selected.id,&VistaLobbyMetadataMap::map_id);
+    if(found!=metadata->multiplayer.end()) {
+      VistaFrontendMapCapacities capacities;std::copy_n(found->team_counts.begin(),capacities.size(),capacities.begin());
+      q.builtin_metadata=capacities;
+    }
+  }
+  const auto mask=get(session_.bank(),0x1258);
+  const auto query=std::uint8_t(*q.session_state>=3 && *q.session_state<=8);
+  std::array<std::int32_t,16> peers{};std::array<std::int8_t,16> teams{};teams.fill(-1);
+  for(unsigned i=0;i<16;++i)peers[i]=std::bit_cast<std::int32_t>(get(session_.bank(),0x1264+i*0x128));
+  for(unsigned controller=0;controller<4;++controller)if(const auto local=session_.player_for_controller(controller))
+    teams.at(local->player)=std::bit_cast<std::int8_t>(std::to_integer<std::uint8_t>(local->final_payload[0x7c]));
+  for(unsigned i=0;i<q.players.size();++i) {
+    q.players[i].present=vista_frontend_player_present(query,mask,i);
+    if(!q.players[i].present)continue;
+    q.players[i].eligible=vista_frontend_player_eligible(query,mask,i,
+        std::bit_cast<std::int32_t>(get(session_.bank(),0x64)),peers);
+    q.players[i].team=vista_frontend_player_team(query,mask,i,teams);
+  }
   q.host_permission=vista_session_pcr_host(session_.bank(),begun_);q.mxcsr=fp_context();return q;
 }
 void NativeVistaOfflineFlow::network_update() {
@@ -405,7 +454,9 @@ void NativeVistaOfflineFlow::network_update() {
   vista_session_map_readiness(map_readiness_,q);
   session_.reconcile_offline(std::uint32_t(map_readiness_.status),std::uint32_t(map_readiness_.progress),
       !world_ready_?NativeVistaWorldKind::unloaded:
-          world_mainmenu_?NativeVistaWorldKind::mainmenu:NativeVistaWorldKind::multiplayer);
+          world_mainmenu_?NativeVistaWorldKind::mainmenu:NativeVistaWorldKind::multiplayer,
+      world_ready_ && !world_mainmenu_ && impl_->world && impl_->world->match.source_engine_owned()?
+          std::optional(impl_->world->match.source_available_team_mask()):std::nullopt);
 }
 void NativeVistaOfflineFlow::pump() {
   if(!begun_)return;
@@ -442,6 +493,11 @@ void NativeVistaOfflineFlow::world_loaded(const MultiplayerMatch& match,std::spa
         !state.players[slot].connected || state.players[slot].source_player==null_datum ||
         match.player(slot).source_profile_request!=impl_->selected_profiles[view])
       throw FormatError("Native Vista controller cannot bind to an absent or different native source player");
+    if(match.source_engine()==1 || match.source_engine()==9) {
+      if(match.player(slot).source_membership!=impl_->selected_teams.at(view))
+        throw FormatError("Objective world completion changed the selected Xbox team");
+      continue;
+    }
     const auto& birth=impl_->player_births[slot];
     if(!birth || birth->native_datum!=match.player(slot).source_datum ||
         match.player(slot).source_flags!=native_player_birth_flags(1,0) ||
@@ -460,7 +516,7 @@ void NativeVistaOfflineFlow::world_loaded(const MultiplayerMatch& match,std::spa
   // The selected world owns the scenario and its per-sound MCC resource bank.
   const auto audio_maps=impl_->world->cache->is_mcc()?maps_:
       frontend_.content().vista->source_fonts.parent_path();
-  impl_->announcer=NativeVistaAnnouncer::open({audio_maps,
+  if(match.source_engine()!=1 && match.source_engine()!=9)impl_->announcer=NativeVistaAnnouncer::open({audio_maps,
       impl_->selected_map->scenario_path,impl_->world->cache->original_data(),session_.language(),
       30,floating_point(),impl_->runtime_options.mute,audio_seed});
   // This actual returned local-view0 maps to the verified native player slot.
@@ -540,12 +596,14 @@ void NativeVistaOfflineFlow::engine_presentation_tick(const MultiplayerMatch& ma
     };
     input.users[view]=std::move(player);
   }
-  if(!impl_->announcer)throw FormatError("Vista engine update lost its actual announcer owner");
-  impl_->announcer->pre_world_tick(); //475924 precedes475B40 opacity update.
+  if(impl_->announcer)impl_->announcer->pre_world_tick(); //475924 precedes475B40 opacity update.
+  else if(match.source_engine()!=1 && match.source_engine()!=9)
+    throw FormatError("Vista engine update lost its actual announcer owner");
   vista_gameplay_fade_tick(impl_->gameplay_fade,input,floating_point());
 }
 void NativeVistaOfflineFlow::world_audio_update(float volume,
     const std::array<float,sound_class_count>& gains) {
+  if(impl_->world && (impl_->world->match.source_engine()==1 || impl_->world->match.source_engine()==9))return;
   if(!impl_->announcer || !impl_->world || !world_ready_ || world_mainmenu_)
     throw FormatError("Vista announcer accounting lacks its actual native world");
   impl_->announcer->audio_update(volume,gains);
@@ -578,7 +636,7 @@ bool NativeVistaOfflineFlow::world_update(const MultiplayerMatch& match) {
   // Native SourceRoundContext owns raw_mode1. The recovered end owner tests
   // only!=4, consumes actual game-over, and publishes its one-shot after the
   // real world/phase/result update. Initial activation has its earlier owner.
-  (void)impl_->announcer->post_world_tick(true,1,match.state().finished,
+  if(impl_->announcer)(void)impl_->announcer->post_world_tick(true,1,match.state().finished,
       std::uint32_t(match.simulation().ticks()),recipients);
   try {pump();observe_menu(nullptr);}catch(...) {impl_->match=nullptr;throw;}
   impl_->match=nullptr;

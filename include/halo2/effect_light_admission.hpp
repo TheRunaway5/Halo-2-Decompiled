@@ -17,6 +17,7 @@ struct SourceEffectLightRuntime {
     Vec3 spatial_center; // record+18, distinct from the render position
     Vec3 position,forward,up; // record+84/+AC/+B8
     EffectLightState state;
+    float lens_fade{}; // Current record+C8, independent of state.control at D0.
 };
 struct SourceEffectLightRenderContext {
     std::uint8_t renderer_enabled; // (*5107E8)+8

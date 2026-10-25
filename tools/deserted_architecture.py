@@ -16,6 +16,8 @@ SHADERS = {
     'scenarios/shaders/solo/earthcity/base_metal',
     'scenarios/shaders/solo/earthcity/base_concrete1',
     'scenarios/multi/dust2_mombasa/shaders/polished_road',
+    'scenarios/multi/dust2_mombasa/shaders/polished_arch_emitter',
+    'scenarios/multi/dust2_mombasa/shaders/polished_practical_emitter',
 }
 
 

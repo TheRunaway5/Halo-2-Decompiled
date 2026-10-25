@@ -114,7 +114,7 @@ int main() {
       // Only the admitted gathering's chosen names belong in the roster.
       std::atomic<unsigned> phase{};
       OnlineMatchmaking client(login,options,[&](const auto &r,std::stop_token stop)->OnlineMatchmakingResponse {
-        if(r.method=="GET" && r.url.ends_with("/ticket?progress=1") && queued) {
+        if(r.method=="GET" && r.url.ends_with("/ticket?progress=1&ranks=1") && queued) {
           Json progress={{"players",2},{"minimum_players",2},{"maximum_players",4},{"wait_ms",15000},
             {"roster",Json::array({{{"name","Chosen Pilot"},{"self",true}},{{"name","Peer Pilot"},{"self",false}}})}};
           Json body={{"state","searching"},{"playlist_id","ranked"},{"queued_players",2},{"match",nullptr},{"progress",progress}};
@@ -130,6 +130,11 @@ int main() {
           case 8: body["progress"]["maximum_players"]=1;break;
           case 9: body["progress"]["roster"][1]["id"]="private";break;
           case 10: body["unexpected"]=true;break;
+          case 11: body["progress"]["roster"][0]["level"]=50;
+                   body["progress"]["roster"][1]["level"]=nullptr;break;
+          case 12: body["progress"]["roster"][0]["level"]=0;break;
+          case 13: body["progress"]["roster"][0]["level"]=51;break;
+          case 14: body["progress"]["roster"][0]["level"]=1.5;break;
           }
           return {200,body.dump()};
         }
@@ -144,8 +149,11 @@ int main() {
         s.gathering->players[0].self && !s.gathering->players[1].self && s.gathering->wait_ms==15000,
         "Actual gathering roster or growth wait was lost");
       check(posts==before,"Gathering progress created a second party ticket");
+      phase=11;eventually([&]{const auto s=client.snapshot();return s.gathering && s.gathering->players[0].level==50;});
+      check(!client.snapshot().gathering->players[1].level,"Unknown player rank became level one");
       phase=1;eventually([&]{const auto s=client.snapshot();return s.status==OnlineMatchmakingStatus::Searching && !s.gathering;});
-      for(unsigned invalid=2;invalid<=10;++invalid) {
+      for(unsigned invalid=2;invalid<=14;++invalid) {
+        if(invalid==11)continue;
         phase=0;eventually(gathered);phase=invalid;
         eventually([&]{return client.snapshot().status==OnlineMatchmakingStatus::Failed;});
         check(!client.snapshot().gathering,"Invalid progress retained stale admitted players");
@@ -171,7 +179,7 @@ int main() {
       if(variant==6)row.erase("clan_match");
       OnlineMatchmaking client(login,options,[&](const auto &r,std::stop_token)->OnlineMatchmakingResponse {
         if(r.url.ends_with("/session") && r.method=="POST")return {201,Json{{"token",session_token},{"expires_in",900}}.dump()};
-        if(r.url.ends_with("/ticket?progress=1"))return {200,R"({"state":"idle","playlist_id":"","queued_players":0,"match":null})"};
+        if(r.url.ends_with("/ticket?progress=1&ranks=1"))return {200,R"({"state":"idle","playlist_id":"","queued_players":0,"match":null})"};
         return {200,body.dump()};
       });
       client.refresh("Chosen Pilot");

@@ -30,9 +30,16 @@ class MultiplayerRuntimeAuthority {
     struct Impl;
 public:
     using MigrationPreparationOutcome=OnlineMatchSession::MigrationPreparationOutcome;
+    // Automatic gameplay enrollment follows the actual legacy/peer continuity
+    // contract. Explicit native preparation owners can opt in without enabling
+    // election, advertising Ready, or changing transport capabilities.
+    enum class RecoveryPreparation { Automatic,PreparationOnly };
+    static bool recovery_preparation_enabled(const std::shared_ptr<OnlineMatchSession> &,
+        RecoveryPreparation = RecoveryPreparation::Automatic);
     MultiplayerRuntimeAuthority(const MultiplayerOptions &,
         std::shared_ptr<MultiplayerPreparedWorld>,std::unique_ptr<LanHost>,
-        std::unique_ptr<LanClient>,std::unique_ptr<SourceAuthorityReplayWorker> = {});
+        std::unique_ptr<LanClient>,std::unique_ptr<SourceAuthorityReplayWorker> = {},
+        RecoveryPreparation = RecoveryPreparation::Automatic);
     ~MultiplayerRuntimeAuthority();
     MultiplayerRuntimeAuthority(const MultiplayerRuntimeAuthority &)=delete;
     MultiplayerRuntimeAuthority &operator=(const MultiplayerRuntimeAuthority &)=delete;
@@ -123,6 +130,14 @@ public:
     // One-shot, nonblocking drain. Null means the worker is still completing
     // authenticated phases. The owning result survives worker destruction.
     std::shared_ptr<const SourceAuthorityRetainedWorld> recover();
+    enum class RecoveryEligibility { Unavailable,LegacyDrain,LearnedCommonCut };
+    // Completed-executor observation for the post-disconnect caller only.
+    // Ordinary matchmaking has no peer-migration decision and cannot wait
+    // for a learned cut. Both paths require an actual learned decision;
+    // common rounds additionally require that already learned exact cut
+    // with its actual owning pair; this neither admits nor exports a world.
+    // Explicit fixture/manual recover() retains its existing strict contract.
+    RecoveryEligibility recovery_eligibility()const;
     void cancel_recovery();
     bool has_receiver()const;
     std::optional<SourceAuthorityReceiverState> shadow_state()const;

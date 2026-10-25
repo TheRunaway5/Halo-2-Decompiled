@@ -14,6 +14,10 @@ namespace halo2 {
 // (0x24 bytes), including the unchanged full salted gestalt datum at +0x20.
 // Cache/PCM ownership keeps the original 0x2c donor row separately.
 std::array<std::byte,0x24> project_mcc_sound_globals(std::span<const std::byte>);
+// lsnd prepends a remastered-loop reference. Original root fields occupy
+// MCC bytes8..33; track/detail row layouts are unchanged. Input descriptors
+// may already be relocated. Only MCC route bits8/9 leave the native flags.
+std::array<std::byte,0x2c> project_mcc_looping_sound_root(std::span<const std::byte>);
 enum class MccSoundLayoutNeed {
     NativePermutationOwner, NativeChunkOwner, NativeExtraInfoOwner,
     NativeEncodedSampleExtent, ForeignRuntimeCacheHandle, NativeCodecDuration,

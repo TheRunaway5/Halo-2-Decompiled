@@ -85,6 +85,12 @@ public:
   // Copy only on the host's existing native executor. At most one completed
   // removal is retained; reading it performs no native world operation.
   std::optional<PeerRemoval> last_peer_removal()const;
+  struct SnapshotDiagnostics { std::uint64_t body_bytes{};unsigned fragments{},peers{}; };
+  // Sum of the latest actually serialized snapshots, without their payloads,
+  // identities or connection material. Creator/native executor only. Stream
+  // bodies count their reconstructed size; fragments assume complete packets.
+  // Actual delta-stream wire usage is printed with H2_NET_STATS=1.
+  SnapshotDiagnostics snapshot_diagnostics()const;
 
   class Continuation {
   public:
@@ -182,6 +188,10 @@ public:
   void receive();
   bool ready() const;
   const MultiplayerState &state() const;
+  // Raw look sample (yaw, pitch) the host consumed to produce this local
+  // view's angles in state(). The original client owned its own look: draw
+  // those angles plus the newer raw look not yet acknowledged, on foot.
+  std::optional<std::array<float,2>> consumed_look(unsigned view) const;
   // Receipt of the most recently adopted state, retained across empty polls.
   // A real continuity bind/rebind clears it until another state is accepted;
   // pre-admission receipts do not own decoded values or prove an ONLINE cut.
@@ -207,6 +217,18 @@ public:
   std::uint64_t rejected_packet_count()const;
   std::string last_packet_rejection()const;
   std::size_t snapshot_buffered_bytes()const;
+  enum class ErrorCategory { none,host_timeout,admission_timeout,host_rejection };
+  struct SnapshotDiagnostics {
+    ErrorCategory error{};
+    std::optional<std::uint32_t> accepted_sequence,accepted_tick;
+    std::optional<std::uint64_t> accepted_age_ms;
+    std::uint64_t rejected_packets{};
+    std::size_t buffered_bytes{};
+  };
+  // Passive actual-decoder observations only. No nonce/cookie/profile/body or
+  // arbitrary error text escapes. Successor binding clears the last receipt;
+  // a historical prepared state is not a newly accepted network snapshot.
+  SnapshotDiagnostics snapshot_diagnostics()const;
   // Bind once from independent session admission after native hello has
   // completed. A cut or an unauthenticated datagram cannot change this context.
   void bind_continuity(const AuthorityTransferContext &,unsigned physical_self,

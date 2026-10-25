@@ -85,7 +85,7 @@ class LaterHttpTests(unittest.IsolatedAsyncioTestCase):
         rows=db.execute("SELECT configuration,table_digest,delta,xp FROM match_result_skill ORDER BY delta DESC").fetchall()
         self.assertEqual([tuple(r) for r in rows],[(LATER_POLICY,LATER_DIGEST,100,1900),(LATER_POLICY,LATER_DIGEST,-62,1738)])
         self.assertEqual(db.execute("SELECT count(*) FROM carnage_reports").fetchone()[0],1)
-        self.assertEqual(db.execute("SELECT count(*) FROM carnage_players").fetchone()[0],2)
+        self.assertEqual(db.execute("SELECT count(*) FROM carnage_player_summaries").fetchone()[0],2)
 
     async def test_existing_launch_skill_cannot_be_silently_reinterpreted(self):
         await self.session()

@@ -66,6 +66,11 @@ public:
   // Default construction still uses the platform clock.
   MultiplayerPreparedWorld(const MultiplayerOptions&,std::optional<ScriptProgram>,
       std::shared_ptr<PhysicsLiveClockSource>);
+  // Isolated local acceptance only. Retains this tape before native startup,
+  // across Match construction and runtime, until every world owner is released.
+  // An empty clock uses the genuine platform clock; inputs are never invented.
+  MultiplayerPreparedWorld(const MultiplayerOptions&,std::optional<ScriptProgram>,
+      std::shared_ptr<PhysicsLiveClockSource>,std::shared_ptr<SourceExecutionInputs>);
   enum class SourceShadowViews { LocalPeer, IncomingHost };
   // Separate, quiescent TU1.5 executor for an accepted direct ONLINE roster.
   // It owns private cache/files/physics and all admitted prototype players.
@@ -110,7 +115,7 @@ private:
       std::shared_ptr<PhysicsLiveClockSource>,std::shared_ptr<const Cache>);
   MultiplayerPreparedWorld(const MultiplayerOptions&,std::optional<ScriptProgram>,const SourceShadowSetup*,
       std::shared_ptr<PhysicsLiveClockSource>,std::shared_ptr<MultiplayerMapAssets> = {},
-      std::shared_ptr<const Cache> = {});
+      std::shared_ptr<const Cache> = {},std::shared_ptr<SourceExecutionInputs> = {});
   std::filesystem::path map_,shared_,xbe_;
   std::size_t bsp_{};
   unsigned players_{},starting_weapon_{};

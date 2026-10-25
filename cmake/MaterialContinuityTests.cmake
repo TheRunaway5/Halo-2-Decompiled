@@ -16,7 +16,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SIZEOF_VOID_P EQUAL 8
         src/rendering/shader_animation.cpp
         src/assets/appearance.cpp
         src/gameplay/objects/object_lighting.cpp
-        src/ui/hud/motion_sensor.cpp)
+        src/ui/hud/motion_sensor.cpp
+        src/runtime/native_parallel.cpp)
     target_include_directories(material_presentation_continuity_tests PRIVATE include)
     target_compile_features(material_presentation_continuity_tests PRIVATE cxx_std_20)
     target_compile_options(material_presentation_continuity_tests PRIVATE

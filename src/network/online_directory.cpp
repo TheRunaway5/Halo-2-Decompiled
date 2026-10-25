@@ -127,9 +127,11 @@ std::vector<OnlineServer> parse(const std::string &body, std::int64_t now) {
   for (const auto &row : rows) {
     require(row.is_object() && row.size() == (row.contains("region") ? 18 : 17));
     OnlineServer server;
-    server.id = uuid(row, "server_id");
+    server.server_id = uuid(row, "server_id");
+    server.origin_id = uuid(row, "origin_master_id");
+    server.id = server.origin_id + "/" + server.server_id;
     require(ids.insert(server.id).second);
-    uuid(row, "owner_id"); uuid(row, "origin_master_id"); // Validate, then discard.
+    uuid(row, "owner_id");
     const auto registered = integer(row, "registered_at", 0, 9007199254740991LL);
     const auto heartbeat = integer(row, "last_heartbeat", registered, 9007199254740991LL);
     server.expires_at = integer(row, "expires_at", heartbeat, heartbeat + 180);

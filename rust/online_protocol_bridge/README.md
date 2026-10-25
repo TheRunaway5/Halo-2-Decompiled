@@ -11,6 +11,20 @@ carry no callbacks or native-world owners into Rust. The shared crate now also
 contains a separate EOS SDK adapter with native callbacks/ownership; parser
 qualification does not accept that transport or its unsafe dependency surface.
 
+The EOS adapter registers only the fixed `eos_sdk_worker` sibling of the native
+executable (`eos_sdk_worker.exe` on Windows). Packaging must stage this Rust
+worker even when the licensed SDK is disabled. Missing or redirected siblings
+fail registration; there is no environment/PATH override or game self-execution
+fallback. The worker accepts only `--eos-sdk-worker` as its sole argument. Its
+process main owns every SDK platform, SDK call and final SDK shutdown; the game
+retains the existing Rust transport policy and explicit request/poll cadence.
+Bounded versioned stdin/stdout IPC, caller deadlines, child invalidation and
+kill/reap behavior remain shared with component qualification. Credentials use
+private protocol frames, never arguments or diagnostic errors.
+On Windows the worker uses the GUI subsystem to avoid opening a console for a
+GUI parent; its standard handles still come from the parent's explicit pipes.
+That Windows process/packaging behavior remains unvalidated on a Windows host.
+
 Authority decoding additionally returns an opaque Rust owner of a flat value
 tree. Its views stay with the immediate native materializer/hash call, and its
 native allocation claims share a synchronized reservation budget. See
@@ -56,6 +70,14 @@ metadata. Its native adapter only converts fields and rejects wide indices
 before the fixed-width boundary. It cannot create an election certificate or
 authorize native publication. The actual private native owner and its retained
 publication scope stay on their creating engine executor.
+
+The snapshot stream adapter (`src/network/snapshot_stream.cpp`) owns one Rust
+`SnapshotSender` per admitted client and one `SnapshotReceiver` per client
+connection. Calls borrow the serialized body, float offsets and anchors
+synchronously and return owned datagram payloads or reconstructed bodies.
+Unexpected unwinding retires the sender (complete snapshots resume) or rebuilds
+the receiver and requests a reset. `H2_NET_PROFILE` is read when a sender is
+created.
 
 `cmake/OnlineProtocolRust.cmake` builds this mandatory library and generated
 header inside the selected CMake build tree. The build helper verifies the

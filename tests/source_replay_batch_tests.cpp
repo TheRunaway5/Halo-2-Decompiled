@@ -1,4 +1,5 @@
 #include "halo2/source_replay_batch.hpp"
+#include "halo2/source_execution_calls.hpp"
 #include <iostream>
 #include <stdexcept>
 #include <tuple>
@@ -40,6 +41,31 @@ int main()try {
     limits={};limits.allocated_bytes=sizeof(SourceReplayStep)*2-1;rejects([&]{decode_source_replay_batch(bytes,bound,limits);});rejects([&]{encode_source_replay_batch(batch,limits);});
     limits={};limits.decoded_bytes=0;limits.allocated_bytes=0;auto mismatched=bound;++mismatched.context.epoch;
     rejects([&]{decode_source_replay_batch(bytes,mismatched,limits);});
-    std::cout<<"PASS replay chain context/base/previous/sequence, contiguous tick intervals, exact phase clocks, aggregate budgets and corrupt/trailing rejection\n";
+    SourceReplayBatch dangerous{bound,{{123,123,{}}}};
+    SourceExecutionCall raw_write;raw_write.kind=SourceExecutionCallKind::WriteSourceCallInput;
+    const std::array<std::byte,1> value{std::byte{1}};
+    raw_write.arguments=source_execution_arguments(0x400000u,std::span<const std::byte>(value));
+    dangerous.steps[0].phase.calls.push_back(raw_write);
+    rejects([&]{encode_source_replay_batch(dangerous);});
+    // Construct the previously accepted network envelope using the trusted
+    // local tape codec. Network decode must reject before a world is touched.
+    const auto local=encode_source_execution_phase(dangerous.steps[0].phase);
+    auto legacy=encode_source_replay_batch(SourceReplayBatch{bound,{{123,123,{}}}});
+    legacy.resize(208);put(legacy,204,local.size(),4);legacy.insert(legacy.end(),local.begin(),local.end());
+    rejects([&]{decode_source_replay_batch(legacy,bound);});
+    for(unsigned kind=15;kind<=23;++kind){
+      raw_write.kind=SourceExecutionCallKind(kind);
+      rejects([&]{validate_source_network_replay_calls(std::span(&raw_write,1));});
+    }
+    SourcePlayerCameraCall camera;camera.player=0;camera.controller[0]=1;
+    camera.controller[3]=0x400000u; // Caller-controlled native controller bank.
+    raw_write.kind=SourceExecutionCallKind::PlayerCamera;
+    raw_write.arguments=source_execution_arguments(camera);raw_write.result.assign(32,std::byte{});
+    dangerous.steps[0].phase.calls={raw_write};
+    rejects([&]{encode_source_replay_batch(dangerous);});
+    const auto local_camera=encode_source_execution_phase(dangerous.steps[0].phase);
+    legacy.resize(208);put(legacy,204,local_camera.size(),4);legacy.insert(legacy.end(),local_camera.begin(),local_camera.end());
+    rejects([&]{decode_source_replay_batch(legacy,bound);});
+    std::cout<<"PASS replay chain bounds and Rust network capability policy; legacy raw-write packet rejected before execution\n";
     return 0;
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

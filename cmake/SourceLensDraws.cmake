@@ -3,7 +3,7 @@
 # and parent/view owner; adding bodies does not synthesize a visible request.
 include(cmake/VulkanLensRetirementObserver.cmake)
 target_sources(halo2_physics_world_runtime PRIVATE src/rendering/effects/source_lens_draw_tu15_generated.cpp)
-target_sources(halo2_renderer PRIVATE src/rendering/effects/source_lens_draw_geometry_tu15.cpp src/rendering/effects/source_lens_draw_gpu.cpp src/rendering/effects/source_lens_draw_frame_tu15.cpp src/rendering/effects/source_lens_cpu_cache_tu15.cpp src/rendering/effects/source_lens_presentation_handoff_tu15.cpp)
+target_sources(halo2_renderer PRIVATE src/rendering/effects/source_lens_draw_geometry_tu15.cpp src/rendering/effects/source_lens_draw_gpu.cpp src/rendering/effects/source_lens_draw_frame_tu15.cpp src/rendering/effects/source_lens_cpu_cache_tu15.cpp src/rendering/effects/source_lens_presentation_handoff_tu15.cpp src/rendering/effects/native_lens_presentation_tu15.cpp)
 if(MSVC)
     set_property(SOURCE src/rendering/effects/source_lens_draw_frame_tu15.cpp src/rendering/effects/source_lens_cpu_cache_tu15.cpp
         APPEND PROPERTY COMPILE_OPTIONS /fp:strict)
@@ -27,6 +27,26 @@ endforeach()
 add_custom_target(source_lens_draw_shaders DEPENDS ${lens_draw_shaders})
 add_dependencies(halo2_renderer source_lens_draw_shaders)
 if(BUILD_TESTING)
+    add_executable(source_map_effect_lens_tu15_tests EXCLUDE_FROM_ALL tests/source_map_effect_lens_tu15_tests.cpp)
+    target_link_libraries(source_map_effect_lens_tu15_tests PRIVATE halo2_systems)
+    set(HALO2_MCC_SCENERY_EFFECT_MAP "" CACHE FILEPATH "Prepared MCC Elongation for actual source scenery/UDP lens validation")
+    add_test(NAME source_map_effect_lens_tu15 COMMAND source_map_effect_lens_tu15_tests
+        "${HALO2_MCC_SCENERY_EFFECT_MAP}" "${CMAKE_CURRENT_BINARY_DIR}/map-effect-lens.json")
+    set_tests_properties(source_map_effect_lens_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180 RUN_SERIAL TRUE)
+    add_executable(source_light_lens_tu15_tests EXCLUDE_FROM_ALL tests/source_light_lens_tu15_tests.cpp)
+    target_link_libraries(source_light_lens_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME original_tu15_light_lens_requests COMMAND source_light_lens_tu15_tests
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/light_lens_tu15.json")
+    add_executable(source_effect_replica_render_tu15_tests EXCLUDE_FROM_ALL tests/source_effect_replica_render_tu15_tests.cpp)
+    target_link_libraries(source_effect_replica_render_tu15_tests PRIVATE halo2_systems)
+    add_test(NAME original_tu15_effect_part_lens_requests COMMAND source_effect_replica_render_tu15_tests
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/effect_part_lens_tu15.json")
+    add_executable(native_lens_presentation_tu15_tests tests/native_lens_presentation_tu15_tests.cpp)
+    target_link_libraries(native_lens_presentation_tu15_tests PRIVATE halo2_renderer halo2_systems nlohmann_json::nlohmann_json)
+    set(HALO2_MCC_NATIVE_LENS_MAP "" CACHE FILEPATH "Owned prepared MCC map for replica lens GPU validation")
+    add_test(NAME source_native_lens_presentation_tu15 COMMAND native_lens_presentation_tu15_tests
+        "${HALO2_MCC_NATIVE_LENS_MAP}" "${CMAKE_CURRENT_BINARY_DIR}/native-lens-presentation.json")
+    set_tests_properties(source_native_lens_presentation_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180 RUN_SERIAL TRUE)
     add_executable(lens_draw_handoff_tu15_tests tests/lens_draw_handoff_tu15_tests.cpp)
     halo2_observe_vulkan_lens_retirement(lens_draw_handoff_tu15_tests)
     target_link_libraries(lens_draw_handoff_tu15_tests PRIVATE halo2_renderer halo2_systems nlohmann_json::nlohmann_json)

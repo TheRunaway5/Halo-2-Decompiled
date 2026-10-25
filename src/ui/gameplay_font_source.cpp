@@ -169,6 +169,16 @@ RetailFont load_gameplay_font(const GameplayFontSource& source,unsigned selector
     validate_source(source);
     return project_gameplay_font(load_retail_font(source.directory/source.names[selector]),source,selector);
 }
+std::optional<std::array<std::int16_t,3>> gameplay_font_reference_line_metrics(unsigned selector) {
+    const auto* layout=profile(selector);if(!layout)return {};
+    const std::array values{layout->ascent,layout->descent,layout->leading};
+    std::array<std::int16_t,3> result;
+    for(unsigned i=0;i<3;++i) {
+        if(values[i]<-32768 || values[i]>32767)throw FormatError("Original font line metrics exceed their source shorts");
+        result[i]=std::int16_t(values[i]);
+    }
+    return result;
+}
 struct GameplayFontBank::Impl {
     std::filesystem::path requested;
     GameplayFontSource source;

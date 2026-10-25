@@ -1,4 +1,5 @@
 #include "halo2/source_scenery_scene.hpp"
+#include "halo2/native_parallel.hpp"
 #include "halo2/render_interpolation.hpp"
 #include "halo2/scenery.hpp"
 #include "halo2/bsp_lighting.hpp"
@@ -300,6 +301,19 @@ struct SourceSceneryScene::Impl {
             }
         }
     }
+    // The six LOD poses are independent: compute them together, then the
+    // caller publishes them in LOD order exactly as the serial loop did.
+    struct PosedLods {
+        mutable std::array<std::vector<Vertex>,6> vertices;
+        std::array<std::exception_ptr,6> errors;
+    };
+    template<class Pose> static PosedLods pose_lods(const Scenery &s,const Pose &pose) {
+        PosedLods out;
+        native_parallel_for(s.lods.size(),[&](std::size_t n) {
+            try{out.vertices[n]=pose(s.lods[n].model);}catch(...){out.errors[n]=std::current_exception();}
+        });
+        return out;
+    }
     static void pose(Scenery &s,float phase,bool controller_frame=false,
                      std::optional<AnimationFrameWindow> frames={}) {
         const auto &model=s.lods[5].model;
@@ -308,8 +322,11 @@ struct SourceSceneryScene::Impl {
             if(s.solved_nodes->empty())throw FormatError("SCEN source owner has no current WORLD node0");
             s.world_nodes=*s.solved_nodes;
             s.node0=s.solved_nodes->front();
-            for(auto &g:s.lods) {
-                g.vertices=skin_model_world_nodes(g.model,*s.solved_nodes);
+            const auto posed=pose_lods(s,[&](const RenderModel &m){return skin_model_world_nodes(m,*s.solved_nodes);});
+            for(std::size_t n=0;n<s.lods.size();++n) {
+                auto &g=s.lods[n];
+                if(posed.errors[n])std::rethrow_exception(posed.errors[n]);
+                g.vertices=std::move(posed.vertices[n]);
                 if(g.vertices.size()!=g.materials.size())throw FormatError("SCEN WORLD pose changed source vertex order");
                 for(unsigned i=0;i<g.vertices.size();++i)g.vertices[i].material=g.materials[i];
             }
@@ -321,10 +338,15 @@ struct SourceSceneryScene::Impl {
             controller_frame?pose_model_nodes_world_frame(model,s.root,clip,phase):
             pose_model_nodes_world(model,s.root,clip,phase);
         s.node0=s.world_nodes.front();
-        for(auto &g:s.lods) {
-            g.vertices=frames?pose_model_world_between_frames(g.model,s.root,*clip,*frames):
-                controller_frame?pose_model_world_frame(g.model,s.root,clip,phase):
-                pose_model_world(g.model,s.root,clip,phase);
+        const auto posed=pose_lods(s,[&](const RenderModel &m) {
+            return frames?pose_model_world_between_frames(m,s.root,*clip,*frames):
+                controller_frame?pose_model_world_frame(m,s.root,clip,phase):
+                pose_model_world(m,s.root,clip,phase);
+        });
+        for(std::size_t n=0;n<s.lods.size();++n) {
+            auto &g=s.lods[n];
+            if(posed.errors[n])std::rethrow_exception(posed.errors[n]);
+            g.vertices=std::move(posed.vertices[n]);
             if(g.vertices.size()!=g.materials.size())throw FormatError("SCEN pose changed original vertex order");
             for(unsigned i=0;i<g.vertices.size();++i) {
                 auto &v=g.vertices[i];

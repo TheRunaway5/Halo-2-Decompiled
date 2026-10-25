@@ -51,11 +51,17 @@ WaterFrame water_frame(const WaterDefinition &definition,Vec3 eye,Vec3 forward,
   const auto &s=definition.parameters;WaterFrame out;
   const double angle=std::atan2(double(forward.x),double(forward.y))+double(s[35]);
   const float sine=float(std::sin(angle)),cosine=float(std::cos(angle));
-  const std::array<float,3> scales{s[26],-s[27],s[28]};
-  for(unsigned i=0;i<3;++i)out.bump_matrices[i+1]={scales[i]*cosine,scales[i]*sine,
-      scales[i]*cosine,scales[i]*-sine};
+  // TU1.5 3C640 builds the signed basis with ADDSS/SUBSS from +0,
+  // then scales it; stage2 subtracts each product from +0. Moving that
+  // subtraction onto the scale changes the source's signed-zero words.
+  const ShaderVector basis{cosine,0.f+sine,cosine,0.f-sine};
+  const std::array<float,3> scales{s[26],s[27],s[28]};
+  for(unsigned i=0;i<3;++i)for(unsigned axis=0;axis<4;++axis) {
+    const float product=scales[i]*basis[axis];
+    out.bump_matrices[i+1][axis]=i==1?0.f-product:product;
+  }
   out.constants[0]={1,-1,-1,.5f};
-  out.constants[1]={s[36],-s[37],s[38]>.0001f?1.f/s[38]:s[38],
+  out.constants[1]={s[36],0.f-s[37],s[38]>.0001f?1.f/s[38]:s[38],
       s[39]>.0001f?1.f/s[39]:s[39]};
   const double pitch=std::sin(double(s[30]));
   const ShaderVector direction{float(std::cos(double(s[29]))*pitch),

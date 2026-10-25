@@ -76,6 +76,9 @@ class MatchTransportTests(unittest.IsolatedAsyncioTestCase):
         snapshot = b"H2N2\x1a\x00\x03"+b"y"*1393
         await sockets[h].send_bytes(bytes([descriptors[c]["slot"]])+snapshot)
         self.assertEqual(await asyncio.wait_for(queues[c].get(), 2), bytes([host])+snapshot)
+        delta = b"H2N2\x1a\x00\x0e"+b"z"*100
+        await sockets[h].send_bytes(bytes([descriptors[c]["slot"]])+delta)
+        self.assertEqual(await asyncio.wait_for(queues[c].get(), 2), bytes([host])+delta)
         # Frontend queue teardown does not revoke the transferred match bearer.
         self.assertEqual((await self.client.delete("/v1/matchmaking/session", headers=headers[c])).status, 200)
         await sockets[c].send_bytes(bytes([host])+packet)
@@ -180,6 +183,17 @@ class MatchTransportTests(unittest.IsolatedAsyncioTestCase):
             await asyncio.wait_for(queue.get(), 2)
         client = next(i for i, row in enumerate(descriptors) if row["slot"] != host)
         await sockets[client].send_bytes(bytes([host])+b"H2N2\x1a\x00\x03"+b"x"*20)
+        for queue in queues:
+            self.assertIsNone(await asyncio.wait_for(queue.get(), 2))
+
+    async def test_client_cannot_send_authoritative_delta_snapshots(self):
+        _, descriptors, sockets, queues, host = await self.pair()
+        for socket in sockets:
+            await socket.send_json({"loaded": "1234567890abcdef:000001a"})
+        for queue in queues:
+            await asyncio.wait_for(queue.get(), 2)
+        client = next(i for i, row in enumerate(descriptors) if row["slot"] != host)
+        await sockets[client].send_bytes(bytes([host])+b"H2N2\x1a\x00\x0e"+b"x"*20)
         for queue in queues:
             self.assertIsNone(await asyncio.wait_for(queue.get(), 2))
 
@@ -323,6 +337,45 @@ class MatchTransportTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual({r[0] for r in db.execute("SELECT placement FROM match_result_players")}, {0})
         self.assertEqual({r[0] for r in db.execute("SELECT score FROM match_result_players")}, {3, 4})
         self.assertEqual({r[0] for r in db.execute("SELECT individual_placement FROM match_result_memberships")}, {0, 1})
+
+    async def test_original_objective_report_families_keep_admission_checks(self):
+        self.api.core.playlists["ranked"] = replace(self.api.core.playlists["ranked"], team_size=1)
+        _, descriptors, _, _, _ = await self.pair()
+        raw = self.report(descriptors)
+        raw[0x13] = raw[0x68] = 1
+        for slot, row in enumerate(descriptors[0]["players"]):
+            raw[0x370+slot*0x94+0x88] = row["team"]
+            raw[0xcb0+row["team"]*0x18] = 1
+        room = self.api.transport.rooms[descriptors[0]["id"]]
+        from multiplayer.master_server.protocol import Problem
+        for engine in (1, 9):
+            with self.subTest(engine=engine):
+                room.proposal = replace(room.proposal, game=replace(room.proposal.game,
+                    variant="Multi Flag CTF" if engine == 1 else "Multi Bomb"))
+                struct.pack_into("<I", raw, 0x64, engine)
+                self.assertEqual(self.api.results.validate(room, raw.hex())[0], raw)
+                forged = raw.copy()
+                struct.pack_into("<I", forged, 0x64, 2)
+                with self.assertRaises(Problem):
+                    self.api.results.validate(room, forged.hex())
+                for at in (0, 0x11, 0x370+2, 0x370+0x88, 0xcb0):
+                    forged = raw.copy()
+                    forged[at] ^= 1
+                    with self.assertRaises(Problem):
+                        self.api.results.validate(room, forged.hex())
+        struct.pack_into("<I", raw, 0x64, 3)
+        with self.assertRaises(Problem):
+            self.api.results.validate(room, raw.hex())
+        # Objective reports require the actual admitted team game even when
+        # every other FFA-shaped field would otherwise pass validation.
+        struct.pack_into("<I", raw, 0x64, 9)
+        room.team_mode = False
+        raw[0x13] = raw[0x68] = 0
+        raw[0xcb0:0xe30] = bytes(0x180)
+        for slot in range(2):
+            raw[0x370+slot*0x94+0x88] = 255
+        with self.assertRaises(Problem):
+            self.api.results.validate(room, raw.hex())
 
     async def test_client_cannot_finalize_or_forge_postgame(self):
         _, descriptors, sockets, queues, host = await self.pair()

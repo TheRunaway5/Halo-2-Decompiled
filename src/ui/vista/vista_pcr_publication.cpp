@@ -35,6 +35,22 @@ VistaPcrPcVariant vista_pcr_slayer_variant(const SourceGameVariant& source) {
   for(unsigned i=0;i<source.bytes.size();++i)result.bytes[i]=std::byte(source.bytes[i]);
   return result;
 }
+VistaPcrPcVariant vista_pcr_objective_variant(const SourceGameVariant& source) {
+  const auto type=source_game_variant_type(source);
+  if((type!=1 && type!=9) || !source_game_variant_valid(source))
+    throw std::invalid_argument("PC objective PCR requires a valid original CTF/Assault variant");
+  // Original PC45B33D defaults and all112 descriptor leaves are byte-identical
+  // to the Xbox option schema.469DFD copies this complete selected buffer;
+  //40C8CE consumes its type/team flag, never reinterprets the mode union.
+  VistaPcrPcVariant result;
+  std::transform(source.bytes.begin(),source.bytes.end(),result.bytes.begin(),
+      [](std::uint8_t value){return std::byte(value);});
+  return result;
+}
+VistaPcrPcVariant vista_pcr_multiplayer_variant(const SourceGameVariant& source) {
+  const auto type=source_game_variant_type(source);
+  return type==1 || type==9?vista_pcr_objective_variant(source):vista_pcr_slayer_variant(source);
+}
 void vista_pcr_write_player_result(std::span<std::byte> source,int player,
                                   std::int32_t score,std::int32_t placement) {
   size(source);
@@ -66,9 +82,9 @@ VistaPcrConsumedSnapshot vista_pcr_publish_consumed_snapshot(const VistaPcrPubli
   if(!input.engine_present)return out;
   if(!input.statistics)throw std::invalid_argument("Actual numeric PCR statistics required");
   const auto& variant=input.variant.bytes;
-  if(variant[0x44]!=std::byte{2} || variant[0x45]!=std::byte{} ||
+  if((variant[0x44]!=std::byte{1} && variant[0x44]!=std::byte{2} && variant[0x44]!=std::byte{9}) || variant[0x45]!=std::byte{} ||
      variant[0x46]!=std::byte{} || variant[0x47]!=std::byte{})
-    throw std::invalid_argument("PC PCR native bridge requires PC Slayer variant");
+    throw std::invalid_argument("PC PCR native bridge requires an admitted original multiplayer variant");
   std::copy(variant.begin(),variant.end(),bank.begin()+0x20);
   bank[0x13]=variant[0x48]&std::byte{1};
   for(unsigned i=0;i<16;++i) {

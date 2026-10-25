@@ -498,7 +498,10 @@ std::vector<Material> prepare_effect_light_diffuse_material(const Cache &cache,
   //497A0 only takes its alternate projection branch for authored kind1.
   //The actual frag definition is kind2; rejecting every nonzero kind dropped
   //the source grenade's diffuse pass even though it uses the ordinary bank.
-  if(light.u16(4)!=0 || (light.u16(0x8e)!=0 && light.u16(0x8e)!=2) || (definition.flags&0x20))
+  //31150 sets feature bit0 for every sphere.30D80 returns implementation1
+  //on that bit before reading the first-person flag, so FP spheres use this
+  //same material bank. Their pose/visibility still belong to the live owner.
+  if(light.u16(4)!=0 || (light.u16(0x8e)!=0 && light.u16(0x8e)!=2))
     throw FormatError("Unresolved effect-light diffuse shape/falloff/gel owner");
   if(uniforms.color_shift>2)throw FormatError("Invalid source effect-light color shift");
   const auto selected=layer_passes(authored,12,1);

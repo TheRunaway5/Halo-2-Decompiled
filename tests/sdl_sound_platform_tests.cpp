@@ -155,6 +155,24 @@ void independent_parameters_and_capacity() {
   }
 }
 
+void queued_packet_volumes() {
+  SdlSoundPlatform device(configuration(SdlSoundPlatformConfiguration::Delivery::Manual));
+  const auto voice=device.create_voice(0x701,parameters(1,-6000,false));
+  const auto data=pcm({.5f,.25f,.5f,.25f});
+  device.submit(voice,{data,0,2,71,0});device.submit(voice,{data,0,2,72,-2000});
+  device.packet_volume(voice,71,-600);
+  auto changed=parameters(1,-8000,false);changed.routes={{0,0,.5f},{1,1,.25f}};
+  device.parameters(voice,changed);
+  const auto first=device.render(2);
+  for(unsigned n=0;n<2;++n){sample_near(first[n*2],.25*std::pow(10.,-.3));sample_near(first[n*2+1],.0625*std::pow(10.,-.3));}
+  close_packet(device,voice,0x701,71,SdlSoundCompletionStatus::Success);
+  rejects([&]{device.packet_volume(voice,71,0);});
+  const auto second=device.render(1);sample_near(second[0],.025);sample_near(second[1],.00625);
+  device.packet_volume(voice,72,-400);
+  const auto final=device.render(1);sample_near(final[0],.25*std::pow(10.,-.2));sample_near(final[1],.0625*std::pow(10.,-.2));
+  close_packet(device,voice,0x701,72,SdlSoundCompletionStatus::Success);device.destroy_voice(voice);
+}
+
 void errors_and_flush_order() {
   SdlSoundPlatform device(configuration(SdlSoundPlatformConfiguration::Delivery::Manual));
   auto input = parameters(1, 0, false);
@@ -266,6 +284,7 @@ int main(int argc, char **argv) {
     retention_and_completion();
     packet_boundary_and_rates();
     independent_parameters_and_capacity();
+    queued_packet_volumes();
     errors_and_flush_order();
     real_callback_consumption();
     speaker_reconfiguration();

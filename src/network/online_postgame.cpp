@@ -52,8 +52,8 @@ VistaPcrConsumedSnapshot online_postgame_publish(const MultiplayerMatch& match,
   const auto state=match.state();
   if(!state.finished || !state.results_finalized || !state.game_over_complete() ||
       !vista_pcr_ranking_available(match.source_round_lifecycle().flags) || roster.size()<2 || roster.size()>16)
-    throw FormatError("ONLINE postgame requires completed admitted Slayer");
-  VistaPcrPublicationInput input;input.variant=vista_pcr_slayer_variant(source_game_variant(variant));
+    throw FormatError("ONLINE postgame requires a completed admitted original match");
+  VistaPcrPublicationInput input;input.variant=vista_pcr_multiplayer_variant(source_game_variant(variant));
   input.statistics=match.recorded_statistics();input.recording=match.result_recording();
   if(!input.statistics || !input.recording.enabled || !input.recording.frozen)
     throw FormatError("ONLINE postgame requires actual frozen numeric statistics");
@@ -98,7 +98,7 @@ void online_postgame_validate(const MultiplayerState& state,const UiVariant& var
   check(raw.size()==vista_pcr_source_size && roster.size()>=2 && roster.size()<=16);
   check(state.finished && state.results_finalized && state.game_over_complete());
   check(raw[0]==std::byte{1} && raw[1]==std::byte{1} && raw[0x10]==std::byte{1} && raw[0x11]==std::byte{1} && raw[0x13]==std::byte(state.team_mode));
-  const auto expected=vista_pcr_slayer_variant(source_game_variant(variant));
+  const auto expected=vista_pcr_multiplayer_variant(source_game_variant(variant));
   check(std::equal(expected.bytes.begin(),expected.bytes.end(),raw.begin()+0x20));
   auto word=[&](std::size_t at){return std::uint16_t(std::to_integer<unsigned>(raw[at])|(std::to_integer<unsigned>(raw[at+1])<<8));};
   const bool extended=(std::to_integer<unsigned>(expected.bytes[0x48])&0x10)!=0;

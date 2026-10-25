@@ -44,7 +44,7 @@ struct SourceBspPartCommandWorld {
     std::function<const SourceModelCommandGeometry&(const SourceCullDrawUnit&)> model;
 };
 struct SourceBspPartCommandState {
-    std::array<SourcePartCommandBank,3> banks; // Actual4C1A48,+18,+30.
+    std::array<SourcePartCommandBank,3> banks; // TU1.1 4C1A48,+18,+30; live TU1.5 headers are4CE268,+18,+30.
     std::array<SourceCullDrawUnit,32> special_units{}; // Secondary4C62F8.
     std::int16_t special_count{}; // Actual selected4C66FC bank.
     // Observed source entry order; pointer-valued returns are not interpreted.
@@ -59,6 +59,9 @@ struct SourceBspPartCommandContext {
     bool view_modifier{}; // Actual4BA019.
     std::span<const std::uint8_t> coverage,override_slots;
     std::span<const std::uint32_t> overrides;
+    // The two callback words41030 stores in every record are image
+    // addresses: TU1.1 4CBF0/4D0B0 (the recorded fixtures), TU1.5 4CBE0/4D0A0.
+    std::uint32_t callback_geometry=0x4cbf0u,callback_light=0x4d0b0u;
 };
 // Exact184000 bit lookup, including unaligned instance offsets and NONE.
 // This reads the actual visibility allocation; it does not create its owner.
@@ -73,7 +76,9 @@ std::uint32_t source_part_commands_begin(SourceBspPartCommandState&,
     std::uint32_t mode,std::uint32_t selector);
 // Project whole44AC0→45CE0/460D0→41040/40E30/3B9D0 onto the secondary
 // command/special-unit banks. Existing commands and untouched bytes survive.
-// Main mode0 and dynamic MTPR/prt3 shader services
+// Main mode0 visits [0,main_prefix) over the same per-unit services; the
+// live main caller supplies accelerated BSP units only and merges the result
+// into the translated banks by token. Dynamic MTPR/prt3 shader services
 // require their actual owners; this entry rejects unowned consumed branches.
 // Ordinary model sections use the same secondary projection through the
 // explicit model bank. Unconsumed45CE0 outputs are not claimed as live state.

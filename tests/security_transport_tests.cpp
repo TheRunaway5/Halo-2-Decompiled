@@ -1,4 +1,5 @@
 #include "halo2/lan_admission.hpp"
+#include "halo2/lan_packet_auth.hpp"
 #include "halo2/voice_origin.hpp"
 #include "halo2/peer_packet_queue.hpp"
 #include <iostream>
@@ -12,6 +13,13 @@ VoiceOrigin::Key public_key(const VoiceOrigin::Key &seed){
   EVP_PKEY_free(key);return result;
 }
 int main(){try{
+  LanPacketAuth host_auth,client_auth;LanPacketAuth::Session host_session,client_session;
+  host_auth.bind(host_session,client_auth.public_key());
+  auto original=host_auth.seal(std::vector<std::byte>{std::byte{3}},host_session,true);
+  auto changed=original;changed.back()^=std::byte{1};
+  check(!client_auth.open(changed,client_session,true),"Invalid MAC pinned a key");
+  auto packet=original;check(client_auth.open(packet,client_session,true),"Rust/C++ authenticated snapshot rejected");
+  packet=original;check(!client_auth.open(packet,client_session,true),"Rust/C++ replay accepted");
   PeerPacketQueue queue;std::vector<std::byte> payload(1404),received;unsigned source{};
   for(unsigned i=0;i<512;++i)check(queue.push(0,payload),"Peer lost its reserved queue capacity");
   for(unsigned i=0;i<10000;++i)check(!queue.push(0,payload),"Flood bypassed per-peer capacity");

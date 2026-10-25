@@ -73,39 +73,47 @@ SourceDynamicModelShaders::SourceDynamicModelShaders(const Cache &cache,RenderMo
             throw FormatError("dynamic model duplicate part changed its material");
     }
 }
-std::map<std::pair<unsigned,unsigned>,unsigned> SourceDynamicModelShaders::select_parts(
+SourceDynamicModelShaders::PartSlots SourceDynamicModelShaders::select_parts(
     const SourceModelShaderCollector &collector,const SourceModelShaderView &view)const {
-    std::map<std::pair<unsigned,unsigned>,unsigned> selected;
+    PartSlots selected;selected.reserve(parts_.size());
     for(const auto &[identity,part]:parts_) {
         const auto choice=source_model_shader_part(collector,part.scale,definitions_.at(part.shader),view).choice;
-        selected.emplace(identity,choice.accepted && choice.index>=0?
+        selected.emplace_back(identity,choice.accepted && choice.index>=0?
             slots_.at({part.source_material,part.input_class}).at(unsigned(choice.index)):0xffffffffu);
     }
     return selected;
 }
+unsigned SourceDynamicModelShaders::PartLookup::operator()(const Vertex &vertex) {
+    const std::pair key{vertex.source_section,vertex.source_part};
+    if(valid && key==identity)return slot;
+    const auto found=std::lower_bound(slots.begin(),slots.end(),key,
+        [](const auto &entry,const auto &value){return entry.first<value;});
+    if(found==slots.end() || found->first!=key)throw FormatError("dynamic model vertex lost its authored shader part");
+    identity=key;slot=found->second;valid=true;return slot;
+}
 void SourceDynamicModelShaders::select(std::vector<Vertex> &vertices,
     const SourceModelShaderCollector &collector,const SourceModelShaderView &view)const {
     const auto selected=select_parts(collector,view);
+    PartLookup lookup{selected};
     vertices.erase(std::remove_if(vertices.begin(),vertices.end(),[&](auto &vertex) {
-        const auto binding=selected.find({vertex.source_section,vertex.source_part});
-        if(binding==selected.end())throw FormatError("dynamic model vertex lost its authored shader part");
-        if(binding->second==0xffffffffu)return true;
-        vertex.material=binding->second;return false;
+        const auto slot=lookup(vertex);
+        if(slot==0xffffffffu)return true;
+        vertex.material=slot;return false;
     }),vertices.end());
 }
 void SourceDynamicModelShaders::append_selected(std::vector<Vertex> &output,std::span<const Vertex> source,
     const SourceModelShaderCollector &collector,const SourceModelShaderView &view,unsigned material_base)const {
     const auto selected=select_parts(collector,view);
+    PartLookup lookup{selected};
     for(std::size_t first=0;first<source.size();) {
         const auto identity=std::pair{source[first].source_section,source[first].source_part};
-        const auto binding=selected.find(identity);
-        if(binding==selected.end())throw FormatError("dynamic model vertex lost its authored shader part");
+        const auto slot=lookup(source[first]);
         auto end=first+1;
         while(end<source.size() && std::pair{source[end].source_section,source[end].source_part}==identity)++end;
-        if(binding->second!=0xffffffffu) {
+        if(slot!=0xffffffffu) {
             const auto offset=output.size();const auto run=source.subspan(first,end-first);
             output.insert(output.end(),run.begin(),run.end());
-            for(std::size_t i=offset;i<output.size();++i)output[i].material=binding->second+material_base;
+            for(std::size_t i=offset;i<output.size();++i)output[i].material=slot+material_base;
         }
         first=end;
     }
@@ -116,13 +124,13 @@ void SourceDynamicModelShaders::select_indexed(std::vector<Vertex> &vertices,
     const SourceModelShaderView &view)const {
     if(vertices.size()!=indices.size())throw FormatError("dynamic model source ordinals differ from vertex extent");
     const auto selected=select_parts(collector,view);
+    PartLookup lookup{selected};
     std::size_t count{};
     for(std::size_t i=0;i<vertices.size();++i) {
-        const auto binding=selected.find({vertices[i].source_section,vertices[i].source_part});
-        if(binding==selected.end())throw FormatError("dynamic model vertex lost its authored shader part");
-        if(binding->second==0xffffffffu)continue;
+        const auto slot=lookup(vertices[i]);
+        if(slot==0xffffffffu)continue;
         if(count!=i)std::memcpy(&vertices[count],&vertices[i],sizeof(Vertex));
-        vertices[count].material=binding->second;indices[count]=indices[i];++count;
+        vertices[count].material=slot;indices[count]=indices[i];++count;
     }
     vertices.resize(count);indices.resize(count);
 }

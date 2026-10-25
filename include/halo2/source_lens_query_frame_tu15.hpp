@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/source_lens_query_gpu.hpp"
 #include "halo2/source_view_projection.hpp"
+#include "halo2/source_lens_frame_world_tu15.hpp"
 #include <memory>
 
 namespace halo2 {
@@ -45,19 +46,30 @@ public:
     // outside the enclosing commit/session lock, on this executor, while the
     // renderer's SDL window is still alive. Retirement can then wait for GPU.
     bool commit_rebind(PreparedRebind &&,const SourceRuntimeMemory &) noexcept;
+    // Preserve the physical-world ABI for existing compiled callers.
     void begin(PhysicsLiveWorldTu15 &);
-    // Original2B68C runs before this view's object/effect request producers.
-    // Query issue/completion stays at the later world-render boundary.
     void prepare_view(PhysicsLiveWorldTu15 &,unsigned);
     std::vector<SourceLensQueryDraw> view(PhysicsLiveWorldTu15 &,unsigned,
+        Vec3,Vec3,Vec3,float,const SourceViewProjectionBank &,
+        std::array<std::int16_t,4>,unsigned,unsigned);
+    std::vector<SourceLensQueryDraw> view(PhysicsLiveWorldTu15 &,unsigned,
+        Vec3,Vec3,Vec3,float,const SourceViewProjectionBank &,
+        std::array<std::int16_t,4>,unsigned,unsigned,Vec2);
+    void finish_view(PhysicsLiveWorldTu15 &,unsigned);
+    void finish(PhysicsLiveWorldTu15 &,bool);
+    void begin(SourceLensFrameWorldTu15 );
+    // Original2B68C runs before this view's object/effect request producers.
+    // Query issue/completion stays at the later world-render boundary.
+    void prepare_view(SourceLensFrameWorldTu15 ,unsigned);
+    std::vector<SourceLensQueryDraw> view(SourceLensFrameWorldTu15 ,unsigned,
         Vec3 position,Vec3 forward,Vec3 up,float angle,
         const SourceViewProjectionBank &,std::array<std::int16_t,4> rectangle,
         unsigned logical_width,unsigned logical_height);
-    std::vector<SourceLensQueryDraw> view(PhysicsLiveWorldTu15 &,unsigned,
+    std::vector<SourceLensQueryDraw> view(SourceLensFrameWorldTu15 ,unsigned,
         Vec3 position,Vec3 forward,Vec3 up,float angle,const SourceViewProjectionBank &,
         std::array<std::int16_t,4> rectangle,unsigned logical_width,unsigned logical_height,Vec2 clip_planes);
-    void finish_view(PhysicsLiveWorldTu15 &,unsigned);
-    void finish(PhysicsLiveWorldTu15 &,bool submitted);
+    void finish_view(SourceLensFrameWorldTu15 ,unsigned);
+    void finish(SourceLensFrameWorldTu15 ,bool submitted);
     std::span<const SourceLensQueryResult> completed() const;
 private:
     friend class SourceLensPresentationHandoffTu15;

@@ -56,7 +56,12 @@ inline std::string frontend_multiplayer_launch_file(
   if (!map) throw FormatError("The selected multiplayer map is absent from its authored catalog.");
   if (map->name.empty())
     throw FormatError("The selected multiplayer map has no authored title; its catalog identity is unqualified.");
-  return frontend_multiplayer_map_file(*map);
+  const auto leaf = frontend_multiplayer_map_file(*map);
+  if (map->cache_file.empty()) return leaf;
+  const std::filesystem::path bound(map->cache_file);
+  if (!bound.is_absolute() || bound.lexically_normal() != bound || bound.filename() != leaf)
+    throw FormatError("The selected custom map lost its exact prepared cache binding.");
+  return map->cache_file;
 }
 
 inline bool frontend_multiplayer_energy_start(const UiLobbyMap &map) {

@@ -388,6 +388,7 @@ static void run_19ae70(WorldState &);
 static void run_19b180(WorldState &);
 static void run_19b1d0(WorldState &);
 static void run_19b2b0(WorldState &);
+static void run_19baa0(WorldState &);
 static void run_19bb20(WorldState &);
 static void run_19de80(WorldState &);
 static void run_1a6830(WorldState &);
@@ -427,7 +428,8 @@ static void run_2e4ea0(WorldState &);
 static void run_31d400(WorldState &);
 static void run_32a660(WorldState &);
 static void run_32bde4(WorldState &);
-static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail){switch(target){case 0x8eb50u:run_8eb50(s);return;case 0x8fdb0u:run_8fdb0(s);return;case 0xa3850u:run_a3850(s);return;case 0xa6780u:run_a6780(s);return;case 0xad740u:run_ad740(s);return;case 0xb1c30u:run_b1c30(s);return;case 0xb1e80u:run_b1e80(s);return;case 0xbbe00u:run_bbe00(s);return;case 0xbcee0u:run_bcee0(s);return;case 0xce230u:run_ce230(s);return;case 0xfce50u:run_fce50(s);return;case 0x106350u:run_106350(s);return;case 0x13b4a0u:run_13b4a0(s);return;case 0x140910u:run_140910(s);return;case 0x140bc0u:run_140bc0(s);return;case 0x14e7b0u:run_14e7b0(s);return;case 0x14e9e0u:run_14e9e0(s);return;case 0x14ebe0u:run_14ebe0(s);return;case 0x150900u:run_150900(s);return;case 0x150990u:run_150990(s);return;case 0x154ef0u:run_154ef0(s);return;case 0x15a1a0u:run_15a1a0(s);return;case 0x15ab10u:run_15ab10(s);return;case 0x15abc0u:run_15abc0(s);return;case 0x15ad50u:run_15ad50(s);return;case 0x15ae50u:run_15ae50(s);return;case 0x15b470u:run_15b470(s);return;case 0x15dd10u:run_15dd10(s);return;case 0x15ddc0u:run_15ddc0(s);return;case 0x15e070u:run_15e070(s);return;case 0x15e1e0u:run_15e1e0(s);return;case 0x15e3a0u:run_15e3a0(s);return;case 0x1601b0u:run_1601b0(s);return;case 0x160570u:run_160570(s);return;case 0x161530u:run_161530(s);return;case 0x1617a0u:run_1617a0(s);return;case 0x164ab0u:run_164ab0(s);return;case 0x16e940u:run_16e940(s);return;case 0x19ae70u:run_19ae70(s);return;case 0x19b180u:run_19b180(s);return;case 0x19b1d0u:run_19b1d0(s);return;case 0x19b2b0u:run_19b2b0(s);return;case 0x19bb20u:run_19bb20(s);return;case 0x19de80u:run_19de80(s);return;case 0x1a6830u:run_1a6830(s);return;case 0x1a79a0u:run_1a79a0(s);return;case 0x1a7a30u:run_1a7a30(s);return;case 0x1a83b0u:run_1a83b0(s);return;case 0x1a8740u:run_1a8740(s);return;case 0x1a87a0u:run_1a87a0(s);return;case 0x1a87f0u:run_1a87f0(s);return;case 0x1cb030u:run_1cb030(s);return;case 0x1d03a0u:run_1d03a0(s);return;case 0x1f1f70u:run_1f1f70(s);return;case 0x1f1fc0u:run_1f1fc0(s);return;case 0x1f20d0u:run_1f20d0(s);return;case 0x248a70u:run_248a70(s);return;case 0x248e40u:run_248e40(s);return;case 0x249440u:run_249440(s);return;case 0x249460u:run_249460(s);return;case 0x249590u:run_249590(s);return;case 0x249600u:run_249600(s);return;case 0x24a070u:run_24a070(s);return;case 0x24a2e0u:run_24a2e0(s);return;case 0x24a2f0u:run_24a2f0(s);return;case 0x24a4b0u:run_24a4b0(s);return;case 0x24a6c0u:run_24a6c0(s);return;case 0x24a6f0u:run_24a6f0(s);return;case 0x24a810u:run_24a810(s);return;case 0x24b390u:run_24b390(s);return;case 0x25bb50u:run_25bb50(s);return;case 0x25bc90u:run_25bc90(s);return;case 0x25bca0u:run_25bca0(s);return;case 0x2c5d20u:run_2c5d20(s);return;case 0x2c5d70u:run_2c5d70(s);return;case 0x2c5dd0u:run_2c5dd0(s);return;case 0x2e4d60u:run_2e4d60(s);return;case 0x2e4ea0u:run_2e4ea0(s);return;case 0x31d400u:run_31d400(s);return;case 0x32a660u:run_32a660(s);return;case 0x32bde4u:run_32bde4(s);return;default:s.required(site,target,tail);return;}}
+static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail){switch(target){case 0x8eb50u:run_8eb50(s);return;case 0x8fdb0u:run_8fdb0(s);return;case 0xa3850u:run_a3850(s);return;case 0xa6780u:run_a6780(s);return;case 0xad740u:run_ad740(s);return;case 0xb1c30u:run_b1c30(s);return;case 0xb1e80u:run_b1e80(s);return;case 0xbbe00u:run_bbe00(s);return;case 0xbcee0u:run_bcee0(s);return;case 0xce230u:run_ce230(s);return;case 0xfce50u:run_fce50(s);return;case 0x106350u:run_106350(s);return;case 0x13b4a0u:run_13b4a0(s);return;case 0x140910u:run_140910(s);return;case 0x140bc0u:run_140bc0(s);return;case 0x14e7b0u:run_14e7b0(s);return;case 0x14e9e0u:run_14e9e0(s);return;case 0x14ebe0u:run_14ebe0(s);return;case 0x150900u:run_150900(s);return;case 0x150990u:run_150990(s);return;case 0x154ef0u:run_154ef0(s);return;case 0x15a1a0u:run_15a1a0(s);return;case 0x15ab10u:run_15ab10(s);return;case 0x15abc0u:run_15abc0(s);return;case 0x15ad50u:run_15ad50(s);return;case 0x15ae50u:run_15ae50(s);return;case 0x15b470u:run_15b470(s);return;case 0x15dd10u:run_15dd10(s);return;case 0x15ddc0u:run_15ddc0(s);return;case 0x15e070u:run_15e070(s);return;case 0x15e1e0u:run_15e1e0(s);return;case 0x15e3a0u:run_15e3a0(s);return;case 0x1601b0u:run_1601b0(s);return;case 0x160570u:run_160570(s);return;case 0x161530u:run_161530(s);return;case 0x1617a0u:run_1617a0(s);return;case 0x164ab0u:run_164ab0(s);return;case 0x16e940u:run_16e940(s);return;case 0x19ae70u:run_19ae70(s);return;case 0x19b180u:run_19b180(s);return;case 0x19b1d0u:run_19b1d0(s);return;case 0x19b2b0u:run_19b2b0(s);return;case 0x19baa0u:run_19baa0(s);return;
+case 0x19bb20u:run_19bb20(s);return;case 0x19de80u:run_19de80(s);return;case 0x1a6830u:run_1a6830(s);return;case 0x1a79a0u:run_1a79a0(s);return;case 0x1a7a30u:run_1a7a30(s);return;case 0x1a83b0u:run_1a83b0(s);return;case 0x1a8740u:run_1a8740(s);return;case 0x1a87a0u:run_1a87a0(s);return;case 0x1a87f0u:run_1a87f0(s);return;case 0x1cb030u:run_1cb030(s);return;case 0x1d03a0u:run_1d03a0(s);return;case 0x1f1f70u:run_1f1f70(s);return;case 0x1f1fc0u:run_1f1fc0(s);return;case 0x1f20d0u:run_1f20d0(s);return;case 0x248a70u:run_248a70(s);return;case 0x248e40u:run_248e40(s);return;case 0x249440u:run_249440(s);return;case 0x249460u:run_249460(s);return;case 0x249590u:run_249590(s);return;case 0x249600u:run_249600(s);return;case 0x24a070u:run_24a070(s);return;case 0x24a2e0u:run_24a2e0(s);return;case 0x24a2f0u:run_24a2f0(s);return;case 0x24a4b0u:run_24a4b0(s);return;case 0x24a6c0u:run_24a6c0(s);return;case 0x24a6f0u:run_24a6f0(s);return;case 0x24a810u:run_24a810(s);return;case 0x24b390u:run_24b390(s);return;case 0x25bb50u:run_25bb50(s);return;case 0x25bc90u:run_25bc90(s);return;case 0x25bca0u:run_25bca0(s);return;case 0x2c5d20u:run_2c5d20(s);return;case 0x2c5d70u:run_2c5d70(s);return;case 0x2c5dd0u:run_2c5dd0(s);return;case 0x2e4d60u:run_2e4d60(s);return;case 0x2e4ea0u:run_2e4ea0(s);return;case 0x31d400u:run_31d400(s);return;case 0x32a660u:run_32a660(s);return;case 0x32bde4u:run_32bde4(s);return;default:s.required(site,target,tail);return;}}
 static void run_8eb50(WorldState &s) {
 if(s.services.instruction){s.services.instruction(0x8eb50u);} s.pop();s.gp[4]+=16u;return;
 throw std::runtime_error("Original solver fell outside authenticated CFG");
@@ -3058,6 +3060,51 @@ if(s.services.instruction){s.services.instruction(0x19b350u);} s.pop();s.gp[4]+=
 throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
+static void run_19baa0(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0x19baa0u);} s.set(2,r(s.memory,(0x51dfa0u),1),1,0);
+if(s.services.instruction){s.services.instruction(0x19baa6u);} s.flags.logic((s.reg(2,1,0))&(s.reg(2,1,0)),1);
+if(s.services.instruction){s.services.instruction(0x19baa8u);} if(s.flags.zf)goto L19bb14;
+if(s.services.instruction){s.services.instruction(0x19baaau);} s.set(2,r(s.memory,(0x51dfa1u),1),1,0);
+if(s.services.instruction){s.services.instruction(0x19bab0u);} s.flags.logic((s.reg(2,1,0))&(s.reg(2,1,0)),1);
+if(s.services.instruction){s.services.instruction(0x19bab2u);} if(!s.flags.zf)goto L19bb14;
+if(s.services.instruction){s.services.instruction(0x19bab4u);} s.set(1,s.flags.product(s.reg(1,4,0),0x1b5u),4,0);
+if(s.services.instruction){s.services.instruction(0x19babau);} s.set(1,s.flags.plus(s.reg(1,4,0),s.reg(0,4,0),4),4,0);
+if(s.services.instruction){s.services.instruction(0x19babcu);} s.set(0,s.flags.shift(s.reg(0,4,0),0x4u,4),4,0);
+if(s.services.instruction){s.services.instruction(0x19babfu);} s.set(2,r(s.memory,(0x47a6e8u+s.gp[0]),2),4,0);
+if(s.services.instruction){s.services.instruction(0x19bac6u);} s.push(0x19bac6u,s.reg(6,4,0));
+if(s.services.instruction){s.services.instruction(0x19bac7u);} s.set(6,(0x51ef4eu+s.gp[1]*2u),4,0);
+if(s.services.instruction){s.services.instruction(0x19baceu);} s.push(0x19baceu,s.reg(7,4,0));
+if(s.services.instruction){s.services.instruction(0x19bacfu);} s.set(7,r(s.memory,(0x47a6eau+s.gp[0]),2),4,0);
+if(s.services.instruction){s.services.instruction(0x19bad6u);} s.set(0,s.flags.logic((s.reg(0,4,0))^(s.reg(0,4,0)),4),4,0);
+if(s.services.instruction){s.services.instruction(0x19bad8u);} s.set(0,r(s.memory,(0x0u+s.gp[6]),2),2,0);
+if(s.services.instruction){s.services.instruction(0x19badbu);} s.set(1,s.reg(0,4,0),4,0);
+if(s.services.instruction){s.services.instruction(0x19baddu);} s.set(1,s.flags.logic((s.reg(1,4,0))&(0x7fffu),4),4,0);
+if(s.services.instruction){s.services.instruction(0x19bae3u);} s.set(1,s.flags.plus(s.reg(1,4,0),s.reg(3,4,0),4),4,0);
+if(s.services.instruction){s.services.instruction(0x19bae5u);} s.flags.minus(s.reg(1,4,0),s.reg(2,4,0),4);
+if(s.services.instruction){s.services.instruction(0x19bae7u);} if(s.flags.sf==s.flags.of)goto L19bafd;
+if(s.services.instruction){s.services.instruction(0x19bae9u);} s.set(1,s.reg(2,4,0),4,0);
+if(s.services.instruction){s.services.instruction(0x19baebu);} s.set(2,s.reg(0,4,0),4,0);
+if(s.services.instruction){s.services.instruction(0x19baedu);} s.set(2,s.flags.logic((s.reg(2,4,0))^(s.reg(1,4,0)),4),4,0);
+if(s.services.instruction){s.services.instruction(0x19baefu);} s.set(2,s.flags.logic((s.reg(2,4,0))&(0x7fffu),4),4,0);
+if(s.services.instruction){s.services.instruction(0x19baf5u);} s.set(2,s.flags.logic((s.reg(2,4,0))^(s.reg(0,4,0)),4),4,0);
+if(s.services.instruction){s.services.instruction(0x19baf7u);} s.set(7,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0x19baf8u);} w(s.memory,s.observe,0x19baf8u,(0x0u+s.gp[6]),2,s.reg(2,2,0));
+if(s.services.instruction){s.services.instruction(0x19bafbu);} s.set(6,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0x19bafcu);} s.pop();s.gp[4]+=0u;return;
+L19bafd: if(s.services.instruction){s.services.instruction(0x19bafdu);} s.flags.minus(s.reg(1,4,0),s.reg(7,4,0),4);
+if(s.services.instruction){s.services.instruction(0x19baffu);} if(s.flags.zf||(s.flags.sf!=s.flags.of))goto L19bb03;
+if(s.services.instruction){s.services.instruction(0x19bb01u);} s.set(1,s.reg(7,4,0),4,0);
+L19bb03: if(s.services.instruction){s.services.instruction(0x19bb03u);} s.set(2,s.reg(0,4,0),4,0);
+if(s.services.instruction){s.services.instruction(0x19bb05u);} s.set(2,s.flags.logic((s.reg(2,4,0))^(s.reg(1,4,0)),4),4,0);
+if(s.services.instruction){s.services.instruction(0x19bb07u);} s.set(2,s.flags.logic((s.reg(2,4,0))&(0x7fffu),4),4,0);
+if(s.services.instruction){s.services.instruction(0x19bb0du);} s.set(2,s.flags.logic((s.reg(2,4,0))^(s.reg(0,4,0)),4),4,0);
+if(s.services.instruction){s.services.instruction(0x19bb0fu);} s.set(7,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0x19bb10u);} w(s.memory,s.observe,0x19bb10u,(0x0u+s.gp[6]),2,s.reg(2,2,0));
+if(s.services.instruction){s.services.instruction(0x19bb13u);} s.set(6,s.pop(),4,0);
+L19bb14: if(s.services.instruction){s.services.instruction(0x19bb14u);} s.pop();s.gp[4]+=0u;return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
+
 static void run_19bb20(WorldState &s) {
 if(s.services.instruction){s.services.instruction(0x19bb20u);} s.set(0,r(s.memory,(0x51dfa0u),1),1,0);
 if(s.services.instruction){s.services.instruction(0x19bb25u);} s.flags.logic((s.reg(0,1,0))&(s.reg(0,1,0)),1);
@@ -4926,6 +4973,7 @@ case 0x19ae70u:run_19ae70(s);break;
 case 0x19b180u:run_19b180(s);break;
 case 0x19b1d0u:run_19b1d0(s);break;
 case 0x19b2b0u:run_19b2b0(s);break;
+case 0x19baa0u:run_19baa0(s);break;
 case 0x19bb20u:run_19bb20(s);break;
 case 0x19de80u:run_19de80(s);break;
 case 0x1a6830u:run_1a6830(s);break;
@@ -4971,5 +5019,5 @@ case 0x32bde4u:run_32bde4(s);break;
     } catch(...) {abi=s.save();throw;}
     abi=s.save();
 }
-bool source_multiplayer_engine_services_tu15_owns_entry(std::uint32_t p) {switch(p){case 0x8eb50u:case 0x8fdb0u:case 0xa3850u:case 0xa6780u:case 0xad740u:case 0xb1c30u:case 0xb1e80u:case 0xbbe00u:case 0xbcee0u:case 0xce230u:case 0xfce50u:case 0x106350u:case 0x13b4a0u:case 0x140910u:case 0x140bc0u:case 0x14e7b0u:case 0x14e9e0u:case 0x14ebe0u:case 0x150900u:case 0x150990u:case 0x154ef0u:case 0x15a1a0u:case 0x15ab10u:case 0x15abc0u:case 0x15ad50u:case 0x15ae50u:case 0x15b470u:case 0x15dd10u:case 0x15ddc0u:case 0x15e070u:case 0x15e1e0u:case 0x15e3a0u:case 0x1601b0u:case 0x160570u:case 0x161530u:case 0x1617a0u:case 0x164ab0u:case 0x16e940u:case 0x19ae70u:case 0x19b180u:case 0x19b1d0u:case 0x19b2b0u:case 0x19bb20u:case 0x19de80u:case 0x1a6830u:case 0x1a79a0u:case 0x1a7a30u:case 0x1a83b0u:case 0x1a8740u:case 0x1a87a0u:case 0x1a87f0u:case 0x1cb030u:case 0x1d03a0u:case 0x1f1f70u:case 0x1f1fc0u:case 0x1f20d0u:case 0x248a70u:case 0x248e40u:case 0x249440u:case 0x249460u:case 0x249590u:case 0x249600u:case 0x24a070u:case 0x24a2e0u:case 0x24a2f0u:case 0x24a4b0u:case 0x24a6c0u:case 0x24a6f0u:case 0x24a810u:case 0x24b390u:case 0x25bb50u:case 0x25bc90u:case 0x25bca0u:case 0x2c5d20u:case 0x2c5d70u:case 0x2c5dd0u:case 0x2e4d60u:case 0x2e4ea0u:case 0x31d400u:case 0x32a660u:case 0x32bde4u:return true;default:return false;}}
+bool source_multiplayer_engine_services_tu15_owns_entry(std::uint32_t p) {switch(p){case 0x19baa0u:case 0x8eb50u:case 0x8fdb0u:case 0xa3850u:case 0xa6780u:case 0xad740u:case 0xb1c30u:case 0xb1e80u:case 0xbbe00u:case 0xbcee0u:case 0xce230u:case 0xfce50u:case 0x106350u:case 0x13b4a0u:case 0x140910u:case 0x140bc0u:case 0x14e7b0u:case 0x14e9e0u:case 0x14ebe0u:case 0x150900u:case 0x150990u:case 0x154ef0u:case 0x15a1a0u:case 0x15ab10u:case 0x15abc0u:case 0x15ad50u:case 0x15ae50u:case 0x15b470u:case 0x15dd10u:case 0x15ddc0u:case 0x15e070u:case 0x15e1e0u:case 0x15e3a0u:case 0x1601b0u:case 0x160570u:case 0x161530u:case 0x1617a0u:case 0x164ab0u:case 0x16e940u:case 0x19ae70u:case 0x19b180u:case 0x19b1d0u:case 0x19b2b0u:case 0x19bb20u:case 0x19de80u:case 0x1a6830u:case 0x1a79a0u:case 0x1a7a30u:case 0x1a83b0u:case 0x1a8740u:case 0x1a87a0u:case 0x1a87f0u:case 0x1cb030u:case 0x1d03a0u:case 0x1f1f70u:case 0x1f1fc0u:case 0x1f20d0u:case 0x248a70u:case 0x248e40u:case 0x249440u:case 0x249460u:case 0x249590u:case 0x249600u:case 0x24a070u:case 0x24a2e0u:case 0x24a2f0u:case 0x24a4b0u:case 0x24a6c0u:case 0x24a6f0u:case 0x24a810u:case 0x24b390u:case 0x25bb50u:case 0x25bc90u:case 0x25bca0u:case 0x2c5d20u:case 0x2c5d70u:case 0x2c5dd0u:case 0x2e4d60u:case 0x2e4ea0u:case 0x31d400u:case 0x32a660u:case 0x32bde4u:return true;default:return false;}}
 } // namespace halo2

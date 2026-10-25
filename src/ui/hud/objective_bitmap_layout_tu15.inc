@@ -1,0 +1,10 @@
+// Four original Xbox bitmap asset columns, verified across 28 map caches.
+{"ui\\hud\\bitmaps\\new_hud\\dead_friendly_arrow", {{32,32,16,16}}},
+{"ui\\hud\\bitmaps\\new_hud\\default_arrow", {{15,24,7,12}}},
+{"ui\\hud\\bitmaps\\new_hud\\emblem_dummy", {{32,32,16,16}}},
+{"ui\\hud\\bitmaps\\new_hud\\friendly_arrow", {{32,18,16,9}}},
+{"ui\\hud\\bitmaps\\new_hud\\hud_waypoints", {{32,32,16,16},{32,32,16,17},{32,32,16,16},{32,32,16,16},{32,32,16,17},{32,32,16,17},{32,32,16,18},{32,32,16,18},{32,32,16,22}}},
+{"ui\\hud\\bitmaps\\new_hud\\icon_border", {{2,4,1,2}}},
+{"ui\\hud\\bitmaps\\new_hud\\reset_ball", {{30,30,15,15}}},
+{"ui\\hud\\bitmaps\\new_hud\\reset_bomb", {{30,30,15,15}}},
+{"ui\\hud\\bitmaps\\new_hud\\reset_flag", {{30,30,15,15}}},

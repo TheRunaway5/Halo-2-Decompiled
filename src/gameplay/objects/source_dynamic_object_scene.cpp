@@ -91,7 +91,14 @@ struct SourceDynamicObjectScene::Impl {
             const auto pose=std::find_if(poses.begin(),poses.end(),[&](const auto &p){return p.object==o.object;});
             if(o.has_world_nodes!=(pose!=poses.end()) || (pose!=poses.end() &&
                 std::memcmp(&pose->sphere,&o.sphere,sizeof(o.sphere))))
-                throw FormatError("Source dynamic WORLD bank differs from its completed object");
+                throw FormatError("Source dynamic WORLD bank differs from its completed object: datum="+
+                    std::to_string(o.object)+" definition="+std::to_string(o.definition)+
+                    " has_nodes="+std::to_string(o.has_world_nodes)+" pose="+std::to_string(pose!=poses.end())+
+                    " sphere="+std::to_string(o.sphere.center.x)+","+std::to_string(o.sphere.center.y)+","+
+                    std::to_string(o.sphere.center.z)+","+std::to_string(o.sphere.radius)+
+                    (pose==poses.end()?std::string{}:" pose_sphere="+std::to_string(pose->sphere.center.x)+","+
+                        std::to_string(pose->sphere.center.y)+","+std::to_string(pose->sphere.center.z)+","+
+                        std::to_string(pose->sphere.radius)));
             if(!invisible.contains(o.definition)) {
                 if(const auto bad=unavailable.find(o.definition);bad!=unavailable.end())
                     throw FormatError("Source dynamic model resource unavailable: "+bad->second);
@@ -121,7 +128,7 @@ struct SourceDynamicObjectScene::Impl {
             const auto nodes=sample?sample(id):owner.nodes;
             if(nodes.size()!=owner.nodes.size())throw FormatError("Source dynamic interpolation changed its WORLD extent");
             geometry.regions(o.regions.selection);
-            geometry.pose_world([&](const RenderModel &m){return skin_model_world_nodes(m,nodes);});
+            geometry.pose_world_nodes(nodes);
             const auto selected=geometry.select(id&65535u,id,o.sphere.center,o.sphere.radius,view,owner.previous_lod);
             const bool due=object_lighting_query_due(owner.light,frame,o.sphere.center,selected.source_distance,o.frozen);
             ObjectLightQueryContext context;context.bank_valid=source_object_light_query_bank_valid(lighting);

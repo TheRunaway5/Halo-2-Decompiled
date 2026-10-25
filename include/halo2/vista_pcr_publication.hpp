@@ -11,6 +11,13 @@ namespace halo2 {
 // silently enter this PC bridge. Localized title production remains external.
 struct VistaPcrPcVariant { std::array<std::byte,0x130> bytes{}; };
 VistaPcrPcVariant vista_pcr_slayer_variant(const SourceGameVariant&);
+// The PC session/PCR stores the same verified304-byte option schema. This
+// bridge preserves the original CTF/Assault mode union as well as common
+// settings; it never converts gameplay to a PC engine.
+VistaPcrPcVariant vista_pcr_objective_variant(const SourceGameVariant&);
+// Native network reports use the same original option union as local PCR.
+// Keep each family's validation; unsupported original families still reject.
+VistaPcrPcVariant vista_pcr_multiplayer_variant(const SourceGameVariant&);
 
 struct VistaPcrPublicationPlayer {
   std::uint8_t occupied{};

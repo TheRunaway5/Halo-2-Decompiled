@@ -10,6 +10,7 @@
 
 namespace halo2 {
 namespace pstencil {class SharedLightMaterials;}
+struct SourcePortalVisibilitySet;
 struct SourceEffectLightGeometryFrameContext;
 struct SourceCampaignViewFrameTu15;
 enum class SourceEffectLightCommandPhaseTu15 {before_seed,before_collection,collected,culled};
@@ -40,6 +41,21 @@ struct SourceEffectLightModelViewTu15 {
     // Actual completed BSP/object queues after ordinary draw preparation,
     // PRT ordering/fade flags, with the exact main context before light queries.
     std::function<void(const SourceBspAdmission&,const SourceObjectAdmission&,const SourceLiveModelDrawContextTu15&)> main_collected;
+    // The view's actual portal visibility, borrowed for this draw.
+    const SourcePortalVisibilitySet* visibility=nullptr;
+    // Set by draw only while main_collected runs. Performs the main44710 cull
+    // around the caller's translated call: accelerated BSP units take the
+    // native44E80 corridor with identical unit/mask results, other units stay
+    // translated. HALO2_REFERENCE_MAIN_CULL keeps the translated call alone.
+    std::function<void(const std::function<void()>&)> main_cull;
+    // Set by draw only under HALO2_MAIN_COMMANDS_CENSUS: observes every source
+    // store the translated main40E80 performs and reports the closed write
+    // set, as the foundation for its native oracle. No behavior change.
+    std::function<void(const std::function<void()>&)> main_commands;
+    // The actual main view/C35D0 must finish before sampling native attached
+    // light fades and selecting the shared light budget. This producer returns
+    // completed simulation-pool views and genuine receiver queries for draw.
+    std::function<std::pair<SourceEffectLightView,std::vector<WorldEffectLightReceiver>>()> current_lights;
     // Diagnostic label only. Live model views always seed the actual retained
     // native state before their genuine query reset and run complete40E80.
     bool diagnostic_native_light_seed=false;
@@ -55,6 +71,9 @@ struct SourceEffectLightModelViewTu15 {
     // Borrowed for this draw only. A completed campaign frame already owns
     // main collection, environment, queues, cull and command completion.
     const SourceCampaignViewFrameTu15* completed_campaign_main=nullptr;
+    // Actual native render request's optional object override. Ordinary
+    // native views configure NONE;3D2B0 retains its director/unit decisions.
+    std::uint32_t first_person_object_override=0xffffffffu;
 };
 // Shared BSP/model part of31C80. Immutable cache resources are loaded before
 // renderer creation; tick state, selection and receiver queries come from the

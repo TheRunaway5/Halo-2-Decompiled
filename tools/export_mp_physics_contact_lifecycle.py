@@ -2,10 +2,6 @@
 """Export literal original contact owner states/stores; no native expectations."""
 import argparse, hashlib, json, struct
 from pathlib import Path
-from oracle_mp_physics_contact_lifecycle_1_1 import ROOT, OUT, verify
-from oracle_mp_item_current_producers_1_1 import encoded, frozen_write
-from audit_mp_power_module_schedule_1_1 import buffers
-from oracle_smg_firing_1_1 import Xbe, PIN
 
 REPORT_PIN='68221efe9154aa5c958cf30a8847576d1195abfada5df54c26736884f13dd8b2'
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
@@ -15,6 +11,7 @@ def add(memory,address,raw):
         if at in memory:assert memory[at]==v,(f'{at:08x}',memory[at],v)
         memory[at]=v
 def snapshot(s):
+    from audit_mp_power_module_schedule_1_1 import buffers
     raw=bytes.fromhex(s['raw_components']['raw_hex']);base=struct.unpack_from('<I',raw,0x44)[0]
     result=buffers(s['source'],base)
     for name in ('raw_havok','raw_components'):
@@ -30,6 +27,11 @@ def segments(memory):
     if at is not None:result.append((at,bytes(raw)))
     return result
 def main():
+    # Import historical capture owners only for the exporter. Consumers of the
+    # pure byte-segmentation utility do not require unrelated capture reports.
+    from oracle_mp_physics_contact_lifecycle_1_1 import ROOT, OUT, verify
+    from oracle_mp_item_current_producers_1_1 import encoded, frozen_write
+    from oracle_smg_firing_1_1 import Xbe, PIN
     ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--output',type=Path,default=OUT/'final/exported-math');args=ap.parse_args()
     verify();source=OUT/'final/measured';repeat=OUT/'final/repeat'
     assert sha(source/'report.json')==sha(repeat/'report.json')==REPORT_PIN

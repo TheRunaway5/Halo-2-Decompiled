@@ -28,6 +28,10 @@ constexpr std::array symbols{
     Symbol{0x11000566u,0x11000572u,"projectile_attach"},
     Symbol{0x12000565u,0x12000571u,"acceleration_range"}
 };
+struct ObjectFunctionSymbol {std::uint32_t instruction,original,mcc,mcc_name;std::string_view name;};
+constexpr std::array object_function_symbols{
+#include "source_object_function_symbols_tu15.inc"
+};
 std::mutex registry_mutex;
 std::map<const SourcePhysicsContactMemory *,
          std::weak_ptr<const SourceEffectCompiledSymbolBindingTu15>> registry;
@@ -39,6 +43,9 @@ SourceEffectCompiledSymbolsTu15::SourceEffectCompiledSymbolsTu15(
     for(const auto &symbol:symbols)
         if(name(symbol.mcc)!=symbol.name)
             throw std::invalid_argument("MCC effect symbol namespace differs from its authenticated name join");
+    for(const auto &symbol:object_function_symbols)
+        if(name(symbol.mcc_name)!=symbol.name)
+            throw std::invalid_argument("MCC object-function symbols differ from their exact named join");
     auto binding=std::make_shared<const SourceEffectCompiledSymbolBindingTu15>(
         SourceEffectCompiledSymbolBindingTu15{&memory});
     std::lock_guard lock(registry_mutex);
@@ -81,5 +88,13 @@ std::uint32_t source_projectile_function_symbol_tu15(
     if(symbol.original!=original)return original;
     std::lock_guard lock(registry_mutex);const auto owner=registry.find(&memory);
     return owner==registry.end() || owner->second.expired()?original:symbol.mcc;
+}
+std::uint32_t source_object_function_compiled_symbol_tu15(
+    const SourcePhysicsContactMemory &memory,std::uint32_t instruction,std::uint32_t original) {
+    const auto symbol=std::lower_bound(object_function_symbols.begin(),object_function_symbols.end(),instruction,
+        [](const auto &candidate,auto pc){return candidate.instruction<pc;});
+    if(symbol==object_function_symbols.end() || symbol->instruction!=instruction || symbol->original!=original)return original;
+    std::lock_guard lock(registry_mutex);const auto at=registry.find(&memory);
+    return at==registry.end()||at->second.expired()?original:symbol->mcc;
 }
 }

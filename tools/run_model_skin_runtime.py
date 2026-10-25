@@ -23,9 +23,22 @@ TAIL_LIMIT = 16 * 1024
 SOURCES = (
     'tools/run_model_skin_runtime.py', 'cmake/ModelSkinRuntime.cmake',
     'tests/model_skin_runtime_tests.cpp',
+    'tests/ordinary_multiplayer_trace.hpp', 'tests/ordinary_multiplayer_trace_tests.cpp',
     'tests/test_model_skin_runtime_extent_driver.py',
     'src/gameplay/multiplayer/multiplayer_runtime.cpp',
     'src/gameplay/multiplayer/multiplayer_world.cpp',
+    'include/halo2/multiplayer.hpp', 'include/halo2/multiplayer_world.hpp',
+    'include/halo2/multiplayer_object_runtime.hpp',
+    'src/gameplay/multiplayer/multiplayer_object_runtime.cpp', 'src/gameplay/multiplayer/multiplayer.cpp',
+    'include/halo2/physics_live_world_tu15.hpp', 'src/physics/physics_live_world_tu15.cpp',
+    'include/halo2/source_execution_inputs.hpp', 'src/runtime/source_execution_inputs.cpp',
+    'include/halo2/source_match_authority.hpp', 'src/runtime/source_match_authority.cpp',
+    'include/halo2/multiplayer_authority.hpp', 'include/halo2/simulation_authority.hpp',
+    'src/gameplay/multiplayer/multiplayer_continuation.cpp',
+    'include/halo2/physics_game_arena_native.hpp', 'src/physics/physics_game_arena_native.cpp',
+    'include/halo2/source_runtime_resources.hpp', 'src/runtime/source_runtime_resources.cpp',
+    'include/halo2/source_runtime_snapshot_bytes.hpp', 'src/runtime/source_runtime_snapshot_bytes.cpp',
+    'include/halo2/source_runtime_memory.hpp', 'src/runtime/source_runtime_memory.cpp',
     'include/halo2/model_skin_submission.hpp',
     'include/halo2/model_skin_gpu_admission.hpp', 'include/halo2/renderer_timing.hpp',
     'src/rendering/models/model_skin_gpu.hpp',
@@ -156,6 +169,10 @@ def strict_dual_extents(report, name, width, height, presentation_size, roles, r
 
 
 def strict_case(report, name, width, height, presentation_size=None, raw_root=None):
+    scoped_cases = report.get('cases')
+    if report.get('post_constructor_common_cut') or report.get('qualification_kind') == 'post-constructor-common-cut' or \
+            (isinstance(scoped_cases, list) and any(case.get('post_constructor_common_cut') for case in scoped_cases)):
+        return 'Post-constructor common-cut controls cannot grant ordinary GPU acceptance'
     if report.get('passed') is not True or report.get('control_only'):
         return 'Child did not grant ordinary GPU acceptance'
     cases = report.get('cases')
@@ -180,6 +197,120 @@ def strict_case(report, name, width, height, presentation_size=None, raw_root=No
         return 'Child omitted actual weighted GPU work or complete vertex verification'
     if '-fp-' in name and not gpu.get('gpu_post_identity_vertices'):
         return 'First-person child omitted actual GPU post-identity vertices'
+    return strict_dual_extents(report, name, width, height, presentation_size, (('cpu', 'cpu'), ('gpu', 'gpu')), raw_root)
+
+
+def strict_common_cut_case(report, name, width, height, presentation_size=None, raw_root=None):
+    if report.get('passed') is not False or report.get('control_only') is not True or \
+            report.get('ordinary_gpu_acceptance') is not False or report.get('actual_gpu_acceptance_run') is not False or \
+            report.get('post_constructor_common_cut') is not True or \
+            report.get('qualification_kind') != 'post-constructor-common-cut' or \
+            report.get('post_constructor_qualification_passed') is not True:
+        return 'Child did not grant only the explicit post-constructor common-cut qualification'
+    cases = report.get('cases')
+    if not isinstance(cases, list) or len(cases) != 1 or cases[0].get('name') != name:
+        return 'Common-cut child does not contain exactly its requested cohort'
+    case = cases[0]
+    if case.get('passed') is not False or case.get('control_only') is not True or \
+            case.get('post_constructor_common_cut') is not True or case.get('post_constructor_qualification_passed') is not True or \
+            case.get('common_cut_released_after_pair') is not True or any(case.get(key) is not True for key in
+                ('full_frame_identical', 'ordered_trace_identical', 'passive_source_trace_identical', 'external_input_tape_identical')):
+        return 'Common-cut child omitted an exact scoped frame/trace/input gate or retained its owning cut'
+    players = case.get('players')
+    if type(players) is not int or players not in (1, 2, 4):
+        return 'Common-cut child omitted its actual local-player count'
+    present_width, present_height = presentation_size or (width, height)
+    ppm_bytes = len(f'P6\n{present_width} {present_height}\n255\n'.encode()) + present_width * present_height * 3
+    starting_proof = None
+    tape_proof = None
+    trace_proof = None
+    frame_hash = None
+    for role in ('cpu', 'gpu'):
+        result = case.get(role, {})
+        if result.get('input_callbacks') != 60 or result.get('actual_delivered_commands_per_view') != 60 or \
+                type(result.get('submitted_frames')) is not int or result['submitted_frames'] < 60 or \
+                result.get('render_width') != width or result.get('render_height') != height or \
+                result.get('validation_messages') != 0 or result.get('complete_ppm_bytes') != ppm_bytes:
+            return 'Common-cut child omitted actual finite inputs, frame extent or validation evidence'
+        current_hash = result.get('frame_sha256')
+        if not re.fullmatch(r'[0-9a-f]{64}', str(current_hash)) or (frame_hash is not None and current_hash != frame_hash):
+            return 'Common-cut complete presented-frame hashes differ or are missing'
+        frame_hash = current_hash
+        cut = result.get('post_constructor_common_cut', {})
+        if any(cut.get(key) is not True for key in ('enabled', 'completed_constructor_and_local_views',
+                'before_preparation_projection_and_runtime', 'local_test_binding_only', 'constructor_and_teardown_outside_tape',
+                'tape_bound_after_initial_proof', 'tape_unbound_before_native_teardown')) or \
+                cut.get('role') != ('export' if role == 'cpu' else 'import') or \
+                cut.get('normal_coupled_publication') is not (role == 'gpu'):
+            return 'Common-cut child omitted normal completed-boundary publication or exact tape-lifetime evidence'
+        proof = cut.get('initial_bank_proof', {})
+        if any(proof.get(key) is not True for key in ('passed', 'complete_topology_identical', 'complete_region_bytes_identical',
+                'committed_run_segmentation_identical', 'committed_bytes_identical', 'no_resource_exclusion')) or \
+                'first_mismatch' in proof or any(type(proof.get(key)) is not int or proof[key] <= 0 for key in
+                ('regions', 'complete_bank_bytes', 'committed_ranges', 'committed_bytes')) or \
+                proof.get('expected_committed_ranges') != proof['committed_ranges'] or \
+                proof.get('expected_committed_bytes') != proof['committed_bytes']:
+            return 'Common-cut child omitted the direct complete initial source-bank proof'
+        limits = cut.get('resource_limits', {})
+        if limits.get('bank_byte_limit') != 1024 ** 3 or limits.get('arena_file_byte_limit') != 64 * 1024 ** 2 or \
+                limits.get('region_limit') != 8192 or limits.get('regions') != proof['regions'] or \
+                limits.get('bank_bytes') != proof['complete_bank_bytes'] or not 0 < proof['regions'] <= 8192 or \
+                not 0 < proof['complete_bank_bytes'] <= 1024 ** 3 or proof['committed_bytes'] > proof['complete_bank_bytes'] or \
+                limits.get('arena_files') != 2 or type(limits.get('arena_file_bytes')) is not int or \
+                not 0 <= limits['arena_file_bytes'] <= 64 * 1024 ** 2 or type(cut.get('tick')) is not int:
+            return 'Common-cut source/resource snapshot exceeded or omitted its declared ownership limits'
+        initial = (proof, limits, cut['tick'])
+        if starting_proof is not None and initial != starting_proof:
+            return 'CPU/comparison complete common-cut starting-state proofs differ'
+        starting_proof = initial
+        tape = result.get('external_source_inputs', {})
+        kinds = tape.get('kind_counts')
+        if tape.get('mode') != ('record' if role == 'cpu' else 'replay') or \
+                tape.get('constructor_through_world_teardown') is not False or tape.get('complete_call_journal') is not False or \
+                any(tape.get(key) is not True for key in ('post_constructor_common_cut', 'constructor_outside_scope',
+                    'native_teardown_outside_scope', 'complete_consumption', 'actual_values_preserved')) or \
+                type(tape.get('entries')) is not int or not 0 < tape['entries'] <= 262144 or \
+                not isinstance(kinds, list) or len(kinds) != 9 or any(type(n) is not int or n < 0 for n in kinds) or \
+                sum(kinds) != tape['entries'] or \
+                not re.fullmatch(r'[0-9a-f]{64}', str(tape.get('semantic_sha256', ''))):
+            return 'Common-cut child confused runtime operand replay with constructor/teardown coverage'
+        current_tape = (tape['entries'], tape['semantic_sha256'], tape.get('kind_counts'))
+        if tape_proof is not None and current_tape != tape_proof:
+            return 'Common-cut CPU/comparison actual operand tapes differ'
+        tape_proof = current_tape
+        rng = result.get('source_rng_construction', {})
+        if rng.get('receipts') != 1 or rng.get('auxiliary') != 1 or rng.get('pre_common_cut_observation') is not True or \
+                rng.get('compared_in_ordered_trace') is not False:
+            return 'Common-cut child omitted or falsely compared its genuine pre-cut RNG receipt'
+        trace = result.get('passive_source_trace', {})
+        nodes = trace.get('node_stage_counts')
+        if trace.get('schema') != 'H2OTR02' or trace.get('initial_source_boundary') != 'post-constructor-common-cut' or \
+                trace.get('complete_storage') is not True or trace.get('source_callbacks') != 1 or \
+                type(trace.get('bytes')) is not int or not 0 < trace['bytes'] <= 8 * 1024 ** 2 or \
+                not re.fullmatch(r'[0-9a-f]{64}', str(trace.get('sha256', ''))) or \
+                trace.get('preparation_checkpoints') != 60 or trace.get('final_checkpoints') != 1 or \
+                trace.get('input_callbacks') != 60 or trace.get('view_callbacks') != result['submitted_frames'] * players or \
+                trace.get('rectangle_callbacks') != trace['view_callbacks'] or \
+                not isinstance(nodes, list) or len(nodes) != 4 or any(type(n) is not int or n < 0 for n in nodes) or \
+                nodes[0] != nodes[1] or nodes[2] != nodes[3] or not nodes[2 if '-fp-' in name else 0]:
+            return 'Common-cut child omitted actual source/input/view/rectangle/WORLD-or-FP trace samples'
+        if trace_proof is not None and trace != trace_proof:
+            return 'Common-cut CPU/comparison passive source-trace receipts differ'
+        trace_proof = trace
+        worker = result.get('presentation_worker', {})
+        if type(worker.get('frames_with_copy_jobs')) is not int or worker['frames_with_copy_jobs'] <= 0 or \
+                worker.get('frames_with_actual_worker_jobs') != worker['frames_with_copy_jobs']:
+            return 'Common-cut child omitted actual same-frame presentation-worker execution'
+        fallback = result.get('cpu_fallback', {})
+        if any(fallback.get(key) != 0 for key in FALLBACK_COUNTERS) or fallback.get('vulkan_results') != {}:
+            return 'Common-cut ordinary CPU/GPU paths unexpectedly used forced CPU materialization'
+    if any(case['cpu'].get(key) != 0 for key in GPU_COUNTERS):
+        return 'Common-cut CPU counterfactual dispatched or verified GPU skin work'
+    gpu = case['gpu']
+    if not gpu.get('gpu_frames') or not gpu.get('gpu_jobs') or not gpu.get('gpu_weighted_vertices') or \
+            not gpu.get('gpu_vertices') or gpu['gpu_vertices'] != gpu.get('gpu_verified_vertices') or \
+            ('-fp-' in name and not gpu.get('gpu_post_identity_vertices')):
+        return 'Common-cut child omitted actual weighted GPU work, full verification or FP post-identity work'
     return strict_dual_extents(report, name, width, height, presentation_size, (('cpu', 'cpu'), ('gpu', 'gpu')), raw_root)
 
 
@@ -283,13 +414,20 @@ def main():
                         help='Explicit presented framebuffer size, separate from internal --width/--height; validates every submitted frame')
     parser.add_argument('--fallback', default=os.environ.get('HALO2_MODEL_SKIN_RUNTIME_FALLBACK_CONTROL', ''),
                         help='Explicit separate forced CPU materialization qualification; ordinary GPU acceptance remains false')
+    parser.add_argument('--post-constructor-common-cut', action='store_true',
+                        default=os.environ.get('HALO2_MODEL_SKIN_RUNTIME_POST_CONSTRUCTOR_COMMON_CUT') == '1',
+                        help='Separate control from a complete coupled post-constructor source cut; never ordinary GPU acceptance')
     parser.add_argument('--child-timeout-seconds', type=float, default=180)
     parser.add_argument('--suite-timeout-seconds', type=float, default=1740)
     args = parser.parse_args()
     report = {'passed': False, 'status': 'initializing', 'cases': [], 'children': [],
-              'control_only': bool(args.fallback) or os.environ.get('HALO2_MODEL_SKIN_RUNTIME_REFERENCE_ONLY') == '1',
+              'control_only': args.post_constructor_common_cut or bool(args.fallback) or os.environ.get('HALO2_MODEL_SKIN_RUNTIME_REFERENCE_ONLY') == '1',
               'scope': 'Fresh process per ordinary cohort, same native binary; each child retains its own complete CPU/GPU pair and exact acceptance gates. Temporary raw frames, source storage and logs are removed after each child.'}
     try:
+        if os.environ.get('HALO2_MODEL_SKIN_RUNTIME_POST_CONSTRUCTOR_COMMON_CUT', '0') not in ('0', '1'):
+            raise RuntimeError('Common-cut environment mode must be explicitly0or1')
+        if args.post_constructor_common_cut and (args.fallback or os.environ.get('HALO2_MODEL_SKIN_RUNTIME_REFERENCE_ONLY') == '1'):
+            raise RuntimeError('Common-cut qualification excludes reference-only and forced fallback controls')
         if args.fallback and (args.fallback not in FALLBACK_REASONS or os.environ.get('HALO2_MODEL_SKIN_RUNTIME_REFERENCE_ONLY') == '1'):
             raise RuntimeError('Fallback mode requires one of the seven recoverable reasons and excludes reference-only control')
         if not 64 <= args.width <= 4096 or not 64 <= args.height <= 4096:
@@ -324,12 +462,16 @@ def main():
                       binary={'path': str(args.binary), 'bytes': args.binary.stat().st_size, 'sha256': binary_hash},
                       source_hashes=hashes, coordinator_argv=sys.argv,
                       child_timeout_seconds=args.child_timeout_seconds, suite_timeout_seconds=args.suite_timeout_seconds)
-        report['qualification_kind'] = 'forced-cpu-materialization' if args.fallback else 'ordinary-gpu'
+        report['qualification_kind'] = 'post-constructor-common-cut' if args.post_constructor_common_cut else 'forced-cpu-materialization' if args.fallback else 'ordinary-gpu'
         report['ordinary_gpu_acceptance'] = False
+        if args.post_constructor_common_cut:
+            report.update(post_constructor_common_cut=True, post_constructor_qualification_passed=False,
+                          actual_gpu_acceptance_run=False,
+                          scope='Separate complete coupled post-constructor source-cut control; constructor/native teardown outside the runtime operand tape. Real GPU, presented PPM, source/input/node and worker gates remain required. No ordinary GPU acceptance.')
         if args.fallback:
             report.update(forced_prepare_failure=args.fallback, fallback_qualification_passed=False,
                           reason='Separate forced CPU materialization qualification; normal passed and ordinary GPU/pin acceptance remain false')
-        if report['control_only']:
+        if report['control_only'] and not args.post_constructor_common_cut:
             report.update(actual_gpu_acceptance_run=False, reason='Reference-only child controls cannot grant GPU quality acceptance')
         save(args.report, report)
         deadline = time.monotonic() + args.suite_timeout_seconds
@@ -356,6 +498,10 @@ def main():
                 timed_out = False
                 environment = os.environ.copy()
                 environment.update(HALO2_TEST_SCRATCH=directory, TMPDIR=directory, TMP=directory, TEMP=directory)
+                if args.post_constructor_common_cut:
+                    environment['HALO2_MODEL_SKIN_RUNTIME_POST_CONSTRUCTOR_COMMON_CUT'] = '1'
+                else:
+                    environment.pop('HALO2_MODEL_SKIN_RUNTIME_POST_CONSTRUCTOR_COMMON_CUT', None)
                 if args.fallback:
                     environment['HALO2_MODEL_SKIN_RUNTIME_FALLBACK_CONTROL'] = args.fallback
                 else:
@@ -408,7 +554,10 @@ def main():
                     for case in payload.get('cases', []):
                         report['cases'].append(case)
                         retain_references(case, temporary, args.report, name)
-                    failure = failure or (strict_fallback_case(payload, name, args.width, args.height, args.fallback,
+                    failure = failure or (strict_common_cut_case(payload, name, args.width, args.height,
+                                                                args.presentation_size, temporary / 'raw')
+                                          if args.post_constructor_common_cut else
+                                          strict_fallback_case(payload, name, args.width, args.height, args.fallback,
                                                              args.presentation_size, temporary / 'raw')
                                           if args.fallback else strict_case(payload, name, args.width, args.height,
                                                                           args.presentation_size, temporary / 'raw'))
@@ -425,8 +574,11 @@ def main():
                         child['failure_log_tail'] = stream.read(TAIL_LIMIT).decode(errors='replace')
                     print(f'FAIL {name}: {failure} (exit {code})\n' + child['failure_log_tail'], file=sys.stderr, flush=True)
                 else:
-                    child['status'] = 'fallback-qualified' if args.fallback else 'passed'
-                    if args.fallback:
+                    child['status'] = 'post-constructor-qualified' if args.post_constructor_common_cut else 'fallback-qualified' if args.fallback else 'passed'
+                    if args.post_constructor_common_cut:
+                        child['post_constructor_qualification_passed'] = True
+                        print(f'POST_CONSTRUCTOR_QUALIFIED {name}: complete common cut/frame/trace and actual GPU work; ordinary GPU acceptance false', flush=True)
+                    elif args.fallback:
                         actual = payload['cases'][0]['forced_fallback']['cpu_fallback']
                         print(f'FALLBACK_QUALIFIED {name}: exact frame/source-RNG trace, {actual["weighted_vertices"]} weighted CPU vertices ({args.fallback}); ordinary GPU acceptance false', flush=True)
                     else:
@@ -440,6 +592,11 @@ def main():
                 return 124 if timed_out else (code if code > 0 else 128 - code if code < 0 else 1)
         if binary_identity(args.binary) != binary_stat or sha256(args.binary) != binary_hash or source_hashes() != hashes:
             raise RuntimeError('Native binary or declared sources changed during the suite')
+        if args.post_constructor_common_cut:
+            report.update(passed=False, status='post-constructor-qualified', post_constructor_qualification_passed=True,
+                          ordinary_gpu_acceptance=False, actual_gpu_acceptance_run=False)
+            save(args.report, report)
+            return 0
         if args.fallback:
             report.update(passed=False, status='fallback-qualified', fallback_qualification_passed=True,
                           ordinary_gpu_acceptance=False, actual_gpu_acceptance_run=False)

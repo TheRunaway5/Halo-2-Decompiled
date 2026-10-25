@@ -8,6 +8,9 @@
 #include "halo2/mcc_bsp_instance_bounds.hpp"
 #include "halo2/mcc_hud_reference.hpp"
 #include "halo2/mcc_gameplay_unit_scalar.hpp"
+#include "halo2/mcc_destruction_model_scalar.hpp"
+#include "halo2/mcc_destruction_model_contract.hpp"
+#include "halo2/mcc_destruction_model_reference.hpp"
 #include "halo2/mcc_cairo_vanilla.hpp"
 #include "halo2/mcc_campaign_vanilla.hpp"
 #include "halo2/cache.hpp"
@@ -518,8 +521,16 @@ void Cache::initialize_mcc(const MccPreparedMapOwner* owner) {
     for(const auto& t:tags_)if(t.address && t.size &&
         (t.type()==tag_groups::biped || t.type()==tag_groups::vehicle))
         (void)convert_mcc_gameplay_unit_scalars(t.type(),t.name,t.address,reference_access.bytes);
+    for(const auto& t:tags_)if(t.address && t.size && t.type()==tag_groups::model)
+        (void)convert_mcc_destruction_model_scalars(t.type(),t.name,t.address,reference_access.bytes);
+    for(const auto& t:tags_)if(t.address && t.size && t.type()==tag_groups::model)
+        (void)convert_mcc_destruction_model_contract(t.type(),t.name,t.address,reference_access.bytes);
+    for(const auto& t:tags_)if(t.address && t.size && t.type()==tag_groups::model)
+        (void)convert_mcc_destruction_model_references(t.type(),t.name,t.address,reference_access);
     for(const auto& t:tags_)if(t.address && t.size && t.type()==tag_groups::multiplayer_globals)
         (void)convert_mcc_multiplayer_weapon_table(t.type(),t.name,t.address,reference_access);
+    for(const auto& t:tags_)if(t.address && t.size && t.type()==tag_groups::multiplayer_globals)
+        (void)convert_mcc_multiplayer_vehicle_table(t.type(),t.name,t.address,reference_access);
     for(const auto& t:tags_)if(t.address && t.size && t.type()==tag_groups::scenario_structure_bsp) {
         (void)convert_mcc_bsp_instance_transform(t.type(),t.name,t.address,reference_access.bytes);
         (void)convert_mcc_bsp_collision_reference(t.type(),t.name,t.address,reference_access.bytes);

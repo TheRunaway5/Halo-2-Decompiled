@@ -101,6 +101,7 @@ void source_complete_projectile_contact_effect_tu15(SourcePhysicsContactMemory &
     const auto scalar=[&](auto p){return std::bit_cast<float>(word(m,p));};
     event.colors={word(m,effect+0x104u),word(m,effect+0x108u)};
     event.controls={scalar(effect+0x6cu),scalar(effect+0x70u)};
+    event.replica_render=source_effect_replica_render_tu15(bank,instance,capture.effect);
     event.effect_locations=source_effect_world_locations_tu15(bank,instance,capture.effect);
     if(!event.effect_locations.empty())capture.listener->callback(event);
 }

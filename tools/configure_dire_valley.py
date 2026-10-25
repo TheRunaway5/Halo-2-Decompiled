@@ -128,7 +128,7 @@ def configure(kit, package, interface):
         if lighting_authoring.exists():
             lighting=json.loads(lighting_authoring.read_text())
             placements=json.loads((package/'scenery_geometry.json').read_text())['placement_transforms']
-            for tree in lighting['native_tree_scenery']:
+            for tree in lighting['native_tree_scenery']+lighting.get('native_prop_scenery',[]):
                 index=placements.index(tree)
                 row=tree['source']
                 scenery(tree['target'],row['position'],[math.degrees(v) for v in row['rotation']],

@@ -93,9 +93,13 @@ std::shared_ptr<const std::filesystem::path> source_storage(
 std::unique_ptr<MultiplayerObjectRuntime> object_world(
     const Cache &cache,const MultiplayerOptions &options,const SlayerRules &rules,
     const std::shared_ptr<const std::filesystem::path> &storage,
-    std::shared_ptr<PhysicsLiveClockSource> clock={}) {
+    std::shared_ptr<PhysicsLiveClockSource> clock={},std::shared_ptr<SourceExecutionInputs> inputs={}) {
+  if(inputs && (!storage || options.online_match || options.host_port || !options.join.empty() ||
+      options.dedicated || options.replay))
+    throw FormatError("Constructor operand tape requires an isolated local native world");
   if(!storage)return {};
-  auto world=options.gameplay_xbe.empty()?
+  auto world=inputs?std::make_unique<MultiplayerObjectRuntime>(options.gameplay_xbe,cache,options.bsp,*storage,std::move(clock),std::move(inputs)):
+      options.gameplay_xbe.empty()?
       std::make_unique<MultiplayerObjectRuntime>(cache,options.bsp,*storage,std::move(clock)):
       std::make_unique<MultiplayerObjectRuntime>(options.gameplay_xbe,cache,options.bsp,*storage,std::move(clock));
   auto variant=options.variant;
@@ -294,8 +298,13 @@ MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& opt
     std::optional<ScriptProgram> script_input,std::shared_ptr<PhysicsLiveClockSource> clock)
   :MultiplayerPreparedWorld(options,std::move(script_input),nullptr,std::move(clock)) {}
 MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& options,
+    std::optional<ScriptProgram> script_input,std::shared_ptr<PhysicsLiveClockSource> clock,
+    std::shared_ptr<SourceExecutionInputs> inputs)
+  :MultiplayerPreparedWorld(options,std::move(script_input),nullptr,std::move(clock),{},{},std::move(inputs)) {}
+MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& options,
     std::optional<ScriptProgram> script_input,const SourceShadowSetup *shadow,std::shared_ptr<PhysicsLiveClockSource> clock,
-    std::shared_ptr<MultiplayerMapAssets> assets,std::shared_ptr<const Cache> incoming_cache)
+    std::shared_ptr<MultiplayerMapAssets> assets,std::shared_ptr<const Cache> incoming_cache,
+    std::shared_ptr<SourceExecutionInputs> inputs)
   :constructor_cache_(incoming_cache?std::move(incoming_cache):assets?assets->cache_for(options):std::make_shared<const Cache>(options.map,options.shared_maps,
        options.gameplay_xbe.empty()?std::shared_ptr<const OriginalData>{}:
            OriginalData::load_xbe(options.gameplay_xbe))),
@@ -303,7 +312,7 @@ MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& opt
    tags(world_tags(cache,options.bsp)),
    content(assets?assets->take_content(options,script_input):world_content(*cache,options,script_input)),rules(world_rules(*cache,options,content)),
    source_savegames(source_storage(*cache,options,rules,shadow!=nullptr)),
-   source_objects(object_world(*cache,options,rules,source_savegames,clock?clock:(shadow?shadow->clock:nullptr))),
+   source_objects(object_world(*cache,options,rules,source_savegames,clock?clock:(shadow?shadow->clock:nullptr),std::move(inputs))),
    match(content,options.bsp,options.native_spawn_inputs.empty()?cache->spawns():
        std::span<const Spawn>(options.native_spawn_inputs),rules,{},result_clock_source(clock),source_objects.get(),options.campaign_difficulty ?
         std::optional(SourceSceneGameContext{1,rules.source_engine}):std::nullopt,options.campaign_spawn_input,source_replica_world(*cache,options,source_objects.get())),map_(options.map),shared_(options.shared_maps),

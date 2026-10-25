@@ -13,9 +13,9 @@ struct OnlinePlaylist {
   std::optional<unsigned> level;
   bool clan_match{};
 };
-struct OnlineMatchPlayer { std::string name; unsigned team{}; bool self{}; };
+struct OnlineMatchPlayer { std::string name; unsigned team{}; bool self{}; std::optional<unsigned> level{}; };
 struct OnlineMatch { std::string map, variant; std::vector<OnlineMatchPlayer> players; };
-struct OnlineGatheringPlayer { std::string name; bool self{}; };
+struct OnlineGatheringPlayer { std::string name; bool self{}; std::optional<unsigned> level{}; };
 struct OnlineGatheringProgress {
   std::vector<OnlineGatheringPlayer> players;
   unsigned minimum_players{}, maximum_players{};

@@ -69,6 +69,12 @@ function(add_test)
 endfunction()
 
 function(halo2_finalize_test_storage)
+    if(HALO2_SECURITY_LIBRARY)
+        get_property(security_tests DIRECTORY "${CMAKE_SOURCE_DIR}" PROPERTY TESTS)
+        foreach(test IN LISTS security_tests)
+            set_property(TEST "${test}" APPEND PROPERTY ENVIRONMENT "H2_SECURITY_LIBRARY=${HALO2_SECURITY_LIBRARY}")
+        endforeach()
+    endif()
     get_property(targets GLOBAL PROPERTY HALO2_TEST_BUILD_TARGETS)
     # Include unregistered test helpers too; several are executable arguments
     # of Python tests or are used only by an explicitly invoked validator.

@@ -85,7 +85,7 @@ class Glb:
         return np.ndarray((a["count"], columns), dtype, self.raw, offset,
                           strides=(stride, dtype.itemsize))
 
-    def nodes(self):
+    def nodes(self, include_empty=False):
         def visit(index, parent):
             node = self.doc["nodes"][index]
             if "matrix" in node:
@@ -101,6 +101,8 @@ class Glb:
             world = parent @ local
             if "mesh" in node:
                 yield index, node, self.doc["meshes"][node["mesh"]], world
+            elif include_empty:
+                yield index, node, None, world
             for child in node.get("children", []):
                 yield from visit(child, world)
         for root in self.doc["scenes"][self.doc.get("scene", 0)]["nodes"]:

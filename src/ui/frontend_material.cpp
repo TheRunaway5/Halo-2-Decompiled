@@ -62,7 +62,11 @@ bool prepare_forward_material(const Cache &cache, Material &m) {
           throw FormatError("missing frontend shader bitmap remap");
         const auto &image = m.bitmaps[remap->source];
         try {
-          auto texture = cache.load_bitmap(image.datum, image.index);
+          // TU1.5 16FC8 resolves an authored NONE bitmap to the actual
+          // matg rasterizer+64 image and resets its frame to zero. Sky
+          // storm_inner has an active PROJECT2D stage with this binding.
+          auto texture = image.datum==0xffffffffu?
+              cache.load_scope_default_bitmap():cache.load_bitmap(image.datum, image.index);
           Texture *stages[]{&m.diffuse, &m.detail, &m.bump, &m.auxiliary};
           *stages[b.stage] = std::move(texture);
         } catch (const FormatError &e) {

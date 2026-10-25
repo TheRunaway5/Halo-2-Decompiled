@@ -207,6 +207,8 @@ PrepareFailureEvidence prepare_failure_cases(Gpu &gpu,ModelSkinGpu &skin) {
         {"create",Reason::input_allocation,VK_ERROR_OUT_OF_HOST_MEMORY},
         {"allocation",Reason::input_allocation,VK_ERROR_OUT_OF_HOST_MEMORY},
         {"device-allocation",Reason::input_allocation,VK_ERROR_OUT_OF_DEVICE_MEMORY},
+        {"bind-allocation",Reason::input_allocation,VK_ERROR_OUT_OF_HOST_MEMORY},
+        {"bind-device-allocation",Reason::input_allocation,VK_ERROR_OUT_OF_DEVICE_MEMORY},
         {"map",Reason::input_mapping,VK_ERROR_OUT_OF_HOST_MEMORY},
         {"map-range",Reason::input_mapping,VK_ERROR_MEMORY_MAP_FAILED}};
     for(const auto &failure:failures) {
@@ -572,6 +574,8 @@ PersistentPrepareEvidence persistent_prepare_cases(Gpu &gpu) {
         {"create",Reason::input_allocation,VK_ERROR_OUT_OF_HOST_MEMORY},
         {"allocation",Reason::input_allocation,VK_ERROR_OUT_OF_HOST_MEMORY},
         {"device-allocation",Reason::input_allocation,VK_ERROR_OUT_OF_DEVICE_MEMORY},
+        {"bind-allocation",Reason::input_allocation,VK_ERROR_OUT_OF_HOST_MEMORY},
+        {"bind-device-allocation",Reason::input_allocation,VK_ERROR_OUT_OF_DEVICE_MEMORY},
         {"map",Reason::input_mapping,VK_ERROR_OUT_OF_HOST_MEMORY},
         {"map-range",Reason::input_mapping,VK_ERROR_MEMORY_MAP_FAILED}};
     for(const auto &failure:failures) {
@@ -703,12 +707,16 @@ std::size_t post_identity_cases(Gpu &gpu,ModelSkinGpu &skin) {
     return input.size();
 }
 }
+#include "helpers/model_skin_gpu_validation_reuse.hpp"
 int main()try {
     std::fenv_t initial;std::fegetenv(&initial);std::fesetround(FE_TONEAREST);
     Gpu gpu;std::size_t comparisons{},post_comparisons{};PrepareFailureEvidence prepare_failures;PrepareRowEvidence prepare_rows;
     PersistentPrepareEvidence persistent;
     {
-        ModelSkinGpu skin(gpu.device,gpu.physical,VK_API_VERSION_1_2,HALO2_MODEL_SKIN_GPU_SHADER);
+        auto optional_skin=ModelSkinGpu::create_optional(gpu.device,gpu.physical,
+            VK_API_VERSION_1_2,HALO2_MODEL_SKIN_GPU_SHADER);
+        need(bool(optional_skin),"GPU skinning service unexpectedly unavailable");
+        auto &skin=*optional_skin;
         prepare_failures=prepare_failure_cases(gpu,skin);
         prepare_rows=prepare_row_cases(gpu,skin);
         unsigned seed=0x1376c0u;
@@ -899,6 +907,14 @@ int main()try {
 #endif
     }
     persistent=persistent_prepare_cases(gpu);
+    const auto enabled=[](const char *name) {const auto *value=std::getenv(name);return value && !std::strcmp(value,"1");};
+    const bool validation_full_reference=enabled("HALO2_REFERENCE_SKIN_RECORD_VALIDATION");
+    const bool validation_require_cache=enabled("HALO2_TEST_GPU_SKIN_REQUIRE_VALIDATION_CACHE");
+    const bool validation_skipped_streamed=enabled("HALO2_REFERENCE_STREAMED_SKIN_INPUTS");
+    need(!validation_require_cache || !validation_skipped_streamed,"Validation reuse work gate cannot skip the retained matrix");
+    ValidationEvidence validation_reuse;
+    if(!validation_skipped_streamed)
+        validation_reuse=validation_cases(gpu,validation_full_reference && !validation_require_cache);
     const auto *skip_traffic=std::getenv("HALO2_TEST_GPU_SKIN_SKIP_PERSISTENT_TRAFFIC_GATE");
     const bool traffic_gate_skipped=skip_traffic && *skip_traffic;
     const bool traffic_passed=!persistent.traffic_violations;
@@ -923,6 +939,22 @@ int main()try {
         <<",\"persistent_record_pack_bytes\":"<<persistent.record_pack_bytes<<",\"persistent_record_upload_bytes\":"<<persistent.record_upload_bytes
         <<",\"persistent_palette_upload_bytes\":"<<persistent.palette_upload_bytes<<",\"persistent_descriptor_writes\":"<<persistent.descriptor_writes
         <<",\"persistent_traffic_gate_skipped\":"<<(traffic_gate_skipped?"true":"false")
+        <<",\"validation_reuse_prepare_calls\":"<<validation_reuse.calls
+        <<",\"validation_reuse_record_visits\":"<<validation_reuse.visits
+        <<",\"validation_reuse_cache_hits\":"<<validation_reuse.hits
+        <<",\"validation_reuse_gpu_jobs\":"<<validation_reuse.gpu_jobs
+        <<",\"validation_reuse_complete_vertex_comparisons\":"<<validation_reuse.complete_vertices
+        <<",\"validation_reuse_hard_errors\":"<<validation_reuse.hard
+        <<",\"validation_reuse_typed_refusals\":"<<validation_reuse.refusals
+        <<",\"validation_reuse_empty_resets\":"<<validation_reuse.empties
+        <<",\"validation_reuse_full_reference\":"<<(validation_full_reference?"true":"false")
+        <<",\"validation_reuse_required\":"<<(validation_require_cache?"true":"false")
+        <<",\"validation_reuse_skipped_streamed\":"<<(validation_skipped_streamed?"true":"false")
+        <<",\"validation_reuse_semantic_events\":[";
+    for(std::size_t i=0;i<validation_reuse.semantic_events.size();++i) {
+        if(i)report<<',';report<<std::quoted(validation_reuse.semantic_events[i]);
+    }
+    report<<"]"
         <<",\"post_identity_sticky_cases\":128,\"sizes\":8,\"normal_lattice_boundary_cases\":6,\"minimum_normal_boundary_cases\":3,\"host_fp_control_cases\":224,\"validation_errors\":0}\n";
     need(bool(report),"Could not save the bounded GPU skin evidence");
     need(traffic_passed || traffic_gate_skipped,"Persistent GPU input traffic gate failed after complete correctness checks");

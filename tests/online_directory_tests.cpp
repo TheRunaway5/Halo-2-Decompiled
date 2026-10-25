@@ -54,6 +54,14 @@ int main(int argc, char **argv) {
     check(result.status == OnlineDirectoryStatus::Ready && result.servers.size() == 1 && requests == 2, "Failover or decoding failed");
     check(result.servers[0].name == "Community Server" && result.servers[0].map == "lockout" && result.servers[0].players == 3 &&
           result.servers[0].port == 2002 && result.servers[0].region == "US-EAST", "Advertised fields changed");
+    auto copy=listing();copy["origin_master_id"]="00000000-0000-0000-0000-000000000004";
+    OnlineDirectory namespaced(options,[&](const auto &,auto)->OnlineDirectoryResponse {
+      return {200,Json{{"servers",Json::array({listing(),copy})}}.dump()};
+    },clock);
+    const auto distinct=fetch(namespaced);
+    check(distinct.servers.size()==2&&distinct.servers[0].id!=distinct.servers[1].id&&
+      distinct.servers[0].server_id==distinct.servers[1].server_id&&distinct.servers[0].origin_id!=distinct.servers[1].origin_id,
+      "Federation origin namespace lost in native browser identity");
     requests = 0;
     OnlineDirectory empty(options, [&](const auto &, auto) -> OnlineDirectoryResponse { ++requests; return {200, R"({"servers":[]})"}; }, clock);
     check(fetch(empty).servers.empty() && requests == 1, "Empty snapshot triggered failover");

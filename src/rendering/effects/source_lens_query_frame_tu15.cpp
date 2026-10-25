@@ -54,7 +54,7 @@ struct SourceLensQueryFrameTu15::Impl final:SourcePhysicsContactMemory {
         for(unsigned n=0;n<query_pages;++n)put(graphics,driver+0x7d4+n*4,pages+n*4096);
         for(unsigned n=0;n<source_lens_query_capacity;++n)put(graphics,pages+n*16+12,0xffffffffu);
     }
-    void check(PhysicsLiveWorldTu15 &world) {
+    void check(SourceLensFrameWorldTu15 world) {
         if(std::this_thread::get_id()!=thread || !lease.valid())
             throw FormatError("Original lens queries lack their live renderer/thread owner");
         if(expected_source&&expected_source!=&world.memory())
@@ -84,10 +84,10 @@ struct SourceLensQueryFrameTu15::Impl final:SourcePhysicsContactMemory {
         } else if(contains(p,b.size(),driver,4096) || contains(p,b.size(),fifo,fifo_size) || contains(p,b.size(),pages,query_pages*4096))graphics.write(p,b);
         else source->write(p,b);
     }
-    void run(PhysicsLiveWorldTu15 &world,unsigned entry,std::span<const std::uint32_t> arguments={}) {
+    void run(SourceLensFrameWorldTu15 world,unsigned entry,std::span<const std::uint32_t> arguments={}) {
         auto abi=world.prepare_source_call(arguments);
         const auto use=lease.acquire();
-        source_execute_lens_query(world,entry,abi,this);
+        source_execute_lens_query(world.memory(),entry,abi,this);
     }
     void harvest() {
         last_completed=renderer.take_lens_query_results();
@@ -168,7 +168,19 @@ bool SourceLensQueryFrameTu15::commit_rebind(PreparedRebind &&prepared,const Sou
     if(!rebind_ready(prepared,memory))return false;
     publish_rebind(prepared);return true;
 }
-void SourceLensQueryFrameTu15::begin(PhysicsLiveWorldTu15 &world) {
+void SourceLensQueryFrameTu15::begin(PhysicsLiveWorldTu15 &world) {begin(SourceLensFrameWorldTu15{world});}
+void SourceLensQueryFrameTu15::prepare_view(PhysicsLiveWorldTu15 &world,unsigned v) {prepare_view(SourceLensFrameWorldTu15{world},v);}
+std::vector<SourceLensQueryDraw> SourceLensQueryFrameTu15::view(PhysicsLiveWorldTu15 &world,unsigned v,
+    Vec3 p,Vec3 f,Vec3 u,float a,const SourceViewProjectionBank &b,std::array<std::int16_t,4> r,unsigned w,unsigned h) {
+    return view(SourceLensFrameWorldTu15{world},v,p,f,u,a,b,r,w,h);
+}
+std::vector<SourceLensQueryDraw> SourceLensQueryFrameTu15::view(PhysicsLiveWorldTu15 &world,unsigned v,
+    Vec3 p,Vec3 f,Vec3 u,float a,const SourceViewProjectionBank &b,std::array<std::int16_t,4> r,unsigned w,unsigned h,Vec2 c) {
+    return view(SourceLensFrameWorldTu15{world},v,p,f,u,a,b,r,w,h,c);
+}
+void SourceLensQueryFrameTu15::finish_view(PhysicsLiveWorldTu15 &world,unsigned v) {finish_view(SourceLensFrameWorldTu15{world},v);}
+void SourceLensQueryFrameTu15::finish(PhysicsLiveWorldTu15 &world,bool submitted) {finish(SourceLensFrameWorldTu15{world},submitted);}
+void SourceLensQueryFrameTu15::begin(SourceLensFrameWorldTu15 world) {
     auto &s=*impl_;
     if(std::this_thread::get_id()!=s.thread||!s.lease.valid())
         throw FormatError("Original lens queries lack their live renderer/thread owner");
@@ -179,7 +191,7 @@ void SourceLensQueryFrameTu15::begin(PhysicsLiveWorldTu15 &world) {
     if(!s.initialized){world.call_actual(0x3803b0u);s.initialized=true;}
     world.call_actual(0x20680u);s.prepared_views=0;s.views=0;s.active_view=~0u;s.active=true;
 }
-void SourceLensQueryFrameTu15::prepare_view(PhysicsLiveWorldTu15 &world,unsigned view) {
+void SourceLensQueryFrameTu15::prepare_view(SourceLensFrameWorldTu15 world,unsigned view) {
     auto &s=*impl_;s.check(world);
     if(!s.active || s.active_view!=~0u || view>=4 || (s.prepared_views&(1u<<view)))
         throw FormatError("Original lens view admission lacks a unique active frame");
@@ -187,13 +199,13 @@ void SourceLensQueryFrameTu15::prepare_view(PhysicsLiveWorldTu15 &world,unsigned
     world.run_actual(0x20700u,abi);
     s.prepared_views|=1u<<view;s.active_view=view;
 }
-std::vector<SourceLensQueryDraw> SourceLensQueryFrameTu15::view(PhysicsLiveWorldTu15 &world,unsigned view,
+std::vector<SourceLensQueryDraw> SourceLensQueryFrameTu15::view(SourceLensFrameWorldTu15 world,unsigned view,
     Vec3 position,Vec3 forward,Vec3 up,float angle,const SourceViewProjectionBank &projection,
     std::array<std::int16_t,4> rectangle,unsigned logical_width,unsigned logical_height) {
     return this->view(world,view,position,forward,up,angle,projection,rectangle,
         logical_width,logical_height,Vec2{.015625f,1024.f});
 }
-std::vector<SourceLensQueryDraw> SourceLensQueryFrameTu15::view(PhysicsLiveWorldTu15 &world,unsigned view,
+std::vector<SourceLensQueryDraw> SourceLensQueryFrameTu15::view(SourceLensFrameWorldTu15 world,unsigned view,
     Vec3 position,Vec3 forward,Vec3 up,float angle,const SourceViewProjectionBank &projection,
     std::array<std::int16_t,4> rectangle,unsigned logical_width,unsigned logical_height,Vec2 clip_planes) {
     auto &s=*impl_;s.check(world);
@@ -249,7 +261,7 @@ std::vector<SourceLensQueryDraw> SourceLensQueryFrameTu15::view(PhysicsLiveWorld
     s.run(world,0x20750);
     return draws;
 }
-void SourceLensQueryFrameTu15::finish_view(PhysicsLiveWorldTu15 &world,unsigned view) {
+void SourceLensQueryFrameTu15::finish_view(SourceLensFrameWorldTu15 world,unsigned view) {
     auto &s=*impl_;s.check(world);
     if(!s.active || view>=4 || s.active_view!=view || !(s.views&(1u<<view)))
         throw FormatError("Original lens view retirement lacks its completed world pass");
@@ -258,12 +270,12 @@ void SourceLensQueryFrameTu15::finish_view(PhysicsLiveWorldTu15 &world,unsigned 
     const std::array<std::byte,4> none{std::byte{255},std::byte{255},std::byte{255},std::byte{255}};
     world.write_source_call_input(0x532094u,none);s.active_view=~0u;
 }
-void SourceLensQueryFrameTu15::finish(PhysicsLiveWorldTu15 &world,bool submitted) {
+void SourceLensQueryFrameTu15::finish(SourceLensFrameWorldTu15 world,bool submitted) {
     auto &s=*impl_;s.check(world);
     if(!s.active || s.active_view!=~0u)throw FormatError("Original lens query finish has an incomplete view/frame");
     std::vector<SourceLensQueryRollback> source_rollback;source_rollback.reserve(s.rollback.size());
     for(const auto &saved:s.rollback)source_rollback.push_back({saved.id,saved.area,saved.bit});
-    source_finish_lens_query(world,submitted,source_rollback);
+    source_finish_lens_query(world.memory(),submitted,source_rollback);
     if(submitted) {
         s.pending.merge(s.staged);put(s.graphics,driver+0x2c,++s.fence);
     } else {

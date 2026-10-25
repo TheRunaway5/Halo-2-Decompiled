@@ -32,6 +32,39 @@
 using namespace halo2;
 namespace {
 void check(bool value, const char *message) { if (!value) throw std::runtime_error(message); }
+void matchmaking_progress_kernels() {
+  using U=MatchmakingProgressUi;
+  // 0x72700: 10000 ms, published as ceil seconds, ready only at zero.
+  check(matchmaking_start_countdown(0).seconds==10 && !matchmaking_start_countdown(0).ready,"Start countdown did not begin at 10");
+  check(matchmaking_start_countdown(1).seconds==10 && matchmaking_start_countdown(1000).seconds==9,"Start countdown is not ceil seconds");
+  check(matchmaking_start_countdown(9999).seconds==1 && !matchmaking_start_countdown(9999).ready,"Start countdown finished early");
+  check(matchmaking_start_countdown(10000).seconds==0 && matchmaking_start_countdown(10000).ready &&
+        matchmaking_start_countdown(0xffffffffu).ready,"Start countdown did not finish at 10000 ms");
+  // 0x25142F, including pane3 only once B's countdown exists.
+  check(matchmaking_progress_pane(U::searching,-1)==0 && matchmaking_progress_pane(U::waiting,-1)==1 &&
+        matchmaking_progress_pane(U::joining,-1)==0 && matchmaking_progress_pane(U::starting,-1)==2 &&
+        matchmaking_progress_pane(U::start_match,-1)==2 && matchmaking_progress_pane(U::start_match,0)==3 &&
+        matchmaking_progress_pane(U::have_fun,-1)==3 && matchmaking_progress_pane(U::failed,5)==0,"TU1.5 pane selector differs");
+  check(matchmaking_progress_pc_pane(U::joining,-1)==2 && matchmaking_progress_pc_pane(U::start_match,4)==2,"PC pane host differs");
+  // 0x251BFF.
+  check(matchmaking_progress_title(U::start_match)->xbox==0x0d000440 && matchmaking_progress_title(U::have_fun)->xbox==0x16000441 &&
+        matchmaking_progress_title(U::joining)->pc==0x0c00043d,"TU1.5 title table differs");
+  // 0x22D775.
+  check(matchmaking_countdown_text(7)==":07" && matchmaking_countdown_text(10)==":10" && matchmaking_countdown_text(0)==":00" &&
+        matchmaking_countdown_text(-1)==":--","Countdown token format differs");
+  // 0x25217B and 0x251AFA.
+  check(matchmaking_progress_cancel_allowed(1,0) && !matchmaking_progress_cancel_allowed(2,59999) &&
+        matchmaking_progress_cancel_allowed(3,60000) && matchmaking_progress_consumes_x(2) && !matchmaking_progress_consumes_x(1),
+        "Cancel lock differs");
+  // 0x2514FD pane3 order and 0x2517E2 team coloring.
+  const std::vector<MatchmakingProgressPlayer> players{{1,10},{0,5},{1,30},{0,20}};
+  check(matchmaking_progress_order(players,true,true)==std::vector<unsigned>{3,1,2,0},"Ranked team order differs");
+  check(matchmaking_progress_order(players,true,false)==std::vector<unsigned>{2,3,0,1},"Ranked order differs");
+  check(matchmaking_progress_order(players,false,true)==std::vector<unsigned>{1,3,0,2},"Team order differs");
+  check(matchmaking_progress_order(players,false,false)==std::vector<unsigned>{0,1,2,3},"Unsorted order changed");
+  check(matchmaking_progress_team_colors(3,true) && !matchmaking_progress_team_colors(-1,true) &&
+        !matchmaking_progress_team_colors(3,false),"Team color gate differs");
+}
 void party_notifications() {
   OnlineAccountSnapshot before,after;
   before.authenticated=after.authenticated=true;
@@ -106,11 +139,12 @@ void private_identity(const MenuState &menu) {
 int main(int argc, char **argv) {
   try {
     party_notifications();
+    matchmaking_progress_kernels();
     if (argc < 2) return 77;
     std::filesystem::path maps(argv[1]), sampled, selected_menu_assets, captures;
     std::string matchmaking_url, account_url, capture_prefix;
     unsigned callback_port=42103;
-    bool party_run{}, gathering_run{}, party_render{}, capture_validation=true;
+    bool party_run{}, gathering_run{}, party_render{}, rank_run{}, capture_validation=true;
     std::shared_ptr<OnlineAccount> account;
     for (int i = 2; i < argc; ++i) {
       const std::string option(argv[i]);
@@ -119,6 +153,7 @@ int main(int argc, char **argv) {
       if (option == "--account-url") account_url = value.string();
       else if(option=="--party-url"){account_url=value.string();party_run=true;}
       else if(option=="--gathering-ui")gathering_run=value=="1";
+      else if(option=="--rank-ui")rank_run=value=="1";
       else if(option=="--party-render")party_render=value=="1";
       else if(option=="--validation") {
         check(value=="0" || value=="1","Invalid Vulkan validation option");
@@ -498,8 +533,9 @@ int main(int argc, char **argv) {
         return {200, R"({"id":"123456789012345678","username":"verified_user","global_name":"Name"})"};
       });
     menu.set_discord_login(login);
+    OnlineAccountOptions account_options;
     if (!account_url.empty()) {
-      OnlineAccountOptions account_options; account_options.endpoint=account_url; account_options.allow_loopback_http=true;
+      account_options.endpoint=account_url; account_options.allow_loopback_http=true;
       account_options.enable_parties=party_run;
       account_options.poll_interval=captures.empty() ? std::chrono::milliseconds(250) : std::chrono::milliseconds(party_run?1500:1000);
       account=std::make_shared<OnlineAccount>(login,account_options); menu.set_online_account(account);
@@ -927,6 +963,72 @@ int main(int argc, char **argv) {
       menu.select(0); menu.accept();
       wait_queue([](const auto &s) { return s.status == OnlineMatchmakingStatus::Searching; });
       check(matchmaking->snapshot().playlist_id == "ranked" && menu.frame().screen == 210 && !menu.launch, "Quickmatch did not use server default");
+      auto check_ranks=[&](std::vector<unsigned> pages) {
+        const auto draw=painter.draw(menu,5);
+        std::vector<unsigned> found;
+        std::vector<Vertex> suppressed;
+        std::vector<unsigned> icons;
+        for(unsigned i=0;i<draw.vertices.size();i+=6) {
+          const auto &material=mesh.materials.at(draw.vertices[i].material);
+          if(material.name!="ui\\global_bitmaps\\rank_icons_sm") {
+            suppressed.insert(suppressed.end(),draw.vertices.begin()+i,draw.vertices.begin()+i+6);
+            continue;
+          }
+          icons.push_back(i);
+          bool matched=false;
+          const auto inspect=[&](const FrontendContent &owner) {
+            for(const auto &[id,bank]:owner.images)if(bank.name==material.name)
+            {
+              check(bank.images.size()==50,"Authored rank artwork bank is incomplete");
+              for(unsigned page=0;page<bank.images.size();++page) {
+                const auto &image=bank.images[page];
+                if(image.width==material.diffuse.width && image.height==material.diffuse.height &&
+                    image.format==material.diffuse.format && image.pixels==material.diffuse.pixels) {
+                  if(!matched)found.push_back(page);matched=true;return;
+                }
+              }
+            }
+          };
+          inspect(content);if(!matched && content.vista)inspect(*content.vista);
+          check(matched,"Rank artwork is not an admitted source page");
+        }
+        std::sort(found.begin(),found.end());std::sort(pages.begin(),pages.end());
+        if(found!=pages)throw FormatError("Native matchmaking rank pages "+nlohmann::json(found).dump()+
+            " differ from authenticated playlist pages "+nlohmann::json(pages).dump());
+        if(!icons.empty() && std::getenv("DISPLAY")) {
+          const auto scratch=std::getenv("HALO2_TEST_SCRATCH");
+          check(scratch,"Rank GPU proof requires owned test scratch");
+          Renderer renderer(capture_desktop->window(640,480,true),mesh,capture_validation);
+          auto capture_rank=[&](const auto &vertices,const char *name) {
+            const auto path=std::filesystem::path(scratch)/name;
+            bool complete=false;
+            for(unsigned attempt=0;attempt<4 && !complete;++attempt)
+              complete=renderer.draw(Camera{},path,{},false,{},{},vertices);
+            check(complete,"Rank GPU capture did not complete");
+            std::ifstream file(path,std::ios::binary);std::string kind;unsigned w,h,max;
+            file>>kind>>w>>h>>max;file.get();
+            check(kind=="P6" && w==640 && h==480 && max==255,"Invalid rank framebuffer");
+            std::vector<unsigned char> pixels(w*h*3);
+            file.read(reinterpret_cast<char*>(pixels.data()),pixels.size());
+            check(bool(file),"Incomplete rank framebuffer");return pixels;
+          };
+          const auto actual=capture_rank(draw.vertices,"rank.ppm"),absent=capture_rank(suppressed,"rank-hidden.ppm");
+          for(auto first:icons) {
+            const auto &a=draw.vertices[first],&b=draw.vertices[first+4];unsigned changed=0;
+            for(int y=std::max(0,int(a.position.y));y<std::min(480,int(b.position.y)+1);++y)
+              for(int x=std::max(0,int(a.position.x));x<std::min(640,int(b.position.x)+1);++x) {
+                const auto at=(y*640+x)*3;
+                changed+=!std::equal(actual.begin()+at,actual.begin()+at+3,absent.begin()+at);
+              }
+            check(changed>0,"Selected rank page produced no framebuffer pixels");
+            std::cout<<"rank page="<<found.at(0)<<" changed_pixels="<<changed<<'\n';
+          }
+        }
+      };
+      if(rank_run) {
+        check(menu.online_matchmaking_rank(0)==36,"Service level37 did not map to TU1.5 page36");
+        check_ranks({36});
+      }
       check(!has_logo(menu), "Title logo overlaps Quickmatch"); private_identity(menu); capture("quickmatch-searching");
       if(gathering_run) {
         wait_queue([](const auto &s){return s.status==OnlineMatchmakingStatus::Searching && s.gathering.has_value();});
@@ -953,17 +1055,44 @@ int main(int argc, char **argv) {
       check(menu.online_matchmaking_text(menu.frame(), 0).find("level") == std::string::npos, "Casual skill leaked into UI");
       capture("playlist-details"); menu.accept();
       wait_queue([](const auto &s) { return s.status == OnlineMatchmakingStatus::CheckingConnections; });
+      if(rank_run)check_ranks({});
       check(matchmaking->snapshot().playlist_id == "casual" && menu.frame().entries.size() == 2 && !menu.launch, "Selected playlist did not form a native roster");
       check(menu.online_matchmaking_pane()==2 && menu.online_matchmaking_text(menu.frame(),0)=="Attempting to join a game...",
         "Native admitted match did not bind Vista's join pane/title");
       check(menu.frame().entries[0].label.find("Pilot") != std::string::npos && menu.frame().entries[1].label.find("Pilot") != std::string::npos, "Chosen names missing from roster");
       check(!has_logo(menu), "Title logo overlaps match roster"); private_identity(menu); capture("match-checking-connections");
       wait_queue([](const auto &s) { return s.status == OnlineMatchmakingStatus::Loading; });
+      // TU1.5 c_session_state_start_match: every peer is ready, so B counts
+      // 10 s on screen210 pane3 before the game starts.
+      // The test's UI clock stays 0 until advanced, so the start clock is 0.
+      std::uint32_t queue_clock=0;
+      menu.update_online_matchmaking();
+      check(!menu.launch && menu.online_matchmaking_ui()==MatchmakingProgressUi::start_match &&
+            menu.online_matchmaking_progress_pane()==3 && menu.online_matchmaking_countdown()==10,
+            "Ready match skipped the TU1.5 start countdown");
+      {const auto sounds=menu.take_ui_sounds();
+       check(std::count(sounds.begin(),sounds.end(),FrontendUiSound::MatchmakingAdvance)==1,"Entering pane3 did not request UI sound12 once");}
+      check(menu.online_matchmaking_text(menu.frame(),0).starts_with("Game starts in :10\n"),
+            ("Pane3 lost its countdown: "+menu.online_matchmaking_text(menu.frame(),0)).c_str());
+      check(menu.online_matchmaking_text(menu.frame(),0).find("Slayer")!=std::string::npos &&
+            menu.online_matchmaking_text(menu.frame(),0).find("on ")!=std::string::npos,"Pane3 lost its variant/map lines");
+      private_identity(menu);capture("match-countdown");
+      menu.back();
+      check(menu.frame().screen==210 && menu.take_back_refused() && menu.take_ui_sounds()==std::vector{FrontendUiSound::Error} &&
+            matchmaking->snapshot().status==OnlineMatchmakingStatus::Loading,
+            "Found game accepted Cancel inside its one-minute lock");
+      menu.ui_clock(queue_clock+=9000);menu.update_online_matchmaking();
+      check(!menu.launch && menu.online_matchmaking_countdown()==1 && menu.online_matchmaking_text(menu.frame(),0).starts_with("Game starts in :01"),
+            "Countdown did not reach one second");
+      menu.ui_clock(queue_clock+=1000);menu.update_online_matchmaking();
       check(menu.launch && menu.launch->online_match && menu.launch->map=="lockout.map" &&
-          menu.launch->multiplayer && menu.launch->local_players==1 && menu.launch->variant.name=="Slayer",
-          "Native matchmaking did not hand its authenticated match into gameplay");
+          menu.launch->multiplayer && menu.launch->local_players==1 && menu.launch->variant.name=="Slayer" &&
+          menu.online_matchmaking_ui()==MatchmakingProgressUi::have_fun,
+          "Native matchmaking did not hand its authenticated match into gameplay after the countdown");
       capture("match-loading");
       menu.launch.reset();
+      menu.ui_clock(queue_clock+=60000);menu.update_online_matchmaking();
+      check(!menu.launch,"A launched match was handed to gameplay twice");
       menu.back(); menu.back(); menu.back();
       wait_queue([](const auto &s) { return s.status == OnlineMatchmakingStatus::Idle; });
       check(menu.frame().screen == 186, "Cancel failed to return to service menu");
@@ -1096,6 +1225,18 @@ int main(int argc, char **argv) {
       }),"ONLINE party lobby omitted the actual local profile emblem");
       verify_party_rows(1);
       check(!has_logo(menu),"Title logo overlaps ONLINE party");capture("party-created");
+      // The service retains this party across sign-ins. A profile that signs
+      // in while still a member must land on ONLINE menu186 like any other
+      // profile; Custom Game then re-enters the same leader lobby.
+      menu.return_online();
+      account=std::make_shared<OnlineAccount>(login,account_options);menu.set_online_account(account);
+      wait_party([](const auto &s){return s.authenticated && s.party && !s.busy;});
+      check(menu.frame().screen==186,"Retained service party skipped ONLINE menu186 into lobby14");
+      check(menu.frame().entries.at(0).destination==210 && menu.frame().entries.at(1).destination==219,
+            "Retained service party changed the ONLINE Quickmatch/Optimatch routes");
+      menu.select(2);menu.accept();
+      check(menu.frame().screen==14 && account->snapshot().party->leader,"Custom Game lost the retained leader lobby");
+      (void)menu.take_ui_sounds();
       choose("Party Options");capture("party-options");choose("Join Party Voice");
       const auto voice_until=std::chrono::steady_clock::now()+std::chrono::seconds(4);
       while(menu.online_party_text(menu.frame(),0).find("connected")==std::string::npos && std::chrono::steady_clock::now()<voice_until){menu.update_online_login();std::this_thread::sleep_for(std::chrono::milliseconds(5));}

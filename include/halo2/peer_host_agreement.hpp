@@ -23,7 +23,7 @@ struct PeerMigrationDecision {
 struct PeerHostAgreementState {
     bool suspected{},fenced{};
     std::uint16_t electorate{},silent{};
-    unsigned majority{};
+    unsigned majority{}; // Promise/silence threshold; decisions require the entire electorate.
     std::array<std::optional<AuthorityCutSeal>,16> ready;
     std::optional<PeerMigrationDecision> decision;
     std::uint64_t rejected{};
@@ -33,7 +33,9 @@ struct PeerHostAgreementState {
 // The failed host is excluded; local timeouts never shrink the remaining
 // electorate. Accepted proposals survive retries/preemption for this object's
 // entire lifetime. Do not reconstruct it within the same live generation.
-// This is crash/partition consensus, not Byzantine consensus or a cheating ban.
+// A decision requires every fixed survivor. Each honest acceptor locks its
+// first value across ballots, so pairwise equivocation cannot split honest
+// decisions. A missing/withholding survivor can prevent migration.
 // Every public operation is synchronized. No native world or device is owned.
 class PeerHostAgreement {
 public:

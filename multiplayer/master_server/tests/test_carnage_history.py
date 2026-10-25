@@ -56,7 +56,7 @@ class CarnageHistoryTests(unittest.IsolatedAsyncioTestCase):
             await asyncio.wait_for(queue.get(),2)
         return room, raw
 
-    async def test_website_lookup_complete_details_and_guest_exclusion(self):
+    async def test_website_persists_only_verified_summary_and_excludes_host_forged_details(self):
         room, raw = await self.completed()
         response = await self.client.get("/v1/history/players?discord_username=ONE")
         self.assertEqual(response.status,200)
@@ -71,18 +71,19 @@ class CarnageHistoryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(report["players"]),2)
         self.assertEqual(report["variant_bytes"],raw[0x20:0x150].hex())
         for row in report["players"]:
-            self.assertTrue(row["details_available"])
-            self.assertEqual(row["medals"],[[3,4]])
-            self.assertEqual(row["weapons"],[[5,4,11]])
-            self.assertEqual(len(row["opponents"]),2)
-            self.assertTrue(all(v["values"]==[5,0] for v in row["opponents"]))
-        self.assertEqual(report["teams"][0]["general"],[[7,17]])
+            self.assertFalse(row["details_available"])
+            self.assertIsNone(row["appearance"])
+            for field in ("general", "medals", "weapons", "opponents"):
+                self.assertEqual(row[field], [])
+        self.assertEqual(report["format"], "native-verified-summary-v2")
+        self.assertEqual(report["teams"][0]["general"], [])
         encoded = json.dumps(report)
         for private in ["private-subject", "discord_token", "guest-", "Guest 2", "30000", *[p for p,_,_ in room.players]]:
             self.assertNotIn(private,encoded)
         db = self.api.directory.store.db
-        self.assertEqual(db.execute("SELECT count(*) FROM carnage_players").fetchone()[0],2)
-        self.assertEqual(db.execute("SELECT count(*) FROM carnage_opponents").fetchone()[0],4)
+        self.assertEqual(db.execute("SELECT count(*) FROM carnage_player_summaries").fetchone()[0],2)
+        for table in ("carnage_players", "carnage_general_stats", "carnage_medals", "carnage_weapon_stats", "carnage_opponents", "carnage_team_stats"):
+            self.assertEqual(db.execute("SELECT count(*) FROM " + table).fetchone()[0], 0)
         self.assertEqual(db.execute("SELECT count(*) FROM carnage_general_stats WHERE value=30000").fetchone()[0],0)
         # Replayed completion cannot append another normalized report.
         self.api.results.commit(room)
@@ -117,7 +118,7 @@ class CarnageHistoryTests(unittest.IsolatedAsyncioTestCase):
             self.api.results.commit(room)
         db = self.api.directory.store.db
         for table in ("match_results", "match_result_players", "carnage_reports", "history_players",
-                      "carnage_players", "carnage_general_stats", "carnage_medals", "carnage_weapon_stats"):
+                      "carnage_players", "carnage_player_summaries", "carnage_general_stats", "carnage_medals", "carnage_weapon_stats"):
             self.assertEqual(db.execute("SELECT count(*) FROM "+table).fetchone()[0], 0, table)
 
     async def test_legacy_summaries_remain_honest_and_paginate_without_duplicates(self):

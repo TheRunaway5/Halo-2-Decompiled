@@ -1,17 +1,20 @@
 #include "halo2/multiplayer_kbm.hpp"
 
 namespace halo2 {
-Controls MultiplayerKbmInput::gameplay_controls(bool dual,bool seated,bool inverted,bool vehicle_secondary) const {
+Controls MultiplayerKbmInput::gameplay_controls(bool dual,bool seated,bool inverted) const {
   auto result=controls;
   dual&=!seated;
   result.fire=dual?(inverted?actions.dual_secondary:actions.dual_primary):controls.fire;
   result.fire_secondary=dual && (inverted?actions.dual_primary:actions.dual_secondary);
-  if(seated && vehicle_secondary)result.fire_secondary=actions.dual_secondary;
-  // TU1.5 F297A consumes vehicle+148 bit0 as boost. The original driver
-  // propagation copies the low control word; ordinary unit bit0 is crouch.
-  // Keep this context change in the host adapter, before the existing command
-  // and network owners, so right-click zoom cannot boost an on-foot unit.
-  if(seated)result.crouch|=actions.dual_secondary;
+  // Original189617 produces the held secondary intent used by the unit's
+  // boost owner, independently of whether its weapon has an input1 barrel.
+  // Retain the existing vehicle low-word intent used by the independently
+  // qualified Ghost boost owner, together with the original unit intent.
+  // On-foot right-click remains zoom.
+  if(seated) {
+    result.fire_secondary=actions.dual_secondary;
+    result.crouch|=actions.dual_secondary;
+  }
   return result;
 }
 void MultiplayerKbm::suspend(Uint32 milliseconds) {

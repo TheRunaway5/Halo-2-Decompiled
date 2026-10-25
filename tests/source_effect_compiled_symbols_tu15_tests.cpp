@@ -1,6 +1,7 @@
 #include "halo2/source_effect_compiled_symbols_tu15.hpp"
 #include "halo2/physics_contact_record.hpp"
 #include <array>
+#include <algorithm>
 #include <iostream>
 #include <stdexcept>
 #include <thread>
@@ -14,11 +15,12 @@ struct Memory final:SourcePhysicsContactMemory {
 };
 void need(bool passed){if(!passed)throw std::runtime_error("Compiled effect symbol control failed");}
 std::string names(std::uint32_t id) {
-    switch(id){case 0x030000d9:return "any";case 0x0700055a:return "replace";case 0x0400055b:return "root";
-        case 0x07000558:return "forward";case 0x0800055c:return "backward";
-        case 0x0f00056f:return "range_remaining";case 0x06000570:return "tracer";
-        case 0x0e00056e:return "time_remaining";case 0x11000572:return "projectile_attach";
-        case 0x12000571:return "acceleration_range";}
+    struct Name {std::uint32_t original_index,mcc;const char *text;};
+    static constexpr Name joined[]{
+#include "../src/ui/mcc_frontend_string_ids.inc"
+    };
+    const auto at=std::find_if(std::begin(joined),std::end(joined),[&](const auto &row){return row.mcc==id;});
+    if(at!=std::end(joined))return at->text;
     throw std::runtime_error("Unknown authored namespace query");
 }
 template<class F>void rejects(F &&fn){bool rejected=false;try{fn();}catch(const std::exception&){rejected=true;}need(rejected);}
@@ -32,7 +34,8 @@ int main()try {
         SourceEffectCompiledSymbolsTu15 original(a,false,{});
         need(source_effect_compiled_symbol_tu15(a,0x0400054f)==0x0400054f);
     }
-    for(const auto bad:{0x030000d9u,0x0700055au,0x0400055bu,0x07000558u,0x0800055cu}) {
+    for(const auto bad:{0x030000d9u,0x0700055au,0x0400055bu,0x07000558u,0x0800055cu,
+        0x1a000729u,0x110005a7u,0x0600056cu}) {
         rejects([&]{SourceEffectCompiledSymbolsTu15 partial(a,true,[&](auto id){return id==bad?"foreign":names(id);});});
         need(source_effect_compiled_symbol_tu15(a,0x0400054f)==0x0400054f);
     }
@@ -40,6 +43,18 @@ int main()try {
     rejects([&]{SourceEffectCompiledSymbolsTu15 missing(a,true,[](auto)->std::string{throw std::runtime_error("Missing owned table");});});
     {
         SourceEffectCompiledSymbolsTu15 first(a,true,names);
+        // Folded arithmetic operands are not StringIDs. Their target names
+        // validate independently; only the exact instruction/operand pair
+        // may acquire the adapted distance.
+        for(const auto [pc,original,adapted]:std::array<std::array<std::uint32_t,3>,3>{{
+            {0xbef88u,0x0200011eu,0x02000121u},
+            {0xc91b9u,0x513u,0x51fu},
+            {0x10be5cu,0x06000560u,0x0600056cu}}}) {
+            need(source_object_function_compiled_symbol_tu15(a,pc,original)==adapted);
+            need(source_object_function_compiled_symbol_tu15(b,pc,original)==original);
+            need(source_object_function_compiled_symbol_tu15(a,pc+1,original)==original);
+            need(source_object_function_compiled_symbol_tu15(a,pc,adapted)==adapted);
+        }
         need(source_effect_compiled_symbol_tu15(a,0x030000d9)==0x030000d9);
         need(source_effect_compiled_symbol_tu15(a,0x0700054e)==0x0700055a);
         need(source_effect_compiled_symbol_tu15(a,0x0400054f)==0x0400055b);

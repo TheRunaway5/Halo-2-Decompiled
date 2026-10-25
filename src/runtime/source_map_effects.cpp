@@ -98,13 +98,10 @@ struct SourceMapEffects::Impl {
                     }
                     if(damage_parts && (visual_parts || particle_systems || partial_lens))
                         throw FormatError("Mixed map damage effect requires its completed original part/presentation ownership");
-                    if(partial_lens && !visual_parts && !particle_systems)
-                        throw FormatError("Map attachment lens part has no supported visual components");
                     attachment.source_damage_only=damage_parts;
                     if(!damage_parts)e.preload_attached(attachment.effect);
                     attachment.prepared=!partial_lens;attachment.partial=partial_lens;
                     if(attachment.prepared)++counts.prepared;
-                    else gaps.insert(name+": Lens part requires its original render owner; supported authored components are prepared separately");
                 }catch(const FormatError &error){gaps.insert(name+": "+error.what());}
                 placement.attachments.push_back(std::move(attachment));
             }
@@ -184,7 +181,7 @@ void SourceMapEffects::synchronize(std::span<const SourceSceneEffectOwner> owner
         i.effects.object_markers(owner.object,std::move(markers));
         const auto scales=source_map_effect_unnamed_functions();
         for(const auto &attachment:at->second.attachments)if(attachment.prepared || attachment.partial) {
-            if(attachment.function_a || attachment.function_b || attachment.source_damage_only) {
+            if(attachment.function_a || attachment.function_b || attachment.source_damage_only || attachment.partial) {
                 const auto current=source.find(owner.object);
                 if(current==source.end()) {
                     i.gaps.insert("Source-owned map attachment requires its completed source instance/controls");
@@ -198,6 +195,11 @@ void SourceMapEffects::synchronize(std::span<const SourceSceneEffectOwner> owner
                 if(row==root.attached_effects.end())throw FormatError("Source attachment snapshot omitted an authored effect slot");
                 if(row->instance!=none && row->definition!=attachment.effect)
                     throw FormatError("Source attachment allocation differs from its authored effect slot");
+                if(row->render && row->render->attached_owner!=owner.object)
+                    throw FormatError("Source attachment render packet differs from its full object owner");
+                if(attachment.partial && row->instance!=none &&
+                    (!row->render || !source_effect_replica_attached_world_tu15(*row->render)))
+                    i.gaps.insert("Map lens attachment requires its current non-biped WORLD render packet");
                 NativeWorldEffects::ObjectMarkers locations;
                 for(const auto &location:row->locations) {
                     Transform world=location.local;

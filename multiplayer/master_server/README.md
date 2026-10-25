@@ -39,12 +39,19 @@ From the repository root:
 python3 -m venv .local/master-venv
 . .local/master-venv/bin/activate
 python -m pip install -r multiplayer/master_server/requirements.txt
-python -m unittest discover -s multiplayer/master_server/tests -t . -v
+python tools/run_test.py -- python tools/test_master_server.py
 ```
 
 The integration test starts two real processes, registers and updates a server,
 stops and restarts its origin, checks discovery failover, then crashes a real
 simulator and waits for both directories to expire the listing.
+
+The service requires the Rust security ABI. The test helper builds it inside
+owned scratch and removes it with the enclosing runner. For a source deployment,
+build `rust/online_security_ffi/Cargo.toml` with the pinned toolchain and set
+`H2_SECURITY_LIBRARY` to the absolute installed library path. Missing or
+incompatible libraries fail closed. Docker includes the library automatically;
+Compose uses the repository root as its build context.
 
 For Docker, start in this directory:
 

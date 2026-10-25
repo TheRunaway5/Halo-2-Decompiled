@@ -18,10 +18,18 @@ RUNTIME='''#!/usr/bin/env python3
 import csv,os,sys
 width,height=map(int,os.environ['HALO2_TEST_RENDER_SIZE'].split(','))
 with open(os.environ['HALO2_RENDER_TIMINGS'],'w') as stream:
-    writer=csv.DictWriter(stream,delimiter='\\t',fieldnames=['interval_ms','render_width','render_height','present_width','present_height'])
+    fields=['interval_ms','render_width','render_height','present_width','present_height']
+    host=os.environ.get('HALO2_TEST_APPEND_HOST_TIMINGS')=='1'
+    if host:fields+=['host_timings_present','host_frame','host_input_ms','host_view0_body_ms',
+        'host_match_step_ms','host_match_step_calls','host_shared_pre_view_ms','host_view0_model_collection_ms','host_view0_model_collection_calls']
+    writer=csv.DictWriter(stream,delimiter='\\t',fieldnames=fields)
     writer.writeheader()
-    for _ in range(int(sys.argv[sys.argv.index('--frames')+1])):
-        writer.writerow(dict(interval_ms=5,render_width=width,render_height=height,present_width=1280,present_height=720))
+    for frame in range(int(sys.argv[sys.argv.index('--frames')+1])):
+        row=dict(interval_ms=5,render_width=width,render_height=height,present_width=1280,present_height=720)
+        if host:row.update(host_timings_present=1,host_frame=frame,host_input_ms=frame+.25,host_view0_body_ms=1,
+            host_match_step_ms=.75,host_match_step_calls=1,host_shared_pre_view_ms=.125,
+            host_view0_model_collection_ms=.25,host_view0_model_collection_calls=1)
+        writer.writerow(row)
 '''
 
 class Dimensions(unittest.TestCase):
@@ -57,6 +65,20 @@ class Dimensions(unittest.TestCase):
         self.args.render_size=[3840,2160]
         with self.assertRaisesRegex(RuntimeError,'internal render size differs'):
             self.measure('1280,720')
+
+    def test_appended_host_phases_preserve_original_driver_contract(self):
+        self.args.render_size=[3840,2160]
+        with patch.dict(os.environ,HALO2_TEST_APPEND_HOST_TIMINGS='1'):
+            result=self.measure('3840,2160')
+        self.assertEqual(result['frames'],5)
+        self.assertEqual(result['fps'],200)
+        self.assertEqual(result['dimensions'],{'render':(3840,2160),'present':(1280,720)})
+        self.assertEqual(result['phases']['host_input_ms']['mean'],3.25)
+        self.assertEqual(result['phases']['host_view0_body_ms']['mean'],1)
+        self.assertEqual(result['phases']['host_match_step_ms']['mean'],.75)
+        self.assertEqual(result['phases']['host_shared_pre_view_ms']['mean'],.125)
+        self.assertEqual(result['phases']['host_view0_model_collection_ms']['mean'],.25)
+        self.assertNotIn('host_match_step_calls',result['phases'])
 
 if __name__=='__main__':
     unittest.main()

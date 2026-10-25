@@ -478,16 +478,23 @@ def _needs_graphics_reimport(root, report):
     from mcc_bitmap_correction_bundle import BUNDLE_V2, PROFILES_V2
     from mcc_bitmap_correction_bundle_v3 import BUNDLE_V3, MAP_NAME, PROFILES_V3
     from mcc_bitmap_correction_bundle_v4 import BUNDLE_V4, MAP_NAME as SACRED_ICON_MAP, PROFILES_V4
+    from mcc_bitmap_correction_bundle_v5 import BUNDLE_V5, MAP_NAME as ELONGATION_MAP, PROFILES_V5
+    from mcc_bitmap_correction_bundle_v6 import BUNDLE_V6, OWNERS_V6, PROFILES_V6
     if not all((root / path).is_file() for path in (BUNDLE_V2, BUNDLE_V3)):
         return False
     graphics = report.get("graphics_corrections", {})
     if not isinstance(graphics, dict) or graphics.get("complete") is not True:
         return True
     sources = [("zanzibar.map", PROFILES_V2), (MAP_NAME, PROFILES_V3)]
-    minimum = 4 if (root / BUNDLE_V4).is_file() else 3
-    for version in (3, 4):
-        if version == 4:
+    has_v4 = (root / BUNDLE_V4).is_file()
+    minimum = 6 if (root / BUNDLE_V6).is_file() else 5 if (root / BUNDLE_V5).is_file() else 4 if has_v4 else 3
+    for version in (3, 4, 5, 6):
+        if version == 4 and (has_v4 or minimum < 5):
             sources.append((SACRED_ICON_MAP, PROFILES_V4))
+        if version == 5:
+            sources.append((ELONGATION_MAP, PROFILES_V5))
+        if version == 6:
+            sources.extend((owner["map"], PROFILES_V6) for owner in OWNERS_V6)
         if version < minimum:
             continue
         expected = [dict(map=name, tag=p["tag"], restored_mips=p["mip_count"],
@@ -496,7 +503,7 @@ def _needs_graphics_reimport(root, report):
         if (graphics.get("schema") == f"H2_MCC_APPLIED_GRAPHICS_CORRECTIONS_V{version}" and
                 graphics.get("restored_mips") == sum(p["restored_mips"] for p in expected) and
                 graphics.get("profiles") == expected):
-            # Reusing an already verified V4 copy needs no reconstruction
+            # Reusing an already verified current copy needs no reconstruction
             # delta. A partial/older tool set must not downgrade its assets.
             return False
     return True

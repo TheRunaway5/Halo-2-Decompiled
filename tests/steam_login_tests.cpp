@@ -93,6 +93,18 @@ int main(){try{
   SteamLogin restarted({},cache,resume_http);restarted.bind_profile("test-preferences","Spartan");restarted.restore();
   check(wait(restarted).identity.has_value(),"Restart did not restore remembered profile");
   restarted.cancel();unavailable=true;restarted.restore();check(wait(restarted).status==DiscordLoginStatus::Failed && saved["Spartan"]==refresh_a,"Transient outage erased remembered sign-in");
-  unavailable=false;restarted.sign_out();restarted.cancel();check(revoked && !saved.contains("Spartan") && saved["Elite"]==refresh_b,"Explicit sign-out did not revoke just the selected profile");
+  unavailable=false;restarted.sign_out();check(wait(restarted).status==DiscordLoginStatus::SignedOut,"Sign-out did not complete");
+  restarted.cancel();check(revoked && !saved.contains("Spartan") && saved["Elite"]==refresh_b,"Explicit sign-out did not revoke just the selected profile");
+  for(unsigned failure=0;failure<4;++failure){
+    saved["Spartan"]=refresh_a;
+    SteamLogin retry({},cache,[&](const DiscordHttpRequest &r,std::stop_token){
+      check(saved["Spartan"]==refresh_a,"Revocation credential erased before acknowledgement");
+      if(failure==0)throw std::runtime_error("transport failure");
+      return DiscordHttpResponse{failure==1?500:200,failure==2?"{}":R"({"state":"signed_in"})"};
+    });
+    retry.bind_profile("test-preferences","Spartan");retry.sign_out();
+    check(wait(retry).status==DiscordLoginStatus::Failed&&saved["Spartan"]==refresh_a,
+      "Failed or malformed revocation destroyed retry capability");
+  }
   std::cout<<"Steam identity proof, fixed endpoints, privacy, rejection, cancellation and sign-out passed\n";
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}

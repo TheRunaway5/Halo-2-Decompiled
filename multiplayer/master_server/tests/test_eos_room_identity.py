@@ -64,7 +64,7 @@ class EosRoomIdentityTests(unittest.IsolatedAsyncioTestCase):
         response = await self.client.post(self.route(row, 'eos-proof'), headers=self.headers(row), json={'token': proof(puid)})
         self.assertEqual(response.status, 200, await response.text())
         self.assertEqual(await response.json(), {'eos_product_user_id': puid})
-        identity.verify.assert_awaited_once_with(puid, proof(puid))
+        identity.verify.assert_awaited_once_with(puid, proof(puid), principal=who)
         return who
 
     async def test_v13_routes_refuse_account_transport_without_changing_legacy_signals(self):
@@ -172,25 +172,25 @@ class EosRoomIdentityTests(unittest.IsolatedAsyncioTestCase):
     async def test_revoked_closed_expired_or_replaced_room_cannot_complete_late_proof(self):
         room, rows = await self.room(); identity = self.configure(); a = rows[0]
         who = room.players[a['slot']][0]; saved = room.tokens[who]
-        async def revoke(*_):
+        async def revoke(*_, **kwargs):
             room.tokens.pop(who)
             return who
         identity.verify = revoke
         self.assertEqual((await self.client.post(self.route(a, 'eos-proof'), headers=self.headers(a), json={'token': proof('1' * 32)})).status, 401)
         room.tokens[who] = saved
-        async def expire(*_):
+        async def expire(*_, **kwargs):
             room.deadline = time.monotonic() - 1
             return who
         identity.verify = expire
         self.assertEqual((await self.client.post(self.route(a, 'eos-proof'), headers=self.headers(a), json={'token': proof('1' * 32)})).status, 404)
         room.deadline = time.monotonic() + 60
-        async def close(*_):
+        async def close(*_, **kwargs):
             room.closed = True
             return who
         identity.verify = close
         self.assertEqual((await self.client.post(self.route(a, 'eos-proof'), headers=self.headers(a), json={'token': proof('1' * 32)})).status, 404)
         room.closed = False
-        async def replace(*_):
+        async def replace(*_, **kwargs):
             self.api.transport.rooms.pop(room.id)
             return who
         identity.verify = replace

@@ -1,4 +1,5 @@
 #include "halo2/frontend.hpp"
+#include "ui/frontend_multiplayer_rules.hpp"
 #include "halo2/frontend_online.hpp"
 #include "halo2/multiplayer.hpp"
 #include "halo2/frontend_lobby_game.hpp"
@@ -1035,10 +1036,11 @@ void MenuState::leave_local_controller(unsigned controller) {
 FrontendLaunch MenuState::selected_multiplayer_configuration() const {
   if(mode_!=1 && mode_!=2)throw FormatError("Native multiplayer configuration requires its selected local mode");
   UiVariant variant{variant_name_,engine_,variant_values_};
-  const auto rules=slayer_rules(variant,true);
+  const auto rules=detail::frontend_multiplayer_rules(variant);
   FrontendLaunch result;
   result.map=frontend_multiplayer_launch_file(content_.multiplayer_maps,map_);
   const auto &map=content_.multiplayer_maps.at(map_);
+  result.shared_maps=map.shared_maps;
   if(rules.custom==CustomSlayer::none && !rules.defusal && frontend_multiplayer_energy_start(map))throw FormatError("Midship and Waterworks start with energy weapons; their battery combat is unfinished. Choose an SMG-start map.");
   result.multiplayer=true;
   const auto players=local_players();result.local_players=unsigned(players.size());
@@ -1051,7 +1053,7 @@ FrontendLaunch MenuState::selected_multiplayer_configuration() const {
     result.input_instances.push_back(player.input_instance);
     if(rules.team_mode) {
       const auto team=source_local_profile_team(player.team);
-      if(team<0 || team>7)throw FormatError("The native Slayer session requires a selected playing team 0..7.");
+      if(team<0 || team>7)throw FormatError("The native multiplayer session requires a selected playing team 0..7.");
       result.selected_teams.push_back(team);
     }
   }
@@ -1564,6 +1566,14 @@ void MenuState::back() {
   if(frame().vista_leave_task)return;
   if(frame().vista_pcr){vista_pcr_event(1);return;} // Actual PC component1/B.
   if (frame().screen == 210) {
+    // TU1.5 0x25217B: once a game is found (pane2+), Cancel is refused with
+    // UI sound2 until that pane has been current for a minute.
+    if (!matchmaking_progress_cancel_allowed(online_matchmaking_progress_pane(),
+                                             ui_clock_ - matchmaking_pane_clock_)) {
+      if (pending_ui_sounds_.size() < 16) pending_ui_sounds_.push_back(FrontendUiSound::Error);
+      back_refused_ = true;
+      return;
+    }
     quickmatch_pending_ = false;
     if (online_matchmaking_) online_matchmaking_->cancel_queue();
   }
@@ -1639,6 +1649,8 @@ void MenuState::back() {
 }
 void MenuState::auxiliary() {
   if(frame().vista_pcr)return; // Source details is component3/Y, not X.
+  // c_matchmaking_screen::v10 (0x251AFA) consumes button3 from pane2 on.
+  if(frame().screen==210 && matchmaking_progress_consumes_x(online_matchmaking_progress_pane()))return;
   if(frame().screen==14 && lobby_session_action_ &&
       lobby_session_action_(FrontendLobbySessionAction::Auxiliary))return;
   if (frame().screen == 211 && frame().context == 41) { ++clan_message_page_; ++revision; return; }

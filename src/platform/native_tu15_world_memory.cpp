@@ -712,6 +712,11 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
         "native TU1.5 cold targeting comparator parameter binding");
     memory.mount(0x52be48u,std::array<std::byte,4>{},SourceRuntimeMemory::Access::ReadWrite,
         "native TU1.5 cold BSP physics representation binding");
+    // Original176462 reads this separate .data alias of the same bounds
+    // destination used by474D40. Preserve its writable loader initializer;
+    // actual380FA0 publishes the six bounds components during native startup.
+    memory.mount(0x474d3cu,encode(std::array{0x55655cu}),SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 cold portal empty-bounds binding");
     memory.mount(0x474d40u,encode(std::array{0x55655cu}),SourceRuntimeMemory::Access::ReadOnly,
         "native TU1.5 authored BSP physics empty-bounds binding");
     memory.mount(0x52be74u,std::array<std::byte,4>{},SourceRuntimeMemory::Access::ReadWrite,
@@ -1938,6 +1943,11 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
         "native TU1.5 loader-zeroed 382230 spatial threshold destination");
     memory.mount(0x55d728u,std::array{std::byte{},std::byte{}},SourceRuntimeMemory::Access::ReadWrite,
         "native TU1.5 loader-zeroed 27DF0E contact query ushort scalar");
+    // Actual18F9F4 selects this immutable default object reference when
+    // a looping request uses an attached/spatial location.18F9F9 copies its
+    // literal zero word; it supplies no listener or audio readiness.
+    share_immutable_word(memory,0x44ebd8u,0u,
+        "native TU1.5 authored spatial-loop default reference operand");
     // Actual18F900 clears ceil(active BSP clusters/32) DWORDs here before
     // listener-distance publication;18EE50 then tests this independent sound
     // visibility vector. Retain the original loader-zero64-byte prefix for
@@ -3101,6 +3111,11 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
         "native TU1.5 authored complete environment producer operand");
     share_immutable_word(memory,0x46a2ecu,0x40490fdbu,
         "native TU1.5 authored complete environment producer operand");
+    // Whole18B580 packs the sound-scenery inner/outer cone angles reached
+    // by18F9B0. Literal TU1.5 .rdata bits, independently pinned by the CPU
+    // fixture; no spatial admission, listener or voice outcome is supplied.
+    share_immutable_word(memory,0x46a584u,0x46a2f8e0u,
+        "native TU1.5 authored sound-scenery angle scale operand");
     share_immutable_word(memory,0x46a43cu,0x447fc000u,
         "native TU1.5 authored complete environment producer operand");
     share_immutable_word(memory,0x46a440u,0x44800000u,
@@ -3218,6 +3233,7 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
     // conversion still own publishing a resolved game-language value.
     mount_native_tu15_game_language_storage(memory);
     mount_native_tu15_multiplayer_branch_data(memory);
+#include "gameplay/multiplayer/native_tu15_objective_presentation_data.inc"
     return memory;
 }
 }

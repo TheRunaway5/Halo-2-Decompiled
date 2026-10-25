@@ -2,9 +2,6 @@
 #include "halo2/source_authority_receiver.hpp"
 #include "halo2/source_authority_publisher.hpp"
 #include "halo2/source_camera.hpp"
-#include "halo2/native_vehicle_camera.hpp"
-#include "halo2/source_execution_lens.hpp"
-#include "source_lens_draw_replay_fixture.hpp"
 #include "halo2/online_matchmaking.hpp"
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/source_host_continuation_codec.hpp"
@@ -17,21 +14,6 @@
 namespace {
 using namespace std::chrono_literals;
 using Wall=std::chrono::steady_clock;
-struct QueryDevice final:SourcePhysicsContactMemory {
-    SourceRuntimeMemory storage;
-    QueryDevice() {
-        const std::array<std::byte,4> driver{std::byte{0},std::byte{0},std::byte{0x10},std::byte{0xf7}};
-        storage.mount(0x411568u,driver,SourceRuntimeMemory::Access::ReadWrite,"declared lens driver pointer");
-        storage.mount(0xf7100000u,std::vector<std::byte>(4096),SourceRuntimeMemory::Access::ReadWrite,"declared lens driver");
-        storage.mount(0xf7140000u,std::vector<std::byte>(4096),SourceRuntimeMemory::Access::ReadWrite,"declared pending query metadata");
-        put(0xf71007d4u,0xf7140000u);put(0xf710002cu,1);
-    }
-    void put(std::uint32_t p,std::uint32_t value){std::array<std::byte,4> bytes;
-        for(unsigned n=0;n<4;++n)bytes[n]=std::byte(value>>(8*n));storage.write(p,bytes);}
-    void read(std::uint32_t p,std::span<std::byte> out)const override{storage.read(p,out);}
-    void write(std::uint32_t p,std::span<const std::byte> in)override{storage.write(p,in);}
-};
-
 template<class F>void wait(F ready,const char *stage){const auto until=Wall::now()+180s;
     while(!ready()){check(Wall::now()<until,stage);std::this_thread::sleep_for(5ms);}}
 std::size_t discard(char *,std::size_t a,std::size_t b,void *){return a*b;}
@@ -46,6 +28,16 @@ void write(const std::filesystem::path &path,std::span<const std::byte> bytes){c
 std::vector<std::byte> read(const std::filesystem::path &path){std::ifstream in(path,std::ios::binary);std::vector<char> data((std::istreambuf_iterator<char>(in)),{});
     check(bool(in)||in.eof(),"Receiver fixture read failed");std::vector<std::byte> bytes(data.size());std::copy(data.begin(),data.end(),reinterpret_cast<char *>(bytes.data()));return bytes;}
 void marker(const std::filesystem::path &path){const std::array<std::byte,1> done{std::byte{1}};write(path,done);}
+// Encode an attack through the trusted local tape codec, bypassing the new
+// sender-side policy. The recipient must reject the complete legacy batch
+// before executing even the valid prefix or touching its qualified candidate.
+std::vector<std::byte> legacy_replay_payload(const SourceReplayBatch &batch){
+    auto shell=batch;for(auto &step:shell.steps)step.phase={};
+    auto bytes=encode_source_replay_batch(shell);check(bytes.size()>=188,"Replay envelope fixture header changed");bytes.resize(188);
+    for(const auto &step:batch.steps){const auto phase=encode_source_execution_phase(step.phase);
+        put(bytes,step.before_tick,8);put(bytes,step.after_tick,8);put(bytes,phase.size(),4);bytes.insert(bytes.end(),phase.begin(),phase.end());}
+    return bytes;
+}
 void alter(SourceMatchAuthority::Checkpoint &cut,std::uint32_t address){for(auto &region:cut.world.world.bank.regions)if(address>=region.address&&std::uint64_t(address)<std::uint64_t(region.address)+region.bytes.size()){
     region.bytes[address-region.address]^=std::byte{0x80};return;}throw FormatError("Forged remote identity fixture address missing");}
 class CheckedDatagrams final:public MultiplayerDatagrams {
@@ -111,7 +103,7 @@ void run(int argc,char **argv){
     std::unique_ptr<SourceAuthorityReplayWorker> background;
     const bool retain_inflight=std::getenv("HALO2_RECEIVER_RETAIN_INFLIGHT");
     const bool reject_prefetch=std::getenv("HALO2_RECEIVER_REJECT_PREFETCH");
-    const unsigned replayed_before_retention=83u+(reject_prefetch?31u:0u);
+    const unsigned replayed_before_retention=82u;
     if(hosting){host_world=std::make_unique<MultiplayerPreparedWorld>(gameplay,std::nullopt,host_clock);for(unsigned i=0;i<locals.size();++i){const auto slot=locals[i];
         check(host_world->match.join(session->roster()[slot].name,-1,gameplay.selected_profiles[i],slot)==slot,"Actual host local source birth failed");}
         host_world->bind_source_local_views(locals);authority=std::make_unique<SourceMatchAuthority>(host_world->match,*host_world->source_objects);
@@ -385,19 +377,14 @@ void run(int argc,char **argv){
         wait([&]{return std::filesystem::exists(files/"bad-rejected");},"Replay mode accepted a forged full-roster identity");
         check(session->validated_authority().empty(),"Forged source identity produced a replay base receipt");
         SourceAuthorityPublisher publisher(*authority,session,other,SourceAuthorityStreamMode::Replay,90s);
-        NativeVehicleCamera view_camera(*host_world->source_objects,*host_world->cache->original_data());
-        QueryDevice query_device;
-        test::SourceLensDrawReplayFixture draw_device(host_world->source_objects->tu15_world(),*host_world->cache);
         const auto frame=[&](unsigned number){
             host_clock->time+=33;host_clock->filetime+=330000;
             (void)host_world->match.state();
             for(unsigned slot=0;slot<8;++slot)controls[slot].yaw=host_world->match.unit(slot).yaw;
             controls[locals.front()].fire=number%8<2;controls[locals.front()].reload=number%16==12;
-            host_world->match.step(controls);host_world->source_objects->advance_effect_frame(1.f/60.f);
+            host_world->match.step(controls);host_world->source_objects->advance_effect_particles(1.f/60.f);
             host_world->source_objects->begin_model_frame();
             for(unsigned view=0;view<4;++view){
-                const auto &player=host_world->match.player(host_locals[view]);
-                (void)view_camera.update_player(view,player.source_datum,player.source_flags,1.f/30.f,number%8==2&&view==2);
                 const auto eye=host_world->match.unit(host_locals[view]).body.position+Vec3{0,0,1.7f};
                 host_world->source_objects->publish_native_observer_position(view,eye);
                 const auto camera=source_frustum_camera({eye,{1,0,0},{0,0,1},.015625f,1024.f,{-1,1,-1,1}});
@@ -412,20 +399,9 @@ void run(int argc,char **argv){
             host_world->match.advance_audio(1.f/60.f);(void)host_world->match.take_sounds();
             (void)host_world->match.take_prop_events();(void)host_world->match.take_grenade_events();
             (void)host_world->match.state();
-            // Declared pending device inputs exercise actual original query
-            // allocation/polling across the peer tape; this is not a GPU test.
-            auto &world=host_world->source_objects->tu15_world();auto issue=world.prepare_source_call();issue.gp[0]=0;
-            source_execute_lens_query(world,0x402650u,issue,&query_device);
-            const std::array<std::uint32_t,1> args{0x60030200u};auto poll=world.prepare_source_call(args);poll.gp[0]=0;poll.gp[2]=0;
-            source_execute_lens_query(world,0x402710u,poll,&query_device);
-            const std::array<std::uint32_t,2> header_args{0,draw_device.header};auto header=world.prepare_source_call(header_args);header.gp[0]=draw_device.metadata;
-            check(!source_execute_lens_draw(world,0x1301e0u,header,false,draw_device.domains,draw_device),"Header construction unexpectedly entered a world pass");
-            const auto old=world.memory().view(0x491e22u,2);const std::vector<std::byte> old_view(old.begin(),old.end());
-            const std::array<std::byte,2> view_type{std::byte{2},std::byte{0}};world.write_source_call_input(0x491e22u,view_type);
-            auto parent=world.prepare_source_call();parent.gp[3]=word(world.memory(),0x491e27u,1);
-            const auto pass=source_execute_lens_draw(world,0x13660u,parent,true,draw_device.domains,draw_device);
-            check(pass&&*pass==std::array<std::uint32_t,6>{1,1,0,0,0,0},"Peer replay lost the actual original world-pass handoff");
-            world.write_source_call_input(0x491e22u,old_view);
+            // Raw entrypoints/ABI/device writes are local-only. Their complete
+            // native behavior remains covered by source_execution_calls_native;
+            // this network cohort exercises the authorized typed call grammar.
             const auto origin=host_world->match.unit(host_locals[0]).body.position+Vec3{0,0,2.f};
             (void)host_world->source_objects->particle_collision(0x800005u,origin,{0,0,-100.f});
             (void)host_world->source_objects->particle_collision(0,origin,{0,0,1.f});
@@ -435,9 +411,10 @@ void run(int argc,char **argv){
             check(publisher.capture(),"Replay base capture refused");
             const auto remember_base=[&]{if(!bases[number-1].id&&publisher.state().ready)bases[number-1]=publisher.state().ready->seal;};
             for(unsigned i=0;i<count;++i){
-                const auto actual_frame=[&]{auto scope=publisher.record_frame();check(bool(scope),"Complete native frame did not start recording");
+                const auto actual_frame=[&]{auto scope=publisher.record_frame();
+                    if(!scope)throw FormatError("Complete native frame did not start recording: "+publisher.state().error);
                     frame(i);if(i%2==0)return; // Same RAII close used by an early game-loop continue.
-                    check(scope->finish(),"Complete native frame did not finish recording");};
+                    if(!scope->finish())throw FormatError("Complete native frame did not finish recording: "+publisher.state().error);};
                 actual_frame();remember_base();std::this_thread::sleep_for(5ms);
             }
             write(files/("complete-"+std::to_string(number)),encode_source_authority(authority->checkpoint(binding)));
@@ -484,28 +461,9 @@ void run(int argc,char **argv){
         bank.write(identity_row+4,original);
         identity.steps.push_back({authority->execution_tick(),authority->execution_tick(),std::move(forged)});
         const auto invalid_tick=authority->execution_tick();
-        const auto invalid_payload=encode_source_replay_batch(identity);
-        std::optional<SourceReplayBatch> successor;
-        if(reject_prefetch){
-            successor.emplace(SourceReplayBatch{{context,bases[2],{},35},{}});
-            for(unsigned i=0;i<8;++i){const auto before=authority->execution_tick();
-                auto phase=authority->capture_execution_phase([&]{frame(i+180);});
-                successor->steps.push_back({before,authority->execution_tick(),std::move(phase)});}
-        }
-        // Both native payloads must already exist before delivery begins.
-        // Recording the successor after publishing the bad predecessor can
-        // outlast its fast background replay and never exercise prefetch.
-        const auto invalid=session->publish_authority(context,invalid_tick,invalid_payload,targets);
-        std::optional<AuthorityCutSeal> dependent;
-        if(successor){
-            successor->binding.previous=invalid;const auto payload=encode_source_replay_batch(*successor);
-            wait([&]{return session->authority_delivered(other,context,invalid);},"Rejected predecessor bytes were not delivered");
-            dependent=session->publish_authority_ahead(context,invalid,authority->execution_tick(),payload,other);
-        }
-        wait([&]{return std::filesystem::exists(files/"replay-identity-rejected");},"Replayed identity change was not rejected");
-        if(dependent){const auto until=Wall::now()+3s;
-            while(session->authority_delivered(other,context,*dependent)&&Wall::now()<until)std::this_thread::sleep_for(5ms);
-            check(!session->authority_delivered(other,context,*dependent),"Native failure did not reject the prefetched successor before transfer expiry");}
+        const auto invalid_payload=legacy_replay_payload(identity);
+        session->publish_authority(context,invalid_tick,invalid_payload,targets);
+        wait([&]{return std::filesystem::exists(files/"replay-identity-rejected");},"Raw replay capability was not rejected before execution");
         check(session->validated_authority().empty(),"Replayed identity change acknowledged a world");
         stage(4,2);
         if(retain_inflight){
@@ -545,15 +503,11 @@ void run(int argc,char **argv){
             if(stage==4&&!chain_rejected&&state.error.find("Invalid source replay batch")!=std::string::npos){
                 check(state.ready&&receive_world_exists()&&state.prepared==3,"Wrong sequence mutated the last qualified world");
                 chain_rejected=true;identity_receive_baseline=state.received;identity_replay_baseline=state.replayed_phases;
-                if(reject_prefetch)pause_replay(true);
                 marker(files/"chain-rejected");}
-            if(chain_rejected&&reject_prefetch&&replay_paused&&state.received>=identity_receive_baseline+2&&state.replaying){
-                check(state.replayed_phases==identity_replay_baseline,"Paused candidate executed a native predecessor phase");
-                pause_replay(false);
-            }
-            if(chain_rejected&&!identity_rejected&&state.error=="Replayed source roster differs from independent admission"){
-                check(!state.ready&&!receive_world_exists()&&state.replay_sequence==0,"Changed source identity retained a promotable candidate");
-                if(reject_prefetch)check(state.received>=identity_receive_baseline+2,"Invalid native predecessor did not have a prefetched successor");
+            if(chain_rejected&&!identity_rejected&&state.error.find("local-only execution capability")!=std::string::npos){
+                check(state.ready&&receive_world_exists()&&state.replayed_phases==identity_replay_baseline,
+                    "Denied raw replay changed or discarded the previously qualified world");
+                check(state.received>=identity_receive_baseline+1,"Denied packet was not received");
                 identity_rejected=true;marker(files/"replay-identity-rejected");}
             if(stage<=4&&state.prepared==stage&&state.ready&&!state.replaying&&state.replay_sequence==(stage==1?70u:stage==2?8u:2u)){
                 const auto expected=files/("complete-"+std::to_string(stage));if(!std::filesystem::exists(expected))return false;

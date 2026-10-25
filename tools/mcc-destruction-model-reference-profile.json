@@ -1,0 +1,78 @@
+{
+  "schema": "H2_MCC_TU15_FLOOD_CLUMP_REFERENCE_V1",
+  "model": "scenarios\\objects\\flood\\flood_floor_clump_large\\flood_floor_clump_large",
+  "authority_report": "analysis/destruction-goal-20261022/flood-clump-authority-v1.json",
+  "authority_sha256": "8d17965c2e32fd7f649abe95dfccd0554091a66c49ec36440d7aba625d6c4163",
+  "original_contract": "078d0e9df82268e8a7f6980d04a02cf14b4df20d2ce97fa61c473c849f5b5204",
+  "donor_contract": "4be5e09159f08986e7a74706e90fa2828dfe2e66c8586e11e1858b8455596fac",
+  "damage_words": {
+    "00": "00000000",
+    "08": "00000000",
+    "28": "3f800000",
+    "2c": "00000000",
+    "30": "00000000",
+    "34": "00000000",
+    "38": "3f800000",
+    "8c": "00000000",
+    "94": "00000000",
+    "98": "00000000",
+    "9c": "00000000",
+    "a0": "00000000",
+    "cc": "ffffffff",
+    "d0": "447a0000",
+    "d4": "00000000"
+  },
+  "section_words": {
+    "04": "00000000",
+    "08": "3f800000",
+    "14": "00000000",
+    "18": "00000000",
+    "1c": "00000000",
+    "20": "00000000",
+    "24": "00000000",
+    "28": "00000000",
+    "2c": "00000000",
+    "34": "0000ffff"
+  },
+  "section_names": [
+    83891553,
+    83888668
+  ],
+  "response_words": [
+    0,
+    128,
+    0,
+    1701209701,
+    3836019503,
+    1785754657,
+    4294967295,
+    0,
+    4294901764,
+    0,
+    0,
+    0,
+    1701209701,
+    4294967295,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "donor_effect": "effects\\objects\\characters\\flood_infection\\body_destroyed",
+  "paired_maps": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/04b_floodlab.map",
+      "sha256": "b4634a44ae6be16171d4c09837c0100e0052abcdaffb7160716912b7b0c2338c",
+      "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/04b_floodlab.map",
+      "mcc_sha256": "e4a052be795e35619a34c9e0db7a783f57b89ac3b22e46ca6127244cbd63e9af"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/07b_forerunnership.map",
+      "sha256": "90453a9e631875d271c67b60f96bd02a96b5b0e80fa74f295fff35576ab7de8a",
+      "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/07b_forerunnership.map",
+      "mcc_sha256": "3a0e239e4aa9fbceec4af05098e737f206abc58b6cef5151fd4f49adec12b2ac"
+    }
+  ]
+}

@@ -9,6 +9,7 @@ from .protocol import (MAX_RECORDS, MAX_LEASE, SKEW, VERSION, canonical, parse, 
 
 MAX_OWNER_ACTIVE_CREDENTIALS = 8
 MAX_OWNER_CREDENTIAL_KEYS = 64
+# A foreign origin cannot occupy another origin's allowance or the local reserve.
 
 
 class Store:
@@ -35,6 +36,7 @@ class Store:
         INSERT OR IGNORE INTO clock_floor VALUES(1,0);
         CREATE TABLE IF NOT EXISTS master_identity(id INTEGER PRIMARY KEY CHECK(id=1), value TEXT NOT NULL);
         CREATE INDEX IF NOT EXISTS active_expiry ON records(expires);
+        CREATE TABLE IF NOT EXISTS origin_quarantine(origin TEXT PRIMARY KEY, until INTEGER NOT NULL);
         """)
         from .protocol import public_hex
         self.key, self.id, self.lease, self.clock = key, master_id(public_hex(key)), lease, clock
@@ -211,9 +213,10 @@ class Store:
                 continue
             if data["max_players"] - data["players"] < slots:
                 continue
-            # Stable conflict resolution for the same key enrolled at two origins.
-            results.setdefault(value["server_id"], self.public(value))
-        return sorted(results.values(), key=lambda value: value["server_id"])
+            # An origin authenticates only its own namespace, never another
+            # registry's portable server identity.
+            results[(value["origin_master_id"], value["server_id"])] = self.public(value)
+        return sorted(results.values(), key=lambda value: (value["origin_master_id"], value["server_id"]))
 
     def snapshot(self):
         return [parse(row[0]) for row in self.db.execute("SELECT envelope FROM records ORDER BY origin,server")]
@@ -231,6 +234,7 @@ class Store:
 
     def merge(self, records, trusted):
         require(type(records) is list and len(records) <= MAX_RECORDS, "Federation snapshot too large", 413)
+        self.cleanup(trusted)
         with self.db:
             now = self.now()
             for envelope in records:
@@ -243,6 +247,8 @@ class Store:
                     # Never accept a peer as a writer for our own authoritative bank.
                     continue
                 require(origin in trusted, "Untrusted listing origin", 403)
+                require(self.db.execute("SELECT 1 FROM origin_quarantine WHERE origin=? AND until>?", (origin,now)).fetchone() is None,
+                        "Origin replay quarantine; retry after old leases expire", 429)
                 verified(envelope, trusted[origin])
                 require(master_id(trusted[origin]) == origin, "Origin key mismatch", 401)
                 integer(value["v"], VERSION, VERSION)
@@ -267,12 +273,43 @@ class Store:
                 if row and value["revision"] <= row[0]:
                     require(value["revision"] != row[0] or canonical(envelope) == row[1], "Origin equivocation", 409)
                     continue
+                # Discard expired active records. Old envelopes cannot regain
+                # visibility after their high-water mark has been reclaimed.
+                if value["expires_at"] <= now and value["state"] == "active":
+                    continue
+                if row is None:
+                    from .security_policy import listing_admission
+                    listing_admission(self.db.execute("SELECT count(*) FROM records WHERE origin=?", (origin,)).fetchone()[0],
+                        self.db.execute("SELECT count(*) FROM records WHERE origin!=?", (self.id,)).fetchone()[0],
+                        self.db.execute("SELECT count(*) FROM records").fetchone()[0])
                 require(row is not None or self.db.execute("SELECT count(*) FROM records").fetchone()[0] < MAX_RECORDS, "Directory capacity reached", 503)
                 self._put(envelope)
 
-    def cleanup(self):
-        # Active rows are selected by absolute expiry; retain one last signed
-        # envelope per instance as a durable high-water mark against resurrection.
+    def cleanup(self, trusted=None):
+        # Preserve tombstones until every earlier lease must have expired.
+        # Local rows also own revision history and remain under local control.
         with self.db:
             now = self.now()
             self.db.execute("DELETE FROM nonces WHERE expires<=?", (now,))
+            self.db.execute("DELETE FROM records WHERE origin!=? AND expires<?", (self.id, now-MAX_LEASE-SKEW))
+            if trusted is not None:
+                origins = [row[0] for row in self.db.execute("SELECT origin FROM records WHERE origin!=? UNION SELECT origin FROM origin_quarantine", (self.id,))]
+                for origin in origins:
+                    if origin not in trusted:
+                        self.db.execute("DELETE FROM records WHERE origin=?", (origin,))
+                        self.db.execute("DELETE FROM origin_quarantine WHERE origin=?", (origin,))
+                # Repair overfull banks created by older versions as well as
+                # enforcing new admissions. Foreign origins never evict locals.
+                from .security_policy import library
+                foreign = 0
+                for origin, count in self.db.execute("SELECT origin,count(*) FROM records WHERE origin!=? GROUP BY origin ORDER BY origin", (self.id,)).fetchall():
+                    if library().h2_listing_admission(count-1, foreign+count-1, 0):
+                        # Dropping old high-water rows must not permit a stale
+                        # active lease to resurrect a deleted/revoked listing.
+                        # Quarantine the whole origin until every lease that
+                        # could have been admitted before this repair expires.
+                        self.db.execute("INSERT OR REPLACE INTO origin_quarantine VALUES(?,?)", (origin, now+MAX_LEASE+SKEW))
+                        self.db.execute("DELETE FROM records WHERE origin=?", (origin,))
+                    else:
+                        foreign += count
+                self.db.execute("DELETE FROM origin_quarantine WHERE until<=?", (now,))

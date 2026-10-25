@@ -1345,24 +1345,26 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
   }
   // 15AAD0's stock vehicle choices retain the collection's definition and variant.
   // Templates remain cold until the phased netgame row actually allocates them.
-  const auto heavy=source_game_variant_get(variant,78);
+  const std::array<int,2> heavy{source_game_variant_get(variant,78),source_game_variant_get(variant,80)};
+  const auto flying=source_game_variant_get(variant,79);
   if(multiplayer)out.light_vehicle_options={source_game_variant_get(variant,76),source_game_variant_get(variant,77)};
   if(multiplayer)out.turret_vehicle_options={source_game_variant_get(variant,81),source_game_variant_get(variant,82)};
   const auto &turrets=out.turret_vehicle_options;
-  for(const auto choice:turrets)if(choice<0 || choice>6 || choice==5)
-    throw FormatError("Random or invalid Turret choice needs its original per-birth RNG/template owner");
+  for(const auto choice:turrets)if(choice<0 || choice>6)
+    throw FormatError("Invalid Turret choice");
   const auto &light=out.light_vehicle_options;
   for(const auto &row:out.netgame_equipment)if(row.classification==1 || row.classification==2) {
     const auto choice=light[row.classification-1];
-    if(choice<0 || choice>7 || choice==6)
-      throw FormatError("Random or invalid Light Vehicle choice needs its original per-birth RNG/template owner");
+    if(choice<0 || choice>7)
+      throw FormatError("Invalid Light Vehicle choice");
   }
   std::array<std::uint32_t,2> heavy_choices{null_datum,null_datum};
   std::array<std::uint32_t,7> vehicle_choices{};vehicle_choices.fill(null_datum);
   std::array<std::uint32_t,4> turret_choices{};turret_choices.fill(null_datum);
-  if(multiplayer && (heavy || light[0] || light[1] || turrets[0] || turrets[1])) {
-    if(heavy && heavy!=1 && heavy!=2 && heavy!=4)
-      throw FormatError("Random Primary Heavy Vehicle needs its original per-birth RNG/template owner");
+  if(multiplayer && (heavy[0] || heavy[1] || flying || light[0] || light[1] || turrets[0] || turrets[1])) {
+    for(const auto choice:heavy)if(choice<0 || choice>4)
+      throw FormatError("Invalid Heavy Vehicle choice");
+    if(flying<0 || flying>4)throw FormatError("Invalid Flying Vehicle choice");
     // Literal TU1.5 15CC70 uses matg+16C -> mulg+C -> runtime+74.
     // Choices1/2 are the authored reference rows at+14/+1C, with the
     // original default variant B00078B. No definition is inferred by name.
@@ -1375,7 +1377,7 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
     const auto choices=TagAddressSpace(data,metadata_magic_).block(runtime.offset+0x70,8);
     if(choices.count<4)throw FormatError("Missing original heavy-vehicle choices");
     heavy_choices={data.u32(choices.offset+0x14),data.u32(choices.offset+0x1c)};
-    if(light[0] || light[1]) {
+    if(light[0] || light[1] || flying) {
       if(choices.count<vehicle_choices.size())throw FormatError("Missing original light-vehicle choices");
       for(unsigned i=0;i<vehicle_choices.size();++i)vehicle_choices[i]=data.u32(choices.offset+i*8+4);
     }
@@ -1391,16 +1393,28 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
   for(unsigned row_index=0;row_index<out.netgame_equipment.size();++row_index){const auto &row=out.netgame_equipment[row_index];
     if(row.classification<=0 || row.classification>=10)continue;
     std::uint32_t definition=null_datum,selected_variant{};
-    if(multiplayer && row.classification==3 && heavy) {
-      if(heavy==4)continue;
-      definition=heavy_choices.at(unsigned(heavy-1));selected_variant=detail::compiled_vehicle_variant_tu15(
+    std::vector<DefinitionKey> candidates;
+    const auto heavy_choice=row.classification==3?heavy[0]:row.classification==5?heavy[1]:0;
+    if(multiplayer && heavy_choice) {
+      if(heavy_choice==4)continue;
+      selected_variant=detail::compiled_vehicle_variant_tu15(
           mcc_,[this](auto id){return string_id(id);},0x0b00078bu);
+      if(heavy_choice==3)for(const auto id:heavy_choices)candidates.emplace_back(id,selected_variant);
+      else definition=heavy_choices.at(unsigned(heavy_choice-1));
     } else if(row.items.size()==1 && row.items.front().group==0x76656869u) {
       definition=row.items.front().definition;selected_variant=row.items.front().variant;
     }
+    if(multiplayer && row.classification==4 && flying) {
+      //15CEF0 reads option+20C only for classification4.15CD30 choices1
+      // and2 both load reference4 and variant0; choice3 retains its actual
+      // per-birth RNG even though both branches select that same template.
+      if(flying==4)definition=null_datum;
+      else {definition=vehicle_choices[4];selected_variant=0;}
+    }
     if(multiplayer && (row.classification==1 || row.classification==2)) {
       // Literal15CEF0 class1/2 ->15CB60: fixed reference rows and variant
-      // writes. Choice0 retains the collection; choice6 requires per-birth RNG.
+      // writes. Random only prepares the union;15D4F0/15CB60 chooses the
+      // actual definition/variant once per live birth using its retained RNG.
       switch(light[row.classification-1]) {
         case 0:break;
         case 1:definition=vehicle_choices[0];selected_variant=0;break;
@@ -1409,6 +1423,12 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
         case 3:definition=vehicle_choices[1];selected_variant=0;break;
         case 4:definition=vehicle_choices[6];selected_variant=0;break;
         case 5:definition=vehicle_choices[5];selected_variant=0;break;
+        case 6:
+          candidates={{vehicle_choices[0],0},
+              {vehicle_choices[0],detail::compiled_vehicle_variant_tu15(
+                  mcc_,[this](auto id){return string_id(id);},0x05000694u)},
+              {vehicle_choices[1],0},{vehicle_choices[6],0},{vehicle_choices[5],0}};
+          break;
         case 7:definition=null_datum;break;
         default:throw FormatError("Unresolved original light-vehicle choice");
       }
@@ -1416,15 +1436,20 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
     if(multiplayer && (row.classification==6 || row.classification==7)) {
       const auto choice=turrets[row.classification-6];
       if(choice>=1 && choice<=4) {definition=turret_choices[unsigned(choice-1)];selected_variant=0;}
+      else if(choice==5)for(const auto id:turret_choices)candidates.emplace_back(id,0u);
       else if(choice==6)definition=null_datum;
     }
-    if(definition==null_datum)continue;
-    ScenarioObject vehicle;
-    vehicle.netgame_row=int(row_index);vehicle.type=1;vehicle.placement=int(out.objects.size());vehicle.definition=definition;
-    vehicle.flags=1;vehicle.variant=selected_variant;vehicle.position=row.position;vehicle.rotation=row.rotation;vehicle.source=-1;
-    const auto tag=load_source_tag_metadata(definition);const Bytes bytes(tag.bytes_at(tag.source_address(),tag.size()));
-    vehicle.bounding_radius=bytes.f32(4);vehicle.bounding_offset={bytes.f32(8),bytes.f32(12),bytes.f32(16)};
-    out.objects.push_back(std::move(vehicle));
+    if(candidates.empty())candidates.emplace_back(definition,selected_variant);
+    std::set<DefinitionKey> prepared;
+    for(const auto [candidate,variant_name]:candidates) {
+      if(candidate==null_datum || !prepared.emplace(candidate,variant_name).second)continue;
+      ScenarioObject vehicle;
+      vehicle.netgame_row=int(row_index);vehicle.type=1;vehicle.placement=int(out.objects.size());vehicle.definition=candidate;
+      vehicle.flags=1;vehicle.variant=variant_name;vehicle.position=row.position;vehicle.rotation=row.rotation;vehicle.source=-1;
+      const auto tag=load_source_tag_metadata(candidate);const Bytes bytes(tag.bytes_at(tag.source_address(),tag.size()));
+      vehicle.bounding_radius=bytes.f32(4);vehicle.bounding_offset={bytes.f32(8),bytes.f32(12),bytes.f32(16)};
+      out.objects.push_back(std::move(vehicle));
+    }
   }
 
   // Model variant child objects use their authored parent/child attachment markers.
@@ -1560,6 +1585,9 @@ LoopingSound Cache::load_looping_sound(std::uint32_t datum) const {
   LoopingSound out;
   out.name = tag->name;
   out.flags = data.u32(p + prefix);
+  out.music_time = {real(data,p+prefix+4),real(data,p+prefix+8)};
+  out.distance = {real(data,p+prefix+0xc),real(data,p+prefix+0x10)};
+  out.continuous_damage = data.u32(p+prefix+0x18);
   const auto tracks = mcc_ ? metadata_block(p + 0x24, 0x58, 32)
                            : TagAddressSpace(data, metadata_magic_).block(p + 0x1c, 0x58, 32);
   for (std::size_t i = 0; i < tracks.count; ++i) {
@@ -1568,6 +1596,28 @@ LoopingSound Cache::load_looping_sound(std::uint32_t datum) const {
         {data.u32(t + 4), data.u32(t + 0x18), data.u32(t + 0x20),
          data.u32(t + 0x28), data.u32(t + 0x30), data.u32(t + 0x38),
          real(data, t + 8), real(data, t + 12), real(data, t + 16)});
+    auto &track=out.tracks.back();
+    track.name=data.u32(t);
+    track.output_effect=data.u16(t+0x3c);track.unknown3e=data.u16(t+0x3e);
+    track.alternate_transition_in=data.u32(t+0x44);
+    track.alternate_transition_out=data.u32(t+0x4c);
+    track.alternate_crossfade=real(data,t+0x50);
+    track.alternate_fade_out=real(data,t+0x54);
+  }
+  // Detail-only ambient definitions have no continuous track. Preserve their
+  // complete original0x34 inputs for the separate detail scheduling owner.
+  const auto details = mcc_ ? metadata_block(p+0x2c,0x34)
+      : TagAddressSpace(data,metadata_magic_).block(p+0x24,0x34);
+  for(std::size_t i=0;i<details.count;++i) {
+    const auto d=details.offset+i*0x34;
+    LoopingSound::Detail detail;
+    detail.name=data.u32(d);detail.sound=data.u32(d+8);
+    detail.flags=data.u32(d+0x18);detail.unknown14_bits=data.u32(d+0x14);
+    detail.period={real(data,d+0xc),real(data,d+0x10)};
+    detail.yaw={real(data,d+0x1c),real(data,d+0x20)};
+    detail.pitch={real(data,d+0x24),real(data,d+0x28)};
+    detail.distance={real(data,d+0x2c),real(data,d+0x30)};
+    out.details.push_back(detail);
   }
   return out;
 }

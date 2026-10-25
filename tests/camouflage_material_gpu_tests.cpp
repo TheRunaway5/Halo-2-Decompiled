@@ -63,7 +63,7 @@ int main(int argc,char **argv)try {
       SDL_WINDOW_VULKAN|SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIDDEN),&SDL_DestroyWindow);check(bool(window),SDL_GetError());
   const std::filesystem::path output=argv[2];std::filesystem::create_directories(output);
   {
-    Renderer renderer(window.get(),mesh,!aliases);
+    Renderer renderer(window.get(),mesh,!aliases,{},nullptr,{},nullptr,HALO2_SHADER_DIR);
     for(const auto size:std::array<std::array<int,2>,2>{{{1280,480},{1920,720}}}) {
       SDL_SetWindowSize(window.get(),size[0],size[1]);SDL_PumpEvents();renderer.resized();
       std::array<ModelView,2> views;

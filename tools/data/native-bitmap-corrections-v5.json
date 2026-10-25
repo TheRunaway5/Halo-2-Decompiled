@@ -1,0 +1,119 @@
+{
+  "schema": "H2_MCC_BITMAP_DELTA_V5",
+  "map": "elongation.map",
+  "source_map_sha256": "3780ab18cb5c65a0f23d99ab827671bc85c53c22c5e9a3826e5ab01425cff729",
+  "original_map_sha256": "8aa190e424003ce7efaea9e57be9556194b3aefdeccd8a86919f2534f7cf15ea",
+  "profiles": [
+    {
+      "profile": {
+        "tag": "scenarios\\bitmaps\\human\\military\\glass\\glass_smudged_grey",
+        "encoding": "rgba8",
+        "format": 11,
+        "width": 256,
+        "height": 256,
+        "mip_count": 9,
+        "pixel_bytes": 349524,
+        "donor_registration": [
+          128,
+          128
+        ],
+        "donor_sha256": "1b811f460bc482850465cc6fe069328b03d5c98df8ee2ad1fca28bacf3a94e6e",
+        "target_sha256": "9c11e22435fa1139de981cdbbe33f08076ed4f92ebe3373acdebd9136e350c70"
+      },
+      "mips": [
+        {
+          "width": 256,
+          "height": 256,
+          "depth": 1,
+          "offset": 0,
+          "size": 262144
+        },
+        {
+          "width": 128,
+          "height": 128,
+          "depth": 1,
+          "offset": 262144,
+          "size": 65536
+        },
+        {
+          "width": 64,
+          "height": 64,
+          "depth": 1,
+          "offset": 327680,
+          "size": 16384
+        },
+        {
+          "width": 32,
+          "height": 32,
+          "depth": 1,
+          "offset": 344064,
+          "size": 4096
+        },
+        {
+          "width": 16,
+          "height": 16,
+          "depth": 1,
+          "offset": 348160,
+          "size": 1024
+        },
+        {
+          "width": 8,
+          "height": 8,
+          "depth": 1,
+          "offset": 349184,
+          "size": 256
+        },
+        {
+          "width": 4,
+          "height": 4,
+          "depth": 1,
+          "offset": 349440,
+          "size": 64
+        },
+        {
+          "width": 2,
+          "height": 2,
+          "depth": 1,
+          "offset": 349504,
+          "size": 16
+        },
+        {
+          "width": 1,
+          "height": 1,
+          "depth": 1,
+          "offset": 349520,
+          "size": 4
+        }
+      ],
+      "donor_mip_sha256": [
+        "470b364f4e3487f8eae150a4d11aa2f7e3eb3a201dc91680c3ca1a0c2390952d",
+        "5d4f4e758f31da38817500a353777a068135148d8f82262db14f28f5edd678e8",
+        "59845f40ce17302c4cdb662260c188248528593f94a5f58093551dc9134b3106",
+        "0cc224e0e8c4f5c6f96c0dbc0d62b701a00629c7d6f67bf72baaa14f6300a8cf",
+        "ba72f9c965449fea62c4c7af9c1c5a12594db414c8086b24ad50b1b2735c0462",
+        "7f4f2e171caa858fa3d7bdc00482f8e24bda8daadd0b7cf40055652865fbc7ab",
+        "42546e22fa50c85b61f7b7de8a94e2dd6b7d76b54569f8742925cec3afa1a1b0",
+        "e643c02950981ba330a03d83b55cddda8f5ab9567851227619d31631d918569b",
+        "c21eb11934eab9ee45ca43a14e915fd4cf3e7e6a45fe29d03a3936a5cc016eff"
+      ],
+      "target_mip_sha256": [
+        "470b364f4e3487f8eae150a4d11aa2f7e3eb3a201dc91680c3ca1a0c2390952d",
+        "e11dc86ddb8b7b3968910bc246a6e189daf938c2065488cd610ff66e983b9578",
+        "957a996707b3ba9f26389f033ed9537bfe213c411bb7fa4bcd2822d3682cb37e",
+        "0cc224e0e8c4f5c6f96c0dbc0d62b701a00629c7d6f67bf72baaa14f6300a8cf",
+        "ba72f9c965449fea62c4c7af9c1c5a12594db414c8086b24ad50b1b2735c0462",
+        "7f4f2e171caa858fa3d7bdc00482f8e24bda8daadd0b7cf40055652865fbc7ab",
+        "42546e22fa50c85b61f7b7de8a94e2dd6b7d76b54569f8742925cec3afa1a1b0",
+        "e643c02950981ba330a03d83b55cddda8f5ab9567851227619d31631d918569b",
+        "c21eb11934eab9ee45ca43a14e915fd4cf3e7e6a45fe29d03a3936a5cc016eff"
+      ],
+      "delta_offset": 0,
+      "delta_bytes": 1123,
+      "delta_sha256": "bbf76974f3162a74519a621930584c0de6b5906ee002003b8d0d8e27d57b9ff3"
+    }
+  ],
+  "delta_bytes": 1123,
+  "delta_sha256": "bbf76974f3162a74519a621930584c0de6b5906ee002003b8d0d8e27d57b9ff3",
+  "full_graphics_parity": false,
+  "scope": "Authenticated original Elongation glass_smudged_grey nine-mip chain; no resampling, shader edits, or other bitmap changes"
+}

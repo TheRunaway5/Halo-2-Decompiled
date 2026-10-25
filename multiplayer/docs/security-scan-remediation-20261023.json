@@ -1,0 +1,130 @@
+{
+  "scan_id": "wfr_42fe5ca037ce16d8e0c0abb9f9166f1f7112b9df24b414f39a3ada9137e72d77",
+  "scan_completed_at": "2026-10-23T17:30:32.767592Z",
+  "scanned_revision": "955076c3d3964fd81e9e0ad7ea2eea69388b7614",
+  "cloud_status_changed": false,
+  "findings": [
+    {
+      "id": "csf_491774a6bd90c4fc30cf995c",
+      "severity": "high",
+      "title": "Malicious match hosts can replay arbitrary guest-memory writes and TU1.5 entrypoints",
+      "root_cause": "The replay transcript is treated as both evidence of deterministic execution and authorization to perform every recorded operation. Grammar and transcript consistency are therefore substituted for a receiver-owned capability policy.",
+      "resolution": "remediated locally; Cloud status unchanged"
+    },
+    {
+      "id": "csf_5ed10c9984347eb6d96bd3a2",
+      "severity": "medium",
+      "title": "One pinned peer can permanently consume the shared federation listing bank",
+      "root_cause": "Durable anti-replay high-water marks and active listing capacity share one undifferentiated global table and quota, without origin isolation, local reservation, or bounded reclamation.",
+      "resolution": "remediated locally; Cloud status unchanged"
+    },
+    {
+      "id": "csf_ca97896e5d5f1bc38231a091",
+      "severity": "medium",
+      "title": "Steam sign-out destroys its revocation credential before confirming remote revocation",
+      "root_cause": "The client conflates local forgetting with remote revocation and does not preserve a retryable revocation capability until the server confirms success.",
+      "resolution": "remediated locally; Cloud status unchanged"
+    },
+    {
+      "id": "csf_61498faaca86662cd8603851",
+      "severity": "medium",
+      "title": "Established raw-LAN gameplay datagrams lack cryptographic authentication",
+      "root_cause": "A cleartext connection cookie is used as a bearer authenticator for established UDP traffic even though any adjacent observer can copy it; no per-session secret is used to authenticate packet contents and sequence.",
+      "resolution": "remediated locally; Cloud status unchanged"
+    },
+    {
+      "id": "csf_1a0bf38d51a0d739ae842a3a",
+      "severity": "medium",
+      "title": "A malicious match host can persist unverified postgame fields for other players",
+      "root_cause": "Consensus proves that all participants received the same host-supplied bytes, not that each player validated every field later attributed to them.",
+      "resolution": "remediated locally; Cloud status unchanged"
+    },
+    {
+      "id": "csf_8357d1bd3be67ab9dc20464f",
+      "severity": "medium",
+      "title": "A pinned federation peer can shadow another origin's listing by copying its public server identity",
+      "root_cause": "The implementation treats a globally derived server identifier as portable across origins but accepts origin-signed listings without a server-key signature, then removes the origin namespace during conflict resolution and client parsing.",
+      "resolution": "remediated locally; Cloud status unchanged"
+    },
+    {
+      "id": "csf_4b892fd4639d502ed7e44a49",
+      "severity": "medium",
+      "title": "One malicious survivor can equivocate and split successor-host authority",
+      "root_cause": "Pairwise transport authentication identifies a sender but does not make that sender's vote globally consistent. The migration protocol applies crash-tolerant majority logic under a threat model that includes malicious admitted peers.",
+      "resolution": "remediated locally; Cloud status unchanged"
+    },
+    {
+      "id": "csf_18c852d04bea9cc6b0298353",
+      "severity": "low",
+      "title": "Loopback Steam resume can disclose saved refresh credentials to an ambient HTTP proxy",
+      "root_cause": "URL validation constrains the logical host but does not constrain libcurl's effective network destination; the credential-bearing Steam helper inherits ambient proxy configuration.",
+      "resolution": "remediated locally; Cloud status unchanged"
+    },
+    {
+      "id": "csf_1ce9c6437cc21894960b0518",
+      "severity": "low",
+      "title": "Discord account linking bypasses the global player-record capacity",
+      "root_cause": "Player capacity is enforced in one helper rather than at the shared table/allocator boundary, and the linking workflow reimplements creation.",
+      "resolution": "remediated locally; Cloud status unchanged"
+    },
+    {
+      "id": "csf_a2a54aa92bc517aea7db4005",
+      "severity": "low",
+      "title": "One authenticated player can occupy the global serialized EOS verification queue",
+      "root_cause": "Global queue capacity is accounted before acquiring the serialized worker and without a lock-wait deadline or per-principal concurrency limit.",
+      "resolution": "remediated locally; Cloud status unchanged"
+    }
+  ],
+  "validation": {
+    "status": "passed locally",
+    "backend": {
+      "tests": 319,
+      "passed": true,
+      "report": "build/test-results/security-scan-20261023-backend-current/report.json"
+    },
+    "rust": {
+      "core_passed": 97,
+      "bridge_passed": 28,
+      "bridge_ignored": 2,
+      "strict_clippy_passed": true,
+      "report": "build/test-results/security-scan-20261023-rust-final/report.json",
+      "toolchain": "1.96.0; actual compiler version checked"
+    },
+    "native": {
+      "passed": true,
+      "focused_tests": 6,
+      "report": "build/test-results/security-scan-20261023-native-repair-2/report.json",
+      "source_refresh_receipt": "build/test-results/security-scan-20261023-native-repair-session/refresh-2.json",
+      "source_drift": [],
+      "build_scope": "Frozen native functional checks with -O0 -DNDEBUG; Rust release build remains optimized. Earlier optimized run passed 8 checks and failed 2; repaired cases pass in the frozen functional run."
+    },
+    "sanitizers": {
+      "passed_checks": [
+        "security_transport",
+        "steam_identity",
+        "online_directory_client",
+        "peer_host_agreement"
+      ],
+      "reports": [
+        "build/test-results/security-scan-20261023-sanitized/report.json",
+        "build/test-results/security-scan-20261023-sanitized-host/report.json"
+      ],
+      "note": "Original host test used the former majority expectation; the corrected all-survivor test passes in the supplemental report."
+    },
+    "container_configuration": "Both compose configurations validated; image build unavailable because Docker daemon is inactive.",
+    "source_hashes": "build/test-results/security-scan-20261023-source/report.json",
+    "deployment_cloud_or_live_provider_acceptance": false,
+    "scratch_cleanup": {
+      "verified_removed": [
+        ".local/test-scratch/halo2-test-l2hoby5s",
+        ".local/test-scratch/halo2-test-_d_l4rjk",
+        ".local/test-scratch/halo2-test-gau707nw",
+        ".local/test-scratch/halo2-test-1i942q_m",
+        ".local/test-scratch/halo2-test-lrhy6uqa",
+        ".local/test-scratch/halo2-test-t3jjzeg0"
+      ],
+      "remaining": []
+    }
+  },
+  "retained_large_artifacts": []
+}

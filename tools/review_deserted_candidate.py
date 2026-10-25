@@ -8,7 +8,9 @@ import argparse
 import copy
 import hashlib
 import json
+import os
 from pathlib import Path
+import subprocess
 import time
 from test_deserted_crossings import test
 from test_deserted_native import review
@@ -65,9 +67,17 @@ def run(root,runtime,wait_build):
         root/'evidence/collision-cache-final.json')
     del cache
     assert audit(root,root/'evidence/compiled-faces-final.json')==0
+    if (root/'model/native-emissive-variants.json').exists():
+        from audit_deserted_blender_lighting import audit as audit_lighting
+        scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve(strict=True)
+        interface=scratch/'lighting-tag-interface'
+        subprocess.run(['git','clone','--quiet','https://github.com/General-101/Halo-Tag-Interface.git',str(interface)],check=True)
+        subprocess.run(['git','-C',str(interface),'checkout','--quiet','7b01076b485cb851277c14defb71c8f88e214de4'],check=True)
+        audit_lighting(root,interface/'tag_interface',root/'evidence/native-light-source-coverage.json')
     print('Compiled render coverage and collision liveness passed; native walks starting',flush=True)
-    crossing=test(root,runtime,'native-fixed',
-        ['t-spawn','b-crossing','upper-fork-to-t','lower-fork-to-mid'])
+    # The new shared geometry owners affect every collision section. Include
+    # the short CT/mid approaches as well as both fork exits in this final run.
+    crossing=test(root,runtime,'native-fixed')
     review(root,runtime)
     if crossing:raise RuntimeError('Native crossing failed; inspect retained poses and frames')
     print('Native crossings and render/walk review passed',flush=True)

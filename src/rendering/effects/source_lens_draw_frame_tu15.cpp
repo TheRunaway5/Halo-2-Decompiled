@@ -173,10 +173,10 @@ struct SourceLensDrawFrameTu15::Impl final:SourcePhysicsContactMemory {
         if(std::this_thread::get_id()!=thread || !renderer || !lease.valid())
             throw FormatError("Original lens drawing lacks its actual renderer/thread lease");
     }
-    void execute(PhysicsLiveWorldTu15 &world,unsigned entry,SourcePhysicsWorldRuntimeAbi &abi) {
-        if(auto pass=source_execute_lens_draw(world,entry,abi,planning,domains,*this))throw PassBoundary{*pass};
+    void execute(SourceLensFrameWorldTu15 world,unsigned entry,SourcePhysicsWorldRuntimeAbi &abi) {
+        if(auto pass=source_execute_lens_draw(world.memory(),entry,abi,planning,domains,*this))throw PassBoundary{*pass};
     }
-    void run(PhysicsLiveWorldTu15 &world,unsigned entry,std::span<const unsigned> args={}) {
+    void run(SourceLensFrameWorldTu15 world,unsigned entry,std::span<const unsigned> args={}) {
         auto abi=world.prepare_source_call(args);execute(world,entry,abi);
     }
     void consume() {
@@ -212,7 +212,7 @@ struct SourceLensDrawFrameTu15::Impl final:SourcePhysicsContactMemory {
             at+=4+count*4;
         }
     }
-    void initialize(PhysicsLiveWorldTu15 &world) {
+    void initialize(SourceLensFrameWorldTu15 world) {
         if(expected_source && expected_source!=&world.memory())
             throw FormatError("Original lens draw owner received a different prepared world");
         if(source && source!=&world.memory())throw FormatError("Original lens draw owner cannot cross source worlds");
@@ -358,6 +358,9 @@ bool SourceLensDrawFrameTu15::rebind_ready_held(const PreparedRebind &prepared,c
         s.source!=&memory&&s.expected_source!=&memory;
 }
 Renderer *SourceLensDrawFrameTu15::renderer_owner() const noexcept {return impl_->renderer;}
+bool SourceLensDrawFrameTu15::accepts_source(const SourceRuntimeMemory &memory)const noexcept {
+    return impl_->source==&memory||impl_->expected_source==&memory;
+}
 void SourceLensDrawFrameTu15::publish_rebind(PreparedRebind &prepared) noexcept {
     impl_.swap(prepared.data_->next);prepared.data_->owner.reset();
 }
@@ -370,13 +373,21 @@ void SourceLensDrawFrameTu15::begin(){
     if(s.revision==std::numeric_limits<std::uint64_t>::max())throw FormatError("Original lens draw owner revision exhausted");
     ++s.revision;s.active=true;s.views=0;
 }
-std::vector<SourceLensDraw> SourceLensDrawFrameTu15::view(PhysicsLiveWorldTu15 &world,unsigned view,
+std::vector<SourceLensDraw> SourceLensDrawFrameTu15::view(PhysicsLiveWorldTu15 &world,unsigned v,
+    Vec3 p,Vec3 f,Vec3 u,float a,const SourceViewProjectionBank &b,std::array<std::int16_t,4> r,unsigned w,unsigned h) {
+    return view(SourceLensFrameWorldTu15{world},v,p,f,u,a,b,r,w,h);
+}
+std::vector<SourceLensDraw> SourceLensDrawFrameTu15::view(PhysicsLiveWorldTu15 &world,unsigned v,
+    Vec3 p,Vec3 f,Vec3 u,float a,const SourceViewProjectionBank &b,std::array<std::int16_t,4> r,unsigned w,unsigned h,Vec2 c) {
+    return view(SourceLensFrameWorldTu15{world},v,p,f,u,a,b,r,w,h,c);
+}
+std::vector<SourceLensDraw> SourceLensDrawFrameTu15::view(SourceLensFrameWorldTu15 world,unsigned view,
     Vec3 position,Vec3 forward,Vec3 up,float angle,const SourceViewProjectionBank &projection,
     std::array<std::int16_t,4> rectangle,unsigned width,unsigned height) {
     return this->view(world,view,position,forward,up,angle,projection,rectangle,
         width,height,Vec2{.015625f,1024.f});
 }
-std::vector<SourceLensDraw> SourceLensDrawFrameTu15::view(PhysicsLiveWorldTu15 &world,unsigned view,
+std::vector<SourceLensDraw> SourceLensDrawFrameTu15::view(SourceLensFrameWorldTu15 world,unsigned view,
     Vec3 position,Vec3 forward,Vec3 up,float angle,const SourceViewProjectionBank &projection,
     std::array<std::int16_t,4> rectangle,unsigned width,unsigned height,Vec2 clip_planes) {
     auto &s=*impl_;s.check();const auto use=s.lease.acquire();

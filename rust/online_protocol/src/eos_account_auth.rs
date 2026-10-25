@@ -231,7 +231,7 @@ impl AccountAuth {
                 command: Command::None,
             });
         }
-        if response.status == 0 || (500..600).contains(&response.status) {
+        if response.status == 0 || response.status == 429 || (500..600).contains(&response.status) {
             self.retry(response.kind);
             return Ok(Completion {
                 accepted: true,
@@ -603,6 +603,41 @@ mod tests {
             Err(Error::ServerDenied)
         ));
         assert!(!auth.admitted());
+    }
+
+    #[test]
+    fn verifier_capacity_429_retries_without_revoking_a_bound_identity() {
+        let mut initial = AccountAuth::new(0);
+        let request = initial.request(0).unwrap().unwrap();
+        let mut busy = response(&request);
+        busy.status = 429;
+        busy.ok = false;
+        initial.complete(busy, 1).unwrap();
+        assert!(!initial.admitted());
+        assert!(initial.request(250).unwrap().is_none());
+        let retry = initial.request(251).unwrap().unwrap();
+        assert!(retry.ticket > request.ticket);
+        assert!(matches!(
+            initial.complete(response(&retry), 252).unwrap().command,
+            Command::ExternalLogin(_)
+        ));
+
+        let mut auth = bound();
+        auth.auth_expiration(100).unwrap();
+        issuer(&mut auth, 100);
+        let proof = sdk_proof(&mut auth, false, 101);
+        let mut busy = response(&proof);
+        busy.status = 429;
+        busy.ok = false;
+        auth.complete(busy, 102).unwrap();
+        assert!(auth.admitted() && auth.user() == USER);
+        assert!(auth.request(351).unwrap().is_none());
+        let retry = auth.request(352).unwrap().unwrap();
+        assert_eq!(retry.kind, RequestKind::IdentityProof);
+        assert_eq!(retry.user, USER);
+        assert!(retry.ticket > proof.ticket);
+        auth.complete(response(&retry), 353).unwrap();
+        assert!(auth.admitted());
     }
 
     #[test]

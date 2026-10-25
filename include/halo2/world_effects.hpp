@@ -10,10 +10,12 @@
 #include "halo2/effect_light_receiver.hpp"
 #include "halo2/muzzle_effects.hpp"
 #include "halo2/source_attached_effect.hpp"
+#include "halo2/source_effect_replica_render_tu15.hpp"
 #include <memory>
 #include <map>
 
 namespace halo2 {
+class PhysicsLiveWorldTu15;
 struct WorldEffectFrame {
   Vec3 position, normal, incoming;
   Vec3 forward{1, 0, 0}, up{0, 0, 1};
@@ -49,6 +51,13 @@ struct WorldEffectLightReceiver {
   std::uint32_t identity{},epoch{};
   float selected_fade{};
   SourceEffectLightReceiverView view;
+};
+struct WorldEffectLensRequest {
+  SourceEffectReplicaRenderTu15 source;
+  std::uint32_t lens{};
+  unsigned ordinal{};
+  Vec3 position,forward;
+  float opacity{};
 };
 // Authored effe/prt3/pmov/deca playback over the native triangle backend.
 // All textures are made resident before Renderer construction. Simulation is
@@ -104,7 +113,11 @@ public:
   // Completed source location frames override every authored marker by its
   // actual string ID. Native presentation supplies no replacement direction.
   void spawn_source(std::uint32_t effect,std::uint32_t owner,std::uint64_t tick,
-      std::span<const SourceEffectLocation>,SourceEffectColors={},SourceEffectControls={1,1});
+      std::span<const SourceEffectLocation>,SourceEffectColors={},SourceEffectControls={1,1},
+      std::optional<SourceEffectReplicaRenderTu15> replica_render={});
+  // Read-only requests from actual imported render provenance and the same
+  // native original event clock as the effect's other presentation parts.
+  std::vector<WorldEffectLensRequest> replica_lenses()const;
   // Preload native particle/light/sound/decal components before renderer
   // construction. Other part owners are reported separately; this alone is
   // not proof that every authored part can play.
@@ -153,6 +166,15 @@ public:
   SourceEffectLightView light_view(Vec3 camera_position,
       const SourceEffectLightCollectionContext&,const SourceEffectLightCandidateContext&,
       std::int32_t frame,bool cinematic=false);
+  // Completed live simulation pool, after the current view's originalC35D0.
+  // Read actual occupied identities/spatial lists and original owner/shape
+  // admission. The private standalone allocator is not merged or re-registered.
+  SourceEffectLightView source_light_view(PhysicsLiveWorldTu15&,unsigned bsp,
+      const SourceEffectLightCollectionContext&,const SourceEffectLightCandidateContext&,
+      std::int32_t frame,bool cinematic=false);
+  std::vector<WorldEffectLightReceiver> source_light_receivers(PhysicsLiveWorldTu15&,
+      unsigned bsp,const SourceEffectLightView&,const SourceBspAdmissionBsp&,
+      std::span<const std::uint8_t> containing_fog,const SourceBspAdmission* main_view);
   //31C80's selected-light order, actual main-view BSP auxiliary/fog and
   // nested query epochs. Geometry collection/culling/submission stay separate.
   std::vector<WorldEffectLightReceiver> light_receivers(const SourceEffectLightView&,

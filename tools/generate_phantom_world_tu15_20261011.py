@@ -136,6 +136,7 @@ def main():
  text='''// Generated static source address bindings; no original code or decoder.
 #include "halo2/physics_phantom_world_tu15.hpp"
 #include "halo2/physics_world_runtime.hpp"
+#include "physics/runtime/physics_instruction_remap_tu15.hpp"
 #include "physics/vehicles/physics_vehicle_motion_math_internal.hpp"
 #include <algorithm>
 #include <array>
@@ -148,7 +149,7 @@ std::uint32_t sign_extend(std::uint32_t x,unsigned n) {
  if(n==2)return std::uint32_t(std::int32_t(std::bit_cast<std::int16_t>(std::uint16_t(x))));
  throw std::runtime_error("Unverified TU1.5 sign-extension width");
 }
-struct Binding { std::uint32_t key,value; };
+using Binding=PhysicsInstructionRemapTu15::Binding;
 '''
  text+=lower_bodies(r)+'\n'
  for name,key in (('vehicle_sites','vehicle_instruction_ids'),('world_sites','world_instruction_ids')):
@@ -176,7 +177,7 @@ struct Composition {
  }
  template<std::size_t N> SourcePhysicsContactRuntimeServices bound(const std::array<Binding,N> &sites) {
   auto result=services;
-  result.instruction=[&,bank=&sites](auto p){if(services.instruction)services.instruction(site(*bank,p));};
+  result.instruction=PhysicsInstructionRemapTu15{&services,sites};
   result.required_owner=[&,bank=&sites](auto &m,const auto &call,auto &abi,const auto &){
    auto actual=call;actual.instruction=site(*bank,call.instruction);required(m,actual,abi);
   };

@@ -1,0 +1,235 @@
+{
+  "schema": "H2_MCC_TU15_HUNTER_CONTRACT_V1",
+  "model": "objects\\characters\\hunter\\hunter",
+  "authority_report": "analysis/destruction-goal-20261022/hunter-model-authority-v2.json",
+  "authority_sha256": "7dc8cbc5ebadd39dfdccca29825318ad2fd1373e0dea5f87954e0f09ad44f26e",
+  "original_contract": "0f701d23028a2308be8d41c468563bc06a69b4b69ec186e8eadb99f12309264f",
+  "donor_contract": "79de88b5b98e90e5328430f1a1ed3e46dd2368fb082361c53a726c3901615a0f",
+  "damage_words": {
+    "00": "00000000",
+    "08": "00000000",
+    "28": "42c80000",
+    "2c": "00000000",
+    "30": "00000000",
+    "34": "00000000",
+    "38": "3f800000",
+    "8c": "41a00000",
+    "94": "00000000",
+    "98": "41200000",
+    "9c": "40000000",
+    "a0": "00000000",
+    "cc": "005f0094",
+    "d0": "3f000000",
+    "d4": "00000000"
+  },
+  "section_words": {
+    "04": "00000002",
+    "08": "3f800000",
+    "14": "00000000",
+    "18": "00000000",
+    "1c": "00000000",
+    "20": "00000000",
+    "24": "00000000",
+    "28": "00000000",
+    "2c": "00000000",
+    "34": "0000ffff"
+  },
+  "response_tuples": [
+    [
+      0,
+      0,
+      0,
+      1701209701,
+      4294967295,
+      1785754657,
+      4294967295,
+      0,
+      4294901764,
+      0,
+      0,
+      0,
+      1701209701,
+      4294967295,
+      0,
+      0,
+      167777274,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1701209701,
+      4294967295,
+      1785754657,
+      4294967295,
+      0,
+      4294901764,
+      0,
+      0,
+      0,
+      1701209701,
+      4294967295,
+      0,
+      0,
+      167778881,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1701209701,
+      4294967295,
+      1785754657,
+      4294967295,
+      0,
+      4294901764,
+      0,
+      0,
+      0,
+      1701209701,
+      4294967295,
+      0,
+      0,
+      167777423,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1701209701,
+      4294967295,
+      1785754657,
+      4294967295,
+      0,
+      4294901764,
+      0,
+      0,
+      0,
+      1701209701,
+      4294967295,
+      0,
+      0,
+      167776117,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1701209701,
+      4294967295,
+      1785754657,
+      4294967295,
+      0,
+      4294901764,
+      0,
+      0,
+      0,
+      1701209701,
+      4294967295,
+      0,
+      0,
+      167778956,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1701209701,
+      4294967295,
+      1785754657,
+      4294967295,
+      0,
+      4294901764,
+      0,
+      0,
+      0,
+      1701209701,
+      4294967295,
+      0,
+      0,
+      167776556,
+      0,
+      0,
+      0
+    ]
+  ],
+  "paired_maps": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/01b_spacestation.map",
+      "sha256": "5f79832ce3ae8035e547c5c673008802a4971fbf60551755fcc0553482843ae0",
+      "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/01b_spacestation.map",
+      "mcc_sha256": "06fe3555d4301c18a5b0f7379f5ddd6714626a3134462a14ce80a609bc7bf2bb"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/03a_oldmombasa.map",
+      "sha256": "7ea355ef79f13be83fe78546c0fd3b1009ef71c0dd2257b24996420d856f78f4",
+      "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/03a_oldmombasa.map",
+      "mcc_sha256": "395ad7bccefdb3d50950dc911e8adeee770a75e6ad109c3979d6a641fd648475"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/05b_deltatowers.map",
+      "sha256": "970615d5b75e8e1793ed19e505c3a1267325e51ee4d9abda912f2530a875bac5",
+      "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/05b_deltatowers.map",
+      "mcc_sha256": "63f709fa8e1790e673dba14380ed2814aff35d88af60d66b53e1262b337780fb"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/07a_highcharity.map",
+      "sha256": "770426d5182d47d31ce870fcbc9ed346988175690a3dc1c58ca8a7c1ef1dbd45",
+      "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/07a_highcharity.map",
+      "mcc_sha256": "f883bc4592839329f5e12618413e202298f139d01a6758764d28ded95e4b0569"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/08a_deltacliffs.map",
+      "sha256": "69e633bfa7454172aa4f081f72f3719922b0152d5a77ab8409176ccd8b8301d4",
+      "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/08a_deltacliffs.map",
+      "mcc_sha256": "7d72d4858d40c953744621c6ce0fffe3449fba2a920b50a80b5bdcbeb9e80594"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/08b_deltacontrol.map",
+      "sha256": "2b71293c775ad33a73025b7a640ba45e88fc4c01c7783d79cf0cce8862cc2828",
+      "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/08b_deltacontrol.map",
+      "mcc_sha256": "4844a2ea86949fe33b051d86f7410e83f4f3c63d58b5e4aac140b8f7b55c680f"
+    }
+  ],
+  "section_names": [
+    [
+      67109053,
+      83894610
+    ],
+    [
+      67109053,
+      83894480
+    ],
+    [
+      67109053,
+      83892752
+    ],
+    [
+      67109053,
+      83891893
+    ],
+    [
+      67109053,
+      83889631
+    ],
+    [
+      67109053,
+      83892335
+    ]
+  ]
+}

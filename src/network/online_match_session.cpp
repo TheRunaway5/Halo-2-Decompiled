@@ -33,87 +33,6 @@ void require(bool ok) { if (!ok) throw std::runtime_error("ONLINE match connecti
 struct Frame { unsigned peer; std::vector<std::byte> data;std::uint32_t epoch{};std::uint64_t audio_generation{}; };
 struct TerminalMatchError : std::runtime_error {using std::runtime_error::runtime_error;};
 struct ControlPresence {std::atomic<bool> &active;~ControlPresence(){active=false;}};
-struct EosHttpTransfer {
-  std::string body;
-  std::stop_token stop;
-};
-std::size_t receive_eos_auth(char *data,std::size_t size,std::size_t count,void *opaque) {
-  auto &transfer=*static_cast<EosHttpTransfer *>(opaque);
-  constexpr std::size_t maximum=16384;
-  if(transfer.stop.stop_requested()||(count&&size>std::numeric_limits<std::size_t>::max()/count))return 0;
-  const auto bytes=size*count;
-  if(bytes>maximum-transfer.body.size())return 0;
-  try{transfer.body.append(data,bytes);}catch(...){return 0;}
-  return bytes;
-}
-int cancel_eos_auth(void *opaque,curl_off_t,curl_off_t,curl_off_t,curl_off_t) {
-  return static_cast<EosHttpTransfer *>(opaque)->stop.stop_requested()?1:0;
-}
-OnlineEosAuthResponse request_eos_auth(const std::string &room_api,const std::string &bearer,
-                                     const OnlineEosAuthRequest &request,std::stop_token stop) {
-  OnlineEosAuthResponse response{};response.kind=request.kind;response.ticket=request.ticket;
-  if(request.kind!=1&&request.kind!=2){response.status=400;return response;}
-  try{
-    std::unique_ptr<CURL,decltype(&curl_easy_cleanup)> client(curl_easy_init(),curl_easy_cleanup);
-    if(!client)return response;
-    const auto authorization="Authorization: Bearer "+bearer;
-    std::unique_ptr<curl_slist,decltype(&curl_slist_free_all)> headers(
-        curl_slist_append(nullptr,authorization.c_str()),curl_slist_free_all);
-    if(!headers||!curl_slist_append(headers.get(),"Content-Type: application/json"))return response;
-    const auto url=room_api+(request.kind==1?"/eos-token":"/eos-proof");
-    const auto body=request.kind==1?std::string("{}"):Json{{"token",request.token}}.dump();
-    EosHttpTransfer transfer{{},stop};
-    curl_easy_setopt(client.get(),CURLOPT_URL,url.c_str());
-    curl_easy_setopt(client.get(),CURLOPT_HTTPHEADER,headers.get());
-    curl_easy_setopt(client.get(),CURLOPT_POST,1L);
-    curl_easy_setopt(client.get(),CURLOPT_POSTFIELDS,body.c_str());
-    curl_easy_setopt(client.get(),CURLOPT_POSTFIELDSIZE,long(body.size()));
-    curl_easy_setopt(client.get(),CURLOPT_PROTOCOLS_STR,"https,http");
-    curl_easy_setopt(client.get(),CURLOPT_FOLLOWLOCATION,0L);
-    curl_easy_setopt(client.get(),CURLOPT_PROXY,"");
-    curl_easy_setopt(client.get(),CURLOPT_NOSIGNAL,1L);
-    curl_easy_setopt(client.get(),CURLOPT_CONNECTTIMEOUT_MS,2000L);
-    // The existing official proof verifier may wait up to twenty seconds.
-    // This I/O runs on its own worker and remains cancellable during teardown.
-    curl_easy_setopt(client.get(),CURLOPT_TIMEOUT_MS,request.kind==1?3000L:25000L);
-    curl_easy_setopt(client.get(),CURLOPT_SSL_VERIFYPEER,1L);
-    curl_easy_setopt(client.get(),CURLOPT_SSL_VERIFYHOST,2L);
-    curl_easy_setopt(client.get(),CURLOPT_ACCEPT_ENCODING,"identity");
-    curl_easy_setopt(client.get(),CURLOPT_HTTP_CONTENT_DECODING,0L);
-    curl_easy_setopt(client.get(),CURLOPT_WRITEFUNCTION,receive_eos_auth);
-    curl_easy_setopt(client.get(),CURLOPT_WRITEDATA,&transfer);
-    curl_easy_setopt(client.get(),CURLOPT_NOPROGRESS,0L);
-    curl_easy_setopt(client.get(),CURLOPT_XFERINFOFUNCTION,cancel_eos_auth);
-    curl_easy_setopt(client.get(),CURLOPT_XFERINFODATA,&transfer);
-    if(curl_easy_perform(client.get())!=CURLE_OK||stop.stop_requested())return response;
-    long status{};curl_easy_getinfo(client.get(),CURLINFO_RESPONSE_CODE,&status);
-    response.status=status>=0&&status<=999?std::uint16_t(status):0;
-    if(status!=200)return response;
-    std::vector<std::set<std::string>> keys;
-    const auto value=Json::parse(transfer.body,[&](int depth,Json::parse_event_t event,Json &v){
-      require(depth<=8);
-      if(event==Json::parse_event_t::object_start)keys.emplace_back();
-      if(event==Json::parse_event_t::key)require(!keys.empty()&&keys.back().insert(v.get<std::string>()).second);
-      if(event==Json::parse_event_t::object_end)keys.pop_back();
-      return true;
-    });
-    if(!value.is_object())return response;
-    if(request.kind==1){
-      if(value.size()!=2||!value.contains("token")||!value["token"].is_string()||
-          !value.contains("expires_in")||!value["expires_in"].is_number_integer()||
-          value["expires_in"]<1||value["expires_in"]>120)return response;
-      response.token=value["token"].get<std::string>();
-      if(response.token.empty()||response.token.size()>8192)return response;
-      response.expires_in=value["expires_in"].get<std::uint32_t>();
-    }else{
-      if(value.size()!=1||!value.contains("eos_product_user_id")||!value["eos_product_user_id"].is_string())return response;
-      response.user=value["eos_product_user_id"].get<std::string>();
-      if(response.user.size()>64)return response;
-    }
-    response.ok=true;
-  }catch(...){response.ok=false;response.token.clear();response.user.clear();response.expires_in=0;}
-  return response;
-}
 bool valid_world_digest(const std::string &value) {
   return value.size()==64 && value.find_first_not_of("0123456789abcdef")==std::string::npos;
 }
@@ -487,7 +406,7 @@ struct OnlineMatchSession::Impl {
     require(packet.size()>=7 && packet.size()<=1400 && get(packet,0,4)==0x324e3248 && get(packet,4,2)==native_multiplayer_protocol);
     const auto kind=get(packet,6,1);
     require((self==host && (kind==1 || kind==2 || kind==4 || kind==6)) ||
-            (source==host && (kind==3 || kind==5 || kind==6)));
+            (source==host && (kind==3 || kind==5 || kind==6 || kind==14)));
     if(kind!=6) {
       // A native freeze cannot manufacture predecessor silence. Authenticated
       // current-host traffic still services suspicion; it never reaches the
@@ -541,14 +460,20 @@ struct OnlineMatchSession::Impl {
   void run_eos_authentication(const std::shared_ptr<OnlinePeerTransport> &direct,const std::string &room_api,
                               const std::string &bearer,std::stop_token stop) {
     try{
+      auto http=online_protocol_bridge::new_eos_auth_http(room_api,bearer);
+      std::stop_callback cancel(stop,[&]{online_protocol_bridge::eos_auth_http_cancel(*http);});
       while(!stop.stop_requested()){
         {std::lock_guard lock(mutex);if(phase==Phase::Failed)return;}
-        // Rust returns an owned message. No transport/SDK or Session mutex is
-        // held during HTTP, including the slower official proof verification.
+        // Rust owns credential HTTP and typed parsing. No transport/SDK or
+        // Session mutex is held during the cancellable request.
         const auto request=direct->authentication_request();
         if(!request.kind){std::this_thread::sleep_for(std::chrono::milliseconds(20));continue;}
-        const auto response=request_eos_auth(room_api,bearer,request,stop);
+        const online_protocol_bridge::EosAuthRequest message{request.kind,request.ticket,request.token,request.user};
+        const auto result=online_protocol_bridge::eos_auth_http_request(*http,message);
         if(stop.stop_requested())return;
+        OnlineEosAuthResponse response{};
+        response.kind=result.kind;response.ticket=result.ticket;response.status=result.status;response.ok=result.ok;
+        response.token=std::string(result.token);response.user=std::string(result.user);response.expires_in=result.expires_in;
         direct->complete_authentication(response);
       }
     }catch(const std::exception &e){fail(e.what());}

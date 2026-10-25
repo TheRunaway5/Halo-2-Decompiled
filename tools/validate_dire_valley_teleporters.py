@@ -52,7 +52,8 @@ def validate(package,mcc_root,report,runtime=None):
                 if struct.unpack_from('<h',c.data,a+16)[0]==8:struct.pack_into('<h',c.data,a+16,5)
         fixture=scratch/(name+'.map');fixture.write_bytes(c.data)
         content=scratch/(name+'-content')
-        publish(fixture,mcc_root,content,package/'authoring/main-hud.json',scratch/(name+'-publication.json'))
+        publish(fixture,mcc_root,content,package/'authoring/main-hud.json',scratch/(name+'-publication.json'),
+            material_polish=(package/'authoring/material_polish.json').is_file())
         command=[str(runtime),'--multiplayer','--map',str(content/'halo2/Mods/dire_valley/dire_valley.map'),
             '--shared-maps',str(content/'halo2/h2_maps_win64_dx11'),'--local-players','1',
             '--mp-input-script',str(inputs),'--mp-capture-tick','90','--mp-reference-tick-cadence',

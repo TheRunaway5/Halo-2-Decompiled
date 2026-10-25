@@ -25,6 +25,25 @@ int main()try {
     mount_native_tu15_physics_branch_data(empty);
     const auto installed=empty.checkpoint();
     check(!installed.regions.empty(),"Physics table installation published no owners");
+    // Untouched TU1.5 1765B0/1765BF/176754 load this exact readonly DOUBLE.
+    // A large Scorpion/Wraith light bound reaches the latter comparison.
+    constexpr std::uint32_t portal_tolerance=0x46a598u;
+    constexpr std::array portal_bits{std::byte{0},std::byte{0},std::byte{0},std::byte{0},
+        std::byte{0},std::byte{0},std::byte{0x90},std::byte{0x3f}};
+    check(empty.is_read_only(portal_tolerance,8) &&
+        std::ranges::equal(empty.view(portal_tolerance,8),portal_bits),
+        "Original light portal plane tolerance is absent or changed");
+    const auto portal_owner=std::ranges::find(installed.regions,portal_tolerance,
+        &SourceRuntimeMemory::CheckpointRegion::address);
+    check(portal_owner!=installed.regions.end() && portal_owner->bytes.size()==8,
+        "Light portal operand owner borrowed adjacent source bytes");
+    for(bool writable:{false,true}) {
+        SourceRuntimeMemory conflict;auto bytes=portal_bits;
+        if(!writable)bytes.front()^=std::byte{1};
+        conflict.mount(portal_tolerance,bytes,writable?SourceRuntimeMemory::Access::ReadWrite:
+            SourceRuntimeMemory::Access::ReadOnly,"conflicting light portal constant owner");
+        rejects_without_publication(conflict);
+    }
     // Original DCB75 selects the complete five-way damage response table.
     // Warthog chassis impacts reach selector4; the owner is immutable data.
     constexpr std::array<std::uint32_t,5> damage_response{

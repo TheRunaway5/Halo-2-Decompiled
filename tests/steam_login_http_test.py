@@ -17,7 +17,7 @@ import time
 from urllib.parse import parse_qs, urlsplit
 from unittest.mock import patch
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, web
 from aiohttp.test_utils import TestServer
 from multiplayer.master_server.service import Settings, create_app
 from multiplayer.master_server.steam_login import OP, NS
@@ -31,6 +31,12 @@ async def main(binary):
         app=create_app(Settings(state=root, allow_http=True, public_url='http://127.0.0.1:1',
                                 steam_enabled=True, matchmaking_catalog=str(root/'catalog.json')))
         server=TestServer(app);await server.start_server()
+        proxy_requests=[]
+        async def proxy_trap(request):
+            proxy_requests.append(request.path)
+            return web.Response(status=502)
+        proxy_app=web.Application();proxy_app.router.add_route('*','/{path:.*}',proxy_trap)
+        proxy=TestServer(proxy_app);await proxy.start_server()
         directory=next(iter(app.values()));directory.settings.public_url=str(server.make_url('')).rstrip('/')
         key=b'independent-native-wire-fixture'
         def signature(values):
@@ -46,7 +52,8 @@ async def main(binary):
                 output=root/'authorization.txt'
                 task=await asyncio.create_subprocess_exec(str(Path(binary).resolve()),str(output),'Chosen Steam Pilot',
                     stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.STDOUT,
-                    env=dict(os.environ,H2_ACCOUNT_URL=directory.settings.public_url,H2_ACCOUNT_ALLOW_LOOPBACK_HTTP='1'))
+                    env=dict(os.environ,H2_ACCOUNT_URL=directory.settings.public_url,H2_ACCOUNT_ALLOW_LOOPBACK_HTTP='1',
+                        http_proxy=str(proxy.make_url('')),ALL_PROXY=str(proxy.make_url('')),no_proxy='',NO_PROXY=''))
                 for _ in range(100):
                     if output.exists() and output.stat().st_size:break
                     if task.returncode is not None:raise RuntimeError('Native sign-in terminated before browser handoff')
@@ -66,11 +73,13 @@ async def main(binary):
                 stdout=await asyncio.wait_for(task.communicate(),10)
                 if task.returncode:raise RuntimeError(stdout[0].decode())
                 assert 'PASS' in stdout[0].decode()
+                assert not proxy_requests, 'Steam identity request reached ambient proxy'
                 assert tuple(directory.store.db.execute('SELECT screen_name,steam_name FROM player_profiles').fetchone())==('Chosen Steam Pilot','Steam Player')
                 assert not directory.clans.sessions, 'Native sign-out retained its account session'
                 print('PASS native Steam proof-bound login, real HTTP account session, chosen name, clan read, sign-out; fixture Steam provider')
         finally:
             if task and task.returncode is None:task.kill();await task.wait()
             await server.close()
+            await proxy.close()
 
 if __name__=='__main__':asyncio.run(main(sys.argv[1]))

@@ -74,6 +74,9 @@ public:
                   std::optional<Vec3> retained_incident = {});
     // Callback already skins the rooted WORLD bank; do not place it again.
     void pose_world(const std::function<std::vector<Vertex>(const RenderModel &)> &);
+    // pose_world with skin_model_world_nodes. The six independent LOD skins
+    // deform together and publish in LOD order with identical results.
+    void pose_world_nodes(std::span<const Transform> world_nodes);
     void update_banks(const Cache &,std::span<const Transform>,const SourcePrtLighting &,Mesh &);
     std::vector<SourcePrtMaterialBank> owner_banks(const Cache &,std::span<const Transform>,
                                                 const SourcePrtLighting &,unsigned lod,

@@ -56,8 +56,14 @@ std::shared_ptr<const NativeUnitInteractionAssets> load_native_unit_interaction_
   };
   add(content.player.datum);for(const auto &r:content.player_representations)add(r.biped.datum);for(const auto &[id,c]:content.characters)add(c.biped.datum);
   for(const auto &o:content.objects)if(o.type==1)add(o.definition);
-  for(std::size_t i=0;i<content.objects.size();++i)if(content.objects[i].netgame_row>=0)
-    out->netgame_placements.emplace(unsigned(content.objects[i].netgame_row),i);
+  for(std::size_t i=0;i<content.objects.size();++i)if(content.objects[i].netgame_row>=0) {
+    const auto& object=content.objects[i];const auto row=unsigned(object.netgame_row);
+    out->netgame_placements.emplace(row,i);
+    const auto variant=cache.load_initial_model_selection(object.definition,object.variant).variant_index;
+    const auto [at,inserted]=out->netgame_templates.emplace(std::tuple{row,object.definition,variant},i);
+    if(!inserted && content.objects[at->second].variant!=object.variant)
+      throw FormatError("Netgame templates alias the same authored model variant");
+  }
   for(const auto &object:content.objects)if(object.model_attachment) {
     const auto add_marker=[&](std::uint32_t id,std::uint32_t name){auto &d=out->units.at(id);
       const auto t=cache.load_source_tag_metadata(id);const Bytes b(t.bytes_at(t.source_address(),t.size()));

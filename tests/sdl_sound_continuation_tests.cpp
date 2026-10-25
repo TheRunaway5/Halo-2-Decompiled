@@ -141,6 +141,19 @@ void exact_restore(){
   need(p.playback_position(replacement).publication_epoch==2&&!p.playback_position(replacement).first_resumed_device_frame,"Fresh post-publication voice had stale epoch or invented observation");
   p.render(1);need(p.playback_position(replacement).publication_epoch==2&&p.playback_position(replacement).first_resumed_device_frame==new_start,"Fresh post-publication voice did not observe its actual first sample");auto c=p.completion(replacement);need(bool(c),"New typed voice unavailable after publication");p.acknowledge(*c);p.destroy_voice(replacement);
 }
+void packet_volume_restore(){
+  Platform p(config());const auto voice=p.create_voice_receipt(70,parameters(.75f));
+  const auto data=std::make_shared<const std::vector<float>>(std::vector<float>{.5f,.25f,.5f,.25f,.5f,.25f,.5f,.25f});
+  p.submit(voice,{data,0,4,71,-600});p.submit(voice,{data,0,4,72,-2000});
+  p.render(1);auto saved=p.checkpoint();const auto expected=p.render(7);
+  p.packet_volume(voice,72,0);
+  auto prepared=p.prepare_restore(saved);
+  {auto held=p.hold_publication(prepared);need(p.ready(prepared,held)&&p.commit(prepared,held),"Packet volume publication failed");}
+  const auto restored=*prepared.voice(voice.id());rejects([&]{p.packet_volume(voice,72,0);});
+  need(p.render(7)==expected,"Restored fractional packet volumes or boundary changed PCM");
+  p.packet_volume(restored,72,-1200);rejects([&]{p.packet_volume(restored,79,0);});
+  p.flush(restored);while(auto done=p.completion(restored))p.acknowledge(*done);p.destroy_voice(restored);
+}
 void prospective_siblings(){
   Platform p(config());auto voice=p.create_voice_receipt(1,parameters());p.submit(voice,{pcm(),0,2,2});auto cp=p.checkpoint();
   auto canceled=p.prepare_restore(cp),winner=p.prepare_restore(cp),competing=p.prepare_restore(cp);
@@ -273,7 +286,7 @@ int main(int argc,char**argv)try{
     auto*held=new Platform::HeldPublication(p.hold_publication(prepared));std::thread foreign([&]{delete held;});foreign.join();return 75;
   }
 #endif
-  need(argc==1,"Unknown continuation test option");explicit_enrollment();exact_restore();prospective_siblings();guards_and_retirement();cancel_and_owner_death();pcm_owners();legacy_compatibility();legacy_removal_refusal();callback_exclusion();
+  need(argc==1,"Unknown continuation test option");explicit_enrollment();exact_restore();packet_volume_restore();prospective_siblings();guards_and_retirement();cancel_and_owner_death();pcm_owners();legacy_compatibility();legacy_removal_refusal();callback_exclusion();
   std::cout<<"SDL continuation: exact fractional/two-slot/deadline suffix, three clocks, epoch+record authority, held callback exclusion, once/cancel/stale/foreign/owner/device/PCM retirement PASS; no runtime adoption/physical audibility claim\n";
   return 0;
 }catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}

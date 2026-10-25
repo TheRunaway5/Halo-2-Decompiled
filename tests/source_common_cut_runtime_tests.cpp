@@ -180,7 +180,10 @@ int main(int argc,char **argv)try{
     const bool prospective_mode=std::getenv("HALO2_COMMON_PROSPECTIVE")!=nullptr;
     const bool client_mode=std::getenv("HALO2_COMMON_CLIENT")!=nullptr;
     const bool client_abort_mode=std::getenv("HALO2_COMMON_CLIENT_ABORT")!=nullptr;
+    const bool disconnect_mode=std::getenv("HALO2_COMMON_DISCONNECT")!=nullptr;
     const std::string inventory_mode=std::getenv("HALO2_COMMON_INVENTORY")?std::getenv("HALO2_COMMON_INVENTORY"):"";
+    check(!disconnect_mode||(!prospective_mode&&!client_mode&&!client_abort_mode&&inventory_mode.empty()),
+        "Ordinary disconnect recovery requires its separate unmodified native common-cut route");
     check(inventory_mode.empty()||inventory_mode=="abort"||inventory_mode=="freeze"||inventory_mode=="preparation","Unknown retained inventory fixture");
     check(inventory_mode.empty()||(selected_mcc&&!prospective_mode),"Retained inventory controls require their separate selected MCC route");
     check(!prospective_mode||selected_mcc,"Prospective native/audio binding control requires the selected MCC input");
@@ -208,7 +211,7 @@ int main(int argc,char **argv)try{
     }
     check(roster.size()==12&&descriptors.size()==3,"Expected three physical sessions with four couch players each");
     std::array<std::shared_ptr<OnlineMatchSession>,16> sessions;
-    for(const auto &d:descriptors){OnlineMatchTransportOptions transport;transport.direct_udp=true;transport.peer_host_migration=true;
+    for(const auto &d:descriptors){OnlineMatchTransportOptions transport;transport.direct_udp=true;transport.peer_host_migration=!disconnect_mode;
         transport.survivor_cut_selection=inventory_mode=="freeze"||inventory_mode=="preparation";
         const unsigned self=d.at("slot");sessions[self]=std::make_shared<OnlineMatchSession>(argv[1],d.at("id"),d.at("token"),self,roster,true,false,false,transport);}
     const auto healthy=[&]{for(const auto &session:sessions)if(session)
@@ -237,12 +240,24 @@ int main(int argc,char **argv)try{
         check(worlds[host]->match.join(roster[slot].name,-1,options[host].selected_profiles[view],slot)==slot,"Native local host birth changed an admitted slot");}
     worlds[host]->bind_source_local_views(sessions[host]->local_slots());
     auto lan_host=std::make_unique<LanHost>(worlds[host]->match,sessions[host],fingerprint,roster,variant);
+    // The ordinary disconnect control deliberately prepares genuine owners
+    // without election. Its explicit purpose must not enroll normal v14 play.
+    using Preparation=MultiplayerRuntimeAuthority::RecoveryPreparation;
+    const auto preparation=disconnect_mode?Preparation::PreparationOnly:Preparation::Automatic;
+    for(const auto &session:sessions)if(session){
+        check(MultiplayerRuntimeAuthority::recovery_preparation_enabled(session)==!disconnect_mode,
+            "Automatic native recovery preparation differs from negotiated continuity");
+        check(MultiplayerRuntimeAuthority::recovery_preparation_enabled(session,Preparation::PreparationOnly),
+            "Explicit native preparation-only owner was refused");
+        if(disconnect_mode)check(!session->continuity()&&!session->peer_migration(),
+            "Preparation-only admission enabled transport continuity or election");
+    }
     std::array<std::unique_ptr<MultiplayerRuntimeAuthority>,16> owners;
-    owners[host]=std::make_unique<MultiplayerRuntimeAuthority>(options[host],worlds[host],std::move(lan_host),nullptr);
+    owners[host]=std::make_unique<MultiplayerRuntimeAuthority>(options[host],worlds[host],std::move(lan_host),nullptr,nullptr,preparation);
     std::array<std::unique_ptr<Foreground>,16> foreground;
     for(auto p:clients){auto native_client=std::make_unique<LanClient>(sessions[p],host,fingerprint,std::span<const std::int8_t>{},options[p].selected_profiles);
         auto worker=std::make_unique<SourceAuthorityReplayWorker>(options[p],std::make_shared<Clock>(),std::make_shared<Clock>());
-        owners[p]=std::make_unique<MultiplayerRuntimeAuthority>(options[p],worlds[p],nullptr,std::move(native_client),std::move(worker));
+        owners[p]=std::make_unique<MultiplayerRuntimeAuthority>(options[p],worlds[p],nullptr,std::move(native_client),std::move(worker),preparation);
         foreground[p]=std::make_unique<Foreground>(*owners[p],sessions[p]);}
     auto &authority=*owners[host];const auto producer=&authority.world();
     std::array<Controls,4> neutral{};std::array<Controls,multiplayer_capacity> controls{};
@@ -365,6 +380,29 @@ int main(int argc,char **argv)try{
         "Foreign native/foreground owners completed another recipient's association");
     check(!sessions[host]->common_cut()->commit&&sessions[host]->common_cut()->associated==std::uint16_t(1u<<clients[0]),
         "Native-all ACKs or the first foreground association manufactured the missing owner");
+    for(auto p:clients){
+        check(owners[p]->recovery_eligibility()==MultiplayerRuntimeAuthority::RecoveryEligibility::Unavailable,
+            "Common native ownership without a learned certificate admitted a disconnect recovery wait");
+        const auto before_pin=owners[p]->pending_native_cut();
+        check(before_pin&&!owners[p]->recover()&&owners[p]->pending_native_cut()==before_pin&&owners[p]->shadow_state(),
+            "Unavailable disconnect recovery exported a cut, retired a worker or consumed a genuine native pin");
+    }
+    if(disconnect_mode){
+        check(std::ranges::all_of(clients,[&](unsigned p){return !sessions[p]->peer_migration();}),
+            "Ordinary disconnect regression accidentally enabled a peer-migration decision producer");
+        for(auto p:clients){
+            auto frame=owners[p]->begin_frame();check(bool(frame),"Eligibility refusal fenced an ordinary live client frame");
+            rejects([&]{(void)owners[p]->recovery_eligibility();});check(frame->finish(),"Eligibility frame did not finish");
+            std::atomic<bool> foreign_refused{};
+            {std::jthread foreign([&]{try{(void)owners[p]->recovery_eligibility();}catch(const FormatError &){foreign_refused=true;}});}
+            check(foreign_refused,"Foreign executor inspected native disconnect recovery eligibility");
+            owners[p]->cancel_recovery();
+            check(owners[p]->recovery_eligibility()==MultiplayerRuntimeAuthority::RecoveryEligibility::Unavailable&&
+                owners[p]->pending_native_cut(),"Ordinary recovery cancellation forged eligibility or discarded its native pin");
+        }
+        std::cout<<"PASS genuine ordinary disconnect recovery refusal: authenticated native common pins, no migration agreement, no exported fallback or recovery wait; creator/frame guards preserved\n";
+        return 0;
+    }
     std::cout<<"PASS native common-cut runtime owners: two independently validated receiver pins and exact foreground receipts\n";
     stage="private first pending common native import before Release";
     const auto candidate=clients[0];const ValidatedAuthorityCut preimported_cut{candidate,generation,first->seal};
@@ -1047,6 +1085,8 @@ int main(int argc,char **argv)try{
         rejects([&]{(void)owners[other_client]->match().prepare_replica(first_frontiers[1].frontier().replica);});
     }
     std::shared_ptr<const SourceAuthorityRetainedWorld> retained_import_pair;
+    check(owners[candidate]->recovery_eligibility()==MultiplayerRuntimeAuthority::RecoveryEligibility::LearnedCommonCut,
+        "Actual learned certificate and retained exact common pair failed disconnect recovery eligibility");
     wait([&]{retained_import_pair=owners[candidate]->recover();return bool(retained_import_pair);},
         "Exact imported common pair did not retire its replay executor");
     auto wrong_admissions=*retained_import_pair;wrong_admissions.admissions.players.front().player^=1u;

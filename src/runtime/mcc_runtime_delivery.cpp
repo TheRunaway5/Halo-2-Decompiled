@@ -360,6 +360,17 @@ MccRuntimeCacheDelivery MccRuntimeCacheDelivery::plan(const Cache& cache,std::ui
             }
         }
     }
+    // Original object/audio callers read lsnd+0 flags,+1C tracks,+24 details.
+    // MCC prepends a remastered reference. Relocate the complete MCC graph
+    // first, then project only the runtime root; its authored row pointers
+    // already name the correct native allocations. Raw Cache bytes and the
+    // existing allocation tail remain owned and unchanged by this projection.
+    for(const auto& copy:copies)if(!copy.retained && copy.tag->group=="lsnd") {
+        if(copy.tag->size<0x34)throw FormatError("MCC looping root lacks its complete declared header");
+        const auto projected=project_mcc_looping_sound_root(
+            Bytes(out.metadata_.bytes).slice(copy.offset,0x34));
+        std::copy(projected.begin(),projected.end(),out.metadata_.bytes.begin()+std::ptrdiff_t(copy.offset));
+    }
     // The source binder follows matg+C0/C4 and reads the original Sound
     // Globals' gestalt datum at +20. MCC prepends a remastered-class ref,
     // shifting every original field by eight bytes. Project this declared

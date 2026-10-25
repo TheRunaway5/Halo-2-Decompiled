@@ -19,6 +19,25 @@ namespace {
 void checked(VkResult result) {
     if(result!=VK_SUCCESS)throw FormatError("model skin GPU Vulkan operation failed: "+std::to_string(result));
 }
+class InitializationRefused final : public std::exception {
+public:
+    VkResult result;
+    explicit InitializationRefused(VkResult value)noexcept :result(value){}
+    const char *what()const noexcept override {return "model skin GPU initialization allocation refused";}
+};
+// No diagnostic allocation may turn a known hard failure into an optional
+// refusal. Translate this descriptor only outside the factory's bad_alloc try.
+struct InitializationHardError {const char *message{};VkResult result=VK_SUCCESS;};
+[[noreturn]] void initialization_hard_error(const InitializationHardError &error) {
+    if(error.message)throw FormatError(error.message);
+    checked(error.result);
+    std::terminate();
+}
+void checked_initialization(VkResult result) {
+    if(result==VK_ERROR_OUT_OF_HOST_MEMORY || result==VK_ERROR_OUT_OF_DEVICE_MEMORY)
+        throw InitializationRefused{result};
+    if(result!=VK_SUCCESS)throw InitializationHardError{nullptr,result};
+}
 class PrepareEnvironment {
     std::fenv_t fp_{};int error_=errno;
     bool available_=std::fegetenv(&fp_)==0;
@@ -41,7 +60,8 @@ void checked_input_mapping(VkResult result) {
         throw ModelSkinGpuPrepareRefused(ModelSkinGpuPrepareRefusalReason::input_mapping,result);
     checked(result);
 }
-enum class PrepareInjection {none,quota,packing,create,allocation,device_allocation,map,map_range,device_lost};
+enum class PrepareInjection {none,quota,packing,create,allocation,device_allocation,
+    bind_allocation,bind_device_allocation,map,map_range,device_lost};
 PrepareInjection prepare_injection() {
     const auto *value=std::getenv("HALO2_TEST_GPU_SKIN_PREPARE_FAILURE");
     if(!value || !*value)return PrepareInjection::none;
@@ -51,6 +71,8 @@ PrepareInjection prepare_injection() {
     if(name=="create")return PrepareInjection::create;
     if(name=="allocation")return PrepareInjection::allocation;
     if(name=="device-allocation")return PrepareInjection::device_allocation;
+    if(name=="bind-allocation")return PrepareInjection::bind_allocation;
+    if(name=="bind-device-allocation")return PrepareInjection::bind_device_allocation;
     if(name=="map")return PrepareInjection::map;
     if(name=="map-range")return PrepareInjection::map_range;
     if(name=="device-lost")return PrepareInjection::device_lost;
@@ -72,6 +94,9 @@ struct ModelSkinGpu::Impl {
     VkBuffer input{};VkDeviceMemory memory{};std::size_t capacity{},count{};
     void *mapped{};
     bool streamed{},records_valid{},descriptors_valid{};
+    bool full_validation{},validation_valid{};
+    std::array<std::uint64_t,64> used_rows{};
+    std::size_t validation_destination_vertices{};
     std::vector<ModelSkinGpuRecord> records;
     std::size_t palette_rows{};
     VkBuffer descriptor_input{},descriptor_destination{};
@@ -90,7 +115,8 @@ struct ModelSkinGpu::Impl {
     }
     bool allocate(std::size_t bytes,PrepareInjection injection,bool retain_mapping) {
         if(bytes<=capacity && injection!=PrepareInjection::create &&
-            injection!=PrepareInjection::allocation && injection!=PrepareInjection::device_allocation)return false;
+            injection!=PrepareInjection::allocation && injection!=PrepareInjection::device_allocation &&
+            injection!=PrepareInjection::bind_allocation && injection!=PrepareInjection::bind_device_allocation)return false;
         // Do not retire the old input bank until the complete replacement is
         // bound. A refusal destroys only these private temporary handles.
         struct Replacement {
@@ -118,7 +144,10 @@ struct ModelSkinGpu::Impl {
         else {++stats.input_allocations;allocated=vkAllocateMemory(device,&allocation,nullptr,&next.memory);}
         if(allocated!=VK_SUCCESS)next.memory={};
         checked_input_allocation(allocated);
-        checked(vkBindBufferMemory(device,next.buffer,next.memory,0));
+        const auto bound=injection==PrepareInjection::bind_allocation?VK_ERROR_OUT_OF_HOST_MEMORY:
+            injection==PrepareInjection::bind_device_allocation?VK_ERROR_OUT_OF_DEVICE_MEMORY:
+            vkBindBufferMemory(device,next.buffer,next.memory,0);
+        checked_input_allocation(bound);
         if(retain_mapping) {
             VkResult result;
             if(injection==PrepareInjection::map)result=VK_ERROR_OUT_OF_HOST_MEMORY;
@@ -134,40 +163,54 @@ struct ModelSkinGpu::Impl {
         if(memory)vkFreeMemory(device,memory,nullptr);
         input=next.buffer;memory=next.memory;mapped=next.mapped;capacity=bytes;
         next.buffer={};next.memory={};next.mapped=nullptr;
-        records_valid=false;descriptors_valid=false;
+        records_valid=false;descriptors_valid=false;validation_valid=false;
         return true;
     }
 };
 ModelSkinGpu::ModelSkinGpu(VkDevice device,VkPhysicalDevice physical,std::uint32_t api,const std::filesystem::path &path)
+try :ModelSkinGpu(device,physical,api,path,InitializationTag{}) {}
+catch(const InitializationHardError &error) {initialization_hard_error(error);}
+catch(const InitializationRefused &error) {initialization_hard_error({nullptr,error.result});}
+ModelSkinGpu::ModelSkinGpu(VkDevice device,VkPhysicalDevice physical,std::uint32_t api,const std::filesystem::path &path,InitializationTag)
     :impl_(std::make_unique<Impl>()) {
-    if(!supported(physical,api))throw FormatError("model skin GPU lacks explicit float32 RTE/signed-zero controls");
+    if(!supported(physical,api))throw InitializationHardError{"model skin GPU lacks explicit float32 RTE/signed-zero controls"};
     auto &p=*impl_;p.device=device;p.physical=physical;
     const auto *streamed=std::getenv("HALO2_REFERENCE_STREAMED_SKIN_INPUTS");
     p.streamed=streamed && std::string_view(streamed)=="1";
+    const auto *full_validation=std::getenv("HALO2_REFERENCE_SKIN_RECORD_VALIDATION");
+    p.full_validation=full_validation && std::string_view(full_validation)=="1";
     VkPhysicalDeviceProperties properties;vkGetPhysicalDeviceProperties(physical,&properties);p.limits=properties.limits;
     VkDescriptorSetLayoutBinding bindings[2]{};
     for(unsigned i=0;i<2;++i)bindings[i]={i,VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,1,VK_SHADER_STAGE_COMPUTE_BIT,nullptr};
     VkDescriptorSetLayoutCreateInfo sl{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};sl.bindingCount=2;sl.pBindings=bindings;
-    checked(vkCreateDescriptorSetLayout(device,&sl,nullptr,&p.set_layout));
+    checked_initialization(vkCreateDescriptorSetLayout(device,&sl,nullptr,&p.set_layout));
     VkDescriptorPoolSize size{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,2};
     VkDescriptorPoolCreateInfo pool{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};pool.maxSets=1;pool.poolSizeCount=1;pool.pPoolSizes=&size;
-    checked(vkCreateDescriptorPool(device,&pool,nullptr,&p.pool));
+    checked_initialization(vkCreateDescriptorPool(device,&pool,nullptr,&p.pool));
     VkDescriptorSetAllocateInfo ds{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-    ds.descriptorPool=p.pool;ds.descriptorSetCount=1;ds.pSetLayouts=&p.set_layout;checked(vkAllocateDescriptorSets(device,&ds,&p.set));
+    ds.descriptorPool=p.pool;ds.descriptorSetCount=1;ds.pSetLayouts=&p.set_layout;checked_initialization(vkAllocateDescriptorSets(device,&ds,&p.set));
     VkPushConstantRange push{VK_SHADER_STAGE_COMPUTE_BIT,0,sizeof(Impl::Push)};
     VkPipelineLayoutCreateInfo pl{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
     pl.setLayoutCount=1;pl.pSetLayouts=&p.set_layout;pl.pushConstantRangeCount=1;pl.pPushConstantRanges=&push;
-    checked(vkCreatePipelineLayout(device,&pl,nullptr,&p.layout));
+    checked_initialization(vkCreatePipelineLayout(device,&pl,nullptr,&p.layout));
     std::ifstream file(path,std::ios::binary|std::ios::ate);
-    if(!file || file.tellg()<=0 || std::size_t(file.tellg())%4)throw FormatError("model skin GPU shader is missing or malformed");
+    if(!file || file.tellg()<=0 || std::size_t(file.tellg())%4)throw InitializationHardError{"model skin GPU shader is missing or malformed"};
     std::vector<std::uint32_t> code(std::size_t(file.tellg())/4);file.seekg(0);
-    if(!file.read(reinterpret_cast<char*>(code.data()),code.size()*4))throw FormatError("model skin GPU shader is truncated");
+    if(!file.read(reinterpret_cast<char*>(code.data()),code.size()*4))throw InitializationHardError{"model skin GPU shader is truncated"};
     VkShaderModule shader{};VkShaderModuleCreateInfo sm{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-    sm.codeSize=code.size()*4;sm.pCode=code.data();checked(vkCreateShaderModule(device,&sm,nullptr,&shader));
+    sm.codeSize=code.size()*4;sm.pCode=code.data();checked_initialization(vkCreateShaderModule(device,&sm,nullptr,&shader));
     VkComputePipelineCreateInfo cp{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};cp.layout=p.layout;
     cp.stage={VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_COMPUTE_BIT,shader,"main",nullptr};
     const auto result=vkCreateComputePipelines(device,{},1,&cp,nullptr,&p.pipeline);
-    vkDestroyShaderModule(device,shader,nullptr);checked(result);
+    vkDestroyShaderModule(device,shader,nullptr);checked_initialization(result);
+}
+std::unique_ptr<ModelSkinGpu> ModelSkinGpu::create_optional(VkDevice device,VkPhysicalDevice physical,
+    std::uint32_t api,const std::filesystem::path &path) {
+    PrepareEnvironment environment;environment.check();
+    try {return std::unique_ptr<ModelSkinGpu>(new ModelSkinGpu(device,physical,api,path,InitializationTag{}));}
+    catch(const InitializationHardError &error) {initialization_hard_error(error);}
+    catch(const InitializationRefused&) {return {};}
+    catch(const std::bad_alloc&) {return {};}
 }
 ModelSkinGpu::~ModelSkinGpu()=default;
 std::size_t ModelSkinGpu::vertices()const{return impl_->count;}
@@ -179,7 +222,7 @@ void ModelSkinGpu::prepare(std::span<const ModelSkinGpuRecord> records,
     if(records.empty())return;
     struct FailedPrepare {
         Impl &p;bool complete{};
-        ~FailedPrepare(){if(!complete){p.count=0;p.records_valid=false;}}
+        ~FailedPrepare(){if(!complete){p.count=0;p.records_valid=false;p.validation_valid=false;}}
     } failure{p};
     PrepareEnvironment environment;environment.check();
     if(!destination)throw FormatError("model skin GPU job has no destination buffer");
@@ -202,7 +245,23 @@ void ModelSkinGpu::prepare(std::span<const ModelSkinGpuRecord> records,
         if(row<normal_rows.size()*64 && normal)
             normal_rows[row/64]|=std::uint64_t{1}<<(row%64);
     }
+    // Only the owned full48-byte shadow can prove the immutable record part.
+    // Palette coefficients above are always reclassified before cache use.
+    const bool same_records=p.records_valid && p.records.size()==records.size() &&
+        p.palette_rows==palette.size() &&
+        !std::memcmp(p.records.data(),records.data(),records.size_bytes());
+    const bool same_validation=!p.streamed && !p.full_validation &&
+        p.validation_valid && palette.size()<=normal_rows.size()*64 && same_records &&
+        p.validation_destination_vertices==destination_vertices;
+    std::array<std::uint64_t,64> used_rows{};
+    if(same_validation) {
+        ++p.stats.record_validation_cache_hits;
+        for(std::size_t word=0;word<normal_rows.size();++word)
+            if(p.used_rows[word]&~normal_rows[word])
+                throw FormatError("model skin GPU referenced palette leaves its normal arithmetic domain");
+    } else {
     for(std::size_t i=0;i<records.size();++i) {
+        ++p.stats.record_validation_visits;
         const auto &record=records[i];
         if(record.post_identity_placement>1)
             throw FormatError("model skin GPU has an unknown post-placement mode");
@@ -223,6 +282,8 @@ void ModelSkinGpu::prepare(std::span<const ModelSkinGpuRecord> records,
             // Unused rows may contain finite subnormals; active and interior
             // zero influences still read every referenced original row.
             const auto row=std::size_t(record.palette)+bone;
+            if(palette.size()<=used_rows.size()*64)
+                used_rows[row/64]|=std::uint64_t{1}<<(row%64);
             if(row<normal_rows.size()*64) {
                 if(!(normal_rows[row/64]&(std::uint64_t{1}<<(row%64))))
                     throw FormatError("model skin GPU referenced palette leaves its normal arithmetic domain");
@@ -235,6 +296,7 @@ void ModelSkinGpu::prepare(std::span<const ModelSkinGpuRecord> records,
     if(!increasing)for(std::size_t i=0;i<records.size();++i)for(std::size_t j=0;j<i;++j)
         if(records[i].destination==records[j].destination)
             throw FormatError("model skin GPU destinations escape or alias different jobs");
+    }
     const auto injection=prepare_injection();
     const auto max_words=p.limits.maxStorageBufferRange/4u;
     if(records.size()>max_words/11 || palette.size()>(max_words-records.size()*11)/12 ||
@@ -271,10 +333,8 @@ void ModelSkinGpu::prepare(std::span<const ModelSkinGpuRecord> records,
     } else {
         // Never read the mapped bank for equality: coherent memory need not be
         // host-cached. This owned full-record shadow also includes the original
-        // palette_count, while every current record is validated above afresh.
-        const bool same_records=p.records_valid && p.records.size()==records.size() &&
-            p.palette_rows==palette.size() &&
-            !std::memcmp(p.records.data(),records.data(),records.size_bytes());
+        // palette_count. Reuse its successful structural
+        // proof, while palette coefficients and referenced normals stay fresh.
         try {
             // Fault controls remain effective even on a fully resident hit.
             if(injection==PrepareInjection::packing)throw std::bad_alloc{};
@@ -326,6 +386,9 @@ void ModelSkinGpu::prepare(std::span<const ModelSkinGpuRecord> records,
     p.push={std::uint32_t(records.size()),sizeof(Vertex)/4,offsetof(Vertex,position)/4,offsetof(Vertex,normal)/4,
             offsetof(Vertex,tangent)/4,offsetof(Vertex,binormal)/4};
     p.palette_rows=palette.size();p.records_valid=!p.streamed;
+    if(!same_validation)p.used_rows=used_rows;
+    p.validation_destination_vertices=destination_vertices;
+    p.validation_valid=!p.streamed && palette.size()<=used_rows.size()*64;
     p.count=records.size();failure.complete=true;
 }
 void ModelSkinGpu::record(VkCommandBuffer command)const {

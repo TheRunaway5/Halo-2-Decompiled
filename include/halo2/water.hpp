@@ -23,6 +23,8 @@ struct WaterFrame {
 // outer camera rectangle; vertical_fov is the raw source camera+0x28 angle,
 // before 2F970 safe-frustum expansion. The original wide-view flag
 // applies its authored 1.5 aspect factor when the viewport is anamorphic.
+// anamorphic is the effective flag after 3CA80's active type3-context gate;
+// the ordinary campaign/type1 and multiplayer/type2 callers retain raw wide.
 WaterFrame water_frame(const WaterDefinition &, Vec3 eye, Vec3 forward,
                        float vertical_fov, float viewport_aspect,
                        bool anamorphic = false);

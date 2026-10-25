@@ -1,6 +1,8 @@
 #pragma once
 #include "halo2/native_runtime_address.hpp"
 #include "halo2/transform.hpp"
+#include "halo2/source_effect_replica_render_tu15.hpp"
+#include <optional>
 #include <array>
 #include <cstdint>
 #include <span>
@@ -21,6 +23,8 @@ struct SourceAttachedEffect {
     float scale_a{},scale_b{};
     std::array<std::uint32_t,2> colors{};
     std::vector<SourceAttachedEffectLocation> locations;
+    std::optional<SourceEffectReplicaRenderTu15> render;
+    SourceEffectEventState render_clock;
 };
 // Read-only TU1.5 C0CD0's eight-byte object attachment bank, followed by the
 // actual 400-byte effect record updated by179CD0/17C370/17C5C0. Full object

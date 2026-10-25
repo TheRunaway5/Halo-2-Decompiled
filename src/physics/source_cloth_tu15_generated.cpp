@@ -2,6 +2,7 @@
 // Complete authenticated bodies compile to native arithmetic and static calls.
 #include "physics/runtime/physics_world_runtime_internal.hpp"
 #include "halo2/source_cloth_tu15.hpp"
+#include "physics/cloth_native/shader.hpp"
 #include "halo2/source_physics_entry_observation.hpp"
 #include "halo2/source_projectile_effect_observer.hpp"
 #include "halo2/source_object_attachment_tu15.hpp"
@@ -1084,6 +1085,23 @@ if(s.services.instruction){s.services.instruction(0x11abeau);} s.set(4,s.flags.p
 if(s.services.instruction){s.services.instruction(0x11abedu);} s.pop();s.gp[4]+=4u;return;
 throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
+static void run_1191a0(WorldState &s) {
+if(!s.services.instruction){cloth_native_tu15_detail::shader(s);return;}
+if(s.services.instruction){s.services.instruction(0x1191a0u);} s.set(0,r(s.memory,(0x4u+s.gp[4]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x1191a4u);} s.set(1,r(s.memory,(0x4ecc08u),4),4,0);
+if(s.services.instruction){s.services.instruction(0x1191aau);} s.set(2,r(s.memory,(0x44u+s.gp[1]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x1191adu);} s.set(1,r(s.memory,(0x4f0414u),4),4,0);
+if(s.services.instruction){s.services.instruction(0x1191b3u);} s.set(0,s.flags.logic((s.reg(0,4,0))&(0xffffu),4),4,0);
+if(s.services.instruction){s.services.instruction(0x1191b8u);} s.set(0,s.flags.product(s.reg(0,4,0),0x1258u),4,0);
+if(s.services.instruction){s.services.instruction(0x1191beu);} s.set(0,r(s.memory,(0x4u+s.gp[0]+s.gp[2]*1u),4),4,0);
+if(s.services.instruction){s.services.instruction(0x1191c2u);} s.set(0,s.flags.logic((s.reg(0,4,0))&(0xffffu),4),4,0);
+if(s.services.instruction){s.services.instruction(0x1191c7u);} s.set(0,s.flags.shift(s.reg(0,4,0),0x4u,4),4,0);
+if(s.services.instruction){s.services.instruction(0x1191cau);} s.set(2,r(s.memory,(0x8u+s.gp[0]+s.gp[1]*1u),4),4,0);
+if(s.services.instruction){s.services.instruction(0x1191ceu);} s.set(0,r(s.memory,(0xcu+s.gp[2]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x1191d1u);} s.pop();s.gp[4]+=4u;return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
+
 } // namespace
 void source_run_cloth_tu15(M &m,std::uint32_t entry,
     SourcePhysicsContactRuntimeAbi &abi,FP fp,
@@ -1093,6 +1111,7 @@ void source_run_cloth_tu15(M &m,std::uint32_t entry,
     SourcePhysicsEntryObservation phase(m,entry,[&]{return s.save();});
     try {
         switch(entry) {
+case 0x1191a0u:run_1191a0(s);break;
 case 0x119060u:run_119060(s);break;
 case 0x1190d0u:run_1190d0(s);break;
 case 0x119880u:run_119880(s);break;
@@ -1106,5 +1125,5 @@ case 0x11ab10u:run_11ab10(s);break;
     } catch(...) {abi=s.save();throw;}
     abi=s.save();
 }
-bool source_cloth_tu15_owns_entry(std::uint32_t p) {switch(p){case 0x119060u:case 0x1190d0u:case 0x119880u:case 0x119ac0u:case 0x119e70u:case 0x11a160u:case 0x11ab10u:return true;default:return false;}}
+bool source_cloth_tu15_owns_entry(std::uint32_t p) {switch(p){case 0x1191a0u:case 0x119060u:case 0x1190d0u:case 0x119880u:case 0x119ac0u:case 0x119e70u:case 0x11a160u:case 0x11ab10u:return true;default:return false;}}
 } // namespace halo2

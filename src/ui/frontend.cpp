@@ -1,4 +1,6 @@
 #include "halo2/frontend.hpp"
+#include "ui/frontend_multiplayer_rules.hpp"
+#include "halo2/frontend_custom_maps.hpp"
 #include "halo2/gameplay_font_source.hpp"
 #include "halo2/action_prompt_bindings.hpp"
 #include "halo2/tags.hpp"
@@ -226,6 +228,7 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
   TagSystem tags(cache_owner);
   tags.load_bsp(0);
   auto &content = initial_entry ? session->retain_content(cache.load_frontend()) : session->content();
+  if (initial_entry) bind_frontend_custom_maps(content, options.maps);
   auto &audio_state=session->audio_state();
   if(options.desktop && audio_state.desktop && options.desktop!=audio_state.desktop)
     throw FormatError("Retained frontend audio requires its original desktop owner");
@@ -706,9 +709,10 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
   state.set_pc_video_modes(std::move(modes),unsigned(window_width),unsigned(window_height),
                           desktop->fullscreen_mode());
   state.set_multiplayer_map_validator([&](const FrontendLaunch &launch) {
-    const auto rules=slayer_rules(launch.variant,true);
+    const auto rules=detail::frontend_multiplayer_rules(launch.variant);
     if(rules.primary_light_vehicle) {
-      const Cache selected_map(options.maps/launch.map);
+      const Cache selected_map(options.maps/launch.map,
+          launch.shared_maps.empty()?options.maps:launch.shared_maps);
       validate_slayer_map_options(selected_map.load_content(0,true,source_game_variant(launch.variant)),rules);
     }
   });
@@ -1295,7 +1299,8 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
       auto back = [&] {
         state.back();
         model_screen_entries(state);
-        sound(FrontendUiSound::Back);
+        // A refused Back already queued the screen's own error cue.
+        if (!state.take_back_refused()) sound(FrontendUiSound::Back);
       };
       if (wheel_vertical != 0) {
         const auto previous = state.frame().selected;
@@ -1430,8 +1435,9 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
           } else if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT &&
                      state.activate_pointer(*target)) {
             model_screen_entries(state);
-            sound(target->action == FrontendPointerAction::Back
-                      ? FrontendUiSound::Back : FrontendUiSound::Forward);
+            if (!state.take_back_refused())
+              sound(target->action == FrontendPointerAction::Back
+                        ? FrontendUiSound::Back : FrontendUiSound::Forward);
             if (!options.capture_actions.empty())
               std::cout << "Menu click action=" << unsigned(target->action)
                         << " screen=" << state.frame().screen

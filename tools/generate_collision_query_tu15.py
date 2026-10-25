@@ -8,6 +8,7 @@ from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
 from generate_physics_live_support_tu15 import generate,sha
 
 ENTRIES=(0x2f9d70,0x2f7480,0x2f6ca0,0x2e44d0,0x3040d0,0x303da0,0x303e20,0x303f80,0x304ac0,0x325d80,0x303ea0,0x303930,0x3039b0,0x303a30,0x2f4880,0x2f4580,0x2f3260,0x2f4690,0x2f3de0,0x2f3190,0x2f70d0,0x2ee660,0x2ebbe0,0x2ebc70,0x1ce2c0,0x2f1930,0x2f1590,0x2fc5d0,0x2fc3e0,0x2e46e0,0x2fc690,0x2fc150)
+ENTRIES=(*ENTRIES,0x304c90,0x2f4de0)
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -38,6 +39,9 @@ def main():
     assert code.at(0x186965).bytes.hex()=='ff94828c210000'
     assert code.at(0x2f197a).operands[0].imm==0x2f1590
     assert code.at(0x2f7038).bytes.hex()=='ff94b18c110000'
+    # Actual Flood Lab BSP3 actor settling reaches this shape-pair wrapper.
+    # Keep its original collector/SEH frame and complete 2F4DE0 query owner.
+    assert code.at(0x304cf3).bytes.hex()=='e8e800ffff'
     assert code.at(0x2fc614).operands[0].imm==0x2fc3e0
     assert code.at(0x2fc436).operands[0].imm==0x2e46e0
     # An actual Zanzibar breakable-surface firing-lane query reaches this
@@ -45,7 +49,7 @@ def main():
     # wrapper and query body; never supply an intersection/collector result.
     assert code.at(0x2f6f28).bytes.hex()=='ff94b18c210000'
     assert code.at(0x2fc6da).operands[0].imm==0x2fc150
-    for entry,count in ((0x2fc690,24),(0x2fc150,187)):
+    for entry,count in ((0x2fc690,24),(0x2fc150,187),(0x304c90,34),(0x2f4de0,248)):
         body=_trace(code,entry,set(ENTRIES))
         assert len(body.code)==count and not body.tables
     sites,instructions,addresses,routines={},{},{},[]
@@ -71,6 +75,12 @@ def main():
     source=source.replace('halo2/physics_live_support_tu15.hpp','halo2/source_collision_query_tu15.hpp')
     source=source.replace('source_run_physics_live_support_tu15','source_run_collision_query_tu15')
     source=source.replace('source_physics_live_support_tu15_owns_entry','source_collision_query_tu15_owns_entry')
+    # Preserve the previously qualified complete303930 body. Its constant
+    # dispatch now resolves to the newly bound original query in this module.
+    direct='if(s.services.instruction){s.services.instruction(0x303993u);} s.push(0x303993u,0x303998u);run_2f4de0(s);'
+    indirect='if(s.services.instruction){s.services.instruction(0x303993u);} {const auto target=0x2f4de0u;s.push(0x303993u,0x303998u);dispatch(s,target,0x303993u,false);}'
+    assert source.count(direct)==1
+    source=source.replace(direct,indirect)
     source=source.replace('#include "halo2/source_collision_query_tu15.hpp"','#include "halo2/source_collision_query_tu15.hpp"\n#include "halo2/source_physics_entry_observation.hpp"')
     source=source.replace('LiveState s{m,observe,services,image};s.load(abi);','LiveState s{m,observe,services,image};s.load(abi);\n    SourcePhysicsEntryObservation diagnostic(m,entry,[&]{return s.save();});')
     temporary=a.output.with_name(a.output.name+'.tmp');temporary.write_text(source);os.replace(temporary,a.output)

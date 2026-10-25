@@ -50,8 +50,25 @@ eight bounded control-packet layouts. Fixed physical membership, promises,
 accepted-value recovery, retries, monotonic clocks and generation fencing now
 run in Rust. The native `PeerHostAgreement` class keeps synchronization and
 typed engine conversions; it has no second election or codec implementation.
+Wire version 2 requires unanimous acceptance by the fixed survivor electorate
+and locks each honest acceptor's first value across higher ballots. Pairwise
+equivocation can block migration, but cannot split honest successor decisions.
+The reported majority remains the promise/silence threshold, not the decision
+threshold. No timeout removes a withholding or missing survivor.
 An agreement certificate still cannot supply native preparation or authorize
 activation without the separate all-survivor and native-owner checks.
+
+`lan_auth` owns ephemeral X25519 keys, HMAC-SHA256 packet authentication and
+the 1,024-packet replay window for established raw-LAN traffic. Public keys are
+fixed for each endpoint admission; discovery supplies no external server
+identity. The pinned `x25519-dalek`, `hmac`, `getrandom` and `sha2` dependencies
+are recorded in each consumer's Cargo lock. C++ owns socket I/O only.
+
+`security_policy` owns network replay capability admission, exact Steam
+revocation acknowledgement, directory/player capacity policy, EOS principal
+admission and the versioned persistable postgame projection. CXX serves native
+callers; the separate `online_security_ffi` ABI serves Python SQL/async owners.
+See the [October 23 remediation record](../../multiplayer/docs/security-scan-remediation-20261023.md).
 
 `common_cut::Agreement` owns the nine bounded common-cut control layouts,
 exact physical membership, association/apply/release and Abort barriers, and
@@ -76,6 +93,13 @@ checked epoch/revision arithmetic. It returns metadata only. The native engine
 can prepare camera, departure and lens changes privately before an election;
 only a matching independently learned certificate can later bind that owner.
 The descriptor contains no vote, Ready value, native lease or authorization.
+
+`netcode` owns the native snapshot transport (protocol 105): acknowledged
+lossless deltas of the serialized state, presentation-only quantized pose
+replication with per-body priorities, a per-client budget using the retail
+channel constants, fragmentation and reassembly. Native code keeps the snapshot
+schema and its validation. `lan_auth` also emits compact `LNA2` frames after
+the peer proves the key. See [bandwidth-bounded netcode](../../docs/NETCODE_BANDWIDTH.md).
 
 Linux mixed-language differential and real authenticated session controls are
 recorded in [the bridge qualification](../../multiplayer/docs/online-security-rust-bridge.md).

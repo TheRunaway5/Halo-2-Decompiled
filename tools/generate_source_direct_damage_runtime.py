@@ -96,7 +96,13 @@ def main():
         extra_preamble=ORDERED_SSE,
         instruction_guard=lambda i:'s.require_x87();' if i.mnemonic.startswith('f') else '')
     a.output.write_text(a.output.read_text().replace('_mm_add_ss(', 'damage_addss(').replace('_mm_mul_ss(', 'damage_mulss('))
+    from native_damage_model_kernel_tu15 import install_paired_model_lookup
+    a.output.write_text(install_paired_model_lookup(a.output.read_text()))
+    from native_difficulty_parameter_kernel_tu15 import install_native_difficulty_routes
+    a.output.write_text(install_native_difficulty_routes(a.output.read_text(),'canonical'))
     manifest=json.loads(a.manifest.read_text());manifest['generated_cpp_sha256']=sha(a.output)
+    manifest['native_model_lookup']=dict(entry='d80a0',canonical_observation_ABI_preserved=True,
+        original_execution_and_runtime_admission_required=True)
     manifest['configuration_tool_sha256']=sha(Path(__file__))
     manifest['scalar_add_multiply_operand_order']='literal ADDSS/MULSS, including quiet NaN payload selection'
     a.manifest.write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')

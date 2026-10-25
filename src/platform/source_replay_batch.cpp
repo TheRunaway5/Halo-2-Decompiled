@@ -53,6 +53,7 @@ std::vector<std::byte> encode_source_replay_batch(const SourceReplayBatch &batch
     auto decoded=limits.decoded_bytes,allocated=limits.allocated_bytes;consume(allocated,batch.steps.size()*sizeof(SourceReplayStep));
     auto tick=batch.binding.previous.tick;
     for(const auto &step:batch.steps){need(step.before_tick==tick&&step.after_tick>=tick);tick=step.after_tick;
+        validate_source_network_replay_calls(step.phase.calls);
         consume(allocated,source_replay_phase_allocation(step.phase));
         SourceExecutionCodecLimits phase_limits;phase_limits.encoded_bytes=limits.encoded_bytes-out.bytes.size();phase_limits.decoded_bytes=decoded;
         const auto bytes=encode_source_execution_phase(step.phase,phase_limits);consume(decoded,raw_size(bytes));
@@ -69,6 +70,7 @@ SourceReplayBatch decode_source_replay_batch(std::span<const std::byte> bytes,co
         const auto encoded=in.raw(in.get(4));SourceExecutionCodecLimits phase_limits;phase_limits.encoded_bytes=limits.encoded_bytes;
         phase_limits.decoded_bytes=decoded;phase_limits.allocated_bytes=allocated;
         step.phase=decode_source_execution_phase(encoded,phase_limits);consume(decoded,raw_size(encoded));
+        validate_source_network_replay_calls(step.phase.calls);
         consume(allocated,source_replay_phase_allocation(step.phase));batch.steps.push_back(std::move(step));
     }
     need(in.at==bytes.size());return batch;

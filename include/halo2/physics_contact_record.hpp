@@ -3,17 +3,38 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <memory>
+#include <optional>
 #include <span>
 #include <vector>
 
 namespace halo2 {
 enum class SourcePhysicsContactImage { MapPack11, TitleUpdate15 };
 
+// Host bytes of complete committed 4KiB source pages in ordinary retained
+// storage. Entries change only with topology, which already excludes every
+// accessor; writable pages have ReadWrite access and no backing write guard.
+struct SourceDirectPageIndex {
+    struct Page { std::byte *bytes{}; bool writable{}; };
+    using Block = std::array<Page, 1024>;
+    std::array<std::unique_ptr<Block>, 1024> blocks;
+};
+
 // Reads/writes address the caller's real retained source storage. Missing body,
 // property or contact backing must fail in the adapter; no empty/success default
 // exists here. This interface neither allocates a bank nor admits a collision.
 class SourcePhysicsContactMemory {
 public:
+    // Published only by owners whose page reads have no side effects. Null
+    // entries, partial pages and page-crossing operands keep the virtual path.
+    const SourceDirectPageIndex::Page *direct_page(std::uint32_t address,
+                                                   std::size_t bytes) const noexcept {
+        if (!direct_pages_ || !bytes || bytes > 4096u - (address & 4095u)) return nullptr;
+        const auto &block = direct_pages_->blocks[address >> 22];
+        if (!block) return nullptr;
+        const auto &page = (*block)[(address >> 12) & 1023u];
+        return page.bytes ? &page : nullptr;
+    }
     virtual ~SourcePhysicsContactMemory() = default;
     virtual void read(std::uint32_t address, std::span<std::byte> output) const = 0;
     virtual void write(std::uint32_t address, std::span<const std::byte> input) = 0;
@@ -24,6 +45,18 @@ public:
     virtual void read_vector(std::uint32_t address,std::span<std::byte,16> output) const {
         for(unsigned lane=0;lane<4;++lane)read(address+lane*4u,output.subspan(lane*4u,4));
     }
+    // Optional capability for a synchronous native read-only block. Admission
+    // inspects topology only: it must not read backing bytes, allocate, throw,
+    // call an observer/guard, or change errno or floating-point state. The
+    // complete range must belong to one committed ordinary storage region.
+    // Its bytes and lifetime stay stable until the block returns, before any
+    // source write, callback, or topology change. Device/custom adapters keep
+    // their ordered reads by refusing this capability unless they own that
+    // same contract. A refusal leaves the original read/fault prefix intact.
+    virtual std::optional<std::span<const std::byte>> try_read_view(
+        std::uint32_t,std::size_t) const noexcept { return std::nullopt; }
+protected:
+    const SourceDirectPageIndex *direct_pages_{};
 };
 
 struct SourcePhysicsContactConstruction {

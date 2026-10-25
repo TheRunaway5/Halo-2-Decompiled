@@ -108,8 +108,9 @@ Replace network-facing membership/telemetry/vote parsing and state transitions
 with Rust implementations preserving authenticated sender and generation
 context. Test duplicate/conflicting votes, partitions, delayed messages,
 colluding minorities and membership churn. The requested host-silence threshold
-over 500ms triggers suspicion, not unilateral proof; preserve strict-majority
-and split-brain prevention rules. Poor connectivity alone is not proof of
+over 500ms triggers suspicion, not unilateral proof. Wire v2 retains a strict
+majority for promises/silence and requires unanimous, locked-value survivor
+approval for decisions, including the October 23 equivocation regression. Poor connectivity alone is not proof of
 cheating. Keep actual native-cut readiness and world promotion checks in their
 own owners. Qualify rejection/transition behavior through supported existing
 protocol paths; full windowed migration remains downstream M02/M06/M07 work.

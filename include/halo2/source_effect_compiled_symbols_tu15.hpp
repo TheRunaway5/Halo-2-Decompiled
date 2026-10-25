@@ -38,4 +38,10 @@ std::uint32_t source_projectile_explosion_location_symbol_tu15(
 // in the Cache's namespace and the original callback computes every result.
 std::uint32_t source_projectile_function_symbol_tu15(
     const SourcePhysicsContactMemory &,std::uint32_t instruction,std::uint32_t original);
+// Exact compiled comparisons in complete object/unit/biped/vehicle/weapon
+// and device callbacks, including folded StringID subtraction distances.
+// Authored input IDs and curves remain raw; the original callback computes
+// every scalar and active flag. Unbound banks retain their original operands.
+std::uint32_t source_object_function_compiled_symbol_tu15(
+    const SourcePhysicsContactMemory &,std::uint32_t instruction,std::uint32_t original);
 }

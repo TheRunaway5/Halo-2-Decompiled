@@ -52,6 +52,9 @@ struct ModelSkinGpuPrepareStats {
     // serialized records, not the separate complete host-record shadow copy.
     std::uint64_t record_pack_bytes{},record_upload_bytes{},palette_upload_bytes{};
     std::uint64_t descriptor_writes{},record_cache_hits{};
+    // Actual cold-loop record visits and reused whole-job
+    // structural proofs. Hits may precede a later palette/resource refusal.
+    std::uint64_t record_validation_visits{},record_validation_cache_hits{};
 };
 // Renderer-owned compute service. prepare and destruction require its previous
 // GPU submission to have retired. Callers must qualify the complete local
@@ -61,7 +64,14 @@ struct ModelSkinGpuPrepareStats {
 class ModelSkinGpu {
     struct Impl;
     std::unique_ptr<Impl> impl_;
+    struct InitializationTag {};
+    ModelSkinGpu(VkDevice,VkPhysicalDevice,std::uint32_t,const std::filesystem::path&,InitializationTag);
 public:
+    // Optional service creation refuses only allocation exhaustion; malformed
+    // shaders/capabilities and other Vulkan failures remain hard errors.
+    // No partially initialized service is published. Caller FP/errno is restored.
+    static std::unique_ptr<ModelSkinGpu> create_optional(VkDevice,VkPhysicalDevice,
+        std::uint32_t enabled_api,const std::filesystem::path& shader);
     static bool supported(VkPhysicalDevice,std::uint32_t enabled_api);
     ModelSkinGpu(VkDevice,VkPhysicalDevice,std::uint32_t enabled_api,const std::filesystem::path& shader);
     ~ModelSkinGpu();

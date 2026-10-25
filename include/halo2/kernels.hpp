@@ -99,8 +99,9 @@ struct DamageGroup {
   std::uint32_t name{};
   std::vector<ArmorModifier> modifiers;
 };
-// D5BC0, including the retail binary search's duplicate-key selection and
-// signed, wrapping StringID comparison. Preserve authored table ordering.
+// Retail D5BC0 / TU1.5 D8110 scalar lookup and product. Preserve authored table
+// ordering, duplicate-key selection and signed, wrapping StringID comparison.
+// The qualified GNU x86 backend also retains the original MULSS operand order.
 float damage_multiplier(std::span<const DamageGroup>, std::uint32_t group_a,
                         std::uint32_t group_b, std::uint32_t armor_a,
                         std::uint32_t armor_b);

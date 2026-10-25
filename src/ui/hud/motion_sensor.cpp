@@ -1,5 +1,7 @@
 #include "halo2/motion_sensor.hpp"
+#include "halo2/native_parallel.hpp"
 #include <algorithm>
+#include <optional>
 #include <cmath>
 #include <bit>
 
@@ -150,6 +152,15 @@ Texture source_motion_sensor_composite(const MotionSensorRenderPlan &plan,
   out.pixels.resize(std::size_t(raster_size)*raster_size*4);
   auto quantize=[](float v){return std::clamp(std::round(v*255.f),0.f,255.f)/255.f;};
   std::vector<std::array<float,4>> target(std::size_t(raster_size)*raster_size);
+  // Blip quads and sample levels are prepared in source order. Row bands then
+  // composite in parallel: each pixel still takes its blips in order, then the
+  // sweep and mask, so every output byte is unchanged.
+  struct Blip {
+    PreparedSample texture;float x0,x1,y0,y1,scale;std::array<float,3> rgb;
+    int left,right,top,bottom;
+  };
+  std::vector<Blip> blips;
+  std::optional<PreparedSample> prepared_sweep,prepared_mask;
   if(plan.visible) {
     for(const auto &b:plan.blips) {
       //254490: color is multiplied by the history scale, while the quad's
@@ -173,36 +184,43 @@ Texture source_motion_sensor_composite(const MotionSensorRenderPlan &plan,
       const auto prepared_blip=prepare(texture,
           std::log2(std::max(float(texture.width)/((x1-x0)*density),
                             float(texture.height)/((y1-y0)*density))));
-      for(int y=top;y<bottom;++y)for(int x=left;x<right;++x) {
-        const auto texel=sample(prepared_blip,((x+.5f)/density-x0)/(x1-x0),
-                                (y1-(y+.5f)/density)/(y1-y0));
+      blips.push_back({prepared_blip,x0,x1,y0,y1,b.scale,{b.color.x,b.color.y,b.color.z},left,right,top,bottom});
+    }
+    prepared_sweep=prepare(art.sweep,
+        std::log2(plan.pulse*(raster_size==64?1.f:float(art.sweep.width)/raster_size)));
+    prepared_mask=prepare(art.mask,0);
+  }
+  const std::array<float,3> rgb{color.x,color.y,color.z};
+  auto *output_bytes=out.pixels.data();
+  constexpr unsigned bands=16; // raster_size is a multiple of64.
+  const unsigned rows=raster_size/bands;
+  native_parallel_for(bands,[&](std::size_t band) {
+    const unsigned first=unsigned(band)*rows,last=first+rows;
+    if(plan.visible) {
+      for(const auto &b:blips)
+        for(int y=std::max(b.top,int(first));y<std::min(b.bottom,int(last));++y)for(int x=b.left;x<b.right;++x) {
+          const auto texel=sample(b.texture,((x+.5f)/density-b.x0)/(b.x1-b.x0),
+                                  (b.y1-(y+.5f)/density)/(b.y1-b.y0));
+          auto &pixel=target[y*raster_size+x];
+          for(unsigned c=0;c<3;++c)pixel[c]=quantize(pixel[c]+texel[c]*b.scale*b.rgb[c]);
+        }
+      for(unsigned y=first;y<last;++y)for(unsigned x=0;x<raster_size;++x) {
+        const float u=(x+.5f)/raster_size,v=(y+.5f)/raster_size;
+        const auto sweep=sample(*prepared_sweep,.5f+plan.pulse*(.5f-u),
+                                          .5f+plan.pulse*(v-.5f),70.f/255);
         auto &pixel=target[y*raster_size+x];
-        const std::array<float,3> rgb{b.color.x,b.color.y,b.color.z};
-        for(unsigned c=0;c<3;++c)pixel[c]=quantize(pixel[c]+texel[c]*b.scale*rgb[c]);
+        for(unsigned c=0;c<3;++c)pixel[c]=quantize(sweep[c]*rgb[c]+pixel[c]*sweep[3]);
+        //254200 clears the A8R8G8B8 target to00000000, then selects
+        // COLORWRITEENABLE=00010101.2548F0 retains that RGB-only mask through
+        // sweep and mask. Their source alpha controls RGB blending, but must
+        // not become destination alpha: the final ONE/INVSRCALPHA pass would
+        // otherwise darken the authored background and expose a square pulse.
+        const float mask=sample(*prepared_mask,1-u,v,70.f/255)[3];
+        for(auto &channel:pixel)channel=quantize(channel*mask);
       }
     }
-    const auto prepared_sweep=prepare(art.sweep,
-        std::log2(plan.pulse*(raster_size==64?1.f:float(art.sweep.width)/raster_size)));
-    const auto prepared_mask=prepare(art.mask,0);
-    for(unsigned y=0;y<raster_size;++y)for(unsigned x=0;x<raster_size;++x) {
-      const float u=(x+.5f)/raster_size,v=(y+.5f)/raster_size;
-      const auto sweep=sample(prepared_sweep,.5f+plan.pulse*(.5f-u),
-                                        .5f+plan.pulse*(v-.5f),70.f/255);
-      auto &pixel=target[y*raster_size+x];
-      const std::array<float,3> rgb{color.x,color.y,color.z};
-      for(unsigned c=0;c<3;++c)pixel[c]=quantize(sweep[c]*rgb[c]+pixel[c]*sweep[3]);
-      //254200 clears the A8R8G8B8 target to00000000, then selects
-      // COLORWRITEENABLE=00010101.2548F0 retains that RGB-only mask through
-      // sweep and mask. Their source alpha controls RGB blending, but must
-      // not become destination alpha: the final ONE/INVSRCALPHA pass would
-      // otherwise darken the authored background and expose a square pulse.
-      const float mask=sample(prepared_mask,1-u,v,70.f/255)[3];
-      for(auto &channel:pixel)channel=quantize(channel*mask);
-    }
-  }
-  auto *output_bytes=out.pixels.data();
-  for(unsigned p=0;p<target.size();++p)for(unsigned c=0;c<4;++c)
-    output_bytes[p*4+c]=std::byte(unsigned(std::round(target[p][c]*255)));
-  return out;
-}
+    for(std::size_t p=std::size_t(first)*raster_size;p<std::size_t(last)*raster_size;++p)
+      for(unsigned c=0;c<4;++c)output_bytes[p*4+c]=std::byte(unsigned(std::round(target[p][c]*255)));
+  });
+  return out;}
 } // namespace halo2

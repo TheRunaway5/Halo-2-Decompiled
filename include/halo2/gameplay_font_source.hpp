@@ -4,6 +4,9 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <array>
+#include <optional>
+#include <cstdint>
 
 namespace halo2 {
 class Cache;
@@ -37,6 +40,9 @@ private:
     std::unique_ptr<Impl> impl_;
 };
 int gameplay_font_horizontal_offset(const GameplayFontSource&, unsigned selector);
+// Immutable original layout metadata, independent of atlas/file readiness.
+// Missing profiles remain explicit; no host-font or default metrics are used.
+std::optional<std::array<std::int16_t,3>> gameplay_font_reference_line_metrics(unsigned selector);
 // An already projected MCC font may skip only a byte-identical ordinary source
 // sample. Custom redraws require a separate, explicit projection owner.
 void require_mcc_gameplay_font_sample(const GameplayFontSource&,unsigned selector,

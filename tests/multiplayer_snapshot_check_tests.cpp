@@ -30,12 +30,20 @@ int main() try {
     prop.regions.selection.variant_index=0;prop.regions.selection.permutations={1};
     prop.regions.selection.states={{0,4,0}};prop.regions.looping_effects={0xffffffffu};
     expected.source_scene_roots_authoritative=true;expected.source_scene_roots.emplace_back();
+    expected.source_body_poses_authoritative=true;
+    expected.source_body_poses.push_back({0xe2750006,{Transform{}},{{-2.878902f,6.177198f,-11.869102f},.13f}});
     auto &root=expected.source_scene_roots.back();root.object=0xe2750006;root.definition=0xea9c0100;root.placement=27;
     root.render_clusters={0,3,511};
     root.attached_effects.push_back({0,0x83,0xe6650000,0xea790904,-0.f,1,{0x01234567,0x89abcdef},
         {{0x020000ca,0,{}}}});
     struct Mutation { const char *name; void (*apply)(MultiplayerState &); };
     const Mutation mutations[] = {
+        {"source coverage authority",[](auto &s){s.source_body_poses_authoritative=false;}},
+        {"source coverage extent",[](auto &s){s.source_body_poses.clear();}},
+        {"source coverage owner",[](auto &s){s.source_body_poses[0].object^=0x10000;}},
+        {"source coverage hierarchy",[](auto &s){s.source_body_poses[0].nodes.clear();}},
+        {"source coverage center",[](auto &s){s.source_body_poses[0].sphere.center.y=6.176758f;}},
+        {"source coverage radius",[](auto &s){s.source_body_poses[0].sphere.radius=.131836f;}},
         {"source world kind",[](auto &s){s.source_game_type=1;}},
         {"source engine entity owner",[](auto &s){s.source_engine_entity.reset();}},
         {"source engine entity selector",[](auto &s){s.source_engine_entity->type=4;}},

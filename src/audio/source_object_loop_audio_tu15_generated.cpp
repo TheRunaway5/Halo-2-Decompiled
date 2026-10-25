@@ -12,6 +12,7 @@ using namespace physics_world_runtime_detail;
 // dead physical register value or requiring an irrelevant captured register.
 struct LiveState : physics_world_runtime_detail::WorldState {
     using physics_world_runtime_detail::WorldState::WorldState;
+    const SourceObjectAudioViewsTu15* native_audio_views{};
     void unordered_compare_and_pop(long double other) {
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
         const auto value=fp.st(0);unsigned char carry,zero,parity;
@@ -71,6 +72,12 @@ struct LiveState : physics_world_runtime_detail::WorldState {
     void emms() {physics_world_runtime_detail::WorldState::emms();partial_valid=0;}
 };
 using WorldState=LiveState;
+std::uint32_t audio_view_read(WorldState &s,std::uint32_t instruction,
+    std::uint32_t address,unsigned size) {
+    if(s.native_audio_views)if(const auto value=source_object_audio_view_operand_tu15(
+        s.native_audio_views,r(s.memory,0x4f2c50u,4),instruction,address,size))return *value;
+    return r(s.memory,address,size);
+}
 long double native_fldpi() {
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
     long double value;asm volatile("fldpi":"=t"(value));return value;
@@ -343,10 +350,11 @@ std::uint32_t sign_extend(std::uint32_t x,unsigned n) {
     if(n==2)return std::uint32_t(std::int32_t(std::bit_cast<std::int16_t>(std::uint16_t(x))));
     throw std::runtime_error("Unverified contact sign-extension width");
 }
-std::uint32_t selected(std::uint32_t p,SourcePhysicsContactImage image){if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){case 0x0u:return 0x0u;case 0x1u:return 0x1u;case 0x2u:return 0x2u;case 0x3u:return 0x3u;case 0x4u:return 0x4u;case 0x5u:return 0x5u;case 0x6u:return 0x6u;case 0x7u:return 0x7u;case 0x8u:return 0x8u;case 0x9u:return 0x9u;case 0xbu:return 0xbu;case 0xcu:return 0xcu;case 0xdu:return 0xdu;case 0xeu:return 0xeu;case 0xfu:return 0xfu;case 0x10u:return 0x10u;case 0x11u:return 0x11u;case 0x12u:return 0x12u;case 0x13u:return 0x13u;case 0x14u:return 0x14u;case 0x15u:return 0x15u;case 0x16u:return 0x16u;case 0x17u:return 0x17u;case 0x18u:return 0x18u;case 0x1bu:return 0x1bu;case 0x1cu:return 0x1cu;case 0x1du:return 0x1du;case 0x1fu:return 0x1fu;case 0x20u:return 0x20u;case 0x24u:return 0x24u;case 0x28u:return 0x28u;case 0x2cu:return 0x2cu;case 0x2eu:return 0x2eu;case 0x30u:return 0x30u;case 0x34u:return 0x34u;case 0x38u:return 0x38u;case 0x3cu:return 0x3cu;case 0x3eu:return 0x3eu;case 0x40u:return 0x40u;case 0x44u:return 0x44u;case 0x48u:return 0x48u;case 0x4cu:return 0x4cu;case 0x50u:return 0x50u;case 0x51u:return 0x51u;case 0x52u:return 0x52u;case 0x53u:return 0x53u;case 0x54u:return 0x54u;case 0x58u:return 0x58u;case 0x5cu:return 0x5cu;case 0x60u:return 0x60u;case 0x64u:return 0x64u;case 0x68u:return 0x68u;case 0x6cu:return 0x6cu;case 0x70u:return 0x70u;case 0x74u:return 0x74u;case 0x76u:return 0x76u;case 0x77u:return 0x77u;case 0x78u:return 0x78u;case 0x79u:return 0x79u;case 0x7au:return 0x7au;case 0x7cu:return 0x7cu;case 0x7eu:return 0x7eu;case 0x7fu:return 0x7fu;case 0x80u:return 0x80u;case 0x84u:return 0x84u;case 0x88u:return 0x88u;case 0x8cu:return 0x8cu;case 0x98u:return 0x98u;case 0x9cu:return 0x9cu;case 0xa0u:return 0xa0u;case 0xacu:return 0xacu;case 0xaeu:return 0xaeu;case 0xb0u:return 0xb0u;case 0xb4u:return 0xb4u;case 0xb8u:return 0xb8u;case 0xbcu:return 0xbcu;case 0xc0u:return 0xc0u;case 0xc4u:return 0xc4u;case 0xc8u:return 0xc8u;case 0xccu:return 0xccu;case 0xceu:return 0xceu;case 0xcfu:return 0xcfu;case 0xd0u:return 0xd0u;case 0xd4u:return 0xd4u;case 0xd8u:return 0xd8u;case 0xdcu:return 0xdcu;case 0xdfu:return 0xdfu;case 0xe0u:return 0xe0u;case 0xecu:return 0xecu;case 0xefu:return 0xefu;case 0xf0u:return 0xf0u;case 0xf1u:return 0xf1u;case 0xf8u:return 0xf8u;case 0xfbu:return 0xfbu;case 0xfdu:return 0xfdu;case 0xfeu:return 0xfeu;case 0xffu:return 0xffu;case 0x100u:return 0x100u;case 0x101u:return 0x101u;case 0x110u:return 0x110u;case 0x114u:return 0x114u;case 0x118u:return 0x118u;case 0x11cu:return 0x11cu;case 0x120u:return 0x120u;case 0x128u:return 0x128u;case 0x12cu:return 0x12cu;case 0x130u:return 0x130u;case 0x134u:return 0x134u;case 0x138u:return 0x138u;case 0x13cu:return 0x13cu;case 0x140u:return 0x140u;case 0x144u:return 0x144u;case 0x148u:return 0x148u;case 0x154u:return 0x154u;case 0x15cu:return 0x15cu;case 0x190u:return 0x190u;case 0x1a8u:return 0x1a8u;case 0x1acu:return 0x1acu;case 0x1e0u:return 0x1e0u;case 0x1f0u:return 0x1f0u;case 0x1f8u:return 0x1f8u;case 0x1fcu:return 0x1fcu;case 0x200u:return 0x200u;case 0x204u:return 0x204u;case 0x224u:return 0x224u;case 0x228u:return 0x228u;case 0x238u:return 0x238u;case 0x240u:return 0x240u;case 0x244u:return 0x244u;case 0x2f0u:return 0x2f0u;case 0x2f8u:return 0x2f8u;case 0x338u:return 0x338u;case 0x3f0u:return 0x3f0u;case 0x3f4u:return 0x3f4u;case 0x428u:return 0x428u;case 0x430u:return 0x430u;case 0x438u:return 0x438u;case 0x43cu:return 0x43cu;case 0x440u:return 0x440u;case 0x444u:return 0x444u;case 0x448u:return 0x448u;case 0x44cu:return 0x44cu;case 0x450u:return 0x450u;case 0x454u:return 0x454u;case 0x458u:return 0x458u;case 0x45cu:return 0x45cu;case 0x4e0u:return 0x4e0u;case 0x4f0u:return 0x4f0u;case 0x4f4u:return 0x4f4u;case 0x4f8u:return 0x4f8u;case 0x4fcu:return 0x4fcu;case 0x500u:return 0x500u;case 0x504u:return 0x504u;case 0x508u:return 0x508u;case 0x50cu:return 0x50cu;case 0x514u:return 0x514u;case 0x844u:return 0x844u;case 0x848u:return 0x848u;case 0x84cu:return 0x84cu;case 0x2000u:return 0x2000u;case 0x6000u:return 0x6000u;case 0x7fffu:return 0x7fffu;case 0x8000u:return 0x8000u;case 0xfdffu:return 0xfdffu;case 0xffffu:return 0xffffu;case 0x30bd0u:return 0x30bd0u;case 0xbac70u:return 0xbac70u;case 0xbad60u:return 0xbad60u;case 0xbbd50u:return 0xbbd50u;case 0xbbe00u:return 0xbbe00u;case 0xbbff0u:return 0xbbff0u;case 0xbc200u:return 0xbc200u;case 0xbc330u:return 0xbc330u;case 0xbcb70u:return 0xbcb70u;case 0xbcdf0u:return 0xbcdf0u;case 0x11e600u:return 0x11e600u;case 0x129170u:return 0x129170u;case 0x129900u:return 0x129900u;case 0x129dd0u:return 0x129dd0u;case 0x129f10u:return 0x129f10u;case 0x12a810u:return 0x12a810u;case 0x12d320u:return 0x12d320u;case 0x12d6f0u:return 0x12d6f0u;case 0x130980u:return 0x130980u;case 0x13de70u:return 0x13de70u;case 0x140910u:return 0x140910u;case 0x145200u:return 0x145200u;case 0x14dd70u:return 0x14dd70u;case 0x16e6a0u:return 0x16e6a0u;case 0x16e8a0u:return 0x16e8a0u;case 0x16ea60u:return 0x16ea60u;case 0x17e160u:return 0x17e160u;case 0x18b580u:return 0x18b580u;case 0x18bbc0u:return 0x18bbc0u;case 0x18bd80u:return 0x18bd80u;case 0x18cdd0u:return 0x18cdd0u;case 0x18d390u:return 0x18d390u;case 0x18d3a4u:return 0x18d3a4u;case 0x18d3d0u:return 0x18d3d0u;case 0x18d5a0u:return 0x18d5a0u;case 0x18d61bu:return 0x18d61bu;case 0x18d62fu:return 0x18d62fu;case 0x18d6ffu:return 0x18d6ffu;case 0x18d766u:return 0x18d766u;case 0x18d7ffu:return 0x18d7ffu;case 0x18d830u:return 0x18d830u;case 0x18d83du:return 0x18d83du;case 0x18d86bu:return 0x18d86bu;case 0x18d8a3u:return 0x18d8a3u;case 0x18d8b0u:return 0x18d8b0u;case 0x18d8b7u:return 0x18d8b7u;case 0x18d8d7u:return 0x18d8d7u;case 0x18d8e5u:return 0x18d8e5u;case 0x18d8f9u:return 0x18d8f9u;case 0x18d940u:return 0x18d940u;case 0x18d960u:return 0x18d960u;case 0x18d9b1u:return 0x18d9b1u;case 0x18dafbu:return 0x18dafbu;case 0x18dc40u:return 0x18dc40u;case 0x18dc70u:return 0x18dc70u;case 0x18dcdfu:return 0x18dcdfu;case 0x18de27u:return 0x18de27u;case 0x18df7du:return 0x18df7du;case 0x18e386u:return 0x18e386u;case 0x18e707u:return 0x18e707u;case 0x18e970u:return 0x18e970u;case 0x18ea65u:return 0x18ea65u;case 0x18ea94u:return 0x18ea94u;case 0x18ebcfu:return 0x18ebcfu;case 0x18ec40u:return 0x18ec40u;case 0x18ecdcu:return 0x18ecdcu;case 0x18ed4au:return 0x18ed4au;case 0x18ed80u:return 0x18ed80u;case 0x18edb1u:return 0x18edb1u;case 0x18edd8u:return 0x18edd8u;case 0x18edf7u:return 0x18edf7u;case 0x18ee50u:return 0x18ee50u;case 0x18ee74u:return 0x18ee74u;case 0x18ee7du:return 0x18ee7du;case 0x18ee87u:return 0x18ee87u;case 0x18ee8du:return 0x18ee8du;case 0x18ee92u:return 0x18ee92u;case 0x18eec5u:return 0x18eec5u;case 0x18ef1au:return 0x18ef1au;case 0x18ef7bu:return 0x18ef7bu;case 0x18ef96u:return 0x18ef96u;case 0x18efa3u:return 0x18efa3u;case 0x18efb0u:return 0x18efb0u;case 0x18efd5u:return 0x18efd5u;case 0x18efe4u:return 0x18efe4u;case 0x18eff7u:return 0x18eff7u;case 0x18f022u:return 0x18f022u;case 0x18f510u:return 0x18f510u;case 0x18f53fu:return 0x18f53fu;case 0x18f57fu:return 0x18f57fu;case 0x18f5cbu:return 0x18f5cbu;case 0x18f5d4u:return 0x18f5d4u;case 0x18f5f3u:return 0x18f5f3u;case 0x18f7a0u:return 0x18f7a0u;case 0x18f810u:return 0x18f810u;case 0x18f900u:return 0x18f900u;case 0x18f96cu:return 0x18f96cu;case 0x18f9b0u:return 0x18f9b0u;case 0x18fa4au:return 0x18fa4au;case 0x18fa5fu:return 0x18fa5fu;case 0x18fa9au:return 0x18fa9au;case 0x18faddu:return 0x18faddu;case 0x18fae7u:return 0x18fae7u;case 0x18fb31u:return 0x18fb31u;case 0x18fc4bu:return 0x18fc4bu;case 0x18fc6fu:return 0x18fc6fu;case 0x18fca2u:return 0x18fca2u;case 0x18fcb5u:return 0x18fcb5u;case 0x18fcdfu:return 0x18fcdfu;case 0x18fcf1u:return 0x18fcf1u;case 0x18fd1au:return 0x18fd1au;case 0x18fd38u:return 0x18fd38u;case 0x18fd4du:return 0x18fd4du;case 0x18fd6bu:return 0x18fd6bu;case 0x18fe80u:return 0x18fe80u;case 0x18ffb0u:return 0x18ffb0u;case 0x18ffc0u:return 0x18ffc0u;case 0x1902e0u:return 0x1902e0u;case 0x1903a0u:return 0x1903a0u;case 0x190460u:return 0x190460u;case 0x1904d0u:return 0x1904d0u;case 0x190520u:return 0x190520u;case 0x190a80u:return 0x190a80u;case 0x190b9du:return 0x190b9du;case 0x190bb7u:return 0x190bb7u;case 0x190ce4u:return 0x190ce4u;case 0x190f1cu:return 0x190f1cu;case 0x198cf0u:return 0x198cf0u;case 0x198d80u:return 0x198d80u;case 0x213690u:return 0x213690u;case 0x21f860u:return 0x21f860u;case 0x21f960u:return 0x21f960u;case 0x220200u:return 0x220200u;case 0x220320u:return 0x220320u;case 0x220370u:return 0x220370u;case 0x220640u:return 0x220640u;case 0x220669u:return 0x220669u;case 0x220674u:return 0x220674u;case 0x220689u:return 0x220689u;case 0x2208e0u:return 0x2208e0u;case 0x220c60u:return 0x220c60u;case 0x220cfau:return 0x220cfau;case 0x220d3du:return 0x220d3du;case 0x220d97u:return 0x220d97u;case 0x220dfbu:return 0x220dfbu;case 0x220e4fu:return 0x220e4fu;case 0x220e60u:return 0x220e60u;case 0x220e83u:return 0x220e83u;case 0x220e99u:return 0x220e99u;case 0x220ea9u:return 0x220ea9u;case 0x220f4fu:return 0x220f4fu;case 0x221042u:return 0x221042u;case 0x22106cu:return 0x22106cu;case 0x221080u:return 0x221080u;case 0x2210b4u:return 0x2210b4u;case 0x2210f8u:return 0x2210f8u;case 0x221236u:return 0x221236u;case 0x2212eau:return 0x2212eau;case 0x22130cu:return 0x22130cu;case 0x22139cu:return 0x22139cu;case 0x2213adu:return 0x2213adu;case 0x2213ccu:return 0x2213ccu;case 0x221404u:return 0x221404u;case 0x221446u:return 0x221446u;case 0x2214d6u:return 0x2214d6u;case 0x2214f8u:return 0x2214f8u;case 0x2215a3u:return 0x2215a3u;case 0x2218c0u:return 0x2218c0u;case 0x221a80u:return 0x221a80u;case 0x222280u:return 0x222280u;case 0x222320u:return 0x222320u;case 0x222350u:return 0x222350u;case 0x222710u:return 0x222710u;case 0x222830u:return 0x222830u;case 0x223990u:return 0x223990u;case 0x223a70u:return 0x223a70u;case 0x223da0u:return 0x223da0u;case 0x223e60u:return 0x223e60u;case 0x223e74u:return 0x223e74u;case 0x223e84u:return 0x223e84u;case 0x223e94u:return 0x223e94u;case 0x223fb0u:return 0x223fb0u;case 0x224040u:return 0x224040u;case 0x226370u:return 0x226370u;case 0x228220u:return 0x228220u;case 0x2292e0u:return 0x2292e0u;case 0x22c560u:return 0x22c560u;case 0x22c5d4u:return 0x22c5d4u;case 0x22c63du:return 0x22c63du;case 0x22c68au:return 0x22c68au;case 0x22c6d4u:return 0x22c6d4u;case 0x22c750u:return 0x22c750u;case 0x22c7abu:return 0x22c7abu;case 0x22c7d8u:return 0x22c7d8u;case 0x230b10u:return 0x230b10u;case 0x253070u:return 0x253070u;case 0x25310fu:return 0x25310fu;case 0x2531e0u:return 0x2531e0u;case 0x32ccd8u:return 0x32ccd8u;case 0x44923cu:return 0x44923cu;case 0x44ebd8u:return 0x44ebd8u;case 0x455b0cu:return 0x455b0cu;case 0x455b14u:return 0x455b14u;case 0x455ba8u:return 0x455ba8u;case 0x455bc4u:return 0x455bc4u;case 0x455be0u:return 0x455be0u;case 0x45695cu:return 0x45695cu;case 0x46a0ccu:return 0x46a0ccu;case 0x46a0d0u:return 0x46a0d0u;case 0x46a0dcu:return 0x46a0dcu;case 0x46a0e4u:return 0x46a0e4u;case 0x46a0e8u:return 0x46a0e8u;case 0x46a0ecu:return 0x46a0ecu;case 0x46a110u:return 0x46a110u;case 0x46a118u:return 0x46a118u;case 0x46a11cu:return 0x46a11cu;case 0x46a120u:return 0x46a120u;case 0x46a12cu:return 0x46a12cu;case 0x46a148u:return 0x46a148u;case 0x46a180u:return 0x46a180u;case 0x46a18cu:return 0x46a18cu;case 0x46a1dcu:return 0x46a1dcu;case 0x46a20cu:return 0x46a20cu;case 0x46a26cu:return 0x46a26cu;case 0x46a2d4u:return 0x46a2d4u;case 0x46a2d8u:return 0x46a2d8u;case 0x46a2ecu:return 0x46a2ecu;case 0x46a580u:return 0x46a580u;case 0x47365cu:return 0x47365cu;case 0x474c24u:return 0x474c24u;case 0x474ce8u:return 0x474ce8u;case 0x474d10u:return 0x474d10u;case 0x4ecbd0u:return 0x4ecbd0u;case 0x4ecc18u:return 0x4ecc18u;case 0x4ecc1cu:return 0x4ecc1cu;case 0x4f0414u:return 0x4f0414u;case 0x4f2c4cu:return 0x4f2c4cu;case 0x4f2c50u:return 0x4f2c50u;case 0x4f3cd8u:return 0x4f3cd8u;case 0x4f54f0u:return 0x4f54f0u;case 0x4f720cu:return 0x4f720cu;case 0x4f9b58u:return 0x4f9b58u;case 0x4f9b5cu:return 0x4f9b5cu;case 0x50ebe8u:return 0x50ebe8u;case 0x515f00u:return 0x515f00u;case 0x51df50u:return 0x51df50u;case 0x51df54u:return 0x51df54u;case 0x52d664u:return 0x52d664u;case 0x52d668u:return 0x52d668u;case 0x52d670u:return 0x52d670u;case 0x52d684u:return 0x52d684u;case 0x52d68cu:return 0x52d68cu;case 0x55d730u:return 0x55d730u;case 0x3f000000u:return 0x3f000000u;case 0x41a00000u:return 0x41a00000u;case 0x7f7fffffu:return 0x7f7fffffu;case 0xc2800000u:return 0xc2800000u;case 0xffffff7fu:return 0xffffff7fu;case 0xffffffb8u:return 0xffffffb8u;case 0xffffffbfu:return 0xffffffbfu;case 0xffffffceu:return 0xffffffceu;case 0xffffffdfu:return 0xffffffdfu;case 0xffffffefu:return 0xffffffefu;case 0xfffffff7u:return 0xfffffff7u;case 0xfffffff8u:return 0xfffffff8u;case 0xfffffffbu:return 0xfffffffbu;case 0xfffffffcu:return 0xfffffffcu;case 0xfffffffdu:return 0xfffffffdu;case 0xffffffffu:return 0xffffffffu;default:throw std::runtime_error("Unbound original contact executable address");}}
+std::uint32_t selected(std::uint32_t p,SourcePhysicsContactImage image){if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){case 0x0u:return 0x0u;case 0x1u:return 0x1u;case 0x2u:return 0x2u;case 0x3u:return 0x3u;case 0x4u:return 0x4u;case 0x5u:return 0x5u;case 0x6u:return 0x6u;case 0x7u:return 0x7u;case 0x8u:return 0x8u;case 0x9u:return 0x9u;case 0xbu:return 0xbu;case 0xcu:return 0xcu;case 0xdu:return 0xdu;case 0xeu:return 0xeu;case 0xfu:return 0xfu;case 0x10u:return 0x10u;case 0x11u:return 0x11u;case 0x12u:return 0x12u;case 0x13u:return 0x13u;case 0x14u:return 0x14u;case 0x15u:return 0x15u;case 0x16u:return 0x16u;case 0x17u:return 0x17u;case 0x18u:return 0x18u;case 0x1bu:return 0x1bu;case 0x1cu:return 0x1cu;case 0x1du:return 0x1du;case 0x1fu:return 0x1fu;case 0x20u:return 0x20u;case 0x22u:return 0x22u;case 0x24u:return 0x24u;case 0x28u:return 0x28u;case 0x2cu:return 0x2cu;case 0x2eu:return 0x2eu;case 0x30u:return 0x30u;case 0x34u:return 0x34u;case 0x38u:return 0x38u;case 0x3cu:return 0x3cu;case 0x3eu:return 0x3eu;case 0x40u:return 0x40u;case 0x44u:return 0x44u;case 0x48u:return 0x48u;case 0x4cu:return 0x4cu;case 0x50u:return 0x50u;case 0x51u:return 0x51u;case 0x52u:return 0x52u;case 0x53u:return 0x53u;case 0x54u:return 0x54u;case 0x58u:return 0x58u;case 0x5cu:return 0x5cu;case 0x60u:return 0x60u;case 0x64u:return 0x64u;case 0x68u:return 0x68u;case 0x6cu:return 0x6cu;case 0x70u:return 0x70u;case 0x74u:return 0x74u;case 0x76u:return 0x76u;case 0x77u:return 0x77u;case 0x78u:return 0x78u;case 0x79u:return 0x79u;case 0x7au:return 0x7au;case 0x7cu:return 0x7cu;case 0x7eu:return 0x7eu;case 0x7fu:return 0x7fu;case 0x80u:return 0x80u;case 0x84u:return 0x84u;case 0x88u:return 0x88u;case 0x8cu:return 0x8cu;case 0x98u:return 0x98u;case 0x9cu:return 0x9cu;case 0xa0u:return 0xa0u;case 0xacu:return 0xacu;case 0xaeu:return 0xaeu;case 0xb0u:return 0xb0u;case 0xb4u:return 0xb4u;case 0xb8u:return 0xb8u;case 0xbcu:return 0xbcu;case 0xc0u:return 0xc0u;case 0xc4u:return 0xc4u;case 0xc8u:return 0xc8u;case 0xccu:return 0xccu;case 0xceu:return 0xceu;case 0xcfu:return 0xcfu;case 0xd0u:return 0xd0u;case 0xd4u:return 0xd4u;case 0xd8u:return 0xd8u;case 0xdcu:return 0xdcu;case 0xdfu:return 0xdfu;case 0xe0u:return 0xe0u;case 0xecu:return 0xecu;case 0xefu:return 0xefu;case 0xf0u:return 0xf0u;case 0xf1u:return 0xf1u;case 0xf8u:return 0xf8u;case 0xfbu:return 0xfbu;case 0xfdu:return 0xfdu;case 0xfeu:return 0xfeu;case 0xffu:return 0xffu;case 0x100u:return 0x100u;case 0x101u:return 0x101u;case 0x110u:return 0x110u;case 0x114u:return 0x114u;case 0x118u:return 0x118u;case 0x11cu:return 0x11cu;case 0x120u:return 0x120u;case 0x128u:return 0x128u;case 0x12cu:return 0x12cu;case 0x130u:return 0x130u;case 0x134u:return 0x134u;case 0x138u:return 0x138u;case 0x13cu:return 0x13cu;case 0x140u:return 0x140u;case 0x144u:return 0x144u;case 0x148u:return 0x148u;case 0x154u:return 0x154u;case 0x15cu:return 0x15cu;case 0x190u:return 0x190u;case 0x1a8u:return 0x1a8u;case 0x1acu:return 0x1acu;case 0x1e0u:return 0x1e0u;case 0x1f0u:return 0x1f0u;case 0x1f8u:return 0x1f8u;case 0x1fcu:return 0x1fcu;case 0x200u:return 0x200u;case 0x204u:return 0x204u;case 0x224u:return 0x224u;case 0x228u:return 0x228u;case 0x238u:return 0x238u;case 0x240u:return 0x240u;case 0x244u:return 0x244u;case 0x2f0u:return 0x2f0u;case 0x2f8u:return 0x2f8u;case 0x338u:return 0x338u;case 0x3f0u:return 0x3f0u;case 0x3f4u:return 0x3f4u;case 0x428u:return 0x428u;case 0x430u:return 0x430u;case 0x438u:return 0x438u;case 0x43cu:return 0x43cu;case 0x440u:return 0x440u;case 0x444u:return 0x444u;case 0x448u:return 0x448u;case 0x44cu:return 0x44cu;case 0x450u:return 0x450u;case 0x454u:return 0x454u;case 0x458u:return 0x458u;case 0x45cu:return 0x45cu;case 0x4e0u:return 0x4e0u;case 0x4f0u:return 0x4f0u;case 0x4f4u:return 0x4f4u;case 0x4f8u:return 0x4f8u;case 0x4fcu:return 0x4fcu;case 0x500u:return 0x500u;case 0x504u:return 0x504u;case 0x508u:return 0x508u;case 0x50cu:return 0x50cu;case 0x514u:return 0x514u;case 0x844u:return 0x844u;case 0x848u:return 0x848u;case 0x84cu:return 0x84cu;case 0x2000u:return 0x2000u;case 0x2ab0u:return 0x2ab0u;case 0x6000u:return 0x6000u;case 0x7fffu:return 0x7fffu;case 0x8000u:return 0x8000u;case 0xfdffu:return 0xfdffu;case 0xffffu:return 0xffffu;case 0x30bd0u:return 0x30bd0u;case 0xbac70u:return 0xbac70u;case 0xbad60u:return 0xbad60u;case 0xbbd50u:return 0xbbd50u;case 0xbbe00u:return 0xbbe00u;case 0xbbff0u:return 0xbbff0u;case 0xbc200u:return 0xbc200u;case 0xbc330u:return 0xbc330u;case 0xbcb70u:return 0xbcb70u;case 0xbcdf0u:return 0xbcdf0u;case 0x11e600u:return 0x11e600u;case 0x129170u:return 0x129170u;case 0x129900u:return 0x129900u;case 0x129dd0u:return 0x129dd0u;case 0x129f10u:return 0x129f10u;case 0x12a810u:return 0x12a810u;case 0x12d320u:return 0x12d320u;case 0x12d6f0u:return 0x12d6f0u;case 0x130980u:return 0x130980u;case 0x13de70u:return 0x13de70u;case 0x140910u:return 0x140910u;case 0x145200u:return 0x145200u;case 0x14dd70u:return 0x14dd70u;case 0x16e6a0u:return 0x16e6a0u;case 0x16e8a0u:return 0x16e8a0u;case 0x16ea60u:return 0x16ea60u;case 0x17e160u:return 0x17e160u;case 0x18b580u:return 0x18b580u;case 0x18bbc0u:return 0x18bbc0u;case 0x18bd80u:return 0x18bd80u;case 0x18cdd0u:return 0x18cdd0u;case 0x18d390u:return 0x18d390u;case 0x18d3a4u:return 0x18d3a4u;case 0x18d3d0u:return 0x18d3d0u;case 0x18d5a0u:return 0x18d5a0u;case 0x18d61bu:return 0x18d61bu;case 0x18d62fu:return 0x18d62fu;case 0x18d6ffu:return 0x18d6ffu;case 0x18d766u:return 0x18d766u;case 0x18d7ffu:return 0x18d7ffu;case 0x18d830u:return 0x18d830u;case 0x18d83du:return 0x18d83du;case 0x18d86bu:return 0x18d86bu;case 0x18d8a3u:return 0x18d8a3u;case 0x18d8b0u:return 0x18d8b0u;case 0x18d8b7u:return 0x18d8b7u;case 0x18d8d7u:return 0x18d8d7u;case 0x18d8e5u:return 0x18d8e5u;case 0x18d8f9u:return 0x18d8f9u;case 0x18d940u:return 0x18d940u;case 0x18d960u:return 0x18d960u;case 0x18d9b1u:return 0x18d9b1u;case 0x18dafbu:return 0x18dafbu;case 0x18dc40u:return 0x18dc40u;case 0x18dc70u:return 0x18dc70u;case 0x18dcdfu:return 0x18dcdfu;case 0x18de27u:return 0x18de27u;case 0x18df7du:return 0x18df7du;case 0x18e386u:return 0x18e386u;case 0x18e707u:return 0x18e707u;case 0x18e970u:return 0x18e970u;case 0x18ea65u:return 0x18ea65u;case 0x18ea94u:return 0x18ea94u;case 0x18ebcfu:return 0x18ebcfu;case 0x18ec40u:return 0x18ec40u;case 0x18ecdcu:return 0x18ecdcu;case 0x18ed4au:return 0x18ed4au;case 0x18ed80u:return 0x18ed80u;case 0x18edb1u:return 0x18edb1u;case 0x18edd8u:return 0x18edd8u;case 0x18edf7u:return 0x18edf7u;case 0x18ee50u:return 0x18ee50u;case 0x18ee74u:return 0x18ee74u;case 0x18ee7du:return 0x18ee7du;case 0x18ee87u:return 0x18ee87u;case 0x18ee8du:return 0x18ee8du;case 0x18ee92u:return 0x18ee92u;case 0x18eec5u:return 0x18eec5u;case 0x18ef1au:return 0x18ef1au;case 0x18ef7bu:return 0x18ef7bu;case 0x18ef96u:return 0x18ef96u;case 0x18efa3u:return 0x18efa3u;case 0x18efb0u:return 0x18efb0u;case 0x18efd5u:return 0x18efd5u;case 0x18efe4u:return 0x18efe4u;case 0x18eff7u:return 0x18eff7u;case 0x18f022u:return 0x18f022u;case 0x18f510u:return 0x18f510u;case 0x18f53fu:return 0x18f53fu;case 0x18f57fu:return 0x18f57fu;case 0x18f5cbu:return 0x18f5cbu;case 0x18f5d4u:return 0x18f5d4u;case 0x18f5f3u:return 0x18f5f3u;case 0x18f7a0u:return 0x18f7a0u;case 0x18f810u:return 0x18f810u;case 0x18f900u:return 0x18f900u;case 0x18f96cu:return 0x18f96cu;case 0x18f9b0u:return 0x18f9b0u;case 0x18fa4au:return 0x18fa4au;case 0x18fa5fu:return 0x18fa5fu;case 0x18fa9au:return 0x18fa9au;case 0x18faddu:return 0x18faddu;case 0x18fae7u:return 0x18fae7u;case 0x18fb31u:return 0x18fb31u;case 0x18fc4bu:return 0x18fc4bu;case 0x18fc6fu:return 0x18fc6fu;case 0x18fca2u:return 0x18fca2u;case 0x18fcb5u:return 0x18fcb5u;case 0x18fcdfu:return 0x18fcdfu;case 0x18fcf1u:return 0x18fcf1u;case 0x18fd1au:return 0x18fd1au;case 0x18fd38u:return 0x18fd38u;case 0x18fd4du:return 0x18fd4du;case 0x18fd6bu:return 0x18fd6bu;case 0x18fe80u:return 0x18fe80u;case 0x18ffb0u:return 0x18ffb0u;case 0x18ffc0u:return 0x18ffc0u;case 0x1902e0u:return 0x1902e0u;case 0x1903a0u:return 0x1903a0u;case 0x190460u:return 0x190460u;case 0x1904d0u:return 0x1904d0u;case 0x190520u:return 0x190520u;case 0x190a80u:return 0x190a80u;case 0x190b9du:return 0x190b9du;case 0x190bb7u:return 0x190bb7u;case 0x190ce4u:return 0x190ce4u;case 0x190f1cu:return 0x190f1cu;case 0x198cf0u:return 0x198cf0u;case 0x198d80u:return 0x198d80u;case 0x213690u:return 0x213690u;case 0x21f860u:return 0x21f860u;case 0x21f960u:return 0x21f960u;case 0x220200u:return 0x220200u;case 0x220320u:return 0x220320u;case 0x220370u:return 0x220370u;case 0x220640u:return 0x220640u;case 0x220669u:return 0x220669u;case 0x220674u:return 0x220674u;case 0x220689u:return 0x220689u;case 0x2208e0u:return 0x2208e0u;case 0x220c60u:return 0x220c60u;case 0x220cfau:return 0x220cfau;case 0x220d3du:return 0x220d3du;case 0x220d97u:return 0x220d97u;case 0x220dfbu:return 0x220dfbu;case 0x220e4fu:return 0x220e4fu;case 0x220e60u:return 0x220e60u;case 0x220e83u:return 0x220e83u;case 0x220e99u:return 0x220e99u;case 0x220ea9u:return 0x220ea9u;case 0x220f4fu:return 0x220f4fu;case 0x221042u:return 0x221042u;case 0x22106cu:return 0x22106cu;case 0x221080u:return 0x221080u;case 0x2210b4u:return 0x2210b4u;case 0x2210f8u:return 0x2210f8u;case 0x221236u:return 0x221236u;case 0x2212eau:return 0x2212eau;case 0x22130cu:return 0x22130cu;case 0x22139cu:return 0x22139cu;case 0x2213adu:return 0x2213adu;case 0x2213ccu:return 0x2213ccu;case 0x221404u:return 0x221404u;case 0x221446u:return 0x221446u;case 0x2214d6u:return 0x2214d6u;case 0x2214f8u:return 0x2214f8u;case 0x2215a3u:return 0x2215a3u;case 0x2218c0u:return 0x2218c0u;case 0x221a80u:return 0x221a80u;case 0x222280u:return 0x222280u;case 0x222320u:return 0x222320u;case 0x222350u:return 0x222350u;case 0x222710u:return 0x222710u;case 0x222830u:return 0x222830u;case 0x223990u:return 0x223990u;case 0x223a70u:return 0x223a70u;case 0x223da0u:return 0x223da0u;case 0x223e60u:return 0x223e60u;case 0x223e74u:return 0x223e74u;case 0x223e84u:return 0x223e84u;case 0x223e94u:return 0x223e94u;case 0x223fb0u:return 0x223fb0u;case 0x224040u:return 0x224040u;case 0x226370u:return 0x226370u;case 0x22641cu:return 0x22641cu;case 0x226489u:return 0x226489u;case 0x228220u:return 0x228220u;case 0x2292e0u:return 0x2292e0u;case 0x22c560u:return 0x22c560u;case 0x22c5d4u:return 0x22c5d4u;case 0x22c63du:return 0x22c63du;case 0x22c68au:return 0x22c68au;case 0x22c6d4u:return 0x22c6d4u;case 0x22c750u:return 0x22c750u;case 0x22c7abu:return 0x22c7abu;case 0x22c7d8u:return 0x22c7d8u;case 0x230b10u:return 0x230b10u;case 0x253070u:return 0x253070u;case 0x25310fu:return 0x25310fu;case 0x2531e0u:return 0x2531e0u;case 0x32ccd8u:return 0x32ccd8u;case 0x3856edu:return 0x3856edu;case 0x385b4fu:return 0x385b4fu;case 0x44923cu:return 0x44923cu;case 0x44ebd8u:return 0x44ebd8u;case 0x455b0cu:return 0x455b0cu;case 0x455b14u:return 0x455b14u;case 0x455ba8u:return 0x455ba8u;case 0x455bc4u:return 0x455bc4u;case 0x455be0u:return 0x455be0u;case 0x45695cu:return 0x45695cu;case 0x46a0ccu:return 0x46a0ccu;case 0x46a0d0u:return 0x46a0d0u;case 0x46a0dcu:return 0x46a0dcu;case 0x46a0e4u:return 0x46a0e4u;case 0x46a0e8u:return 0x46a0e8u;case 0x46a0ecu:return 0x46a0ecu;case 0x46a110u:return 0x46a110u;case 0x46a118u:return 0x46a118u;case 0x46a11cu:return 0x46a11cu;case 0x46a120u:return 0x46a120u;case 0x46a12cu:return 0x46a12cu;case 0x46a148u:return 0x46a148u;case 0x46a180u:return 0x46a180u;case 0x46a18cu:return 0x46a18cu;case 0x46a1dcu:return 0x46a1dcu;case 0x46a20cu:return 0x46a20cu;case 0x46a26cu:return 0x46a26cu;case 0x46a2d4u:return 0x46a2d4u;case 0x46a2d8u:return 0x46a2d8u;case 0x46a2ecu:return 0x46a2ecu;case 0x46a580u:return 0x46a580u;case 0x46a584u:return 0x46a584u;case 0x47365cu:return 0x47365cu;case 0x474c24u:return 0x474c24u;case 0x474ce8u:return 0x474ce8u;case 0x474d10u:return 0x474d10u;case 0x4ecbd0u:return 0x4ecbd0u;case 0x4ecc18u:return 0x4ecc18u;case 0x4ecc1cu:return 0x4ecc1cu;case 0x4f0414u:return 0x4f0414u;case 0x4f2c4cu:return 0x4f2c4cu;case 0x4f2c50u:return 0x4f2c50u;case 0x4f3cd8u:return 0x4f3cd8u;case 0x4f54f0u:return 0x4f54f0u;case 0x4f720cu:return 0x4f720cu;case 0x4f9b58u:return 0x4f9b58u;case 0x4f9b5cu:return 0x4f9b5cu;case 0x50ebe8u:return 0x50ebe8u;case 0x515f00u:return 0x515f00u;case 0x51df50u:return 0x51df50u;case 0x51df54u:return 0x51df54u;case 0x51df90u:return 0x51df90u;case 0x52d664u:return 0x52d664u;case 0x52d668u:return 0x52d668u;case 0x52d670u:return 0x52d670u;case 0x52d674u:return 0x52d674u;case 0x52d684u:return 0x52d684u;case 0x52d68cu:return 0x52d68cu;case 0x55d730u:return 0x55d730u;case 0x3f000000u:return 0x3f000000u;case 0x41a00000u:return 0x41a00000u;case 0x7f7fffffu:return 0x7f7fffffu;case 0xc2800000u:return 0xc2800000u;case 0xffffff7fu:return 0xffffff7fu;case 0xffffffb8u:return 0xffffffb8u;case 0xffffffbfu:return 0xffffffbfu;case 0xffffffceu:return 0xffffffceu;case 0xffffffdfu:return 0xffffffdfu;case 0xffffffefu:return 0xffffffefu;case 0xfffffff7u:return 0xfffffff7u;case 0xfffffff8u:return 0xfffffff8u;case 0xfffffffbu:return 0xfffffffbu;case 0xfffffffcu:return 0xfffffffcu;case 0xfffffffdu:return 0xfffffffdu;case 0xffffffffu:return 0xffffffffu;default:throw std::runtime_error("Unbound original contact executable address");}}
 std::uint32_t canonical_branch(std::uint32_t p,SourcePhysicsContactImage image){if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){default:throw std::runtime_error("Unbound TU1.5 contact dispatch target");}}
 static void run_129170(WorldState &);
 static void run_129dd0(WorldState &);
+static void run_18b580(WorldState &);
 static void run_18d390(WorldState &);
 static void run_18d3d0(WorldState &);
 static void run_18d5a0(WorldState &);
@@ -365,9 +373,10 @@ static void run_190a80(WorldState &);
 static void run_220640(WorldState &);
 static void run_220c60(WorldState &);
 static void run_223da0(WorldState &);
+static void run_226370(WorldState &);
 static void run_22c560(WorldState &);
 static void run_253070(WorldState &);
-static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail){switch(target){case 0x129170u:run_129170(s);return;case 0x129dd0u:run_129dd0(s);return;case 0x18d390u:run_18d390(s);return;case 0x18d3d0u:run_18d3d0(s);return;case 0x18d5a0u:run_18d5a0(s);return;case 0x18d960u:run_18d960(s);return;case 0x18dc70u:run_18dc70(s);return;case 0x18e970u:run_18e970(s);return;case 0x18ed80u:run_18ed80(s);return;case 0x18ee50u:run_18ee50(s);return;case 0x18f510u:run_18f510(s);return;case 0x18f900u:run_18f900(s);return;case 0x18f9b0u:run_18f9b0(s);return;case 0x18ffb0u:run_18ffb0(s);return;case 0x190460u:run_190460(s);return;case 0x1904d0u:run_1904d0(s);return;case 0x190a80u:run_190a80(s);return;case 0x220640u:run_220640(s);return;case 0x220c60u:s.required(site,target,tail);return;case 0x223da0u:run_223da0(s);return;case 0x22c560u:run_22c560(s);return;case 0x253070u:run_253070(s);return;default:s.required(site,target,tail);return;}}
+static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail){switch(target){case 0x129170u:run_129170(s);return;case 0x129dd0u:run_129dd0(s);return;case 0x18b580u:run_18b580(s);return;case 0x18d390u:run_18d390(s);return;case 0x18d3d0u:run_18d3d0(s);return;case 0x18d5a0u:run_18d5a0(s);return;case 0x18d960u:run_18d960(s);return;case 0x18dc70u:run_18dc70(s);return;case 0x18e970u:run_18e970(s);return;case 0x18ed80u:run_18ed80(s);return;case 0x18ee50u:run_18ee50(s);return;case 0x18f510u:run_18f510(s);return;case 0x18f900u:run_18f900(s);return;case 0x18f9b0u:run_18f9b0(s);return;case 0x18ffb0u:run_18ffb0(s);return;case 0x190460u:run_190460(s);return;case 0x1904d0u:run_1904d0(s);return;case 0x190a80u:run_190a80(s);return;case 0x220640u:run_220640(s);return;case 0x220c60u:s.required(site,target,tail);return;case 0x223da0u:run_223da0(s);return;case 0x226370u:run_226370(s);return;case 0x22c560u:run_22c560(s);return;case 0x253070u:run_253070(s);return;default:s.required(site,target,tail);return;}}
 static void run_129170(WorldState &s) {
 if(s.services.instruction){s.services.instruction(0x129170u);} s.set(4,s.flags.minus(s.reg(4,4,0),0x8u,4),4,0);
 if(s.services.instruction){s.services.instruction(0x129173u);} s.xmm[6]=_mm_set_ss(f(r(s.memory,(0x46a180u),4)));
@@ -584,6 +593,25 @@ if(s.services.instruction){s.services.instruction(0x129e1du);} w(s.memory,s.obse
 if(s.services.instruction){s.services.instruction(0x129e25u);} w(s.memory,s.observe,0x129e25u,(0x204u+s.gp[0]),4,u(_mm_cvtss_f32(s.xmm[0])));
 L129e2d: if(s.services.instruction){s.services.instruction(0x129e2du);} s.set(6,s.pop(),4,0);
 if(s.services.instruction){s.services.instruction(0x129e2eu);} s.pop();s.gp[4]+=0u;return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
+
+static void run_18b580(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0x18b580u);} s.xmm[0]=_mm_xor_ps(s.xmm[0],s.xmm[0]);
+if(s.services.instruction){s.services.instruction(0x18b583u);} s.set(4,s.flags.minus(s.reg(4,4,0),0x8u,4),4,0);
+if(s.services.instruction){s.services.instruction(0x18b586u);} s.flags.scalar_compare(s.xmm[0],s.xmm[1],false);
+if(s.services.instruction){s.services.instruction(0x18b589u);} if(!s.flags.cf&&!s.flags.zf)goto L18b59b;
+if(s.services.instruction){s.services.instruction(0x18b58bu);} s.xmm[0]=_mm_set_ss(f(r(s.memory,(0x46a2ecu),4)));
+if(s.services.instruction){s.services.instruction(0x18b593u);} s.flags.scalar_compare(s.xmm[1],s.xmm[0],false);
+if(s.services.instruction){s.services.instruction(0x18b596u);} if(!s.flags.cf&&!s.flags.zf)goto L18b59b;
+if(s.services.instruction){s.services.instruction(0x18b598u);} s.xmm[0]=s.xmm[1];
+L18b59b: if(s.services.instruction){s.services.instruction(0x18b59bu);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(0x46a584u),4))));
+if(s.services.instruction){s.services.instruction(0x18b5a3u);} w(s.memory,s.observe,0x18b5a3u,(0x0u+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
+if(s.services.instruction){s.services.instruction(0x18b5a8u);} s.fp.push(ext(f(r(s.memory,(0x0u+s.gp[4]),4))));s.fp.status&=~0x200u;
+if(s.services.instruction){s.services.instruction(0x18b5abu);} w(s.memory,s.observe,0x18b5abu,(0x4u+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x18b5afu);} s.set(0,r(s.memory,(0x4u+s.gp[4]),2),2,0);
+if(s.services.instruction){s.services.instruction(0x18b5b4u);} s.set(4,s.flags.plus(s.reg(4,4,0),0x8u,4),4,0);
+if(s.services.instruction){s.services.instruction(0x18b5b7u);} s.pop();s.gp[4]+=0u;return;
 throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
@@ -2649,16 +2677,16 @@ if(s.services.instruction){s.services.instruction(0x18f934u);} while(s.gp[1]){w(
 if(s.services.instruction){s.services.instruction(0x18f936u);} s.set(7,r(s.memory,(0x4f2c50u),4),4,0);
 if(s.services.instruction){s.services.instruction(0x18f93cu);} s.set(7,s.flags.plus(s.reg(7,4,0),0x8cu,4),4,0);
 if(s.services.instruction){s.services.instruction(0x18f942u);} s.set(5,0x4u,4,0);
-L18f947: if(s.services.instruction){s.services.instruction(0x18f947u);} s.set(0,r(s.memory,(0x2u+s.gp[7]),1),1,0);
+L18f947: if(s.services.instruction){s.services.instruction(0x18f947u);} s.set(0,audio_view_read(s,0x18f947u,(0x2u+s.gp[7]),1),1,0);
 if(s.services.instruction){s.services.instruction(0x18f94au);} s.flags.logic((s.reg(0,1,0))&(s.reg(0,1,0)),1);
 if(s.services.instruction){s.services.instruction(0x18f94cu);} if(s.flags.zf)goto L18f99f;
-if(s.services.instruction){s.services.instruction(0x18f94eu);} s.flags.minus(r(s.memory,(0x0u+s.gp[7]),2),0xffffffffu,2);
+if(s.services.instruction){s.services.instruction(0x18f94eu);} s.flags.minus(audio_view_read(s,0x18f94eu,(0x0u+s.gp[7]),2),0xffffffffu,2);
 if(s.services.instruction){s.services.instruction(0x18f952u);} if(s.flags.zf)goto L18f99f;
 if(s.services.instruction){s.services.instruction(0x18f954u);} s.set(0,r(s.memory,(0x9cu+s.gp[3]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x18f95au);} s.set(6,s.flags.logic((s.reg(6,4,0))^(s.reg(6,4,0)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x18f95cu);} s.flags.logic((s.reg(0,4,0))&(s.reg(0,4,0)),4);
 if(s.services.instruction){s.services.instruction(0x18f95eu);} if(s.flags.zf||(s.flags.sf!=s.flags.of))goto L18f99f;
-L18f960: if(s.services.instruction){s.services.instruction(0x18f960u);} s.set(1,sign_extend(r(s.memory,(0x0u+s.gp[7]),2),2),4,0);
+L18f960: if(s.services.instruction){s.services.instruction(0x18f960u);} s.set(1,sign_extend(audio_view_read(s,0x18f960u,(0x0u+s.gp[7]),2),2),4,0);
 if(s.services.instruction){s.services.instruction(0x18f963u);} s.set(0,s.reg(6,4,0),4,0);
 if(s.services.instruction){s.services.instruction(0x18f965u);} s.set(2,s.reg(3,4,0),4,0);
 if(s.services.instruction){s.services.instruction(0x18f967u);} s.push(0x18f967u,0x18f96cu);run_253070(s);
@@ -2893,7 +2921,7 @@ if(s.services.instruction){s.services.instruction(0x18fc36u);} s.flags.scalar_co
 if(s.services.instruction){s.services.instruction(0x18fc39u);} if(s.flags.cf||s.flags.zf)goto L18fc52;
 if(s.services.instruction){s.services.instruction(0x18fc3bu);} w(s.memory,s.observe,0x18fc3bu,(0x0u+s.gp[7]),1,s.flags.logic((r(s.memory,(0x0u+s.gp[7]),1))|(0x10u),1));
 if(s.services.instruction){s.services.instruction(0x18fc3eu);} s.xmm[1]=_mm_set_ss(f(r(s.memory,(0x13cu+s.gp[3]),4)));
-if(s.services.instruction){s.services.instruction(0x18fc46u);} {const auto target=0x18b580u;s.push(0x18fc46u,0x18fc4bu);dispatch(s,target,0x18fc46u,false);}
+if(s.services.instruction){s.services.instruction(0x18fc46u);} s.push(0x18fc46u,0x18fc4bu);run_18b580(s);
 if(s.services.instruction){s.services.instruction(0x18fc4bu);} s.xmm[0]=_mm_xor_ps(s.xmm[0],s.xmm[0]);
 if(s.services.instruction){s.services.instruction(0x18fc4eu);} w(s.memory,s.observe,0x18fc4eu,(0x3cu+s.gp[7]),2,s.reg(0,2,0));
 L18fc52: if(s.services.instruction){s.services.instruction(0x18fc52u);} s.xmm[1]=_mm_set_ss(f(r(s.memory,(0x140u+s.gp[3]),4)));
@@ -2901,7 +2929,7 @@ if(s.services.instruction){s.services.instruction(0x18fc5au);} s.flags.scalar_co
 if(s.services.instruction){s.services.instruction(0x18fc5du);} if(s.flags.cf||s.flags.zf)goto L18fc76;
 if(s.services.instruction){s.services.instruction(0x18fc5fu);} w(s.memory,s.observe,0x18fc5fu,(0x0u+s.gp[7]),1,s.flags.logic((r(s.memory,(0x0u+s.gp[7]),1))|(0x20u),1));
 if(s.services.instruction){s.services.instruction(0x18fc62u);} s.xmm[1]=_mm_set_ss(f(r(s.memory,(0x140u+s.gp[3]),4)));
-if(s.services.instruction){s.services.instruction(0x18fc6au);} {const auto target=0x18b580u;s.push(0x18fc6au,0x18fc6fu);dispatch(s,target,0x18fc6au,false);}
+if(s.services.instruction){s.services.instruction(0x18fc6au);} s.push(0x18fc6au,0x18fc6fu);run_18b580(s);
 if(s.services.instruction){s.services.instruction(0x18fc6fu);} s.xmm[0]=_mm_xor_ps(s.xmm[0],s.xmm[0]);
 if(s.services.instruction){s.services.instruction(0x18fc72u);} w(s.memory,s.observe,0x18fc72u,(0x3eu+s.gp[7]),2,s.reg(0,2,0));
 L18fc76: if(s.services.instruction){s.services.instruction(0x18fc76u);} s.flags.scalar_compare(s.xmm[0],_mm_set_ss(f(r(s.memory,(0x144u+s.gp[3]),4))),false);
@@ -3103,14 +3131,14 @@ if(s.services.instruction){s.services.instruction(0x190468u);} s.set(2,s.flags.l
 if(s.services.instruction){s.services.instruction(0x19046au);} s.xmm[3]=_mm_mul_ss(s.xmm[3],s.xmm[3]);
 if(s.services.instruction){s.services.instruction(0x19046eu);} s.set(1,s.flags.plus(s.reg(1,4,0),0xc0u,4),4,0);
 if(s.services.instruction){s.services.instruction(0x190474u);} s.push(0x190474u,s.reg(3,4,0));
-L190475: if(s.services.instruction){s.services.instruction(0x190475u);} s.set(3,r(s.memory,(0xffffffceu+s.gp[1]),1),1,0);
+L190475: if(s.services.instruction){s.services.instruction(0x190475u);} s.set(3,audio_view_read(s,0x190475u,(0xffffffceu+s.gp[1]),1),1,0);
 if(s.services.instruction){s.services.instruction(0x190478u);} s.flags.logic((s.reg(3,1,0))&(s.reg(3,1,0)),1);
 if(s.services.instruction){s.services.instruction(0x19047au);} if(s.flags.zf)goto L1904ba;
-if(s.services.instruction){s.services.instruction(0x19047cu);} s.xmm[0]=_mm_set_ss(f(r(s.memory,(0xfffffff8u+s.gp[1]),4)));
+if(s.services.instruction){s.services.instruction(0x19047cu);} s.xmm[0]=_mm_set_ss(f(audio_view_read(s,0x19047cu,(0xfffffff8u+s.gp[1]),4)));
 if(s.services.instruction){s.services.instruction(0x190481u);} s.xmm[0]=_mm_sub_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(0x0u+s.gp[6]),4))));
-if(s.services.instruction){s.services.instruction(0x190485u);} s.xmm[1]=_mm_set_ss(f(r(s.memory,(0xfffffffcu+s.gp[1]),4)));
+if(s.services.instruction){s.services.instruction(0x190485u);} s.xmm[1]=_mm_set_ss(f(audio_view_read(s,0x190485u,(0xfffffffcu+s.gp[1]),4)));
 if(s.services.instruction){s.services.instruction(0x19048au);} s.xmm[1]=_mm_sub_ss(s.xmm[1],_mm_set_ss(f(r(s.memory,(0x4u+s.gp[6]),4))));
-if(s.services.instruction){s.services.instruction(0x19048fu);} s.xmm[2]=_mm_set_ss(f(r(s.memory,(0x0u+s.gp[1]),4)));
+if(s.services.instruction){s.services.instruction(0x19048fu);} s.xmm[2]=_mm_set_ss(f(audio_view_read(s,0x19048fu,(0x0u+s.gp[1]),4)));
 if(s.services.instruction){s.services.instruction(0x190493u);} s.xmm[2]=_mm_sub_ss(s.xmm[2],_mm_set_ss(f(r(s.memory,(0x8u+s.gp[6]),4))));
 if(s.services.instruction){s.services.instruction(0x190498u);} s.xmm[4]=s.xmm[0];
 if(s.services.instruction){s.services.instruction(0x19049bu);} s.xmm[4]=_mm_mul_ss(s.xmm[4],s.xmm[0]);
@@ -4414,6 +4442,107 @@ if(s.services.instruction){s.services.instruction(0x223e94u);} goto L223db4;
 throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
+static void run_226370(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0x226370u);} s.set(4,s.flags.minus(s.reg(4,4,0),0x18u,4),4,0);
+if(s.services.instruction){s.services.instruction(0x226373u);} s.push(0x226373u,s.reg(6,4,0));
+if(s.services.instruction){s.services.instruction(0x226374u);} s.set(6,r(s.memory,(0x20u+s.gp[4]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x226378u);} s.flags.logic((s.reg(6,4,0))&(s.reg(6,4,0)),4);
+if(s.services.instruction){s.services.instruction(0x22637au);} if(s.flags.zf)goto L2263fd;
+if(s.services.instruction){s.services.instruction(0x226380u);} s.flags.logic((s.reg(0,4,0))&(s.reg(0,4,0)),4);
+if(s.services.instruction){s.services.instruction(0x226382u);} if(s.flags.zf)goto L2263fd;
+if(s.services.instruction){s.services.instruction(0x226384u);} s.set(0,s.flags.plus(s.reg(0,4,0),0xfffffffcu,4),4,0);
+if(s.services.instruction){s.services.instruction(0x226387u);} s.set(0,s.flags.right(s.reg(0,4,0),0x2u,4,false),4,0);
+if(s.services.instruction){s.services.instruction(0x22638au);} s.push(0x22638au,s.reg(5,4,0));
+if(s.services.instruction){s.services.instruction(0x22638bu);} s.set(5,s.flags.logic((s.reg(5,4,0))^(s.reg(5,4,0)),4),4,0);
+if(s.services.instruction){s.services.instruction(0x22638du);} s.flags.logic((s.reg(0,4,0))&(s.reg(0,4,0)),4);
+if(s.services.instruction){s.services.instruction(0x22638fu);} w(s.memory,s.observe,0x22638fu,(0x1cu+s.gp[4]),4,s.reg(0,4,0));
+if(s.services.instruction){s.services.instruction(0x226393u);} if(s.flags.zf||(s.flags.sf!=s.flags.of))goto L2263fc;
+if(s.services.instruction){s.services.instruction(0x226395u);} s.push(0x226395u,s.reg(3,4,0));
+if(s.services.instruction){s.services.instruction(0x226396u);} s.push(0x226396u,s.reg(7,4,0));
+L226397: if(s.services.instruction){s.services.instruction(0x226397u);} s.flags.logic((r(s.memory,(0x8u+s.gp[6]+s.gp[5]*4u),1))&(0x2u),1);
+if(s.services.instruction){s.services.instruction(0x22639cu);} if(!s.flags.zf)goto L2263e9;
+if(s.services.instruction){s.services.instruction(0x22639eu);} s.set(7,r(s.memory,(0x4u+s.gp[6]+s.gp[5]*4u),4),4,0);
+if(s.services.instruction){s.services.instruction(0x2263a2u);} w(s.memory,s.observe,0x2263a2u,(0x14u+s.gp[4]),4,s.reg(7,4,0));
+if(s.services.instruction){s.services.instruction(0x2263a6u);} w(s.memory,s.observe,0x2263a6u,(0x18u+s.gp[4]),4,0xffffffffu);
+if(s.services.instruction){s.services.instruction(0x2263aeu);} goto L2263b4;
+L2263b0: if(s.services.instruction){s.services.instruction(0x2263b0u);} s.set(7,r(s.memory,(0x14u+s.gp[4]),4),4,0);
+L2263b4: if(s.services.instruction){s.services.instruction(0x2263b4u);} s.set(0,r(s.memory,(0x18u+s.gp[4]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x2263b8u);} s.set(0,s.flags.increment(s.reg(0,4,0),4,false),4,0);
+if(s.services.instruction){s.services.instruction(0x2263b9u);} s.flags.minus(s.reg(0,4,0),0x20u,4);
+if(s.services.instruction){s.services.instruction(0x2263bcu);} if(!s.flags.cf)goto L2263d7;
+if(s.services.instruction){s.services.instruction(0x2263beu);} s.set(7,s.reg(7,4,0),4,0);
+L2263c0: if(s.services.instruction){s.services.instruction(0x2263c0u);} s.set(2,0x1u,4,0);
+if(s.services.instruction){s.services.instruction(0x2263c5u);} s.set(1,s.reg(0,4,0),4,0);
+if(s.services.instruction){s.services.instruction(0x2263c7u);} s.set(2,s.flags.shift(s.reg(2,4,0),s.reg(1,1,0),4),4,0);
+if(s.services.instruction){s.services.instruction(0x2263c9u);} s.flags.minus(s.reg(7,4,0),s.reg(2,4,0),4);
+if(s.services.instruction){s.services.instruction(0x2263cbu);} if(s.flags.cf)goto L2263d7;
+if(s.services.instruction){s.services.instruction(0x2263cdu);} s.flags.logic((s.reg(7,4,0))&(s.reg(2,4,0)),4);
+if(s.services.instruction){s.services.instruction(0x2263cfu);} if(!s.flags.zf)goto L226404;
+if(s.services.instruction){s.services.instruction(0x2263d1u);} s.set(0,s.flags.increment(s.reg(0,4,0),4,false),4,0);
+if(s.services.instruction){s.services.instruction(0x2263d2u);} s.flags.minus(s.reg(0,4,0),0x20u,4);
+if(s.services.instruction){s.services.instruction(0x2263d5u);} if(s.flags.cf)goto L2263c0;
+L2263d7: if(s.services.instruction){s.services.instruction(0x2263d7u);} s.set(0,r(s.memory,(0x51df90u),4),4,0);
+if(s.services.instruction){s.services.instruction(0x2263dcu);} s.set(1,r(s.memory,(0x4u+s.gp[6]+s.gp[5]*4u),2),2,0);
+if(s.services.instruction){s.services.instruction(0x2263e1u);} w(s.memory,s.observe,0x2263e1u,(0x22u+s.gp[0]),2,s.flags.logic((r(s.memory,(0x22u+s.gp[0]),2))|(s.reg(1,2,0)),2));
+if(s.services.instruction){s.services.instruction(0x2263e5u);} s.set(0,r(s.memory,(0x24u+s.gp[4]),4),4,0);
+L2263e9: if(s.services.instruction){s.services.instruction(0x2263e9u);} s.set(2,r(s.memory,(0xeu+s.gp[6]+s.gp[5]*4u),2),4,0);
+if(s.services.instruction){s.services.instruction(0x2263eeu);} s.set(2,s.flags.plus(s.reg(2,4,0),0xfu,4),4,0);
+if(s.services.instruction){s.services.instruction(0x2263f1u);} s.set(2,s.flags.right(s.reg(2,4,0),0x2u,4,true),4,0);
+if(s.services.instruction){s.services.instruction(0x2263f4u);} s.set(5,s.flags.plus(s.reg(5,4,0),s.reg(2,4,0),4),4,0);
+if(s.services.instruction){s.services.instruction(0x2263f6u);} s.flags.minus(s.reg(5,4,0),s.reg(0,4,0),4);
+if(s.services.instruction){s.services.instruction(0x2263f8u);} if(s.flags.sf!=s.flags.of)goto L226397;
+if(s.services.instruction){s.services.instruction(0x2263fau);} s.set(7,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0x2263fbu);} s.set(3,s.pop(),4,0);
+L2263fc: if(s.services.instruction){s.services.instruction(0x2263fcu);} s.set(5,s.pop(),4,0);
+L2263fd: if(s.services.instruction){s.services.instruction(0x2263fdu);} s.set(6,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0x2263feu);} s.set(4,s.flags.plus(s.reg(4,4,0),0x18u,4),4,0);
+if(s.services.instruction){s.services.instruction(0x226401u);} s.pop();s.gp[4]+=4u;return;
+L226404: if(s.services.instruction){s.services.instruction(0x226404u);} s.flags.logic((r(s.memory,(0x8u+s.gp[6]+s.gp[5]*4u),1))&(0x1u),1);
+if(s.services.instruction){s.services.instruction(0x226409u);} w(s.memory,s.observe,0x226409u,(0x18u+s.gp[4]),4,s.reg(0,4,0));
+if(s.services.instruction){s.services.instruction(0x22640du);} if(s.flags.zf)goto L22641e;
+if(s.services.instruction){s.services.instruction(0x22640fu);} s.push(0x22640fu,0x0u);
+if(s.services.instruction){s.services.instruction(0x226411u);} s.set(1,(0x10u+s.gp[6]+s.gp[5]*4u),4,0);
+if(s.services.instruction){s.services.instruction(0x226415u);} s.push(0x226415u,s.reg(1,4,0));
+if(s.services.instruction){s.services.instruction(0x226416u);} s.push(0x226416u,s.reg(0,4,0));
+if(s.services.instruction){s.services.instruction(0x226417u);} {const auto target=0x385b4fu;s.push(0x226417u,0x22641cu);dispatch(s,target,0x226417u,false);}
+if(s.services.instruction){s.services.instruction(0x22641cu);} goto L2263b4;
+L22641e: if(s.services.instruction){s.services.instruction(0x22641eu);} s.set(7,r(s.memory,(0x51df90u),4),4,0);
+if(s.services.instruction){s.services.instruction(0x226424u);} s.set(7,r(s.memory,(0x0u+s.gp[7]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x226426u);} s.set(2,r(s.memory,(0xeu+s.gp[6]+s.gp[5]*4u),2),4,0);
+if(s.services.instruction){s.services.instruction(0x22642bu);} s.set(3,r(s.memory,(0xcu+s.gp[6]+s.gp[5]*4u),2),4,0);
+if(s.services.instruction){s.services.instruction(0x226430u);} s.set(1,s.reg(0,4,0),4,0);
+if(s.services.instruction){s.services.instruction(0x226432u);} s.set(1,s.flags.shift(s.reg(1,4,0),0x5u,4),4,0);
+if(s.services.instruction){s.services.instruction(0x226435u);} s.set(1,s.flags.plus(s.reg(1,4,0),s.reg(7,4,0),4),4,0);
+if(s.services.instruction){s.services.instruction(0x226437u);} w(s.memory,s.observe,0x226437u,(0x10u+s.gp[4]),4,s.reg(1,4,0));
+if(s.services.instruction){s.services.instruction(0x22643bu);} s.set(1,r(s.memory,(0x14u+s.gp[1]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x22643eu);} s.set(7,(0x0u+s.gp[3]+s.gp[2]*1u),4,0);
+if(s.services.instruction){s.services.instruction(0x226441u);} s.set(1,s.flags.shift(s.reg(1,4,0),0x2u,4),4,0);
+if(s.services.instruction){s.services.instruction(0x226444u);} s.flags.minus(s.reg(7,4,0),s.reg(1,4,0),4);
+if(s.services.instruction){s.services.instruction(0x226446u);} if(!s.flags.cf&&!s.flags.zf)goto L2263b0;
+if(s.services.instruction){s.services.instruction(0x22644cu);} s.set(7,r(s.memory,(0x10u+s.gp[4]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x226450u);} s.set(7,r(s.memory,(0x10u+s.gp[7]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x226453u);} s.set(7,s.flags.plus(s.reg(7,4,0),s.reg(3,4,0),4),4,0);
+if(s.services.instruction){s.services.instruction(0x226455u);} s.set(6,(0x10u+s.gp[6]+s.gp[5]*4u),4,0);
+if(s.services.instruction){s.services.instruction(0x226459u);} s.set(1,s.reg(2,4,0),4,0);
+if(s.services.instruction){s.services.instruction(0x22645bu);} s.set(3,s.flags.logic((s.reg(3,4,0))^(s.reg(3,4,0)),4),4,0);
+if(s.services.instruction){s.services.instruction(0x22645du);} while(s.gp[1]){s.flags.minus(r(s.memory,s.gp[6],1),r(s.memory,s.gp[7],1),1);const auto delta=(s.other_flags&1024u)?4294967295u:1u;s.gp[6]+=delta;s.gp[7]+=delta;--s.gp[1];if(!s.flags.zf)break;if(s.services.instruction)s.services.instruction(0x22645du);}
+if(s.services.instruction){s.services.instruction(0x22645fu);} s.set(6,r(s.memory,(0x2cu+s.gp[4]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x226463u);} if(s.flags.zf)goto L2263b0;
+if(s.services.instruction){s.services.instruction(0x226469u);} s.push(0x226469u,s.reg(3,4,0));
+if(s.services.instruction){s.services.instruction(0x22646au);} s.push(0x22646au,s.reg(2,4,0));
+if(s.services.instruction){s.services.instruction(0x22646bu);} s.set(2,r(s.memory,(0x52d674u),4),4,0);
+if(s.services.instruction){s.services.instruction(0x226471u);} s.set(1,(0x10u+s.gp[6]+s.gp[5]*4u),4,0);
+if(s.services.instruction){s.services.instruction(0x226475u);} s.push(0x226475u,s.reg(1,4,0));
+if(s.services.instruction){s.services.instruction(0x226476u);} s.set(1,r(s.memory,(0xcu+s.gp[6]+s.gp[5]*4u),2),4,0);
+if(s.services.instruction){s.services.instruction(0x22647bu);} s.push(0x22647bu,s.reg(1,4,0));
+if(s.services.instruction){s.services.instruction(0x22647cu);} s.push(0x22647cu,s.reg(0,4,0));
+if(s.services.instruction){s.services.instruction(0x22647du);} s.set(0,r(s.memory,(0x2ab0u+s.gp[2]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x226483u);} s.push(0x226483u,s.reg(0,4,0));
+if(s.services.instruction){s.services.instruction(0x226484u);} {const auto target=0x3856edu;s.push(0x226484u,0x226489u);dispatch(s,target,0x226484u,false);}
+if(s.services.instruction){s.services.instruction(0x226489u);} goto L2263b0;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
+
 static void run_22c560(WorldState &s) {
 if(s.services.instruction){s.services.instruction(0x22c560u);} s.push(0x22c560u,s.reg(5,4,0));
 if(s.services.instruction){s.services.instruction(0x22c561u);} s.set(5,s.reg(4,4,0),4,0);
@@ -4577,7 +4706,7 @@ if(s.services.instruction){s.services.instruction(0x22c7beu);} if(s.flags.sf!=s.
 if(s.services.instruction){s.services.instruction(0x22c7c4u);} s.set(0,(0x448u+s.gp[4]),4,0);
 if(s.services.instruction){s.services.instruction(0x22c7cbu);} s.push(0x22c7cbu,s.reg(0,4,0));
 if(s.services.instruction){s.services.instruction(0x22c7ccu);} s.set(0,r(s.memory,(0x84cu+s.gp[4]),4),4,0);
-if(s.services.instruction){s.services.instruction(0x22c7d3u);} {const auto target=0x226370u;s.push(0x22c7d3u,0x22c7d8u);dispatch(s,target,0x22c7d3u,false);}
+if(s.services.instruction){s.services.instruction(0x22c7d3u);} s.push(0x22c7d3u,0x22c7d8u);run_226370(s);
 if(s.services.instruction){s.services.instruction(0x22c7d8u);} s.set(7,s.pop(),4,0);
 if(s.services.instruction){s.services.instruction(0x22c7d9u);} s.set(6,s.pop(),4,0);
 if(s.services.instruction){s.services.instruction(0x22c7dau);} s.set(3,s.pop(),4,0);
@@ -4659,13 +4788,16 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 } // namespace
 void source_run_object_loop_audio_tu15(M &m,std::uint32_t entry,
     SourcePhysicsContactRuntimeAbi &abi,FP fp,
-    const SourcePhysicsContactRuntimeServices &services,const O &observe) {
+    const SourcePhysicsContactRuntimeServices &services,const O &observe,
+    const SourceObjectAudioViewsTu15* native_views) {
     constexpr auto image=SourcePhysicsContactImage::TitleUpdate15;
     FpScope scope(fp);LiveState s{m,observe,services,image};s.load(abi);
+    s.native_audio_views=native_views;
     try {
         switch(entry) {
 case 0x129170u:run_129170(s);break;
 case 0x129dd0u:run_129dd0(s);break;
+case 0x18b580u:run_18b580(s);break;
 case 0x18d390u:run_18d390(s);break;
 case 0x18d3d0u:run_18d3d0(s);break;
 case 0x18d5a0u:run_18d5a0(s);break;
@@ -4684,6 +4816,7 @@ case 0x190a80u:run_190a80(s);break;
 case 0x220640u:run_220640(s);break;
 case 0x220c60u:run_220c60(s);break;
 case 0x223da0u:run_223da0(s);break;
+case 0x226370u:run_226370(s);break;
 case 0x22c560u:run_22c560(s);break;
 case 0x253070u:run_253070(s);break;
 
@@ -4692,5 +4825,5 @@ case 0x253070u:run_253070(s);break;
     } catch(...) {abi=s.save();throw;}
     abi=s.save();
 }
-bool source_object_loop_audio_tu15_owns_entry(std::uint32_t p) {switch(p){case 0x129170u:case 0x129dd0u:case 0x18d390u:case 0x18d3d0u:case 0x18d5a0u:case 0x18d960u:case 0x18dc70u:case 0x18e970u:case 0x18ed80u:case 0x18ee50u:case 0x18f510u:case 0x18f900u:case 0x18f9b0u:case 0x18ffb0u:case 0x190460u:case 0x1904d0u:case 0x190a80u:case 0x220640u:case 0x220c60u:case 0x223da0u:case 0x22c560u:case 0x253070u:return true;default:return false;}}
+bool source_object_loop_audio_tu15_owns_entry(std::uint32_t p) {switch(p){case 0x129170u:case 0x129dd0u:case 0x18b580u:case 0x18d390u:case 0x18d3d0u:case 0x18d5a0u:case 0x18d960u:case 0x18dc70u:case 0x18e970u:case 0x18ed80u:case 0x18ee50u:case 0x18f510u:case 0x18f900u:case 0x18f9b0u:case 0x18ffb0u:case 0x190460u:case 0x1904d0u:case 0x190a80u:case 0x220640u:case 0x220c60u:case 0x223da0u:case 0x226370u:case 0x22c560u:case 0x253070u:return true;default:return false;}}
 } // namespace halo2

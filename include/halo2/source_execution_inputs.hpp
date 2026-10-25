@@ -82,6 +82,7 @@ public:
     SourceExecutionInputs &operator=(const SourceExecutionInputs &)=delete;
     std::span<const SourceExecutionInput> finish();
     bool replaying()const noexcept{return replay_;}
+    bool tracks_calls()const noexcept{return track_calls_;}
     template<class F>std::uint64_t sample(SourceExecutionInputKind kind,std::uint32_t operand,F &&actual) {
         begin_sample();
         if(track_calls_&&(!call_depth_||observer_depth_))untracked();

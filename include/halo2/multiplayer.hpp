@@ -1,4 +1,6 @@
 #pragma once
+#include "halo2/source_multiplayer_event_tu15.hpp"
+#include "halo2/source_objective_presentation_tu15.hpp"
 #include "halo2/source_hud_messages.hpp"
 #include "halo2/source_hud_objectives.hpp"
 #include "halo2/source_dynamic_object.hpp"
@@ -57,6 +59,23 @@ struct SourceBspResidentViewPlan;
 struct SourcePortalMaskState;
 struct ShadowCasterSphere;
 struct ObjectLightingState;
+enum class MultiplayerNodeStage : std::uint32_t {
+  world_completed=1,world_interpolated=2,first_person_completed=3,first_person_interpolated=4
+};
+// Actual node inputs, borrowed synchronously before CPU/GPU skin selection.
+// This observation supplies no pose/geometry and is not a CPU-only consumer.
+struct MultiplayerNodeObservation {
+  MultiplayerNodeStage stage{};
+  std::uint32_t owner{},render_model{};
+  unsigned mode{}; // WORLD=0, original first-person foreground=1.
+  float fraction{};
+  std::span<const Transform> nodes;
+  // Populated only where the ordinary interpolation owner already read them.
+  // Unknown is distinct from a known NONE parent; no diagnostic source query.
+  std::uint32_t parent=0xffffffffu;
+  unsigned parent_node{};
+  bool parent_known{};
+};
 struct MultiplayerFrameTiming {
   struct View {double camera_lighting_ms{},static_world_ms{},objects_ms{},body_ms{},first_person_ms{},hud_ms{};};
   // Per-frame aggregate observations; no owners or unbounded event history.
@@ -89,6 +108,11 @@ struct MultiplayerFrameTiming {
   RendererFrameTiming renderer;
   ReceiptCapture receipt_capture;
   Schedule schedule;
+  // Diagnostic-only nested host spans. Counts describe successful returns;
+  // these overlap input/camera phases and must not be added to those totals.
+  RendererHostPreparationTiming::ReturnedCall match_step,state_projection,post_step;
+  std::uint64_t shared_pre_view_ns{};
+  std::array<RendererHostPreparationTiming::NativeView,4> native_view;
 };
 constexpr unsigned multiplayer_capacity = 16;
 struct SlayerRules {
@@ -275,6 +299,7 @@ struct MultiplayerState {
     std::uint32_t source_hud_target_flags{}; //13C8D4/TU1.5 13DC44; original aim mask.
     bool source_hud_autoaimed{}; //13C4B8 selector18: unit+1E4 confidence >=1.
     SourceHudObjectives source_hud_objectives;
+    SourceObjectivePresentationTu15 source_objective_presentation;
     VehicleWeaponHudStatus source_vehicle_hud;
     // Unit+14A bits0/5 are primary/secondary trigger holds (C6C50), read by
     // 1A20E6. Grenade visibility uses the retained component+0C throw phase.
@@ -342,6 +367,7 @@ struct MultiplayerState {
   std::vector<MeleeImpact> melee_impacts;
   std::vector<UnitDamageEffectEvent> unit_damage_effects;
   std::vector<NativeWeaponEffectEvent> weapon_effects;
+  std::vector<SourceMultiplayerEventTu15> source_engine_events;
   std::vector<UnitDamageVoiceEvent> unit_damage_voices;
   std::vector<WorldWeaponPresentation> world_weapons;
   std::vector<WorldVehiclePresentation> world_vehicles;
@@ -415,6 +441,9 @@ public:
   bool team_mode() const { return rules_.team_mode; }
   std::int32_t source_engine() const { return rules_.source_engine; }
   bool source_engine_owned() const { return source_engine_owned_; }
+  // Calls the selected original engine's team-availability callback for
+  // each designator. This is map availability, independent of occupancy.
+  std::uint16_t source_available_team_mask();
   std::int32_t source_game_type() const { return source_game_context_.game_type; }
   const SourceKingState* source_king_state()const {
     return rules_.source_engine==4 ? &king_state_ : nullptr;
@@ -609,9 +638,18 @@ private:
   FirstPersonEventOwner first_person_event_owner_;
   std::map<std::pair<unsigned,std::uint32_t>,FirstPersonBindingDefinition> replicated_fp_definitions_;
   std::array<FirstPersonViewBinding,multiplayer_capacity> replicated_fp_views_,replicated_fp_origins_;
+  // Last observed TU1.5 weapon state per player hand, for the first-person
+  // activities that weapon raised in the native world.
+  struct SourceWeaponActivityCursor {
+    std::uint32_t weapon=0xffffffffu,last_shot{};
+    std::int16_t magazine_mode{};
+  };
+  std::array<std::array<SourceWeaponActivityCursor,2>,multiplayer_capacity> source_weapon_activity_{};
   std::array<NativeWeaponEffectEvent,multiplayer_capacity> weapon_effect_events_;
   std::vector<NativeWeaponEffectEvent> weapon_effect_journal_;
   std::uint32_t weapon_effect_serial_{};
+  std::vector<SourceMultiplayerEventTu15> source_engine_events_;
+  std::uint32_t source_engine_event_serial_{};
   std::function<std::uint32_t(const Unit&,const WeaponEffectInput&)> weapon_effect_owner_;
   std::uint16_t infection_zombies_{};
   bool infection_started_{};
@@ -685,6 +723,8 @@ private:
   ObjectGarbageState &object_garbage(std::uint32_t);
   void update_first_person_views();
   void update_replicated_first_person_views();
+  void observe_source_weapon_activity(unsigned id,const Unit &);
+  bool local_first_person_player(unsigned id)const;
 };
 struct MultiplayerOptions {
   // A synchronous native session load can initialize this actual world once.
@@ -783,6 +823,9 @@ struct MultiplayerOptions {
   // source pose banks retain the current authoritative snapshot. Network
   // receive can advance between fixed-rate input observations and rendering.
   std::function<void(unsigned,const MultiplayerState &,const Camera &)> view_state_observer;
+  // Does not request posed vertices or disqualify retained GPU skinning.
+  // No node bank is copied when absent; callback cannot retain borrowed spans.
+  std::function<void(unsigned,std::uint32_t,const MultiplayerNodeObservation&)> node_observer;
   // Read-only observation of actual per-view roster output submitted as UI.
   std::function<void(unsigned,bool,const FullScoreboardLayout&,
       const FullScoreboardPaintResult&)> scoreboard_observer;
@@ -850,6 +893,11 @@ struct MultiplayerOptions {
   // source player pool. The application can bind its controller to these
   // returned slots; names and assumed slot zero are not identity joins.
   std::function<void(const MultiplayerMatch&,std::span<const unsigned>)> session_world_loaded;
+  // Read-only completed native event-audio selections, for bounded runtime
+  // diagnostics. Sound datums belong to the selected MCC scenario namespace.
+  std::function<void(const SourceMultiplayerEventTu15&,std::span<const std::uint32_t>)> objective_audio_observer;
+  std::function<void(unsigned,std::uint32_t,std::span<const Vertex>)> objective_goal_draw_observer;
+  std::function<void(unsigned,std::uint32_t,std::span<const Vertex>)> objective_waypoint_draw_observer;
   // Reached actual per-view HUD composition, after native geometry/GPU
   // initialization and before the scoreboard. Returns source-packed ARGB.
   std::function<std::optional<std::uint32_t>(unsigned)> session_view_black;

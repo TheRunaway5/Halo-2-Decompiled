@@ -216,7 +216,25 @@ int main(int argc,char**argv)try{
         for(const auto& native:cache.preserved_native_pointer_maps())for(const auto& [field,target]:native.pointers)
             verify_field(native.address+field,native.address+target,native.bytes-target);
         for(const auto& tag:cache.tags())if(tag.address&&tag.size&&!cache.is_preserved_native_shader(tag)) {
-            if(tag.group=="phmo"||tag.group=="coll"||tag.group=="jmad") {
+            if(tag.group=="lsnd") {
+                const auto raw=cache.read_tag_bytes(tag.address,0x34);
+                std::vector<std::byte> expected(raw.begin(),raw.end());
+                const auto fields=ordinary_mcc_pointer_fields(tag.type(),tag.address,
+                    [&](std::uint32_t at,std::size_t count){return cache.read_tag_bytes(at,count);});
+                check(bool(fields),"Loop root lost its complete donor pointer graph");
+                for(const auto& field:*fields) {
+                    if(field.field_address>=tag.address && std::uint64_t(field.field_address)-tag.address+4<=expected.size()) {
+                        const auto offset=field.field_address-tag.address,target=plan.runtime_address(field.address,field.bytes);
+                        for(unsigned n=0;n<4;++n)expected[offset+n]=std::byte(target>>(n*8));
+                        ++verified_fields;
+                    }else verify_field(field.field_address,field.address,field.bytes);
+                }
+                const auto root=project_mcc_looping_sound_root(expected);
+                std::copy(root.begin(),root.end(),expected.begin());
+                check(std::ranges::equal(expected,read(plan.runtime_address(tag.address,expected.size()),expected.size())),
+                    "Published looping root retained MCC header/flags, lost relocation, or changed its allocation tail");
+                for(unsigned n=0;n<expected.size();++n)patched.insert(tag.address+n);
+            }else if(tag.group=="phmo"||tag.group=="coll"||tag.group=="jmad") {
                 const auto bytes=cache.read_tag_bytes(tag.address,tag.size);
                 const auto fields=tag.group=="phmo"?normalized_mcc_physics_pointer_fields(bytes,tag.address):
                     tag.group=="coll"?normalized_mcc_collision_pointer_fields(bytes,tag.address):

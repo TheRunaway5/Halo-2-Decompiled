@@ -519,6 +519,15 @@ int main(int argc,char **argv){HistoryReport history;try {
           [&](const auto &e){return e.serial==event.serial;});
       check(remote!=received.grenade_detonations.end() && remote->source_locations.size()==event.source_locations.size(),
           "Native LAN omitted original explosion locations");
+      check(remote->source_effect_instance==null_datum,"Remote effect render provenance authenticated a local simulation pool");
+      check(remote->replica_render.has_value()==event.replica_render.has_value(),"Native LAN omitted original effect render provenance");
+      if(event.replica_render) {
+        const auto &a=*event.replica_render,&b=*remote->replica_render;
+        check(a.identity==b.identity&&a.attached_owner==b.attached_owner&&a.local_view==b.local_view&&a.flags==b.flags&&
+            a.root_owner==b.root_owner&&a.root_type==b.root_type&&
+            !std::memcmp(&a.color,&b.color,sizeof(Vec3))&&!std::memcmp(&a.velocity,&b.velocity,sizeof(Vec3)),
+            "Native LAN changed completed original effect render inputs");
+      }
       for(unsigned n=0;n<event.source_locations.size();++n) {
         const auto &a=event.source_locations[n],&b=remote->source_locations[n];
         check(a.name==b.name && !std::memcmp(&a.frame,&b.frame,sizeof(Transform)),

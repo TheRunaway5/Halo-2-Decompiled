@@ -1,0 +1,239 @@
+{
+  "schema": "H2_MCC_BITMAP_DELTA_V6",
+  "owners": [
+    {
+      "map": "00a_introduction.map",
+      "source_map_sha256": "f6916833eedc5efba6250ff2bfd0d0547318572901776069ca043c0c8b4329b8",
+      "original_map_sha256": "5093e2f8ef7f0df41c11c6621bac5785a36f78a1cff3b8b2bc6c14b561c02a28",
+      "datum": 3786866753,
+      "address": 456668
+    },
+    {
+      "map": "01a_tutorial.map",
+      "source_map_sha256": "f71460e42eb43ea1d74a67af2589e8bccea645f62d921a430f94e946ac4bf08e",
+      "original_map_sha256": "623598449e34a51da6fb131ad66aaf2bb0de57113abe616d4c4009e877398faf",
+      "datum": 3783720977,
+      "address": 375448
+    },
+    {
+      "map": "01b_spacestation.map",
+      "source_map_sha256": "06fe3555d4301c18a5b0f7379f5ddd6714626a3134462a14ce80a609bc7bf2bb",
+      "original_map_sha256": "5f79832ce3ae8035e547c5c673008802a4971fbf60551755fcc0553482843ae0",
+      "datum": 3783720977,
+      "address": 1317360
+    },
+    {
+      "map": "07a_highcharity.map",
+      "source_map_sha256": "f883bc4592839329f5e12618413e202298f139d01a6758764d28ded95e4b0569",
+      "original_map_sha256": "770426d5182d47d31ce870fcbc9ed346988175690a3dc1c58ca8a7c1ef1dbd45",
+      "datum": 3786866753,
+      "address": 1584460
+    },
+    {
+      "map": "elongation.map",
+      "source_map_sha256": "3780ab18cb5c65a0f23d99ab827671bc85c53c22c5e9a3826e5ab01425cff729",
+      "original_map_sha256": "8aa190e424003ce7efaea9e57be9556194b3aefdeccd8a86919f2534f7cf15ea",
+      "datum": 3783655433,
+      "address": 52896872
+    }
+  ],
+  "profiles": [
+    {
+      "profile": {
+        "tag": "scenarios\\skies\\solo\\spacestation\\bitmaps\\earth_matte",
+        "encoding": "bc3",
+        "format": 16,
+        "width": 512,
+        "height": 512,
+        "mip_count": 8,
+        "pixel_bytes": 349520,
+        "registration": [
+          256,
+          256
+        ],
+        "donor_encoding": "rgba8",
+        "donor_format": 11,
+        "donor_width": 1024,
+        "donor_height": 1024,
+        "donor_mip_count": 11,
+        "donor_pixel_bytes": 5592404,
+        "donor_registration": [
+          512,
+          512
+        ],
+        "donor_sha256": "481c96bdcbff17ef7abbc9915f26afac8e7e2a1fc40a164bd2a82768d380f05c",
+        "target_sha256": "b80a32d6384cbfa338297df337f8e66ebaf63c33c02e2f8283d0ff37aa5e80c8"
+      },
+      "mips": [
+        {
+          "width": 512,
+          "height": 512,
+          "depth": 1,
+          "offset": 0,
+          "size": 262144
+        },
+        {
+          "width": 256,
+          "height": 256,
+          "depth": 1,
+          "offset": 262144,
+          "size": 65536
+        },
+        {
+          "width": 128,
+          "height": 128,
+          "depth": 1,
+          "offset": 327680,
+          "size": 16384
+        },
+        {
+          "width": 64,
+          "height": 64,
+          "depth": 1,
+          "offset": 344064,
+          "size": 4096
+        },
+        {
+          "width": 32,
+          "height": 32,
+          "depth": 1,
+          "offset": 348160,
+          "size": 1024
+        },
+        {
+          "width": 16,
+          "height": 16,
+          "depth": 1,
+          "offset": 349184,
+          "size": 256
+        },
+        {
+          "width": 8,
+          "height": 8,
+          "depth": 1,
+          "offset": 349440,
+          "size": 64
+        },
+        {
+          "width": 4,
+          "height": 4,
+          "depth": 1,
+          "offset": 349504,
+          "size": 16
+        }
+      ],
+      "donor_mips": [
+        {
+          "width": 1024,
+          "height": 1024,
+          "depth": 1,
+          "offset": 0,
+          "size": 4194304
+        },
+        {
+          "width": 512,
+          "height": 512,
+          "depth": 1,
+          "offset": 4194304,
+          "size": 1048576
+        },
+        {
+          "width": 256,
+          "height": 256,
+          "depth": 1,
+          "offset": 5242880,
+          "size": 262144
+        },
+        {
+          "width": 128,
+          "height": 128,
+          "depth": 1,
+          "offset": 5505024,
+          "size": 65536
+        },
+        {
+          "width": 64,
+          "height": 64,
+          "depth": 1,
+          "offset": 5570560,
+          "size": 16384
+        },
+        {
+          "width": 32,
+          "height": 32,
+          "depth": 1,
+          "offset": 5586944,
+          "size": 4096
+        },
+        {
+          "width": 16,
+          "height": 16,
+          "depth": 1,
+          "offset": 5591040,
+          "size": 1024
+        },
+        {
+          "width": 8,
+          "height": 8,
+          "depth": 1,
+          "offset": 5592064,
+          "size": 256
+        },
+        {
+          "width": 4,
+          "height": 4,
+          "depth": 1,
+          "offset": 5592320,
+          "size": 64
+        },
+        {
+          "width": 2,
+          "height": 2,
+          "depth": 1,
+          "offset": 5592384,
+          "size": 16
+        },
+        {
+          "width": 1,
+          "height": 1,
+          "depth": 1,
+          "offset": 5592400,
+          "size": 4
+        }
+      ],
+      "donor_mip_sha256": [
+        "c6571dda139f74999324ce07fe2574e204fcc6ee93bf7e0dda70124dc09266d1",
+        "2a7eff5c7874a5d489530826cc1f18b3a409459b3e36a050f4ecbff69736c282",
+        "d0921e15b7611a4f6e621b56e4dee0a60970717a7e9a43e6304c3922ab5b1190",
+        "9acd812004b74322be2e29c0590421466f0f5950e5738c7c74264ae510db98d1",
+        "d28e27a3186fc17d026bca4bb27d9835aaab5233f148d7f00cb77b6d9a68c624",
+        "f12896854a778b368b1e465738b215fe77279554501ecec788cffcd4babc42c5",
+        "38f66b4c3d7cf6b71a6e84f5681388b24fdf2d983d3f3139b961af55f54817b8",
+        "975e32b1dc102a63d5fb273764351769460f3865cf51118b10bd34210be7afd4",
+        "9dfa87c90fac543e1534fb170771b0ce1b62da65cd65b8977d9eeae9e768f124",
+        "0263f518d5e464dc5b7f0dc104887a9b3566b2c6352cc5a3b41caeef9d53fa6d",
+        "9134ac87482a2e691b45c54aa08fbb35f20c0ade076ac1fe0496e09a6bdc5c70"
+      ],
+      "target_mip_sha256": [
+        "fd37c3bab6d3df0c945f28659922db02b1e88e4df19a27108198c35fa6ebd4b8",
+        "d17398d560ecabede8b4e16b43e2f70bfbaaa4942da56333065ef704e80b28eb",
+        "bb3d7d8c799ecb7ed02894ef18d663d9e64fc1c416518239744e309b07516234",
+        "95eac2a9f4e32f57a0bc5a6f23baf7405148a1e7d94d2b42108aeb641c672e9a",
+        "57c50e41f35b59ec668c142dc33e53c8fb43c01a3ee23eba6b93992123d52d0e",
+        "c41eab19856e55dda924399be545e3e8de3c5c1df635f1cc38bf9ba92ac34026",
+        "0c99c120fc6c226b190ed03be751093e694c840c94133bb315fdcb9857852428",
+        "de3019c4d58bde98792838564052f5e9c02bd3a57de6d954d0278f6a0b64cd33"
+      ],
+      "base_offset": 0,
+      "base_bytes": 349520,
+      "base_sha256": "174983aabfba15e25d3417f71d05537ef582e0f198d2c538e33b1a5eaa70fd7f",
+      "delta_offset": 0,
+      "delta_bytes": 189333,
+      "delta_sha256": "68e341c8bfd544a20d7021501d2446bc61efc356eeae2e33bba7ff6d73b4a911"
+    }
+  ],
+  "delta_bytes": 189333,
+  "delta_sha256": "68e341c8bfd544a20d7021501d2446bc61efc356eeae2e33bba7ff6d73b4a911",
+  "full_graphics_parity": false,
+  "scope": "Exact delivered original512 BC3 eight-mip chain for five authenticated local Earth owners; all source/native owners corroborated, no 2x2/1x1 tails, image resampling, recompression or geometry changes"
+}

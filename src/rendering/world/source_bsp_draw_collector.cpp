@@ -19,14 +19,16 @@ void append(SourceBspDrawState& state,const SourceBspDrawContext& context,
     const SourceBspDrawGeometry& geometry,std::uint32_t classification,
     std::uint32_t unit_flags,unsigned cluster,unsigned instance,
     std::uint16_t association,std::uint8_t alpha,std::uint32_t transform,
-    float coverage) {
+    float coverage,const std::function<bool(bool)>& request_resident={}) {
     SourceDrawUnitInput input;input.geometry=cluster;input.instance=instance;
     input.stack={unit_flags,0xffffffffu,0xffffffffu,0,0,association,alpha,
         transform,0xffffffffu,std::bit_cast<std::uint32_t>(coverage),31};
     SourceDrawUnitServices services;
     services.geometry=[&](auto,auto,const auto&){return SourceDrawUnitGeometry{geometry.geometry_class,geometry.mask_subparts};};
     services.lighting=[&](auto,auto,auto){return classification;};
-    services.resident=[&](auto,auto,auto,const auto&){return geometry.resident;};
+    services.resident=[&](auto,auto selector,auto,const auto&) {
+        return request_resident?request_resident((selector&255u)!=0):geometry.resident;
+    };
     source_draw_unit_append(state,input,{context.mode,context.mask_arena_address},services);
 }
 }
@@ -60,9 +62,13 @@ void source_bsp_collect_draw_units(SourceBspDrawState& state,SourceBspAdmission&
         if(!alpha){record.flags|=1;continue;}
         const unsigned classification=world.lightmap_matches && owner.lightmap_resident?
             unsigned(owner.lighting_policy!=0):3;
-        append(state,context,world.definitions[unsigned(instance.definition)],classification,
+        const auto definition=unsigned(instance.definition);
+        const auto resident=world.definition_resident?std::function<bool(bool)>([&](bool request) {
+            return world.definition_resident(definition,request);
+        }):std::function<bool(bool)>{};
+        append(state,context,world.definitions[definition],classification,
             flags(record.flags,context)|0x1008u|((record.flags&0x800u)?1u:0x40u),
-            0,record.id,record.association,alpha,owner.transform_address,coverage);
+            0,record.id,record.association,alpha,owner.transform_address,coverage,resident);
     }
 }
 }

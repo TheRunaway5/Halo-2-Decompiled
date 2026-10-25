@@ -36,6 +36,8 @@ def audit(model, report):
             p = scene.array(primitive['attributes']['POSITION']).astype(float)
             p = p @ world[:3, :3].T + world[:3, 3]
             t = scene.array(primitive['indices'])[:, 0].astype(np.int64).reshape(-1, 3)
+            if np.linalg.det(world[:3,:3])<0:
+                t=t[:,[0,2,1]]
             uv=scene.array(primitive['attributes']['TEXCOORD_0']).astype(float)
             normal=scene.array(primitive['attributes']['NORMAL']).astype(float)
             invalid_attributes+=int(not (np.isfinite(p).all() and np.isfinite(uv).all() and np.isfinite(normal).all()))
@@ -57,20 +59,28 @@ def audit(model, report):
     p, remap = np.unique(np.round(np.concatenate(positions), 5), axis=0, return_inverse=True)
     t = remap[np.concatenate(faces)]
     edges = np.concatenate((t[:, [0, 1]], t[:, [1, 2]], t[:, [2, 0]]))
+    edge_direction=np.sign(edges[:,1]-edges[:,0])
     edges.sort(axis=1)
-    unique, counts = np.unique(edges, axis=0, return_counts=True)
+    unique, inverse, counts = np.unique(edges, axis=0, return_inverse=True, return_counts=True)
+    winding_errors=int(((counts==2)&(np.bincount(inverse,weights=edge_direction)!=0)).sum())
     graph = coo_matrix((np.ones(len(unique)), (unique[:, 0], unique[:, 1])), shape=(len(p), len(p)))
     _, labels = connected_components(graph, directed=False)
     sizes = np.bincount(labels[t[:, 0]])
     loose = int(((sizes > 0) & (sizes <= 2)).sum())
     boundary = int((counts == 1).sum())
     nonmanifold = int((counts > 2).sum())
+    signed_volume=np.bincount(labels[t[:,0]],weights=np.einsum('ij,ij->i',p[t[:,0]],
+        np.cross(p[t[:,1]],p[t[:,2]]))/6)
+    # Positive closed volumes face outward. Ignore only sub-1e-8 m3
+    # cancellation; visual source checks remain necessary for intersections.
+    inverted=int((signed_volume < -1e-8).sum())
     result = dict(schema='H2_DUST2_ARCHITECTURE_TOPOLOGY_V1', model_sha256=sha(model),
         selected_meshes=names, triangles=len(t), boundary_edges=boundary,
         nonmanifold_edges=nonmanifold, loose_face_components=loose,
+        inconsistent_winding_edges=winding_errors,inverted_closed_components=inverted,
         degenerate_triangles=degenerate,invalid_attribute_groups=invalid_attributes,
         upward_floor_triangles_with_collapsed_uv=collapsed_floor_uv,
-        passed=not (boundary or nonmanifold or loose or degenerate or invalid_attributes or collapsed_floor_uv),
+        passed=not (boundary or nonmanifold or loose or winding_errors or inverted or degenerate or invalid_attributes or collapsed_floor_uv),
         scope='closed architecture only; visual/UV/route review remains separate')
     report.parent.mkdir(parents=True, exist_ok=True)
     report.write_text(json.dumps(result, indent=2) + '\n')

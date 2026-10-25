@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <array>
 #include <functional>
+#include <optional>
 #include <span>
 
 namespace halo2 {
@@ -62,6 +63,14 @@ void weapon_magazine_transfer(WeaponMagazineState &,const WeaponMagazineDefiniti
     std::uint32_t item_flags,const WeaponMagazineTransferServices &);
 void weapon_magazine_transition(WeaponMagazineState &,const WeaponMagazineDefinition &,
     std::int16_t requested,std::int16_t tick_rate,const WeaponMagazineTransitionServices &);
+// Complete1680B3/169493 first-person activity symbols for magazine actions.
+std::uint32_t weapon_magazine_activity_symbol(unsigned action);
+// Magazine action the transition/step consumers above announced for a
+// completed mode change observed between two ticks: entering reload modes
+// 1-3 (7/8, 9, 10/11 by the loaded count at entry) and the mode-1 completion
+// notification (0). Other changes announce nothing.
+std::optional<unsigned> weapon_magazine_observed_action(std::int16_t previous_mode,
+    std::int16_t mode,std::int16_t loaded);
 // Complete106C30/107B50 reload admission,106E70/107D90 chamber admission,
 // and101E30/102D50 magazine update, composing the consumers above.
 bool weapon_magazine_reload(WeaponMagazineState &,const WeaponMagazineDefinition &,

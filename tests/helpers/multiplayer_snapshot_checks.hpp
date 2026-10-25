@@ -60,6 +60,16 @@ inline void verify_prop_region_snapshot(const MultiplayerState &expected,const M
     }
 }
 inline void verify_multiplayer_snapshot(const MultiplayerState &expected, const MultiplayerState &actual) {
+    require_snapshot(expected.source_body_poses_authoritative==actual.source_body_poses_authoritative &&
+        expected.source_body_poses.size()==actual.source_body_poses.size(),"UDP source WORLD coverage bank differs");
+    for(unsigned n=0;n<expected.source_body_poses.size();++n) {
+        const auto &a=expected.source_body_poses[n],&b=actual.source_body_poses[n];
+        require_snapshot(a.object==b.object && a.nodes.size()==b.nodes.size() &&
+            same_snapshot_vector(a.sphere.center,b.sphere.center) && same_snapshot_float(a.sphere.radius,b.sphere.radius),
+            "UDP completed source coverage bound differs from authority");
+    }
+    require_snapshot(expected.source_engine_events==actual.source_engine_events,
+        "UDP original engine event payload/recipient/RNG journal differs");
     require_snapshot(expected.source_scene_roots_authoritative==actual.source_scene_roots_authoritative &&
         expected.source_scene_roots.size()==actual.source_scene_roots.size(),"UDP source scene authority/bank differs");
     for(unsigned n=0;n<expected.source_scene_roots.size();++n) {
@@ -79,6 +89,17 @@ inline void verify_multiplayer_snapshot(const MultiplayerState &expected, const 
             require_snapshot(x.slot==y.slot && x.instance==y.instance && x.definition==y.definition &&
                 x.flags==y.flags && same_snapshot_float(x.scale_a,y.scale_a) && same_snapshot_float(x.scale_b,y.scale_b) &&
                 x.colors==y.colors && x.locations.size()==y.locations.size(),"UDP source effect state differs");
+            require_snapshot(x.render.has_value()==y.render.has_value(),"UDP source effect render presence differs");
+            if(x.render) {
+                const auto &p=*x.render,&q=*y.render;
+                require_snapshot(p.identity==q.identity&&p.attached_owner==q.attached_owner&&p.local_view==q.local_view&&
+                    p.flags==q.flags&&p.root_owner==q.root_owner&&p.root_type==q.root_type&&
+                    same_snapshot_vector(p.color,q.color)&&same_snapshot_vector(p.velocity,q.velocity),"UDP source effect render provenance differs");
+                const auto &c=x.render_clock,&d=y.render_clock;
+                require_snapshot(c.flags==d.flags&&c.event==d.event&&c.previous==d.previous&&
+                    same_snapshot_float(c.elapsed,d.elapsed)&&same_snapshot_float(c.target,d.target)&&
+                    same_snapshot_float(c.field_68,d.field_68),"UDP source effect render clock differs");
+            }
             for(unsigned j=0;j<x.locations.size();++j)
                 require_snapshot(x.locations[j].name==y.locations[j].name && x.locations[j].node==y.locations[j].node &&
                     same_snapshot_transform(x.locations[j].local,y.locations[j].local),"UDP source effect local location differs");
@@ -118,6 +139,25 @@ inline void verify_multiplayer_snapshot(const MultiplayerState &expected, const 
         const auto &a = expected.players[id], &b = actual.players[id];
         require_snapshot(a.connected == b.connected, "UDP roster differs from authority");
         if (!a.connected) continue;
+        const auto& presentation=a.source_objective_presentation;
+        const auto& received_presentation=b.source_objective_presentation;
+        require_snapshot(presentation.waypoints==received_presentation.waypoints &&
+            presentation.goals.size()==received_presentation.goals.size(),"UDP original objective waypoint/goal bank differs");
+        for(unsigned n=0;n<presentation.goals.size();++n) {
+            const auto& x=presentation.goals[n];const auto& y=received_presentation.goals[n];
+            require_snapshot(x.shader==y.shader && x.designator==y.designator &&
+                same_snapshot_vector(x.center,y.center) && same_snapshot_vector(x.color,y.color) &&
+                same_snapshot_float(x.radius,y.radius) && same_snapshot_float(x.distance_scale,y.distance_scale),
+                "UDP original objective goal shader/geometry/color differs");
+        }
+        const auto& goals=a.source_hud_objectives;const auto& received_goals=b.source_hud_objectives;
+        require_snapshot(goals.charge_visible==received_goals.charge_visible &&
+            same_snapshot_float(goals.charge_fraction,received_goals.charge_fraction) &&
+            goals.territory_count==received_goals.territory_count,"UDP objective HUD/arming meter differs from authority");
+        for(unsigned n=0;n<goals.territory_count;++n)
+            require_snapshot(goals.territories[n].color==received_goals.territories[n].color &&
+                same_snapshot_float(goals.territories[n].fraction,received_goals.territories[n].fraction),
+                "UDP objective HUD territory meter differs from authority");
         require_snapshot(a.dead == b.dead &&
             a.source_player == b.source_player &&
             a.source_unit == b.source_unit &&

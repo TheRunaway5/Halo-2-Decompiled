@@ -193,6 +193,9 @@ Totals actual(const std::filesystem::path& mcc,const std::filesystem::path& orig
                   "MCC bank changed a physical glyph sample");
         }
         const auto og=load_retail_font(original/reference.names[selector]);
+        if(const auto metrics=gameplay_font_reference_line_metrics(selector))
+            check((*metrics)[0]==og.ascent && (*metrics)[1]==og.descent && (*metrics)[2]==og.leading,
+                  "Native waypoint font metrics differ from the actual original font header");
         const bool baseline_mismatch=raw.ascent!=og.ascent || raw.descent!=og.descent || raw.leading!=og.leading || raw.kerning!=og.kerning;
         check(baseline_mismatch==(selector!=0 && selector!=8),"Reference fixture no longer exposes original MCC layout differences");
         total.baseline_mismatches+=baseline_mismatch;

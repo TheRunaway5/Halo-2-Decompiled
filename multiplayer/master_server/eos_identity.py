@@ -29,7 +29,8 @@ class EosIdentity:
         self.key=None
         self.process=None
         self.lock=asyncio.Lock()
-        self.pending=0
+        from .security_policy import EosAdmissions
+        self.admissions=EosAdmissions()
         if self.audience:
             require(1<=len(self.audience)<=128 and not directory.settings.allow_http,
                     'EOS OpenID requires a public HTTPS deployment',500)
@@ -69,31 +70,49 @@ class EosIdentity:
             token=self.token(who,name)
         return web.json_response(dict(token=token,expires_in=120))
 
-    async def verify(self,puid,token):
+    async def verify(self,puid,token,*,principal=None):
         require(self.binary and self.key is not None,'EOS verification is not configured',503)
-        require(self.pending<32,'EOS verification busy',429)
-        self.pending+=1
+        principal=puid if principal is None else principal
+        admission_key=self.admissions.admit(principal)
         try:
-            async with self.lock:
-                try:
-                    if self.process is None or self.process.returncode is not None:
-                        self.process=await asyncio.create_subprocess_exec(self.binary,stdin=asyncio.subprocess.PIPE,
-                            stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.DEVNULL,limit=262144)
-                    async with asyncio.timeout(20):
-                        self.process.stdin.write(json.dumps(dict(op='verify',user=puid,token=token)).encode()+b'\n')
-                        await self.process.stdin.drain()
-                        for _ in range(64):
-                            line=await self.process.stdout.readline()
-                            if not line:raise ValueError('Worker exited')
-                            if not line.startswith(b'H2EOS '):continue
-                            reply=json.loads(line[6:])
-                            require(reply.get('ok') is True,'EOS identity proof rejected',403)
-                            return reply['value']['account']
-                        raise ValueError('No worker reply')
-                except (OSError,TimeoutError,ValueError,KeyError):
-                    await self.close(None)
-                    require(False,'EOS verification unavailable',503)
-        finally:self.pending-=1
+            try:
+                # Queue admission is bounded independently of the owned worker
+                # operation. A waiter must never close another caller's stream.
+                async with asyncio.timeout(2) as admission:
+                    async with self.lock:
+                        admission.reschedule(None)
+                        try:
+                            async with asyncio.timeout(20):
+                                if self.process is None or self.process.returncode is not None:
+                                    self.process=await asyncio.create_subprocess_exec(self.binary,stdin=asyncio.subprocess.PIPE,
+                                        stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.DEVNULL,limit=262144)
+                                self.process.stdin.write(json.dumps(dict(op='verify',user=puid,token=token)).encode()+b'\n')
+                                await self.process.stdin.drain()
+                                for _ in range(64):
+                                    line=await self.process.stdout.readline()
+                                    if not line:raise ValueError('Worker exited')
+                                    if not line.startswith(b'H2EOS '):continue
+                                    reply=json.loads(line[6:])
+                                    require(reply.get('ok') is True,'EOS identity proof rejected',403)
+                                    return reply['value']['account']
+                                raise ValueError('No worker reply')
+                        except asyncio.CancelledError:
+                            # Once this caller owns the stream, cancellation may
+                            # leave an unmatched reply. Detach and retire it while
+                            # the lock is still held before admitting another user.
+                            await self.close(None)
+                            raise
+                        except (OSError,TimeoutError,ValueError,KeyError):
+                            await self.close(None)
+                            require(False,'EOS verification unavailable',503)
+            except TimeoutError:
+                require(False,'EOS verification busy; retry',503)
+        finally:
+            self.admissions.release(admission_key)
+
+    @property
+    def pending(self):
+        return self.admissions.pending
 
     async def bind(self,request):
         _,who=self.directory.clans.session(request)
@@ -101,7 +120,7 @@ class EosIdentity:
         fields(body,('puid','token'))
         require(type(body['puid']) is str and re.fullmatch(r'[0-9a-f]{32}',body['puid']) and
                 type(body['token']) is str and 1<=len(body['token'])<=8192,'Invalid EOS identity proof')
-        account=await self.verify(body['puid'],body['token'])
+        account=await self.verify(body['puid'],body['token'],principal=who)
         require(account==who,'EOS identity belongs to another account',403)
         # Authentication can change during SDK verification; bind only while
         # this exact account session remains active.

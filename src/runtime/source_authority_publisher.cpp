@@ -1,4 +1,5 @@
 #include "halo2/source_authority_publisher.hpp"
+#include "halo2/cache.hpp"
 #include <condition_variable>
 #include <mutex>
 #include <stdexcept>
@@ -27,7 +28,7 @@ struct SourceAuthorityPublisher::Impl {
     std::deque<Pending> pending;
     std::optional<SourceReplayBinding> replay;
     std::optional<SourceMatchAuthority::ExecutionBoundary> recorded_boundary;
-    bool frame_active{};
+    bool frame_active{},network_replay_disabled{};
     struct QueuedPhase {SourceReplayStep step;std::optional<LanHost::Continuation> host;std::uint64_t bytes{};};
     std::deque<QueuedPhase> phases;std::uint64_t queued_bytes{};
     static constexpr std::uint64_t queue_limit=64ull*1024*1024;
@@ -56,6 +57,10 @@ struct SourceAuthorityPublisher::Impl {
     ~Impl(){worker.request_stop();condition.notify_all();if(worker.joinable())worker.join();}
     void own()const{need(std::this_thread::get_id()==executor);}
     void append(std::uint64_t before,SourceExecutionPhase phase){
+        // Local-only operations invalidate this journal and use the existing
+        // complete-checkpoint repair path. They are never sent for execution.
+        try{validate_source_network_replay_calls(phase.calls);}
+        catch(const FormatError &){network_replay_disabled=true;throw;}
         const auto after=authority.execution_boundary();
         std::optional<LanHost::Continuation> saved;
         if(host)saved=host->checkpoint(source_authority_binding(*context));
@@ -181,7 +186,7 @@ LanHost::Continuation SourceAuthorityPublisher::host_checkpoint(const SourceAuth
 }
 void SourceAuthorityPublisher::update(){
     auto &s=*impl_;s.own();need(!s.frame_active);const auto current=s.session->authority_context();
-    if(current!=s.context){s.discard();s.context=current;}
+    if(current!=s.context){s.discard();s.context=current;s.network_replay_disabled=false;}
     if(!s.active(current)){
         // A readiness loss invalidates this candidate, never room membership.
         s.discard_stream();return;
@@ -197,7 +202,7 @@ void SourceAuthorityPublisher::update(){
         if(pending.validated!=pending.expected)continue;
         if(s.pending.front().replay){s.stats.acknowledged_phases+=s.pending.front().phases;
         }else {need(s.pending.front().image.has_value()||s.pending.front().paired);s.base=s.pending.front().image;
-            if(s.mode==SourceAuthorityStreamMode::Replay&&!s.stats.snapshot_candidate_mode)s.replay=SourceReplayBinding{receipt.context,receipt.seal,receipt.seal,1};}
+            if(s.mode==SourceAuthorityStreamMode::Replay&&!s.network_replay_disabled&&!s.stats.snapshot_candidate_mode)s.replay=SourceReplayBinding{receipt.context,receipt.seal,receipt.seal,1};}
         if(s.targets.size()==1)s.stats.ready=receipt;
         s.stats.group_ready=SourceAuthorityPublisherGroupCut{pending.context,pending.seal,pending.expected};
         s.stats.host_ready=pending.paired;s.validated_host=std::move(pending.host);
@@ -252,7 +257,7 @@ bool SourceAuthorityPublisher::capture(){
         else next.cut=s.authority.checkpoint(source_authority_binding(*s.context));
         s.stats.capture_microseconds=micros(started);next.base=s.base;
         s.replay.reset();s.phases.clear();s.queued_bytes=0;s.recorded_boundary.reset();
-        if(s.mode==SourceAuthorityStreamMode::Replay)s.recorded_boundary=s.authority.execution_boundary();
+        if(s.mode==SourceAuthorityStreamMode::Replay&&!s.network_replay_disabled)s.recorded_boundary=s.authority.execution_boundary();
         {std::lock_guard lock(s.mutex);s.job=std::move(next);}
         ++s.stats.captures;s.stats.error.clear();s.condition.notify_one();return true;
     }catch(const std::exception &e){s.stats.error=e.what();return false;}

@@ -77,6 +77,9 @@ private:
 // The palette belongs to this live cache token, never to a shared model tag.
 SourceModelCommandGeometry source_live_model_command_geometry_tu15(
     PhysicsLiveWorldTu15&,const SourceCullDrawUnit&);
+// The selected model section's +0x38 resource header, which original449D0
+// passes to130980 (flags3) before reading the +0x34 resident pointer.
+std::uint32_t source_live_model_section_header_tu15(PhysicsLiveWorldTu15&,const SourceCullDrawUnit&);
 // Current45550 banks, including BAC30 WORLD nodes and authored inverse binds.
 // The borrowed ranges must remain alive through the cull operation.
 SourceCullDrawBanks source_live_model_cull_geometry_tu15(

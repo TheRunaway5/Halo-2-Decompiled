@@ -23,6 +23,7 @@ struct NativeParameters {
   double relative_rate;
   std::array<double, 4> matrix;
   bool paused;
+  std::array<double,4> routes{};
 };
 
 NativeParameters native_parameters(const SdlSoundVoiceParameters &input) {
@@ -43,11 +44,14 @@ NativeParameters native_parameters(const SdlSoundVoiceParameters &input) {
       throw std::invalid_argument("Unsupported SDL sound output route");
     output.matrix[route.output_channel * pcm_channels + route.pcm_channel] +=
         amplitude * double(route.linear_gain);
+    output.routes[route.output_channel * pcm_channels + route.pcm_channel] += double(route.linear_gain);
   }
   return output;
 }
 
 void validate_packet(const SdlSoundPacket &packet) {
+  if(packet.volume_hundredths_db && (*packet.volume_hundredths_db< -10000 || *packet.volume_hundredths_db>0))
+    throw std::invalid_argument("SDL packet volume is outside the driver attenuation range");
   if (!packet.stereo || packet.stereo->size() % pcm_channels ||
       !packet.frame_count || !packet.packet_context)
     throw std::invalid_argument("SDL sound requires an owned complete PCM packet and context");
@@ -79,6 +83,12 @@ struct SdlSoundPlatform::State {
     std::uint64_t submission;
     std::optional<SdlSoundCompletionStatus> completed;
     std::shared_ptr<const unsigned char> record;
+    std::optional<std::array<double,4>> matrix;
+    void routes(const NativeParameters& parameters) {
+      if(!pcm.volume_hundredths_db){matrix.reset();return;}
+      const double amplitude=std::pow(10.0,double(*pcm.volume_hundredths_db)/2000.0);
+      matrix=parameters.routes;for(auto& gain:*matrix)gain*=amplitude;
+    }
   };
   struct Stream {
     std::uint64_t channel_context{};
@@ -280,7 +290,8 @@ struct SdlSoundPlatform::State {
         ++stream.playback.output_frames;
         stream.playback.source_frames += std::min(stream.remaining_frames(),
             stream.parameters.relative_rate);
-        const auto &matrix = stream.parameters.matrix;
+        const auto &packet=stream.pending()->matrix;
+        const auto &matrix = packet?*packet:stream.parameters.matrix;
         accumulated[0] += sample[0] * matrix[0] + sample[1] * matrix[1];
         accumulated[1] += sample[0] * matrix[2] + sample[1] * matrix[3];
         stream.cursor += stream.parameters.relative_rate;
@@ -381,6 +392,25 @@ void SdlSoundPlatform::parameters_impl(Voice voice, const SdlSoundVoiceParameter
   DeviceLock lock(state_->device);state_->require();
   if (state_->removed) throw std::runtime_error("SDL sound device is unavailable");
   auto& stream=state_->stream(voice);state_->change();stream.parameters = std::move(native);
+  for(std::size_t i=0;i<stream.retained;++i)stream.packets[i]->routes(stream.parameters);
+}
+
+void SdlSoundPlatform::packet_volume(Voice voice,std::uint64_t context,std::int32_t volume) {
+  state_->require(true);packet_volume_impl(voice,context,volume);
+}
+void SdlSoundPlatform::packet_volume_impl(Voice voice,std::uint64_t context,std::int32_t volume) {
+  state_->require();
+  if(!context || volume< -10000 || volume>0)throw std::invalid_argument("Invalid native packet context or attenuation");
+  DeviceLock lock(state_->device);state_->require();
+  if(state_->removed)throw std::runtime_error("SDL sound device is unavailable");
+  auto& stream=state_->stream(voice);
+  State::Packet* selected{};
+  for(std::size_t i=0;i<stream.retained;++i)if(stream.packets[i]->pcm.packet_context==context) {
+    if(selected)throw std::logic_error("Native packet context is ambiguous");
+    selected=&*stream.packets[i];
+  }
+  if(!selected)throw std::logic_error("Native packet context is stale or foreign");
+  state_->change();selected->pcm.volume_hundredths_db=volume;selected->routes(stream.parameters);
 }
 
 SdlSoundPlatform::Submission SdlSoundPlatform::submit(Voice voice,SdlSoundPacket packet) {
@@ -401,6 +431,7 @@ SdlSoundPlatform::Submission SdlSoundPlatform::submit_impl(Voice voice, SdlSound
   state_->change();
   stream.packets[stream.retained].emplace(State::Packet{
     std::move(packet), stream.next_submission, std::nullopt,record});
+  stream.packets[stream.retained]->routes(stream.parameters);
   ++stream.retained;
   ++stream.next_submission;
   return Submission::Accepted;
@@ -702,6 +733,10 @@ SdlSoundPlatform::VoiceReceipt SdlSoundPlatform::create_voice_receipt(std::uint6
 }
 void SdlSoundPlatform::parameters(const VoiceReceipt& voice,const SdlSoundVoiceParameters& p){
   state_->require();if(!state_->accepts(voice))throw std::logic_error("Stale SDL voice receipt");parameters_impl(voice.id_,p);
+}
+void SdlSoundPlatform::packet_volume(const VoiceReceipt& voice,std::uint64_t context,std::int32_t volume){
+  state_->require();if(!state_->accepts(voice))throw std::logic_error("Stale SDL voice receipt");
+  packet_volume_impl(voice.id_,context,volume);
 }
 SdlSoundPlatform::Submission SdlSoundPlatform::submit(const VoiceReceipt& voice,SdlSoundPacket packet){
   state_->require();if(!state_->accepts(voice))throw std::logic_error("Stale SDL voice receipt");return submit_impl(voice.id_,std::move(packet));

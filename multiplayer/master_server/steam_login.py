@@ -286,7 +286,7 @@ class SteamLogin:
         """
         self.enabled()
         import uuid
-        from .player_identity import VERIFIED_ACCOUNT_NAME
+        from .player_identity import VERIFIED_ACCOUNT_NAME, allocate
         body = await self.directory.body(request)
         fields(body, ("discord_token",))
         primary = await self.directory.owner(request)
@@ -336,10 +336,8 @@ class SteamLogin:
                 self.db.execute("UPDATE player_profiles SET steam_name=? WHERE player=?",
                                 (request.get(VERIFIED_ACCOUNT_NAME, ""), target))
             else:
-                target = old or str(uuid.uuid4())
+                target = old or allocate(self.db, primary)
                 if not old:
-                    self.db.execute("INSERT INTO players VALUES(?,?,?)", (target, *primary))
-                    self.db.execute("INSERT INTO player_identities VALUES(?,?,?)", (*primary, target))
                     self.db.execute("INSERT INTO player_profiles(player,screen_name,steam_name,joined_at) VALUES(?,?,?,?)",
                                     (target, social.username, request.get(VERIFIED_ACCOUNT_NAME, ""),self.directory.store.now()))
                 self.db.execute("UPDATE player_profiles SET discord_username='' WHERE discord_username=? AND player!=?", (social.username,target))

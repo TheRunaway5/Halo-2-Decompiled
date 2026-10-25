@@ -63,4 +63,13 @@ def main():
         complete_listings=True,runtime_header='halo2/source_vitality_runtime.hpp',
         runtime_function='source_run_vitality_runtime',
         instruction_guard=lambda i:'s.require_x87();' if i.mnemonic.startswith('f') else '')
+    from native_damage_model_kernel_tu15 import install_paired_model_lookup
+    a.output.write_text(install_paired_model_lookup(a.output.read_text()))
+    from native_difficulty_parameter_kernel_tu15 import install_native_difficulty_routes
+    a.output.write_text(install_native_difficulty_routes(a.output.read_text(),'canonical'))
+    manifest=json.loads(a.manifest.read_text());manifest['generated_cpp_sha256']=sha(a.output)
+    manifest['configuration_tool_sha256']=sha(Path(__file__))
+    manifest['native_model_lookup']=dict(entry='d80a0',canonical_observation_ABI_preserved=True,
+        original_execution_and_runtime_admission_required=True)
+    a.manifest.write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
 if __name__=='__main__':main()

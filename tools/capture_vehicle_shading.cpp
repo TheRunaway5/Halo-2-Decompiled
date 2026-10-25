@@ -33,13 +33,26 @@ const VehicleShadingReference* vehicle_shading_reference(std::uint32_t definitio
 }
 }
 int main(int argc,char**argv)try{
-  check(argc>=8 && argc<=11,"Supply MAP SHARED_MAPS TU15_XBE WIDTH HEIGHT VIEWS FRESH_OUTPUT [VEHICLE_TAG_NAME [PRIMARY_HEAVY_CHOICE [REFERENCE_INPUTS_JSON]]]");
+  check(argc>=8 && argc<=11,"Supply MAP SHARED_MAPS TU15_XBE_OR_native-mcc WIDTH HEIGHT VIEWS FRESH_OUTPUT [VEHICLE_TAG_NAME [PRIMARY_HEAVY_CHOICE [REFERENCE_INPUTS_JSON]]]");
 #ifdef HALO2_LIVE_VEHICLE_MODEL_CAPTURE
   check(argc!=11,"The live model collector diagnostic does not accept substituted reference owners");
 #endif
-  const auto original=OriginalData::load_xbe(argv[3]);check(original->image==OriginalData::Image::TitleUpdate15,"Vehicle captures require OG Xbox TU1.5");
+  const bool mcc=std::string_view(argv[3])=="native-mcc";
+  const auto original=mcc?std::shared_ptr<const OriginalData>{}:OriginalData::load_xbe(argv[3]);
+  if(original)check(original->image==OriginalData::Image::TitleUpdate15,"Vehicle captures require OG Xbox TU1.5");
+  check(!mcc || argc!=11,"MCC live captures do not accept substituted original reference owners");
   MultiplayerOptions options;
   if(argc>=10)options.variant.values.set(78,std::stoi(argv[9]));
+  const auto *parameter=std::getenv("HALO2_CAPTURE_VEHICLE_VARIANT_PARAMETER");
+  const auto *choice=std::getenv("HALO2_CAPTURE_VEHICLE_VARIANT_CHOICE");
+  check(bool(parameter)==bool(choice),"Declare both vehicle variant parameter and choice");
+  if(parameter) {
+    const std::string p=parameter,c=choice;std::size_t parsed_p{},parsed_c{};
+    const auto index=std::stoi(p,&parsed_p),value=std::stoi(c,&parsed_c);
+    check(parsed_p==p.size() && parsed_c==c.size() && (index==76 || index==78 || index==81) &&
+        value>=0 && value<=15,"Unsupported explicit live vehicle variant input");
+    options.variant.values.set(index,value);
+  }
   Json reference;
   if(argc==11){
     std::ifstream file(argv[10]);check(bool(file),"Missing original vehicle frame inputs");file>>reference;
@@ -59,7 +72,9 @@ int main(int argc,char**argv)try{
       frame.flags=input.at("flags");frame.frozen=input.at("frozen");frame.expected_lighting=input.at("expected_lighting").get<decltype(frame.expected_lighting)>();reference_vehicles.push_back(std::move(frame));
     }
   }
-  const Cache cache(argv[1],argv[2],original);const auto content=cache.load_content(0,true,source_game_variant(options.variant));
+  const Cache cache(argv[1],argv[2],original);
+  check(cache.is_mcc()==mcc,"Vehicle capture received the wrong cache platform");
+  const auto content=cache.load_content(0,true,source_game_variant(options.variant));
   const std::string vehicle_name=argc>=9?argv[8]:"objects\\vehicles\\warthog\\warthog";
   const ScenarioObject* vehicle=nullptr;
   for(const auto& o:content.objects)if(o.type==1 && o.netgame_row>=0 && !o.model_attachment){
@@ -72,9 +87,28 @@ int main(int argc,char**argv)try{
   const auto out=std::filesystem::absolute(argv[7]);check(!std::filesystem::exists(out),"Vehicle capture output already exists");std::filesystem::create_directories(out);
   const auto basis=authored_basis(vehicle->rotation);const auto target=vehicle->position+Vec3{0,0,.6f};
   Vec3 position{};bool camera_admitted=false;const CollisionWorld terrain(content.collision);
-  for(float distance:{4.f,6.f,2.f,1.f}){
+  auto camera_distances=mcc?std::vector<float>{8.f,12.f,6.f,4.f,2.f,1.f}:
+      std::vector<float>{4.f,6.f,2.f,1.f};
+  float camera_azimuth{};auto camera_forward=basis.forward,camera_left=basis.left;
+  const auto camera_scalar=[&](const char* key)->std::optional<float> {
+    const auto *raw=std::getenv(key);if(!raw)return {};
+    check(mcc,"Declared camera survey inputs require native MCC captures");
+    const std::string value=raw;std::size_t consumed{};const auto result=std::stof(value,&consumed);
+    check(consumed==value.size() && std::isfinite(result),"Invalid declared camera survey input");return result;
+  };
+  if(const auto degrees=camera_scalar("HALO2_CAPTURE_VEHICLE_CAMERA_AZIMUTH")) {
+    check(*degrees>=-360 && *degrees<=360,"Camera azimuth must be within360 degrees");
+    camera_azimuth=*degrees;const auto angle=*degrees*(3.14159265358979323846f/180.f);
+    camera_forward=basis.forward*std::cos(angle)+basis.left*std::sin(angle);
+    camera_left=basis.left*std::cos(angle)-basis.forward*std::sin(angle);
+  }
+  if(const auto distance=camera_scalar("HALO2_CAPTURE_VEHICLE_CAMERA_DISTANCE")) {
+    check(*distance>=.5f && *distance<=24,"Declared camera distance must be from0.5 to24");
+    camera_distances={*distance};
+  }
+  for(float distance:camera_distances){
     for(float side:{2.f,0.f,-2.f}){
-      auto candidate=vehicle->position+basis.forward*distance+basis.left*side;
+      auto candidate=vehicle->position+camera_forward*distance+camera_left*side;
       const auto floor=terrain.raycast(candidate+Vec3{0,0,1},{0,0,-1},16);
       if(!floor)continue;candidate.z=floor->position.z+content.player.radius;
       const auto eye=candidate+Vec3{0,0,content.player.camera_height};const auto delta=target-eye;
@@ -87,10 +121,10 @@ int main(int argc,char**argv)try{
   const auto eye=position+Vec3{0,0,content.player.camera_height};const auto look=normalized(target-eye);
   const auto yaw=std::atan2(look.y,look.x),pitch=std::atan2(look.z,std::hypot(look.x,look.y));
   Spawn spawn;spawn.position=position;spawn.facing=yaw;spawn.bsp=0;
-  options.map=argv[1];options.shared_maps=argv[2];options.gameplay_xbe=argv[3];
+  options.map=argv[1];options.shared_maps=argv[2];if(!mcc)options.gameplay_xbe=argv[3];
   options.width=std::stoul(argv[4]);options.height=std::stoul(argv[5]);options.local_players=std::stoul(argv[6]);
   options.source_object_world=true;options.source_object_savegame_directory=out/"source-savegame";
-  options.hidden=true;options.validation=true;options.mute=true;options.starting_weapon=5;
+  options.hidden=true;options.validation=!mcc;options.mute=true;options.starting_weapon=5;
   options.capture_tick=8;options.reference_tick_cadence=true;options.reference_render_fraction=0;
   bool grenade_capture=false,grenade_detonated=false;unsigned grenade_light_tick{},grenade_light_packets{};
   bool fixed_grenade_replay_end=false;
@@ -120,6 +154,12 @@ int main(int argc,char**argv)try{
   Json report={{"reference","OG Xbox TU1.5"},{"boundary","Native live vehicle shading with original assets and physics inputs. Declared camera/spawn; not a matched original framebuffer."},
     {"vehicle",vehicle_name},{"primary_heavy_choice",source_game_variant_get(source_game_variant(options.variant),78)},
     {"netgame_row",vehicle->netgame_row},{"definition",vehicle->definition},{"eye",{eye.x,eye.y,eye.z}},{"target",{target.x,target.y,target.z}},{"views",options.local_players},{"draws",Json::array()},{"source_inputs",Json::array()}};
+  report["runtime_cache_source"]=mcc?"MCC":"offline Xbox reference";
+  report["Vulkan_validation_layer_requested"]=options.validation;
+  report["native_gameplay_xbe_argument_supplied"]=!mcc;
+  report["declared_camera_survey"]={{"azimuth_degrees",camera_azimuth},{"distances",camera_distances},
+      {"vehicle_moved",false},{"BSP_floor_and_center_sightline_required",true}};
+  if(parameter)report["declared_vehicle_variant"]={{"parameter",std::stoi(parameter)},{"choice",std::stoi(choice)}};
   if(argc==11){report["original_frame_inputs"]=std::filesystem::absolute(argv[10]).string();report["boundary"]="Offline shader comparison with captured original camera, WORLD nodes, sphere, velocity and flags; native lighting is independently computed. Other world objects, clocks, first person and full simulation are not restored.";}
   report["reference_texture_storage"]=reference_image_storage?"xemu-0.8.136-expanded-bc":"ordinary-native-compressed";
   const auto *forced_fog=std::getenv("HALO2_REFERENCE_FORCE_ATMOSPHERIC_FOG");

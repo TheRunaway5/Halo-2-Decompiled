@@ -30,6 +30,7 @@ Bytes input(unsigned count,bool intents){
         put(p,intents,1);if(intents){put(p,4+i%3,2);put(p,63,2);put(p,0x80011234u,4);}
         put(p,intents,1);if(intents){put(p,0,2);put(p,0,2);put(p,0xffffffff,4);}
     }
+    put(p,0x01020304u,4);put(p,0x80000001u,4);put(p,intents,1);
     return p;
 }
 
@@ -69,7 +70,9 @@ std::optional<NativeRequest> reference(const Bytes &p,std::uint16_t version){try
         result=std::move(v);
     }else if(kind==2){
         NativeInputRequest v;v.nonce=nonce;v.cookie=r.get(8);v.sequence=r.get(4);const auto count=r.get(1);check(count>=1&&count<=4,"seats");
-        for(unsigned i=0;i<count;++i)v.controls.push_back(control(r));result=std::move(v);
+        for(unsigned i=0;i<count;++i)v.controls.push_back(control(r));
+        v.ack.latest=r.get(4);v.ack.mask=r.get(4);v.ack.flags=r.get(1);check(v.ack.flags<=1,"ack flags");
+        result=std::move(v);
     }else if(kind==4)result=NativeLeaveRequest{nonce,r.get(8)};
     else if(kind==6)result=NativeSessionQuery{nonce};
     check(r.at==p.size(),"trailing");return result;
@@ -94,6 +97,7 @@ bool same(const std::optional<NativeRequest> &a,const std::optional<NativeReques
     if(const auto *x=std::get_if<NativeInputRequest>(&*a)){
         const auto &y=std::get<NativeInputRequest>(*b);
         return x->nonce==y.nonce&&x->cookie==y.cookie&&x->sequence==y.sequence&&x->controls.size()==y.controls.size()&&
+            x->ack.latest==y.ack.latest&&x->ack.mask==y.ack.mask&&x->ack.flags==y.ack.flags&&
             std::equal(x->controls.begin(),x->controls.end(),y.controls.begin(),[](const auto &c,const auto &d){return same(c,d);});
     }
     if(const auto *x=std::get_if<NativeLeaveRequest>(&*a)){const auto &y=std::get<NativeLeaveRequest>(*b);return x->nonce==y.nonce&&x->cookie==y.cookie;}

@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/multiplayer_audio.hpp"
 #include "halo2/vista_announcer_events.hpp"
+#include "halo2/source_multiplayer_event_tu15.hpp"
 #include <memory>
 
 namespace halo2 {
@@ -15,6 +16,7 @@ struct NativeVistaAnnouncerConfiguration {
   std::uint32_t native_secondary_seed;
   SdlSoundPlatformConfiguration platform{
       SdlSoundPlatformConfiguration::Delivery::DeviceCallback,512,{}};
+  bool source_tu15=false;
 };
 struct NativeVistaAnnouncerVoice {
   std::uint32_t queue_token;
@@ -97,6 +99,11 @@ public:
   std::vector<VistaAnnouncerAudioSelection> publish_engine_event(
       const VistaAnnouncerEvent&,std::uint8_t actual_world_mode,bool game_over,
       std::uint32_t actual_tick,std::span<const VistaAnnouncerLocalPlayer>);
+  // Actual Xbox dispatch input. Local view assignments are presentation
+  // bindings; recipient flags/membership and RNG come from that event's bank.
+  // The copied RNG is never published into the authoritative game world.
+  std::vector<VistaAnnouncerAudioSelection> publish_source_event(
+      const SourceMultiplayerEventTu15&,std::span<const unsigned> local_slots);
   // Source47156A's engine/mode/game-over/C48 guards, after world simulation.
   // Local users must be actual occupied-player iterator order and bindings.
   // C48 is stored before event delivery.

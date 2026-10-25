@@ -25,4 +25,11 @@ struct SourceKingBoundaryFloatingPoint {
 std::optional<SourceKingBoundary> source_king_boundary(const SourceKingState&,
     const std::array<float,3>& camera,const std::array<float,3>& rgb,
     std::int32_t tick,std::int16_t tick_rate,SourceKingBoundaryFloatingPoint = {});
+// Shared original1A9290 polygon wall emission. King and objective goals
+// provide their independently authored polygon/radius/perimeter/height.
+std::optional<SourceKingBoundary> source_polygon_boundary(
+    std::span<const std::array<float,2>,32> polygon,const std::array<float,3>& center,
+    float radius,float perimeter,float height,float distance_scale,
+    const std::array<float,3>& camera,const std::array<float,3>& rgb,
+    std::int32_t tick,std::int16_t tick_rate,SourceKingBoundaryFloatingPoint = {});
 } // namespace halo2

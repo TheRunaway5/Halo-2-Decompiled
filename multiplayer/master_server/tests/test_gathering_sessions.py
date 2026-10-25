@@ -49,6 +49,9 @@ class GatheringHttpTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(progress["progress"],{"players":1,"minimum_players":2,
                                               "maximum_players":2,"wait_ms":None,
                                               "roster":[{"name":"Private chosen name","self":True}]})
+        ranked = await (await self.client.get("/v1/matchmaking/ticket?progress=1&ranks=1",headers=headers[0])).json()
+        self.assertEqual(ranked["progress"]["roster"],
+                         [{"name":"Private chosen name","self":True,"level":1}])
         for private in ("host", "language", "raw_rank", "radius", "private-subject", "ticket_id", "token"):
             self.assertNotIn(private,str(progress))
         self.api.gatherings.wall_clock = lambda: 1241

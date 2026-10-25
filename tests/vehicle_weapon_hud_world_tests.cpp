@@ -11,6 +11,7 @@
 #include "halo2/multiplayer_kbm.hpp"
 #include "halo2/custom_slayer.hpp"
 #include "halo2/source_shadow.hpp"
+#include "halo2/source_vehicle_native_rates.hpp"
 #ifdef HALO2_VEHICLE_HUD_GPU
 #include "halo2/desktop_session.hpp"
 #include "halo2/source_light_volume_draw.hpp"
@@ -33,7 +34,10 @@ struct VehicleHudReport {
   nlohmann::json data{{"passed",false},{"full_weapon_parity",false},
       {"GPU_or_Xbox_pixels_compared",false},{"source_results_or_ready_flags_supplied",false},
       {"cases",nlohmann::json::array()}};
-  ~VehicleHudReport(){if(path){std::ofstream output(path);output<<data.dump(2)<<'\n';}}
+  ~VehicleHudReport(){if(path){const auto native=source_vehicle_native_rate_activity();
+    data["native_vehicle_rate_activity"]={{"acceleration_calls",native.acceleration_calls},
+        {"approach_calls",native.approach_calls},{"live_cursor_calls",native.live_cursor_calls}};
+    std::ofstream output(path);output<<data.dump(2)<<'\n';}}
 };
 void check(bool yes,const char *why){if(!yes)throw FormatError(why);}
 struct Entrance {Spawn spawn;unsigned seat{};std::size_t placement{};};
@@ -373,8 +377,8 @@ int main(int argc,char **argv) {VehicleHudReport report;try {
         const Bytes barrel(cache.read_tag_bytes(root.u32(0x2d4)+unsigned(trigger->primary_barrel)*0xecu,0xec));
         turret_projectile=barrel.u32(0x90);
       }
-      std::vector<bool> pending_projectiles;
-      std::unique_ptr<SourcePhysicsEntryObserverBinding> shot_observer;
+      std::set<std::uint32_t> authored_projectile_definitions,
+          initial_source_projectiles,observed_source_projectiles;
       struct AudioSubmitTraceScope {
         PhysicsLiveWorldTu15 *world{};
         ~AudioSubmitTraceScope(){if(world)world->observe_sound_submissions({});}
@@ -398,30 +402,15 @@ int main(int argc,char **argv) {VehicleHudReport report;try {
         });
         const auto &memory=world.source_objects->memory();
         const auto word=[&](std::uint32_t address){return Bytes(memory.view(address,4)).u32(0);};
-        std::set<std::uint32_t> projectiles;
         const auto &weapon=content.weapons.at(actual.definition);
-        projectiles.insert(turret_projectile);
-        if(weapon.projectile!=null_datum)projectiles.insert(weapon.projectile);
+        authored_projectile_definitions.insert(turret_projectile);
+        if(weapon.projectile!=null_datum)authored_projectile_definitions.insert(weapon.projectile);
         for(const auto &barrel:weapon.barrel_views)if(barrel && barrel->projectile!=null_datum)
-          projectiles.insert(barrel->projectile);
-        shot_observer=std::make_unique<SourcePhysicsEntryObserverBinding>(memory,
-            [&,word,projectiles](bool before,std::uint32_t entry,const auto &abi) {
-          if(entry!=0xb9b70u)return;
-          if(before)pending_projectiles.push_back(projectiles.contains(word(word(abi.gp[4]+4u))));
-          else {
-            check(!pending_projectiles.empty(),"Unpaired turret audio shot observation");
-            if(pending_projectiles.back() && abi.gp[0]!=null_datum) {
-              const SourceRawDatumPoolServices storage{.read=[&](auto p,auto n){return memory.view(p,n);}};
-              const auto header=source_raw_datum_lookup(word(0x4ecbd0u),abi.gp[0],storage);
-              check(header && memory.view(header+3u,1)[0]==std::byte{5} &&
-                  projectiles.contains(word(word(header+8u))),
-                  "Turret audio shot is not a full live authored projectile generation");
-              ++constructed_shots;
-            }
-            pending_projectiles.pop_back();
-          }
-        });
-        options.audio_observer=[&](const MultiplayerAudioSubmission &submission) {
+          authored_projectile_definitions.insert(barrel->projectile);
+        for(const auto &object:world.source_objects->live_objects())
+          if(object.type==5 && authored_projectile_definitions.contains(object.definition))
+            initial_source_projectiles.insert(object.object);
+        options.audio_observer=[&,word](const MultiplayerAudioSubmission &submission) {
           if(submission.owner!=source_sound_owner && submission.owner!=actual.weapon.datum) {
             auto &others=result["other_submissions"];
             if(others.size()<64)others.push_back({{"sound",submission.sound},{"owner",submission.owner},
@@ -430,11 +419,26 @@ int main(int argc,char **argv) {VehicleHudReport report;try {
           }
           try {
           check(submission.voice && submission.frames,"Turret sound lacks an actual PCM voice/resource");
-          check(submission.view==0,"Local turret firing sound leaked into another split-screen view");
           const auto *sound=cache.query_tag({.handle=TagHandle{submission.sound},.group=tag_groups::sound,
               .require_address=true,.minimum_size=28});
           check(sound && !(Bytes(cache.read_tag_bytes(sound->address,28)).u16(0)&0x800u),
               "Turret firing played an MCC remastered-only sound layer");
+          // Classify attached loop packets before applying the firing-cue invariant.
+          // Native object-loop tracks/details use Ambient with a full emitter;
+          // BSP ambience uses NONE. Engine/spin packets are not firing cues.
+          if(submission.kind==MultiplayerAudioKind::Ambient) {
+            check(submission.view<options.local_players,"Attached loop has an invalid local view");
+            const SourceRawDatumPoolServices storage{.read=[&](auto p,auto n){return memory.view(p,n);}};
+            check(source_raw_datum_lookup(word(0x4ecbd0u),submission.owner,storage)!=0,
+                "Attached loop lost its full live emitter generation");
+            auto &loops=result["attached_loop_submissions"];
+            if(loops.is_null())loops=nlohmann::json::array();
+            if(loops.size()<512)loops.push_back({{"sound",submission.sound},{"name",sound->name},
+                {"kind",unsigned(submission.kind)},{"owner",submission.owner},{"view",submission.view},
+                {"voice",submission.voice},{"frames",submission.frames},{"full_emitter_live",true}});
+            return;
+          }
+          check(submission.view==0,"Local turret firing sound leaked into another split-screen view");
           const auto &requests=result["original_sound_requests"];
           check(std::any_of(requests.begin(),requests.end(),[&](const auto &request) {
             return request.at("sound").template get<std::uint32_t>()==submission.sound &&
@@ -503,6 +507,23 @@ int main(int argc,char **argv) {VehicleHudReport report;try {
       unsigned submitted{};
       options.view_state_observer=[&](unsigned view,const MultiplayerState &frame,const Camera &) {
         if(view)return;
+        // Complete source snapshots and the live full-generation pool are
+        // available in ordinary production builds. Observe their intersection;
+        // private constructor-entry instrumentation is not required here.
+        if(turret_audio) {
+          const auto &memory=world.source_objects->memory();
+          const auto word=[&](std::uint32_t address){return Bytes(memory.view(address,4)).u32(0);};
+          const SourceRawDatumPoolServices storage{.read=[&](auto p,auto n){return memory.view(p,n);}};
+          for(const auto &projectile:frame.weapon_projectiles) {
+            if(!authored_projectile_definitions.contains(projectile.definition) ||
+                initial_source_projectiles.contains(projectile.datum))continue;
+            const auto header=source_raw_datum_lookup(word(0x4ecbd0u),projectile.datum,storage);
+            check(header && memory.view(header+3u,1)[0]==std::byte{5} &&
+                word(word(header+8u))==projectile.definition,
+                "Rendered turret projectile is not a full live authored source generation");
+            if(observed_source_projectiles.insert(projectile.datum).second)++constructed_shots;
+          }
+        }
         check(rocket_explosion || (frame.players[player].source_vehicle_hud.weapon.present &&
             !frame.players[player].source_vehicle_hud.ownership.handheld_visible),
             "Rendered seated view lost its source weapon HUD");++submitted;
@@ -515,6 +536,8 @@ int main(int argc,char **argv) {VehicleHudReport report;try {
             {"glow_vertices",glow_vertices},{"actual_projectile_owners",projectile_owners}};
         if(turret_audio) {
           row["turret_audio"]["constructed_shots"]=constructed_shots;
+          row["turret_audio"]["observed_live_source_projectiles"]=observed_source_projectiles;
+          row["turret_audio"]["projectile_observation"]="Completed native frame and full live source datum ownership; short-lived unobserved generations are not counted";
           row["turret_audio"]["sound_submissions"]=sound_submissions;
           row["turret_effects"]={{"trail_definitions",turret_trail_definitions},{"glow_definitions",turret_glow_definitions},
               {"colored_area_trails_by_view",turret_trails},{"glows_by_view",turret_glows},
@@ -688,9 +711,12 @@ int main(int argc,char **argv) {VehicleHudReport report;try {
         const auto state=world.match.state();
         if(state.players[target_slot].dead || state.players[target_slot].source_unit!=target_unit)return;
         target_center=world.source_objects->object_sphere(target_unit).center;
-        // Correct fixture parallax using an observed original muzzle birth.
-        // This changes only subsequent ordinary look input, never a shot pose.
-        const auto origin=last_projectile_origin.value_or(source_eye());
+        // Correct a single gun's fixture parallax from its observed birth.
+        // Paired Ghost/Banshee guns alternate positions: chasing the previous
+        // muzzle steers the next gun past the target. Their ordinary seated
+        // camera remains the input reference, as in actual gameplay.
+        const auto origin=(name=="ghost" || name=="banshee")?source_eye():
+            last_projectile_origin.value_or(source_eye());
         const auto delta=*target_center-origin;
         // Controls carry the native raw look accumulator. Boarding can
         // reorient the original retained look independently of that raw
@@ -704,11 +730,27 @@ int main(int argc,char **argv) {VehicleHudReport report;try {
       if(target_damage) {
         check(target_unit!=null_datum,"Turret target has no naturally constructed player unit");
         for(unsigned tick=0;tick<30;++tick){world.match.step(controls);(void)source_eye();}
+        if(name=="banshee") {
+          const auto before=world.match.state();
+          const auto vehicle=before.players[player].source_parent;
+          const auto initial=world.source_objects->object_transform(vehicle).position;
+          // A grounded aircraft is a valid firing case, but its low guns do
+          // not establish an unobstructed damage scene. Depart using ordinary
+          // driver input; the original controller owns every solved pose.
+          controls[player].forward=1.f;controls[player].jump=true;
+          controls[player].pitch+=.55f-before.players[player].pitch;
+          for(unsigned tick=0;tick<45;++tick){world.match.step(controls);(void)source_eye();}
+          controls[player].forward=0;controls[player].jump=false;
+          const auto final=world.source_objects->object_transform(vehicle).position;
+          firing["damage_scene_departure"]={{"ordinary_input_ticks",45},
+              {"initial",{initial.x,initial.y,initial.z}},{"final",{final.x,final.y,final.z}},
+              {"solved_pose_supplied",false}};
+        }
         const auto state=world.match.state();
         const auto root=world.source_objects->object_transform(state.players[player].source_parent);
         const auto eye=source_eye();CollisionWorld terrain(content.collision);
         Spawn target;bool clear=false;
-        const std::array<float,5> distances=name=="warthog"?
+        const std::array<float,5> distances=name=="ghost"?std::array{4.f,6.f,3.f,12.f,18.f}:name=="warthog"?
             (choice==1?std::array{6.f,4.f,3.f,12.f,18.f}:std::array{3.f,4.f,6.f,12.f,18.f}):
             std::array{12.f,18.f,24.f,30.f,36.f};
         for(const float distance:distances) {
@@ -790,7 +832,17 @@ int main(int argc,char **argv) {VehicleHudReport report;try {
             };
             row["source_origin"]=vector(0x64);row["source_forward"]=vector(0x70);
             const auto origin=vector(0x64);last_projectile_origin=Vec3{origin[0],origin[1],origin[2]};
-            if(target_center)row["current_target_center"]={target_center->x,target_center->y,target_center->z};
+            if(target_center) {
+              row["current_target_center"]={target_center->x,target_center->y,target_center->z};
+              if(rows.size()<=3) {
+                const auto delta=*target_center-*last_projectile_origin;
+                CollisionWorld terrain(content.collision);
+                const auto obstruction=terrain.raycast(*last_projectile_origin,normalized(delta),length(delta));
+                row["actual_muzzle_target_distance"]=length(delta);
+                row["actual_muzzle_terrain_clear"]=!obstruction;
+                if(obstruction)row["actual_muzzle_terrain_distance"]=obstruction->distance;
+              }
+            }
             row["source_owner_player"]=word(body+0xc4u);row["source_owner_unit"]=word(body+0xc8u);
             constructed.insert(abi.gp[0]);
           }

@@ -61,6 +61,10 @@ async def native(binary, origin, descriptor, gameplay, map_path, *, mcc=False):
     assert not timed_out, 'Native common-cut runtime exceeded 270 seconds'
     assert process.returncode == 0, 'Native common-cut runtime failed'
     text = output[0][0].decode(errors='replace')
+    if os.environ.get('HALO2_COMMON_DISCONNECT'):
+        marker = 'PASS genuine ordinary disconnect recovery refusal:'
+        assert text.count(marker) == 1, 'Missing/duplicated genuine ordinary disconnect recovery control'
+        return
     inventory_mode = os.environ.get('HALO2_COMMON_INVENTORY', '')
     if inventory_mode == 'abort':
         markers = ('PASS native common-cut runtime owners: two independently validated receiver pins and exact foreground receipts',
@@ -179,15 +183,21 @@ async def main():
             descriptor = path/'descriptors.json'
             descriptor.write_text(json.dumps(descriptors))
             descriptor.chmod(0o600)
+            directory = next(iter(app.values()))
+            rooms = dict(directory.match_transport.rooms)
+            assert rooms and all(room.direct_udp for room in rooms.values()), 'Fixture used a master gameplay relay'
+            assert set(rooms) == {row['id'] for row in descriptors}, 'Fixture room identities differ from admission'
             try:
                 await native(binary, str(client.make_url('/')).rstrip('/'), descriptor, gameplay, map_path,
                     mcc=args.mcc_root is not None)
             finally:
                 unchanged_inputs(pins)
             assert set(verified) == set(owners), 'Not all three physical identities authenticated independently'
-            directory = next(iter(app.values()))
-            rooms = tuple(directory.match_transport.rooms.values())
-            assert rooms and all(room.direct_udp for room in rooms), 'Fixture used a master gameplay relay'
+            # The native control deliberately leaves its original host. Keep
+            # validating that room even after normal maintenance prunes it.
+            assert all(room.direct_udp for room in rooms.values()), 'Original fixture room lost direct transport'
+            assert all(rooms.get(ident) is room for ident, room in directory.match_transport.rooms.items()), \
+                'Fixture room was replaced after admission'
             db = directory.store.db
             assert db.execute('SELECT count(*) FROM match_results').fetchone()[0] == 0
             assert db.execute('SELECT count(*) FROM carnage_reports').fetchone()[0] == 0

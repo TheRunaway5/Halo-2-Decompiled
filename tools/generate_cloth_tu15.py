@@ -9,6 +9,7 @@ from generate_physics_live_support_tu15 import complete_body,generate,sha
 
 ENTRIES={1151072: (36, {1153728, 1501344, 1500832}, set()), 1153728: (88, {1153152, 1154672}, set()), 1154672: (196, {1155424, 1157904}, set()), 1157904: (75, {1155424}, set()), 1155424: (145, {765280, 770560}, set()), 1153152: (159, {765280, 3329036, 3322054}, set())}
 ENTRIES[0x1190d0]=(4,{0x16e8a0},set())
+ENTRIES[0x1191a0]=(12,set(),set())
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -19,7 +20,7 @@ def main():
     sites,instructions,addresses,routines={},{},{},[]
     for entry,(count,calls,indirect) in ENTRIES.items():
         body=complete_body(code,entry)
-        assert len(body.code)==count and not body.tables
+        assert len(body.code)==count and not body.tables,(hex(entry),len(body.code),count)
         actual_calls={code.at(pc).operands[0].imm for pc in body.code if code.at(pc).mnemonic=='call' and code.at(pc).operands[0].type==2}
         actual_indirect={pc for pc in body.code if code.at(pc).mnemonic=='call' and code.at(pc).operands[0].type!=2}
         assert actual_calls==calls and actual_indirect==indirect
@@ -47,6 +48,11 @@ def main():
     marker='FpScope scope(fp);LiveState s{m,observe,services,image};s.load(abi);'
     assert s.count(marker)==1
     s=s.replace(marker,marker+'\n    SourcePhysicsEntryObservation phase(m,entry,[&]{return s.save();});')
+    s=s.replace('#include "halo2/source_cloth_tu15.hpp"',
+        '#include "halo2/source_cloth_tu15.hpp"\n#include "physics/cloth_native/shader.hpp"')
+    marker='static void run_1191a0(WorldState &s) {\n'
+    assert marker in s
+    s=s.replace(marker,marker+'if(!s.services.instruction){cloth_native_tu15_detail::shader(s);return;}\n',1)
     a.output.write_text(s);report=json.loads(manifest.read_text());report.update(generated_cpp_sha256=sha(a.output),generator_sha256=sha(Path(__file__)))
     manifest.write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
 if __name__=='__main__':main()

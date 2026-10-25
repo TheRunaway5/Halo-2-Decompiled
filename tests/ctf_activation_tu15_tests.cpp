@@ -1,3 +1,4 @@
+#include "halo2/source_objective_native_tu15.hpp"
 #include "halo2/source_ctf_activation_tu15.hpp"
 #include "ctf_activation_test_support.hpp"
 #include <nlohmann/json.hpp>
@@ -52,7 +53,7 @@ struct Memory : SourcePhysicsContactMemory {
     throw std::runtime_error("Undeclared source write at "+std::to_string(p));
   }
 };
-Json execute(const Json& row,const Json& fixture) {
+Json execute(const Json& row,const Json& fixture,bool trace=true) {
   const auto& blobs=fixture.at("blobs");
   Memory memory;
   std::map<std::uint32_t,std::string> inputs;
@@ -62,12 +63,19 @@ Json execute(const Json& row,const Json& fixture) {
   SourcePhysicsWorldRuntimeAbi abi{};abi.gp=row.at("gp").get<std::array<std::uint32_t,8>>();abi.eflags=0x202;
   for(unsigned i=0;i<8;++i)for(unsigned j=0;j<4;++j)abi.xmm[i][j]=0x3f000000+i*0x100+j;
   abi.floating_point=SourcePhysicsFactoryFloatingPoint{0x27f,0x1f80};
+  std::vector<std::byte> publications;
+  SourcePhysicsContactRecordObserver observe=[&](const SourcePhysicsContactRecordStore& store) {
+    for(unsigned n=0;n<store.written.size();++n) {
+      append(publications,store.instruction);append(publications,store.address+n);
+      publications.push_back(store.written[n]);
+    }
+  };
   SourcePhysicsWorldRuntimeServices services{};
-  services.instruction=[&](std::uint32_t pc){memory.instruction(pc);};
+  if(trace)services.instruction=[&](std::uint32_t pc){memory.instruction(pc);};
   std::function<void(std::uint32_t,SourcePhysicsWorldRuntimeAbi&)> dispatch;
   dispatch=[&](std::uint32_t entry,SourcePhysicsWorldRuntimeAbi& state) {
-    if(source_ctf_activation_tu15_owns_entry(entry))source_run_ctf_activation_tu15(memory,entry,state,{0x27f,0x1f80},services);
-    else if(source_ctf_activation_test_support_owns_entry(entry))source_run_ctf_activation_test_support(memory,entry,state,{0x27f,0x1f80},services);
+    if(source_ctf_activation_tu15_owns_entry(entry))source_run_ctf_activation_tu15(memory,entry,state,{0x27f,0x1f80},services,observe);
+    else if(source_ctf_activation_test_support_owns_entry(entry))source_run_ctf_activation_test_support(memory,entry,state,{0x27f,0x1f80},services,observe);
     else throw Missing{entry};
   };
   services.required_owner=[&](SourcePhysicsContactMemory&,const SourcePhysicsContactRuntimeCall& call,
@@ -91,7 +99,7 @@ Json execute(const Json& row,const Json& fixture) {
     {"x87",x87},{"fs_base",abi.fs_base},
     {"x87_status",abi.x87_status&0xfdc0},{"x87_control",abi.floating_point->x87_control_word},
     {"mxcsr",abi.floating_point->mxcsr&0xffffffc0},{"trace_sha256",digest(memory.trace)},
-    {"instructions",memory.instructions},{"store_sha256",digest(memory.stores)},
+    {"instructions",memory.instructions},{"store_sha256",digest(publications)},
     {"store_bytes",memory.store_bytes},{"banks_sha256",banks}};
 }
 }
@@ -129,10 +137,23 @@ int main(int argc,char** argv) {
           std::cerr<<it.key()<<" native="<<it.value()<<" original="<<expected.at(it.key())<<'\n';
         return 1;
       }
+      auto native=execute(row,fixture,false);auto reference=expected;
+      for(const auto* key:{"trace_sha256","instructions"}) {native.erase(key);reference.erase(key);}
+      if(native!=reference) {
+        std::cerr<<"Native activation mismatch: "<<row.at("name")<<'\n';
+        for(auto it=native.begin();it!=native.end();++it)if(it.value()!=reference.at(it.key()))
+          std::cerr<<it.key()<<" native="<<it.value()<<" original="<<reference.at(it.key())<<'\n';
+        return 1;
+      }
       ++count;if(actual.at("boundary")==0)++complete;
     }
     std::cout<<"Complete original CTF/Assault ABI owners: "<<count<<" cases, "<<complete
         <<" complete returns; all other cases stop at exact unsupplied original owners. Full mode remains gated.\n";
+    Json native_owners=Json::array();
+    for(unsigned n=0;n<source_objective_native_owner_entries.size();++n)
+      native_owners.push_back({{"entry",source_objective_native_owner_entries[n]},
+          {"completed_calls",source_objective_native_tu15_stats.owners[n]}});
+    std::cout<<"Native objective owner completions: "<<native_owners.dump()<<'\n';
     return 0;
   } catch(const std::exception& e) {std::cerr<<e.what()<<'\n';return 1;}
 }

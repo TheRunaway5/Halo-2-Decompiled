@@ -193,6 +193,56 @@ std::optional<MccMultiplayerWeaponTableReceipt> convert_mcc_multiplayer_weapon_t
     return result;
 }
 
+std::optional<MccMultiplayerVehicleTableReceipt> convert_mcc_multiplayer_vehicle_table(
+    TagGroup group,std::string_view name,std::uint32_t root,const MccGameplayReferenceAccess& access) {
+    if(group!=tag_groups::multiplayer_globals || name!="multiplayer\\multiplayer_globals")return {};
+    if(!access.bytes || !access.resolve)throw FormatError("MCC vehicle conversion requires checked bank access");
+    // Authenticated Coagulation/Headlong/Zanzibar original and MCC census:
+    // analysis/vehicles-tu15-goal-20261023/vehicle-runtime-table-census-v1.json.
+    //15CB60's five-way Random retains choice4 and rerolls its original NONE.
+    // Selecting from a filtered pool would change both weighting and RNG.
+    constexpr std::array<std::string_view,14> donor{
+        "objects\\vehicles\\warthog\\warthog","objects\\vehicles\\ghost\\ghost",
+        "objects\\vehicles\\scorpion\\scorpion","objects\\vehicles\\wraith\\wraith",
+        "objects\\vehicles\\banshee\\banshee","objects\\vehicles\\spectre\\spectre",
+        "objects\\vehicles\\mongoose\\mongoose","objects\\vehicles\\h_turret_ap\\h_turret_ap",
+        "","","objects\\vehicles\\c_turret_ap\\c_turret_ap",
+        "objects\\vehicles\\creep\\creep_mp","objects\\vehicles\\falcon\\falcon",
+        "objects\\vehicles\\gravity_throne\\gravity_throne_mp"};
+    const auto view=[&](std::uint32_t address,std::size_t size) {
+        if(!address || address==0xffffffffu || size>0x100000000ull-address)
+            throw FormatError("MCC vehicle table has an invalid metadata owner");
+        auto result=access.bytes(address,size);
+        if(result.size()!=size)throw FormatError("MCC vehicle table reader returned a short view");
+        return result;
+    };
+    MccMultiplayerVehicleTableReceipt result;
+    result.status=MccGameplayReferenceStatus::AuthoredTupleUnrecognized;
+    const Bytes header(view(add(root,8),8));if(header.u32(0)!=1)return result;
+    result.count_address=add(header.u32(4),0x70);
+    auto descriptor=view(result.count_address,8);const Bytes block(descriptor);
+    result.entries_address=block.u32(4);result.before_count=result.after_count=block.u32(0);
+    if(result.before_count!=11 && result.before_count!=14)return result;
+    auto entries=view(result.entries_address,result.before_count*8u);const Bytes rows(entries);
+    if(std::uint64_t(result.count_address)<std::uint64_t(result.entries_address)+entries.size() &&
+        std::uint64_t(result.count_address)+8u>result.entries_address)
+        throw FormatError("MCC vehicle table metadata owners overlap");
+    for(unsigned i=0;i<result.before_count;++i) {
+        const auto expected=result.before_count==11 && i==6?std::string_view{}:donor[i];
+        const TagReference ref{TagGroup{rows.u32(i*8)},TagHandle{rows.u32(i*8+4)}};
+        if(expected.empty()) {
+            if(ref.group.value!=0xffffffffu || !ref.handle.is_null())return result;
+        } else {
+            if(ref.group!=tag_groups::vehicle || ref.handle.is_null())return result;
+            const auto resolved=access.resolve(ref.handle);
+            if(!resolved || resolved->handle!=ref.handle || resolved->group!=ref.group || resolved->name!=expected)return result;
+        }
+    }
+    if(result.before_count==11){result.status=MccGameplayReferenceStatus::AlreadyEquivalent;return result;}
+    word(entries,6*8,0xffffffffu);word(entries,6*8+4,0xffffffffu);word(descriptor,0,11);
+    result.after_count=11;result.status=MccGameplayReferenceStatus::Converted;return result;
+}
+
 std::optional<MccBspInstanceTransformReceipt> convert_mcc_bsp_instance_transform(
     TagGroup group,std::string_view name,std::uint32_t root,
     const std::function<std::span<std::byte>(std::uint32_t,std::size_t)>& bytes) {

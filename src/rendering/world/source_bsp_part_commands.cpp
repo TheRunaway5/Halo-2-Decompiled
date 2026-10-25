@@ -54,7 +54,7 @@ void enqueue(SourceBspPartCommandState& state,const SourceBspPartCommandContext&
     if(index>=bank.storage.size())throw FormatError("source BSP part command output storage missing");
     const auto layers=layer(s,choice.index);
     ++bank.header[1];auto& command=bank.storage[index].words;
-    command[0]=0x4cbf0;command[1]=0x4d0b0;command[2]=shader_id;
+    command[0]=c.callback_geometry;command[1]=c.callback_light;command[2]=shader_id;
     command[3]=token;command[4]=layers; //44AC0 supplies maskNONE and add0.
     command[5]=(command[5]&0xffff0000u)|(std::uint32_t(std::uint8_t(choice.index))<<8);
     bank.header[2]|=layers;
@@ -89,8 +89,9 @@ bool source_bsp_material_visible(std::span<const std::byte> bytes,std::int16_t b
 void source_bsp_append_part_commands(SourceBspPartCommandState& state,
     std::span<const SourceCullDrawUnit> units,const SourceBspRangeArena& arena,
     const SourceBspPartCommandWorld& w,const SourceBspPartCommandContext& c) {
-    if(!c.mode)throw FormatError("source BSP part commands require secondary mode owner");
-    const unsigned begin=c.main_prefix&65535u,end=c.draw_count&65535u;
+    //44AC0 visits [0,main_prefix) in main mode0 and [main_prefix,draw_count)
+    // in every secondary mode, with the same per-unit services.
+    const unsigned begin=c.mode?c.main_prefix&65535u:0u,end=(c.mode?c.draw_count:c.main_prefix)&65535u;
     if(end>units.size() || end>850 || c.coverage.size()<end || c.override_slots.size()<end)
         throw FormatError("source BSP part commands current draw bank incomplete");
     state.calls.push_back(0x44ac0);
@@ -165,8 +166,11 @@ void source_bsp_append_part_commands(SourceBspPartCommandState& state,
             const bool category1=(u[0]&2u)!=0;
             const bool category2=(u[0]&4u)!=0 && c.mode!=3;
             const auto token=((std::uint32_t(c.coverage[ordinal])<<16)|ordinal)<<8|part_index;
-            if(category1 && category2)enqueue(state,c,selected,shader_id,metric,2,token);
-            enqueue(state,c,selected,shader_id,metric,category1?1:category2?2:-1,token);
+            //41030 at412D9: the extra category-2 emission is skipped in mode0.
+            if(category1 && category2 && c.mode)enqueue(state,c,selected,shader_id,metric,2,token);
+            //40DD0(ECX=mode,flag2,flag4): mode0 always selects bank0; every
+            // other mode selects bank1 for flag2, bank2 for flag4, else none.
+            enqueue(state,c,selected,shader_id,metric,c.mode?(category1?1:category2?2:-1):0,token);
         }
     }
 }

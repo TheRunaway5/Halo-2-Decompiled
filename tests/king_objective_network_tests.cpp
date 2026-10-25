@@ -2,6 +2,7 @@
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/hud.hpp"
 #include <bit>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #ifndef _WIN32
@@ -147,6 +148,9 @@ int main(int argc,char** argv)try {
   return 77;
 #else
   check(argc==4,"Supply original MAP SHARED_MAPS UPDATE_XBE");
+  // This fixture drops, duplicates and replays fragments of complete
+  // snapshots; delta-stream delivery is covered by native_lan_snapshot_stream.
+  setenv("H2_NET_PROFILE","complete",1);
   const Cache cache(argv[1],argv[2],OriginalData::load_xbe(argv[3]));const auto content=cache.load_content(0,true);
   for(const bool teams:{false,true})for(const bool moving:{false,true})run(cache,content,teams,moving);
   std::cout<<"PASS actual Lockout King objective UDP state, original hill reconstruction, 16-player timers, loss/reorder/duplicate/stale fragments, scoring, completion and slot reuse\n";

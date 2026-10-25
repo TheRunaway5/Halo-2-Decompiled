@@ -45,6 +45,8 @@ struct NativeWeaponProjectileScene::Impl {
         std::shared_ptr<const LightVolumeDefinition> volume;
     };
     std::map<std::uint32_t,std::vector<LightAttachment>> light_banks;
+    struct LensAttachment {std::uint32_t definition;bool use_marker_scale;};
+    std::map<std::uint32_t,std::vector<LensAttachment>> lens_banks;
     std::array<std::vector<SourceLightVolumeDraw>,4> light_draws;
     std::map<std::uint32_t,unsigned> light_materials;
     const std::thread::id executor=std::this_thread::get_id();
@@ -117,6 +119,29 @@ struct NativeWeaponProjectileScene::Impl {
         if(attachments.empty())return;
         light_banks.emplace(definition,std::move(attachments));
     }
+    void prepare_lenses(std::uint32_t definition) {
+        const auto metadata=cache.load_source_tag_metadata(definition);
+        const Bytes object(metadata.bytes_at(metadata.source_address(),0x9c));
+        if(metadata.group()!="proj"||object.u16(0)!=5)throw FormatError("Projectile lens lost its actual definition type");
+        const auto descriptor=read_tag_block_descriptor(object,0x94);
+        const auto extent=descriptor.extent(0x18,4095);
+        const Bytes rows(descriptor.count?resident_projectile_metadata(cache,descriptor.address,extent):std::span<const std::byte>{});
+        std::vector<LensAttachment> attachments;
+        for(unsigned n=0;n<unsigned(descriptor.count);++n) {
+            const auto at=n*24;
+            if(rows.u32(at)!=0x6c656e73u||rows.u32(at+4)==0xffffffffu)continue;
+            if(rows.u32(at+8)||rows.u16(at+12)||rows.u32(at+16)||(object.u16(2)&0x200u))
+                throw FormatError("Projectile lens requires its original marker/function/fade/color producer");
+            const auto lens=cache.load_source_tag_metadata(rows.u32(at+4));
+            if(lens.group()!="lens")throw FormatError("Projectile lens lacks its complete authored tag");
+            const Bytes root(lens.bytes_at(lens.source_address(),0x2c));
+            // Whole41970:41AA7 bounds default-node requests to64;41ACD
+            // selects the real marker scale only for authored flag6.
+            if(attachments.size()==64)break;
+            attachments.push_back({rows.u32(at+4),(root.u32(0x28)&64u)!=0});
+        }
+        if(!attachments.empty())lens_banks.emplace(definition,std::move(attachments));
+    }
     Impl(const Cache &c,std::size_t bsp,Mesh &mesh,const CollisionWorld &world,
         std::span<const std::uint32_t> definitions,std::size_t slots)
         :cache(c),collision(world),capacity(slots),lighting(c.load_bsp_lighting(bsp)),
@@ -126,6 +151,8 @@ struct NativeWeaponProjectileScene::Impl {
             if(banks.contains(definition)||invisible.contains(definition)||unresolved.contains(definition))continue;
             try {prepare_lights(definition,mesh);}
             catch(const FormatError &e){std::cerr<<"Native projectile glow unresolved for "<<std::hex<<definition<<std::dec<<": "<<e.what()<<'\n';}
+            try {prepare_lenses(definition);}
+            catch(const FormatError &e){std::cerr<<"Native projectile lens unresolved for "<<std::hex<<definition<<std::dec<<": "<<e.what()<<'\n';}
             const auto before=mesh.materials.size();
             try {
                 const auto tag=c.load_source_tag_metadata(definition);
@@ -335,4 +362,19 @@ const std::vector<NativeWeaponProjectileDraw>& NativeWeaponProjectileScene::draw
 const std::vector<SourceLightVolumeDraw>& NativeWeaponProjectileScene::light_volume_view(unsigned view,Vec3 forward,
     const SourceViewProjectionBank &camera,RenderViewport viewport,float distance,
     std::span<const SourceProjectileGlowOwner> attached){Impl::Mutation mutation(*impl_);return impl_->lights(view,forward,camera,viewport,distance,attached);}
+std::vector<SourceFreeProjectileLens> NativeWeaponProjectileScene::free_lens_view()const {
+    const auto &s=*impl_;s.own();if(s.busy)throw FormatError("Projectile lens cannot borrow a mutating snapshot");
+    std::vector<SourceFreeProjectileLens> out;
+    for(const auto handle:s.order) {
+        const auto &p=s.owners.at(handle).projectile;
+        const auto found=s.lens_banks.find(p.definition);if(found==s.lens_banks.end())continue;
+        auto root=source_object_transform(p.position,p.forward,p.up,1.f,false);
+        if(const auto model=s.banks.find(p.definition);model!=s.banks.end())
+            root=pose_model_nodes_world(model->second.geometry.model(),root).at(0);
+        for(unsigned n=0;n<found->second.size();++n) {
+            const auto &attachment=found->second[n];out.push_back({handle,attachment.definition,n,root,attachment.use_marker_scale});
+        }
+    }
+    return out;
+}
 }

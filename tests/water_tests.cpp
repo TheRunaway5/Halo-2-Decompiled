@@ -2,14 +2,119 @@
 #include "halo2/texture_program.hpp"
 #include "halo2/vertex_program.hpp"
 #include "halo2/texture.hpp"
+#include "halo2/original_data.hpp"
+#include "halo2/world_material.hpp"
 #include <algorithm>
+#include <bit>
 #include <cmath>
 #include <iostream>
 #include <iomanip>
+#include <set>
 
 namespace {
 using namespace halo2;
 void check(bool v,const char *text) {if(!v)throw std::runtime_error(text);}
+void zero_words() {
+  // Literal TU1.5 3D202 and 3C705/3C718/3C85D..3C8DE results for
+  // authored zero drift, zero heading and positive bump scales. Numeric
+  // equality alone accepts the unary-negation regression (+0 versus -0).
+  WaterDefinition definition;
+  definition.parameters[26]=2;definition.parameters[27]=3;definition.parameters[28]=4;
+  const auto frame=water_frame(definition,{},Vec3{0,1,0},1.2f,4.f/3.f);
+  check(std::bit_cast<std::uint32_t>(frame.constants[1][1])==0,
+        "TU1.5 water zero drift lost its positive-zero word");
+  constexpr std::array<std::array<std::uint32_t,4>,3> expected{{
+      {0x40000000u,0,0x40000000u,0},
+      {0xc0400000u,0,0xc0400000u,0},
+      {0x40800000u,0,0x40800000u,0}}};
+  for(unsigned stage=0;stage<3;++stage)for(unsigned axis=0;axis<4;++axis)
+    check(std::bit_cast<std::uint32_t>(frame.bump_matrices[stage+1][axis])==expected[stage][axis],
+          "TU1.5 water zero-heading matrix lost original operation order");
+}
+struct LiteralBlock {std::uint32_t count{};std::span<const std::byte> bytes;};
+LiteralBlock literal_block(const Cache &cache,const Bytes &parent,unsigned at,unsigned stride) {
+  const auto count=parent.u32(at),address=parent.u32(at+4);
+  check(count<65536,"excessive literal water shader block");
+  return {count,count?cache.read_tag_bytes(address,std::size_t(count)*stride):std::span<const std::byte>{}};
+}
+void original_program(const Cache &cache,const Material &material) {
+  const auto &pass=material.passes.at(material.forward_pass_index);
+  const auto *tag=cache.query_tag({.group=TagGroup::from_string("spas"),.name=pass.name});
+  check(tag,"water pass lost its original tag owner");
+  const auto post=literal_block(cache,Bytes(cache.tag_payload(tag->handle())),28,88);
+  check(post.count==1,"water pass lost its literal postprocess bank");
+  const auto implementations=literal_block(cache,Bytes(post.bytes),0,306);
+  check(pass.implementation<implementations.count,"water implementation outside literal pass");
+  const Bytes raw(implementations.bytes.subspan(pass.implementation*306,306));
+  for(unsigned word=0;word<60;++word)
+    check(pass.definition.words[word]==raw.u32(6+word*4),"water pixel definition differs from literal source words");
+  check(material.forward_program.words==pass.program.words &&
+        material.forward_program.fragment_offsets==pass.program.fragment_offsets,
+        "water binding altered its assembled original pixel program");
+  const auto *vertex=cache.find_tag({raw.u32(256)},TagGroup::from_string("vrtx"));
+  check(vertex && vertex->name==pass.vertex_shader,"water vertex identity differs from literal pass reference");
+  const auto classes=literal_block(cache,Bytes(cache.tag_payload(vertex->handle())),4,28);
+  check(classes.count,"water class zero is absent from original vertex bank");
+  const Bytes world(classes.bytes.first(28));
+  const auto code=cache.read_tag_bytes(world.u32(16),world.u32(12));
+  check(!code.empty() && material.vertex_program.size()==code.size() &&
+        std::equal(code.begin(),code.end(),material.vertex_program.begin()),
+        "water vertex microcode differs from literal class zero");
+  check(texture_program_supported(material.forward_program) &&
+        decode_vertex_program(material.vertex_program).count>0,"original water program is not executable");
+  for(unsigned stage=0;stage<pass.texture_states.size();++stage)
+    check(material.texture_states[stage]==pass.texture_states[stage],"water binding altered its original sampler state");
+  bool reflection=false,refraction=false;
+  for(const auto &binding:pass.textures) {
+    if(binding.external==19){check(binding.stage==1,"water reflection changed original stage");reflection=true;}
+    if(binding.external==20){check(binding.stage==2,"water refraction changed original stage");refraction=true;}
+  }
+  check(material.water_reflection_texture==reflection && material.water_refraction_texture==refraction,
+        "water external target binding differs from original pass");
+}
+int materials(int argc,char **argv) {
+  check(argc>=4,"Supply --materials, actual TU1.5 image and at least one map");
+  if(std::string_view(argv[2]).empty())return 77;
+  const auto original=OriginalData::load_xbe(argv[2]);
+  check(original->image==OriginalData::Image::TitleUpdate15,"water material audit requires authenticated TU1.5");
+  unsigned count=0,infinite=0,pools=0,edges=0,waves=0;std::set<std::string> templates;
+  for(int argument=3;argument<argc;++argument) {
+    const std::filesystem::path path=argv[argument];
+    Cache cache(path,path.parent_path(),original);unsigned map_count=0;
+    for(const auto &tag:cache.tags()) {
+      if(tag.group!="shad" || !tag.address || tag.size<8)continue;
+      const auto *stem=cache.find_tag({Bytes(cache.tag_payload(tag.handle())).u32(4)},TagGroup::from_string("stem"));
+      if(!stem || (!stem->name.starts_with("shaders\\shader_templates\\water\\") &&
+          stem->name!="shaders\\shader_templates\\transparent\\waves"))continue;
+      const auto authored=cache.load_material(tag.datum);templates.insert(authored.template_name);
+      Material material;
+      // Templates named water/water_static and ocean/ocean_static can both
+      // select the independent water vertex family. Ask the actual binders
+      // transactionally; template leaf names do not select the source owner.
+      const auto bind=[&](const auto &prepare) {
+        auto candidate=authored;
+        if(!prepare(candidate))return false;
+        material=std::move(candidate);return true;
+      };
+      const bool prepared=bind([&](auto &m){return prepare_water_material(cache,m,false);}) ||
+          bind([&](auto &m){return prepare_water_material(cache,m,true);}) ||
+          bind([&](auto &m){return prepare_world_material(cache,m,true);}) ||
+          bind([&](auto &m){return prepare_world_material(cache,m,false);});
+      if(!prepared)throw FormatError("Unresolved original water material: "+path.filename().string()+" "+tag.name);
+      original_program(cache,material);
+      infinite+=material.water_pass && material.forward_vertex==8;
+      pools+=material.water_pass && material.forward_vertex==7;
+      edges+=material.passes.at(material.forward_pass_index).vertex_shader.ends_with("\\water_edge_blend");
+      waves+=authored.template_name=="shaders\\shader_templates\\transparent\\waves";++count;++map_count;
+    }
+    std::cout<<path.filename().string()<<": "<<map_count<<" literal original water materials\n";
+  }
+  check(count>0 && infinite>0 && pools>0,"original water material cohort lost oceans or pools");
+  std::cout<<count<<" original water material programs: "<<infinite<<" oceans, "<<pools<<" pools, "
+      <<edges<<" edges, "<<waves<<" waves; "<<templates.size()<<" template families\n";
+  std::cout<<"Program identity, assembly preservation, class-zero microcode, samplers and target bindings only; GPU pixel parity requires original framebuffer evidence\n";
+  return 0;
+}
 void probe() {
   std::cout<<std::setprecision(9);
   WaterDefinition definition;
@@ -29,7 +134,9 @@ void probe() {
 }
 int main(int argc,char **argv) {
   try {
+    if(argc>1 && std::string_view(argv[1])=="--materials")return materials(argc,argv);
     if(argc>1 && std::string(argv[1])=="--probe"){probe();return 0;}
+    zero_words();
     const std::array<std::byte,10> source{std::byte{0},std::byte{127},std::byte{128},std::byte{255},
       std::byte{31},std::byte{64},std::byte{192},std::byte{254},std::byte{15},std::byte{240}};
     const auto v8u8=prepare_texture(Bytes(source),2,2,22,true,1);

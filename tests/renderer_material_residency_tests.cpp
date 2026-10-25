@@ -38,6 +38,9 @@ int main(int argc,char **argv) {
         require(window,SDL_GetError());
         Texture red{1,1,11,{std::byte{180},std::byte{32},std::byte{16},std::byte{255}}};
         red.mips={{1,1,0,4,1}};
+        // Dynamic uploads are raw single-image payloads; retain the authored
+        // mip metadata on the immutable asset used to build the renderer.
+        auto red_update=red;red_update.mips.clear();
         Material material;material.diffuse=material.detail=material.auxiliary=red;
         material.bump={1,1,11,{std::byte{128},std::byte{128},std::byte{255},std::byte{255}}};
         for(auto &frames:material.animated_textures)frames={red,red};
@@ -62,7 +65,7 @@ int main(int argc,char **argv) {
             require(mutation_rejected,"fingerprint cache admitted a retained writer's changed bitmap");
             renderer.require_lens_bitmap(1,red);
             bool volume_rejected=false;
-            try {renderer.update_image(16,red);}catch(const std::runtime_error &) {volume_rejected=true;}
+            try {renderer.update_image(16,red_update);}catch(const std::runtime_error &) {volume_rejected=true;}
             require(volume_rejected && renderer.resident_material_images()==resident,
                 "2D update replaced a volume image");
             const auto capture=[&](const char *name) {
@@ -70,14 +73,14 @@ int main(int argc,char **argv) {
                 require(renderer.draw(camera,path),"residency draw failed");return read(path);
             };
             const auto before=capture("shared.ppm");
-            auto blue=red;blue.pixels={std::byte{16},std::byte{32},std::byte{180},std::byte{255}};
+            auto blue=red_update;blue.pixels={std::byte{16},std::byte{32},std::byte{180},std::byte{255}};
             renderer.update_image(0,blue);
             require(renderer.resident_material_images()==resident+1,"mutable material did not detach once");
             const auto first=capture("first-private.ppm");
             const auto changed=changed_halves(before,first);
             require((changed[0]>100 && changed[1]==0) || (changed[1]>100 && changed[0]==0),
                 "one material update changed the other owner's framebuffer");
-            renderer.update_image(0,red);
+            renderer.update_image(0,red_update);
             require(renderer.resident_material_images()==resident+1,"private material allocated again on update");
             const auto restored=capture("restored.ppm");
             require(before.pixels==restored.pixels,"private material update did not restore original pixels");

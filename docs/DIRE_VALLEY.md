@@ -10,7 +10,9 @@ the native Halo 2 engine. Its authoring tools are `tools/port_dire_valley.py`,
 current build and acceptance result.
 
 The original world has 8,341 render triangles. Four CE teleporter shield
-triangles are removed; the other 8,337 retain their positions, normals and UVs.
+triangles are removed; the other 8,337 retain their positions and normals.
+Native UV orientation is converted once when writing ASS; marker UVs are fitted
+to their corresponding Halo 2 atlas cells.
 The original closed collision shell and clips are retained. Visible source
 ground supplies colliding, lightmapped ground surfaces; 976 duplicate ground
 collision triangles are omitted. Separate collision-only ground had no render
@@ -28,7 +30,9 @@ extents; low fixtures retain their footprint and sit at the original base.
 Every mapping, source bound, scale, local offset and native asset hash is in
 `authoring/scenery_geometry.json`. The 33 trees use actual native scenery tags,
 with the original foliage material, alpha cutout and six model-detail selectors.
-The other 130 props use highest intact model sections as static BSP instances,
+The four portable shields also use native scenery so their energy fields retain
+the authored model/LOD path instead of the small BSP-instance fade pattern.
+The other 126 props use highest intact model sections as static BSP instances,
 including native collision. Prop destruction is not implemented by that static
 representation. The lighting authoring receipt records both placement paths.
 
@@ -73,10 +77,14 @@ The project's stock engine selection remains separate. Native acceptance is reco
 asset validation; this map does not certify the entire port's renderer,
 particles, audio, vehicle physics or every multiplayer rule.
 
-The high-bounce map resolves all 103 starting-point object-light queries and
-passes the 900-tick walking route, two-player startup and enabled/disabled
-portal traversal comparison. Reviewed actual captures cover the marked
-Forerunner base, native foliage cutouts and a lit vehicle. These bounded
+The previous high-bounce build resolved all 103 starting-point object-light
+queries. The material-polish build preserves those starts, receives a fresh
+high-quality bake and passes the 900-tick walking route, two-player startup and
+enabled/disabled portal traversal comparison. Reviewed actual captures cover
+the marked bridge, shields, granite, Forerunner base, native foliage cutouts and
+a lit vehicle. Its material audit covers every placed model material, including
+vehicle attachments, with no active diagnostic bitmap. Compiled checks cover
+384 marker UV vertices and 2,365 rendered static-prop UV vertices. These bounded
 checks do not certify the entire port's gameplay, audio or Xbox framebuffer.
 The high bake exposed omitted original read-only operands at `0x46A5A0` and
 `0x46A340`; portal approach exposed initialized `.data` at `0x48C78C` and
@@ -90,6 +98,58 @@ The eight new light/portal declarations are authenticated independently.
 
 ## Reproduction
 
+### Map-selection card
+
+`assets/custom-maps/dire_valley/menu/profile.json` owns the title, description
+and recommended 8–16 player range. Its 220×207 `preview.png` is an actual native
+multiplayer capture from the authored rear ledge, facing across the central
+Forerunner bridge with the Halo ring above the canyon. The centered camera uses
+a 63-degree vertical lens. `native-capture.json` records the exact camera,
+runtime and finite capture control; `composition.png` retains the clean frame.
+The HUD and first-person weapon are suppressed at capture time; there is no
+offset crop or generated scenery.
+
+`tools/author_dire_valley_menu.py`, under `tools/run_test.py`, publishes a private
+menu cache using the first NONE multiplayer C64 row and its reserved preview
+bitmap. All 25 existing named map records remain exact. The stock texture bank
+gets a copy-on-write extension for the card; its original pixels and the source
+import remain intact. A separate nested custom cache preserves Dire Valley's
+own texture/audio banks and native program ownership.
+
+`tools/replace_dire_valley_preview.py` updates the two preview partitions in a
+fresh copy-on-write cache. All 50 catalog records and the BSP/lightmap metadata
+remain byte-identical. The existing index is authenticated before editing and
+refreshed through the verified metadata repair API. Both encoded bitmaps are
+decoded and compared to the requested pixels before native menu validation.
+
+The `frontend-map-bindings.json` manifest binds the authored map ID/scenario to
+its exact custom cache and resource directory. The frontend verifies the actual
+admitted custom scenario before attaching these paths to the catalog entry;
+the local session carries both paths through resource preparation and launch.
+Empty bindings retain ordinary stock map routing. Focused checks cover path
+rejection and the actual prepared map/catalog binding. Evidence is in
+`menu/evidence/`; the actual lobby map picker is screen206.
+
+The installed menu cache is `assets/imported/mcc-dire-valley-polish-20261023`,
+with frontend runtime
+`bin/engine-builds/dire-valley-menu-20261023/halo2_native_polish`.
+This is a hardlink to the same executable, with its own qualification for the
+updated menu cache; its compiled shader directory remains exact.
+Both installed launchers admit this independent frontend. The previous stock
+gameplay executable, qualified stock maps and defaults are retained. Three
+catalog/routing CTests, eight frontend-selection checks, four frontend screens,
+Dire Valley startup and the stock two-player default passed. These are bounded
+startup and routing checks, not a completed gameplay qualification.
+The polished bridge photo and its current installation checks are in
+`evidence/polish/`. The preceding bridge-card checks remain in
+`menu/evidence/bridge-update/`, and the earlier overlook remains under
+`menu/evidence/previous-overlook/`.
+
+The menu-card work does not resolve the outstanding frame-rate issue recorded
+in `build/test-results/dire-valley-performance-20261022/diagnosis.md`.
+
+### Map and lighting
+
 Run all compiler and native checks through `tools/run_test.py`, with generated
 files in `HALO2_TEST_SCRATCH`. Retain the authored package and bounded reports
 before ending the owner. The pipeline is:
@@ -102,17 +162,29 @@ before ending the owner. The pipeline is:
    --interface HALO_TAG_INTERFACE_MODULE_DIRECTORY`. This uses the General-101
    tag layouts and requires NumPy.
 3. Run `author_dire_valley_lighting.py --package PACKAGE --kit KIT`, then
+   `polish_dire_valley.py --package PACKAGE --kit KIT`. The polish fits native
+   marker atlas cells, uses Beaver Creek's native directional arrow, replaces
+   the SDK giant-rock placeholder with the granite-family material, and keeps
+   source triangle positions/normals and placement transforms unchanged. It
+   converts native UVs to ASS with `V = 1 - V` and promotes the four shields to
+   native scenery. Run
    `tool_fast.exe -batch structure-new-from-ass
    scenarios\multi\dire_valley\structure\dire_valley.ass no` under the owned
    Wine prefix. Configure the scenario with `configure_dire_valley.py` and
-   General-101's Halo-Tag-Interface.
+   General-101's Halo-Tag-Interface so the four shield placements join the 33
+   native trees.
 4. Run `tool_fast.exe -batch lightmaps
    scenarios\multi\dire_valley\dire_valley dire_valley high`, then
    `tool_fast.exe -batch build-cache-file
    scenarios\multi\dire_valley\dire_valley win64`.
 5. Validate `h2_maps_win64_dx11/dire_valley.map`. Publish it with
-   `prepare_dire_valley_native.py`, the existing prepared MCC root and an
-   `export_dust2_hud` main-game HUD export. Validate the published cache again.
+   `prepare_dire_valley_native.py --material-polish`, the existing prepared MCC root and an
+   `export_dust2_hud` main-game HUD export. This keeps the original native
+   programs and binds the portable shield's SDK-authored offset bitmap in its
+   original texture slot. Validate the published cache again, then run
+   `validate_dire_valley_materials.py --package PACKAGE --report REPORT`.
+   That audit checks actual visible BSP parts, placed model materials, native
+   bitmap remaps, compressed resources and compiled marker UV coverage.
 6. Test the retained native cache, then stop the owned Wine prefix and verify
    scratch removal. Keep the original installed sources and other active work.
 

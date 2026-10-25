@@ -3,6 +3,7 @@
 #include "halo2/desktop_session.hpp"
 #include "halo2/multiplayer_world.hpp"
 #include "halo2/source_runtime_memory.hpp"
+#include "halo2/source_shadow_native_prefix_tu15.hpp"
 #include <SDL.h>
 #include <chrono>
 #include <cmath>
@@ -195,9 +196,12 @@ int main(int argc,char **argv) {
     output<<"\tobserved_tick\tobserved_state_signature";
     output<<"\tunit_skin_builds\tunit_skin_reuses\tvehicle_skin_builds\tvehicle_skin_reuses";
     output<<"\tselected_skin_requests\tselected_skin_reuses";
+    output<<"\tshadow_prefix_attempts\tshadow_prefix_admitted\tshadow_prefix_declined_reference"
+        "\tshadow_prefix_declined_instruction\tshadow_prefix_declined_view\tshadow_prefix_declined_numeric";
     if(fixed)output<<"\tfixed_requested_frames\tfixed_input_callbacks\tfixed_capture_tick\tfixed_final_capture_frame"
         "\tsource_rng_initial_primary\tsource_rng_initial_auxiliary\tsource_rng_primary\tsource_rng_auxiliary";
     output<<'\n'<<std::setprecision(12);
+    auto previous_prefix=halo2::source_shadow_native_prefix_tu15_stats();
     options.frame_observer=[&](const halo2::MultiplayerFrameTiming &sample) {
       if(fixed && !sample.submitted)
         throw halo2::FormatError("Fixed CPU comparison requires every scene frame to submit");
@@ -255,6 +259,16 @@ int main(int argc,char **argv) {
       output<<'\t'<<observed_tick<<'\t'<<observed_state<<'\t'<<sample.unit_skin_builds<<'\t'<<sample.unit_skin_reuses
           <<'\t'<<sample.vehicle_skin_builds<<'\t'<<sample.vehicle_skin_reuses
           <<'\t'<<sample.selected_skin_requests<<'\t'<<sample.selected_skin_reuses;
+      // Actual same-executor kernel admissions, independent of frame/skin
+      // work counts. The first row includes work since this observer started.
+      const auto prefix=halo2::source_shadow_native_prefix_tu15_stats();
+      output<<'\t'<<prefix.attempts-previous_prefix.attempts
+          <<'\t'<<prefix.admitted-previous_prefix.admitted
+          <<'\t'<<prefix.declined_reference-previous_prefix.declined_reference
+          <<'\t'<<prefix.declined_instruction-previous_prefix.declined_instruction
+          <<'\t'<<prefix.declined_view-previous_prefix.declined_view
+          <<'\t'<<prefix.declined_numeric-previous_prefix.declined_numeric;
+      previous_prefix=prefix;
       if(fixed)output<<'\t'<<requested_frames<<'\t'<<fixed_input_callbacks<<'\t'<<options.capture_tick<<'\t'<<(observed_tick==options.capture_tick)
           <<'\t'<<source_rng_initial_primary<<'\t'<<source_rng_initial_auxiliary<<'\t'<<source_rng_primary<<'\t'<<source_rng_auxiliary;
       output<<'\n';

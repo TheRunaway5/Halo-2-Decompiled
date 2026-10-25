@@ -1,5 +1,8 @@
 // Thin SDK ABI adapter. Login policy, roster admission, framing and retries
 // live in Rust. Every struct version/layout comes from the official headers.
+#if defined(_WIN32) && !defined(NOMINMAX)
+#define NOMINMAX
+#endif
 #include "halo2-online-protocol-bridge/src/lib.rs.h"
 #include "src/eos_sdk.hpp"
 #include <deque>
@@ -11,6 +14,13 @@
 #include <cstdio>
 #include <regex>
 #include <algorithm>
+#include <fcntl.h>
+#ifdef _WIN32
+#include <io.h>
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 #ifdef HALO2_EOS_SDK
 #include <eos_sdk.h>
 #include <eos_connect.h>
@@ -22,6 +32,65 @@
 #endif
 
 namespace halo2::online_protocol_bridge {
+namespace {
+std::FILE *worker_protocol_stream() {
+  if(std::fflush(stdout)!=0)throw std::runtime_error("EOS worker output setup failed");
+#ifdef _WIN32
+  const auto source=reinterpret_cast<HANDLE>(::_get_osfhandle(::_fileno(stdout)));
+  HANDLE duplicate{};
+  if(source==INVALID_HANDLE_VALUE||!::DuplicateHandle(::GetCurrentProcess(),source,
+      ::GetCurrentProcess(),&duplicate,0,FALSE,DUPLICATE_SAME_ACCESS))
+    throw std::runtime_error("EOS worker output setup failed");
+  const auto descriptor=::_open_osfhandle(reinterpret_cast<intptr_t>(duplicate),
+      _O_WRONLY|_O_BINARY|_O_NOINHERIT);
+  if(descriptor<0){::CloseHandle(duplicate);throw std::runtime_error("EOS worker output setup failed");}
+  auto *stream=::_fdopen(descriptor,"wb");
+  if(!stream){::_close(descriptor);throw std::runtime_error("EOS worker output setup failed");}
+#else
+  const auto descriptor=::fcntl(::fileno(stdout),F_DUPFD_CLOEXEC,0);
+  if(descriptor<0)throw std::runtime_error("EOS worker output setup failed");
+  auto *stream=::fdopen(descriptor,"wb");
+  if(!stream){::close(descriptor);throw std::runtime_error("EOS worker output setup failed");}
+#endif
+  return stream;
+}
+}
+struct SdkWorkerOutput::Impl {
+  std::FILE *stream{};
+  Impl() {
+    auto *protocol=worker_protocol_stream();
+#ifdef _WIN32
+    constexpr auto null_path="NUL";
+#else
+    constexpr auto null_path="/dev/null";
+#endif
+    if(!std::freopen(null_path,"wb",stdout)) {
+      std::fclose(protocol);throw std::runtime_error("EOS worker output setup failed");
+    }
+#ifdef _WIN32
+    const auto null_handle=reinterpret_cast<HANDLE>(::_get_osfhandle(::_fileno(stdout)));
+    if(null_handle==INVALID_HANDLE_VALUE||!::SetStdHandle(STD_OUTPUT_HANDLE,null_handle)) {
+      std::fclose(protocol);throw std::runtime_error("EOS worker output setup failed");
+    }
+#endif
+    stream=protocol;
+  }
+  ~Impl(){if(stream)std::fclose(stream);}
+};
+SdkWorkerOutput::SdkWorkerOutput():impl_(std::make_unique<Impl>()){}
+SdkWorkerOutput::~SdkWorkerOutput()=default;
+void SdkWorkerOutput::sdk_worker_write(rust::Slice<const std::uint8_t> bytes) {
+  std::size_t offset=0;
+  while(offset<bytes.size()) {
+    const auto count=std::fwrite(bytes.data()+offset,1,bytes.size()-offset,impl_->stream);
+    if(count==0)throw std::runtime_error("EOS worker output write failed");
+    offset+=count;
+  }
+}
+void SdkWorkerOutput::sdk_worker_flush() {
+  if(std::fflush(impl_->stream)!=0)throw std::runtime_error("EOS worker output flush failed");
+}
+std::unique_ptr<SdkWorkerOutput> new_sdk_worker_output(){return std::make_unique<SdkWorkerOutput>();}
 #ifdef HALO2_EOS_SDK
 using enum EOS_EResult;
 using enum EOS_EExternalCredentialType;
@@ -235,20 +304,28 @@ bool RawEos::sdk_accept(rust::Str user){std::lock_guard lock(sdk_mutex);
   options.LocalUserId=impl_->local;options.RemoteUserId=id;options.SocketId=&impl_->socket;
   return EOS_P2P_AcceptConnection(impl_->p2p,&options)==EOS_Success;
 }
-bool RawEos::sdk_send(rust::Str user,rust::Slice<const std::uint8_t> bytes,bool delayed){std::lock_guard lock(sdk_mutex);
-  if(bytes.empty()||bytes.size()>EOS_P2P_MAX_PACKET_SIZE||!impl_->request)return false;
-  const std::string text(user);auto id=EOS_ProductUserId_FromString(text.c_str());if(!id)return false;
+std::int32_t RawEos::sdk_send(rust::Str user,rust::Slice<const std::uint8_t> bytes,bool delayed){std::lock_guard lock(sdk_mutex);
+  if(bytes.empty()||bytes.size()>EOS_P2P_MAX_PACKET_SIZE||!impl_->request)return -1;
+  const std::string text(user);auto id=EOS_ProductUserId_FromString(text.c_str());if(!id)return -1;
   EOS_P2P_SendPacketOptions options{};options.ApiVersion=EOS_P2P_SENDPACKET_API_LATEST;
   options.LocalUserId=impl_->local;options.RemoteUserId=id;options.SocketId=&impl_->socket;
   options.Data=bytes.data();options.DataLengthBytes=static_cast<uint32_t>(bytes.size());
   options.Reliability=EOS_PR_UnreliableUnordered;options.bAllowDelayedDelivery=delayed?EOS_TRUE:EOS_FALSE;options.bDisableAutoAcceptConnection=EOS_TRUE;
-  return EOS_P2P_SendPacket(impl_->p2p,&options)==EOS_Success;
+  return static_cast<std::int32_t>(EOS_P2P_SendPacket(impl_->p2p,&options));
 }
-void RawEos::sdk_session_create(const EosSession &session,std::uint32_t capacity){std::lock_guard lock(sdk_mutex);
+EosPacketQueueInfo RawEos::sdk_packet_queue_info()const{std::lock_guard lock(sdk_mutex);
+  EOS_P2P_GetPacketQueueInfoOptions options{};options.ApiVersion=EOS_P2P_GETPACKETQUEUEINFO_API_LATEST;
+  EOS_P2P_PacketQueueInfo info{};
+  const auto result=EOS_P2P_GetPacketQueueInfo(impl_->p2p,&options,&info);
+  return {static_cast<std::int32_t>(result),info.IncomingPacketQueueCurrentSizeBytes,
+    info.IncomingPacketQueueCurrentPacketCount,info.OutgoingPacketQueueCurrentSizeBytes,
+    info.OutgoingPacketQueueCurrentPacketCount};
+}
+void RawEos::sdk_session_create(const EosSession &session,rust::Str bucket,std::uint32_t capacity){std::lock_guard lock(sdk_mutex);
   if(!impl_->local||impl_->session_active||capacity<1||capacity>16)throw std::runtime_error("Invalid EOS session lifecycle");
-  const auto bucket=std::string(session.playlist)+":"+std::string(session.revision)+":halo2-native-queue-v13";
+  const std::string bucket_text(bucket);
   EOS_Sessions_CreateSessionModificationOptions create{};create.ApiVersion=EOS_SESSIONS_CREATESESSIONMODIFICATION_API_LATEST;
-  create.SessionName=impl_->session_name.c_str();create.BucketId=bucket.c_str();create.MaxPlayers=capacity;
+  create.SessionName=impl_->session_name.c_str();create.BucketId=bucket_text.c_str();create.MaxPlayers=capacity;
   create.LocalUserId=impl_->local;create.SessionId=impl_->socket.SocketName;
   EOS_HSessionModification handle{};check(EOS_Sessions_CreateSessionModification(impl_->sessions,&create,&handle));
   std::unique_ptr<std::remove_pointer_t<EOS_HSessionModification>,decltype(&EOS_SessionModification_Release)> modification(handle,EOS_SessionModification_Release);
@@ -373,8 +450,9 @@ void RawEos::sdk_create_user(){}
 void RawEos::sdk_socket(rust::Str,bool){}
 rust::Vec<EosEvent> RawEos::sdk_poll(){return {};}
 bool RawEos::sdk_accept(rust::Str){return false;}
-bool RawEos::sdk_send(rust::Str,rust::Slice<const std::uint8_t>,bool){return false;}
-void RawEos::sdk_session_create(const EosSession &,std::uint32_t){}
+std::int32_t RawEos::sdk_send(rust::Str,rust::Slice<const std::uint8_t>,bool){return -1;}
+EosPacketQueueInfo RawEos::sdk_packet_queue_info()const{return {-1,0,0,0,0};}
+void RawEos::sdk_session_create(const EosSession &,rust::Str,std::uint32_t){}
 void RawEos::sdk_session_invite(rust::Str){}
 void RawEos::sdk_session_query(){}
 void RawEos::sdk_session_register(rust::Str){}

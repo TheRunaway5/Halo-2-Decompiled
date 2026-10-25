@@ -5,6 +5,7 @@
 #include "helpers/live_phantom_original_capture_tu15.hpp"
 #include "helpers/live_physics_entry_capture_tu15.hpp"
 #include "helpers/original_support_carry_tu15.hpp"
+#include "helpers/destruction_firing_lane_inputs_tu15.hpp"
 #include "halo2/source_physics_entry_observation.hpp"
 #include "source_device_snapshot_check.hpp"
 #include <atomic>
@@ -16,6 +17,7 @@
 #include "halo2/multiplayer_object_runtime.hpp"
 #include "halo2/source_shadow.hpp"
 #include "halo2/source_tag_metadata.hpp"
+#include "halo2/source_vehicle_native_rates.hpp"
 #include "halo2/raw_datum_pool.hpp"
 #include "halo2/source_dynamic_object_scene.hpp"
 #include "halo2/native_unit_interaction.hpp"
@@ -1490,6 +1492,7 @@ struct Host {
 };
 }
 int main(int argc,char **argv) try {
+  const auto native_rates_before=source_vehicle_native_rate_activity();
   check(argc==7,"Supply MCC_MAP MCC_MAPS native-mcc MCC_ROOT OUTPUT_DIR movement|lift|vehicle|objects|lan-movement|lan-lift|lan-vehicle|lan-objects");
   check(std::string_view(argv[3])=="native-mcc","Live physics acceptance requires the prepared MCC cache; Xbox executables and Vista UI are offline references");
   const std::string scenario=argv[6];const bool lan=scenario.starts_with("lan-"),
@@ -1512,11 +1515,13 @@ int main(int argc,char **argv) try {
         *takeoff_pitch_input>=0.f && *takeoff_pitch_input<=.6f,
         "Declared takeoff look requires Banshee and a finite0..0.6-radian SDL input");
   }
-  unsigned source_drive_ticks{};
+  // Driving stimulus is budgeted in authority ticks, independent of render
+  // cadence and repeated/skipped desktop observations.
+  unsigned source_drive_ticks=vehicle && !fixed_turret_test && std::getenv("HALO2_TU15_VEHICLE_BLAST_INPUT")?300u:0u;
   if(const auto duration=std::getenv("HALO2_TU15_VEHICLE_DRIVE_TICKS")) {
     source_drive_ticks=std::stoul(duration);
-    check(accompanied_driver && source_drive_ticks>0 && source_drive_ticks<=600,
-        "Declared camera drive duration requires a moving seat and 1..600 source ticks");
+    check(vehicle && !fixed_turret_test && source_drive_ticks>0 && source_drive_ticks<=600,
+        "Declared drive duration requires a moving vehicle and 1..600 source ticks");
   }
   const bool vehicle_collision_test=vehicle && std::getenv("HALO2_TU15_VEHICLE_COLLISION_INPUT");
   const bool vehicle_blast_test=vehicle && std::getenv("HALO2_TU15_VEHICLE_BLAST_INPUT");
@@ -2040,6 +2045,13 @@ int main(int argc,char **argv) try {
     report["initial_inventory"]=inventory(*o.prepared_world);
   }
   const auto &interaction_content=lan?*host->content:o.prepared_world->content;
+  std::unique_ptr<test::DestructionFiringLaneInputs> vehicle_firing_lane;
+  std::optional<Vec3> vehicle_walk_input;
+  std::optional<std::uint32_t> vehicle_lane_plan_tick;
+  if(vehicle_weapon_test) {
+    const Cache cache(o.map,o.shared_maps);
+    vehicle_firing_lane=std::make_unique<test::DestructionFiringLaneInputs>(cache,interaction_content,o.bsp);
+  }
   std::unique_ptr<CollisionWorld> turret_target_terrain;
   if(turret_damage_test)turret_target_terrain=std::make_unique<CollisionWorld>(interaction_content.collision);
   // Unchanged TU1.5 CB862..CB8A1: player unit+13C != NONE and
@@ -2654,7 +2666,8 @@ int main(int argc,char **argv) try {
         observer_distance=std::max(observer_distance,length(watcher.position-observer_initial));
         row["observer"]={{"player",watcher.source_player},{"unit",watcher.source_unit},
             {"position",xyz(watcher.position)},{"forward_command",input.forward},
-            {"yaw",input.yaw},{"pitch",input.pitch}};
+            {"yaw",input.yaw},{"pitch",input.pitch},
+            {"source_yaw",watcher.yaw},{"source_pitch",watcher.pitch}};
         // Render/input samples can repeat one completed authority tick.
         // Continue the same ordinary retreat until actual displacement clears
         // the vehicle, with a finite input budget; never move its body here.
@@ -2665,8 +2678,13 @@ int main(int argc,char **argv) try {
           const auto look=watch -
               (watcher.position+Vec3{0,0,interaction_content.player.camera_height});
           const auto yaw=std::atan2(look.y,look.x),pitch=std::atan2(look.z,std::hypot(look.x,look.y));
-          observer->axis(SDL_CONTROLLER_AXIS_RIGHTX,-std::remainder(yaw-input.yaw,6.283185307f)*8.f);
-          observer->axis(SDL_CONTROLLER_AXIS_RIGHTY,-(pitch-input.pitch)*8.f);
+          // As for the actor's SDL mouse, close this ordinary gamepad loop
+          // against the processed source view. Raw PC sample angles can
+          // retain a different baseline after original birth/vehicle turns.
+          const auto observed_yaw=vehicle_blast_test?watcher.yaw:input.yaw;
+          const auto observed_pitch=vehicle_blast_test?watcher.pitch:input.pitch;
+          observer->axis(SDL_CONTROLLER_AXIS_RIGHTX,-std::remainder(yaw-observed_yaw,6.283185307f)*8.f);
+          observer->axis(SDL_CONTROLLER_AXIS_RIGHTY,-(pitch-observed_pitch)*8.f);
         }
         }
       }
@@ -2788,7 +2806,8 @@ int main(int argc,char **argv) try {
             }
           }
         }
-        if(!vehicle_collision_test && vehicle_drive_commands>=(long_vehicle_sequence?120u:25u) && !steering_started) {
+        if(!vehicle_collision_test && (source_drive_ticks?elapsed>=*drive_start+120u:
+            vehicle_drive_commands>=(long_vehicle_sequence?120u:25u)) && !steering_started) {
           check(vehicle_forward.has_value(),"Steering input has no actual vehicle WORLD forward");
           steering_forward=*vehicle_forward;
           key(window_id,SDL_SCANCODE_D,true);steering_started=true;
@@ -2828,39 +2847,60 @@ int main(int argc,char **argv) try {
         auto target=pose->sphere.center;
         bool collision_aim_ready=!vehicle_weapon_test;
         std::optional<PosedCollisionHit> current_view_hit;
+        bool current_view_lane_clear=!vehicle_weapon_test;
         if(vehicle_weapon_test) {
           const auto vehicle=std::ranges::find_if(s.world_vehicles,[&](const auto &v){return v.handle==driven_vehicle;});
           check(vehicle_blast_model && vehicle!=s.world_vehicles.end() && vehicle->regions && !pose->nodes.empty(),
               "Vehicle weapon input planning requires actual model collision, nodes and current source permutations");
-          const auto query=[&](Vec3 ray){return posed_collision(*vehicle_blast_model,pose->nodes,
-              vehicle->regions->selection.permutations,*interaction_content.original_data,eye,ray,2u);};
-          // Original lower-query bit1 admits an outside-to-solid crossing.
-          // A zero mask does not admit that surface traversal.
-          const auto center_ray=(target-eye)*2.f;
-          const auto center_hit=query(center_ray);
-          row["vehicle_bound_center_collision_hit"]=bool(center_hit);
-          std::optional<PosedCollisionHit> planned=center_hit;
-          Vec3 planned_ray=center_ray;
-          if(!planned)for(float z:{-.5f,0.f,.5f}) {
-            for(float x:{0.f,-.5f,.5f}) {
-              for(float y:{0.f,-.5f,.5f}) {
-                const auto &basis=pose->nodes.front().basis;
-                const auto point=pose->sphere.center+
-                    (basis[0]*x+basis[1]*y+basis[2]*z)*pose->sphere.radius;
-                const auto ray=(point-eye)*2.f;
-                if(const auto hit=query(ray)){planned=hit;planned_ray=ray;break;}
+          const auto query_at=[&](Vec3 origin,Vec3 ray){return posed_collision(*vehicle_blast_model,pose->nodes,
+              vehicle->regions->selection.permutations,*interaction_content.original_data,origin,ray,2u);};
+          const auto visible_target=[&](Vec3 origin)->std::optional<std::pair<Vec3,PosedCollisionHit>> {
+            const auto admit=[&](Vec3 point)->std::optional<std::pair<Vec3,PosedCollisionHit>> {
+              const auto ray=(point-origin)*2.f;
+              if(const auto hit=query_at(origin,ray)) {
+                const auto surface=origin+ray*hit->fraction;
+                if(vehicle_firing_lane->clear(origin,surface))return std::pair{surface,*hit};
               }
-              if(planned)break;
+              return {};
+            };
+            if(const auto hit=admit(pose->sphere.center))return hit;
+            for(float z:{-.5f,0.f,.5f})for(float x:{0.f,-.5f,.5f})for(float y:{0.f,-.5f,.5f}) {
+              const auto &basis=pose->nodes.front().basis;
+              const auto point=pose->sphere.center+
+                  (basis[0]*x+basis[1]*y+basis[2]*z)*pose->sphere.radius;
+              if(const auto hit=admit(point))return hit;
             }
-            if(planned)break;
+            return {};
+          };
+          const auto minimum_range=length(pose->sphere.center-*vehicle_position)+pose->sphere.radius+
+              std::max(vehicle_weapon_blast_radius,vehicle_response_blast_radius)+interaction_content.player.radius;
+          const auto root_range=std::hypot(p.position.x-vehicle_position->x,p.position.y-vehicle_position->y);
+          const auto planned=visible_target(eye);
+          collision_aim_ready=bool(planned) && root_range>=minimum_range;
+          row["vehicle_bound_center_collision_hit"]=bool(query_at(eye,(pose->sphere.center-eye)*2.f));
+          if(collision_aim_ready || host->vehicle_attack_dead.load())vehicle_walk_input.reset();
+          else if(!vehicle_walk_input && (!vehicle_lane_plan_tick || s.tick>=*vehicle_lane_plan_tick+30u)) {
+            vehicle_lane_plan_tick=s.tick;
+            vehicle_walk_input=vehicle_firing_lane->vantage(p.position,*vehicle_position,minimum_range,
+                [&](Vec3 origin){return bool(visible_target(origin));});
           }
-          if(planned) {
-            target=eye+planned_ray*planned->fraction;collision_aim_ready=true;
-            row["declared_vehicle_collision_aim"]={{"point",xyz(target)},{"region",planned->region},
-                {"node",planned->node},{"surface",planned->surface},{"material",planned->global_material},
-                {"scope","Read-only authored posed-collision input planning; actual projectile impact is not supplied"}};
+          if(vehicle_walk_input) {
+            target=*vehicle_walk_input+Vec3{0,0,interaction_content.player.camera_height};
+            if(std::hypot(vehicle_walk_input->x-p.position.x,vehicle_walk_input->y-p.position.y)<interaction_content.player.radius)
+              vehicle_walk_input.reset();
+          } else if(planned) {
+            target=planned->first;
+            row["declared_vehicle_collision_aim"]={{"point",xyz(target)},{"region",planned->second.region},
+                {"node",planned->second.node},{"surface",planned->second.surface},{"material",planned->second.global_material},
+                {"scope","Read-only posed/BSP/render input planning; actual projectile impact is not supplied"}};
           }
-          current_view_hit=query(direction(p.yaw,p.pitch)*(length(target-eye)*2.f));
+          row["vehicle_firing_lane"]={{"clear_current_input_lane",collision_aim_ready},
+              {"walking_input",bool(vehicle_walk_input)},{"target",xyz(target)},
+              {"scope","Only SDL walking/look/fire inputs; original runtime owns all movement and impacts"}};
+          const auto view_ray=direction(p.yaw,p.pitch)*(length(target-eye)*2.f);
+          current_view_hit=query_at(eye,view_ray);
+          current_view_lane_clear=current_view_hit && vehicle_firing_lane->clear(eye,eye+view_ray*current_view_hit->fraction);
+          row["vehicle_firing_lane"]["clear_current_view_lane"]=current_view_lane_clear;
         }
         const auto delta=target-eye;
         const auto &settings=o.desktop->keyboard_settings;const float gain=.0025f*float(settings.sensitivity)/3.f;
@@ -2901,20 +2941,21 @@ int main(int argc,char **argv) try {
               check(SDL_PushEvent(&event)==1,"SDL rejected ordinary vehicle weapon fire");
             }
           };
+          key(window_id,SDL_SCANCODE_S,false);
           if(host->vehicle_attack_dead.load()) {
             if(vehicle_weapon_pressed){fire(false);vehicle_weapon_pressed=false;}
-            key(window_id,SDL_SCANCODE_S,false);
-            if(elapsed>=vehicle_last_shot+100)key(window_id,SDL_SCANCODE_W,range>3*interaction_content.player.height);
-          } else if(range<minimum_range) {
+            key(window_id,SDL_SCANCODE_W,false);
+          } else if(vehicle_walk_input || !collision_aim_ready) {
             if(vehicle_weapon_pressed){fire(false);vehicle_weapon_pressed=false;vehicle_last_shot=elapsed;}
-            key(window_id,SDL_SCANCODE_S,true);
+            const auto walking_error=std::abs(std::remainder(std::atan2(delta.y,delta.x)-p.yaw,6.283185307f));
+            key(window_id,SDL_SCANCODE_W,vehicle_walk_input && walking_error<.15f);
           } else {
-            key(window_id,SDL_SCANCODE_S,false);
+            key(window_id,SDL_SCANCODE_W,false);
             if(vehicle_weapon_pressed && (unsigned(p.loaded)<vehicle_loaded_before || elapsed>=vehicle_weapon_press_tick+20)) {
               fire(false);vehicle_weapon_pressed=false;vehicle_last_shot=elapsed;
             }
             if(!vehicle_weapon_pressed && p.loaded>0 && elapsed>=vehicle_last_shot+75 &&
-                collision_aim_ready && current_view_hit && aim_error<aim_limit) {
+                collision_aim_ready && current_view_hit && current_view_lane_clear && aim_error<aim_limit) {
               vehicle_loaded_before=p.loaded;vehicle_weapon_press_tick=elapsed;fire(true);vehicle_weapon_pressed=true;
             }
             const int reload=settings.bindings[unsigned(PcAction::Reload)];
@@ -3508,6 +3549,9 @@ int main(int argc,char **argv) try {
         std::array<unsigned,2> visible_parts{};
         for(const auto &[object,draws]:debris_draws)for(unsigned view=0;view<visible_parts.size();++view)visible_parts[view]+=draws[view]>0;
         report["vehicle_original_debris_visible_parts_by_view"]=visible_parts;
+        report["vehicle_original_debris_submitted_parts_by_view"]=visible_parts;
+        report["vehicle_original_debris_pixel_visibility_verified"]=false;
+        report["vehicle_blast_acceptance_scope"]="Original death/impulse/debris motion, LAN equality and draw submissions; pixel visibility and audio require separate verification";
         if(vehicle_blast_count==2 || vehicle_weapon_test)passed&=minimum_body<=0.f && dead_samples>0 && !first_debris_position.empty() && maximum_debris_displacement>.01f && visible_parts[0]>0 && visible_parts[1]>0;
       }
     if(accompanied_driver) {
@@ -3801,6 +3845,11 @@ int main(int argc,char **argv) try {
     report["source_authority_restored"]=host->source_authority_restored;
     passed&=host->source_authority_restored;
   }
+  const auto native_rates_after=source_vehicle_native_rate_activity();
+  report["native_vehicle_rate_activity"]={{"acceleration_calls",native_rates_after.acceleration_calls-native_rates_before.acceleration_calls},
+      {"approach_calls",native_rates_after.approach_calls-native_rates_before.approach_calls},
+      {"live_cursor_calls",native_rates_after.live_cursor_calls-native_rates_before.live_cursor_calls},
+      {"scope","Process-local counters across actual host/local source worlds; no object attribution or gameplay/replay input"}};
   report["acceptance_passed"]=passed;
   report["limit"]="Live native behavior only. Full retail contact/solver, driving, dynamic-object impulses and complete TU1.5 parity remain required.";
   {std::ofstream file(output/"report.json");file<<report.dump(2)<<'\n';check(bool(file),"Could not write acceptance report");}

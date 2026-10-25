@@ -78,8 +78,12 @@ GamePauseMenu::GamePauseMenu(const std::filesystem::path &maps,
     }
     visible_=false;
     await_release_=true;
-    if(window_)SDL_SetRelativeMouseMode(SDL_TRUE);
     if(previous_cursor_)SDL_SetCursor(previous_cursor_);
+    // Quit leaves gameplay for the menu. Re-arming relative mode here (while
+    // the activating button is still held) re-hides and re-confines the
+    // pointer just before the runtime releases it, which can leave Xwayland's
+    // hidden-cursor pointer lock behind. Only actions that resume play recapture.
+    if(window_ && action!=GamePauseAction::Quit)SDL_SetRelativeMouseMode(SDL_TRUE);
     return std::string{};
   });
   painter_=std::make_unique<FrontendPainter>(content_,maps/"fonts",mesh,

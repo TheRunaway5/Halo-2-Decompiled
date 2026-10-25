@@ -30,6 +30,8 @@ struct MultiplayerRuntimeReceiptValues {
     std::uint64_t world_impact_serial{},world_melee_serial{},world_detonation_serial{},
         world_unit_effect_serial{},world_voice_serial{},rumble_serial{};
     std::uint32_t client_effect_serial{},world_weapon_effect_serial{};
+    std::uint32_t objective_audio_serial{};
+    std::optional<std::uint32_t> objective_audio_tick;
     bool world_effect_baseline{},client_effect_baseline{},client_prop_effect_baseline{};
     NativeDeviceEventCursor device_events{false};
     std::set<std::uint32_t> heard_prop_effects,attached_effect_objects;

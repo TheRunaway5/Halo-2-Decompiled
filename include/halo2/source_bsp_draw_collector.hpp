@@ -23,6 +23,10 @@ struct SourceBspDrawWorld {
     std::span<const SourceBspDrawGeometry> clusters,definitions;
     std::span<const SourceBspDrawInstance> instances;
     bool lightmap_matches{}; // Actual2D000 presence, bitmap and checksum gates.
+    // Optional live449D0 admission for an appended instance unit: with its
+    // request selector, the actual130980 request, then the published+50
+    // geometry. Absent, the definition's prepared residency applies.
+    std::function<bool(unsigned definition,bool request)> definition_resident;
 };
 using SourceBspDrawState=SourceDrawUnitState;
 struct SourceBspDrawContext {

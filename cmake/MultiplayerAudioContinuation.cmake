@@ -13,6 +13,11 @@ if(BUILD_TESTING)
             src/ui/menu_music.cpp
             src/audio/sound_classes.cpp
             src/audio/sound_fade.cpp
+            src/audio/source_loop_track_control_tu15.cpp
+            src/audio/source_loop_detail_control_tu15.cpp
+            src/audio/source_loop_phased_output_tu15.cpp
+            src/audio/source_loop_track_update_tu15.cpp
+            src/audio/source_loop_track_transition_tu15.cpp
             src/audio/vista_audio_decode.cpp
             src/audio/vista_audio_framing.cpp
             src/campaign/scripting/source_script_sound_clock_native64_tu15.cpp
@@ -57,6 +62,18 @@ if(BUILD_TESTING)
         endif()
         target_compile_features(${target} PRIVATE cxx_std_20)
     endfunction()
+    add_executable(source_loop_voice_ring_tu15_tests tests/source_loop_voice_ring_tu15_tests.cpp)
+    halo2_link_audio_continuation(source_loop_voice_ring_tu15_tests)
+    add_test(NAME original_loop_voice_ring_tu15 COMMAND source_loop_voice_ring_tu15_tests
+        "${PROJECT_SOURCE_DIR}/tests/fixtures/loop_voice_ring_tu15.json")
+    add_executable(multiplayer_audio_loop_phase_tests tests/multiplayer_audio_loop_phase_tests.cpp)
+    halo2_link_audio_continuation(multiplayer_audio_loop_phase_tests)
+    set(HALO2_MCC_LOOP_PHASE_MAP "" CACHE FILEPATH "Explicit prepared Coagulation map for actual Banshee phase PCM")
+    add_test(NAME native_mcc_loop_phase_packets COMMAND multiplayer_audio_loop_phase_tests
+        "${HALO2_MCC_LOOP_PHASE_MAP}")
+    set_tests_properties(native_mcc_loop_phase_packets PROPERTIES SKIP_RETURN_CODE 77
+        TIMEOUT 120 RUN_SERIAL TRUE ENVIRONMENT "SDL_AUDIODRIVER=dummy"
+        LABELS "audio-continuation;component")
     add_executable(multiplayer_audio_continuation_tests
         tests/multiplayer_audio_continuation_tests.cpp)
     halo2_link_audio_continuation(multiplayer_audio_continuation_tests)

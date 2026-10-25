@@ -124,9 +124,12 @@ spin-up/down, heat/overheat/recovery where authored, sustained/repeated triggers
 release, both Scorpion inputs, player/vehicle/material contacts, direct/splash
 damage and allegiance, boarding/exit, destruction/ejection, moving chassis,
 single/split/LAN/remote ownership, all map/variant applicability, actual audio
-output and TU1.5 reference frames. Random turret settings retain the known
-unresolved per-birth template owner; absent original selector references remain
-NONE. No row is closed from constructor counts or metadata alone.
+output and TU1.5 reference frames. The later [complete-vehicle investigation](VEHICLES_TU15_GOAL_CHECKLIST.md)
+qualifies native Random light/heavy/turret selectors and actual per-birth model
+binding, with normal-input human/Covenant fixed-turret runs. Original absent
+selector references remain NONE. The newer flying-selector kernel still needs
+its current game and launcher validation. No row is closed from constructor
+counts or metadata alone.
 
 ## Reproduction and storage
 

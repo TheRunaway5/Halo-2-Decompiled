@@ -339,7 +339,10 @@ public:
               // This does not admit canonical visibility for wider culling.
               const BspFogSample *mainmenu_fog = nullptr,
               const MainmenuWorldDraw *mainmenu_world = nullptr,
-              bool ui_full_surface_bounds = false);
+              bool ui_full_surface_bounds = false,
+              // Synchronous numeric diagnostics, consumed only by the existing
+              // timing-file writer. Never retained after draw or used to render.
+              const RendererHostPreparationTiming *host_preparation = nullptr);
     // Isolated loading submission: only resident loading image descriptors,
     // supplied original triangles/constants, and frame synchronization are used.
     // No CPU world/cache/view owner participates.
@@ -358,6 +361,7 @@ public:
     void share_display_settings(DisplaySettings&);
     // Opt-in read-only profiling; disabled draws do not read the host clock.
     void measure_frames(bool);
+    bool writes_frame_timings() const noexcept;
     RendererFrameTiming frame_timing() const;
     // Read-only residency diagnostic; excludes scene/render-target images.
     std::size_t resident_material_images() const;

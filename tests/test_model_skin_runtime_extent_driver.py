@@ -9,7 +9,7 @@ import unittest
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
-from run_model_skin_runtime import GPU_COUNTERS, parse_extent_tsv, presented_ppm_evidence, strict_case
+from run_model_skin_runtime import FALLBACK_COUNTERS, GPU_COUNTERS, parse_extent_tsv, presented_ppm_evidence, strict_case, strict_common_cut_case
 
 
 class ModelSkinExtentDriver(unittest.TestCase):
@@ -136,6 +136,131 @@ class ModelSkinExtentDriver(unittest.TestCase):
                 legacy['cases'][0][role].pop(key)
         self.assertIsNone(strict_case(legacy, self.name, *self.internal))
         self.assertIsNotNone(self.check_report(legacy))
+
+    def common_cut_report(self):
+        report = copy.deepcopy(self.report)
+        report.update(passed=False, control_only=True, ordinary_gpu_acceptance=False, actual_gpu_acceptance_run=False,
+                      post_constructor_common_cut=True, post_constructor_qualification_passed=True,
+                      qualification_kind='post-constructor-common-cut')
+        case = report['cases'][0]
+        case.update(passed=False, control_only=True, players=1, post_constructor_common_cut=True,
+                    post_constructor_qualification_passed=True, common_cut_released_after_pair=True,
+                    passive_source_trace_identical=True, external_input_tape_identical=True)
+        for role in ('cpu', 'gpu'):
+            result = case[role]
+            result.update(actual_delivered_commands_per_view=60,
+                          source_rng_construction=dict(receipts=1, auxiliary=1, pre_common_cut_observation=True,
+                                                       compared_in_ordered_trace=False),
+                          presentation_worker=dict(frames_with_copy_jobs=60, frames_with_actual_worker_jobs=60),
+                          cpu_fallback={**{key: 0 for key in FALLBACK_COUNTERS}, 'vulkan_results': {}})
+            result['post_constructor_common_cut'] = dict(enabled=True, role='export' if role == 'cpu' else 'import',
+                completed_constructor_and_local_views=True, before_preparation_projection_and_runtime=True,
+                local_test_binding_only=True, constructor_and_teardown_outside_tape=True,
+                tape_bound_after_initial_proof=True, tape_unbound_before_native_teardown=True,
+                normal_coupled_publication=role == 'gpu', tick=1,
+                initial_bank_proof=dict(passed=True, regions=1, complete_bank_bytes=100, committed_ranges=1,
+                    committed_bytes=100, expected_committed_ranges=1, expected_committed_bytes=100,
+                    complete_topology_identical=True, complete_region_bytes_identical=True,
+                    committed_run_segmentation_identical=True, committed_bytes_identical=True, no_resource_exclusion=True),
+                resource_limits=dict(bank_bytes=100, regions=1, arena_file_bytes=0, arena_files=2,
+                    bank_byte_limit=1024 ** 3, arena_file_byte_limit=64 * 1024 ** 2, region_limit=8192))
+            result['external_source_inputs'] = dict(mode='record' if role == 'cpu' else 'replay', entries=2,
+                semantic_sha256='3' * 64, kind_counts=[2] + [0] * 8, constructor_through_world_teardown=False,
+                complete_call_journal=False, post_constructor_common_cut=True, constructor_outside_scope=True,
+                native_teardown_outside_scope=True, complete_consumption=True, actual_values_preserved=True)
+            result['passive_source_trace'] = dict(schema='H2OTR02', initial_source_boundary='post-constructor-common-cut',
+                complete_storage=True, bytes=200, sha256='4' * 64, source_callbacks=1, preparation_checkpoints=60,
+                final_checkpoints=1, input_callbacks=60, view_callbacks=60, rectangle_callbacks=60,
+                node_stage_counts=[60, 60, 0, 0])
+        return report
+
+    def check_common_cut(self, report):
+        return strict_common_cut_case(report, self.name, *self.internal, self.presented, self.root)
+
+    def test_common_cut_has_only_separate_qualification(self):
+        report = self.common_cut_report()
+        self.assertIsNone(self.check_common_cut(report))
+        self.assertIsNotNone(self.check_report(report))
+        # Even forged normal success cannot make the old checker accept it.
+        report.update(passed=True, control_only=False)
+        report['cases'][0].update(passed=True, control_only=False)
+        self.assertIsNotNone(self.check_report(report))
+        self.assertIsNotNone(self.check_common_cut(report))
+
+    def test_common_cut_measured_region_cap_accepts8192_rejects8193(self):
+        for count in (8192, 8193):
+            with self.subTest(regions=count):
+                report = self.common_cut_report()
+                for role in ('cpu', 'gpu'):
+                    cut = report['cases'][0][role]['post_constructor_common_cut']
+                    cut['initial_bank_proof'].update(regions=count, complete_bank_bytes=count,
+                        committed_ranges=count, committed_bytes=count,
+                        expected_committed_ranges=count, expected_committed_bytes=count)
+                    cut['resource_limits'].update(regions=count, bank_bytes=count)
+                if count == 8192:
+                    self.assertIsNone(self.check_common_cut(report))
+                else:
+                    self.assertIsNotNone(self.check_common_cut(report))
+        report = self.common_cut_report()
+        for role in ('cpu', 'gpu'):
+            report['cases'][0][role]['post_constructor_common_cut']['resource_limits']['region_limit'] = 4096
+        self.assertIsNotNone(self.check_common_cut(report))
+
+    def test_common_cut_rejects_missing_or_false_scoped_evidence(self):
+        original = self.common_cut_report()
+        for role in ('cpu', 'gpu'):
+            for key in ('enabled', 'completed_constructor_and_local_views', 'before_preparation_projection_and_runtime',
+                        'local_test_binding_only', 'constructor_and_teardown_outside_tape',
+                        'tape_bound_after_initial_proof', 'tape_unbound_before_native_teardown'):
+                with self.subTest(role=role, key=key):
+                    report = copy.deepcopy(original)
+                    report['cases'][0][role]['post_constructor_common_cut'][key] = False
+                    self.assertIsNotNone(self.check_common_cut(report))
+            for key in ('passed', 'complete_topology_identical', 'complete_region_bytes_identical',
+                        'committed_run_segmentation_identical', 'committed_bytes_identical', 'no_resource_exclusion'):
+                with self.subTest(role=role, proof=key):
+                    report = copy.deepcopy(original)
+                    del report['cases'][0][role]['post_constructor_common_cut']['initial_bank_proof'][key]
+                    self.assertIsNotNone(self.check_common_cut(report))
+
+    def test_common_cut_rejects_different_starting_bank_or_missing_publication(self):
+        for role in ('cpu', 'gpu'):
+            report = self.common_cut_report()
+            report['cases'][0][role]['post_constructor_common_cut']['initial_bank_proof']['committed_bytes'] = 99
+            self.assertIsNotNone(self.check_common_cut(report))
+        report = self.common_cut_report()
+        report['cases'][0]['gpu']['post_constructor_common_cut']['normal_coupled_publication'] = False
+        self.assertIsNotNone(self.check_common_cut(report))
+        report = self.common_cut_report()
+        report['cases'][0]['common_cut_released_after_pair'] = False
+        self.assertIsNotNone(self.check_common_cut(report))
+
+    def test_common_cut_rejects_lifetime_overclaim_and_tape_divergence(self):
+        for key, value in (('constructor_through_world_teardown', True), ('constructor_outside_scope', False),
+                           ('native_teardown_outside_scope', False), ('semantic_sha256', '5' * 64),
+                           ('kind_counts', [0] * 9), ('mode', 'record')):
+            with self.subTest(key=key):
+                report = self.common_cut_report()
+                report['cases'][0]['gpu']['external_source_inputs'][key] = value
+                self.assertIsNotNone(self.check_common_cut(report))
+        report = self.common_cut_report()
+        report['cases'][0]['gpu']['source_rng_construction']['compared_in_ordered_trace'] = True
+        self.assertIsNotNone(self.check_common_cut(report))
+
+    def test_common_cut_still_requires_actual_gpu_worker_and_complete_trace(self):
+        for group, key, value in ((None, 'gpu_weighted_vertices', 0), (None, 'gpu_verified_vertices', 599),
+                                  ('presentation_worker', 'frames_with_actual_worker_jobs', 0),
+                                  ('passive_source_trace', 'node_stage_counts', [0, 0, 0, 0]),
+                                  ('passive_source_trace', 'sha256', '6' * 64),
+                                  ('cpu_fallback', 'jobs', 1)):
+            with self.subTest(group=group, key=key):
+                report = self.common_cut_report()
+                result = report['cases'][0]['gpu']
+                (result[group] if group else result)[key] = value
+                self.assertIsNotNone(self.check_common_cut(report))
+        path = self.root / (self.name + '-gpu') / 'final.ppm'
+        data = bytearray(path.read_bytes());data[-1] ^= 1;path.write_bytes(data)
+        self.assertIsNotNone(self.check_common_cut(self.common_cut_report()))
 
 
 if __name__ == '__main__':

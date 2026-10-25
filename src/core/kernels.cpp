@@ -1,4 +1,5 @@
 #include "halo2/kernels.hpp"
+#include "halo2/detail/damage_product_native.hpp"
 #include "halo2/math.hpp"
 #include <algorithm>
 #include <bit>
@@ -306,6 +307,7 @@ bool recharge(RechargeState &s, float dt, float body_rate, float shield_rate,
   return changed;
 }
 namespace {
+using detail::damage_product;
 template <class T>
 const T *damage_lookup(std::span<const T> entries, std::uint32_t key) {
   std::size_t start = 0, count = entries.size();
@@ -331,7 +333,7 @@ float damage_multiplier(std::span<const DamageGroup> table,
     if (const auto *group = damage_lookup(table, key))
       for (const auto armor : {armor_a, armor_b})
         if (const auto *modifier = damage_lookup<ArmorModifier>(group->modifiers, armor))
-          result = modifier->multiplier * result;
+          result = damage_product(modifier->multiplier, result);
   return result;
 }
 ShieldDamageResult shield_damage(ShieldDamageState &s,

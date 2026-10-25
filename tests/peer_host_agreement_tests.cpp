@@ -45,7 +45,7 @@ struct Mesh {
         check(state.decision&&state.decision->value.host==expected&&state.decision->value.cut==cut(expected,ctx).seal,"Peers failed to learn the same exact host/cut");
         check(state.decision->next.session==ctx.session&&state.decision->next.epoch==ctx.epoch+1&&state.decision->next.membership_revision==ctx.membership_revision+1&&
             state.decision->next.peers==std::uint16_t(ctx.peers&~(1u<<ctx.host))&&state.decision->next.host==expected,"Decision changed room or survivor generation");
-        check(unsigned(std::popcount(state.decision->voters))>=state.majority&&!(state.decision->voters&(1u<<ctx.host)),"Certificate counted host, couch seats or missing votes");}}
+        check(state.decision->voters==state.electorate,"Decision lacks the fixed survivor electorate");}}
 };
 void threshold(){
     PeerHostAgreement p(4,context(),1000);check(!p.state(1500).suspected&&p.state(1501).suspected,"Silence threshold must be strictly greater than 500ms");
@@ -151,9 +151,9 @@ void ordinary(){for(auto host:{0u,4u,8u,12u}){Mesh m(0x1111,host);const auto cho
 void partitions(){Mesh m;m.ready(4);m.ready(12);m.pump();m.allowed=[](const auto &p){return (p.from==4)==(p.to==4);};
     check(m.peers[4]->propose(4,m.now)&&m.peers[12]->propose(12,m.now),"Partition proposals refused");m.pump();
     check(!m.peers[4]->state(m.now).decision&&m.peers[4]->state(m.now).majority==2,"A one-voter partition promoted itself");
-    check(m.peers[8]->state(m.now).decision&&m.peers[12]->state(m.now).decision,"Survivor majority failed to agree");
+    check(!m.peers[8]->state(m.now).decision&&!m.peers[12]->state(m.now).decision,"A partial survivor electorate published a successor");
     m.allowed=[](const auto &){return true;};m.pump();m.same(12);
-    std::cout<<"PASS partition-majority intersection and reconciliation without locally deleting stale voters\n";
+    std::cout<<"PASS partition refuses incomplete survivor approval and reconciles without deleting voters\n";
 }
 void healthy_majority(){Mesh m;m.ready(4);m.pump();
     m.peers[8]->observe_host(m.now);m.peers[12]->observe_host(m.now);
@@ -175,12 +175,12 @@ void prior_value(){Mesh m;m.ready(8);m.ready(12);m.pump();
     m.allowed=[](const auto &p){return p.bytes[8]!=std::byte{6};};
     check(m.peers[4]->propose(8,m.now),"Initial proposal refused");m.pump();
     for(auto &p:m.peers)if(p)check(!p->state(m.now).decision,"Hidden votes unexpectedly learned");
-    // The first proposer disappears. Its chosen world remains on PC8. PC12
-    // wants its own world, but phase1 must carry PC8's accepted value forward.
+    // The first proposer disappears. A survivor's missing vote prevents a
+    // decision; the locked accepted value cannot be replaced by PC12.
     m.peers[4].reset();m.allowed=[](const auto &p){return p.from!=4&&p.to!=4;};
     check(m.peers[12]->propose(12,m.now),"Replacement proposer refused");m.pump(1000);
-    m.same(8);
-    std::cout<<"PASS interrupted proposer recovery carries highest accepted host/cut instead of conflicting fresh preference\n";
+    for(auto &p:m.peers)if(p)check(!p->state(m.now).decision,"Missing survivor vote was bypassed after proposer loss");
+    std::cout<<"PASS interrupted proposer cannot bypass the missing survivor or replace the locked cut\n";
 }
 void malformed(){Mesh m;m.ready(8);auto out=m.peers[8]->poll(m.now,128);
     auto found=std::ranges::find_if(out,[](const auto &p){return p.peer==4&&p.bytes[8]==std::byte{2};});check(found!=out.end(),"Ready packet missing");
@@ -219,7 +219,8 @@ void duplicates(){Mesh m;m.ready(8);m.pump();std::array<std::vector<std::byte>,1
     check(!m.peers[0]->state(m.now).decision&&!receipts[4].empty()&&!receipts[8].empty(),"Receipt capture did not isolate the old host learner");
     for(unsigned n=0;n<100;++n){m.peers[0]->receive(4,receipts[4],m.now);m.peers[0]->receive(8,receipts[4],m.now);}
     check(!m.peers[0]->state(m.now).decision,"Duplicate/relabeled votes manufactured a majority");
-    m.peers[0]->receive(8,receipts[8],m.now);check(m.peers[0]->state(m.now).decision.has_value(),"Two independently authenticated votes failed to form a majority");
+    m.peers[0]->receive(8,receipts[8],m.now);check(!m.peers[0]->state(m.now).decision,"Two votes bypassed unanimous survivor approval");
+    m.peers[0]->receive(12,receipts[12],m.now);check(m.peers[0]->state(m.now).decision.has_value(),"Unanimous authenticated votes failed to decide");
     std::cout<<"PASS duplicate receipts count once and a claimed peer cannot impersonate a second authenticated voter\n";
 }
 void schedules(){
@@ -255,7 +256,8 @@ void automatic_schedule(){
         for(auto p:{8u,12u})interrupted.peers[p]->drive(12,interrupted.now);
         interrupted.step(true);
     }
-    interrupted.same(8);
+    for(auto &p:interrupted.peers)if(p)check(!p->state(interrupted.now).decision,
+        "Automatic retry bypassed a missing survivor's vote");
     Mesh healthy;healthy.ready(8);healthy.pump();
     for(unsigned i=0;i<2500;++i){for(auto p:{8u,12u})healthy.peers[p]->observe_host(healthy.now);
         for(auto p:{4u,8u,12u})healthy.peers[p]->drive(8,healthy.now);healthy.step(true);}

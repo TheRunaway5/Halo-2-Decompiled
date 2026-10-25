@@ -1,8 +1,28 @@
 #pragma once
+#include <array>
 #include <cstddef>
 #include <cstdint>
 
 namespace halo2 {
+// Numeric preparation observations from the caller of this draw, on its host
+// steady clock. No source state, pose, observer or other borrowed payload.
+// These cover the current frame before draw; interval_ms spans two draw starts.
+struct RendererHostPreparationTiming {
+    struct View {double camera_lighting_ms{},static_world_ms{},objects_ms{},body_ms{},first_person_ms{},hud_ms{};};
+    // Nested returned-call observations: integer accounting while source/native
+    // execution is active. Conversion to milliseconds belongs to the writer.
+    struct ReturnedCall {std::uint64_t nanoseconds{};unsigned calls{};};
+    struct NativeView {
+        ReturnedCall model_collection,main_cull,main_commands,shadow_selection,shadow_roots;
+    };
+    unsigned frame{},views{};
+    std::uint32_t tick_begin{},tick_end{};
+    double input_ms{},common_ms{},pre_render_ms{};
+    std::array<View,4> view;
+    ReturnedCall match_step,state_projection,post_step;
+    std::uint64_t shared_pre_view_ns{};
+    std::array<NativeView,4> native_view;
+};
 // Host elapsed times around the existing submission path. These are not GPU
 // timestamps: fence, acquire, submit and present may include driver waits.
 struct RendererFrameTiming {

@@ -393,9 +393,20 @@ struct LoopingSound {
                            end = null_datum, alternate = null_datum,
                            alternate_end = null_datum;
     float gain_db{}, fade_in{}, fade_out{};
+    std::uint32_t name{}, alternate_transition_in = null_datum,
+                  alternate_transition_out = null_datum;
+    std::uint16_t output_effect{}, unknown3e{};
+    float alternate_crossfade{}, alternate_fade_out{};
+  };
+  struct Detail {
+    std::uint32_t name{}, sound = null_datum, flags{}, unknown14_bits{};
+    std::array<float,2> period{}, yaw{}, pitch{}, distance{};
   };
   std::string name;
   std::uint32_t flags{};
   std::vector<Track> tracks;
+  std::vector<Detail> details;
+  std::array<float,2> music_time{}, distance{};
+  std::uint32_t continuous_damage = null_datum;
 };
 } // namespace halo2

@@ -1,8 +1,14 @@
 {
-  "cache": "assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b",
+  "cache": "assets/imported/mcc-dire-valley-polish-20261023",
   "default_map": "coagulation.map",
-  "inventory": "bin/engine-builds/2571dcba509a4e73a68866885022f7de/runtime-files.json",
-  "inventory_sha256": "6907795380fed1c8ee2952e479e798cb12480dc3b0126b29a470a65cc39cc17f",
+  "eos_worker": {
+    "bytes": 1829120,
+    "name": "eos_sdk_worker",
+    "schema": "H2_EOS_SDK_WORKER_V1",
+    "sha256": "8c3fd7af0ad7a053ca5c18e5d0cdfb533676890fdc4cb39b5a550bf5cf5c54ae"
+  },
+  "inventory": "bin/engine-builds/de88c7bb680e4315bf8beef145ed3068/runtime-files.json",
+  "inventory_sha256": "cb03021cacc5b286cd61cc196c85fbc2d91330c57eefd5df1e8fe50f37e1383c",
   "local_players": 2,
   "maps": {
     "ascension.map": "04cb69156ed247e12e55e46cbf2364ce4dfdde8b1d7bf29c902f5ed0839464e9",
@@ -10,16 +16,17 @@
     "coagulation.map": "a94c4fdac2dee6887e83a1f2555e914aa7ed974d5c466ebabcf013b08f2ef17d",
     "containment.map": "7d27e2443a8467f89cd3714f07bfe161d5d543b1255823f8649dcf24c293dc95",
     "dune.map": "9ca3b5889c21a930b44c075ebf4a7ab7a846a48be551acd7cd9e43f868b3a321",
+    "elongation.map": "3780ab18cb5c65a0f23d99ab827671bc85c53c22c5e9a3826e5ab01425cff729",
     "gemini.map": "e6cfd824cbebe87d39cd74fbd5ace2637dbcdd6687f67d30134858b817a0dfc1",
     "headlong.map": "dba62b65f25146f492258d21beac93d8f97f142a59a4c4ef18f48803f46b9a5c",
     "lockout.map": "97d034dca2109adde65e56c0ab78ee56f72045b56bf9b3200f304d5e1ff4c61e",
     "warlock.map": "27f5a813db80776fc2e135101f1c43c9ab20a3ab7d4e132e05f20a183d79171d",
     "waterworks.map": "ba90e7c53de84dfdbb09c01071f7ca6122fbe1d281ba62b7355ee1be45510bbe"
   },
-  "qualification": "bin/engine-builds/2571dcba509a4e73a68866885022f7de/qualification.json",
-  "qualification_sha256": "9f18d02f63a1d5ec0403f61ec52983b8ebb8d767213a930169c2a18befeda5ad",
-  "runtime": "bin/engine-builds/2571dcba509a4e73a68866885022f7de/halo2_native",
-  "runtime_sha256": "7159a615127d52d25de19b388dd199be37b09b90b5430ca693e72c1f109abbc5",
+  "qualification": "bin/engine-builds/de88c7bb680e4315bf8beef145ed3068/qualification.json",
+  "qualification_sha256": "15a00e8057f75c6e2449b4fcf77b351e541181908f845fa4ee9bca206671c794",
+  "runtime": "bin/engine-builds/de88c7bb680e4315bf8beef145ed3068/halo2_native",
+  "runtime_sha256": "14380587f554a48035a9b3d2fd854789ff2dddc43625001a231f3805c681a215",
   "schema": "H2_LOCAL_GAMEPLAY_RUNTIME_SELECTION_V1",
   "video_driver": "x11"
 }

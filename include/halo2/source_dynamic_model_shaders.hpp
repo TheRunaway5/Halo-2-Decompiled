@@ -27,8 +27,17 @@ public:
                 const SourceModelShaderCollector &,const SourceModelShaderView &,
                 unsigned material_base = 0)const;
 private:
-    std::map<std::pair<unsigned,unsigned>,unsigned> select_parts(
-                const SourceModelShaderCollector &,const SourceModelShaderView &)const;
+    // (section, part) → selected slot or NONE, in identity order.
+    using PartSlots=std::vector<std::pair<std::pair<unsigned,unsigned>,unsigned>>;
+    PartSlots select_parts(const SourceModelShaderCollector &,const SourceModelShaderView &)const;
+    // Selected slot for one vertex; consecutive vertices of a part reuse the
+    // previous lookup. A part absent from the model throws.
+    struct PartLookup {
+        const PartSlots &slots;
+        std::pair<unsigned,unsigned> identity{~0u,~0u};
+        unsigned slot{};bool valid{};
+        unsigned operator()(const Vertex &);
+    };
     struct Part {unsigned source_material{};float scale=1;std::uint32_t shader{};unsigned input_class{};};
     std::map<std::pair<unsigned,unsigned>,Part> parts_;
     std::map<std::uint32_t,SourceShaderLodDefinition> definitions_;

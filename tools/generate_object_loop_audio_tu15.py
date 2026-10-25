@@ -13,12 +13,14 @@ from types import SimpleNamespace
 from oracle_smg_firing_1_1 import Xbe, _Code, _trace
 from research_mp_sandbox_update_functions import NEW_DEFAULT, NEW_PIN
 from generate_physics_live_support_tu15 import generate, sha
+from object_audio_views_tu15 import bind_native_camera_inputs
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTRIES = (0x18d390, 0x18d3d0, 0x18ee50, 0x18f900, 0x18e970, 0x18ed80, 0x129dd0,
            0x18d5a0, 0x18f9b0, 0x190460, 0x1904d0, 0x18ffb0,
            0x220640, 0x220c60, 0x18dc70, 0x18d960, 0x190a80,
-           0x129170, 0x18f510, 0x253070, 0x22c560, 0x223da0)
+           0x129170, 0x18f510, 0x253070, 0x22c560, 0x223da0, 0x226370,
+           0x18b580)
 
 
 def main():
@@ -96,6 +98,7 @@ def main():
         assert source.count(direct) == 1
         source = source.replace(direct,
             f's.push(0x{site:x}u,0x{site+5:x}u);s.required(0x{site:x}u,0x220c60u,false);')
+    source = bind_native_camera_inputs(source)
     temporary = args.output.with_name(args.output.name+'.tmp')
     temporary.write_text(source)
     os.replace(temporary, args.output)

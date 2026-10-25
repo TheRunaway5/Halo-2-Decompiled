@@ -27,6 +27,7 @@ struct SourceReplayLimits {
 // This recognizes the envelope, never its authority. The independent physical
 // sender/context and previously validated complete world select expected.
 bool source_replay_batch_payload(std::span<const std::byte>)noexcept;
+void validate_source_network_replay_calls(std::span<const SourceExecutionCall>);
 std::uint64_t source_replay_phase_allocation(const SourceExecutionPhase &);
 std::vector<std::byte> encode_source_replay_batch(const SourceReplayBatch &,SourceReplayLimits = {});
 // Check the accepted context/base/previous receipt/sequence before allocating

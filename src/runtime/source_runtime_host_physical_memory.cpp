@@ -56,7 +56,7 @@ SourceRuntimeHostPhysicalMemory::SourceRuntimeHostPhysicalMemory(SourceRuntimeMe
   try {
     const auto *reference=std::getenv("HALO2_REFERENCE_ALL_PHYSICAL_WRITE_GUARDS");
     const bool all_ranges=reference && *reference;
-    source_runtime_register_write_guard(memory_,this,[state,all_ranges](std::uint32_t address,std::size_t bytes) {
+    const auto guard=[state,all_ranges](std::uint32_t address,std::size_t bytes) {
       const auto end=std::uint64_t(address)+bytes;
       // allocate() publishes only upper-half physical tokens; restored
       // ownership enforces the same namespace. Ordinary writes ending at
@@ -67,7 +67,10 @@ SourceRuntimeHostPhysicalMemory::SourceRuntimeHostPhysicalMemory(SourceRuntimeMe
       const auto first=state->read_only.lower_bound(address&~(page-1));
       if(first!=state->read_only.end() && *first<end)
         throw std::runtime_error("Original runtime write to read-only physical page");
-    });
+    };
+    // The same boundary lets dispatch skip ordinary low writes without a call.
+    if(all_ranges)source_runtime_register_write_guard(memory_,this,guard);
+    else source_runtime_register_write_guard(memory_,this,guard,0x80000000ull);
   } catch(...) {
     std::lock_guard lock(physical_protection_mutex);physical_protections.erase(this);throw;
   }

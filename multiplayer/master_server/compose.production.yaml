@@ -1,14 +1,14 @@
 # One independent master per host. Only Caddy publishes network ports.
 services:
   init:
-    build: .
+    build: {context: ../.., dockerfile: multiplayer/master_server/Dockerfile}
     image: halo2-master-local:v1
     profiles: [tools]
     command: [python, -m, multiplayer.master_server.cli, init-master, --directory, /state]
     volumes: [master-data:/state]
     healthcheck: {disable: true}
   directory:
-    build: .
+    build: {context: ../.., dockerfile: multiplayer/master_server/Dockerfile}
     image: halo2-master-local:v1
     restart: unless-stopped
     read_only: true

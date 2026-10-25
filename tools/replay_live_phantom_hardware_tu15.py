@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-"""Run a live source-call capture through unchanged original i386 instructions.
+"""Run a live source-call capture through original i386 instructions.
 
 The libc-free ELF only loads actual input bytes and captures output after the
 original RET. A ptrace observer changes EIP at that completed return boundary;
-no original instruction, callee or resulting physical state is replaced.
+default replay replaces no original instruction or callee. Explicit MCC modes
+link authenticated StringID operands and captured read-only bitmap input views.
+An optional clock bridge delivers only actual recorded operating-system UTC
+inputs. Every mode compares all captured final bytes and CPU/FP state; no
+damage, collision, RNG, allocation/admission or solver result is provided.
 """
 import argparse,hashlib,json,struct,subprocess
 from pathlib import Path
@@ -136,10 +140,19 @@ def reference_text_gaps(image,capture,regions,output,section_name='.text',span=N
 
 
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--return-breakpoints',action='store_true');p.add_argument('--capture',required=True,type=Path);p.add_argument('--output',required=True,type=Path);a=p.parse_args()
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--return-breakpoints',action='store_true');p.add_argument('--component-inputs',action='store_true');p.add_argument('--mcc-symbol-reference',action='store_true',help='Explicit authenticated StringID operand linking for MCC input namespaces');p.add_argument('--mcc-input-views',action='store_true',help='Validate and expose actual read-only CPU bitmap input views from the BEFORE image');p.add_argument('--recorded-platform-time',action='store_true',help='Link the original clock import to its actual captured external UTC inputs');p.add_argument('--capture',required=True,type=Path);p.add_argument('--output',required=True,type=Path);a=p.parse_args()
  a.capture=a.capture.resolve();a.output=a.output.resolve();assert not a.output.exists();a.output.mkdir(parents=True)
  sha=lambda p:hashlib.file_digest(Path(p).open('rb'),'sha256').hexdigest()
- assert sha(NEW_DEFAULT)==NEW_PIN;image=Xbe(NEW_DEFAULT);d=json.loads((a.capture/'capture.json').read_text());assert d['entry'] in (0x2fc690,0xb9090,0x28c2c0,0x290030,0x2fbb70,0x2fc570,0x2fbb10,0x119060,0x297270,0x297400,0x296180,0xc1120,0xf0e70,0xb9180,0xc92c0,0xf2340,0xf48c0,0xce440,0x1da750,0x355d0,0x1e1170,0x1cc8d0,0x14fec0,0xb8f40,0x37c5d0,0x2ee660,0x2f1930,0x2fc5d0,0x158340,0x245ea0,0x18a300,0x18a2a0,0xec780,0xcb7a0,0x157fe0,0x158290,0x2f9d70,0x217470,0x217310,0x382230,0x170030,0x170080,0xbc440,0x158690) and d['reference']=='English TU1.5 only'
+ assert sha(NEW_DEFAULT)==NEW_PIN;image=Xbe(NEW_DEFAULT);d=json.loads((a.capture/'capture.json').read_text());assert d['entry'] in (0xdd5e0,0xdc540,0xd8110,0xd80a0,0x105460,0xd91d0,0xe89b0,0x1e9290,0x304c90,0x2f4de0,0x2fc690,0xb9090,0x28c2c0,0x290030,0x2fbb70,0x2fc570,0x2fbb10,0x119060,0x297270,0x297400,0x296180,0xc1120,0xf0e70,0xb9180,0xc92c0,0xf2340,0xf48c0,0xce440,0x1da750,0x355d0,0x1e1170,0x1cc8d0,0x14fec0,0xb8f40,0x37c5d0,0x2ee660,0x2f1930,0x2f18d0,0x2fc5d0,0x158340,0x245ea0,0x18a300,0x18a2a0,0xec780,0xcb7a0,0x157fe0,0x158290,0x2f9d70,0x217470,0x217310,0x382230,0x170030,0x170080,0xbc440,0x158690) and d['reference']=='English TU1.5 only'
+ if a.component_inputs:
+  assert d['entry'] in (0xd8110,0xdc540) and d.get('input_kind')=='declared_component' and d.get('after_origin')=='unchanged_original_unicorn'
+  if d['entry']==0xdc540:assert d.get('declared_callback_invocations')==0,'Child callback fixtures are not whole-original hardware captures'
+ else:
+  assert d.get('input_kind')!='declared_component','Declared component inputs require their explicit qualification mode'
+ inputs_path=a.capture/'external-inputs.json'
+ if inputs_path.exists():
+  inputs=json.loads(inputs_path.read_text())
+  assert not inputs.get('newly_committed_regions',[]), 'Captured call added memory outside its compared input regions; prepare genuine resources before capture'
  initial=d['before'];env=bytearray(108);tag=0xffff;top=(initial['x87_status']>>11)&7
  for n,value in enumerate(initial['x87_values']):
   raw=bytes.fromhex(value);mantissa=int.from_bytes(raw[:8],'little');exponent=int.from_bytes(raw[8:],'little')&0x7fff
@@ -167,13 +180,36 @@ def main():
   _,external_gaps,external_auth=reference_text_gaps(image,a.capture,regions,a.output,'D3D',(start,end))
   code_gaps.extend(external_gaps);authenticated_sites=[i.address for i in instructions]
   authenticated_external_code.append(dict(section='D3D',entry=0x4057f0,instruction_sites=len(authenticated_sites),code_authentication=external_auth))
+ namespace_symbols=None
+ if a.mcc_symbol_reference:
+  from original_mcc_symbol_reference_tu15 import MccSymbolReferenceTu15
+  namespace_symbols=MccSymbolReferenceTu15(image,Path(__file__).resolve().parents[1])
+ input_views=None
+ sound_views=None
+ if a.mcc_input_views:
+  from original_mcc_input_views_tu15 import MccBitmapInputViewsTu15
+  input_views=MccBitmapInputViewsTu15(a.capture,regions)
+  from original_mcc_sound_input_views_tu15 import MccSoundInputViewsTu15
+  sound_views=MccSoundInputViewsTu15(a.capture,regions,image,ROOT)
+  assert not sound_views.views or a.return_breakpoints,'Sound input views require hardware return observation'
+ platform_time=None
+ if a.recorded_platform_time:
+  assert a.return_breakpoints,'Recorded platform imports require hardware return observation'
+  from original_recorded_platform_time_tu15 import OriginalRecordedPlatformTimeTu15
+  platform_time=OriginalRecordedPlatformTimeTu15(a.capture,image)
  for n,r in enumerate(sorted([*regions,*code_gaps],key=lambda r:r['address'])):
   path=r.get('reference_file',a.capture/r.get('before_file',''))
+  if namespace_symbols and any(p['address']<r['address']+r['size'] and p['address']+4>r['address'] for p in namespace_symbols.patches):
+   linked=a.output/f'linked-symbol-bank-{n}.bin';linked.write_bytes(namespace_symbols.link(r['address'],path.read_bytes()));path=linked
+  if input_views and any(p['address']<r['address']+r['size'] and p['address']+4>r['address'] for p in input_views.aliases.values()):
+   linked=a.output/f'bitmap-input-view-{n}.bin';linked.write_bytes(input_views.link(r['address'],path.read_bytes()));path=linked
   assembly.append(f'.section .bank{n},"awx"\n.incbin "{path}"\n')
   sections.append(f'.bank{n} 0x{r["address"]:x} : {{ *(.bank{n}) }}')
   assert not(r['address']<=0x70000000<r['address']+r['size'])
  emit='\n'.join(f' mov ${r["address"]},%ecx\n mov ${r["size"]},%edx\n call write_exact' for r in regions)
+ if platform_time:emit+='\n mov $reference_time_index,%ecx\n mov $4,%edx\n call write_exact'
  asm=ASM.replace('EMIT_BANKS',emit).replace('ENTRY',str(d['entry'])).replace('INPUT_FILE',str(a.output/'input.bin')).replace('FS_BASE',str(initial['fs_base']))
+ if platform_time:asm+=platform_time.assembly()
  (a.output/'bridge.s').write_text(asm+'\n'+'\n'.join(assembly));(a.output/'link.ld').write_text('ENTRY(_start)\nSECTIONS {\n'+'\n'.join(sections)+'\n.bridge 0x70000000 : { *(.bridge) }\n}\n')
  subprocess.run(['as','--32',str(a.output/'bridge.s'),'-o',str(a.output/'bridge.o')],check=True,capture_output=True)
  subprocess.run(['ld','-melf_i386','-T',str(a.output/'link.ld'),str(a.output/'bridge.o'),'-o',str(a.output/'original-hardware')],check=True,capture_output=True)
@@ -185,6 +221,11 @@ def main():
   from generate_physics_live_support_tu15 import complete_body
   code=_Code(image,'.text');body=complete_body(code,d['entry']);returns=[q for q in sorted(body.code) if code.at(q).mnemonic.startswith('ret')];assert 0<len(returns)<=4
   trace_command.append(','.join(hex(q) for q in returns))
+ observer_bindings={}
+ if platform_time:observer_bindings.update(platform_time.bind(symbols))
+ if sound_views and sound_views.views:observer_bindings.update(sound_views.bindings())
+ if observer_bindings:
+  bindings=a.output/'recorded-platform-imports.json';bindings.write_text(json.dumps(observer_bindings)+'\n');trace_command.append(str(bindings))
  if authenticated_sites and not a.return_breakpoints:trace_command.append(','.join(hex(pc)for pc in authenticated_sites))
  subprocess.run(trace_command,check=True,timeout=60)
  with (a.output/'output.bin').open('rb') as output:
@@ -203,13 +244,39 @@ def main():
     if k!='eflags' and v!=d['after'][k]]
   compared=0
   for r in regions:
-   expected_path=a.capture/r.get('after_file',r['before_file']);expected=expected_path.read_bytes();original=output.read(r['size']);assert len(original)==r['size'];compared+=len(original)
+   expected_path=a.capture/r.get('after_file',r['before_file']);expected=expected_path.read_bytes()
+   if namespace_symbols:expected=namespace_symbols.link(r['address'],expected)
+   if input_views:expected=input_views.link(r['address'],expected)
+   if platform_time:expected=platform_time.link(r['address'],expected)
+   original=output.read(r['size']);assert len(original)==r['size'];compared+=len(original)
    if original!=expected:
     first=next(n for n,(x,y) in enumerate(zip(original,expected)) if x!=y);differences.append(dict(field='memory',address=r['address']+first,size=r['size']))
+  if platform_time:
+   consumed=struct.unpack('<I',output.read(4))[0]
+   assert consumed==len(platform_time.values),'Original clock reads differ from the actual input recording'
+   platform_time.receipt['consumed_inputs']=consumed
   assert output.read(1)==b''
  trace=json.loads((a.output/'trace.json').read_text());report=dict(reference='English TU1.5 only',passed=not differences,original_instructions=trace['original_instructions'],compared_memory_bytes=compared,reference_code_authentication=code_authentication,
   differences=differences,original_abi=actual,original_sha256=NEW_PIN,harness_sha256=sha(a.output/'original-hardware'),tracer_sha256=sha(tracer),
-  host='Linux i386 CPU execution with ptrace observation; not Xbox hardware',eflags_comparison_mask=flag_mask,hardware_entry_eflags=trace['entry_eflags'],native_entry_eflags=initial['eflags'],host_fixed_interrupt_flag=True,return_breakpoint_observation=a.return_breakpoints,authenticated_external_code=authenticated_external_code,entry=d['entry'],boundary='One real live physics call; unchanged original text, no replaced callee/result. All accessible final source bytes and GP/SSE/x87/FP controls/status compared.')
+  host='Linux i386 CPU execution with ptrace observation; not Xbox hardware',eflags_comparison_mask=flag_mask,hardware_entry_eflags=trace['entry_eflags'],native_entry_eflags=initial['eflags'],host_fixed_interrupt_flag=True,return_breakpoint_observation=a.return_breakpoints,authenticated_external_code=authenticated_external_code,entry=d['entry'],boundary='One actual live source call. Explicit reference bindings, when enabled, are listed separately. All accessible final source bytes and GP/SSE/x87/FP controls/status compared; no supplied gameplay result.')
+ if namespace_symbols:
+  report['mcc_symbol_reference']=namespace_symbols.receipt
+  report['boundary']='One actual live call with authenticated MCC StringID operand linking; original opcodes/control flow, all final source bytes and CPU/FP state compared. No supplied gameplay or physics results.'
+ if input_views:
+  report['mcc_input_views']=input_views.receipt
+  report['boundary']='One actual live call with declared MCC namespace and read-only bitmap input views; all final source bytes and CPU/FP state compared. No after-state, sampler, gameplay or physics result supplied.'
+ if sound_views:
+  report['mcc_sound_timing_input_views']=sound_views.receipt
+  if sound_views.views:
+   assert trace['sound_timing_input_views']==len(sound_views.views) and trace['sound_timing_operand_reads']==4*len(sound_views.views)
+ if platform_time:
+  report['recorded_platform_time']=platform_time.receipt
+  report['boundary']='Actual live call with declared MCC input bindings and recorded external platform time; original game/CRT/RNG instructions execute and all final source bytes and CPU/FP state compare. No gameplay or physical result supplied.'
+ if a.component_inputs:
+  report.update(boundary=d['boundary'],actual_live_call=False,comparison_expected_origin=d['after_origin'],
+   native_gameplay_or_native_ABI_equivalence_asserted=False,original_execution_completed=True)
+  for difference in report['differences']:
+   if 'native' in difference:difference['component_expected']=difference.pop('native')
  (a.output/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({k:v for k,v in report.items() if k!='original_abi'}));return 0 if report['passed'] else 1
 
 if __name__=='__main__':raise SystemExit(main())

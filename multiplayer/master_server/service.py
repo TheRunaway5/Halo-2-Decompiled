@@ -145,6 +145,7 @@ class Directory:
         self.id = self.store.id
         self.trusted = {p["id"]: p["public_key"] for p in settings.peers}
         require(self.id not in self.trusted, "Master cannot peer with itself")
+        self.store.cleanup(self.trusted)
         self.peer_status = {p["id"]: {"last_success": None, "failures": 0} for p in settings.peers}
         self.buckets = {}
         self.started = time.monotonic()
@@ -347,7 +348,7 @@ class Directory:
 
     async def maintenance(self):
         while True:
-            self.store.cleanup()
+            self.store.cleanup(self.trusted)
             self.matchmaking.cleanup()
             if hasattr(self, "match_transport"):
                 await self.match_transport.cleanup()

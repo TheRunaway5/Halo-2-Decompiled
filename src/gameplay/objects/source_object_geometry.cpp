@@ -1,4 +1,5 @@
 #include "gameplay/objects/source_object_geometry.hpp"
+#include "halo2/native_parallel.hpp"
 #include "halo2/world_material.hpp"
 #include "halo2/object_lighting.hpp"
 #include "halo2/math.hpp"
@@ -199,6 +200,21 @@ void SourceObjectGeometry::pose_world(const std::function<std::vector<Vertex>(co
         if(!g.vertex_materials.empty())
             for(unsigned i=0;i<g.vertices.size();++i)g.vertices[i].material=g.vertex_materials.at(i);
     }
+}
+void SourceObjectGeometry::pose_world_nodes(std::span<const Transform> nodes){
+    std::array<std::vector<Vertex>,6> posed;
+    std::array<std::exception_ptr,6> errors;
+    native_parallel_for(lods.size(),[&](std::size_t lod) {
+        try{posed[lod]=skin_model_world_nodes(lods[lod].model,nodes);}
+        catch(...){errors[lod]=std::current_exception();}
+    });
+    // Publish exactly as pose_world: a failing LOD leaves earlier LODs posed.
+    unsigned next=0;
+    pose_world([&](const RenderModel&) {
+        const auto lod=next++;
+        if(errors[lod])std::rethrow_exception(errors[lod]);
+        return std::move(posed[lod]);
+    });
 }
 std::vector<SourcePrtMaterialBank> SourceObjectGeometry::owner_banks(const Cache&cache,
     std::span<const Transform>world_nodes,const SourcePrtLighting&sh,unsigned lod,std::optional<Vec3> retained_incident)const {

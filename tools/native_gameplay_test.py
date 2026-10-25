@@ -47,6 +47,17 @@ def _identity(value):
             value.st_mtime_ns, value.st_ctime_ns)
 
 
+class NativeTestOwnerChanged(ValueError):
+    """A strict digest lost its exact file identity while reading it."""
+
+    def __init__(self, path, before, after_fd, after_path):
+        super().__init__("Native-test owner changed during validation")
+        self.path = Path(path)
+        self.before = _identity(before)
+        self.after_fd = _identity(after_fd)
+        self.after_path = _identity(after_path)
+
+
 def _file_digest(path, *, embedded=None, exact=None, readonly_literal=False):
     if path.is_symlink() or not path.is_file():
         raise ValueError("Native-test file has no direct owner")
@@ -66,10 +77,34 @@ def _file_digest(path, *, embedded=None, exact=None, readonly_literal=False):
                 if readonly_literal:
                     from packaged_shader_defaults import readonly_literal_location
                     readonly_literal_location(data, embedded)
-        if (_identity(before) != _identity(os.fstat(stream.fileno())) or
-                _identity(before) != _identity(path.stat())):
-            raise ValueError("Native-test owner changed during validation")
+        after_fd, after_path = os.fstat(stream.fileno()), path.stat()
+        if (_identity(before) != _identity(after_fd) or
+                _identity(before) != _identity(after_path)):
+            raise NativeTestOwnerChanged(path, before, after_fd, after_path)
     return digest
+
+
+def eos_worker_descriptor(runtime):
+    """Seal the dedicated SDK host shipped beside a newly built runtime."""
+    runtime = Path(runtime)
+    name = 'eos_sdk_worker.exe' if runtime.suffix.lower() == '.exe' else 'eos_sdk_worker'
+    worker = runtime.with_name(name)
+    if not os.access(worker, os.X_OK):
+        raise ValueError('EOS SDK worker is missing or is not executable')
+    return dict(schema='H2_EOS_SDK_WORKER_V1', name=name,
+                sha256=_file_digest(worker), bytes=worker.stat().st_size)
+
+
+def validate_eos_worker(runtime, declaration):
+    """Legacy capabilities omit this declaration; new ones must retain it."""
+    if (not isinstance(declaration, dict) or
+            set(declaration) != {'schema', 'name', 'sha256', 'bytes'} or
+            declaration.get('schema') != 'H2_EOS_SDK_WORKER_V1' or
+            type(declaration.get('bytes')) is not int or declaration['bytes'] <= 0):
+        raise ValueError('Invalid EOS SDK worker declaration')
+    _digest(declaration['sha256'])
+    if eos_worker_descriptor(runtime) != declaration:
+        raise ValueError('EOS SDK worker changed after qualification')
 
 
 def _runtime_owner(root, runtime, *, frontend=False):
@@ -172,6 +207,8 @@ def _runtime_owner(root, runtime, *, frontend=False):
     expected = owner["payload"]["sha256"] if readonly else owner["sha256"]
     if _file_digest(payload, embedded=compiled, readonly_literal=readonly) != _digest(expected):
         raise ValueError("Native-test executable changed")
+    if 'eos_worker' in report:
+        validate_eos_worker(payload, report['eos_worker'])
     if _file_digest(sidecar) != capability_sha:
         raise ValueError("Native-test capability changed during validation")
     return dict(runtime=runtime, report=report, capability_sha256=capability_sha,
@@ -228,6 +265,8 @@ def _check(root, runtime, cache, *, frontend=False):
                     "halo2/h2_maps_win64_dx11/sounds_neutral.dat",
                     "halo2/h2_fonts/font_table.txt"}
         required.update(loading_files)
+        if (cache / 'frontend-map-bindings.json').exists() or (cache / 'frontend-map-bindings.json').is_symlink():
+            required.add('frontend-map-bindings.json')
         # Every imported font is part of frontend admission, including languages
         # beyond the active selector. A receipt cannot silently omit a font.
         fonts = cache / "halo2/h2_fonts"
@@ -245,7 +284,7 @@ def _check(root, runtime, cache, *, frontend=False):
                     not relative.parts or
                     (relative.parts[0] not in ("halo2", "ui") and
                      name not in allowed_presentation and
-                     name != "presentation/ui/native-layout.json") or
+                     name not in ("presentation/ui/native-layout.json", "frontend-map-bindings.json")) or
                     any(part in (".", "..") for part in relative.parts)):
                 raise ValueError("Frontend resource escaped its MCC cache")
             path = cache / name

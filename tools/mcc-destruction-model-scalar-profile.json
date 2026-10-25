@@ -1,0 +1,203 @@
+{
+  "schema": "H2_MCC_TU15_DESTRUCTION_MODEL_SCALAR_V1",
+  "model": "objects\\vehicles\\h_turret_ap\\h_turret_ap",
+  "scope": "Exact named response scalar tuple; no inferred flag meaning or runtime outcome",
+  "original_response": {
+    "00": "00000000",
+    "04": "00000000",
+    "08": "00000000",
+    "20": "00000004",
+    "2c": "00000000",
+    "30": "65666665",
+    "44": "00000000",
+    "4c": "00000000"
+  },
+  "donor_response": {
+    "00": "00000000",
+    "04": "02000000",
+    "08": "00000000",
+    "20": "00000004",
+    "2c": "00000000",
+    "30": "65666665",
+    "44": "00000000",
+    "4c": "00000000"
+  },
+  "shape": {
+    "damage_blocks": 1,
+    "sections": 1,
+    "responses": 1
+  },
+  "authority": {
+    "tu15_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+    "contracts_sha256": "5260a01f1c81824694c392f7b2b349913169d269a68ea08115a2a66181dc6a17",
+    "contract_shards": [
+      {
+        "path": "contracts-v5-contracts-00.json",
+        "bytes": 516934,
+        "sha256": "9a19478655d9cc3a177e6fbf6a1ea4b69a3feafb60573f2a5c62d1c0ae230c72"
+      },
+      {
+        "path": "contracts-v5-contracts-01.json",
+        "bytes": 9351,
+        "sha256": "5da4c1b1295635dc91be632f868a2d49fd32d6108445a6d7032e2926972692ca"
+      }
+    ],
+    "original_contract": "81ae2c1fed973b9638e9717eff5939b8c3bedfaa3b36e37f4ec47bb88e25db6b",
+    "donor_contract": "db927731dc5d470f2f41e26a32e77d93d08784c0c68057d2020b7cad39b8d998",
+    "paired_maps": [
+      {
+        "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000001/containment.map",
+        "sha256": "e65de92bb58b7b2bae2979759d4cd6386d58c96f468cd06b0a4558c0bd1cd915",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/containment.map",
+        "mcc_sha256": "7d27e2443a8467f89cd3714f07bfe161d5d543b1255823f8649dcf24c293dc95"
+      },
+      {
+        "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000001/warlock.map",
+        "sha256": "980bb3b26a00848c420488f5edf11626a789e5b5bc5134722142c7b9730aa65a",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/warlock.map",
+        "mcc_sha256": "27f5a813db80776fc2e135101f1c43c9ab20a3ab7d4e132e05f20a183d79171d"
+      },
+      {
+        "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000002/deltatap.map",
+        "sha256": "adab707164195d10299be971f2096411c5862486abd89b669a7b1783f57a011c",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/deltatap.map",
+        "mcc_sha256": "917165194b13758a247b0dcec6609226c5f6fb1ab99c8481bf315ddc7784eb38"
+      },
+      {
+        "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000002/turf.map",
+        "sha256": "3000571be44bde1a62e2738b3a34b482c192772956631d555d8142e7a6d0e446",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/turf.map",
+        "mcc_sha256": "fa0d7255e8db62bc5501f45ebb47aebe2740d640f9292c1847fceae23823a4a6"
+      },
+      {
+        "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000003/backwash.map",
+        "sha256": "5b0b3b77ad7c010d08581430804daab25edd2a94df73ebd5d940a2e88ef63582",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/backwash.map",
+        "mcc_sha256": "3cacc08e60f9004846123841cdfffcf520d9dff5f81dd36fe17f3476b1659cb4"
+      },
+      {
+        "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000003/dune.map",
+        "sha256": "740fff53eb0b0a1eeb80adc33c1c0d08ab9700debb6da59df5d6c23c8e401498",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/dune.map",
+        "mcc_sha256": "9ca3b5889c21a930b44c075ebf4a7ab7a846a48be551acd7cd9e43f868b3a321"
+      },
+      {
+        "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000003/elongation.map",
+        "sha256": "8aa190e424003ce7efaea9e57be9556194b3aefdeccd8a86919f2534f7cf15ea",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/elongation.map",
+        "mcc_sha256": "3780ab18cb5c65a0f23d99ab827671bc85c53c22c5e9a3826e5ab01425cff729"
+      },
+      {
+        "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000003/gemini.map",
+        "sha256": "220b42701086a24fc0660041439a72337a3bb7b848d424a4da53ad9e15704095",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/gemini.map",
+        "mcc_sha256": "e6cfd824cbebe87d39cd74fbd5ace2637dbcdd6687f67d30134858b817a0dfc1"
+      },
+      {
+        "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000003/triplicate.map",
+        "sha256": "f193d05fa824c55cab4d8376a98f31b94a429de3824a8fb75ae356e97fdb05b4",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/triplicate.map",
+        "mcc_sha256": "8b12d40ac18e2977662a93204604660f77f30e0112672887c8e0b84543a608cc"
+      },
+      {
+        "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000004/derelict.map",
+        "sha256": "85c9d98556a0cd8dd6bcce94992425518f8a5753c0adb0c353fddf83696f7efd",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/derelict.map",
+        "mcc_sha256": "45efa1376a59c19b49945b12235e3d8fa33811582151452098affd0609aae6cc"
+      },
+      {
+        "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000004/highplains2.map",
+        "sha256": "b14a0debdb2e279c7bd7c7cda2b3e2a5cf69ca85f457923c1cfb9de6ca0b1bb1",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/highplains.map",
+        "mcc_sha256": "d6ea847433ba564e20100194c027cacc69f1f1ef85697fffe8463c58c6a0f02f"
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/06b_floodzone.map",
+        "sha256": "f96ccf1ed35a0c6fbef5dd2d51d46a8a4d64468cd79281b7f3339c31b1b4abea",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/06b_floodzone.map",
+        "mcc_sha256": "a598d04b3197e884c392e3552f90ebfbb25d3ac7391ad2ebeaada2751355d509"
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/ascension.map",
+        "sha256": "84d3164df56ca6ee7de073bd540f24ef6a2e9d2508f143bd94970d66ec5c0bfe",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/ascension.map",
+        "mcc_sha256": "04cb69156ed247e12e55e46cbf2364ce4dfdde8b1d7bf29c902f5ed0839464e9"
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/beavercreek.map",
+        "sha256": "35919a4a290911ab7cd11f1d72d07e191b44096e75e79ce3c3eb901703bf5c64",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/beavercreek.map",
+        "mcc_sha256": "c30bd1e015ad12c66eaa42243aef26245c45aafedfc9cc1caa9a265e727b210e"
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/burial_mounds.map",
+        "sha256": "8b2a7ac4f7b13b9521202a602969e35fece2adc02424bc4f1dc47a7cadf01c67",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/burial_mounds.map",
+        "mcc_sha256": "c222eb7ddedc08f16b7d52889197df81c9b2b2a946b029982b2b97584ed17a24"
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/coagulation.map",
+        "sha256": "1de37727dbb9c51aa08e03bfea86c0641ad67250dba28c5dcb3ba3dadaaf93fa",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/coagulation.map",
+        "mcc_sha256": "a94c4fdac2dee6887e83a1f2555e914aa7ed974d5c466ebabcf013b08f2ef17d"
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/colossus.map",
+        "sha256": "f1f9b6de456c43989201331f594e42f717095af51cb9762c0b420e21f9a5f982",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/colossus.map",
+        "mcc_sha256": "83b2e909752c7487c636b2cd17b7673b70bcdac8b5013dcea311a56658dafc35"
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/cyclotron.map",
+        "sha256": "50a264587112c3dd03e75ec1ac7c31e028383220ac77ac4b8a7e0dd65d6efb00",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/cyclotron.map",
+        "mcc_sha256": "ad350c598588bce43841a5a03740be978e04fe02b401879844bcb4a9ff7148ee"
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/foundation.map",
+        "sha256": "b9ab45535f9929474133c0c5f0f4bc50cbd9e27a5b80fd31e6fa4c0716ed7b86",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/foundation.map",
+        "mcc_sha256": "7ac455c5a7f3655c0bd972e988ec2cb0dcf3e411169f65fab260494e15c2d456"
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/headlong.map",
+        "sha256": "f459e179138ef954298dc52c43e5d400fe89efca44e7eaae1691315a3fad7748",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/headlong.map",
+        "mcc_sha256": "dba62b65f25146f492258d21beac93d8f97f142a59a4c4ef18f48803f46b9a5c"
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/highplains2.map",
+        "sha256": "b14a0debdb2e279c7bd7c7cda2b3e2a5cf69ca85f457923c1cfb9de6ca0b1bb1",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/highplains.map",
+        "mcc_sha256": "d6ea847433ba564e20100194c027cacc69f1f1ef85697fffe8463c58c6a0f02f"
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/lockout.map",
+        "sha256": "14c54046f259842bdac765526e7fe2d991369502041647f47db409ce845987a9",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/lockout.map",
+        "mcc_sha256": "97d034dca2109adde65e56c0ab78ee56f72045b56bf9b3200f304d5e1ff4c61e"
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/midship.map",
+        "sha256": "4f0c7687711313efce9273e4cabe9f410d08a47a707dbe8354cdede957e5155f",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/midship.map",
+        "mcc_sha256": "322cb810bfbfe02ab4e24acc8d58b7002a9c7ba1c680484447b64483e0a71156"
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/waterworks.map",
+        "sha256": "c5b81434f3b0d755c1208d8ac525e2a8a601d5f18f6447fc011cac83532fe6c1",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/waterworks.map",
+        "mcc_sha256": "ba90e7c53de84dfdbb09c01071f7ca6122fbe1d281ba62b7355ee1be45510bbe"
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/zanzibar.map",
+        "sha256": "2000bfc26fa38929e3ae8792618465ca5a60cc6bbeb753426e9d3a99954bdafb",
+        "mcc_path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/zanzibar.map",
+        "mcc_sha256": "a1914deef795b1a70f4b09092b87f0bf057c8d30bc860219609599c654aa0a78"
+      }
+    ]
+  },
+  "tool_sha256": "378218f55d74d3f37a3c5642685faedc2e73c4895fac04a0ce13f2239c777eaf",
+  "owned_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-hg_axp7u",
+  "retained_large_artifacts": []
+}

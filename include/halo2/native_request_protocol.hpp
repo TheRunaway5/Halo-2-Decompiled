@@ -32,10 +32,14 @@ struct NativeHelloRequest {
     std::uint64_t nonce{},fingerprint{};
     std::vector<NativeLocalPlayerRequest> players;
 };
+// Snapshot stream acknowledgement (newest decoded sequence, the 32 before it
+// as a mask, bit 0 of flags requests a self-contained reset).
+struct NativeSnapshotAck {std::uint32_t latest{},mask{};std::uint8_t flags{};};
 struct NativeInputRequest {
     std::uint64_t nonce{},cookie{};
     std::uint32_t sequence{};
     std::vector<NativeInputControl> controls;
+    NativeSnapshotAck ack;
 };
 struct NativeLeaveRequest {std::uint64_t nonce{},cookie{};};
 struct NativeSessionQuery {std::uint64_t nonce{};};

@@ -6,14 +6,18 @@
 pub mod authority_archive;
 pub mod common_cut;
 pub mod eos_account_auth;
+pub mod eos_outgoing;
 pub mod eos_wire;
 pub mod host_agreement;
 pub mod migration_driver;
 pub mod migration_preparation;
 pub mod native_requests;
+pub mod netcode;
 pub mod peer_pacing;
 pub mod prospective_role;
 pub mod survivor_selection;
+pub mod lan_auth;
+pub mod security_policy;
 
 const MAGIC: &[u8; 4] = b"H2N2";
 const VOICE_KIND: u8 = 6;

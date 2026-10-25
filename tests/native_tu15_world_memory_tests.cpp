@@ -7,6 +7,7 @@
 #include "halo2/source_cinematic_shadow_control_tu15.hpp"
 #include "halo2/source_ai_frame_tu15.hpp"
 #include "halo2/source_effect_particle_frame_tu15.hpp"
+#include "halo2/source_effect_particle_draw_tu15.hpp"
 #include "halo2/source_network_session_startup_tu15.hpp"
 #include <algorithm>
 #include <iostream>
@@ -31,6 +32,54 @@ void check(bool condition,const char* message) {
 }
 std::uint32_t word(const SourceRuntimeMemory& memory,std::uint32_t address) {
     return Bytes(memory.view(address,4)).u32(0);
+}
+void check_portal_empty_bounds(const SourceRuntimeMemory& cold) {
+    // Original21b207e7...176462 reads this writable .data pointer. Its
+    // destination is shared with474D40, and complete380FA0 constructs it.
+    check(word(cold,0x474d3cu)==0x55655cu && word(cold,0x474d40u)==0x55655cu,
+        "Portal and BSP queries must bind the same original empty-bounds owner");
+    cold.validate_mutable_view(0x474d3cu,4);
+    check(std::ranges::all_of(cold.view(0x55655cu,24),[](auto b){return b==std::byte{};}),
+        "Portal bounds must remain loader-zeroed until their native constructor");
+    cold.validate_mutable_view(0x55655cu,24);
+    const auto regions=cold.checkpoint().regions;
+    const auto binding=std::ranges::find_if(regions,[](const auto& r){return r.address==0x474d3cu;});
+    check(binding!=regions.end() && binding->bytes.size()==4,
+        "Portal binding must not admit adjacent original mutable state");
+    SourceRuntimeMemory memory;memory.restore(cold.checkpoint());
+    constexpr unsigned stack=0x63000800u,stop=0x63002000u;
+    memory.mount(stack-0x800,std::vector<std::byte>(0x3000),SourceRuntimeMemory::Access::ReadWrite,
+        "Portal constructor caller stack");
+    memory.write(stack,std::as_bytes(std::span(&stop,1)));
+    SourcePhysicsWorldRuntimeAbi abi{};
+    abi.gp={0x11111111u,0x22222222u,0x33333333u,0x44444444u,
+        stack,0x66666666u,0x77777777u,0x88888888u};abi.eflags=0x202;
+    auto expected_gp=abi.gp;expected_gp[4]+=4;
+    SourcePhysicsWorldRuntimeServices services;
+    std::vector<unsigned> instructions;
+    services.instruction=[&](unsigned pc){instructions.push_back(pc);};
+    unsigned stores{};
+    source_run_effect_particle_draw_tu15(memory,0x380fa0u,abi,{0x27f,0x1f80},services,
+        [&](const SourcePhysicsContactRecordStore& store) {
+            if(store.address<0x55655cu || store.address>=0x556574u)return;
+            check(stores<6 && store.instruction==0x380fb0u+8*stores &&
+                store.address==0x55655cu+4*stores && store.written.size()==4 &&
+                Bytes(store.written).u32(0)==(stores%2?0xff7fffffu:0x7f7fffffu),
+                "Native portal constructor differs from original ordered bounds publication");
+            ++stores;
+        });
+    constexpr std::array original_pcs{0x380fa0u,0x380fa8u,0x380fb0u,0x380fb8u,
+        0x380fc0u,0x380fc8u,0x380fd0u,0x380fd8u,0x380fe0u};
+    check(stores==6 && std::ranges::equal(instructions,original_pcs) &&
+        abi.gp==expected_gp && abi.eflags==0x202,
+        "Complete native portal constructor changed its original path or caller state");
+    for(unsigned i=0;i<6;++i)
+        check(word(memory,word(memory,0x474d3cu)+4*i)==(i%2?0xff7fffffu:0x7f7fffffu),
+            "Portal pointer does not observe the constructor's actual published bounds");
+    memory.write(0x474d3cu,std::as_bytes(std::span(&stop,1)));
+    SourceRuntimeMemory restored;restored.restore(memory.checkpoint());
+    check(word(restored,0x474d3cu)==stop,
+        "Checkpoint restoration replaced live writable portal binding with loader state");
 }
 void check_weapon_fallback_constructor(const SourceRuntimeMemory &cold) {
     const auto storage=cold.view(0x5564f0u,0x58);
@@ -297,6 +346,7 @@ int main(int argc,char** argv)try {
         check(rejected&&partial.checkpoint()==prior,"Multiplayer branch admission changed or accepted a conflicting owner");
     }
     auto memory=native_tu15_world_memory(input);
+    check_portal_empty_bounds(memory);
     // Pinned21b207e7... original167CAB/16821D and151570 operands.
     // The high-bounce Dire Valley map exercises the formerly missing first
     // owner; approaching a native portal exercises the second. The full
@@ -665,6 +715,8 @@ int main(int argc,char** argv)try {
     check(word(memory,0x46aae8u)==0x3fd55556u && memory.is_read_only(0x46aae8u,4) &&
         word(memory,0x46a1f4u)==0x3f555555u && memory.is_read_only(0x46a1f4u,4),
         "Original F9083/E892C fixed arithmetic inputs lack their exact readonly bytes");
+    check(word(memory,0x46a584u)==0x46a2f8e0u && memory.is_read_only(0x46a584u,4),
+        "Original18B580 sound-scenery angle scale lacks its exact readonly bytes");
     check(word(memory,0xe985cu)==0 && memory.is_read_only(0xe985cu,4),
         "Authored null branch identity was replaced or lacks readonly ownership");
     // The live movement failure read byte10 of original115BCF's selector,

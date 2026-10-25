@@ -61,6 +61,28 @@ class MatchmakingHttpTests(unittest.IsolatedAsyncioTestCase):
                 json=dict(screen_name="Pilot", maps=["lockout"], compatibility=compatibility))
             self.assertEqual(response.status, 409)
 
+    async def test_roster_display_ranks_are_opt_in_and_playlist_scoped(self):
+        a = await self.session(name="Same Name")
+        b = await self.session("two", "Same Name")
+        sessions = list(self.api.sessions.values())
+        for session, level in zip(sessions, (50, 49)):
+            with self.api.directory.store.db:
+                self.api.directory.store.db.execute("INSERT OR REPLACE INTO playlist_ranks VALUES(?,?,?)",
+                                                   (session.player, "ranked", level))
+        for headers in (a, b):
+            self.assertEqual((await self.enqueue(headers)).status, 201)
+        legacy = await (await self.client.get("/v1/matchmaking/ticket", headers=a)).json()
+        self.assertTrue(all(set(p)=={"name", "team", "self"} for p in legacy["match"]["players"]))
+        ranked = await (await self.client.get("/v1/matchmaking/ticket?ranks=1", headers=a)).json()
+        self.assertEqual(sorted(p["level"] for p in ranked["match"]["players"]), [49, 50])
+        self.assertTrue(all(set(p)=={"name", "team", "self", "level"} for p in ranked["match"]["players"]))
+        for headers in (a, b):
+            await self.client.delete("/v1/matchmaking/ticket", headers=headers)
+        for headers in (a, b):
+            self.assertEqual((await self.enqueue(headers, "casual")).status, 201)
+        casual = await (await self.client.get("/v1/matchmaking/ticket?ranks=1", headers=a)).json()
+        self.assertEqual([p["level"] for p in casual["match"]["players"]], [None, None])
+
     async def test_identity_privacy_names_private_skill_and_idempotence(self):
         a = await self.session()
         b = await self.session("two", "Another Pilot")

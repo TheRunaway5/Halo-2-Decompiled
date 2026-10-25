@@ -96,8 +96,197 @@ def background_selection(package):
     return selected
 
 
+def closed_architecture(package):
+    """Admit a source-bound partition of the repaired exterior volume."""
+    manifest=package/'closed-architecture-manifest.json'
+    source=package/'closed-architecture.ass'
+    if not manifest.exists():
+        assert not source.exists(),'Closed architecture requires its validation manifest'
+        return None
+    proof=json.loads(manifest.read_text())
+    assert proof['schema']=='DESERTED_CLOSED_ARCHITECTURE_PIECES_V1'
+    assert proof['passed'] and proof['ass_independent_parse']['passed']
+    assert sha(source)==proof['ass_sha256']
+    from deserted_architecture_digest import architecture_digest
+    assert architecture_digest(package/'dust2_mombasa.glb')==proof['architecture_corner_digest'],\
+        'Closed pieces do not belong to the staged visible architecture'
+    mapping=json.loads((package/'material_mapping.json').read_text())
+    assert list(mapping['palette'])==proof['material_palette_keys']
+    shared={list(mapping['palette']).index(key) for key in mapping['shared_collision_palette_keys']}
+    assert shared==set(proof['architecture_material_ids'])
+    assert proof['outside_internal_cap_samples']==0
+    assert proof['external_corner_provenance_failures']==0
+    assert proof['source_surface_failed_samples']==0
+    assert all(row['mismatch_count']==0 for row in proof['routes'])
+    return dict(path=source,manifest=manifest,proof=proof,material_ids=shared)
+
+
+def collision_proxy(package):
+    """Admit separately compiled collision without replacing visible corners."""
+    manifest=package/'collision-proxy-manifest.json'
+    source=package/'collision-proxy.ass'
+    if not manifest.exists():
+        assert not source.exists(),'Collision proxy requires its source-bound manifest'
+        return None
+    proof=json.loads(manifest.read_text())
+    assert proof['schema']=='DESERTED_CLOSED_COLLISION_PROXY_V1'
+    assert proof['passed'] and proof['ass_independent_parse']['passed']
+    assert proof['route_validation']['passed']
+    assert proof['tool_receipt']['passed']
+    assert len(proof['tool_receipt']['pieces'])==proof['piece_count']
+    assert all(row['passed'] and row['compiled_collision']['nonempty'] and
+               row['compiled_collision']['deleted_vertex_references']==0
+               for row in proof['tool_receipt']['pieces'])
+    assert all(row['mismatch_count']==0 for row in proof['route_validation']['routes'])
+    assert proof['route_validation_boundary_band_wu']<=1e-4
+    assert proof['compiled_proxy_render_and_shadow_triangle_counts_zero']
+    assert all(proof['assembly_contract'][key] for key in (
+        'preserve_all_original_render_triangle_corner_records',
+        'architecture_visible_materials_percent_to_exclamation',
+        'append_proxy_palette_independently',
+        'preserve_each_proxy_object_as_one_closed_instance',
+        'props_collision_and_other_render_faces_unchanged',
+        'source_visible_shadow_occluder_geometry_preserved'))
+    assert proof['assembly_contract']['proxy_material_flags']=='@)'
+    assert not proof['assembly_contract']['proxy_render_or_lightmap_participation']
+    assert sha(source)==proof['ass_sha256']
+    from deserted_architecture_digest import architecture_digest
+    assert architecture_digest(package/'dust2_mombasa.glb')==proof['architecture_corner_digest']
+    mapping=json.loads((package/'material_mapping.json').read_text())
+    assert list(mapping['palette'])==proof['material_palette_keys']
+    shared={list(mapping['palette']).index(key) for key in mapping['shared_collision_palette_keys']}
+    assert shared==set(proof['architecture_material_ids'])
+    return dict(path=source,manifest=manifest,proof=proof,material_ids=shared)
+
+
+def static_scenery(package):
+    """Validate the source-bound, independently qualified permanent wreck."""
+    recipe=package/'native-static-scenery.json'
+    if not recipe.exists():return None
+    proof=json.loads(recipe.read_text())
+    assert proof['schema']=='DESERTED_NATIVE_STATIC_SCENERY_V1' and proof['passed']
+    render=package/'data/scenarios/multi/dust2_mombasa/structure/dust2_mombasa.ass'
+    assert proof['source_render_ass_sha256']==sha(render)
+    assert proof['source_collision_ass_sha256']==sha(package/'dust2_collision.ass')
+    paths={}
+    for key in ('prefab_manifest','authoring_helper','native_pilot'):
+        path=(package/proof[key]).resolve(strict=True)
+        assert path.is_relative_to(package.resolve())
+        assert sha(path)==proof[key+'_sha256']
+        paths[key]=path
+    prefab=json.loads(paths['prefab_manifest'].read_text())
+    pilot=json.loads(paths['native_pilot'].read_text())
+    assert prefab['schema']=='DESERTED_STATIC_WRECK_PREFAB_SOURCE_V1' and prefab['passed']
+    assert pilot['schema']=='DESERTED_STATIC_WRECK_NATIVE_PILOT_V1' and pilot['passed']
+    assert pilot['compiled_factory_inputs']['passed']
+    source_policy=prefab['source_definition']['lightmapping_policy']
+    assert source_policy in (0,2), 'Qualified wreck requires a supported authored lighting policy'
+    pilot_policy=pilot['compiled_factory_inputs'].get('lightmapping_policy')
+    if pilot_policy is None:
+        # The frozen original dynamic pilot predates the explicit policy field.
+        assert source_policy==2, 'Baked scenery requires an explicit matching native pilot policy'
+    else:
+        assert pilot_policy==source_policy, 'Source scenery policy differs from its actual native pilot'
+    assert pilot['native_scenery_factory_and_render_resolved']
+    assert pilot['collision_control_separation_wu']>2
+    assert all(row['passed'] for row in pilot['native']) and len(pilot['native'])==4
+    assert prefab['source_render_triangles']==1770 and prefab['source_collision_triangles']==270
+    assert prefab['qualified_parent_render_ass_sha256']==proof['source_render_ass_sha256']
+    assert prefab['qualified_parent_collision_ass_sha256']==proof['source_collision_ass_sha256']
+    assert prefab['native_pilot']['proof_sha256']==proof['native_pilot_sha256']
+    assert all(prefab['native_acceptance'].values())
+    mixed_manifest=package/'mixed-geometry-manifest.json'
+    assert mixed_manifest.is_file(), 'Static wreck requires a qualified BSP omission owner'
+    mixed=json.loads(mixed_manifest.read_text());assert mixed['passed']
+    props_report=(package/mixed['props']['report']).resolve(strict=True)
+    assert props_report.is_relative_to(package.resolve())
+    assert sha(props_report)==mixed['props']['report_sha256']
+    props=json.loads(props_report.read_text())
+    assert props['passed'] and props.get('static_wreck_omitted') is True
+    assert props['excluded_scenery_render_object_ids']==proof['excluded_source_render_object_ids']
+    helper=Path(__file__).resolve().parent/'deserted_static_scenery.py'
+    assert sha(helper)==proof['authoring_helper_sha256']
+    return dict(recipe=recipe,proof=proof,**paths)
+
+
+def mixed_geometry(package, proxy=None):
+    """Admit authored shared render/collision owners before Classic compilation.
+
+    BspSurfaceLighting follows the hit collision instance's render references.
+    Consequently its closed collision solid and visible exterior must belong
+    to the same ASS object. The authoring proof covers exact halfspace splits;
+    final compiler references and native routes remain separate required gates.
+    """
+    manifest=package/'mixed-geometry-manifest.json'
+    if not manifest.exists():return None
+    assert proxy is not None,'Mixed geometry requires its source-bound collision proxy'
+    proof=json.loads(manifest.read_text())
+    assert proof['schema']=='DESERTED_MIXED_GEOMETRY_V1' and proof['passed']
+    render=package/'data/scenarios/multi/dust2_mombasa/structure/dust2_mombasa.ass'
+    assert sha(render)==proof['source_render_ass_sha256']
+    assert sha(package/'dust2_collision.ass')==proof['source_collision_ass_sha256']
+    assert sha(proxy['manifest'])==proof['collision_proxy_manifest_sha256']
+    inputs={}
+    for role in ('architecture','props'):
+        row=proof[role]
+        path=package/row['ass'];report=package/row['report']
+        assert path.resolve().is_relative_to(package.resolve())
+        assert report.resolve().is_relative_to(package.resolve())
+        assert sha(path)==row['ass_sha256'] and sha(report)==row['report_sha256']
+        authoring=json.loads(report.read_text())
+        assert authoring['passed'] and authoring['output_sha256']==sha(path)
+        assert authoring['source_ass_sha256' if role=='architecture' else 'source_render_ass_sha256']==sha(render)
+        if role=='architecture':
+            assert authoring['proxy_ass_sha256']==proxy['proof']['ass_sha256']
+            assert authoring['all_visible_source_surface_area_preserved']
+            assert authoring['proxy_collision_byte_identity']
+            assert set(authoring['material_ids'])==proxy['material_ids']
+            assert authoring['maximum_barycentric_position_error_wu']<1e-10
+            assert authoring['maximum_relative_area_delta']<=1e-7
+            assert authoring.get('collision_two_sided',False)==proof.get('collision_two_sided',False)
+            if proof.get('collision_two_sided'):
+                assert authoring['visible_material_policy_unchanged']
+                assert authoring['architecture_render_reverse_faces_requested'] is False
+                assert authoring['proxy_geometry_material_ids_corner_records_indices_exact']
+                proxy_palette=next(source_meshes(proxy['path']))
+                assert len(authoring['collision_material_policy_delta'])==len(proxy_palette)
+                for index,row in enumerate(authoring['collision_material_policy_delta']):
+                    assert row['proxy_palette_index']==index and row['source']==proxy_palette[index][0]
+                    assert row['authored']==row['source'][:-1]+'%"'
+        else:
+            assert authoring['source_collision_ass_sha256']==proof['source_collision_ass_sha256']
+            omitted=bool(authoring.get('static_wreck_omitted'))
+            if authoring.get('shared_palm_trunks'):
+                assert authoring['all_retained_source_render_corners_normals_uv_indices_preserved' if omitted else 'all_source_render_corners_normals_uv_indices_preserved']
+                assert authoring['all_retained_source_hull_geometry_preserved' if omitted else 'all_source_hull_geometry_preserved']
+                assert authoring['source_hull_geometry_maximum_error_wu']<=2e-7
+                # Shared visible trunk faces replace only the geometrically
+                # identical collision-only duplicates. Actual Classic/native
+                # reference coverage is qualified separately.
+            else:
+                assert authoring['all_source_corners_normals_uv_indices_preserved']
+                assert authoring['all_source_hulls_preserved']
+            if omitted:
+                assert authoring['retained_palms_records_and_indices_exact']
+                assert authoring['removed_wreck_render_triangles']==1770
+                assert authoring['removed_wreck_collision_triangles']==270
+                scenery=static_scenery(package)
+                assert scenery is not None
+                scenery_proof=scenery['proof']
+                assert scenery_proof['excluded_source_render_object_ids']==authoring['excluded_scenery_render_object_ids']
+        inputs[role]=dict(path=path,report=report,proof=authoring)
+    if (package/'native-static-scenery.json').exists():
+        assert inputs['props']['proof'].get('static_wreck_omitted') is True
+    return dict(manifest=manifest,proof=proof,**inputs)
+
+
 def assemble(package,output,report,limit,precise,split_render_batches,collision_plan,primary_background):
     materials=[];objects=[];stats=[]
+    partition=closed_architecture(package)
+    proxy=collision_proxy(package)
+    mixed=mixed_geometry(package,proxy)
+    assert not (partition and proxy),'Choose one architecture collision owner'
+    replaced_architecture=0
     background_policy=package/'assembly-background.json'
     explicit_background=json.loads(background_policy.read_text()) if background_policy.exists() else None
     selected_background=background_selection(package) if primary_background else set()
@@ -106,6 +295,7 @@ def assemble(package,output,report,limit,precise,split_render_batches,collision_
         temporary=Path(owned)
         for filename,role in [('data/scenarios/multi/dust2_mombasa/structure/dust2_mombasa.ass','render'),
                               ('dust2_collision.ass','collision')]:
+            if mixed and role=='collision':continue
             source=source_meshes(package/filename)
             palette=next(source);offset=len(materials)
             background_materials={i for i,(name,_) in enumerate(palette)
@@ -115,6 +305,12 @@ def assemble(package,output,report,limit,precise,split_render_batches,collision_
                 background_materials=set(explicit_background['material_indices'])
                 assert all(0<=i<len(palette) for i in background_materials)
             for mi,(name,variant) in enumerate(palette):
+                if role=='render' and proxy and mi in proxy['material_ids']:
+                    assert '%' in name and '!' not in name and '@' not in name
+                    name=name.replace('%','!')
+                if role=='render' and partition and mi in partition['material_ids']:
+                    assert '%' in name and '!' not in name
+                    name=name.replace('%','') # Whole closed pieces own ordinary single-sided collision.
                 if role=='render' and precise:name=name[:-1]+')"'
                 if role=='collision' and '%' not in name:name=name[:-1]+'%"'
                 if role=='render' and mi in background_materials:
@@ -158,8 +354,18 @@ def assemble(package,output,report,limit,precise,split_render_batches,collision_
                     objects.append((path,role))
                 batch_number+=1
                 vertex_records.clear();triangle_records.clear()
-            for records,triangles in source:
+            for source_object,(records,triangles) in enumerate(source):
                 total+=len(triangles)
+                if mixed:
+                    props=mixed['props']['proof']
+                    if source_object in props['source_render_object_ids']+props.get('excluded_scenery_render_object_ids',[]):continue
+                    architecture=np.isin(triangles[:,0],list(proxy['material_ids']))
+                    replaced_architecture+=int(architecture.sum())
+                    triangles=triangles[~architecture]
+                if role=='render' and partition:
+                    architecture=np.isin(triangles[:,0],list(partition['material_ids']))
+                    replaced_architecture+=int(architecture.sum())
+                    triangles=triangles[~architecture]
                 if role=='render' and selected_background:
                     locations=np.flatnonzero(np.isin(triangles[:,0],list(background_materials)))
                     selected=np.zeros(len(triangles),dtype=bool)
@@ -188,6 +394,69 @@ def assemble(package,output,report,limit,precise,split_render_batches,collision_
                     if len(triangle_records)==limit:flush()
             flush()
             stats.append(dict(role=role,triangles=total,instances=len(objects)-first,source_sha256=sha(package/filename)))
+            if role=='render' and partition:
+                assert replaced_architecture==partition['proof']['source_triangles']
+                closed_source=source_meshes(partition['path'])
+                closed_palette=next(closed_source)
+                assert len(closed_palette)==len(palette)
+                assert [variant for _,variant in closed_palette]==[variant for _,variant in palette]
+                count=0;faces=0
+                for records,triangles in closed_source:
+                    assert 0<len(triangles)<=limit and len(records)<65535
+                    assert set(map(int,triangles[:,0]))<=partition['material_ids']
+                    assert triangles[:,1:].min()>=0 and triangles[:,1:].max()<len(records)
+                    path=temporary/f'closed-{count}.ass'
+                    with path.open('wb') as f:
+                        f.write(f'"MESH"\n""\n""\n{len(records)}\n'.encode());f.writelines(records)
+                        f.write(f'{len(triangles)}\n'.encode())
+                        for m,a,b,c in triangles:f.write(f'{m+offset}\n{a}\n{b}\n{c}\n'.encode())
+                    objects.append((path,'architecture'))
+                    count+=1;faces+=len(triangles)
+                assert count==partition['proof']['piece_count']
+                stats.append(dict(role='closed architecture',triangles=faces,instances=count,
+                    source_sha256=partition['proof']['ass_sha256'],
+                    replaced_visible_source_triangles=replaced_architecture,
+                    internal_caps_are_compiler_artifacts=True))
+        if mixed:
+            assert replaced_architecture==mixed['architecture']['proof']['source_triangles']
+            for mixed_role in ('architecture','props'):
+                entry=mixed[mixed_role]
+                source=source_meshes(entry['path']);palette=next(source);offset=len(materials)
+                materials.extend(palette);count=0;faces=0
+                for records,triangles in source:
+                    assert len(records)<65535 and len(triangles)>0
+                    assert triangles[:,1:].min()>=0 and triangles[:,1:].max()<len(records)
+                    render_triangles=sum('@' not in palette[int(m)][0] for m in triangles[:,0])
+                    assert render_triangles*3<65535,'Classic render strip/index bound'
+                    path=temporary/f'mixed-{mixed_role}-{count}.ass'
+                    with path.open('wb') as f:
+                        f.write(f'"MESH"\n""\n""\n{len(records)}\n'.encode());f.writelines(records)
+                        f.write(f'{len(triangles)}\n'.encode())
+                        for m,a,b,c in triangles:f.write(f'{m+offset}\n{a}\n{b}\n{c}\n'.encode())
+                    objects.append((path,'mixed_'+mixed_role));count+=1;faces+=len(triangles)
+                stats.append(dict(role='shared render/collision '+mixed_role,triangles=faces,instances=count,
+                    source_sha256=sha(entry['path']),authoring_report_sha256=sha(entry['report']),
+                    closed_collision_and_visible_geometry_share_instance=True))
+        elif proxy:
+            source=source_meshes(proxy['path']);palette=next(source);offset=len(materials)
+            assert len(palette)==len(proxy['proof']['material_palette_keys'])
+            assert all('@' in name and ')' in name and '%' not in name and '!' not in name
+                       for name,_ in palette),'Proxy must remain precise collision-only geometry'
+            materials.extend(palette)
+            count=0;faces=0
+            for records,triangles in source:
+                assert 0<len(triangles)<=limit and len(records)<65535
+                assert set(map(int,triangles[:,0]))<=proxy['material_ids']
+                assert triangles[:,1:].min()>=0 and triangles[:,1:].max()<len(records)
+                path=temporary/f'proxy-{count}.ass'
+                with path.open('wb') as f:
+                    f.write(f'"MESH"\n""\n""\n{len(records)}\n'.encode());f.writelines(records)
+                    f.write(f'{len(triangles)}\n'.encode())
+                    for m,a,b,c in triangles:f.write(f'{m+offset}\n{a}\n{b}\n{c}\n'.encode())
+                objects.append((path,'architecture_collision'));count+=1;faces+=len(triangles)
+            assert count==proxy['proof']['piece_count']
+            stats.append(dict(role='separate architecture collision',triangles=faces,instances=count,
+                source_sha256=proxy['proof']['ass_sha256'],visible_source_corners_unchanged=True))
         path=temporary/'sky.ass'
         bounds=json.loads((package/'provenance.json').read_text())['render']['bounds_ass']
         shell(path,bounds,len(materials));materials.append(('"+sky"','""'))
@@ -219,12 +488,28 @@ def assemble(package,output,report,limit,precise,split_render_batches,collision_
                 out.write(f'{i}\n"{name}"\n{i+1}\n0\n0\n'+IDENTITY)
     save_json(report,dict(schema='H2_DUST2_CLASSIC_ASSEMBLY_V1',output=str(output),sha256=sha(output),
         objects=len(objects),materials=len(materials),batches=stats,max_triangles_per_instance=limit,
-        triangle_corners_preserved=True,render_marked_precise=precise,sky_shell_triangles=12,
+        triangle_corners_preserved=not bool(mixed),render_marked_precise=precise,sky_shell_triangles=12,
+        original_surfaces_and_barycentric_attributes_preserved=bool(mixed),
         two_sided_faces_count_against_strip_budget=True,
-        collision_surface_policy=('two-sided authored solids and retail prop hulls; no Source collision reused'
-            if (package/'collision-authoring.json').is_file() else
-            'two-sided original Source surfaces; no filled or invented solid volume'),
+        collision_surface_policy=('source-bound architecture solids and retail hulls grouped with their visible geometry for original surface-lighting references'
+            if mixed else 'source-bound conditioned architecture collision solids and original retail prop hulls; visible shell is render-only'
+            if proxy else ('two-sided authored solids and retail prop hulls; no Source collision reused'
+                if (package/'collision-authoring.json').is_file() else
+                'two-sided original Source surfaces; no filled or invented solid volume')),
         collision_split_plan=collision_plan,
+        mixed_geometry_manifest_sha256=sha(mixed['manifest']) if mixed else None,
+        source_architecture_split_by_authenticated_planes=bool(mixed),
+        final_compiler_reference_and_native_route_validation_required=bool(mixed),
+        architecture_collision_proxy=(dict(manifest_sha256=sha(proxy['manifest']),
+            ass_sha256=proxy['proof']['ass_sha256'],source_architecture=proxy['proof']['architecture_corner_digest'],
+            pieces=proxy['proof']['piece_count'],visible_geometry_render_only=True,
+            proxy_geometry_collision_only=True) if proxy else None),
+        closed_architecture_partition=(dict(manifest_sha256=sha(partition['manifest']),
+            ass_sha256=partition['proof']['ass_sha256'],
+            source_architecture=partition['proof']['architecture_corner_digest'],
+            pieces=partition['proof']['piece_count'],
+            source_triangles_replaced=replaced_architecture,
+            single_sided_closed_pieces=True) if partition else None),
         primary_background_triangles=len(selected_background),
         primary_background_strategy=('complete reduced desert terrain' if (package/'redesign.json').is_file()
             and len(selected_background)<=5276 else 'every eighth original background triangle plus six extrema; all remaining triangles instanced'),

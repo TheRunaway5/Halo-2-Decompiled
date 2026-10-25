@@ -1,6 +1,7 @@
 #include "halo2/native_vista_announcer.hpp"
 #include "halo2/cache.hpp"
 #include "halo2/source_tag_metadata.hpp"
+#include "halo2/source_announcer_events_tu15.hpp"
 #include <algorithm>
 #include <atomic>
 #include <limits>
@@ -22,6 +23,7 @@ struct NativeVistaAnnouncer::State:std::enable_shared_from_this<State> {
   VistaAnnouncerAssets assets;
   std::shared_ptr<const Cache> sound_cache;
   VistaAnnouncerEventState source;
+  std::optional<SourceAnnouncerResponsesTu15> source_responses;
   mutable std::recursive_mutex mutex;
   std::map<std::uint32_t,MultiplayerAudio::Voice> voices;
   std::map<MultiplayerAudio::Voice,std::uint32_t> tokens;
@@ -122,6 +124,16 @@ struct NativeVistaAnnouncer::State:std::enable_shared_from_this<State> {
     if(!sound_cache->is_vista() && !sound_cache->is_mcc())
       throw FormatError("PC announcer sound owner is not PC");
     std::set<std::uint32_t> cues;
+    if(configuration.source_tu15) {
+      source_responses=load_source_announcer_responses_tu15(*assets.cache);
+      for(const auto& bank:source_responses->banks) {
+        for(const auto& record:bank.definitions)for(unsigned language=0;language<9;++language) {
+          const auto cue=Bytes(record).u32(0x48+language*8);if(cue!=vista_announcer_none)cues.insert(cue);
+        }
+        for(const auto& alternatives:bank.alternatives)for(const auto& alternative:alternatives)
+          for(const auto cue:alternative.sounds)if(cue!=vista_announcer_none)cues.insert(cue);
+      }
+    }
     for(const auto* bank:{&assets.responses.general,&assets.responses.slayer,&assets.responses.king})
       for(const auto& record:*bank){const Bytes response(record);
         for(unsigned language=0;language<9;++language){const auto cue=response.u32(0x48+language*8);
@@ -311,6 +323,43 @@ std::vector<VistaAnnouncerAudioSelection> NativeVistaAnnouncer::publish_engine_e
       state_->assets.responses,event,player,context,state_->configuration.floating_point,
       [&](auto sound,auto scale){return state_->play(sound,scale,false);}))selected.push_back(*result);
   return selected;
+}
+std::vector<VistaAnnouncerAudioSelection> NativeVistaAnnouncer::publish_source_event(
+    const SourceMultiplayerEventTu15& input,std::span<const unsigned> slots) {
+  state_->producer_thread();const std::lock_guard lock(state_->mutex);State::Operation operation(*state_);
+  if(!state_->source_responses || input.words[0]>=state_->source_responses->banks.size() || slots.size()>4)
+    throw FormatError("Xbox event lacks its actual source response owner or local views");
+  std::vector<VistaAnnouncerAudioSelection> result;
+  if(input.game_over && (input.words[0]!=0 || input.words[1]!=19))return result;
+  const VistaAnnouncerEvent event{input.words,input.data};
+  const auto& bank=state_->source_responses->banks[input.words[0]];
+  auto random=input.random_seed;
+  // Original broadcast visits ascending actual datum slots. A targeted event
+  // retains its target even when that source row has already departed.
+  for(unsigned slot=0;slot<input.players.size();++slot) {
+    const auto view=std::find(slots.begin(),slots.end(),slot);if(view==slots.end())continue;
+    const auto& row=input.players[slot];if(row.datum==vista_announcer_none)continue;
+    if(event.words[2]==vista_announcer_none ? bool(row.flags&2u) : event.words[2]!=row.datum)continue;
+    const VistaAnnouncerLocalPlayer player{row.datum,row.flags,row.membership,std::int16_t(view-slots.begin())};
+    const auto recipient=source_announcer_recipient_tu15(bank.definitions,event,player);if(!recipient)continue;
+    const auto ordinal=recipient->ordinal;const auto& raw=bank.definitions[ordinal];
+    const auto choice=source_announcer_response_tu15(raw,bank.alternatives[ordinal],state_->configuration.language,
+        state_->configuration.tick_rate,random,state_->configuration.floating_point);
+    const Bytes definition(raw);VistaAnnouncerAudioSelection selected{};
+    selected.sound=choice.sound;selected.delay_ticks=choice.delay_ticks;selected.announcer=choice.announcer;
+    selected.audience=recipient->audience;selected.response_ordinal=ordinal;
+    selected.caption_key=definition.u32(0xc);selected.display_key=definition.u32(0x14);
+    if(choice.sound!=vista_announcer_none && source_announcer_remember_tu15(state_->source,event,
+        choice.sound,input.tick,state_->configuration.tick_rate,state_->configuration.floating_point)) {
+      if(choice.announcer) {
+        const auto before=state_->source.queue.count;
+        vista_announcer_queue_enqueue(state_->source.queue,choice.sound,choice.delay_ticks);
+        selected.requested=state_->source.queue.count!=before;
+      } else selected.requested=state_->play(choice.sound,1.f,false)!=vista_announcer_none;
+    }
+    result.push_back(selected);
+  }
+  return result;
 }
 std::vector<VistaAnnouncerAudioSelection> NativeVistaAnnouncer::post_world_tick(bool engine,
     std::uint8_t mode,bool over,std::uint32_t tick,std::span<const VistaAnnouncerLocalPlayer> players){

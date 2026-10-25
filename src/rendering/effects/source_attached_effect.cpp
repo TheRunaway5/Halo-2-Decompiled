@@ -26,6 +26,12 @@ void validate_source_attached_effects(std::span<const SourceAttachedEffect> effe
                 throw FormatError("Absent source attachment carries invented effect state");
         }else if((e.instance&65535u)>=256 || e.definition==0xffffffffu)
             throw FormatError("Source attachment effect identity exceeds its original pool");
+        if(e.render) {
+            validate_source_effect_replica_render_tu15(*e.render);
+            if(e.render->identity!=e.instance||e.render->flags!=e.flags||e.render_clock.flags!=e.flags||
+               !std::isfinite(e.render_clock.elapsed)||!std::isfinite(e.render_clock.target)||!std::isfinite(e.render_clock.field_68))
+                throw FormatError("Source attachment render packet differs from its current allocation/clock");
+        }
         if(e.locations.size()>512)throw FormatError("Source effect locations exceed their original pool");
         for(const auto &location:e.locations) {
             const auto finite=[](Vec3 v){return std::isfinite(v.x)&&std::isfinite(v.y)&&std::isfinite(v.z);};
@@ -73,6 +79,11 @@ std::vector<SourceAttachedEffect> source_attached_effects_tu15(
         e.definition=word(m,effect+4);e.flags=std::uint16_t(word(m,effect+2,2));
         e.scale_a=std::bit_cast<float>(word(m,effect+0x6c));e.scale_b=std::bit_cast<float>(word(m,effect+0x70));
         e.colors={word(m,effect+0x104),word(m,effect+0x108)};
+        e.render=source_effect_replica_render_tu15(m,e.instance,e.definition);
+        e.render_clock={e.flags,std::bit_cast<std::int16_t>(std::uint16_t(word(m,effect+0x5c,2))),
+            std::bit_cast<std::int16_t>(std::uint16_t(word(m,effect+0x5e,2))),
+            std::bit_cast<float>(word(m,effect+0x60)),std::bit_cast<float>(word(m,effect+0x64)),
+            std::bit_cast<float>(word(m,effect+0x68))};
         const auto tags=word(m,0x4f0414u),row=tags+(e.definition&65535u)*16u;
         if(word(m,row+4)!=e.definition)throw FormatError("Source effect definition lost its full tag identity");
         const auto definition=word(m,row+8),count=word(m,definition+0xcu),names=word(m,definition+0x10u);

@@ -1,5 +1,6 @@
 # Same retained bank and native resource owners for the TU1.5 live world.
 target_sources(halo2_systems PRIVATE src/physics/physics_live_world_tu15.cpp src/runtime/source_runtime_cache_tags_tu15.cpp)
+include("${CMAKE_CURRENT_LIST_DIR}/DamageModelChildrenTu15.cmake")
 target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/world/source_teleporter_tu15_generated.cpp)
 if(MSVC)
     set_source_files_properties(src/gameplay/world/source_teleporter_tu15_generated.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
@@ -38,6 +39,15 @@ target_sources(halo2_systems PRIVATE src/audio/source_sound_gain_tu15_generated.
 target_sources(halo2_systems PRIVATE src/audio/source_sound_range_selection_tu15_generated.cpp
     src/audio/source_sound_permutation_tu15_generated.cpp src/audio/source_sound_binding_tu15_generated.cpp)
 target_sources(halo2_systems PRIVATE src/audio/source_sound_chunk_readiness_tu15_generated.cpp)
+# Native sound manager kernels; same strict floating-point model as the
+# routines they replace.
+target_sources(halo2_systems PRIVATE src/audio/native_tu15_sound_manager.cpp)
+if(MSVC)
+    set_source_files_properties(src/audio/native_tu15_sound_manager.cpp PROPERTIES COMPILE_OPTIONS "/fp:strict")
+else()
+    set_source_files_properties(src/audio/native_tu15_sound_manager.cpp PROPERTIES
+        COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
+endif()
 if(MSVC)
     set_source_files_properties(src/audio/source_sound_listener_selection_tu15_generated.cpp
         src/audio/source_sound_gain_tu15_generated.cpp src/audio/source_sound_random_scalar_tu15_generated.cpp
@@ -117,6 +127,17 @@ if(BUILD_TESTING)
             --binary $<TARGET_FILE:source_sound_scalar_tu15_tests>
             --generated-source ${PROJECT_SOURCE_DIR}/src/audio/source_sound_scalar_tu15_generated.cpp)
     set_tests_properties(original_tu15_sound_scalar PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)
+    # Native sound manager kernels against the lifted routines they replace.
+    add_executable(native_tu15_sound_manager_tests EXCLUDE_FROM_ALL tests/native_tu15_sound_manager_tests.cpp
+        src/audio/native_tu15_sound_manager.cpp src/audio/source_sound_random_short_tu15_generated.cpp
+        src/audio/source_sound_random_scalar_tu15_generated.cpp src/audio/source_sound_scalar_tu15_generated.cpp
+        src/audio/source_sound_range_selection_tu15_generated.cpp src/audio/source_sound_permutation_tu15_generated.cpp)
+    target_include_directories(native_tu15_sound_manager_tests PRIVATE include src)
+    if(NOT MSVC)
+        target_compile_options(native_tu15_sound_manager_tests PRIVATE -fno-fast-math -ffp-contract=off -frounding-math)
+    endif()
+    add_test(NAME native_tu15_sound_manager COMMAND native_tu15_sound_manager_tests)
+    set_tests_properties(native_tu15_sound_manager PROPERTIES TIMEOUT 120)
     add_executable(source_sound_cache_query_tu15_tests EXCLUDE_FROM_ALL
         tests/source_sound_cache_query_tu15_tests.cpp src/audio/source_sound_cache_query_tu15_generated.cpp)
     target_include_directories(source_sound_cache_query_tu15_tests PRIVATE include src)
@@ -417,7 +438,7 @@ target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/units/source_com
 target_sources(halo2_physics_world_runtime PRIVATE src/rendering/effects/source_effect_particle_frame_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/rendering/effects/source_effect_particle_draw_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/campaign/ai/source_ai_actor_tu15_generated.cpp)
-target_sources(halo2_physics_world_runtime PRIVATE src/campaign/ai/source_ai_frame_tu15_generated.cpp)
+halo2_partition_native_translation(halo2_physics_world_runtime src/campaign/ai/source_ai_frame_tu15_generated.cpp 12)
 target_sources(halo2_physics_world_runtime PRIVATE src/campaign/ai/source_ai_actor_contact_selector_tu15_generated.cpp)
 if(BUILD_TESTING)
     add_executable(source_ai_actor_contact_selector_tu15_tests
@@ -1108,9 +1129,19 @@ if(BUILD_TESTING)
     target_include_directories(source_effect_compiled_symbols_tu15_tests PRIVATE include)
     target_link_libraries(source_effect_compiled_symbols_tu15_tests PRIVATE Threads::Threads)
     add_test(NAME source_effect_compiled_symbols_tu15 COMMAND source_effect_compiled_symbols_tu15_tests)
+    add_executable(object_function_symbol_tu15_tests EXCLUDE_FROM_ALL tests/object_function_symbol_tu15_tests.cpp)
+    target_link_libraries(object_function_symbol_tu15_tests PRIVATE halo2_systems)
+    set(HALO2_OBJECT_FUNCTION_MCC_MAP "" CACHE FILEPATH "Prepared MCC map for original object-function namespace regression")
+    add_test(NAME object_function_symbol_namespace COMMAND object_function_symbol_tu15_tests
+        "${PROJECT_SOURCE_DIR}/tests/fixtures/weapon_firing_material_tu15.json"
+        "${HALO2_OBJECT_FUNCTION_MCC_MAP}"
+        "${CMAKE_CURRENT_BINARY_DIR}/object-function-symbol.json"
+        "${PROJECT_SOURCE_DIR}/tests/fixtures/object_function_folded_symbols_tu15.json")
+    set_tests_properties(object_function_symbol_namespace PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
 endif()
 target_sources(halo2_physics_world_runtime PRIVATE src/rendering/effects/source_effect_world_locations.cpp)
-target_link_libraries(halo2_physics_world_runtime PUBLIC halo2_raw_datum_pool_identity halo2_mcc_sound_tag_layout)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/objects/source_effect_replica_readback_tu15.cpp)
+target_link_libraries(halo2_physics_world_runtime PUBLIC halo2_raw_datum_pool_identity halo2_mcc_sound_tag_layout halo2_cache)
 target_sources(halo2_systems PRIVATE src/gameplay/weapons/source_projectile_presentation.cpp)
 target_sources(halo2_systems PRIVATE src/gameplay/units/source_combat_attachments.cpp)
 

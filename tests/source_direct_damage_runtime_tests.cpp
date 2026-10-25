@@ -48,6 +48,7 @@ halo2::SourcePhysicsContactRuntimeAbi abi(const J&j){
     return a;
 }
 struct Stop{halo2::SourcePhysicsContactRuntimeCall call;};
+struct OriginalPrefixBoundary{};
 }
 int main(int argc,char**argv){try{
     check(argc==2,"Supply original direct damage fixture");if(!std::filesystem::exists(argv[1]))return 77;
@@ -67,7 +68,17 @@ int main(int argc,char**argv){try{
         std::vector<halo2::SourcePhysicsContactRecordStore> stores;std::vector<std::uint32_t> trace;
         const auto cpu_estimates=c.value("cpu_estimates",J::array());std::size_t estimate_index=0;
         halo2::SourcePhysicsContactRuntimeServices services;
-        services.instruction=[&](auto p){trace.push_back(p);};
+        services.instruction=[&](auto p){
+            // A bounded original fixture can end at a helper now owned by the
+            // latest source. Stop observation at that authenticated entry;
+            // never execute it with banks the original fixture did not capture.
+            // This supplies no return and still compares the entire CPU,
+            // instruction/store prefix and captured memory at the boundary.
+            if(c.contains("original_prefix_exit_site") &&
+                p==c.at("original_prefix_exit_site").get<std::uint32_t>())
+                throw OriginalPrefixBoundary{};
+            trace.push_back(p);
+        };
         services.required_owner=[](auto&,const auto&call,auto&,const auto&){throw Stop{call};};
         const halo2::SourcePhysicsFactoryFloatingPoint fp{c.at("entry_abi").at("x87_control_word").get<std::uint16_t>(),c.at("entry_abi").at("mxcsr").get<std::uint32_t>()};
 #ifdef HALO2_DAMAGE_DELIVERY_TEST
@@ -114,6 +125,14 @@ int main(int argc,char**argv){try{
             const auto&p=c.at("pending");check(e.call.instruction==p.at("instruction")&&e.call.tail==p.at("tail"),name+" pending call site/tail differs");
             check(state.gp[4]==p.at("frame_esp"),name+" pending frame differs");std::array<std::byte,32> frame;m.read(state.gp[4],frame);
             check(hex(frame)==p.at("stack32").get<std::string>(),name+" pending stack differs");}
+        catch(const OriginalPrefixBoundary&){
+            stopped=true;check(!c.at("complete").get<bool>(),name+" complete case has a prefix boundary");
+            const auto&p=c.at("pending");
+            check(!trace.empty()&&trace.back()==p.at("instruction").get<std::uint32_t>(),name+" original prefix caller differs");
+            check(state.gp[4]==p.at("frame_esp"),name+" original prefix frame differs");
+            std::array<std::byte,32> frame;m.read(state.gp[4],frame);
+            check(hex(frame)==p.at("stack32").get<std::string>(),name+" original prefix stack differs");
+        }
         catch(const std::exception&e){throw std::runtime_error(name+" last site "+(trace.empty()?"none":h(trace.back()))+": "+e.what());}
         check(stopped==!c.at("complete").get<bool>(),name+" completion differs");
         check(estimate_index==cpu_estimates.size(),name+" unconsumed original CPU estimate");
@@ -142,6 +161,7 @@ int main(int argc,char**argv){try{
             ++pending;auto bank=initial;auto a=abi(c.at("entry_abi"));auto missing=services;missing.required_owner={};
             trace.clear();estimate_index=0;std::vector<halo2::SourcePhysicsContactRecordStore>prefix;bool rejected=false;
             try{run(bank,a,missing,halo2::SourcePhysicsContactRecordObserver([&](const auto&s){prefix.push_back(s);}));}
+            catch(const OriginalPrefixBoundary&){rejected=true;}
             catch(const std::runtime_error&e){
 #ifdef HALO2_DAMAGE_COMPOSITION_TEST
                 rejected=std::string(e.what())=="Required original death object phase owner unavailable";

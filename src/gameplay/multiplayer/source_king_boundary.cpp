@@ -3,6 +3,7 @@
 #include <cfenv>
 #include <cmath>
 #include <stdexcept>
+#include <algorithm>
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
 #include <xmmintrin.h>
 #endif
@@ -58,9 +59,9 @@ std::int32_t fistp(float value) {
 float scalar(__m128 value){return _mm_cvtss_f32(value);}
 #endif
 }
-std::optional<SourceKingBoundary> source_king_boundary(const SourceKingState& state,
+static std::optional<SourceKingBoundary> polygon_boundary(const SourceKingState& state,
     const std::array<float,3>& camera,const std::array<float,3>& rgb,
-    std::int32_t tick,std::int16_t rate,SourceKingBoundaryFloatingPoint fp) {
+    std::int32_t tick,std::int16_t rate,float height,float distance_scale,SourceKingBoundaryFloatingPoint fp) {
   if(state.marker_count<4 || (state.marker_count&1))return {};
   if(!(state.radius>0) || !std::isfinite(state.radius) || !(state.perimeter>0) || !std::isfinite(state.perimeter) || !rate)
     throw std::invalid_argument("King boundary requires finite positive authored geometry and a nonzero source clock rate");
@@ -70,7 +71,7 @@ std::optional<SourceKingBoundary> source_king_boundary(const SourceKingState& st
     throw std::invalid_argument("King boundary has unavailable center/view/color inputs");
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
   Scope scope(fp);const auto radius=_mm_set_ss(state.radius),one=_mm_set_ss(1.f);
-  const auto limit=_mm_mul_ss(_mm_set_ss(1.5f),radius);
+  const auto limit=_mm_mul_ss(_mm_set_ss(distance_scale),radius);
   const auto distance=distance_minus({state.center[0],state.center[1]},camera,state.radius);
   auto d=distance.live<0 ? _mm_setzero_ps() : _mm_set_ss(distance.stored);
   if(_mm_comigt_ss(d,limit))d=limit;
@@ -80,7 +81,6 @@ std::optional<SourceKingBoundary> source_king_boundary(const SourceKingState& st
   out.inner=scalar(_mm_mul_ss(_mm_mul_ss(fade,radius),_mm_set_ss(2.f)));
   const auto adjusted=_mm_sub_ss(radius,_mm_set_ss(std::bit_cast<float>(0x38d1b717u)));
   out.outer=scalar(_mm_add_ss(_mm_set_ss(out.inner),adjusted));
-  constexpr float height=std::bit_cast<float>(0x3f4ccccdu);
   const float estimate=scalar(_mm_div_ss(_mm_set_ss(state.perimeter),
       _mm_mul_ss(_mm_set_ss(height),_mm_set_ss(std::bit_cast<float>(0x3f99999au)))));
   out.repeats=fistp(estimate);
@@ -104,5 +104,22 @@ std::optional<SourceKingBoundary> source_king_boundary(const SourceKingState& st
 #else
   (void)tick;(void)fp;throw std::runtime_error("King boundary source x87 arithmetic backend unavailable");
 #endif
+}
+std::optional<SourceKingBoundary> source_king_boundary(const SourceKingState& state,
+    const std::array<float,3>& camera,const std::array<float,3>& rgb,
+    std::int32_t tick,std::int16_t rate,SourceKingBoundaryFloatingPoint fp) {
+  return polygon_boundary(state,camera,rgb,tick,rate,std::bit_cast<float>(0x3f4ccccdu),1.5f,fp);
+}
+std::optional<SourceKingBoundary> source_polygon_boundary(
+    std::span<const std::array<float,2>,32> polygon,const std::array<float,3>& center,
+    float radius,float perimeter,float height,float distance_scale,
+    const std::array<float,3>& camera,const std::array<float,3>& rgb,
+    std::int32_t tick,std::int16_t rate,SourceKingBoundaryFloatingPoint fp) {
+  if(!std::isfinite(height) || !(height>0) || !std::isfinite(distance_scale) || !(distance_scale>0))
+    throw std::invalid_argument("Original polygon boundary requires positive finite height and distance scale");
+  SourceKingState geometry;geometry.marker_count=4;
+  std::copy(polygon.begin(),polygon.end(),geometry.polygon.begin());
+  geometry.center=center;geometry.radius=radius;geometry.perimeter=perimeter;
+  return polygon_boundary(geometry,camera,rgb,tick,rate,height,distance_scale,fp);
 }
 } // namespace halo2

@@ -13,16 +13,32 @@ function(halo2_add_online_protocol)
     set(module "${root}/rust/online_protocol_bridge")
     set(output "${CMAKE_CURRENT_BINARY_DIR}/online-protocol/$<CONFIG>")
     set(archive "${CMAKE_STATIC_LIBRARY_PREFIX}halo2_online_protocol_bridge${CMAKE_STATIC_LIBRARY_SUFFIX}")
+    set(security_library "${CMAKE_SHARED_LIBRARY_PREFIX}halo2_online_security_ffi${CMAKE_SHARED_LIBRARY_SUFFIX}")
+    set(worker "eos_sdk_worker${CMAKE_EXECUTABLE_SUFFIX}")
+    set(HALO2_SECURITY_LIBRARY "${output}/${security_library}" PARENT_SCOPE)
     set(rust_cxx_flags "${CMAKE_CXX_FLAGS}")
+    set(worker_link_flags "${CMAKE_EXE_LINKER_FLAGS}")
+    set(worker_linker "${CMAKE_CXX_COMPILER}")
+    if(MSVC)
+        set(worker_linker "${CMAKE_LINKER}")
+    endif()
     if(HALO2_SANITIZERS AND NOT MSVC)
         string(APPEND rust_cxx_flags " -fsanitize=address,undefined -fno-omit-frame-pointer")
+        string(APPEND worker_link_flags " -fsanitize=address,undefined")
     endif()
     set(arguments --manifest "${module}/Cargo.toml" --output "${output}"
         --cargo "${HALO2_ONLINE_CARGO}" --rustc "${HALO2_ONLINE_RUSTC}"
         --toolchain "${HALO2_ONLINE_RUST_TOOLCHAIN}" --cxx "${CMAKE_CXX_COMPILER}"
-        "--cxx-flags=${rust_cxx_flags}" --library-name "${archive}")
+        "--cxx-flags=${rust_cxx_flags}" --library-name "${archive}" --security-library-name "${security_library}"
+        --worker-linker "${worker_linker}" "--worker-link-flags=${worker_link_flags}")
     if(HALO2_EOS_SDK_ROOT)
         list(APPEND arguments --eos-sdk-root "${HALO2_EOS_SDK_ROOT}")
+        get_target_property(worker_sdk_library halo2_eos_sdk IMPORTED_LOCATION)
+        list(APPEND arguments --eos-sdk-library "${worker_sdk_library}")
+        if(WIN32)
+            get_target_property(worker_sdk_import halo2_eos_sdk IMPORTED_IMPLIB)
+            list(APPEND arguments --eos-sdk-import-library "${worker_sdk_import}")
+        endif()
     endif()
     if(APPLE)
         set(architectures "${CMAKE_OSX_ARCHITECTURES}")
@@ -67,18 +83,27 @@ function(halo2_add_online_protocol)
         list(APPEND arguments --offline)
     endif()
     file(GLOB_RECURSE inputs CONFIGURE_DEPENDS "${module}/src/*.rs"
-        "${root}/rust/online_protocol/src/*.rs")
+        "${root}/rust/online_protocol/src/*.rs" "${root}/rust/online_security_ffi/src/*.rs")
     list(APPEND inputs "${module}/Cargo.toml" "${module}/Cargo.lock" "${module}/build.rs"
         "${module}/src/eos_sdk.hpp" "${module}/src/eos_sdk.cpp"
         "${module}/rust-toolchain.toml" "${root}/rust/online_protocol/Cargo.toml"
         "${root}/rust/online_protocol/rust-toolchain.toml"
+        "${root}/rust/online_security_ffi/Cargo.toml" "${root}/rust/online_security_ffi/Cargo.lock"
         "${root}/tools/build_online_protocol_rust.py")
-    add_custom_command(OUTPUT "${output}/${archive}" "${output}/native-libs.rsp"
+    if(worker_sdk_library)
+        list(APPEND inputs "${worker_sdk_library}")
+    endif()
+    if(worker_sdk_import)
+        list(APPEND inputs "${worker_sdk_import}")
+    endif()
+    add_custom_command(OUTPUT "${output}/${archive}" "${output}/native-libs.rsp" "${output}/${security_library}"
+        "${output}/${worker}"
         "${output}/include/halo2-online-protocol-bridge/src/lib.rs.h"
         "${output}/include/rust/cxx.h" "${output}/build-report.json"
         COMMAND "${Python3_EXECUTABLE}" "${root}/tools/build_online_protocol_rust.py" ${arguments}
         DEPENDS ${inputs} VERBATIM USES_TERMINAL)
     add_custom_target(halo2_online_protocol_rust_build DEPENDS "${output}/${archive}"
+        "${output}/${security_library}" "${output}/${worker}"
         "${output}/include/halo2-online-protocol-bridge/src/lib.rs.h"
         "${output}/include/rust/cxx.h" "${output}/native-libs.rsp")
     add_library(halo2_online_protocol_rust STATIC IMPORTED GLOBAL)
@@ -90,8 +115,18 @@ function(halo2_add_online_protocol)
             "${CMAKE_CURRENT_BINARY_DIR}/online-protocol/${config}/${archive}")
     endforeach()
     add_dependencies(halo2_online_protocol_rust halo2_online_protocol_rust_build)
+    add_executable(halo2_eos_sdk_worker IMPORTED GLOBAL)
+    set_target_properties(halo2_eos_sdk_worker PROPERTIES IMPORTED_LOCATION "${output}/${worker}")
+    foreach(config Debug Release RelWithDebInfo MinSizeRel)
+        string(TOUPPER "${config}" upper)
+        set_property(TARGET halo2_eos_sdk_worker PROPERTY "IMPORTED_LOCATION_${upper}"
+            "${CMAKE_CURRENT_BINARY_DIR}/online-protocol/${config}/${worker}")
+    endforeach()
+    add_dependencies(halo2_eos_sdk_worker halo2_online_protocol_rust_build)
     add_library(halo2_online_protocol STATIC "${root}/src/network/online_voice_protocol.cpp"
-        "${root}/src/platform/native_request_protocol.cpp" "${root}/src/runtime/authority_archive_protocol.cpp")
+        "${root}/src/platform/native_request_protocol.cpp" "${root}/src/runtime/authority_archive_protocol.cpp"
+        "${root}/src/platform/source_replay_policy.cpp" "${root}/src/platform/lan_packet_auth.cpp"
+        "${root}/src/network/snapshot_stream.cpp")
     add_dependencies(halo2_online_protocol halo2_online_protocol_rust_build)
     target_compile_features(halo2_online_protocol PUBLIC cxx_std_20)
     target_include_directories(halo2_online_protocol PUBLIC "${root}/include"
@@ -113,6 +148,8 @@ function(halo2_add_online_protocol)
         target_link_options(halo2_online_protocol PUBLIC -fsanitize=address,undefined)
     endif()
     if(BUILD_TESTING)
+        add_test(NAME online_protocol_rust_build_helper COMMAND "${Python3_EXECUTABLE}" -B
+            "${root}/tests/test_build_online_protocol_rust.py")
         add_executable(online_voice_protocol_tests "${root}/tests/online_voice_protocol_tests.cpp")
         target_link_libraries(online_voice_protocol_tests PRIVATE halo2_online_protocol Threads::Threads)
         add_test(NAME online_voice_protocol COMMAND online_voice_protocol_tests)

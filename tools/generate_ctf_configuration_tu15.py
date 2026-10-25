@@ -18,6 +18,7 @@ from types import SimpleNamespace
 from oracle_smg_firing_1_1 import ROOT,Xbe,_Code,_trace
 from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
 from generate_physics_live_support_tu15 import generate
+from objective_native_tu15_injection import inject_native_objective_owners
 
 ENTRIES=(0x24b390,0x249440,0x24a6c0)
 
@@ -63,7 +64,7 @@ def main():
         runtime_header='halo2/source_ctf_configuration_tu15.hpp',runtime_function='source_run_ctf_configuration_tu15')
     source=a.output.read_text().replace('source_physics_live_support_tu15_owns_entry','source_ctf_configuration_tu15_owns_entry').replace(
         'source_run_physics_live_support_tu15','source_run_ctf_configuration_tu15')
-    a.output.write_text(source)
+    a.output.write_text(inject_native_objective_owners(source))
     report=json.loads(manifest.read_text())
     report.update(ctf_configuration_generator_sha256=sha(__file__),generated_cpp_sha256=sha(a.output),
         instruction_listings=listings,

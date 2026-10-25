@@ -45,6 +45,11 @@ def apply_selected(root, pack, *, tag_revisions=None):
     from mcc_bitmap_correction_bundle_v4 import (BUNDLE_V4, MAP_NAME as SACRED_ICON_MAP,
                                                 PROFILES_V4, SOURCE_MAP as SACRED_ICON_SOURCE_MAP,
                                                 reconstruct_v4)
+    from mcc_bitmap_correction_bundle_v5 import (BUNDLE_V5, MAP_NAME as ELONGATION_MAP,
+                                                PROFILES_V5, SOURCE_MAP as ELONGATION_SOURCE_MAP,
+                                                reconstruct_v5)
+    from mcc_bitmap_correction_bundle_v6 import (BUNDLE_V6, OWNERS_V6, PROFILES_V6,
+                                                reconstruct_v6, validate_owner_v6)
     from installation_paths import resource_root
     root, pack = resource_root(root), Path(pack)
     # Original/reference profiles are offline maintenance inputs only. Normal
@@ -63,7 +68,14 @@ def apply_selected(root, pack, *, tag_revisions=None):
     if (root/BUNDLE_V4).is_file():
         sources.append((SACRED_ICON_MAP, SACRED_ICON_SOURCE_MAP, PROFILES_V4, reconstruct_v4))
         version = 4
-    map_paths = [maps/name for name,_,_,_ in sources]
+    if (root/BUNDLE_V5).is_file():
+        sources.append((ELONGATION_MAP, ELONGATION_SOURCE_MAP, PROFILES_V5, reconstruct_v5))
+        version = 5
+    if (root/BUNDLE_V6).is_file():
+        sources.extend((owner["map"], owner["source_map_sha256"], PROFILES_V6, reconstruct_v6)
+                       for owner in OWNERS_V6)
+        version = 6
+    map_paths = list(dict.fromkeys(maps/name for name,_,_,_ in sources))
     bank_path = maps/"textures.dat"
     for name, expected, _, _ in sources:
         actual = file_sha(maps/name)
@@ -82,11 +94,14 @@ def apply_selected(root, pack, *, tag_revisions=None):
     try:
         # Validate every selected map, local identity, complete mip chain and
         # delta snapshot before changing any map or resource bank.
-        owners, donors = {}, {}
+        owners = {}
         with bank_path.open("rb") as stream:
             for name,_,profiles,reconstruct in sources:
-                cache = caches[name] = MccCache(maps/name)
-                donors[name] = {}
+                # A map can own several independently authenticated bundles.
+                # Accumulate their mutations in one cache and publish it once.
+                if name not in caches:
+                    caches[name] = MccCache(maps/name)
+                cache, donors = caches[name], {}
                 for profile in profiles:
                     matches = [t for t in cache.tags.values() if t["group"]=="bitm" and
                                t["name"]==profile["tag"] and t["address"]]
@@ -100,22 +115,25 @@ def apply_selected(root, pack, *, tag_revisions=None):
                                 cache.u16(at+10),cache.u16(at+12),cache.u16(at+20))
                     if descriptor!=(profile.get("donor_width",profile["width"]),
                                     profile.get("donor_height",profile["height"]),1,0,
-                                    profile["format"],profile.get("donor_mip_count",profile["mip_count"])-1) or \
+                                    profile.get("donor_format",profile["format"]),profile.get("donor_mip_count",profile["mip_count"])-1) or \
                        cache.u32(at+84) or cache.u32(at+88) or (name,at) in owners.values():
                         raise FormatError("Graphics correction bitmap descriptor differs")
                     if ("donor_registration" in profile and
                             list(struct.unpack_from("<hh",cache.data,at+16))!=profile["donor_registration"]):
                         raise FormatError("Graphics correction bitmap registration differs")
+                    if reconstruct is reconstruct_v6:
+                        validate_owner_v6(name, cache, matches[0], at)
                     donor=bytearray(texture_resource(stream,cache.u32(at+56),cache.u32(at+80)))
                     if len(donor)!=profile.get("donor_pixel_bytes",profile["pixel_bytes"]):
                         raise FormatError("Graphics correction donor pixel extent differs")
-                    if profile["encoding"]=="rgba8":
+                    if profile.get("donor_encoding",profile["encoding"])=="rgba8":
                         donor[0::4],donor[2::4]=donor[2::4],donor[0::4]
                     owners[(name,profile["tag"])]=(name,at)
-                    donors[name][profile["tag"]]=donor
-                images,bundle_path,bundled,bundle_bytes=reconstruct(root,donors[name])
+                    donors[profile["tag"]]=donor
+                images,bundle_path,bundled,bundle_bytes=reconstruct(root,donors)
                 staged.extend((name,profile,pixels) for profile,pixels in images)
-                bundles.append((bundle_path,bundled,bundle_bytes))
+                if not any(path == bundle_path for path,_,_ in bundles):
+                    bundles.append((bundle_path,bundled,bundle_bytes))
         manifest_bytes=(json.dumps(dict(schema=f"H2_MCC_GRAPHICS_CORRECTIONS_V{version}",
                                        bundles=[manifest for _,manifest,_ in bundles],
                                        full_graphics_parity=False),indent=2)+"\n").encode()
@@ -137,10 +155,11 @@ def apply_selected(root, pack, *, tag_revisions=None):
                 struct.pack_into("<I",caches[name].data,at+56,pointer)
                 struct.pack_into("<I",caches[name].data,at+80,len(partition))
                 if "donor_width" in profile:
-                    # Preserve MCC format, sampling and linear-packing flags;
-                    # the original swizzled descriptor is never copied here.
+                    # Target storage is authenticated independently. Preserve
+                    # MCC linear-packing flags; never copy Xbox swizzle flags.
                     struct.pack_into("<H",caches[name].data,at+4,profile["width"])
                     struct.pack_into("<H",caches[name].data,at+6,profile["height"])
+                    struct.pack_into("<H",caches[name].data,at+12,profile["format"])
                     struct.pack_into("<H",caches[name].data,at+20,profile["mip_count"]-1)
                     struct.pack_into("<hh",caches[name].data,at+16,*profile["registration"])
         from prepare_mcc_gameplay import save_changed_cache
@@ -169,6 +188,6 @@ def apply_selected(root, pack, *, tag_revisions=None):
                                target_sha256=p["target_sha256"]) for name,p,_ in staged],
                 changes=[dict(path="halo2/h2_maps_win64_dx11/"+p.name,donor_sha256=before[p.name],converted_sha256=file_sha(p))
                          for p in (*map_paths,bank_path)],
-                scope="Authenticated Zanzibar concrete/matte_grey, three Metropolis bitmaps and (when bundled) Sacred Icon gradient; other map references and existing shader programs remain intact")
+                scope="Authenticated Zanzibar concrete/matte_grey, three Metropolis bitmaps and (when bundled) Sacred Icon gradient, Elongation glass and five original Earth image owners; existing shader programs remain intact")
     (pack/"graphics-conversion.json").write_text(json.dumps(report,indent=2)+"\n")
     return report

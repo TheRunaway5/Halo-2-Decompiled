@@ -673,15 +673,16 @@ struct MultiplayerObjectRuntime::Continuation {
   std::size_t calls{};
   std::unique_ptr<SourceProjectileEffectObserver> projectile_effects;
   bool staging{},fault{},live_campaign_lens_renderer{};
-  std::shared_ptr<std::atomic<std::uint64_t>> writes=std::make_shared<std::atomic<std::uint64_t>>(0);
+  // Observed writes plus topology changes, the same serial one observer pair kept.
+  SourceRuntimeWriteSerial observed_writes{bank};
+  std::shared_ptr<std::atomic<std::uint64_t>> topology_changes=std::make_shared<std::atomic<std::uint64_t>>(0);
   std::uint64_t mutating_calls{};
+  std::uint64_t writes() const noexcept {return observed_writes.load()+topology_changes->load(std::memory_order_relaxed);}
   Continuation(SourceRuntimeMemory &bank,bool retained):bank(bank),retained_executor(retained) {
-    const auto serial=writes;
-    source_runtime_register_write_observer(bank,this,[serial](auto,auto){serial->fetch_add(1,std::memory_order_relaxed);});
-    try{source_runtime_register_topology_observer(bank,this,[serial](auto,auto) noexcept {serial->fetch_add(1,std::memory_order_relaxed);});}
-    catch(...){source_runtime_unregister_write_observer(bank,this);throw;}
+    const auto serial=topology_changes;
+    source_runtime_register_topology_observer(bank,this,[serial](auto,auto) noexcept {serial->fetch_add(1,std::memory_order_relaxed);});
   }
-  ~Continuation(){source_bind_internal_phantom_observer(bank,{});source_runtime_unregister_topology_observer(bank,this);source_runtime_unregister_write_observer(bank,this);}
+  ~Continuation(){source_bind_internal_phantom_observer(bank,{});source_runtime_unregister_topology_observer(bank,this);}
   void require_executor() const {
     if(!retained_executor || std::this_thread::get_id()!=executor ||
         publication_held.load(std::memory_order_acquire) || staging)
@@ -699,12 +700,12 @@ struct MultiplayerObjectRuntime::Continuation {
       if(owner.publication_held.load(std::memory_order_relaxed) || owner.staging ||
           (mutating && owner.retained_executor && std::this_thread::get_id()!=owner.executor))
         throw FormatError("Native object call requires its available retained executor");
-      writes=owner.writes->load(std::memory_order_relaxed);++owner.calls;
+      writes=owner.writes();++owner.calls;
       if(mutating)++owner.mutating_calls;
     }
     ~PublicCall() {
       std::lock_guard lock(owner.gate);
-      if(mutating && std::uncaught_exceptions()>exceptions && owner.writes->load(std::memory_order_relaxed)!=writes)
+      if(mutating && std::uncaught_exceptions()>exceptions && owner.writes()!=writes)
         owner.fault=true;
       --owner.calls;
     }
@@ -718,19 +719,25 @@ MultiplayerObjectRuntime::MultiplayerObjectRuntime(const Cache &cache,std::size_
 MultiplayerObjectRuntime::MultiplayerObjectRuntime(const std::filesystem::path &image,const Cache &cache,
     std::size_t bsp,const std::filesystem::path &files):MultiplayerObjectRuntime(image,cache,bsp,files,{}) {}
 MultiplayerObjectRuntime::MultiplayerObjectRuntime(const std::filesystem::path &image,const Cache &cache,
-    std::size_t bsp,const std::filesystem::path &files,std::shared_ptr<PhysicsLiveClockSource> clocks) {
+    std::size_t bsp,const std::filesystem::path &files,std::shared_ptr<PhysicsLiveClockSource> clocks)
+    :MultiplayerObjectRuntime(image,cache,bsp,files,std::move(clocks),{}) {}
+MultiplayerObjectRuntime::MultiplayerObjectRuntime(const std::filesystem::path &image,const Cache &cache,
+    std::size_t bsp,const std::filesystem::path &files,std::shared_ptr<PhysicsLiveClockSource> clocks,
+    std::shared_ptr<SourceExecutionInputs> inputs) {
   if(image.empty() && (!cache.original_data() ||
       cache.original_data()->image!=OriginalData::Image::TitleUpdate15))
     throw FormatError("Native object startup requires its compiled TU1.5 gameplay constants");
   const auto original=cache.original_data()?cache.original_data():OriginalData::load_xbe(image);
   if(original->image==OriginalData::Image::TitleUpdate15) {
-    if(image.empty()) {
+    if(inputs)tu15_=std::make_unique<PhysicsLiveWorldTu15>(cache,image,files,bsp,std::move(clocks),std::move(inputs));
+    else if(image.empty()) {
       if(clocks)tu15_=std::make_unique<PhysicsLiveWorldTu15>(cache,files,bsp,std::move(clocks));
       else tu15_=std::make_unique<PhysicsLiveWorldTu15>(cache,files,bsp);
     }
     else if(clocks)tu15_=std::make_unique<PhysicsLiveWorldTu15>(cache,image,files,bsp,std::move(clocks));
     else tu15_=std::make_unique<PhysicsLiveWorldTu15>(cache,image,files,bsp);
   } else {
+    if(inputs)throw FormatError("Native execution operand tape requires its TU1.5 physics owner");
     if(clocks)throw FormatError("Native object clock provider requires its TU1.5 physics owner");
     impl_=std::make_unique<Impl>(image,cache,bsp,files);
   }
@@ -1304,7 +1311,11 @@ void MultiplayerObjectRuntime::observe_projectile_effects(std::function<void(con
   Continuation::PublicCall active(*continuation_);
   std::lock_guard lock(continuation_->gate);
   if(!tu15_)throw FormatError("Projectile contact observation requires its actual TU1.5 owner");
-  if(auto *inputs=source_execution_inputs(continuation_->bank))inputs->invalidate_recording();
+  // Callback installation is service metadata absent from a complete-call
+  // journal. An operand-only tape records external reads, not service roles;
+  // the real Match constructor installs this listener on both fresh worlds.
+  if(auto *inputs=source_execution_inputs(continuation_->bank);inputs && inputs->tracks_calls())
+    inputs->invalidate_recording();
   if(observer && continuation_->projectile_effects)throw FormatError("Source world already has its projectile journal owner");
   if(observer)continuation_->projectile_effects=std::make_unique<SourceProjectileEffectObserver>(continuation_->bank,std::move(observer));
   else continuation_->projectile_effects.reset();
@@ -1598,7 +1609,7 @@ void MultiplayerObjectRuntime::require_authority_executor(bool qualified) const 
 }
 std::array<std::uint64_t,2> MultiplayerObjectRuntime::execution_mutations()const {
   require_authority_executor(true);
-  return {continuation_->writes->load(std::memory_order_relaxed),continuation_->mutating_calls};
+  return {continuation_->writes(),continuation_->mutating_calls};
 }
 MultiplayerObjectRuntime::AuthorityCheckpoint MultiplayerObjectRuntime::authority_checkpoint() const {
   auto &continuation=*continuation_;

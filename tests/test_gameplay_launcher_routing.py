@@ -123,6 +123,32 @@ class GameplayLauncherRoutingTests(unittest.TestCase):
                 self.assertNotIn('ROUTED ', result.stdout)
                 path.write_bytes(old)
 
+    def test_declared_sdk_worker_is_required_by_the_actual_launcher(self):
+        from native_gameplay_test import eos_worker_descriptor
+        worker = self.runtime.with_name('eos_sdk_worker')
+        worker.write_bytes(b'synthetic dedicated SDK executable')
+        worker.chmod(0o700)
+        declaration = eos_worker_descriptor(self.runtime)
+        proof = json.loads(self.proof.read_text())
+        proof['eos_worker'] = declaration
+        self.proof.write_text(json.dumps(proof))
+        inventory = json.loads(self.inventory.read_text())
+        inventory[worker.name] = dict(sha256=declaration['sha256'], bytes=declaration['bytes'])
+        self.inventory.write_text(json.dumps(inventory))
+        self.record.update(eos_worker=declaration,
+                           qualification_sha256=self.base.f.digest(self.proof),
+                           inventory_sha256=self.base.f.digest(self.inventory))
+        self.publish()
+        self.routed('--multiplayer', '--frames', '1')
+        worker.write_bytes(b'changed SDK executable')
+        result = self.run_launcher('--multiplayer')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn('ROUTED ', result.stdout)
+        worker.unlink()
+        result = self.run_launcher('--multiplayer')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn('ROUTED ', result.stdout)
+
     def test_unsafe_selection_paths_and_unqualified_arguments_reject(self):
         for name in ('../escape', str(self.runtime), 'delivery/../delivery/halo2_native'):
             with self.subTest(name=name):

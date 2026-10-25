@@ -82,6 +82,8 @@ public:
   void read(std::uint32_t, std::span<std::byte>) const override;
   void write(std::uint32_t, std::span<const std::byte>) override;
   void read_vector(std::uint32_t,std::span<std::byte,16>) const override;
+  std::optional<std::span<const std::byte>> try_read_view(
+      std::uint32_t,std::size_t) const noexcept override;
   // Span adapters for original heap, constructors and packed animation
   // owners. Each view must fit a single real region. Views survive mounting
   // other regions. Releasing/rebinding the region or replacing the bank
@@ -169,6 +171,11 @@ private:
   using SourcePageBlock = std::array<Position,1024>;
   using SourcePageIndex = std::array<std::unique_ptr<SourcePageBlock>,1024>;
   std::unique_ptr<SourcePageIndex> source_pages_;
+  // Published as the base direct-page index for the same full pages. Every
+  // source-page change also refreshes commitment, access and backing guards.
+  std::unique_ptr<SourceDirectPageIndex> direct_index_;
+  void publish_direct_index() noexcept;
+  void refresh_direct_region(Position);
   void index_source_region(Position);
   void unindex_source_region(Position) noexcept;
   Position locate(std::uint32_t) const;

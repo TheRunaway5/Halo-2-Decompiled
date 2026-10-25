@@ -1,4 +1,5 @@
 #include "halo2/frontend_lobby_roster.hpp"
+#include <algorithm>
 #include <bit>
 #include <filesystem>
 #include <fstream>
@@ -119,6 +120,15 @@ int main(int argc, char **argv) { try {
   FrontendLobbyRosterPlayer player;player.member_count=4;
   FrontendLobbyRosterInput tu15;tu15.valid_session=1;tu15.tu15=true;
   tu15.players=std::span{&player,1};tu15.appearance_palette=palette;
+  // Independently executed TU1.5 14C9EA/2B9EB2/2B9D59 covers every
+  // signed session byte, including NONE and the final49..127 range.
+  for(int value=-128;value<128;++value) {
+    player.rank_value=value;
+    const auto slot=frontend_lobby_roster(tu15)[0];
+    const int expected=value<0?-1:std::min(value,49);
+    check(slot.rank_visible==(expected!=-1) && slot.rank_range==expected &&
+          slot.rank_frame==unsigned(std::max(expected,0)),"TU1.5 rank visibility/page mapping differs");
+  }
   check(frontend_lobby_roster(tu15)[0].background_frame==0,"TU1.5 four-player quantity was not normalized to one");
   player.appearance_available=false;
   const auto unknown=frontend_lobby_roster(tu15)[0];

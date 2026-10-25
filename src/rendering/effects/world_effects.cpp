@@ -15,6 +15,8 @@
 #include "halo2/effect_part_control.hpp"
 #include "halo2/bsp_atmosphere.hpp"
 #include "halo2/source_decal_pass.hpp"
+#include "halo2/source_native_light_snapshot_tu15.hpp"
+#include "halo2/physics_live_world_tu15.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -112,9 +114,9 @@ struct NativeWorldEffects::Impl {
     BspAtmosphere locations;
     ObjectLightSpatialBsp memberships;
     TerrainCollision terrain;
-    explicit LightResources(const Cache &c)
-        :locations(c.load_bsp_atmosphere(0)),memberships(c.load_object_light_spatial_bsp(0)),
-         terrain(c.load_raw_terrain_collision(0)) {
+    explicit LightResources(const Cache &c,unsigned bsp=0)
+        :locations(c.load_bsp_atmosphere(bsp)),memberships(c.load_object_light_spatial_bsp(bsp)),
+         terrain(c.load_raw_terrain_collision(bsp)) {
       if(terrain.bsps.size()!=1)throw FormatError("World effect light requires actual first BSP collision bank");
     }
   };
@@ -130,8 +132,34 @@ struct NativeWorldEffects::Impl {
         :resources(std::make_shared<const LightResources>(c)),spatial(resources->memberships.clusters.size()) {}
   };
   std::unique_ptr<LightWorld> light_world;
+  std::map<unsigned,std::shared_ptr<const LightResources>> native_light_resources;
+  std::map<std::uint32_t,EffectLightDefinition> native_light_definitions;
+  std::set<std::uint32_t> native_light_supported;
+  const LightResources& native_resources(unsigned bsp) {
+    auto& resources=native_light_resources[bsp];
+    if(!resources)resources=std::make_shared<const LightResources>(cache,bsp);
+    return *resources;
+  }
+  const EffectLightDefinition& native_definition(std::uint32_t id) {
+    if(const auto at=native_light_definitions.find(id);at!=native_light_definitions.end())return at->second;
+    EffectLightDefinition definition;
+    try {definition=load_effect_light(cache,id);native_light_supported.insert(id);}
+    catch(const FormatError& error) {
+      // Collection consumes flags even for a shape this GPU path cannot draw.
+      // Keep those real candidates in the original shared light budget.
+      const auto metadata=cache.load_source_tag_metadata(id);
+      const auto raw=metadata.bytes_at(metadata.source_address(),228);const Bytes bytes(raw);
+      std::copy(raw.begin(),raw.end(),definition.bytes.begin());
+      definition.flags=bytes.u32(0);definition.radius=bytes.f32(0x18);
+      definition.specular_radius=bytes.f32(0x1c);definition.duration=bytes.f32(0xb0);definition.lens=bytes.u32(0x94);
+      unavailable.insert(std::string("Native light GPU definition: ")+error.what());
+    }
+    return native_light_definitions.emplace(id,std::move(definition)).first->second;
+  }
   SourceEffectLightQueryState light_queries;
   std::array<SourceShadowSelectionCache,4> light_selection;
+  SourceEffectLightQueryState source_light_queries;
+  std::array<SourceShadowSelectionCache,4> source_light_selection;
   SourceEffectLightLifetimeWorld light_inputs(std::uint64_t t) const {
     return {light_world->resources->locations,light_world->resources->memberships,light_world->resources->terrain.bsps[0],
       cache.original_data()->fade_curve,std::uint32_t(t),light_queries.epoch,30,0,true};
@@ -182,9 +210,15 @@ struct NativeWorldEffects::Impl {
     std::uint32_t light = none;
     std::uint32_t light_scale_a{},light_scale_b{};
   };
+  struct LensPart {
+    std::uint32_t definition{};
+    std::string location;
+    SourceEffectPartLensControlsTu15 controls;
+  };
   struct EventDefinition : SourceEffectEventDefinition {
     std::vector<SystemDefinition> systems;
     std::vector<Part> parts;
+    std::vector<LensPart> lenses;
   };
   struct Definition {
     std::uint32_t datum=none;
@@ -235,6 +269,8 @@ struct NativeWorldEffects::Impl {
     std::uint32_t source_instance=none;
     bool sounds=true,refresh_step{};
     std::optional<SourceAttachedEffect> source_attachment;
+    std::optional<SourceEffectReplicaRenderTu15> replica_render;
+    std::optional<SourceEffectEventState> replica_clock;
     bool source_restart{};
   };
   std::deque<Effect> effects;
@@ -361,7 +397,11 @@ struct NativeWorldEffects::Impl {
        tick(o.tick),identity(o.identity),parents(o.parents),projectiles(o.projectiles),object_markers(o.object_markers),
        unavailable(o.unavailable),source_particle_effects(o.source_particle_effects),sounds(o.sounds),
        light_definitions(o.light_definitions),light_world(o.light_world?std::make_unique<LightWorld>(*o.light_world):nullptr),
-       light_queries(o.light_queries),light_selection(o.light_selection),decal_definitions(o.decal_definitions),
+       native_light_resources(o.native_light_resources),native_light_definitions(o.native_light_definitions),
+       native_light_supported(o.native_light_supported),
+       light_queries(o.light_queries),light_selection(o.light_selection),
+       source_light_queries(o.source_light_queries),source_light_selection(o.source_light_selection),
+       decal_definitions(o.decal_definitions),
        decal_boundaries(o.decal_boundaries),decal_bank(o.decal_bank),definitions(o.definitions),effects(o.effects) {
     // Every raw link points into this owner's copied definition graph. A
     // checkpoint must survive destruction of its intermediate restored owner.
@@ -448,6 +488,18 @@ struct NativeWorldEffects::Impl {
             missing("Decal radius requires its authored effect A/B scaling owner");
           else if(group==0x64656361u && !decal_definitions.contains(reference))
             missing("Decal part requires its complete resident definition/material");
+        }
+        if(group==0x6c656e73u && reference!=none) {
+          const auto index=std::int16_t(parts.u16(a+4));
+          // Whole17C710 skips absent/invalid location indices before counting
+          // lens ordinals. It does not invent a default location for them.
+          if(index>=0 && unsigned(index)<p.root.u32(0xc)) {
+            const auto lens=cache.load_source_tag_metadata(reference);
+            if(lens.group()!="lens")throw FormatError("Effect lens lost its complete authored tag");
+            const Bytes metadata(lens.bytes_at(lens.source_address(),0x40));
+            event.lenses.push_back({reference,marker(index),
+                {parts.u32(a+0x30),parts.u32(a+0x34),metadata.u16(0x3c)}});
+          }
         }
         if (parts.u32(a + 8) == 0x736e6421u && parts.u32(a + 0x10) != none &&
             parts.u16(a) != 2 && !(parts.u16(a + 6) & 8)) {
@@ -970,6 +1022,8 @@ void NativeWorldEffects::spawn_looping_attached(std::uint32_t datum,std::uint32_
     if(source->instance==none || source->definition!=datum)
       throw FormatError("Map attachment source allocation differs from its authored definition");
     e.source_instance=source->instance;e.source_attachment=*source;
+    e.replica_render=source->render;
+    if(source->render)e.replica_clock=source->render_clock;
     e.frame.scale_a=source->scale_a;e.frame.scale_b=source->scale_b;
     e.colors={source->colors[0],source->colors[1]};
     if(!locations)throw FormatError("Source map attachment requires its actual completed location bank");
@@ -982,6 +1036,7 @@ bool NativeWorldEffects::update_looping_attached(std::uint32_t target,std::uint3
   for(auto &e:impl_->effects)if(e.attached && e.target==target && e.source_instance==instance) {
     if(source.instance==none) {
       e.finished=true;e.clock.flags|=0x44u;
+      e.replica_render.reset();e.replica_clock.reset();
       e.source_attachment=source;return true;
     }
     if(source.instance!=instance || source.definition!=e.definition->datum)
@@ -989,6 +1044,8 @@ bool NativeWorldEffects::update_looping_attached(std::uint32_t target,std::uint3
     const auto previous=e.source_attachment?e.source_attachment->flags:0u;
     e.source_restart=e.source_restart || ((previous&4u) && !(source.flags&4u));
     e.source_attachment=source;e.frame.scale_a=source.scale_a;e.frame.scale_b=source.scale_b;
+    e.replica_render=source.render;
+    if(source.render)e.replica_clock=source.render_clock;else e.replica_clock.reset();
     e.colors={source.colors[0],source.colors[1]};
     e.source_locations=locations;
     if(source.flags&0x40u){e.finished=true;e.clock.flags|=0x44u;}
@@ -1042,8 +1099,10 @@ void NativeWorldEffects::spawn(std::uint32_t datum, std::uint32_t owner,
   i.effects.push_back(std::move(e));
 }
 void NativeWorldEffects::spawn_source(std::uint32_t effect,std::uint32_t owner,
-    std::uint64_t tick,std::span<const SourceEffectLocation> locations,SourceEffectColors colors,SourceEffectControls controls) {
+    std::uint64_t tick,std::span<const SourceEffectLocation> locations,SourceEffectColors colors,SourceEffectControls controls,
+    std::optional<SourceEffectReplicaRenderTu15> replica_render) {
   if(effect==none)return;
+  if(replica_render)validate_source_effect_replica_render_tu15(*replica_render);
   if(locations.empty() || locations.size()>32)
     throw FormatError("Source effect presentation requires its retained location bank");
   ObjectMarkers frames;
@@ -1058,6 +1117,39 @@ void NativeWorldEffects::spawn_source(std::uint32_t effect,std::uint32_t owner,
   impl_->effects.back().source_locations=std::move(frames);
   impl_->effects.back().colors=colors;
   impl_->effects.back().frame.scale_a=controls.a;impl_->effects.back().frame.scale_b=controls.b;
+  impl_->effects.back().replica_render=std::move(replica_render);
+}
+std::vector<WorldEffectLensRequest> NativeWorldEffects::replica_lenses()const {
+  const auto &i=*impl_;std::vector<WorldEffectLensRequest> out;
+  // A newer observed allocation in a source slot supersedes the retired
+  // generation, including while its native presentation waits for a delay.
+  // The original request key uses that slot, independently of its salt.
+  std::map<unsigned,const Impl::Effect*> slots;
+  for(const auto &e:i.effects)if(e.replica_render && e.source_locations)
+    slots[e.replica_render->identity&65535u]=&e;
+  if(slots.empty())return out;
+  const auto tables=i.cache.shader_function_tables();
+  for(const auto &[index,effect]:slots) {
+    const auto &e=*effect;const auto &source=*e.replica_render;
+    const auto &clock=e.replica_clock?*e.replica_clock:e.clock;
+    if((!source_effect_replica_static_world_tu15(source) &&
+        !(e.replica_clock&&source_effect_replica_attached_world_tu15(source))) || !(clock.flags&1u) ||
+        (clock.flags&0x4cu) || (source.flags&0x4cu))continue;
+    if(clock.event<0 || std::size_t(clock.event)>=e.definition->events.size())
+      throw FormatError("Replica effect lens lost its actual selected event");
+    unsigned ordinal=0;
+    for(const auto &part:e.definition->events[clock.event].lenses) {
+      const auto found=e.source_locations->find(part.location);
+      if(found==e.source_locations->end())continue;
+      const auto opacity=source_effect_part_lens_opacity_tu15(part.controls,
+          {e.frame.scale_a,e.frame.scale_b},clock,*tables);
+      for(const auto &frame:found->second) {
+        if(ordinal>=64)break; // Whole17C710's per-effect request bound.
+        out.push_back({source,part.definition,ordinal++,frame.position,frame.forward,opacity});
+      }
+    }
+  }
+  return out;
 }
 void NativeWorldEffects::impact(const BulletImpact &hit) {
   auto &i = *impl_;
@@ -1342,6 +1434,137 @@ SourceEffectLightView NativeWorldEffects::light_view(Vec3 camera_position,
   source_effect_lights_select(view,i.light_selection,
       std::bit_cast<std::int32_t>(collection.local_player),candidates,frame,cinematic);
   return view;
+}
+SourceEffectLightView NativeWorldEffects::source_light_view(PhysicsLiveWorldTu15& source,unsigned bsp,
+    const SourceEffectLightCollectionContext& input,const SourceEffectLightCandidateContext& candidates,
+    std::int32_t frame,bool cinematic) {
+  auto& i=*impl_;const auto& resources=i.native_resources(bsp);
+  auto snapshot=source_native_light_snapshot_tu15(source.memory(),resources.memberships.clusters.size());
+  const SourceEffectLightDefinitions definition=[&](auto id)->const EffectLightDefinition& {
+    return i.native_definition(id);
+  };
+  const auto word=[&](auto address){return Bytes(source.memory().view(address,4)).u32(0);};
+  const auto priority=[&](std::uint32_t owner) {
+    if(owner!=none)(void)source.source_object_body(owner);
+    auto call=source.prepare_source_call();call.gp[6]=owner;
+    source.run_actual(0x3e9b0u,call);return std::uint8_t(call.gp[0]);
+  };
+  auto collection=input;collection.owners=candidates.admission;
+  collection.owners.local_priority=priority;
+  // The simulation's visited stamp belongs to its native query domain. This
+  // read-only presentation query starts unvisited in its independent domain;
+  // it never publishes those private stamps or allocates a replacement light.
+  for(const auto id:snapshot.lights.identities())snapshot.lights.record(id)[3]=i.source_light_queries.epoch;
+  auto out=source_effect_lights_query(snapshot.lights,snapshot.spatial,definition,i.source_light_queries,
+      SourceEffectLightQueryKind::Main,collection);
+  for(const auto identity:out.visible) {
+    const auto at=std::find_if(out.records.begin(),out.records.end(),
+        [&](const auto& row){return row.runtime.identity==identity;});
+    if(at==out.records.end() || !at->definition)throw FormatError("Native visible light lost its current definition");
+    // Exact31570 caller: a real caller-owned shape output, EDI light. The
+    // complete source31500/C5170/C3820 owns feature/shape/owner admission.
+    auto call=source.prepare_source_call();const auto caller=call.gp[4],shape=caller-0x100u;
+    call.gp[4]=caller-0x3000u;call.gp[7]=identity;
+    const std::array args{word(caller),shape};
+    source.write_source_call_input(call.gp[4],std::as_bytes(std::span(args)));
+    source.run_actual(0x31570u,call);
+    if(!(call.gp[0]&255u) || out.candidates.size()>=128)continue;
+    const auto records=word(word(0x4ecbdcu)+0x44u),record=records+(identity&65535u)*272u;
+    if(Bytes(source.memory().view(record,2)).u16(0)!=std::uint16_t(identity>>16))
+      throw FormatError("Native selected light changed generation during admission");
+    const auto real=[&](auto offset){return std::bit_cast<float>(word(record+offset));};
+    at->fades={real(0xf8u),real(0xfcu),real(0x104u),real(0x100u),real(0x108u)};
+    at->runtime.overall_fade=at->fades.overall;
+    const auto& runtime=at->runtime;const auto flags=at->definition->flags;
+    SourceShadowCandidate candidate;candidate.identity=identity;candidate.owner=-1;
+    if(runtime.owner!=none) {
+      (void)source.source_object_body(runtime.owner);
+      auto root=source.prepare_source_call();root.gp[1]=runtime.owner;source.run_actual(0xbcfb0u,root);
+      candidate.owner=std::bit_cast<std::int32_t>(root.gp[0]);
+      if(root.gp[0]!=none)(void)source.source_object_body(root.gp[0]);
+    }
+    candidate.requested_fade=runtime.overall_fade;
+    candidate.coverage=source_shadow_coverage(runtime.spatial_center,runtime.spatial_radius,
+        candidates.depth_plane,candidates.pixel_scale);
+    candidate.flags=((flags>>5)&1u)<<8 | ((flags>>20)&1u)<<24;
+    if(runtime.owner!=none) {
+      const auto headers=word(word(0x4ecbd0u)+0x44u);
+      candidate.flags|=std::uint32_t(std::to_integer<unsigned>(
+          source.memory().view(headers+(runtime.owner&65535u)*12u+3u,1)[0])==2)<<16;
+      candidate.flags|=priority(std::bit_cast<std::uint32_t>(candidate.owner));
+    }
+    out.candidates.push_back(candidate);
+  }
+  out.selected=source_shadow_select(i.source_light_selection[std::clamp(std::bit_cast<std::int32_t>(input.local_player),0,3)],
+      out.candidates,frame,3,std::bit_cast<float>(0x3c23d70au),cinematic);
+  for(const auto& selected:out.selected) {
+    if(!(selected.requested_fade>std::bit_cast<float>(0x3d8f5c29u)))continue;
+    const auto at=std::find_if(out.records.begin(),out.records.end(),
+        [&](const auto& row){return row.runtime.identity==selected.identity;});
+    if(at==out.records.end() || !at->definition)throw FormatError("Native light pose lost its selected record");
+    const auto flags=at->definition->flags;
+    if(at->runtime.attached_node==-1 || !(flags&0x20u) || (flags&0x40000u))continue;
+    const auto owner=at->runtime.owner;
+    (void)source.source_object_body(owner);
+    const auto records=word(word(0x4ecbdcu)+0x44u),record=records+(selected.identity&65535u)*272u;
+    if(Bytes(source.memory().view(record,2)).u16(0)!=std::uint16_t(selected.identity>>16))
+      throw FormatError("Native FP light pose changed generation before its original calls");
+    // Literal31D3B..31D9C. BAC70 maps the actual attached node;1692E0
+    // writes the original first-person position/forward/up from the current
+    // animation owner. Its failure branch deliberately preserves prior data.
+    auto node=source.prepare_source_call();node.gp[0]=std::uint16_t(at->runtime.attached_node);node.gp[1]=owner;
+    source.run_actual(0xbac70u,node);
+    auto pose=source.prepare_source_call(std::array{node.gp[0],record+0x84u,record+0xacu,record+0xb8u});
+    pose.gp[1]=owner;source.run_actual(0x1692e0u,pose);
+    for(unsigned axis=0;axis<3;++axis) {
+      const auto position=std::bit_cast<float>(word(record+0x84u+axis*4u));
+      const auto forward=std::bit_cast<float>(word(record+0xacu+axis*4u));
+      const float endpoint=position+forward; // Original three ordered ADDSS stores.
+      source.write_source_call_input(record+0x90u+axis*4u,std::as_bytes(std::span(&endpoint,1)));
+    }
+    auto up=source.prepare_source_call();up.gp[0]=record+0xb8u;up.gp[1]=record+0xacu;
+    source.run_actual(0x31b30u,up);
+    const auto vector=[&](unsigned offset){return Vec3{std::bit_cast<float>(word(record+offset)),
+        std::bit_cast<float>(word(record+offset+4u)),std::bit_cast<float>(word(record+offset+8u))};};
+    at->runtime.position=vector(0x84u);at->runtime.forward=vector(0xacu);at->runtime.up=vector(0xb8u);
+  }
+  return out;
+}
+std::vector<WorldEffectLightReceiver> NativeWorldEffects::source_light_receivers(PhysicsLiveWorldTu15& source,
+    unsigned bsp,const SourceEffectLightView& lights,const SourceBspAdmissionBsp& geometry,
+    std::span<const std::uint8_t> containing_fog,const SourceBspAdmission* main_view) {
+  auto& i=*impl_;std::vector<WorldEffectLightReceiver> out;const auto& resources=i.native_resources(bsp);
+  const SourceEffectLightReceiverWorld world{resources.memberships,geometry,resources.locations,std::int16_t(bsp)};
+  const SourceEffectLightDefinitions definition=[&](auto id)->const EffectLightDefinition& {return i.native_definition(id);};
+  for(const auto& selected:lights.selected) {
+    if(!(selected.requested_fade>std::bit_cast<float>(0x3d8f5c29u)))continue;
+    const auto at=std::find_if(lights.records.begin(),lights.records.end(),
+        [&](const auto& row){return row.runtime.identity==selected.identity;});
+    if(at==lights.records.end() || !at->definition)throw FormatError("Native receiver lost its selected light");
+    // Preserve the shared original selection budget before distinguishing
+    // GPU branches. No projected/scenario shape is substituted by a sphere.
+    if(!i.native_light_supported.contains(at->definition_identity) || at->runtime.scenario_placement!=-1) {
+      i.unavailable.insert("Native selected light needs its projected/scenario GPU receiver");continue;
+    }
+    const auto& r=at->runtime;
+    try {
+      const auto shape=source_effect_light_sphere(*at->definition,r.position,r.forward,r.up,r.state.size);
+      auto receiver=source_effect_light_receiver_view(world,r.cluster,r.spatial_center,r.spatial_radius,
+          shape,containing_fog,main_view);
+      const auto frustums=receiver.visibility.sphere_bank();
+      SourceEffectLightCollectionContext collection{};collection.visibility.frustums=&frustums;
+      collection.visibility.query_mode=receiver.query_mode;collection.visibility.sphere_center=r.spatial_center;
+      collection.visibility.sphere_radius=r.spatial_radius;collection.flags=receiver.flags;
+      collection.pass_mode=receiver.pass_mode;collection.containing_cluster=receiver.location.cluster;
+      collection.local_player=none;
+      auto snapshot=source_native_light_snapshot_tu15(source.memory(),resources.memberships.clusters.size());
+      for(const auto id:snapshot.lights.identities())snapshot.lights.record(id)[3]=i.source_light_queries.epoch;
+      const auto query=source_effect_lights_query(snapshot.lights,snapshot.spatial,definition,i.source_light_queries,
+          SourceEffectLightQueryKind::Light,collection);
+      out.push_back({selected.identity,query.epoch,selected.requested_fade,std::move(receiver)});
+    }catch(const FormatError& error){i.unavailable.insert(std::string("Native light receiver: ")+error.what());}
+  }
+  return out;
 }
 std::vector<WorldEffectLightReceiver> NativeWorldEffects::light_receivers(
     const SourceEffectLightView& lights,const SourceBspAdmissionBsp& geometry,

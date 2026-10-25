@@ -251,8 +251,8 @@ void NativeVistaSession::reconcile_offline(std::uint32_t map_status,std::uint32_
   reconcile_offline(map_status,map_progress,NativeVistaWorldKind::unloaded);
 }
 void NativeVistaSession::reconcile_offline(std::uint32_t map_status,std::uint32_t map_progress,
-    NativeVistaWorldKind world) {
-  std::optional<std::uint16_t> allowed;
+    NativeVistaWorldKind world,std::optional<std::uint16_t> actual_world_teams) {
+  std::optional<std::uint16_t> allowed=actual_world_teams;
   switch(world) {
     case NativeVistaWorldKind::unloaded:allowed=0;break;
     case NativeVistaWorldKind::mainmenu:allowed=0xff;break;

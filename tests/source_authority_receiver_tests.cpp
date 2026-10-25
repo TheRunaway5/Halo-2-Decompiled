@@ -23,11 +23,11 @@ void write(const std::filesystem::path &path,std::span<const std::byte> bytes){c
 std::vector<std::byte> read(const std::filesystem::path &path){std::ifstream in(path,std::ios::binary);std::vector<char> data((std::istreambuf_iterator<char>(in)),{});
     check(bool(in)||in.eof(),"Receiver fixture read failed");std::vector<std::byte> bytes(data.size());std::copy(data.begin(),data.end(),reinterpret_cast<char *>(bytes.data()));return bytes;}
 void marker(const std::filesystem::path &path){const std::array<std::byte,1> done{std::byte{1}};write(path,done);}
-std::array<std::byte,32> bodies(const MultiplayerPreparedWorld &owner){std::vector<std::byte> bytes;auto &world=*owner.source_objects;const auto &bank=world.memory();const auto services=storage(bank);
+std::array<std::byte,32> bodies(const MultiplayerPreparedWorld &owner,bool normalize_local_views=true){std::vector<std::byte> bytes;auto &world=*owner.source_objects;const auto &bank=world.memory();const auto services=storage(bank);
     for(const auto &object:world.live_objects()){put(bytes,object.object,4);put(bytes,object.definition,4);put(bytes,object.parent,4);
         const auto row=source_raw_datum_lookup(world.source_object_pool(),object.object,services);const auto size=word(bank,row+6,2);auto data=bank.view(word(bank,row+8),size);bytes.insert(bytes.end(),data.begin(),data.end());}
     for(unsigned slot=0;slot<8;++slot){const auto player=owner.match.player(slot).source_datum;put(bytes,player,4);
-        auto row=bank.view(source_raw_datum_lookup(world.source_player_pool(),player,services),0x21c);const auto begin=bytes.size();bytes.insert(bytes.end(),row.begin(),row.end());bytes[begin+0x28]=bytes[begin+0x29]=std::byte{};}
+        auto row=bank.view(source_raw_datum_lookup(world.source_player_pool(),player,services),0x21c);const auto begin=bytes.size();bytes.insert(bytes.end(),row.begin(),row.end());if(normalize_local_views)bytes[begin+0x28]=bytes[begin+0x29]=std::byte{};}
     std::array<std::byte,32> hash{};check(SHA256(reinterpret_cast<const unsigned char *>(bytes.data()),bytes.size(),reinterpret_cast<unsigned char *>(hash.data())),"Receiver body hash failed");return hash;}
 void alter(SourceMatchAuthority::Checkpoint &cut,std::uint32_t address){for(auto &region:cut.world.world.bank.regions)if(address>=region.address&&std::uint64_t(address)<std::uint64_t(region.address)+region.bytes.size()){
     region.bytes[address-region.address]^=std::byte{0x80};return;}throw FormatError("Forged remote identity fixture address missing");}
@@ -146,11 +146,26 @@ void run(int argc,char **argv){
         }
         // Publication permission is not a prepared-world receipt. The cold
         // variant intentionally has no executor when the first cut is sent.
+        struct CandidateBaseline {const MultiplayerPreparedWorld *owner;std::uint64_t tick;std::array<std::byte,32> bodies;};
+        std::optional<CandidateBaseline> candidate_baseline;
+        const auto retain_candidate_baseline=[&]{
+            if(candidate_baseline||!receiver->world())return;
+            const auto state=receiver->state();
+            check(state.prepared==0&&!state.ready&&state.error.empty(),"Receiver rejection baseline was not captured before native cut processing");
+            const auto *world=receiver->world();
+            candidate_baseline=CandidateBaseline{world,world->match.simulation().ticks(),bodies(*world,false)};
+        };
+        // A source-owned prototype performs its real startup birth tick. The
+        // cold path exposes that prototype at a warm-and-return boundary,
+        // before the received cut can prepare or mutate the live candidate.
+        retain_candidate_baseline();
         marker(files/"receiver-ready");bool rejected=false;unsigned prepared=0;
-        wait([&]{pump();receiver->update();const auto state=receiver->state();
+        wait([&]{pump();receiver->update();retain_candidate_baseline();const auto state=receiver->state();
             if(!rejected&&state.received==1&&!state.decoding&&!state.error.empty()){
                 check(state.error.find("full source player identity")!=std::string::npos,"Malformed cut failed before the independent full-roster identity gate");
-                check(state.prepared==0&&!state.ready&&receiver->world()->match.simulation().ticks()==0,"Rejected remote identity changed or acknowledged the live candidate");
+                check(candidate_baseline&&state.prepared==0&&!state.ready&&receiver->world()==candidate_baseline->owner&&
+                    receiver->world()->match.simulation().ticks()==candidate_baseline->tick&&bodies(*receiver->world(),false)==candidate_baseline->bodies,
+                    "Rejected remote identity changed or acknowledged the live candidate");
                 if(cold_from_cut)change_prototype();
                 rejected=true;marker(files/"bad-rejected");std::cout<<"PASS forged nonlocal source identity rejected before candidate mutation or world acknowledgement\n";}
             check(!state.host_proof,"Native-only receiver fabricated paired host evidence");

@@ -28,6 +28,12 @@ SourceContrailSnapshot capture_source_contrail_snapshot(const SourceRuntimeMemor
     std::vector<std::pair<std::uint32_t,std::size_t>> ranges;
     const auto add=[&](std::uint32_t p,std::size_t n){if(n){m.view(p,n);ranges.emplace_back(p,n);}};
     for(const auto p:{0x4f7210u,0x4f7214u,0x4ecbd0u,0x4f0414u})add(p,4);
+    // Original CRT math32EA98/32EB36 and32CD20/32CD84 read these writable
+    // dispatch policies in reached contrail geometry helpers. Retain each
+    // live authority word; loader defaults and later backing reads cannot
+    // represent this completed view/replica input.
+    add(0x46ecd0u,4);
+    add(0x48d4f4u,4);
     // Literal42FDD/4329F use these mutable pointer cells and their RGB/vector
     // inputs. Retain their live bytes rather than the XBE initial values.
     for(const auto p:{0x474c70u,0x474d10u}) {add(p,4);add(word(p),12);}

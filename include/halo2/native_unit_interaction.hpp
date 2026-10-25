@@ -4,6 +4,7 @@
 #include "halo2/native_action_prompt.hpp"
 #include "halo2/source_shadow.hpp"
 #include <map>
+#include <tuple>
 namespace halo2 {
 struct NativeVehicleSeatDefinition {
   std::uint32_t flags{},mode{},marker{},entry_marker{},grenade_marker{},entry_message{},grenade_message{},melee_message{};
@@ -31,6 +32,7 @@ struct NativeUnitInteractionAssets {
   std::map<std::uint32_t,NativeUnitInteractionDefinition> units;
   float flipped_up_threshold{};
   std::map<unsigned,std::size_t> netgame_placements;
+  std::map<std::tuple<unsigned,std::uint32_t,int>,std::size_t> netgame_templates;
 };
 std::shared_ptr<const NativeUnitInteractionAssets> load_native_unit_interaction_assets(const Cache &,const LevelContent &);
 // Current native body pose shared by marker and query-bound consumers.

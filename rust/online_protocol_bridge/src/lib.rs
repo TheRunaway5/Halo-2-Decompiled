@@ -4,9 +4,22 @@
 use halo2_online_protocol::native_requests::{NativeRequest, decode_request};
 use halo2_online_protocol::{DecodeError, ParsedVoice, decode_voice};
 mod eos_transport;
+mod eos_sdk_ipc;
+mod eos_sdk_proxy;
+mod eos_auth_http;
 mod eos_config;
 mod steam_credentials;
 mod host_agreement;
+mod lan_auth;
+mod netcode;
+use netcode::{
+    SnapshotReceiver, SnapshotSender, new_snapshot_receiver, new_snapshot_sender, snapshot_receiver_ack,
+    snapshot_receiver_buffered, snapshot_receiver_commit, snapshot_receiver_push, snapshot_receiver_reject,
+    snapshot_receiver_reset,
+    snapshot_receiver_stats, snapshot_sender_ack, snapshot_sender_encode, snapshot_sender_stats,
+};
+use lan_auth::{LanEndpoint, LanSession, new_lan_endpoint, new_lan_session, lan_public, lan_bind, lan_seal, lan_open, lan_is_packet};
+use halo2_online_protocol::security_policy::{steam_revocation_accepted, network_replay_call};
 mod common_cut;
 mod survivor_selection;
 mod migration_driver;
@@ -36,10 +49,21 @@ use host_agreement::{
 };
 use steam_credentials::{steam_saved_login, steam_save_login, steam_forget_login};
 use eos_config::eos_runtime_options;
+use eos_auth_http::{EosAuthHttp, new_eos_auth_http, eos_auth_http_request, eos_auth_http_cancel};
 use eos_transport::{EosTransport, new_eos_transport, new_eos_account_transport, eos_auth_request, eos_auth_complete, eos_auth_bound, eos_tick, eos_signal, eos_signals, eos_ready, eos_failed, eos_send, eos_receive, eos_relayed, eos_account_identity};
 
 fn eos_process_shutdown() -> bool {
-    ffi::sdk_process_shutdown()
+    eos_sdk_proxy::process_shutdown()
+}
+
+fn eos_sdk_register_host() -> Result<(), Box<dyn std::error::Error>> {
+    eos_sdk_proxy::register_adjacent_worker()
+}
+
+/// Runs the bundled Rust SDK service on this process's main thread.
+/// The dedicated worker dispatches here before creating any SDK owners.
+pub fn eos_sdk_worker_main() -> i32 {
+    eos_sdk_proxy::worker_main()
 }
 
 // CXX generates the ABI shims. No handwritten pointer conversion or unsafe
@@ -75,6 +99,7 @@ mod ffi {
     struct EosPeer { slot: u8, key: String }
     struct EosSignal { peer: u8, user: String }
     struct EosPacket { present: bool, peer: u8, data: Vec<u8> }
+    struct EosPacketQueueInfo { result: i32, incoming_bytes: u64, incoming_packets: u64, outgoing_bytes: u64, outgoing_packets: u64 }
     struct EosIdentity { user: String, token: String }
     struct EosAuthRequest { kind: u8, ticket: u64, token: String, user: String }
     struct EosAuthResponse { kind: u8, ticket: u64, status: u16, ok: bool, token: String, user: String, expires_in: u32 }
@@ -86,6 +111,55 @@ mod ffi {
         digest: [u8; 32],
     }
     struct PeerPollOrder { peers: [u8; 16] }
+    struct SnapshotPacket { data: Vec<u8> }
+    struct SnapshotEmission {
+        emitted: bool,
+        keyframe: bool,
+        digest: [u8; 32],
+        view_len: u32,
+        packets: Vec<SnapshotPacket>,
+    }
+    struct SnapshotDelivery {
+        complete: bool,
+        failed: bool,
+        sequence: u32,
+        tick: u32,
+        digest: [u8; 32],
+        view_len: u32,
+        body: Vec<u8>,
+    }
+    struct SnapshotAckFields { latest: u32, mask: u32, flags: u8 }
+    // Per-tick metadata for one snapshot body. Viewers are local-player
+    // positions (x, y, z triples); own are those players' unit objects.
+    struct SnapshotFrameInfo {
+        has_poses: bool,
+        pose_begin: usize,
+        pose_end: usize,
+        tick: u32,
+        sequence: u32,
+        now_ms: u64,
+        viewers: Vec<f32>,
+        own: Vec<u32>,
+        hot: Vec<u32>,
+    }
+    struct SnapshotSenderStats {
+        messages: u64,
+        wire_bytes: u64,
+        packets: u64,
+        keyframes: u64,
+        resets: u64,
+        over_budget: u64,
+        full_refreshes: u64,
+        root_updates: u64,
+        forced_refreshes: u64,
+        held_refreshes: u64,
+        lost_messages: u64,
+        budget_bps: u32,
+        rtt_ms: u64,
+        loss_percent: f32,
+        retired: bool,
+    }
+    struct SnapshotReceiverStats { messages: u64, failures: u64, held_poses: u64, missing_poses: u64 }
     struct HostAgreementContext {
         session: [u8; 32],
         epoch: u32,
@@ -186,6 +260,10 @@ mod ffi {
     enum MigrationDriverRetirement { Retryable, RetiredButFenced, Stale }
     unsafe extern "C++" {
         include!("src/eos_sdk.hpp");
+        type SdkWorkerOutput;
+        fn new_sdk_worker_output() -> Result<UniquePtr<SdkWorkerOutput>>;
+        fn sdk_worker_write(self: Pin<&mut SdkWorkerOutput>, bytes: &[u8]) -> Result<()>;
+        fn sdk_worker_flush(self: Pin<&mut SdkWorkerOutput>) -> Result<()>;
         type RawEos;
         fn eos_sdk_available() -> bool;
         fn sdk_process_shutdown() -> bool;
@@ -198,8 +276,9 @@ mod ffi {
         fn sdk_socket(self: Pin<&mut RawEos>, name: &str, force_relay: bool) -> Result<()>;
         fn sdk_poll(self: Pin<&mut RawEos>) -> Result<Vec<EosEvent>>;
         fn sdk_accept(self: Pin<&mut RawEos>, user: &str) -> bool;
-        fn sdk_send(self: Pin<&mut RawEos>, user: &str, bytes: &[u8], delayed: bool) -> bool;
-        fn sdk_session_create(self: Pin<&mut RawEos>, session: &EosSession, capacity: u32) -> Result<()>;
+        fn sdk_send(self: Pin<&mut RawEos>, user: &str, bytes: &[u8], delayed: bool) -> i32;
+        fn sdk_packet_queue_info(self: &RawEos) -> EosPacketQueueInfo;
+        fn sdk_session_create(self: Pin<&mut RawEos>, session: &EosSession, bucket: &str, capacity: u32) -> Result<()>;
         fn sdk_session_invite(self: Pin<&mut RawEos>, user: &str) -> Result<()>;
         fn sdk_session_query(self: Pin<&mut RawEos>) -> Result<()>;
         fn sdk_session_register(self: Pin<&mut RawEos>, user: &str) -> Result<()>;
@@ -207,6 +286,32 @@ mod ffi {
         fn sdk_session_join(self: Pin<&mut RawEos>, invite: &str) -> Result<()>;
     }
     extern "Rust" {
+        type LanEndpoint;
+        type LanSession;
+        fn new_lan_endpoint() -> Result<Box<LanEndpoint>>;
+        fn new_lan_session() -> Box<LanSession>;
+        fn lan_public(endpoint: &LanEndpoint) -> [u8;32];
+        fn lan_bind(endpoint: &LanEndpoint, session: &mut LanSession, peer: &[u8;32]) -> Result<()>;
+        fn lan_seal(endpoint: &LanEndpoint, session: &mut LanSession, host: bool, body: &[u8]) -> Result<Vec<u8>>;
+        fn lan_open(endpoint: &LanEndpoint, session: &mut LanSession, host: bool, packet: &[u8]) -> Result<Vec<u8>>;
+        fn lan_is_packet(packet: &[u8]) -> bool;
+        type SnapshotSender;
+        type SnapshotReceiver;
+        fn new_snapshot_sender(chunk: usize, overhead: usize) -> Box<SnapshotSender>;
+        fn snapshot_sender_encode(sender: &mut SnapshotSender, body: &[u8], floats: &[u32],
+            anchor_offsets: &[u32], anchor_keys: &[u64], info: &SnapshotFrameInfo) -> Result<SnapshotEmission>;
+        fn snapshot_sender_ack(sender: &mut SnapshotSender, latest: u32, mask: u32, flags: u8, now_ms: u64);
+        fn snapshot_sender_stats(sender: &SnapshotSender) -> SnapshotSenderStats;
+        fn new_snapshot_receiver(chunk: usize) -> Box<SnapshotReceiver>;
+        fn snapshot_receiver_push(receiver: &mut SnapshotReceiver, packet: &[u8], now_ms: u64) -> SnapshotDelivery;
+        fn snapshot_receiver_commit(receiver: &mut SnapshotReceiver, sequence: u32) -> bool;
+        fn snapshot_receiver_reject(receiver: &mut SnapshotReceiver, sequence: u32);
+        fn snapshot_receiver_ack(receiver: &SnapshotReceiver) -> SnapshotAckFields;
+        fn snapshot_receiver_reset(receiver: &mut SnapshotReceiver);
+        fn snapshot_receiver_stats(receiver: &SnapshotReceiver) -> SnapshotReceiverStats;
+        fn snapshot_receiver_buffered(receiver: &SnapshotReceiver) -> usize;
+        fn steam_revocation_accepted(status:u16, body:&str) -> bool;
+        fn network_replay_call(kind:u8) -> bool;
         type MigrationDriver;
         fn new_migration_driver(self_peer:u8, context:&HostAgreementContext) -> Result<Box<MigrationDriver>>;
         fn migration_driver_step(driver:&mut MigrationDriver, observation:&MigrationDriverObservation) -> Result<MigrationDriverAction>;
@@ -287,7 +392,13 @@ mod ffi {
         fn steam_forget_login(origin: &str, credential_namespace: &str, profile: &str) -> Result<()>;
         fn eos_runtime_options() -> Result<EosRuntimeOptions>;
         fn eos_process_shutdown() -> bool;
+        fn eos_sdk_register_host() -> Result<()>;
+        fn eos_sdk_worker_main() -> i32;
         type EosTransport;
+        type EosAuthHttp;
+        fn new_eos_auth_http(room_api: &str, bearer: &str) -> Result<Box<EosAuthHttp>>;
+        fn eos_auth_http_request(client: &EosAuthHttp, request: &EosAuthRequest) -> EosAuthResponse;
+        fn eos_auth_http_cancel(client: &EosAuthHttp);
         fn eos_account_identity(token: &str) -> Result<EosIdentity>;
         fn new_eos_transport(self_slot: u8, peers: Vec<EosPeer>, socket: &str, force_relay: bool, session: EosSession) -> Result<Box<EosTransport>>;
         fn new_eos_account_transport(self_slot: u8, peers: Vec<EosPeer>, socket: &str, force_relay: bool, session: EosSession) -> Result<Box<EosTransport>>;
@@ -412,6 +523,9 @@ mod ffi {
         sequence: u32,
         players: Vec<NativePlayer>,
         controls: Vec<NativeControl>,
+        ack_latest: u32,
+        ack_mask: u32,
+        ack_flags: u8,
     }
 
     extern "Rust" {
@@ -798,6 +912,9 @@ fn empty_request(status: ffi::DecodeStatus) -> ffi::NativeRequestFrame {
         sequence: 0,
         players: Vec::new(),
         controls: Vec::new(),
+        ack_latest: 0,
+        ack_mask: 0,
+        ack_flags: 0,
     }
 }
 
@@ -849,11 +966,15 @@ fn parse_request(packet: &[u8], protocol: u16) -> ffi::NativeRequestFrame {
             cookie,
             sequence,
             controls,
+            ack,
         } => {
             frame.kind = 2;
             frame.nonce = nonce;
             frame.cookie = cookie;
             frame.sequence = sequence;
+            frame.ack_latest = ack.latest;
+            frame.ack_mask = ack.mask;
+            frame.ack_flags = ack.flags;
             frame.controls = controls
                 .into_iter()
                 .map(|c| ffi::NativeControl {

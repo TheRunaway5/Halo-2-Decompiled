@@ -78,7 +78,7 @@ class EosIdentityTests(unittest.IsolatedAsyncioTestCase):
     async def test_session_revocation_during_verification_cannot_bind(self):
         identity=self.configure();headers=await self.login()
         who=self.api.directory.store.db.execute('SELECT player FROM player_profiles').fetchone()[0]
-        async def revoke(*_):
+        async def revoke(*_, **kwargs):
             self.api.directory.clans.sessions.clear()
             return who
         identity.verify=revoke

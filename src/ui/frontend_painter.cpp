@@ -626,6 +626,14 @@ struct FrontendPainter::Impl {
              a.uv.x + (b.uv.x - a.uv.x) * xs[x+1] / w,
              a.uv.y + (b.uv.y - a.uv.y) * ys[y+1] / h);
   }
+  void group_bitmap(UiBitmap b, Vec2 origin, float alpha=1,
+                    std::optional<UiColor> tint={}) {
+    if(content.images.contains(b.datum) && !content.images.at(b.datum).images.empty())
+      b.position.y+=content.images.at(b.datum).images.front().height;
+    // 2B9D59/2BA733 retains the selected rank page. Passing an explicit
+    // zero here also discarded nonzero roster stripe selections.
+    bitmap(b,origin,alpha,-1,tint);
+  }
   void bitmap(const UiBitmap &b, Vec2 parent = {}, float alpha = 1,
               int frame = -1, std::optional<UiColor> tint = {},
               std::optional<float> clip_bottom = {}) {
@@ -1550,6 +1558,11 @@ struct FrontendPainter::Impl {
           ? state.online_directory_text(frame, i) : state.online_matchmaking_text(frame, i);
       if (frame.screen == 210 && (content.source_fonts.empty() || i == 0))
         value = state.online_matchmaking_text(frame, i);
+      // TU1.5 pane3 authors no tip callouts; its text0 replaces them. The PC
+      // pane2 frame hosting it keeps only its main text record.
+      if (frame.screen == 210 && !content.source_fonts.empty() && i > 0 &&
+          state.online_matchmaking_progress_pane() == 3)
+        value.clear();
       if (state.online_clan_screen(frame)) value = state.online_clan_text(frame,i);
       if (wide_social_page(frame)) {
         // Native membership replaces the source player's rank columns.
@@ -1725,9 +1738,7 @@ struct FrontendPainter::Impl {
                 b.frame = int(row.rank_frame);
               }
               if (!visible) continue;
-              if (content.images.contains(b.datum) && !content.images.at(b.datum).images.empty())
-                b.position.y += content.images.at(b.datum).images.front().height;
-              bitmap(b, origin, 1, 0, tint);
+              group_bitmap(b,origin,1,tint);
             }
             for (auto t : group.texts)
               if (original_string_matches(t.string,0x0b000698)) {
@@ -1923,6 +1934,21 @@ struct FrontendPainter::Impl {
                               opacity, frame.entries[index], appearance);
               });
         }
+        if(frame.screen==210) {
+          if(const auto rank=state.online_matchmaking_rank(index))
+            for(const auto &grid:skin.grids)
+              if(content.skin_groups.contains(grid.skin))
+                cells(grid,p,[&](Vec2 origin) {
+                  for(auto b:content.skin_groups.at(grid.skin).bitmaps)
+                    if(content.images.contains(b.datum) &&
+                        content.images.at(b.datum).name=="ui\\global_bitmaps\\rank_icons_sm") {
+                      // TU1.5 257BDC ->2B9EB2 ->2B9D59 supplies the
+                      // selected rank page; retain this skin's own geometry.
+                      b.frame=int(*rank);b.animation=b.delay=0;
+                      group_bitmap(b,origin,opacity);
+                    }
+                });
+        }
         for (unsigned j = 0; j < skin.texts.size(); ++j) {
           //Actual40A781 first hides both text children, then shows child
           //!enabled. Both children receive the same source-local row label.
@@ -1934,6 +1960,15 @@ struct FrontendPainter::Impl {
           if (profile_skin && frame.entries[index].destination == -3)
             continue;
           auto t = skin.texts[j];
+          if (frame.screen == 210 && j == 0 && state.online_matchmaking_team_colors()) {
+            // TU1.5 2517E2 ->2AFEAE: a team row's name follows its team
+            // color once the countdown exists; team NONE keeps the default.
+            const int team = frame.entries[index].value;
+            if (team >= 0 && std::size_t(team) < frontend_lobby_team_colors.size() - 1) {
+              const auto color = source_profile_name_color(frontend_lobby_team_colors[std::size_t(team)]);
+              t.color.red = color.x; t.color.green = color.y; t.color.blue = color.z;
+            }
+          }
           if (wide_social_page(frame))
             t.bounds.right += social_width_extra();
           t.animation = 0;

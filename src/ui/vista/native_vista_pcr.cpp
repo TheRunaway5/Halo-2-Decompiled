@@ -2,8 +2,10 @@
 #include "ui/mcc_pc_frontend_string_ids.hpp"
 #include "halo2/multiplayer.hpp"
 #include "halo2/full_scoreboard.hpp"
+#include "halo2/spawn.hpp"
 #include <algorithm>
 #include <bit>
+#include <sstream>
 
 namespace halo2 {
 namespace {
@@ -106,9 +108,11 @@ NativeVistaPcr::NativeVistaPcr(const MultiplayerMatch& match,unsigned slot,
   (void)pc_content(content_,185);
   required(services_.lifecycle_active,"Native Vista PCR needs the actual lifecycle active owner");
   required(services_.lifecycle_kind,"Native Vista PCR needs the actual lifecycle kind owner");
-  if(slot>=16 || match.team_mode() || variant.bytes[0x44]!=std::byte{2} ||
-      (variant.bytes[0x48]&std::byte{1})!=std::byte{})
-    throw FormatError("Native Vista PCR currently admits local offline FFA Slayer");
+  const auto type=std::to_integer<unsigned>(variant.bytes[0x44]);
+  const bool objective=type==1 || type==9;
+  if(slot>=16 || (!objective && (type!=2 || match.team_mode())) ||
+      ((variant.bytes[0x48]&std::byte{1})!=std::byte{})!=match.team_mode())
+    throw FormatError("Native Vista PCR requires an admitted local original engine/team configuration");
   const auto state=match.state();
   if(!state.finished || !state.results_finalized || !state.game_over_complete())
     throw FormatError("Native Vista PCR requires actual completed match results");
@@ -129,9 +133,21 @@ NativeVistaPcr::NativeVistaPcr(const MultiplayerMatch& match,unsigned slot,
     const auto& local=mappings[index];
     if(!local || !player.source_profile_request || !player.source_configuration ||
         player.source_datum==null_datum || (player.source_datum&0xffffu)!=index ||
-        player.source_membership!=std::int8_t(index) || (player.source_flags&2) ||
+        (!match.team_mode() && player.source_membership!=std::int8_t(index)) ||
+        (match.team_mode() && (player.source_membership<0 || player.source_membership>7)) || (player.source_flags&2) ||
         native_vista_selected_profile_payload(*player.source_profile_request)!=local->requested_payload)
-      throw FormatError("Native Vista PCR participant lost its actual profile, identity or FFA membership");
+    {
+      std::ostringstream detail;detail<<"Native Vista PCR participant lost its actual profile, identity or membership: slot="<<index
+          <<" mapped="<<bool(local)<<" profile="<<bool(player.source_profile_request)<<" configuration="<<bool(player.source_configuration)
+          <<" datum="<<player.source_datum<<" flags="<<player.source_flags<<" membership="<<int(player.source_membership);
+      if(local && player.source_profile_request) {
+        const auto requested=native_vista_selected_profile_payload(*player.source_profile_request);
+        for(unsigned i=0;i<requested.size();++i)if(requested[i]!=local->requested_payload[i]) {
+          detail<<" profile_diff="<<i<<":"<<std::to_integer<unsigned>(requested[i])<<":"<<std::to_integer<unsigned>(local->requested_payload[i]);break;
+        }
+      }
+      throw FormatError(detail.str());
+    }
     participant_mask|=1u<<index;
     // Same recovered ranking comparator as the native full scoreboard. PC
     //469462..469495 divides the encoded rank by2 before publishing placement.
@@ -146,9 +162,22 @@ NativeVistaPcr::NativeVistaPcr(const MultiplayerMatch& match,unsigned slot,
       !vista_pcr_ranking_available(match.source_round_lifecycle().flags))
     throw FormatError("Native Vista PCR roster differs from its actual session/ranking owner");
   FullScoreboardOptions rank_options;rank_options.engine_present=true;rank_options.game_over=true;
+  rank_options.team_mode=match.team_mode();
   rank_options.life_limit=state.life_limit;
   rank_options.extended_round_comparison=(variant.bytes[0x48]&std::byte{0x10})!=std::byte{};
-  const auto ranks=full_scoreboard_ranks(participants,rank_options);
+  std::array<FullScoreboardTeam,8> teams{};
+  std::array<TeamRespawnPlayer,16> presence{};
+  for(unsigned i=0;i<participants.size();++i)presence[i]={participants[i].membership,participants[i].flags,0};
+  const auto playing=source_team_presence(0,std::span(presence).first(participants.size())).playing;
+  unsigned team_count{};
+  if(match.team_mode())for(unsigned i=0;i<8;++i) {
+    auto& row=teams[i];const auto& stats=match.source_match_statistics().teams[i].fields;
+    row.retained=(state.retained_team_mask&(1u<<i))!=0;row.playing=(playing&(1u<<i))!=0;
+    row.score=stats[0];row.total_score=stats[1];row.stat8=stats[2];row.stat_a=stats[3];row.stat10=stats[6];row.wins=stats[7];
+    team_count+=row.retained;
+  }
+  const auto ranks=full_scoreboard_ranks(participants,rank_options,
+      match.team_mode()?std::span<const FullScoreboardTeam>(teams):std::span<const FullScoreboardTeam>{});
   const auto publication=required(services_.publication,"Native Vista PCR publication owner is unavailable")();
   if(!publication.current || !publication.finalized || !publication.engine_present)
     throw FormatError("Native Vista PCR actual publication owner has not finalized");
@@ -160,11 +189,18 @@ NativeVistaPcr::NativeVistaPcr(const MultiplayerMatch& match,unsigned slot,
   for(const auto& player:participants) {
     const auto index=player.datum&0xffffu;const auto& local=*mappings[index];
     auto& row=input.players[index];row.occupied=true;row.identity=local.identity;row.configuration=local.final_payload;
+    row.configuration[0x7c]=std::byte(match.team_mode()?player.membership:-1);
     row.score=vista_pcr_accumulated_player_score(match.source_match_statistics(),player.datum);
     row.placement=std::int8_t(ranks.players[index]/2);
   }
+  for(unsigned i=0;i<8;++i)if(teams[i].retained)
+    input.teams[i]={1,teams[i].total_score,std::int32_t(ranks.teams[i]/2)};
   source_=vista_pcr_publish_consumed_snapshot(input);
-  VistaPcrServices build;build.engine_present=publication.engine_present;build.team_play=false;
+  VistaPcrServices build;build.engine_present=publication.engine_present;build.team_play=match.team_mode();
+  build.team_name=[&](std::uint32_t n) {
+    if(n>=pc.vista_team_names.size() || pc.vista_team_names[n].empty())throw FormatError("Actual Vista team-name locale unavailable");
+    return wide(pc.vista_team_names[n]);
+  };
   build.score=[](std::int32_t value){return native_vista_pcr_format(u"%d",std::span(&value,1));};
   build.placement=[&](std::int32_t value){return wide(detail::frontend_pc_compiled_localized(pc,pc.screens.at(16),native_vista_pcr_placement_key(value)));};
   build.live_identity=[&](unsigned index)->std::optional<VistaLocalUserIdentity> {
@@ -179,8 +215,8 @@ NativeVistaPcr::NativeVistaPcr(const MultiplayerMatch& match,unsigned slot,
   build.selected_identity=[&]{return session_->xuser_get_xuid(0).output;};
   build.medal_achievement=services_.medal_achievement;
   vista_pcr_build(*results_,source_.source,build);
-  if(results_->player_count!=participants.size() || results_->team_count || results_->variant!=2)
-    throw FormatError("Native Vista PCR result producer lost an actual local FFA participant");
+  if(results_->player_count!=participants.size() || results_->team_count!=team_count || results_->variant!=type)
+    throw FormatError("Native Vista PCR result producer lost an actual local participant, team or selected engine");
   initialize_assets(pc);
 }
 void NativeVistaPcr::initialize_assets(const FrontendContent& pc) {
@@ -195,12 +231,15 @@ NativeVistaPcr::NativeVistaPcr(VistaPcrConsumedSnapshot source,std::vector<Onlin
     :online_roster_(std::move(roster)),content_(content),source_(std::move(source)),results_(std::make_shared<VistaPcrResults>()) {
   const auto& pc=pc_content(content_,16);(void)pc_content(content_,185);services_.floating_point=fp;
   const bool team=source_.source[0x13]==std::byte{1};
+  const auto type=word(source_.source,0x64);
+  const bool objective=type==1 || type==9;
   if(online_roster_.size()<2 || online_roster_.size()>16 ||
-      source_.source[0x13]!=std::byte(team) || ((source_.source[0x68]&std::byte{1})!=std::byte(team)))
-    throw FormatError("ONLINE PCR requires its admitted Slayer roster");
+      source_.source[0x13]!=std::byte(team) || ((source_.source[0x68]&std::byte{1})!=std::byte(team)) ||
+      (type!=2 && !objective) || (objective && !team))
+    throw FormatError("ONLINE PCR requires its admitted original multiplayer roster");
   const auto order=vista_pcr_order(source_.source);
-  if(order.player_count!=online_roster_.size() || word(source_.source,0x64)!=2)
-    throw FormatError("ONLINE PCR does not match its completed Slayer roster");
+  if(order.player_count!=online_roster_.size())
+    throw FormatError("ONLINE PCR does not match its completed original roster");
   unsigned team_mask{};
   for(unsigned i=0;i<16;++i) {
     const auto at=0x370+i*0x94;

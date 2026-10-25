@@ -444,7 +444,7 @@ class MatchTransport:
         self.api.directory.rate("eos-room:" + owner[1], 120)
         identity = self.api.directory.eos_identity
         puid = identity.proof_subject(body["token"])
-        account = await identity.verify(puid, body["token"])
+        account = await identity.verify(puid, body["token"], principal=owner[1])
         room, player = self.eos_owner(request, owner)
         require(account == player, "EOS identity belongs to another account", 403)
         # No await separates capability revalidation, immutable binding and the
@@ -701,7 +701,7 @@ class MatchTransport:
                         if room.phase == "postgame" and source != room.host:
                             target = room.host  # A completed session's former voice host may have left.
                     if source == room.host:
-                        require(target != source and target < len(room.players) and kind in (3, 5, 6), "Invalid host route")
+                        require(target != source and target < len(room.players) and kind in (3, 5, 6, 14), "Invalid host route")
                     else:
                         require(target == room.host and kind in (1, 2, 4, 6), "Invalid client route")
                     if kind == 6:

@@ -3,6 +3,8 @@
 #include "halo2/source_multiplayer_engines_tu15.hpp"
 #include "halo2/source_game_variant.hpp"
 #include "halo2/source_ctf_player_iterator_tu15.hpp"
+#include "halo2/source_objective_native_tu15.hpp"
+#include "halo2/source_ctf_activation_spawn_tu15.hpp"
 #include "ctf_activation_test_support.hpp"
 #include "multiplayer_engine_services_tu15.hpp"
 #include <nlohmann/json.hpp>
@@ -63,7 +65,7 @@ struct Memory : SourcePhysicsContactMemory {
     throw std::runtime_error("Undeclared source write at "+std::to_string(p)+" pc="+std::to_string(pc));
   }
 };
-Json execute(const Json& row,const Json& fixture) {
+Json execute(const Json& row,const Json& fixture,bool trace=true) {
   const auto& blobs=fixture.at("blobs");
   Memory memory;
   std::map<std::uint32_t,std::string> inputs;
@@ -85,16 +87,26 @@ Json execute(const Json& row,const Json& fixture) {
   abi.gp=row.at(row.contains("registration_gp")?"registration_gp":"gp").get<std::array<std::uint32_t,8>>();abi.eflags=0x202;
   for(unsigned i=0;i<8;++i)for(unsigned j=0;j<4;++j)abi.xmm[i][j]=0x3f000000+i*0x100+j;
   abi.floating_point=SourcePhysicsFactoryFloatingPoint{0x27f,0x1f80};
+  std::vector<std::byte> publications;
+  SourcePhysicsContactRecordObserver observe=[&](const SourcePhysicsContactRecordStore& store) {
+    for(unsigned n=0;n<store.written.size();++n) {
+      append(publications,store.instruction);append(publications,store.address+n);
+      publications.push_back(store.written[n]);
+    }
+  };
   SourcePhysicsWorldRuntimeServices services{};
-  services.instruction=[&](std::uint32_t pc){memory.instruction(pc);};
+  if(trace)services.instruction=[&](std::uint32_t pc){memory.instruction(pc);};
   std::function<void(std::uint32_t,SourcePhysicsWorldRuntimeAbi&)> dispatch;
   dispatch=[&](std::uint32_t entry,SourcePhysicsWorldRuntimeAbi& state) {
-    if(source_multiplayer_engines_tu15_owns_entry(entry))source_run_multiplayer_engines_tu15(memory,entry,state,{0x27f,0x1f80},services);
-    else if(source_multiplayer_engine_services_tu15_owns_entry(entry))source_run_multiplayer_engine_services_tu15(memory,entry,state,{0x27f,0x1f80},services);
-    else if(source_ctf_player_iterator_tu15_owns_entry(entry))source_run_ctf_player_iterator_tu15(memory,entry,state,{0x27f,0x1f80},services);
-    else if(source_ctf_configuration_tu15_owns_entry(entry))source_run_ctf_configuration_tu15(memory,entry,state,{0x27f,0x1f80},services);
-    else if(source_ctf_activation_tu15_owns_entry(entry))source_run_ctf_activation_tu15(memory,entry,state,{0x27f,0x1f80},services);
-    else if(source_ctf_activation_test_support_owns_entry(entry))source_run_ctf_activation_test_support(memory,entry,state,{0x27f,0x1f80},services);
+    if(source_multiplayer_engines_tu15_owns_entry(entry))source_run_multiplayer_engines_tu15(memory,entry,state,{0x27f,0x1f80},services,observe);
+    else if(source_ctf_player_iterator_tu15_owns_entry(entry))source_run_ctf_player_iterator_tu15(memory,entry,state,{0x27f,0x1f80},services,observe);
+    else if(source_ctf_configuration_tu15_owns_entry(entry))source_run_ctf_configuration_tu15(memory,entry,state,{0x27f,0x1f80},services,observe);
+    else if(source_ctf_activation_spawn_tu15_owns_entry(entry))source_run_ctf_activation_spawn_tu15(memory,entry,state,{0x27f,0x1f80},services,observe);
+    else if(source_ctf_activation_tu15_owns_entry(entry))source_run_ctf_activation_tu15(memory,entry,state,{0x27f,0x1f80},services,observe);
+    // Production mode owners must precede the test-only shared-service
+    // composition, which also retains historical callback controls.
+    else if(source_multiplayer_engine_services_tu15_owns_entry(entry))source_run_multiplayer_engine_services_tu15(memory,entry,state,{0x27f,0x1f80},services,observe);
+    else if(source_ctf_activation_test_support_owns_entry(entry))source_run_ctf_activation_test_support(memory,entry,state,{0x27f,0x1f80},services,observe);
     else throw Missing{entry};
   };
   services.required_owner=[&](SourcePhysicsContactMemory&,const SourcePhysicsContactRuntimeCall& call,
@@ -137,7 +149,7 @@ Json execute(const Json& row,const Json& fixture) {
     {"x87",x87},{"fs_base",abi.fs_base},
     {"x87_status",abi.x87_status&0xfdc0},{"x87_control",abi.floating_point->x87_control_word},
     {"mxcsr",abi.floating_point->mxcsr&0xffffffc0},{"trace_sha256",digest(memory.trace)},
-    {"instructions",memory.instructions},{"store_sha256",digest(memory.stores)},
+    {"instructions",memory.instructions},{"store_sha256",digest(publications)},
     {"store_bytes",memory.store_bytes},{"banks_sha256",banks}};
 }
 }
@@ -176,10 +188,38 @@ int main(int argc,char** argv) {
           std::cerr<<it.key()<<" native="<<it.value()<<" original="<<expected.at(it.key())<<'\n';
         return 1;
       }
+      if(row.at("source_type")==1 || row.at("source_type")==9) {
+        const auto before_native=source_objective_native_tu15_stats;
+        auto native=execute(row,fixture,false);auto reference=expected;
+        const auto owner=std::ranges::find(source_objective_native_owner_entries,row.at("entry").get<std::uint32_t>());
+        if(owner!=source_objective_native_owner_entries.end()) {
+          const auto index=std::size_t(owner-source_objective_native_owner_entries.begin());
+          if(source_objective_native_tu15_stats.owners[index]==before_native.owners[index])
+            throw std::runtime_error("Untraced case bypassed its production native objective owner: "+row.at("name").get<std::string>());
+        }
+        for(const auto* key:{"trace_sha256","instructions"}) {
+          native.erase(key);reference.erase(key);
+        }
+        if(native!=reference) {
+          std::cerr<<"Native objective kernel mismatch: "<<row.at("name")<<'\n';
+          for(auto it=native.begin();it!=native.end();++it)if(it.value()!=reference.at(it.key()))
+            std::cerr<<it.key()<<" native="<<it.value()<<" original="<<reference.at(it.key())<<'\n';
+          return 1;
+        }
+      }
       ++count;if(actual.at("boundary")==0)++complete;
     }
+    if(!source_objective_native_tu15_stats.arming || !source_objective_native_tu15_stats.decay)
+      throw std::runtime_error("Original objective comparisons did not execute both native arming kernels");
     std::cout<<"Original multiplayer engine ABI: "<<count<<" cases, "<<complete
-        <<" complete returns; 39 exact original variant buffers. Complete match acceptance remains open.\n";
+        <<" complete returns; 39 exact original variant buffers; native arming="
+        <<source_objective_native_tu15_stats.arming<<", native decay="<<source_objective_native_tu15_stats.decay
+        <<". Complete match acceptance remains open.\n";
+    Json native_owners=Json::array();
+    for(unsigned n=0;n<source_objective_native_owner_entries.size();++n)
+      native_owners.push_back({{"entry",source_objective_native_owner_entries[n]},
+          {"completed_calls",source_objective_native_tu15_stats.owners[n]}});
+    std::cout<<"Native objective owner completions: "<<native_owners.dump()<<'\n';
     return 0;
   } catch(const std::exception& e) {std::cerr<<e.what()<<'\n';return 1;}
 }

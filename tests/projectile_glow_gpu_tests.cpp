@@ -46,7 +46,7 @@ int main(int argc,char **argv)try {
     SDL_SetMainReady();check(SDL_Init(SDL_INIT_VIDEO)==0,SDL_GetError());
     std::unique_ptr<SDL_Window,decltype(&SDL_DestroyWindow)> window(SDL_CreateWindow("Projectile glow material banks",0,0,640,480,
         SDL_WINDOW_VULKAN|SDL_WINDOW_HIDDEN),SDL_DestroyWindow);check(bool(window),SDL_GetError());
-    Renderer renderer(window.get(),mesh,false);
+    Renderer renderer(window.get(),mesh,false,{},nullptr,{},nullptr,HALO2_SHADER_DIR);
     std::array<ModelView,2> views;std::array<unsigned,2> uploads{};
     std::array<std::span<const SourceLightVolumeDraw>,2> lights;
     const auto expected=light_volume_program().words;

@@ -50,6 +50,17 @@ int main(int argc,char **argv)try{
   std::array<Controls,4> local{};std::array<Controls,3> other{};std::array<Controls,16> commands{};
   for(unsigned n=0;n<32&&!(promoted->ready()&&remote.ready());++n){promoted->send(local);remote.send(other);host->receive(commands);host->broadcast();promoted->receive();remote.receive();}
   check(host->peers()==2&&promoted->ready()&&remote.ready(),"Eight-player native admission did not complete");
+  const auto first_diagnostics=remote.snapshot_diagnostics();
+  check(first_diagnostics.error==LanClient::ErrorCategory::none&&first_diagnostics.accepted_sequence&&
+      first_diagnostics.accepted_tick==remote.state().tick&&first_diagnostics.accepted_age_ms&&
+      first_diagnostics.rejected_packets==remote.rejected_packet_count()&&host->snapshot_diagnostics().body_bytes&&
+      host->snapshot_diagnostics().fragments>=host->snapshot_diagnostics().peers,
+      "Native snapshot diagnostics did not observe actual decoded/serialized traffic");
+  const auto same_diagnostics=remote.snapshot_diagnostics();
+  check(same_diagnostics.accepted_sequence==first_diagnostics.accepted_sequence&&
+      same_diagnostics.accepted_tick==first_diagnostics.accepted_tick&&
+      same_diagnostics.accepted_age_ms>=first_diagnostics.accepted_age_ms,
+      "Reading native snapshot diagnostics changed its accepted receipt or reset its age");
   check(!host->activate_continuation_liveness(),"An ordinary live host acquired a continuation clock reset");
   AuthorityTransferContext before;before.session.front()=std::byte{0x71};before.epoch=3;before.membership_revision=7;
   before.peers=(1u<<0)|(1u<<1)|(1u<<5);before.host=0;
@@ -145,6 +156,10 @@ int main(int argc,char **argv)try{
     const auto receipt=AuthorityCutSeal{1,captured.world.match.simulation.ticks,native.size(),{std::byte{1}}};
     auto wrong=after;wrong.host=5;rejects([&]{remote.rebind_host(before,wrong,receipt);});
     rejects([&]{remote.rebind_host(before,after,{});});remote.rebind_host(before,after,receipt);
+    const auto rebound_diagnostics=remote.snapshot_diagnostics();
+    check(!rebound_diagnostics.accepted_sequence&&!rebound_diagnostics.accepted_tick&&!rebound_diagnostics.accepted_age_ms&&
+        rebound_diagnostics.error==LanClient::ErrorCategory::none,
+        "Historical rebind fabricated a fresh accepted network snapshot diagnostic");
     rejects([&]{remote.rebind_host(before,after,receipt);});
     bus->queues[5]=stale;remote.receive();check(remote.received_states().empty(),"Old-host snapshots survived endpoint rebind");
     const auto old_deaths=target.match.player(0).deaths;const auto old_player=target.match.player(0).source_datum;

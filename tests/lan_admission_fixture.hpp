@@ -24,11 +24,21 @@ void raw_lan_admission_security(){
   for(unsigned i=0;i<4;++i)put(hello,255,1);for(unsigned i=0;i<4;++i)put(hello,0,1);
   send(a.fd,hello);receive(a.fd);
   check(host.peers()==0&&match.available_player_slots()==16,"First unauthenticated hello allocated live player slots");
+  LanPacketAuth authentication;LanPacketAuth::Session session;
+  auto secured=header(10);put(secured,456,8);
+  for(auto b:authentication.public_key())put(secured,b,1);
+  secured.insert(secured.end(),hello.begin(),hello.end());hello=std::move(secured);
   const auto wrap=[&](const Packet &body,const Packet &cookie){auto p=header(9);p.insert(p.end(),cookie.begin(),cookie.end());p.insert(p.end(),body.begin(),body.end());return p;};
   const Packet empty_cookie(16);
   auto initial=wrap(hello,empty_cookie);send(a.fd,initial);auto challenge=receive(a.fd);
   check(challenge.size()==1&&challenge[0].size()==31&&challenge[0][6]==std::byte{8},"Hello must receive only a bounded challenge");
   Packet cookie(challenge[0].begin()+15,challenge[0].end());
+  auto invalid_key=hello;std::fill(invalid_key.begin()+15,invalid_key.begin()+47,std::byte{});
+  send(b.fd,wrap(invalid_key,empty_cookie));auto invalid_challenge=receive(b.fd);
+  check(invalid_challenge.size()==1,"Invalid-key fixture did not get endpoint proof");
+  Packet invalid_cookie(invalid_challenge[0].begin()+15,invalid_challenge[0].end());
+  send(b.fd,wrap(invalid_key,invalid_cookie));receive(b.fd);
+  check(host.peers()==0&&match.available_player_slots()==16,"Invalid X25519 key changed the match");
   send(b.fd,wrap(hello,cookie));receive(b.fd);
   check(host.peers()==0,"Another endpoint echoed a stolen cookie");
   auto changed=hello;changed[7]^=std::byte{1};send(a.fd,wrap(changed,cookie));receive(a.fd);
@@ -37,6 +47,16 @@ void raw_lan_admission_security(){
   receive(b.fd);check(host.peers()==0,"Unverified hello flood consumed lobby capacity");
   send(a.fd,wrap(hello,cookie));const auto initial_snapshot=receive(a.fd);
   check(host.peers()==1&&match.available_player_slots()==12,"Valid cookie did not admit exactly the requested couch");
+  check(!initial_snapshot.empty(),"Admitted endpoint received no authenticated snapshot");
+  std::uint64_t observed_cookie{};
+  for(auto packet:initial_snapshot){
+    check(authentication.open(packet,session,true),"Initial host snapshot failed authentication");
+    for(unsigned i=0;i<8;++i)observed_cookie|=std::uint64_t(std::to_integer<unsigned char>(packet[15+i]))<<(8*i);
+  }
+  // Even an observer of nonce/cookie/sequence cannot make the host process a
+  // cleartext leave. The authenticated peer remains admitted.
+  auto forged_leave=header(4);put(forged_leave,456,8);put(forged_leave,observed_cookie,8);
+  send(a.fd,forged_leave);receive(a.fd);check(host.peers()==1,"Unsigned established leave retired a peer");
   const auto admitted_hello=wrap(hello,cookie);
   for(unsigned i=0;i<100;++i)send(a.fd,admitted_hello);
   check(receive(a.fd,1).size()<=initial_snapshot.size(),"Repeated admitted hellos regenerated unbounded snapshots");

@@ -34,6 +34,8 @@ struct MultiplayerMatch::AuthorityCheckpoint {
   std::array<NativeWeaponEffectEvent,multiplayer_capacity> weapon_effect_events;
   std::vector<NativeWeaponEffectEvent> weapon_effect_journal;
   std::uint32_t weapon_effect_serial{};
+  std::vector<SourceMultiplayerEventTu15> source_engine_events;
+  std::uint32_t source_engine_event_serial{};
   std::uint16_t infection_zombies{};
   bool infection_started{};
   std::uint32_t infection_start_tick{};

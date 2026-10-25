@@ -74,6 +74,25 @@ def stage(source, baseline, output):
     palette['road']['native_shader_override']=shader
     metadata['native_material_variants']='native-material-variants.json'
     save(model/'material_mapping.json',metadata)
+    lights=g.doc.get('extensions',{}).get('KHR_lights_punctual',{}).get('lights',[])
+    if lights:
+        placements=[]
+        for _,node,_,world in g.nodes(include_empty=True):
+            reference=node.get('extensions',{}).get('KHR_lights_punctual')
+            if reference is None:continue
+            light=lights[reference['light']]
+            assert light['type']=='spot' and node['extras']['export_practical_light'] is True
+            direction=(-world[:3,2])[[2,0,1]];direction/=np.linalg.norm(direction)
+            placements.append(dict(name=node['name'],position=world[:3,3][[2,0,1]].tolist(),
+                position_wu=(world[:3,3][[2,0,1]]/3.048).tolist(),direction=direction.tolist(),
+                color=light['color'],intensity_candela=light['intensity'],
+                inner_cone_radians=light['spot']['innerConeAngle'],outer_cone_radians=light['spot']['outerConeAngle']))
+        assert len(placements)==len(lights)==provenance['interior_visibility']['practical_lights']
+        save(model/'native-practical-lights.json',dict(schema='H2_DESERTED_PRACTICAL_LIGHTS_V1',
+            source_glb_sha256=sha(source/'Deserted-polished.glb'),lights=placements,
+            native_strength_reference_candela=24458.135879647016,native_strength_at_reference=.8,
+            falloff_wu=1.4,cutoff_wu=2.,near_width_wu=.1,
+            scope='Exact exported placements, directions, colors and relative strengths; native brightness is an art calibration against EarthCity fixtures, not photometric parity'))
     structure=model/'data/scenarios/multi/dust2_mombasa/structure'
     text=reconstructed.read_text();old=ass_shader_name(original_road['shader']);new=ass_shader_name(shader.replace('/','\\'))
     assert text.count('"'+old+'%"')==1
@@ -127,7 +146,8 @@ def stage(source, baseline, output):
             ps.append(p[:,[2,0,1]]/3.048);ts.append(t+offset);roles.extend([list(palette).index(key)]*len(t));offset+=len(p)
     p,remap=np.unique(np.round(np.concatenate(ps),8),axis=0,return_inverse=True);t=remap[np.concatenate(ts)]
     np.savez_compressed(model/'architecture-solid.npz',positions=p,triangles=t,roles=np.array(roles))
-    assert len(t)==provenance['candidate']['architecture_triangles'] and decorations==16469
+    assert len(t)==provenance['candidate']['architecture_triangles']
+    assert decorations==provenance['decoration']['triangles']
     base_provenance=json.loads((baseline/'model/provenance.json').read_text())
     save(model/'provenance.json',dict(schema='H2_DESERTED_BLENDER_COMPILER_PACKAGE_V1',name='Deserted',
         blender_delivery=provenance,render=dict(conversion,bounds_ass=base_provenance['render']['bounds_ass']),

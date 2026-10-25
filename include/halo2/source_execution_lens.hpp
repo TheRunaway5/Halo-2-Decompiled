@@ -22,6 +22,8 @@ void source_require_retired_lens_queries(const SourceRuntimeMemory &);
 // original CPU query kernel, and validates every private-device write.
 void source_execute_lens_query(PhysicsLiveWorldTu15 &,std::uint32_t,
     SourcePhysicsWorldRuntimeAbi &,SourcePhysicsContactMemory *device=nullptr);
+void source_execute_lens_query(SourceRuntimeMemory &,std::uint32_t,
+    SourcePhysicsWorldRuntimeAbi &,SourcePhysicsContactMemory *device=nullptr);
 struct SourceLensQueryRollback {
     std::uint32_t id{},area{};
     bool bit{};
@@ -29,6 +31,8 @@ struct SourceLensQueryRollback {
 // Actual source-ring rollback/presentation-count publication. Private Vulkan
 // query/fence lifetimes still belong to the rendering executor.
 void source_finish_lens_query(PhysicsLiveWorldTu15 &,bool submitted,
+    std::span<const SourceLensQueryRollback>);
+void source_finish_lens_query(SourceRuntimeMemory &,bool submitted,
     std::span<const SourceLensQueryRollback>);
 struct SourceLensDeviceRegion {std::uint32_t address{},bytes{};};
 using SourceLensDeviceDomains=std::map<std::uint32_t,std::size_t>;
@@ -40,6 +44,12 @@ SourceLensWorldPass source_execute_lens_draw(PhysicsLiveWorldTu15 &,std::uint32_
     SourcePhysicsWorldRuntimeAbi &,bool planning,std::span<const SourceLensDeviceRegion>,
     SourcePhysicsContactMemory *device=nullptr);
 SourceLensWorldPass source_execute_lens_draw(PhysicsLiveWorldTu15 &,std::uint32_t,
+    SourcePhysicsWorldRuntimeAbi &,bool planning,const SourceLensDeviceDomains &,
+    SourcePhysicsContactMemory &device);
+SourceLensWorldPass source_execute_lens_draw(SourceRuntimeMemory &,std::uint32_t,
+    SourcePhysicsWorldRuntimeAbi &,bool planning,std::span<const SourceLensDeviceRegion>,
+    SourcePhysicsContactMemory *device=nullptr);
+SourceLensWorldPass source_execute_lens_draw(SourceRuntimeMemory &,std::uint32_t,
     SourcePhysicsWorldRuntimeAbi &,bool planning,const SourceLensDeviceDomains &,
     SourcePhysicsContactMemory &device);
 }

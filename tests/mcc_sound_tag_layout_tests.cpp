@@ -22,6 +22,20 @@ template<class F> void required(F&& f,MccSoundLayoutNeed expected) {
 }
 int main(int argc,char**argv)try {
     using namespace halo2;
+    std::array<std::byte,0x34> looping{};
+    for(unsigned n=0;n<looping.size();++n)looping[n]=std::byte(n);
+    word(looping,0,tag_groups::sound_looping.value);word(looping,4,0xffffffffu);
+    word(looping,8,0x118u);word(looping,0x24,3);word(looping,0x28,0x81234560u);
+    word(looping,0x2c,8);word(looping,0x30,0x82345670u);
+    const auto original_loop=looping;
+    const auto projected_loop=project_mcc_looping_sound_root(looping);
+    require(Bytes(projected_loop).u32(0)==0x18u && Bytes(projected_loop).u32(0x1c)==3 &&
+        Bytes(projected_loop).u32(0x20)==0x81234560u && Bytes(projected_loop).u32(0x24)==8 &&
+        Bytes(projected_loop).u32(0x28)==0x82345670u,"Loop root retained MCC header/route bits or moved its native descriptors");
+    require(std::ranges::equal(std::span(projected_loop).subspan(4),std::span(looping).subspan(12)),
+        "Loop projection changed an original authored root field");
+    require(looping==original_loop,"Loop projection modified its donor owner");
+    format_rejected([&]{project_mcc_looping_sound_root(std::span(looping).first(0x33));});
     std::array<std::byte,0x2c> sound_globals;
     for(unsigned n=0;n<sound_globals.size();++n)sound_globals[n]=std::byte(n);
     word(sound_globals,4,0xe1234567u);word(sound_globals,12,0xf2345678u);word(sound_globals,0x28,0xa9871234u);

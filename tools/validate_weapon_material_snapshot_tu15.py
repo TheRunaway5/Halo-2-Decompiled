@@ -162,6 +162,8 @@ def main():
         if (ROOT/'tools'/name).exists():(source/'tools'/name).symlink_to(ROOT/'tools'/name,target_is_directory=True)
     for path in sorted((ROOT/'tests').iterdir()):
         if path.is_file():copy_file(path)
+        elif path.is_dir() and path.name=='helpers':
+            copy_tree('tests/helpers')
         elif path.is_dir() and path.name not in ('fixtures','__pycache__'):
             (source/'tests'/path.name).symlink_to(path,target_is_directory=True)
     fixtures=source/'tests/fixtures';fixtures.mkdir()
@@ -171,7 +173,8 @@ def main():
         'weapon_ammunition_digits_tu15.json','object_material_random_constant_tu15.json',
         'network_configuration_defaults_tu15.json','game_language_tu15_original.json','weapon_alive_material_tu15.json',
         'weapon_firing_material_tu15.json','native_tu15_melee_candidate_table.original.inc',
-        'native_tu15_game_engine_methods.original.inc'}
+        'native_tu15_game_engine_methods.original.inc','vehicle_bv_agent_original_tu15.json',
+        'light_fade_curves_tu15_original.json'}
     for path in (ROOT/'tests/fixtures').iterdir():
         # Small expected-data files can change with another chat's source
         # work. Freeze them alongside that source; borrow only larger retained

@@ -2,6 +2,7 @@
 #include "halo2/physics_body_factory.hpp"
 #include <bit>
 #include <cfenv>
+#include <cstring>
 #include <stdexcept>
 #include <xmmintrin.h>
 
@@ -12,7 +13,11 @@ using FP = SourcePhysicsFactoryFloatingPoint;
 inline std::uint32_t r(const M &m, std::uint32_t a, unsigned n = 4) {
     if (n == 0 || n > 4)
         throw std::runtime_error("Invalid original physics scalar read width");
-    std::array<std::byte, 4> b{}; m.read(a, std::span(b).first(n));
+    std::array<std::byte, 4> b{};
+    // Complete committed ordinary pages have no read side effects. Device
+    // adapters and page-crossing operands keep their ordered virtual access.
+    if (const auto *page = m.direct_page(a, n)) std::memcpy(b.data(), page->bytes + (a & 4095u), n);
+    else m.read(a, std::span(b).first(n));
     std::uint32_t x = 0;
     for (unsigned i = 0; i < n; ++i) x |= std::to_integer<std::uint32_t>(b[i]) << (8 * i);
     return x;
@@ -39,6 +44,8 @@ inline void w(M &m, const O &o, std::uint32_t site, std::uint32_t a,
     m.write(a, s.written); if (o) o(s);
 }
 inline __m128 v(const M &m, std::uint32_t a) {
+    if (const auto *page = m.direct_page(a, 16))
+        return _mm_castsi128_ps(_mm_loadu_si128(reinterpret_cast<const __m128i *>(page->bytes + (a & 4095u))));
     std::array<std::byte,16> b{};
     m.read_vector(a,b);
     return _mm_castsi128_ps(_mm_loadu_si128(reinterpret_cast<const __m128i *>(b.data())));

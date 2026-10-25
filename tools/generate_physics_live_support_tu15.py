@@ -488,6 +488,8 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
                 if table not in tables:continue
                 targets.update(table_targets(table,old))
         lines=[f'static void run_{entry:x}(WorldState &s) {{']
+        if entry==0xd91d0:
+            lines.append('SourcePhysicsEntryObservation area_diagnostic(s.memory,0xd91d0u,[&]{return s.save();});')
         if entry==0x21f590:
             assert hashlib.sha256(b''.join(bytes(i.bytes) for i in ins)).hexdigest()== \
                 '6cab0fba83a56a36f6f934ef61eb96eb2105140cee8ac5c9039574ed918810f7'
@@ -498,8 +500,19 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
             lines.append('SourceProjectileUpdateScope projectile_scope(s.memory,r(s.memory,s.gp[4]+4u,4));')
         if entry==0x1d5320:
             lines.append('SourceWeaponAnimationQueryScopeTu15 weapon_query_scope(s.memory,r(s.memory,s.gp[4],4),s.gp[0]);')
+        from object_function_symbols_tu15 import OBJECT_FUNCTION_SYMBOLS
         for i in ins:
             translated=emit(i);lowered[f'{i.address:08x}']=dict(mnemonic=i.mnemonic,source_bytes=i.bytes.hex())
+            if i.address in OBJECT_FUNCTION_SYMBOLS:
+                # Compare the same named input in this World's immutable
+                # Cache namespace, including two folded SUB distances. Keep
+                # the complete original callback, flags, state and returns.
+                symbol=OBJECT_FUNCTION_SYMBOLS[i.address][0]
+                assert i.mnemonic in ('cmp','sub','mov') and i.operands[-1].type==2
+                assert i.operands[-1].imm&0xffffffff==symbol
+                value=get(i,i.operands[-1]);assert translated.count(value)==1
+                translated=translated.replace(value,
+                    f'source_object_function_compiled_symbol_tu15(s.memory,0x{i.address:x}u,'+value+')')
             if entry==0x17b1f0 and i.address in (0x17b232,0x17b2ec,0x17b35d):
                 # Compiled symbol identity is an input namespace, not an
                 # authored marker value. Retain the complete original branch,
@@ -993,8 +1006,12 @@ void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
     # unused definition or unrelated declarations into every recovered module:
     # that makes unchanged modules drift whenever this owner is extended.
     body_source='\n\n'.join(bodies)
+    if 'SourcePhysicsEntryObservation area_diagnostic' in body_source:
+        preamble=preamble.replace('#include "physics/runtime/physics_world_runtime_internal.hpp"',
+            '#include "physics/runtime/physics_world_runtime_internal.hpp"\n#include "halo2/source_physics_entry_observation.hpp"')
     if any(name in body_source for name in ('source_effect_compiled_symbol_tu15(',
-            'source_projectile_explosion_location_symbol_tu15(', 'source_projectile_function_symbol_tu15(')):
+            'source_projectile_explosion_location_symbol_tu15(', 'source_projectile_function_symbol_tu15(',
+            'source_object_function_compiled_symbol_tu15(')):
         preamble=preamble.replace('#include "physics/runtime/physics_world_runtime_internal.hpp"',
             '#include "physics/runtime/physics_world_runtime_internal.hpp"\n#include "halo2/source_effect_compiled_symbols_tu15.hpp"')
     if 'source_vehicle_compiled_symbol_tu15(' in body_source:
@@ -1011,9 +1028,16 @@ void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
         preamble=preamble[:first]+preamble[last:]
     if not any(name in body_source+extra_preamble for name in ('MccSound','project_mcc_sound_')):
         preamble=preamble.replace('#include "halo2/mcc_sound_tag_layout.hpp"\n','')
+    generated=preamble+body_source+ending
+    if 0xd80a0 in ENTRIES:
+        from native_damage_model_kernel_tu15 import install_actual_model_lookup
+        generated=install_actual_model_lookup(generated)
+    if all(entry in ENTRIES for entry in (0x15cb60,0x15cc70,0x15cd30,0x15cdf0)):
+        from native_vehicle_choice_kernel_tu15 import install_native_vehicle_choice
+        generated=install_native_vehicle_choice(generated)
     temporary=a.output.with_name('.'+a.output.name+f'.{os.getpid()}.tmp')
     try:
-        temporary.write_text(preamble+body_source+ending)
+        temporary.write_text(generated)
         temporary.replace(a.output)
     finally:
         temporary.unlink(missing_ok=True)
@@ -1026,7 +1050,9 @@ void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
         lowered_instructions=lowered,
         selected_addresses={f'{p:08x}':addresses[p] for p in sorted(used_addresses)},
         external_owners=externals,dispatch_targets={f'{p:08x}':q for p,q in sorted(branches.items())},
-        production_opcode_decoder=False,production_original_code_execution=False)
+        production_opcode_decoder=False,production_original_code_execution=False,
+        native_model_lookup=(dict(entry='d80a0',kernel_sha256=sha(ROOT/'src/gameplay/objects/source_damage_model_native_tu15_internal.hpp'),
+            original_execution_and_runtime_admission_required=True)if 0xd80a0 in ENTRIES else None))
     a.manifest.parent.mkdir(parents=True,exist_ok=True);a.manifest.write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
     print(json.dumps(dict(instructions=len(lowered),generated_cpp_sha256=sha(a.output),manifest_sha256=sha(a.manifest))))
 # Actual TU1.5 bodies selected from calls reached by fresh live construction.
@@ -1105,6 +1131,9 @@ ENTRIES=(0x2e0c80,0x2ddeb9,0x2dd367,0x2dd524,
          #13AB49 advances retained effect instances after object retirement.
          0x179cd0,0x17c370,0x17c5c0)
 
+# Reached by whole F9270's original engine-function branches F9621/F963C.
+# This seven-instruction bit query reads the caller's actual vehicle header.
+ENTRIES=(*ENTRIES,0xfa5d0)
 def complete_body(code, entry):
     # The formatter's jump at 32D27E crosses an immediate ending in CC.
     # That byte belongs to the preceding instruction, not function padding.

@@ -21,11 +21,21 @@
 # Generated reference captures and oracle payloads can contain original bytes.
 # Keep the fixture documentation and Python generators with the tests.
 /tests/fixtures/*
+!/tests/fixtures/objective_native_original_tu15.json
+!/tests/fixtures/objective_owners_original_tu15.json
+!/tests/fixtures/objective_overtime_original_tu15.json
+!/tests/fixtures/objective_callbacks_original_tu15.json
+!/tests/fixtures/objective_regions_original_tu15.json
+!/tests/fixtures/source_shadow_plane_prefix_tu15.json
+!/tests/fixtures/source_shadow_plane_prefix_2e66b2_tu15.json
+!/tests/fixtures/source_shadow_plane_prefix_2e6a50_tu15.json
+!/tests/fixtures/source_shadow_native_query_tu15_original.json
 !/tests/fixtures/shadow_array_swap_tu15_original.json
 !/tests/fixtures/mcc_action_prompt_templates.json
 !/tests/fixtures/*.md
 !/tests/fixtures/*.py
 !/tests/fixtures/mcc_scoreboard_hud_metadata.json
+!/tests/fixtures/mcc_elongation_glass_tu15.json
 !/tests/fixtures/bundled_loading_ambience_original.json
 !/tests/fixtures/player_screen_flash_tu15/
 

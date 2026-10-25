@@ -53,7 +53,17 @@ namespace halo2 {
 //98 requires raw UDP endpoint proof and signed ONLINE microphone origin.
 //99 publishes attached source projectiles with their completed WORLD poses.
 //100 retains their resolved first-biped camouflage scalar.
-inline constexpr unsigned native_multiplayer_protocol = 100;
+//101 authenticates established raw-LAN packets and requires locked unanimous
+//survivor migration. Older native peers must reject the session.
+//102 retains actual Xbox engine events and dispatch-time recipient/RNG inputs.
+//104 carries completed effect render inputs, attached event clocks and observed
+//ultimate-root identities/types as remote presentation provenance;
+//it preserves103's original maximum of four grenades per type in snapshots.
+//105 sends acknowledged delta snapshots under a per-client budget (Rust
+//netcode), carries snapshot acks in every input and compact LNA2 frames.
+//106 preserves exact completed source coverage bounds alongside compressed
+//visual WORLD matrices. Older peers must reject the changed snapshot schema.
+inline constexpr unsigned native_multiplayer_protocol = 106;
 // Endpoint numbers are authenticated room slots for ONLINE, opaque UDP peers
 // for local transport. Packet contents retain the native host/client protocol.
 class MultiplayerDatagrams {

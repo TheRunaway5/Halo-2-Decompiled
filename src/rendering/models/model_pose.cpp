@@ -308,6 +308,12 @@ ModelSkinWorldPose model_skin_world_pose(const RenderModel &model,
   if(!result.gpu)finish_skin(model,result.vertices,result.palette);
   return result;
 }
+bool model_skin_gpu_requested()noexcept {
+  const auto *reference=std::getenv("HALO2_REFERENCE_CPU_SKINNING");
+  if(reference && *reference)return false;
+  const auto *enable=std::getenv("HALO2_ENABLE_GPU_SKINNING");
+  return !(enable && enable[0]=='0' && !enable[1]);
+}
 std::vector<Vertex> skin_model_world_nodes(const RenderModel &model,
                                           std::span<const Transform> nodes) {
   if(nodes.size()!=model.bones.size())throw FormatError("posed model world bank count changed");

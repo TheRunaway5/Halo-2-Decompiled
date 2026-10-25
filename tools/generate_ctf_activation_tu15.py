@@ -18,6 +18,7 @@ from types import SimpleNamespace
 from oracle_smg_firing_1_1 import ROOT,Xbe,_Code,_trace
 from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
 from generate_physics_live_support_tu15 import generate
+from objective_native_tu15_injection import inject_native_objective_owners
 
 ENTRIES=(
     0x249460,0x24ce00,0x24cef0, # Whole initializer and authored marker/region owners.
@@ -36,6 +37,7 @@ ENTRIES=(
     0x24b4c0,0x249b20,0x24d5f0,0x165610,0x249a40,0x24b950,0x24c490,
     # Complete home-marker/proximity/timer/return/score-state/overtime owners.
 )
+SPAWN_ENTRIES=(0x249600,0x24a6f0)
 
 
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
@@ -43,15 +45,19 @@ def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--output',type=Path,default=ROOT/'src/gameplay/multiplayer/source_ctf_activation_tu15_generated.cpp')
+    p.add_argument('--output',type=Path)
     p.add_argument('--directory',type=Path,required=True)
+    p.add_argument('--spawn',action='store_true',help='Regenerate the separately owned player-spawn and spawn-filter callbacks')
     a=p.parse_args();assert Path(os.environ['HALO2_TEST_SCRATCH']).is_dir()
+    entries=SPAWN_ENTRIES if a.spawn else ENTRIES
+    suffix='ctf_activation_spawn_tu15' if a.spawn else 'ctf_activation_tu15'
+    if a.output is None:a.output=ROOT/f'src/gameplay/multiplayer/source_{suffix}_generated.cpp'
     assert sha(NEW_DEFAULT)==NEW_PIN
     image=Xbe(NEW_DEFAULT);code=_Code(image,'.text')
-    starts={int(r['address'],16)for r in csv.DictReader((ROOT/'analysis/multiplayer/title-update-1.5/decompiled/functions.tsv').open(),delimiter='\t')}|set(ENTRIES)
+    starts={int(r['address'],16)for r in csv.DictReader((ROOT/'analysis/multiplayer/title-update-1.5/decompiled/functions.tsv').open(),delimiter='\t')}|set(entries)
     a.directory.mkdir(parents=True,exist_ok=True)
     sites={};instructions={};addresses={};routines=[];listings=[]
-    for entry in ENTRIES:
+    for entry in entries:
         body=_trace(code,entry,starts)
         assert body.code and all(width==4 for _,width,_ in body.tables),(hex(entry),body.tables)
         rows=[];raw=bytearray()
@@ -70,16 +76,16 @@ def main():
         sites[f'{entry:08x}']=sorted(body.code)
         routines.append(dict(entry=entry,tables=[dict(disc=q,count=n)for q,_,n in body.tables],byte_tables=[]))
     paired=dict(image='English TU1.5',original_sha256=NEW_PIN,
-        entries={f'{p:08x}':p for p in ENTRIES},body_sites=sites,
+        entries={f'{p:08x}':p for p in entries},body_sites=sites,
         instruction_map=instructions,address_map={f'{p:08x}':v for p,v in addresses.items()},routines=routines)
     correspondence=a.directory/'bodies.json';correspondence.write_text(json.dumps(paired,indent=2,sort_keys=True)+'\n')
     manifest=a.directory/'generation.json'
     generate(SimpleNamespace(output=a.output,manifest=manifest,correspondence=correspondence,
         additional_entries=Path(__file__)),paired,complete_listings=True,code_override=code,
-        runtime_header='halo2/source_ctf_activation_tu15.hpp',runtime_function='source_run_ctf_activation_tu15')
-    source=a.output.read_text().replace('source_physics_live_support_tu15_owns_entry','source_ctf_activation_tu15_owns_entry').replace(
-        'source_run_physics_live_support_tu15','source_run_ctf_activation_tu15')
-    a.output.write_text(source)
+        runtime_header=f'halo2/source_{suffix}.hpp',runtime_function=f'source_run_{suffix}')
+    source=a.output.read_text().replace('source_physics_live_support_tu15_owns_entry',f'source_{suffix}_owns_entry').replace(
+        'source_run_physics_live_support_tu15',f'source_run_{suffix}')
+    a.output.write_text(inject_native_objective_owners(source))
     report=json.loads(manifest.read_text())
     report.update(ctf_activation_generator_sha256=sha(__file__),generated_cpp_sha256=sha(a.output),
         instruction_listings=listings,
@@ -90,7 +96,7 @@ def main():
         typed_initializer_files_changed=False,gameplay_admission_changed=False,
         scope='Complete individually compiled original owners, not yet a composed native MCC object-birth or full game-mode acceptance.')
     manifest.write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
-    print(json.dumps(dict(bodies=len(ENTRIES),instructions=len(instructions),generated_cpp=str(a.output),
+    print(json.dumps(dict(bodies=len(entries),instructions=len(instructions),generated_cpp=str(a.output),
         generated_cpp_sha256=sha(a.output),manifest_sha256=sha(manifest))),flush=True)
 
 

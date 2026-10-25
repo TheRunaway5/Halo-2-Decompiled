@@ -10,9 +10,11 @@
 namespace halo2 {
 // Discovery metadata only. No account identifiers or admission credentials.
 struct OnlineServer {
+  // id is the origin/server pair used by browser focus and selection caches.
   std::string id, name, host, map, gametype, game_version, region, server_type;
   unsigned port{}, players{}, max_players{};
   std::int64_t expires_at{};
+  std::string origin_id, server_id;
 };
 enum class OnlineDirectoryStatus { Unconfigured, Idle, Loading, Ready, Failed };
 struct OnlineDirectorySnapshot {

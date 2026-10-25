@@ -18,6 +18,7 @@
 #include "halo2/discord_social.hpp"
 #include "halo2/online_directory.hpp"
 #include "halo2/online_matchmaking.hpp"
+#include "halo2/frontend_matchmaking_progress.hpp"
 #include "halo2/online_account.hpp"
 #include "halo2/native_tu15_online_services.hpp"
 #include "halo2/vista_pcr_screen.hpp"
@@ -28,6 +29,7 @@
 #include <functional>
 #include <memory>
 #include <unordered_map>
+#include <utility>
 
 namespace halo2 {
 inline constexpr unsigned online_server_browser_context = 1;
@@ -184,6 +186,10 @@ struct UiLobbyMap {
   std::int32_t sort_order{};
   std::uint8_t flags{};
   std::array<std::uint8_t, 16> team_counts{};
+  // Optional exact prepared custom-cache owner, bound before MenuState exists.
+  // Empty retains the original stock scenario-leaf launch path.
+  std::string cache_file;
+  std::string shared_maps;
 };
 struct FrontendTypewriterSettings {
   std::int16_t interval_ms{};
@@ -399,6 +405,7 @@ struct FrontendLaunch {
   std::shared_ptr<OnlineMatchSession> online_match;
   bool match_voice{};
   std::shared_ptr<NativeTu15OnlineServices> online_services;
+  std::filesystem::path shared_maps;
 };
 enum class FrontendLobbySessionAction { Start, Setup, Back, Auxiliary };
 // Native pointer actions share the menu's existing command handlers. Prompt
@@ -529,7 +536,20 @@ public:
   void set_online_matchmaking(std::shared_ptr<OnlineMatchmaking>);
   void update_online_matchmaking();
   std::string online_matchmaking_text(const MenuFrame &, unsigned text_index) const;
+  std::optional<unsigned> online_matchmaking_rank(unsigned row) const;
   unsigned online_matchmaking_pane() const;
+  // TU1.5 screen210 state (0x199D7C), its four-pane selector (0x25142F) and
+  // the start-match countdown getter (0x59590). online_matchmaking_pane()
+  // remains the PC/MCC authored pane that hosts the presentation.
+  MatchmakingProgressUi online_matchmaking_ui() const;
+  unsigned online_matchmaking_progress_pane() const;
+  std::int32_t online_matchmaking_countdown() const { return matchmaking_countdown_; }
+  bool online_matchmaking_team_colors() const;
+  // 0x2514FD row order of the admitted match (sorted only on pane3).
+  std::vector<unsigned> online_matchmaking_roster_order() const;
+  // A Back request refused by the screen (TU1.5 0x25217B) has already queued
+  // its error cue; the caller must not also play the Back cue.
+  bool take_back_refused() { return std::exchange(back_refused_, false); }
   std::string expand(const std::string &) const;
   std::string profile_name() const;
   const std::string &signed_in_profile() const { return signed_in_; }
@@ -654,6 +674,17 @@ private:
   std::string selected_playlist_, matchmaking_name_;
   void refresh_online_matchmaking();
   void populate_online_matchmaking(MenuFrame &) const;
+  void reset_online_matchmaking_progress();
+  // Hands the counted-down admitted match to gameplay; false after a refusal.
+  bool launch_online_match();
+  // c_session_state_start_match (0x72700) clock and B's published seconds.
+  std::optional<std::uint32_t> matchmaking_start_clock_;
+  std::int32_t matchmaking_countdown_ = matchmaking_countdown_none;
+  bool matchmaking_have_fun_{};
+  // c_matchmaking_screen +0x618 current pane and +0x614 pane clock (0x251B39).
+  unsigned matchmaking_progress_pane_{};
+  std::uint32_t matchmaking_pane_clock_{};
+  bool back_refused_{};
   unsigned pending_online_screen_ = 186, pending_online_context_{};
   bool awaiting_discord_login_{};
   bool saved_login_suppressed_{};

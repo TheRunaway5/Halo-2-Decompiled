@@ -6,7 +6,10 @@
 #include "halo2/particle_draw.hpp"
 #include "halo2/source_portal_mask.hpp"
 #include "halo2/source_runtime_memory.hpp"
+#include "halo2/source_match_authority.hpp"
+#include "halo2/source_shadow_native_prefix_tu15.hpp"
 #include "halo2/math.hpp"
+#include "ordinary_multiplayer_trace.hpp"
 #include <SDL.h>
 #include <vulkan/vulkan.h>
 #include <openssl/evp.h>
@@ -142,7 +145,12 @@ struct Trace {
     bool operator==(const Trace &)const=default;
 };
 struct Result {
+    std::vector<SourceExecutionInput> external_inputs;
+    std::vector<std::byte> passive_trace;
+    ordinary_trace::Counts passive_counts;
     std::vector<Trace> trace;unsigned submitted{},inputs{},gpu_frames{},input_fire{},source_weapon_effects{};
+    std::size_t copy_active_frames{},copy_worker_frames{},copy_jobs{},copy_bytes{};
+    std::uint64_t copy_ns{},copy_overlap_ns{},copy_wait_ns{};
     std::size_t gpu_jobs{},gpu_vertices{},gpu_weighted{},gpu_verified{},gpu_post_identity{};
     std::size_t fallback_frames{},fallback_jobs{},fallback_vertices{},fallback_weighted{},fallback_post_identity{};
     std::size_t fallback_quota_jobs{},fallback_allocation_jobs{},fallback_mapping_jobs{};
@@ -165,10 +173,116 @@ VkResult fallback_result(std::string_view reason) {
         reason=="map-range"?VK_ERROR_MEMORY_MAP_FAILED:VK_ERROR_OUT_OF_HOST_MEMORY;
 }
 struct DiagnosticEnvironment {
-    std::fenv_t environment{};int error=errno;
-    DiagnosticEnvironment(){std::feholdexcept(&environment);std::fesetround(FE_TONEAREST);}
-    ~DiagnosticEnvironment(){std::fesetenv(&environment);errno=error;}
+    ordinary_trace::Environment environment;
+    DiagnosticEnvironment(){std::fesetround(FE_TONEAREST);}
 };
+// One local owning cut survives only the CPU/comparison pair. Its binding is
+// a test-domain tag, not peer authentication or permission to bypass an owner.
+struct CommonCut {
+    SourceMatchAuthority::AuthorityDigest binding{std::byte{0x48},std::byte{0x32},std::byte{0x43},std::byte{0x43}};
+    std::optional<SourceMatchAuthority::Checkpoint> saved;
+    static constexpr std::uint64_t bank_limit=1024ull*1024u*1024u,file_limit=64ull*1024u*1024u;
+    static constexpr std::size_t region_limit=8192;
+};
+Json common_cut_limits(const SourceMatchAuthority::Checkpoint &cut) {
+    DiagnosticEnvironment preserved;
+    const auto &world=cut.world.world;std::uint64_t bank_bytes{},file_bytes{};
+    if(world.bank.regions.size()>CommonCut::region_limit)
+        throw FormatError("Common cut exceeds its complete-region bound: actual="+std::to_string(world.bank.regions.size())+
+            " limit="+std::to_string(CommonCut::region_limit));
+    for(const auto &region:world.bank.regions) {
+        need(region.bytes.size()<=CommonCut::bank_limit-bank_bytes,"Common cut exceeds its complete-bank byte bound");
+        bank_bytes+=region.bytes.size();
+    }
+    need(world.arena.files.size()==2,"Common cut lacks its two genuine arena files");
+    for(const auto &file:world.arena.files) {
+        need(file.bytes.size()<=CommonCut::file_limit-file_bytes,"Common cut exceeds its arena-file byte bound");
+        file_bytes+=file.bytes.size();
+    }
+    return {{"bank_bytes",bank_bytes},{"regions",world.bank.regions.size()},{"arena_file_bytes",file_bytes},
+        {"arena_files",world.arena.files.size()},{"bank_byte_limit",CommonCut::bank_limit},
+        {"arena_file_byte_limit",CommonCut::file_limit},{"region_limit",CommonCut::region_limit},
+        {"scope","One owning in-process source/Match cut, released after this pair. Metadata/small vectors remain in process memory; large snapshot byte backing follows the existing owned-scratch storage policy. Local callbacks/executors/resources retain normal import guards."}};
+}
+void prove_common_cut_bank(const SourceRuntimeMemory &memory,const SourceRuntimeMemory::Checkpoint &saved,Json &proof) {
+    DiagnosticEnvironment preserved;
+    proof={{"passed",false},{"regions",saved.regions.size()},{"complete_bank_bytes",0},
+        {"committed_ranges",0},{"committed_bytes",0},{"no_resource_exclusion",false}};
+    SourceRuntimeMemory::validate_checkpoint(saved);
+    std::uint64_t expected_total{},expected_ranges{},expected_bytes{};
+    for(const auto &r:saved.regions) {
+        need(r.bytes.size()<=CommonCut::bank_limit-expected_total,"Common cut initial proof exceeds its complete-bank bound");
+        expected_total+=r.bytes.size();
+        if(!r.page_bytes){++expected_ranges;expected_bytes+=r.bytes.size();continue;}
+        for(std::size_t page=0;page<r.committed.size();) {
+            if(!r.committed[page]){++page;continue;}
+            const auto first=page;while(page<r.committed.size() && r.committed[page])++page;
+            ++expected_ranges;expected_bytes+=(page-first)*r.page_bytes;
+        }
+    }
+    proof.update({{"complete_bank_bytes",expected_total},{"expected_committed_ranges",expected_ranges},
+        {"expected_committed_bytes",expected_bytes}});
+    // The complete topology also detects wholly uncommitted extra owners.
+    // Compare all region bytes, then independently stream actual committed
+    // runs using exactly visit_committed's segmentation. No bytes are masked.
+    const auto actual=memory.checkpoint();
+    if(actual.version!=saved.version || actual.regions.size()!=saved.regions.size()) {
+        proof["first_mismatch"]={{"kind","topology-count"},{"actual_regions",actual.regions.size()},{"expected_regions",saved.regions.size()}};
+        throw FormatError("Common cut complete source topology/count differs");
+    }
+    std::uint64_t total{};
+    for(std::size_t n=0;n<saved.regions.size();++n) {
+        const auto &a=actual.regions[n],&b=saved.regions[n];
+        if(a.address!=b.address || a.access!=b.access || a.owner!=b.owner || a.page_bytes!=b.page_bytes ||
+            a.committed!=b.committed || a.bytes.size()!=b.bytes.size()) {
+            proof["first_mismatch"]={{"kind","topology"},{"region",n},{"actual_address",a.address},{"expected_address",b.address}};
+            throw FormatError("Common cut source region topology or policy differs");
+        }
+        need(b.bytes.size()<=CommonCut::bank_limit-total,"Common cut initial proof exceeds its bank bound");total+=b.bytes.size();
+        const auto difference=std::mismatch(a.bytes.begin(),a.bytes.end(),b.bytes.begin());
+        if(difference.first!=a.bytes.end()) {
+            const auto offset=std::size_t(difference.first-a.bytes.begin());
+            proof["first_mismatch"]={{"kind","byte"},{"guest_address",std::uint64_t(a.address)+offset},
+                {"actual_byte",std::to_integer<unsigned>(*difference.first)},{"expected_byte",std::to_integer<unsigned>(*difference.second)}};
+            throw FormatError("Common cut initial complete source byte differs");
+        }
+    }
+    std::size_t region{},page{};std::uint64_t ranges{},bytes{};
+    const auto next=[&](std::uint32_t &address,std::span<const std::byte> &value) {
+        while(region<saved.regions.size()) {
+            const auto &r=saved.regions[region];
+            if(!r.page_bytes){++region;page=0;address=r.address;value={r.bytes.data(),r.bytes.size()};return true;}
+            while(page<r.committed.size() && !r.committed[page])++page;
+            if(page==r.committed.size()){++region;page=0;continue;}
+            const auto first=page;while(page<r.committed.size() && r.committed[page])++page;
+            const auto offset=first*r.page_bytes;address=r.address+std::uint32_t(offset);
+            value={r.bytes.data()+offset,(page-first)*r.page_bytes};return true;
+        }
+        return false;
+    };
+    memory.visit_committed([&](std::uint32_t address,std::span<const std::byte> value) {
+        std::uint32_t expected_address{};std::span<const std::byte> expected;
+        if(!next(expected_address,expected) || address!=expected_address || value.size()!=expected.size()) {
+            proof["first_mismatch"]={{"kind","committed-run"},{"ordinal",ranges},{"actual_address",address},
+                {"expected_address",expected_address},{"actual_bytes",value.size()},{"expected_bytes",expected.size()}};
+            throw FormatError("Common cut committed source run segmentation differs");
+        }
+        const auto difference=std::mismatch(value.begin(),value.end(),expected.begin());
+        if(difference.first!=value.end()) {
+            proof["first_mismatch"]={{"kind","committed-byte"},{"guest_address",std::uint64_t(address)+std::size_t(difference.first-value.begin())},
+                {"actual_byte",std::to_integer<unsigned>(*difference.first)},{"expected_byte",std::to_integer<unsigned>(*difference.second)}};
+            throw FormatError("Common cut committed source byte differs");
+        }
+        ++ranges;bytes+=value.size();proof["committed_ranges"]=ranges;proof["committed_bytes"]=bytes;
+    });
+    std::uint32_t extra_address{};std::span<const std::byte> extra;
+    need(!next(extra_address,extra),"Common cut omitted a saved committed source run");
+    need(ranges && bytes,"Common cut has no actual committed source bytes");
+    need(ranges==expected_ranges && bytes==expected_bytes,"Common cut committed source totals differ");
+    proof.update({{"passed",true},{"complete_topology_identical",true},{"complete_region_bytes_identical",true},
+        {"complete_bank_bytes",total},{"committed_ranges",ranges},{"committed_bytes",bytes},
+        {"committed_run_segmentation_identical",true},{"committed_bytes_identical",true},{"no_resource_exclusion",true}});
+}
 Json vector_json(Vec3 value){return Json::array({value.x,value.y,value.z});}
 Json camera_json(const Camera &camera) {
     return {{"position",vector_json(camera.position)},{"yaw",camera.yaw},{"pitch",camera.pitch},
@@ -213,9 +327,9 @@ struct ValidationLog {
     std::ostringstream output;std::streambuf *previous=std::cerr.rdbuf(output.rdbuf());
     ~ValidationLog(){std::cerr.rdbuf(previous);const auto value=output.str();if(!value.empty())std::cerr<<value;}
 };
-std::vector<std::byte> read_file(const std::filesystem::path &path) {
+std::vector<std::byte> read_file(const std::filesystem::path &path,std::uint64_t limit=64u*1024u*1024u) {
     std::ifstream in(path,std::ios::binary|std::ios::ate);need(bool(in),"Open completed frame");
-    const auto count=in.tellg();need(count>0 && count<=64*1024*1024,"Completed frame has invalid bounded extent");
+    const auto count=in.tellg();need(count>0 && std::uint64_t(count)<=limit,"Completed frame/trace has invalid bounded extent");
     std::vector<std::byte> out{std::size_t(count)};in.seekg(0);in.read(reinterpret_cast<char*>(out.data()),count);
     need(bool(in),"Read complete captured frame bytes");return out;
 }
@@ -300,7 +414,9 @@ Json retain_frame_references(const std::filesystem::path &report,std::string_vie
 bool firing(unsigned command){return command>=12 && command<54 && command%6<4;}
 Result run_case(const std::filesystem::path &map,const std::filesystem::path &output,unsigned players,unsigned species,bool fire,bool gpu,
                 bool first_person,unsigned width,unsigned height,unsigned present_width,unsigned present_height,bool dual_extent,
-                Json &live_evidence,std::string_view forced_fallback={}) {
+                Json &live_evidence,std::string_view forced_fallback={},const std::vector<SourceExecutionInput> *replay_inputs=nullptr,
+                CommonCut *common_cut=nullptr) {
+    const auto prefix_before=source_shadow_native_prefix_tu15_stats();
     Environment enable("HALO2_ENABLE_GPU_SKINNING"),reference("HALO2_REFERENCE_CPU_SKINNING"),verify("HALO2_VERIFY_GPU_SKINNING");
     Environment prepare_failure("HALO2_TEST_GPU_SKIN_PREPARE_FAILURE");
     Environment render_timings("HALO2_RENDER_TIMINGS");
@@ -311,8 +427,20 @@ Result run_case(const std::filesystem::path &map,const std::filesystem::path &ou
     if(!gpu)prepare_failure.set(nullptr);else if(fallback)prepare_failure.set(forced_reason.c_str());
     enable.set("1");reference.set(gpu?nullptr:"1");verify.set(gpu?"1":nullptr);
     ValidationLog validation;Result result;
+    std::shared_ptr<SourceExecutionInputs> inputs;
+    {
+        DiagnosticEnvironment saved;
+        inputs=replay_inputs?std::make_shared<SourceExecutionInputs>(std::span(*replay_inputs)):
+            std::make_shared<SourceExecutionInputs>();
+        std::filesystem::create_directories(output);
+    }
+    const auto passive_path=output/"ordinary-source-trace.bin";
+    ordinary_trace::Sink passive(passive_path);
     {
         MultiplayerOptions options;options.map=map;options.shared_maps=map.parent_path();options.local_players=players;
+        // Declared after options so exception unwinding releases this external
+        // binding before its actual PreparedWorld/memory owner can disappear.
+        std::optional<SourceExecutionInputBinding> common_binding;
         options.width=present_width;options.height=present_height;options.source_object_world=true;options.starting_weapon=0;
         options.variant.values.set(76,1);options.mute=true;options.validation=true;options.hidden=false;
         options.session_random_seed=0x1376c0;options.reference_tick_cadence=true;options.reference_render_fraction=.5f;
@@ -328,6 +456,7 @@ Result run_case(const std::filesystem::path &map,const std::filesystem::path &ou
         unsigned construction_rng_receipts{};const SourceRuntimeMemory *source_rng_memory{};
         options.source_world_observer=[&](const SourceRuntimeMemory &memory) {
             DiagnosticEnvironment saved;
+            if(!common_cut)passive.source(memory);
             const auto owner=Bytes(memory.view(0x4f3cd8u,4)).u32(0);
             need(owner!=0,"Constructed source RNG owner is absent");const auto bank=Bytes(memory.view(owner,8));
             const auto primary=bank.u32(0),auxiliary=bank.u32(4);
@@ -335,20 +464,60 @@ Result run_case(const std::filesystem::path &map,const std::filesystem::path &ou
             result.evidence["source_rng_construction"]={{"receipts",construction_rng_receipts},{"owner",owner},
                 {"primary",primary},{"auxiliary",auxiliary},{"requested_auxiliary",1},
                 {"stage","After original map/session binding and reference input, before automatic object construction"}};
-            Words receipt;receipt.word(primary);receipt.word(auxiliary);result.record("construction-source-rng",0,0,receipt);
+            if(common_cut)result.evidence["source_rng_construction"].update({{"pre_common_cut_observation",true},{"compared_in_ordered_trace",false}});
+            else {Words receipt;receipt.word(primary);receipt.word(auxiliary);result.record("construction-source-rng",0,0,receipt);}
             live_evidence=result.evidence;
             need(auxiliary==1,"Source auxiliary RNG was not pinned before scenario construction");
         };
         const std::array<std::array<std::uint8_t,9>,2> appearance{{{8,12,9,1,0,26,9,0,0},{3,4,3,4,1,5,31,0,0}}};
         for(unsigned view=0;view<players;++view)
             options.selected_profiles.push_back(native_selected_player_configuration((species?"Elite":"Spartan")+std::to_string(view),appearance[species],-1));
-        options.prepared_world=std::make_shared<MultiplayerPreparedWorld>(options);
+        options.prepared_world=std::make_shared<MultiplayerPreparedWorld>(options,std::nullopt,
+            std::shared_ptr<PhysicsLiveClockSource>{},common_cut?std::shared_ptr<SourceExecutionInputs>{}:inputs);
         need(construction_rng_receipts==1,"Prepared world omitted the pre-scenario source RNG receipt");
         auto &world=*options.prepared_world;world.bind_source_local_views(world.local_slots);
+        if(common_cut) {
+            DiagnosticEnvironment preserved;
+            need(!fallback,"Common-cut qualification excludes forced fallback controls");
+            need(world.source_objects && world.source_objects->owns_physics(),"Common cut requires its genuine owning native source world");
+            need(!source_execution_inputs(world.source_objects->memory()),"Common cut requires its genuinely untaped constructor");
+            SourceMatchAuthority authority(world.match,*world.source_objects);
+            auto &cut=result.evidence["post_constructor_common_cut"];
+            cut={{"enabled",true},{"role",replay_inputs?"import":"export"},{"completed_constructor_and_local_views",true},
+                {"before_preparation_projection_and_runtime",true},{"local_test_binding_only",true},
+                {"constructor_and_teardown_outside_tape",true},{"normal_coupled_publication",false},
+                {"clock_contract","Unmodified coupled authority import rebases local external clock domains to its actual saved logical values; source clock/RNG/queue bytes are copied unchanged. Runtime operands are recorded/replayed afterward."}};
+            live_evidence=result.evidence;
+            if(replay_inputs) {
+                need(common_cut->saved.has_value(),"Comparison lacks its CPU-owned complete common cut");
+                auto prepared=authority.prepare(*common_cut->saved,common_cut->binding);
+                need(authority.commit(std::move(prepared)),"Normal coupled common-cut publication failed");
+                cut["normal_coupled_publication"]=true;
+            } else {
+                need(!common_cut->saved,"CPU common cut must be exported exactly once per cohort");
+                common_cut->saved.emplace(authority.checkpoint(common_cut->binding));
+            }
+            cut["actual_complete_regions"]=common_cut->saved->world.world.bank.regions.size();
+            cut["complete_region_limit"]=CommonCut::region_limit;
+            live_evidence=result.evidence;
+            cut["resource_limits"]=common_cut_limits(*common_cut->saved);
+            cut["tick"]=common_cut->saved->match.simulation.ticks;
+            try{prove_common_cut_bank(world.source_objects->memory(),common_cut->saved->world.world.bank,cut["initial_bank_proof"]);}
+            catch(...){live_evidence=result.evidence;throw;}
+            // No pre-cut bank receipt enters the shared passive stream.
+            // This is the actual complete state after the ordinary import.
+            passive.source(world.source_objects->memory());
+            source_rng_memory=&world.source_objects->memory();
+            common_binding.emplace(*source_rng_memory,*inputs);
+            cut["tape_bound_after_initial_proof"]=true;live_evidence=result.evidence;
+        }
         const auto initial=world.match.state();Vec3 center{};std::array<Controls,multiplayer_capacity> controls{};
         for(auto slot:world.local_slots){center.x+=initial.players[slot].position.x/players;center.y+=initial.players[slot].position.y/players;}
         for(auto slot:world.local_slots)controls[slot].yaw=std::atan2(center.y-initial.players[slot].position.y,center.x-initial.players[slot].position.x);
-        for(unsigned tick=0;tick<60;++tick)world.match.step(controls);
+        for(unsigned tick=0;tick<60;++tick) {
+            world.match.step(controls);
+            passive.checkpoint(ordinary_trace::BankCheckpoint::preparation,tick,world.match.state().tick);
+        }
         const auto prepared=world.match.state();const auto start_tick=prepared.tick;options.capture_tick=start_tick+60;
         // Source unit birth/placement can complete during the preparation
         // ticks. Aim the real finite commands from their completed positions,
@@ -405,6 +574,8 @@ Result run_case(const std::filesystem::path &map,const std::filesystem::path &ou
         }
         Words ready;ready.state(prepared);result.record("prepared",start_tick,0,ready);
         options.input_observer=[&](unsigned step,std::span<const Controls> input,const MultiplayerState &state) {
+            ordinary_trace::Environment saved;
+            passive.input(step,input,state);
             need(step<60 && input.size()==players,"Actual command delivery escaped its declared finite script");
             Words words;words.word(step);words.word(input.size());for(unsigned view=0;view<input.size();++view) {
                 const auto &control=input[view];const auto requested_yaw=controls[world.local_slots.at(view)].yaw;
@@ -421,6 +592,8 @@ Result run_case(const std::filesystem::path &map,const std::filesystem::path &ou
             Words words;for(auto value:mask.words)words.word(value);for(auto value:mask.acoustic)words.word(value);result.record("portal",tick,0,words);
         };
         options.view_state_observer=[&](unsigned view,const MultiplayerState &state,const Camera &camera) {
+            ordinary_trace::Environment preserved;
+            passive.view(view,state,camera);
             Words words;words.state(state);words.camera(camera);result.record("view",state.tick,view,words);
             DiagnosticEnvironment saved;auto &evidence=result.evidence["view_cameras"].at(view);
             auto camera_record=camera_json(camera);camera_record["tick"]=state.tick;
@@ -430,6 +603,23 @@ Result run_case(const std::filesystem::path &map,const std::filesystem::path &ou
             }
             evidence["last"]=std::move(camera_record);evidence["callbacks"]=evidence["callbacks"].get<unsigned>()+1;
         };
+        options.view_rectangle_observer=[&](unsigned view,const UiRect &rectangle){
+            ordinary_trace::Environment preserved;
+            if(players==4) {
+                // Independent expected layout, rather than merely requiring
+                // CPU/GPU routes to agree on the same submitted rectangles.
+                constexpr std::array<std::array<float,4>,4> expected{{
+                    {0,0,240,320},{0,320,240,640},
+                    {240,0,480,320},{240,320,480,640}}};
+                need(view<expected.size(),"Four-player rectangle has an invalid view index");
+                const auto &r=expected[view];
+                need(rectangle.top==r[0] && rectangle.left==r[1] &&
+                    rectangle.bottom==r[2] && rectangle.right==r[3],
+                    "Four-player submitted view differs from the required 2x2 layout");
+            }
+            passive.rectangle(view,rectangle);
+        };
+        options.node_observer=[&](unsigned view,std::uint32_t tick,const MultiplayerNodeObservation &nodes){passive.nodes(view,tick,nodes);};
         if(!first_person)options.effect_observer=[&](unsigned view,unsigned tick,std::span<const ParticleDraw> draws) {
             Words words;words.word(draws.size());for(const auto &draw:draws) {
                 words.word(draw.effect_owner);words.word(draw.effect_definition);words.word(draw.before_light_volume);
@@ -443,6 +633,14 @@ Result run_case(const std::filesystem::path &map,const std::filesystem::path &ou
         options.frame_observer=[&](const MultiplayerFrameTiming &frame) {
             need(frame.submitted && frame.views==players,"Declared ordinary frame failed to submit all views");
             const auto &r=frame.renderer;need(r.measured && r.width==width && r.height==height,"Ordinary renderer used another frame extent");
+            if(r.presentation_copy_jobs) {
+                ++result.copy_active_frames;
+                need(r.presentation_copy_separate_thread,"Ordinary presentation copy work did not execute on its worker");
+                ++result.copy_worker_frames;
+            }
+            result.copy_jobs+=r.presentation_copy_jobs;result.copy_bytes+=r.presentation_copy_bytes;
+            result.copy_ns+=r.presentation_copy_ns;result.copy_overlap_ns+=r.presentation_copy_overlap_ns;
+            result.copy_wait_ns+=r.presentation_copy_wait_ns;
             Words words;words.word(frame.frame);words.word(frame.views);words.word(frame.submitted);words.word(frame.bodies_drawn);
             {
                 // The prepared source world's memory owner outlives every
@@ -511,6 +709,12 @@ Result run_case(const std::filesystem::path &map,const std::filesystem::path &ou
         result.evidence["first_person_source_bank_check_completed"]=first_person && gpu &&
             std::getenv("HALO2_VERIFY_GPU_FIRST_PERSON_INPUTS");
         need(result.inputs==60 && result.submitted>=60,"Ordinary paired workload omitted declared source ticks or frames");
+        need(result.copy_jobs>0 && result.copy_active_frames==result.copy_worker_frames,
+            "Ordinary source trace performed no actual presentation-worker copy work");
+        if(players==4)result.evidence["four_player_layout"]={
+            {"expected_submitted_rectangles_checked",true},{"grid_columns",2},{"grid_rows",2},
+            {"nominal_internal_view_width",double(width)/2},{"nominal_internal_view_height",double(height)/2},
+            {"scope","Canonical submitted rectangles plus actual renderer frame extent; no independent Vulkan viewport observation."}};
         if(gpu && !fallback)need(result.gpu_frames && result.gpu_jobs && result.gpu_weighted && result.gpu_vertices==result.gpu_verified,
             "Ordinary character path performed no actual weighted GPU skin/verified complete records");
         if(gpu && !fallback && first_person)need(result.gpu_post_identity>0,
@@ -537,8 +741,64 @@ Result run_case(const std::filesystem::path &map,const std::filesystem::path &ou
             {"gpu_vertices",result.gpu_vertices},{"gpu_weighted_vertices",result.gpu_weighted},{"gpu_verified_vertices",result.gpu_verified},
             {"gpu_post_identity_vertices",result.gpu_post_identity},
             {"bodies_drawn",{{"total",result.bodies_total},{"minimum",result.bodies_min},{"maximum",result.bodies_max}}}});
+        result.evidence["presentation_worker"]={{"frames_with_copy_jobs",result.copy_active_frames},
+            {"frames_with_actual_worker_jobs",result.copy_worker_frames},{"jobs",result.copy_jobs},{"bytes",result.copy_bytes},
+            {"copy_ns",result.copy_ns},{"overlap_ns",result.copy_overlap_ns},{"wait_ns",result.copy_wait_ns},
+            {"scope","Actual same-frame copy jobs require separate-thread execution; timers include diagnostic trace and GPU verification, not performance qualification."}};
+        passive.checkpoint(ordinary_trace::BankCheckpoint::final,0,result.evidence.at("final_tick").get<std::uint32_t>());
+        result.passive_counts=passive.counts();const auto &counts=result.passive_counts;
+        need(counts.sources==1 && counts.preparations==60 && counts.finals==1 && counts.inputs==60 &&
+            counts.views==std::uint64_t(result.submitted)*players && counts.rectangles==counts.views,
+            "Passive trace omitted actual source/preparation/input/view/rectangle/final callbacks");
+        need(counts.nodes[0]==counts.nodes[1] && counts.nodes[2]==counts.nodes[3] &&
+            (first_person?counts.nodes[2]>0:counts.nodes[0]>0),
+            "Passive trace omitted actual paired completed/interpolated WORLD or FP nodes");
+        passive.finish();
+        // No callback may outlive its borrowed world/node/source owner. The
+        // default PhysicsImpl binding still covers native teardown. The new
+        // control deliberately ends its external tape before native teardown.
+        options.source_world_observer={};options.input_observer={};options.view_state_observer={};
+        options.view_rectangle_observer={};options.node_observer={};options.world_portal_observer={};
+        options.effect_observer={};options.frame_observer={};source_rng_memory=nullptr;
+        if(common_cut) {
+            common_binding.reset();
+            need(!source_execution_inputs(world.source_objects->memory()),"Common-cut tape remained bound before native teardown");
+            result.evidence["post_constructor_common_cut"]["tape_unbound_before_native_teardown"]=true;
+        }
+        options.prepared_world.reset();
+    }
+    {
+        DiagnosticEnvironment saved;
+        const auto completed=inputs->finish();need(!completed.empty(),"Ordinary source input tape recorded no actual scoped operands");
+        result.external_inputs.assign(completed.begin(),completed.end());
+        std::array<std::uint64_t,9> kinds{};Words words;
+        for(const auto &input:completed){const auto kind=unsigned(input.kind);need(kind<kinds.size(),"Ordinary input tape kind is invalid");
+            ++kinds[kind];words.word(kind);words.word(input.operand);words.word(input.value);}
+        result.passive_trace=read_file(passive_path,8u*1024u*1024u);
+        const auto &counts=result.passive_counts;
+        result.evidence["external_source_inputs"]={{"mode",replay_inputs?"replay":"record"},{"entries",completed.size()},
+            {"kind_counts",kinds},{"semantic_sha256",sha256(words.bytes)},{"complete_consumption",true},
+            {"constructor_through_world_teardown",!common_cut},{"actual_values_preserved",true},{"complete_call_journal",false}};
+        if(common_cut)result.evidence["external_source_inputs"].update({{"post_constructor_common_cut",true},
+            {"constructor_outside_scope",true},{"native_teardown_outside_scope",true},
+            {"scope","After the complete common cut through60real preparation ticks, runtime and final reads; unbound before native teardown."}});
+        result.evidence["passive_source_trace"]={{"schema","H2OTR02"},{"bytes",result.passive_trace.size()},
+            {"sha256",sha256(result.passive_trace)},{"source_callbacks",counts.sources},{"preparation_checkpoints",counts.preparations},
+            {"final_checkpoints",counts.finals},{"input_callbacks",counts.inputs},{"view_callbacks",counts.views},
+            {"rectangle_callbacks",counts.rectangles},{"node_stage_counts",counts.nodes},{"complete_storage",true},
+            {"bank_comparison","Complete committed bytes streamed into SHA256 at actual declared boundaries; no normalization."},
+            {"full_ordered_source_or_opaque_abi_trace",false}};
+        if(common_cut)result.evidence["passive_source_trace"]["initial_source_boundary"]="post-constructor-common-cut";
     }
     result.validation=validation.output.str();need(result.validation.find("Vulkan validation:")==std::string::npos,"Actual ordinary run reported Vulkan validation warnings/errors");
+    const auto prefix_after=source_shadow_native_prefix_tu15_stats();
+    result.evidence["shadow_native_prefix"]={
+        {"attempts",prefix_after.attempts-prefix_before.attempts},
+        {"admitted",prefix_after.admitted-prefix_before.admitted},
+        {"declined_reference",prefix_after.declined_reference-prefix_before.declined_reference},
+        {"declined_instruction",prefix_after.declined_instruction-prefix_before.declined_instruction},
+        {"declined_view",prefix_after.declined_view-prefix_before.declined_view},
+        {"declined_numeric",prefix_after.declined_numeric-prefix_before.declined_numeric}};
     result.evidence["validation_messages"]=0;result.evidence["frame_sha256"]=sha256(result.ppm);
     Words ordered;for(const auto &entry:result.trace){ordered.word(entry.tick);ordered.word(entry.view);
         for(auto c:entry.kind)ordered.word(std::uint8_t(c));ordered.word(0);for(auto c:entry.digest)ordered.word(std::uint8_t(c));}
@@ -555,11 +815,20 @@ int main(int argc,char **argv) {
     const bool reference_only=control_mode && std::string_view(control_mode)=="1";
     const auto *fallback_mode=std::getenv("HALO2_MODEL_SKIN_RUNTIME_FALLBACK_CONTROL");
     const std::string fallback_control=fallback_mode?fallback_mode:"";const bool forced_fallback=!fallback_control.empty();
+    const auto *common_cut_mode=std::getenv("HALO2_MODEL_SKIN_RUNTIME_POST_CONSTRUCTOR_COMMON_CUT");
+    const bool post_constructor_common_cut=common_cut_mode && std::string_view(common_cut_mode)=="1";
     Json report={{"passed",false},{"cases",Json::array()},
         {"scope","Paired fresh ordinary prepared-MCC source worlds, real command scripts, actual weighted GPU dispatch/readback, exact full PPM file bytes, ordered explicit input/state/WORLD-node/event/camera/particle/portal/frame callback hashes. This is bounded regression evidence, not all-memory, full-playthrough, physical latency or FPS acceptance."},
         {"state_fields","Every roster entry: identity/configuration, core health/shield/motion/weapon/ammo/scoring, trigger/secondary weapon, zoom/source flags, recent damage/camouflage; all completed WORLD nodes/spheres and scene roots; retained weapon/bullet/damage/device/rumble events. Other Player/engine/entity fields are outside this bounded trace."}};
-    report["control_only"]=reference_only || forced_fallback;report["ordinary_gpu_acceptance"]=false;
-    report["qualification_kind"]=forced_fallback?"forced-cpu-materialization":reference_only?"cpu-reference-control":"ordinary-gpu";
+    report["source_trace_scope"]="CPU records real constructor/preparation/runtime/final-read/teardown external operands; fresh comparison owner replays exact kind/operand/value order. Complete ordered passive node/input/camera records and committed-bank digests at construction, all60prep ticks, command tails and final frame are compared without normalization. This is not every transient callback or opaque host ABI.";
+    report["control_only"]=reference_only || forced_fallback || post_constructor_common_cut;report["ordinary_gpu_acceptance"]=false;
+    report["qualification_kind"]=post_constructor_common_cut?"post-constructor-common-cut":forced_fallback?"forced-cpu-materialization":reference_only?"cpu-reference-control":"ordinary-gpu";
+    if(post_constructor_common_cut) {
+        report["post_constructor_common_cut"]=true;report["post_constructor_qualification_passed"]=false;
+        report["actual_gpu_acceptance_run"]=false;
+        report["scope"]="Separate post-constructor common-cut CPU/GPU control: genuine untaped constructors, unchanged complete coupled source/resource/Match import, then actual prep/runtime/final-read operand replay and exact presented PPM/passive/typed trace gates. No cold-constructor, native teardown, ordinary GPU, full ABI or performance acceptance.";
+        report["source_trace_scope"]="One CPU-owned complete SourceMatchAuthority cut at completed constructor plus actual local-view binding, before60prep ticks/projection/runtime. Both roles directly prove complete initial source topology/bytes and committed runs, then compare ordered passive traces from this cut. Constructors and native teardown are outside the new tape; pre-cut RNG receipts are retained but not compared.";
+    }
     if(forced_fallback) {
         report["actual_gpu_acceptance_run"]=false;report["forced_prepare_failure"]=fallback_control;
         report["fallback_qualification_passed"]=false;
@@ -572,6 +841,8 @@ int main(int argc,char **argv) {
         report["scope"]="Two fresh ordinary prepared-MCC worlds with HALO2_REFERENCE_CPU_SKINNING=1 in both runs; compare real final frame bytes and the same explicit ordered callback trace. No animation/source-draw/effect observer is added to ordinary first-person cohorts. This is a nonaccepting CPU control diagnostic, not GPU quality or pin acceptance.";
     }
     try {
+        need(!common_cut_mode || std::string_view(common_cut_mode)=="0" || post_constructor_common_cut,"Common-cut mode must be explicitly0or1");
+        need(!post_constructor_common_cut || (!reference_only && !forced_fallback),"Common-cut qualification excludes reference-only and forced fallback controls");
         need(!forced_fallback || (!reference_only && fallback_reason(fallback_control)),"Fallback control requires exactly one admitted resource-refusal reason and excludes reference-only mode");
         need(argc==4 || argc==5 || argc==7 || argc==9,"Supply prepared MCC Coagulation MAP OWNED_OUTPUT BOUNDED_REPORT [cohort-filter [WIDTH HEIGHT [PRESENT_WIDTH PRESENT_HEIGHT]]]");
         unsigned width=640,height=480,present_width{},present_height{};const bool dual_extent=argc==9;
@@ -602,16 +873,32 @@ int main(int argc,char **argv) {
             const auto name=std::string(species?"elite":"spartan")+(first_person?"-fp-":"-")+std::to_string(players)+"p-"+(fire?"fire":"neutral");
             if(!filter.empty() && name.find(filter)==std::string::npos)continue;
             auto &entry=report["cases"].emplace_back(Json{{"name",name},{"players",players},{"species",species?"Elite":"Spartan"},
-                {"fire",fire},{"ordinary_first_person",first_person},{"control_only",reference_only || forced_fallback},{"passed",false}});
+                {"fire",fire},{"ordinary_first_person",first_person},{"control_only",reference_only || forced_fallback || post_constructor_common_cut},{"passed",false}});
+            std::optional<CommonCut> common_cut;
+            if(post_constructor_common_cut) {
+                common_cut.emplace();entry.update({{"post_constructor_common_cut",true},{"post_constructor_qualification_passed",false},
+                    {"common_cut_released_after_pair",false}});
+            }
             if(forced_fallback)entry.update({{"forced_prepare_failure",fallback_control},{"fallback_qualification_passed",false}});
             save(argv[3],report);const auto cpu=run_case(argv[1],output/(name+"-cpu"),players,species,fire,false,first_person,width,height,
-                present_width,present_height,dual_extent,entry["cpu"]);entry["cpu"]=cpu.evidence;save(argv[3],report);
+                present_width,present_height,dual_extent,entry["cpu"],{},nullptr,common_cut?&*common_cut:nullptr);entry["cpu"]=cpu.evidence;save(argv[3],report);
             const auto comparison_key=forced_fallback?"forced_fallback":reference_only?"cpu_control":"gpu";
             const auto comparison=run_case(argv[1],output/(name+(forced_fallback?"-forced-fallback":reference_only?"-cpu-control":"-gpu")),players,species,fire,!reference_only,
-                first_person,width,height,present_width,present_height,dual_extent,entry[comparison_key],fallback_control);entry[comparison_key]=comparison.evidence;
+                first_person,width,height,present_width,present_height,dual_extent,entry[comparison_key],fallback_control,&cpu.external_inputs,
+                common_cut?&*common_cut:nullptr);entry[comparison_key]=comparison.evidence;
+            if(common_cut){common_cut.reset();entry["common_cut_released_after_pair"]=true;}
             entry["ordered_trace_identical"]=cpu.trace==comparison.trace;entry["full_frame_identical"]=cpu.ppm==comparison.ppm;
+            entry["passive_source_trace_identical"]=cpu.passive_trace==comparison.passive_trace && cpu.passive_counts==comparison.passive_counts;
+            entry["external_input_tape_identical"]=cpu.external_inputs==comparison.external_inputs;
             if(reference_only || forced_fallback || cpu.ppm!=comparison.ppm)entry["pixel_difference"]=frame_difference(cpu.ppm,comparison.ppm,present_width,present_height);
             save(argv[3],report);
+            if(cpu.passive_trace!=comparison.passive_trace || cpu.passive_counts!=comparison.passive_counts) {
+                std::size_t first{};while(first<std::min(cpu.passive_trace.size(),comparison.passive_trace.size()) &&
+                    cpu.passive_trace[first]==comparison.passive_trace[first])++first;
+                entry["first_passive_trace_byte_mismatch"]=first;save(argv[3],report);
+                throw FormatError("Actual ordered passive node/source/input/camera trace differs: "+name);
+            }
+            need(cpu.external_inputs==comparison.external_inputs,"Actual replayed source input tape differs from its declared CPU scope");
             // Preserve actual failed-pair inputs before either rejection can
             // unwind the owned raw directory. World-body mismatches need no
             // first-person source-bank diagnostic; FP keeps its existing gate.
@@ -630,15 +917,20 @@ int main(int argc,char **argv) {
                 save(argv[3],report);
                 throw FormatError(std::string(forced_fallback?"Forced CPU materialization":reference_only?"CPU reference control":"Ordinary GPU path")+" changed complete final PPM bytes: "+name);
             }
-            entry["complete_ppm_bytes"]=cpu.ppm.size();entry["passed"]=!reference_only && !forced_fallback;
+            entry["complete_ppm_bytes"]=cpu.ppm.size();entry["passed"]=!reference_only && !forced_fallback && !post_constructor_common_cut;
+            if(post_constructor_common_cut)entry["post_constructor_qualification_passed"]=true;
             if(forced_fallback)entry["fallback_qualification_passed"]=true;
             if(reference_only)entry["control_comparison_identical"]=true;
             save(argv[3],report);++cases;
-            if(forced_fallback)std::cout<<"FALLBACK_QUALIFIED "<<name<<" complete frame/source-RNG/ordered trace; "<<comparison.fallback_weighted<<" weighted CPU vertices; ordinary GPU acceptance not granted\n";
+            if(post_constructor_common_cut)std::cout<<"POST_CONSTRUCTOR_QUALIFIED "<<name<<" complete common cut/frame/ordered trace; "<<comparison.gpu_weighted<<" weighted GPU vertices verified; ordinary GPU acceptance not granted\n";
+            else if(forced_fallback)std::cout<<"FALLBACK_QUALIFIED "<<name<<" complete frame/source-RNG/ordered trace; "<<comparison.fallback_weighted<<" weighted CPU vertices; ordinary GPU acceptance not granted\n";
             else if(reference_only)std::cout<<"CONTROL_IDENTICAL "<<name<<" complete CPU/CPU frame and ordered trace; GPU acceptance not run\n";
             else std::cout<<"PASS "<<name<<" complete frame/ordered source trace; "<<comparison.gpu_weighted<<" weighted GPU vertices verified\n";
         }
         need(cases>0 && (!filter.empty() || cases==24),"Ordinary runtime cohort omitted requested cases");
+        if(post_constructor_common_cut) {
+            report["post_constructor_qualification_passed"]=true;report["diagnostic_completed"]=true;save(argv[3],report);return 0;
+        }
         if(forced_fallback) {
             report["fallback_qualification_passed"]=true;report["diagnostic_completed"]=true;save(argv[3],report);return 0;
         }

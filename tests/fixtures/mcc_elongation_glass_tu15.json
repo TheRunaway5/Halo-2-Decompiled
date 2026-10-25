@@ -1,0 +1,720 @@
+{
+  "schema": "H2_MCC_ELONGATION_GLASS_TU15_V1",
+  "scope": "Paired cooked source/original shader metadata; complete explicit authored tuple, not a suffix alias rule or original framebuffer proof",
+  "parameter_name_evidence": "Both cooked shad author parameter banks are empty and the raw MCC stem is nonresident; pixel ordering is proved only by this complete paired tuple",
+  "declared_test_bindings": {
+    "native_template_address": 2415923200,
+    "synthetic_bitmap_owners": [
+      "shaders\\default_bitmaps\\bitmaps\\color_white",
+      "shaders\\default_bitmaps\\bitmaps\\default_additive"
+    ],
+    "bitmap_frame_counts": "Selected-frame ownership callbacks only; independent actual-cache test owns residency/pixels"
+  },
+  "inputs": {
+    "mcc_map": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-dire-valley-polish-20261023/halo2/h2_maps_win64_dx11/elongation.map",
+    "mcc_map_sha256": "3780ab18cb5c65a0f23d99ab827671bc85c53c22c5e9a3826e5ab01425cff729",
+    "original_map": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000003/elongation.map",
+    "original_map_sha256": "8aa190e424003ce7efaea9e57be9556194b3aefdeccd8a86919f2534f7cf15ea",
+    "native_library": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-dire-valley-polish-20261023/native-shaders/elongation/library.json",
+    "native_library_sha256": "33fb65f1f394a975a55d0f9e919004520a0f51a6065c97031bc3cde816eb7a7b",
+    "exporter_sha256": "bb58aaa92bb48bb59b0928286b71f230e0395e69c4c88369e2b1c6986f3e3abb",
+    "mcc_parser_sha256": "74d0a076b5765f59cbf20a658cbecf8ec1d2b9d2b11e5e678c55386cd4198aad",
+    "original_parser_sha256": "26095755e61b73cf20cfd16ca0c8931db925e27a5bc4dd57a40fdd39090ef504"
+  },
+  "native_payload_name": "4072549c86ac5fd6d3b52326d5d9677141c149a30a5c15c3ad740d1c95393b58.bin",
+  "native_payload_hex": "0000000000000000000000000100000000000000000000000000000000000000ffffffffffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000100000060000000010000008800000019000000a0000000010000009400000001000000e000000012000000f0000000003200800000000000009d05736170735d08e2e900020000000000000000000000000000000000000000000000000000000000000000000201000100010001000100010001000100010000000000000000000000000000000008040808140000000000000000000000000000010000010200000303000002000004000004030100040402400004038a1c00008b1c00016a1c00026b1c0003d2050004f3050005d4090006f5090007d60d0008f70d0009",
+  "native_template_record": {
+    "group": "stem",
+    "name": "shaders\\shader_templates\\transparent\\two_alpha_env_illum",
+    "bytes": 312,
+    "payload": "4072549c86ac5fd6d3b52326d5d9677141c149a30a5c15c3ad740d1c95393b58.bin",
+    "fnv64": "3eaa28e88faf323a",
+    "pointers": [
+      [
+        92,
+        96
+      ],
+      [
+        100,
+        136
+      ],
+      [
+        108,
+        160
+      ],
+      [
+        116,
+        148
+      ],
+      [
+        124,
+        224
+      ],
+      [
+        132,
+        240
+      ]
+    ],
+    "references": [
+      [
+        152,
+        [
+          "spas",
+          "shaders\\shader_passes\\transparent\\default_transparent"
+        ]
+      ]
+    ],
+    "strings": []
+  },
+  "source": {
+    "shader": {
+      "group": "shad",
+      "name": "scenarios\\shaders\\human\\military\\glass\\glass_inte_dlc",
+      "datum": 4170383665,
+      "address": 53652140,
+      "size": 888
+    },
+    "root_hex": "6d657473064513e4270a001d0100000008ab32030500000000000000000000000300000058ab3203ffffffff05000000fcad320374696c73ffffffff00000100010000000000003f000000000000000000000000",
+    "banks": {
+      "4": {
+        "count": 5,
+        "stride": 12,
+        "address": 53652684,
+        "hex": "330195f800000000747e3840754282e100000000747eb83f320194f800000000f0fd7540774284e100000000f0fd753f450196f800000000f0fd7540",
+        "fnv64": "69fd7a4349f59f6f"
+      },
+      "12": {
+        "count": 4,
+        "stride": 4,
+        "address": 53652744,
+        "hex": "67858d00ffffff0000000080ffffff00",
+        "fnv64": "6712cc415d173fb4"
+      },
+      "20": {
+        "count": 10,
+        "stride": 16,
+        "address": 53652760,
+        "hex": "bccaca3e09f9f83eb8b1313f000000009390903eaebcbc3e8a91113f000000000000000000000000000000000000803f000000000000000000000000cdcc4c3f0000803f000000800000000000000000000000000000803f00000000000000000000803f000000800000000000000000000000000000803f00000000000000000000803f000000800000000000000000000000000000803f0000000000000000",
+        "fnv64": "b4dee1cef01ff42d"
+      },
+      "28": {
+        "count": 1,
+        "stride": 6,
+        "address": 52856780,
+        "hex": "000000000032",
+        "fnv64": "d7e52afa299dbf67"
+      },
+      "36": {
+        "count": 25,
+        "stride": 2,
+        "address": 52856788,
+        "hex": "0000000000000000000000000000000000000000000000000000000000000002010001000100010001000100010001000100",
+        "fnv64": "1ddd220bfd25160e"
+      },
+      "44": {
+        "count": 1,
+        "stride": 2,
+        "address": 52856840,
+        "hex": "0002",
+        "fnv64": "08328607b4eb6c87"
+      },
+      "52": {
+        "count": 1,
+        "stride": 10,
+        "address": 52856844,
+        "hex": "00000000000000000000",
+        "fnv64": "69d307cc20f6ef8d"
+      },
+      "60": {
+        "count": 0,
+        "stride": 20,
+        "address": 0,
+        "hex": "",
+        "fnv64": "cbf29ce484222325"
+      },
+      "68": {
+        "count": 0,
+        "stride": 4,
+        "address": 0,
+        "hex": "",
+        "fnv64": "cbf29ce484222325"
+      },
+      "76": {
+        "count": 0,
+        "stride": 2,
+        "address": 0,
+        "hex": "",
+        "fnv64": "cbf29ce484222325"
+      },
+      "84": {
+        "count": 0,
+        "stride": 4,
+        "address": 0,
+        "hex": "",
+        "fnv64": "cbf29ce484222325"
+      },
+      "92": {
+        "count": 5,
+        "stride": 4,
+        "address": 53652920,
+        "hex": "ffffffff0300ffffffffffff0400ffffffffffff",
+        "fnv64": "2d84c39da70df3f2"
+      },
+      "100": {
+        "count": 2,
+        "stride": 12,
+        "address": 53652940,
+        "hex": "000000000000000000000000fbeaea3e8482023fa1a2223f",
+        "fnv64": "36ce2b4e9b089fc5"
+      },
+      "108": {
+        "count": 6,
+        "stride": 4,
+        "address": 53652964,
+        "hex": "000000000000000000000000000000000000003f00000000",
+        "fnv64": "2db68b09fea79ad8"
+      }
+    },
+    "regions": [
+      [
+        53652140,
+        "6d657473064513e4270a001d0100000008ab32030500000000000000000000000300000058ab3203ffffffff05000000fcad320374696c73ffffffff00000100010000000000003f000000000000000000000000"
+      ],
+      [
+        53652232,
+        "6d746962ffffffff6d746962774284e1000000000000000000000000000000000000000000000000000000006d746962ffffffff6d746962450196f8fbeaea3e8482023fa1a2223f0000003f00000000"
+      ],
+      [
+        53652312,
+        "064513e405000000ccac32030400000008ad32030a00000018ad320301000000cc87260319000000d48726030100000008882603010000000c882603000000000000000000000000000000000000000000000000000000000000000005000000b8ad320302000000ccad320306000000e4ad320300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      ],
+      [
+        53652988,
+        "00000000330195f800000000754282e100000000320194f800000000774284e100000000450196f8"
+      ],
+      [
+        53652684,
+        "330195f800000000747e3840754282e100000000747eb83f320194f800000000f0fd7540774284e100000000f0fd753f450196f800000000f0fd7540"
+      ],
+      [
+        53652744,
+        "67858d00ffffff0000000080ffffff00"
+      ],
+      [
+        53652760,
+        "bccaca3e09f9f83eb8b1313f000000009390903eaebcbc3e8a91113f000000000000000000000000000000000000803f000000000000000000000000cdcc4c3f0000803f000000800000000000000000000000000000803f00000000000000000000803f000000800000000000000000000000000000803f00000000000000000000803f000000800000000000000000000000000000803f0000000000000000"
+      ],
+      [
+        52856780,
+        "000000000032"
+      ],
+      [
+        52856788,
+        "0000000000000000000000000000000000000000000000000000000000000002010001000100010001000100010001000100"
+      ],
+      [
+        52856840,
+        "0002"
+      ],
+      [
+        52856844,
+        "00000000000000000000"
+      ],
+      [
+        53652920,
+        "ffffffff0300ffffffffffff0400ffffffffffff"
+      ],
+      [
+        53652940,
+        "000000000000000000000000fbeaea3e8482023fa1a2223f"
+      ],
+      [
+        53652964,
+        "000000000000000000000000000000000000003f00000000"
+      ]
+    ],
+    "runtime": {
+      "count": 1,
+      "address": 53652232,
+      "hex": "6d746962ffffffff6d746962774284e1000000000000000000000000000000000000000000000000000000006d746962ffffffff6d746962450196f8fbeaea3e8482023fa1a2223f0000003f00000000",
+      "fnv64": "81ebfa4716ea35c6"
+    },
+    "definitions": {
+      "count": 3,
+      "address": 53652312,
+      "hex": "064513e405000000ccac32030400000008ad32030a00000018ad320301000000cc87260319000000d48726030100000008882603010000000c882603000000000000000000000000000000000000000000000000000000000000000005000000b8ad320302000000ccad320306000000e4ad320300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "fnv64": "4cb860a5995ab6b6"
+    },
+    "predictions": {
+      "count": 5,
+      "address": 53652988,
+      "hex": "00000000330195f800000000754282e100000000320194f800000000774284e100000000450196f8",
+      "fnv64": "f982b506f28f91d1"
+    },
+    "bitmaps": [
+      {
+        "tag": {
+          "group": "bitm",
+          "name": "scenarios\\bitmaps\\reflection_maps\\reflection_ss_hallway_stainless",
+          "datum": 4170514739,
+          "address": 53653276,
+          "size": 248
+        },
+        "frame": 0,
+        "log_dimension_word": 1077444212
+      },
+      {
+        "tag": {
+          "group": "bitm",
+          "name": "shaders\\default_bitmaps\\bitmaps\\color_white",
+          "datum": 3783410293,
+          "address": 0,
+          "size": 0
+        },
+        "frame": 0,
+        "log_dimension_word": 1069055604
+      },
+      {
+        "tag": {
+          "group": "bitm",
+          "name": "scenarios\\bitmaps\\human\\military\\glass\\glass_smudged_grey",
+          "datum": 4170449202,
+          "address": 53653028,
+          "size": 248
+        },
+        "frame": 0,
+        "log_dimension_word": 1081474544
+      },
+      {
+        "tag": {
+          "group": "bitm",
+          "name": "shaders\\default_bitmaps\\bitmaps\\default_additive",
+          "datum": 3783541367,
+          "address": 0,
+          "size": 0
+        },
+        "frame": 0,
+        "log_dimension_word": 1064697328
+      },
+      {
+        "tag": {
+          "group": "bitm",
+          "name": "scenarios\\bitmaps\\human\\military\\glass\\glass_smudged",
+          "datum": 4170580293,
+          "address": 53655076,
+          "size": 248
+        },
+        "frame": 0,
+        "log_dimension_word": 1081474544
+      }
+    ],
+    "normalized_predictions": [
+      [
+        0,
+        0,
+        "bitm",
+        "scenarios\\bitmaps\\reflection_maps\\reflection_ss_hallway_stainless"
+      ],
+      [
+        0,
+        0,
+        "bitm",
+        "shaders\\default_bitmaps\\bitmaps\\color_white"
+      ],
+      [
+        0,
+        0,
+        "bitm",
+        "scenarios\\bitmaps\\human\\military\\glass\\glass_smudged_grey"
+      ],
+      [
+        0,
+        0,
+        "bitm",
+        "shaders\\default_bitmaps\\bitmaps\\default_additive"
+      ],
+      [
+        0,
+        0,
+        "bitm",
+        "scenarios\\bitmaps\\human\\military\\glass\\glass_smudged"
+      ]
+    ],
+    "normalized_runtime": [
+      {
+        "bytes_without_datums": "6d746962000000006d74696200000000000000000000000000000000000000000000000000000000000000006d746962000000006d74696200000000fbeaea3e8482023fa1a2223f0000003f00000000",
+        "references": [
+          null,
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_additive"
+          ],
+          null,
+          [
+            "bitm",
+            "scenarios\\bitmaps\\human\\military\\glass\\glass_smudged"
+          ]
+        ]
+      }
+    ],
+    "native_stem": {
+      "group": "stem",
+      "name": "shaders\\shader_templates\\transparent\\two_alpha_env_illum",
+      "datum": 3826468102,
+      "address": 2415923200,
+      "size": 312
+    },
+    "namespace": [
+      {
+        "group": "shad",
+        "name": "scenarios\\shaders\\human\\military\\glass\\glass_inte_dlc",
+        "datum": 4170383665,
+        "address": 53652140,
+        "size": 888
+      },
+      {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\transparent\\two_alpha_env_illum",
+        "datum": 3826468102,
+        "address": 2415923200,
+        "size": 312
+      },
+      {
+        "group": "bitm",
+        "name": "scenarios\\bitmaps\\reflection_maps\\reflection_ss_hallway_stainless",
+        "datum": 4170514739,
+        "address": 53653276,
+        "size": 248
+      },
+      {
+        "group": "bitm",
+        "name": "shaders\\default_bitmaps\\bitmaps\\color_white",
+        "datum": 3783410293,
+        "address": 2432700416,
+        "size": 172
+      },
+      {
+        "group": "bitm",
+        "name": "scenarios\\bitmaps\\human\\military\\glass\\glass_smudged_grey",
+        "datum": 4170449202,
+        "address": 53653028,
+        "size": 248
+      },
+      {
+        "group": "bitm",
+        "name": "shaders\\default_bitmaps\\bitmaps\\default_additive",
+        "datum": 3783541367,
+        "address": 2432708608,
+        "size": 172
+      },
+      {
+        "group": "bitm",
+        "name": "scenarios\\bitmaps\\human\\military\\glass\\glass_smudged",
+        "datum": 4170580293,
+        "address": 53655076,
+        "size": 248
+      }
+    ],
+    "bitmap_frame_counts": {
+      "4170514739": 1,
+      "3783410293": 1,
+      "4170449202": 1,
+      "3783541367": 1,
+      "4170580293": 1
+    }
+  },
+  "original": {
+    "shader": {
+      "group": "shad",
+      "name": "scenarios\\shaders\\human\\military\\glass\\glass_interior",
+      "datum": 4087616031,
+      "address": 2152607736,
+      "size": 612
+    },
+    "root_hex": "6d6574735c08e1e94308001d010000004c304e80050000000000000000000000010000009c304e80ffffffff0500000034324e8074696c73ffffffff00000100010000000000003f000000000000000000000000",
+    "banks": {
+      "4": {
+        "count": 5,
+        "stride": 12,
+        "address": 2152608024,
+        "hex": "2112a6f300000000747e3840130188e200000000747eb83f2012a5f300000000f0fd75400b0080e100000000f0fd753f2212a7f300000000f0fd7540",
+        "fnv64": "f38aabb187234649"
+      },
+      "12": {
+        "count": 4,
+        "stride": 4,
+        "address": 2152608084,
+        "hex": "67858d0000000080ffffff00ffffff00",
+        "fnv64": "9a2f7bb8f5516244"
+      },
+      "20": {
+        "count": 10,
+        "stride": 16,
+        "address": 2152608100,
+        "hex": "bccaca3e09f9f83eb8b1313f000000009390903eaebcbc3e8a91113f000000000000000000000000000000000000803f000000000000000000000000cdcc4c3f0000803f000000800000000000000000000000000000803f00000000000000000000803f000000800000000000000000000000000000803f00000000000000000000803f000000800000000000000000000000000000803f0000000000000000",
+        "fnv64": "b4dee1cef01ff42d"
+      },
+      "28": {
+        "count": 1,
+        "stride": 6,
+        "address": 2151168016,
+        "hex": "000000000032",
+        "fnv64": "d7e52afa299dbf67"
+      },
+      "36": {
+        "count": 25,
+        "stride": 2,
+        "address": 2150850536,
+        "hex": "0000000000000000000000000000000000000000000000000000000000000002010001000100010001000100010001000100",
+        "fnv64": "1ddd220bfd25160e"
+      },
+      "44": {
+        "count": 1,
+        "stride": 2,
+        "address": 2148837280,
+        "hex": "0002",
+        "fnv64": "08328607b4eb6c87"
+      },
+      "52": {
+        "count": 1,
+        "stride": 10,
+        "address": 2148837284,
+        "hex": "00000000000000000000",
+        "fnv64": "69d307cc20f6ef8d"
+      },
+      "60": {
+        "count": 0,
+        "stride": 20,
+        "address": 0,
+        "hex": "",
+        "fnv64": "cbf29ce484222325"
+      },
+      "68": {
+        "count": 0,
+        "stride": 4,
+        "address": 0,
+        "hex": "",
+        "fnv64": "cbf29ce484222325"
+      },
+      "76": {
+        "count": 0,
+        "stride": 2,
+        "address": 0,
+        "hex": "",
+        "fnv64": "cbf29ce484222325"
+      },
+      "84": {
+        "count": 0,
+        "stride": 4,
+        "address": 0,
+        "hex": "",
+        "fnv64": "cbf29ce484222325"
+      },
+      "92": {
+        "count": 5,
+        "stride": 4,
+        "address": 2150391436,
+        "hex": "ffffffff0300ffffffffffff0400ffffffffffff",
+        "fnv64": "2d84c39da70df3f2"
+      },
+      "100": {
+        "count": 2,
+        "stride": 12,
+        "address": 2152608260,
+        "hex": "000000000000000000000000fbeaea3e8482023fa1a2223f",
+        "fnv64": "36ce2b4e9b089fc5"
+      },
+      "108": {
+        "count": 6,
+        "stride": 4,
+        "address": 2152608284,
+        "hex": "000000000000000000000000000000000000003f00000000",
+        "fnv64": "2db68b09fea79ad8"
+      }
+    },
+    "regions": [
+      [
+        2152607736,
+        "6d6574735c08e1e94308001d010000004c304e80050000000000000000000000010000009c304e80ffffffff0500000034324e8074696c73ffffffff00000100010000000000003f000000000000000000000000"
+      ],
+      [
+        2152607820,
+        "6d746962ffffffff6d7469620b0080e1000000000000000000000000000000000000000000000000000000006d746962ffffffff6d7469622212a7f3fbeaea3e8482023fa1a2223f0000003f00000000"
+      ],
+      [
+        2152607900,
+        "5c08e1e90500000018314e800400000054314e800a00000064314e80010000001038388019000000e85f338001000000a0a7148001000000a4a714800000000000000000000000000000000000000000000000000000000000000000050000008c5e2c800200000004324e80060000001c324e800000000000000000"
+      ],
+      [
+        2152608308,
+        "000000002112a6f300000000130188e2000000002012a5f3000000000b0080e1000000002212a7f3"
+      ],
+      [
+        2152608024,
+        "2112a6f300000000747e3840130188e200000000747eb83f2012a5f300000000f0fd75400b0080e100000000f0fd753f2212a7f300000000f0fd7540"
+      ],
+      [
+        2152608084,
+        "67858d0000000080ffffff00ffffff00"
+      ],
+      [
+        2152608100,
+        "bccaca3e09f9f83eb8b1313f000000009390903eaebcbc3e8a91113f000000000000000000000000000000000000803f000000000000000000000000cdcc4c3f0000803f000000800000000000000000000000000000803f00000000000000000000803f000000800000000000000000000000000000803f00000000000000000000803f000000800000000000000000000000000000803f0000000000000000"
+      ],
+      [
+        2151168016,
+        "000000000032"
+      ],
+      [
+        2150850536,
+        "0000000000000000000000000000000000000000000000000000000000000002010001000100010001000100010001000100"
+      ],
+      [
+        2148837280,
+        "0002"
+      ],
+      [
+        2148837284,
+        "00000000000000000000"
+      ],
+      [
+        2150391436,
+        "ffffffff0300ffffffffffff0400ffffffffffff"
+      ],
+      [
+        2152608260,
+        "000000000000000000000000fbeaea3e8482023fa1a2223f"
+      ],
+      [
+        2152608284,
+        "000000000000000000000000000000000000003f00000000"
+      ]
+    ],
+    "runtime": {
+      "count": 1,
+      "address": 2152607820,
+      "hex": "6d746962ffffffff6d7469620b0080e1000000000000000000000000000000000000000000000000000000006d746962ffffffff6d7469622212a7f3fbeaea3e8482023fa1a2223f0000003f00000000",
+      "fnv64": "68b70d81335d626a"
+    },
+    "definitions": {
+      "count": 1,
+      "address": 2152607900,
+      "hex": "5c08e1e90500000018314e800400000054314e800a00000064314e80010000001038388019000000e85f338001000000a0a7148001000000a4a714800000000000000000000000000000000000000000000000000000000000000000050000008c5e2c800200000004324e80060000001c324e800000000000000000",
+      "fnv64": "f4f3ab8850142068"
+    },
+    "predictions": {
+      "count": 5,
+      "address": 2152608308,
+      "hex": "000000002112a6f300000000130188e2000000002012a5f3000000000b0080e1000000002212a7f3",
+      "fnv64": "58cec9e1a3b2736b"
+    },
+    "bitmaps": [
+      {
+        "tag": {
+          "group": "bitm",
+          "name": "scenarios\\bitmaps\\reflection_maps\\reflection_ss_hallway_stainless",
+          "datum": 4087747105,
+          "address": 2152608540,
+          "size": 192
+        },
+        "frame": 0,
+        "log_dimension_word": 1077444212
+      },
+      {
+        "tag": {
+          "group": "bitm",
+          "name": "shaders\\default_bitmaps\\bitmaps\\color_white",
+          "datum": 3800563987,
+          "address": 2149070348,
+          "size": 192
+        },
+        "frame": 0,
+        "log_dimension_word": 1069055604
+      },
+      {
+        "tag": {
+          "group": "bitm",
+          "name": "scenarios\\bitmaps\\human\\military\\glass\\glass_smudged_grey",
+          "datum": 4087681568,
+          "address": 2152608348,
+          "size": 192
+        },
+        "frame": 0,
+        "log_dimension_word": 1081474544
+      },
+      {
+        "tag": {
+          "group": "bitm",
+          "name": "shaders\\default_bitmaps\\bitmaps\\default_additive",
+          "datum": 3783262219,
+          "address": 2148830940,
+          "size": 192
+        },
+        "frame": 0,
+        "log_dimension_word": 1064697328
+      },
+      {
+        "tag": {
+          "group": "bitm",
+          "name": "scenarios\\bitmaps\\human\\military\\glass\\glass_smudged",
+          "datum": 4087812642,
+          "address": 2152608732,
+          "size": 192
+        },
+        "frame": 0,
+        "log_dimension_word": 1081474544
+      }
+    ],
+    "normalized_predictions": [
+      [
+        0,
+        0,
+        "bitm",
+        "scenarios\\bitmaps\\reflection_maps\\reflection_ss_hallway_stainless"
+      ],
+      [
+        0,
+        0,
+        "bitm",
+        "shaders\\default_bitmaps\\bitmaps\\color_white"
+      ],
+      [
+        0,
+        0,
+        "bitm",
+        "scenarios\\bitmaps\\human\\military\\glass\\glass_smudged_grey"
+      ],
+      [
+        0,
+        0,
+        "bitm",
+        "shaders\\default_bitmaps\\bitmaps\\default_additive"
+      ],
+      [
+        0,
+        0,
+        "bitm",
+        "scenarios\\bitmaps\\human\\military\\glass\\glass_smudged"
+      ]
+    ],
+    "normalized_runtime": [
+      {
+        "bytes_without_datums": "6d746962000000006d74696200000000000000000000000000000000000000000000000000000000000000006d746962000000006d74696200000000fbeaea3e8482023fa1a2223f0000003f00000000",
+        "references": [
+          null,
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_additive"
+          ],
+          null,
+          [
+            "bitm",
+            "scenarios\\bitmaps\\human\\military\\glass\\glass_smudged"
+          ]
+        ]
+      }
+    ]
+  },
+  "runtime_normalized_exact": true,
+  "predictions_normalized_exact": true
+}

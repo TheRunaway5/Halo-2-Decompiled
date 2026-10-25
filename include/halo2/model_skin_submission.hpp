@@ -20,6 +20,10 @@ struct ModelSkinWorldPoseView {
     bool gpu{};
 };
 ModelSkinWorldPose model_skin_world_pose(const RenderModel&,std::span<const Transform>,bool allow_gpu);
+// GPU WORLD deformation is the default presentation route. The original CPU
+// kernel stays selectable with HALO2_REFERENCE_CPU_SKINNING or
+// HALO2_ENABLE_GPU_SKINNING=0; per-model admission still applies either way.
+bool model_skin_gpu_requested()noexcept;
 // One complete source owner/LOD. Expanded ordinals survive section repeats
 // and shader rejection; bindings and vertices have the same ordered extent.
 // Palette arithmetic and source callbacks remain on their CPU owners.
@@ -33,6 +37,10 @@ struct ModelSkinGeometry {
     // First-person append's original identity transform runs after skinning.
     // It still changes signed zeros and must not run on the local input bank.
     bool post_identity_placement{};
+    // Set only by a producer whose records are unmodified local vertex and
+    // binding copies of a complete bank that passed arithmetic admission with
+    // this exact palette; per-record admission then holds for every subset.
+    bool arithmetic_admitted{};
 };
 // First names the final local-space records in ModelView::vertices. The
 // renderer resolves every record through its actual ordered grouping runs;

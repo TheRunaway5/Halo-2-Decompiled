@@ -70,6 +70,7 @@ DiscordHttpResponse transport(const DiscordHttpRequest &r,std::stop_token stop) 
   curl_easy_setopt(c.get(),CURLOPT_URL,r.url.c_str());
   curl_easy_setopt(c.get(),CURLOPT_PROTOCOLS_STR,r.url.starts_with("http://")?"http":"https");
   curl_easy_setopt(c.get(),CURLOPT_FOLLOWLOCATION,0L);
+  curl_easy_setopt(c.get(),CURLOPT_PROXY,"");
   curl_easy_setopt(c.get(),CURLOPT_SSL_VERIFYPEER,1L);curl_easy_setopt(c.get(),CURLOPT_SSL_VERIFYHOST,2L);
   curl_easy_setopt(c.get(),CURLOPT_NOSIGNAL,1L);curl_easy_setopt(c.get(),CURLOPT_CONNECTTIMEOUT,8L);
   curl_easy_setopt(c.get(),CURLOPT_TIMEOUT,15L);curl_easy_setopt(c.get(),CURLOPT_USERAGENT,"Halo2Native/0.1 SteamIdentity");
@@ -203,13 +204,20 @@ void SteamLogin::restore(){
 }
 void SteamLogin::sign_out(){
   cancel();
+  impl_->publish({DiscordLoginStatus::Verifying,{},"Removing saved Steam sign-in..."});
   impl_->worker=std::jthread([p=impl_.get()](std::stop_token stop){
-    if(!p->cached())return;
     try {
+      if(!p->cached()){p->publish({});return;}
       const auto base=origin(p->options.origin,p->options.allow_loopback_http);
       const auto saved=p->options.load(base,p->profile_namespace,p->profile_name);
+      if(!saved.empty()) {
+        const auto response=p->http({base+"/v1/auth/steam/forget","{}",saved},stop);
+        if(stop.stop_requested())return;
+        require(response.status>=0 && response.status<=65535 &&
+          online_protocol_bridge::steam_revocation_accepted(std::uint16_t(response.status),response.body));
+      }
       p->options.erase(base,p->profile_namespace,p->profile_name);
-      if(!saved.empty())p->http({base+"/v1/auth/steam/forget","{}",saved},stop);
+      p->publish({});
     }catch(...) {if(!stop.stop_requested())p->publish({DiscordLoginStatus::Failed,{},"Could not remove saved sign-in. Please try Sign Out again."});}
   });
 }

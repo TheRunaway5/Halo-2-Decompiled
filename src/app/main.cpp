@@ -210,6 +210,7 @@ int main(int argc, char **argv) {
       std::cout<<"{\"schema\":\"H2_MCC_PREVIEW_CAPABILITIES_V1\",\"prepared_cache_root\":true}\n";
       return 0;
     }
+    halo2::online_protocol_bridge::eos_sdk_register_host();
     using Clock = std::chrono::steady_clock;
     const auto campaign_application_started=Clock::now();
     std::ofstream campaign_weapon_gpu_trace;
@@ -713,6 +714,7 @@ int main(int argc, char **argv) {
           vista_flow.reset();
           auto runtime=runtime_defaults;
           runtime.map=launch->map;runtime.local_players=launch->local_players;
+          if(!launch->shared_maps.empty())runtime.shared_maps=launch->shared_maps;
           runtime.variant=launch->variant;runtime.selected_profiles=launch->selected_profiles;
           runtime.selected_teams=launch->selected_teams;runtime.input_instances=launch->input_instances;runtime.online_match=launch->online_match;
           runtime.match_voice=launch->match_voice;
@@ -745,6 +747,7 @@ int main(int argc, char **argv) {
         online_recovery.reset();
         auto runtime=runtime_defaults;
         runtime.map=launch->map;runtime.local_players=launch->local_players;
+        if(!launch->shared_maps.empty())runtime.shared_maps=launch->shared_maps;
         runtime.variant=launch->variant;runtime.selected_profiles=launch->selected_profiles;
         runtime.selected_teams=launch->selected_teams;runtime.input_instances=launch->input_instances;
         runtime.prepared_world=vista_flow->prepared_world();
@@ -769,6 +772,7 @@ int main(int argc, char **argv) {
       campaign = launch->campaign;
       menu_difficulty=launch->difficulty;
       if(launch->multiplayer) {
+        if(!launch->shared_maps.empty())multiplayer_options.shared_maps=launch->shared_maps;
         multiplayer=true;multiplayer_options.local_players=launch->local_players;
         multiplayer_options.host_port=launch->host_port;multiplayer_options.variant=launch->variant;
         multiplayer_options.selected_teams=launch->selected_teams;
@@ -2765,10 +2769,7 @@ int main(int argc, char **argv) {
               sphere=source->object_sphere(actor.source_datum);
               auto &history=cinematic_render_interpolation[actor.source_datum];
               history.capture_render(simulation->ticks(),*nodes);
-              const auto *enable_gpu=std::getenv("HALO2_ENABLE_GPU_SKINNING");
-              const auto *reference_gpu=std::getenv("HALO2_REFERENCE_CPU_SKINNING");
-              const bool defer=enable_gpu && *enable_gpu && !(reference_gpu && *reference_gpu) &&
-                  renderer->can_skin_models();
+              const bool defer=halo2::model_skin_gpu_requested() && renderer->can_skin_models();
               auto geometry=reference_trace?[&] {
                 auto sampled=history.sample_render(v->second.source_actor_model->hierarchy(),fraction,{},v->second.source_actor_model->scale_resets());
                 reference_trace->record([&] {

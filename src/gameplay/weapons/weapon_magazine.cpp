@@ -118,6 +118,26 @@ void weapon_magazine_chamber(WeaponMagazineState &s,const WeaponMagazineDefiniti
   services.effect(d.chamber_effect);services.request_state(magazine+3);
   weapon_magazine_transition(s,d,6,tick_rate,services.transition);
 }
+std::uint32_t weapon_magazine_activity_symbol(unsigned action) {
+  switch(action) {
+  case 0:return 0x0400000cu;case 7:return 0x0c000064u;case 8:return 0x0b000065u;
+  case 9:return 0x0c0005aeu;case 10:return 0x150005afu;case 11:return 0x140005b0u;
+  case 12:return 0x0b0005b1u;
+  default:throw std::runtime_error("Magazine action exceeds its original dispatch contract");
+  }
+}
+std::optional<unsigned> weapon_magazine_observed_action(std::int16_t previous_mode,
+    std::int16_t mode,std::int16_t loaded) {
+  if(mode==previous_mode)return std::nullopt;
+  const bool empty=loaded==0;
+  if(mode==1)return empty?7u:8u;
+  if(mode==2)return 9u;
+  if(mode==3)return empty?10u:11u;
+  // Step completes mode1 through mode0 into chamber mode5 within one tick
+  // and announces action0 before the final stores; modes2/3 pass through4.
+  if(previous_mode==1 && (mode==0 || mode==5))return 0u;
+  return std::nullopt;
+}
 bool weapon_magazine_step(WeaponMagazineState &s,const WeaponMagazineDefinition &d,
     std::uint32_t item_flags,std::uint16_t input_flags,unsigned magazine,
     std::int16_t tick_rate,const WeaponMagazineServices &services) {

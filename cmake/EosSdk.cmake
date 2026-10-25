@@ -47,6 +47,13 @@ if(HALO2_EOS_SDK_ROOT)
     endif()
 endif()
 function(halo2_bundle_eos target)
+    # Registration is fixed to this adjacent Rust process-main executable,
+    # including builds whose worker contains only the offline SDK stub.
+    add_dependencies(${target} halo2_online_protocol_rust_build)
+    set_property(TARGET ${target} APPEND PROPERTY LINK_DEPENDS "$<TARGET_FILE:halo2_eos_sdk_worker>")
+    add_custom_command(TARGET ${target} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:halo2_eos_sdk_worker>"
+            "$<TARGET_FILE_DIR:${target}>/eos_sdk_worker${CMAKE_EXECUTABLE_SUFFIX}" VERBATIM)
     if(HALO2_EOS_CLIENT_CONFIG AND NOT TARGET halo2_eos_sdk)
         message(FATAL_ERROR "Packaged EOS client settings require the official SDK")
     endif()

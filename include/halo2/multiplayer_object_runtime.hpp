@@ -60,6 +60,11 @@ public:
   MultiplayerObjectRuntime(const std::filesystem::path &source_image,
       const Cache &,std::size_t bsp,const std::filesystem::path &savegame_directory,
       std::shared_ptr<PhysicsLiveClockSource>);
+  // Diagnostic TU1.5 operand capture/replay from native initialization through
+  // teardown; an empty clock selects the ordinary platform source.
+  MultiplayerObjectRuntime(const std::filesystem::path &source_image,
+      const Cache &,std::size_t bsp,const std::filesystem::path &savegame_directory,
+      std::shared_ptr<PhysicsLiveClockSource>,std::shared_ptr<SourceExecutionInputs>);
   ~MultiplayerObjectRuntime();
   MultiplayerObjectRuntime(const MultiplayerObjectRuntime &)=delete;
   MultiplayerObjectRuntime &operator=(const MultiplayerObjectRuntime &)=delete;

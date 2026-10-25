@@ -224,6 +224,135 @@ Player/lift core checkpoints:
   v941 restores this gate after the exact timing conversion fix.
   Other lifts, supports and their retail trajectories remain separate gates.
 
+Player-versus-player scoped acceptance — October23,2026:
+
+- [x] **24/24 native checks pass** on prepared imported MCC Colossus through
+  the canonical TU1.5 match and physics world. Coverage includes blocking and
+  pushing, head-on contact, crouching, adjacent passing, teammates/enemies,
+  all four Spartan/Elite pairings, a supported stack and its unsupported
+  gravity control. The existing source physics needed no gameplay changes.
+- [x] Standing/crouching teammate boosts: **36 actual input-driven mounts and
+  landings**,720 supported ticks across12 cases, jumping off, lower-player
+  movement and final support release. Grounding must name the actual lower
+  player's full source handle. Four boost cases repeat over real UDP; the
+  complete cohort compares **1,831 exact same-tick LAN player snapshots**.
+  Network inputs run at30Hz, respecting the128-new-assemblies/second receiver
+  bound. The test never advances physics to make a network assertion pass.
+- [ ] The15 Deserted jump/boost sites remain separate map-specific gates for
+  polished GLB SHA`55d860b81f825bd36f18e9723fa2d1ad396ed17739d11ebf5c1a07fab0f697b2`.
+  Colossus acceptance does not qualify that map's approaches, trajectories,
+  headroom, landings or escapes. Its exact compiled candidate is owned by the
+  map-authoring chat. The older local Dust2 package is a different source.
+
+[Acceptance report and exact pins](../build/player-collision-tu15/acceptance.json),
+[raw bounded case evidence](../build/player-collision-tu15/complete/evidence/Testing/Temporary/LastTest.log),
+[regression source](../tests/player_collision_tu15_tests.cpp),
+[CTest registration](../cmake/PlayerCollisionTu15.cmake).
+These are bounded native component/match/network results; the other broad
+physics groups and physical-Xbox parity remain open. No launcher-selected
+binary was replaced or requalified by this test-only change. The private
+build and case scratch are removed; no large test artifacts are retained.
+
+Reproduce from this repository with the prepared MCC map available:
+
+```bash
+python3 tools/run_tests.py --target player_collision_tu15_tests \
+  --filter '^native_mcc_player_collision_' --test-jobs 1 \
+  --cmake-arg="-DHALO2_MCC_PLAYER_COLLISION_MAP=$PWD/assets/imported/mcc-dire-valley-menu-20261023/halo2/h2_maps_win64_dx11/colossus.map" \
+  --retain-report Testing/Temporary/LastTest.log \
+  --output build/player-collision-tu15/fresh
+```
+
+Player external-force acceptance — October23,2026:
+
+- **22/22 external-force cases pass**, plus the player head-on baseline,
+  on a pinned native TU1.5 source snapshot with prepared MCC Colossus and
+  Coagulation. `tests/player_external_forces_tu15_tests.cpp` covers nearby/distant frag
+  blasts, nearby/direct rockets, Warthog bumps, longer-run-up splatters,
+  missed strikes and parked-vehicle controls for Spartan and Elite targets,
+  including six real UDP cases with **1,506 exact same-tick snapshots**.
+  Actual source-born Spartan/Elite definitions, surviving knockback, immediate
+  fatal contacts and single kill/death attribution are required.
+- Scene placement uses original B95D0 and authored BSP/seat inputs. Ordinary
+  weapon, grenade, pickup, driving and look commands supply the stimuli.
+  Read-only observations require actual D91D0 radius calls, source vitality
+  and motion, original fatal transitions/kill credit where applicable, and
+  unchanged distant controls. LAN checks compare same-tick player positions,
+  velocities, vitality, identities/statistics, corpse state and emitted WORLD
+  node banks. Biped knockback gates measure actual velocity and displacement.
+- The initial LAN direct-rocket fixture missed because it treated raw look
+  input as an absolute heading after the native join frame. A repeated focused
+  red run observed requested yaw1.571 but actual source yaw1.045. Ordinary look
+  deltas toward actual source aim fix the fixture; its focused retry and full
+  strengthened23-test cohort pass. No gameplay physics/damage changes were made.
+- [Acceptance and source hashes](../build/player-external-forces-tu15/acceptance.json),
+  [full CMake/CTest result](../build/player-external-forces-tu15/complete/report.json)
+  and [later shared-source drift](../build/player-external-forces-tu15/post-freeze-source-drift.json)
+  retain the exact scope. Vehicle BV-agent/objective work that landed during
+  this source-frozen run remains outside its qualification. Cleanup is verified
+  for both disposable source/build and probe owners. No large test artifacts
+  are retained.
+- This scope does not close all vehicle classes, occupant consequences,
+  obstruction/material/falloff families, original instruction differentials,
+  visible/audio acceptance, corpse lifetime or launcher delivery. P03, V04,
+  E02/E04 and the broader destruction ledger remain open.
+
+Player collision, vehicle-impact and blast acceptance — October24,2026:
+
+- **106/106 CTests pass with no skips** on the current shared source: 73 external-force
+  cases, all24 player-collision cases, five bounded original component suites,
+  the original vehicle BV-agent case and three compiled-symbol/namespace controls.
+  Shared physics, multiplayer, objective, network, cache and renderer changes are
+  included in the effective source manifest. The final renderer catch-up builds
+  successfully and leaves all ten measured executables byte-identical; its
+  head-on and actual UDP vehicle-impact smoke cases also pass.
+- External-force cases cover Warthog, Gauss Warthog, Ghost, Spectre, Scorpion,
+  Wraith and Banshee against Spartan and Elite targets. The actual full-salt
+  definition and authored model variant are recorded; Gauss cases require the
+  actual named `gauss` variant. Near/middle/far frag, near/far plasma and rockets,
+  direct rockets, actual BSP-wall obstruction, missed strikes and ordinary
+  neutral controls exercise genuine source vitality and physical motion.
+  Aircraft neutral controls preserve original coasting. Scorpion/Wraith/Banshee
+  contact gates allow genuine non-damaging pushes while requiring measured
+  target velocity and displacement.
+- Nine real UDP force cases pass **2,775 exact same-tick snapshots**, **818,571
+  WORLD-node comparisons** and **1,074 corpse-pose comparisons**. Declared fatal
+  rocket/splatter cases require immediate source death, single kill/death credit,
+  actual corpse state and a new salted source respawn generation.
+- **18 independent live-call comparisons pass** against English OG Xbox TU1.5
+  (`21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd`):
+  eight post-contact physics calls covering all seven configurations plus the
+  Warthog splatter, four post-blast physics calls and six complete radius calls.
+  They compare **1,825,436,054 captured bytes**, GP/SSE/x87 state and FP controls/status
+  without supplying damage, velocity, collision, RNG, solver or gameplay callee results.
+  The i386 harness records its fixed host IF bit separately. Physics-frame
+  comparisons use unchanged original instructions. Radius comparisons explicitly
+  bind authenticated MCC StringID operands, actual read-only bitmap views and,
+  where reached, the original sound leaf's authenticated codec/encoded-byte
+  operands and the recorded external UTC input. The sound leaf executes all67
+  original instructions; no duration or FPU result is supplied. Captures reject
+  newly committed memory outside their compared regions.
+- The five independently regenerated component suites pass **426 original
+  comparisons: 289 completed calls and137 bounded original owner prefixes**.
+  These are separate tests; historical full-corpus tests are not repointed.
+  Nested-entry capture regression passes. The original fatal replay goes red
+  when its sound input view is omitted, and a wrong authored encoded extent is
+  rejected before original execution. These checks retain a real failure signal.
+- [Acceptance and source hashes](../build/player-force-current-tu15/acceptance.json),
+  [full CMake/CTest result](../build/player-force-current-tu15/accepted-v6/report.json),
+  [live original comparisons](../build/player-force-current-tu15/original-final-v6/summary.json),
+  [source catch-up proof](../build/player-force-current-tu15/renderer-source-catchup.json)
+  and [cleanup receipt](../build/player-force-current-tu15/cleanup.json) retain the
+  exact boundary. Disposable builds, source copies and raw banks are removed.
+  The five required original component inputs are retained losslessly under
+  `build/player-force-current-tu15/original-reference-inputs/` (**664,280 bytes**
+  compressed total); no rebuildable binaries, raw live banks or frames are retained.
+- This closes the scoped player collision/impact/blast acceptance above. The
+  broader P03/V04/E02/E04 and destruction D01–D13 matrices still require their
+  other authored definitions, material/directional families, occupant/destruction
+  transitions, visible/audio and physical-Xbox evidence. Launcher-selected
+  runtimes are outside this source validation.
+
 Core interaction groups — bounded current acceptance passes:
 
 - [x] C01 — Warthog approach, boarding, driving, steering, actual submitted

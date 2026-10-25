@@ -75,8 +75,40 @@ if(BUILD_TESTING)
     target_include_directories(online_eos_bootstrap_tests PRIVATE "${HALO2_ONLINE_BRIDGE_INCLUDE}")
     target_link_libraries(online_eos_bootstrap_tests PRIVATE halo2_online_protocol)
     add_dependencies(online_eos_bootstrap_tests halo2_online_protocol_rust_build)
+    halo2_bundle_eos(online_eos_bootstrap_tests)
     add_test(NAME online_eos_release_bootstrap COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_eos_bootstrap.py" $<TARGET_FILE:online_eos_bootstrap_tests>)
+    # Forwarding SDK observers use the actual official headers and GNU linker
+    # seam. No successful external credential or cloud account is needed.
+    if(TARGET halo2_eos_sdk AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        add_executable(online_eos_account_http_tests tests/online_eos_account_http_tests.cpp)
+        # SDK archive extraction happens in halo2_add_online_protocol's scope;
+        # its imported target retains the actual selected library location.
+        get_target_property(eos_account_sdk_library halo2_eos_sdk IMPORTED_LOCATION)
+        get_filename_component(eos_account_sdk_bin "${eos_account_sdk_library}" DIRECTORY)
+        # Observe real child SDK entries without linking any game/RTC owner
+        # into the dedicated worker. Parent --wrap observers remain below.
+        add_library(eos_sdk_worker_observer SHARED tests/eos_sdk_worker_observer.cpp)
+        target_compile_features(eos_sdk_worker_observer PRIVATE cxx_std_20)
+        target_include_directories(eos_sdk_worker_observer PRIVATE "${eos_account_sdk_bin}/../Include")
+        target_link_libraries(eos_sdk_worker_observer PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
+        target_compile_definitions(online_eos_account_http_tests PRIVATE
+            HALO2_EOS_WORKER_OBSERVER="$<TARGET_FILE:eos_sdk_worker_observer>")
+        target_include_directories(online_eos_account_http_tests PRIVATE "${eos_account_sdk_bin}/../Include" "${HALO2_ONLINE_BRIDGE_INCLUDE}")
+        add_dependencies(online_eos_account_http_tests halo2_online_protocol_rust_build eos_sdk_worker_observer)
+        target_link_libraries(online_eos_account_http_tests PRIVATE halo2_online_matchmaking nlohmann_json::nlohmann_json halo2_eos_sdk)
+        foreach(eos_call EOS_Connect_CreateDeviceId EOS_Connect_Login EOS_Connect_CreateUser
+                         EOS_P2P_AddNotifyPeerConnectionRequest EOS_Platform_Tick)
+            target_link_options(online_eos_account_http_tests PRIVATE "-Wl,--wrap=${eos_call}")
+        endforeach()
+        halo2_bundle_eos(online_eos_account_http_tests)
+        foreach(auth_case denied unavailable stalled)
+            add_test(NAME online_eos_account_http_${auth_case} COMMAND ${Python3_EXECUTABLE}
+                "${CMAKE_CURRENT_SOURCE_DIR}/tests/online_eos_account_http_test.py"
+                $<TARGET_FILE:online_eos_account_http_tests> ${auth_case})
+            set_tests_properties(online_eos_account_http_${auth_case} PROPERTIES TIMEOUT 30)
+        endforeach()
+    endif()
     add_executable(peer_common_cut_tests tests/peer_common_cut_tests.cpp)
     target_link_libraries(peer_common_cut_tests PRIVATE halo2_peer_common_cut)
     add_test(NAME peer_common_cut COMMAND peer_common_cut_tests)
@@ -153,7 +185,9 @@ target_link_libraries(online_peer_transport_tests PRIVATE halo2_online_peers)
 add_test(NAME online_peer_direct_udp COMMAND online_peer_transport_tests)
 if(BUILD_TESTING)
     add_executable(online_eos_transport_tests tests/online_eos_transport_tests.cpp)
+    target_include_directories(online_eos_transport_tests PRIVATE "${HALO2_ONLINE_BRIDGE_INCLUDE}")
     target_link_libraries(online_eos_transport_tests PRIVATE halo2_online_peers)
+    halo2_bundle_eos(online_eos_transport_tests)
     add_test(NAME online_eos_relay_live COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/run_online_eos_test.py" $<TARGET_FILE:online_eos_transport_tests>
         "${CMAKE_CURRENT_BINARY_DIR}/test-artifacts/eos-relay-live.json")

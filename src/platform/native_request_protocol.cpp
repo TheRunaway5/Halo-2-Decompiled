@@ -25,6 +25,7 @@ std::optional<NativeRequest> decode_native_request(std::span<const std::byte> pa
     if(frame.kind==2) {
         if(frame.controls.empty()||frame.controls.size()>4)return {};
         NativeInputRequest value;value.nonce=frame.nonce;value.cookie=frame.cookie;value.sequence=frame.sequence;
+        value.ack={frame.ack_latest,frame.ack_mask,frame.ack_flags};
         value.controls.reserve(frame.controls.size());
         const auto intent=[](const online_protocol_bridge::NativeIntent &source)->std::optional<NativeVehicleIntent> {
             if(!source.present)return {};

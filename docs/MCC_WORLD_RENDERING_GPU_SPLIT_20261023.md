@@ -1,7 +1,9 @@
 # World rendering: current CPU/GPU split
 
-2026-10-23. Current-source audit and fresh instrumented diagnostics for the
-retained-input candidate `e811b30b…`. TU1.5 remains the visual/gameplay authority.
+2026-10-23. Source audit and historical instrumented diagnostics for the
+retained-input candidate `e811b30b…`. Later runtime profiles and CPU-skin census
+are linked from the [active checklist](MCC_PERFORMANCE_GOAL_CHECKLIST.md).
+TU1.5 remains the visual/gameplay authority.
 
 ## Already on the GPU
 
@@ -17,6 +19,23 @@ retained-input candidate `e811b30b…`. TU1.5 remains the visual/gameplay author
 This is not a percentage of total frame time. Host CPU timings and device-wide
 GPU utilization cannot supply that percentage; per-pass GPU timestamps remain
 an open measurement gate.
+
+## Four-player internal resolution
+
+At3840x2160, four-player split screen partitions one internal target into four
+1920x1080 viewports/scissors. Each camera still repeats source visibility,
+lighting/shadow preparation and command production. A1280x720 presentation
+window scales those internal views to640x360 each; it does not change their
+1920x1080 internal resolution.
+
+Fog follows the view's viewport/scissor, and BSP postprocessing copies the
+view rectangle with corresponding960x540 and480x270 intermediate regions.
+Normal shadow generation/filtering uses fixed128x128 maps. Conditional water
+scene copies and pStencil setup can copy/clear the full target per invocation;
+active global fade/letterbox draws can also repeat full-target work. Establish
+actual activation, sampling bounds and ordering before optimizing those passes.
+This source audit does not measure their cost.
+[Authenticated source audit](../build/test-results/presentation-offload-20261022/world-submit-census-20261023/native-prefix-three-site/split-view-coverage-audit.json).
 
 ## Fresh CPU evidence
 
@@ -78,8 +97,13 @@ secondary admissions. Neither inclusive tree is a ready asynchronous GPU job.
    raw-shadow submission requires its explicit reference option. Count actual
    calls, prepared draws and encoded draws before prioritizing this change.
 2. **Remove unnecessary host skin preparation and finish deformation coverage.**
-   Existing admitted bases are followed by duplicate full-model preparation.
-   Remaining CPU skins include unmigrated families and real CPU consumers.
+   Later consumer audits have not proved duplicate CPU deformation of an
+   admitted GPU base. Remaining CPU skins include unmigrated families and real
+   CPU consumers; all six LOD allocations and their lighting/selection callbacks
+   currently remain observable. The complete four-role census finds dynamic
+   jobs no larger than2,130 vertices, scenery1,686 and unlabelled jobs12,960.
+   Its whole-process counts do not measure time or GPU eligibility. Larger
+   synthetic worker benefits do not establish a production threshold here.
    Preserve node/attachment/IK work, exact shield selection, source lighting
    callbacks, FP/errno effects and failure ordering. Obtain caller-specific
    evidence before attributing the sampled CPU skins to removable work.
@@ -97,3 +121,11 @@ live occupancy or the cause of a particular MCC frame rate. The
 record traffic91.85%/100% in the ordinary1p/4p cohort, but its contended FPS
 measurements establish no stable gain. These next boundaries are source-backed
 opportunities, not completed changes or promised speedups.
+
+The subsequent [actual world-submission census](MCC_WORLD_SUBMISSION_CENSUS_20261023.md)
+finds zero native raw-world prepare/record/storage activity in all840 sampled
+ordinary neutral frames. Resource caching of those services is therefore not
+the next neutral-scene optimization. The fresh profiles instead reinforce
+TU1.5 execution and its checked memory/observer cost as the largest measured
+CPU owner. [Modern execution priorities](MCC_TU15_MODERN_EXECUTION_20261023.md)
+separate exact native CPU work from the proposed early GPU visibility trial.

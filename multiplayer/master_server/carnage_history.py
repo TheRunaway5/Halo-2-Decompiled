@@ -15,7 +15,7 @@ import uuid
 from aiohttp import web
 from .protocol import identifier, integer, parse, require
 
-FORMAT = "vista-pcr-consumed-v1"
+FORMAT = "native-verified-summary-v2"
 
 
 class ReportHistory:
@@ -38,6 +38,11 @@ class ReportHistory:
           PRIMARY KEY(match,player), UNIQUE(match,slot),
           FOREIGN KEY(match,player) REFERENCES match_result_players(match,player));
         CREATE INDEX IF NOT EXISTS career_report_players ON carnage_players(player);
+        CREATE TABLE IF NOT EXISTS carnage_player_summaries(
+          match TEXT NOT NULL, player TEXT NOT NULL, slot INTEGER NOT NULL,
+          screen_name TEXT NOT NULL, discord_username_at_match TEXT NOT NULL,
+          PRIMARY KEY(match,player),
+          FOREIGN KEY(match,player) REFERENCES match_result_players(match,player));
         CREATE TABLE IF NOT EXISTS carnage_general_stats(
           match TEXT NOT NULL, player TEXT NOT NULL, stat INTEGER NOT NULL CHECK(stat BETWEEN 0 AND 44),
           value INTEGER NOT NULL CHECK(value BETWEEN 1 AND 32767), PRIMARY KEY(match,player,stat),
@@ -80,42 +85,24 @@ class ReportHistory:
         self.db.execute("INSERT OR IGNORE INTO history_players VALUES(?,?)", (player, str(uuid.uuid4())))
 
     def capture(self, room):
-        """Called inside the immutable result/XP transaction, after validation."""
-        raw, db = room.result, self.db
+        """Persist only the versioned field set every confirming client checks.
+
+        A digest of host bytes is not verification of appearance, medals,
+        weapons, opponents or other numeric banks. Keep historical details
+        readable, but never attribute new unchecked fields to players.
+        """
+        from .security_policy import persistable_result
+        raw, db = persistable_result(room.result), self.db
         require(len(raw) == 0xdc78, "Incomplete source carnage report")
         public = str(uuid.uuid4())
         guests = getattr(room, "guests", ())
         admitted = [(slot, player, name) for slot, (player, name, _) in enumerate(room.players) if player not in guests]
         db.execute("INSERT INTO carnage_reports VALUES(?,?,?,?,?,?,?)", (room.id, public, FORMAT,
             getattr(room, "created_wall", None), len(room.players), len(admitted), raw[0x20:0x150]))
-        def word(offset):
-            return struct.unpack_from("<H", raw, offset)[0] & 0x7fff
         for slot, player, name in admitted:
             self.identity(player)
             username = db.execute("SELECT discord_username FROM player_profiles WHERE player=?", (player,)).fetchone()[0]
-            at = 0x370 + slot*0x94
-            db.execute("INSERT INTO carnage_players VALUES(?,?,?,?,?,?)", (room.id, player, slot, name, username, raw[at+0x4c:at+0x5c]))
-            base = 0xe30 + slot*437*2
-            db.executemany("INSERT INTO carnage_general_stats VALUES(?,?,?,?)",
-                [(room.id, player, stat, value) for stat in range(45) if (value := word(base+stat*2))])
-            db.executemany("INSERT INTO carnage_medals VALUES(?,?,?,?)",
-                [(room.id, player, medal, value) for medal in range(32) if (value := word(base+90+medal*2))])
-            db.executemany("INSERT INTO carnage_weapon_stats VALUES(?,?,?,?,?)",
-                [(room.id, player, weapon, field, value) for weapon in range(45) for field in range(8)
-                 if (value := word(base+154+2*(weapon*8+field)))])
-        # Exclude both guest rows and guest columns from opponent details.
-        opponents = []
-        for slot, player, _ in admitted:
-            for other, opponent, _ in admitted:
-                at = 0x44d0+4*(slot*16+other)
-                a, b = word(at), word(at+2)
-                if a or b:
-                    opponents.append((room.id, player, opponent, a, b))
-        db.executemany("INSERT INTO carnage_opponents VALUES(?,?,?,?,?)", opponents)
-        if room.team_mode:
-            db.executemany("INSERT INTO carnage_team_stats VALUES(?,?,?,?)",
-                [(room.id, team, stat, value) for team in sorted({t for _,_,t in room.players})
-                 for stat in range(45) if (value := word(0x48d0+2*(team*45+stat)))])
+            db.execute("INSERT INTO carnage_player_summaries VALUES(?,?,?,?,?)", (room.id, player, slot, name, username))
         return public
 
 
@@ -187,16 +174,17 @@ class HistoryApi:
         result["variant_bytes"] = row[12].hex() if row[12] is not None else None
         result["guest_details"] = "excluded"
         result["players"] = []
-        for r in self.db.execute("SELECT a.player,h.public_id,p.discord_username,p.screen_name,c.screen_name,c.discord_username_at_match,"
-            "c.slot,c.appearance,a.placement,a.score,a.kills,a.deaths,a.assists,a.suicides,t.team,t.individual_placement "
+        for r in self.db.execute("SELECT a.player,h.public_id,p.discord_username,p.screen_name,coalesce(c.screen_name,s.screen_name),coalesce(c.discord_username_at_match,s.discord_username_at_match),"
+            "coalesce(c.slot,s.slot),c.appearance,a.placement,a.score,a.kills,a.deaths,a.assists,a.suicides,t.team,t.individual_placement "
             "FROM match_result_players a JOIN history_players h ON h.player=a.player "
             "JOIN player_profiles p ON p.player=a.player LEFT JOIN carnage_players c ON c.match=a.match AND c.player=a.player "
-            "LEFT JOIN match_result_memberships t ON t.match=a.match AND t.player=a.player WHERE a.match=? ORDER BY c.slot,h.public_id", (match,)):
+            "LEFT JOIN carnage_player_summaries s ON s.match=a.match AND s.player=a.player "
+            "LEFT JOIN match_result_memberships t ON t.match=a.match AND t.player=a.player WHERE a.match=? ORDER BY coalesce(c.slot,s.slot),h.public_id", (match,)):
             who = r[0]
             player = dict(zip(("id", "discord_username", "screen_name", "screen_name_at_match", "discord_username_at_match", "slot"), r[1:7]))
             player["appearance"] = r[7].hex() if r[7] is not None else None
             player.update(zip(("placement", "score", "kills", "deaths", "assists", "suicides", "team", "individual_placement"), r[8:]))
-            player["details_available"] = r[6] is not None
+            player["details_available"] = r[7] is not None
             for name, table, columns in (("general", "carnage_general_stats", "stat,value"),
                 ("medals", "carnage_medals", "medal,count"), ("weapons", "carnage_weapon_stats", "weapon,field,value")):
                 player[name] = [list(v) for v in self.db.execute("SELECT "+columns+" FROM "+table+" WHERE match=? AND player=? ORDER BY "+columns, (match, who))]

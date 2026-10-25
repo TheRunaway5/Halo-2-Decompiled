@@ -53,7 +53,11 @@ void MenuState::update_online_account() {
   // Bound a delayed UI consumer while preserving one-shot ordered events.
   for(const auto cue:notifications)if(pending_ui_sounds_.size()<16)pending_ui_sounds_.push_back(cue);
   const bool departed_party=account_.party.has_value() && !next.party && next.authenticated;
-  const bool joined_party=!account_.party && next.party && next.authenticated;
+  // Sign-in (and a profile switch, which resets account_) reports a party the
+  // service retained from an earlier session. That is not a new join: ONLINE
+  // must still land on menu186 (Quickmatch/Optimatch/Custom Game) for every
+  // profile. Only membership gained while already authenticated enters lobby14.
+  const bool joined_party=account_.authenticated && !account_.party && next.party && next.authenticated;
   auto previous_account=std::move(account_);
   account_ = std::move(next);
   std::erase_if(dismissed_party_invites_,[&](const auto &id){return std::none_of(account_.party_invitations.begin(),account_.party_invitations.end(),[&](const auto &i){return i.id==id;});});

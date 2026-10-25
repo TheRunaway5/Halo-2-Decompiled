@@ -108,7 +108,7 @@ struct MultiplayerRuntimeAuthority::Impl {
     Clock::time_point capture_retry{};
     Clock::time_point receiver_retry{};
     std::string admission_error,receiver_error,publication_error,preparation_error;
-    bool frame{},committing{},continuing_input{},recovery_enabled{},restart_receiver{};
+    bool frame{},committing{},continuing_input{},recovery_enabled{},restart_receiver{},recovery_preparation{};
     std::optional<std::uint64_t> continued_input_tick;
     std::array<Controls,4> continued_input;
     OuterRetirementGate retirement_gate{};
@@ -460,7 +460,7 @@ struct MultiplayerRuntimeAuthority::Impl {
         }
     }
     void publish(){
-        if(!authority)return;
+        if(!authority||!recovery_preparation)return;
         try{
             const auto context=online->authority_context();
             if(!context||online->phase()!=OnlineMatchSession::Phase::Running||context->host!=online->self()){
@@ -506,12 +506,22 @@ struct MultiplayerRuntimeAuthority::Impl {
         }
     }
 };
+bool MultiplayerRuntimeAuthority::recovery_preparation_enabled(
+    const std::shared_ptr<OnlineMatchSession> &online,RecoveryPreparation preparation){
+    if(!online)return false;
+    switch(preparation){
+    case RecoveryPreparation::Automatic:return online->continuity().has_value();
+    case RecoveryPreparation::PreparationOnly:return true;
+    }
+    return false;
+}
 MultiplayerRuntimeAuthority::MultiplayerRuntimeAuthority(const MultiplayerOptions &options,
     std::shared_ptr<MultiplayerPreparedWorld> world,std::unique_ptr<LanHost> host,std::unique_ptr<LanClient> client,
-    std::unique_ptr<SourceAuthorityReplayWorker> receiver):impl_(std::make_unique<Impl>()){
+    std::unique_ptr<SourceAuthorityReplayWorker> receiver,RecoveryPreparation preparation):impl_(std::make_unique<Impl>()){
     auto &s=*impl_;need(world&&!(host&&client));
     s.resident_cache=world->original_cache();need(world->matches(options));
     s.online=options.online_match;s.recovery_options=source_authority_options(options);s.resident=std::move(world);
+    s.recovery_preparation=recovery_preparation_enabled(s.online,preparation);
     s.initial_host=std::move(host);s.initial_client=std::move(client);s.receiver=std::move(receiver);
     s.recovery_enabled=bool(s.receiver);
     need(!s.receiver||(s.online&&s.initial_client));
@@ -891,6 +901,19 @@ MultiplayerPreparedWorld &MultiplayerRuntimeAuthority::common_prospective_target
     need(same_cut(SourcePeerHostTakeover::imported_cut(*s.native_import),expected)&&
         SourcePeerHostTakeover::has_prospective(*s.native_import));
     return SourcePeerHostTakeover::prospective_target(*s.native_import);
+}
+MultiplayerRuntimeAuthority::RecoveryEligibility MultiplayerRuntimeAuthority::recovery_eligibility()const{
+    auto &s=*impl_;s.quiescent();
+    if(s.preparation_retiring()||!s.online||!s.client())return RecoveryEligibility::Unavailable;
+    const auto migration=s.online->peer_migration();
+    if(!migration||!migration->decision)return RecoveryEligibility::Unavailable;
+    const auto common=s.online->common_cut();
+    if(s.common_used||s.committed_pair||s.pending_pair||(common&&(common->pending||common->committed))){
+        if(aborted(common,*migration->decision)||
+            !s.pair(migration->decision->previous,migration->decision->value.cut))return RecoveryEligibility::Unavailable;
+        return RecoveryEligibility::LearnedCommonCut;
+    }
+    return s.receiver||s.retained?RecoveryEligibility::LegacyDrain:RecoveryEligibility::Unavailable;
 }
 std::shared_ptr<const SourceAuthorityRetainedWorld> MultiplayerRuntimeAuthority::recover(){
     auto &s=*impl_;s.quiescent();if(s.preparation_retiring()||!s.retirement_boundary())return {};

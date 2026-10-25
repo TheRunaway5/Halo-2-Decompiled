@@ -12,13 +12,15 @@ struct BranchTable {
 #include "physics/native_tu15_physics_branch_data.inc"
 #include "physics/native_tu15_physics_callable_data.inc"
 #include "physics/native_tu15_physics_literal_data.inc"
+#include "physics/native_tu15_light_portal_literal_data.inc"
+#include "physics/native_tu15_fade_curve_data.inc"
 #include "campaign/ai/native_tu15_ai_literal_data.inc"
 #include "gameplay/world/native_tu15_teleporter_query_data.inc"
 #include "gameplay/weapons/native_tu15_weapon_damage_data.inc"
 #include "physics/native_tu15_collision_query_data.inc"
-constexpr std::array<std::span<const BranchTable>,7> table_sets{
+constexpr std::array<std::span<const BranchTable>,9> table_sets{
     branch_tables,callable_tables,literal_tables,ai_literal_tables,teleporter_query_tables,
-    weapon_damage_tables,collision_query_tables};
+    weapon_damage_tables,collision_query_tables,light_portal_literal_tables,fade_curve_bank_tables};
 bool has_owner(const SourceRuntimeMemory& memory,std::uint32_t address) {
     // A zero-length view still resolves the region owner, including reserved
     // pages. The validation pass below must reject an uncommitted owner before

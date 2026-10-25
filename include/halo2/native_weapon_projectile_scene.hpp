@@ -14,6 +14,12 @@ struct SourceProjectileGlowOwner {
     std::uint32_t object{},definition{};
     Transform first_world_node;
 };
+struct SourceFreeProjectileLens {
+    std::uint32_t owner{},definition{};
+    unsigned ordinal{};
+    Transform first_world_node;
+    bool use_marker_scale{};
+};
 struct NativeWeaponProjectileDraw {
     std::uint32_t owner{},definition{};
     std::vector<Vertex> vertices;
@@ -68,6 +74,9 @@ public:
     const std::vector<SourceLightVolumeDraw>& light_volume_view(unsigned,Vec3 actual_camera_forward,
         const SourceViewProjectionBank &,RenderViewport,float actual_w_distance,
         std::span<const SourceProjectileGlowOwner> attached={});
+    // Derived from actual free native snapshots and the closed default-node
+    // attachment branch. Attached objects retain their parent/marker owner.
+    std::vector<SourceFreeProjectileLens> free_lens_view()const;
 private:
     struct Impl;std::unique_ptr<Impl> impl_;
 };

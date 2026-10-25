@@ -73,6 +73,9 @@ std::optional<std::vector<Vertex>> source_live_model_base_vertices_tu15(
                     gpu=std::make_shared<ModelSkinGeometry>();
                     gpu->owner=owner;gpu->definition=definition;gpu->render_model=render_model;
                     gpu->lod=draw.lod;gpu->palette.assign(prepared.palette.begin(),prepared.palette.end());
+                    // model_skin_world_pose admitted the whole local bank with
+                    // this palette; selection below only filters and sets materials.
+                    gpu->arithmetic_admitted=true;
                 }
                 if(provide_deferred)posed=prepared.vertices;
                 else {owned_pose=std::move(owned.vertices);posed=owned_pose;}
@@ -188,6 +191,10 @@ std::vector<SourceLiveModelBaseDrawTu15> SourceLiveModelBaseSelectionTu15::copy(
         result.push_back(std::move(out));
     }
     return result;
+}
+std::uint32_t source_live_model_section_header_tu15(PhysicsLiveWorldTu15& world,const SourceCullDrawUnit& unit) {
+    const Reader r{world.memory()};
+    return r.section(r.model(unit),unit)+0x38u;
 }
 SourceModelCommandGeometry source_live_model_command_geometry_tu15(
     PhysicsLiveWorldTu15& world,const SourceCullDrawUnit& unit) {

@@ -4,7 +4,7 @@
 namespace halo2 {
 class FrontendSession;
 struct MultiplayerState;
-// Host-owned PCR-consumed publication, with original Slayer player/team ranking and
+// Host-owned PCR-consumed publication, with original player/team ranking and
 // explicit native room identity/configuration adapters. No persistent rank
 // update and no claim of full retail retained metadata publication.
 VistaPcrConsumedSnapshot online_postgame_publish(const MultiplayerMatch&,

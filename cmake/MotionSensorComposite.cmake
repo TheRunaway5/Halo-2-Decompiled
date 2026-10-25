@@ -5,8 +5,10 @@ if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND
     add_executable(motion_sensor_composite_tests
         tests/motion_sensor_composite_tests.cpp
         tests/motion_sensor_composite_reference.cpp
-        src/ui/hud/motion_sensor.cpp)
+        src/ui/hud/motion_sensor.cpp
+        src/runtime/native_parallel.cpp)
     target_include_directories(motion_sensor_composite_tests PRIVATE include)
+    target_link_libraries(motion_sensor_composite_tests PRIVATE Threads::Threads)
     target_compile_features(motion_sensor_composite_tests PRIVATE cxx_std_20)
     target_compile_options(motion_sensor_composite_tests PRIVATE -ffp-contract=off)
     if(HALO2_SANITIZERS)

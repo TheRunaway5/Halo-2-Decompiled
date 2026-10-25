@@ -1,5 +1,7 @@
 target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/multiplayer_continuation.cpp src/runtime/source_match_authority.cpp src/runtime/source_execution_phase.cpp)
-target_sources(halo2_systems PRIVATE src/runtime/source_execution_calls.cpp src/runtime/source_execution_lens.cpp)
+target_sources(halo2_systems PRIVATE src/runtime/source_execution_calls.cpp src/runtime/source_execution_lens.cpp src/runtime/source_lens_frame_world_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/effects/source_effect_replica_render_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/effects/source_light_lens_tu15.cpp)
 set_source_files_properties(src/runtime/source_execution_calls.cpp PROPERTIES INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/third_party/boost-pfr/include")
 if(BUILD_TESTING)
     add_executable(effect_location_admission_tu15_tests tests/effect_location_admission_tu15_tests.cpp)
@@ -117,6 +119,12 @@ if(BUILD_TESTING)
         "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map")
     set_tests_properties(source_match_network_departure_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_executable(remote_first_person_tu15_tests tests/remote_first_person_tu15_tests.cpp)
+    target_link_libraries(remote_first_person_tu15_tests PRIVATE halo2_systems)
+    add_test(NAME remote_first_person_tu15 COMMAND remote_first_person_tu15_tests
+        "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map")
+    set_tests_properties(remote_first_person_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
     add_executable(source_host_continuation_tests tests/source_host_continuation_tests.cpp)
     add_executable(multiplayer_snapshot_origin_tests tests/multiplayer_snapshot_origin_tests.cpp)
     target_link_libraries(multiplayer_snapshot_origin_tests PRIVATE halo2_renderer)

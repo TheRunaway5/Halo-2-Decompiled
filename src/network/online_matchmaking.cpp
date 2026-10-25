@@ -163,8 +163,10 @@ void ticket(const Json &root, OnlineMatchmakingSnapshot &s) {
     require(rows.is_array() && rows.size() == count);
     unsigned selves = 0;
     for (const auto &row : rows) {
-      require(row.is_object() && row.size() == 2);
+      require(row.is_object() && (row.size() == 2 || (row.size() == 3 && row.contains("level"))));
       gathering.players.push_back({text(row, "name"), boolean(row, "self")});
+      if(row.contains("level") && !row.at("level").is_null())
+        gathering.players.back().level=number(row,"level",1,50);
       selves += gathering.players.back().self;
     }
     require(selves == 1);
@@ -182,8 +184,10 @@ void ticket(const Json &root, OnlineMatchmakingSnapshot &s) {
   require(players.is_array() && players.size() >= 2 && players.size() <= 16);
   unsigned selves = 0;
   for (const auto &p : players) {
-    require(p.is_object() && p.size() == 3);
+    require(p.is_object() && (p.size() == 3 || (p.size() == 4 && p.contains("level"))));
     match.players.push_back({text(p, "name"), number(p, "team", 0, 15), boolean(p, "self")});
+    if(p.contains("level") && !p.at("level").is_null())
+      match.players.back().level=number(p,"level",1,50);
     selves += match.players.back().self;
   }
   require(selves == 1);
@@ -349,7 +353,7 @@ struct OnlineMatchmaking::Impl {
         if (playlist.empty() && !accepted) {
           // Accepted party members observe their leader's queue without
           // issuing a second enqueue or submitting a client-owned roster.
-          ticket(call("GET", "/v1/matchmaking/ticket?progress=1"), next);
+          ticket(call("GET", "/v1/matchmaking/ticket?progress=1&ranks=1"), next);
           if(next.status!=OnlineMatchmakingStatus::Ready)queued=accepted=true;
         } else if (!accepted) {
           const auto entry = std::find_if(next.playlists.begin(), next.playlists.end(), [&](const auto &p) { return p.id == playlist; });
@@ -360,6 +364,10 @@ struct OnlineMatchmaking::Impl {
           queued = true;
           ticket(call("POST", "/v1/matchmaking/ticket", {{"playlist_id", playlist}, {"revision", entry->revision}, {"request_id", id}}), next);
           accepted = true;
+          // POST retains the legacy response for older clients. If it has
+          // already formed a match, fetch its opted-in display roster before
+          // connection setup can advance directly to the loading phase.
+          if(next.match)ticket(call("GET", "/v1/matchmaking/ticket?progress=1&ranks=1"),next);
         } else {
           std::shared_ptr<OnlineMatchSession> relay;
           bool handed_off;
@@ -375,7 +383,7 @@ struct OnlineMatchmaking::Impl {
             next.status=relay->phase()==OnlineMatchSession::Phase::Connecting ? OnlineMatchmakingStatus::CheckingConnections : OnlineMatchmakingStatus::Loading;
             next.message=next.status==OnlineMatchmakingStatus::Loading ? "Loading ONLINE match..." : "Checking connections...";
             next.gathering.reset();
-          } else ticket(call("GET", "/v1/matchmaking/ticket?progress=1"), next);
+          } else ticket(call("GET", "/v1/matchmaking/ticket?progress=1&ranks=1"), next);
           if (next.status == OnlineMatchmakingStatus::Ready) { queued = false; accepted = false; id.clear(); }
         }
         if(next.match && (next.status==OnlineMatchmakingStatus::CheckingConnections || next.status==OnlineMatchmakingStatus::AwaitingTransport)) {

@@ -26,6 +26,7 @@ def review(root,runtime,mode='fiesta'):
     base=[str(runtime),'--multiplayer','--map',str(cache),'--shared-maps',str(shared),
         '--local-players','1','--graphics-mode','Original','--viewport','1280','720']
     result=dict(schema='H2_DESERTED_NATIVE_REVIEW_V1',passed=False,
+        source_glb_sha256=hashlib.sha256((root/'model/dust2_mombasa.glb').read_bytes()).hexdigest(),
         cache_sha256=hashlib.sha256(cache.read_bytes()).hexdigest(),
         runtime_sha256=hashlib.sha256(runtime.read_bytes()).hexdigest(),cases=[])
 

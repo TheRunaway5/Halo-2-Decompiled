@@ -19,6 +19,7 @@ class VerifiedOwner:
 
 
 def initialize(db):
+    from .security_policy import player_capacity
     db.executescript("""
     CREATE TABLE IF NOT EXISTS players(id TEXT PRIMARY KEY, provider TEXT NOT NULL,
       subject TEXT NOT NULL, UNIQUE(provider,subject));
@@ -31,6 +32,9 @@ def initialize(db):
       PRIMARY KEY(provider,subject), UNIQUE(player,provider));
     INSERT OR IGNORE INTO player_identities SELECT provider,subject,id FROM players;
     """)
+    db.execute(f"""CREATE TRIGGER IF NOT EXISTS player_capacity BEFORE INSERT ON players
+      WHEN (SELECT count(*) FROM players)>={player_capacity()}
+      BEGIN SELECT RAISE(ABORT,'Player capacity reached'); END""")
     if "steam_name" not in {r[1] for r in db.execute("PRAGMA table_info(player_profiles)")}:
         db.execute("ALTER TABLE player_profiles ADD COLUMN steam_name TEXT NOT NULL DEFAULT ''")
     if "joined_at" not in {r[1] for r in db.execute("PRAGMA table_info(player_profiles)")}:
@@ -54,11 +58,8 @@ def player(db, owner, name, username="", *, now=None):
             value = row[0]
             joined = None
         else:
-            require(db.execute("SELECT count(*) FROM players").fetchone()[0] < 1000, "Player capacity reached", 503)
-            value = str(uuid.uuid4())
+            value = allocate(db, owner)
             joined = int(time.time() if now is None else now)
-            db.execute("INSERT INTO players VALUES(?,?,?)", (value, *owner))
-            db.execute("INSERT INTO player_identities VALUES(?,?,?)", (*owner, value))
         discord_name = username if owner[0] == "discord" else ""
         steam_name = username if owner[0] == "steam" else ""
         if discord_name:
@@ -68,4 +69,18 @@ def player(db, owner, name, username="", *, now=None):
                    "discord_username=CASE WHEN excluded.discord_username!='' THEN excluded.discord_username ELSE player_profiles.discord_username END, "
                    "steam_name=CASE WHEN excluded.steam_name!='' THEN excluded.steam_name ELSE player_profiles.steam_name END",
                    (value, name, discord_name, steam_name, joined))
+    return value
+
+
+def allocate(db, owner):
+    """Allocate inside the caller's transaction; the trigger serializes the quota."""
+    import sqlite3
+    value = str(uuid.uuid4())
+    try:
+        db.execute("INSERT INTO players VALUES(?,?,?)", (value, *owner))
+    except sqlite3.IntegrityError as error:
+        if str(error) != 'Player capacity reached':
+            raise
+        require(False, 'Player capacity reached', 503)
+    db.execute("INSERT INTO player_identities VALUES(?,?,?)", (*owner, value))
     return value

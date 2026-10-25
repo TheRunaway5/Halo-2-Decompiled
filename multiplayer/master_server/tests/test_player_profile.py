@@ -49,15 +49,15 @@ class PlayerProfileTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(profile['service_tag'],'A117')
         self.assertEqual(profile['joined_at'],first['joined_at'])
         self.assertEqual(profile['statistics']['kills'],7)
-        self.assertEqual(profile['statistics']['shots'],11)
-        self.assertTrue(profile['statistics']['accuracy_complete'])
+        self.assertEqual(profile['statistics']['shots'],0)
+        self.assertFalse(profile['statistics']['accuracy_complete'])
         unchanged=await (await self.client.put('/v1/account/profile',headers=headers,json=data)).json()
         self.assertEqual(unchanged['revision'],profile['revision'])
         public=(await (await self.client.get('/v1/history/players?discord_username=one')).json())['players'][0]['id']
         public_profile=await (await self.client.get('/v1/history/players/'+public+'/profile')).json()
         self.assertEqual(public_profile['appearance'],profile['appearance'])
         db=self.api.directory.store.db
-        self.assertEqual(bytes(db.execute('SELECT appearance FROM carnage_players WHERE match=? AND player=?',(room.id,room.players[0][0])).fetchone()[0]),raw[0x3bc:0x3cc])
+        self.assertIsNone(db.execute('SELECT appearance FROM carnage_players WHERE match=? AND player=?',(room.id,room.players[0][0])).fetchone())
         self.assertNotIn(room.players[0][0],str(public_profile))
 
     async def test_write_requires_owner_session_and_rejects_server_fields(self):

@@ -31,6 +31,12 @@ MccSoundLayoutRequirement::MccSoundLayoutRequirement(MccSoundLayoutNeed need,con
 std::array<std::byte,0x24> project_mcc_sound_globals(std::span<const std::byte> row) {
     Bytes(row).require(0,0x2c);return copy<0x24>(row.subspan(8));
 }
+std::array<std::byte,0x2c> project_mcc_looping_sound_root(std::span<const std::byte> row) {
+    const Bytes source(row);source.require(0,0x34);
+    auto out=copy<0x2c>(row.subspan(8));
+    word(out,0,source.u32(8)&~0x300u);
+    return out;
+}
 bool MccSoundDefinitionLayout::original_adpcm_admission() const {
     return codec.compression==1 && codec.encoding!=2;
 }

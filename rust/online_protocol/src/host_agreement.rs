@@ -1,7 +1,9 @@
 //! Fixed physical-electorate host/cut agreement and its bounded wire codec.
 //!
-//! This is the existing crash/partition consensus protocol, not Byzantine
-//! consensus. The session authenticates each sender and retains the actual
+//! Every decision requires the fixed survivor electorate. Each honest voter
+//! locks its first value for this context, including across higher ballots.
+//! Pairwise equivocation can deny availability but cannot create two decisions.
+//! The session authenticates each sender and retains the actual
 //! native preparation before publishing Ready. Agreement never creates that
 //! readiness or owns a native world. Its caller synchronizes access.
 
@@ -216,7 +218,7 @@ fn decode(bytes: &[u8], protocol: u16) -> Result<Message, Error> {
         r.word(4)? == 0x324e3248
             && r.word(2)? == u64::from(protocol)
             && r.byte()? == KIND
-            && r.byte()? == 1,
+            && r.byte()? == 2,
     )?;
     let mut message = Message {
         kind: Type::try_from(r.byte()?)?,
@@ -377,7 +379,7 @@ impl Agreement {
         let mut bytes = Vec::with_capacity(MAX_PACKET);
         bytes.extend_from_slice(b"H2N2");
         put(&mut bytes, u64::from(self.protocol), 2);
-        bytes.extend_from_slice(&[KIND, 1, kind as u8]);
+        bytes.extend_from_slice(&[KIND, 2, kind as u8]);
         write_context(&mut bytes, self.context);
         bytes.extend_from_slice(&[self.self_peer, to]);
         append(&mut bytes);
@@ -408,7 +410,7 @@ impl Agreement {
                 votes |= 1u16 << p;
             }
         }
-        if votes.count_ones() >= self.majority && self.decision.is_none() {
+        if votes == self.electorate && self.decision.is_none() {
             let mut next = self.context;
             next.epoch += 1;
             next.membership_revision += 1;
@@ -432,9 +434,7 @@ impl Agreement {
                 && self.known(value)
                 && self.decision.is_none_or(|d| d.value == value),
         )?;
-        if let Some(previous) = self.accepted
-            && previous.ballot == ballot
-        {
+        if let Some(previous) = self.accepted {
             need(previous.value == value)?;
         }
         if self.accepted.is_none_or(|v| v.ballot != ballot) {
@@ -924,7 +924,7 @@ mod tests {
                         ..self.context
                     }
                 );
-                assert!(decision.voters.count_ones() >= state.majority);
+                assert_eq!(decision.voters, self.context.peers & !(1 << self.context.host));
                 assert_eq!(decision.voters & (1u16 << self.context.host), 0);
             }
         }
@@ -940,7 +940,7 @@ mod tests {
             .into_iter()
             .find(|p| p.peer == 4 && p.bytes[8] == 2)
             .unwrap();
-        let mut literal = vec![0x48, 0x32, 0x4e, 0x32, 97, 0, 10, 1, 2];
+        let mut literal = vec![0x48, 0x32, 0x4e, 0x32, 97, 0, 10, 2, 2];
         literal.push(0x15);
         literal.extend_from_slice(&[0; 31]);
         literal.extend_from_slice(&[2, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0x11, 0x11, 0, 8, 4]);
@@ -1117,7 +1117,7 @@ mod tests {
                 .unwrap()
                 .state(mesh.now)
                 .decision
-                .is_some()
+                .is_none()
         );
         mesh.pump(300);
         mesh.same(12);
@@ -1245,7 +1245,7 @@ mod tests {
         for _ in 0..1000 {
             mesh.step(true, 128, |p| p.from != 4 && p.to != 4);
         }
-        mesh.same(8);
+        assert!(mesh.peers.iter().flatten().all(|p| p.state(mesh.now).decision.is_none()));
     }
 
     #[test]
@@ -1281,7 +1281,31 @@ mod tests {
         }
         assert!(old_host.state(mesh.now).decision.is_none());
         old_host.receive(8, receipts[8].as_ref().unwrap(), mesh.now);
+        assert!(old_host.state(mesh.now).decision.is_none());
+        old_host.receive(12, receipts[12].as_ref().unwrap(), mesh.now);
         assert!(old_host.state(mesh.now).decision.is_some());
+    }
+
+    #[test]
+    fn equivocating_survivor_cannot_split_decisions_or_unlock_an_honest_vote() {
+        let c = context(0xf, 0);
+        let mut a = Agreement::new(1,c,101,0).unwrap();
+        let mut b = Agreement::new(2,c,101,0).unwrap();
+        let one = Value {host:1,cut:cut(1)};
+        let two = Value {host:2,cut:cut(2)};
+        let ballot = Ballot {round:1,proposer:3};
+        for peer in [&mut a,&mut b] {
+            peer.tick(1000);peer.ready[1]=Some(one.cut);peer.ready[2]=Some(two.cut);
+        }
+        a.accept(ballot,one).unwrap();b.accept(ballot,two).unwrap();
+        // Authenticated survivor 3 equivocates to two honest learners. Each
+        // previously had a crash-majority of two; neither has unanimity.
+        a.learn(3,Vote{ballot,value:one}).unwrap();b.learn(3,Vote{ballot,value:two}).unwrap();
+        assert!(a.state(1000).decision.is_none());assert!(b.state(1000).decision.is_none());
+        assert!(a.accept(Ballot{round:2,proposer:2},two).is_err());
+        assert!(b.accept(Ballot{round:2,proposer:1},one).is_err());
+        a.learn(2,Vote{ballot,value:two}).unwrap();b.learn(1,Vote{ballot,value:one}).unwrap();
+        assert!(a.state(1000).decision.is_none());assert!(b.state(1000).decision.is_none());
     }
 
     #[test]

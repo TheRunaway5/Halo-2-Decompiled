@@ -413,6 +413,28 @@ class MatchmakingApi:
         if request.query.get("progress") == "1":
             result["progress"] = (self.gatherings.progress(self.ticket(session.player),session.player)
                                   if result["state"] == "searching" else None)
+        if request.query.get("ranks") == "1":
+            # Only the admitted roster's public artwork level crosses this
+            # boundary. Raw XP/search skill and account identifiers stay private.
+            ticket = self.ticket(session.player)
+            if ticket:
+                group = None
+                if result["match"]:
+                    proposal = self.core.proposals[self.core.status(ticket.id)["proposal_id"]]
+                    group = tuple(self.core.tickets[key] for key in proposal.tickets)
+                    rows = result["match"]["players"]
+                    ordered = [player for team in proposal.teams for player in team]
+                elif result.get("progress"):
+                    gathering = next(g for g in self.gatherings.sessions.values() if ticket.id in g.tickets)
+                    group = self.gatherings.group(gathering)
+                    ordered = [p.id for t in group for p in t.players]
+                    rows = result["progress"]["roster"]
+                if group:
+                    levels = {p.id: (display_level(t.clan_rank) if t.clan_rank is not None else p.rank)
+                              if self.core.playlists[t.playlist].ranked and not p.guest else None
+                              for t in group for p in t.players}
+                    for row, player in zip(rows, ordered):
+                        row["level"] = levels[player]
         return web.json_response(result)
 
     async def cancel(self, request):

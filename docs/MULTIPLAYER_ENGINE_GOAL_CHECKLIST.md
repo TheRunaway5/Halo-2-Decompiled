@@ -197,6 +197,12 @@ by a mode's engine belong to its core completion gate.
   Evidence:runs15,17,18. This is not cross-machine, played network objective,
   rendered/audio or full event-transport acceptance.
 - [ ] Complete engine outputs for objective geometry/waypoints, HUD, audio, and results.
+- [x] Connect the nine CTF/Assault presets to native objective waypoint/goal
+  materials, original recipient/alternate/delay/recent-event audio kernels,
+  actual native PCM, and genuine local two-team PCR/Done/fresh-lobby owners.
+  See [the consumer evidence](MP_CTF_ASSAULT_CONSUMERS.md) for original CPU,
+  actual GPU, complete local match and authenticated packet cohorts. This
+  scoped gate does not close other engine families or rendered remote clients.
 - [ ] Complete authoritative engine state/event transport and late join recovery.
 - [ ] Connect the shared source frame and its authoritative state to the ordinary match scheduler and consumers without duplicating existing Slayer/King adapters.
 - [x] Deliver15EBA0 in the source world's ordinary step_objects at original13AB1C before PVS/object updates, with the actual player/input banks. The existing match adapter explicitly retains its separate engine interval pending state/consumer migration.
@@ -231,12 +237,17 @@ by a mode's engine belong to its core completion gate.
 - [ ] Exercise local/split-screen and authoritative host/client mode flows.
 - [ ] Verify the engine's objective, HUD, audio, and result outputs reach their consumers.
 - [ ] Exercise full matches and return to the lobby.
+- [x] Exercise all nine original CTF/Assault presets through real local
+  sign-in/team selection/countdown, natural objective completion, actual audio
+  and waypoint CPU consumers, two-team PCR, world destruction, Done to a fresh
+  lobby, and the next Start/cancel. Rendering has separate native GPU evidence;
+  placed approach/goal inputs and physical played routes remain distinguished.
 - [ ] Finish frontend admission and state/event integration for every original
   family. Protocol97 now transports all seven actual engine entity schemas;
   original Assault and bounded custom Defusal have separate payload owners.
   All39 source-owned host variants pass loopback join/departure/late-join
-  snapshot checks. Full frontend flows, network objective actions and remaining
-  event/consumer delivery still require acceptance.
+  snapshot checks. Full frontend flows, other families' network objective
+  actions and remaining event/consumer delivery still require acceptance.
 
 ## Mode acceptance
 
@@ -246,9 +257,51 @@ by a mode's engine belong to its core completion gate.
 | Oddball / 3 | Oddball; Rocketball; Swordball; Team Ball; Low Ball; Fiesta | All six pass genuine birth, normal pickup, completed carry binding, two periodic points over60 holding frames and trigger drop. Complete remaining ball lifecycle/trait/team rules, presentation, and replication. |
 | Juggernaut / 7 | 2 on 1; 3 on 1; Ninjanaut; Phantom Fodder; Dreadnaut | All five pass initial selection, actual role/membership masks and traits, recorded role time/transfer/kill counters, credited transfer, role/hunter scoring, suicide reselection, genuine respawns and retained departure across4,582 ordinary frames. The2 on1 cap also retains its actual waiting/admission handoff. Death events are declared15F8B0 inputs. Complete full damage attribution, edited rules, match outcomes, outputs and replication. |
 | King / 4 | King; Team King; Phantom King; Crazy King; Team Crazy King | All five pass ordinary source-world solo/contested/exit scoring and their60-second movement interval, including exact rollover, next hill and following player phase. Complete remaining edited rules, output/presentation integration, full matches and source-mode replication. |
-| CTF / 1 | Multi Flag CTF; CTF Classic; 1 Flag CTF; 1 Flag CTF Fast | All four pass ordinary birth/pickup/carry/drop and one authored-goal capture with actual inventory release and one point. Single Flag first-active role selection now follows roster registration. Complete broader capture legality, return conditions, later rounds, presentation and replication. |
-| Assault / 9 | Multi Bomb; Single Bomb; Single Bomb Fast; Neutral Bomb; Blast Resort | All five pass normal birth/pickup/carry/drop and authored-goal arming/plant/fuse/score. Actual inventory release and one point are checked; neutral HUD row8 is admitted. Complete broader placement/disarming/detonation acceptance, later rounds, presentation and replication. |
+| CTF / 1 | Multi Flag CTF; CTF Classic; 1 Flag CTF; 1 Flag CTF Fast | All four pass ordinary birth/pickup/carry/drop, illegal-side pickup rejection, unattended authored home return and unchanged-preset full score/round wins through retained results/fade. Single Flag first-active role selection follows roster registration. The 54-case edited-rule cohort and both nine-case short/touch-return controls pass. Remaining acceptance covers broader rule combinations, physical played routes, presentation and complete consumer delivery. |
+| Assault / 9 | Multi Bomb; Single Bomb; Single Bomb Fast; Neutral Bomb; Blast Resort | All five pass birth/pickup/carry/drop, illegal-side rejection where applicable, unattended home return and interrupted arming/resumed plant/fuse/score. Native and literal-control case reports agree exactly except execution counters. All five pass unchanged-rule complete matches through original wins, retained results and fade, including Multi Bomb's actual between-score respawns. The 54-case edited-rule cohort includes all three bomb kinds and immediate/maximum arming/fuse inputs; nine-case short/touch-return controls pass. Remaining acceptance covers broader placement/detonation branches, rule combinations, physical played routes, presentation and complete consumer delivery. |
 | Territories / 8 | 3 Plots; Land Grab; Gold Rush; Control Issues; Contention | All15 configured region/preset pairs pass ordinary capture, defended occupancy, two-stage neutralization/retake, scores/HUD data and actual marker birth, retirement and replacement generation. Complete simultaneous zone ownership, remaining edited rules, outputs, full matches and replication. |
+
+The2026-10-23 [CTF/Assault native rules audit](MP_CTF_ASSAULT_NATIVE_TU15.md)
+adds semantic native Assault arming/decay kernels. They pass986 unchanged
+original CPU windows with ASan/UBSan and the additional288 complete untraced
+CTF/Assault callback comparisons. All9 ordinary return cases and all5 paired
+native/reference arming cases pass. Unchanged-preset complete matches pass
+across all9 presets; the separate corrected Multi Bomb CTest and initial
+short-wait failure are documented there. This bounded kernel conversion does
+not close frontend, presentation or network acceptance.
+
+The subsequent [57-routine native conversion](MP_CTF_ASSAULT_NATIVE_CONVERSION.md)
+implements the complete inventoried shared CTF/Assault mode closure with native
+rule kernels and structured callbacks. It retains original literal controls and
+real shared service boundaries. Its stronger production-first component and
+paired full-match qualification is tracked separately; earlier runtime receipts
+do not automatically qualify that later source cohort.
+
+The 2026-10-24 integration follow-through in that same audit fixes the actual
+Slayer-only frontend rejection for original CTF/Assault. Both menu catalogs now
+pass 48 original local/System Link Starts apiece, including all three authored
+flag/bomb kind-picker choices. Separate complete native/literal matches pass
+54 explicit original-rule edits; nine short timed-return and nine touch-return
+cases also agree on every reported gameplay field. These declared cohorts
+include Neutral Flag CTF without fabricating another stock preset. Broader
+rule combinations, played routes and presentation/consumer delivery remain
+open. The mode kernels and dispatch files remain identical to their qualified
+57-owner source cohort.
+
+All nine stock CTF/Assault matches also pass complete authenticated loopback
+UDP objective actions, round resets, late joins and departures across 13,362
+replicated frames and 22 remote goals. Two adapter publication fixes preserve
+original round results and unit teardown while exposing consistent final-match
+winner and player-availability fields. Strict transport validation remains
+unchanged. This does not close cross-machine play, event/audio consumers or
+the physical played-route and return-to-lobby gates.
+
+The complete native application also builds, and all nine actual menu-to-runtime
+handoffs pass with an authenticated MCC map, a genuine signed-in profile, exact
+304-byte original option buffers, original team/current-unit ownership, three
+ordinary source/effect frames and retained outcomes after world destruction.
+That headless startup check does not certify rendered navigation or postgame
+session return. The disposable runtime/build owner is removed after validation.
 
 All seven families now pass ordinary prepared-match startup and three subsequent
 source frames for all39 presets:88 joined players,87 genuine current units and
@@ -959,3 +1012,31 @@ are retained under `analysis/multiplayer/game-variants/engine-zone-runtime-tu15-
 The owned source/build tree is verified removed (1,822,716 allocated KiB), with
 no new large binaries, raw banks or captures retained. Twelve concurrent live
 source differences are recorded and preserved.
+
+## CTF/Assault presentation follow-through, 2026-10-24
+
+[Native consumers and session return](MP_CTF_ASSAULT_CONSUMERS.md) supersedes the
+earlier separate consumer gates for these nine stock presets only. The remaining
+family-wide unchecked gates above retain their broader scope.
+
+- [x] Preserve the 57 qualified native objective rule owners and their 33 source
+  files; no executable payload is added to the runtime.
+- [x] Render real remote waypoint packets for all nine presets, using canonical
+  resource metadata and exact replicated source coverage bounds. The final
+  cohort submits 1,080 native Vulkan frames and 14,838 waypoint vertices.
+- [x] Complete all nine local two-player flows through native PCM, retained team
+  results, world release, PCR Done, fresh lobby and next Start/cancel.
+- [x] Complete all nine two-process ONLINE flows through real encrypted peer
+  admission, remote native PCM, unanimously stored original team results, world
+  release, PCR Done and fresh admission. Preserve identity, family and team
+  validation in the result service.
+- [x] Build the full native application and pass all eight focused CTests, plus
+  16 service transport/result tests. Commands and exact source/report hashes are
+  under `build/ctf-assault-network-consumers-20261024/acceptance.json`.
+- [ ] Retain a genuine System Link lobby/session across world teardown and
+  complete its PCR-to-lobby return. The current LAN transport borrows the match;
+  the local offline session is not an admissible substitute.
+
+All edited rule combinations, cross-machine/physical Xbox comparisons, migration
+and launcher installation retain their own acceptance gates. The rendered
+metadata-only replica does not acquire local collision/gameplay authority.
