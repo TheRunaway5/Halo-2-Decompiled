@@ -16,12 +16,22 @@ function(halo2_partition_native_translation target source count)
         string(SUBSTRING "${ordinal}" ${offset} 3 ordinal)
         list(APPEND outputs "${directory}/body_${ordinal}.cpp")
     endforeach()
-    add_custom_command(OUTPUT ${outputs} "${directory}/common.hpp" "${directory}/manifest.json"
-        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/split_native_translation_unit.py"
+    # Unchanged partitions retain their mtimes. A separate completion output
+    # records that newer inputs were processed, including with Make generators
+    # which would otherwise rerun while an unchanged source stays older.
+    set(stamp "${directory}/partition-${count}.stamp")
+    add_custom_command(OUTPUT "${stamp}"
+        BYPRODUCTS ${outputs} "${directory}/common.hpp" "${directory}/manifest.json"
+        COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tools/split_native_translation_unit.py"
             --source "${partition_source}" --output "${directory}" --count ${count}
+        COMMAND "${CMAKE_COMMAND}" -E touch "${stamp}"
         DEPENDS "${partition_source}"
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/split_native_translation_unit.py"
+            "${CMAKE_CURRENT_FUNCTION_LIST_FILE}"
         COMMENT "Partitioning unchanged native bodies from ${stem}" VERBATIM)
+    set(partition_target "${target}_${stem}_partition")
+    add_custom_target(${partition_target} DEPENDS "${stamp}")
+    add_dependencies(${target} ${partition_target})
     target_sources(${target} PRIVATE ${outputs})
     target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
     if(NOT MSVC)

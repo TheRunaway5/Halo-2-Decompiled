@@ -5,6 +5,7 @@
 #include "halo2/source_shadow.hpp"
 #include <glm/gtc/quaternion.hpp>
 #include <cstring>
+#include <set>
 
 namespace halo2 {
 void validate_render_fraction(float f) {
@@ -148,12 +149,32 @@ std::vector<Transform> ModelNodeInterpolation::sample(const RenderModel &model,f
     return result;
 }
 namespace {
+bool same_world_attachment(const SourceWorldPose &a,const SourceWorldPose &b) {
+    if(a.attachment.has_value()!=b.attachment.has_value())return false;
+    if(!a.attachment)return true;
+    return a.attachment->parent==b.attachment->parent &&
+        a.attachment->parent_node==b.attachment->parent_node;
+}
 void validate_source_world_poses(std::span<const SourceWorldPose> poses) {
     for(unsigned n=0;n<poses.size();++n) {
         if(poses[n].object==0xffffffffu || poses[n].nodes.empty())
             throw FormatError("WORLD interpolation requires a live full object and current hierarchy");
         for(unsigned before=0;before<n;++before)if(poses[before].object==poses[n].object)
             throw FormatError("WORLD interpolation has duplicate full object ownership");
+        if(const auto &binding=poses[n].attachment) {
+            const bool attached=binding->parent!=0xffffffffu;
+            if(attached!=binding->parent_frame.has_value() || binding->parent==poses[n].object ||
+                (attached && (!(binding->parent>>16u) || (binding->parent&65535u)>=2048u)))
+                throw FormatError("WORLD interpolation has an invalid native parent binding");
+            if(binding->parent_frame) {
+                const auto &frame=*binding->parent_frame;
+                for(float value:{frame.scale,frame.position.x,frame.position.y,frame.position.z,
+                    frame.basis[0].x,frame.basis[0].y,frame.basis[0].z,
+                    frame.basis[1].x,frame.basis[1].y,frame.basis[1].z,
+                    frame.basis[2].x,frame.basis[2].y,frame.basis[2].z})
+                    if(!std::isfinite(value))throw FormatError("WORLD interpolation has a nonfinite native parent frame");
+            }
+        }
     }
 }
 }
@@ -175,17 +196,161 @@ void SourceWorldInterpolation::capture(std::uint64_t tick,std::span<const Source
         return std::find(discontinuities.begin(),discontinuities.end(),pose.object)!=discontinuities.end();
     });
 }
+namespace {
+const Transform *presented_motion(const std::vector<std::pair<std::uint32_t,Transform>> &motions,std::uint32_t object) {
+    const auto found=std::lower_bound(motions.begin(),motions.end(),object,
+        [](const auto &entry,std::uint32_t key){return entry.first<key;});
+    return found!=motions.end() && found->first==object?&found->second:nullptr;
+}
+std::vector<std::pair<std::uint32_t,Transform>> sorted_motions(std::span<const std::pair<std::uint32_t,Transform>> motions) {
+    std::vector<std::pair<std::uint32_t,Transform>> result(motions.begin(),motions.end());
+    std::sort(result.begin(),result.end(),[](const auto &a,const auto &b){return a.first<b.first;});
+    for(std::size_t i=1;i<result.size();++i)if(result[i].first==result[i-1].first)
+        throw FormatError("Presentation motion repeats a full object owner");
+    for(const auto &[object,motion]:result)
+        for(float f:{motion.scale,motion.position.x,motion.position.y,motion.position.z,
+            motion.basis[0].x,motion.basis[0].y,motion.basis[0].z,motion.basis[1].x,motion.basis[1].y,
+            motion.basis[1].z,motion.basis[2].x,motion.basis[2].y,motion.basis[2].z})
+            if(!std::isfinite(f))throw FormatError("Non-finite presentation motion");
+    return result;
+}
+}
+void SourceWorldInterpolation::present(std::span<const std::pair<std::uint32_t,Transform>> motions) {
+    presented_=sorted_motions(motions);
+}
+void SceneInterpolation::present(std::span<const std::pair<std::uint32_t,Transform>> motions) {
+    presented_=sorted_motions(motions);
+}
+void SourceWorldInterpolation::predict(std::span<const SourceWorldPredictedRoot> roots) {
+    std::vector<SourceWorldPredictedRoot> next(roots.begin(),roots.end());
+    for(std::size_t i=0;i<next.size();++i) {
+        if(next[i].object==0xffffffffu)throw FormatError("Predicted body has no full object owner");
+        for(std::size_t j=0;j<i;++j)if(next[j].object==next[i].object)
+            throw FormatError("Predicted body repeats a full object owner");
+        for(const auto &origin:{next[i].previous,next[i].current,next[i].predicted})
+            for(float value:{origin.x,origin.y,origin.z})
+                if(!std::isfinite(value))throw FormatError("Non-finite predicted body origin");
+    }
+    predicted_=std::move(next);
+}
+std::optional<Vec3> SourceWorldInterpolation::predicted_offset(std::uint32_t object,float f,bool model_order)const {
+    if(predicted_.empty())return std::nullopt;
+    const auto pose=[](const std::vector<SourceWorldPose> &poses,std::uint32_t owner)->const SourceWorldPose* {
+        const auto at=std::find_if(poses.begin(),poses.end(),[&](const auto &p){return p.object==owner;});
+        return at==poses.end()?nullptr:&*at;
+    };
+    // The own predicted body this object is, or hangs from through the
+    // current bank's attachment chain (held weapons, stuck projectiles).
+    const SourceWorldPredictedRoot *root=nullptr;
+    auto owner=object;
+    for(std::size_t depth=0;!root;++depth) {
+        for(const auto &candidate:predicted_)if(candidate.object==owner)root=&candidate;
+        if(root)break;
+        const auto *child=pose(current_,owner);
+        // A parent cycle is longer than the bank; model sampling rejects it.
+        if(depth>current_.size() || !child || !child->attachment || child->attachment->parent==0xffffffffu ||
+           !pose(current_,child->attachment->parent))return std::nullopt;
+        owner=child->attachment->parent;
+    }
+    // Dead-reckoned objects already carry their own rigid motion.
+    if(presented_motion(presented_,object) || presented_motion(presented_,root->object))return std::nullopt;
+    const auto *now=pose(current_,root->object);
+    if(!now)return std::nullopt;
+    // The authoritative origin the ordinary sample of that body shows: its
+    // endpoints blend exactly where its WORLD nodes do. A legacy binding's
+    // model-order sample keeps the current completed bank.
+    const auto *old=pose(previous_,root->object);
+    const bool paired=paired_ && old && old->nodes.size()==now->nodes.size() && same_world_attachment(*old,*now) &&
+        (!model_order || now->attachment.has_value());
+    const auto shown=paired?render_lerp(root->previous,root->current,f):root->current;
+    return root->predicted-shown;
+}
 std::vector<Transform> SourceWorldInterpolation::sample(std::uint32_t object,float f)const {
+    auto result=sample_ordinary(object,f);
+    if(const auto offset=predicted_offset(object,f,false))
+        for(auto &node:result)node.position=node.position+*offset;
+    return result;
+}
+std::vector<Transform> SourceWorldInterpolation::sample(std::uint32_t object,const RenderModel &model,float f,
+    std::optional<Transform> shown_parent)const {
+    const bool framed=shown_parent.has_value();
+    auto result=sample_ordinary(object,model,f,shown_parent);
+    // A shown parent frame already carries its predicted body's displacement.
+    if(!framed)if(const auto offset=predicted_offset(object,f,true))
+        for(auto &node:result)node.position=node.position+*offset;
+    return result;
+}
+std::vector<Transform> SourceWorldInterpolation::sample_ordinary(std::uint32_t object,float f)const {
     validate_render_fraction(f);
     const auto now=std::find_if(current_.begin(),current_.end(),[&](const auto &p){return p.object==object;});
     if(now==current_.end())throw FormatError("WORLD interpolation has no current full object owner");
+    if(const auto *motion=presented_motion(presented_,object)) {
+        auto result=now->nodes;
+        for(auto &node:result)node=compose_transform(*motion,node);
+        return result;
+    }
     if(!paired_ || f==1)return now->nodes;
     const auto old=std::find_if(previous_.begin(),previous_.end(),[&](const auto &p){return p.object==object;});
-    if(old==previous_.end() || old->nodes.size()!=now->nodes.size())return now->nodes;
+    if(old==previous_.end() || old->nodes.size()!=now->nodes.size() || !same_world_attachment(*old,*now))return now->nodes;
     if(f==0)return old->nodes;
     auto result=now->nodes;
     for(unsigned n=0;n<result.size();++n)result[n]=render_transform(old->nodes[n],now->nodes[n],f);
     return result;
+}
+std::vector<Transform> SourceWorldInterpolation::sample_ordinary(std::uint32_t object,const RenderModel &model,float f,
+    std::optional<Transform> shown_parent)const {
+    validate_render_fraction(f);
+    const auto now=std::find_if(current_.begin(),current_.end(),[&](const auto &pose){return pose.object==object;});
+    if(now==current_.end())throw FormatError("Native WORLD interpolation has no current full object owner");
+    if(now->nodes.size()!=model.bones.size())
+        throw FormatError("Native WORLD interpolation differs from its admitted model hierarchy");
+    // Dead-reckoned props already carry their newest completed WORLD bank
+    // rigidly. Do not interpolate or apply another parent motion to it.
+    if(presented_motion(presented_,object))return sample(object,f);
+    // A legacy packet declares no native attachment relationship. Preserve
+    // its completed output rather than manufacture a parent or local pose.
+    if(!now->attachment)return now->nodes;
+    const auto old=std::find_if(previous_.begin(),previous_.end(),[&](const auto &pose){return pose.object==object;});
+    const bool paired=paired_ && old!=previous_.end() && old->nodes.size()==now->nodes.size() && same_world_attachment(*old,*now);
+    ModelNodeInterpolation history;
+    if(paired)history.capture(tick_-1u,old->nodes,old->attachment->parent_frame);
+    history.capture(tick_,now->nodes,now->attachment->parent_frame);
+    if(now->attachment->parent_frame && !shown_parent) {
+        if(std::any_of(current_.begin(),current_.end(),[&](const auto &pose) {
+            return pose.object==now->attachment->parent;
+        }))throw FormatError("Native carried WORLD sampling requires its actual shown parent hierarchy");
+        shown_parent=paired?render_transform(*old->attachment->parent_frame,*now->attachment->parent_frame,f):
+            *now->attachment->parent_frame;
+    }
+    if(!now->attachment->parent_frame && shown_parent)
+        throw FormatError("Native unparented WORLD pose received an invented parent frame");
+    return history.sample(model,f,shown_parent);
+}
+std::vector<Transform> SourceWorldInterpolation::sample(std::uint32_t object,float f,const ModelProvider &models)const {
+    if(!models)throw FormatError("Native WORLD interpolation requires admitted model hierarchies");
+    std::set<std::uint32_t> active;
+    std::function<std::vector<Transform>(std::uint32_t)> resolve=[&](std::uint32_t owner) {
+        if(!active.insert(owner).second)throw FormatError("Native WORLD interpolation found a parent cycle");
+        const auto current=std::find_if(current_.begin(),current_.end(),[&](const auto &pose){return pose.object==owner;});
+        if(current==current_.end())throw FormatError("Native WORLD interpolation lost a selected parent owner");
+        const auto *model=models(owner);
+        if(!model)throw FormatError("Native WORLD interpolation has no admitted owner model hierarchy");
+        if(presented_motion(presented_,owner)) {
+            auto result=sample(owner,*model,f);active.erase(owner);return result;
+        }
+        std::optional<Transform> parent_frame;
+        if(current->attachment && current->attachment->parent!=0xffffffffu) {
+            const auto parent=current->attachment->parent;
+            if(std::any_of(current_.begin(),current_.end(),[&](const auto &pose){return pose.object==parent;})) {
+                const auto nodes=resolve(parent);
+                const auto node=current->attachment->parent_node;
+                if(node>=nodes.size())throw FormatError("Native WORLD interpolation escaped its shown parent node bank");
+                parent_frame=nodes[node];
+            }
+        }
+        auto result=sample(owner,*model,f,parent_frame);active.erase(owner);return result;
+    };
+    return resolve(object);
 }
 void SourceWorldInterpolation::refresh(std::uint64_t tick,std::span<const SourceWorldPose> poses,
     std::span<const std::uint32_t> discontinuities) {
@@ -226,6 +391,8 @@ Transform scene_object_transform(const SceneObjects::Object &o) {
 Transform SceneInterpolation::sample(const SceneObjects::Object &current,float f)const {
     validate_render_fraction(f);
     const auto now=scene_object_transform(current);
+    if(current.handle!=0xffffffffu && current.visible && !current.bsp_hidden)
+        if(const auto *motion=presented_motion(presented_,current.handle))return compose_transform(*motion,now);
     if(!paired_ || current.handle==0xffffffffu || !current.visible || current.bsp_hidden)return now;
     const auto old=std::find_if(previous_.begin(),previous_.end(),[&](const auto &o) {
         return o.handle==current.handle && o.placement==current.placement &&
@@ -237,6 +404,12 @@ std::vector<Transform> SceneInterpolation::sample_nodes(const SceneObjects::Obje
     validate_render_fraction(f);
     if(!current.solved_nodes)throw FormatError("Scene WORLD interpolation requires the current source hierarchy");
     const auto &now=*current.solved_nodes;
+    if(current.handle!=0xffffffffu && current.visible && !current.bsp_hidden)
+        if(const auto *motion=presented_motion(presented_,current.handle)) {
+            auto result=now;
+            for(auto &node:result)node=compose_transform(*motion,node);
+            return result;
+        }
     if(!paired_ || current.handle==0xffffffffu || !current.visible || current.bsp_hidden || f==1)return now;
     const auto old=std::find_if(previous_.begin(),previous_.end(),[&](const auto &o) {
         return o.handle==current.handle && o.placement==current.placement &&

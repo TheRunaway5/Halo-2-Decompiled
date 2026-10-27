@@ -1,0 +1,73 @@
+{
+  "version": 4,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 24,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "desktop",
+      "displayName": "Linux + Windows Vulkan",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "BUILD_TESTING": "OFF",
+        "HALO2_STAGE_BUILD_OUTPUT": "ON",
+        "HALO2_BUILD_WINDOWS": "ON"
+      }
+    },
+    {
+      "name": "linux-x86_64",
+      "inherits": "desktop",
+      "displayName": "Linux x86_64 Vulkan only",
+      "cacheVariables": {
+        "HALO2_BUILD_WINDOWS": "OFF"
+      }
+    },
+    {
+      "name": "windows-x86_64",
+      "displayName": "Native Windows x86_64 Vulkan (MinGW cross build)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-windows",
+      "toolchainFile": "${sourceDir}/cmake/windows/MinGW.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "OFF",
+        "HALO2_STAGE_BUILD_OUTPUT": "ON",
+        "HALO2_BUILD_WINDOWS": "OFF"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "desktop",
+      "configurePreset": "desktop",
+      "targets": [
+        "halo2_native",
+        "halo2_launcher",
+        "halo2_title_launcher",
+        "halo2_onboarding",
+        "halo2_windows"
+      ]
+    },
+    {
+      "name": "linux-x86_64",
+      "configurePreset": "linux-x86_64",
+      "targets": [
+        "halo2_native",
+        "halo2_launcher",
+        "halo2_title_launcher",
+        "halo2_onboarding"
+      ]
+    },
+    {
+      "name": "windows-x86_64",
+      "configurePreset": "windows-x86_64",
+      "targets": [
+        "halo2_windows_package"
+      ]
+    }
+  ]
+}

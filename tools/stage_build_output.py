@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stage latest local Linux binaries. This is not a relocatable release packager."""
+"""Stage latest local Linux or Windows binaries. This is not a relocatable release packager."""
 from __future__ import annotations
 
 import argparse
@@ -25,6 +25,8 @@ OUTPUTS = {
     "halo2_onboarding": "onboarding/Halo2-Launcher",
     "halo2_mcc_loading_audio": "halo2_mcc_loading_audio",
 }
+WINDOWS_PLATFORM = "windows-x86_64"
+WINDOWS_OUTPUTS = {target: name + ".exe" for target, name in OUTPUTS.items()}
 MANIFEST = "build-output.json"
 MAX_MANIFEST = 1024 * 1024
 DIR_FLAGS = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
@@ -101,10 +103,29 @@ def _elf(descriptor):
     return info
 
 
-def _read_manifest(parent):
+def _pe(descriptor):
+    info = os.fstat(descriptor)
+    os.lseek(descriptor, 0, os.SEEK_SET)
+    header = os.read(descriptor, 64)
+    if len(header) != 64 or header[:2] != b"MZ":
+        raise StageError("Expected a native PE32+ x86_64 Windows executable")
+    offset = struct.unpack_from("<I", header, 60)[0]
+    if offset < 64 or offset + 24 + 112 > info.st_size:
+        raise StageError("Invalid Windows executable PE header extent")
+    os.lseek(descriptor, offset, os.SEEK_SET)
+    pe = os.read(descriptor, 136)
+    if (pe[:4] != b"PE\0\0" or struct.unpack_from("<H", pe, 4)[0] != 0x8664 or
+            struct.unpack_from("<H", pe, 20)[0] < 112 or
+            struct.unpack_from("<H", pe, 24)[0] != 0x20b or
+            not struct.unpack_from("<H", pe, 22)[0] & 2):
+        raise StageError("Expected a native PE32+ x86_64 Windows executable")
+    return info
+
+
+def _read_manifest(parent, platform=PLATFORM, outputs=OUTPUTS):
     descriptor = _open_regular(parent, MANIFEST, missing=True)
     if descriptor is None:
-        return {"schema": SCHEMA, "platform": PLATFORM,
+        return {"schema": SCHEMA, "platform": platform,
                 "scope": "latest local binaries; original compiled shader bindings preserved; not a relocatable release",
                 "packaged_release": False, "files": {}}
     try:
@@ -115,11 +136,11 @@ def _read_manifest(parent):
     finally:
         os.close(descriptor)
     if (not isinstance(manifest, dict) or manifest.get("schema") != SCHEMA or
-            manifest.get("platform") != PLATFORM or manifest.get("packaged_release") is not False or
+            manifest.get("platform") != platform or manifest.get("packaged_release") is not False or
             not isinstance(manifest.get("files"), dict)):
         raise StageError("Unrecognized existing local build manifest; retained unchanged")
     for target, row in manifest["files"].items():
-        if (target not in OUTPUTS or not isinstance(row, dict) or row.get("path") != OUTPUTS[target] or
+        if (target not in outputs or not isinstance(row, dict) or row.get("path") != outputs[target] or
                 not isinstance(row.get("source"), str) or not Path(row["source"]).is_absolute() or
                 not isinstance(row.get("bytes"), int) or isinstance(row["bytes"], bool) or row["bytes"] < 64 or
                 not isinstance(row.get("sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", row["sha256"])):
@@ -192,15 +213,16 @@ def _backup_binary(parent, name, existing, temporary):
 
 
 def stage(root, binary, target, platform=PLATFORM):
-    if platform != PLATFORM:
-        return {"status": "skipped", "platform": platform, "reason": "Only Linux x86_64 local binaries are supported"}
-    if target not in OUTPUTS:
+    if platform not in {PLATFORM, WINDOWS_PLATFORM}:
+        return {"status": "skipped", "platform": platform, "reason": "Only Linux and Windows x86_64 local binaries are supported"}
+    outputs = WINDOWS_OUTPUTS if platform == WINDOWS_PLATFORM else OUTPUTS
+    if target not in outputs:
         raise StageError("Only the game runtime and three launcher targets may be staged")
     import fcntl
 
     root = Path(os.path.abspath(root))
     binary = Path(os.path.abspath(binary))
-    relative = Path(OUTPUTS[target])
+    relative = Path(outputs[target])
     if binary.name != relative.name:
         raise StageError("Source basename does not match the selected runtime/launcher target")
     descriptors = []
@@ -214,13 +236,13 @@ def stage(root, binary, target, platform=PLATFORM):
         descriptors.append(source_parent)
         source = _open_regular(source_parent, binary.name)
         descriptors.append(source)
-        before = _elf(source)
+        before = _pe(source) if platform == WINDOWS_PLATFORM else _elf(source)
         digest = _digest(source)
         if _stamp(before) != _stamp(os.fstat(source)):
             raise StageError("Build output changed while hashing")
         parent = _directory(root)
         descriptors.append(parent)
-        for name in ("dist", "builds", PLATFORM):
+        for name in ("dist", "builds", platform):
             parent = _child(parent, name)
             descriptors.append(parent)
         platform_parent = parent
@@ -230,7 +252,7 @@ def stage(root, binary, target, platform=PLATFORM):
         if not stat.S_ISREG(os.fstat(lock).st_mode):
             raise StageError("Build output lock is not a regular file")
         fcntl.flock(lock, fcntl.LOCK_EX)
-        manifest = _read_manifest(platform_parent)
+        manifest = _read_manifest(platform_parent, platform, outputs)
         destination_parent = platform_parent
         for name in relative.parts[:-1]:
             destination_parent = _child(destination_parent, name)
@@ -291,9 +313,9 @@ def stage(root, binary, target, platform=PLATFORM):
                             os.unlink(relative.name, dir_fd=destination_parent)
                         binary_published = False
                     raise
-        return {"status": "staged", "platform": PLATFORM, "target": target,
-                "output": str(root / "dist/builds" / PLATFORM / relative),
-                "manifest": str(root / "dist/builds" / PLATFORM / MANIFEST),
+        return {"status": "staged", "platform": platform, "target": target,
+                "output": str(root / "dist/builds" / platform / relative),
+                "manifest": str(root / "dist/builds" / platform / MANIFEST),
                 "binary_changed": binary_changed, "manifest_changed": manifest_changed or binary_changed,
                 "sha256": digest, "bytes": before.st_size, "packaged_release": False}
     except BaseException:

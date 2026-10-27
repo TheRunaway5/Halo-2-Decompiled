@@ -5,6 +5,7 @@
 #include "halo2/collision.hpp"
 #include "halo2/math.hpp"
 #include "gameplay/objects/source_object_geometry.hpp"
+#include <cstdlib>
 #include <map>
 #include <set>
 #include <cstring>
@@ -128,7 +129,19 @@ struct SourceDynamicObjectScene::Impl {
             const auto nodes=sample?sample(id):owner.nodes;
             if(nodes.size()!=owner.nodes.size())throw FormatError("Source dynamic interpolation changed its WORLD extent");
             geometry.regions(o.regions.selection);
-            geometry.pose_world_nodes(nodes);
+            // select() reads only the LOD it chooses; pose that bank alone
+            // through the original CPU kernel. HALO2_REFERENCE_OBJECT_LOD_SKINS
+            // poses all six LODs as before. HALO2_GPU_OBJECT_SKINS=1 defers the
+            // admitted bank to the renderer instead: measured slower here
+            // (per-submission plan/pack cost exceeds the small objects' skins).
+            static const bool reference_lod_skins=[]{const auto *p=std::getenv("HALO2_REFERENCE_OBJECT_LOD_SKINS");return p && *p;}();
+            static const bool gpu_object_skins=[]{const auto *p=std::getenv("HALO2_GPU_OBJECT_SKINS");return p && *p;}();
+            if(reference_lod_skins)geometry.pose_world_nodes(nodes);
+            else {
+                const auto lod=geometry.choose_lod(id&65535u,id,o.sphere.center,o.sphere.radius,view,owner.previous_lod);
+                const bool allow_gpu=gpu_object_skins && model_skin_gpu_requested() && bool(view.shader);
+                geometry.pose_world_lod(lod,[&](const RenderModel &model){return model_skin_world_pose(model,nodes,allow_gpu);});
+            }
             const auto selected=geometry.select(id&65535u,id,o.sphere.center,o.sphere.radius,view,owner.previous_lod);
             const bool due=object_lighting_query_due(owner.light,frame,o.sphere.center,selected.source_distance,o.frozen);
             ObjectLightQueryContext context;context.bank_valid=source_object_light_query_bank_valid(lighting);
@@ -145,7 +158,9 @@ struct SourceDynamicObjectScene::Impl {
             for(unsigned i=0;i<o.colors.size();++i)colors[i]=o.colors[i];
             const auto &draw=geometry.view(view.view_index);
             out.push_back({id,o.definition,draw.vertices,owner.light.lighting,draw.ordinary_lighting,colors,
-                geometry.owner_banks(cache,nodes,sh,selected.lod),o.camouflage});
+                geometry.owner_banks(cache,nodes,sh,selected.lod),o.camouflage,{}});
+            if(auto skin=geometry.view_skin(view.view_index,id,o.definition,bank.model.render_model))
+                out.back().skins.push_back({0,std::move(skin)});
         }
         return out;
     }

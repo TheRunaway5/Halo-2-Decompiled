@@ -8,6 +8,9 @@
 #include "halo2/source_render_policy.hpp"
 #include "halo2/texture_program.hpp"
 #include "halo2/vertex_program.hpp"
+#include "halo2/sky_input_identity.hpp"
+#include "halo2/sky_reference_inventory.hpp"
+#include "halo2/pstencil/combined_environment.hpp"
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <array>
@@ -29,6 +32,16 @@ using json=nlohmann::json;
 constexpr unsigned width=320,height=240;
 constexpr Vec3 diagnostic_clear{.125f,.25f,.375f};
 void require(bool value,const std::string& why){if(!value)throw FormatError(why);}
+std::string file_sha256(const std::filesystem::path& path) {
+    return sky_reference_detail::file_sha256(path);
+}
+const json& input_file_identity(json& files,const std::filesystem::path& supplied) {
+    const auto path=std::filesystem::weakly_canonical(supplied);
+    const auto key=path.string();
+    if(!files.contains(key))files[key]={{"bytes",std::filesystem::file_size(path)},
+        {"sha256",file_sha256(path)}};
+    return files.at(key);
+}
 struct Image {std::vector<unsigned char> rgb;};
 Image image(const std::filesystem::path& path,bool retain) {
     std::ifstream file(path,std::ios::binary);std::string magic;unsigned w{},h{},maximum{};
@@ -75,8 +88,12 @@ ModelView view(Vec3 eye,Vec3 forward,std::span<const Vertex> vertices,std::int16
     out.source_view_shader_constants->world=source_view_shader_constants(bank,1024.f,false);
     return out;
 }
-struct Input {std::filesystem::path path,prepared_root;std::string source;};
-std::vector<Input> inputs(const std::filesystem::path& root) {
+struct Input {
+    std::filesystem::path path,prepared_root;std::string source,authority_map;
+    std::filesystem::path shared_directory;
+    std::string map_key()const{return authority_map.empty()?path.stem().string():authority_map;}
+};
+std::vector<Input> inputs(const std::filesystem::path& root,json& inventories) {
     std::vector<Input> result;
     const auto append=[&](const std::filesystem::path& directory,const std::string& source,
                           const std::filesystem::path& prepared) {
@@ -89,18 +106,62 @@ std::vector<Input> inputs(const std::filesystem::path& root) {
     append(root/"assets/map-pack/maps","original-map-pack",{});
     if(const char* supplied=std::getenv("HALO2_SKY_MCC_ROOT");supplied && *supplied) {
         const std::filesystem::path prepared(supplied);
-        const auto before=result.size();
-        for(const auto& directory:{prepared/"maps",prepared/"content/halo2/maps",
-                prepared/"content/halo2/h2_maps_win64_dx11",prepared/"halo2/maps",
-                prepared/"halo2/h2_maps_win64_dx11",prepared/"h2_maps_win64_dx11"})
-            append(directory,"prepared-mcc",prepared);
-        if(result.size()==before)append(prepared,"prepared-mcc",prepared);
-        require(result.size()!=before,"HALO2_SKY_MCC_ROOT contains no supported map directory");
+        const auto owned=[&](const std::filesystem::path& owner,const std::string& source) {
+            std::ifstream stream(owner/"native-shaders/map-owners.json");
+            require(bool(stream),"prepared sky input has no declared native map owner index: "+owner.string());
+            const auto index=json::parse(stream);require(index.at("schema")=="H2_MCC_NATIVE_MAP_OWNERS_V1","sky map owner index has another schema");
+            std::set<std::filesystem::path> declared,actual;
+            json item={{"prepared_root",owner.string()},{"source",source},{"missing",json::array()},{"unlisted",json::array()}};
+            for(const auto& row:index.at("maps")) {
+                const auto relative=std::filesystem::path(row.at("map").get<std::string>());
+                require(!relative.empty()&&!relative.is_absolute()&&relative==relative.lexically_normal()&&relative.extension()==".map",
+                    "sky map owner path is not a normalized relative map");
+                for(const auto& component:relative)require(component!="..","sky map owner escapes its prepared context");
+                require(declared.insert(relative).second,"duplicate declared sky map owner");
+                const auto shared=std::filesystem::path(row.at("shared_directory").get<std::string>());
+                require(!shared.empty()&&!shared.is_absolute()&&shared==shared.lexically_normal(),
+                    "sky shared-map owner path is not normalized and relative");
+                for(const auto& component:shared)require(component!="..","sky shared-map owner escapes its prepared context");
+                result.push_back({owner/relative,owner,source,{},owner/shared});
+                if(!std::filesystem::is_regular_file(owner/relative))item["missing"].push_back(relative.generic_string());
+            }
+            require(!declared.empty(),"prepared sky owner index declares no maps");
+            // Each custom context has its own owner index. Its nested maps
+            // are validated separately, rather than aliasing the stock bank.
+            for(auto iterator=std::filesystem::recursive_directory_iterator(owner);iterator!=std::filesystem::recursive_directory_iterator{};++iterator) {
+                const auto relative=iterator->path().lexically_relative(owner);
+                if(source=="prepared-mcc"&&iterator->is_directory()&&relative=="custom-maps") {iterator.disable_recursion_pending();continue;}
+                if(iterator->is_regular_file()&&iterator->path().extension()==".map")actual.insert(relative);
+            }
+            for(const auto& path:actual)if(!declared.contains(path))item["unlisted"].push_back(path.generic_string());
+            item["declared_maps"]=declared.size();item["actual_maps"]=actual.size();
+            item["expected"]=declared.size();item["executed"]=declared.size()-item["missing"].size();
+            item["complete"]=item["missing"].empty()&&item["unlisted"].empty();inventories.push_back(std::move(item));
+        };
+        owned(prepared,"prepared-mcc");
+        for(const auto& reference:original_sky_reference_inputs(root,prepared)) {
+            bool found=false;
+            for(auto& input:result)if(!input.source.starts_with("prepared-mcc")&&
+                std::filesystem::weakly_canonical(input.path)==std::filesystem::weakly_canonical(reference.path)) {
+                input.authority_map=reference.authority_map;input.shared_directory=root/"assets/disc/maps";found=true;
+            }
+            if(!found)result.push_back({reference.path,{},"original-preserved",reference.authority_map,root/"assets/disc/maps"});
+        }
+        if(std::filesystem::is_directory(prepared/"custom-maps")) {
+            std::vector<std::filesystem::path> custom;
+            for(const auto& entry:std::filesystem::directory_iterator(prepared/"custom-maps"))if(entry.is_directory())custom.push_back(entry.path());
+            std::sort(custom.begin(),custom.end());
+            for(const auto& owner:custom) {
+                if(std::filesystem::is_regular_file(owner/"native-shaders/map-owners.json"))owned(owner,"prepared-mcc-custom");
+                else for(const auto& entry:std::filesystem::recursive_directory_iterator(owner))
+                    require(!entry.is_regular_file()||entry.path().extension()!=".map","custom sky input contains an unowned map context: "+entry.path().string());
+            }
+        }
     }
     // Complete original asset cases before their imported equivalents, even
     // when a prepared directory sorts before the original DLC directory.
     std::sort(result.begin(),result.end(),[](const auto& a,const auto& b){
-        return std::tuple{a.source=="prepared-mcc",a.path}<std::tuple{b.source=="prepared-mcc",b.path};});
+        return std::tuple{a.source.starts_with("prepared-mcc"),a.path}<std::tuple{b.source.starts_with("prepared-mcc"),b.path};});
     std::set<std::filesystem::path> seen;
     std::erase_if(result,[&](const auto& row){return !seen.insert(std::filesystem::weakly_canonical(row.path)).second;});
     return result;
@@ -113,12 +174,13 @@ std::set<std::string> filter() {
     }
     return result;
 }
-json material_identity(const Material& material) {
+json material_identity(const Material& material,const Cache& cache) {
     json out={{"name",material.name},{"shader_datum",material.source_shader_datum},
         {"passes",material.passes.size()},{"rendering_gaps",material.rendering_gaps},
         {"forward_pass",material.forward_pass},{"forward_pass_index",material.forward_pass_index},
         {"vertex_program_bytes",material.vertex_program.size()},
-        {"texture_program_supported",texture_program_supported(material.forward_program)}};
+        {"texture_program_supported",texture_program_supported(material.forward_program)},
+        {"complete_semantic_sha256",sky_audit::semantic_digest(material,cache)}};
     const auto layer=source_material_layer(material);
     out["source_layer"]=layer?json(*layer):json(nullptr);
     out["texture_byte_fnv1a64"]=json::array();
@@ -145,17 +207,32 @@ void admit_sky_program(const Material& material) {
             !gap.starts_with("forward pass requires an external texture:"),
             "sky forward program has an unresolved texture binding: "+material.name+": "+gap);
 }
-std::uint64_t geometry_identity(std::span<const Vertex> vertices) {
-    std::uint64_t result=14695981039346656037ull;
-    const auto word=[&](std::uint32_t value){for(unsigned i=0;i<4;++i)result=(result^((value>>(i*8))&255u))*1099511628211ull;};
+std::vector<std::uint32_t> geometry_words(std::span<const Vertex> vertices) {
+    std::vector<std::uint32_t> result;
+    result.reserve(vertices.size()*48);
+    const auto word=[&](std::uint32_t value){result.push_back(value);};
     for(const auto& vertex:vertices) {
         for(float value:{vertex.position.x,vertex.position.y,vertex.position.z,
+                vertex.color.x,vertex.color.y,vertex.color.z,
                 vertex.normal.x,vertex.normal.y,vertex.normal.z,
                 vertex.tangent.x,vertex.tangent.y,vertex.tangent.z,
-                vertex.binormal.x,vertex.binormal.y,vertex.binormal.z,vertex.uv.x,vertex.uv.y})
+                vertex.binormal.x,vertex.binormal.y,vertex.binormal.z,vertex.uv.x,vertex.uv.y,
+                vertex.lightmap_uv.x,vertex.lightmap_uv.y,
+                vertex.incident.x,vertex.incident.y,vertex.incident.z,
+                vertex.prt_cluster,vertex.prt_weights[0],vertex.prt_weights[1],vertex.prt_weights[2],vertex.prt_weights[3],
+                vertex.source_local_position.x,vertex.source_local_position.y,vertex.source_local_position.z,
+                vertex.source_color_alpha})
             word(std::bit_cast<std::uint32_t>(value));
+        word(vertex.material);word(vertex.lightmap);word(std::bit_cast<std::uint32_t>(vertex.bsp_cluster));
         word(vertex.source_section);word(vertex.source_part);
+        word(vertex.source_stipple_level);word(vertex.source_part_type);word(vertex.source_part_flags);
     }
+    return result;
+}
+std::uint64_t geometry_identity(std::span<const Vertex> vertices) {
+    std::uint64_t result=14695981039346656037ull;
+    for(const auto value:geometry_words(vertices))for(unsigned i=0;i<4;++i)
+        result=(result^((value>>(i*8))&255u))*1099511628211ull;
     return result;
 }
 json image_difference(const Image& actual,const Image& expected) {
@@ -177,11 +254,26 @@ using SkyKey=std::tuple<std::string,unsigned,int>;
 struct OriginalSky {
     std::filesystem::path path;
     Vec3 eye{};
-    std::uint64_t geometry{};
+    std::vector<std::uint32_t> geometry;
     json material_inputs;
+    json definition;
     std::array<Image,6> queued,independent;
     std::array<bool,6> available{};
+    bool definition_known{},drawable{};
 };
+using ComparisonKey=std::tuple<std::string,unsigned,int,std::string>;
+using PixelKey=std::tuple<std::string,unsigned,int,std::string,unsigned>;
+json identity(const SkyKey& key) {return {{"map",std::get<0>(key)},{"bsp",std::get<1>(key)},{"sky",std::get<2>(key)}};}
+json identity(const ComparisonKey& key) {auto out=identity(SkyKey{std::get<0>(key),std::get<1>(key),std::get<2>(key)});out["original_asset"]=std::get<3>(key);return out;}
+json identity(const PixelKey& key) {auto out=identity(ComparisonKey{std::get<0>(key),std::get<1>(key),std::get<2>(key),std::get<3>(key)});out["direction"]=std::get<4>(key);return out;}
+ComparisonKey comparison_key(const SkyKey& key,const OriginalSky& source) {return {std::get<0>(key),std::get<1>(key),std::get<2>(key),source.path.string()};}
+PixelKey pixel_key(const SkyKey& key,const OriginalSky& source,unsigned direction) {return {std::get<0>(key),std::get<1>(key),std::get<2>(key),source.path.string(),direction};}
+template<class Key>json coverage(const std::set<Key>& expected,const std::set<Key>& executed) {
+    json out={{"expected",expected.size()},{"executed",executed.size()},{"missing",json::array()},{"unexpected",json::array()}};
+    for(const auto& key:expected)if(!executed.contains(key))out["missing"].push_back(identity(key));
+    for(const auto& key:executed)if(!expected.contains(key))out["unexpected"].push_back(identity(key));
+    out["complete"]=out["missing"].empty()&&out["unexpected"].empty();return out;
+}
 struct Window {
     SDL_Window* value{};
     Window(){value=SDL_CreateWindow("All authored sky programs",0,0,width,height,SDL_WINDOW_VULKAN|SDL_WINDOW_HIDDEN);require(value,SDL_GetError());}
@@ -191,6 +283,65 @@ struct Diagnostics {
     std::ostringstream output;std::streambuf* previous=std::cerr.rdbuf(output.rdbuf());
     ~Diagnostics(){std::cerr.rdbuf(previous);if(!output.str().empty())std::cerr<<output.str();}
 };
+json rejected_sky_fallbacks(const Mesh& original,std::span<const Vertex> vertices,
+    const BspAtmosphere& atmosphere,Vec3 eye,std::int16_t scenario_type,const std::filesystem::path& output) {
+    std::set<unsigned> used;for(const auto& v:vertices) {
+        require(v.source_section!=0xffffffffu&&v.source_part!=0xffffffffu,"native sky negative fixture lost its original section/part owner");used.insert(v.material);
+    }
+    json probes=json::array();
+    for(unsigned mutation=0;mutation<3;++mutation) {
+        auto mesh=original;mesh.vertices.clear();
+        for(unsigned index:used) {
+            auto& material=mesh.materials.at(index);
+            if(mutation==0)material.vertex_program.clear();
+            else if(mutation==1) {
+                material.forward_pass=false;material.forward_vertex=0;material.forward_blend=0;material.world_pass=false;material.forward_program={};
+            } else material=Material{};
+        }
+        const auto label=std::array{"missing-vertex-program","disabled-forward-program-with-source-owner","default-material-with-source-geometry"}[mutation];
+        // Missing VS makes this source tuple ineligible for the world vertex
+        // catalog. Its unregistered fixed-family fragment is rejected while
+        // building the pipeline, before the dedicated sky submission guard.
+        const auto expected=std::array{
+            "No exact compiled native fragment kernel for family world-fixed",
+            "Sky material has no exact native Vulkan kernel",
+            "Sky material has no exact native Vulkan kernel"}[mutation];
+        json probe={{"mutation",label},{"expected_exception",expected},{"rejected",false}};
+        Window window;Diagnostics diagnostics;
+        try {
+            Renderer renderer(window.value,mesh,true);renderer.scene_bsp_atmosphere(atmosphere);
+            const auto present=view(eye,{1,0,0},vertices,scenario_type);
+            (void)capture(renderer,present,output/(std::string("negative-")+label+".ppm"));
+            probe["error"]="authored sky was accepted through a generic or missing pipeline";
+        }catch(const std::exception& error) {
+            probe["observed_exception"]=error.what();probe["rejected"]=std::string_view(error.what())==expected;
+        }
+        probe["diagnostics"]=diagnostics.output.str();probes.push_back(std::move(probe));
+    }
+    return probes;
+}
+std::vector<const Material*> window_material_upload_sources(const Mesh& mesh) {
+    // Match make_textures' explicit source-bank expansion. These BSP/sky
+    // fixtures own no dynamically manufactured visor companion. Reject a
+    // changed fixture instead of attributing an unknown expanded upload to a
+    // root's different pass. Fixed/procedural roles need no world-catalog ID.
+    std::vector<const Material*> result;
+    for(const auto& material:mesh.materials)result.push_back(&material);
+    for(const auto& material:mesh.materials)if(material.environment_pass)
+        result.push_back(material.environment_pass.get());
+    for(const auto& material:mesh.materials) {
+        for(const auto& pass:material.world_overlays_before)result.push_back(pass.get());
+        for(const auto& pass:material.world_overlays_after)result.push_back(pass.get());
+        for(const auto& pass:material.world_bloom_passes)result.push_back(pass.get());
+        require(!pstencil::combined_visor_environment(material),
+            "Elongation window fixture unexpectedly requires a generated visor owner");
+    }
+    for(const auto& material:mesh.materials)if(material.planar_fog_pass)
+        result.push_back(material.planar_fog_pass.get());
+    for(const auto& material:mesh.materials)for(const auto& pass:material.world_planar_passes)
+        if(pass)result.push_back(pass.get());
+    return result;
+}
 json elongation_windows(const Cache& cache,const std::filesystem::path& output) {
     // These cameras are inside original leaf389/cluster28 and leaf380/cluster27.
     // The target panes are original instance8 and11, at y=+/-8.4. They are
@@ -219,6 +370,7 @@ json elongation_windows(const Cache& cache,const std::filesystem::path& output) 
         else no_glass.push_back(vertex);
     }
     require(!glass_materials.empty() && no_glass.size()<world.size(),"Elongation authored glass control has no geometry");
+    const auto upload_materials=window_material_upload_sources(mesh);
     Window window;Diagnostics diagnostics;json result=json::array();
     {
         Renderer renderer(window.value,mesh,true);renderer.scene_bsp_atmosphere(atmosphere);
@@ -235,24 +387,65 @@ json elongation_windows(const Cache& cache,const std::filesystem::path& output) 
             present.atmosphere=atmosphere.sample(eye,forward);present.atmosphere_source=&atmosphere;
             present.source_render_policy=source_geometry_lod_policy(1);
             require(present.atmosphere->visible_sky==0,"Elongation window camera selected another sky");
+            json upload_observations=json::array();
+            const auto observed_capture=[&](ModelView control,const std::string& scene,
+                const std::filesystem::path& path,bool retain,bool require_positive) {
+                unsigned uploads{},native_world{},fixed_native{},instruction_words{};
+                std::set<unsigned> roots,slots,glass_roots,sky_roots;
+                control.completed_material_upload_observer=[&](const RendererCompletedMaterialUpload& upload) {
+                    require(upload.root_material_count==mesh.materials.size()&&
+                        upload.expanded_material_count==upload_materials.size()&&
+                        upload.material_slot<upload_materials.size(),
+                        "Elongation upload escaped its complete source material bank");
+                    const auto& source=*upload_materials.at(upload.material_slot);
+                    require(upload.source_shader==source.source_shader_datum&&
+                        upload.selected_shader_lod==source.selected_shader_lod,
+                        "Elongation completed upload changed its typed shader/LOD owner");
+                    // This is the exact authored-world catalog predicate in
+                    // Renderer::make_textures. HUD, light-volume and fixed
+                    // procedural roles use their separate native families.
+                    const bool expects_world=(source.forward_pass||source.static_lightmap_pass)&&
+                        !source.hud_pass&&!source.light_volume_pass&&!source.vertex_program.empty();
+                    if(expects_world)require(upload.native_world_kernel.has_value(),
+                        "Elongation authored world upload has no native AOT kernel");
+                    require(upload.uploaded_vertex_instruction_words==0,
+                        "Elongation window uploaded executable vertex instructions");
+                    ++uploads;native_world+=upload.native_world_kernel.has_value();
+                    fixed_native+=!upload.native_world_kernel.has_value();
+                    instruction_words+=upload.uploaded_vertex_instruction_words;
+                    roots.insert(unsigned(upload.root_slot));slots.insert(unsigned(upload.material_slot));
+                    if(glass_materials.contains(unsigned(upload.root_slot)))glass_roots.insert(unsigned(upload.root_slot));
+                    if(upload.root_slot>=material_base)sky_roots.insert(unsigned(upload.root_slot));
+                };
+                auto captured=capture(renderer,control,path,retain);
+                if(require_positive)require(uploads>0,"Elongation "+scene+" completed no material uploads");
+                if(scene=="baseline")require(!glass_roots.empty()&&!sky_roots.empty(),
+                    "Elongation baseline did not observe actual glass and sky material uploads");
+                upload_observations.push_back({{"scene",scene},{"completed_uploads",uploads},
+                    {"native_world_catalog_uploads",native_world},{"fixed_native_family_uploads",fixed_native},
+                    {"uploaded_vertex_instruction_words",instruction_words},{"root_slots",roots},
+                    {"expanded_slots",slots},{"glass_root_slots",glass_roots},{"sky_root_slots",sky_roots},
+                    {"positive_observation",uploads>0}});
+                return captured;
+            };
             // These four bounded full-world diagnostic inputs remain inside
             // the enclosing run_test owner's scratch for visual inspection.
             // Its lifecycle removes them; ordinary sky sweep frames are erased
             // immediately after readback and are never retained in the repo.
-            const auto a=capture(renderer,present,output/(prefix+"baseline.ppm"),true);
+            const auto a=observed_capture(present,"baseline",output/(prefix+"baseline.ppm"),true,true);
             auto absent=present;absent.background={};
-            const auto b=capture(renderer,absent,output/(prefix+"no-sky.ppm"),true);
+            const auto b=observed_capture(absent,"no-sky",output/(prefix+"no-sky.ppm"),true,false);
             auto glass_removed=present;glass_removed.vertices=no_glass;
-            const auto c=capture(renderer,glass_removed,output/(prefix+"no-glass.ppm"),true);
+            const auto c=observed_capture(glass_removed,"no-glass",output/(prefix+"no-glass.ppm"),true,true);
             auto bare=present;bare.vertices={};
-            const auto d=capture(renderer,bare,output/(prefix+"sky-only.ppm"),true);
+            const auto d=observed_capture(bare,"sky-only",output/(prefix+"sky-only.ppm"),true,true);
             auto queued=present;queued.world_transparent.emplace();
-            const auto q=capture(renderer,queued,output/(prefix+"empty-queue.ppm"),true);
+            const auto q=observed_capture(queued,"empty-queue",output/(prefix+"empty-queue.ppm"),true,true);
             queued.background={};
-            const auto q0=capture(renderer,queued,output/(prefix+"empty-queue-no-sky.ppm"),true);
+            const auto q0=observed_capture(queued,"empty-queue-no-sky",output/(prefix+"empty-queue-no-sky.ppm"),true,false);
             glass_removed.background={};
-            const auto e=capture(renderer,glass_removed,output/"window-no-glass-no-sky.ppm");
-            const auto repeat=capture(renderer,present,output/"window-repeat.ppm");
+            const auto e=observed_capture(glass_removed,"no-glass-no-sky",output/"window-no-glass-no-sky.ppm",false,false);
+            const auto repeat=observed_capture(present,"repeat",output/"window-repeat.ppm",false,true);
             require(a.rgb==repeat.rgb,"Elongation window changed after independent geometry/sky controls");
             const auto changed=[](const Image& first,const Image& second) {
                 unsigned n{};for(unsigned pixel=0;pixel<width*height;++pixel)
@@ -274,6 +467,8 @@ json elongation_windows(const Cache& cache,const std::filesystem::path& output) 
             require(sky_without_glass>0,prefix+"sky is absent after omitting window glass");
             require(glass>0,prefix+"authored window glass has no rendered effect");
             result.push_back({{"eye",{eye.x,eye.y,eye.z}},{"forward",{forward.x,forward.y,forward.z}},
+                {"device",renderer.device_name()},{"completed_material_uploads",upload_observations},
+                {"uploaded_vertex_instruction_words",0},
                 {"camera_cluster",present.atmosphere->cluster},{"sky_ordinal",present.atmosphere->visible_sky},
                 {"world_vertices",world.size()},{"glass_removed_vertices",world.size()-no_glass.size()},
                 {"glass_materials",glass_materials},{"sky_changes_with_glass",sky_with_glass},
@@ -303,17 +498,52 @@ int main(int argc,char** argv)try {
         {"diagnostic_clear_rgb",{diagnostic_clear.x,diagnostic_clear.y,diagnostic_clear.z}},
         {"original_framebuffer_parity",false},{"physical_xbox_precision",false},
         {"filtered",!selected.empty()},{"map_filter",selected},{"maps",json::array()},
+        {"prepared_map_inventories",json::array()},{"native_kernel_negative_probes",json::array()},
+        {"input_files",json::object()},{"devices",json::array()},
+        {"original_reference_priority","map-pack overrides disc for the same map/BSP/sky key; all original controls still run"},
+        {"superseded_original_references",json::array()},
         {"prepared_mcc_requested",std::getenv("HALO2_SKY_MCC_ROOT")!=nullptr}};
+    report["test_executable_sha256"]=file_sha256(std::filesystem::absolute(argv[0]));
+    report["harness_source_sha256"]=file_sha256(root/"tests/sky_all_maps_gpu_tests.cpp");
+    std::vector<Input> all_inputs;
+    try {all_inputs=inputs(root,report["prepared_map_inventories"]);}
+    catch(const std::exception& error) {
+        report["passed"]=false;report["inventory_error"]=error.what();
+        std::ofstream(output/"report.json")<<report.dump(2)<<'\n';
+        std::ofstream(output/"summary.json")<<report.dump(2)<<'\n';throw;
+    }
     require(SDL_Init(SDL_INIT_VIDEO)==0,SDL_GetError());
     unsigned cases{},errors{},sky_maps{},pairs{},different_pairs{},input_pairs{},different_inputs{};
     std::map<SkyKey,OriginalSky> originals;
+    std::set<ComparisonKey> compared_cases,compared_inputs,compared_absences;
+    std::set<PixelKey> compared_pixels;
+    std::set<SkyKey> unpaired_cases,unexpected_cases;
+    std::set<std::string> imported_stems,original_stems;
+    for(const auto& input:all_inputs)if(input.source=="prepared-mcc")imported_stems.insert(input.map_key());
+        else if(!input.source.starts_with("prepared-mcc"))original_stems.insert(input.map_key());
+    bool negative_probes_ran{};
     const bool compare_import=report["prepared_mcc_requested"].get<bool>();
-    for(const auto& input:inputs(root)) {
+    for(const auto& input:all_inputs) {
         if(!selected.empty() && !selected.contains(input.path.stem().string()) &&
-            !selected.contains(input.path.filename().string()))continue;
-        json map={{"path",input.path.string()},{"source",input.source},{"bsps",json::array()}};
+            !selected.contains(input.path.filename().string())&&!selected.contains(input.map_key()))continue;
+        json map={{"path",input.path.string()},{"source",input.source},{"authority_map",input.map_key()},{"prepared_context",input.prepared_root.string()},{"bsps",json::array()}};
         try {
-            Cache cache(input.path,{}, {},input.prepared_root);
+            map["input_sha256"]=input_file_identity(report["input_files"],input.path).at("sha256");
+            map["input_bytes"]=std::filesystem::file_size(input.path);
+            const auto requested_shared=input.shared_directory.empty()?input.path.parent_path():input.shared_directory;
+            map["requested_shared_directory"]=requested_shared.string();
+            map["existing_resource_inputs"]=json::array();
+            for(const auto* name:{"shared.map","single_player_shared.map","textures.dat"})
+                if(const auto path=requested_shared/name;std::filesystem::is_regular_file(path)) {
+                    (void)input_file_identity(report["input_files"],path);
+                    map["existing_resource_inputs"].push_back(std::filesystem::weakly_canonical(path).string());
+                }
+            Cache cache(input.path,input.shared_directory,{},input.prepared_root);
+            if(input.source=="prepared-mcc")for(const auto& reference:all_inputs)
+                if(!reference.authority_map.empty()&&!reference.source.starts_with("prepared-mcc")&&reference.map_key()==input.map_key()) {
+                    Cache original(reference.path,reference.shared_directory);
+                    validate_sky_reference_pair(original,cache,{reference.path,reference.authority_map});
+                }
             if(cache.scenario_tag().is_null() || cache.bsps().empty()) {
                 map["status"]="no-scenario-bsp";report["maps"].push_back(std::move(map));continue;
             }
@@ -344,24 +574,53 @@ int main(int argc,char** argv)try {
                     for(const auto& [ordinal,cluster]:ordinals) {
                         json sky={{"ordinal",ordinal},{"selector_cluster",cluster},{"directions",json::array()}};
                         try {
+                            const SkyKey key{input.map_key(),bsp,ordinal};
+                            OriginalSky* reference=nullptr;
+                            if(compare_import&&!cache.is_mcc()) {
+                                auto& saved=originals[key];
+                                if(!saved.path.empty())report["superseded_original_references"].push_back({{"case",identity(key)},{"superseded",saved.path.string()},{"selected",input.path.string()}});
+                                saved=OriginalSky{};saved.path=input.path;saved.eye=eye;reference=&saved;
+                            } else if(compare_import&&input.source=="prepared-mcc") {
+                                if(const auto found=originals.find(key);found!=originals.end())reference=&found->second;
+                                if(!reference&&original_stems.contains(input.map_key())) {
+                                    unexpected_cases.insert(key);throw FormatError("imported visible sky has no original map/BSP/ordinal counterpart");
+                                }
+                            }
+                            if(cache.is_mcc()&&!reference) {
+                                const SkyKey unpaired{input.source=="prepared-mcc-custom"?
+                                    "custom:"+input.prepared_root.filename().string()+":"+input.path.stem().string():input.path.stem().string(),bsp,ordinal};
+                                unpaired_cases.insert(unpaired);
+                                sky["comparison_scope"]=input.source=="prepared-mcc-custom"?"custom authored input; no original map counterpart":"PC map; no original map counterpart";
+                            }
                             const auto definition=cache.load_sky(unsigned(ordinal));
-                            if(!definition){sky["status"]="authored-NONE-or-model-less";entry["skies"].push_back(std::move(sky));continue;}
-                            const SkyKey key{input.path.stem().string(),bsp,ordinal};
+                            if(reference&&!cache.is_mcc()){reference->definition_known=true;reference->drawable=bool(definition);}
+                            if(reference&&cache.is_mcc()) {
+                                require(reference->definition_known,"original visible sky definition was not successfully read");
+                                require(reference->drawable==bool(definition),"original/imported visible sky NONE/renderable kind differs");
+                            }
+                            if(!definition) {
+                                sky["status"]="authored-NONE-or-model-less";
+                                if(reference&&cache.is_mcc()) {
+                                    compared_cases.insert(comparison_key(key,*reference));compared_absences.insert(comparison_key(key,*reference));
+                                    sky["original_asset_absence_exact"]=true;sky["original_asset_reference"]=reference->path.string();
+                                }
+                                entry["skies"].push_back(std::move(sky));continue;
+                            }
                             auto selected_eye=eye;
-                            if(compare_import && cache.is_mcc())
-                                if(const auto found=originals.find(key);found!=originals.end())selected_eye=found->second.eye;
+                            if(reference&&cache.is_mcc())selected_eye=reference->eye;
                             map_has_sky=true;auto model=cache.load_model(definition->model,true);
                             prepare_forward_materials(cache,model.mesh);
                             const auto vertices=pose_sky(model,*definition,selected_eye);
                             require(!vertices.empty(),"authored visible sky produced no vertices");
                             sky["diagnostic_eye"]={selected_eye.x,selected_eye.y,selected_eye.z};
                             sky["definition"]=definition->name;sky["vertices"]=vertices.size();
+                            sky["definition_identity"]=sky_audit::sky(*definition,cache);
                             sky["posed_geometry_fnv1a64"]=geometry_identity(vertices);
                             sky["materials"]=json::array();
                             std::set<unsigned> used_materials;
                             for(const auto& vertex:vertices)used_materials.insert(vertex.material);
                             for(unsigned material=0;material<model.mesh.materials.size();++material) {
-                                auto identity=material_identity(model.mesh.materials[material]);
+                                auto identity=material_identity(model.mesh.materials[material],cache);
                                 identity["used_for_geometry"]=used_materials.contains(material);
                                 sky["materials"].push_back(std::move(identity));
                             }
@@ -372,32 +631,55 @@ int main(int argc,char** argv)try {
                                 admit_sky_program(model.mesh.materials[material]);
                             }
                             sky["used_material_programs_admitted"]=true;
+                            if(!negative_probes_ran&&!cache.is_mcc()) {
+                                report["native_kernel_negative_probes"]=rejected_sky_fallbacks(model.mesh,vertices,atmosphere,selected_eye,scenario_type,output);
+                                report["native_kernel_negative_fixture"]={{"path",input.path.string()},{"bsp",bsp},{"sky",ordinal}};
+                                for(const auto& probe:report["native_kernel_negative_probes"])errors+=!probe.at("rejected").get<bool>()||!probe.at("diagnostics").get<std::string>().empty();
+                                negative_probes_ran=true;
+                            }
                             auto input_identity=sky["materials"];
                             for(auto& material:input_identity)material.erase("shader_datum");
-                            OriginalSky* reference=nullptr;
                             if(compare_import && !cache.is_mcc()) {
                                 auto& saved=originals[key];saved.path=input.path;saved.eye=selected_eye;saved.material_inputs=input_identity;
-                                saved.geometry=sky["posed_geometry_fnv1a64"].get<std::uint64_t>();reference=&saved;
-                            } else if(compare_import) {
+                                saved.definition=sky["definition_identity"];
+                                saved.geometry=geometry_words(vertices);reference=&saved;
+                            } else if(compare_import&&input.source=="prepared-mcc") {
                                 if(const auto found=originals.find(key);found!=originals.end())reference=&found->second;
                                 sky["original_asset_reference"]=reference?reference->path.string():"unavailable";
                                 sky["original_asset_materials_exact"]=reference && reference->material_inputs==input_identity;
-                                sky["original_asset_posed_geometry_exact"]=reference && reference->geometry==geometry_identity(vertices);
+                                sky["original_asset_definition_exact"]=reference && reference->definition==sky["definition_identity"];
+                                sky["original_asset_posed_geometry_exact"]=reference && reference->geometry==geometry_words(vertices);
                                 if(reference) {
+                                    compared_cases.insert(comparison_key(key,*reference));compared_inputs.insert(comparison_key(key,*reference));
                                     ++input_pairs;
                                     different_inputs+=sky["original_asset_materials_exact"]==false ||
+                                        sky["original_asset_definition_exact"]==false ||
                                         sky["original_asset_posed_geometry_exact"]==false;
                                 }
                             }
                             Mesh mesh=std::move(model.mesh);mesh.vertices.clear();
                             Window window;Diagnostics diagnostics;std::uint64_t changed{};
                             bool repeat_exact=true,queue_independent=true;
+                            unsigned completed_uploads{};
+                            std::set<unsigned> native_materials,used_sky_materials;
+                            for(const auto& vertex:vertices)used_sky_materials.insert(vertex.material);
                             {
                                 Renderer renderer(window.value,mesh,true);
                                 renderer.scene_bsp_atmosphere(atmosphere);
+                                sky["device"]=renderer.device_name();
+                                if(std::find(report["devices"].begin(),report["devices"].end(),sky["device"])==report["devices"].end())
+                                    report["devices"].push_back(sky["device"]);
                                 unsigned index{};
                                 for(const auto direction:std::array{Vec3{1,0,0},Vec3{-1,0,0},Vec3{0,1,0},Vec3{0,-1,0},Vec3{0,0,1},Vec3{0,0,-1}}) {
-                                    const auto present=view(selected_eye,direction,vertices,scenario_type),absent=view(selected_eye,direction,{},scenario_type);
+                                    auto present=view(selected_eye,direction,vertices,scenario_type);
+                                    const auto absent=view(selected_eye,direction,{},scenario_type);
+                                    present.completed_material_upload_observer=[&](const RendererCompletedMaterialUpload& upload) {
+                                        if(!used_sky_materials.contains(unsigned(upload.root_slot)))return;
+                                        require(upload.native_world_kernel.has_value(),"sky upload has no native AOT kernel");
+                                        require(upload.uploaded_vertex_instruction_words==0,"native sky uploaded executable instruction words");
+                                        ++completed_uploads;
+                                        native_materials.insert(unsigned(upload.root_slot));
+                                    };
                                     auto a=capture(renderer,present,output/"sky.ppm");
                                     const auto b=capture(renderer,absent,output/"absent.ppm");
                                     auto queue_disabled=present;queue_disabled.world_transparent.reset();
@@ -416,6 +698,7 @@ int main(int argc,char** argv)try {
                                         ray["original_assets_native_renderer_queued"]=image_difference(a,reference->queued[index]);
                                         ray["original_assets_native_renderer_independent"]=image_difference(independent,reference->independent[index]);
                                         ++pairs;different_pairs+=ray["original_assets_native_renderer_independent"]["byte_exact"]==false;
+                                        compared_pixels.insert(pixel_key(key,*reference,index));
                                     } else if(reference && !cache.is_mcc()) {
                                         reference->queued[index]=std::move(a);reference->independent[index]=std::move(independent);
                                         reference->available[index]=true;
@@ -424,6 +707,11 @@ int main(int argc,char** argv)try {
                                 }
                             }
                             require(diagnostics.output.str().empty(),"sky emitted Vulkan validation diagnostics: "+diagnostics.output.str().substr(0,2048));
+                            require(native_materials==used_sky_materials,"sky native-kernel upload coverage was incomplete");
+                            require(completed_uploads>0,"sky controls completed no observed native material uploads");
+                            sky["native_aot_materials"]=native_materials.size();
+                            sky["completed_material_uploads"]=completed_uploads;
+                            sky["uploaded_vertex_instruction_words"]=0;
                             sky["repeat_exact"]=repeat_exact;sky["dedicated_sky_independent_of_transparent_queue"]=queue_independent;
                             if(changed==0 || !repeat_exact || !queue_independent) {
                                 sky["status"]="failed";sky["error"]=!queue_independent?
@@ -448,14 +736,41 @@ int main(int argc,char** argv)try {
         std::ofstream(output/"report.json")<<report.dump(2)<<'\n';
     }
     SDL_Quit();report["sky_maps"]=sky_maps;report["native_controls_passed"]=errors==0 && cases>0;
+    std::set<ComparisonKey> expected_cases,expected_inputs,expected_absences;
+    std::set<PixelKey> expected_pixels;report["original_cases_without_prepared_map"]=json::array();
+    for(const auto& [key,reference]:originals) {
+        if(!imported_stems.contains(std::get<0>(key))) {report["original_cases_without_prepared_map"].push_back(identity(key));continue;}
+        expected_cases.insert(comparison_key(key,reference));
+        if(reference.definition_known&&reference.drawable) {
+            expected_inputs.insert(comparison_key(key,reference));
+            for(unsigned direction=0;direction<6;++direction)expected_pixels.insert(pixel_key(key,reference,direction));
+        } else if(reference.definition_known)expected_absences.insert(comparison_key(key,reference));
+    }
+    report["counterpart_case_coverage"]=coverage(expected_cases,compared_cases);
+    report["input_comparison_coverage"]=coverage(expected_inputs,compared_inputs);
+    report["pixel_comparison_coverage"]=coverage(expected_pixels,compared_pixels);
+    report["authored_absence_comparison_coverage"]=coverage(expected_absences,compared_absences);
+    report["unpaired_authored_cases"]=json::array();for(const auto& key:unpaired_cases)report["unpaired_authored_cases"].push_back(identity(key));
+    report["unexpected_imported_visible_cases"]=json::array();for(const auto& key:unexpected_cases)report["unexpected_imported_visible_cases"].push_back(identity(key));
+    bool inventories_complete=!compare_import||!report["prepared_map_inventories"].empty();
+    for(const auto& item:report["prepared_map_inventories"])inventories_complete&=item.at("complete").get<bool>();
+    report["prepared_map_inventory_complete"]=inventories_complete;
+    const bool comparisons_complete=report["counterpart_case_coverage"]["complete"].get<bool>()&&
+        report["input_comparison_coverage"]["complete"].get<bool>()&&report["pixel_comparison_coverage"]["complete"].get<bool>()&&
+        report["authored_absence_comparison_coverage"]["complete"].get<bool>()&&unexpected_cases.empty();
+    report["native_kernel_negative_probes_executed"]=negative_probes_ran;
+    const bool negative_passed=negative_probes_ran&&report["native_kernel_negative_probes"].size()==3&&
+        std::all_of(report["native_kernel_negative_probes"].begin(),report["native_kernel_negative_probes"].end(),
+            [](const auto& probe){return probe.at("rejected").template get<bool>()&&probe.at("diagnostics").template get<std::string>().empty();});
+    report["native_kernel_negative_probes_passed"]=negative_passed;
     report["original_asset_native_pixel_pairs"]=pairs;
     report["original_asset_native_pixel_pairs_with_differences"]=different_pairs;
     report["original_asset_native_input_pairs"]=input_pairs;
     report["original_asset_native_input_pairs_with_differences"]=different_inputs;
-    report["original_asset_native_pixels_exact"]=pairs>0 && different_pairs==0;
-    report["original_asset_native_inputs_exact"]=input_pairs>0 && different_inputs==0;
-    const bool passed=errors==0 && cases>0 &&
-        (!compare_import || (pairs>0 && different_pairs==0 && different_inputs==0));
+    report["original_asset_native_pixels_exact"]=pairs>0&&different_pairs==0&&comparisons_complete;
+    report["original_asset_native_inputs_exact"]=input_pairs>0&&different_inputs==0&&comparisons_complete;
+    const bool passed=errors==0&&cases>0&&negative_passed&&inventories_complete&&
+        (!compare_import||(comparisons_complete&&(!selected.empty()||!expected_inputs.empty())&&different_pairs==0&&different_inputs==0));
     report["passed"]=passed;
     report["pixel_comparison_scope"]="Original assets and prepared MCC through the same native renderer; no original NV2A/Xbox framebuffer reference";
     std::ofstream(output/"report.json")<<report.dump(2)<<'\n';

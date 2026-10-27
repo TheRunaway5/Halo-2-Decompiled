@@ -1,4 +1,4 @@
-"""Private ledger of unanimously confirmed native Slayer/CTF/Assault results.
+"""Private ledger of unanimously confirmed original native multiplayer results.
 
 Agreement is a consistency check, not server simulation or cheat detection.
 The retired Live skill service is not inferred from a host's report.
@@ -10,12 +10,26 @@ import logging
 
 from .protocol import require
 
-# Exact original mainmenu preset names, as admitted by the native queue.
-# Unrecognized/custom names retain the existing Slayer-only result policy.
-OBJECTIVE_ENGINES = {
-    "Multi Flag CTF": 1, "CTF Classic": 1, "1 Flag CTF": 1, "1 Flag CTF Fast": 1,
-    "Multi Bomb": 9, "Single Bomb": 9, "Single Bomb Fast": 9,
-    "Neutral Bomb": 9, "Blast Resort": 9,
+# Exact original mainmenu presets, not English substring classification.
+# tools/oracle_multiplayer_engines_tu15.py independently executes original
+# init/writes/normalization and retains each304-byte option buffer in
+# tests/fixtures/multiplayer_engines_original_tu15.json (SHA-256
+# c84eed61c3fcdac7788329917f764cb0f43523c9d800c68ee471fde21b171d19).
+# Tuple fields are the original LE engine at44 and team flag48 bit0.
+ORIGINAL_PRESETS = {
+    "Slayer": (2, False), "Team Slayer": (2, True), "Rockets": (2, False),
+    "Swords": (2, False), "Snipers": (2, False), "Phantoms": (2, False),
+    "Team Phantoms": (2, True), "Elimination": (2, False), "Phantom Elim": (2, False),
+    "Oddball": (3, False), "Rocketball": (3, False), "Swordball": (3, False),
+    "Team Ball": (3, True), "Low Ball": (3, True), "King": (4, False),
+    "Team King": (4, True), "Phantom King": (4, False), "Crazy King": (4, False),
+    "Team Crazy King": (4, True), "2 on 1": (7, False), "Multi Flag CTF": (1, True),
+    "CTF Classic": (1, True), "1 Flag CTF": (1, True), "1 Flag CTF Fast": (1, True),
+    "Multi Bomb": (9, True), "Single Bomb": (9, True), "Single Bomb Fast": (9, True),
+    "Neutral Bomb": (9, True), "3 Plots": (8, True), "Land Grab": (8, True),
+    "3 on 1": (7, False), "Ninjanaut": (7, False), "Gold Rush": (8, True),
+    "Fiesta": (3, False), "Blast Resort": (9, True), "Phantom Fodder": (7, False),
+    "Dreadnaut": (7, False), "Control Issues": (8, True), "Contention": (8, True),
 }
 
 
@@ -72,10 +86,14 @@ class MatchResults:
                 and all(c in "0123456789abcdef" for c in report), "Invalid postgame report")
         raw = bytes.fromhex(report)
         engine = struct.unpack_from("<I", raw, 0x64)[0]
-        expected_engine = OBJECTIVE_ENGINES.get(room.proposal.game.variant, 2)
+        preset = ORIGINAL_PRESETS.get(room.proposal.game.variant)
+        # Preserve the existing explicitly Slayer-only custom-name policy and
+        # its actual admitted team setting. Unknown names gain no other engine.
+        expected_engine = preset[0] if preset else 2
+        expected_team = preset[1] if preset and expected_engine != 2 else None
         require(raw[0:2] == b"\x01\x01" and raw[0x10:0x12] == b"\x01\x01"
                 and raw[0x13] == int(room.team_mode) and engine == expected_engine
-                and (engine == 2 or room.team_mode)
+                and (expected_team is None or room.team_mode == expected_team)
                 and (raw[0x68] & 1) == int(room.team_mode), "Unfinished admitted multiplayer postgame report")
         teams = {team for _, _, team in room.players} if room.team_mode else set()
         require(all(0 <= team < 8 for team in teams), "Invalid admitted teams")

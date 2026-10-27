@@ -24,6 +24,7 @@ std::string field(const OnlineServer &server, unsigned index) {
 }
 } // namespace
 void MenuState::set_online_directory(std::shared_ptr<OnlineDirectory> directory) {
+  if(online_directory_==directory)return;
   if (online_directory_) online_directory_->cancel();
   online_directory_ = std::move(directory);
   online_directory_active_ = false;

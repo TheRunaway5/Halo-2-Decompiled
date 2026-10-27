@@ -1,4 +1,5 @@
 #include "../src/audio/mcc_sound_class_qualified.hpp"
+#include "../src/audio/mcc_sound_geometry_apply.hpp"
 #include "../src/audio/mcc_sound_permutation_time_reference_profile.hpp"
 #include "../src/audio/mcc_sound_stored_time_apply.hpp"
 #include "halo2/mcc_sound_timing_reference.hpp"
@@ -185,8 +186,9 @@ void actual(const char* path) {
         [&](TagHandle h){return cache.mcc_sound_gestalt_owner(h).handle();},relocated};
     const auto generic=plan_mcc_sound_runtime_delivery(generic_source,0xe0000000u);
     // Keep the original metadata-only checks below in their actual generic
-    // domain. Independently stage every finite C/P/S correction and require
-    // complete converted-plan equality before admitting any authored delta.
+    // domain. Independently stage every finite C/P/S correction and the
+    // authenticated English facial-resource tokens before requiring exact
+    // complete converted-plan equality.
     auto p=generic;p.authored_flags=converted.authored_flags;
     need(bool(p.authored_flags),"Cache-aware native plan lost finite flag authority");
     for(const auto&c:p.authored_flags->corrections){
@@ -202,7 +204,8 @@ void actual(const char* path) {
     mcc_sound_permutation_time_detail::apply(reconstructed,generic_source,permutation);
     const auto stored=plan_mcc_sound_stored_times(cache,reconstructed,relocated);
     mcc_sound_stored_time_detail::apply(reconstructed,generic_source,stored);
-    need(encode(reconstructed)==encode(converted),"Cache output escaped independent exact typed C/P/S receipts");
+    mcc_sound_geometry_detail::apply(reconstructed,plan_mcc_sound_geometry_resources(cache));
+    need(encode(reconstructed)==encode(converted),"Cache output escaped exact typed C/P/S and geometry receipts");
     const auto timing=build_mcc_sound_timing_reference(cache,converted,relocated);
     need(std::ranges::all_of(timing.owners(),[](const auto&o){return o.status==MccSoundVanillaOwnerStatus::Authenticated;}),
         "Converted sound native plan lost complete authenticated owner qualification");

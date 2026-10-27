@@ -35,14 +35,34 @@ SEPARATE_COMPONENTS = {
     'src/audio/dsp/sound_gp_dma_tu15.cpp': 'GP DMA requires its actual platform consumer',
     'src/audio/source_sound_configuration_tu15_generated.cpp': 'Sound configuration requires original output/policy admission',
     'src/audio/native_tu15_sound_configuration_data.cpp': 'Sound configuration component data',
+    'src/physics/native_tu15_motion_pose.cpp': 'Standalone native pose component; actual integrate_pose retains the original production virtual owner',
+    'src/physics/native_tu15_array_allocator.cpp': 'Standalone typed array allocator requires the actual production allocator virtual owners',
+    'src/physics/native_tu15_array_growth.cpp': 'Standalone typed array growth requires the actual production allocator virtual owners',
+    'src/physics/native_tu15_array_reserve.cpp': 'Standalone typed array reserve requires its actual production allocator virtual owners',
+    'src/physics/native_tu15_constraint_step.cpp': 'Standalone typed constraint step requires the actual production solver and commit owners',
+    'src/physics/native_tu15_broad_phase.cpp': 'Standalone typed broad phase; production retains actual 0x321700 residual and its virtual service owners',
+    'src/physics/native_tu15_constraint_solver.cpp': 'Standalone typed constraint solver pending positive-iteration physical qualification; production retains actual 0x326A40 residual',
+    'src/physics/native_tu15_constraint_solver_rows.cpp': 'Standalone typed constraint row kernels pending their admitted solver consumer; production retains actual 0x326A40 residual',
+    'src/physics/native_tu15_constraint_custom_schema.cpp': 'Standalone typed custom-schema callbacks require an admitted production solver consumer and physical qualification; production retains its existing custom-schema refusal/residual owner',
     'src/ui/vista/vista_lobby_leave_return.cpp': 'Original Vista UI reference component without a frontend caller',
     'src/ui/vista/vista_network_browser.cpp': 'Original Vista UI reference component without a frontend caller',
     'src/ui/vista/vista_network_browser_back.cpp': 'Original Vista UI reference component without a frontend caller',
+    'src/ui/original_matchmaking_fonts.cpp': 'Offline Xbox font reference control; excluded from the MCC runtime',
+    'src/ui/original_matchmaking_emblems.cpp': 'Offline Xbox emblem reference control; excluded from the MCC runtime',
+    'src/ui/original_matchmaking_audio.cpp': 'Offline Xbox matchmaking audio reference control; excluded from the MCC runtime',
+    'src/ui/original_loading_assets.cpp': 'Offline Xbox loading asset reference control; excluded from the MCC runtime',
     'src/gameplay/multiplayer/multiplayer_locomotion_continuity.cpp': 'Locomotion group is not yet part of the production handoff frontier',
     'src/ui/widgets/native_vista_widget_image.cpp': 'Original Vista PE widget-image component without a production caller',
     'src/ui/widgets/vista_widget_backing.cpp': 'Vista widget heap component requires actual allocation providers',
     'src/ui/widgets/vista_widget_font_ambient.cpp': 'Vista ambient font environment component without a production caller',
     'src/rendering/world/source_sky_stencil.cpp': 'Frozen sky-stencil reference prototype requires actual production draw inputs',
+    'src/rendering/world/source_decorator_decals_tu15.cpp': 'Decorator asset preparation requires an admitted production BSP scene consumer',
+    'src/rendering/world/source_decorator_owners_tu15_generated.cpp': 'Decorator native owners require an admitted production BSP scene consumer',
+    'src/rendering/effects/source_decorator_decal_draw.cpp': 'Decorator draw component requires the actual production BSP command bank',
+    'src/rendering/effects/source_decorator_decal_material.cpp': 'Decorator material component requires the admitted production draw consumer',
+    'src/rendering/loading/source_loading_program_tu15_generated.cpp': 'TU1.5 loading compositor component without a production entry/service caller',
+    'src/ui/source_loading_assets.cpp': 'MCC loading bitmap adapter without a production loading-scene caller',
+    'src/ui/menu_world_vertex_source.cpp': 'Offline native vertex code generation; production uses immutable kernel and metadata catalogs',
 }
 
 
@@ -51,11 +71,29 @@ def digest(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
+TOOL_SOURCE_SUFFIXES = frozenset({'.py','.pyi','.sh','.bash','.bat','.c','.cc','.cpp','.cxx',
+    '.h','.hpp','.hxx','.inl','.inc','.s','.S','.cmake','.json','.jsonl','.tsv','.csv',
+    '.txt','.md','.rst','.yaml','.yml','.toml','.glsl','.vert','.frag','.geom','.comp',
+    '.fx','.cs','.java','.xml','.ini','.config','.proto','.def','.idl','.rc','.tt','.ttinclude','.zlib'})
+
+
+def tool_source_path(path):
+    """Generator code and authored inputs, excluding caches/build/editor outputs."""
+    relative = Path(path)
+    if any(part in {'__pycache__','target','build','CMakeFiles','node_modules','tmp','temp'} or
+           part.startswith(('.', 'cmake-build-')) for part in relative.parts[:-1]):
+        return False
+    return (relative.suffix in TOOL_SOURCE_SUFFIXES and not relative.name.startswith('.') and
+            not re.search(r'(?:^|[.-])(?:tmp|temp|bak|orig|rej)(?:[.-]|$)', relative.name))
+
+
 def source_hashes(root):
     files = [root / 'CMakeLists.txt']
     for name in ('src', 'include', 'cmake', 'shaders', 'data', 'rust'):
         files.extend(p for p in (root / name).rglob('*') if p.is_file()
                      and 'target' not in p.relative_to(root / name).parts)
+    files.extend(p for p in (root / 'tools').rglob('*') if p.is_file() and
+                 tool_source_path(p.relative_to(root/'tools')))
     return {p.relative_to(root).as_posix(): digest(p) for p in sorted(files)}
 
 
@@ -77,7 +115,7 @@ def freeze_source(root, destination):
             shutil.copy2(path, tests / path.name)
         elif path.is_dir() and path.name != '__pycache__':
             (tests / path.name).symlink_to(path, target_is_directory=True)
-    for name in ('assets', 'resources', 'multiplayer', 'analysis', '.tools'):
+    for name in ('assets', 'resources', 'multiplayer', 'analysis', '.tools', 'Halo 2 Vista installer'):
         if (root / name).exists():
             (destination / name).symlink_to(root / name, target_is_directory=True)
     if source_hashes(destination) != before or source_hashes(root) != before:
@@ -90,11 +128,18 @@ def source_status(root, runtime):
     if not path.is_file():
         return 'Engine source: no source inventory for the selected runtime'
     recorded = {n: h for n, h in json.loads(path.read_text()).items()
-                if n == 'CMakeLists.txt' or n.startswith(('src/', 'include/', 'cmake/', 'shaders/', 'data/', 'rust/'))}
+                if n == 'CMakeLists.txt' or n.startswith(('src/', 'include/', 'cmake/', 'shaders/', 'data/', 'rust/')) or
+                   (n.startswith('tools/') and tool_source_path(n.removeprefix('tools/')))}
     current = source_hashes(root)
+    legacy = not any(n.startswith('tools/') for n in recorded) and any(n.startswith('tools/') for n in current)
+    if legacy:
+        # This is a diagnostic only. Keep qualified older runtimes usable,
+        # while avoiding a false claim that their generator provenance matches.
+        current = {n:h for n,h in current.items() if not n.startswith('tools/')}
     changed = sum(recorded.get(n) != current.get(n) for n in recorded.keys() | current.keys())
-    return ('Engine source: matches the selected runtime' if not changed else
-            f'Engine source: {changed} files differ from the selected runtime; use --build-engine')
+    status = ('Engine source: matches the selected runtime' if not changed else
+              f'Engine source: {changed} files differ from the selected runtime; use --build-engine')
+    return status+'; selected runtime lacks generator source provenance' if legacy else status
 
 
 def wiring(graph, root):
@@ -105,8 +150,13 @@ def wiring(graph, root):
         normalized = []
         for source in sources.split(';'):
             path = Path(source)
-            if path.is_absolute() and path.is_relative_to(root):
-                source = path.relative_to(root).as_posix()
+            if path.is_absolute():
+                # CMAKE_CURRENT_LIST_DIR commonly contributes /cmake/../src.
+                # Compare the actual source path with the cohort root before
+                # classifying it; lexical containment can also admit ../ exits.
+                path = path.resolve()
+                if path.is_relative_to(root):
+                    source = path.relative_to(root).as_posix()
             normalized.append(source)
             # NativeTranslationUnits.cmake compiles unchanged body partitions
             # rather than the oversized authenticated source file itself.
@@ -129,6 +179,14 @@ def wiring(graph, root):
             continue
         closure.add(name)
         pending.extend(p.removeprefix('$<LINK_ONLY:').removesuffix('>') for p in targets[name][0])
+        # target_sources can archive an OBJECT library without listing it in
+        # LINK_LIBRARIES. Follow only an exact ownership expression from a
+        # reachable target; build-only dependencies and conditional expressions
+        # do not establish that an object's code reached the engine.
+        for source in targets[name][2]:
+            objects = re.fullmatch(r'\$<TARGET_OBJECTS:([^<>;]+)>', source)
+            if objects and objects[1] in targets:
+                pending.append(objects[1])
     linked = {s for t in closure for s in targets[t][2] if s.startswith('src/')}
     isolated = {}
     for name, (_, _, sources) in targets.items():
@@ -147,7 +205,7 @@ def wiring(graph, root):
                 unregistered_sources=unregistered, unexpected_unwired_sources=missing,
                 component_boundaries={s: SEPARATE_COMPONENTS[s] for s in sorted(set(isolated) | set(unregistered))
                                       if s in SEPARATE_COMPONENTS},
-                scope='Transitive link graph; separate components require real callers before runtime acceptance')
+                scope='Transitive library links and direct object-source ownership; separate components require real callers before runtime acceptance')
 
 
 def smoke(runtime, maps, name, players, scratch, timeout, root=ROOT, video_driver=''):
@@ -405,6 +463,7 @@ def worker(args):
     players = prior['local_players'] if prior else 1
     source = scratch / 'source'
     reuse_owned_build = getattr(args, 'reuse_owned_build', False)
+    configuration = getattr(args, 'config', 'Release')
     if reuse_owned_build:
         # A finite run_test.py coordinator already owns this frozen source
         # and build. Reuse that exact tree, including its declared refreshes;
@@ -439,6 +498,8 @@ def worker(args):
         pins = source_hashes(source)
     else:
         pins = freeze_source(root, source)
+    from custom_assets import inventory as custom_asset_inventory, install as install_custom_assets
+    asset_pins = custom_asset_inventory(root)
     map_pins = {name: digest(maps / name) for name in names}
     destination = root / 'bin/engine-builds' / uuid.uuid4().hex
     output = args.output.resolve()
@@ -446,12 +507,22 @@ def worker(args):
     atomic_json(output / 'source-hashes.json', pins)
     report = dict(passed=False,
                   scope='qualified_candidate_only' if prepare_only else
+                      'Owned frozen source cohort, launcher routing checks and MCC submitted-frame smoke'
+                      if reuse_owned_build else
                       'Current source build, launcher routing checks and MCC submitted-frame smoke',
                   status='building', qualified_candidate=False, runtime_installed=False,
                   runtime=destination.relative_to(root).as_posix() + '/halo2_native',
                   unresolved_case_failures=[], accepted_case_failures=[],
                   limits=['No full gameplay, Xbox framebuffer or audio parity claim'])
     report['reused_active_owned_build'] = reuse_owned_build
+    report['build_configuration'] = configuration
+    # A reused qualification belongs to this declared source/build pair, which
+    # can intentionally differ from a concurrently edited working tree. Record
+    # its exact inventory rather than calling that tree the current sources.
+    report['source_cohort'] = dict(
+        kind='active_owned_frozen' if reuse_owned_build else 'working_tree_snapshot',
+        source=str(source.resolve()), build=str((scratch / 'build').resolve()),
+        inventory_sha256=digest(output / 'source-hashes.json'))
     if cache_candidate is not None:
         report['cache_candidate'] = cache[0].relative_to(root).as_posix()
     promoted = False
@@ -467,8 +538,12 @@ def worker(args):
                    '--filter', '^(launcher_first_run|title_launcher_first_run|bundled_launcher_first_run|'
                    'launcher_automatic_build|launcher_engine_promotion|native_gameplay_launcher_routing|native_frontend_launcher_routing|original_tu15_shadow_array_swap)$',
                    '--jobs', str(args.jobs), '--test-jobs', '1',
+                   '--config', configuration,
                    '--cmake-arg=-DHALO2_BUILD_LAUNCHERS_WITH_NATIVE=ON',
                    '--cmake-arg=-DHALO2_STAGE_BUILD_OUTPUT=OFF',
+                   '--cmake-arg=-DHALO2_STAGE_CUSTOM_ASSETS=ON',
+                   '--cmake-arg=-DHALO2_CUSTOM_ASSET_ROOT=' + str(root),
+                   '--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT=' + str(root),
                    '--cmake-arg=-DHALO2_BUNDLE_MOVIES=OFF',
                    '--cmake-arg=-DHALO2_LAUNCHER_RUNTIME_DIR=' + str(destination),
                    '--cmake-arg=-DHALO2_RUNTIME_SHADER_DIR=' + str(destination / 'shaders'),
@@ -492,6 +567,12 @@ def worker(args):
         if source_hashes(source) != pins:
             raise RuntimeError('Frozen engine source changed during the build')
         build = scratch / 'build'
+        # An active frozen cohort can predate CMake's custom-source target.
+        # Asset delivery has its own current, pinned owner, so stage it through
+        # this coordinator even when that older build did not create a bank.
+        staged_assets = install_custom_assets(root, build / 'custom-assets')
+        if staged_assets['files'] != asset_pins:
+            raise RuntimeError('Custom assets changed during the engine build; existing runtime retained')
         report['wiring'] = wiring(build / 'engine-targets.txt', source)
         if not report['wiring']['passed']:
             raise RuntimeError('Engine sources are missing from the runtime link graph: ' +
@@ -506,7 +587,25 @@ def worker(args):
             raise RuntimeError('EOS runtime library or packaged game configuration was not delivered')
         for name in ('shaders', 'data', 'upscalers', 'lib'):
             if (build / name).is_dir():
-                shutil.copytree(build / name, destination / name)
+                if name == 'shaders':
+                    from stage_native_renderer_shaders import stage_production_shaders
+                    shader_package = stage_production_shaders(build, destination / name)
+                    report['native_renderer_shader_package'] = {
+                        'passed': shader_package['passed'],
+                        'module_count': shader_package['module_count'],
+                        'inventory_sha256': shader_package['inventory_sha256'],
+                        'report': str((destination / name / 'production-shaders.json').relative_to(root)),
+                        'report_sha256': digest(destination / name / 'production-shaders.json')}
+                else:
+                    shutil.copytree(build / name, destination / name)
+        custom_assets = install_custom_assets(build / 'custom-assets', destination / 'custom-assets')
+        if custom_assets['files'] != asset_pins:
+            raise RuntimeError('Custom assets changed during the engine build; existing runtime retained')
+        report['custom_assets'] = dict(
+            path='custom-assets/custom-assets.json',
+            sha256=digest(destination / 'custom-assets/custom-assets.json'),
+            files=len(asset_pins), bytes=custom_assets['bytes'],
+            scope='Authenticated custom asset sources; gameplay admission remains separate')
         runtime = destination / 'halo2_native'
         from native_gameplay_test import eos_worker_descriptor, validate_eos_worker
         report['eos_worker'] = eos_worker_descriptor(runtime)
@@ -543,7 +642,8 @@ def worker(args):
                                       report['eos_worker'])
             atomic_json(destination / 'frontend-selection.json', frontend_record)
             report['frontend'] = dict(passed=True, runtime=frontend_record['runtime'])
-        if source_hashes(source) != pins or any(digest(maps / name) != pin for name, pin in map_pins.items()):
+        if (source_hashes(source) != pins or custom_asset_inventory(root) != asset_pins or
+                any(digest(maps / name) != pin for name, pin in map_pins.items())):
             raise RuntimeError('Frozen engine source or MCC maps changed during validation; existing runtime retained')
         if not prepare_only and (selection.read_bytes() if selection.is_file() else None) != previous:
             raise RuntimeError('Another task changed the launcher selection during validation; its selection retained')
@@ -611,6 +711,8 @@ def main():
     parser.add_argument('--root', type=Path, default=ROOT)
     parser.add_argument('--output', type=Path, default=ROOT / 'analysis/launcher-engine-build/latest')
     parser.add_argument('--jobs', type=int, default=2)
+    parser.add_argument('--config', choices=('Debug', 'Release', 'RelWithDebInfo', 'MinSizeRel'),
+                        default='Release', help='CMake build configuration (default: Release)')
     parser.add_argument('--timeout', type=float, default=180)
     parser.add_argument('--status', action='store_true')
     parser.add_argument('--runtime', type=Path)

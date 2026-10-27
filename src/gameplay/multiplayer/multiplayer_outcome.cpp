@@ -23,6 +23,8 @@ MultiplayerRuntimeOutcome retain_multiplayer_outcome(MultiplayerExitReason reaso
     case MultiplayerExitReason::escape: break;
     case MultiplayerExitReason::session_world_close: break;
     case MultiplayerExitReason::online_postgame:
+    case MultiplayerExitReason::system_link_postgame:
+    case MultiplayerExitReason::system_link_lobby:
     case MultiplayerExitReason::online_disconnected: break;
     default: throw FormatError("Unknown native multiplayer exit reason");
   }

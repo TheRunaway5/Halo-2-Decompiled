@@ -1,5 +1,62 @@
 # MCC loading presentation
 
+## Original loading screens, October 26, 2026
+
+The user asked for the original logo/animation loading screen, not the
+`LOADING NN%` caption, with its music taken from the installed Halo 2 Editing
+Kit (Steam app 1613450). ONLINE starts use the original `PLEASE WAIT` dialog.
+
+**Logo/sweep screen.** H2EK `loading_dx11.bin` holds the original PC loading
+art as six contiguous DDS images for normal-mode slots 0, 1, 3, 4, 5 and 11:
+the blue 1280×1024 background, the HALO 2 logo, both spinners, the sweep strip
+and the real starburst glow mask. Against the exported original PC loading
+bank they match within DXT error (background 42.95 dB PSNR once D3DX's
+power-of-two stretch is undone; about 1% RMSE elsewhere). The MCC V3 bank's
+greyscale background and reconstructed mask are therefore not used when the
+kit is present. The music is the original four-voice ambience already pinned in
+the H2EK tool executables' `.rdata`.
+
+`tools/h2ek_loading_ambience.py` stages both into
+`presentation/original-loading-v2` (policy
+`tools/data/h2ek-original-loading-v2.json`, schema
+`H2_H2EK_ORIGINAL_LOADING_V2`). It reads data only; no PE is executed. The
+earlier ambience-only V1 bank is byte-checked and kept as a reference. At
+launch, `configure_h2ek_original_loading_presentation` admits the bank,
+checking the exact DDS headers and hashes, the ADPCM hash and the decoded PCM.
+It decodes BC through the same path as the MCC inputs and binds
+`NativeVistaLoadingAudio`. Without a kit, MCC V3 remains selected. Returning to
+the menu after a match now uses this screen; the `LOADING NN%` map-copy wait is
+only a fallback when no logo bank exists.
+
+**ONLINE dialog.** TU1.5 opens screen 231
+(`network_transition_progress_screen`) from `0x19430A → 0x1959C7` while a
+networked simulation world exists but is not yet active. Its update `0x258605`
+replaces pane text0 with the status selected by `0x19481B`. The black UI-only
+frame comes from `0x229C50 → 0x2C880`, and `0x255AFB` swallows all input. The
+port keeps the dialog over black and maps its statuses as follows:
+
+| Port phase | TU1.5 string | Text |
+|---|---|---|
+| online map world preparation | `network_loading_map` | Loading map... |
+| new renderer's admitted frame until the first gameplay draw | `network_joining` | Setting up game... |
+| post-game, disconnect or escape back to the menu | `network_leaving` | Leaving game... |
+
+TU1.5 itself shows `Loading map...` only for a pending blocking map copy,
+whose frames draw the percentage wait instead. Our MCC maps need no copy, so
+the user chose this mapping for the port's real world preparation.
+`FrontendNetworkTransitionPainter` paints the dialog with the frontend's own
+pane primitives from the selected MCC content, fonts and sampled pages. That
+covers bitmap order, animation 58, the flag-4 pulse, kerning and shadows, and
+the 480/1200 projection. It keeps only the materials it uses (all prefixed
+`network-transition/`). The loading bridge presents it with the map-wait
+lifecycle, and the renderer admits that small UI bank. The original dialog's
+one-second fade of all sound classes to −64 dB is not reproduced.
+
+`original_loading_gpu_tests` (`HALO2_ORIGINAL_LOADING_CACHE`) captures both
+screens through real forward/reverse Vulkan handoffs.
+
+## MCC-only requirement, October 21, 2026
+
 The user's requirement, reaffirmed October21, 2026, makes MCC imports the sole
 runtime asset source. Vista and OG Xbox TU1.5 provide reference evidence only.
 This supersedes the earlier bundled-original-tone exception described below.

@@ -20,7 +20,11 @@ class MccSymbolReferenceTu15:
                  for old, new, name in re.findall(
                      r'\{0x([0-9a-f]+)u,0x([0-9a-f]+)u,"([^"]*)"\}', table.read_text())}
         sites = dict(OBJECT_FUNCTION_SYMBOLS)
-        for pc, name in ((0x17b232, 'any'), (0x17b2ec, 'replace'), (0x17b35d, 'root'),
+        # The live body owner links these two exact non-dual grip queries.
+        # Their cached channel indices differ on MCC inputs without the same
+        # authenticated name join in this explicit reference mode.
+        for pc, name in ((0x115d68, 'grip'), (0x115d83, 'grip'),
+                         (0x17b232, 'any'), (0x17b2ec, 'replace'), (0x17b35d, 'root'),
                          (0x101cad, 'forward'), (0x101cc5, 'backward'),
                          (0x100ea4, 'range_remaining'), (0x100eb0, 'tracer'),
                          (0x100eb7, 'time_remaining'), (0x100f04, 'projectile_attach'),

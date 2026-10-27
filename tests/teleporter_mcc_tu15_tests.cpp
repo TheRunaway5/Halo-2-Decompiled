@@ -118,7 +118,7 @@ int main(int argc,char **argv)try {
         <<" local_view="<<local_view<<" approach="<<approach<<'\n';
     return 0;
   }
-  LanHost host(match,0,0x1568u);LanClient client("127.0.0.1:"+std::to_string(host.port()),0x1568u,1);
+  LanHost host(match,0,0x1568u);LanClient client(host.join_address(),0x1568u,1);
   std::array<Controls,1> remote{};
   for(unsigned n=0;n<20 && !client.ready();++n) {
     client.send(remote);host.receive(controls);host.broadcast();client.receive();

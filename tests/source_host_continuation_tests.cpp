@@ -60,7 +60,7 @@ std::size_t first_peer_idle(std::span<const std::byte> bytes){
   const auto u=[&](unsigned width){check(cursor+width<=bytes.size(),"Fixture host field exceeds bytes");std::uint64_t v{};
     for(unsigned i=0;i<width;++i)v|=std::uint64_t(std::to_integer<unsigned>(bytes[cursor++]))<<(8*i);return v;};
   const auto configuration=u(4);cursor+=configuration+16;const auto seats=u(1);
-  for(unsigned i=0;i<seats;++i){cursor+=1;const auto name=u(4);cursor+=name+4+8+4+1;}
+  for(unsigned i=0;i<seats;++i){cursor+=1;const auto name=u(4);cursor+=name+4+8+4+1;if(u(1))cursor+=1;}
   const auto roster=u(1);cursor+=roster*(1+4+12);check(u(1)>0,"Fixture host has no peer");
   cursor+=1+8+8;const auto views=u(1);cursor+=views*2;
   for(unsigned i=0;i<views;++i)if(u(1))cursor+=std::tuple_size_v<SourcePlayerConfiguration>;
@@ -70,6 +70,10 @@ std::size_t first_peer_idle(std::span<const std::byte> bytes){
 }
 int main(int argc,char **argv)try {
   std::cout<<std::unitbuf;if(argc!=3||!std::filesystem::exists(argv[1])||!std::filesystem::exists(argv[2]))return 77;
+  // CTest selects H2_NET_PROFILE=complete for this exact complete-packet
+  // contract. Adaptive delta sender ACK/baseline/bandwidth history belongs to
+  // its separate transport owner and is not contained in the native sidecar.
+  // Keep every packet-byte and complete source-world comparison strict.
   MultiplayerOptions options;options.gameplay_xbe=argv[1];options.map=argv[2];options.starting_weapon=5;
   options.local_players=1;options.source_object_world=true;
   MultiplayerPreparedWorld producer(options,std::nullopt,std::make_shared<FixedClock>());
@@ -79,6 +83,7 @@ int main(int argc,char **argv)try {
   constexpr std::uint64_t fingerprint=0x15c071000;
   std::vector<OnlineAdmission> roster;
   for(unsigned slot=0;slot<6;++slot)roster.push_back({slot,"Couch "+std::to_string(slot),-1,{},slot==0?0u:slot<5?1u:5u,slot>1&&slot<5});
+  roster[0].matchmaking_level=1;roster[5].matchmaking_level=50;
   auto host=std::make_unique<LanHost>(match,wire,fingerprint,roster);
   const std::array profiles{profile("Remote one"),profile("Remote two"),profile("Remote three"),profile("Remote four")};
   LanClient couch(std::make_shared<Endpoint>(bus,1),0,fingerprint,{},profiles);
@@ -129,6 +134,8 @@ int main(int argc,char **argv)try {
   rejects([&]{decode_source_host_continuation(changed_bundle,context,fingerprint,roster,admitted);});
   SourceAuthorityCodecLimits tight;tight.encoded_bytes=bundled.size()-1;
   rejects([&]{decode_source_host_continuation(bundled,context,fingerprint,roster,admitted,tight);});
+  auto staging=source_authority_network_codec_limits();staging.staged_bytes=1;
+  rejects([&]{decode_source_host_continuation(bundled,context,fingerprint,roster,admitted,staging);});
   rejects([&]{encode_source_host_continuation(captured,tight);});
   const LanHost::ContinuationBinding bound{context,{1,authority.execution_tick(),cut_bytes.size(),hash(cut_bytes)}};
   const auto wire_bytes=LanHost::encode_continuation(sidecar,bound);
@@ -151,6 +158,10 @@ int main(int argc,char **argv)try {
   rejects([&]{LanHost::decode_continuation(wire_bytes,bound,fingerprint+1,roster,admitted);});
   auto wrong_admission=admitted;wrong_admission.back().identity.front()^=0x80;
   rejects([&]{LanHost::decode_continuation(wire_bytes,bound,fingerprint,roster,wrong_admission);});
+  auto changed_rank=roster;changed_rank.back().matchmaking_level=49;
+  rejects([&]{LanHost::decode_continuation(wire_bytes,bound,fingerprint,changed_rank,admitted);});
+  changed_rank=roster;changed_rank.back().matchmaking_level.reset();
+  rejects([&]{LanHost::decode_continuation(wire_bytes,bound,fingerprint,changed_rank,admitted);});
   // Named protocol extents, independent of private C++ structure layout.
   constexpr unsigned configuration_at=44+2+47+56+32+8+8;
   std::uint32_t configuration_bytes{};for(unsigned i=0;i<4;++i)configuration_bytes|=std::uint32_t(std::to_integer<unsigned>(wire_bytes.at(configuration_at+i)))<<(i*8);
@@ -196,8 +207,22 @@ int main(int argc,char **argv)try {
     f.outputs={bus->incoming[1],bus->incoming[5]};frames.push_back(std::move(f));
     couch.receive();other.receive();
   }
-  SourceReplayBatch batch{{context,bound.world,bound.world,1},{}};
-  for(const auto &f:frames)batch.steps.push_back({f.before,f.after,f.phase});
+  SourceReplayBatch local_tape{{context,bound.world,bound.world,1},{}};
+  bool saw_local_camera{};
+  for(const auto &f:frames){local_tape.steps.push_back({f.before,f.after,f.phase});
+    for(const auto &call:f.phase.calls)saw_local_camera|=call.kind==SourceExecutionCallKind::PlayerCamera;}
+  check(saw_local_camera,"Actual host broadcast no longer exercises its local camera capability");
+  rejects([&]{encode_source_host_replay({local_tape,frames.back().host});});
+  // The complete checkpoint and trusted local diagnostic replay below retain
+  // every real camera operation. They are not a transferable network journal.
+  // Exercise paired-envelope grammar with a separate actual no-op phase at
+  // the final complete cut, without filtering calls from the gameplay tape.
+  const auto expected=encode_source_authority(authority.checkpoint(binding));
+  const AuthorityCutSeal codec_base{1,authority.execution_tick(),expected.size(),hash(expected)};
+  SourceReplayBatch batch{{context,codec_base,codec_base,1},{}};
+  auto observation=authority.capture_execution_phase([]{});
+  check(observation.calls.empty()&&observation.inputs.empty(),"No-op codec observation unexpectedly supplied gameplay");
+  batch.steps.push_back({codec_base.tick,codec_base.tick,std::move(observation)});
   const auto paired_replay=encode_source_host_replay({batch,frames.back().host});
   check(source_host_replay_payload(paired_replay)&&!source_host_continuation_payload(paired_replay)&&
       !source_replay_batch_payload(paired_replay),"Paired replay envelope was mistaken for another stream format");
@@ -234,7 +259,6 @@ int main(int argc,char **argv)try {
   corrupt_replay.at(48+16+48+24)^=std::byte{1};rehash(corrupt_replay);
   changed_parent.base.digest.front()^=std::byte{1};
   rejects([&]{decode_source_host_replay(corrupt_replay,changed_parent,fingerprint,roster,admitted);});
-  const auto expected=encode_source_authority(authority.checkpoint(binding));
   host.reset(); // The continuation must own every peer/camera value after this.
   std::exception_ptr imported_error;
   {std::jthread executor([&]{try {
@@ -256,6 +280,10 @@ int main(int argc,char **argv)try {
     bad=admitted;bad.pop_back();rejects([&]{create(sidecar,binding,fingerprint,roster,bad);});
     auto changed=roster;changed.back().name="Unadmitted";
     rejects([&]{create(sidecar,binding,fingerprint,changed,admitted);});
+    changed=roster;changed.back().matchmaking_level=49;
+    rejects([&]{create(sidecar,binding,fingerprint,changed,admitted);});
+    changed=roster;changed.back().matchmaking_level.reset();
+    rejects([&]{create(sidecar,binding,fingerprint,changed,admitted);});
     imported.capture_execution_phase([&]{rejects([&]{create(sidecar,binding,fingerprint,roster,admitted);});});
     const auto original_locals=target.local_slots;
     target.bind_source_local_views(std::array{1u});
@@ -276,6 +304,23 @@ int main(int argc,char **argv)try {
           delivered[0].yaw=target.match.unit(0).yaw;resumed->receive(delivered);target.match.step(delivered);resumed->broadcast();
         });
       }catch(const std::exception &e){throw FormatError("Host replay phase "+std::to_string(phase)+": "+e.what());}
+      for(unsigned peer=0;peer<2;++peer) {
+        const auto &actual=target_bus->incoming[peer?5:1],&expected_packets=f.outputs[peer];
+        if(actual!=expected_packets) {
+          std::cerr<<"Host continuation snapshot mismatch phase="<<phase<<" peer="<<(peer?5:1)
+            <<" actual_packets="<<actual.size()<<" expected_packets="<<expected_packets.size()
+            <<" actual_first_kind="<<(!actual.empty()&&actual.front().bytes.size()>6?std::to_integer<unsigned>(actual.front().bytes[6]):0)
+            <<" expected_first_kind="<<(!expected_packets.empty()&&expected_packets.front().bytes.size()>6?std::to_integer<unsigned>(expected_packets.front().bytes[6]):0)<<'\n';
+          for(unsigned packet=0;packet<std::min(actual.size(),expected_packets.size());++packet)
+            if(actual[packet]!=expected_packets[packet]) {
+              const auto &a=actual[packet].bytes,&b=expected_packets[packet].bytes;std::size_t at{};
+              while(at<std::min(a.size(),b.size())&&a[at]==b[at])++at;
+              std::cerr<<" first_packet="<<packet<<" actual_bytes="<<a.size()<<" expected_bytes="<<b.size()
+                <<" actual_kind="<<(a.size()>6?std::to_integer<unsigned>(a[6]):0)
+                <<" expected_kind="<<(b.size()>6?std::to_integer<unsigned>(b[6]):0)<<" first_difference="<<at<<'\n';break;
+            }
+        }
+      }
       check(target_bus->incoming[1]==f.outputs[0]&&target_bus->incoming[5]==f.outputs[1],
           "Restored host changed an actual complete snapshot, sequence, camera or connection binding");
       target_bus->incoming[1].clear();target_bus->incoming[5].clear();
@@ -294,6 +339,6 @@ int main(int argc,char **argv)try {
   }catch(...){imported_error=std::current_exception();}});}
   if(imported_error)std::rethrow_exception(imported_error);
   std::cout<<"PASS encoded host continuation across native executors: bounded canonical bytes, exact generation/membership/world-seal/roster binding, malformed-prefix/count/local-view rejection, two logical peers/four couch views, complete native world/cameras/snapshots, consumed input serials and no rebirth\n";
-  std::cout<<"LIMIT test logical adapter and same host/local ownership; no election, generation handoff, controller/voice/WAN or automatic migration acceptance\n";
+  std::cout<<"LIMIT complete snapshot profile, logical adapter and same host/local ownership; no default delta-stream continuation, election, generation handoff, controller/voice/WAN or automatic migration acceptance\n";
   return 0;
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

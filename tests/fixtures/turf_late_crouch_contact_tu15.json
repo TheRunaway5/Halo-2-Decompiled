@@ -1,0 +1,14 @@
+{
+  "name": "Turf medical tent late crouch collision regression; ordinary landing control",
+  "spawn": [-7.904962, 11.499315, 4.0],
+  "scenario_definition_names": [
+    "scenarios\\objects\\multi\\turf\\tent_medical_solidpanel_turf\\tent_medical_solidpanel_turf"
+  ],
+  "expected_launch": false,
+  "minimum_native_contact_queries": 1,
+  "expected_peak_upward_speed_bits": 1075755222,
+  "segments": [
+    {"ticks": 38, "crouch": true},
+    {"ticks": 80}
+  ]
+}

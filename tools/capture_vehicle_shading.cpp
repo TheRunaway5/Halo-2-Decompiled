@@ -278,7 +278,7 @@ int main(int argc,char**argv)try{
   {
     auto& match=options.prepared_world->match;
     constexpr std::uint32_t key=0x76656869u;
-    LanHost host(match,0,key);LanClient client("127.0.0.1:"+std::to_string(host.port()),key,1);
+    LanHost host(match,0,key);LanClient client(host.join_address(),key,1);
     std::array<Controls,1> input{};std::array<Controls,multiplayer_capacity> controls{};
     for(unsigned attempt=0;attempt<40 && !client.ready();++attempt){
       client.send(input);host.receive(controls);host.broadcast();client.receive();

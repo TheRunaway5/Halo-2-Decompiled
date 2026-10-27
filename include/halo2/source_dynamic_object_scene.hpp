@@ -4,6 +4,7 @@
 #include "halo2/object_lighting.hpp"
 #include "halo2/appearance.hpp"
 #include "halo2/source_prt.hpp"
+#include "halo2/model_skin_submission.hpp"
 #include <memory>
 
 namespace halo2 {
@@ -16,6 +17,8 @@ struct SourceDynamicObjectDraw {
     ObjectColors colors;
     std::vector<SourcePrtMaterialBank> prt;
     float camouflage{};
+    // Set when vertices are local records the renderer deforms (GPU route).
+    std::vector<ModelSkinSubmission> skins;
 };
 class SourceDynamicObjectScene {
     struct PreparedData;

@@ -14,10 +14,18 @@ VoiceOrigin::Key public_key(const VoiceOrigin::Key &seed){
 }
 int main(){try{
   LanPacketAuth host_auth,client_auth;LanPacketAuth::Session host_session,client_session;
-  host_auth.bind(host_session,client_auth.public_key());
+  LanPacketAuth::Context context{};context[0]=107;
+  host_auth.bind(host_session,client_auth.public_key(),true,context);
+  client_auth.bind(client_session,host_auth.public_key(),false,context);
   auto original=host_auth.seal(std::vector<std::byte>{std::byte{3}},host_session,true);
   auto changed=original;changed.back()^=std::byte{1};
   check(!client_auth.open(changed,client_session,true),"Invalid MAC pinned a key");
+  LanPacketAuth attacker;LanPacketAuth::Session attacker_session,unbound;
+  attacker.bind(attacker_session,client_auth.public_key(),true,context);
+  auto forged=attacker.seal(std::vector<std::byte>{std::byte{3}},attacker_session,true);
+  auto first_forgery=forged;
+  check(!client_auth.open(first_forgery,unbound,true)&&!unbound.peer,"Unbound client accepted an attacker's self-declared host key");
+  check(!client_auth.open(forged,client_session,true)&&client_session.peer==host_auth.public_key(),"Attacker's first frame replaced independently selected host key");
   auto packet=original;check(client_auth.open(packet,client_session,true),"Rust/C++ authenticated snapshot rejected");
   packet=original;check(!client_auth.open(packet,client_session,true),"Rust/C++ replay accepted");
   PeerPacketQueue queue;std::vector<std::byte> payload(1404),received;unsigned source{};

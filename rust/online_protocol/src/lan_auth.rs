@@ -1,5 +1,5 @@
-//! Established raw-LAN authentication. Endpoint keys are fixed by admission;
-//! discovery supplies no external server identity or confidentiality claim.
+//! Raw-LAN authentication with independently exchanged host keys. Both endpoints
+//! must bind the expected peer and handshake context before opening any frame.
 //!
 //! `LNA1` frames carry the sender's public key and a full HMAC-SHA256 tag.
 //! Once a peer has proven the shared key with an authenticated frame, the
@@ -23,7 +23,7 @@ impl std::error::Error for Error {}
 pub struct Endpoint { secret: StaticSecret, public: [u8; 32] }
 #[derive(Clone, Default)]
 pub struct Session {
-    peer: Option<[u8; 32]>, shared: [u8; 32], sent: u64, received: u64, seen: [u64; 16], established: bool,
+    peer: Option<[u8; 32]>, host: Option<bool>, context: [u8;24], shared: [u8; 32], sent: u64, received: u64, seen: [u64; 16], established: bool,
 }
 impl Endpoint {
     pub fn new() -> Result<Self, Error> {
@@ -32,14 +32,26 @@ impl Endpoint {
         Ok(Self { public: PublicKey::from(&secret).to_bytes(), secret })
     }
     pub fn public(&self) -> [u8; 32] { self.public }
-    pub fn bind(&self, session: &mut Session, peer: [u8; 32]) -> Result<(), Error> {
-        if let Some(old) = session.peer { return if old == peer { Ok(()) } else { Err(Error) }; }
+    pub fn bind(&self, session: &mut Session, peer: [u8; 32], host: bool, context: [u8;24]) -> Result<(), Error> {
+        if let Some(old) = session.peer {
+            return if old == peer && session.host == Some(host) && session.context == context { Ok(()) } else { Err(Error) };
+        }
         let shared = self.secret.diffie_hellman(&PublicKey::from(peer));
         if !shared.was_contributory() { return Err(Error); }
-        session.shared = shared.to_bytes(); session.peer = Some(peer); Ok(())
+        let mut kdf = Hmac::<Sha256>::new_from_slice(shared.as_bytes()).expect("fixed HMAC key");
+        kdf.update(b"H2LAN107 handshake");
+        kdf.update(b"host"); kdf.update(if host { &self.public } else { &peer });
+        kdf.update(b"client"); kdf.update(if host { &peer } else { &self.public });
+        // Protocol, client nonce, content fingerprint, and the client's resolved
+        // destination IPv4/port. This declaration permits explicit UDP proxies;
+        // the independently exchanged host key authenticates its entire value.
+        kdf.update(&context);
+        session.shared = kdf.finalize().into_bytes().into();
+        session.peer = Some(peer); session.host = Some(host); session.context = context; Ok(())
     }
     pub fn seal(&self, s: &mut Session, host: bool, body: &[u8]) -> Result<Vec<u8>, Error> {
         let peer = s.peer.ok_or(Error)?;
+        if s.host != Some(host) { return Err(Error); }
         if body.len() > 1400 - OVERHEAD { return Err(Error); }
         let sequence = s.sent.checked_add(1).ok_or(Error)?;
         if s.established {
@@ -58,6 +70,7 @@ impl Endpoint {
         s.sent = sequence; Ok(frame)
     }
     pub fn open(&self, session: &mut Session, from_host: bool, bytes: &[u8]) -> Result<Vec<u8>, Error> {
+        if session.peer.is_none() || session.host != Some(!from_host) { return Err(Error); }
         if !is_packet(bytes) || bytes.len() > 1400 || bytes[4] != u8::from(from_host) { return Err(Error); }
         if bytes.starts_with(b"LNA2") {
             // Compact frames are valid only on an already pinned session.
@@ -71,7 +84,8 @@ impl Endpoint {
             *session = candidate; return Ok(bytes[13..tag].to_vec());
         }
         let peer = bytes[13..45].try_into().map_err(|_| Error)?;
-        let mut candidate = session.clone(); self.bind(&mut candidate, peer)?;
+        if session.peer != Some(peer) { return Err(Error); }
+        let mut candidate = session.clone();
         let tag = bytes.len() - 32;
         mac(&candidate.shared, self.public, &bytes[..tag]).verify_slice(&bytes[tag..]).map_err(|_| Error)?;
         let sequence = u64::from_le_bytes(bytes[5..13].try_into().map_err(|_| Error)?);
@@ -106,12 +120,12 @@ pub fn is_packet(bytes: &[u8]) -> bool {
 }
 fn compact_mac(secret: &[u8; 32], recipient: [u8; 32], frame: &[u8]) -> Hmac<Sha256> {
     let mut mac = Hmac::<Sha256>::new_from_slice(secret).expect("fixed HMAC key");
-    mac.update(b"H2LAN102"); mac.update(&recipient); mac.update(frame); mac
+    mac.update(b"H2LAN107 compact"); mac.update(&recipient); mac.update(frame); mac
 }
 fn mac(secret: &[u8; 32], recipient: [u8; 32], frame: &[u8]) -> Hmac<Sha256> {
     // HMAC accepts every key width; this fixed-width constructor cannot fail.
     let mut mac = Hmac::<Sha256>::new_from_slice(secret).expect("fixed HMAC key");
-    mac.update(b"H2LAN101"); mac.update(&recipient); mac.update(frame); mac
+    mac.update(b"H2LAN107 full"); mac.update(&recipient); mac.update(frame); mac
 }
 impl Session {
     pub fn peer(&self) -> Option<[u8; 32]> { self.peer }
@@ -120,10 +134,62 @@ impl Session {
 mod tests {
     use super::*;
     #[test]
+    fn attacker_first_frame_cannot_choose_the_expected_host() {
+        let client = Endpoint::new().unwrap(); let attacker = Endpoint::new().unwrap();
+        let mut attacker_session = Session::default();
+        attacker.bind(&mut attacker_session, client.public(), true, [7;24]).unwrap();
+        let packet = attacker.seal(&mut attacker_session, true, b"forged snapshot").unwrap();
+        let mut unbound = Session::default();
+        assert!(client.open(&mut unbound, true, &packet).is_err());
+        assert_eq!(unbound.peer(), None);
+    }
+    #[test]
+    fn independently_bound_host_wins_both_race_orders() {
+        for attacker_first in [false, true] {
+            let host = Endpoint::new().unwrap(); let client = Endpoint::new().unwrap(); let attacker = Endpoint::new().unwrap();
+            let mut h = Session::default(); let mut a = Session::default(); let mut c = Session::default();
+            host.bind(&mut h, client.public(), true, [7;24]).unwrap();
+            attacker.bind(&mut a, client.public(), true, [7;24]).unwrap();
+            client.bind(&mut c, host.public(), false, [7;24]).unwrap();
+            let forged = attacker.seal(&mut a, true, b"forged snapshot").unwrap();
+            let genuine = host.seal(&mut h, true, b"genuine snapshot").unwrap();
+            if attacker_first { assert!(client.open(&mut c, true, &forged).is_err()); }
+            assert_eq!(client.open(&mut c, true, &genuine).unwrap(), b"genuine snapshot");
+            assert!(client.open(&mut c, true, &forged).is_err());
+            assert_eq!(c.peer(), Some(host.public())); assert_eq!(c.received, 1);
+            assert!(client.bind(&mut c, attacker.public(), false, [7;24]).is_err());
+        }
+    }
+    #[test]
+    fn handshake_binds_roles_keys_protocol_nonce_fingerprint_and_destination() {
+        let host = Endpoint::new().unwrap(); let client = Endpoint::new().unwrap();
+        let mut h = Session::default(); let mut c = Session::default();
+        host.bind(&mut h, client.public(), true, [7;24]).unwrap();
+        client.bind(&mut c, host.public(), false, [7;24]).unwrap();
+        let genuine = host.seal(&mut h, true, b"snapshot").unwrap();
+        // Protocol [0..2], nonce [2..10], content [10..18], IP/port [18..24].
+        for at in 0..24 {
+            let mut context = [7;24]; context[at] ^= 1;
+            let mut other = Session::default();
+            client.bind(&mut other, host.public(), false, context).unwrap();
+            assert!(client.open(&mut other, true, &genuine).is_err());
+            assert_eq!(other.received, 0); assert!(!other.established);
+            assert!(client.bind(&mut c, host.public(), false, context).is_err());
+        }
+        assert!(client.seal(&mut c, true, b"wrong role").is_err());
+        let mut wrong_role = Session::default();
+        client.bind(&mut wrong_role, host.public(), true, [7;24]).unwrap();
+        assert!(client.open(&mut wrong_role, true, &genuine).is_err());
+        let other_client = Endpoint::new().unwrap(); let mut other = Session::default();
+        other_client.bind(&mut other, host.public(), false, [7;24]).unwrap();
+        assert!(other_client.open(&mut other, true, &genuine).is_err());
+        assert_eq!(client.open(&mut c, true, &genuine).unwrap(), b"snapshot");
+    }
+    #[test]
     fn observed_cookies_cannot_forge_input_leave_or_snapshots() {
         let host = Endpoint::new().unwrap(); let client = Endpoint::new().unwrap();
         let mut h = Session::default(); let mut c = Session::default();
-        host.bind(&mut h, client.public()).unwrap(); client.bind(&mut c, host.public()).unwrap();
+        host.bind(&mut h, client.public(), true, [7;24]).unwrap(); client.bind(&mut c, host.public(), false, [7;24]).unwrap();
         for kind in [2, 4, 3] {
             let packet = host.seal(&mut h, true, &[kind, 5, 6, 7]).unwrap();
             for at in 0..packet.len() {
@@ -139,7 +205,8 @@ mod tests {
     fn compact_frames_follow_proof_and_resist_forgery_and_replay() {
         let host = Endpoint::new().unwrap(); let client = Endpoint::new().unwrap();
         let mut h = Session::default(); let mut c = Session::default();
-        host.bind(&mut h, client.public()).unwrap();
+        host.bind(&mut h, client.public(), true, [7;24]).unwrap();
+        client.bind(&mut c, host.public(), false, [7;24]).unwrap();
         // Until the client proves the key, the host keeps the full frame.
         let first = host.seal(&mut h, true, &[1, 2]).unwrap();
         assert_eq!(first.len(), OVERHEAD + 2);
@@ -157,7 +224,7 @@ mod tests {
         assert!(client.open(&mut c, false, &compact).is_err());
         let other = Endpoint::new().unwrap();
         assert!(other.open(&mut Session::default(), true, &compact).is_err());
-        let mut unrelated = Session::default(); other.bind(&mut unrelated, host.public()).unwrap();
+        let mut unrelated = Session::default(); other.bind(&mut unrelated, host.public(), false, [7;24]).unwrap();
         assert!(other.open(&mut unrelated, true, &compact).is_err());
         assert_eq!(client.open(&mut c, true, &compact).unwrap(), [9, 8, 7]);
         assert!(client.open(&mut c, true, &compact).is_err());
@@ -166,13 +233,14 @@ mod tests {
     #[test]
     fn bounded_reordering_pins_keys_and_rejects_old_connections() {
         let a = Endpoint::new().unwrap(); let b = Endpoint::new().unwrap(); let other = Endpoint::new().unwrap();
-        let mut sender = Session::default(); let mut receiver = Session::default(); a.bind(&mut sender, b.public()).unwrap();
+        let mut sender = Session::default(); let mut receiver = Session::default(); a.bind(&mut sender, b.public(), true, [7;24]).unwrap();
         let frames: Vec<_> = (0..1030).map(|_| a.seal(&mut sender, true, &[1]).unwrap()).collect();
+        b.bind(&mut receiver, a.public(), false, [7;24]).unwrap();
         b.open(&mut receiver, true, &frames[1029]).unwrap();
         b.open(&mut receiver, true, &frames[6]).unwrap();
         assert!(b.open(&mut receiver, true, &frames[5]).is_err());
-        assert!(b.bind(&mut receiver, other.public()).is_err());
+        assert!(b.bind(&mut receiver, other.public(), false, [7;24]).is_err());
         assert!(other.open(&mut Session::default(), true, &frames[1029]).is_err());
-        assert!(a.bind(&mut Session::default(), [0; 32]).is_err());
+        assert!(a.bind(&mut Session::default(), [0; 32], true, [7;24]).is_err());
     }
 }

@@ -43,7 +43,9 @@ constexpr bool original_weapon_hud = true;
 constexpr bool original_weapon_hud = false;
 #endif
 namespace fs = std::filesystem;
-constexpr std::array shader_names{"world.vert.spv",   "world.frag.spv",
+// Retained legacy selection fixtures; unselected candidates require the AOT
+// package verifier below instead of presence checks on this historical bank.
+[[maybe_unused]] constexpr std::array shader_names{"world.vert.spv",   "world.frag.spv",
                                   "world_emblem.geom.spv", "world_emblem.frag.spv",
                                   "fog.vert.spv",     "fog.frag.spv",
                                   "water_copy.frag.spv", "bsp_patchy_noise.frag.spv", "bsp_patchy_composite.frag.spv",
@@ -66,8 +68,19 @@ struct Installation {
   std::string multiplayer_video_driver;
   fs::path tool(const char *name) const {return resources/"tools"/name;}
   std::string python() const {
+#ifdef _WIN32
+    const auto interpreter=resources/"python/python.exe";
+    if(!packaged) {
+      if(fs::is_regular_file(interpreter))return interpreter.string();
+      const fs::path configured=HALO2_PYTHON_EXECUTABLE;
+      // Cross configuration uses a Linux host Python for code generation.
+      // Source launchers on Windows instead use an installed Windows Python.
+      return configured.extension()==".exe"?configured.string():"python";
+    }
+#else
     if(!packaged)return HALO2_PYTHON_EXECUTABLE;
     const auto interpreter=resources/"python/bin/python3";
+#endif
     if(!fs::is_regular_file(interpreter))
       throw std::runtime_error("The launcher bundle is missing its Python setup runtime");
     return interpreter.string();
@@ -101,13 +114,44 @@ fs::path current_executable() {
 #endif
   return {};
 }
+#ifdef _WIN32
+std::vector<std::string> windows_arguments(const std::vector<std::string>& arguments) {
+  std::vector<std::string> quoted;
+  quoted.reserve(arguments.size());
+  for(const auto& argument:arguments) {
+    // The Windows CRT spawn API joins argv into one command line. Preserve
+    // spaces, embedded quotes and trailing backslashes through that join.
+    std::string value="\"";
+    std::size_t slashes=0;
+    for(char c:argument) {
+      if(c=='\\'){++slashes;continue;}
+      value.append(slashes*(c=='\"'?2u:1u), '\\');slashes=0;
+      if(c=='\"')value+='\\';
+      value+=c;
+    }
+    value.append(slashes*2u,'\\');value+='\"';
+    quoted.push_back(std::move(value));
+  }
+  return quoted;
+}
+#endif
 int run_tool(std::vector<std::string> arguments);
+bool native_shader_package(const Installation &installation,
+                           const fs::path &binary, const fs::path &directory) {
+  const auto helper=installation.tool("native_renderer_shaders.py");
+  if(!fs::is_regular_file(helper))return false;
+  return run_tool({installation.python(),"-B",helper.string(),
+      "--verify-aot-package","--quiet","--directory",directory.string(),
+      "--executable",binary.string()})==0;
+}
 std::optional<nlohmann::json> local_gameplay(const Installation &installation) {
   const auto path=installation.root/"gameplay-runtime-selection.json";
   if(!fs::exists(path) && !fs::is_symlink(path))return {};
   if(fs::is_symlink(path) || !fs::is_regular_file(path) || fs::file_size(path)>65536)
     throw std::runtime_error("Invalid local gameplay selection");
   std::ifstream input(path);const auto record=nlohmann::json::parse(input);
+  if(fs::path(record.at("runtime").get<std::string>()).filename()!=native_name)
+    throw std::runtime_error("Invalid local gameplay selection runtime");
   const auto helper=installation.tool("gameplay_runtime_selection.py");
   if(!fs::is_regular_file(helper) || run_tool({installation.python(),helper.string(),
       "--root",installation.root.string()})!=0)
@@ -171,8 +215,8 @@ Installation locate() {
       installed.runtime=selected;
     } else {
       const auto binary=layout->resources.parent_path()/"MacOS"/native_name;
-      if(fs::is_regular_file(binary) && std::all_of(std::begin(shader_names),std::end(shader_names),
-          [&](const char *name) {return fs::is_regular_file(layout->resources/"shaders"/name);}))
+      if(fs::is_regular_file(binary) &&
+          native_shader_package(installed,binary,layout->resources/"shaders"))
         installed.runtime=fs::canonical(binary);
     }
     return installed;
@@ -225,11 +269,8 @@ Installation locate() {
       if (!fs::is_regular_file(binary) || !current_build(project,binary.parent_path()))
         continue;
       const auto shader_dir = binary.parent_path() / "shaders";
-      const bool shaders = binary==selected ||
-          std::all_of(std::begin(shader_names), std::end(shader_names),
-                      [&](const char *name) {
-                        return fs::is_regular_file(shader_dir / name);
-                      });
+      const bool shaders = binary==selected || (gameplay && binary==gameplay_runtime) ||
+          native_shader_package(source_installation,binary,shader_dir);
       if (shaders) {
         const auto launcher=selected.empty()?fs::path{}:
             selected.parent_path()/(title_first?"Halo2-Title-Launcher":"Halo2-Launcher");
@@ -299,8 +340,13 @@ AssetSources read_sources(const fs::path &root) {
   }
 }
 int run_tool(std::vector<std::string> arguments) {
+#ifdef _WIN32
+  auto encoded=windows_arguments(arguments);
+#else
+  auto& encoded=arguments;
+#endif
   std::vector<char*> pointers;
-  for(auto &value:arguments)pointers.push_back(value.data());
+  for(auto &value:encoded)pointers.push_back(value.data());
   pointers.push_back(nullptr);
   std::cout.flush();std::cerr.flush();
 #ifdef _WIN32
@@ -403,7 +449,8 @@ fs::path frontend_runtime(const Installation &installation,const AssetSources &s
       const auto report=nlohmann::json::parse(stream);
       if(report.value("schema",std::string{})!="H2_LOCAL_FRONTEND_RUNTIME_SELECTION_V1")return {};
       const fs::path relative=report.at("runtime").get<std::string>();
-      if(relative.empty() || relative.is_absolute() || relative.lexically_normal()!=relative)return {};
+      if(relative.empty() || relative.is_absolute() || relative.lexically_normal()!=relative ||
+          relative.filename()!=native_name)return {};
       runtime=installation.root/relative;
     } catch(const std::exception &) {return {};}
   }
@@ -461,6 +508,9 @@ std::optional<int> forward_to_release_launcher(const Installation &installation,
 } // namespace
 
 int main(int argc, char **argv) {
+#ifdef SDL_MAIN_HANDLED
+  SDL_SetMainReady();
+#endif
   try {
     for(int i=1;i<argc;++i) {
       const std::string argument=argv[i];
@@ -508,10 +558,18 @@ int main(int argc, char **argv) {
     if(preview && (update || launch_game || setup_only))
       throw std::runtime_error("Use --preview-mcc [--map NAME] with preview options.");
     auto sources=read_sources(installation.root);
-    bool native_test=native_gameplay_test_available(installation,sources);
-    auto frontend_owner=frontend_runtime(installation,sources);
-    bool frontend=!frontend_owner.empty();
     const bool help=has("--help") || has("-h");
+    // Only an explicit qualified route can skip these unused readiness probes.
+    // UI/setup paths still refresh them after their arguments or cache change.
+    const bool qualified_multiplayer_cli=installation.qualified_multiplayer && sources.ready() &&
+        !setup && !update && !preview && !help && !has("--launcher-info") &&
+        !(has("--menu") || has("--menu-screen") || has("--menu-audit") ||
+          has("--menu-sweep") || has("--menu-maps") || has("--menu-movie")) &&
+        (native_requested || has("--multiplayer") || has("--play") || has("--campaign") ||
+         has("--simulate") || has("--host") || has("--join") || has("--dedicated"));
+    bool native_test=!qualified_multiplayer_cli && native_gameplay_test_available(installation,sources);
+    auto frontend_owner=qualified_multiplayer_cli?fs::path{}:frontend_runtime(installation,sources);
+    bool frontend=!frontend_owner.empty();
     if(has("--launcher-info")) {
       const bool stale_frontend=has_frontend_selection(installation.root) && !frontend;
       std::cout << "Project: " << installation.root.string() << '\n'
@@ -750,8 +808,13 @@ int main(int argc, char **argv) {
       setenv("H2_DISCORD_LAUNCHER",launcher.c_str(),1);
 #endif
     }
+#ifdef _WIN32
+    auto encoded=windows_arguments(arguments);
+#else
+    auto& encoded=arguments;
+#endif
     std::vector<char *> pointers;
-    for (auto &argument : arguments)
+    for (auto &argument : encoded)
       pointers.push_back(argument.data());
     pointers.push_back(nullptr);
     std::cout.flush();

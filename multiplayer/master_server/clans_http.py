@@ -59,14 +59,15 @@ class ClanApi:
             self.db.execute("DELETE FROM clan_requests WHERE expires<=?", (now,))
             self.db.execute("DELETE FROM clan_messages WHERE created<?", (now - 30 * 86400,))
 
-    def session(self, request):
+    def session(self, request, *, rate=True):
         self.cleanup()
         header = request.headers.get("Authorization", "")
         require(header.startswith("Bearer ") and len(header) <= 256, "ONLINE session required", 401)
         key = hashlib.sha256(header[7:].encode()).hexdigest()
         session = self.sessions.get(key)
         require(session is not None, "ONLINE session expired; reconnect", 401)
-        self.directory.rate("social:" + session.player, 120)
+        if rate:
+            self.directory.rate("social:" + session.player, 120)
         session.seen = self.clock()
         return key, session.player
 
@@ -79,6 +80,7 @@ class ClanApi:
         who = player(self.db, owner, name, request.get(VERIFIED_DISCORD_USERNAME, ""), now=self.directory.store.now())
         with self.db:
             self.directory.matchmaking.results.history.identity(who)
+            self.directory.friend_cloud.enqueue(who)
         self.sessions = {k: s for k, s in self.sessions.items() if s.player != who}
         require(len(self.sessions) < 1000, "ONLINE session capacity reached", 503)
         token = secrets.token_urlsafe(32)
@@ -173,11 +175,16 @@ class ClanApi:
         cid, role, _ = m
         if action == "invite":
             require(role >= 1, "Member role required to recruit", 403)
-            username = text(body["username"], 32).lower()
-            require(bool(re.fullmatch(r"[a-z0-9_.]{2,32}", username)), "Enter a Discord username")
-            row = self.db.execute("SELECT player FROM player_profiles WHERE discord_username=?", (username,)).fetchone()
-            require(row is not None, "Player must sign into ONLINE before being invited", 404)
-            target = row[0]
+            username = text(body["username"], 73)
+            if "#" in username:
+                from .friend_tags import resolve
+                target = resolve(self.db,username)
+            else:
+                require(bool(re.fullmatch(r"[a-z0-9_.]{2,32}", username.lower())), "Enter a friend tag")
+                row = self.db.execute("SELECT player FROM player_profiles WHERE discord_username=?", (username.lower(),)).fetchone()
+                require(row is not None, "Player must sign into ONLINE before being invited", 404)
+                target = row[0]
+            require(not self.directory.friends.blocked(who,target),"Clan invitation unavailable",403)
             require(self.member(target) is None, "Player already belongs to a clan", 409)
             require(not self.db.execute("SELECT 1 FROM clan_blocks WHERE player=? AND clan=?", (target, cid)).fetchone(), "Player is not accepting invitations", 403)
             require(self.db.execute("SELECT count(*) FROM clan_members WHERE clan=?", (cid,)).fetchone()[0] < 100, "Clan is full", 409)

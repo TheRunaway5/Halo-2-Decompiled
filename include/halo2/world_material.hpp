@@ -2,9 +2,13 @@
 #include "halo2/cache.hpp"
 
 namespace halo2 {
+// Private pipeline identity for the literal SRC_ALPHA/ONE source blend.
+// Keep this separate from the pStencil phase identities 13 through 17.
+inline constexpr unsigned source_alpha_add_blend = 18;
 struct EffectLightDefinition;
 struct EffectLightUniforms;
 struct SourceShaderFogContext;
+class SourceTextureCameraBindingTu15;
 // Original 19BE0/19CA0 scalar37 and 1A170 color40, supplied by the resolved first-biped
 // context. Call before animate_forward_material:17420 masks run afterward.
 // Clones shared child passes so another object's bank remains independent.
@@ -27,6 +31,15 @@ std::vector<Material> prepare_effect_light_diffuse_material(const Cache &,
 // per-vertex (1). Geometry callers supply that policy, not a texture heuristic.
 // Returns false for a material without an admitted static lighting layer.
 bool prepare_world_material(const Cache &, Material &, bool per_vertex = false);
+// Actual texture_camera layer3 pass, with19510 extern18's completed source
+// default2D selection. Active target18/20 requires its real produced image
+// and is rejected here; implementation comes from the geometry's2D000 class.
+bool prepare_texture_camera_default_material(const Cache &,Material &,
+    const SourceTextureCameraBindingTu15 &,unsigned implementation=0);
+// Prepare the same authenticated pass for a live renderer-owned extern18.
+// Initial descriptor storage retains the exact matg fallback; this is not an
+// active target/image selection, and ordinary drawing requires its frame owner.
+bool prepare_texture_camera_material(const Cache &,Material &,unsigned implementation=0);
 // Source4D0B0/24040: retain the selected shader-LOD layer5 and separate PRT bank.
 bool prepare_prt_material(const Cache &,Material &,std::shared_ptr<const VertexProgramBank>);
 // 2D000 classification 3, selected by 4CBF0: the authored dynamic variant

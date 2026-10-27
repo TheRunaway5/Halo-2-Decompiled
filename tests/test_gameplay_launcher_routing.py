@@ -89,6 +89,55 @@ class GameplayLauncherRoutingTests(unittest.TestCase):
         self.assertNotIn('--menu-screen', argv)
         self.assertNotIn('--hud-ui-assets', argv)
 
+    def record_readiness_invocations(self):
+        # Observe actual script entry, while leaving imported admission helpers
+        # and their executable/shader/map checks unchanged in this fixture.
+        log = self.root/'readiness-invocations.jsonl'
+        helper = self.root/'tools/native_gameplay_test.py'
+        text = helper.read_text()
+        guard = 'if __name__ == "__main__":'
+        self.assertEqual(text.count(guard), 1)
+        observation = (guard+'\n    with open('+repr(str(log))+', "a") as trace:\n'
+                       '        trace.write(json.dumps(sys.argv)+"\\n")\n')
+        helper.write_text(text.replace(guard, observation+guard, 1))
+        return log
+
+    def test_qualified_multiplayer_skips_unrelated_readiness_probes(self):
+        log = self.record_readiness_invocations()
+        self.routed('--multiplayer', '--frames', '1', '--mute')
+        calls = log.read_text() if log.exists() else ''
+        self.assertFalse(calls, 'qualified multiplayer ran unrelated readiness probes: '+calls)
+
+    def test_help_and_info_keep_readiness_probes_with_multiplayer_argument(self):
+        log = self.record_readiness_invocations()
+        for option in ('--help', '--launcher-info'):
+            with self.subTest(option=option):
+                if log.exists(): log.unlink()
+                result = self.run_launcher('--multiplayer', option)
+                self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+                self.assertNotIn('ROUTED ', result.stdout)
+                self.assertTrue(log.exists() and log.read_text())
+
+    def test_explicit_menu_keeps_its_readiness_probe(self):
+        log = self.record_readiness_invocations()
+        for path in (self.cache/'ui').iterdir(): path.unlink()
+        (self.cache/'ui').rmdir()
+        result = self.run_launcher('--menu-screen', '9', '--frames', '1')
+        self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+        row = next(json.loads(line[7:]) for line in result.stdout.splitlines() if line.startswith('ROUTED '))
+        self.assertEqual(row['owner'], 'frontend')
+        self.assertTrue(log.exists() and log.read_text())
+
+    def test_unqualified_native_test_keeps_legacy_readiness_probes(self):
+        log = self.record_readiness_invocations()
+        self.manifest.unlink()
+        result = self.run_launcher('--native-test', '--frames', '1')
+        self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+        row = next(json.loads(line[7:]) for line in result.stdout.splitlines() if line.startswith('ROUTED '))
+        self.assertEqual(row['owner'], 'gameplay')
+        self.assertIn('--mp-source-object-world', row['argv'])
+        self.assertTrue(log.exists() and log.read_text())
+
     def test_explicit_map_and_split_count_reach_the_selected_owner(self):
         argv = self.routed('--multiplayer', '--map', 'beavercreek.map', '--local-players', '4')
         self.assertEqual(argv.count('--map'), 1)

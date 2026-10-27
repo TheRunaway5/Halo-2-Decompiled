@@ -3,6 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 import struct
+from functools import partial
 
 from audit_rendering import FormatError, file_sha
 from mcc_content import MccCache, texture_resource
@@ -50,6 +51,10 @@ def apply_selected(root, pack, *, tag_revisions=None):
                                                 reconstruct_v5)
     from mcc_bitmap_correction_bundle_v6 import (BUNDLE_V6, OWNERS_V6, PROFILES_V6,
                                                 reconstruct_v6, validate_owner_v6)
+    from mcc_bitmap_correction_bundle_v7 import (BUNDLE_V7, read_v7, profiles_for_map_v7,
+                                                reconstruct_v7, validate_owner_v7)
+    from mcc_decal_bitmap_corrections import (BUNDLE as DECAL_BUNDLE, read_bundle as read_decals,
+        profiles_for_map as decal_profiles, reconstruct as reconstruct_decals, validate_owner as validate_decal_owner)
     from installation_paths import resource_root
     root, pack = resource_root(root), Path(pack)
     # Original/reference profiles are offline maintenance inputs only. Normal
@@ -75,6 +80,20 @@ def apply_selected(root, pack, *, tag_revisions=None):
         sources.extend((owner["map"], owner["source_map_sha256"], PROFILES_V6, reconstruct_v6)
                        for owner in OWNERS_V6)
         version = 6
+    if (root/BUNDLE_V7).is_file():
+        _, sky_manifest, _ = read_v7(root)
+        for name in dict.fromkeys(owner["map"] for owner in sky_manifest["owners"]):
+            owner = next(owner for owner in sky_manifest["owners"] if owner["map"] == name)
+            sources.append((name, owner["source_map_sha256"], profiles_for_map_v7(root, name),
+                            partial(reconstruct_v7, map_name=name)))
+        version = 7
+    decal_manifest = None
+    if (root/DECAL_BUNDLE).is_file():
+        _, decal_manifest, _ = read_decals(root)
+        for name in dict.fromkeys(owner["map"] for owner in decal_manifest["owners"]):
+            owner = next(owner for owner in decal_manifest["owners"] if owner["map"] == name)
+            sources.append((name, owner["source_map_sha256"], decal_profiles(root, name),
+                            partial(reconstruct_decals, map_name=name)))
     map_paths = list(dict.fromkeys(maps/name for name,_,_,_ in sources))
     bank_path = maps/"textures.dat"
     for name, expected, _, _ in sources:
@@ -123,6 +142,10 @@ def apply_selected(root, pack, *, tag_revisions=None):
                         raise FormatError("Graphics correction bitmap registration differs")
                     if reconstruct is reconstruct_v6:
                         validate_owner_v6(name, cache, matches[0], at)
+                    elif getattr(reconstruct, "func", None) is reconstruct_v7:
+                        validate_owner_v7(root, name, cache, matches[0], at)
+                    elif getattr(reconstruct, "func", None) is reconstruct_decals:
+                        validate_decal_owner(root, name, cache, matches[0], at)
                     donor=bytearray(texture_resource(stream,cache.u32(at+56),cache.u32(at+80)))
                     if len(donor)!=profile.get("donor_pixel_bytes",profile["pixel_bytes"]):
                         raise FormatError("Graphics correction donor pixel extent differs")
@@ -180,14 +203,25 @@ def apply_selected(root, pack, *, tag_revisions=None):
             (destination/path.name).write_bytes(data)
             if digest(data)!=file_sha(destination/path.name):
                 raise FormatError("Preserved bitmap correction delta readback differs")
+    # Keep the independent decal component out of the immutable legacy-version
+    # receipt. Older portable tools can then preserve a verified V7 cache.
+    decal_owners = set() if decal_manifest is None else {(o["map"], o["tag"]) for o in decal_manifest["owners"]}
+    legacy_staged = [(name, p, pixels) for name, p, pixels in staged if (name, p["tag"]) not in decal_owners]
     report=dict(schema=f"H2_MCC_APPLIED_GRAPHICS_CORRECTIONS_V{version}",complete=True,full_graphics_parity=False,
                 profile_sha256=file_sha(destination/"profile.json"),tag=TAG,
-                restored_mips=sum(p["mip_count"] for _,p,_ in staged),
+                restored_mips=sum(p["mip_count"] for _,p,_ in legacy_staged),
                 source="bundled MCC pixel delta",
                 profiles=[dict(map=name,tag=p["tag"],restored_mips=p["mip_count"],format=p["format"],
-                               target_sha256=p["target_sha256"]) for name,p,_ in staged],
+                               target_sha256=p["target_sha256"]) for name,p,_ in legacy_staged],
                 changes=[dict(path="halo2/h2_maps_win64_dx11/"+p.name,donor_sha256=before[p.name],converted_sha256=file_sha(p))
                          for p in (*map_paths,bank_path)],
-                scope="Authenticated Zanzibar concrete/matte_grey, three Metropolis bitmaps and (when bundled) Sacred Icon gradient, Elongation glass and five original Earth image owners; existing shader programs remain intact")
+                scope="Authenticated Zanzibar concrete/matte_grey, three Metropolis bitmaps and (when bundled) Sacred Icon gradient, Elongation glass, five original Earth image owners and eleven native sky image owners; existing shader programs remain intact")
+    if decal_manifest is not None:
+        report["decal_bitmap_corrections"] = dict(schema=decal_manifest["schema"],
+            profile_count=len(decal_manifest["profiles"]), owners=len(decal_manifest["owners"]),
+            restored_mips=sum(p["mip_count"] for name,p,_ in staged if (name,p["tag"]) in decal_owners),
+            profiles=[dict(map=name,tag=p["tag"],restored_mips=p["mip_count"],format=p["format"],
+                           target_sha256=p["target_sha256"]) for name,p,_ in staged if (name,p["tag"]) in decal_owners],
+            manifest_sha256=file_sha(root/DECAL_BUNDLE.with_suffix("")), full_graphics_parity=False)
     (pack/"graphics-conversion.json").write_text(json.dumps(report,indent=2)+"\n")
     return report

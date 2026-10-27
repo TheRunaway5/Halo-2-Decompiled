@@ -7,8 +7,10 @@
 #include "halo2/source_bsp_part_commands.hpp"
 #include "halo2/source_lens_query_tu15.hpp"
 #include "halo2/source_lens_query_gpu.hpp"
+#include "halo2/source_admitted_camera.hpp"
 #include <boost/pfr/core.hpp>
 #include <openssl/evp.h>
+#include <algorithm>
 #include <bit>
 #include <cstring>
 #include <cmath>
@@ -32,6 +34,7 @@ static_assert(boost::pfr::tuple_size_v<SourcePlayerCameraCall> == 7);
 static_assert(boost::pfr::tuple_size_v<SourceLensQueryRollback> == 3);
 static_assert(boost::pfr::tuple_size_v<SourceLensDeviceRegion> == 2);
 static_assert(boost::pfr::tuple_size_v<ParticleCollisionHit> == 6);
+static_assert(boost::pfr::tuple_size_v<SourceObjectLoopEmitterTu15> == 9);
 static_assert(std::tuple_size_v<SourceCameraControllerState> == 80 && std::tuple_size_v<SourceObserverState> == 214);
 void validate_attachment_state(const SourceBspPartCommandState &state){
     if(state.calls.size()>65536)throw FormatError("Native attachment trace exceeds its bound");
@@ -71,6 +74,7 @@ template<class T>constexpr std::size_t sequence_bound(){
     else if constexpr(std::is_same_v<T,std::vector<SourceBspAdmissionRecord>>)return source_object_main_queue_capacity;
     else if constexpr(std::is_same_v<T,std::vector<std::array<std::uint32_t,4>>>)return 512;
     else if constexpr(std::is_same_v<T,std::vector<SourcePartCommand>>)return 4096;
+    else if constexpr(std::is_same_v<T,std::vector<SourceObjectLoopEmitterTu15>>)return source_object_loop_emitter_capacity_tu15;
     else return 65536;
 }
 struct Writer {
@@ -172,7 +176,25 @@ void process(const SourceExecutionCall &call,MultiplayerMatch *match,Multiplayer
     using K=SourceExecutionCallKind;
     if(!source_execution_call_has_result(call.kind)&&!call.result.empty())throw FormatError("Unexpected result for a void native call");
     switch(call.kind){
-    case K::MatchStep:{auto [controls]=decode<std::array<Controls,16>>(call.arguments);if(match)match->step(controls);break;}
+    case K::MatchStep:{auto [controls]=decode<std::array<Controls,16>>(call.arguments);
+        // The producer stepped without remote displayed views (or without a
+        // rewind owner): none may survive from an earlier replayed step.
+        if(match){for(unsigned slot=0;slot<16;++slot)match->set_remote_view(slot,std::nullopt);match->step(controls);}break;}
+    case K::MatchStepViews:{
+        auto [controls,mode,views]=decode<std::array<Controls,16>,NetcodeMode,std::array<std::optional<NetcodeViewTime>,16>>(call.arguments);
+        if((mode!=NetcodeMode::balanced&&mode!=NetcodeMode::full)||
+           std::ranges::none_of(views,[](const auto &view){return view.has_value();})||
+           std::ranges::any_of(views,[](const auto &view){return view&&view->fraction==netcode_view_absent_fraction;}))
+            throw FormatError("Invalid lag-compensated step mode or displayed views");
+        if(match){
+            // This replay world's own rewind owner (adopted from the cut) runs
+            // the producer's rewind from the producer's displayed views.
+            if(!match->lag_compensation()||match->netcode_mode()!=mode)
+                throw FormatError("Lag-compensated step replay requires the producer's rewind owner");
+            for(unsigned slot=0;slot<16;++slot)match->set_remote_view(slot,views[slot]);
+            match->step(controls);
+        }
+        break;}
     case K::MatchState:{decode<>(call.arguments);
         if(call.result.size()!=32)throw FormatError("Invalid actual native state result digest");
         if(match)(void)match->state();break;}
@@ -197,6 +219,13 @@ void process(const SourceExecutionCall &call,MultiplayerMatch *match,Multiplayer
     case K::ParticleCollision:{auto [flags,origin,delta]=decode<std::uint32_t,Vec3,Vec3>(call.arguments);
         decode<std::optional<ParticleCollisionHit>>(call.result);
         if(world)(void)world->particle_collision(flags,origin,delta);break;}
+    case K::ObjectLoopEmitters:{decode<>(call.arguments);
+        if(call.result.size()!=32)throw FormatError("Invalid native object-loop emitter result digest");
+        if(world)(void)world->tu15_world().object_loop_emitters();break;}
+    case K::AdmittedCamera:{auto [input]=decode<SourceAdmittedCameraInput>(call.arguments);
+        if(input.owner>=16||input.view>=4||!std::isfinite(input.seconds)||input.seconds<0||call.result.size()!=32)
+            throw FormatError("Invalid admitted numeric camera operands or result digest");
+        if(world)(void)SourceAdmittedCameraBank::bound(*world).update(input.owner,input.view,input.seconds,input.cycle);break;}
     case K::EffectParticles:{auto [seconds]=decode<float>(call.arguments);if(world)world->advance_effect_particles(seconds);break;}
     case K::BeginModelFrame:decode<>(call.arguments);if(world)world->begin_model_frame();break;
     case K::BeginModelView:decode<>(call.arguments);if(world)world->tu15_world().begin_model_view();break;
@@ -244,6 +273,8 @@ void process(const SourceExecutionCall &call,MultiplayerMatch *match,Multiplayer
 }
 }
 std::vector<std::byte> source_execution_arguments(const std::array<Controls,16> &v){return arguments(v);}
+std::vector<std::byte> source_execution_arguments(const std::array<Controls,16> &v,NetcodeMode mode,
+    const std::array<std::optional<NetcodeViewTime>,16> &views){return arguments(v,mode,views);}
 std::vector<std::byte> source_execution_arguments(float v){return arguments(v);}
 std::vector<std::byte> source_execution_arguments(unsigned v){return arguments(v);}
 std::vector<std::byte> source_execution_arguments(std::uint32_t a,std::uint32_t b){return arguments(a,b);}
@@ -282,6 +313,7 @@ std::vector<std::byte> source_execution_attachment_result(const SourceBspPartCom
     return digest;
 }
 std::vector<std::byte> source_execution_state_result(const MultiplayerState &state){
+    if(state.source_object_loop_emitters)validate_source_object_loop_emitters_tu15(*state.source_object_loop_emitters);
     const auto bytes=arguments(state);std::vector<std::byte> digest(32);unsigned size{};
     if(EVP_Digest(bytes.data(),bytes.size(),reinterpret_cast<unsigned char*>(digest.data()),&size,EVP_sha256(),nullptr)!=1||size!=digest.size())
         throw FormatError("Cannot seal actual native state publication");
@@ -321,6 +353,24 @@ std::vector<std::byte> source_execution_arguments(std::uint32_t entry,const Abi 
 std::vector<std::byte> source_execution_lens_draw_result(const Abi &abi,const std::array<std::byte,32>&writes,const SourceLensWorldPass &pass){return arguments(abi,writes,pass);}
 std::vector<std::byte> source_execution_arguments(std::uint32_t flags,Vec3 origin,Vec3 delta){return arguments(flags,origin,delta);}
 std::vector<std::byte> source_execution_collision_result(const std::optional<ParticleCollisionHit> &hit){return arguments(hit);}
+std::vector<std::byte> source_execution_loop_emitters_result(std::span<const SourceObjectLoopEmitterTu15> bank){
+    validate_source_object_loop_emitters_tu15(bank);
+    const auto bytes=arguments(std::vector<SourceObjectLoopEmitterTu15>(bank.begin(),bank.end()));
+    std::vector<std::byte> digest(32);unsigned size{};
+    if(EVP_Digest(bytes.data(),bytes.size(),reinterpret_cast<unsigned char*>(digest.data()),&size,EVP_sha256(),nullptr)!=1||size!=digest.size())
+        throw FormatError("Cannot seal actual native object-loop emitter publication");
+    return digest;
+}
+std::vector<std::byte> source_execution_arguments(const SourceAdmittedCameraInput &input){return arguments(input);}
+std::vector<std::byte> source_execution_admitted_camera_result(const std::optional<NativeDeathCameraView> &view,
+    bool death,const SourceCameraControllerState &controller,const SourceObserverState &observer,
+    std::uint32_t random,const DeathCameraSavedClusters &clusters,std::uint32_t player,bool seated,bool handing_off){
+    const auto bytes=arguments(view,death,controller,observer,random,clusters,player,seated,handing_off);
+    std::vector<std::byte> digest(32);unsigned size{};
+    if(EVP_Digest(bytes.data(),bytes.size(),reinterpret_cast<unsigned char*>(digest.data()),&size,EVP_sha256(),nullptr)!=1||size!=digest.size())
+        throw FormatError("Cannot seal actual admitted numeric camera result");
+    return digest;
+}
 void validate_source_execution_calls(std::span<const SourceExecutionCall> calls){
     if(calls.size()>SourceExecutionInputs::maximum_calls)throw FormatError("Native call count exceeds its bound");
     std::size_t total{};for(const auto &call:calls){
@@ -331,6 +381,12 @@ void validate_source_execution_calls(std::span<const SourceExecutionCall> calls)
     }
 }
 void replay_source_execution_calls(MultiplayerMatch &match,MultiplayerObjectRuntime &world,std::span<const SourceExecutionCall> calls){
+    // Validate every numeric selection before executing any earlier world call.
+    // A generic trusted tape alone cannot manufacture a camera instance.
+    for(const auto &call:calls)if(call.kind==SourceExecutionCallKind::AdmittedCamera){
+        auto [input]=decode<SourceAdmittedCameraInput>(call.arguments);
+        SourceAdmittedCameraBank::bound(world).validate(input.owner,input.view,input.seconds);
+    }
     for(const auto &call:calls)process(call,&match,&world);
 }
 }

@@ -1,4 +1,5 @@
 #include "halo2/cache.hpp"
+#include "halo2/content.hpp"
 #include "halo2/full_scoreboard_assets.hpp"
 #include <algorithm>
 #include <bit>
@@ -28,11 +29,22 @@ FullScoreboardAssets Cache::load_full_scoreboard_assets() const {
   const auto *multiplayer=find(data.u32(gp+0x16c),"mulg");
   if(!multiplayer || multiplayer->size<8)return out;
   const auto mp=metadata_offset(multiplayer->address,multiplayer->size);
+  std::uint32_t status_strings=null_datum;
   if(multiplayer->size>=16 && data.u32(mp+8)) {
     if(data.u32(mp+8)!=1)throw FormatError("Ambiguous scoreboard runtime owner");
     const auto runtime=metadata_offset(data.u32(mp+12),1384);
     out.emblem_shader=data.u32(runtime+0x54c);out.emblem_bitmap=data.u32(runtime+0x554);
     out.dead_shader=data.u32(runtime+0x55c);out.dead_bitmap=data.u32(runtime+0x564);
+    status_strings=data.u32(runtime+0x8c);
+    const auto status_count=data.u32(runtime+0x538);
+    if(status_count>4096)throw FormatError("Original player status table exceeds import bounds");
+    if(status_count) {
+      const auto statuses=metadata_offset(data.u32(runtime+0x53c),std::size_t(status_count)*0x1c);
+      for(unsigned i=0;i<status_count;++i) {
+        const auto p=statuses+std::size_t(i)*0x1c;
+        out.player_status.push_back({std::bit_cast<std::int16_t>(data.u16(p+4)),data.u32(p+8),data.u32(p+12),{}, {}});
+      }
+    }
   }
   const auto universal_count=data.u32(mp);
   if(universal_count>16)throw FormatError("Original scoreboard universal block exceeds import bounds");
@@ -82,9 +94,32 @@ FullScoreboardAssets Cache::load_full_scoreboard_assets() const {
     case 0x07000105:return &out.name_label;
     case 0x070000fd:return &out.wins_label;
     case 0x08000102:return &out.score_label;
+    case 0x0c000108:return &out.game_over_label;
+    case 0x0d000109:return &out.round_over_label;
+    case 0x1900010a:return &out.waiting_for_next_round_label;
     default:return nullptr;
     }
   });
+  // 161BA0 chooses the first authored matching status and resolves its text
+  // through runtime+8C. MCC relocates SIDs; compare tokens within this bank.
+  read_locale(status_strings,[&](std::uint32_t id)->std::string * {
+    for(auto& row:out.player_status) {
+      if(row.string_id==id)return &row.text;
+      if(row.team_string_id==id)return &row.team_text;
+    }
+    return nullptr;
+  });
+  // Shared FFA/team SIDs and repeated limited-life rows own separate values.
+  for(auto& row:out.player_status)for(const auto& source:out.player_status) {
+    if(row.text.empty()) {
+      if(row.string_id==source.string_id && !source.text.empty())row.text=source.text;
+      else if(row.string_id==source.team_string_id && !source.team_text.empty())row.text=source.team_text;
+    }
+    if(row.team_text.empty()) {
+      if(row.team_string_id==source.string_id && !source.text.empty())row.team_text=source.text;
+      else if(row.team_string_id==source.team_string_id && !source.team_text.empty())row.team_text=source.team_text;
+    }
+  }
   // Original1A9910's first nine ordinal SIDs are compiled constants. Their
   // strings are resolved in the separately referenced team_names unic slice,
   // rather than the global messages or frontend color labels.

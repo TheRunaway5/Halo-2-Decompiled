@@ -3,6 +3,7 @@
 #include "halo2/mcc_loading_inputs.hpp"
 #include "halo2/native_vista_loading_audio.hpp"
 #include "halo2/native_mcc_loading_audio.hpp"
+#include "halo2/texture.hpp"
 #include "halo2/ui_dds.hpp"
 #include "halo2/mcc_loading_converter_metadata.hpp"
 #include <nlohmann/json.hpp>
@@ -129,6 +130,81 @@ std::vector<float> v3_pcm(std::span<const std::byte> data) {
   }
   return result;
 }
+// H2EK loading_dx11.bin keeps the original PC normal-mode loading slots as
+// plain DDS extents (flags0x1007, no linear size), which the UI DDS reader
+// rejects. Their exact header is checked here; BC decode reuses the MCC path.
+constexpr std::array<unsigned,6> h2ek_texture_slots{0,1,3,4,5,11};
+VistaLoadingImage h2ek_texture(std::span<const std::byte> dds,const Json& row) {
+  const auto width=row.at("width").get<std::uint32_t>(),height=row.at("height").get<std::uint32_t>();
+  const auto fourcc=row.at("fourcc").get<std::string>();
+  if((fourcc!="DXT1" && fourcc!="DXT3") || !width || !height || width>4096 || height>4096)
+    throw FormatError("Unsupported H2EK loading texture format");
+  const bool bc1=fourcc=="DXT1";
+  const std::size_t blocks=std::size_t((width+3)/4)*((height+3)/4)*(bc1?8:16);
+  if(dds.size()!=128+blocks)throw FormatError("H2EK loading texture extent differs from its original bank");
+  bool reserved=true;
+  for(std::size_t at:{20u,24u,28u,88u,92u,96u,100u,104u,112u,116u,120u,124u})reserved=reserved && !word(dds,at);
+  for(std::size_t at=32;at<76;at+=4)reserved=reserved && !word(dds,at);
+  if(word(dds,0)!=0x20534444u || word(dds,4)!=124 || word(dds,8)!=0x1007 ||
+     word(dds,12)!=height || word(dds,16)!=width || word(dds,76)!=32 || word(dds,80)!=4 ||
+     word(dds,84)!=(bc1?0x31545844u:0x33545844u) || word(dds,108)!=0x1000 || !reserved)
+    throw FormatError("H2EK loading texture header differs from its original bank");
+  Texture texture;texture.width=width;texture.height=height;texture.format=bc1?14:15;
+  texture.pixels=TexturePixels(dds.subspan(128));texture.mips={TextureMip{width,height,0,blocks}};
+  auto image=prepare_xemu_bc_texture(texture);
+  if(image.format!=11 || image.width!=width || image.height!=height || image.layers!=1 || image.depth || image.pixels.empty())
+    throw FormatError("H2EK loading texture storage conversion is unsupported");
+  return {width,height,std::move(image)};
+}
+}
+bool configure_h2ek_original_loading_presentation(DesktopSession& desktop,
+    const std::filesystem::path& imported,bool mute)try {
+  const auto bank=imported/"presentation/original-loading-v2";
+  if(!std::filesystem::exists(std::filesystem::symlink_status(bank)))return false;
+  private_path(bank);
+  const auto raw=read(bank/"manifest.json",65536);
+  const auto metadata=Json::parse(reinterpret_cast<const char*>(raw.data()),reinterpret_cast<const char*>(raw.data()+raw.size()));
+  const auto& audio=metadata.at("audio");const auto& textures=metadata.at("textures");
+  if(metadata.at("schema")!="H2_H2EK_ORIGINAL_LOADING_V2" || metadata.at("complete")!=true ||
+     metadata.at("runtime_activation")!=true || metadata.at("pe_executed")!=false ||
+     !metadata.at("files").is_object() || metadata.at("files").size()!=1+h2ek_texture_slots.size() ||
+     audio.at("path")!="ambience.xbox-adpcm" || !textures.is_array() || textures.size()!=h2ek_texture_slots.size())
+    throw FormatError("Unsupported H2EK original loading profile");
+  VistaLoadingAssets assets;
+  for(unsigned i=0;i<h2ek_texture_slots.size();++i) {
+    const auto& row=textures.at(i);
+    const auto slot=h2ek_texture_slots[i];
+    const auto path=row.at("path").get<std::string>();
+    if(row.at("slot")!=slot || path!=(slot<10?"loading-0":"loading-")+std::to_string(slot)+".dds")
+      throw FormatError("H2EK original loading texture slots differ");
+    const auto bytes=asset(bank,metadata,path.c_str(),8u*1024u*1024u);
+    if(row.at("sha256")!=digest(bytes))throw FormatError("H2EK loading texture differs from its manifest: "+path);
+    assets[slot]=h2ek_texture(bytes,row);
+  }
+  // Same exact tone and decode checks as the earlier bundled-original bank.
+  const auto encoded=asset(bank,metadata,"ambience.xbox-adpcm",18396);
+  if(encoded.size()!=18396 || digest(encoded)!="4f61e827be9b54b71e3d37a145c9b88fb32eaf517e23746af85236ca41ba8fc9")
+    throw FormatError("H2EK loading ambience differs from the original tone");
+  const auto tone=std::span(reinterpret_cast<const std::uint8_t*>(encoded.data()),encoded.size());
+  const auto pcm=vista_loading_audio_decode(tone);
+  if(pcm.size()!=65408 || digest(std::as_bytes(std::span(pcm)))!="b740acf4ce447da6583b4f6c7fd6696fabbb249664a53fb780b18c4dd58cd73d")
+    throw FormatError("H2EK loading ambience decoder differs");
+  auto voice=std::make_shared<NativeVistaLoadingAudio>(tone);
+  desktop.configure_loading(assets);
+  desktop.set_loading_audio_services({[voice,mute]{
+      voice->begin(mute);
+      const auto state=voice->snapshot();
+      if(!mute && (!state.device_open || !state.failure.empty() || state.frequencies!=vista_loading_audio_frequencies)) {
+        voice->end();throw FormatError("H2EK loading ambience could not start: "+state.failure);
+      }
+      std::cout<<"Original loading audio: H2EK four-voice ambience started"<<(mute?" (muted)":"")<<"\n";
+    },[voice](std::uint32_t gain){voice->gain(gain);},[voice]{
+      voice->end();std::cout<<"Original loading audio: stopped after graphics join\n";
+    }});
+  std::cout<<"Original loading: H2EK logo/sweep art and four-voice ambience admitted\n";
+  return true;
+}catch(const Json::exception& error) {
+  throw FormatError("Invalid H2EK original loading manifest: "+std::string(error.what()));
 }
 void configure_mcc_loading_presentation(DesktopSession& desktop,const Cache& menu,
     const std::filesystem::path& imported,bool mute) {

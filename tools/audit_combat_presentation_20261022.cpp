@@ -457,7 +457,7 @@ Json zoom_draws(const std::filesystem::path &map,std::string_view name,unsigned 
     unsigned actual{};for(const auto &o:before.source_dynamic_objects)actual+=o.type==5;
     if(actual) {
       LanHost host(world.match,0,0x434f4d424154ull);
-      LanClient client("127.0.0.1:"+std::to_string(host.port()),0x434f4d424154ull,1);
+      LanClient client(host.join_address(),0x434f4d424154ull,1);
       std::array<Controls,multiplayer_capacity> delivered{};std::array<Controls,1> local{};
       for(unsigned i=0;i<30 && !client.ready();++i) {
         client.send(local);host.receive(delivered);host.broadcast();client.receive();

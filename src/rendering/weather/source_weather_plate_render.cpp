@@ -1,4 +1,5 @@
 #include "halo2/source_weather_plate_render.hpp"
+#include "halo2/native_weather_vertex.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -17,15 +18,9 @@ struct VertexUniform {
 };
 static_assert(sizeof(VertexUniform)==224);
 struct PixelUniform {
-    std::array<std::uint32_t,60> program{};
     std::array<ShaderVector,18> constants{};
 };
-static_assert(sizeof(PixelUniform)==528);
-std::uint64_t fingerprint(std::span<const std::byte> bytes) {
-    std::uint64_t h=14695981039346656037ull;
-    for(auto b:bytes)h=(h^std::to_integer<unsigned>(b))*1099511628211ull;
-    return h;
-}
+static_assert(sizeof(PixelUniform)==288);
 std::array<std::uint32_t,60> original_pixel() {
     // Complete unchanged3A5C0 mode3 output, actual prior-391F0 definition,
     // all captured original event215778 expanded constants checked exactly.
@@ -40,7 +35,7 @@ struct SourceWeatherPlateRender::Impl {
     VkDescriptorPool descriptor_pool{};VkDescriptorSet descriptor{};
     struct Buffer {VkBuffer handle{};VkDeviceMemory memory{};};
     std::array<Buffer,3> buffers{};
-    std::map<bool,VkPipeline> pipelines;
+    std::map<std::pair<unsigned,bool>,VkPipeline> pipelines;
     VkPipeline current{};std::uint32_t count{};VkExtent2D prepared_surface{};
     explicit Impl(SourceWeatherPlateRenderContext c):context(std::move(c)) {
         try {
@@ -91,11 +86,14 @@ struct SourceWeatherPlateRender::Impl {
         }catch(...){free(b);throw;}
     }
     void free(Buffer b){if(b.handle)vkDestroyBuffer(context.device,b.handle,nullptr);if(b.memory)vkFreeMemory(context.device,b.memory,nullptr);}
-    VkPipeline pipeline(bool clamp) {
-        const auto key=clamp;if(auto it=pipelines.find(key);it!=pipelines.end())return it->second;
+    VkPipeline pipeline(unsigned variant,bool clamp) {
+        const auto key=std::pair(variant,clamp);if(auto it=pipelines.find(key);it!=pipelines.end())return it->second;
         VkPipelineShaderStageCreateInfo stages[]{
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_VERTEX_BIT,shaders[0],"main",nullptr},
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_FRAGMENT_BIT,shaders[1],"main",nullptr}};
+        const VkSpecializationMapEntry entry{0,0,sizeof(variant)};
+        const VkSpecializationInfo specialization{1,&entry,sizeof(variant),&variant};
+        stages[1].pSpecializationInfo=&specialization;
         const VkVertexInputBindingDescription binding{0,sizeof(SourceWeatherPlateVertex),VK_VERTEX_INPUT_RATE_VERTEX};
         VkVertexInputAttributeDescription attributes[5]{};
         for(unsigned i=0;i<5;++i)attributes[i]={i,0,VK_FORMAT_R32G32B32A32_SFLOAT,i*16};
@@ -116,11 +114,9 @@ struct SourceWeatherPlateRender::Impl {
         for(auto &b:buffers){free(b);b={};}current={};count=0;prepared_surface={};
     }
     void prepare(const SourceWeatherPlatePacket &p,const std::array<std::uint32_t,60> &expected) {
-        if(fingerprint(p.vertex_program)!=0xc11e822b62bd252aull)
-            throw FormatError("weather plate requires the exact original VS21/class0");
-        const auto program=decode_vertex_program(p.vertex_program);
-        if(program.count!=5)throw FormatError("weather plate requires all five original VS21 instructions");
+        native_weather::admit_plate(p.vertex_program);
         if(p.pixel.words!=expected)throw FormatError("weather plate requires the admitted complete original mode3 pixel definition");
+        const auto variant=native_weather::plate_variant(p.pixel.words);
         for(const auto &c:p.scroll)for(float v:c)if(!std::isfinite(v))throw FormatError("nonfinite original plate scroll");
         for(float v:p.clip_range)if(!std::isfinite(v))throw FormatError("nonfinite original plate clip range");
         for(float v:p.surface)if(!std::isfinite(v))throw FormatError("nonfinite original plate surface");
@@ -151,11 +147,8 @@ struct SourceWeatherPlateRender::Impl {
         // the actual masked ADDs and every intermediate projection operation
         // before releasing the existing descriptor/vertex binding.
         for(const auto &v:p.vertices) {
-            VertexProgramState state;
-            std::copy(v.registers.begin(),v.registers.end(),state.attributes.begin());
-            std::copy(p.scroll.begin(),p.scroll.end(),state.constants.begin()+21);
-            execute_vertex_program(program,state);
-            for(unsigned i: {0u,9u,10u,11u,12u})for(float value:state.outputs[i])
+            const auto outputs=native_weather::plate_vertex(v.registers,p.scroll);
+            for(unsigned i: {0u,9u,10u,11u,12u})for(float value:outputs[i])
                 if(!std::isfinite(value))throw FormatError("weather plate program produces a nonfinite output");
             const auto finite=[](float value){
                 if(!std::isfinite(value))throw FormatError("weather plate projection produces a nonfinite intermediate");
@@ -172,10 +165,10 @@ struct SourceWeatherPlateRender::Impl {
         clear();
         try {
             VertexUniform v;v.scroll=p.scroll;v.clip=p.clip_range;v.surface=p.surface;v.flags={p.depth_clipping,0,0,0};v.regions=p.clip_regions;
-            PixelUniform pixel;pixel.program=p.pixel.words;
+            PixelUniform pixel;
             const auto expand=[](std::uint32_t word){return ShaderVector{float((word>>16)&255)/255.f,float((word>>8)&255)/255.f,float(word&255)/255.f,float(word>>24)/255.f};};
-            for(unsigned i=0;i<8;++i){pixel.constants[i*2]=expand(pixel.program[10+i]);pixel.constants[i*2+1]=expand(pixel.program[18+i]);}
-            pixel.constants[16]=expand(pixel.program[43]);pixel.constants[17]=expand(pixel.program[44]);
+            for(unsigned i=0;i<8;++i){pixel.constants[i*2]=expand(p.pixel.words[10+i]);pixel.constants[i*2+1]=expand(p.pixel.words[18+i]);}
+            pixel.constants[16]=expand(p.pixel.words[43]);pixel.constants[17]=expand(p.pixel.words[44]);
             buffers[0]=buffer(sizeof(v),VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,&v);
             buffers[1]=buffer(sizeof(pixel),VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,&pixel);
             buffers[2]=buffer(sizeof(p.vertices),VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,p.vertices.data());
@@ -188,7 +181,7 @@ struct SourceWeatherPlateRender::Impl {
             VkDescriptorImageInfo ii[4]{};for(unsigned i=0;i<4;++i)ii[i]={p.textures[i].sampler,p.textures[i].view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
             VkWriteDescriptorSet writes[6]{};
             for(unsigned i=0;i<6;++i){auto &w=writes[i];w.sType=VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;w.dstSet=descriptor;w.dstBinding=i;w.descriptorCount=1;w.descriptorType=i<2?VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;if(i<2)w.pBufferInfo=&bi[i];else w.pImageInfo=&ii[i-2];}
-            vkUpdateDescriptorSets(context.device,6,writes,0,nullptr);current=pipeline(p.depth_clamp);count=4;prepared_surface={unsigned(p.surface[0]),unsigned(p.surface[1])};
+            vkUpdateDescriptorSets(context.device,6,writes,0,nullptr);current=pipeline(variant,p.depth_clamp);count=4;prepared_surface={unsigned(p.surface[0]),unsigned(p.surface[1])};
         }catch(...){clear();throw;}
     }
     void record(VkCommandBuffer cmd,VkViewport viewport,VkRect2D scissor)const {

@@ -157,6 +157,29 @@ def inject_native_objective_kernels(source):
     return source
 
 
+def inject_player_status_phase_observer(source):
+    """Observe the unchanged161610 completion; do not replace instructions."""
+    include='#include "halo2/source_player_status_phase_tu15.hpp"\n'
+    if include not in source:source=include+source
+    marker='if(s.services.instruction){s.services.instruction(0x15ed4fu);}'
+    call='source_observe_player_status_phase_tu15(s.memory,s.save());\n'
+    assert source.count(marker)==1
+    if call not in source:source=source.replace(marker,call+marker,1)
+    gate='L15e6bc: if(s.services.instruction){s.services.instruction(0x15e6bcu);}'
+    observation='L15e6bc: source_observe_player_scoreboard_gate_tu15(s.memory,s.save());\n'
+    if observation not in source:
+        assert source.count(gate)==1
+        source=source.replace(gate,observation+gate[len('L15e6bc: '):],1)
+    include='#include "halo2/source_gameplay_fade_phase_tu15.hpp"\n'
+    if include not in source:source=include+source
+    for address,kind in (('15ed59',0),('15a7c9',1)):
+        marker=f'if(s.services.instruction){{s.services.instruction(0x{address}u);}}'
+        observation=f'source_observe_gameplay_fade_tu15(s.memory,{kind}u,s.save());\n'
+        assert source.count(marker)==1
+        if observation not in source:source=source.replace(marker,observation+marker,1)
+    return source
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path)
@@ -338,7 +361,7 @@ def main():
         'source_run_physics_live_support_tu15',
         f'source_run_{prefix}'))
     if not args.test_services:
-        args.output.write_text(inject_native_objective_owners(inject_native_objective_kernels(args.output.read_text())))
+        args.output.write_text(inject_player_status_phase_observer(inject_native_objective_owners(inject_native_objective_kernels(args.output.read_text()))))
     report = json.loads(manifest.read_text())
     alias_replacements = {f'{entry:08x}':dict(**aliases[entry], callback=entry in roots)
                           for entry in sorted(bodies.keys() & aliases.keys())} if not args.test_services else {}

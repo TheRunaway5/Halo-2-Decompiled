@@ -84,6 +84,30 @@ int main() {
     }
     block=false; release=false; revoke=false;
     {
+      // A one-second server lease makes renewal observable without waiting
+      // fifteen minutes. It must retain accepted search intent and must use
+      // fresh external authorization, never the short matchmaking bearer.
+      std::atomic<unsigned> sessions{};
+      const auto before_deletes=deletes.load(),before_posts=posts.load();
+      OnlineMatchmaking client(login,options,[&](const auto &r,std::stop_token stop)->OnlineMatchmakingResponse {
+        if(r.url.ends_with("/session") && r.method=="POST") {
+          const auto body=Json::parse(r.body);const auto count=++sessions;
+          check(r.bearer=="discord-test","Lease renewal used a matchmaking bearer as identity proof");
+          check(body.size()==(count==1?3u:4u) && body.at("screen_name")=="Chosen Pilot","Lease renewal changed its configuration");
+          if(count>1)check(body.at("renew_session")==session_token,"Lease renewal lost its owned session token");
+          return {201,Json{{"token",session_token},{"expires_in",1}}.dump()};
+        }
+        return http(r,stop);
+      });
+      client.refresh("Chosen Pilot");eventually([&]{return client.snapshot().status==OnlineMatchmakingStatus::Ready;});
+      client.join("ranked");eventually([&]{return client.snapshot().status==OnlineMatchmakingStatus::Searching;});
+      eventually([&]{return sessions>=2;});
+      check(queued && client.snapshot().status==OnlineMatchmakingStatus::Searching && posts==before_posts+1 && deletes==before_deletes,
+            "Lease renewal deleted the accepted search or enqueued a second ticket");
+      client.sign_out();eventually([&]{return revoke.load();});
+    }
+    revoke=false;
+    {
       // The leader owns this accepted member's ticket. The member must
       // discover it through authenticated polling without a second enqueue.
       const auto before=posts.load();
@@ -114,7 +138,7 @@ int main() {
       // Only the admitted gathering's chosen names belong in the roster.
       std::atomic<unsigned> phase{};
       OnlineMatchmaking client(login,options,[&](const auto &r,std::stop_token stop)->OnlineMatchmakingResponse {
-        if(r.method=="GET" && r.url.ends_with("/ticket?progress=1&ranks=1") && queued) {
+        if(r.method=="GET" && r.url.ends_with("/ticket?progress=1&ranks=1&start=1&failure=1&appearance=1") && queued) {
           Json progress={{"players",2},{"minimum_players",2},{"maximum_players",4},{"wait_ms",15000},
             {"roster",Json::array({{{"name","Chosen Pilot"},{"self",true}},{{"name","Peer Pilot"},{"self",false}}})}};
           Json body={{"state","searching"},{"playlist_id","ranked"},{"queued_players",2},{"match",nullptr},{"progress",progress}};
@@ -135,6 +159,17 @@ int main() {
           case 12: body["progress"]["roster"][0]["level"]=0;break;
           case 13: body["progress"]["roster"][0]["level"]=51;break;
           case 14: body["progress"]["roster"][0]["level"]=1.5;break;
+          case 15: body["start_countdown_ms"]=nullptr;break;
+          case 16: body["start_countdown_ms"]=6999;break;
+          case 17: body["start_countdown_ms"]=0;break;
+          case 18: body["start_countdown_ms"]=-1;break;
+          case 19: body["start_countdown_ms"]=10001;break;
+          case 20: body["start_countdown_ms"]=true;break;
+          case 21: body["progress"]["roster"][0]["appearance"]="0a00000a0102030405";
+                   body["progress"]["roster"][1]["appearance"]=nullptr;break;
+          case 22: body["progress"]["roster"][0]["appearance"]="0a00000a0202030405";break;
+          case 23: body["progress"]["roster"][0]["appearance"]="00";break;
+          case 24: body["progress"]["roster"][0]["appearance"]="0A00000A0102030405";break;
           }
           return {200,body.dump()};
         }
@@ -151,16 +186,48 @@ int main() {
       check(posts==before,"Gathering progress created a second party ticket");
       phase=11;eventually([&]{const auto s=client.snapshot();return s.gathering && s.gathering->players[0].level==50;});
       check(!client.snapshot().gathering->players[1].level,"Unknown player rank became level one");
+      phase=15;eventually([&]{const auto s=client.snapshot();return s.start_countdown_supported && !s.start_countdown_ms;});
+      phase=16;eventually([&]{return client.snapshot().start_countdown_ms==6999;});
+      phase=17;eventually([&]{return client.snapshot().start_countdown_ms==0;});
+      phase=21;eventually([&]{const auto s=client.snapshot();return s.gathering&&s.gathering->players[0].appearance.has_value();});
+      check(client.snapshot().gathering->players[0].appearance->species==1&&
+        client.snapshot().gathering->players[0].appearance->foreground==2&&
+        !client.snapshot().gathering->players[1].appearance,"Exact admitted appearance was lost or invented for an absent profile");
       phase=1;eventually([&]{const auto s=client.snapshot();return s.status==OnlineMatchmakingStatus::Searching && !s.gathering;});
-      for(unsigned invalid=2;invalid<=14;++invalid) {
-        if(invalid==11)continue;
+      for(unsigned invalid=2;invalid<=24;++invalid) {
+        if(invalid==11 || invalid==21 || (invalid>=15 && invalid<=17))continue;
         phase=0;eventually(gathered);phase=invalid;
         eventually([&]{return client.snapshot().status==OnlineMatchmakingStatus::Failed;});
         check(!client.snapshot().gathering,"Invalid progress retained stale admitted players");
+        check(!client.snapshot().start_countdown_ms,"Invalid progress retained a stale start countdown");
       }
       phase=0;eventually(gathered);client.cancel_queue();
       check(!client.snapshot().gathering,"Queue cancellation retained gathering presentation");
       eventually([&]{return !queued && client.snapshot().status==OnlineMatchmakingStatus::Ready;});
+    }
+    {
+      std::atomic<unsigned> enqueues{};std::atomic<bool> failed{};
+      OnlineMatchmaking client(login,options,[&](const auto &r,std::stop_token)->OnlineMatchmakingResponse {
+        if(r.url.ends_with("/session") && r.method=="POST")return {201,Json{{"token",session_token},{"expires_in",900}}.dump()};
+        if(r.url.ends_with("/playlists"))return {200,playlists};
+        if(r.method=="DELETE"){queued=false;return {200,"{}"};}
+        if(r.method=="POST"){queued=true;++enqueues;}
+        auto body=Json{{"state",queued?"searching":"idle"},{"playlist_id",queued?"ranked":""},
+          {"queued_players",queued?1:0},{"match",nullptr}};
+        if(r.method=="GET" && failed)body["failure"]="search_failed";
+        return {200,body.dump()};
+      });
+      queued=false;client.refresh("Chosen Pilot");eventually([&]{return client.snapshot().status==OnlineMatchmakingStatus::Ready;});
+      client.join("ranked");eventually([&]{return client.snapshot().status==OnlineMatchmakingStatus::Searching;});
+      failed=true;eventually([&]{return client.snapshot().failure_state==1;});
+      const auto count=enqueues.load();std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      check(client.snapshot().status==OnlineMatchmakingStatus::Failed && client.snapshot().failure_state==1 && enqueues==count,
+        "Terminal room failure silently started another search");
+      check(!client.take_launch() && !client.snapshot().start_countdown_ms,"Terminal failure retained launch readiness");
+      failed=false;client.cancel_queue();eventually([&]{return client.snapshot().status==OnlineMatchmakingStatus::Ready;});
+      check(!client.snapshot().failure_state,"Cancellation retained terminal failure");
+      client.join("ranked");eventually([&]{return client.snapshot().status==OnlineMatchmakingStatus::Searching;});
+      check(enqueues==count+1,"Explicit retry did not create a fresh search");
     }
     for (const auto &endpoint : {"http://queue.example", "http://127.0.0.1:8080", "https://user@queue.example", "https://queue.example/path", "https://queue.example?x"}) {
       auto invalid = options; invalid.endpoint = endpoint;
@@ -179,7 +246,7 @@ int main() {
       if(variant==6)row.erase("clan_match");
       OnlineMatchmaking client(login,options,[&](const auto &r,std::stop_token)->OnlineMatchmakingResponse {
         if(r.url.ends_with("/session") && r.method=="POST")return {201,Json{{"token",session_token},{"expires_in",900}}.dump()};
-        if(r.url.ends_with("/ticket?progress=1&ranks=1"))return {200,R"({"state":"idle","playlist_id":"","queued_players":0,"match":null})"};
+        if(r.url.ends_with("/ticket?progress=1&ranks=1&start=1&failure=1&appearance=1"))return {200,R"({"state":"idle","playlist_id":"","queued_players":0,"match":null})"};
         return {200,body.dump()};
       });
       client.refresh("Chosen Pilot");

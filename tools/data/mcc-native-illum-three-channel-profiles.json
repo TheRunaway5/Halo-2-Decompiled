@@ -1,0 +1,499 @@
+{
+  "schema": "H2_MCC_NATIVE_ILLUM_THREE_CHANNEL_PROFILES_V1",
+  "scope": "Finite literal paired shared light setup; no arbitrary family parameter inference or runtime shader interpretation",
+  "paired_source_report": {
+    "path": "analysis/native-renderer-all-20261025/pc-world-raw-paired-cooked-banks.json.xz",
+    "sha256": "278d567fdc1503c9fc690263ed984f0fb3be22b5d97e343378d47ee2791fff02",
+    "decoded_sha256": "45fab49fbc303dcaf7b3da8328d98b00c6f39782bde8ce9b522ed583869a32f0"
+  },
+  "profiles": [
+    {
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_illum_3_channel",
+      "source_graph_sha256": "19beb99343855aecef16cd06f88ecfbf65c2b60519ed5675726832a878d32df6",
+      "source_graph": {
+        "root_hex": "000000000000000000000000010000000000000000000000000000000000000074696c73ffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+        "source_root_counts": {
+          "0": 0,
+          "16": 0,
+          "24": 0,
+          "40": 0,
+          "48": 0,
+          "56": 0
+        },
+        "definitions": [
+          {
+            "definition_hex": "020000000000000032000000000000000a0000000000000023000000000000007c00000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 2,
+                "raw_hex": "0032883c0100cdcccc3c19328800010000000000",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 50,
+                "raw_hex": "0000000000000002010001000100010202000200020203020402050206000600060207000700070007000700070007000700070007000700070208000800080008020900090009000900090009000900090009020a000a000a000a000a000a000a000a00",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 10,
+                "raw_hex": "7361707300000000000873617073000000000402736170730000000005087361707300000000090e7361707300000000100a736170730000000015027361707300000000160873617073000000001a0873617073000000001e0273617073000000001f08",
+                "typed_references": [
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\lightmap\\lightmap_tex"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\self_illumination\\multichannel_self_illumination_occlusion"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\shadow\\shadow_generate"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\light_response\\default_light_combined_tex"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\fog\\fog_planar"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\lightmap\\lightmap_tex"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\self_illumination\\multichannel_self_illumination_occlusion"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\fog\\fog_planar"
+                  ]
+                ]
+              },
+              {
+                "field": 24,
+                "count": 35,
+                "raw_hex": "0004020203040504070208040a040c040e041004120012081606191222062504270027002704290029042b042d002d022e043000300432023300330033023400340034023500350035023600360036023700370037023800380038023900390039043b043d043f04410041044304450045044704490049044b044d044f04510453005308570057005700570057005700570057005700570057005700570459025a045c045e025f046104630465046704690069086d06701279067c007c007c007c007c007c007c007c007c007c007c007c00",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 124,
+                "raw_hex": "000000000100000183000000b2010000b0050001000000000100000183000000b2010000b005000100000000010000018400000085000001b2010000b00500010000000001000001b2010000b0050001981c0002991c0003000000030100000102000004010000022200000383000004630000058400000685000007880000088a0000098b00000ab1010004b0050001b209000500000000010000010000000001000001b2010000b00500010000000001000001b20100000000000001000001b2010000b00500010000000500000005000000050000000500000005000000050000000500000000010000018100000082000001b2010000b00500010000000001000001b2010000b00500010000000001000001b2010000b00500010000000001000001b2010000b005000100000000010000018100000082000001b2010000b00500010000000001000001b20100008a1c00068b1c0007b0050001000000000100000183000000b2010000b0050001000000000100000183000000b2010000b005000100000000010000018400000085000001b2010000b00500010000000001000001b2010000b0050001981c0002991c0003000000030100000102000004010000022200000383000004630000058400000685000007880000088a0000098b00000ab1010004b0050001b2090005",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          }
+        ]
+      },
+      "native_source_map": "04a_gasgiant",
+      "native_library_canonical_sha256": "2d486204932531c726ea6db76d9f4a2e367a470cc9be9ae8c9c7d03da8dff9aa",
+      "native_record": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\opaque\\tex_bump_illum_3_channel",
+        "bytes": 760,
+        "payload": "969e06432625336044855b83995f0b1960394cdcfce880c9bb8b78e6c3266c68.bin",
+        "fnv64": "e8e79eeabc5e1def",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            148
+          ],
+          [
+            116,
+            200
+          ],
+          [
+            124,
+            272
+          ],
+          [
+            132,
+            424
+          ]
+        ],
+        "references": [
+          [
+            204,
+            [
+              "spas",
+              "shaders\\shader_passes\\lightmap\\lightmap_tex"
+            ]
+          ],
+          [
+            214,
+            [
+              "spas",
+              "shaders\\shader_passes\\self_illumination\\multichannel_self_illumination"
+            ]
+          ],
+          [
+            224,
+            [
+              "spas",
+              "shaders\\shader_passes\\shadow\\shadow_generate"
+            ]
+          ],
+          [
+            234,
+            [
+              "spas",
+              "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+            ]
+          ],
+          [
+            244,
+            [
+              "spas",
+              "shaders\\shader_passes\\light_response\\default_light_combined_tex_first_person_detail"
+            ]
+          ],
+          [
+            254,
+            [
+              "spas",
+              "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+            ]
+          ],
+          [
+            264,
+            [
+              "spas",
+              "shaders\\shader_passes\\fog\\fog_planar"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "source_counts": {
+        "4": 6,
+        "12": 11,
+        "20": 8,
+        "28": 2,
+        "36": 50,
+        "44": 10,
+        "52": 35,
+        "60": 1,
+        "68": 1,
+        "76": 1,
+        "84": 2,
+        "92": 5,
+        "100": 2,
+        "108": 6
+      },
+      "native_shape": {
+        "0": 1,
+        "8": 25,
+        "16": 7,
+        "24": 25,
+        "32": 84
+      },
+      "shader_type_flags": 1,
+      "runtime_diffuse_slot": 1,
+      "source_role_banks": {
+        "28": "800000000032800000001932",
+        "52": "0000000000000000000000000000000000000000000000000000000000000000000000000000000001000100010000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000200020002000102020002000200020002000200020002000200020002000200020002000200020002000200020002000200",
+        "68": "0000ffff",
+        "76": "0002",
+        "84": "8300000083000000",
+        "92": "0100ffff0300ffffffffffffffffffffffffffff"
+      },
+      "native_role_banks": {
+        "28": "800000000032",
+        "52": "00000000000000000000000000000000000000000000000000000000000000000000000000000000010001000100000201000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+        "68": "0000ffff",
+        "76": "0002",
+        "84": "40000400",
+        "92": "0100ffff0300ffffffffffffffffffffffffffff"
+      },
+      "source_setup": {
+        "images": [
+          [
+            [
+              "bitm",
+              "scenarios\\bitmaps\\solo\\alphagasgiant\\lights\\light_thin_strips_bump"
+            ],
+            0,
+            1081474544
+          ],
+          [
+            [
+              "bitm",
+              "scenarios\\bitmaps\\solo\\alphagasgiant\\lights\\light_thin_strips_dif"
+            ],
+            0,
+            1081474544
+          ],
+          [
+            [
+              "bitm",
+              "scenarios\\bitmaps\\forerunner\\industrial\\metals\\forerunner_detail_rust2"
+            ],
+            0,
+            1081474544
+          ],
+          [
+            [
+              "bitm",
+              "scenarios\\bitmaps\\solo\\alphagasgiant\\lights\\light_thin_strips_illum"
+            ],
+            0,
+            1081474544
+          ],
+          [
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_multiplicative"
+            ],
+            0,
+            1064697328
+          ],
+          [
+            [
+              "bitm",
+              "rasterizer\\linear_corner_fade"
+            ],
+            0,
+            1073085936
+          ]
+        ],
+        "pixel_hex": "ffffff00bdb3b4000000ff0000ff0000ff8a4c00000000ffffffff00ffffff00ffffff00ffffff00ffffff00",
+        "vector_hex": "0000803f0000803f00000000000000000000803f0000803f0000000000000000df4f8d3edf4f8d3e7b146e3f0000000014aec73e000000007b146e3f000000000000803f0000803f00000000000000000000803f0000803f00000000000000000000803f0000803f0000803f00000000afb4343fb7b3333fb6bd3d3f00000000",
+        "property_hex": "0000803f0000803f0000803f000000000000000000000000",
+        "nie_hex": "cdcc4c3d0000000000000000000000000000000000000000",
+        "runtime_hex": "6d746962000000006d746962000000000000803f0000803f0000803fcdcc4c3d0000000000000000000000006d746962000000006d746962000000000000000000000000000000000000000000000000",
+        "runtime_references": [
+          [
+            4,
+            [
+              "bitm",
+              "scenarios\\bitmaps\\solo\\alphagasgiant\\lights\\light_thin_strips_dif"
+            ]
+          ],
+          [
+            12,
+            [
+              "bitm",
+              "scenarios\\bitmaps\\solo\\alphagasgiant\\lights\\light_thin_strips_illum"
+            ]
+          ],
+          [
+            48,
+            [
+              "NONE",
+              ""
+            ]
+          ],
+          [
+            56,
+            [
+              "NONE",
+              ""
+            ]
+          ]
+        ]
+      },
+      "role_mapping": {
+        "bitmap_slots": [
+          0,
+          1,
+          2,
+          3,
+          5
+        ],
+        "pixel_slots": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          6,
+          5,
+          7
+        ],
+        "vector_slots": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          6,
+          7,
+          5
+        ]
+      },
+      "clock_overlays": [
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "03200a00ff823e000000000000000000ff8f53000000803f00000000000000000000803f0000803f00000000000000000000803f"
+        }
+      ],
+      "paired_proof": {
+        "paired_owners": 9,
+        "all_full_main_outputs_exact": true,
+        "complete_source_shared_setup_exact": true,
+        "complete_required_curve_exact": true,
+        "source_and_native_role_banks_literal": true,
+        "qualified_shared_shader": "scenarios\\shaders\\forerunner\\industrial\\lights\\light_05_white"
+      },
+      "needed_PC_owners": [
+        {
+          "map": "needle",
+          "datum": 4156686416,
+          "shader": "scenarios\\shaders\\forerunner\\industrial\\lights\\light_05_white"
+        }
+      ],
+      "paired_controls": [
+        {
+          "map": "04a_gasgiant",
+          "datum": 4113830656,
+          "shader": "scenarios\\shaders\\forerunner\\industrial\\lights\\light_05_white",
+          "native_shader_payload": "968823e8a42bd80deeff0f0f38dcc44fb66df3335f17b63a2a558d1b404b47f7.bin"
+        },
+        {
+          "map": "04b_floodlab",
+          "datum": 4101182015,
+          "shader": "scenarios\\shaders\\forerunner\\industrial\\lights\\light_05_white",
+          "native_shader_payload": "522ebeff50225edd84e373ceb09caaac1f38f73de217a9b5a36e977477ded731.bin"
+        },
+        {
+          "map": "05a_deltaapproach",
+          "datum": 4229372387,
+          "shader": "scenarios\\shaders\\forerunner\\industrial\\lights\\light_05_white",
+          "native_shader_payload": "a3b188e916ecde39c57754b5f99e4f78a923872202e6638b171b2dee24d98780.bin"
+        },
+        {
+          "map": "05b_deltatowers",
+          "datum": 4202961164,
+          "shader": "scenarios\\shaders\\forerunner\\industrial\\lights\\light_05_white",
+          "native_shader_payload": "3bce2302f36556fc40bd64563ce5ee28af4b2452f003477907008424a6108fcf.bin"
+        },
+        {
+          "map": "06a_sentinelwalls",
+          "datum": 3823633010,
+          "shader": "scenarios\\shaders\\forerunner\\industrial\\lights\\light_05_white",
+          "native_shader_payload": "ecc8a3d450ae11613cfc9471236707599aba41b5ec23b5c87acdd9943ae83277.bin"
+        },
+        {
+          "map": "06b_floodzone",
+          "datum": 4234418924,
+          "shader": "scenarios\\shaders\\forerunner\\industrial\\lights\\light_05_white",
+          "native_shader_payload": "9fdc907acf7f4ba138fe242ab0458150bd63c2dfae8ca69ea56a1280a1a0f5df.bin"
+        },
+        {
+          "map": "07a_highcharity",
+          "datum": 4241038092,
+          "shader": "scenarios\\shaders\\forerunner\\industrial\\lights\\light_05_white",
+          "native_shader_payload": "326388f8e2f10ffb323f66a4aee4123dc861880fd22a25983c833139b6dc49ef.bin"
+        },
+        {
+          "map": "07b_forerunnership",
+          "datum": 4167702071,
+          "shader": "scenarios\\shaders\\forerunner\\industrial\\lights\\light_05_white",
+          "native_shader_payload": "cc71549513bb1b349b3101408fd128d2b587244fcff4b6a4b776638c00a45316.bin"
+        },
+        {
+          "map": "ascension",
+          "datum": 4156162182,
+          "shader": "scenarios\\shaders\\forerunner\\industrial\\lights\\light_05_white",
+          "native_shader_payload": "6281cddef1efbd68b1a8b509b8305312bfe1c1cadc0679cf55035af5cbba393a.bin"
+        }
+      ]
+    }
+  ]
+}

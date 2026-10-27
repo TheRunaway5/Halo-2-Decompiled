@@ -10,6 +10,7 @@
 #include "halo2/desktop_session.hpp"
 #include "halo2/frontend_material.hpp"
 #include "halo2/frontend_timing.hpp"
+#include "halo2/frontend_intro_capture.hpp"
 #include "halo2/frontend_model.hpp"
 #include "halo2/frontend_model_pose.hpp"
 #include "halo2/frontend_model_lighting.hpp"
@@ -50,6 +51,7 @@
 #include <fstream>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <nlohmann/json.hpp>
 #include <iostream>
 #include <set>
 namespace halo2 {
@@ -212,6 +214,10 @@ std::vector<AnimatedObjectMaterials> append_scene(const Cache &cache, const TagS
 }
 } // namespace
 std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
+  if(options.wait_intro_clear)
+    FrontendIntroCapture::validate_request(options.frames,options.audit,!options.sweep.empty(),
+        !options.movie.empty() || options.movie_frame,
+        options.entry==FrontendOptions::Entry::initial,options.skip_intro);
   if (options.capture_ui_step_ms && (!options.frames || !options.capture_ui_ms))
     throw FormatError("UI capture clock progression requires --frames and --menu-ui-ms");
   if ((!options.capture_actions.empty() || options.capture_ui_ms) && !options.frames)
@@ -235,6 +241,8 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
   const auto desktop = options.desktop ? options.desktop : audio_state.desktop
       ?audio_state.desktop:std::make_shared<DesktopSession>();
   audio_state.desktop=desktop;
+  if(cache.is_mcc() && !desktop->source_loading_wait_configured())
+    desktop->configure_source_loading_wait(load_gameplay_font_source(gameplay_font_directory(cache)));
   auto vista_map=options.vista_settings;
   if(vista_map.empty()) {
     if(cache.is_mcc())
@@ -256,6 +264,15 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
   if (!options.ui_assets.empty())
     std::cout << "Optional frontend 2D texture pack: " << ui_assets.size()
               << " image banks; Xbox layout, font metrics and 3D assets retained\n";
+  // ONLINE map preparation presents the original screen231 dialog. It is
+  // painted from this same content, fonts and sampled pages after departure.
+  if(cache.is_mcc() && content.screens.contains(231) && !desktop->network_transition_configured()) {
+    auto dialog=std::make_shared<FrontendNetworkTransitionPainter>(content,gameplay_font_directory(cache),
+        ui_assets,options.ui_assets.empty()?std::filesystem::path{}:options.ui_assets/"fonts");
+    std::cout<<"Network transition: original screen231 PLEASE WAIT dialog, "
+             <<dialog->materials().size()<<" resident UI owners\n";
+    desktop->configure_network_transition(std::move(dialog));
+  }
   std::size_t panes = 0, bitmaps = 0;
   for (const auto &[id, s] : content.screens) {
     panes += s.panes.size();
@@ -610,6 +627,7 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
   window = desktop->window(options.width, options.height, options.hidden);
   const auto renderer_owner=desktop->make_renderer(mesh,options.validation);
   auto& renderer=*renderer_owner;
+  renderer.path_tracing_source(mesh);
   renderer.upscale_world(false);
   renderer.share_display_settings(desktop->display_settings);
   renderer.scene_light_volumes(std::move(light_volumes),cache.shader_function_tables());
@@ -630,11 +648,25 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
   std::cout << "Frontend GPU: " << renderer.device_name() << '\n';
   std::unique_ptr<char, decltype(&SDL_free)> pref(
       SDL_GetPrefPath("Halo2Native", "Halo2"), SDL_free);
+  // The MCC mainmenu GPU resources and actual source scene owner now exist.
+  // Join the retained MP map-wait before opening a new source PCR frame, so
+  // that frame's original intro clock starts after its real loading handoff.
+  const bool source_wait_ready=desktop->source_loading_wait_active();
+  if(source_wait_ready) {
+    desktop->renderer_ready(renderer_owner);
+    desktop->finish_loading();
+  }
   auto &state = initial_entry ? session->create_state(
       options.sweep.empty() && options.capture_actions.empty() && pref
           ? std::filesystem::path(pref.get()) / "menu.cfg"
-          : std::filesystem::path{}) : options.entry==FrontendOptions::Entry::session_return
-              ? session->state() : session->enter(options.entry,options.postgame_report);
+          : std::filesystem::path{}) : session->state();
+  // The original new-map dispatcher initializes the UI clock before the
+  // mainmenu/PCR factory runs. Its frame-delta intro clock is distinct from
+  // PCR16's native open clock, and only an actual map rebuild resets it.
+  state.ui_clock(session->ui_clock());
+  state.initialize_mainmenu_map();
+  if(!initial_entry && options.entry!=FrontendOptions::Entry::session_return)
+    session->enter(options.entry,options.postgame_report);
   if(options.entry==FrontendOptions::Entry::session_return) {
     if(!options.session_mainmenu_ready)
       throw FormatError("Native mainmenu return requires the real session factory owner");
@@ -665,11 +697,21 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
     return SDL_OpenURL(url.c_str())==0;
   });
   state.set_discord_social(session->discord_social);
-  auto online_services=std::make_shared<NativeTu15OnlineServices>();
-  online_services->login=discord_login;
-  online_services->account=std::make_shared<OnlineAccount>(discord_login,online_account_environment());
-  online_services->directory=std::make_shared<OnlineDirectory>(online_directory_environment());
-  online_services->matchmaking=std::make_shared<OnlineMatchmaking>(discord_login,online_matchmaking_environment(options.maps));
+  // These clients belong to the retained application session. Reopening a
+  // renderer for PCR or the next lobby must not replace its authenticated
+  // party, queue intent or selected hopper with new environment clients.
+  auto online_services=session->online_services;
+  if(!online_services || online_services->login!=discord_login) {
+    online_services=std::make_shared<NativeTu15OnlineServices>();
+    online_services->login=discord_login;
+    session->online_services=online_services;
+  }
+  if(!online_services->account)
+    online_services->account=std::make_shared<OnlineAccount>(discord_login,online_account_environment());
+  if(!online_services->directory)
+    online_services->directory=std::make_shared<OnlineDirectory>(online_directory_environment());
+  if(!online_services->matchmaking)
+    online_services->matchmaking=std::make_shared<OnlineMatchmaking>(discord_login,online_matchmaking_environment(options.maps));
   state.set_online_account(online_services->account);
   state.set_online_directory(online_services->directory);
   state.set_online_matchmaking(online_services->matchmaking);
@@ -1102,6 +1144,11 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
   // changes. The ordinary update below decides from the actual current menu;
   // entering a renderer is not a request to restart title music.
   unsigned screen = state.frame().screen, frames = 0;
+  std::optional<FrontendIntroCapture> intro_capture;
+  if(options.wait_intro_clear)intro_capture.emplace(options.frames);
+  const auto capture_frame_index=[&] {
+    return intro_capture?intro_capture->qualified_frames():frames;
+  };
   tick = 1;
   while (tick <= options.scene_tick) {
     vm.tick(tick++);
@@ -1112,6 +1159,7 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
   float accumulator = 0, axis_timer = 0;
   int axis_direction = 0;
   bool running = true, text_input = false;
+  bool resize_applied = false;
   struct PointerCursor {
     SDL_Cursor *previous = SDL_GetCursor();
     SDL_Cursor *hand = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND);
@@ -1145,7 +1193,7 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
     const auto viewport = drawable_size();
     if (painted_revision == state.revision && painted_viewport == viewport) return;
     const auto clock = options.capture_ui_ms
-        ? *options.capture_ui_ms + frames * options.capture_ui_step_ms
+        ? *options.capture_ui_ms + capture_frame_index() * options.capture_ui_step_ms
         : fixed_capture_clock ? 5000u : ui_clock_ms;
     const float elapsed = options.capture_ui_ms ? float(clock) / 1000.f
         : fixed_capture_clock ? 5.f : std::chrono::duration<float>(Clock::now() - entered).count();
@@ -1153,10 +1201,15 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
     painted_revision = state.revision;
     painted_viewport = viewport;
   };
-  desktop->renderer_ready(renderer_owner);
+  if(!source_wait_ready)desktop->renderer_ready(renderer_owner);
   previous=Clock::now();
+  const auto intro_capture_started=previous;
+  const auto intro_capture_elapsed=[&] {
+    return std::uint64_t(std::chrono::duration_cast<std::chrono::milliseconds>(
+        Clock::now()-intro_capture_started).count());
+  };
   while (running && !state.quit && !state.launch &&
-         (!options.frames || frames < options.frames)) {
+         (!options.frames || (intro_capture?!intro_capture->done():frames<options.frames))) {
     const auto now = Clock::now();
     ui_clock_ms = session->ui_clock();
     state.ui_clock(ui_clock_ms);
@@ -1318,6 +1371,8 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
         const auto key = event.key.keysym.sym;
         if(state.frame().screen!=167 && (key==SDLK_F9 || key==SDLK_F10) && state.act_invite_notice(key==SDLK_F9))continue;
         if(state.party_invite_picker() && (key==SDLK_PAGEUP || key==SDLK_PAGEDOWN) && state.switch_invite_tab(key==SDLK_PAGEUP?-1:1))continue;
+        if(key==SDLK_TAB && state.review_online_postgame())continue;
+        if((key==SDLK_PAGEUP || key==SDLK_PAGEDOWN) && state.switch_pcr_tab(key==SDLK_PAGEUP?-1:1))continue;
         if (key == SDLK_ESCAPE)
           back();
         else if (key == SDLK_RETURN || key == SDLK_KP_ENTER) {
@@ -1347,7 +1402,8 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
       if (event.type == SDL_KEYDOWN && (event.key.keysym.sym == SDLK_UP ||
                                         event.key.keysym.sym == SDLK_DOWN ||
                                         event.key.keysym.sym == SDLK_LEFT ||
-                                        event.key.keysym.sym == SDLK_RIGHT))
+                                        event.key.keysym.sym == SDLK_RIGHT) &&
+          !(state.frame().vista_pcr && (event.key.keysym.sym==SDLK_LEFT || event.key.keysym.sym==SDLK_RIGHT)))
         sound(FrontendUiSound::Cursor);
       if (event.type == SDL_TEXTINPUT)
         state.text(event.text.text);
@@ -1372,10 +1428,11 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
           if(state.act_invite_notice(false))sound(FrontendUiSound::Back);
           break;
         case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
-          if(state.switch_invite_tab(-1))sound(FrontendUiSound::Cursor);
+          if(state.review_online_postgame())sound(FrontendUiSound::Forward);
+          else if(!state.switch_pcr_tab(-1) && state.switch_invite_tab(-1))sound(FrontendUiSound::Cursor);
           break;
         case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
-          if(state.switch_invite_tab(1))sound(FrontendUiSound::Cursor);
+          if(!state.switch_pcr_tab(1) && state.switch_invite_tab(1))sound(FrontendUiSound::Cursor);
           break;
         case SDL_CONTROLLER_BUTTON_A:
           accept();
@@ -1408,11 +1465,11 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
           break;
         case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
           state.navigate(-1, 0);
-          sound(FrontendUiSound::Cursor);
+          if(!state.frame().vista_pcr)sound(FrontendUiSound::Cursor);
           break;
         case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
           state.navigate(1, 0);
-          sound(FrontendUiSound::Cursor);
+          if(!state.frame().vista_pcr)sound(FrontendUiSound::Cursor);
           break;
         default:
           break;
@@ -1435,7 +1492,7 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
           } else if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT &&
                      state.activate_pointer(*target)) {
             model_screen_entries(state);
-            if (!state.take_back_refused())
+            if (!state.take_back_refused() && target->action!=FrontendPointerAction::PcrTab)
               sound(target->action == FrontendPointerAction::Back
                         ? FrontendUiSound::Back : FrontendUiSound::Forward);
             if (!options.capture_actions.empty())
@@ -1517,7 +1574,9 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
       std::cout << "Attract idle_ms=" << idle.elapsed(now).count() << '\n';
       attract_available = begin_movie("attract");
     }
-    if (options.resize_test && frames == options.frames / 2) {
+    if (options.resize_test && !resize_applied && capture_frame_index() == options.frames / 2 &&
+        (!intro_capture || !state.ui_map_intro_color())) {
+      resize_applied = true;
       SDL_SetWindowSize(window, 1000, 600);
       renderer.resized();
     }
@@ -1534,6 +1593,8 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
       if (movie->finished(seconds))
         end_movie();
     }
+    if(intro_capture && movie)
+      throw FormatError("Intro-clear menu capture entered movie playback");
     if (movie) {
       const auto viewport = drawable_size();
       const auto rect = movie_canvas_rectangle(movie->image().width, movie->image().height,
@@ -1550,7 +1611,7 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
     } else {
       const auto capture_clock = options.capture_ui_ms
           ? std::optional<std::uint32_t>{*options.capture_ui_ms +
-              frames * options.capture_ui_step_ms} : std::nullopt;
+              capture_frame_index() * options.capture_ui_step_ms} : std::nullopt;
       const float elapsed = capture_clock ? float(*capture_clock) / 1000.f : fixed_capture_clock ? 5.f :
           std::chrono::duration<float>(Clock::now() - entered).count();
       painted_viewport = drawable_size();
@@ -1566,8 +1627,13 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
     pointer_cursor.update(hovered && (!state.capturing_binding() ||
                                     hovered->action == FrontendPointerAction::Back ||
                                     hovered->action == FrontendPointerAction::ClearBinding));
-    const bool capture =
-        !options.screenshot.empty() && frames + 1 == options.frames;
+    const bool intro_active=intro_capture && state.ui_map_intro_color().has_value();
+    const auto intro_elapsed=intro_capture?intro_capture_elapsed():0;
+    const bool visible_capture_frame=!intro_capture || intro_capture->ready(intro_active,intro_elapsed);
+    const bool capture=!options.screenshot.empty() && visible_capture_frame &&
+        (intro_capture?intro_capture->next_is_final():frames+1==options.frames);
+    const auto observed_capture=visible_capture_frame && options.frame_capture
+        ?options.frame_capture(state):std::filesystem::path{};
     renderer.scene_color_filter(!movie && ui.scene_color_filter
         ? std::optional{scene_filter} : std::nullopt);
     const auto views = views_for(ui);
@@ -1581,20 +1647,31 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
     if (source_frame) draw_title_effects(camera,source_frame->fog,accumulator*30.f);
     else renderer.scene_particles({});
     if (renderer.draw(camera,
-                      capture ? options.screenshot : std::filesystem::path{},
+                      !observed_capture.empty()?observed_capture:capture?options.screenshot:std::filesystem::path{},
                       {}, false, {}, {}, ui.vertices, views, background, ui.backdrops,
                       source_frame?&source_frame->fog:nullptr,
                       source_world?&*source_world:nullptr, ui.full_surface_bounds)) {
       ++frames;
+      if(intro_capture)intro_capture->presented(intro_active,ui_clock_ms,intro_elapsed);
       if (!movie && idle.presented(Clock::now()))
         std::cout << "Menu ready screen=" << screen << " idle_ms=0\n";
     } else
       SDL_Delay(10);
   }
+  if(intro_capture) {
+    intro_capture->require_complete();
+    const nlohmann::json evidence={{"schema","H2_FRONTEND_INTRO_CLEAR_CAPTURE_V1"},
+        {"clear_observed",true},{"warmup_frames",intro_capture->warmup_frames()},
+        {"qualified_frames",intro_capture->qualified_frames()},
+        {"first_clear_ui_clock_ms",intro_capture->first_clear_ui_clock()},
+        {"last_clear_ui_clock_ms",intro_capture->last_clear_ui_clock()},
+        {"waited_ms",intro_capture->waited_ms()},{"wait_budget_ms",FrontendIntroCapture::wait_budget_ms}};
+    std::cout<<"Frontend intro capture: "<<evidence.dump()<<'\n';
+  }
   if (audio)
     std::cout << "Menu audio mixed_frames=" << audio->mixed_frames()
               << " peak=" << audio->peak() << '\n';
-  std::cout << "Rendered " << frames << " frontend frames\n";
+  std::cout << "Rendered " << (intro_capture?intro_capture->qualified_frames():frames) << " frontend frames\n";
   const auto effect_diagnostics=title_effects.diagnostics();
   std::cout << "Title particles: " << effect_diagnostics.particles << " in "
             << effect_diagnostics.systems << " systems\n";

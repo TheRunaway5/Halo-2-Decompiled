@@ -131,8 +131,8 @@ struct SourceShadowRender::Impl {
         VkDescriptorPoolCreateInfo pool{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};pool.maxSets=2;pool.poolSizeCount=2;pool.pPoolSizes=sizes;
         check(vkCreateDescriptorPool(context.device,&pool,nullptr,&filter_pool),"shadow filter descriptor pool");
         const auto frames=source_shadow_filter_passes();
-        struct Uniform {std::array<std::uint32_t,60> program;std::array<ShaderVector,4> taps;};
-        static_assert(sizeof(Uniform)==304);
+        struct Uniform {std::array<ShaderVector,4> taps;};
+        static_assert(sizeof(Uniform)==64);
         for(unsigned stage=0;stage<2;++stage) {
             VkBufferCreateInfo buffer{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};buffer.size=sizeof(Uniform);buffer.usage=VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
             check(vkCreateBuffer(context.device,&buffer,nullptr,&filter_buffers[stage]),"shadow filter uniform");
@@ -141,7 +141,7 @@ struct SourceShadowRender::Impl {
             allocation.memoryTypeIndex=memory_type(req.memoryTypeBits,VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
             check(vkAllocateMemory(context.device,&allocation,nullptr,&filter_memories[stage]),"shadow filter uniform memory");
             check(vkBindBufferMemory(context.device,filter_buffers[stage],filter_memories[stage],0),"shadow filter uniform binding");
-            const Uniform uniform{frames[stage].program.words,frames[stage].taps};void *mapped;
+            const Uniform uniform{frames[stage].taps};void *mapped;
             check(vkMapMemory(context.device,filter_memories[stage],0,sizeof(Uniform),0,&mapped),"shadow filter uniform map");
             std::memcpy(mapped,&uniform,sizeof(uniform));vkUnmapMemory(context.device,filter_memories[stage]);
             VkDescriptorSetAllocateInfo allocate{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};allocate.descriptorPool=filter_pool;

@@ -77,7 +77,7 @@ int main(int argc,char** argv)try {
   const auto display=multiplayer_hud_score_display(match.state(),0,25,0,hud);
   check(display.status==SourceHudScoreStatus::Ready && display.color==hud.score_appearance_colors[3] &&
       display.color!=hud.score_appearance_colors[10],"Actual HUD still substituted the default profile color");
-  LanHost host(match,0,0x192baa);const auto address="127.0.0.1:"+std::to_string(host.port());
+  LanHost host(match,0,0x192baa);const auto address=host.join_address();
   std::array<std::unique_ptr<LanClient>,3> peers;
   for(unsigned peer=0;peer<3;++peer) {
     auto selected=profiles;
@@ -117,7 +117,7 @@ int main(int argc,char** argv)try {
   for(auto& profile:invalid)profile[0x7c]=7;
   invalid[3][0x44]=1;
   const std::array<std::int8_t,4> choices{7,7,7,7};
-  LanClient rejected("127.0.0.1:"+std::to_string(team_host.port()),0x14e9e0,4,choices,invalid);
+  LanClient rejected(team_host.join_address(),0x14e9e0,4,choices,invalid);
   rejected.send(std::array<Controls,4>{});team_host.receive(controls);rejected.receive();
   check(!rejected.error().empty() && !rejected.ready() && team_host.peers()==0 &&
       team.available_player_slots()==15 && team.state().retained_team_mask==1,

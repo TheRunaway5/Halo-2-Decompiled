@@ -6,6 +6,9 @@
 #include <vector>
 
 namespace halo2 {
+// TU1.5 25E5C0's final program bind at25ED28 (retail2548F0/255058),
+// opacity1. The final radar page is an ordinary input texture to this pass.
+PixelProgram source_motion_sensor_final_program_tu15();
 // Literal inputs to retail1A1D55/1A20E6. These are original object fields,
 // not flags inferred from native animation names or a crouch button.
 struct MotionSensorObject {

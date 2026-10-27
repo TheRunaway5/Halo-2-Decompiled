@@ -18,6 +18,7 @@ from test_mcc_movies import bundle_fixture
 from test_mcc_ui_layout import layout_fixture
 from native_variant_test_support import variant_fixture
 from native_variant_assets import LAYOUTS
+from custom_ui_test_support import custom_ui_fixture, custom_ui_menu_fixture, empty_custom_map_fixture
 
 
 class InstallationOwnershipTests(unittest.TestCase):
@@ -89,6 +90,8 @@ class InstallationOwnershipTests(unittest.TestCase):
 
     def test_mcc_selection_registry_stays_with_mutable_cache(self):
         variant_fixture(self.resources)
+        custom_ui_fixture(self.resources)
+        empty_custom_map_fixture(self.resources)
         cache = self.data / 'assets/imported/mcc-fixture'
         for name in mcc_onboarding.REQUIRED:
             path = cache / name
@@ -96,6 +99,7 @@ class InstallationOwnershipTests(unittest.TestCase):
             path.write_text('synthetic cache selection fixture')
         (cache / 'provenance.json').write_text(json.dumps(dict(schema='H2_MCC_TU15_PREPARATION_V1',
             external_installation_requirement='Halo MCC only', runtime_active=False, full_tu15_parity=False)))
+        custom_ui_menu_fixture(cache, self.resources)
         decoy = self.resources / mcc_onboarding.REGISTRY
         decoy.parent.mkdir(parents=True)
         decoy.write_text('immutable resource-side decoy')
@@ -106,6 +110,8 @@ class InstallationOwnershipTests(unittest.TestCase):
         self.assertFalse(proof['runtime_active'])
         self.assertFalse(proof['full_tu15_parity'])
         self.assertTrue((self.data / mcc_onboarding.REGISTRY).is_file())
+        self.assertTrue(proof['custom_ui_assets']['complete'])
+        self.assertTrue((cache / 'presentation/custom-ranks/manifest.json').is_file())
         self.assertEqual(self.snapshot(), before)
         for name in ('data/tags/variants/bomb-defusal-v1.json', LAYOUTS):
             with self.subTest(asset=name):

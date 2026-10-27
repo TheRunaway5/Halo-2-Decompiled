@@ -9,6 +9,7 @@
 
 namespace halo2 {
 class MultiplayerObjectRuntime;
+class SourceOriginalCameraSeed;
 struct OriginalData;
 // Native view binding for the actual TU1.5 camera scheduler and complete
 // observer motion/world path. Includes the authored handoff after seat exit.
@@ -17,8 +18,11 @@ public:
   NativeVehicleCamera(MultiplayerObjectRuntime &,const OriginalData &);
   std::optional<NativeDeathCameraView> update(unsigned view,std::uint32_t unit,
       std::uint16_t player_flags,float seconds);
+  // The optional completed output includes the ordinary first-person observer;
+  // the return value retains its vehicle/death/handoff admission semantics.
   std::optional<NativeDeathCameraView> update_player(unsigned view,std::uint32_t player,
-      std::uint16_t player_flags,float seconds,bool cycle_pressed=false);
+      std::uint16_t player_flags,float seconds,bool cycle_pressed=false,
+      std::optional<NativeDeathCameraView> *completed=nullptr);
   bool death_view(unsigned view) const {return views_.at(view).controller[0xc/4]==0x247140u;}
   using AuthorityBinding=std::array<std::byte,32>;
   class Checkpoint {
@@ -53,6 +57,8 @@ public:
   // Ordered view admissions come independently from the accepted couch roster.
   static std::vector<std::byte> encode_checkpoint(const Checkpoint &);
   static std::uint64_t checkpoint_allocation(const Checkpoint &);
+  // Complete owning value equality; does not install either incoming bank.
+  static bool same_checkpoint(const Checkpoint &,const Checkpoint &)noexcept;
   // Rebind owning camera values only after an independently authorized role
   // transition. Ordered salted views remain identical; no world is changed.
   static Checkpoint rebind_checkpoint(const Checkpoint &,AuthorityBinding previous,
@@ -60,6 +66,11 @@ public:
   static Checkpoint decode_checkpoint(std::span<const std::byte>,AuthorityBinding,
       std::uint32_t native_tick,std::span<const SourcePlayerAdmission> views);
 private:
+  friend class SourceAdmittedCamera;
+  friend class SourceAdmittedCameraBank;
+  std::optional<NativeDeathCameraView> update_player_impl(unsigned,std::uint32_t,
+      std::uint16_t,float,bool,const SourceOriginalCameraSeed *,
+      std::optional<NativeDeathCameraView> *);
   struct View {
     SourceObserverState observer{};
     SourceCameraControllerState controller{};

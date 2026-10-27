@@ -103,6 +103,7 @@ public:
 private:
   friend class MultiplayerRuntimeAuthority;
   friend class SourcePeerHostTakeover;
+  friend class SourceTerminalRecovery;
   struct SourceShadowSetup;
   std::shared_ptr<const Cache> original_cache() const;
   // Only same-creator incoming takeover construction may reuse the resident's

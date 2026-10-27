@@ -11,7 +11,12 @@
 #include <cstring>
 #include <limits>
 #include <set>
+#ifdef _WIN32
+#include <atomic>
+#include <random>
+#else
 #include <unistd.h>
+#endif
 namespace halo2 {
 namespace {
 template<class T>T read(const SourceRuntimeMemory &memory,NativeRuntimeAddress body,unsigned offset) {
@@ -26,9 +31,22 @@ CampaignSourceRuntime::CampaignSourceRuntime(const Cache &cache,const std::files
     std::size_t bsp,unsigned difficulty,std::uint32_t seed,std::optional<std::uint32_t> auxiliary) {
   if(!cache.original_data() || cache.original_data()->image!=OriginalData::Image::TitleUpdate15 || difficulty>3)
     throw FormatError("Campaign source ownership requires TU1.5 gameplay constants and difficulty 0..3");
+#ifdef _WIN32
+  const auto parent=std::filesystem::temp_directory_path();
+  std::random_device random;
+  static std::atomic<unsigned> next{};
+  for(unsigned attempt=0;attempt<32;++attempt) {
+    const auto candidate=parent/("halo2-campaign-"+std::to_string(random())+"-"+std::to_string(next.fetch_add(1)));
+    std::error_code error;
+    if(std::filesystem::create_directory(candidate,error)){files_=candidate;break;}
+    if(error && error!=std::errc::file_exists)break;
+  }
+  if(files_.empty())throw FormatError("Campaign source storage unavailable");
+#else
   auto name=(std::filesystem::temp_directory_path()/"halo2-campaign-XXXXXX").string();
   if(!::mkdtemp(name.data()))throw FormatError("Campaign source storage unavailable");
   files_=name;
+#endif
   try {
     objects_=xbe.empty()?std::make_unique<MultiplayerObjectRuntime>(cache,bsp,files_):
         std::make_unique<MultiplayerObjectRuntime>(xbe,cache,bsp,files_);
@@ -88,7 +106,18 @@ void CampaignSourceRuntime::set_team_allegiance(std::int16_t a,std::int16_t b,bo
     world.run_actual(0x1e7a20u,input);
   }
 }
-void CampaignSourceRuntime::switch_bsp(std::size_t bsp) {objects_->tu15_world().switch_campaign_bsp(bsp);}
+void CampaignSourceRuntime::render_bsp_lifecycle(CampaignRenderBspObserver observer) {
+  render_bsp_observer_=std::move(observer);
+}
+void CampaignSourceRuntime::switch_bsp(std::size_t bsp) {
+  auto &world=objects_->tu15_world();
+  const auto previous=world.source_bsp_index();
+  world.switch_campaign_bsp(bsp);
+  if(world.source_bsp_index()!=bsp)
+    throw FormatError("Campaign render activation differs from the completed native BSP transition");
+  if(previous!=bsp && render_bsp_observer_)
+    render_bsp_observer_(world,bsp,CampaignRenderBspLifecycle::activation);
+}
 void CampaignSourceRuntime::set_kill_volume_enabled(std::int16_t trigger,bool enabled) {
   objects_->tu15_world().set_kill_volume_enabled(trigger,enabled);
 }
@@ -111,6 +140,11 @@ void CampaignSourceRuntime::restore(const Checkpoint &saved,NativeObjectLifetime
   if(!objects_->commit_authority(std::move(world)) || !lifetimes.commit_source_authority(std::move(pool)))
     throw FormatError("Campaign source checkpoint did not publish its coupled world/pool backing");
   player_=saved.player;placements_.swap(placements);
+  // World/pool publication completed before any renderer touches the new
+  // backing. Simulation restores the separate weather record afterward;
+  // this observer must not advance/reset that record or source RNG here.
+  if(render_bsp_observer_)render_bsp_observer_(objects_->tu15_world(),
+      saved.objects.world.bsp,CampaignRenderBspLifecycle::checkpoint_restore);
 }
 void CampaignSourceRuntime::live_lens_renderer(bool active) {
   objects_->live_campaign_lens_renderer(active);
@@ -313,10 +347,11 @@ void CampaignSourceRuntime::deliver_controls(Simulation &simulation,const Contro
   const auto put=[&](unsigned offset,std::uint32_t value,unsigned n=4) {
     for(unsigned i=0;i<n;++i)command[offset+i]=std::byte(value>>(8*i));
   };
-  const auto held=simulation.content_.weapons.find(unit.weapon.definition);
-  const bool sword=held!=simulation.content_.weapons.end() && (held->second.inventory_flags&(1u<<24));
+  // Original1889D0 derives bits6/16 from the same held primary byte for
+  // every item. Preserve that input during weapon switches;1522E0 owns
+  // weapon-specific admission and the original mode/cooldown gates.
   put(0,unsigned(input.crouch)|(unsigned(input.jump)<<1)|(input.grenade?0x04000000u:0u)|
-      (input.melee?0x20u:0u)|((sword && input.fire)?0x40u:0u)|(input.fire?0x10000u:0u)|
+      (input.melee?0x20u:0u)|(input.fire?0x00010040u:0u)|
       (input.fire_secondary?0x220000u:0u)|(input.reload?0x10000000u:0u));
   put(4,std::bit_cast<std::uint32_t>(input.yaw));put(8,std::bit_cast<std::uint32_t>(input.pitch));
   put(0xc,std::bit_cast<std::uint32_t>(input.forward));put(0x10,std::bit_cast<std::uint32_t>(-input.right));

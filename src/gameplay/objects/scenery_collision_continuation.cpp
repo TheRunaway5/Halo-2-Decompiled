@@ -10,7 +10,7 @@ std::vector<CollisionTriangle> validate(const StaticSceneryCollision::AuthorityC
     if(saved.version!=1 || scene.version!=1 || saved.scene_binding!=scene.content_binding || saved.owners.size()>2048 ||
         saved.definition_binding!=scenery_definitions(content))
         throw FormatError("Scenery collision continuation has incompatible scene or definition bindings");
-    std::vector<CollisionTriangle> rebuilt;
+    std::size_t triangle_count{};
     for(const auto &[handle,o]:saved.owners) {
         scene_owner(scene,handle,o.placement);
         if(o.placement>=content.static_scenery_collision.size() || !content.static_scenery_collision[o.placement] ||
@@ -20,11 +20,20 @@ std::vector<CollisionTriangle> validate(const StaticSceneryCollision::AuthorityC
         const auto &d=*content.static_scenery_collision[o.placement];
         const auto nodes=o.solved_nodes?*o.solved_nodes:pose_model_nodes_world(d.hierarchy,o.root);
         if(nodes.size()!=d.hierarchy.bones.size())throw FormatError("Scenery continuation lost its current WORLD hierarchy");
-        auto part=model_collision_triangles(d.collision,nodes,d.permutations,o.placement);
-        rebuilt.insert(rebuilt.end(),part.begin(),part.end());
+        triangle_count+=model_collision_triangle_count(d.collision,nodes,d.permutations,
+            saved.triangles.size()-triangle_count);
     }
     for(const auto &t:saved.triangles)if(!finite(t.a) || !finite(t.b) || !finite(t.c) || !finite(t.source_normal))
         throw FormatError("Scenery collision continuation has a nonfinite cached triangle");
+    if(triangle_count!=saved.triangles.size())
+        throw FormatError("Scenery continuation generated collision count differs from its admitted bank");
+    std::vector<CollisionTriangle> rebuilt;rebuilt.reserve(triangle_count);
+    for(const auto &[handle,o]:saved.owners)if(o.active) {
+        (void)handle;const auto &d=*content.static_scenery_collision[o.placement];
+        const auto nodes=o.solved_nodes?*o.solved_nodes:pose_model_nodes_world(d.hierarchy,o.root);
+        auto part=model_collision_triangles(d.collision,nodes,d.permutations,o.placement);
+        rebuilt.insert(rebuilt.end(),part.begin(),part.end());
+    }
     if(triangles(rebuilt)!=triangles(saved.triangles))
         throw FormatError("Scenery collision continuation cached values/order differ from its posed definitions");
     return rebuilt;

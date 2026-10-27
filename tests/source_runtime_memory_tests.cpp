@@ -3,6 +3,8 @@
 #include "halo2/source_runtime_memory.hpp"
 #include "halo2/source_runtime_write_protection.hpp"
 #include <array>
+#include <optional>
+#include <vector>
 #include <cerrno>
 #include <cfenv>
 #include <cstring>
@@ -37,6 +39,78 @@ std::uint32_t word(const SourceRuntimeMemory &m, std::uint32_t p) {
   return v;
 }
 
+// Tiny owner regions sharing one page (the image's globals) resolve through
+// the per-page small index exactly as the region map: same owner, same bytes,
+// same rejections, across release and checkpoint restore.
+void small_region_index() {
+  using A = SourceRuntimeMemory::Access;
+  SourceRuntimeMemory m;
+  const std::array<std::byte,4> a{std::byte{1},std::byte{2},std::byte{3},std::byte{4}};
+  const std::array<std::byte,2> b{std::byte{5},std::byte{6}};
+  std::array<std::byte,164> c{};for(unsigned i=0;i<c.size();++i)c[i]=std::byte(i);
+  std::array<std::byte,16> d{};for(unsigned i=0;i<d.size();++i)d[i]=std::byte(0x80+i);
+  std::vector<std::byte> page(4096,std::byte{0x55});
+  m.mount(0x10000, page, A::ReadWrite, "whole page");
+  m.mount(0x20010, a, A::ReadWrite, "four bytes");
+  m.mount(0x20020, b, A::ReadOnly, "two bytes");
+  m.mount(0x20100, c, A::ReadWrite, "section");
+  m.mount(0x20ff8, d, A::ReadWrite, "straddles a page");
+  check(m.view(0x20012,2)[0]==std::byte{3} && m.view(0x20012,2)[1]==std::byte{4},"small region view");
+  check(m.view(0x20021,1)[0]==std::byte{6},"second small region view");
+  check(m.view(0x201a0,4)[0]==std::byte{0xa0},"section view");
+  check(m.view(0x21000,8)[0]==std::byte{0x88},"straddling region's second page");
+  check(m.view(0x20ffc,4)[3]==std::byte{0x87},"straddling region's first page");
+  check(m.view(0x10800,1)[0]==std::byte{0x55},"whole page view");
+  std::array<std::byte,4> out{};
+  m.read(0x20010,out);check(out==a,"small region read");
+  const std::array<std::byte,4> replaced{std::byte{9},std::byte{8},std::byte{7},std::byte{6}};
+  m.write(0x20010,replaced);m.read(0x20010,out);check(out==replaced,"small region write");
+  fails([&]{(void)m.view(0x20010,8);});           // crosses its owner
+  fails([&]{(void)m.view(0x20030,1);});           // gap inside the shared page
+  fails([&]{std::array<std::byte,1> one{};m.write(0x20020,one);}); // read-only owner
+  m.release(0x20010);
+  fails([&]{(void)m.view(0x20010,1);});           // released owner no longer resolves
+  check(m.view(0x20021,1)[0]==std::byte{6},"neighbour survives a release");
+  SourceRuntimeMemory restored;restored.restore(m.checkpoint());
+  check(restored.view(0x20021,1)[0]==std::byte{6} && restored.view(0x201a0,1)[0]==std::byte{0xa0} &&
+        restored.view(0x21000,1)[0]==std::byte{0x88},"restore rebuilds the small index");
+  fails([&]{(void)restored.view(0x20010,1);});
+}
+// The gap query answers exactly as a full walk of the region map for any
+// query extent and alignment, including candidates inside, between and above
+// mounted regions, and over the image's dense tiny-region neighbourhoods.
+void gap_query_matches_full_walk() {
+  using A = SourceRuntimeMemory::Access;
+  SourceRuntimeMemory m;
+  std::vector<std::pair<std::uint32_t,std::size_t>> layout;
+  std::uint32_t at=0x4c0000u;unsigned seed=12345u;
+  const auto next=[&]{seed=seed*1103515245u+12345u;return seed>>8;};
+  for(unsigned i=0;i<600;++i){const std::size_t n=1u+next()%96u;layout.push_back({at,n});at+=std::uint32_t(n+next()%40u);}
+  layout.push_back({0x600000u,0x3000u});layout.push_back({0x70000000u,0x10000u});layout.push_back({0x70020000u,0x100u});
+  layout.push_back({0x7ffff000u,0x1000u});layout.push_back({0xfffff000u,0x1000u});
+  std::vector<std::vector<std::byte>> storage;
+  for(const auto &[address,n]:layout){storage.emplace_back(n,std::byte{1});m.mount(address,storage.back(),A::ReadWrite,"gap fixture");}
+  const auto full_walk=[&](std::uint32_t first,std::uint64_t limit,std::size_t bytes,std::uint32_t alignment)->std::optional<std::uint32_t>{
+    const auto align=[alignment](std::uint64_t v){return (v+alignment-1)&~std::uint64_t(alignment-1);};
+    auto a=align(first);if(a>=limit || bytes>limit-a)return std::nullopt;
+    for(const auto &[address,n]:layout){const auto end=std::uint64_t(address)+n;if(end<=a)continue;
+      if(std::uint64_t(address)>=a+bytes)return std::uint32_t(a);a=align(end);if(a>=limit || bytes>limit-a)return std::nullopt;}
+    return std::uint32_t(a);
+  };
+  unsigned compared=0;
+  for(const std::uint32_t first:{0u,0x4bfff0u,0x4c0000u,0x4c0007u,0x4c2000u,0x4c8000u,0x5fffffu,0x600000u,0x602fffu,0x603000u,
+      0x6fffffffu,0x70000000u,0x70000001u,0x7000ffffu,0x70010000u,0x70020000u,0x7ffff000u,0x7fffffffu,0xfffff000u,0xffffffffu})
+    for(const std::uint64_t limit:{std::uint64_t(0x70000000u),std::uint64_t(0x7f000000u),std::uint64_t(0x80000000u),std::uint64_t(1)<<32})
+      for(const std::size_t bytes:{std::size_t(1),std::size_t(4),std::size_t(0x100),std::size_t(0x8000),std::size_t(0x100000)})
+        for(const std::uint32_t alignment:{1u,4u,0x1000u,0x10000u}) {
+          if(first>=limit)continue;
+          check(m.find_unowned_range(first,limit,bytes,alignment)==full_walk(first,limit,bytes,alignment),"gap query differs from a full walk");
+          ++compared;
+        }
+  check(compared>1000,"gap query comparison coverage");
+  for(const auto &[address,n]:layout)if(address>=0x4c0000u && address<0x4c8000u && (address&3u)==0u){m.release(address);break;}
+  check(m.find_unowned_range(0x4c0000u,0x4c8000u,1,1).has_value(),"gap query after a release");
+}
 void topology_gap_queries() {
   using A = SourceRuntimeMemory::Access;
   constexpr std::uint32_t base = 0x80000000u;
@@ -299,6 +373,20 @@ void native_read_view_queries() {
 } // namespace
 int main() {
   try {
+    // Equal payloads at distant32-bit addresses require many more derived
+    // index blocks. Account for them before mounting any hostile topology.
+    SourceRuntimeMemory::Checkpoint dense,sparse;
+    for(unsigned i=0;i<64;++i){
+      SourceRuntimeMemory::CheckpointRegion region;
+      region.address=0x1000u+i*2;region.access=SourceRuntimeMemory::Access::ReadWrite;
+      region.owner="budget probe";region.bytes={std::byte{1}};
+      dense.regions.push_back(region);region.address=0x1000u+i*0x400000u;sparse.regions.push_back(std::move(region));
+    }
+    const auto dense_cost=SourceRuntimeMemory::restore_storage_overhead(dense);
+    const auto sparse_cost=SourceRuntimeMemory::restore_storage_overhead(sparse);
+    check(sparse_cost>dense_cost+1024*1024,"Sparse restore topology escaped derived index accounting");
+    small_region_index();
+    gap_query_matches_full_walk();
     topology_gap_queries();
     guarded_topology();
     full_page_topology();

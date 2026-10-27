@@ -108,7 +108,7 @@ int main(int argc,char**argv) {
           "Native initial phase did not bind original validity/configured clock before the first world tick");
       match.join("Host",team?0:-1);match.join("Other local",team?0:-1);
       LanHost host(match,0,0x15f450);const std::array<std::int8_t,2> choices{7,7};
-      LanClient peer("127.0.0.1:"+std::to_string(host.port()),0x15f450,2,
+      LanClient peer(host.join_address(),0x15f450,2,
           team?std::span<const std::int8_t>(choices):std::span<const std::int8_t>{});
       std::array<Controls,16> controls{};
       for(unsigned n=0;n<64 && !peer.ready();++n) {
@@ -227,7 +227,7 @@ int main(int argc,char**argv) {
       auto content=original;content.collision.clear();content.kill_triggers.clear();
       MultiplayerMatch match(content,0,cache.spawns(),rules);match.join("Shooter",team?0:-1);
       LanHost host(match,0,0x19b2b0);const std::array<std::int8_t,1> choice{7};
-      LanClient peer("127.0.0.1:"+std::to_string(host.port()),0x19b2b0,1,
+      LanClient peer(host.join_address(),0x19b2b0,1,
           team?std::span<const std::int8_t>(choice):std::span<const std::int8_t>{});
       std::array<Controls,16> controls{};
       for(unsigned n=0;n<64 && !peer.ready();++n) {
@@ -262,7 +262,7 @@ int main(int argc,char**argv) {
       MultiplayerMatch match(content,0,cache.spawns(),rules);
       match.join("Shooter",team?0:-1);match.join("Second",team?7:-1);
       LanHost host(match,0,0x1f2890);const std::array<std::int8_t,1> choice{7};
-      LanClient peer("127.0.0.1:"+std::to_string(host.port()),0x1f2890,1,
+      LanClient peer(host.join_address(),0x1f2890,1,
           team?std::span<const std::int8_t>(choice):std::span<const std::int8_t>{});
       std::array<Controls,16> controls{};
       for(unsigned n=0;n<64 && !peer.ready();++n) {

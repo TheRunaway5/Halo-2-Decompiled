@@ -118,8 +118,12 @@ public:
   std::vector<NativeGrenadeProjectile> grenade_projectiles() const;
   std::vector<SourceProjectileDetonationTu15> take_projectile_detonations();
   void observe_body_impulses(std::function<void(const SourceBodyImpulseTu15 &)>);
+  // Tolerant presentation publication of the same completed 324F80 impulse;
+  // see PhysicsLiveWorldTu15::publish_body_impulses.
+  void publish_body_impulses(std::function<void(const SourceBodyImpulseTu15 &)>);
     void observe_phantom_phase(SourcePhantomPhaseObserverTu15);
     void observe_physics_stores(SourcePhysicsStoreObserverTu15);
+    void observe_physics_stores_read_only(SourcePhysicsStoreObserverTu15);
     void observe_body_velocity_inputs(SourceBodyVelocityInputObserverTu15);
   void observe_weapon_effects(std::function<void(const SourceWeaponEffectEventTu15 &)>);
   bool has_projectile_effect_observer() const;
@@ -192,6 +196,9 @@ public:
   // Read-only presentation of the current source WORLD matrices. A stale
   // full handle or unavailable node backing is an error, never an idle pose.
   std::vector<Transform> world_nodes(std::uint32_t object) const;
+  // Complete native render-only body overlays for C++/UDP publication without
+  // modifying the simulation WORLD/LOCAL bank or advancing its source clock.
+  std::vector<Transform> completed_body_world_nodes(std::uint32_t object);
   //133790 consumes the retained object+30/+3C sphere. Resolve the same full
   //salted owner as WORLD nodes; preview-model bounds are not this bank.
   ShadowCasterSphere object_sphere(std::uint32_t object) const;
@@ -253,6 +260,7 @@ public:
     PreparedAuthority &operator=(PreparedAuthority &&) noexcept;
     bool for_owner(const MultiplayerObjectRuntime &) const noexcept;
     const SourceRuntimeMemory &replacement_memory() const;
+    SourcePhysicsWorldRuntimeAbi replacement_caller() const;
   private:
     friend class MultiplayerObjectRuntime;
     PreparedAuthority();

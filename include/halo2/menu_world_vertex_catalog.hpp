@@ -9,6 +9,7 @@ namespace halo2 {
 // Changing that contract requires a new version and original-input GPU proof.
 inline constexpr std::uint32_t menu_world_vertex_catalog_abi = 2;
 inline constexpr std::uint32_t menu_world_vertex_attribute_catalog_abi = 3;
+inline constexpr std::uint32_t menu_world_renderer_vertex_catalog_abi = 4;
 inline constexpr unsigned menu_world_vertex_descriptor_set = 1;
 inline constexpr unsigned menu_world_vertex_descriptor_binding = 0;
 
@@ -37,6 +38,8 @@ static_assert(sizeof(MenuWorldVertexAttributeUniforms)==3360);
 struct MenuWorldVertexShaderSource {
   std::string glsl;
   std::vector<unsigned> consumed_inputs, consumed_constants;
+  std::array<std::uint8_t,16> consumed_input_components{};
+  std::uint32_t default_texture_w_mask{};
 };
 // Actual class0..6 declaration ordinals determine input locations. Position/UV
 // retain floating/SNORM fetches; model influences retain byte UNORM fetches;
@@ -46,6 +49,8 @@ struct MenuWorldVertexShaderSource {
 MenuWorldVertexShaderSource menu_world_vertex_shader_source(
     std::span<const std::byte> program,const SourceVertexDeclaration &);
 MenuWorldVertexShaderSource menu_world_material_vertex_shader_source(
+    std::span<const std::byte> program,const SourceVertexDeclaration &);
+MenuWorldVertexShaderSource menu_world_renderer_vertex_shader_source(
     std::span<const std::byte> program,const SourceVertexDeclaration &);
 
 // Generated immutable storage owns these spans for the binary's lifetime.
@@ -66,7 +71,23 @@ struct MenuWorldVertexCatalogEntry {
   std::uint32_t triangle_abi{};
   std::span<const std::uint32_t> triangle_spirv;
   std::string_view triangle_source_sha256, triangle_spirv_sha256;
+  std::array<std::uint8_t,16> consumed_input_components{};
+  std::uint32_t default_texture_w_mask{};
 };
+// Offline analysis of the exact program. Runtime owners use this small table
+// without constructing GLSL or decoding register dependencies during a frame.
+struct MenuWorldVertexMetadataEntry {
+  std::uint32_t class_index{};
+  std::string_view program_sha256;
+  std::size_t program_bytes{};
+  std::span<const std::uint16_t> semantics;
+  std::span<const unsigned> consumed_inputs, consumed_constants;
+  std::array<std::uint8_t,16> consumed_input_components{};
+  std::uint32_t default_texture_w_mask{};
+  bool relative_constants{};
+};
+const MenuWorldVertexMetadataEntry &menu_world_vertex_metadata_lookup(
+    std::span<const std::byte>,const SourceVertexDeclaration &);
 // Requires trusted generated catalog storage, fully checked by the build-time
 // SPIR-V validator. Runtime admission checks program identity, ambiguity and
 // ABI/SPIR-V header compatibility; it is not a validator for arbitrary modules.

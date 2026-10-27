@@ -20,6 +20,10 @@ constexpr std::string_view stock = "halo2/h2_maps_win64_dx11";
 struct ClosureLibrary { std::string_view name, sha256; };
 #include "runtime/mcc_native_library_closure.inc"
 #include "ui/hud/mcc_native_hud_bootstrap.inc"
+#include "runtime/mcc_native_pc_sky_closure.inc"
+#include "runtime/mcc_native_pc_world_closure.inc"
+#include "runtime/mcc_native_pc_world_programs.inc"
+#include "runtime/mcc_native_vehicle_restoration.inc"
 
 void require(bool value, std::string_view why) {
     if (!value) throw MccNativeMapOwnerError("Prepared MCC owner: " + std::string(why));
@@ -51,6 +55,15 @@ std::uint64_t extent(const Json& value, const char* field) {
     require(v.is_number_integer() && (v.is_number_unsigned() || v.get<std::int64_t>() >= 0), "invalid byte extent");
     return v.get<std::uint64_t>();
 }
+const Json* hud_input(const Json& policy,const std::string& name,const std::string& original,
+                      const std::string& encoded,std::uint64_t size) {
+    const Json* found=nullptr;
+    const auto select=[&](const Json& rows) {for(const auto& row:rows)
+        if(text(row,"map")==name && text(row,"sha256")==encoded && extent(row,"bytes")==size &&
+           (row.contains("source_sha256")?text(row,"source_sha256"):text(row,"sha256"))==original)found=&row;};
+    select(policy.at("maps"));if(policy.contains("prepared_inputs"))select(policy.at("prepared_inputs"));
+    return found;
+}
 Json parse(const std::string& raw) {
     std::vector<std::set<std::string>> keys;
     return Json::parse(raw, [&](int, Json::parse_event_t event, Json& value) {
@@ -71,7 +84,10 @@ fs::path relative(std::string_view value) {
     return path;
 }
 fs::path exact_absolute(const fs::path& path) {
-    const auto out = fs::absolute(path);
+    auto out = fs::absolute(path);
+    // Generic absolute paths from CLI/serialization use '/' on Windows.
+    // Canonicalize only separator direction before rejecting path aliases.
+    out.make_preferred();
     require(out.lexically_normal().native() == out.native(), "noncanonical absolute owner");
     return out;
 }
@@ -207,10 +223,8 @@ void authenticate_rows(const Json& index, const Json& provenance, const Inputs& 
                         text(row, "bank_namespace") == stem && row.at("bank_library_sha256") == banks.at(stem),
                         "indexed stock bank differs from preparation");
             } else {
-                const Json* hud{};
-                for (const auto& item : hud_policy.at("maps"))
-                    if (text(item, "map") == stem && text(row, "source_sha256") == text(item, "sha256") &&
-                        text(row, "input_sha256") == text(item, "sha256") && extent(row, "input_bytes") == extent(item, "bytes")) hud = &item;
+                const auto* hud=hud_input(hud_policy,stem,text(row,"source_sha256"),
+                    text(row,"input_sha256"),extent(row,"input_bytes"));
                 if (!hud) require(text(row, "native_mode") == "none", "bankless stock map cannot invent native mode");
                 else {
                     const auto common = text(hud_policy, "source_map"), directory = "native-shaders/" + common;
@@ -265,6 +279,67 @@ void common_library(MccPreparedMapOwner& out, const Json& binding, const Json& n
     const auto source_raw = read(out, "native-shaders/" + source_name + "/library.json");
     require(digest(bytes(source_raw)) == native.at("maps").at(source_name).get<std::string>() &&
             digest(parse(source_raw)) == closure_source_sha256, "common bank snapshot differs from audited closure");
+}
+
+void pc_sky_library(MccPreparedMapOwner& out, const Json& binding, const Json& native) {
+    if(text(binding,"native_mode")!="authenticated-hud-bootstrap")return;
+    const auto policy=parse(std::string(native_pc_sky_closure_policy));
+    const auto name=relative(text(binding,"map")).stem().string();
+    for(const auto& row:policy.at("maps"))if(text(row,"map")==name &&
+        text(binding,"input_sha256")==text(row,"sha256") &&
+        extent(binding,"input_bytes")==extent(row,"bytes")) {
+        const auto source=text(row,"source_map");
+        require(native.at("maps").contains(source),"PC sky source bank lacks preparation provenance");
+        const auto raw=read(out,"native-shaders/"+source+"/library.json");
+        require(digest(bytes(raw))==native.at("maps").at(source).get<std::string>() &&
+            digest(parse(raw))==text(row,"source_canonical_sha256"),
+            "PC sky source snapshot differs from its complete paired native bank");
+    }
+    const auto world=parse(std::string(native_pc_world_closure_policy));
+    for(const auto& row:world.at("maps"))if(text(row,"map")==name &&
+        text(binding,"input_sha256")==text(row,"sha256") &&
+        extent(binding,"input_bytes")==extent(row,"bytes")) {
+        const auto source=text(world,"source_map");
+        require(native.at("maps").contains(source),"PC world source bank lacks preparation provenance");
+        const auto raw=read(out,"native-shaders/"+source+"/library.json");
+        require(digest(bytes(raw))==native.at("maps").at(source).get<std::string>() &&
+            digest(parse(raw))==text(world,"source_canonical_sha256"),
+            "PC world source snapshot differs from its complete original TU1.5 bank");
+    }
+    const auto programs=parse(std::string(native_pc_world_programs_policy));
+    for(const auto& row:programs.at("maps"))if(text(row,"map")==name &&
+        text(binding,"input_sha256")==text(row,"sha256") &&
+        extent(binding,"input_bytes")==extent(row,"bytes")) {
+        for(const auto& [source,canonical]:row.at("sources").items()) {
+            require(native.at("maps").contains(source),"PC additional program source lacks preparation provenance");
+            const auto raw=read(out,"native-shaders/"+source+"/library.json");
+            require(digest(bytes(raw))==native.at("maps").at(source).get<std::string>() &&
+                digest(parse(raw))==canonical.get<std::string>(),
+                "PC additional program snapshot differs from its complete original TU1.5 bank");
+        }
+    }
+    const auto vehicles=parse(std::string(native_vehicle_restoration_policy));
+    for(const auto& row:vehicles.at("maps"))if(text(row,"map")==name &&
+        text(binding,"input_sha256")==text(row,"sha256") &&
+        extent(binding,"input_bytes")==extent(row,"bytes")) {
+        for(const auto& [source,canonical]:row.at("sources").items()) {
+            require(native.at("maps").contains(source),"Vehicle original source lacks preparation provenance");
+            const auto raw=read(out,"native-shaders/"+source+"/library.json");
+            require(digest(bytes(raw))==native.at("maps").at(source).get<std::string>() &&
+                digest(parse(raw))==canonical.get<std::string>(),
+                "Vehicle original source snapshot differs from its complete TU library");
+        }
+        for(const auto& item:row.at("records")) {
+            const auto source=text(item,"source_map");const auto& record=item.at("original_record");
+            const auto filename=text(record,"payload");
+            require(filename.size()==68 && filename.substr(64)==".bin" && fingerprint(filename.substr(0,64)),
+                "Vehicle original payload filename is not its exact SHA identity");
+            const auto raw=read(out,"native-shaders/"+source+"/payloads/"+filename);
+            require(raw.size()==extent(record,"bytes") && digest(bytes(raw))==filename.substr(0,64),
+                "Vehicle complete original payload snapshot differs");
+        }
+    }
+
 }
 
 void scalar(MccPreparedMapOwner& out, const std::string& name, bool mandatory) {
@@ -335,9 +410,7 @@ std::optional<MccPreparedMapOwner> admit_mcc_prepared_map_owner(const fs::path& 
                 index["stock_bank_directories"].push_back(row["bank_directory"]);
             } else if (role->second == "scenario") {
                 const auto policy = parse(std::string(native_hud_bootstrap_policy));
-                for (const auto& hud : policy.at("maps")) if (text(hud, "map") == stem &&
-                        inputs.final.at(key) == text(source, "sha256") && text(hud, "sha256") == inputs.final.at(key) &&
-                        extent(hud, "bytes") == encoded.size()) {
+                if(hud_input(policy,stem,text(source,"sha256"),inputs.final.at(key),encoded.size())) {
                     const auto source_map = text(policy, "source_map");
                     require(native.at("maps").contains(source_map), "HUD common bank is absent from provenance");
                     // Legacy authority hashes the exact compiled UTF-8 policy
@@ -364,6 +437,8 @@ std::optional<MccPreparedMapOwner> admit_mcc_prepared_map_owner(const fs::path& 
                 library(out, row);
                 common_library(out, row, native);
             }
+        for(const auto& row:index.at("maps"))
+            if(text(row,"map")==map_owner)pc_sky_library(out,row,native);
         std::vector<MccNativeMetadataSnapshot> snapshots;
         for (const auto& [name, raw] : out.metadata) snapshots.push_back({name, bytes(raw)});
         out.binding = resolve_mcc_native_map_binding({root, raw_index, expected}, map, shared, encoded, snapshots);

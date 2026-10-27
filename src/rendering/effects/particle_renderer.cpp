@@ -2,6 +2,7 @@
 #include "halo2/sampler.hpp"
 #include "halo2/texture.hpp"
 #include "halo2/vertex_program.hpp"
+#include "halo2/native_fragment_kernel.hpp"
 #include <bit>
 #include "particle_program.hpp"
 #include "particle_directional_program.hpp"
@@ -35,11 +36,13 @@ struct ParticleRenderer::Impl {
   VkPhysicalDeviceProperties properties{};VkCommandPool uploads{};
   VkDescriptorSetLayout set_layout{};VkPipelineLayout layout{};VkBuffer corners{};VkDeviceMemory corner_memory{};
   std::array<VkShaderModule,8> shaders{};
+  std::filesystem::path shader_directory;
   struct Buffer {VkBuffer handle{};VkDeviceMemory memory{};};
   struct Image {VkImage handle{};VkDeviceMemory memory{};VkImageView view{};VkSampler sampler{};};
   struct MaterialGpu {
     std::shared_ptr<const ParticleMaterial> source;
     std::array<Image,2> images;VkPipeline pipeline{};bool external23{};
+    std::string fragment_kernel;
   };
   struct MaterialUniform {
     std::array<std::uint32_t,60> program;std::array<std::uint32_t,4> alpha;
@@ -58,7 +61,7 @@ struct ParticleRenderer::Impl {
   Buffer uniforms;void *uniform_data{};std::size_t draw_count{},material_offset{},depth_offset{},draw_stride{};
   mutable std::uint64_t view_revision{};
   Impl(VkPhysicalDevice p,VkDevice d,VkQueue q,unsigned family,VkRenderPass rp,const std::filesystem::path &directory)
-    :physical(p),device(d),queue(q),pass(rp) {
+    :physical(p),device(d),queue(q),pass(rp),shader_directory(directory) {
     try {
     VkPhysicalDeviceFeatures features{};vkGetPhysicalDeviceFeatures(physical,&features);
     if(!features.geometryShader || !features.shaderTessellationAndGeometryPointSize || !features.depthClamp)
@@ -82,6 +85,7 @@ struct ParticleRenderer::Impl {
     const char *names[]{"particle.vert.spv","particle.geom.spv","particle.frag.spv","particle_directional.vert.spv",
       "particle_perpendicular.vert.spv","particle_model.vert.spv","particle_model.geom.spv","particle_distortion.vert.spv"};
     for(unsigned n=0;n<shaders.size();++n) {
+      if(n==2)continue; // Each complete source program selects its compiled FS.
       std::ifstream file(directory/names[n],std::ios::binary|std::ios::ate);
       if(!file || file.tellg()<=0 || file.tellg()%4)throw FormatError("compiled original particle shader missing");
       std::vector<unsigned> code(std::size_t(file.tellg())/4);file.seekg(0);
@@ -163,6 +167,7 @@ struct ParticleRenderer::Impl {
     }
   }
   VkPipeline make_pipeline(const MaterialPass &source,unsigned classification,bool distortion) {
+    const auto fragment_path=native_fragment_kernel_path("particle",source.program.words);
     ForwardRasterState raster_state;bool blend=false;unsigned src=1,dst=0,equation=0x8006;
     for(const auto &s:source.states)switch(s.index) {
       case 57:raster_state.depth_function=s.value;break;case 59:blend=s.value!=0;break;
@@ -181,6 +186,17 @@ struct ParticleRenderer::Impl {
     VkPipelineShaderStageCreateInfo stages[3]{};
     const VkShaderStageFlagBits flags[]{VK_SHADER_STAGE_VERTEX_BIT,VK_SHADER_STAGE_GEOMETRY_BIT,VK_SHADER_STAGE_FRAGMENT_BIT};
     for(unsigned n=0;n<3;++n)stages[n]={VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,flags[n],shaders[n],"main",nullptr};
+    std::ifstream fragment_file(shader_directory/std::string(fragment_path),std::ios::binary|std::ios::ate);
+    if(!fragment_file || fragment_file.tellg()<=0 || fragment_file.tellg()%4)
+      throw FormatError("compiled native particle fragment kernel missing");
+    std::vector<std::uint32_t> fragment_words(std::size_t(fragment_file.tellg())/4);fragment_file.seekg(0);
+    if(!fragment_file.read(reinterpret_cast<char*>(fragment_words.data()),fragment_words.size()*4))
+      throw FormatError("compiled native particle fragment kernel truncated");
+    VkShaderModuleCreateInfo fragment_info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
+    fragment_info.codeSize=fragment_words.size()*4;fragment_info.pCode=fragment_words.data();
+    VkShaderModule fragment{};check(vkCreateShaderModule(device,&fragment_info,nullptr,&fragment));
+    struct FragmentLease{VkDevice device;VkShaderModule shader;~FragmentLease(){vkDestroyShaderModule(device,shader,nullptr);}} fragment_lease{device,fragment};
+    stages[2].module=fragment;
     if(classification==8)stages[0].module=shaders[3];
     if(classification==9)stages[0].module=shaders[4];
     if(distortion)stages[0].module=shaders[7];
@@ -216,6 +232,7 @@ struct ParticleRenderer::Impl {
   }
   MaterialGpu &material(std::shared_ptr<const ParticleMaterial> source) {
     if(!source || (source->vertex.classification!=1 && source->vertex.classification!=7 && source->vertex.classification!=8 && source->vertex.classification!=9))throw FormatError("unsupported original particle vertex classification");
+    const std::string fragment_kernel(native_fragment_kernel_path("particle",source->pass.program.words));
     const auto modes=source->pass.program.words[54];
     if(source->textures[2] || source->textures[3] || (modes>>10u)!=0u ||
        (modes&31u)>1u || (((modes>>5u)&31u)>1u && ((modes>>5u)&31u)!=6u))
@@ -241,9 +258,11 @@ struct ParticleRenderer::Impl {
     auto [entry,inserted]=materials.try_emplace(source.get());auto &gpu=entry->second;
     if(!inserted) {
       if(!gpu.pipeline)throw FormatError("particle material initialization previously failed");
+      if(gpu.fragment_kernel!=fragment_kernel)throw FormatError("particle program identity changed after native pipeline admission");
       return gpu;
     }
     gpu.source=source;
+    gpu.fragment_kernel=fragment_kernel;
     gpu.external23=external23;
     if(!source->textures[0] || source->pass.texture_states.empty())throw FormatError("particle primary texture missing");
     for(unsigned stage=0;stage<2;++stage) {
@@ -343,8 +362,8 @@ struct ParticleRenderer::Impl {
       } else if(d.material->vertex.classification==1)throw FormatError("Particle model has no authored geometry");
       auto *destination=static_cast<std::byte*>(uniform_data)+index*draw_stride;
       std::memcpy(destination,&d.vertex,sizeof(d.vertex));
-      MaterialUniform uniform{d.material->pass.program.words,{0,0x207,0,0},{},{1,1,0,0}};
-      if(((uniform.program[54]>>5u)&31u)==6u) {
+      MaterialUniform uniform{native_fragment_uniform_words(d.material->pass.program.words),{0,0x207,0,0},{},{1,1,0,0}};
+      if(((d.material->pass.program.words[54]>>5u)&31u)==6u) {
         if(d.bump_texture) {
           uniform.bump_matrix=d.bump_texture->matrix;uniform.coordinate_scale=d.bump_texture->coordinate_scale;
         } else if(!m.external23 || d.material->sampler_writes.empty())

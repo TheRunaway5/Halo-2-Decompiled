@@ -86,8 +86,18 @@ struct SourceBspFrustumCullContext {
 // association bits are supplied by the joined source frame, not authored IDs.
 // Units and shared-address mask banks commit only when every consumed service
 // completes. Unsupported geometry/traversal cannot expose a partial result.
+// Execution of the per-unit walk: serial in index order, or index bands on
+// the worker pool (each unit writes only its own record and pre-allocated
+// mask words; bands fall back to serial when spans overlap or a precondition
+// fails). automatic follows HALO2_NATIVE_BANDED_CULL.
+enum class SourceBspFrustumCullExecution{automatic,serial,banded};
 void source_bsp_frustum_cull(std::span<SourceCullDrawUnit>,
     std::span<const SourceBspFrustumDrawBank>,SourceBspRangeArena &,
     const SourceBspFrustumCullContext &,const SourcePortalVisibilitySet &,
     std::span<const std::array<std::uint32_t,4>> associations);
+void source_bsp_frustum_cull(std::span<SourceCullDrawUnit>,
+    std::span<const SourceBspFrustumDrawBank>,SourceBspRangeArena &,
+    const SourceBspFrustumCullContext &,const SourcePortalVisibilitySet &,
+    std::span<const std::array<std::uint32_t,4>> associations,
+    SourceBspFrustumCullExecution);
 } // namespace halo2

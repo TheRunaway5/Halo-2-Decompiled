@@ -2,6 +2,9 @@
 #include "halo2/shader_animation.hpp"
 #include "halo2/source_object_emblem.hpp"
 #include <algorithm>
+#include <array>
+#include <string_view>
+#include <utility>
 
 namespace halo2 {
 Material frontend_emblem_material(const Cache &cache, std::uint32_t shader) {
@@ -45,6 +48,26 @@ Material frontend_emblem_material(const Cache &cache, std::uint32_t shader) {
   std::copy(pass.texture_states.begin(), pass.texture_states.end(),
              m.texture_states.begin());
   prepare_bitmap_animation(cache, m);
+  if(cache.is_mcc()) {
+    // The admitted PC tag bank has its own string IDs. Bind those exact
+    // authored names to22ACE7's native inputs while retaining every MCC
+    // texture page, shader program, constant and UV definition.
+    constexpr std::array<std::pair<std::string_view,std::uint32_t>,7> inputs{{
+      {"emblem_foreground_index",0x170005fa},{"emblem_background_index",0x170005fb},
+      {"emblem_toggle_foreground",0x180005fc},{"emblem_foreground_map_scale_x",0x1d0005fd},
+      {"emblem_background_map_scale_x",0x1d0005fe},{"emblem_active",0x0d0005ff},
+      {"hud_wp_alpha",0x0c0005cb},
+    }};
+    const auto native_input=[&](std::uint32_t id) {
+      if(!id || id==0xffffffffu)return id;
+      const auto name=cache.string_id(id);
+      const auto found=std::find_if(inputs.begin(),inputs.end(),[&](const auto& input){return input.first==name;});
+      return found==inputs.end()?id:found->second;
+    };
+    for(auto &overlay:m.animation.overlays) {
+      overlay.input=native_input(overlay.input);overlay.range=native_input(overlay.range);
+    }
+  }
   return m;
 }
 float frontend_emblem_input(const FrontendAppearance &a, std::uint32_t name,

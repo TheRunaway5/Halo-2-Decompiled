@@ -38,7 +38,7 @@ int main(int argc,char **argv)try {
   // admission. Every simulated remote consumes this one actual source world.
   constexpr std::uint64_t fingerprint=0x15de00004;
   LanHost host(match,0,fingerprint,options.variant);
-  const auto address="127.0.0.1:"+std::to_string(host.port());
+  const auto address=host.join_address();
   const std::span<const std::int8_t> teams{};
   const std::array<SourcePlayerConfiguration,1> leaving_profile{profile("Leaves normally")},
       silent_profile{profile("Goes silent")},survivor_profile{profile("Still playing")};
@@ -56,8 +56,24 @@ int main(int argc,char **argv)try {
     throw FormatError("Source UDP admission failed: "+leaving->error()+"; "+silent->error()+"; "+survivor.error());
   check(host.peers()==3&&count(world)==5,"Real source UDP roster did not admit five actual players");
   const auto leaving_slot=leaving->slots()[0],silent_slot=silent->slots()[0],survivor_slot=survivor.slots()[0];
+  // Native admission does not manufacture the original deferred biped birth.
+  // Execute ordinary real frames and preserve every actual UDP participant
+  // until the departing player owns its genuine source unit/body.
+  const auto birth_deadline=std::chrono::steady_clock::now()+std::chrono::seconds(8);
+  while((!match.unit(leaving_slot).exists || match.unit(leaving_slot).source_datum==null_datum ||
+      match.player(leaving_slot).source_current_object!=match.unit(leaving_slot).source_datum) &&
+      std::chrono::steady_clock::now()<birth_deadline) {
+    for(unsigned i=0;i<5;++i)controls[i].yaw=match.unit(i).yaw;
+    leaving->send(std::span(&remote,1));silent->send(std::span(&remote,1));survivor.send(std::span(&remote,1));
+    host.receive(controls);match.step(controls);host.broadcast();
+    leaving->receive();silent->receive();survivor.receive();
+    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+  }
   const auto left=match.player(leaving_slot),timed_out=match.player(silent_slot);
   const auto source_unit=match.unit(leaving_slot).source_datum;
+  check(match.unit(leaving_slot).exists && source_unit!=null_datum && left.source_current_object==source_unit,
+      "Original ordinary frames did not publish the departing participant's actual source unit");
+  check(!world.object_body(source_unit).is_null(),"Departing participant lacks its actual original body owner");
   leaving.reset(); // A real authenticated native leave datagram.
   const auto leave_deadline=std::chrono::steady_clock::now()+std::chrono::seconds(2);
   while(host.peers()!=2&&std::chrono::steady_clock::now()<leave_deadline) {
@@ -89,6 +105,14 @@ int main(int argc,char **argv)try {
         row.name==p.name&&row.deaths==p.deaths&&row.source_unit==null_datum&&row.source_weapon==null_datum,
         "The remaining UDP peer lost a retained departed identity/profile/result row");
   }
+  const auto final_host=match.state();
+  std::cerr<<"DEPARTURE_DIAGNOSTICS expected_unit="<<source_unit<<" expected_player="<<left.source_datum
+      <<" host_tick="<<final_host.tick<<" peer_tick="<<survivor.state().tick
+      <<" survivor_host_player="<<match.player(survivor_slot).source_datum
+      <<" survivor_peer_player="<<survivor.state().players[survivor_slot].source_player
+      <<" host_corpses="<<final_host.corpses.size()<<" peer_corpses="<<survivor.state().corpses.size()
+      <<" host_expected_corpse="<<std::ranges::any_of(final_host.corpses,[&](const auto &c){return c.object==source_unit&&c.player==left.source_datum;})
+      <<" peer_expected_corpse="<<std::ranges::any_of(survivor.state().corpses,[&](const auto &c){return c.object==source_unit&&c.player==left.source_datum;})<<'\n';
   check(survivor.state().players[survivor_slot].source_player==match.player(survivor_slot).source_datum&&
       std::ranges::any_of(survivor.state().corpses,[&](const auto &c){return c.object==source_unit&&c.player==left.source_datum;}),
       "Survivor changed identity or lost the original departing unit's corpse");

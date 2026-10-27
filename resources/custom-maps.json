@@ -1,0 +1,27 @@
+{
+  "schema": "H2_BUNDLED_CUSTOM_MAPS_V1",
+  "maps": [
+    {
+      "id": "dire_valley",
+      "source": "assets/custom-maps/dire_valley",
+      "map": "halo2/Mods/dire_valley/dire_valley.map",
+      "profile": "menu/profile.json",
+      "resource_aliases": [
+        "halo2/h2_maps_win64_dx11/textures.dat",
+        "halo2/h2_maps_win64_dx11/sounds_en.dat",
+        "halo2/h2_maps_win64_dx11/sounds_neutral.dat",
+        "halo2/h2_maps_win64_dx11/sounds_remastered.dat"
+      ]
+    }
+  ],
+  "authoring_only": [
+    {
+      "id": "dust2_mombasa",
+      "reason": "The retained model package has no compiled native map; do not present model authoring as a playable map."
+    },
+    {
+      "id": "deserted",
+      "reason": "Candidate work has no published portable content and map-card source under assets/custom-maps; register its completed package here when published."
+    }
+  ]
+}

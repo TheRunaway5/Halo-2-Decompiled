@@ -31,7 +31,8 @@ class DirectPeerHttpTests(unittest.IsolatedAsyncioTestCase):
         return rows
 
     async def connect(self, descriptor):
-        socket = await self.client.ws_connect('/v1/matches/' + descriptor['id'] + '/signal',
+        socket = await self.client.ws_connect('/v1/matches/' + descriptor['id'] + '/signal' +
+            ('?completion=1&native_handoff=1' if getattr(self, 'native_handoff', False) else ''),
             headers={'Authorization': 'Bearer ' + descriptor['token']})
         queue = asyncio.Queue()
         async def read():
@@ -257,7 +258,10 @@ class DirectStarConnectivityTests(unittest.IsolatedAsyncioTestCase):
         departed_owner = room.players[descriptors[leaving]['slot']][0]
         self.assertNotIn(departed_owner, room.pending_signals)
         db = self.api.directory.store.db
-        self.assertEqual(room.phase, 'reviewing')
+        self.assertEqual(room.phase, 'postgame')
+        self.assertFalse(room.result_recorded)
+        for i in survivors:
+            await self.next(connections[i][1], 'completed')
         self.assertIsNone(db.execute('SELECT * FROM match_result_consensus WHERE match=?', (room.id,)).fetchone())
         self.assertEqual(db.execute('SELECT count(*) FROM match_results WHERE id=?', (room.id,)).fetchone()[0], 0)
         self.assertEqual(db.execute('SELECT count(*) FROM match_result_players WHERE match=?',
@@ -286,6 +290,28 @@ class DirectStarConnectivityTests(unittest.IsolatedAsyncioTestCase):
         for i in survivors:
             await self.next(connections[i][1], 'completed')
         self.assertEqual(room.phase, 'postgame')
+
+    async def test_last_survivor_finishes_unrecorded_report_without_departed_consent(self):
+        from .test_match_transport import MatchTransportTests
+        room, descriptors, connections, host = await self.running_three()
+        for leaving in range(3):
+            if leaving == host:
+                continue
+            await connections[leaving][0].send_json({'leave': True})
+            self.assertIsNone(await self.next(connections[leaving][1], 'closed'))
+        self.assertEqual(len(room.tokens), 1)
+        self.assertEqual(room.phase, 'running')
+        self.assertEqual(len(room.players), 3)  # Immutable original report roster.
+        raw = MatchTransportTests.report(self, descriptors)
+        await connections[host][0].send_json({'postgame': raw.hex()})
+        await self.next(connections[host][1], 'postgame')
+        await connections[host][0].send_json({'confirm_result': hashlib.sha256(raw).hexdigest()})
+        await self.next(connections[host][1], 'completed')
+        self.assertEqual(room.phase, 'postgame')
+        self.assertFalse(room.result_recorded)
+        db = self.api.directory.store.db
+        for table in ('match_results', 'match_result_players', 'match_result_consensus'):
+            self.assertEqual(db.execute('SELECT count(*) FROM '+table).fetchone()[0], 0)
 
     async def test_explicit_departure_revokes_an_inflight_master_reconnect(self):
         from unittest.mock import patch
@@ -324,6 +350,30 @@ class DirectStarConnectivityTests(unittest.IsolatedAsyncioTestCase):
         for socket, queue in connections:
             self.assertIsNone(await self.next(queue, 'closed'))
         self.assertTrue(room.closed)
+
+    async def test_native_handoff_retains_presentation_room_without_electing_gameplay_host(self):
+        from .test_match_transport import MatchTransportTests
+        self.native_handoff = True
+        room, descriptors, connections, host = await self.running_three()
+        old_host = room.host
+        await connections[host][0].send_json({'leave': True})
+        self.assertIsNone(await self.next(connections[host][1], 'closed'))
+        self.assertFalse(room.closed)
+        self.assertEqual(room.phase, 'running')
+        self.assertEqual(room.host, old_host)
+        survivors = [i for i in range(3) if i != host]
+        source_host = survivors[-1]
+        raw = MatchTransportTests.report(self, descriptors)
+        await connections[source_host][0].send_json({'postgame': raw.hex()})
+        for i in survivors:
+            await self.next(connections[i][1], 'postgame')
+            await connections[i][0].send_json({'confirm_result': hashlib.sha256(raw).hexdigest()})
+        for i in survivors:
+            completed = await self.next(connections[i][1], 'completed')
+            self.assertIs(completed['recorded'], False)
+        self.assertEqual(room.phase, 'postgame')
+        self.assertEqual(room.host, descriptors[source_host]['slot'])
+        self.assertEqual(self.api.directory.store.db.execute('SELECT count(*) FROM match_results').fetchone()[0], 0)
 
     async def test_nonhosts_need_not_reach_each_other_when_one_host_reaches_all(self):
         headers = [await self.session(owner) for owner in ('one', 'two', 'three')]

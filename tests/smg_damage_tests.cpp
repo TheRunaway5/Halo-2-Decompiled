@@ -40,7 +40,7 @@ void live_hit(const LevelContent &original, std::span<const Spawn> starts,
   std::array<Controls, 16> controls{};
   if (lan) {
     host = std::make_unique<LanHost>(match, 0, 0x40980000);
-    client = std::make_unique<LanClient>("127.0.0.1:" + std::to_string(host->port()), 0x40980000, 1);
+    client = std::make_unique<LanClient>(host->join_address(), 0x40980000, 1);
     for (unsigned n = 0; n < 64 && !client->ready(); ++n) {
       client->send(std::array<Controls, 1>{}); host->receive(controls);
       host->broadcast(); client->receive();

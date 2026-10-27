@@ -1,5 +1,7 @@
 #pragma once
 #include "halo2/source_hud_messages.hpp"
+#include "halo2/source_player_status.hpp"
+#include "halo2/source_gameplay_fade_tu15.hpp"
 #include "halo2/source_multiplayer_event_tu15.hpp"
 #include "halo2/source_control_target.hpp"
 #include "halo2/source_execution_inputs.hpp"
@@ -9,6 +11,7 @@
 #include "halo2/physics_world_runtime.hpp"
 #include "halo2/source_object_audio_views_tu15.hpp"
 #include "halo2/source_loop_sound_request_tu15.hpp"
+#include "halo2/source_object_loop_emitter_tu15.hpp"
 #include "halo2/source_effect_light_birth_tu15.hpp"
 #include "halo2/source_runtime_memory.hpp"
 #include "halo2/source_multiplayer_engine_entity_tu15.hpp"
@@ -20,6 +23,7 @@
 #include "halo2/source_player_profile.hpp"
 #include "halo2/death_camera.hpp"
 #include "halo2/source_vehicle_director_tu15.hpp"
+#include "halo2/source_original_camera_seed.hpp"
 #include "halo2/melee_impact.hpp"
 #include "halo2/source_effect_location.hpp"
 #include "halo2/source_effect_replica_render_tu15.hpp"
@@ -40,7 +44,11 @@
 #include "halo2/source_game_over.hpp"
 
 namespace halo2 {
+// Diagnostic layout is needed only by its consumers. Keep changes to native
+// coverage counters from recompiling unrelated live-world users.
+struct NativeTu15PhysicsFrameExecutionStats;
 class Cache;
+struct SourceTextureCameraScenePrefixTu15;
 class SdlSoundPlatform;
 class MccSoundVariationProvider;
 class MccScriptSoundWorldAccess;
@@ -161,6 +169,9 @@ struct SourceWeaponEffectEventTu15 {
     WeaponEffectInput input;
     SourceWeaponEffectPresentation presentation;
     Vec3 velocity;
+    // A one-shot can retire during its original initial update and return
+    // NONE. Preserve its actual completed birth bank before that update.
+    std::optional<std::vector<SourceEffectLocation>> birth_locations;
 };
 // Actual17D8DA ->D91D0 jpt! dispatch. The request address is scoped to the
 // callback, and observers only read the retained bank before/after the real
@@ -170,6 +181,30 @@ struct SourceEffectDamageCallTu15 {
 };
 using SourceEffectDamageObserverTu15=std::function<void(bool,
     const SourceEffectDamageCallTu15 &,const SourceRuntimeMemory &)>;
+// Native netcode lag-compensation boundary; not an original owner. Actual
+// FF100 moves an instantaneous projectile (proj+BC bit5) once, through
+// FF15C -> FDEB0, whose path test 101030 calls 16C620 at 1010AB (center ray)
+// and 1012B0/10130C (radius side rays). The literal stdcall arguments are
+// published here. run() executes the complete original query from its entry
+// ABI; an owner may change native target state around it and must restore it
+// exactly, and may run it again after rolling back a rejected attempt. The
+// final run's result and writes are what the original caller receives.
+struct SourceHitscanQueryTu15 {
+    // owner_player is the projectile's +C4 owner player; ignore_object is its
+    // +140 exclusion (the firing unit) as passed to 16C620.
+    std::uint32_t projectile=0xffffffffu,definition=0xffffffffu,owner_player=0xffffffffu;
+    std::uint32_t site{},flags{},ignore_object=0xffffffffu,ignore_unit=0xffffffffu,result{};
+    std::uint32_t stack{}; // Entry ESP: bytes below it are dead callee scratch.
+    Vec3 origin,delta;
+};
+class SourceHitscanRewindOwnerTu15 {
+public:
+    virtual ~SourceHitscanRewindOwnerTu15()=default;
+    // Per-call gate. False leaves FF15C/16C620 on the unchanged original path.
+    virtual bool armed()const noexcept=0;
+    virtual void query(const SourceHitscanQueryTu15 &,SourceRuntimeMemory &,
+        const std::function<void()> &run)=0;
+};
 // One fresh TU1.5 bank and its native process/arena/pool resources. Source
 // constructors own all allocator, renderer, world and body state. The host
 // process binding is explicit; it is not a claim of complete Xbox boot.
@@ -198,6 +233,12 @@ public:
     PhysicsLiveWorldTu15(const PhysicsLiveWorldTu15 &)=delete;
     PhysicsLiveWorldTu15 &operator=(const PhysicsLiveWorldTu15 &)=delete;
     SourceRuntimeMemory &memory();
+    // Immutable resource/codec owner of this actual World. A borrower must
+    // retain the World and its admitted Cache for the reference's lifetime.
+    const SourceRuntimeResources &runtime_resources() const;
+    // Per-world execution evidence. Residual calls keep native-only closure
+    // open; these counters never supply simulation or checkpoint state.
+    NativeTu15PhysicsFrameExecutionStats native_physics_frame_activity() const;
     // Resolve this Cache's admitted resident bytes through the retained
     // canonical delivery and actual native allocation. No host pointer is
     // narrowed; foreign Cache owners or unloaded extents are rejected.
@@ -216,6 +257,12 @@ public:
     // Native original-ABI caller frame using this world's actual retained
     // stack/TLS/floating-point owner. Does not execute or admit a source entry.
     SourcePhysicsWorldRuntimeAbi prepare_source_call(std::span<const std::uint32_t> arguments={});
+    // A separately typed source2B770/2B9F0 CPU-prefix scope. The genuine
+    //132B0 boundary yields a retained packet/ABI; no completed graphics call
+    // or GPU result is supplied. Whole13C00 restores source context afterward.
+    void with_texture_camera_scene_prefix_tu15(std::span<const std::byte,0x118>,
+        bool texture_camera,unsigned actual_local_players,
+        const std::function<void(const SourceTextureCameraScenePrefixTu15 &)> &);
     // Complete source entries over this same bank, with a retained full ABI.
     // Correspondence IDs select authenticated TU1.5 code only.
     void run(std::uint32_t canonical_entry,SourcePhysicsWorldRuntimeAbi &,
@@ -228,11 +275,16 @@ public:
                              std::span<const std::uint32_t> arguments={});
     NativeRuntimeAddress world() const;
     void initialize_map();
+    // Opaque157EB0 default captured locally before any authority import.
+    // Incoming checkpoint commits never replace this executor-owned value.
+    SourceOriginalCameraSeed original_camera_seed()const;
     // Optional actual native graphics owner, admitted before session options.
     // Headless execution supplies no graphics success or palette bindings.
     void admit_renderer_palette(RendererPaletteFactory);
     // Native campaign BSP delivery over the same source object/actor bank.
     void switch_campaign_bsp(std::size_t);
+    // Actual currently bound Cache/BSP image; independent of cold game+2.
+    std::size_t source_bsp_index() const;
     NativeRuntimeAddress object_pool() const;
     NativeRuntimeAddress player_pool() const;
     // Explicit original-ABI boundary for authenticated source routines/probes.
@@ -255,6 +307,10 @@ public:
     // This differs from the collision WORLD bank (notably the finger nodes).
     // Present only after this frame's actual model builder requests it.
     std::optional<std::vector<Transform>> rendered_world_nodes(std::uint32_t object) const;
+    // Native BF640 completion for network body publication. Returns an owned
+    // WORLD copy while restoring every native write, including lazy BFB90
+    // finger/LOCAL/cache work. No geometry/resource collector is constructed.
+    std::vector<Transform> completed_body_world_nodes(std::uint32_t object);
     // Original41C70/41C10/D7230 traversal over the actual attachment/child
     // chains. Deep unowned attachment services propagate their real boundary.
     void append_render_attachments(SourceBspPartCommandState&,
@@ -298,6 +354,9 @@ public:
     // Native selects its real local view; original151C90 owns the player,
     // view map, input binding and first-person unit transition. -1 releases.
     void set_local_player(std::uint32_t player,std::int16_t view);
+    // Original151D30 owns player+24 and the reverse logical input-user table.
+    // Native local users are distinct from views and physical controller ports.
+    void set_player_input_user(std::uint32_t player,std::int16_t user);
     // Native presentation's actual camera position, published to172200's
     // retained observer record.1755B0 uses it for source effect admission.
     // This supplies a native camera input, not the original camera scheduler.
@@ -313,6 +372,11 @@ public:
     //18F900 and190460 compute every scheduling/PVS/distance result. The
     // legacy listener bank and Xbox driver/map availability stay untouched.
     void step_native_object_audio(const SourceObjectAudioViewsTu15&,float elapsed);
+    // Native pre-view18D5A0/18F9B0 inputs for unparented scen/bloc/ssce
+    // ordinary lsnd attachments. Actual function/marker/cluster owners run
+    // on this World; host camera/PAS and playback-progress bits are unused.
+    // Execution and completed result are covered by the source call journal.
+    std::vector<SourceObjectLoopEmitterTu15> object_loop_emitters();
     void observe_effect_light_births(SourceEffectLightBirthObserverTu15);
     // Bind an actual owned EEPROM resource before source audio construction.
     // This retains only its immutable non-key UserSettings section; absence
@@ -358,6 +422,14 @@ public:
     // presentation data and cannot advance another source owner.
     void observe_multiplayer_teleporters(std::function<void(const SourceTeleporterEventsTu15 &)>);
     std::array<float,2> hud_message_timing()const;
+    // Completed source phases only:161610's descriptor at15ED4F and the raw
+    // counter inputs at15E6BC. Snapshot readers do not execute either query.
+    // Pointer-free observations of the actual pre-fade tick and genuine
+    // player-init/unit-bind lifecycle, before host-local-view filtering.
+    void observe_gameplay_fade(std::function<void(const SourceGameplayFadeFrameTu15&)>,
+        std::function<void(const SourceGameplayFadeActivationTu15&)> activation);
+    void observe_player_status(std::function<void(const SourcePlayerStatusPhaseTu15&)>);
+    void observe_player_scoreboard(std::function<void(const SourcePlayerScoreboardEventTu15&)>);
     // Rebase the native player's retained source input through18A2A0 using
     // its completed unit forward. Raw native look deltas keep their baseline.
     void reorient_player_look(std::uint32_t player,std::uint32_t unit);
@@ -366,13 +438,25 @@ public:
     void advance_effect_particles(float frame_seconds,const SourceFirstPersonPhaseObserverTu15& observer={});
     std::vector<SourceProjectileDetonationTu15> take_projectile_detonations();
     void observe_body_impulses(std::function<void(const SourceBodyImpulseTu15 &)>);
+    // Presentation publication of the same completed 324F80 point impulse.
+    // Unlike the diagnostic observer above, a caller/ownership shape it cannot
+    // qualify is left to the ordinary dispatch instead of failing the tick.
+    // Read-only: the original call runs unchanged either way.
+    void publish_body_impulses(std::function<void(const SourceBodyImpulseTu15 &)>);
     void observe_phantom_phase(SourcePhantomPhaseObserverTu15);
     void observe_physics_stores(SourcePhysicsStoreObserverTu15);
+    // Explicit diagnostic contract: the collector may inspect completed stores
+    // and retained bytes, but may not mutate source state, FP policy or input.
+    // General store observers retain their existing mutable registration.
+    void observe_physics_stores_read_only(SourcePhysicsStoreObserverTu15);
     void observe_body_velocity_inputs(SourceBodyVelocityInputObserverTu15);
     void observe_weapon_effects(std::function<void(const SourceWeaponEffectEventTu15 &)>);
     // Read-only retained ABI/bank snapshots around the real scheduled108A70.
     void observe_weapon_effect_phase(SourceFirstPersonPhaseObserverTu15);
     void observe_effect_damage(SourceEffectDamageObserverTu15);
+    // Borrowed until replaced or cleared with nullptr; see SourceHitscanQueryTu15.
+    // Configuration only: install before stepping and clear before the owner dies.
+    void set_hitscan_rewind_owner(SourceHitscanRewindOwnerTu15 *);
     std::vector<MeleeImpact> take_melee_impacts();
     std::vector<UnitDamageEffectEvent> take_unit_damage_effects();
     SourceWeaponEffectPresentation request_weapon_effect(const WeaponEffectInput &);
@@ -492,6 +576,9 @@ public:
         // native-address bindings to this exact replacement allocation.
         // The reference expires when preparation commits or is cancelled.
         const SourceRuntimeMemory &replacement_memory() const;
+        // Executor-owned ABI for validating this staged bank's native owners.
+        // Does not execute a kernel or write either live or replacement bytes.
+        SourcePhysicsWorldRuntimeAbi replacement_caller() const;
         // Fixed campaign renderer-static adoption under this preparation
         // lock/barrier; never used by default full-RAM authority imports.
         void retain_live_campaign_lens();

@@ -317,14 +317,29 @@ struct SourceBspEffectLights::Impl {
     // reset. The two record streams merge by the original ordering key: word3
     // token=(coverage<<16|ordinal)<<8|part, emitted by44AC0 in ascending
     // (ordinal,part). Header count and layers follow3B9D0 exactly.
-    struct MainCommandsStats {std::uint64_t views{},native_units{},native_model_units{},native_records{},translated_units{},model_units{},model_unresident{},fallbacks{},mismatches{};} main_commands_stats;
+    struct MainCommandsStats {std::uint64_t views{},secondary_views{},native_units{},native_model_units{},native_records{},translated_units{},model_units{},model_unresident{},fallbacks{},mismatches{},guard_fallbacks{},hook_calls{};std::map<std::array<std::uint32_t,3>,std::uint64_t> calls;} main_commands_stats;
     void main_commands_native(PhysicsLiveWorldTu15& world,unsigned players,std::array<std::int16_t,4> viewport,
-        bool view_modifier,bool oracle,const std::function<void()>& translated) {
+        bool view_modifier,bool oracle,const std::function<void()>& translated,std::uint32_t selector=0) {
         constexpr std::uint32_t units_at=0x4c6958u,headers=CommandBankSet::headers;
         auto& memory=world.memory();
         const auto word=[&](std::uint32_t p){return Bytes(memory.view(p,4)).u32(0);};
         const auto draw_count=word(0x4cd398u),main_prefix=word(0x4cd39cu);
-        if(draw_count>850 || main_prefix>draw_count || word(0x4cd3a0u)!=0x556e18u){translated();return;}
+        //40E80 takes its mode from the current draw context's +2A78 word:
+        // main context556E18 is mode0 over [0,main_prefix); the secondary
+        // context5598F8 the shadow roots install is a nonzero mode over
+        // [main_prefix,draw_count). EAX is the layer selector40E90 maps to
+        // the unit flag mask. Banks reset by the translated remainder.
+        const auto context_address=word(0x4cd3a0u);
+        {
+            // Diagnostic: every (context, mode word, selector) this kernel is asked for.
+            const auto key=std::array{context_address,context_address>=0x400000u && context_address<0x10000000u?word(context_address+0x2a78u):0xffffffffu,selector};
+            ++main_commands_stats.calls[key];
+        }
+        if(draw_count>850 || main_prefix>draw_count || (context_address!=0x556e18u && context_address!=0x5598f8u)){++main_commands_stats.guard_fallbacks;translated();return;}
+        const auto mode=word(context_address+0x2a78u);
+        if(mode>3u){++main_commands_stats.guard_fallbacks;translated();return;}
+        if(mode)++main_commands_stats.secondary_views;
+        const unsigned first_unit=mode?main_prefix:0u,end_unit=mode?draw_count:main_prefix;
         std::vector<SourceCullDrawUnit> units(draw_count);
         if(draw_count)std::memcpy(units.data(),memory.view(units_at,draw_count*32u).data(),draw_count*32u);
         // Eligible: culled-in (flag1), not special (flag400), and either
@@ -334,7 +349,7 @@ struct SourceBspEffectLights::Impl {
         // the frame exactly as449D0 returning NULL does, so it stays translated.
         std::vector<unsigned> eligible;std::uint64_t remaining{};
         std::map<std::array<std::uint32_t,8>,SourceModelCommandGeometry> live_models;
-        for(unsigned n=0;n<main_prefix;++n) {
+        for(unsigned n=first_unit;n<end_unit;++n) {
             const auto& u=units[n].words;
             if(!(u[0]&1u) || (u[0]&0x400u)){continue;}
             if(u[1]!=0xffffffffu) {
@@ -369,16 +384,16 @@ struct SourceBspEffectLights::Impl {
         const auto override_count=std::min<std::uint32_t>(word(0x4cdd48u),192u);
         if(override_count)std::memcpy(overrides.data(),memory.view(0x4cda48u,override_count*4u).data(),override_count*4u);
         SourceBspRangeArena arena;
-        std::memcpy(arena.words.data(),memory.view(0x556e18u+0x25cu,sizeof(arena.words)).data(),sizeof(arena.words));
+        std::memcpy(arena.words.data(),memory.view(context_address+0x25cu,sizeof(arena.words)).data(),sizeof(arena.words));
         SourceBspPartCommandState native;
         for(unsigned b=0;b<3;++b) {
             const auto h=headers+b*CommandBankSet::header_stride;
             native.banks[b].header[0]=word(h);native.banks[b].storage.resize(native.banks[b].header[0]);
         }
         SourceBspPartCommandContext context;
-        context.mode=0;context.flag_mask=0xffffffffu;context.group=31;
+        context.mode=mode;context.flag_mask=!selector?0xffffffffu:selector==2u?0x10u:0x20u;context.group=31;
         context.callback_geometry=0x4cbe0u;context.callback_light=0x4d0a0u; // TU1.5 image.
-        context.main_prefix=main_prefix;context.draw_count=draw_count;context.mask_arena_address=0x556e18u+0x25cu;
+        context.main_prefix=main_prefix;context.draw_count=draw_count;context.mask_arena_address=context_address+0x25cu;
         context.lod_view=source_shader_lod_view(viewport[0],viewport[2],false,false);
         context.player_multiplier=source_shader_lod_player_multiplier(players);context.view_modifier=view_modifier;
         context.coverage=std::span<const std::uint8_t>(coverage).first(draw_count);
@@ -394,7 +409,7 @@ struct SourceBspEffectLights::Impl {
         world_inputs.shader=[&](auto datum)->const SourceBspCommandShader&{return shader_for(datum);};
         // Only eligible units are visible to the native pass.
         auto native_units=units;
-        for(unsigned n=0;n<main_prefix;++n)
+        for(unsigned n=first_unit;n<end_unit;++n)
             if(std::find(eligible.begin(),eligible.end(),n)==eligible.end())native_units[n].words[0]&=~1u;
         try{source_bsp_append_part_commands(native,native_units,arena,world_inputs,context);}
         catch(const std::exception& error) {
@@ -471,7 +486,9 @@ struct SourceBspEffectLights::Impl {
                 " native_units="<<main_commands_stats.native_units<<" native_records="<<main_commands_stats.native_records<<
                 " translated_units="<<main_commands_stats.translated_units<<" model_units="<<main_commands_stats.model_units<<
                 " native_model_units="<<main_commands_stats.native_model_units<<" model_unresident="<<main_commands_stats.model_unresident<<" mismatches="<<main_commands_stats.mismatches<<
-                " fallbacks="<<main_commands_stats.fallbacks<<'\n';
+                " fallbacks="<<main_commands_stats.fallbacks<<" secondary_views="<<main_commands_stats.secondary_views<<
+                " guard_fallbacks="<<main_commands_stats.guard_fallbacks<<" hook_calls="<<main_commands_stats.hook_calls<<'\n';
+            if(main_commands_stats.views%240==0){std::cerr<<"Native main commands calls:";for(const auto& [key,n]:main_commands_stats.calls)std::cerr<<" ["<<std::hex<<key[0]<<"/mode"<<key[1]<<"/sel"<<key[2]<<std::dec<<"]x"<<n;std::cerr<<'\n';}
             return;
         }
         for(auto n:eligible)write_word(units_at+n*32u,units[n].words[0]&~1u);
@@ -689,7 +706,7 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
     const SourceViewProjectionBank& camera,const BspFogSample& fog,Vec3 eye,
     std::array<std::int16_t,4> viewport,std::array<std::uint32_t,2> surface,unsigned players,
     SourceEffectLightModelViewTu15* objects,std::vector<pstencil::PointCaster>* point_casters,
-    std::uint32_t light_domain) {
+    std::uint32_t light_domain,const std::array<ShaderVector,12>* submitting_constants) {
     auto& i=*impl_;std::vector<EffectLightRawDraw> output;
     i.unavailable_sections.clear();
     if(objects)i.preload_native_bsp_resources(objects->world,main);
@@ -798,7 +815,7 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
         static const bool commands_census=[]{const auto* p=std::getenv("HALO2_MAIN_COMMANDS_CENSUS");return p && *p;}();
         struct MainCommandsScope {
             SourceEffectLightModelViewTu15& objects;
-            ~MainCommandsScope(){objects.main_commands=nullptr;}
+            ~MainCommandsScope(){objects.main_commands=nullptr;objects.secondary_commands=nullptr;}
         } main_commands_scope{*objects};
         static const bool commands_oracle=[]{const auto* p=std::getenv("HALO2_MAIN_COMMANDS_ORACLE");return p && *p;}();
         static const bool commands_containment=[]{const auto* p=std::getenv("HALO2_MAIN_COMMANDS_CONTAINMENT");return p && *p;}();
@@ -812,6 +829,16 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
         else if(!reference_commands)objects->main_commands=[&](const std::function<void()>& translated) {
             i.main_commands_native(objects->world,players,viewport,objects->context.view_modifier,commands_oracle,translated);
         };
+        // The shadow roots' secondary-context40E80 calls can take the same
+        // kernel (HALO2_NATIVE_SHADOW_COMMANDS=1). No measured workload has
+        // reached that branch yet (hook_calls stayed0), so it is not the
+        // default until the record oracle has seen it on live data.
+        static const bool native_shadow_commands=[]{const auto* p=std::getenv("HALO2_NATIVE_SHADOW_COMMANDS");return p && *p;}();
+        if(native_shadow_commands && !commands_census && !commands_containment && !reference_commands)
+            objects->secondary_commands=[&](std::uint32_t selector,const std::function<void()>& translated) {
+                ++i.main_commands_stats.hook_calls;
+                i.main_commands_native(objects->world,players,viewport,objects->context.view_modifier,commands_oracle,translated,selector);
+            };
         if(objects->main_collected)objects->main_collected(admission,objects->main,context);
     }
     i.main_arena=i.units.arena;
@@ -823,7 +850,7 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
         i.materials,current_visibility?std::span<const std::byte>(*current_visibility):std::span<const std::byte>(i.visibility),
         std::int16_t(i.bsp_index),[&](auto datum)->const SourceBspCommandShader&{return i.shaders.at(datum);}};
     MenuWorldSourceConstants constants{};
-    const auto bank=source_view_shader_bank(camera,1024.f,eye,
+    const auto bank=submitting_constants?*submitting_constants:source_view_shader_bank(camera,1024.f,eye,
         {float(viewport[1]),float(viewport[0]),float(viewport[3]-viewport[1]),float(viewport[2]-viewport[0])},false);
     std::copy(bank.begin(),bank.end(),constants.begin());
     for(const auto& receiver:receivers) {

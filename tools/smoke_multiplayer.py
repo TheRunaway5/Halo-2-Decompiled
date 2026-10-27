@@ -37,32 +37,28 @@ def main():
         return process
 
     try:
+        # The independently exchanged key must exist before clients make any
+        # raw query or hello. Read it from this owned host's trusted console.
+        host = start('lan-host', ['--dedicated', '--host', str(port), '--simulate', '6000'])
+        deadline = time.monotonic() + 180
+        host_log = args.output / 'lan-host.log'
+        while 'LAN join token: ' not in host_log.read_text():
+            if host.poll() is not None or time.monotonic() >= deadline:
+                raise RuntimeError('Dedicated host did not become ready; inspect lan-host.log')
+            time.sleep(.05)
+        address = next(line.removeprefix('LAN join token: ').replace('HOST_ADDRESS', '127.0.0.1')
+                       for line in host_log.read_text().splitlines() if line.startswith('LAN join token: '))
         clients = []
         for name, count in [('lan-one', 1), ('lan-split', 2)]:
-            clients.append(start(name, ['--join', '127.0.0.1:' + str(port),
+            clients.append(start(name, ['--join', address,
                                         '--local-players', str(count), '--hidden',
                                         '--frames', '36', '--mp-replay',
                                         '--mp-capture-players', '3', '--validation', '--screenshot',
                                         str((args.output / (name + '.ppm')).resolve())]))
-        # Cold driver/asset preparation can take longer than this finite host's
-        # entire run. Start its gameplay window when the first renderer is ready;
-        # clients' unanswered-host timer begins at their first actual request.
-        deadline = time.monotonic() + 180
-        while not any('Multiplayer GPU:' in (args.output / (name + '.log')).read_text()
-                      for name in ('lan-one','lan-split')):
-            if any(client.poll() is not None for client in clients) or time.monotonic() >= deadline:
-                raise RuntimeError('LAN renderer did not become ready; inspect client logs')
-            time.sleep(.05)
-        host = start('lan-host', ['--dedicated', '--host', str(port), '--simulate', '600'])
-        deadline = time.monotonic() + 5
-        while 'LAN host UDP port=' not in (args.output / 'lan-host.log').read_text():
-            if host.poll() is not None or time.monotonic() >= deadline:
-                raise RuntimeError('Dedicated host did not become ready; inspect lan-host.log')
-            time.sleep(.05)
         for client in clients:
-            if client.wait(timeout=20):
+            if client.wait(timeout=180):
                 raise RuntimeError('Rendered LAN client failed; inspect its log')
-        if host.wait(timeout=25):
+        if host.wait(timeout=210):
             raise RuntimeError('Dedicated host failed; inspect lan-host.log')
         seen = []
         combined = ''

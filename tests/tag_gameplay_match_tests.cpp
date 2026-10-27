@@ -133,10 +133,11 @@ int main(int argc, char** argv) try {
     require(!lan || peer_controller,"Remote SDL controller did not open");
     float peer_yaw{},peer_pitch{};
     std::array<std::int8_t,1> peer_team{1};
+    std::string raw_join;options.session_lan_host_ready=[&](const std::string &value){raw_join=value;};
     if(lan) options.session_world_loaded=[&](const MultiplayerMatch&,std::span<const unsigned>) {
         const auto fingerprint=multiplayer_fingerprint(options.map,options.shared_maps,
             options.bsp,world.rules.weapon,options.gameplay_xbe);
-        peer=std::make_unique<LanClient>("127.0.0.1:"+std::to_string(options.host_port),fingerprint,1,
+        peer=std::make_unique<LanClient>(raw_join,fingerprint,1,
             team?std::span<const std::int8_t>(peer_team):std::span<const std::int8_t>{});
     };
     MultiplayerState current;

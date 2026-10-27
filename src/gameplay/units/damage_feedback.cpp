@@ -1,4 +1,6 @@
 #include "halo2/damage_feedback.hpp"
+#include "halo2/damage_feedback_names.hpp"
+#include "halo2/cache.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -86,6 +88,41 @@ float damage_feedback_shader_input(const DamageFeedbackState &s,float body,
           return FunctionValue{resolved->value,resolved->active};
         return {};
       });
+  return value.enabled?value.value:0.f;
+}
+DamageFeedbackNames DamageFeedbackNames::from_cache(const Cache &cache) {
+  DamageFeedbackNames result;
+  constexpr std::array<std::string_view,8> symbols{
+      "one","zero","alive","body_vitality","shield_vitality",
+      "current_body_damage","current_shield_damage","object_overshield_amount"};
+  constexpr std::array<std::uint32_t,8> mcc{
+      0x030005b2u,0x040005b3u,0x05000567u,0x0d000564u,
+      0x0f000565u,0x13000562u,0x15000563u,0x18000566u};
+  if(cache.is_mcc())result.authored_=mcc;
+  for(unsigned i=0;i<symbols.size();++i)
+    if(cache.string_id(result.authored_[i])!=symbols[i])
+      throw FormatError("Damage feedback builtin differs from its authored cache symbol identity");
+  return result;
+}
+std::optional<std::uint32_t> DamageFeedbackNames::builtin(std::uint32_t authored)const {
+  for(unsigned i=0;i<authored_.size();++i)if(authored_[i]==authored)return original_[i];
+  return {};
+}
+float damage_feedback_shader_input(const DamageFeedbackState &s,float body,
+    float shield,bool dead,std::span<const ObjectFunction> functions,
+    const ShaderFunctionTables &tables,std::uint32_t name,float seconds,
+    const DamageFeedbackNames &names) {
+  const auto value=evaluate_object_function(functions,tables,name,seconds,{},
+      [&](std::uint32_t input)->std::optional<FunctionValue> {
+        if(!input)return FunctionValue{1.f,true};
+        const auto builtin=names.builtin(input);
+        if(!builtin)return {};
+        if(*builtin==0x030005a6u)return FunctionValue{1.f,true};
+        if(*builtin==0x040005a7u)return FunctionValue{};
+        if(const auto resolved=damage_feedback_input(s,body,shield,dead,*builtin))
+          return FunctionValue{resolved->value,resolved->active};
+        return {};
+      },false);
   return value.enabled?value.value:0.f;
 }
 }

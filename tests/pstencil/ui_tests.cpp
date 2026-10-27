@@ -13,6 +13,13 @@ void check_mode(const MenuState& state,pstencil::GraphicsMode mode) {
     require(state.pc_display_settings().graphics_mode==mode,"Video Settings lost the live graphics mode");
     require(state.pc_value_label(state.frame(),0)==pstencil::graphics_mode_name(mode),"Graphics Mode displays the wrong choice");
 }
+void check_path_resources(const Renderer& renderer,bool active) {
+    const auto resources=renderer.path_tracing_resources();
+    if(active)require(resources.views>0 && resources.cpu_bytes>0 && resources.gpu_bytes>0,
+        "Active Path Tracing draw did not own its scene and GPU buffers");
+    else require(resources==RendererPathTracingResources{},
+        "Disabled Path Tracing retained a view, CPU scene bank, or GPU allocation");
+}
 }
 int main(int argc,char** argv){std::ostringstream diagnostics;auto* previous=std::cerr.rdbuf(diagnostics.rdbuf());try{
     require(argc==2,"provide pStencil UI evidence directory");const std::filesystem::path out=std::getenv("HALO2_TEST_SCRATCH")?std::filesystem::path(std::getenv("HALO2_TEST_SCRATCH"))/"graphics-menu":std::filesystem::path(argv[1]);std::filesystem::create_directories(out);
@@ -28,7 +35,9 @@ int main(int argc,char** argv){std::ostringstream diagnostics;auto* previous=std
         content.vista=load_vista_settings(root/"Halo 2 Vista installer/maps/mainmenu.map");
         MenuState title(content,preferences);
         FrontendPainter painter(content,root/"assets/disc/maps/fonts",mesh);
-        Renderer renderer(window,mesh,true);Camera camera;camera.field_of_view=60;
+        Renderer renderer(window,mesh,true);renderer.path_tracing_source(mesh);
+        check_path_resources(renderer,false);
+        Camera camera;camera.field_of_view=60;
         renderer.share_display_settings(desktop.display_settings);pause.bind(window,desktop,renderer);solo.bind(window,desktop,renderer);
         title.set_pc_display_adapter([&](const DisplaySettings& settings){
             const auto error=renderer.validate_display_settings(settings);
@@ -99,7 +108,13 @@ int main(int argc,char** argv){std::ostringstream diagnostics;auto* previous=std
             check_mode(title,pstencil::GraphicsMode::pStencil);
             require(renderer.display_settings().graphics_mode==pstencil::GraphicsMode::pStencil,"Title menu did not switch the live renderer");
             require(MenuState(content,preferences).pc_display_settings().graphics_mode==pstencil::GraphicsMode::pStencil,"Graphics Mode did not persist");
+            title.accept();check_mode(title,pstencil::GraphicsMode::PathTracing);
+            require(renderer.display_settings().graphics_mode==pstencil::GraphicsMode::PathTracing,"Title menu did not switch to Path Tracing");
+            require(MenuState(content,preferences).pc_display_settings().graphics_mode==pstencil::GraphicsMode::PathTracing,"Path Tracing did not persist");
+            draw(painter.draw(title,5,-1,10000,size),"title-path-tracing.ppm");
+            check_path_resources(renderer,true);
             title.accept();check_mode(title,pstencil::GraphicsMode::Original);
+            check_path_resources(renderer,false);
         }
         const auto exercise_upscaling=[&](MenuState& state,auto row,auto back,auto paint,bool all_quality_modes) {
             require(state.frame().entries.at(6).label=="Upscaling","Video Settings retained the old AA field");
@@ -181,7 +196,15 @@ int main(int argc,char** argv){std::ostringstream diagnostics;auto* previous=std
         SDL_SetWindowSize(window,853,479);renderer.resized();require(renderer.draw(camera),"Active pStencil resize failed");
         require(renderer.display_settings().graphics_mode==pstencil::GraphicsMode::pStencil,"Resize lost pStencil mode");
         SDL_SetWindowSize(window,960,720);renderer.resized();
+        accept_row(0);check_mode(pause.state(),pstencil::GraphicsMode::PathTracing);
+        require(renderer.display_settings().graphics_mode==pstencil::GraphicsMode::PathTracing,"Pause menu did not switch to Path Tracing");
+        require(renderer.draw(camera,out/"PathTracing.ppm"),"Path Tracing draw failed");
+        check_path_resources(renderer,true);
+        SDL_SetWindowSize(window,853,479);renderer.resized();require(renderer.draw(camera),"Active Path Tracing resize failed");
+        require(renderer.display_settings().graphics_mode==pstencil::GraphicsMode::PathTracing,"Resize lost Path Tracing mode");
+        SDL_SetWindowSize(window,960,720);renderer.resized();
         accept_row(0);check_mode(pause.state(),pstencil::GraphicsMode::Original);
+        check_path_resources(renderer,false);
         require(renderer.draw(camera,out/"Original-after.ppm"),"Restored Original draw failed");
         require(bytes(out/"Original-before.ppm")==bytes(out/"Original-after.ppm"),"Menu graphics round trip changed restored Original pixels");
         require(MenuState(content,preferences).pc_display_settings().graphics_mode==pstencil::GraphicsMode::Original,"Pause graphics preference did not persist");
@@ -199,6 +222,7 @@ int main(int argc,char** argv){std::ostringstream diagnostics;auto* previous=std
         require(solo.state().frame().screen==vista_menu(261),"Solo pause Settings did not open Video Settings");
         check_mode(solo.state(),pstencil::GraphicsMode::Original);
         solo_row(0);check_mode(solo.state(),pstencil::GraphicsMode::pStencil);
+        solo_row(0);check_mode(solo.state(),pstencil::GraphicsMode::PathTracing);
         solo_row(0);check_mode(solo.state(),pstencil::GraphicsMode::Original);
         for(const auto mode:{FullscreenMode::Fullscreen,FullscreenMode::BorderlessFullscreen,FullscreenMode::Windowed}) {
             solo_row(1);solo_row(unsigned(mode));solo_row(0);
@@ -212,5 +236,5 @@ int main(int argc,char** argv){std::ostringstream diagnostics;auto* previous=std
 
     }
     std::cerr.rdbuf(previous);require(diagnostics.str().empty(),"Video Settings Vulkan diagnostics");
-    std::cout<<"PASS first-row Graphics Mode in Settings and solo/multiplayer pause Video Settings; mouse and SDL Enter cycle Original -> pStencil -> Original; Upscaling submenu with FSR 3.1 / DLSS 4.5 and quality modes, all three fullscreen modes, confirmation/rollback, persistence, resize, exact restored pixels and inert F1\n";return 0;
+    std::cout<<"PASS first-row Graphics Mode in Settings and solo/multiplayer pause Video Settings; mouse and SDL Enter cycle Original -> pStencil -> Path Tracing -> Original; Upscaling submenu with FSR 3.1 / DLSS 4.5 and quality modes, all three fullscreen modes, confirmation/rollback, persistence, resize, exact restored pixels and inert F1\n";return 0;
 }catch(const std::exception& e){std::cerr.rdbuf(previous);std::cerr<<diagnostics.str()<<e.what()<<'\n';return 1;}}

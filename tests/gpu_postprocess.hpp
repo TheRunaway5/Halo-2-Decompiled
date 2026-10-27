@@ -87,7 +87,9 @@ class Postprocess {
     }
 public:
     Postprocess() {
-        VkApplicationInfo app{VK_STRUCTURE_TYPE_APPLICATION_INFO};app.apiVersion=VK_API_VERSION_1_1;
+        // Production shader catalogs target Vulkan1.3/SPIR-V1.6. Request that
+        // same API contract for the disposable numerical test device.
+        VkApplicationInfo app{VK_STRUCTURE_TYPE_APPLICATION_INFO};app.apiVersion=VK_API_VERSION_1_3;
         VkInstanceCreateInfo info{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};info.pApplicationInfo=&app;
         check(vkCreateInstance(&info,nullptr,&instance));unsigned count=0;check(vkEnumeratePhysicalDevices(instance,&count,nullptr));
         std::vector<VkPhysicalDevice> devices(count);check(vkEnumeratePhysicalDevices(instance,&count,devices.data()));
@@ -102,6 +104,11 @@ public:
         queue_info.queueFamilyIndex=family;queue_info.queueCount=1;queue_info.pQueuePriorities=&priority;
         VkDeviceCreateInfo create{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};create.queueCreateInfoCount=1;create.pQueueCreateInfos=&queue_info;
         VkPhysicalDeviceFeatures supported{},features{};vkGetPhysicalDeviceFeatures(physical,&supported);
+        VkPhysicalDeviceVulkan13Features supported13{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+        VkPhysicalDeviceFeatures2 capabilities{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};capabilities.pNext=&supported13;
+        vkGetPhysicalDeviceFeatures2(physical,&capabilities);
+        VkPhysicalDeviceVulkan13Features features13{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+        features13.shaderDemoteToHelperInvocation=supported13.shaderDemoteToHelperInvocation;create.pNext=&features13;
         features.textureCompressionBC=supported.textureCompressionBC;
         features.geometryShader=supported.geometryShader;create.pEnabledFeatures=&features;
         check(vkCreateDevice(physical,&create,nullptr,&device));vkGetDeviceQueue(device,family,0,&queue);

@@ -1,4 +1,5 @@
 #include "halo2/cinematic_crossfade_render.hpp"
+#include "halo2/native_fragment_kernel.hpp"
 #include "halo2/cache.hpp"
 #include <array>
 #include <cstring>
@@ -77,8 +78,11 @@ struct CinematicCrossfadeRender::Impl {
        !(capture.optimalTilingFeatures&VK_FORMAT_FEATURE_BLIT_DST_BIT) ||
        !(capture.optimalTilingFeatures&VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT))
       throw FormatError("Original cinematic capture format cannot be copied/sampled");
+    const auto source_program=cinematic_crossfade_program(1.f,1.f);
+    if(!source_program)throw FormatError("Original cinematic crossfade kernel identity unavailable");
+    const std::string native_path(native_fragment_kernel_path("cinematic-crossfade",source_program->words));
     const auto vertex=shader("bloom.vert.spv");VkShaderModule fragment{};
-    try{fragment=shader("cinematic_crossfade.frag.spv");}
+    try{fragment=shader(native_path.c_str());}
     catch(...){vkDestroyShaderModule(context.device,vertex,nullptr);throw;}
     const std::array<VkPipelineShaderStageCreateInfo,2> stages{{
       {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_VERTEX_BIT,vertex,"main",nullptr},
@@ -192,9 +196,12 @@ CinematicCrossfadeRender::CinematicCrossfadeRender(CinematicCrossfadeRenderConte
 CinematicCrossfadeRender::~CinematicCrossfadeRender()=default;
 void CinematicCrossfadeRender::reconfigure(VkFormat format,VkRenderPass pass){if(format!=impl_->context.color_format)impl_->make_pipeline(format,pass);}
 void CinematicCrossfadeRender::prepare(const CinematicCrossfadeFrame &frame) {
-  impl_->frame=frame;if(!frame.composite)return;
+  if(!frame.composite){impl_->frame=frame;return;}
+  (void)native_fragment_kernel_path("cinematic-crossfade",frame.composite->words);
+  const auto colors=native_fragment_uniform_words(frame.composite->words);
   void *memory{};check(vkMapMemory(impl_->context.device,impl_->uniform_memory,0,240,0,&memory),"Cinematic program map");
-  std::memcpy(memory,frame.composite->words.data(),240);vkUnmapMemory(impl_->context.device,impl_->uniform_memory);
+  std::memcpy(memory,colors.data(),240);vkUnmapMemory(impl_->context.device,impl_->uniform_memory);
+  impl_->frame=frame;
 }
 bool CinematicCrossfadeRender::record(const CinematicCrossfadeRenderTarget &target){return impl_->record(target);}
 }

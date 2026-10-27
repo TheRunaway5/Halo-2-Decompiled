@@ -1,0 +1,11 @@
+{
+  "schema": "H2_MCC_NATIVE_NO_ALPHA_REGRESSION_V1",
+  "source_policy_sha256": "443b0ca736ca22972316b5f572835439f190fc0560d32491a5862899b43135fb",
+  "compressed_file": "mcc-native-no-alpha-v1.json.zlib",
+  "compressed_bytes": 23841,
+  "compressed_sha256": "b837164526ac8c5dc67ed729e4e495c0d759fa4c72c0ad3658eab6383c0ca1f6",
+  "decoded_bytes": 412819,
+  "decoded_sha256": "9e6a4908a5de1d9b685357568c420f0528567e9d0e1a1932557b169d2a3dc7ed",
+  "source_authority": "Original TU1.5 math/programs plus complete MCC NoAlpha authoredRGBmask; no PCshader execution",
+  "actual_cases": 2
+}

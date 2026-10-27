@@ -15,7 +15,7 @@ older unused definitions; loading them does not make every backend functional.
 
 | Menu | Native behavior |
 | --- | --- |
-| Title → profile → main menu | Original logo, prompt, authored flythrough cameras with roll, original scenery and looping human/Covenant flak with particle death explosions, retail font glyphs, blue UI overlay, complete retail WMA intro and four loop permutations, and ADPCM menu sounds. See [title flak evidence](TITLE_FLAK_EFFECTS.md). |
+| Title → profile → main menu | Halo 2 logo with the website's pale-blue, spaced FOREVER subtitle, prompt, authored flythrough cameras with roll, original scenery and looping human/Covenant flak with particle death explosions, retail font glyphs, blue UI overlay, complete retail WMA intro and four loop permutations, and ADPCM menu sounds. The logo sits 36 logical pixels higher and main-menu options sit 18 pixels higher; Exit Game follows Settings and uses the normal mouse, keyboard and controller navigation. See [title flak evidence](TITLE_FLAK_EFFECTS.md). |
 | Startup / attract movies | Plays the bundled AI upscaled intro at boot, falling back to the disc's `intro_60.bik` when absent. The disc's `attract_60.bik` plays after 75 seconds without input while the title/main menu remains on channel five, including the verified profile/keyboard overlays. Movie audio plays through SDL; a skip press is consumed by playback. Music restarts through the original transition debounce. Credits can be previewed explicitly and prefer the bundled upscaled version. See [release movies](RELEASE_MOVIES.md). |
 | Campaign | New game, level select, difficulty, and cooperative sign-in presentation. A single-player selection passes the chosen map and difficulty to the existing simulation. |
 | Player profiles | Local create, select, edit, copy, rename, delete; controller, appearance, voice, online-status and subtitle menus. New profiles enter customization before sign-in. Delete and sign-out use the original confirmation dialogs; a signed-in profile remains protected after rename. Values persist in the host preferences file and are selected when reopening their menus. |
@@ -49,7 +49,7 @@ commits the name.
 ./build/halo2_native --menu-screen 47
 ./build/halo2_native --menu --skip-intro
 ./build/halo2_native --menu-movie intro --movie-frame 200 --frames 3
-./build/halo2_native --menu --skip-intro --menu-tick 1400 --frames 3 --screenshot menu.ppm
+./build/halo2_native --menu --skip-intro --menu-wait-intro-clear --menu-tick 1400 --frames 3 --screenshot menu.ppm
 ./build/halo2_native --menu-audit
 ./build/halo2_native --menu-sweep analysis/frontend/sweep --hidden --mute --validation
 ```
@@ -62,6 +62,18 @@ parameter/category context is exercised by the sweep and normal navigation.
 it selects reproducible scene views without changing the attract clock.
 `Halo2-Title-Launcher` is a separate title-first shortcut. The standard
 `Halo2-Launcher` keeps startup movie playback.
+
+For visible menu captures, `--menu-wait-intro-clear` presents the real map
+intro while ordinary input, events and the source UI clock continue. It waits
+up to 30 seconds for `MenuState::ui_map_intro_color()` to return no overlay,
+then counts the requested `--frames` and captures the final frame. Initial
+captures require `--skip-intro` to select menus rather than boot movies. The
+native process emits a `Frontend intro capture:` JSON witness containing the
+source clock observations, warm-up presents and qualified frame count.
+`--menu-ui-ms` and `--menu-ui-step-ms` control paint sampling; they do not
+advance the source map-intro clock. The qualifier and aspect/texture comparison
+helpers require the clear witness and visible pixels. Live GPU qualification
+of the new capture mode requires a rebuilt runtime.
 
 Startup decoding, movie playback and renderer loading do not consume the
 title's 75-second idle interval. Input, title entry and movie exit reset it.

@@ -1,4 +1,5 @@
 #include "halo2/menu_world_source_binding.hpp"
+#include "halo2/menu_world_vertex_catalog.hpp"
 #include "halo2/source_tag_metadata.hpp"
 #include "halo2/render_view.hpp"
 #include <algorithm>
@@ -98,35 +99,6 @@ void validate_input(const MenuWorldSourceSection &section,const MenuWorldSourceS
      resource.bytes.size()!=std::size_t(section.vertex_count())*stride)
     throw FormatError("unsupported source raw resource/stride/offset binding");
 }
-void reads(const VertexProgram &program,std::array<bool,16> &registers,
-           std::array<bool,192> &constants,bool skinned) {
-  bool address_written=false;
-  for(unsigned i=0;i<program.count;++i) {
-    const auto &t=program.instructions[i];const auto mac=(t[1]>>21)&15,ilu=(t[1]>>25)&7;
-    const auto operand=[&](unsigned which) {
-      const auto mux=which==0?(t[2]>>26)&3:which==1?(t[2]>>11)&3:(t[3]>>28)&3;
-      const auto temporary=which==0?t[2]>>28:which==1?(t[2]>>13)&15:
-          (t[2]&3)*4+(t[3]>>30);
-      if(mux==0)throw FormatError("invalid source raw operand register type");
-      if(mux==1 && temporary>12)
-        throw FormatError("source raw temporary outside register file");
-      if(mux==2)registers[(t[1]>>9)&15]=true;
-      if(mux==3) {
-        const auto index=(t[1]>>13)&255;
-        if(index>=constants.size())throw FormatError("source raw constant read escapes c192");
-        if(t[3]&2) {
-          if(!skinned || !address_written || index<50 || index>52)
-            throw FormatError("source relative read lacks its original address/palette owner");
-          std::fill(constants.begin()+50,constants.begin()+170,true);
-        }else constants[index]=true;
-      }
-    };
-    if(mac)operand(0);
-    if(mac==2 || (mac>=4 && mac<=12))operand(1);
-    if(ilu || mac==3 || mac==4)operand(2);
-    if(mac==13)address_written=true;
-  }
-}
 }
 MenuWorldSourceBinding menu_world_source_binding(const Cache &cache,MenuWorldSourceOwner owner,
     MenuWorldSourceDraw draw,std::uint32_t vertex_shader,const MenuWorldSourceConstants &constants) {
@@ -159,13 +131,15 @@ MenuWorldSourceBinding menu_world_source_binding_class(const Cache &cache,MenuWo
   result.program_bytes_=cache.load_vertex_shader_code(vertex_shader,vertex_class);
   result.program_=decode_vertex_program(result.program_bytes_);
   result.declaration_=cache.load_source_vertex_declaration(vertex_shader,vertex_class);
-  if(result.program_.relative_constants && vertex_class<2)
-    throw FormatError("source raw binding requires an explicit nonrelative program");
   if(result.declaration_.class_index!=vertex_class || result.declaration_.semantics.empty() ||
      result.declaration_.semantics.size()>16)
     throw FormatError("unsupported source raw register declaration");
   std::array<bool,16> consumed{};std::array<bool,192> constant_reads{};
-  reads(result.program_,consumed,constant_reads,vertex_class>=2);
+  const auto& metadata=menu_world_vertex_metadata_lookup(result.program_bytes_,result.declaration_);
+  if(metadata.relative_constants && vertex_class<2)
+    throw FormatError("source raw binding requires an explicit nonrelative program");
+  for(const auto reg:metadata.consumed_inputs)consumed[reg]=true;
+  for(const auto reg:metadata.consumed_constants)constant_reads[reg]=true;
   for(unsigned reg=0;reg<result.declaration_.semantics.size();++reg) {
     const auto semantic=SourceVertexSemantic(result.declaration_.semantics[reg]);
     const auto &streams=result.draw_.geometry->streams();

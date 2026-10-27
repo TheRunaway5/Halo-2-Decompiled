@@ -1,10 +1,13 @@
 #include <cstdlib>
 #include "network/multiplayer_host_continuation_data.hpp"
+#include "halo2/source_admitted_camera.hpp"
 #include "halo2/native_player_profile.hpp"
 #include "halo2/native_request_protocol.hpp"
 #include "halo2/lan_admission.hpp"
 #include "halo2/lan_packet_auth.hpp"
 #include "halo2/source_world_pose_wire.hpp"
+#include "halo2/source_decal_frame_wire_tu15.hpp"
+#include "halo2/source_object_loop_emitter_wire_tu15.hpp"
 #include "halo2/multiplayer_object_runtime.hpp"
 #include "halo2/source_camera.hpp"
 #include "halo2/source_match_authority.hpp"
@@ -12,6 +15,11 @@
 #include "halo2/source_player_departure.hpp"
 #include "halo2/native_grenade_wire.hpp"
 #include "halo2/snapshot_stream.hpp"
+#include "halo2/system_link_state.hpp"
+#include "halo2/online_postgame.hpp"
+#include "halo2/nonhost_motion_adoption.hpp"
+#include "halo2/multiplayer_object_runtime.hpp"
+#include <openssl/rand.h>
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -44,6 +52,7 @@ constexpr unsigned packet_limit = 1400;
 // Species-aware consumers are required even though the complete profile was
 // already carried: older clients render every received participant as Spartan.
 constexpr unsigned protocol_version = native_multiplayer_protocol;
+constexpr unsigned parent_frame_pose_protocol = 117;
 // This is the native port's transport, not the Xbox System Link wire format.
 // Keep every datagram below the existing limit and publish complete snapshots
 // atomically instead of omitting state to fit a single datagram.
@@ -89,11 +98,14 @@ enum Type : unsigned {
   admission_challenge = 8,
   admission_request = 9,
   secure_hello = 10,
+  secure_query = 15,
   // 11-13 are ONLINE common-cut, snapshot-candidate and survivor controls
   // sharing this header; the delta stream uses the next free kind.
+  system_link_publication = 16,
+  system_link_ack = 17,
   snapshot_delta = 14
 };
-constexpr unsigned session_header=31,session_chunk=packet_limit-session_header;
+constexpr unsigned session_header=31,session_chunk=packet_limit-session_header-LanPacketAuth::overhead;
 constexpr unsigned session_limit=65536;
 using Packet = std::vector<std::byte>;
 using Clock = std::chrono::steady_clock;
@@ -196,6 +208,7 @@ std::uint64_t random_id() {
   std::random_device random;
   return (std::uint64_t(random()) << 32) | random();
 }
+std::uint64_t random_cookie(){std::uint64_t value{};while(!value)value=random_id();return value;}
 void put(Packet &p, std::uint64_t n, unsigned bytes) {
   for (unsigned i = 0; i < bytes; ++i)
     p.push_back(std::byte(n >> (8 * i)));
@@ -216,7 +229,8 @@ void put_float(Packet &p, float f) {
 enum class Anchor : std::uint64_t {
   player=1,weapon,vehicle,projectile,prop_removal,prop_region,device,device_event,rumble,grenade,
   detonation,impact,melee,damage_effect,engine_event,weapon_effect,damage_voice,corpse,scene_root,
-  dynamic_object,contrail,source_bound
+  dynamic_object,contrail,source_bound,decal_frame,decal_record,decal_allocation,decal_head,
+  object_loop_emitters,object_loop_emitter,physics_impulse,gameplay_fade,gameplay_fade_frame
 };
 void anchor(const Packet &p,Anchor section,std::uint64_t id=0xffffffffu) {
   if(!body_layout)return;
@@ -297,7 +311,7 @@ std::vector<std::span<const std::byte>> candidate_packets(std::span<const std::b
   if(at!=archive.size())throw FormatError("Trailing candidate packet archive data");
   return result;
 }
-Packet encode_session_variant(const UiVariant &variant) {
+Packet encode_session_variant(const UiVariant &variant,std::string_view map={}) {
   if(variant.name.size()>1024 || variant.values.size()>4096)
     throw FormatError("Native session configuration exceeds its transport bounds");
   Packet out;put(out,variant.name.size(),2);
@@ -306,9 +320,11 @@ Packet encode_session_variant(const UiVariant &variant) {
   for(const auto &[parameter,value]:variant.values) {
     put(out,parameter,4);put(out,std::uint32_t(value),4);
   }
+  if(map.size()>128 || map.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_-")!=std::string::npos)throw FormatError("Invalid native session scenario leaf");
+  put(out,map.size(),1);for(unsigned char c:map)put(out,c,1);
   return out;
 }
-UiVariant decode_session_variant(const Packet &bytes) {
+UiVariant decode_session_variant(const Packet &bytes,std::string* scenario=nullptr) {
   Reader r{bytes};const auto length=r.get(2);
   if(length>1024)throw FormatError("Native session title exceeds its transport bounds");
   UiVariant out;out.name.clear();
@@ -321,7 +337,66 @@ UiVariant decode_session_variant(const Packet &bytes) {
     const auto parameter=unsigned(r.get(4));const auto value=r.integer();
     out.values.append(parameter,value);
   }
-  r.end();return out;
+  const auto map_size=r.get(1);std::string map;for(unsigned i=0;i<map_size;++i)map+=char(r.get(1));
+  if(map.size()>128 || map.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_-")!=std::string::npos)throw FormatError("Invalid native session scenario leaf");
+  if(scenario)*scenario=std::move(map);r.end();return out;
+}
+// Bounded authenticated session publication, independent of gameplay snapshots.
+// A revision is acknowledged only after complete decoding (and, for results,
+// independent comparison with the final native gameplay snapshot).
+constexpr unsigned link_limit=128*1024,link_chunk=snapshot_chunk-5;
+void encode_profile(Packet&,const std::optional<SourcePlayerConfiguration>&);
+std::optional<SourcePlayerConfiguration> decode_profile(Reader&);
+Packet encode_link_state(const SystemLinkState& state) {
+  Packet p;put(p,unsigned(state.phase),1);put(p,state.generation,4);put(p,state.fingerprint,8);
+  put(p,state.active_players,2);put(p,std::uint32_t(state.countdown),4);
+  put(p,unsigned(state.netcode_mode),1);
+  if(state.map.empty() || state.map.size()>128 || state.map.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_-")!=std::string::npos)
+    throw FormatError("Invalid System Link scenario leaf");
+  put(p,state.map.size(),1);for(unsigned char c:state.map)put(p,c,1);
+  const auto variant=encode_session_variant(state.variant);put(p,variant.size(),4);p.insert(p.end(),variant.begin(),variant.end());
+  if(state.roster.size()>16 || state.report.size()>vista_pcr_source_size)throw FormatError("System Link publication exceeds native capacity");
+  put(p,state.roster.size(),1);
+  for(const auto& row:state.roster) {
+    if(row.slot>=16 || row.peer>=16 || row.team < -1 || row.team>7 || row.name.empty() || row.name.size()>255)
+      throw FormatError("Invalid retained System Link participant");
+    put(p,row.slot,1);put(p,row.peer,1);put(p,std::uint8_t(row.team),1);put(p,row.guest,1);
+    for(auto b:row.identity)p.push_back(b);
+    put(p,row.name.size(),1);for(unsigned char c:row.name)put(p,c,1);
+    encode_profile(p,state.profiles[row.slot]);
+  }
+  put(p,state.report.size(),4);p.insert(p.end(),state.report.begin(),state.report.end());
+  if(p.size()>link_limit)throw FormatError("System Link publication is too large");
+  return p;
+}
+SystemLinkState decode_link_state(const Packet& p,std::uint32_t revision) {
+  Reader r{p};SystemLinkState out;out.revision=revision;
+  const auto phase=r.get(1);if(phase>unsigned(SystemLinkPhase::starting))throw FormatError("Invalid System Link phase");
+  out.phase=SystemLinkPhase(phase);out.generation=r.get(4);out.fingerprint=r.get(8);out.active_players=r.get(2);out.countdown=r.integer();if(out.countdown < -1 || out.countdown>10)throw FormatError("Invalid native lobby countdown");
+  const auto mode=netcode_mode_from_wire(unsigned(r.get(1)));if(!mode)throw FormatError("Invalid System Link netcode mode");
+  out.netcode_mode=*mode;
+  const auto length=r.get(1);for(unsigned i=0;i<length;++i)out.map+=char(r.get(1));
+  const auto size=r.get(4);if(size>session_limit || size>p.size()-r.at)throw FormatError("Invalid System Link variant extent");
+  Packet variant(p.begin()+r.at,p.begin()+r.at+size);r.at+=size;out.variant=decode_session_variant(variant);
+  const auto count=r.get(1);if(count>16)throw FormatError("Invalid System Link roster extent");
+  unsigned mask{};std::set<std::array<std::byte,8>> identities;
+  for(unsigned i=0;i<count;++i) {
+    OnlineAdmission row;row.slot=r.get(1);row.peer=r.get(1);row.team=std::bit_cast<std::int8_t>(std::uint8_t(r.get(1)));
+    const auto guest=r.get(1);if(guest>1)throw FormatError("Invalid System Link guest flag");row.guest=guest;
+    for(auto& b:row.identity)b=std::byte(r.get(1));
+    const auto name_size=r.get(1);for(unsigned n=0;n<name_size;++n)row.name+=char(r.get(1));
+    if(row.slot>=16 || (mask&(1u<<row.slot)) || !identities.insert(row.identity).second ||
+        std::ranges::all_of(row.identity,[](auto b){return b==std::byte{};}))throw FormatError("Repeated System Link participant identity");
+    out.profiles[row.slot]=decode_profile(r);
+    if(!out.profiles[row.slot] || native_player_configuration_name(*out.profiles[row.slot])!=row.name)throw FormatError("System Link profile differs from actual admission");
+    mask|=1u<<row.slot;out.roster.push_back(std::move(row));
+  }
+  const auto report_size=r.get(4);if(report_size>vista_pcr_source_size || report_size>p.size()-r.at)throw FormatError("Invalid System Link report extent");
+  out.report.assign(p.begin()+r.at,p.begin()+r.at+report_size);r.at+=report_size;r.end();
+  if(!out.generation || out.active_players&~mask ||
+      ((out.phase==SystemLinkPhase::reviewing || out.phase==SystemLinkPhase::postgame) && report_size!=vista_pcr_source_size))
+    throw FormatError("Incomplete System Link publication");
+  (void)encode_link_state(out);return out;
 }
 LanAdmission::Endpoint admission_endpoint(const sockaddr_in &from){
   LanAdmission::Endpoint result;std::memcpy(result.data(),&from.sin_addr.s_addr,4);
@@ -332,22 +407,38 @@ Packet admission_envelope(const Packet &request,const LanAdmission::Cookie &cook
   for(auto b:cookie)put(packet,b,1);
   packet.insert(packet.end(),request.begin(),request.end());return packet;
 }
-LanSessionDescription query_session(Udp &udp,sockaddr_in host,std::chrono::milliseconds timeout) {
+LanPacketAuth::Context lan_handshake_context(std::uint64_t nonce,std::uint64_t fingerprint,
+    std::span<const unsigned char,6> destination) {
+  LanPacketAuth::Context result{};
+  for(unsigned i=0;i<2;++i)result[i]=protocol_version>>(8*i);
+  for(unsigned i=0;i<8;++i){result[2+i]=nonce>>(8*i);result[10+i]=fingerprint>>(8*i);}
+  std::copy(destination.begin(),destination.end(),result.begin()+18);return result;
+}
+LanSessionDescription query_session(Udp &udp,sockaddr_in host,std::chrono::milliseconds timeout,const LanPacketAuth::Key *expected=nullptr) {
   if(timeout<=std::chrono::milliseconds::zero() || timeout>std::chrono::seconds(30))
     throw FormatError("Invalid native session query timeout");
   const auto nonce=random_id();const auto deadline=Clock::now()+timeout;
   auto next=Clock::now();std::uint64_t fingerprint{};unsigned total{},count{},received{};
   std::vector<Packet> fragments;std::vector<bool> present;
   LanAdmission::Cookie admission{};
+  LanPacketAuth authentication;LanPacketAuth::Session session;
+  const auto destination=admission_endpoint(host);
+  if(!udp.relay){if(!expected)throw FormatError("Raw session query requires the independently exchanged host key");
+    authentication.bind(session,*expected,false,lan_handshake_context(nonce,0,destination));}
   while(Clock::now()<deadline) {
     if(Clock::now()>=next) {
       auto request=header(session_query);put(request,nonce,8);
+      if(!udp.relay){auto secured=header(secure_query);put(secured,nonce,8);put(secured,0,8);
+        for(auto b:destination)put(secured,b,1);for(auto b:authentication.public_key())put(secured,b,1);
+        secured.insert(secured.end(),request.begin(),request.end());request=std::move(secured);}
       udp.send(udp.relay?request:admission_envelope(request,admission),host);
       next=Clock::now()+std::chrono::milliseconds(250);
     }
     Packet p;sockaddr_in from{};
     for(unsigned packets=0;packets<256 && udp.receive(p,from);++packets) {
       if(!same(from,host))continue;
+      bool authenticated=udp.relay!=nullptr;
+      if(!udp.relay&&LanPacketAuth::packet(p)){if(!authentication.open(p,session,true))continue;authenticated=true;}
       Reader r{p};Type type;
       try{type=r.type();if(r.get(8)!=nonce)continue;}catch(const FormatError &){continue;}
       if(type==admission_challenge&&!udp.relay){
@@ -355,6 +446,7 @@ LanSessionDescription query_session(Udp &udp,sockaddr_in host,std::chrono::milli
         for(auto &b:admission)b=r.get(1);
         next=Clock::now();continue;
       }
+      if(!authenticated)continue;
       if(type==reject) {
         std::string reason;while(r.at<p.size())reason.push_back(char(r.get(1)));
         throw FormatError("Native session query rejected: "+reason);
@@ -376,7 +468,7 @@ LanSessionDescription query_session(Udp &udp,sockaddr_in host,std::chrono::milli
       if(received==count) {
         Packet body;body.reserve(total);
         for(const auto &fragment:fragments)body.insert(body.end(),fragment.begin(),fragment.end());
-        return {fingerprint,decode_session_variant(body)};
+        LanSessionDescription description;description.fingerprint=fingerprint;description.variant=decode_session_variant(body,&description.map);return description;
       }
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(2));
@@ -411,20 +503,51 @@ VehicleIntent native_vehicle_intent(const std::optional<NativeVehicleIntent> &va
   return target;
 }
 struct WireControl {Controls control;PressSerials presses{};InteractionDurations completed{};VehicleIntent completed_vehicle;};
+std::uint16_t control_flags(const Controls &c) {
+  return std::uint16_t(c.jump | (c.crouch << 1) | (c.fire << 2) | (c.reload << 3) | (c.grenade << 4) | (c.pickup << 5) |
+      (c.dual_wield << 6) | (c.switch_weapon << 7) | (c.fire_secondary << 8) | (c.melee << 9) | (c.switch_grenade << 10));
+}
 void encode_control(Packet &p, const Controls &c,const PressSerials &presses,
     const InteractionDurations &completed,const VehicleIntent &completed_vehicle) {
   put_float(p, c.forward);
   put_float(p, c.right);
   put_float(p, c.yaw);
   put_float(p, c.pitch);
-  put(p, c.jump | (c.crouch << 1) | (c.fire << 2) | (c.reload << 3) | (c.grenade << 4) | (c.pickup << 5) | (c.dual_wield << 6) |
-      (c.switch_weapon << 7) | (c.fire_secondary << 8) | (c.melee << 9) | (c.switch_grenade << 10), 2);
+  put(p, control_flags(c), 2);
   put(p,std::uint16_t(c.zoom),2);put(p,c.zoom_reset_serial,4);
   put(p,c.pickup_milliseconds,2);put(p,c.dual_wield_milliseconds,2);
   for(auto duration:completed)put(p,duration,2);
   for(auto serial:presses)put(p,serial,4);
   encode_vehicle_intent(p,c.vehicle_interaction_target);
   encode_vehicle_intent(p,completed_vehicle);
+}
+// Protocol 113 motion block: flags (bit0 present, bit1 grounded, bit2
+// crouching), then age, 3 x i24 position and 3 x i16 velocity; absent is 0.
+void encode_motion(Packet &p,const std::optional<NativeMotionReport> &m) {
+  if(!m){put(p,0,1);return;}
+  put(p,1u|(m->grounded?2u:0u)|(m->crouching?4u:0u),1);put(p,m->baseline_age,1);
+  for(const auto value:m->position) {
+    if(value<-native_motion_position_limit-1||value>native_motion_position_limit)
+      throw FormatError("Motion position exceeds its 24-bit wire range");
+    put(p,std::uint32_t(value)&0xffffffu,3);
+  }
+  for(const auto value:m->velocity)put(p,std::uint16_t(value),2);
+}
+bool same_real(float a,float b){return std::bit_cast<std::uint32_t>(a)==std::bit_cast<std::uint32_t>(b);}
+// Item 5 repeat of one view: changed held fields relative to the next newer
+// input (mask forward, right, yaw, pitch, flags, zoom). Motion travels only
+// with the newest input.
+void encode_repeat(Packet &p,const NativeRedundantControl &older,const NativeRedundantControl &newer) {
+  const unsigned mask=(!same_real(older.forward,newer.forward)?1u:0u)|(!same_real(older.right,newer.right)?2u:0u)|
+      (!same_real(older.yaw,newer.yaw)?4u:0u)|(!same_real(older.pitch,newer.pitch)?8u:0u)|
+      (older.flags!=newer.flags?16u:0u)|(older.zoom!=newer.zoom?32u:0u);
+  put(p,mask,1);
+  if(mask&1)put_float(p,older.forward);
+  if(mask&2)put_float(p,older.right);
+  if(mask&4)put_float(p,older.yaw);
+  if(mask&8)put_float(p,older.pitch);
+  if(mask&16)put(p,older.flags,2);
+  if(mask&32)put(p,std::uint16_t(older.zoom),2);
 }
 // Typed field adaptation only: the complete untrusted request was decoded in
 // Rust. Native object legality and accepted sequence/seat ownership stay below.
@@ -614,7 +737,8 @@ EngineSnapshotOwner engine_snapshot_owner(const MultiplayerState& s) {
   return EngineSnapshotOwner::bounded;
 }
 void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned> local_ids,
-    SnapshotBodyLayout *layout=nullptr) {
+    SnapshotBodyLayout *layout=nullptr,unsigned stream_version=protocol_version) {
+  if(stream_version<110 || stream_version>117)throw FormatError("Unsupported native snapshot body version");
   struct LayoutScope {SnapshotBodyLayout *previous;~LayoutScope(){body_layout=previous;}} scope{body_layout};
   body_layout=layout;
   put(p, s.tick, 4);
@@ -656,6 +780,14 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
   put(p, std::uint32_t(s.score_limit), 4);
   if(s.round_mode<0 || s.round_mode>6)throw FormatError("Invalid native round selector");
   put(p,std::uint32_t(s.round_mode),4);
+  if(stream_version>=111) {
+    if(!s.source_round_lifecycle_available || s.round_phase<0 || s.round_phase>3 || s.round_index<0 || s.round_index>31)
+      throw FormatError("Native snapshot lacks its actual source round lifecycle");
+    put(p,std::uint16_t(s.round_phase),2);put(p,std::uint16_t(s.round_index),2);
+    put(p,std::uint32_t(s.round_countdown),4);
+  }
+  // 113: host-selected netcode mode, so non-hosts agree on its rules.
+  if(stream_version>=113)put(p,unsigned(s.netcode_mode),1);
   put(p,std::uint32_t(s.life_limit),4);
   put(p, s.time_ticks, 4);
   put(p, std::uint16_t(s.clock_seconds), 2);
@@ -700,6 +832,24 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     if(u.wins < -30000 || u.wins > 30000)throw FormatError("Native player wins outside original clamp");
     put(p,std::uint16_t(u.total_score),2);put(p,std::uint16_t(u.wins),2);
     put(p,std::uint32_t(u.source_respawn_countdown),4);
+    put(p,std::uint32_t(u.source_respawn_seconds),4);
+    put(p,u.source_status.has_value(),1);
+    if(u.source_status) {
+      put(p,std::uint32_t(u.source_status->status),4);
+      put(p,std::uint16_t(u.source_status->lifecycle),2);
+      put(p,u.source_status->special_mode,1);
+      put(p,u.source_status->options_state,1);
+      put(p,std::uint32_t(u.source_status->engine_status),4);
+      put(p,u.source_status->scoreboard_gate.has_value(),1);
+      if(u.source_status->scoreboard_gate) {
+        const auto &gate=*u.source_status->scoreboard_gate;
+        put(p,std::uint32_t(gate.tick),4);put(p,std::uint32_t(gate.respawn_seconds),4);
+        put(p,std::uint32_t(gate.life_limit),4);put(p,gate.current_unit,4);
+        put(p,gate.player_flags,2);put(p,std::uint16_t(gate.lives_remaining),2);
+        put(p,std::uint16_t(gate.lifecycle),2);put(p,gate.options_state,1);
+        put(p,std::uint32_t(gate.engine_status),4);put(p,gate.death_observer_excluded,1);
+      }
+    }
     put(p,std::uint16_t(u.source_lives_remaining),2);
     put(p,std::uint16_t(u.source_king_inside_ticks),2);
     const auto &objectives=u.source_hud_objectives;
@@ -800,6 +950,23 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     const auto &effect=u.weapon_effect;
     for(auto word:{effect.serial,effect.tick,effect.unit,effect.weapon,effect.effect,effect.a_bits,effect.b_bits})
       put(p,word,4);
+    if(stream_version>=115) {
+      const auto slot=unsigned(&u-s.players.data());
+      const bool assigned=std::find(local_ids.begin(),local_ids.end(),slot)!=local_ids.end();
+      const bool present=assigned && u.first_person_pose.has_value();put(p,present,1);
+      if(present) {
+        const auto &pose=*u.first_person_pose;auto expected=pose.temporal.identity;
+        expected.player=u.source_player;expected.unit=u.source_unit;
+        expected.representation=source_session_player_representation(u.source_configuration,s.source_game_type);
+        expected.weapons={u.source_weapon,u.secondary_weapon.datum};
+        expected.weapon_definitions={u.source_weapon==null_datum?null_datum:u.weapon,u.secondary_weapon.definition};
+        if(!u.connected || u.dead || u.source_unit==null_datum || pose.temporal.source_tick+1u!=s.tick)
+          throw FormatError("Native LAN first-person packet has no completed recipient phase");
+        const auto bytes=source_encode_first_person_packet_tu15(pose,expected);
+        put(p,bytes.size(),2);p.insert(p.end(),bytes.begin(),bytes.end());
+      }
+    }
+    if(stream_version>=116)put(p,u.native_physical_state,1);
   }
   // Validate the assignment independently of the complete roster identities.
   for(auto id:local_ids) {
@@ -1109,7 +1276,8 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     anchor(p,Anchor::source_bound,pose.object);put(p,pose.object,4);
     for(float f:{pose.sphere.center.x,pose.sphere.center.y,pose.sphere.center.z,pose.sphere.radius})put_float(p,f);
   }
-  const auto poses=encode_source_world_poses(s.source_body_poses_authoritative,s.source_body_poses,body_pose_owners(s));
+  const auto poses=encode_source_world_poses(s.source_body_poses_authoritative,s.source_body_poses,body_pose_owners(s),
+      stream_version>=parent_frame_pose_protocol?SourceWorldPoseWireFormat::parent_frame:SourceWorldPoseWireFormat::legacy);
   const auto pose_begin=p.size();
   p.insert(p.end(),poses.begin(),poses.end());
   if(layout)layout->poses=std::pair{pose_begin,p.size()};
@@ -1120,8 +1288,66 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     put(p,slice.address,4);put(p,slice.bytes.size(),4);
     p.insert(p.end(),slice.bytes.begin(),slice.bytes.end());
   }
+  struct DecalWriter {
+    Packet& bytes;
+    void word(std::uint64_t value,unsigned width){put(bytes,value,width);}
+    void real(float value){put_float(bytes,value);}
+    void anchor(SourceDecalWireAnchorTu15 kind,std::uint32_t id) {
+      halo2::anchor(bytes,Anchor(std::uint64_t(Anchor::decal_frame)+unsigned(kind)),id);
+    }
+  } decals{p};
+  encode_source_decal_frame_wire_tu15(decals,s.source_decals);
+  if(stream_version>=112) {
+    struct EmitterWriter {
+      Packet &bytes;
+      void word(std::uint64_t value,unsigned width){put(bytes,value,width);}
+      void real(float value){put_float(bytes,value);}
+      void anchor(SourceObjectLoopEmitterWireAnchorTu15 kind,std::uint32_t id) {
+        halo2::anchor(bytes,Anchor(std::uint64_t(Anchor::object_loop_emitters)+unsigned(kind)),id);
+      }
+    } emitters{p};
+    encode_source_object_loop_emitters_wire_tu15(emitters,s.source_object_loop_emitters);
+  }
+  if(stream_version>=113) {
+    // Presentation impulses: the newest serial, then 32 fixed slots by
+    // serial mod 32. An empty slot is one zero byte; an occupied one holds
+    // 1, the tick, the object and the published 4-byte linear and angular
+    // root velocities.
+    validate_physics_impulse_journal(s.physics_impulses,s.tick);
+    anchor(p,Anchor::physics_impulse);
+    put(p,s.physics_impulses.empty()?0u:s.physics_impulses.back().serial,4);
+    std::array<const PhysicsImpulseEvent*,physics_impulse_journal_capacity> slots{};
+    for(const auto &e:s.physics_impulses)slots[e.serial%physics_impulse_journal_capacity]=&e;
+    for(unsigned slot=0;slot<slots.size();++slot) {
+      anchor(p,Anchor::physics_impulse,slot);
+      const auto *e=slots[slot];
+      if(!e){put(p,0,1);continue;}
+      put(p,1,1);put(p,e->tick,4);put(p,e->object,4);
+      for(const auto v:{e->linear_velocity,e->angular_velocity})
+        for(const auto b:physics_impulse_vector_bits(v))put(p,b,1);
+    }
+  }
+  if(stream_version>=114) {
+    anchor(p,Anchor::gameplay_fade);put(p,s.source_gameplay_fade.has_value(),1);
+    if(s.source_gameplay_fade) {
+      const auto bytes=encode_source_gameplay_fade_journal_tu15(*s.source_gameplay_fade);
+      put(p,bytes.size(),4);
+      // Fixed ring-slot anchors keep a new source frame from resending the
+      // entire retained history through the ordinary acknowledged delta path.
+      const auto header=source_gameplay_fade_journal_header_wire_tu15;
+      if(bytes.size()!=header+s.source_gameplay_fade->slots.size()*source_gameplay_fade_frame_wire_tu15)
+        throw FormatError("Original gameplay fade wire extent changed");
+      p.insert(p.end(),bytes.begin(),bytes.begin()+header);
+      for(unsigned slot=0;slot<s.source_gameplay_fade->slots.size();++slot) {
+        anchor(p,Anchor::gameplay_fade_frame,slot);
+        const auto begin=bytes.begin()+header+slot*source_gameplay_fade_frame_wire_tu15;
+        p.insert(p.end(),begin,begin+source_gameplay_fade_frame_wire_tu15);
+      }
+    }
+  }
 }
-MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
+MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids,unsigned stream_version=protocol_version) {
+  if(stream_version<110 || stream_version>117)throw FormatError("Unsupported native snapshot body version");
   MultiplayerState s;
   s.tick = r.get(4);
   s.source_game_type=int(r.get(1));
@@ -1173,6 +1399,20 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
   s.score_limit = r.integer();
   s.round_mode=r.integer();
   if(s.round_mode<0 || s.round_mode>6)throw FormatError("Invalid native round selector");
+  // Keep110's exact layout; its unavailable lifecycle is never mistaken for
+  // the real phase0/index0/countdown0 required in a111 source publication.
+  if(stream_version>=111) {
+    s.round_phase=std::bit_cast<std::int16_t>(std::uint16_t(r.get(2)));
+    s.round_index=std::bit_cast<std::int16_t>(std::uint16_t(r.get(2)));
+    s.round_countdown=r.integer();s.source_round_lifecycle_available=true;
+    if(s.round_phase<0 || s.round_phase>3 || s.round_index<0 || s.round_index>31)
+      throw FormatError("Invalid native LAN source round lifecycle");
+  }
+  if(stream_version>=113) {
+    const auto mode=netcode_mode_from_wire(unsigned(r.get(1)));
+    if(!mode)throw FormatError("Invalid native snapshot netcode mode");
+    s.netcode_mode=*mode;
+  }
   s.life_limit=r.integer();
   s.time_ticks = r.get(4);
   s.clock_seconds = std::bit_cast<std::int16_t>(std::uint16_t(r.get(2)));
@@ -1244,6 +1484,32 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     u.assists = statistic(); u.suicides = statistic();
     u.total_score=std::bit_cast<std::int16_t>(std::uint16_t(r.get(2)));
     u.wins=std::int16_t(statistic());u.source_respawn_countdown=r.integer();
+    u.source_respawn_seconds=r.integer();
+    const auto status_present=r.get(1);
+    if(status_present>1)throw FormatError("Invalid native player status presence");
+    if(status_present) {
+      SourcePlayerStatusStateTu15 status;
+      status.status=r.integer();
+      status.lifecycle=std::bit_cast<std::int16_t>(std::uint16_t(r.get(2)));
+      const auto special=r.get(1);
+      if(special>1)throw FormatError("Invalid native player status mode");
+      status.special_mode=bool(special);
+      status.options_state=std::uint8_t(r.get(1));status.engine_status=r.integer();
+      const auto gate_present=r.get(1);
+      if(gate_present>1)throw FormatError("Invalid native scoreboard gate presence");
+      if(gate_present) {
+        SourcePlayerScoreboardGateTu15 gate;
+        gate.tick=r.integer();gate.respawn_seconds=r.integer();gate.life_limit=r.integer();
+        gate.current_unit=r.get(4);gate.player_flags=std::uint16_t(r.get(2));
+        gate.lives_remaining=std::bit_cast<std::int16_t>(std::uint16_t(r.get(2)));
+        gate.lifecycle=std::bit_cast<std::int16_t>(std::uint16_t(r.get(2)));
+        gate.options_state=std::uint8_t(r.get(1));gate.engine_status=r.integer();
+        const auto excluded=r.get(1);
+        if(excluded>1)throw FormatError("Invalid native scoreboard observer exclusion");
+        gate.death_observer_excluded=bool(excluded);status.scoreboard_gate=gate;
+      }
+      u.source_status=status;
+    }
     u.source_lives_remaining=std::bit_cast<std::int16_t>(std::uint16_t(r.get(2)));
     u.source_king_inside_ticks=std::bit_cast<std::int16_t>(std::uint16_t(r.get(2)));
     auto &objectives=u.source_hud_objectives;
@@ -1394,6 +1660,26 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     auto &effect=u.weapon_effect;
     effect.serial=r.get(4);effect.tick=r.get(4);effect.unit=r.get(4);effect.weapon=r.get(4);
     effect.effect=r.get(4);effect.a_bits=r.get(4);effect.b_bits=r.get(4);
+    if(stream_version>=115) {
+      const auto present=r.get(1);const auto slot=unsigned(&u-s.players.data());
+      if(present>1 || (present && std::find(local_ids.begin(),local_ids.end(),slot)==local_ids.end()))
+        throw FormatError("Native LAN first-person packet is not recipient-local");
+      if(present) {
+        const auto bytes=r.get(2);
+        if(!bytes || bytes>32768 || bytes>r.p.size()-r.at)throw FormatError("Native LAN first-person packet extent is invalid");
+        auto decoded=source_decode_first_person_packet_tu15(std::span(r.p).subspan(r.at,bytes));
+        if(decoded.consumed!=bytes)throw FormatError("Trailing native LAN first-person packet bytes");r.at+=bytes;
+        auto &pose=decoded.packet;auto expected=pose.temporal.identity;
+        expected.player=u.source_player;expected.unit=u.source_unit;
+        expected.representation=source_session_player_representation(u.source_configuration,s.source_game_type);
+        expected.weapons={u.source_weapon,u.secondary_weapon.datum};expected.weapon_definitions={u.source_weapon==null_datum?null_datum:u.weapon,u.secondary_weapon.definition};
+        source_validate_first_person_packet_tu15(pose,expected);
+        if(!u.connected || u.dead || u.source_unit==null_datum || pose.temporal.source_tick+1u!=s.tick)
+          throw FormatError("Native LAN first-person packet has no completed recipient phase");
+        u.first_person_pose=std::move(pose);
+      }
+    }
+    if(stream_version>=116)u.native_physical_state=r.get(1);
     if(effect.serial && (effect.tick>s.tick || effect.unit==null_datum || effect.weapon==null_datum || effect.effect==null_datum))
       throw FormatError("Invalid native LAN weapon effect owner");
     if(u.source_hud_zoom_mask&~std::uint16_t(0x5c0))
@@ -1785,7 +2071,8 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
       throw FormatError("Invalid completed source coverage bound");
     bounds.emplace_back(object,sphere);
   }
-  auto poses=decode_source_world_poses(std::span(r.p).subspan(r.at),body_pose_owners(s));
+  auto poses=decode_source_world_poses(std::span(r.p).subspan(r.at),body_pose_owners(s),
+      stream_version>=parent_frame_pose_protocol?SourceWorldPoseWireFormat::parent_frame:SourceWorldPoseWireFormat::legacy);
   r.at+=poses.consumed;s.source_body_poses_authoritative=poses.authoritative;
   if(bounds.size()!=poses.poses.size())throw FormatError("Source coverage and WORLD bank extents differ");
   for(unsigned n=0;n<bounds.size();++n) {
@@ -1806,9 +2093,61 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     s.source_contrails.slices.push_back(std::move(slice));
   }
   validate_source_contrail_snapshot(s.source_contrails);
+  struct DecalReader {
+    Reader& bytes;
+    std::uint64_t word(unsigned width){return bytes.get(width);}
+    float real(){return bytes.real();}
+    std::size_t remaining()const{return bytes.p.size()-bytes.at;}
+  } decals{r};
+  s.source_decals=decode_source_decal_frame_wire_tu15(decals);
+  if(stream_version>=112)s.source_object_loop_emitters=decode_source_object_loop_emitters_wire_tu15(decals);
+  if(stream_version>=113) {
+    const auto newest=std::uint32_t(r.get(4));
+    for(unsigned slot=0;slot<physics_impulse_journal_capacity;++slot) {
+      const auto flag=unsigned(r.get(1));
+      if(!flag)continue;
+      if(flag!=1)throw FormatError("Invalid physics impulse slot");
+      PhysicsImpulseEvent e;
+      e.serial=newest-((newest-slot)%physics_impulse_journal_capacity);
+      e.tick=std::uint32_t(r.get(4));e.object=std::uint32_t(r.get(4));
+      for(auto *v:{&e.linear_velocity,&e.angular_velocity}) {
+        std::array<std::uint8_t,4> bits{};
+        for(auto &b:bits)b=std::uint8_t(r.get(1));
+        *v=physics_impulse_vector_value(bits);
+      }
+      s.physics_impulses.push_back(e);
+    }
+    std::sort(s.physics_impulses.begin(),s.physics_impulses.end(),[&](const auto &a,const auto &b){
+      return newest-a.serial>newest-b.serial;});
+    validate_physics_impulse_journal(s.physics_impulses,s.tick);
+    if(s.physics_impulses.empty()?newest!=0:s.physics_impulses.back().serial!=newest)
+      throw FormatError("Physics impulse journal lost its newest serial");
+  }
+  if(stream_version>=114) {
+    const auto present=r.get(1);if(present>1)throw FormatError("Noncanonical original gameplay fade presence");
+    if(present) {
+      const auto size=r.get(4);if(size>256u*1024u)throw FormatError("Original gameplay fade exceeds its bounded history extent");
+      std::vector<std::byte> bytes;bytes.reserve(size);for(unsigned i=0;i<size;++i)bytes.push_back(std::byte(r.get(1)));
+      s.source_gameplay_fade=decode_source_gameplay_fade_journal_tu15(bytes);
+    }
+  }
   return s;
 }
+struct RawLanAddress { std::string endpoint; LanPacketAuth::Key host_key; };
+RawLanAddress authenticated_lan_address(const std::string &address) {
+  const auto marker=address.find('#');
+  if(marker==std::string::npos || address.size()-marker-1!=64)
+    throw FormatError("Raw LAN join requires ADDRESS:PORT#HOST_KEY; exchange the host's full key outside the LAN datagram path");
+  RawLanAddress result{address.substr(0,marker),{}};
+  const auto digit=[](char c)->unsigned {
+    if(c>='0'&&c<='9')return c-'0';if(c>='a'&&c<='f')return c-'a'+10;if(c>='A'&&c<='F')return c-'A'+10;
+    throw FormatError("Invalid raw LAN host key; expected 64 hexadecimal digits");
+  };
+  for(unsigned i=0;i<32;++i)result.host_key[i]=digit(address[marker+1+i*2])*16+digit(address[marker+2+i*2]);
+  return result;
+}
 sockaddr_in resolve(std::string address) {
+  if(const auto marker=address.find('#');marker!=std::string::npos)address.resize(marker);
   const auto colon = address.rfind(':');
   std::string port = "2002";
   if (colon != std::string::npos) {
@@ -1838,7 +2177,8 @@ sockaddr_in resolve(std::string address) {
 }
 } // namespace
 LanSessionDescription query_lan_session(const std::string &address,std::chrono::milliseconds timeout) {
-  Udp udp(0);return query_session(udp,resolve(address),timeout);
+  const auto selected=authenticated_lan_address(address);
+  Udp udp(0);return query_session(udp,resolve(selected.endpoint),timeout,&selected.host_key);
 }
 LanSessionDescription query_lan_session(std::shared_ptr<MultiplayerDatagrams> transport,
     unsigned host,std::chrono::milliseconds timeout) {
@@ -1890,6 +2230,7 @@ std::uint64_t multiplayer_fingerprint(const std::filesystem::path &map,
   text(mcc?"Halo2NativeMultiplayer-mcc-native-tu15-data-v1":"Halo2NativeMultiplayer-data-v1");
   integer(bsp);
   integer(starting_weapon);
+  integer(native_multiplayer_wire_schema());
   file("active-map", map);
   for (const auto name : {"mainmenu.map", "shared.map", "single_player_shared.map"}) {
     if(mcc && !mcc_cache(shared_maps/name))
@@ -1931,6 +2272,10 @@ struct LanHost::Impl {
     std::optional<MultiplayerSnapshotStamp> last_snapshot;
     Clock::time_point last_response{};
     bool seen{};
+    std::uint32_t link_ack{};
+    unsigned link_fragment{};
+    Clock::time_point link_sent{};
+    bool awaiting_world{};
     Clock::time_point last = Clock::now();
     std::optional<Clock::time_point> last_accepted_input;
     std::uint64_t input_acceptances{};
@@ -1950,14 +2295,91 @@ struct LanHost::Impl {
     std::array<std::optional<NativeDeathCameraView>,4> vehicle_views;
     std::array<std::optional<NativeDeathCameraView>,4> death_views;
     std::array<std::uint32_t,4> camera_jump_serial{};
+    std::optional<NetcodeViewTime> view; // Displayed snapshot time of the consumed input.
+    // Item 5: accepted inputs not consumed yet (ascending sequence), filled by
+    // every packet's newest input and its repeats; one is consumed per tick.
+    struct QueuedInput {
+      std::uint32_t sequence{};
+      std::array<Controls,4> controls{};
+      std::array<std::optional<NativeMotionReport>,4> motion{};
+      std::optional<NetcodeViewTime> view;
+      // Pulse serials and completions delivered with this input, so pulses
+      // (jump, fire, grenade...) stay aligned with the held input they came
+      // with. A repeat carries its packet's newest values.
+      std::array<PressSerials,4> presses{};
+      std::array<InteractionDurations,4> completed{};
+      std::array<VehicleIntent,4> completed_vehicle{};
+    };
+    std::array<PressSerials,4> latest_presses{}; // newest accepted packet's serials
+    std::deque<QueuedInput> pending;
+    bool consumed_known{};
+    std::uint32_t consumed{};
+    // Motion report of the input consumed this tick (adopted after the step)
+    // and host ticks since each view's previous report.
+    std::array<std::optional<NativeMotionReport>,4> consumed_motion{};
+    std::array<unsigned,4> report_steps{};
+    std::uint64_t consumed_inputs{},skipped_inputs{},repeated_ticks{};
     std::unique_ptr<SnapshotStreamSender> stream=std::make_unique<SnapshotStreamSender>(delta_chunk,delta_overhead);
     SnapshotStreamSender::Stats reported{};
   };
-  MultiplayerMatch &match;
+  MultiplayerMatch *world_match;
+  std::shared_ptr<SourceAdmittedCameraBank> admitted_cameras;
+  MultiplayerMatch& match() const {
+    if(!world_match)throw FormatError("Retired System Link world cannot be accessed");
+    return *world_match;
+  }
+  // Host adoption of non-host motion (NETCODE_ENHANCED_GOAL item 1): after
+  // the step that consumed each peer's input and before the snapshot, record
+  // forced moves and adopt the consumed motion reports through the native
+  // TU1.5 setters. Only a TU1.5 world that owns physics adopts.
+  std::unique_ptr<NonHostMotionAdopter> adopter;
+  MultiplayerMatch *adopter_match{};
+  std::uint64_t adoption_written{},adoption_rejected{};
+  void adopt_motion() {
+    if(!world_match)return;
+    auto *runtime=match().source_object_runtime();
+    if(!runtime || !runtime->owns_physics() || peers.empty())return;
+    if(!adopter || adopter_match!=world_match) {
+      const auto &content=match().level_content();
+      const auto original=match().original_data();
+      const auto deadzone=original?original->unit_locomotion_deadzone_bits:std::nullopt;
+      // Bounds: the larger of the two multiplayer representations' operands.
+      auto bounds=nonhost_predictor_definition(content.movement,multiplayer_biped(content,2),deadzone);
+      const auto &elite=multiplayer_biped(content,3);
+      bounds.jump_velocity=std::max(bounds.jump_velocity,elite.jump_velocity);
+      const float radius=std::max(multiplayer_biped(content,2).radius,elite.radius);
+      adopter=std::make_unique<NonHostMotionAdopter>(bounds,radius,nonhost_adoption_limits(match().netcode_mode()),
+          native_tu15_motion_writer(*runtime));
+      adopter_match=world_match;
+    }
+    const NonHostMotionAdopter::MotionReader read=[runtime](std::uint32_t unit)->std::optional<MultiplayerSourceMotion> {
+      if(unit==null_datum)return std::nullopt;
+      return runtime->biped_motion(unit);
+    };
+    std::vector<NonHostMotionAdopter::Observed> observed;
+    for(const auto &peer:peers)if(peer.consumed_known)for(const auto slot:peer.ids) {
+      const auto &player=match().player(slot);
+      observed.push_back({{slot,peer.consumed},player.source_current_object,player.source_teleport_serial});
+    }
+    adopter->observe(observed,match().simulation().unit_damage_effects(),match().physics_impulse_journal(),read);
+    const auto &collision=match().simulation().collision();
+    for(auto &peer:peers)for(unsigned view=0;view<peer.ids.size();++view) {
+      auto &report=peer.consumed_motion[view];
+      if(!report)continue;
+      const auto slot=peer.ids[view];
+      const auto unit=match().player(slot).source_current_object;
+      const auto result=adopter->adopt(read,unit,match().unit(slot).vitality.dead,collision,slot,
+          dequantize_nonhost_motion(*report,peer.consumed),peer.report_steps[view]);
+      adoption_written+=result.written;adoption_rejected+=result.decision.kind==NonHostAdoptionKind::reject;
+      peer.report_steps[view]=0;report.reset();
+    }
+  }
   Udp udp;
   std::vector<OnlineAdmission> admissions;
   std::uint64_t fingerprint;
   Packet session_configuration;
+  std::optional<SystemLinkState> link;
+  Packet link_body;
   std::vector<Peer> peers;
   const std::thread::id liveness_executor=std::this_thread::get_id();
   bool continuation_liveness_pending{};
@@ -1974,7 +2396,7 @@ struct LanHost::Impl {
   LanAdmission admission;
   LanPacketAuth authentication;
   std::jthread configuration_service;
-  bool admit(Packet &packet,const sockaddr_in &from,LanPacketAuth::Key *hello_key=nullptr){
+  bool admit(Packet &packet,const sockaddr_in &from,LanPacketAuth::Key *hello_key=nullptr,LanPacketAuth::Context *hello_context=nullptr){
     if(udp.relay)return true;
     if(LanPacketAuth::packet(packet)){
       auto peer=std::find_if(peers.begin(),peers.end(),[&](const auto &p){return same(p.address,from);});
@@ -1984,7 +2406,7 @@ struct LanHost::Impl {
     if(kind!=admission_request||packet.size()<38||packet.size()>packet_limit)return false;
     LanAdmission::Cookie cookie;for(auto &b:cookie)b=outer.get(1);
     Packet request(packet.begin()+outer.at,packet.end());Reader body{request};
-    const auto type=body.type();if(type!=secure_hello&&type!=session_query)return false;
+    const auto type=body.type();if(type!=secure_hello&&type!=secure_query)return false;
     const auto nonce=body.get(8);const auto endpoint=admission_endpoint(from);
     const auto now=LanAdmission::milliseconds();
     if(!admission.verify(endpoint,request,cookie,now)){
@@ -1993,16 +2415,22 @@ struct LanHost::Impl {
       if(reply.size()<=packet.size()&&admission.reserve(endpoint,reply.size(),true,now))udp.send(reply,from);
       return false;
     }
-    if(type==secure_hello){
+    if(type==secure_hello||type==secure_query){
+      const auto fingerprint=body.get(8);
+      std::array<unsigned char,6> destination;for(auto &b:destination)b=body.get(1);
       LanPacketAuth::Key key;for(auto &b:key)b=body.get(1);
       if(hello_key)*hello_key=key;
+      if(hello_context)*hello_context=lan_handshake_context(nonce,fingerprint,destination);
       request.erase(request.begin(),request.begin()+body.at);
-      Reader native{request};if(native.type()!=hello||native.get(8)!=nonce)return false;
+      Reader native{request};const auto inner_type=native.type();
+      if(inner_type!=(type==secure_hello?hello:session_query)||native.get(8)!=nonce)return false;
+      if(type==secure_hello ? native.get(8)!=fingerprint : fingerprint!=0)return false;
     }
     packet=std::move(request);return true;
   }
   void own()const {
-    if(auto *world=match.source_object_runtime();world&&world->owns_physics())world->require_authority_executor();
+    if(!world_match && std::this_thread::get_id()!=liveness_executor)throw FormatError("System Link service changed its native executor");
+    if(world_match)if(auto *world=match().source_object_runtime();world&&world->owns_physics())world->require_authority_executor();
   }
   bool receive_packet(Packet &p,sockaddr_in &from) {
     std::lock_guard lock(receive_mutex);
@@ -2014,7 +2442,7 @@ struct LanHost::Impl {
     if(udp.relay || session_configuration.empty())return;
     configuration_service=std::jthread([this](std::stop_token stop) {
       while(!stop.stop_requested()) {
-        Packet p;sockaddr_in from{};std::optional<std::uint64_t> query;bool consumed{};
+        Packet p;sockaddr_in from{};std::optional<std::uint64_t> query;LanPacketAuth::Key query_key{};LanPacketAuth::Context query_context{};bool consumed{};
         {
           std::lock_guard lock(receive_mutex);
           if(pending_packets.size()<256 && udp.receive(p,from)) {
@@ -2026,7 +2454,7 @@ struct LanHost::Impl {
               Reader r{p};const auto kind=r.type();
               if(kind==admission_request){
                 auto envelope=p;
-                if(admit(p,from))if(auto request=decode_native_request(p,protocol_version)){
+                if(admit(p,from,&query_key,&query_context))if(auto request=decode_native_request(p,protocol_version)){
                   if(const auto *value=std::get_if<NativeSessionQuery>(&*request))query=value->nonce;
                   else if(std::holds_alternative<NativeHelloRequest>(*request))pending_packets.push_back({std::move(envelope),from});
                 }
@@ -2034,7 +2462,7 @@ struct LanHost::Impl {
             }catch(const FormatError &){}
           }
         }
-        if(query)describe(from,*query);
+        if(query)try{describe(from,*query,&query_key,&query_context);}catch(const FormatError &){}
         if(!consumed)std::this_thread::sleep_for(std::chrono::milliseconds(2));
       }
     });
@@ -2047,10 +2475,10 @@ struct LanHost::Impl {
     return match;
   }
   Impl(MultiplayerMatch &m, unsigned port, std::uint64_t f)
-      : match(admitted(m)), udp(port), fingerprint(f) {}
+      : world_match(&admitted(m)), udp(port), fingerprint(f) {}
   Impl(MultiplayerMatch &m, std::shared_ptr<MultiplayerDatagrams> relay, std::uint64_t f,
        std::vector<OnlineAdmission> roster)
-      : match(admitted(m)), udp(std::move(relay)), admissions(std::move(roster)), fingerprint(f) {}
+      : world_match(&admitted(m)), udp(std::move(relay)), admissions(std::move(roster)), fingerprint(f) {}
   void respond(Peer &peer,Packet *archive=nullptr) {
     peer.last_response=Clock::now();
     ++candidate_revision;
@@ -2063,21 +2491,30 @@ struct LanHost::Impl {
     for(unsigned view=0;view<peer.ids.size();++view) {
       put_float(body,peer.controls[view].yaw);put_float(body,peer.controls[view].pitch);
     }
-    auto state=match.state();
-    if(auto *source=match.source_object_runtime();source && source->owns_physics()) {
-      if(!peer.vehicle_camera) {
-        if(!match.original_data())throw FormatError("Remote vehicle camera lost authenticated TU1.5 constants");
-        peer.vehicle_camera=std::make_unique<NativeVehicleCamera>(*source,*match.original_data());
+    // 113: the input sequence this tick's step consumed for this peer, and
+    // each view's newest forced-motion sequence (non-host prediction).
+    put(body,peer.consumed_known,1);put(body,peer.consumed_known?peer.consumed:0u,4);
+    for(unsigned view=0;view<peer.ids.size();++view) {
+      const auto forced=adopter&&adopter_match==world_match?adopter->forced_sequence(peer.ids[view]):std::nullopt;
+      put(body,forced.has_value(),1);put(body,forced.value_or(0),4);
+    }
+    auto state=match().state();
+    if(auto *source=match().source_object_runtime();source && source->owns_physics()) {
+      if(!admitted_cameras&&!peer.vehicle_camera) {
+        if(!match().original_data())throw FormatError("Remote vehicle camera lost authenticated TU1.5 constants");
+        peer.vehicle_camera=std::make_unique<NativeVehicleCamera>(*source,*match().original_data());
       }
-      if(!peer.vehicle_camera_tick || *peer.vehicle_camera_tick!=state.tick) {
+      if((!admitted_cameras||admitted_cameras->active())&&
+          (!peer.vehicle_camera_tick || *peer.vehicle_camera_tick!=state.tick)) {
         const auto seconds=peer.vehicle_camera_tick?float(std::uint32_t(state.tick-*peer.vehicle_camera_tick))*tick_seconds:tick_seconds;
         for(unsigned view=0;view<peer.ids.size();++view) {
           const auto slot=peer.ids[view];const auto &player=state.players[slot];
           const bool cycle=newer(peer.received_presses[view][0],peer.camera_jump_serial[view]);
           peer.camera_jump_serial[view]=peer.received_presses[view][0];
-          const auto camera=peer.vehicle_camera->update_player(view,player.source_player,player.source_flags,
-              seconds,cycle);
-          const bool death=peer.vehicle_camera->death_view(view);
+          const auto endpoint=ntohl(peer.address.sin_addr.s_addr)-1;
+          const auto camera=admitted_cameras?admitted_cameras->update(endpoint,view,seconds,cycle):
+              peer.vehicle_camera->update_player(view,player.source_player,player.source_flags,seconds,cycle);
+          const bool death=admitted_cameras?admitted_cameras->death_view(endpoint,view):peer.vehicle_camera->death_view(view);
           peer.vehicle_views[view]=death?std::nullopt:camera;
           peer.death_views[view]=death?camera:std::nullopt;
         }
@@ -2133,6 +2570,14 @@ struct LanHost::Impl {
           player.grenade_action.animation_active||(player.source_action_word&(1u<<22))))
         for(auto object:{player.source_unit,player.source_weapon,player.secondary_weapon.datum})
           if(object!=null_datum)hot.push_back(object);
+    // A ragdoll (a dying player's body, then its corpse) moves every node each
+    // tick until it settles. It is refreshed every tick while its pose changes
+    // and costs nothing once at rest.
+    for(const auto &player:state.players)
+      if(player.connected&&player.dead)
+        for(auto object:{player.source_unit,player.source_previous_unit})
+          if(object!=null_datum)hot.push_back(object);
+    for(const auto &corpse:state.corpses)if(corpse.object!=null_datum)hot.push_back(corpse.object);
     const auto emission=peer.stream->encode({body,layout.floats,layout.anchor_offsets,layout.anchor_keys,layout.poses,
         state.tick,peer.snapshot_sequence+1,stream_milliseconds(),viewers,own,hot});
     if(!emission)return false;
@@ -2172,27 +2617,98 @@ struct LanHost::Impl {
       peer.reported=s;
     }
   }
-  void describe(sockaddr_in from,std::uint64_t nonce) {
+  void describe(sockaddr_in from,std::uint64_t nonce,const LanPacketAuth::Key *key=nullptr,const LanPacketAuth::Context *context=nullptr) {
+    LanPacketAuth::Session session;
+    if(!udp.relay){if(!key||!context)return;authentication.bind(session,*key,true,*context);}
     if(session_configuration.empty()) {
-      rejection(from,nonce,"Session configuration is unavailable for this host");return;
+      rejection(from,nonce,"Session configuration is unavailable for this host",key,context);return;
     }
     const auto total=session_configuration.size();
     const unsigned count=unsigned((total+session_chunk-1)/session_chunk);
-    if(!udp.relay&&!admission.reserve(admission_endpoint(from),total+count*session_header,false,LanAdmission::milliseconds()))return;
+    if(!udp.relay&&!admission.reserve(admission_endpoint(from),total+count*(session_header+LanPacketAuth::overhead),false,LanAdmission::milliseconds()))return;
     for(unsigned index=0;index<count;++index) {
       auto p=header(session_info);put(p,nonce,8);put(p,fingerprint,8);
       put(p,index,2);put(p,count,2);put(p,total,4);
       const auto first=session_configuration.begin()+index*session_chunk;
       const auto last=session_configuration.begin()+std::min(total,std::size_t(index+1)*session_chunk);
-      p.insert(p.end(),first,last);udp.send(p,from);
+      p.insert(p.end(),first,last);udp.send(udp.relay?p:authentication.seal(p,session,true),from);
     }
   }
-  void rejection(sockaddr_in from, std::uint64_t nonce, std::string reason) {
+  void rejection(sockaddr_in from, std::uint64_t nonce, std::string reason,const LanPacketAuth::Key *key=nullptr,const LanPacketAuth::Context *context=nullptr) {
+    LanPacketAuth::Session session;
+    if(!udp.relay){if(!key||!context)return;authentication.bind(session,*key,true,*context);}
     auto p = header(reject);
     put(p, nonce, 8);
     for (char c : reason)
       p.push_back(std::byte(c));
-    udp.send(p, from);
+    udp.send(udp.relay?p:authentication.seal(p,session,true), from);
+  }
+  void link_changed() {
+    if(!link)return;
+    ++link->revision;link_body=encode_link_state(*link);
+    for(auto& peer:peers){peer.link_fragment=0;peer.link_sent={};}
+  }
+  void link_player(unsigned slot,unsigned endpoint) {
+    if(!link)return;
+    const auto& p=match().player(slot);
+    auto found=std::ranges::find(link->roster,slot,&OnlineAdmission::slot);
+    if(found==link->roster.end()) {
+      OnlineAdmission row;row.slot=slot;row.peer=endpoint;row.name=p.name;row.team=match().team_mode()?p.source_membership:-1;
+      do {if(RAND_bytes(reinterpret_cast<unsigned char*>(row.identity.data()),row.identity.size())!=1)
+        throw FormatError("Cannot allocate native System Link presentation identity");}
+      while(std::ranges::all_of(row.identity,[](auto b){return b==std::byte{};}) ||
+        std::ranges::any_of(link->roster,[&](const auto& old){return old.identity==row.identity;}));
+      link->roster.push_back(std::move(row));
+      std::ranges::sort(link->roster,{},&OnlineAdmission::slot);
+    }
+    link->profiles[slot]=p.source_profile_request;
+    if(!link->profiles[slot])throw FormatError("System Link return requires the actual selected player profile");
+    link->active_players|=std::uint16_t(1u<<slot);
+  }
+  void admit_link_lobby(const NativeHelloRequest& hello,const sockaddr_in& from,
+      const LanPacketAuth::Key& key,const LanPacketAuth::Context& context) {
+    if(!link || world_match || link->phase!=SystemLinkPhase::lobby || hello.fingerprint!=fingerprint)return;
+    const auto existing=std::ranges::find_if(peers,[&](const auto& p){return same(p.address,from);});
+    if(existing!=peers.end())return; // Retained connections use their established key/cookie.
+    const auto count=hello.players.size();if(count<1 || count>4)return;
+    std::vector<unsigned> slots;
+    for(unsigned i=0;i<16 && slots.size()<count;++i)if(!(link->active_players&(1u<<i)))slots.push_back(i);
+    if(slots.size()!=count)return;
+    for(const auto& p:hello.players) {
+      if(!p.profile || p.team<0 || p.team>7)return;
+      (void)native_vista_selected_profile_payload(*p.profile);
+      (void)native_player_configuration_name(*p.profile);
+    }
+    Peer peer;peer.address=from;peer.nonce=hello.nonce;peer.cookie=random_cookie();peer.ids=slots;
+    authentication.bind(peer.authentication,key,true,context);peer.awaiting_world=true;
+    for(unsigned i=0;i<count;++i) {
+      const auto& request=hello.players[i];peer.selected_teams.push_back(request.team);peer.profiles.push_back(request.profile);
+      OnlineAdmission row;row.slot=slots[i];row.peer=slots.front();row.team=request.team;row.name=native_player_configuration_name(*request.profile);
+      do {if(RAND_bytes(reinterpret_cast<unsigned char*>(row.identity.data()),row.identity.size())!=1)throw FormatError("Cannot allocate admitted System Link identity");}
+      while(std::ranges::all_of(row.identity,[](auto b){return b==std::byte{};}) || std::ranges::any_of(link->roster,[&](const auto& old){return old.identity==row.identity;}));
+      std::erase_if(link->roster,[&](const auto& old){return old.slot==row.slot;});
+      link->profiles[row.slot]=request.profile;link->active_players|=std::uint16_t(1u<<row.slot);
+      link->roster.push_back(std::move(row));
+    }
+    std::ranges::sort(link->roster,{},&OnlineAdmission::slot);peers.push_back(std::move(peer));link_changed();
+  }
+  void send_link() {
+    if(!link)return;
+    const unsigned count=(link_body.size()+link_chunk-1)/link_chunk;
+    for(auto& peer:peers) {
+      if(peer.link_ack==link->revision && Clock::now()-peer.link_sent<std::chrono::seconds(1))continue;
+      if(peer.link_fragment==0 && Clock::now()-peer.link_sent<std::chrono::milliseconds(250))continue;
+      for(unsigned n=0;n<8 && peer.link_fragment<count;++n) {
+        const auto index=peer.link_fragment++;
+        auto p=header(system_link_publication);put(p,peer.nonce,8);put(p,peer.cookie,8);
+        put(p,link->revision,4);put(p,index,2);put(p,count,2);put(p,link_body.size(),4);
+        put(p,peer.ids.size(),1);for(unsigned i=0;i<4;++i)put(p,i<peer.ids.size()?peer.ids[i]:255,1);
+        const auto first=std::size_t(index)*link_chunk,last=std::min(link_body.size(),first+link_chunk);
+        p.insert(p.end(),link_body.begin()+first,link_body.begin()+last);
+        udp.send(authentication.seal(p,peer.authentication,true),peer.address);
+      }
+      if(peer.link_fragment==count){peer.link_fragment=0;peer.link_sent=Clock::now();}
+    }
   }
   void remove(std::size_t i,PeerRemovalReason reason,Clock::time_point observed) {
     const auto &peer=peers[i];
@@ -2207,13 +2723,17 @@ struct LanHost::Impl {
       notice.last_accepted_input_age_ns=ns(observed-*peer.last_accepted_input);
     }
     for(auto id:peer.ids)notice.slot_mask|=std::uint16_t(std::uint16_t(1)<<id);
-    for (auto id : peers[i].ids)
-      match.leave(id);
+    for (auto id : peers[i].ids) {
+      if(world_match)match().leave(id);
+      if(link)link->active_players&=std::uint16_t(~(1u<<id));
+    }
     peers.erase(peers.begin() + i);
     // Native leave can throw. Publish no successful-removal witness until all
     // original leave calls and the actual peer-table erase have completed.
-    notice.source_tick=match.simulation().ticks();notice.ordinal=++removals;
-    notice.removed_at_ns=ns(Clock::now().time_since_epoch());last_removal=notice;
+    if(world_match){notice.source_tick=match().simulation().ticks();notice.ordinal=++removals;
+      notice.removed_at_ns=ns(Clock::now().time_since_epoch());last_removal=notice;}
+    else last_removal.reset(); // No current source-world tick exists in the lobby.
+    if(link)link_changed();
   }
 };
 LanHost::LanHost(MultiplayerMatch &m, unsigned port, std::uint64_t f)
@@ -2241,6 +2761,15 @@ LanHost::LanHost(MultiplayerMatch &m,std::shared_ptr<MultiplayerDatagrams> relay
   impl_->start_configuration_service();
 }
 unsigned LanHost::port() const { return impl_->udp.port(); }
+std::string LanHost::join_address(const std::string &address,unsigned destination_port) const {
+  if(impl_->udp.relay)throw FormatError("ONLINE sessions do not expose a raw LAN join key");
+  if(address.empty() || address.find_first_of(":#")!=std::string::npos)throw FormatError("LAN join address requires an IPv4 host name or address");
+  if(destination_port>65535)throw FormatError("Invalid raw LAN destination port");
+  std::string result=address+":"+std::to_string(destination_port?destination_port:port())+"#";
+  constexpr char digits[]="0123456789abcdef";
+  for(auto byte:impl_->authentication.public_key()){result+=digits[byte>>4];result+=digits[byte&15];}
+  return result;
+}
 unsigned LanHost::peers() const { impl_->own();return unsigned(impl_->peers.size()); }
 std::optional<LanHost::PeerRemoval> LanHost::last_peer_removal()const {impl_->own();return impl_->last_removal;}
 LanHost::SnapshotDiagnostics LanHost::snapshot_diagnostics()const{
@@ -2248,10 +2777,15 @@ LanHost::SnapshotDiagnostics LanHost::snapshot_diagnostics()const{
   for(const auto &peer:impl_->peers)if(peer.last_snapshot){
     ++result.peers;result.body_bytes+=peer.last_snapshot->bytes;
     result.fragments+=unsigned((peer.last_snapshot->bytes+snapshot_chunk-1)/snapshot_chunk);
+    if(peer.stream) {
+      const auto stream=peer.stream->stats();result.stream_wire_bytes+=stream.wire_bytes;
+      result.stream_messages+=stream.messages;result.stream_packets+=stream.packets;
+      result.stream_over_budget+=stream.over_budget;result.stream_budget_bps+=stream.budget_bps;
+    }
   }
   return result;
 }
-MultiplayerMatch &LanHost::continuation_match()const {impl_->own();return impl_->match;}
+MultiplayerMatch &LanHost::continuation_match()const {impl_->own();return impl_->match();}
 std::uint64_t LanHost::continuation_allocation(const Continuation &cut){
   if(!cut.data_)return 0;const auto &s=*cut.data_;
   std::uint64_t bytes=sizeof(Continuation::Data)+s.configuration.size()+s.admissions.size()*sizeof(OnlineAdmission)+
@@ -2274,7 +2808,7 @@ bool same_host_admissions(std::span<const OnlineAdmission> a,std::span<const Onl
   for(unsigned i=0;i<a.size();++i)
     if(a[i].slot!=b[i].slot||a[i].name!=b[i].name||a[i].team!=b[i].team||
         a[i].identity!=b[i].identity||online_admission_peer(a[i])!=online_admission_peer(b[i])||
-        a[i].guest!=b[i].guest)return false;
+        a[i].guest!=b[i].guest||a[i].matchmaking_level!=b[i].matchmaking_level)return false;
   return true;
 }
 void host_continuation_boundary(MultiplayerObjectRuntime &world) {
@@ -2298,18 +2832,41 @@ void host_loss_contexts(const AuthorityTransferContext &previous,const Authority
     throw FormatError("Host loss requires an independently agreed next generation and survivor membership");
 }
 }
+void LanHost::bind_admitted_cameras(std::shared_ptr<SourceAdmittedCameraBank> bank) {
+  auto &h=*impl_;auto *world=h.match().source_object_runtime();
+  if(!bank||h.admitted_cameras||!world||&bank->world()!=world||!h.udp.relay||
+      h.match().simulation().ticks()!=0||bank->active())
+    throw FormatError("Numeric camera binding requires its fresh admitted native host");
+  host_continuation_boundary(*world);
+  std::uint16_t remotes{};
+  for(auto &peer:h.peers){const auto endpoint=ntohl(peer.address.sin_addr.s_addr)-1;
+    const auto views=bank->views(endpoint);
+    if(endpoint==bank->context().host||views.size()!=peer.ids.size())
+      throw FormatError("Numeric camera binding changed the authenticated remote couch");
+    for(unsigned view=0;view<views.size();++view)if(views[view].slot!=peer.ids[view])
+      throw FormatError("Numeric camera binding changed an admitted view slot");
+    remotes|=std::uint16_t(1u<<endpoint);
+  }
+  if(remotes!=std::uint16_t(bank->context().peers&~(1u<<bank->context().host)))
+    throw FormatError("Numeric camera binding omitted an admitted physical peer");
+  // No gameplay tick has run. Retire pre-admission private presentation state
+  // so the authentic initial source cut can pair untouched local numeric banks.
+  for(auto &peer:h.peers){peer.vehicle_camera.reset();peer.vehicle_camera_tick.reset();
+    peer.vehicle_views={};peer.death_views={};}
+  h.admitted_cameras=std::move(bank);
+}
 LanHost::Continuation LanHost::checkpoint(MultiplayerMatch::AuthorityDigest binding)const {
-  const auto &h=*impl_;auto *world=h.match.source_object_runtime();
+  const auto &h=*impl_;auto *world=h.match().source_object_runtime();
   if(!h.udp.relay||!world||!world->owns_physics()||
       std::ranges::all_of(binding,[](auto b){return b==std::byte{};}))
     throw FormatError("Host continuation requires an admitted native cut and logical peer transport");
-  host_continuation_boundary(*world);SourceMatchAuthority authority(h.match,*world);
+  host_continuation_boundary(*world);SourceMatchAuthority authority(h.match(),*world);
   const auto before=authority.execution_boundary();
   auto saved=std::make_shared<Continuation::Data>();
   saved->binding=binding;saved->fingerprint=h.fingerprint;saved->tick=before.tick;
   saved->configuration=h.session_configuration;saved->admissions=h.admissions;
   saved->local_players=host_local_players(*world);
-  saved->roster=authority.player_admissions(allocated_host_slots(h.match));
+  saved->roster=authority.player_admissions(allocated_host_slots(h.match()));
   const auto now=Clock::now();std::uint16_t endpoints{},slots{};
   for(const auto &peer:h.peers) {
     const auto endpoint=ntohl(peer.address.sin_addr.s_addr)-1;
@@ -2322,8 +2879,8 @@ LanHost::Continuation LanHost::checkpoint(MultiplayerMatch::AuthorityDigest bind
     if(admitted!=peer.ids||peer.selected_teams.size()!=peer.ids.size()||peer.profiles.size()!=peer.ids.size())
       throw FormatError("Host continuation differs from its accepted couch roster");
     for(auto slot:peer.ids) {
-      if(slot>=multiplayer_capacity||(slots&(1u<<slot))||h.match.player(slot).source_datum==null_datum||
-          (h.match.player(slot).source_flags&2u))
+      if(slot>=multiplayer_capacity||(slots&(1u<<slot))||h.match().player(slot).source_datum==null_datum||
+          (h.match().player(slot).source_flags&2u))
         throw FormatError("Host continuation has a missing, duplicate or departed remote player");
       slots|=std::uint16_t(1u<<slot);
     }
@@ -2333,13 +2890,29 @@ LanHost::Continuation LanHost::checkpoint(MultiplayerMatch::AuthorityDigest bind
     p.last_snapshot=peer.last_snapshot;
     p.idle=peer.age(now);p.controls=peer.controls;p.received_presses=peer.received_presses;
     p.delivered_presses=peer.delivered_presses;p.completed=peer.completed;p.completed_vehicle=peer.completed_vehicle;
-    if(peer.vehicle_camera)p.camera=peer.vehicle_camera->checkpoint(binding);
+    if(h.admitted_cameras)p.camera=h.admitted_cameras->checkpoint(endpoint);
+    else if(peer.vehicle_camera)p.camera=peer.vehicle_camera->checkpoint(binding);
     p.camera_tick=peer.vehicle_camera_tick;p.vehicle_views=peer.vehicle_views;p.death_views=peer.death_views;
     p.camera_jump_serial=peer.camera_jump_serial;
   }
   if(authority.execution_boundary()!=before)
     throw FormatError("Native world changed during host continuation capture");
   Continuation result;result.data_=std::move(saved);return result;
+}
+void LanHost::verify_admitted_cameras(const Continuation &saved,const SourceAdmittedCameraBank &bank) {
+  if(!saved.data_||saved.data_->binding!=source_authority_binding(bank.context()))
+    throw FormatError("Numeric camera sidecar has another independently admitted context");
+  std::uint16_t remotes{};
+  for(const auto &peer:saved.data_->peers){const auto views=bank.views(peer.endpoint);
+    if(!peer.camera||views.size()!=peer.ids.size()||
+        !NativeVehicleCamera::same_checkpoint(*peer.camera,bank.checkpoint(peer.endpoint)))
+      throw FormatError("Derived numeric camera differs from the certified host sidecar");
+    for(unsigned view=0;view<views.size();++view)if(views[view].slot!=peer.ids[view])
+      throw FormatError("Numeric camera sidecar changed its admitted source view");
+    remotes|=std::uint16_t(1u<<peer.endpoint);
+  }
+  if(remotes!=std::uint16_t(bank.context().peers&~(1u<<bank.context().host)))
+    throw FormatError("Numeric camera sidecar omitted an admitted physical peer");
 }
 std::unique_ptr<LanHost> LanHost::resume(MultiplayerMatch &match,std::shared_ptr<MultiplayerDatagrams> transport,
     std::uint64_t fingerprint,std::vector<OnlineAdmission> admissions,const Continuation &cut,
@@ -2375,7 +2948,7 @@ std::unique_ptr<LanHost> LanHost::resume(MultiplayerMatch &match,std::shared_ptr
     peer.last_snapshot=p.last_snapshot;
     // Retain the observed idle age. Time spent in the paused continuation is
     // neither fresh peer traffic nor time executing the resumed match.
-    peer.last=now;peer.idle_offset=p.idle;peer.controls=p.controls;peer.received_presses=p.received_presses;
+    peer.last=now;peer.idle_offset=p.idle;peer.controls=p.controls;peer.received_presses=p.received_presses;peer.latest_presses=p.received_presses;
     peer.delivered_presses=p.delivered_presses;peer.completed=p.completed;peer.completed_vehicle=p.completed_vehicle;
     if(p.camera) {
       if(!match.original_data())throw FormatError("Host continuation lost native camera constants");
@@ -2485,19 +3058,32 @@ void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
   sockaddr_in from{};
   for (unsigned packets = 0; packets < 256 && h.receive_packet(p, from); ++packets)
     try {
-      LanPacketAuth::Key hello_key{};
-      if(!h.admit(p,from,&hello_key))continue;
+      LanPacketAuth::Key hello_key{};LanPacketAuth::Context hello_context{};
+      if(!h.admit(p,from,&hello_key,&hello_context))continue;
+      Reader control{p};
+      if(control.type()==system_link_ack) {
+        const auto nonce=control.get(8),cookie=control.get(8);const auto revision=control.get(4);
+        control.end();
+        if(h.link)for(auto& peer:h.peers)if(same(peer.address,from) && peer.nonce==nonce && peer.cookie==cookie) {
+          if(revision==h.link->revision){peer.link_ack=revision;peer.heard();}
+        }
+        continue;
+      }
       auto request=decode_native_request(p,protocol_version);
       if(!request)throw FormatError("Invalid native host request");
       const auto nonce=std::visit([](const auto &value){return value.nonce;},*request);
       if(std::holds_alternative<NativeSessionQuery>(*request)) {
-        h.describe(from,nonce);continue;
+        h.describe(from,nonce,&hello_key,&hello_context);continue;
       }
       if (const auto *hello=std::get_if<NativeHelloRequest>(&*request)) {
+        if(!h.world_match && h.link && h.link->phase==SystemLinkPhase::lobby) {
+          h.admit_link_lobby(*hello,from,hello_key,hello_context);continue;
+        }
+        if(!h.world_match || (h.link && h.link->phase!=SystemLinkPhase::running && h.link->phase!=SystemLinkPhase::starting))continue;
         const auto fingerprint=hello->fingerprint;
         const auto count=hello->players.size();
         if (fingerprint != h.fingerprint) {
-          h.rejection(from, nonce, "Map, shared game data, or starting configuration differs");
+          h.rejection(from, nonce, "Map, shared data, starting configuration, or native network build differs",&hello_key,&hello_context);
           continue;
         }
         std::vector<std::int8_t> selected_teams;
@@ -2510,15 +3096,15 @@ void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
         if (h.udp.relay) {
           const auto slot = ntohl(from.sin_addr.s_addr)-1;
           for(const auto &a:h.admissions)if(online_admission_peer(a)==slot)admissions.push_back(&a);
-          if (count != admissions.size() || admissions.empty() || admissions.front()->slot!=slot) { h.rejection(from,nonce,"Local players are not admitted to this match"); continue; }
+          if (count != admissions.size() || admissions.empty() || admissions.front()->slot!=slot) { h.rejection(from,nonce,"Local players are not admitted to this match",&hello_key,&hello_context); continue; }
           // The queue owner determines team and chosen display name. Profiles
           // remain appearance requests; they cannot rename a matched identity.
-          for(unsigned i=0;i<count;++i)selected_teams[i] = h.match.team_mode() ? admissions[i]->team : -1;
+          for(unsigned i=0;i<count;++i)selected_teams[i] = h.match().team_mode() ? admissions[i]->team : -1;
         }
         if (std::any_of(selected_teams.begin(),selected_teams.end(),[&](auto team) {
-              return team < (h.match.team_mode() ? 0 : -1) || team > 7;
+              return team < (h.match().team_mode() ? 0 : -1) || team > 7;
             })) {
-          h.rejection(from,nonce,"Team Slayer requires an explicitly selected source team 0..7");
+          h.rejection(from,nonce,"Team Slayer requires an explicitly selected source team 0..7",&hello_key,&hello_context);
           continue;
         }
         auto peer =
@@ -2538,40 +3124,44 @@ void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
         // Native transport admission is one request for every local view.
         // Check capacity before creating any player: a rejected request must
         // not insert a never-joined team into the source sticky ranking mask.
-        if (count > h.match.available_player_slots()) {
-          h.rejection(from,nonce,"Multiplayer match is full");
+        if (count > h.match().available_player_slots()) {
+          h.rejection(from,nonce,"Multiplayer match is full",&hello_key,&hello_context);
           continue;
+        }
+        if(h.link && std::ranges::any_of(profiles,[](const auto& p){return !p;})) {
+          h.rejection(from,nonce,"Choose a native local profile before joining this session",&hello_key,&hello_context);continue;
         }
         // Validate every local view before allocating any participant or
         // changing the original sticky team mask.
         try {
           for(unsigned i=0;i<count;++i)if(profiles[i]) {
-            h.match.validate_player_configuration(*profiles[i],selected_teams[i]);
+            h.match().validate_player_configuration(*profiles[i],selected_teams[i]);
             native_player_configuration_name(*profiles[i]);
           }
         }catch(const FormatError& error) {
-          h.rejection(from,nonce,error.what());continue;
+          h.rejection(from,nonce,error.what(),&hello_key,&hello_context);continue;
         }
         Impl::Peer created;
         created.address = from;
         created.nonce = nonce;
-        created.cookie = random_id();
-        if(!h.udp.relay)h.authentication.bind(created.authentication,hello_key);
+        created.cookie = random_cookie();
+        if(!h.udp.relay)h.authentication.bind(created.authentication,hello_key,true,hello_context);
         created.selected_teams = selected_teams;
         created.profiles=profiles;
         try {
           for (unsigned i = 0; i < count; ++i)
-            created.ids.push_back(h.match.join(!admissions.empty() ? admissions[i]->name : profiles[i] ? native_player_configuration_name(*profiles[i])
+            created.ids.push_back(h.match().join(!admissions.empty() ? admissions[i]->name : profiles[i] ? native_player_configuration_name(*profiles[i])
                 : "LAN Player",selected_teams[i],profiles[i], !admissions.empty() ? std::optional(admissions[i]->slot) : std::nullopt));
         } catch (const FormatError &e) {
           for (auto id : created.ids)
-            h.match.cancel_join(id);
-          h.rejection(from, nonce, e.what());
+            h.match().cancel_join(id);
+          h.rejection(from, nonce, e.what(),&hello_key,&hello_context);
           continue;
         }
         for (unsigned i = 0; i < count; ++i)
-          created.controls[i].yaw = h.match.unit(created.ids[i]).yaw;
+          created.controls[i].yaw = h.match().unit(created.ids[i]).yaw;
         h.peers.push_back(std::move(created));
+        if(h.link){for(auto slot:h.peers.back().ids)h.link_player(slot,h.peers.back().ids.front());h.link_changed();}
         h.respond(h.peers.back());
       } else {
         const auto *input=std::get_if<NativeInputRequest>(&*request);
@@ -2587,6 +3177,7 @@ void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
           h.remove(std::size_t(peer - h.peers.begin()),PeerRemovalReason::authenticated_leave,Clock::now());
           continue;
         }
+        if(!h.world_match || (h.link && h.link->phase!=SystemLinkPhase::running && h.link->phase!=SystemLinkPhase::starting)) {peer->heard();continue;}
         peer->stream->ack({input->ack.latest,input->ack.mask,input->ack.flags},stream_milliseconds());
         const auto sequence=input->sequence;
         const auto count=input->controls.size();
@@ -2595,39 +3186,95 @@ void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
         std::array<WireControl, 4> decoded{};
         for (unsigned i = 0; i < count; ++i)
           decoded[i] = native_control(input->controls[i]);
+        if(std::any_of(input->redundant.begin(),input->redundant.end(),[&](const auto &e){return e.controls.size()!=count;}))
+          continue;
+        // Queue this input and its repeats (item 5) when not consumed or
+        // queued yet. Held fields come from each repeat; latest-state fields
+        // (zoom serial, completions, intents) from this packet's newest input.
+        const auto enqueue=[&](std::uint32_t at,const auto &fill,std::optional<NetcodeViewTime> view) {
+          if(peer->consumed_known && !newer(at,peer->consumed))return;
+          auto position=std::find_if(peer->pending.begin(),peer->pending.end(),[&](const auto &q){return !newer(at,q.sequence);});
+          if(position!=peer->pending.end() && position->sequence==at)return;
+          Impl::Peer::QueuedInput queued;queued.sequence=at;queued.view=view;
+          for(unsigned view_index=0;view_index<count;++view_index) {
+            fill(queued,view_index);
+            queued.presses[view_index]=decoded[view_index].presses;
+            queued.completed[view_index]=decoded[view_index].completed;
+            queued.completed_vehicle[view_index]=decoded[view_index].completed_vehicle;
+          }
+          peer->pending.insert(position,std::move(queued));
+        };
+        const auto queue_input=[&] {
+          enqueue(sequence,[&](auto &queued,unsigned i) {
+            queued.controls[i]=decoded[i].control;queued.motion[i]=input->controls[i].motion;
+          },input->view?std::optional(NetcodeViewTime{input->view->tick,input->view->fraction}):std::nullopt);
+          for(const auto &repeat:input->redundant)
+            enqueue(repeat.sequence,[&](auto &queued,unsigned i) {
+              const auto &held=repeat.controls[i];
+              auto c=decoded[i].control;
+              c.forward=held.forward;c.right=held.right;c.yaw=held.yaw;c.pitch=held.pitch;c.zoom=held.zoom;
+              const auto flags=held.flags;
+              c.jump=flags&1;c.crouch=flags&2;c.fire=flags&4;c.reload=flags&8;c.grenade=flags&16;c.pickup=flags&32;
+              c.dual_wield=flags&64;c.switch_weapon=flags&128;c.fire_secondary=flags&256;c.melee=flags&512;
+              c.switch_grenade=flags&1024;
+              queued.controls[i]=c; // repeats carry no motion report
+            },std::nullopt);
+        };
         if (!peer->seen || newer(sequence, peer->sequence)) {
           bool serials_valid=true;
           for(unsigned view=0;view<count;++view)
             for(unsigned action=0;action<decoded[view].presses.size();++action) {
-              const auto received=decoded[view].presses[action],prior=peer->received_presses[view][action];
+              const auto received=decoded[view].presses[action],prior=peer->latest_presses[view][action];
               serials_valid&=received==prior || newer(received,prior);
             }
           if(!serials_valid)continue;
-          for(unsigned view=0;view<count;++view) {
-            peer->controls[view]=decoded[view].control;
-            peer->received_presses[view]=decoded[view].presses;
-            peer->completed[view]=decoded[view].completed;
-            peer->completed_vehicle[view]=decoded[view].completed_vehicle;
-          }
+          for(unsigned view=0;view<count;++view)peer->latest_presses[view]=decoded[view].presses;
+          queue_input();
+          peer->awaiting_world=false;
           peer->sequence = sequence;
           peer->seen = true;
           peer->heard();
           // Reuse the accepted input's actual heard clock. Duplicate Hello
           // refreshes ordinary liveness but cannot manufacture this witness.
           peer->last_accepted_input=peer->last;++peer->input_acceptances;
+        } else if(peer->seen) {
+          // An older authenticated packet can still fill a gap in the queue;
+          // its serials and acknowledgement state are superseded.
+          queue_input();
         }
       }
     } catch (const FormatError
                  &) { /* Malformed datagrams cannot mutate the match. */
     }
+  // Remote displayed times are per receive: only live peer slots carry one.
+  if(h.world_match)for(unsigned slot=0;slot<multiplayer_capacity;++slot)h.match().set_remote_view(slot,std::nullopt);
   for (std::size_t i = 0; i < h.peers.size();) {
     auto &peer = h.peers[i];
     const auto observed=Clock::now();
     const auto age = peer.age(observed);
-    if (age > std::chrono::seconds(5)) {
+    if (age > (h.link && h.link->phase==SystemLinkPhase::starting?std::chrono::seconds(180):std::chrono::seconds(5))) {
       h.remove(i,PeerRemovalReason::idle_timeout,observed);
       continue;
     }
+    if(!h.world_match){++i;continue;}
+    // Item 5: consume one input per tick in sequence order. A backlog beyond
+    // three (bursts, clock drift) drops the oldest so buffering stays at most
+    // two ticks; an empty queue holds the last consumed input.
+    peer.consumed_motion={};
+    if(!peer.pending.empty()) {
+      while(peer.pending.size()>3){peer.pending.pop_front();++peer.skipped_inputs;}
+      auto entry=std::move(peer.pending.front());peer.pending.pop_front();
+      if(peer.consumed_known && entry.sequence!=peer.consumed+1)peer.skipped_inputs+=entry.sequence-peer.consumed-1;
+      for(unsigned j=0;j<peer.ids.size();++j) {
+        peer.controls[j]=entry.controls[j];peer.consumed_motion[j]=entry.motion[j];
+        for(unsigned action=0;action<entry.presses[j].size();++action)
+          if(newer(entry.presses[j][action],peer.received_presses[j][action]))
+            peer.received_presses[j][action]=entry.presses[j][action];
+        peer.completed[j]=entry.completed[j];peer.completed_vehicle[j]=entry.completed_vehicle[j];
+      }
+      peer.view=entry.view;peer.consumed=entry.sequence;peer.consumed_known=true;++peer.consumed_inputs;
+    } else if(peer.consumed_known)++peer.repeated_ticks;
+    for(unsigned j=0;j<peer.ids.size();++j)++peer.report_steps[j];
     for (unsigned j = 0; j < peer.ids.size(); ++j) {
       auto c = peer.controls[j];
       // Grenade is a consumed pulse, never a retained held input.
@@ -2655,13 +3302,25 @@ void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
           }
       }
       controls[peer.ids[j]] = c;
+      if(age<=std::chrono::milliseconds(500))h.match().set_remote_view(peer.ids[j],peer.view);
     }
     ++i;
   }
+  if(h.link) {
+    if(h.link->phase==SystemLinkPhase::reviewing && std::ranges::all_of(h.peers,[&](const auto& p){return p.link_ack==h.link->revision;})) {
+      h.link->phase=SystemLinkPhase::postgame;h.link_changed();
+    }
+    if(h.link->phase==SystemLinkPhase::starting && std::ranges::none_of(h.peers,[](const auto& p){return p.awaiting_world;})) {
+      h.link->phase=SystemLinkPhase::running;h.link_changed();
+    }
+    h.send_link();
+  }
+
 }
 void LanHost::broadcast() {
   impl_->own();
   impl_->continuation_liveness_pending=false;
+  impl_->adopt_motion();
   for (auto &peer : impl_->peers)
     impl_->respond(peer);
   impl_->report_stream();
@@ -2695,6 +3354,7 @@ LanHost::CandidateBroadcast LanHost::broadcast_candidate(
   }
   if(endpoints!=token.recipients)return {};
   h.continuation_liveness_pending=false;
+  h.adopt_motion(); // Same tick as broadcast(); a repeated call adopts nothing new.
   std::vector<PeerSnapshotArchive> archives;archives.reserve(h.peers.size());emission->peers.reserve(h.peers.size());
   try{
     for(auto &peer:h.peers){const auto endpoint=ntohl(peer.address.sin_addr.s_addr)-1;
@@ -2723,6 +3383,89 @@ bool LanHost::candidate_current(const CandidateEmission &emission,const std::sha
     }return true;
   }catch(...){return false;}
 }
+void LanHost::enable_system_link_return(std::string map) {
+  auto& h=*impl_;h.own();
+  if(h.udp.relay || h.link || !h.match().session_configuration())throw FormatError("System Link return requires its actual raw LAN match");
+  h.link.emplace();h.link->fingerprint=h.fingerprint;h.link->map=std::move(map);h.link->variant=*h.match().session_configuration();
+  h.link->netcode_mode=h.match().netcode_mode();
+  for(unsigned i=0;i<16;++i)if(h.match().player(i).connected)h.link_player(i,0);
+  for(const auto& peer:h.peers)for(auto slot:peer.ids) {
+    auto row=std::ranges::find(h.link->roster,slot,&OnlineAdmission::slot);row->peer=peer.ids.front();
+  }
+  h.configuration_service.request_stop();if(h.configuration_service.joinable())h.configuration_service.join();
+  h.session_configuration=encode_session_variant(h.link->variant,h.link->map);h.start_configuration_service();
+  h.link_changed();
+}
+const SystemLinkState& LanHost::system_link_state() const {
+  impl_->own();if(!impl_->link)throw FormatError("No retained System Link session");return *impl_->link;
+}
+void LanHost::publish_system_link_results() {
+  auto& h=*impl_;h.own();
+  if(!h.link || h.link->phase!=SystemLinkPhase::running)throw FormatError("System Link results require the running native session");
+  const auto result=online_postgame_publish(h.match(),h.link->variant,h.link->roster);
+  h.link->report.assign(result.source.begin(),result.source.end());h.link->phase=SystemLinkPhase::reviewing;h.link_changed();
+}
+void LanHost::retire_system_link_world() {
+  auto& h=*impl_;h.own();
+  if(!h.link || h.link->phase!=SystemLinkPhase::postgame)throw FormatError("System Link world retirement requires confirmed native results");
+  for(auto& peer:h.peers){peer.vehicle_camera.reset();peer.vehicle_views={};peer.death_views={};peer.last_snapshot.reset();peer.stream=std::make_unique<SnapshotStreamSender>(delta_chunk,delta_overhead);}
+  h.world_match=nullptr;
+}
+void LanHost::service_system_link_lobby() {
+  if(impl_->world_match)throw FormatError("Lobby service cannot borrow a live world");
+  std::array<Controls,multiplayer_capacity> ignored{};receive(ignored);
+}
+void LanHost::continue_system_link_lobby() {
+  auto& h=*impl_;h.own();
+  if(h.world_match || !h.link || h.link->phase!=SystemLinkPhase::postgame)throw FormatError("PCR Done requires the retained world-free System Link session");
+  h.link->phase=SystemLinkPhase::lobby;h.link->report.clear();h.link_changed();
+}
+void LanHost::system_link_countdown(std::int32_t stage) {
+  auto& h=*impl_;h.own();
+  if(h.world_match || !h.link || h.link->phase!=SystemLinkPhase::lobby || stage < -1 || stage>10)throw FormatError("Countdown requires the actual System Link lobby");
+  h.link->countdown=stage;h.link_changed();
+}
+void LanHost::resume_system_link_world(MultiplayerMatch& match,std::uint64_t fingerprint,const UiVariant& variant,std::string map) {
+  auto& h=*impl_;h.own();
+  if(h.world_match || !h.link || h.link->phase!=SystemLinkPhase::lobby)throw FormatError("System Link Start requires the retained lobby");
+  auto& admitted=Impl::admitted(match);auto next=*h.link;
+  if(next.generation==std::numeric_limits<std::uint32_t>::max())throw FormatError("System Link world generation exhausted");
+  for(unsigned slot=0;slot<16;++slot)if(match.player(slot).connected) {
+    const auto row=std::ranges::find(next.roster,slot,&OnlineAdmission::slot);
+    if(row==next.roster.end() || row->peer!=0 || row->name!=match.player(slot).name)
+      throw FormatError("System Link restart changed its local admission");
+    row->team=match.team_mode()?match.player(slot).source_membership:-1;next.profiles[slot]=match.player(slot).source_profile_request;
+  }
+  // These operations belong exclusively to the new private world. Refusal
+  // leaves the retained socket, keys, cookies and lobby publication intact.
+  for(const auto& peer:h.peers)for(unsigned i=0;i<peer.ids.size();++i) {
+    if(!peer.profiles[i])throw FormatError("System Link restart lost the actual selected remote profile");
+    match.validate_player_configuration(*peer.profiles[i],peer.selected_teams[i]);
+  }
+  for(const auto& peer:h.peers)for(unsigned i=0;i<peer.ids.size();++i) {
+    const auto slot=peer.ids[i];const auto row=std::ranges::find(next.roster,slot,&OnlineAdmission::slot);
+    if(row==next.roster.end() || match.join(row->name,peer.selected_teams[i],peer.profiles[i],slot)!=slot)
+      throw FormatError("System Link restart changed its admitted native slot");
+  }
+  std::vector<std::unique_ptr<SnapshotStreamSender>> streams;std::vector<std::uint64_t> cookies;
+  for(const auto& peer:h.peers){(void)peer;streams.push_back(std::make_unique<SnapshotStreamSender>(delta_chunk,delta_overhead));cookies.push_back(random_cookie());}
+  std::erase_if(next.roster,[&](const auto& p){return !(next.active_players&(1u<<p.slot));});
+  for(unsigned slot=0;slot<16;++slot)if(!(next.active_players&(1u<<slot)))next.profiles[slot].reset();
+  next.fingerprint=fingerprint;next.variant=variant;next.map=map;++next.generation;++next.revision;
+  next.countdown=-1;next.phase=SystemLinkPhase::starting;next.netcode_mode=match.netcode_mode();
+  auto body=encode_link_state(next),configuration=encode_session_variant(variant,map);
+  h.configuration_service.request_stop();if(h.configuration_service.joinable())h.configuration_service.join();
+  h.world_match=&admitted;h.fingerprint=fingerprint;h.session_configuration=std::move(configuration);
+  h.link=std::move(next);h.link_body=std::move(body);h.last_removal.reset();
+  for(unsigned n=0;n<h.peers.size();++n) {
+    auto& peer=h.peers[n];peer.controls={};peer.received_presses={};peer.delivered_presses={};peer.completed={};peer.completed_vehicle={};
+    peer.latest_presses={};peer.pending.clear();peer.consumed_known=false;peer.consumed=0;peer.consumed_motion={};peer.report_steps={};
+    peer.cookie=cookies[n];peer.sequence=0;peer.seen=false;peer.awaiting_world=true;peer.vehicle_camera_tick.reset();peer.camera_jump_serial={};
+    peer.stream=std::move(streams[n]);peer.last_accepted_input.reset();peer.link_fragment=0;peer.link_sent={};
+    // Liveness retains actual received traffic; preparation is not a packet.
+  }
+  h.start_configuration_service();
+}
 struct LanClient::SnapshotCandidate {
   std::weak_ptr<const void> live;
   std::shared_ptr<PeerSnapshotCandidate> delivery;
@@ -2745,6 +3488,7 @@ struct LanClient::Impl {
   LanAdmission::Cookie admission{};
   LanPacketAuth authentication;
   LanPacketAuth::Session authenticated_session;
+  LanPacketAuth::Context handshake_context{};
   unsigned count{}, attempts{};
   Packet admission_hello;
   std::array<std::int8_t,4> selected_teams{-1,-1,-1,-1};
@@ -2758,11 +3502,22 @@ struct LanClient::Impl {
   std::uint32_t snapshot_sequence{};
   std::unique_ptr<SnapshotStreamReceiver> stream=std::make_unique<SnapshotStreamReceiver>(delta_chunk);
   std::array<std::optional<std::array<float,2>>,4> consumed_looks{};
+  std::optional<NetcodeViewTime> view; // Displayed snapshot time for lag compensation.
+  // Predicted motion for the next input, and the held fields of the two
+  // inputs before it (newest first) repeated by every packet.
+  std::array<std::optional<NativeMotionReport>,4> motion{};
+  struct SentInput {std::uint32_t sequence{};std::array<NativeRedundantControl,4> views{};};
+  std::deque<SentInput> sent;
+  std::vector<InputReceipt> received_inputs;
+  InputReceipt input_receipt;
   std::map<std::uint32_t,Assembly> assemblies;
   Clock::time_point assembly_window=Clock::now();
   unsigned assembly_creations{};
   bool connected{};
   MultiplayerState state;
+  std::optional<SystemLinkState> link;
+  std::uint32_t link_ack{},link_assembling{};
+  std::optional<Assembly> link_assembly;
   MultiplayerSnapshotOrigin state_origin;
   std::vector<MultiplayerState> received_states;
   std::vector<MultiplayerSnapshotOrigin> received_origins;
@@ -2783,7 +3538,12 @@ struct LanClient::Impl {
   std::optional<std::uint32_t> rebound_tick;
   Impl(std::string address, std::uint64_t f, unsigned n, std::span<const std::int8_t> teams,
       std::span<const SourcePlayerConfiguration> selected_profiles)
-      : host(resolve(std::move(address))), fingerprint(f), count(n) {
+      : fingerprint(f), count(n) {
+    const auto selected=authenticated_lan_address(address);
+    host=resolve(selected.endpoint);
+    const auto destination=admission_endpoint(host);
+    handshake_context=lan_handshake_context(nonce,fingerprint,destination);
+    authentication.bind(authenticated_session,selected.host_key,false,handshake_context);
     if (n < 1 || n > 4)
       throw FormatError("LAN client requires 1..4 local players");
     if (!teams.empty() && (teams.size() != n ||
@@ -2815,7 +3575,7 @@ LanClient::LanClient(const std::string &a, std::uint64_t f, unsigned n, std::spa
 LanClient::~LanClient() {
   reject_snapshot_candidate(impl_->candidate);
   impl_->candidate_live.reset();
-  if (impl_->connected) {
+  if (impl_->connected || impl_->link) {
     auto p = header(leave);
     put(p, impl_->nonce, 8);
     put(p, impl_->cookie, 8);
@@ -2878,6 +3638,16 @@ bool LanClient::retire_snapshot_candidate(const std::shared_ptr<SnapshotCandidat
 void LanClient::reject_snapshot_candidate(const std::shared_ptr<SnapshotCandidate> &c)noexcept{
   try{if(c&&c->executor==std::this_thread::get_id()&&!c->retired)c->delivery->reject(c->token);}catch(...){}
 }
+void LanClient::set_view(std::uint32_t older,std::uint32_t newer,float blend) {
+  impl_->view=netcode_view_time(older,newer,blend);
+}
+void LanClient::set_motion(unsigned view,std::optional<NativeMotionReport> motion) {
+  if(view>=impl_->motion.size())throw FormatError("Motion view outside the joined couch");
+  impl_->motion[view]=motion;
+}
+std::uint32_t LanClient::next_input_sequence()const{return impl_->sequence+1;}
+std::span<const LanClient::InputReceipt> LanClient::received_inputs()const{return impl_->received_inputs;}
+LanClient::InputReceipt LanClient::input_receipt()const{return impl_->input_receipt;}
 void LanClient::send(std::span<const Controls> c) {
   auto &v = *impl_;
   if (c.size() != v.count)
@@ -2894,7 +3664,8 @@ void LanClient::send(std::span<const Controls> c) {
     for (unsigned i = 0; i < v.count; ++i) put(p,std::uint8_t(v.selected_teams[i]),1);
     for(unsigned i=0;i<v.count;++i)encode_profile(p,v.profiles[i]);
     if(!v.udp.relay){
-      auto secured=header(secure_hello);put(secured,v.nonce,8);
+      auto secured=header(secure_hello);put(secured,v.nonce,8);put(secured,v.fingerprint,8);
+      for(unsigned i=18;i<24;++i)put(secured,v.handshake_context[i],1);
       for(auto b:v.authentication.public_key())put(secured,b,1);
       secured.insert(secured.end(),p.begin(),p.end());p=std::move(secured);
     }
@@ -2938,6 +3709,25 @@ void LanClient::send(std::span<const Controls> c) {
   }
   const auto ack=v.stream->ack();
   put(p,ack.latest,4);put(p,ack.mask,4);put(p,ack.flags,1);
+  // 113: displayed snapshot time (tick low16, blend/255); 0/255 means none.
+  if(v.view){put(p,v.view->tick_low,2);put(p,v.view->fraction,1);}
+  else{put(p,0,2);put(p,netcode_view_absent_fraction,1);}
+  // 113: per-view predicted motion, then the inputs before this one
+  // (newest first, at most two, never below sequence 1) as changed fields.
+  Impl::SentInput current{v.sequence,{}};
+  for(unsigned view=0;view<c.size();++view) {
+    encode_motion(p,v.motion[view]);
+    current.views[view]={c[view].forward,c[view].right,c[view].yaw,c[view].pitch,control_flags(c[view]),c[view].zoom};
+    v.motion[view].reset();
+  }
+  unsigned repeats=0;
+  while(repeats<v.sent.size()&&repeats<native_max_redundant_inputs&&v.sent[repeats].sequence==v.sequence-1-repeats &&
+        v.sequence>repeats+1)++repeats;
+  put(p,repeats,1);
+  for(unsigned n=0;n<repeats;++n)for(unsigned view=0;view<c.size();++view)
+    encode_repeat(p,v.sent[n].views[view],n?v.sent[n-1].views[view]:current.views[view]);
+  v.sent.push_front(current);
+  while(v.sent.size()>native_max_redundant_inputs)v.sent.pop_back();
   v.latest_input=std::move(p);
   v.udp.send(v.udp.relay?v.latest_input:v.authentication.seal(v.latest_input,v.authenticated_session,false), v.host);
 }
@@ -2945,6 +3735,7 @@ void LanClient::receive() {
   auto &v = *impl_;
   v.received_states.clear();
   v.received_origins.clear();
+  v.received_inputs.clear();
   Packet p;
   sockaddr_in from{};
   std::vector<std::span<const std::byte>> reserved;
@@ -2974,6 +3765,17 @@ void LanClient::receive() {
     }
     std::array<std::optional<std::array<float,2>>,4> looks{};
     for(unsigned view=0;view<count;++view)looks[view]=std::array{complete.real(),complete.real()};
+    // 113: consumed input sequence and per-view forced-motion sequences.
+    InputReceipt receipt;
+    const auto known=complete.get(1);
+    if(known>1)throw FormatError("Invalid consumed input marker");
+    receipt.known=known!=0;receipt.consumed=std::uint32_t(complete.get(4));
+    if(!receipt.known&&receipt.consumed)throw FormatError("Unknown consumed input carried a sequence");
+    for(unsigned view=0;view<count;++view) {
+      const auto present=complete.get(1);const auto forced=std::uint32_t(complete.get(4));
+      if(present>1||(!present&&forced))throw FormatError("Invalid forced-motion marker");
+      if(present)receipt.forced[view]=forced;
+    }
     auto state = decode_state(complete,ids);
     complete.end();
     for (auto id : ids)
@@ -3008,7 +3810,7 @@ void LanClient::receive() {
         if(rows.size()==maximum)throw std::length_error("Accepted snapshot batch exceeds container limits");
         rows.reserve(capacity>maximum/2?maximum:std::max<std::size_t>(1,capacity*2));
       };
-      reserve_next(v.received_states);reserve_next(v.received_origins);
+      reserve_next(v.received_states);reserve_next(v.received_origins);reserve_next(v.received_inputs);
       static_assert(std::is_nothrow_move_assignable_v<MultiplayerState> &&
           std::is_nothrow_move_constructible_v<MultiplayerState>);
       v.cookie = cookie;
@@ -3018,6 +3820,8 @@ void LanClient::receive() {
       else v.state = state;
       v.received_states.push_back(std::move(state));
       v.received_origins.push_back(origin);
+      v.received_inputs.push_back(receipt);
+      v.input_receipt=receipt;
       v.state_origin=std::move(origin);
       if(reserved_packet)candidate->origin=v.state_origin;
       v.connected = true;
@@ -3050,15 +3854,59 @@ void LanClient::receive() {
         if(!v.admission_hello.empty())v.udp.send(admission_envelope(v.admission_hello,v.admission),v.host);
         continue;
       }
-      if (type == reject && !v.connected) {
+      if (type == reject && !v.connected && authenticated) {
         v.error.assign(reinterpret_cast<const char *>(p.data() + r.at),
                        p.size() - r.at);
+        continue;
+      }
+      if(type==system_link_publication) {
+        if(!authenticated)continue;const auto link_cookie=r.get(8);
+        const auto revision=std::uint32_t(r.get(4));const auto index=unsigned(r.get(2)),count=unsigned(r.get(2)),total=unsigned(r.get(4));
+        const auto views=unsigned(r.get(1));std::vector<unsigned> assigned;
+        for(unsigned i=0;i<4;++i){const auto id=unsigned(r.get(1));if(i<views){if(id>=16 || std::ranges::find(assigned,id)!=assigned.end())throw FormatError("Invalid System Link local seat");assigned.push_back(id);}else if(id!=255)throw FormatError("Invalid unused System Link seat");}
+        if(views!=v.count || (v.connected && assigned!=v.ids))throw FormatError("System Link changed native couch ownership");
+        if(v.link && !newer(revision,v.link->revision)) {
+          if(revision==v.link->revision)v.last=Clock::now();
+          continue;
+        }
+        if(!total || total>link_limit || !count || count!=(total+link_chunk-1)/link_chunk || index>=count ||
+            p.size()-r.at!=std::min(link_chunk,total-index*link_chunk))throw FormatError("Invalid System Link control fragment");
+        if(v.link_assembly && revision!=v.link_assembling && !newer(revision,v.link_assembling))continue;
+        if(!v.link_assembly || revision!=v.link_assembling) {
+          v.link_assembly.emplace();v.link_assembling=revision;v.link_assembly->total=total;v.link_assembly->count=count;v.link_assembly->cookie=link_cookie;
+        }
+        auto& a=*v.link_assembly;
+        if(a.total!=total || a.count!=count || a.cookie!=link_cookie)throw FormatError("Conflicting System Link control extent");
+        const Packet bytes(p.begin()+r.at,p.end());
+        if(const auto old=a.fragments.find(index);old!=a.fragments.end()) {
+          if(old->second!=bytes)throw FormatError("Conflicting System Link control fragment");
+          continue;
+        }
+        a.fragments.emplace(index,bytes);v.last=Clock::now();
+        if(++a.received!=count)continue;
+        Packet body;body.reserve(total);for(const auto& [i,part]:a.fragments)body.insert(body.end(),part.begin(),part.end());
+        auto next=decode_link_state(body,revision);v.link_assembly.reset();
+        for(unsigned i=0;i<assigned.size();++i) {
+          const auto row=std::ranges::find(next.roster,assigned[i],&OnlineAdmission::slot);
+          if(row==next.roster.end() || row->peer!=assigned.front() || next.profiles[assigned[i]]!=v.profiles[i])throw FormatError("System Link admission differs from actual local profiles");
+        }
+        if(v.cookie && link_cookie!=v.cookie && !(v.link && next.generation==v.link->generation+1 && next.phase==SystemLinkPhase::starting))throw FormatError("System Link changed its cookie outside a new world");
+        if(!v.connected && !v.link && next.phase!=SystemLinkPhase::lobby)throw FormatError("Unconnected System Link client received no lobby admission");
+        if(v.link && (next.generation<v.link->generation || next.generation>v.link->generation+1))throw FormatError("System Link control skipped its world generation");
+        // Identity and slot ownership are immutable across retained matches.
+        if(v.link)for(const auto& row:next.roster) {
+          const auto old=std::ranges::find(v.link->roster,row.slot,&OnlineAdmission::slot);
+          if(old!=v.link->roster.end() && (v.link->active_players&(1u<<row.slot)) && (old->identity!=row.identity || old->peer!=row.peer || old->name!=row.name))
+            throw FormatError("System Link changed a retained participant identity");
+        }
+        v.cookie=link_cookie;v.ids=std::move(assigned);v.link=std::move(next);
+        if(v.link->phase!=SystemLinkPhase::reviewing)v.link_ack=revision;
         continue;
       }
       if(type==snapshot_delta) {
         if(!authenticated)continue;
         const auto cookie=r.get(8);
-        if(v.connected&&cookie!=v.cookie)continue;
+        if(v.cookie&&cookie!=v.cookie)continue;
         if(snapshot_candidate_live(candidate)&&candidate->fenced){v.last=Clock::now();continue;}
         bool failed{};
         auto delivered=v.stream->push(std::span<const std::byte>(p).subspan(r.at),stream_milliseconds(),failed);
@@ -3079,7 +3927,7 @@ void LanClient::receive() {
       const auto cookie = r.get(8);
       const auto sequence=std::uint32_t(r.get(4));
       const auto index=unsigned(r.get(2)), fragments=unsigned(r.get(2)), total=unsigned(r.get(4));
-      if ((v.connected && (cookie != v.cookie || (!v.rebound_tick&&!newer(sequence,v.snapshot_sequence)))))
+      if ((v.cookie && cookie!=v.cookie) || (v.connected && !v.rebound_tick&&!newer(sequence,v.snapshot_sequence)))
         continue;
       if(!total || total>snapshot_limit || !fragments ||
           fragments!=(total+snapshot_chunk-1)/snapshot_chunk || index>=fragments ||
@@ -3138,11 +3986,36 @@ void LanClient::receive() {
       if(reserved_packet)reject_snapshot_candidate(candidate);
     }
   }
+  if(v.link) {
+    auto ack=header(system_link_ack);put(ack,v.nonce,8);put(ack,v.cookie,8);put(ack,v.link_ack,4);
+    v.udp.send(v.authentication.seal(ack,v.authenticated_session,false),v.host);
+  }
   if(!reserved.empty()&&!candidate->origin.tick())reject_snapshot_candidate(candidate);
-  if ((v.connected || v.started) && Clock::now() - (v.connected ? v.last : *v.started) >
+  // A world-free lobby admission is a live authenticated connection too.
+  // Its publications/acknowledgements keep the room alive without supplying
+  // a gameplay snapshot or restarting the original admission deadline.
+  if ((v.connected || v.link || v.started) && Clock::now() - ((v.connected || v.link) ? v.last : *v.started) >
           std::chrono::seconds(10) &&
       v.error.empty())
-    v.error = v.connected ? "LAN host disconnected" : "LAN host did not answer";
+    v.error = (v.connected || v.link) ? "LAN host disconnected" : "LAN host did not answer";
+}
+const SystemLinkState* LanClient::system_link_state() const {return impl_->link?&*impl_->link:nullptr;}
+void LanClient::confirm_system_link_results() {
+  auto& v=*impl_;
+  if(!v.link || v.link->phase!=SystemLinkPhase::reviewing)throw FormatError("No native System Link result to confirm");
+  online_postgame_validate(v.state,v.link->variant,v.link->roster,v.link->report);v.link_ack=v.link->revision;
+}
+void LanClient::service_system_link_lobby() {
+  if(!impl_->link){std::array<Controls,4> neutral{};send(std::span(neutral).first(impl_->count));}
+  receive();
+}
+void LanClient::resume_system_link_world() {
+  auto& v=*impl_;
+  if(!v.link || v.link->phase!=SystemLinkPhase::starting)throw FormatError("System Link client has no new host Start");
+  v.fingerprint=v.link->fingerprint;v.state={};v.received_states.clear();v.received_origins.clear();v.received_inputs.clear();v.state_origin={};
+  v.connected=false;v.started.reset();v.attempts=0;v.sequence=0;v.snapshot_sequence=0;v.assemblies.clear();
+  v.stream=std::make_unique<SnapshotStreamReceiver>(delta_chunk);v.presses={};v.held={};
+  v.active_interactions={};v.completed_interactions={};v.completed_vehicle={};v.latest_input.clear();v.error.clear();
 }
 bool LanClient::ready() const { return impl_->connected; }
 std::uint64_t LanClient::rejected_packet_count()const{return impl_->rejected_packets;}
@@ -3174,6 +4047,9 @@ std::optional<std::uint32_t> MultiplayerSnapshotOrigin::tick()const noexcept {
 }
 std::optional<std::uint32_t> MultiplayerSnapshotOrigin::sequence()const noexcept {
   return data_?std::optional<std::uint32_t>(data_->stamp.sequence):std::nullopt;
+}
+std::uint32_t MultiplayerSnapshotOrigin::encoded_body_bytes()const noexcept {
+  return data_?data_->stamp.bytes:0;
 }
 std::optional<AuthorityTransferContext> MultiplayerSnapshotOrigin::context()const noexcept {
   return data_?data_->context:std::nullopt;

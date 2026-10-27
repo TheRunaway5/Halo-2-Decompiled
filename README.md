@@ -119,8 +119,9 @@ libopus, libvorbis, libogg, and FFmpeg development libraries (`libavcodec`, `lib
 decoding. Runtime rendering requires a Vulkan-capable GPU. The launcher setup
 and home windows also require Python Tk; `python3 -m tkinter` checks it.
 
-From a clone, run `./build-linux.sh`. It finds the repository from the script's
-location and supports paths containing spaces, so it can also be invoked from
+From a Linux x86_64 clone, run `./build-linux.sh`. The default desktop profile builds both
+Linux and native Windows x86_64 executables using the same Vulkan renderer. It finds the repository from the
+script's location and supports paths containing spaces, so it can also be invoked from
 another working directory. Set `HALO2_BUILD_DIR` to choose a build directory,
 `HALO2_PYTHON` to choose Python, and `CMAKE_BUILD_PARALLEL_LEVEL` to limit jobs:
 
@@ -128,20 +129,39 @@ another working directory. Set `HALO2_BUILD_DIR` to choose a build directory,
 CMAKE_BUILD_PARALLEL_LEVEL=4 ./build-linux.sh
 ```
 
+Use `--platform linux` or `--platform windows` for a single platform. Windows
+cross-builds require the MinGW-w64 cross toolchain, rustup and zstd. They use
+a pinned SDK prepared automatically under
+`.tools/windows-sdk/mingw64`; `HALO2_WINDOWS_SDK` and
+`HALO2_WINDOWS_BUILD_DIR` override its SDK and build directories. The desktop
+CMake profile is also available as `cmake --preset desktop` followed by
+`cmake --build --preset desktop`. Ordinary default Linux CMake builds include
+`halo2_windows`; use `-DHALO2_BUILD_WINDOWS=OFF` for a single-platform build.
+
 Successful links copy the latest local binaries and a hash manifest to
-`dist/builds/linux-x86_64/`; the original build tree and compiled shader bindings
-are retained. This folder contains local build outputs. Downloadable releases
+`dist/builds/linux-x86_64/` and `dist/builds/windows-x86_64/`; the original build
+trees and compiled shader bindings are retained. This folder contains local build outputs. Downloadable releases
 require the separate relocatable package and published release manifest.
-Linux arm64 and Windows x86_64/arm64 output staging are skipped until those
-targets are supported. The [macOS port checklist](docs/MACOS_PORT.md) documents
+The Windows folder also contains the executable's transitive runtime DLLs,
+compiled Vulkan shaders, small tag catalogs and `windows-package.json` with
+source paths and hashes. Run `Run-Halo2.cmd` with the engine's normal arguments
+and a separately prepared MCC cache. A Vulkan-capable Windows graphics driver
+is required. The EOS online SDK also requires the
+[Microsoft Visual C++ v14 x64 Redistributable](https://aka.ms/vc14/vc_redist.x64.exe);
+its required DLLs are listed in the package manifest. Windows launcher setup still requires Windows Python and the
+source setup resources; the portable engine can run directly. The profile
+installs the pinned Rust Windows standard library through rustup automatically.
+Linux arm64 and Windows arm64 output staging remain unsupported. The [macOS port checklist](docs/MACOS_PORT.md) documents
 the universal arm64+x86_64 build and bundled MoltenVK graphics bring-up;
 the playable macOS engine remains in progress. Disposable validation disables staging.
 See [binary builds and updates](docs/BINARY_UPDATES.md) for the output layout
 and release manifest used by the launcher's Update button.
+See [native Windows Vulkan builds](docs/WINDOWS_PORT.md) for startup checks and
+the Windows validation scope.
 
 ```bash
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
-cmake --build build --target halo2_launcher halo2_title_launcher -j
+cmake --preset desktop
+cmake --build --preset desktop -j
 python3 tools/install_launcher.py --build build --desktop
 python3 tools/install_launcher.py --build build --title-first --desktop
 ./Halo2-Launcher --launcher-info
@@ -165,10 +185,13 @@ retains its runtime, resources, source hashes and bounded qualification report
 under `bin/engine-builds/`. This establishes build/routing and startup coverage;
 full gameplay, menu, visual and audio acceptance remain separate.
 
-MCC imports are the sole runtime asset source, including UI, fonts, prompts,
-loading audio and movies. Earlier exceptions for supplied movies, custom prompt
-atlases and the original loading tone are superseded. Preserve those files as
-references; normal MCC setup and packages do not require or select them.
+MCC imports supply the stock runtime assets, fonts, loading audio and movies.
+Builds and onboarding packages also include the port's custom button maps,
+UI masters, compiled custom maps and game modes. Celestial rank icons use the
+existing custom moon/comet/Halo-ring artwork; ordinary ranks retain their MCC
+owner. See [asset setup](docs/ASSET_SETUP.md) for the shared inventory and delivery
+boundaries. Earlier supplied-movie and original-loading-tone exceptions remain
+superseded; those files are preserved as references.
 The separate upscaled intro/credits remain optional Git LFS reference assets,
 not an MCC setup prerequisite. Fresh builds default to
 `-DHALO2_BUNDLE_MOVIES=OFF`. No authentic MCC source is assigned to the Classic
@@ -260,6 +283,8 @@ under `analysis/`. See [pinned research and provenance](docs/RESEARCH.md) and
 | --- | --- |
 | `src/`, `include/halo2/` | [Native implementation grouped by subsystem](src/README.md) and public interfaces |
 | `shaders/` | GLSL renderer shaders |
+| `shaders/path_tracing/` | Optional Path Tracing shading and BVH ray traversal |
+| `src/rendering/path_tracing/` | [RT scene, material, light and resource owners](src/rendering/path_tracing/README.md) |
 | `tools/` | Setup, extraction, decompilation, audits and launcher tools |
 | `tests/`, `cmake/` | Test sources, fixture guides and build configuration |
 | `multiplayer/` | Master server, online services and their documentation |

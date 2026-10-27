@@ -104,7 +104,8 @@ class ContinuityHttpTests(unittest.IsolatedAsyncioTestCase):
             "SELECT policy,admitted_connections,confirming_connections,departed_slots,authority_epoch "
             "FROM match_result_consensus WHERE match=?", (room.id,)).fetchone()
         self.assertIsNone(row)
-        self.assertEqual(room.phase, "reviewing")
+        self.assertEqual(room.phase, "postgame")
+        self.assertFalse(room.result_recorded)
         self.assertEqual(self.api.directory.store.db.execute(
             "SELECT count(*) FROM match_results WHERE id=?", (room.id,)).fetchone()[0], 0)
         self.assertEqual(self.api.directory.store.db.execute(
@@ -234,7 +235,8 @@ class ContinuityHttpTests(unittest.IsolatedAsyncioTestCase):
         async with asyncio.timeout(3):
             while owner not in room.confirmations:
                 await asyncio.sleep(.005)
-        self.assertEqual(room.phase, "reviewing")
+        self.assertEqual(room.phase, "postgame")
+        self.assertFalse(room.result_recorded)
         self.assertEqual(self.api.directory.store.db.execute(
             "SELECT count(*) FROM match_results WHERE id=?", (room.id,)).fetchone()[0], 0)
 

@@ -1,0 +1,1063 @@
+{
+  "schema": "H2_MCC_NATIVE_WORLD_ANIMATED_PROFILES_V1",
+  "scope": "Three finite authenticated clock-only material profiles; exact original programs and literal authored MCC curve/period variants; no shader interpretation",
+  "paired_source_report": {
+    "path": "analysis/native-renderer-all-20261025/pc-world-raw-paired-cooked-banks.json.xz",
+    "sha256": "278d567fdc1503c9fc690263ed984f0fb3be22b5d97e343378d47ee2791fff02",
+    "decoded_sha256": "45fab49fbc303dcaf7b3da8328d98b00c6f39782bde8ce9b522ed583869a32f0"
+  },
+  "animation_source_report": {
+    "path": "analysis/native-renderer-all-20261025/pc-animated-world-source-graphs.json.xz",
+    "sha256": "e6fc9587b750a37bc8bde4ad66601b07aabd8f7a55b3af99bd6d9b3e83f5562e",
+    "decoded_sha256": "3c351de0a95d289b87ba95a075cad81ab025537cde5d61b71947308f26988c01"
+  },
+  "function_tables_sha256": "1261274f49fbf8f8fd36e9a56f9b7a701a2bad1c5d84be168c69826a62484118",
+  "source_map_sha256": {
+    "needle": "bdf79ad0880e0ded968745bc102dcadaeb2ac690dd0eab42eb994f6f4f1d5fb7",
+    "lockout": "8141212c439bbf559963ae9c4323d573fa4f8d3d44bc99d5923d509358a9d6ee",
+    "coagulation": "2bb23227c845c14d80360a67cff42588344adad9529af47e04d34703db623b19",
+    "dune": "5ea54b1f229f3bde277320c2308fc3bf85ed813aad8a4a653699a136e5d0db3b",
+    "zanzibar": "01311e3a20af3ad4638471bd68ff505f64525397950d92bb2417697da41c67d3"
+  },
+  "profiles": [
+    {
+      "template": "shaders\\shader_templates\\transparent\\plasma_alpha",
+      "source_graph_sha256": "9b524a1618876c6d638464e70f600eb1fd21032878dae06a3b88ee7c4578350e",
+      "source_graph": {
+        "root_hex": "000000000000000000000000010000000000000000000000000000000000000074696c73ffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+        "source_root_counts": {
+          "0": 0,
+          "16": 0,
+          "24": 0,
+          "40": 0,
+          "48": 0,
+          "56": 0
+        },
+        "definitions": [
+          {
+            "definition_hex": "01000000000000001900000000000000010000000000000001000000000000000f00000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 1,
+                "raw_hex": "00320080000000000000",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 25,
+                "raw_hex": "0000000000000000000000000000000000000000000000000000000000000002010001000100010001000100010001000100",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 1,
+                "raw_hex": "73617073000000000002",
+                "typed_references": [
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\plasma\\plasma_alpha"
+                  ]
+                ]
+              },
+              {
+                "field": 24,
+                "count": 1,
+                "raw_hex": "000603080710",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 15,
+                "raw_hex": "00000000010000010200000282000000830000016400000285000003d2010000f3010001d4050002f5050003d6090004f70900056b1c00066a1c0007",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          }
+        ]
+      },
+      "source_counts": {
+        "4": 3,
+        "12": 4,
+        "20": 8,
+        "28": 1,
+        "36": 25,
+        "44": 1,
+        "52": 1,
+        "60": 20,
+        "68": 20,
+        "76": 2,
+        "84": 6,
+        "92": 5,
+        "100": 2,
+        "108": 6
+      },
+      "shader_type_flags": 5,
+      "runtime_diffuse_slot": 0,
+      "native_source_map": "dune",
+      "native_library_canonical_sha256": "d4ba6bf2e48b7f27be3059b7eb90dd8ca12e093330450d44dafcb4b0f66f56e8",
+      "native_record": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\transparent\\plasma_alpha",
+        "bytes": 284,
+        "payload": "18336a3526a0a6681fdf33e5c52b5bb38b8d7b12de0c8a757c4286ce4812de5b.bin",
+        "fnv64": "7927a8ebc7efa486",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            148
+          ],
+          [
+            116,
+            200
+          ],
+          [
+            124,
+            212
+          ],
+          [
+            132,
+            224
+          ]
+        ],
+        "references": [
+          [
+            204,
+            [
+              "spas",
+              "shaders\\shader_passes\\plasma\\plasma_alpha"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "native_shape": {
+        "0": 1,
+        "8": 25,
+        "16": 1,
+        "24": 1,
+        "32": 15
+      },
+      "native_role_banks": {
+        "52": "04040400040000000008",
+        "68": "000004000100010002000200030000000400030005000500060006000700070008000800090009000a0005000b0001000c0002000d0000000e0003000f00040010000600110007001200080013000900",
+        "76": "00140a14",
+        "84": "d2010000f3010000d4050001f50500010000000001000001",
+        "92": "00000000ffffffffffffffffffffffffffffffff"
+      },
+      "clock_overlays": [
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1090519040
+          ],
+          "curve_hex": "02000000000000000000803f0000000000000000000000000000803f000000000000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "010000000000803f0000803f00000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000400000803f00000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "010000000000803f0000803f00000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "010000000000803f0000803f00000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1086324736
+          ],
+          "curve_hex": "02000000000000000000803f0000000000000000000000000000803f000000000000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000040400000803f00000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000040400000803f00000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "010000000000803f0000803f00000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "010000000000803f0000803f00000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        }
+      ],
+      "needed_PC_owners": [
+        {
+          "map": "needle",
+          "shader": "scenarios\\shaders\\multi\\needle\\grav_lift",
+          "datum": 4164485313
+        },
+        {
+          "map": "needle",
+          "shader": "scenarios\\shaders\\multi\\needle\\grav_lift_lit",
+          "datum": 4164747461
+        }
+      ],
+      "paired_proof": {
+        "exact_required_role_banks": true,
+        "exact_required_curves": true,
+        "native_curve_authority": {
+          "map": "lockout",
+          "shader": "scenarios\\shaders\\multi\\lockout\\grav_lift",
+          "payload": "75d6d963ef69b24ecfdb4ee076ab232e61d94b5413a7e5af2fc896e15eb00965.bin"
+        },
+        "literal_clock_input": 0,
+        "literal_clock_range": 0,
+        "authored_periods_retained": true,
+        "typed_closure_report": "analysis/native-renderer-all-20261025/pc-animated-world-native-role-closure.json"
+      }
+    },
+    {
+      "template": "shaders\\shader_templates\\transparent\\two_alpha_clouds",
+      "source_graph_sha256": "8c4d7cbd0f2809967a818d694d96ae546f41d57ea31122922d12fa2f4bbcbf9b",
+      "source_graph": {
+        "root_hex": "0000000000000000000000000100000000000000000000000000000000000000ffffffffffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+        "source_root_counts": {
+          "0": 0,
+          "16": 0,
+          "24": 0,
+          "40": 0,
+          "48": 0,
+          "56": 0
+        },
+        "definitions": [
+          {
+            "definition_hex": "01000000000000001900000000000000010000000000000001000000000000000600000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 1,
+                "raw_hex": "00320080000000000000",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 25,
+                "raw_hex": "0000000000000000000000000000000000000000000000000000000000000002010001000100010001000100010001000100",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 1,
+                "raw_hex": "73617073000000000002",
+                "typed_references": [
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\transparent\\clouds_simple_transparent"
+                  ]
+                ]
+              },
+              {
+                "field": 24,
+                "count": 1,
+                "raw_hex": "000402000208",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 6,
+                "raw_hex": "0000000101000000d4050000f5050001d2010002f3010003",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          }
+        ]
+      },
+      "source_counts": {
+        "4": 3,
+        "12": 0,
+        "20": 4,
+        "28": 1,
+        "36": 25,
+        "44": 1,
+        "52": 1,
+        "60": 10,
+        "68": 10,
+        "76": 1,
+        "84": 3,
+        "92": 5,
+        "100": 2,
+        "108": 6
+      },
+      "shader_type_flags": 5,
+      "runtime_diffuse_slot": -1,
+      "native_source_map": "dune",
+      "native_library_canonical_sha256": "d4ba6bf2e48b7f27be3059b7eb90dd8ca12e093330450d44dafcb4b0f66f56e8",
+      "native_record": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\transparent\\two_alpha_clouds",
+        "bytes": 280,
+        "payload": "87f9c1a6979697e8609e1b48fcaf9911fa8c49d0f5ea2e26d0a3b372a4f84743.bin",
+        "fnv64": "8829d50d39810622",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            160
+          ],
+          [
+            108,
+            176
+          ],
+          [
+            116,
+            136
+          ],
+          [
+            124,
+            240
+          ],
+          [
+            132,
+            256
+          ]
+        ],
+        "references": [
+          [
+            140,
+            [
+              "spas",
+              "shaders\\shader_passes\\transparent\\clouds_simple_transparent"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "native_shape": {
+        "0": 1,
+        "8": 25,
+        "16": 1,
+        "24": 1,
+        "32": 6
+      },
+      "native_role_banks": {
+        "52": "02020200020000000004",
+        "68": "00000400010001000200020003000000040003000500050006000600070007000800080009000900",
+        "76": "0014",
+        "84": "d4050000f505000001000000",
+        "92": "ffffffffffffffffffffffff0200ffffffffffff"
+      },
+      "clock_overlays": [
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1101004800,
+            1103626240,
+            1106247680
+          ],
+          "curve_hex": "04000000000000000000803f000000000000000000000000000000000000803f0000803f0000803f00000000000000000000803f0000803f0000803f000000000000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "010000000000803f0000803f00000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000400000803f00000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "010000000000803f0000803f00000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "010000000000803f0000803f00000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        }
+      ],
+      "needed_PC_owners": [
+        {
+          "map": "needle",
+          "shader": "scenarios\\shaders\\multi\\needle\\waves_shoreline_edge_fade",
+          "datum": 4164812998
+        },
+        {
+          "map": "needle",
+          "shader": "scenarios\\shaders\\multi\\needle\\waves_shoreline",
+          "datum": 4165206220
+        },
+        {
+          "map": "needle",
+          "shader": "scenarios\\shaders\\multi\\needle\\waves_strong_edge_fade",
+          "datum": 4165337294
+        },
+        {
+          "map": "needle",
+          "shader": "scenarios\\shaders\\multi\\needle\\waves_strong",
+          "datum": 4165533905
+        },
+        {
+          "map": "needle",
+          "shader": "scenarios\\shaders\\multi\\needle\\waves_weak_edge_fade",
+          "datum": 4165664979
+        }
+      ],
+      "paired_proof": {
+        "exact_required_role_banks": true,
+        "exact_required_curves": true,
+        "native_curve_authority": {
+          "map": "dune",
+          "shader": "scenarios\\shaders\\multi\\dune\\dune_waves",
+          "payload": "0be9e1a66f9b05ecc150db1267d8ad13e3598171a2cc37b85d0304959b619335.bin"
+        },
+        "literal_clock_input": 0,
+        "literal_clock_range": 0,
+        "authored_periods_retained": true,
+        "typed_closure_report": "analysis/native-renderer-all-20261025/pc-animated-world-native-role-closure.json"
+      }
+    },
+    {
+      "template": "shaders\\shader_templates\\water\\water_static",
+      "source_graph_sha256": "aa6edb3a9e5b19c266afc72792107e4f2548c00c9f4ab9b5594b8a72b45d975c",
+      "source_graph": {
+        "root_hex": "000000000000000000000000010000000000000000000000000000000000000074696c73ffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+        "source_root_counts": {
+          "0": 0,
+          "16": 0,
+          "24": 0,
+          "40": 0,
+          "48": 0,
+          "56": 0
+        },
+        "definitions": [
+          {
+            "definition_hex": "01000000000000001900000000000000010000000000000001000000000000000300000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 1,
+                "raw_hex": "00320800000000000000",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 25,
+                "raw_hex": "0000000000000002010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 1,
+                "raw_hex": "73617073000000000002",
+                "typed_references": [
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\water\\water_static"
+                  ]
+                ]
+              },
+              {
+                "field": 24,
+                "count": 1,
+                "raw_hex": "000402000202",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 3,
+                "raw_hex": "0000000001000003b2010000",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          }
+        ]
+      },
+      "source_counts": {
+        "4": 4,
+        "12": 0,
+        "20": 1,
+        "28": 1,
+        "36": 25,
+        "44": 1,
+        "52": 1,
+        "60": 10,
+        "68": 10,
+        "76": 1,
+        "84": 2,
+        "92": 5,
+        "100": 2,
+        "108": 6
+      },
+      "shader_type_flags": 65537,
+      "runtime_diffuse_slot": -1,
+      "native_source_map": "zanzibar",
+      "native_library_canonical_sha256": "836dc371006640ddaf22b931904c88ee1a9602702fa69c9216b72100ac6cdb84",
+      "native_record": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\water\\water_static",
+        "bytes": 242,
+        "payload": "30cec8f7c7ea6312d9598b318c88f339169e4f0e8f97065d15479590d763f2d3.bin",
+        "fnv64": "80f1563a52f4bd01",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            176
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            136
+          ],
+          [
+            124,
+            148
+          ],
+          [
+            132,
+            156
+          ]
+        ],
+        "references": [
+          [
+            140,
+            [
+              "spas",
+              "shaders\\shader_passes\\water\\water_static"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "native_shape": {
+        "0": 1,
+        "8": 25,
+        "16": 1,
+        "24": 1,
+        "32": 3
+      },
+      "native_role_banks": {
+        "52": "01020100010000000002",
+        "68": "00000000010001000200040003000200040005000500030006000600070007000800080009000900",
+        "76": "0014",
+        "84": "b201000000000000",
+        "92": "ffffffffffffffffffffffffffffffffffffffff"
+      },
+      "clock_overlays": [
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1056964608,
+            1062836634
+          ],
+          "curve_hex": "0000060000000000000088410000000000000000"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000cdcc4c3e0000803f00000000000000000000803f0000803f",
+          "curve_hex_variants": [
+            "01000000cdcc4c3e0000803f00000000000000000000803f0000803f",
+            "01000000cdcccc3d0000803f00000000000000000000803f0000803f"
+          ]
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "010000000000003f0000803f00000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000cdcc4c3e0000803f00000000000000000000803f0000803f",
+          "curve_hex_variants": [
+            "01000000cdcc4c3e0000803f00000000000000000000803f0000803f",
+            "01000000cdcccc3d0000803f00000000000000000000803f0000803f"
+          ]
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "010000000000003f0000803f00000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "010000000000803f0000803f00000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        }
+      ],
+      "needed_PC_owners": [
+        {
+          "map": "needle",
+          "shader": "scenarios\\shaders\\multi\\needle\\water_static",
+          "datum": 4166451423
+        }
+      ],
+      "paired_proof": {
+        "exact_required_role_banks": true,
+        "exact_required_curves": true,
+        "native_curve_authority": {
+          "map": "zanzibar",
+          "shader": "scenarios\\shaders\\multi\\zanzibar\\water_static",
+          "payload": "c30dd0f9e132b27d3f039a97cd3a79a64cd5f67b05696f62ecfbf9b85886a6b4.bin"
+        },
+        "literal_clock_input": 0,
+        "literal_clock_range": 0,
+        "authored_periods_retained": true,
+        "typed_closure_report": "analysis/native-renderer-all-20261025/uplift-water-source-authority.json.xz"
+      }
+    }
+  ],
+  "water_source_report": {
+    "path": "analysis/native-renderer-all-20261025/uplift-water-paired-source-evidence.json.xz",
+    "sha256": "f2aaef0cf4cbb60d29bad503c4c3868b76f628fd734919a42247abe33a945a50",
+    "decoded_sha256": "d3b26d761f34820595702b36e2a80855f4f5b8abb1bd0877bf8ee72ae48feb2a"
+  }
+}

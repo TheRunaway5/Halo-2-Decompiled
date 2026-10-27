@@ -12,6 +12,8 @@ struct MenuWorldVertexSource {
   // MAC opcodes retain their existing VertexProgram values; ILU operations
   // use 16+opcode. These are actual emitted static calls, including repeated
   // output/temporary writes, rather than a count of instruction slots.
+  // The explicit ABI4 renderer corridor records each computed MAC/ILU result
+  // once; its arithmetic can use statements instead of helper calls.
   std::vector<unsigned> helper_operations;
 };
 // Independently implemented from this project's existing MIT vertex decoder
@@ -26,9 +28,14 @@ MenuWorldVertexSource menu_world_skinned_vertex_source(const VertexProgram &);
 // Explicit constant-attribute corridor. V10/V11 are supplied by the selected
 // material's separate attribute bank, never by an invented geometry stream.
 MenuWorldVertexSource menu_world_material_vertex_source(const VertexProgram &,bool skinned);
-// XYZW read masks (bits0..3), including instruction masks and operand swizzles.
-// Used to reject material packets whose consumed lanes were never supplied.
+// Explicit renderer arithmetic corridor. All operands snapshot the previous
+// token state before paired MAC/ILU results or output aliases are committed.
+// The existing title/material emitters retain their ABI2/3 source unchanged.
+MenuWorldVertexSource menu_world_renderer_vertex_source(const VertexProgram &,bool skinned);
+// Build-time XYZW read masks (bits0..3), including masks and operand swizzles.
+// Runtime packets use the immutable catalog metadata, not these analyzers.
 std::array<std::uint8_t,16> menu_world_vertex_input_components(const VertexProgram &,bool skinned);
+std::array<std::uint8_t,16> menu_world_renderer_vertex_input_components(const VertexProgram &,bool skinned);
 // Bits0..3 identify texture outputs whose W is never written by an already
 // admitted straight-line program. Original output initialization leaves these
 // lanes exactly1; preserve that constant through the fragment interface rather

@@ -32,7 +32,7 @@ int main(int argc,char **argv)try {
   const auto defaults=source_default_player_configuration();std::array<std::uint8_t,9> appearance;
   std::copy_n(defaults.begin()+0x40,appearance.size(),appearance.begin());
   const std::array<SourcePlayerConfiguration,1> profile{native_selected_player_configuration("Remote",appearance,-1)};
-  LanClient client("127.0.0.1:"+std::to_string(host.port()),fingerprint,1,{},profile);
+  LanClient client(host.join_address(),fingerprint,1,{},profile);
   std::array<Controls,16> controls{};Controls remote{};
   const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(8);
   while(!client.ready()&&std::chrono::steady_clock::now()<deadline) {

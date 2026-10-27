@@ -16,7 +16,7 @@ struct ControllerInput {
   float forward{}, right{}, look_yaw{}, look_pitch{};
   bool jump{}, crouch{}, fire{}, secondary{}, grenade{}, switch_weapon{},
       reload{}, pickup{}, dual_wield{}, melee{}, zoom{}, flashlight{},
-      switch_grenade{}, accept{}, cancel{};
+      switch_grenade{}, accept{}, cancel{}, scoreboard{};
 };
 struct AutoCenterState {
   unsigned moving_ticks{};

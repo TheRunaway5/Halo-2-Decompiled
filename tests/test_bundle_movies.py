@@ -23,6 +23,10 @@ from test_mcc_movies import bundle_fixture
 from test_mcc_prompts import prompt_fixture
 from test_mcc_ui_layout import layout_fixture
 from native_variant_test_support import variant_fixture
+from custom_ui_test_support import custom_ui_fixture
+from custom_loading_test_support import custom_loading_fixture, permitted_source_policy_fixture
+from test_controller_prompt_assets import controller_prompt_fixture
+from test_custom_map_assets import custom_map_fixture
 
 
 class ReleaseMoviesTest(unittest.TestCase):
@@ -88,6 +92,11 @@ class PreviewPackageMoviesTest(unittest.TestCase):
         self.source = self.root / "port"
         self.source.mkdir()
         variant_fixture(self.source)
+        custom_ui_fixture(self.source)
+        controller_prompt_fixture(self.source)
+        custom_map_fixture(self.source)
+        custom_loading_fixture(self.source)
+        permitted_source_policy_fixture(self.source)
         # Preflight-only executable: these publication fixtures never execute
         # it or claim decoder/media qualification. The codebook keeps its real
         # fixed source identity; no original loading tone is a default input.
@@ -174,7 +183,7 @@ class PreviewPackageMoviesTest(unittest.TestCase):
         from test_controller_prompt_assets import controller_prompt_fixture
         controller_prompt_fixture(self.source)
         tools = self.source / 'tools/data'
-        tools.mkdir(parents=True)
+        tools.mkdir(parents=True, exist_ok=True)
         (tools / 'fixture.txt').write_bytes(b'unchanged tool data')
         decoder_tools = self.source / 'tools/macos'
         decoder_tools.mkdir()
@@ -255,6 +264,12 @@ class PreviewPackageMoviesTest(unittest.TestCase):
                         self.assertEqual(payload, (self.source / name).read_bytes())
                         self.assertEqual(hashlib.sha256(payload).hexdigest(), row['sha256'])
                     self.assertIn('data/tags/variants/bomb-defusal-v1.json', manifest['bundled_native_variants']['files'])
+                    self.assertEqual(set(manifest['bundled_custom_assets']['groups']), {
+                        'native_variants', 'controller_prompts', 'custom_ui', 'custom_maps', 'custom_loading',
+                        'permitted_source_policies'})
+                    for name, row in manifest['bundled_custom_assets']['files'].items():
+                        payload = archive.read(prefix + name)
+                        self.assertEqual(hashlib.sha256(payload).hexdigest(), row['sha256'])
                     readme = archive.read(prefix + 'README.txt').decode()
                     for name in ('__init__.py', 'loading_converter.py'):
                         self.assertEqual(archive.read(prefix + 'tools/macos/' + name),
@@ -395,7 +410,7 @@ class PreviewPackageMoviesTest(unittest.TestCase):
             stage.mkdir()
             decoder = preview_package.converter_dependencies(root)
             decoder_files = {decoder[role]["path"] for role in ("converter", "codebook")}
-            decoder_files.update(preview_package.variant_sources(root))
+            decoder_files.update(preview_package.custom_asset_inventory(root))
             for name in decoder_files:
                 preview_package.copy(root / name, stage / name)
             with zipfile.ZipFile(pending, "x", allowZip64=True) as archive:

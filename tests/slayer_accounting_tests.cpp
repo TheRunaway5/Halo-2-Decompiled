@@ -36,7 +36,7 @@ struct Observer {
   LanClient client;
   explicit Observer(MultiplayerMatch &match)
       : host(match, 0, 0x15ce00),
-        client("127.0.0.1:" + std::to_string(host.port()), 0x15ce00, 1) {
+        client(host.join_address(), 0x15ce00, 1) {
     std::array<Controls, 1> local{};
     std::array<Controls, multiplayer_capacity> controls{};
     for (unsigned n = 0; n < 64 && !client.ready(); ++n) {

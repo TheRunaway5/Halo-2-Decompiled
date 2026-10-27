@@ -16,8 +16,10 @@ from pathlib import Path, PurePosixPath
 import plistlib
 import shutil
 import stat
+import struct
 import subprocess
 import sys
+import zlib
 
 if sys.version_info < (3, 9):
     raise RuntimeError('The Deserted installer requires Python 3.9 or newer')
@@ -62,6 +64,17 @@ file, preserving exports, collision authoring, static wreck source and review
 receipts stay outside runtime content. No engine or base MCC installation is
 included. Final native execution on macOS is a separate platform check from
 the retained native review on the authoring machine.
+
+If this bundle includes the reviewed map-selection presentation, open the
+existing native menu with Deserted's screenshot and description:
+
+    python3 install_deserted.py launch-menu --destination "/Users/you/Documents/Deserted-play" --app "/path/to/Halo2Native.app"
+
+The private menu uses exact local MCC resources. Its small catalog patch and
+preview tail are reconstructed separately from gameplay content. Immutable
+resources and the scenario filename alias use regular hardlinks when available;
+the menu texture bank is a fresh private copy. The launch command above remains
+the unlimited-time Fiesta walkaround.
 '''
 
 
@@ -161,9 +174,9 @@ def _base_file(name):
     return name.startswith(SHARED + '/') or name.startswith('halo2/h2_fonts/')
 
 
-def _closure(content, pins):
+def _closure(content, pins, *, map_name=MAP, metadata=METADATA):
     """Check actual indexed map and complete bank payload files, not only names."""
-    for name in (MAP, *METADATA):
+    for name in (map_name, *metadata):
         _require(name in pins, 'Missing required runtime owner: ' + name)
     provenance = _json(content / 'provenance.json')
     index = _json(content / 'native-shaders/map-owners.json')
@@ -173,9 +186,9 @@ def _closure(content, pins):
              pointer['bytes'] == pins[pointer['path']]['bytes'], 'Owner-index pointer differs')
     _require(index['schema'] == 'H2_MCC_NATIVE_MAP_OWNERS_V1', 'Unexpected owner-index schema')
     owners = index['maps']
-    selected = [row for row in owners if row['map'] == MAP]
-    _require(len(selected) == 1 and selected[0]['input_sha256'] == pins[MAP]['sha256']
-             and selected[0]['input_bytes'] == pins[MAP]['bytes']
+    selected = [row for row in owners if row['map'] == map_name]
+    _require(len(selected) == 1 and selected[0]['input_sha256'] == pins[map_name]['sha256']
+             and selected[0]['input_bytes'] == pins[map_name]['bytes']
              and selected[0]['shared_directory'] == SHARED, 'Custom map binding differs')
     for row in owners:
         name = str(_relative(row['map']))
@@ -209,7 +222,7 @@ def _closure(content, pins):
                       'cache-embedded main HUD, native lighting and static scenery remain in the exact map.')
 
 
-def plan(content, prepared_base):
+def plan(content, prepared_base, presentation=None):
     """Read and hash the full runtime closure. Do not create a bundle or install."""
     content, prepared_base = _exact(content), _exact(prepared_base)
     paths = _files(content)
@@ -223,11 +236,167 @@ def plan(content, prepared_base):
     for name, pin in base.items():
         _check(prepared_base / _relative(name), pin)
     shipped = {name: pin for name, pin in pins.items() if name not in base and name not in ALIASES}
-    return dict(schema=SCHEMA, state='planned-only', map=MAP, shared_directory=SHARED,
+    result = dict(schema=SCHEMA, state='planned-only', map=MAP, shared_directory=SHARED,
                 content_files=shipped, base_files=base, resource_aliases=ALIASES,
                 runtime_closure=closure, shipped_content_bytes=sum(p['bytes'] for p in shipped.values()),
                 required_local_base_bytes=sum(p['bytes'] for p in base.values()),
                 no_runtime_or_base_mcc_assets_bundled=True)
+    if presentation is not None:
+        result['presentation'] = _presentation_plan(presentation, prepared_base, pins)
+    return result
+
+
+def _appended_pin(base, tail):
+    digest = hashlib.sha256()
+    size = 0
+    for path in (base, tail):
+        with Path(path).open('rb') as stream:
+            for block in iter(lambda: stream.read(1024 * 1024), b''):
+                digest.update(block)
+                size += len(block)
+    return dict(bytes=size, sha256=digest.hexdigest())
+
+
+def _patch_segments(row):
+    _require(isinstance(row['segments'], list) and 0 < len(row['segments']) <= 16,
+             'Unexpected menu patch segment count')
+    result = []
+    end = 0
+    for segment in row['segments']:
+        offset, data = segment['offset'], bytes.fromhex(segment['hex'])
+        _require(type(offset) is int and offset >= end and data and len(data) <= 8192 and
+                 offset + len(data) <= row['decoded_base']['bytes'], 'Invalid or overlapping menu patch')
+        result.append((offset, data))
+        end = offset + len(data)
+    return result
+
+
+def _patched_bytes(base, row):
+    raw = Path(base).read_bytes()
+    _require(len(raw) >= 896 and struct.unpack_from('<II', raw) == (0x68656164, 13),
+             'Menu patch requires MCC version 13')
+    extent = struct.unpack_from('<I', raw, 8)[0]
+    _require(896 < extent <= 128 * 1024 * 1024 and row['decoded_base']['bytes'] == extent,
+             'Menu patch exceeds its bounded decoded owner')
+    if struct.unpack_from('<H', raw, 28)[0] & 1:
+        chunk_size, _, table, count = struct.unpack_from('<4I', raw, 776)
+        _require(0 < chunk_size <= extent and 0 < count <= 65536 and table >= 896 and
+                 table + count * 8 <= len(raw), 'Invalid menu chunk table')
+        data = bytearray(raw[:896])
+        for i in range(count):
+            size, address = struct.unpack_from('<ii', raw, table + i * 8)
+            remaining = min(chunk_size, extent - len(data))
+            _require(size and address >= 896 and address + abs(size) <= len(raw) and remaining > 0,
+                     'Invalid menu chunk extent')
+            encoded = raw[address:address + abs(size)]
+            if size > 0:
+                decoder = zlib.decompressobj()
+                block = decoder.decompress(encoded, remaining + 1)
+                _require(decoder.eof and not decoder.unused_data and not decoder.unconsumed_tail,
+                         'Invalid or trailing menu chunk data')
+            else:
+                block = encoded
+            _require(0 < len(block) <= remaining, 'Menu chunk exceeds declared extent')
+            data.extend(block)
+    else:
+        data = bytearray(raw)
+    _require(dict(bytes=len(data), sha256=hashlib.sha256(data).hexdigest()) == row['decoded_base'],
+             'Decoded menu base differs from authored patch input')
+    for offset, value in _patch_segments(row):
+        data[offset:offset + len(value)] = value
+    return data
+
+
+def _patched_pin(base, row):
+    data = _patched_bytes(base, row)
+    return dict(bytes=len(data), sha256=hashlib.sha256(data).hexdigest())
+
+
+def _presentation_plan(root, prepared_base, content_pins):
+    """Authenticate the small menu delta and all exact local dependencies."""
+    root = _exact(root)
+    value = _json(root / 'presentation.json')
+    _require(value.get('schema') == 'DESERTED_MENU_PRESENTATION_V1' and
+             value.get('state') == 'prepared-menu-overlay-native-pending' and
+             value.get('title') == 'Deserted' and value.get('description') ==
+             "ODSTs foiled a terrorist bombing in this New Mombasa district. The streets are deserted. The firing lanes aren't." and
+             value.get('map_id') == 20261021 and value.get('scenario_path') ==
+             'scenarios\\multi\\dust2_mombasa\\dust2_mombasa' and
+             value.get('cache_pin') == content_pins[MAP] and
+             value.get('original_base_unchanged') is True and
+             value.get('gameplay_cache_unchanged') is True,
+             'Presentation must match the actual unchanged gameplay cache')
+    _require(value.get('menu_launch_argv') == _menu_argv(), 'Unexpected menu launch paths')
+    selection = value.get('menu_selection', {})
+    _require(type(selection.get('row')) is int and selection['row'] >= 0 and
+             selection.get('new_profile_progress') == -1 and
+             isinstance(selection.get('visible_map_ids'), list) and
+             len(selection['visible_map_ids']) > selection['row'] and
+             selection['visible_map_ids'][selection['row']] == value['map_id'],
+             'Presentation requires its authored native map-selection row')
+    expected = {'presentation.json', value['screenshot']['path']}
+    _check(root / _relative(value['screenshot']['path']),
+           {k: value['screenshot'][k] for k in ('bytes', 'sha256')})
+    for name, pin in value['menu_files'].items():
+        _check(root / 'menu-files' / _relative(name), pin)
+        expected.add('menu-files/' + name)
+    for name, row in value['base_files'].items():
+        _relative(name)
+        _check(prepared_base / _relative(row['path']), {k: row[k] for k in ('bytes', 'sha256')})
+    for name, row in value['appends'].items():
+        _relative(name)
+        _check(prepared_base / _relative(row['base']['path']),
+               {k: row['base'][k] for k in ('bytes', 'sha256')})
+        _check(root / _relative(row['tail']['path']), {k: row['tail'][k] for k in ('bytes', 'sha256')})
+        expected.add(row['tail']['path'])
+        _require(_appended_pin(prepared_base / row['base']['path'], root / row['tail']['path']) == row['result'],
+                 'Menu resource append does not match its final identity')
+    _require(set(value['patches']) == {SHARED + '/mainmenu.map'} and
+             set(value['appends']) == {SHARED + '/textures.dat'}, 'Unexpected menu cache/resource patch owners')
+    for name, row in value['patches'].items():
+        _relative(name)
+        _check(prepared_base / _relative(row['base']['path']),
+               {k: row['base'][k] for k in ('bytes', 'sha256')})
+        _require(_patched_pin(prepared_base / row['base']['path'], row) == row['result'],
+                 'Menu byte patch differs from its final identity')
+    destinations = set().union(*(set(value[k]) for k in ('menu_files', 'base_files', 'appends', 'patches')))
+    _require(len(destinations) == sum(len(value[k]) for k in ('menu_files', 'base_files', 'appends', 'patches')),
+             'Presentation destinations overlap')
+    for name, source in value['aliases'].items():
+        _relative(name)
+        _require(name.startswith('custom-maps/deserted/') and source.startswith('content/') and
+                 source.removeprefix('content/') in content_pins and name not in destinations,
+                 'Menu alias lacks its explicit installed content owner')
+        destinations.add(name)
+    _require('custom-maps/deserted/halo2/Mods/deserted/dust2_mombasa.map' in value['aliases'],
+             'Menu lacks the exact scenario filename alias')
+    # Review is added only after the private native menu has actually rendered.
+    reviewed = 'native-menu-review.json' in _files(root)
+    if reviewed:
+        expected.add('native-menu-review.json')
+        review = _json(root / 'native-menu-review.json')
+        _require(review.get('schema') == 'DESERTED_NATIVE_MENU_REVIEW_V1' and review.get('passed') is True and
+                 review.get('cache_pin') == value['cache_pin'] and review.get('title') == value['title'] and
+                 review.get('description') == value['description'] and
+                 review.get('menu_files') == value['menu_files'] and review.get('patches') == value['patches'] and
+                 review.get('appends') == value['appends'] and
+                 review.get('menu_selection') == value['menu_selection'] and
+                 review.get('preview') == value['preview'] and
+                 review.get('selected_custom_map') is True,
+                 'Menu review does not match this actual presentation')
+        captures = review.get('captures', [])
+        _require(isinstance(captures, list) and captures, 'Native menu review requires actual screenshots')
+        for row in captures:
+            name = str(_relative(row['path']))
+            _check(root / name, {k: row[k] for k in ('bytes', 'sha256')})
+            expected.add(name)
+    _require(set(_files(root)) == expected, 'Unexpected or missing presentation file')
+    return value | {'native_menu_review_passed': reviewed,
+                    'bundle_files': {name: _pin(root / name) for name in sorted(expected)}}
+
+
+def _menu_argv():
+    return ['--menu', '--skip-intro', '--menu-maps', 'menu/' + SHARED]
 
 
 def _accepted(path, map_pin):
@@ -294,12 +463,22 @@ def _accepted(path, map_pin):
     return value
 
 
-def stage(content, prepared_base, sources, output, acceptance):
+def stage(content, prepared_base, sources, output, acceptance, presentation=None):
     """Create a new handoff folder after acceptance; no zip and no installation."""
     content, prepared_base = _exact(content), _exact(prepared_base)
     sources = {label: _exact(root) for label, root in sources.items()}
-    manifest = plan(content, prepared_base)
+    manifest = plan(content, prepared_base, presentation=presentation)
     accepted = _accepted(acceptance, manifest['content_files'][MAP])
+    if presentation is not None:
+        capture = manifest['presentation']['screenshot']['capture']
+        _require(all(capture.get(key) == accepted[key] for key in
+                     ('cache_sha256', 'runtime_sha256', 'source_glb_sha256', 'source_blend_sha256')),
+                 'Menu hero capture must come from the final accepted artifacts')
+        _require('native-menu-review.json' in manifest['presentation']['bundle_files'],
+                 'Stage requires actual native menu-selection review and screenshots')
+        review = _json(Path(presentation) / 'native-menu-review.json')
+        _require(review.get('runtime_sha256') == accepted['runtime_sha256'],
+                 'Menu must be reviewed with the actual qualified native runtime')
     source_paths = {}
     for label, root in sorted(sources.items()):
         _require(_relative(label).name == label, 'Use one path component for each source label')
@@ -308,6 +487,9 @@ def stage(content, prepared_base, sources, output, acceptance):
     _require(source_paths, 'A map source bundle is required')
     paths = {'content/' + name: content / _relative(name) for name in manifest['content_files']}
     paths.update(source_paths)
+    if presentation is not None:
+        for name in manifest['presentation']['bundle_files']:
+            paths['presentation/' + name] = _exact(Path(presentation) / _relative(name), directory=False)
     source_pins = {_pin(path)['sha256'] for path in source_paths.values()}
     _require(accepted['source_glb_sha256'] in source_pins and accepted['source_blend_sha256'] in source_pins,
              'Source bundle does not contain the final accepted GLB and packed Blender file')
@@ -358,11 +540,85 @@ def _validate_manifest(bundle):
         _require(manifest['bundle_files'].get('content/' + name) == pin and not _base_file(name),
                  'Content inventory differs from the shipped bytes')
     _require(set(manifest['base_files']).isdisjoint(manifest['content_files']), 'Duplicate base/content owner')
+    if 'presentation' in manifest:
+        value = manifest['presentation']
+        _require(value['cache_pin'] == manifest['content_files'][MAP] and
+                 value.get('menu_launch_argv') == _menu_argv() and
+                 value.get('native_menu_review_passed') is True and
+                 'native-menu-review.json' in value['bundle_files'], 'Invalid staged presentation owner')
+        for name, pin in value['bundle_files'].items():
+            _require(manifest['bundle_files'].get('presentation/' + name) == pin,
+                     'Presentation inventory differs from shipped bytes')
     _require(all(_base_file(name) and name not in ALIASES for name in manifest['base_files']),
              'Unexpected external base dependency')
     actual = set(_files(bundle)) - {'deserted-handoff.json'}
     _require(actual == set(manifest['bundle_files']), 'Uninventoried or missing package file')
     return bundle, manifest
+
+
+def _link_or_copy(source, target, pin):
+    _check(source, pin)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    method = 'hardlink'
+    try:
+        os.link(source, target)
+    except OSError as error:
+        if error.errno not in (errno.EXDEV, errno.EPERM, errno.EOPNOTSUPP, errno.ENOSYS):
+            raise
+        _copy(source, target, pin)
+        method = 'regular-copy'
+    _check(target, pin)
+    return method
+
+
+def _install_presentation(presentation, prepared_base, destination, value, content_pins):
+    """Reconstruct a private native menu; every aliased map stays byte-exact."""
+    presentation, prepared_base, destination = map(_exact, (presentation, prepared_base, destination))
+    menu = destination / 'menu'
+    _require(not menu.exists(), 'Menu installation requires a fresh private root')
+    for row in value['base_files'].values():
+        _check(prepared_base / _relative(row['path']), {k: row[k] for k in ('bytes', 'sha256')})
+    for row in (*value['appends'].values(), *value['patches'].values()):
+        _check(prepared_base / _relative(row['base']['path']), {k: row['base'][k] for k in ('bytes', 'sha256')})
+    menu.mkdir()
+    methods = []
+    for name, pin in value['menu_files'].items():
+        _copy(presentation / 'menu-files' / _relative(name), menu / _relative(name), pin)
+    for name, row in value['base_files'].items():
+        pin = {k: row[k] for k in ('bytes', 'sha256')}
+        source = (destination / 'content' / _relative(row['path']) if content_pins.get(row['path']) == pin
+                  else prepared_base / _relative(row['path']))
+        methods.append(dict(path=name, source='installed-content' if source.is_relative_to(destination) else 'exact-local-base',
+                            method=_link_or_copy(source, menu / _relative(name), pin)))
+    for name, row in value['appends'].items():
+        target = menu / _relative(name)
+        _copy(prepared_base / _relative(row['base']['path']), target, {k: row['base'][k] for k in ('bytes', 'sha256')})
+        _check(presentation / _relative(row['tail']['path']), {k: row['tail'][k] for k in ('bytes', 'sha256')})
+        with target.open('ab') as out, (presentation / _relative(row['tail']['path'])).open('rb') as inp:
+            shutil.copyfileobj(inp, out, 1024 * 1024)
+        _check(target, row['result'])
+    for name, row in value['patches'].items():
+        target = menu / _relative(name)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open('xb') as stream:
+            stream.write(_patched_bytes(prepared_base / _relative(row['base']['path']), row))
+        _check(target, row['result'])
+    for name, source in value['aliases'].items():
+        key = source.removeprefix('content/')
+        _require(source.startswith('content/') and key in content_pins, 'Menu alias is not installed content')
+        methods.append(dict(path=name, source=source,
+                            method=_link_or_copy(destination / _relative(source), menu / _relative(name), content_pins[key])))
+    pins = {name: _pin(path) for name, path in _files(menu).items()}
+    _closure(menu, pins, map_name=SHARED + '/mainmenu.map', metadata=tuple(n for n in METADATA if n != 'custom-owner-receipt.json'))
+    custom = menu / 'custom-maps/deserted'
+    custom_pins = {name: _pin(path) for name, path in _files(custom).items()}
+    _closure(custom, custom_pins, map_name='halo2/Mods/deserted/dust2_mombasa.map')
+    _require(custom_pins['halo2/Mods/deserted/dust2_mombasa.map'] == content_pins[MAP],
+             'Menu-selected gameplay cache changed')
+    return dict(schema='DESERTED_PRIVATE_MENU_INSTALLATION_V1', passed=True,
+                menu_files=pins, methods=methods, launch_argv=_menu_argv(),
+                authoring_native_menu_review_passed=value.get('native_menu_review_passed') is True,
+                gameplay_cache_unchanged=True, native_execution_proved=False)
 
 
 def install(bundle, prepared_base, destination):
@@ -399,6 +655,10 @@ def install(bundle, prepared_base, destination):
         aliases.append(dict(path=name, method=method))
     installed = {name: _pin(path) for name, path in _files(destination / 'content').items()}
     _closure(destination / 'content', installed)
+    presentation_receipt = None
+    if 'presentation' in manifest:
+        presentation_receipt = _install_presentation(bundle / 'presentation', prepared_base, destination,
+                                                     manifest['presentation'], installed)
     receipt = dict(schema='DESERTED_PORTABLE_INSTALLATION_V1', passed=True,
                    handoff_manifest_sha256=_pin(bundle / 'deserted-handoff.json')['sha256'],
                    map_sha256=manifest['content_files'][MAP]['sha256'],
@@ -409,6 +669,8 @@ def install(bundle, prepared_base, destination):
                        ('cache_sha256', 'runtime_sha256', 'source_glb_sha256', 'source_blend_sha256')},
                    runtime_included=False, source_bundle=str(bundle / 'source'),
                    scope='Installation byte/closure proof only; macOS native execution remains a separate gate.')
+    if presentation_receipt is not None:
+        receipt['presentation'] = presentation_receipt
     _write(destination / 'deserted-installation.json', receipt)
     return receipt
 
@@ -442,6 +704,22 @@ def launch(destination, app):
     return subprocess.call([str(runtime), *receipt['launch_argv']], cwd=destination)
 
 
+def launch_menu(destination, app):
+    destination = _exact(destination)
+    runtime = app_runtime(app)
+    receipt = _json(destination / 'deserted-installation.json')
+    _require(receipt.get('schema') == 'DESERTED_PORTABLE_INSTALLATION_V1' and receipt.get('passed') is True,
+             'Invalid installation receipt')
+    menu = receipt.get('presentation', {})
+    _require(menu.get('passed') is True and menu.get('launch_argv') == _menu_argv(),
+             'This installation has no qualified Deserted map-selection overlay')
+    for name, pin in receipt['content_files'].items():
+        _check(destination / 'content' / _relative(name), pin)
+    for name, pin in menu['menu_files'].items():
+        _check(destination / 'menu' / _relative(name), pin)
+    return subprocess.call([str(runtime), *menu['launch_argv']], cwd=destination)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
@@ -449,6 +727,7 @@ def main():
         item = sub.add_parser(name)
         item.add_argument('--content', type=Path, required=True)
         item.add_argument('--prepared-base', type=Path, required=True)
+        item.add_argument('--presentation', type=Path)
     item = sub.choices['stage']
     item.add_argument('--output', type=Path, required=True)
     item.add_argument('--acceptance', type=Path, required=True)
@@ -460,6 +739,9 @@ def main():
     item = sub.add_parser('launch')
     item.add_argument('--destination', type=Path, required=True)
     item.add_argument('--app', type=Path, required=True)
+    item = sub.add_parser('launch-menu')
+    item.add_argument('--destination', type=Path, required=True)
+    item.add_argument('--app', type=Path, required=True)
     args = vars(parser.parse_args())
     action = args.pop('command')
     if action == 'stage':
@@ -469,8 +751,8 @@ def main():
             _require(separator and label not in sources, 'Source labels must be unique LABEL=DIRECTORY entries')
             sources[label] = Path(path)
         args['sources'] = sources
-    result = globals()[action](**args)
-    if action == 'launch':
+    result = globals()[action.replace('-', '_')](**args)
+    if action in ('launch', 'launch-menu'):
         return result
     if action == 'plan':
         print(json.dumps(result, indent=2, sort_keys=True))

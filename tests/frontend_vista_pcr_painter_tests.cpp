@@ -1,6 +1,10 @@
 #include "halo2/frontend.hpp"
 #include "halo2/frontend_canvas.hpp"
+#include "halo2/gameplay_font_source.hpp"
+#include "halo2/original_pcr_intro.hpp"
+#include "halo2/original_ui_map_intro.hpp"
 #include "halo2/vista_pcr_appearance.hpp"
+#include "halo2/vista_pcr_owner_state.hpp"
 #include "halo2/desktop_session.hpp"
 #include "halo2/renderer.hpp"
 #include <nlohmann/json.hpp>
@@ -74,12 +78,15 @@ int main(int argc,char **argv)try {
     ui_map=hud_menu_asset_directory(ui_map)/"maps/mainmenu.map";
   if(!std::filesystem::is_regular_file(ui_map))return 77;
   const std::filesystem::path maps=argv[1];Cache cache(maps/"mainmenu.map");auto content=cache.load_frontend();
+  const bool require_mcc_intro=std::getenv("H2_TEST_PCR_INTRO_MCC");
+  if(require_mcc_intro && !std::getenv("DISPLAY"))return 77;
+  check(!require_mcc_intro || cache.is_mcc(),"PCR intro GPU qualification requires admitted MCC UI assets");
   content.vista=load_vista_settings(ui_map);const auto &pc=*content.vista;
   auto bank=original_bank(argv[3]);const auto before=*bank;
   const auto *sampled_environment=std::getenv("H2_TEST_MENU_ASSETS");
   const std::filesystem::path sampled=sampled_environment?sampled_environment:"";
   if(!sampled.empty() && !std::filesystem::is_regular_file(sampled/"menu-source.tsv"))return 77;
-  Mesh mesh;FrontendPainter painter(content,maps/"fonts",mesh,{},
+  Mesh mesh;FrontendPainter painter(content,gameplay_font_directory(cache),mesh,{},
       load_frontend_ui_assets(content,sampled),sampled.empty()?sampled:sampled/"fonts");
   std::vector<VistaPcrRgb> palette;for(const auto &color:pc.appearance_palette)
     palette.push_back({std::bit_cast<std::uint32_t>(color.x),std::bit_cast<std::uint32_t>(color.y),std::bit_cast<std::uint32_t>(color.z)});
@@ -96,7 +103,7 @@ int main(int argc,char **argv)try {
   owner->online=online_environment && std::string(online_environment)=="1";
   std::vector<Texture> vista_fonts;
   std::vector<bool> vista_bitmaps(mesh.materials.size());
-  if(owner->online) {
+  if(owner->online && !require_mcc_intro) {
     std::ifstream table(pc.source_fonts/"font_table.txt");
     check(bool(table),"Missing actual Vista PCR font table");
     std::string name;
@@ -160,10 +167,16 @@ int main(int argc,char **argv)try {
   const std::vector<std::pair<unsigned,unsigned>> viewports=argc==6?
       std::vector<std::pair<unsigned,unsigned>>{{640,480},{1280,720},{1280,800},{1920,1080},{2560,1080},{3440,1440},{3840,1080},{2560,1437},{1001,601}}:
       std::vector<std::pair<unsigned,unsigned>>{{1280,720}};
-  nlohmann::json report={{"scope","Actual PC16/185 six panes, original retained fixture bank12, source assets/fonts and native Vulkan. Identity query fixture explicitly returns nonlocal. PC spas emblem rendering unresolved."},{"cases",nlohmann::json::array()}};
+  nlohmann::json report={{"scope",require_mcc_intro?
+    "Actual native PCR16 full-window intro over admitted MCC UI, original retained reference numeric bank12; controlled original clock service; native Vulkan pixels; prior185 bypass.":
+    "Actual PC16/185 six panes, original retained fixture bank12, source assets/fonts and native Vulkan. Identity query fixture explicitly returns nonlocal. PC spas emblem rendering unresolved."},{"cases",nlohmann::json::array()}};
   unsigned cases{};
-  for(const unsigned screen:{16,185})for(unsigned pane=0;pane<6;++pane) {
-    MenuState state(content);state.open_vista_pcr(screen,owner);state.vista_pcr_pane(pane);
+  if(!require_mcc_intro)for(const unsigned screen:{16,185})for(unsigned pane=0;pane<6;++pane) {
+    MenuState state(content);std::uint32_t pcr_clock=0x12345678;
+    state.set_pcr_clock([&]{return pcr_clock;});state.open_vista_pcr(screen,owner);
+    const auto opened=state.frame().pcr_open_clock;pcr_clock+=4000;
+    state.vista_pcr_pane(pane);
+    check(state.frame().pcr_open_clock==opened,"PCR pane selection restarted its original screen clock");
     const auto old_queries=identity.queries;const auto draw=painter.draw(state,5,-1,10000);
     check(!draw.vertices.empty(),"PCR pane produced no draw");
     check(identity.queries-old_queries==(pane?bank->player_count:0),"PCR appearance owner is not consumed exactly once per player row");
@@ -211,13 +224,164 @@ int main(int argc,char **argv)try {
     }
     report["cases"].push_back({{"name",stem},{"vertices",draw.vertices.size()},{"name_vertices",name_vertices},{"rows",state.frame().entries.size()},{"rendering_gaps",draw.rendering_gaps}});
     check(state.frame().context==pane && state.stack().size()==1,"PCR pane/factory ownership drifted");
+    state.navigate(1,0);
+    check(state.frame().context==vista_pcr_tab_step(pane,1,bank->team_count>0),"PCR keyboard Right did not reach the next visible tab");
+    state.navigate(-1,0);
+    check(state.frame().context==pane,"PCR keyboard Left did not return to its tab");
+    const auto find_prompt=[&](FrontendPointerAction action,unsigned index=0)->std::optional<FrontendPointerTarget> {
+      for(float y=0;y<480;y+=2)for(float x=0;x<640;x+=2)
+        if(const auto target=painter.pointer_hit(x,y);target && target->action==action && target->index==index)return target;
+      return {};
+    };
+    painter.draw(state,5,-1,10000);
+    const auto next=find_prompt(FrontendPointerAction::PcrTab,1);
+    check(next && state.activate_pointer(*next),"PCR authored right arrow cannot be clicked");
+    check(state.frame().context==vista_pcr_tab_step(pane,1,bank->team_count>0),"PCR mouse Right did not reach the next visible tab");
+    check(!state.activate_pointer(*next),"PCR stale arrow target changed another tab");
+    painter.draw(state,5,-1,10000);
+    const auto previous=find_prompt(FrontendPointerAction::PcrTab,0);
+    check(previous && state.activate_pointer(*previous) && state.frame().context==pane,"PCR authored left arrow cannot return to its tab");
+    painter.draw(state,5,-1,10000);
     state.players();check(details==++cases,"PCR Y details was not handled");
     std::optional<FrontendPointerTarget> done;
     for(float y=0;y<480 && !done;y+=2)for(float x=0;x<640 && !done;x+=2)
       if(const auto target=painter.pointer_hit(x,y);target && target->action==FrontendPointerAction::Back)done=target;
     check(done && state.activate_pointer(*done),"PCR Done/Close prompt cannot be clicked with a mouse");
   }
-  check(closes==6 && continues==6,"PCR16 Done and PCR185 Close were conflated");
+  check(closes==(require_mcc_intro?0u:6u) && continues==(require_mcc_intro?0u:6u),"PCR16 Done and PCR185 Close were conflated");
+  // Keep the report allocation deliberately old. Only the actual initialized
+  // screen's monotonic service starts233423/23A0F3's intro lifetime.
+  MenuState intro(content);std::uint32_t pcr_clock=0xfffffff0u;
+  intro.set_pcr_clock([&]{return pcr_clock;});intro.open_vista_pcr(16,owner);
+  check(intro.frame().pcr_open_clock==pcr_clock,"PCR actual open did not sample its native clock service");
+  const auto opened=intro.frame().pcr_open_clock;
+  bool rejected_clock{};try{intro.set_pcr_clock([]{return 0u;});}catch(const FormatError&){rejected_clock=true;}
+  check(rejected_clock,"Open PCR accepted a different elapsed-time owner");
+  const auto capture_intro=[&](const UiDraw &draw,const std::string &name) {
+    std::vector<unsigned char> pixels;if(!renderer)return pixels;
+    check(desktop->apply_video(1280,720,false).empty(),"PCR intro capture mode change failed");
+    SDL_PumpEvents();renderer->resized();
+    const auto path=std::filesystem::path(argv[4])/(name+".ppm");bool captured{};
+    for(unsigned i=0;i<3&&!captured;++i)captured=renderer->draw(Camera{},path,{},false,{},{},draw.vertices,{},{},draw.backdrops);
+    check(captured,"Original PCR intro did not reach native Vulkan output");
+    std::ifstream input(path,std::ios::binary);std::string kind;unsigned width,height,maximum;
+    input>>kind>>width>>height>>maximum;input.get();
+    check(kind=="P6" && width==1280 && height==720 && maximum==255,"PCR intro GPU framebuffer is invalid");
+    pixels.resize(width*height*3);input.read(reinterpret_cast<char*>(pixels.data()),pixels.size());
+    check(bool(input),"PCR intro GPU framebuffer is truncated");return pixels;
+  };
+  nlohmann::json intro_report={{"source","Xbox TU1.5 23A0F3 /233423"},
+      {"asset_source",cache.is_mcc()?"admitted MCC":"offline reference presentation"},
+      {"actual_open_clock",opened},{"report_allocation_clock_ignored",true},{"cases",nlohmann::json::array()}};
+  std::vector<unsigned char> black,middle,clear,prior;
+  for(const auto elapsed:{0u,1999u,2000u,3000u,3999u,4000u}) {
+    pcr_clock=opened+elapsed;
+    const auto color=intro.pcr_intro_color(intro.frame());
+    const auto expected=original_pcr_intro_color(false,opened,pcr_clock,floating_point.x87_control_word,floating_point.mxcsr);
+    check(color==expected,"Menu PCR used allocation/UI clock instead of actual source clock");
+    const auto draw=painter.draw(intro,5,-1,10000);
+    unsigned vertices{};
+    for(const auto &v:draw.vertices)if(mesh.materials.at(v.material).name=="ui/original-pcr-intro-black") {
+      ++vertices;check(mesh.materials.at(v.material).ui_full_surface &&
+          std::abs(v.position.z-float(*color>>24)/255.f)<.000001f,
+          "PCR intro lost its actual full-window ARGB alpha");
+    }
+    check(vertices==((*color>>24)?6u:0u),"PCR intro draw count differs from source packed alpha");
+    const auto name="pcr-original-intro-"+std::to_string(elapsed);
+    const auto pixels=capture_intro(draw,name);
+    if(elapsed==0)black=pixels;else if(elapsed==3000)middle=pixels;else if(elapsed==4000)clear=pixels;
+    if(renderer && elapsed<=2000)check(pixels==black,"Original PCR opaque hold leaked rendered children before2000ms");
+    intro_report["cases"].push_back({{"elapsed",elapsed},{"argb",*color},{"overlay_vertices",vertices},{"frame",name+".ppm"}});
+  }
+  intro.navigate(1,0);check(intro.frame().pcr_open_clock==opened,"Original tab input restarted the fade");
+  intro.open_vista_pcr(185,owner);pcr_clock+=100000;
+  check(!intro.pcr_intro_color(intro.frame()),"Original prior statistics did not bypass the intro at open");
+  const auto prior_draw=painter.draw(intro,5,-1,10000);
+  check(std::none_of(prior_draw.vertices.begin(),prior_draw.vertices.end(),[&](const auto &v){
+    return mesh.materials.at(v.material).name=="ui/original-pcr-intro-black";}),"PCR185 submitted an intro-black quad");
+  prior=capture_intro(prior_draw,"pcr-original-prior-bypass");
+  if(renderer) {
+    std::uint64_t hold_energy{},middle_energy{},clear_energy{};unsigned visible{},darker{},prior_visible{};
+    // Upper-channel Friends footer follows the source PCR window. Compare
+    // the actual full-width body above that independent channel's region.
+    for(unsigned y=0;y<600;++y)for(unsigned x=0;x<1280;++x)for(unsigned c=0;c<3;++c) {
+      const auto at=(y*1280+x)*3+c;hold_energy+=black[at];middle_energy+=middle[at];clear_energy+=clear[at];
+      if(clear[at]>24){++visible;darker+=middle[at]<clear[at];}
+      prior_visible+=prior[at]>24;
+    }
+    check(hold_energy==0,"Original opaque PCR intro left a letterbox or row visible");
+    check(middle_energy>0 && middle_energy<clear_energy && visible>1000 && darker>visible*9/10,
+          "Original PCR middle alpha did not visibly fade its actual MCC children");
+    check(prior_visible>1000,"Prior statistics incorrectly inherited an opaque intro");
+    intro_report["gpu"]={{"passed",true},{"hold_energy",hold_energy},{"middle_energy",middle_energy},
+      {"clear_energy",clear_energy},{"visible_channels",visible},{"darker_channels",darker},{"prior_visible_channels",prior_visible}};
+  }
+  intro_report["prior_bypass"]=true;intro_report["pane_does_not_restart_clock"]=true;
+  report["original_intro"]=std::move(intro_report);
+  // The real new-map callback owns a second, independent accumulated UI
+  // clock. It renders after all channels, including the Friends footer.
+  MenuState overlap(content);std::uint32_t overlap_native=0x12345678u;
+  overlap.set_pcr_clock([&]{return overlap_native;});
+  const std::uint32_t map_initialized=0xfffffff0u;
+  overlap.ui_clock(map_initialized);overlap.initialize_mainmenu_map();
+  overlap.open_vista_pcr(16,owner);
+  const auto overlap_opened=overlap.frame().pcr_open_clock;
+  nlohmann::json map_report={{"source","Xbox TU1.5 14A38B/14A500/14A70D plus independent PCR23A0F3"},
+      {"map_ui_clock",map_initialized},{"pcr_native_open_clock",overlap_opened},
+      {"cases",nlohmann::json::array()}};
+  const auto capture_overlap=[&](std::uint32_t ui_elapsed,std::uint32_t native_elapsed,const std::string &name) {
+    overlap.ui_clock(map_initialized+ui_elapsed);overlap_native=overlap_opened+native_elapsed;
+    const auto map_color=overlap.ui_map_intro_color();const auto pcr_color=overlap.pcr_intro_color(overlap.frame());
+    const auto draw=painter.draw(overlap,5,-1,10000);
+    unsigned map_vertices{};
+    for(const auto &v:draw.vertices)if(mesh.materials.at(v.material).name=="ui/original-map-intro-black") {
+      ++map_vertices;check(map_color && mesh.materials.at(v.material).ui_full_surface &&
+          std::abs(v.position.z-float(*map_color>>24)/255.f)<.000001f,
+          "New-map intro lost its actual source full-window alpha");
+    }
+    check(map_vertices==(map_color?6u:0u),"New-map intro draw count differs from14A62E");
+    if(map_vertices)check(mesh.materials.at(draw.vertices.back().material).name=="ui/original-map-intro-black",
+        "New-map intro did not render after all ordinary UI channels");
+    map_report["cases"].push_back({{"ui_elapsed",ui_elapsed},{"native_elapsed",native_elapsed},
+        {"map_argb",map_color?nlohmann::json(*map_color):nlohmann::json(nullptr)},
+        {"pcr_argb",pcr_color?nlohmann::json(*pcr_color):nlohmann::json(nullptr)},
+        {"frame",name+".ppm"}});
+    return capture_intro(draw,name);
+  };
+  const auto map_black=capture_overlap(0,4000,"map-original-intro-black");
+  const auto map_hold=capture_overlap(3000,3000,"map-original-intro-hold");
+  const auto map_both=capture_overlap(3500,3000,"map-original-intro-overlap");
+  const auto map_only=capture_overlap(3500,4000,"map-original-intro-only");
+  const auto pcr_only=capture_overlap(4001,3000,"map-original-pcr-only");
+  const auto map_clear=capture_overlap(4001,4000,"map-original-intro-clear");
+  check(!overlap.ui_map_intro_color() && (*overlap.pcr_intro_color(overlap.frame())>>24)==0,
+      "Combined intro clear did not require both source clocks");
+  overlap.ui_clock(map_initialized+3500);const auto before_tab=overlap.ui_map_intro_color();
+  overlap.navigate(1,0);check(overlap.ui_map_intro_color()==before_tab,
+      "PCR tab navigation restarted the global map intro");
+  overlap.open_vista_pcr(185,owner);
+  check(!overlap.pcr_intro_color(overlap.frame()) && overlap.ui_map_intro_color()==before_tab,
+      "Prior statistics bypass changed the independent real map lifecycle");
+  overlap.ui_clock(map_initialized+4001);
+  const auto map_prior=capture_overlap(4001,4000,"map-original-prior-clear");
+  if(renderer) {
+    check(std::all_of(map_black.begin(),map_black.end(),[](auto value){return value==0;}) && map_black==map_hold,
+        "Global map intro failed to cover full framebuffer/Friends footer through3000ms");
+    std::uint64_t both_energy{},map_energy{},pcr_energy{},clear_energy{};
+    for(unsigned y=0;y<600;++y)for(unsigned x=0;x<1280;++x)for(unsigned channel=0;channel<3;++channel) {
+      const auto i=(y*1280+x)*3+channel;both_energy+=map_both[i];map_energy+=map_only[i];
+      pcr_energy+=pcr_only[i];clear_energy+=map_clear[i];
+    }
+    check(both_energy>0 && both_energy<map_energy && both_energy<pcr_energy &&
+        map_energy<clear_energy && pcr_energy<clear_energy,
+        "Independent original map/PCR intro overlap did not reach actual MCC pixels");
+    check(std::count_if(map_prior.begin(),map_prior.end(),[](auto value){return value>24;})>1000,
+        "Prior185 stayed black after the actual map clock cleared");
+    map_report["gpu"]={{"passed",true},{"both_energy",both_energy},{"map_only_energy",map_energy},
+        {"pcr_only_energy",pcr_energy},{"clear_energy",clear_energy},{"full_surface_opaque",true}};
+  }
+  map_report["independent_clocks"]=true;map_report["tab_and_prior_do_not_reset_map"]=true;
+  report["original_map_intro"]=std::move(map_report);
   check(*bank==before,"PCR painter changed retained source bank");
   if(argc>=5){report["viewports"]=viewports;report["online_vista_assets"]=owner->online;report["vulkan_validation"]=validation;std::ofstream output(std::filesystem::path(argv[4])/"report.json");output<<report.dump(2)<<'\n';}
   std::cout<<cases<<" actual-asset PCR panes, exact row owner counts, retained banks, source input actions and explicit PC shader gap passed\n";

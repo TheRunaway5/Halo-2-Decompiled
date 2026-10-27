@@ -1,8 +1,11 @@
 #include "halo2/source_weather_point_render.hpp"
+#include "halo2/source_weather_sprite_profile.hpp"
+#include <nlohmann/json.hpp>
 #include "source_weather_point_gpu_fixture.hpp"
 #include "gpu_compute.hpp"
 #include <bit>
 #include <cmath>
+#include <cstdlib>
 #include <iomanip>
 
 using namespace halo2;
@@ -50,10 +53,28 @@ void upload(halo2_weather_point_fixture::Gpu &g,halo2_weather_point_fixture::Ima
     barrier.oldLayout=VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;barrier.newLayout=VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;barrier.srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;barrier.dstAccessMask=VK_ACCESS_SHADER_READ_BIT;
     vkCmdPipelineBarrier(g.command,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,0,0,nullptr,0,nullptr,1,&barrier);g.end();
 }
+void upload64(halo2_weather_point_fixture::Gpu &g,halo2_weather_point_fixture::Image image,std::span<const std::byte> raw) {
+    require(raw.size()==5456,"actual flood-spore mip payload size");
+    auto buffer=g.buffer(raw.size(),VK_BUFFER_USAGE_TRANSFER_SRC_BIT);std::memcpy(buffer.mapped,raw.data(),raw.size());g.begin();
+    VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};barrier.image=image.handle;
+    barrier.subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,5,0,1};barrier.srcQueueFamilyIndex=barrier.dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;
+    barrier.oldLayout=VK_IMAGE_LAYOUT_UNDEFINED;barrier.newLayout=VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;barrier.dstAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;
+    vkCmdPipelineBarrier(g.command,VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,0,0,nullptr,0,nullptr,1,&barrier);
+    VkBufferImageCopy regions[5]{};const unsigned offsets[]{0,4096,5120,5376,5440};
+    for(unsigned i=0;i<5;++i){regions[i].bufferOffset=offsets[i];regions[i].imageSubresource={VK_IMAGE_ASPECT_COLOR_BIT,i,0,1};regions[i].imageExtent={64u>>i,64u>>i,1};}
+    vkCmdCopyBufferToImage(g.command,buffer.handle,image.handle,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,5,regions);
+    barrier.oldLayout=VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;barrier.newLayout=VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrier.srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;barrier.dstAccessMask=VK_ACCESS_SHADER_READ_BIT;
+    vkCmdPipelineBarrier(g.command,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,0,0,nullptr,0,nullptr,1,&barrier);g.end();
+}
 }
 int main(int argc,char**argv){try{
-    require(argc==1||(argc==2&&std::string(argv[1])=="--gpu"),"optional--gpu expected");
-    const auto root=std::filesystem::path(HALO2_SOURCE_DIR),dir=root/"analysis/multiplayer-shading/weather-particle-packet",output=root/"analysis/multiplayer-shading/weather-point-prototype";
+    require(argc==1||(argc==2&&std::string(argv[1])=="--gpu")||
+        (argc==4&&std::string(argv[1])=="--gpu"&&std::string(argv[2])=="--sprite-fixture"),
+        "optional--gpu [--sprite-fixture owned-source.json] expected");
+    const auto root=std::filesystem::path(HALO2_SOURCE_DIR),dir=root/"analysis/multiplayer-shading/weather-particle-packet",reference=root/"analysis/multiplayer-shading/weather-point-prototype";
+    const auto scratch=std::getenv("HALO2_TEST_SCRATCH");require(scratch&&*scratch,"weather test requires owned scratch");
+    const auto output=std::filesystem::path(scratch)/"weather-point";std::filesystem::create_directories(output);
     const auto code=read(dir/"source-vs22-class0.vp");const auto program=decode_vertex_program(code);require(program.count==9,"sourceVS22 changed");
     auto inputs=decode<SourceWeatherPointInput>(read(dir/"emitted-source-v0-logical-color.bin"));require(inputs.size()==238,"actual point count changed");
     const auto commands=decode<std::uint32_t>(read(dir/"appended-command-span.bin"));
@@ -69,7 +90,7 @@ int main(int argc,char**argv){try{
     auto bank=decode<ShaderVector>(read(dir/"vertex_constants_c0_c11.bin"));require(bank.size()==12,"actual fullcamera missing");std::array<ShaderVector,12>camera;std::copy(bank.begin(),bank.end(),camera.begin());
     require(target_camera(camera,{640,480})==camera,"source12FA0 half-pixel target bank differs from actual draw");
     const std::array<VkExtent2D,4>extents{{{640,480},{641,481},{1920,1080},{3840,2160}}};
-    auto expected=decode<ShaderVector>(read(output/"vertex-analytic.bin"));std::vector<ShaderVector>cpu;std::vector<Probe>probes;
+    auto expected=decode<ShaderVector>(read(reference/"vertex-analytic.bin"));std::vector<ShaderVector>cpu;std::vector<Probe>probes;
     for(auto e:extents)for(const auto&p:inputs){VertexProgramState s;const auto c=target_camera(camera,e);std::copy(c.begin(),c.end(),s.constants.begin());s.attributes[0]=p.position;s.attributes[1]={float((p.color>>16)&255)/255,float((p.color>>8)&255)/255,float(p.color&255)/255,float(p.color>>24)/255};execute_vertex_program(program,s);cpu.insert(cpu.end(),s.outputs.begin(),s.outputs.end());probes.push_back({program.instructions,c,{0,0,0,program.count},p.position,{p.color,0,0,0}});}
     compare(cpu,expected,false);if(argc==1)return 0;
     {
@@ -141,6 +162,34 @@ int main(int argc,char**argv){try{
         unsigned changed=0;for(unsigned i=0;i<actual.size();i+=4){require(actual[i+3]==occluded[i+3],"inheritedRGB-only state changed alpha");if(!std::equal(actual.begin()+i,actual.begin()+i+3,occluded.begin()+i))++changed;}
         std::cout<<e.width<<"x"<<e.height<<": "<<changed<<" changed pixels; depth/alpha/color/Wclip/oPts controls passed\n";
         save(output/("controlled-"+std::to_string(e.width)+"x"+std::to_string(e.height)+".rgba"),actual);
+    }
+    if(argc==4) {
+        std::ifstream stream(argv[3]);require(bool(stream),"missing actual64-square sprite fixture");
+        const auto source=nlohmann::json::parse(stream);
+        require(source.at("schema")=="H2_WEATHER_SPRITE_RESOURCE_FIXTURE_V1"&&source.at("cases").size()==2,
+            "actual original/prepared weather resource census changed");
+        std::vector<std::byte> previous;
+        for(const auto& owner:source.at("cases")) {
+            const auto& d=owner.at("descriptor");require(d.at("width")==64&&d.at("height")==64&&d.at("format")==16&&d.at("type")==0&&d.at("depth")==1,
+                "actual64-square weather resource dimensions changed");
+            const auto hex=owner.at("raw_resource_hex").get<std::string>();require(hex.size()%2==0,"incomplete weather resource hex");
+            std::vector<std::byte> raw;for(std::size_t i=0;i<hex.size();i+=2)raw.push_back(std::byte(std::stoul(hex.substr(i,2),nullptr,16)));
+            require(raw.size()>=5456,"short actual weather resource");
+            const auto flood=g.image({64,64},VK_FORMAT_BC3_UNORM_BLOCK,VK_IMAGE_USAGE_TRANSFER_DST_BIT|VK_IMAGE_USAGE_SAMPLED_BIT,5);
+            upload64(g,flood,std::span(raw).first(5456));
+            auto packet64=packet;packet64.sprite_view=flood.view;packet64.sprite_extent={64,64};packet64.sprite_mips=5;
+            const auto actual=render({640,480},packet64,1),hidden=render({640,480},packet64,0);
+            require(actual!=hidden,"actual64-square sprite has no GPU effect response");
+            require(render({640,480},packet64,1)==actual,"actual64-square sprite binding reuse differs");
+            if(previous.empty())previous=actual;else require(previous==actual,"original/prepared64-square sprite GPU resource bindings differ");
+            auto wrong64=packet64;wrong64.sprite_mips=4;reject(wrong64);wrong64.sprite_mips=6;reject(wrong64);
+            wrong64=packet64;wrong64.sprite_extent={32,32};reject(wrong64);
+            wrong64=packet64;wrong64.sprite_extent={32,64};reject(wrong64);
+            wrong64=packet64;wrong64.sprite_extent={64,32};reject(wrong64);
+            wrong64=packet64;wrong64.sprite_format=VK_FORMAT_BC1_RGBA_UNORM_BLOCK;reject(wrong64);
+            require(render({640,480},packet64,1)==actual,"rejected64-square profile mutation damaged valid bindings");
+        }
+        std::cout<<"Actual original/prepared64-square/five-mip resource GPU bindings/reuse match; retained238-point component input, not live flood-spore or original64-square raster parity\n";
     }
     require(halo2_weather_point_fixture::validation_errors==0,"weather point validation diagnostics");
     std::cout<<"Isolated actual238-point packet over CONTROLLED clear color/depth; no original scene or physicalXbox coverage claim\n";return 0;

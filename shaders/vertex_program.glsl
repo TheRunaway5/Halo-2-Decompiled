@@ -68,6 +68,7 @@ vec4 vpSource(uvec4 t,uint which) {
 void vpWrite(inout vec4 target,vec4 value,uint mask) {
     for(uint axis=0u;axis<4u;++axis)if((mask&(8u>>axis))!=0u)target[axis]=value[axis];
 }
+#ifndef H2_NATIVE_VERTEX_PROGRAM
 void runVertexProgram() {
 #ifdef H2_EXTENDED_VERTEX_BANK
     vpAddress=0;
@@ -174,3 +175,4 @@ void runVertexProgram() {
         if(om!=0u)vpWrite(vpOut[(t.w>>3u)&15u],(t.w&4u)!=0u?l:m,om);
     }
 }
+#endif

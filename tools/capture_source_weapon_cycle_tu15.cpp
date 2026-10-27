@@ -453,7 +453,7 @@ int main(int argc,char **argv)try {
         "Original local-player rebind lost its actual first-person weapon");
     std::cout<<"PASS source local-view release and rebind\n";
     LanHost host(match,0,0x545531354650434cull);
-    LanClient peer("127.0.0.1:"+std::to_string(host.port()),0x545531354650434cull,1);
+    LanClient peer(host.join_address(),0x545531354650434cull,1);
     for(unsigned n=0;n<64 && !peer.ready();++n) {peer.send(std::span(controls).first(1));host.receive(controls);host.broadcast();peer.receive();}
     check(peer.ready() && peer.error().empty(),"Source first-person LAN handshake incomplete");
     controls={};
@@ -474,7 +474,7 @@ int main(int argc,char **argv)try {
     if(scheduled) {
       using halo2::sandbox_effect_udp_probe::ScheduledEffectUdpProxy;
       ScheduledEffectUdpProxy proxy(host.port());
-      LanClient receiver("127.0.0.1:"+std::to_string(proxy.port()),0x545531354650434cull,1);
+      LanClient receiver(host.join_address("127.0.0.1",proxy.port()),0x545531354650434cull,1);
       const auto same_journal=[&] {
         const auto expected=match.state().weapon_effects;const auto &received=receiver.state().weapon_effects;
         check(expected.size()==received.size(),"UDP lost an original scheduled weapon event");

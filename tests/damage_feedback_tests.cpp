@@ -1,4 +1,5 @@
 #include "halo2/damage_feedback.hpp"
+#include "halo2/damage_feedback_names.hpp"
 #include "halo2/cache.hpp"
 #include "halo2/shader_animation.hpp"
 #include <bit>
@@ -87,6 +88,7 @@ int main(int argc,char **argv) {
     }
     check(reports==1600&&fades==2400&&updates==1600&&inputs==1400,"Incomplete original feedback suite");
     Cache cache(argv[2]);
+    const auto names=DamageFeedbackNames::from_cache(cache);
     std::map<std::uint32_t,std::vector<ObjectFunction>> functions;
     const ShaderFunctionTables tables{}; // Actual type-zero identities read no lookup table.
     unsigned authored=0;
@@ -110,6 +112,9 @@ int main(int argc,char **argv) {
       const auto shader=damage_feedback_shader_input(state,1,1,false,at->second,tables,name,0);
       check(std::bit_cast<std::uint32_t>(shader)==(active?value:0u),
           "Live damage shader input differs from original authored lookup at case "+std::to_string(authored));
+      const auto bound=damage_feedback_shader_input(state,1,1,false,at->second,tables,name,0,names);
+      check(std::bit_cast<std::uint32_t>(bound)==(active?value:0u),
+          "Cache-bound damage shader input differs from original authored lookup at case "+std::to_string(authored));
       std::string extra;check(!(row>>extra),"Trailing authored shield function field");++authored;
     }
     check(authored==132&&functions.size()==3,"Incomplete authored shield alias suite");

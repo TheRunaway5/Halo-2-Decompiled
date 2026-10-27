@@ -4,6 +4,7 @@
 #include <optional>
 
 namespace halo2 {
+class SourceTextureCameraBindingTu15;
 // Same lexicographic key as Renderer::DrawKey. Material remains a draw binding;
 // the world vertex declaration does not expose Vertex::material as an input.
 struct SourceBspDrawKey {
@@ -76,6 +77,8 @@ class SourceBspResidentPlan {
 public:
     SourceBspResidentPlan(const Cache &,Mesh &,std::size_t bsp,
         SourceBspResidentLighting=SourceBspResidentLighting::static_lightmap);
+    SourceBspResidentPlan(const Cache &,Mesh &,std::size_t bsp,SourceBspResidentLighting,
+        const SourceTextureCameraBindingTu15 *texture_camera,bool live_texture_camera=false);
     SourceBspResidentViewPlan select(const SourceBspShaderView &) const;
     SourceBspResidentViewPlan select(const SourceBspShaderView &,
         SourceBspShaderLodAuxiliary) const;

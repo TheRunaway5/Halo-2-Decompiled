@@ -94,6 +94,48 @@ int main() {
     });
     for(int i=0;i<8;++i)need(nested[i]==i,"nested outputs complete");
 
+    // native_overlap_run: the job runs on the overlap thread while overlap
+    // runs on the caller; results, FP sticky flags, errno and exceptions
+    // behave as if job then overlap had run inline.
+    {
+        using halo2::native_overlap_run;
+        const auto self=std::this_thread::get_id();
+        std::thread::id job_thread,overlap_thread;int order=0,job_order=0,overlap_order=0;
+        native_overlap_run([&]{job_thread=std::this_thread::get_id();job_order=++order;},
+                           [&]{overlap_thread=std::this_thread::get_id();overlap_order=++order;});
+        need(overlap_thread==self,"overlap runs on the calling thread");
+        need(job_thread!=self || !workers,"job runs on the overlap thread");
+        need(job_order && overlap_order,"job and overlap both ran before the call returned");
+        // SSE sticky flags raised by the job are present on the caller afterwards.
+        _mm_setcsr(_mm_getcsr()&~0x3fu);
+        native_overlap_run([&]{volatile float z=divide(1.f,0.f);(void)z;},[]{});
+        need(_mm_getcsr()&0x4u,"job's SSE divide-by-zero flag merged into the caller");
+        _mm_setcsr(_mm_getcsr()&~0x3fu);
+        asm volatile("fnclex");
+        native_overlap_run([&]{volatile long double z=x87_divide(1.0L,0.0L);(void)z;},[]{});
+        need(x87_status()&0x4u,"job's x87 divide-by-zero flag merged into the caller");
+        asm volatile("fnclex");
+        // errno: the job's change applies unless overlap changed errno itself (the later change).
+        errno=0;native_overlap_run([]{errno=EIO;},[]{});need(errno==EIO,"job errno change applied");
+        errno=0;native_overlap_run([]{errno=EIO;},[]{errno=ENOENT;});need(errno==ENOENT,"overlap's later errno change wins");
+        errno=0;native_overlap_run([]{},[]{});need(errno==0,"untouched errno stays");
+        // Exceptions: the job's first, else overlap's; the other side still completes.
+        bool overlap_done=false;
+        try{native_overlap_run([]{throw std::runtime_error("job");},[&]{overlap_done=true;});need(false,"job exception propagated");}
+        catch(const std::runtime_error& e){need(std::string(e.what())=="job","job exception rethrown");}
+        need(overlap_done,"overlap completed despite the job's exception");
+        bool job_done=false;
+        try{native_overlap_run([&]{job_done=true;},[]{throw std::runtime_error("overlap");});need(false,"overlap exception propagated");}
+        catch(const std::runtime_error& e){need(std::string(e.what())=="overlap","overlap exception rethrown");}
+        need(job_done,"job completed despite the overlap's exception");
+        try{native_overlap_run([]{throw std::runtime_error("job");},[]{throw std::runtime_error("overlap");});need(false,"exception propagated");}
+        catch(const std::runtime_error& e){need(std::string(e.what())=="job","job exception precedes overlap's");}
+        // The job may use the pool; nested parallel_for inside the overlap stays inline-consistent.
+        std::vector<int> out(16,0);
+        native_overlap_run([&]{native_parallel_for(16,[&](std::size_t i){out[i]=int(i)*3;});},[]{});
+        bool ok=true;for(int i=0;i<16;++i)ok&=out[i]==i*3;need(ok,"job used the worker pool");
+    }
+
     if(failures)return 1;
     std::cout<<"native_parallel: all checks passed\n";
     return 0;

@@ -256,5 +256,15 @@
     "150996442": "hud_elite",
     "0": "",
     "167773659": "hud_input1"
-  }
+  },
+  "prepared_inputs": [
+    {
+      "map": "needle",
+      "bytes": 9902592,
+      "sha256": "bdf79ad0880e0ded968745bc102dcadaeb2ac690dd0eab42eb994f6f4f1d5fb7",
+      "source_sha256": "27d428e34a06ea84932fe8dd86a8e35f560d3ea1579727e7dde56555b08b2a90",
+      "preparation_profile": "H2_MCC_SKY_BITMAP_COW_V7",
+      "correction_report_sha256": "55ac192a6e8f6da777ce07a8793c8908a5fa4622ada309a86a1e1f98a6e0cea2"
+    }
+  ]
 }

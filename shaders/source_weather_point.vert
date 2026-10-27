@@ -3,7 +3,7 @@
 layout(location=0) in vec4 sourcePosition;
 layout(location=1) in uint sourceColor;
 layout(set=0,binding=0,std140) uniform WeatherVertex {
-    uvec4 instructions[136];vec4 camera[12];uvec4 flags;
+    vec4 camera[12];uvec4 flags;
     vec4 clipRange;vec4 surface;vec4 depth;
 } weather;
 layout(location=0) out vec4 color0;

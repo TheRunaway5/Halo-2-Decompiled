@@ -105,10 +105,19 @@ void exact_component(const fs::path& parent, const fs::path& component) {
     require(found, "filesystem path spelling/case differs");
 }
 
+bool exact_absolute_path(const fs::path& path) {
+    // Windows manifest components use '/', while a native root uses '\\'.
+    // Normalize separator direction only. Dots, traversal and repeated
+    // separators must still fail the unchanged canonical-spelling check.
+    auto preferred=path;
+    preferred.make_preferred();
+    return preferred.is_absolute() && preferred.lexically_normal().native()==preferred.native();
+}
+
 // Check path metadata, not its content. A later ordinary filename replacement
 // cannot change the already supplied map or library snapshot used below.
 void private_path(const fs::path& absolute, bool directory) {
-    require(absolute.is_absolute() && absolute.lexically_normal().native() == absolute.native(), "owner path must be exact absolute path");
+    require(exact_absolute_path(absolute), "owner path must be exact absolute path");
     auto current = absolute.root_path();
     for (const auto& part : absolute.relative_path()) {
         exact_component(current, part);
@@ -120,7 +129,7 @@ void private_path(const fs::path& absolute, bool directory) {
 }
 
 fs::path within(const fs::path& root, const fs::path& path, bool directory) {
-    require(path.is_absolute() && path.lexically_normal().native() == path.native(), "owner path must be exact absolute path");
+    require(exact_absolute_path(path), "owner path must be exact absolute path");
     const auto rel = path.lexically_relative(root);
     const auto checked = relative(rel.generic_string());
     require(root / checked == path, "owner escaped explicit prepared root");

@@ -1,0 +1,152 @@
+{
+  "schema": "H2_H2EK_ORIGINAL_LOADING_SOURCES_V2",
+  "source_kind": "Halo 2 Editing Kit read-only file-backed PE data and loading_dx11.bin",
+  "steam_app_id": 1613450,
+  "audio": {
+    "bytes": 18396,
+    "sha256": "4f61e827be9b54b71e3d37a145c9b88fb32eaf517e23746af85236ca41ba8fc9",
+    "decoded_pcm_sha256": "b740acf4ce447da6583b4f6c7fd6696fabbb249664a53fb780b18c4dd58cd73d",
+    "decoded_frames": 32704,
+    "sample_rate": 22050,
+    "channels": 1,
+    "playback_frequencies": [
+      21738,
+      16290,
+      29008,
+      10876
+    ]
+  },
+  "sources": [
+    {
+      "file": "guerilla.exe",
+      "bytes": 11893488,
+      "sha256": "bd04e5f70ae9b5facf475e994162a6f08a9ef335135ea279f90037468c410020",
+      "offset": 10473232,
+      "section": {
+        "name": ".rdata",
+        "virtual_address": 8187904,
+        "virtual_size": 2875768,
+        "raw_offset": 8183296,
+        "raw_bytes": 2875904,
+        "characteristics_hex": "0x40000040"
+      }
+    },
+    {
+      "file": "halo2_tag_test.exe",
+      "bytes": 12364016,
+      "sha256": "d0b71186d3948c48ddd02e2ccb88fa13e77e25a3d8f7fa60922f23a2a0073e36",
+      "offset": 10234928,
+      "section": {
+        "name": ".rdata",
+        "virtual_address": 8019968,
+        "virtual_size": 2731550,
+        "raw_offset": 8016896,
+        "raw_bytes": 2732032,
+        "characteristics_hex": "0x40000040"
+      }
+    },
+    {
+      "file": "sapien.exe",
+      "bytes": 12361968,
+      "sha256": "9bc9bf6e325b84ba055f744b34c0e1104b0bb34de5d3ad9afe381af0c6549cfe",
+      "offset": 10938888,
+      "section": {
+        "name": ".rdata",
+        "virtual_address": 8667136,
+        "virtual_size": 2885404,
+        "raw_offset": 8661504,
+        "raw_bytes": 2885632,
+        "characteristics_hex": "0x40000040"
+      }
+    },
+    {
+      "file": "tool.exe",
+      "bytes": 13000944,
+      "sha256": "84a2d9edb30381d30f4458748815801042291e03c817b0e4bfb422369c8eb042",
+      "offset": 12117056,
+      "section": {
+        "name": ".rdata",
+        "virtual_address": 9265152,
+        "virtual_size": 3075052,
+        "raw_offset": 9261568,
+        "raw_bytes": 3075072,
+        "characteristics_hex": "0x40000040"
+      }
+    }
+  ],
+  "textures": {
+    "file": "loading_dx11.bin",
+    "bytes": 1446656,
+    "sha256": "26a6d1e71bbf18acf3d5b1093e8fdcf25f9954995120cb78c485d3be77545103",
+    "layout": "Six contiguous DDS images; original PC normal-mode loading slots 0,1,3,4,5,11",
+    "images": [
+      {
+        "slot": 0,
+        "path": "loading-00.dds",
+        "offset": 0,
+        "bytes": 655488,
+        "width": 1280,
+        "height": 1024,
+        "fourcc": "DXT1",
+        "sha256": "2d0dddc62c238b642ffafdd9aaf308b4c570dc0caf4812c2f8865be5e0e50f91"
+      },
+      {
+        "slot": 1,
+        "path": "loading-01.dds",
+        "offset": 655488,
+        "bytes": 131200,
+        "width": 1024,
+        "height": 128,
+        "fourcc": "DXT3",
+        "sha256": "e11a54772d4361fa560effce9640645acca84e0a8d4629db145fdad05380854d"
+      },
+      {
+        "slot": 3,
+        "path": "loading-03.dds",
+        "offset": 786688,
+        "bytes": 262272,
+        "width": 512,
+        "height": 512,
+        "fourcc": "DXT3",
+        "sha256": "c4d6bfa31a3d09231a1c8d152f6af10b7f9a74a74afbb161478aee678b19702e"
+      },
+      {
+        "slot": 4,
+        "path": "loading-04.dds",
+        "offset": 1048960,
+        "bytes": 262272,
+        "width": 512,
+        "height": 512,
+        "fourcc": "DXT3",
+        "sha256": "d3f10c57182b322521365309ae3534f908b696b41a62ab170beab78f6a57bb68"
+      },
+      {
+        "slot": 5,
+        "path": "loading-05.dds",
+        "offset": 1311232,
+        "bytes": 4224,
+        "width": 2048,
+        "height": 4,
+        "fourcc": "DXT1",
+        "sha256": "3e25b9331d56ec656a1341f2a8a83b26cbec00aad743ba01e0d5de5cf7042b16"
+      },
+      {
+        "slot": 11,
+        "path": "loading-11.dds",
+        "offset": 1315456,
+        "bytes": 131200,
+        "width": 512,
+        "height": 512,
+        "fourcc": "DXT1",
+        "sha256": "0ad81dfc30d10cdccb5d9a970aea7577cf970e8cb7f0d9ccf63c2e0785fcfe33"
+      }
+    ]
+  },
+  "provenance": {
+    "reference_manifest_sha256": "c9347547120152963fe92b1023d9226c6cf2a9cf580b7fa284b2a3ad385f05d3",
+    "byte_search_receipt_sha256": "84fa49ad562f4230dbb0abddd6ef84bf9f2f8c52479dd969a18dba5c6a09c440",
+    "decoder": "Native mono36-byte block decoder, src/ui/vista/vista_loading_audio.cpp; predictor plus63 low/high payload nibbles",
+    "texture_identity": "Same dimensions as the exported original PC loading.bin slots; decoded RGB within DXT error (slot0 PSNR 42.95 dB after the original D3DX pow2 stretch is undone)"
+  },
+  "policy": "Extract verified .rdata audio bytes and loading_dx11.bin DDS extents only; never execute a PE or load Xbox/Vista inputs. The staged bank is the selected native logo/sweep loading presentation when present; MCC V3 remains the fallback."
+}

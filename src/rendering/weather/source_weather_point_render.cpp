@@ -1,4 +1,6 @@
 #include "halo2/source_weather_point_render.hpp"
+#include "halo2/native_weather_vertex.hpp"
+#include "halo2/source_weather_sprite_profile.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -9,17 +11,11 @@ namespace halo2 {
 namespace {
 void check(VkResult r){if(r!=VK_SUCCESS)throw FormatError("weather point Vulkan failure: "+std::to_string(r));}
 struct VertexUniform {
-    std::array<VertexInstruction,136> instructions{};
     std::array<ShaderVector,12> camera{};
     std::array<std::uint32_t,4> flags{};
     ShaderVector clip{},surface{},depth{};
 };
-static_assert(sizeof(VertexUniform)==2432);
-std::uint64_t fingerprint(std::span<const std::byte> bytes) {
-    std::uint64_t h=14695981039346656037ull;
-    for(auto b:bytes)h=(h^std::to_integer<unsigned>(b))*1099511628211ull;
-    return h;
-}
+static_assert(sizeof(VertexUniform)==256);
 std::array<std::uint32_t,60> original_pixel() {
     std::array<std::uint32_t,60> w{};
     w[0]=0xd4db1010;w[8]=0x0c200000;w[9]=0x1c80;w[26]=0xc0;
@@ -46,9 +42,8 @@ struct SourceWeatherPointRender::Impl {
             vkGetPhysicalDeviceProperties(context.physical,&properties);
             const VkDescriptorSetLayoutBinding bindings[]{
                 {0,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,nullptr},
-                {1,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1,VK_SHADER_STAGE_FRAGMENT_BIT,nullptr},
                 {2,VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1,VK_SHADER_STAGE_FRAGMENT_BIT,nullptr}};
-            VkDescriptorSetLayoutCreateInfo si{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};si.bindingCount=3;si.pBindings=bindings;
+            VkDescriptorSetLayoutCreateInfo si{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};si.bindingCount=2;si.pBindings=bindings;
             check(vkCreateDescriptorSetLayout(context.device,&si,nullptr,&descriptor_layout));
             VkPipelineLayoutCreateInfo li{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};li.setLayoutCount=1;li.pSetLayouts=&descriptor_layout;
             check(vkCreatePipelineLayout(context.device,&li,nullptr,&layout));
@@ -108,18 +103,17 @@ struct SourceWeatherPointRender::Impl {
     void prepare(const SourceWeatherPointPacket &p,bool native_point_range=false) {
         // All source admission checks precede destruction/mutation of queued
         // bindings. Caller synchronization remains mandatory for valid input.
-        if(fingerprint(p.vertex_program)!=0x695a03e50e8dba7dull)
-            throw FormatError("weather point program differs from original VS22/class0");
-        const auto program=decode_vertex_program(p.vertex_program);
-        if(program.count!=9||p.pixel.words!=original_pixel())throw FormatError("unsupported weather point program/39780 pixel definition");
+        native_weather::admit_point(p.vertex_program);
+        if(p.pixel.words!=original_pixel())throw FormatError("unsupported weather point39780 pixel definition");
         if(p.raster.point_parameters_enabled!=1||p.raster.point_sprite_enabled!=1)
             throw FormatError("weather point prototype requires actual enabled programmable points/sprites");
         if(!p.raster.stencil_enabled||*p.raster.stencil_enabled)
             throw FormatError("weather point prototype requires explicit source stencil-disabled state");
         if(!p.raster.sprite_coordinates||*p.raster.sprite_coordinates!=SourceWeatherPointSpriteCoordinates::OriginalGlRawRowsUpperLeft)
             throw FormatError("weather point prototype requires explicit original GL raw-row/upper-left point coordinates");
-        if(!p.sprite_view||!p.sprite_sampler||p.sprite_format!=VK_FORMAT_BC3_UNORM_BLOCK||p.sprite_extent.width!=32||p.sprite_extent.height!=32||p.sprite_mips!=4)
-            throw FormatError("weather point prototype requires the actual32-square/four-mipBC3 sprite binding");
+        if(!p.sprite_view||!p.sprite_sampler||p.sprite_format!=VK_FORMAT_BC3_UNORM_BLOCK||
+            !source_weather_sprite_profile(p.sprite_extent.width,p.sprite_extent.height,p.sprite_mips))
+            throw FormatError("weather point requires an authored BC3 sprite: 32x32/four mips or 64x64/five mips");
         if(p.points.size()>0xffffffffu||p.raster.color_write_mask>15)
             throw FormatError("weather point draw count/color mask exceeds native bounds");
         for(const auto &c:p.camera)for(float v:c)if(!std::isfinite(v))throw FormatError("nonfinite weather camera input");
@@ -138,11 +132,9 @@ struct SourceWeatherPointRender::Impl {
         if(p.raster.depth_clamp&&!context.depth_clamp_enabled)throw FormatError("weather point depthClamp not enabled on logical device");
         for(const auto &point:p.points)for(float v:point.position)if(!std::isfinite(v))throw FormatError("nonfinite immediate weather input");
         for(const auto &point:p.points){
-            VertexProgramState state;std::copy(p.camera.begin(),p.camera.end(),state.constants.begin());state.attributes[0]=point.position;
-            state.attributes[1]={float((point.color>>16)&255)/255,float((point.color>>8)&255)/255,float(point.color&255)/255,float(point.color>>24)/255};
-            execute_vertex_program(program,state);
-            for(float v:state.outputs[0])if(!std::isfinite(v))throw FormatError("weather point program produces a nonfinite position");
-            const auto w=state.outputs[0][3],diameter=state.outputs[6][0];
+            const auto outputs=native_weather::point_vertex(p.camera,point.position,point.color);
+            for(float v:outputs[0])if(!std::isfinite(v))throw FormatError("weather point program produces a nonfinite position");
+            const auto w=outputs[0][3],diameter=outputs[6][0];
             if(!(w>0)||!std::isfinite(diameter)||!(diameter>0))
                 throw FormatError("weather point program produces unproved nonpositive W/point diameter");
             if(!native_point_range && (diameter<properties.limits.pointSizeRange[0]||diameter>properties.limits.pointSizeRange[1]))
@@ -150,20 +142,19 @@ struct SourceWeatherPointRender::Impl {
         }
         clear();if(p.points.empty())return;
         try {
-            VertexUniform v;v.instructions=program.instructions;v.camera=p.camera;v.flags={p.raster.depth_clipping,1,native_point_range,program.count};v.clip=p.raster.clip_range;v.surface=p.raster.surface;v.depth={p.raster.depth_factor,p.raster.depth_offset,properties.limits.pointSizeRange[0],properties.limits.pointSizeRange[1]};
+            VertexUniform v;v.camera=p.camera;v.flags={p.raster.depth_clipping,1,native_point_range,0};v.clip=p.raster.clip_range;v.surface=p.raster.surface;v.depth={p.raster.depth_factor,p.raster.depth_offset,properties.limits.pointSizeRange[0],properties.limits.pointSizeRange[1]};
             buffers[0]=buffer(sizeof(v),VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,&v);
-            buffers[1]=buffer(sizeof(p.pixel.words),VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,p.pixel.words.data());
             buffers[2]=buffer(p.points.size_bytes(),VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,p.points.data());
-            const VkDescriptorPoolSize sizes[]{{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,2},{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1}};
+            const VkDescriptorPoolSize sizes[]{{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1},{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1}};
             VkDescriptorPoolCreateInfo ci{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};ci.maxSets=1;ci.poolSizeCount=2;ci.pPoolSizes=sizes;
             check(vkCreateDescriptorPool(context.device,&ci,nullptr,&descriptor_pool));
             VkDescriptorSetAllocateInfo ai{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};ai.descriptorPool=descriptor_pool;ai.descriptorSetCount=1;ai.pSetLayouts=&descriptor_layout;
             check(vkAllocateDescriptorSets(context.device,&ai,&descriptor));
-            const VkDescriptorBufferInfo bi[]{{buffers[0].handle,0,sizeof(v)},{buffers[1].handle,0,sizeof(p.pixel.words)}};
+            const VkDescriptorBufferInfo bi{buffers[0].handle,0,sizeof(v)};
             const VkDescriptorImageInfo ii{p.sprite_sampler,p.sprite_view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-            VkWriteDescriptorSet w[3]{};
-            for(unsigned i=0;i<3;++i){w[i].sType=VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;w[i].dstSet=descriptor;w[i].dstBinding=i;w[i].descriptorCount=1;w[i].descriptorType=i==2?VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;if(i==2)w[i].pImageInfo=&ii;else w[i].pBufferInfo=&bi[i];}
-            vkUpdateDescriptorSets(context.device,3,w,0,nullptr);current=pipeline(p.raster.color_write_mask,p.raster.depth_clamp);count=p.points.size();prepared_surface={unsigned(p.raster.surface[0]),unsigned(p.raster.surface[1])};
+            VkWriteDescriptorSet w[2]{};
+            for(unsigned i=0;i<2;++i){w[i].sType=VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;w[i].dstSet=descriptor;w[i].dstBinding=i?2:0;w[i].descriptorCount=1;w[i].descriptorType=i?VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;if(i)w[i].pImageInfo=&ii;else w[i].pBufferInfo=&bi;}
+            vkUpdateDescriptorSets(context.device,2,w,0,nullptr);current=pipeline(p.raster.color_write_mask,p.raster.depth_clamp);count=p.points.size();prepared_surface={unsigned(p.raster.surface[0]),unsigned(p.raster.surface[1])};
         }catch(...){clear();throw;}
     }
     void record(VkCommandBuffer cmd,VkViewport viewport,VkRect2D scissor)const {
@@ -189,17 +180,13 @@ SourceWeatherPointRender::SourceWeatherPointRender(SourceWeatherPointRenderConte
 SourceWeatherPointRender::~SourceWeatherPointRender()=default;
 void SourceWeatherPointRender::prepare(const SourceWeatherPointPacket &p){impl_->prepare(p);}
 void SourceWeatherPointRender::prepare_world(const SourceWeatherPointPacket &p){
-    const auto program=decode_vertex_program(p.vertex_program);
+    native_weather::admit_point(p.vertex_program);
     std::vector<SourceWeatherPointInput> visible;
     visible.reserve(p.points.size());
     for(const auto &point:p.points) {
         for(float value:point.position)if(!std::isfinite(value))
             throw FormatError("nonfinite live weather point");
-        VertexProgramState state;
-        std::copy(p.camera.begin(),p.camera.end(),state.constants.begin());
-        state.attributes[0]=point.position;
-        execute_vertex_program(program,state);
-        const float w=state.outputs[0][3];
+        const float w=native_weather::point_vertex(p.camera,point.position,point.color)[0][3];
         if(!std::isfinite(w))throw FormatError("nonfinite live weather W");
         // The wrapper multiplies clip XYZ by this W. Negative homogeneous W
         // cannot enter the clip volume; each point fragment has constant W.

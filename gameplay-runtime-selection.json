@@ -1,32 +1,32 @@
 {
-  "cache": "assets/imported/mcc-dire-valley-polish-20261023",
+  "cache": "assets/imported/mcc-sky-water-tu15-20261025-v7",
   "default_map": "coagulation.map",
   "eos_worker": {
-    "bytes": 1829120,
+    "bytes": 1831128,
     "name": "eos_sdk_worker",
     "schema": "H2_EOS_SDK_WORKER_V1",
-    "sha256": "8c3fd7af0ad7a053ca5c18e5d0cdfb533676890fdc4cb39b5a550bf5cf5c54ae"
+    "sha256": "47089f0c26776a4b8e264ab0749706f0085aa50dc98b2ffae8bf62325efece7c"
   },
-  "inventory": "bin/engine-builds/de88c7bb680e4315bf8beef145ed3068/runtime-files.json",
-  "inventory_sha256": "cb03021cacc5b286cd61cc196c85fbc2d91330c57eefd5df1e8fe50f37e1383c",
+  "inventory": "bin/engine-builds/9d531caa3b6a4b0c9284b954c3874139/runtime-files.json",
+  "inventory_sha256": "70af79c24fe9634800651e9fc9aac9be408e6020bbd1d282a8753444292560cc",
   "local_players": 2,
   "maps": {
     "ascension.map": "04cb69156ed247e12e55e46cbf2364ce4dfdde8b1d7bf29c902f5ed0839464e9",
-    "beavercreek.map": "c30bd1e015ad12c66eaa42243aef26245c45aafedfc9cc1caa9a265e727b210e",
-    "coagulation.map": "a94c4fdac2dee6887e83a1f2555e914aa7ed974d5c466ebabcf013b08f2ef17d",
+    "beavercreek.map": "977c957e952ce279a8d61d9706ac475fd564081c316bdd7420bfcab3aa2a9a45",
+    "coagulation.map": "2bb23227c845c14d80360a67cff42588344adad9529af47e04d34703db623b19",
     "containment.map": "7d27e2443a8467f89cd3714f07bfe161d5d543b1255823f8649dcf24c293dc95",
-    "dune.map": "9ca3b5889c21a930b44c075ebf4a7ab7a846a48be551acd7cd9e43f868b3a321",
-    "elongation.map": "3780ab18cb5c65a0f23d99ab827671bc85c53c22c5e9a3826e5ab01425cff729",
+    "dune.map": "5ea54b1f229f3bde277320c2308fc3bf85ed813aad8a4a653699a136e5d0db3b",
+    "elongation.map": "6e57a17c7519420d6f4821fd71f60fd283609132a8bd55648e224a0bc7f7f8ae",
     "gemini.map": "e6cfd824cbebe87d39cd74fbd5ace2637dbcdd6687f67d30134858b817a0dfc1",
     "headlong.map": "dba62b65f25146f492258d21beac93d8f97f142a59a4c4ef18f48803f46b9a5c",
-    "lockout.map": "97d034dca2109adde65e56c0ab78ee56f72045b56bf9b3200f304d5e1ff4c61e",
+    "lockout.map": "8141212c439bbf559963ae9c4323d573fa4f8d3d44bc99d5923d509358a9d6ee",
     "warlock.map": "27f5a813db80776fc2e135101f1c43c9ab20a3ab7d4e132e05f20a183d79171d",
-    "waterworks.map": "ba90e7c53de84dfdbb09c01071f7ca6122fbe1d281ba62b7355ee1be45510bbe"
+    "waterworks.map": "be622f7b4b91b65f5c68bbc2860c2fc551ac81c11b9d61c90c80b9e580756044"
   },
-  "qualification": "bin/engine-builds/de88c7bb680e4315bf8beef145ed3068/qualification.json",
-  "qualification_sha256": "15a00e8057f75c6e2449b4fcf77b351e541181908f845fa4ee9bca206671c794",
-  "runtime": "bin/engine-builds/de88c7bb680e4315bf8beef145ed3068/halo2_native",
-  "runtime_sha256": "14380587f554a48035a9b3d2fd854789ff2dddc43625001a231f3805c681a215",
+  "qualification": "bin/engine-builds/9d531caa3b6a4b0c9284b954c3874139/qualification.json",
+  "qualification_sha256": "8bd462e597d1d0a93835eda1f3d2bb66d58e567758bb561c685f00dab1e16a3c",
+  "runtime": "bin/engine-builds/9d531caa3b6a4b0c9284b954c3874139/halo2_native",
+  "runtime_sha256": "ea2a889433821435231f4d504099e5b50b1f0d232f617a3c437c5c1cf38a05b5",
   "schema": "H2_LOCAL_GAMEPLAY_RUNTIME_SELECTION_V1",
   "video_driver": "x11"
 }

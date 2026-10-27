@@ -26,9 +26,20 @@ struct SourceSceneRoot {
     // orphan entries. Sorted unique cluster IDs; empty means unregistered.
     std::vector<std::int16_t> render_clusters;
 };
+struct SourceWorldPoseAttachment {
+    std::uint32_t parent{0xffffffffu};
+    std::uint8_t parent_node{}; // Actual OBJECT+18 byte, including unparented values.
+    // The exact frame anchoring this completed child bank. Full native
+    // publication copies the selected node from its final published parent
+    // bank. Transport selects each root refresh and its fresh native frame
+    // atomically; a held pose retains its corresponding earlier frame.
+    std::optional<Transform> parent_frame;
+};
 struct SourceWorldPose {
     std::uint32_t object{0xffffffffu};
     std::vector<Transform> nodes;
     ShadowCasterSphere sphere;
+    // Unavailable on legacy wire formats, distinct from known unparented.
+    std::optional<SourceWorldPoseAttachment> attachment;
 };
 }

@@ -1,6 +1,8 @@
 #include "halo2/physics_vehicle_runtime.hpp"
 #include "halo2/source_vehicle_native_rates.hpp"
 #include "physics/runtime/physics_instruction_remap_tu15.hpp"
+#include "physics/runtime/physics_step_internal.hpp"
+#include "physics/vehicles/native_vehicle_rate_math_tu15.hpp"
 #include <algorithm>
 #include <cstring>
 #include <filesystem>
@@ -91,10 +93,58 @@ Memory padded(const Memory &input,const halo2::SourcePhysicsContactRuntimeAbi &s
     }
     return result;
 }
+// Plain native value ownership exercises the complete rate algorithms without
+// a guest register file, stack, address dispatcher, or instruction callback.
+struct NativeRateValues:halo2::native_vehicle_rate_math_tu15::RateEvaluationObserver {
+    using Rate=halo2::native_vehicle_rate_math_tu15::ScalarRate;
+    float &value;
+    const std::array<float,4> &rates;
+    float direction_value,seconds_value,target_value,unit_value;
+    std::vector<std::uint32_t> &publications;
+    float child_direction{},child_seconds{};
+    NativeRateValues(float &v,const std::array<float,4> &r,float d,float seconds,float t,float one,
+        std::vector<std::uint32_t> &p):value(v),rates(r),direction_value(d),seconds_value(seconds),
+        target_value(t),unit_value(one),publications(p) {}
+    Rate direction()const {return {direction_value};}
+    Rate seconds()const {return {seconds_value};}
+    Rate acceleration_coefficient()const {return {rates[2]};}
+    Rate deceleration_coefficient()const {return {rates[3]};}
+    Rate acceleration_step()const {return {direction_value};}
+    Rate deceleration_step()const {return {seconds_value};}
+    Rate current()const {return {value};}
+    Rate positive_limit()const {return {rates[0]};}
+    Rate negative_limit()const {return {rates[1]};}
+    Rate unit()const {return {unit_value};}
+    Rate target()const {return {target_value};}
+    void publish_acceleration(Rate next) {direction_value=next.value;}
+    void publish_deceleration(Rate next) {seconds_value=next.value;}
+    void publish(Rate next) {value=next.value;publications.push_back(std::bit_cast<std::uint32_t>(value));}
+    void publish_increased(Rate next) {publish(next);}
+    void publish_positive_limit(Rate next) {publish(next);}
+    void publish_decreased(Rate next) {publish(next);}
+    void publish_negative_acceleration(Rate next) {publish(next);}
+    void publish_final(Rate next) {publish(next);}
+    void publish_target(Rate next) {publish(next);}
+    void begin_approach() {}
+    Rate backward_seconds()const {return seconds();}
+    Rate backward_direction()const {return direction();}
+    void prepare_backward(Rate seconds,Rate direction) {child_seconds=seconds.value;child_direction=direction.value;}
+    Rate forward_seconds()const {return seconds();}
+    void prepare_forward_seconds(Rate seconds) {child_seconds=seconds.value;}
+    Rate forward_direction()const {return direction();}
+    void prepare_forward_direction(Rate direction) {child_direction=direction.value;}
+    void advance() {
+        NativeRateValues child{value,rates,child_direction,child_seconds,target_value,unit_value,publications};
+        halo2::native_vehicle_rate_math_tu15::accelerate_rate(child);
+    }
+};
+float read_float(const Memory &memory,std::uint32_t address) {
+    std::array<std::byte,4> raw;memory.read(address,raw);return std::bit_cast<float>(raw);
+}
 }
 int main(int argc,char**argv){try{
     check(argc==2,"Supply original vehicle runtime fixture");if(!std::filesystem::exists(argv[1]))return 77;
-    std::ifstream in(argv[1]);const auto fixture=J::parse(in);std::size_t cases=0,writes=0,instructions=0,fullbytes=0,cursor_kernels=0,store_faults=0,read_faults=0,cursor_fallbacks=0,mapped_kernels=0,mapped_fallbacks=0;
+    std::ifstream in(argv[1]);const auto fixture=J::parse(in);std::size_t cases=0,writes=0,instructions=0,fullbytes=0,cursor_kernels=0,store_faults=0,read_faults=0,cursor_fallbacks=0,mapped_kernels=0,mapped_fallbacks=0,observed_kernels=0,observed_store_faults=0,mutating_observer_refusals=0,typed_value_cases=0;
     for(const auto&c:fixture.at("cases")){
         const auto name="vehicle_"+std::to_string(c.at("id").get<unsigned>());Memory m;
         for(const auto&b:c.at("initial_banks"))check(m.banks.emplace(b.at("address").get<std::uint32_t>(),bytes(b.at("hex"))).second,"Duplicate contact bank");
@@ -157,6 +207,40 @@ int main(int argc,char**argv){try{
         }
         if(fixture.contains("native_cursor_immutable_inputs") &&
            (c.at("entry")==0x208d80u || c.at("entry")==0x208e70u)){
+            {
+                const auto entry=abi(c.at("entry_abi"));
+                // Original sparse fixtures retain only consumed bytes. Inert
+                // fields receive the same declared padding used by the ABI
+                // differential; every value the algorithm consumes is original.
+                const auto inputs=padded(initial,entry,fixture.at("native_cursor_immutable_inputs"));
+                const auto outputs=padded(m,entry,fixture.at("native_cursor_immutable_inputs"));
+                auto scalar=read_float(inputs,entry.gp[1]);
+                std::array<float,4> rates;
+                for(unsigned n=0;n<rates.size();++n)rates[n]=read_float(inputs,entry.gp[2]+4*n);
+                const auto raw_unit=bytes(fixture.at("native_cursor_immutable_inputs")[0].at("hex"));
+                check(raw_unit.size()==4,name+" invalid typed unit input");
+                float unit;std::memcpy(&unit,raw_unit.data(),4);
+                std::vector<std::uint32_t> publications,original_publications;
+                NativeRateValues values{scalar,rates,read_float(inputs,entry.gp[4]+4),
+                    read_float(inputs,entry.gp[4]+8),std::bit_cast<float>(entry.xmm[3][0]),unit,publications};
+                {
+                    halo2::physics_step_detail::FpScope fp({c.at("entry_abi").at("x87_control_word").get<std::uint16_t>(),
+                        c.at("entry_abi").at("mxcsr").get<std::uint32_t>()});
+                    if(c.at("entry")==0x208d80u)halo2::native_vehicle_rate_math_tu15::accelerate_rate(values);
+                    else {
+                        const auto result=halo2::native_vehicle_rate_math_tu15::approach_rate(values);
+                        const auto reached=result==halo2::native_vehicle_rate_math_tu15::ApproachResult::reached;
+                        check(reached==bool(endabi.gp[0]&0xffu),name+" typed target outcome differs from original");
+                    }
+                }
+                for(const auto &store:stores)if(store.address==entry.gp[1]){
+                    check(store.written.size()==4,name+" unexpected original value width");
+                    std::uint32_t bits;std::memcpy(&bits,store.written.data(),4);original_publications.push_back(bits);
+                }
+                check(publications==original_publications&&std::bit_cast<std::uint32_t>(scalar)==
+                    std::bit_cast<std::uint32_t>(read_float(outputs,entry.gp[1])),name+" typed value algorithm differs from original");
+                ++typed_value_cases;
+            }
             auto native_state=abi(c.at("entry_abi")),reference_state=native_state;
             auto memory=padded(initial,native_state,fixture.at("native_cursor_immutable_inputs")),reference_memory=memory;
             auto reference_services=services;reference_services.instruction=[](auto){};
@@ -177,6 +261,24 @@ int main(int argc,char**argv){try{
                 name+" live cursor native kernel changed complete state");
             for(unsigned n=0;n<native_state.x87_depth;++n)
                 check(std::memcmp(&native_state.x87[n],&reference_state.x87[n],10)==0,name+" cursor extended state differs");
+            {
+                auto observed_memory=padded(initial,abi(c.at("entry_abi")),fixture.at("native_cursor_immutable_inputs"));
+                auto observed_state=abi(c.at("entry_abi"));auto observed_services=cursor_services;
+                observed_services.instruction_cursor.observation_only_stores=true;
+                cursor=0;callbacks=0;std::vector<halo2::SourcePhysicsContactRecordStore> observed_stores;
+                const auto activity=halo2::source_vehicle_native_rate_activity();
+                run(observed_memory,observed_state,observed_services,[&](const auto &store){
+                    check(cursor==store.instruction,name+" observed native store published the wrong cursor");
+                    observed_stores.push_back(store);
+                });
+                const auto actual=halo2::source_vehicle_native_rate_activity();
+                check(actual.live_cursor_calls>activity.live_cursor_calls,
+                    name+" observation-only collector did not execute native vehicle kernel");
+                observed_kernels+=actual.live_cursor_calls-activity.live_cursor_calls;
+                check(callbacks==0 && cursor==expected_trace.back() && observed_stores==stores &&
+                    observed_memory.banks==reference_memory.banks && same_abi(observed_state,reference_state),
+                    name+" observed native kernel changed ordered stores, cursor or full state");
+            }
             if(fixture.contains("native_cursor_site_bindings")) {
                 using Remap=halo2::PhysicsInstructionRemapTu15;
                 std::vector<Remap::Binding> bindings;
@@ -221,6 +323,21 @@ int main(int argc,char**argv){try{
                             same_abi(mapped_state,reference_state) && mapped_memory.banks==reference_memory.banks,
                             name+" mapped native kernel changed complete state or final cursor");
                         check(delivered.size()<expected_trace.size(),name+" mapped kernel still delivered every scalar instruction");
+                        underlying.instruction_cursor.observation_only_stores=true;
+                        auto observed_memory=padded(initial,abi(c.at("entry_abi")),fixture.at("native_cursor_immutable_inputs"));
+                        auto observed_state=abi(c.at("entry_abi"));delivered.clear();mapped_cursor=0;
+                        std::vector<halo2::SourcePhysicsContactRecordStore> observed_stores;
+                        const auto observed_before=halo2::source_vehicle_native_rate_activity();
+                        run(observed_memory,observed_state,mapped_services,[&](const auto &store){
+                            check(mapped_cursor==store.instruction+delta,name+" mapped observed store cursor differs");
+                            observed_stores.push_back(store);
+                        });
+                        const auto observed_after=halo2::source_vehicle_native_rate_activity();
+                        check(observed_after.live_cursor_calls>observed_before.live_cursor_calls &&
+                            observed_stores==stores && observed_memory.banks==reference_memory.banks &&
+                            same_abi(observed_state,reference_state) && mapped_cursor==expected_trace.back()+delta,
+                            name+" mapped observation-only native kernel changed stores/cursor/full state");
+                        observed_kernels+=observed_after.live_cursor_calls-observed_before.live_cursor_calls;
                     } else {
                         check(halo2::source_vehicle_native_rate_activity().live_cursor_calls==activity.live_cursor_calls,
                             name+" invalid mapped cursor entered native kernel");
@@ -239,24 +356,59 @@ int main(int argc,char**argv){try{
                     }
                 }
             }
-            for(unsigned delivery=0;delivery<7;++delivery){
+            for(unsigned delivery=0;delivery<10;++delivery){
                 auto declined=padded(initial,abi(c.at("entry_abi")),fixture.at("native_cursor_immutable_inputs"));
-                if(delivery==5)declined.offer_views=false;
+                if(delivery==5 || delivery==9)declined.offer_views=false;
                 auto declined_state=abi(c.at("entry_abi"));auto declined_services=services;
-                std::vector<std::uint32_t> declined_trace;bool trace1=delivery==0,trace2=delivery==1;
+                std::vector<std::uint32_t> declined_trace;bool trace1=delivery==0 || delivery==7,trace2=delivery==1 || delivery==8;
                 declined_services.instruction=[&](auto pc){declined_trace.push_back(pc);};
                 declined_services.instruction_cursor={&cursor,&trace1,&trace2,service_sites,std::this_thread::get_id(),
                     &declined_services.instruction.target_type(),delivery!=4};
                 if(delivery==2)declined_services.instruction_cursor.executor={};
                 if(delivery==3)declined_services.instruction_cursor.callback_type=&typeid(int);
+                declined_services.instruction_cursor.observation_only_stores=delivery>=7;
                 const auto activity=halo2::source_vehicle_native_rate_activity();
-                const halo2::SourcePhysicsContactRecordObserver observed=delivery==6?
+                const halo2::SourcePhysicsContactRecordObserver observed=delivery>=6?
                     halo2::SourcePhysicsContactRecordObserver([](const auto&){}):halo2::SourcePhysicsContactRecordObserver{};
                 run(declined,declined_state,declined_services,observed);
                 check(halo2::source_vehicle_native_rate_activity().live_cursor_calls==activity.live_cursor_calls&&
                     declined_trace==expected_trace&&same_abi(declined_state,reference_state)&&declined.banks==reference_memory.banks,
                     name+" declined native cursor changed its original prefix or completion");
                 ++cursor_fallbacks;
+            }
+            // No capability is inferred from a std::function. An arbitrary
+            // observer can change trace policy, source bytes or backing at a
+            // completed store; those callers must keep full literal delivery.
+            if(!stores.empty())for(unsigned mutation=0;mutation<3;++mutation) {
+                auto candidate=padded(initial,abi(c.at("entry_abi")),fixture.at("native_cursor_immutable_inputs"));
+                auto reference=candidate;auto candidate_state=abi(c.at("entry_abi")),reference_state= candidate_state;
+                std::vector<std::uint32_t> candidate_trace,reference_trace;
+                std::vector<halo2::SourcePhysicsContactRecordStore> candidate_stores,reference_stores;
+                auto candidate_services=services,reference_services=services;
+                bool candidate_flag=false,reference_flag=false;
+                candidate_services.instruction=[&](auto pc){candidate_trace.push_back(pc);};
+                reference_services.instruction=[&](auto pc){reference_trace.push_back(pc);};
+                candidate_services.instruction_cursor={&cursor,&candidate_flag,&second,service_sites,
+                    std::this_thread::get_id(),&candidate_services.instruction.target_type(),true};
+                const auto observe=[&](auto &memory,auto &records,bool &flag,const auto &store) {
+                    records.push_back(store);if(records.size()!=1)return;
+                    if(mutation==0)flag=true;
+                    if(mutation==1) {
+                        const auto address=abi(c.at("entry_abi")).gp[2]+8;
+                        const std::array<std::byte,4> changed{std::byte{0},std::byte{0},std::byte{0},std::byte{0x3f}};
+                        memory.write(address,changed);
+                    }
+                    if(mutation==2)memory.offer_views=false;
+                };
+                const auto activity=halo2::source_vehicle_native_rate_activity();
+                run(candidate,candidate_state,candidate_services,[&](const auto &store){observe(candidate,candidate_stores,candidate_flag,store);});
+                check(halo2::source_vehicle_native_rate_activity().live_cursor_calls==activity.live_cursor_calls,
+                    name+" unqualified mutating observer entered native kernel");
+                run(reference,reference_state,reference_services,[&](const auto &store){observe(reference,reference_stores,reference_flag,store);});
+                check(candidate_trace==reference_trace && candidate_stores==reference_stores &&
+                    candidate.banks==reference.banks && same_abi(candidate_state,reference_state),
+                    name+" unqualified mutating observer changed original delivery or state");
+                ++mutating_observer_refusals;
             }
             // A guard/observer can reject any original write. Compare both
             // implementations at every such boundary, including scratch and
@@ -274,6 +426,25 @@ int main(int argc,char**argv){try{
                 check(literal_stopped&&native_stopped&&same_abi(literal_state,fault_state)&&
                     literal_memory.banks==native_memory.banks,name+" native write-fault prefix differs at store "+std::to_string(stop));
                 ++store_faults;
+                auto observed_memory=padded(initial,abi(c.at("entry_abi")),fixture.at("native_cursor_immutable_inputs"));
+                auto reference_memory=observed_memory;
+                auto observed_state=abi(c.at("entry_abi")),reference_state=observed_state;
+                auto observed_services=cursor_services,reference_services=services;
+                observed_services.instruction_cursor.observation_only_stores=true;
+                std::uint32_t reference_cursor{};cursor=0;callbacks=0;
+                reference_services.instruction=[&](auto pc){reference_cursor=pc;};
+                std::vector<halo2::SourcePhysicsContactRecordStore> observed_prefix,reference_prefix;
+                const auto observe=[&](auto &records,const auto &store){records.push_back(store);if(records.size()==stop+1)throw StoreStop{};};
+                bool observed_stopped=false,reference_stopped=false;
+                const auto activity=halo2::source_vehicle_native_rate_activity();
+                try{run(observed_memory,observed_state,observed_services,[&](const auto &store){observe(observed_prefix,store);});}catch(const StoreStop&){observed_stopped=true;}
+                const auto observed_after=halo2::source_vehicle_native_rate_activity();
+                try{run(reference_memory,reference_state,reference_services,[&](const auto &store){observe(reference_prefix,store);});}catch(const StoreStop&){reference_stopped=true;}
+                check(observed_after.live_cursor_calls>activity.live_cursor_calls && observed_stopped && reference_stopped &&
+                    callbacks==0 && cursor==reference_cursor && observed_prefix==reference_prefix &&
+                    observed_memory.banks==reference_memory.banks && same_abi(observed_state,reference_state),
+                    name+" observed native write-fault cursor, prefix or full state differs at store "+std::to_string(stop));
+                ++observed_store_faults;
             }
             std::vector<std::pair<std::uint32_t,std::size_t>> reads;
             auto read_memory=initial;auto read_state=abi(c.at("entry_abi"));auto read_services=services;
@@ -321,5 +492,5 @@ int main(int argc,char**argv){try{
         }
         ++cases;writes+=stores.size();instructions+=expected_trace.size();
     }
-    std::cout<<"PASS original physics vehicle runtime: "<<cases<<" cases, "<<instructions<<" instructions, "<<writes<<" ordered writes, "<<fullbytes<<" full-state bytes; "<<cursor_kernels<<" live-cursor native rate calls, "<<cursor_fallbacks<<" cursor fallbacks, "<<mapped_kernels<<" mapped native calls, "<<mapped_fallbacks<<" mapped refusals, "<<store_faults<<" write-fault prefixes, "<<read_faults<<" read-fault prefixes\n";return 0;
+    std::cout<<"PASS original physics vehicle runtime: "<<cases<<" cases, "<<instructions<<" instructions, "<<writes<<" ordered writes, "<<fullbytes<<" full-state bytes; "<<typed_value_cases<<" typed value algorithms, "<<cursor_kernels<<" live-cursor native rate calls, "<<observed_kernels<<" observed native rate calls, "<<cursor_fallbacks<<" cursor fallbacks, "<<mapped_kernels<<" mapped native calls, "<<mapped_fallbacks<<" mapped refusals, "<<store_faults<<" write-fault prefixes, "<<observed_store_faults<<" observed write-fault prefixes, "<<mutating_observer_refusals<<" mutating observer refusals, "<<read_faults<<" read-fault prefixes\n";return 0;
 }catch(const std::exception&e){std::cerr<<"FAIL "<<e.what()<<'\n';return 1;}}

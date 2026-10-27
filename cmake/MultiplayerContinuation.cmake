@@ -1,4 +1,5 @@
-target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/multiplayer_continuation.cpp src/runtime/source_match_authority.cpp src/runtime/source_execution_phase.cpp)
+target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/multiplayer_continuation.cpp src/runtime/source_match_authority.cpp src/runtime/source_execution_phase.cpp
+    src/gameplay/multiplayer/native_first_person_registry_tu15.cpp)
 target_sources(halo2_systems PRIVATE src/runtime/source_execution_calls.cpp src/runtime/source_execution_lens.cpp src/runtime/source_lens_frame_world_tu15.cpp)
 target_sources(halo2_systems PRIVATE src/rendering/effects/source_effect_replica_render_tu15.cpp)
 target_sources(halo2_systems PRIVATE src/rendering/effects/source_light_lens_tu15.cpp)
@@ -131,6 +132,8 @@ if(BUILD_TESTING)
     add_test(NAME native_snapshot_origin_tu15 COMMAND multiplayer_snapshot_origin_tests
         "${HALO2_TU15_GAMEPLAY_XBE}" "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map")
     set_tests_properties(native_snapshot_origin_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240)
+    # The receipt fixture edits complete-packet headers; delta-stream behavior has separate tests.
+    set_property(TEST native_snapshot_origin_tu15 APPEND PROPERTY ENVIRONMENT_MODIFICATION "H2_NET_PROFILE=set:complete")
     if(NOT "${HALO2_MCC_GAMEPLAY_TEST_CACHE}" STREQUAL "" AND
        NOT "${HALO2_MCC_GAMEPLAY_TEST_CACHE}" STREQUAL "auto")
         add_test(NAME native_snapshot_origin_mcc COMMAND multiplayer_snapshot_origin_tests
@@ -138,12 +141,17 @@ if(BUILD_TESTING)
         set_tests_properties(native_snapshot_origin_mcc PROPERTIES TIMEOUT 240 RUN_SERIAL TRUE
             LABELS "selected-mcc-native;component;locomotion-continuity"
             ENVIRONMENT "SDL_AUDIODRIVER=dummy;SDL_VIDEODRIVER=dummy")
+        set_property(TEST native_snapshot_origin_mcc APPEND PROPERTY ENVIRONMENT_MODIFICATION "H2_NET_PROFILE=set:complete")
     endif()
     target_link_libraries(source_host_continuation_tests PRIVATE halo2_authority_codec)
     add_test(NAME source_host_continuation_tu15 COMMAND source_host_continuation_tests
         "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map")
     set_tests_properties(source_host_continuation_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240)
+    # This fixture proves byte-exact complete snapshot and native host/camera
+    # continuation. Adaptive delta sender ACK/baseline/bandwidth state has a
+    # separate transport owner and is outside this native sidecar's contract.
+    set_property(TEST source_host_continuation_tu15 APPEND PROPERTY ENVIRONMENT_MODIFICATION "H2_NET_PROFILE=set:complete")
     add_executable(source_host_role_rebind_tests tests/source_host_role_rebind_tests.cpp)
     target_link_libraries(source_host_role_rebind_tests PRIVATE halo2_authority_codec)
     add_test(NAME source_host_role_rebind_tu15 COMMAND source_host_role_rebind_tests

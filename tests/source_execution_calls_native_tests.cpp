@@ -103,7 +103,10 @@ int main(int argc,char **argv)try {
     // The unsupported direct source tick changes the source/Match pair, so
     // repair the host through the last complete coupled cut before continuing.
     auto p=host.authority->prepare(replica.authority->checkpoint(binding),binding);check(host.authority->commit(std::move(p)),"Unsupported host work could not repair");equal(host,replica);
-    rejects([&]{host.authority->capture_execution_phase([&]{host.match->configure_first_person_event_owner({});});});equal(host,replica);
+    rejects([&]{host.authority->capture_execution_phase([&]{host.match->configure_first_person_event_owner({});});});
+    // A rejected mutating owner replacement faults its producer boundary.
+    // Recover from the last complete replica cut before checkpointing again.
+    rejects([&]{host.authority->checkpoint(binding);});restore(replica,host);
     {
         auto recording=host.authority->start_execution_phase();
         rejects([&]{host.authority->checkpoint(binding);});
@@ -130,6 +133,15 @@ int main(int argc,char **argv)try {
     rejects([&]{replica.authority->replay_execution_phase(bad_state);});restore(host,replica);
     phase=host.authority->capture_execution_phase([&]{(void)host.match->state();host.step({});(void)host.match->state();});
     replica.authority->replay_execution_phase(decode_source_execution_phase(encode_source_execution_phase(phase)));equal(host,replica);
+    phase=host.authority->capture_execution_phase([&]{
+        (void)host.world->tu15_world().object_loop_emitters();
+    });
+    check(phase.calls.size()==1 && phase.calls.front().kind==K::ObjectLoopEmitters &&
+        phase.calls.front().arguments.empty() && phase.calls.front().result.size()==32,
+        "Actual pre-view object-loop collection has no complete native execution owner");
+    replica.authority->replay_execution_phase(decode_source_execution_phase(encode_source_execution_phase(phase)));equal(host,replica);
+    auto bad_emitters=phase;bad_emitters.calls.front().result[0]^=std::byte{1};
+    rejects([&]{replica.authority->replay_execution_phase(bad_emitters);});restore(host,replica);
     NativeVehicleCamera camera(*host.world,*host.cache.original_data());
     phase=host.authority->capture_execution_phase([&]{for(unsigned view=0;view<4;++view){const auto &p=host.match->player(view+4);
         (void)camera.update_player(view,p.source_datum,p.source_flags,1.f/30.f,view==2);}});

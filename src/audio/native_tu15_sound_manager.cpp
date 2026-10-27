@@ -1,93 +1,19 @@
 // Native kernels for TU1.5 sound manager routines (see the header). They
 // read the original game state through the caller's memory and reproduce the
 // retail functions' arithmetic under the caller's x87 control word and MXCSR.
-#include "halo2/native_tu15_sound_manager.hpp"
-#include "halo2/cache.hpp"
-#include "physics/runtime/physics_contact_runtime_internal.hpp"
-#include <cmath>
+#include "audio/native_tu15_sound_kernel.hpp"
+#include <cstdio>
 #include <cstdlib>
 #include <map>
+#include <mutex>
 #include <sstream>
-#include <immintrin.h>
 
-namespace halo2 {
+namespace halo2::native_tu15_sound {
 namespace {
-using namespace physics_contact_runtime_detail;
-using M=SourcePhysicsContactMemory;
-using O=SourcePhysicsContactRecordObserver;
-using Abi=SourcePhysicsContactRuntimeAbi;
-
-// Retail globals read by these routines.
-constexpr std::uint32_t tag_instances=0x4f0414u;    // 16-byte rows; data pointer at +8
-constexpr std::uint32_t sound_gestalt=0x52d664u;    // +4: 0x38-byte playback parameter rows
-constexpr std::uint32_t random_globals=0x4f3cd8u;   // +4: game random seed
-constexpr std::uint32_t sound_globals=0x4ecc1cu;    // +0xc0 count, +0xc4 sound-class tag reference
-// Retail .rdata 0x46a160: 0x37800080, 1/65535 as a float.
-const float random_word_scale=std::bit_cast<float>(0x37800080u);
-
-std::uint32_t u32(const M &m,std::uint32_t p){std::array<std::byte,4> b;m.read(p,b);return std::bit_cast<std::uint32_t>(b);}
-std::uint32_t s16(const M &m,std::uint32_t p){std::array<std::byte,2> b;m.read(p,b);
-    return std::uint32_t(std::int32_t(std::bit_cast<std::int16_t>(b)));}
-std::uint32_t s8(const M &m,std::uint32_t p){std::array<std::byte,1> b;m.read(p,b);
-    return std::uint32_t(std::int32_t(std::int8_t(std::to_integer<std::uint8_t>(b[0]))));}
-std::uint8_t u8(const M &m,std::uint32_t p){std::array<std::byte,1> b;m.read(p,b);return std::to_integer<std::uint8_t>(b[0]);}
-float f32(const M &m,std::uint32_t p){return std::bit_cast<float>(u32(m,p));}
-// A store published with its original instruction address.
-void store(M &m,const O &o,std::uint32_t site,std::uint32_t p,std::uint32_t value) {
-    SourcePhysicsContactRecordStore x{site,p,std::vector<std::byte>(4),std::vector<std::byte>(4)};m.read(p,x.before);
-    for(unsigned i=0;i<4;++i)x.written[i]=std::byte((value>>(i*8))&255u);
-    m.write(p,x.written);if(o)o(x);
-}
-std::uint32_t pop_return(const M &m,Abi &a,std::uint32_t arguments=0) {
-    const auto at=u32(m,a.gp[4]);a.gp[4]+=4u+arguments;return at;
-}
-// Halo 2's linear congruential generator (seed*0x19660d+0x3c6ef35f).
-std::uint32_t next_seed(std::uint32_t seed){return seed*0x19660du+0x3c6ef35fu;}
-void set_xmm_scalar(Abi &a,unsigned n,__m128 value) {
-    _mm_storeu_si128(reinterpret_cast<__m128i*>(a.xmm[n].data()),_mm_castps_si128(value));
-}
-
-// Floating-point environment of the caller for the duration of a kernel:
-// its control word, MXCSR and sticky x87 exception flags; results return to
-// the ABI the same way the original instructions leave them.
-struct Floating {
-    Abi &a;FpScope scope;
-    Floating(Abi &abi,SourcePhysicsFactoryFloatingPoint fp):a(abi),scope(fp) {
-        if(a.active_mmx)throw FormatError("Native sound kernel entered with MMX owning the x87 file");
-        if(a.floating_point) {
-            const auto p=*a.floating_point;
-            if((p.x87_control_word&0x3fu)!=0x3fu||(p.mxcsr&0x1f80u)!=0x1f80u)
-                throw FormatError("Native sound kernel requires masked floating-point exceptions");
-            asm volatile("fldcw %0"::"m"(p.x87_control_word):"memory");
-            _mm_setcsr(p.mxcsr);
-        }
-        source_load_x87_exception_flags(a.x87_status);
-    }
-    void push(long double x) {
-        if(a.x87_depth>=8)throw FormatError("Native sound kernel x87 stack overflow");
-        std::move_backward(a.x87.begin(),a.x87.begin()+a.x87_depth,a.x87.begin()+a.x87_depth+1);
-        a.x87[0]=x;++a.x87_depth;
-        const auto top=((a.x87_status>>11u)+7u)&7u;
-        a.x87_status=std::uint16_t((a.x87_status&~0x3a00u)|(top<<11u)); // a load clears C1
-    }
-    ~Floating() {
-        a.x87_status=std::uint16_t((a.x87_status&~0x3fu)|source_x87_exception_flags());
-        std::uint16_t cw;asm volatile("fnstcw %0":"=m"(cw));
-        a.floating_point=SourcePhysicsFactoryFloatingPoint{cw,_mm_getcsr()};
-    }
-};
-
-std::uint32_t playback_row(const M &m,std::uint32_t definition) {
-    return s16(m,definition+6u)*0x38u+u32(m,u32(m,sound_gestalt)+4u);
-}
-std::uint32_t tag_data(const M &m,std::uint32_t datum) {
-    return u32(m,((datum&0xffffu)<<4)+u32(m,tag_instances)+8u);
-}
-
 // 127E00: a random value between a playback row's signed 16-bit bounds
 // (+0x18 lower, +0x1A upper). EAX: sound definition; ECX: seed pointer.
 // Returns the value on the x87 stack.
-void random_bounds(M &m,Abi &a,SourcePhysicsFactoryFloatingPoint fp,const O &o) {
+void random_bounds(M &m,Abi &a,FP fp,const O &o,const Services &) {
     const auto row=playback_row(m,a.gp[0]),seed_at=a.gp[1];
     const auto upper=s16(m,row+0x1au),lower=s16(m,row+0x18u);
     const auto seed=next_seed(u32(m,seed_at));
@@ -108,7 +34,7 @@ void random_bounds(M &m,Abi &a,SourcePhysicsFactoryFloatingPoint fp,const O &o) 
 
 // 127D70: base + random(0, variance) from a playback row's gain (+0x10 base,
 // +0x14 variance). EAX: sound definition. Returns the float in EAX and XMM0.
-void random_gain(M &m,Abi &a,SourcePhysicsFactoryFloatingPoint fp,const O &o) {
+void random_gain(M &m,Abi &a,FP fp,const O &o,const Services &) {
     const auto row=playback_row(m,a.gp[0]);
     const auto globals=u32(m,random_globals);
     const auto seed=next_seed(u32(m,globals+4u));
@@ -118,23 +44,21 @@ void random_gain(M &m,Abi &a,SourcePhysicsFactoryFloatingPoint fp,const O &o) {
     Floating floating(a,fp);
     volatile long double product=static_cast<long double>(std::int32_t(word));
     product=product*static_cast<long double>(random_word_scale);
-    float t;std::uint16_t status;
-    asm volatile("fldt %2\n\tfstps %0\n\tfnstsw %1":"=m"(t),"=m"(status):"m"(product):"st");
-    a.x87_status=std::uint16_t((a.x87_status&~0x200u)|(status&0x200u));
+    const auto t=floating.store_single(product);
     // real_random_range(0, variance) + base, in the original single-precision order.
     const auto zero=_mm_set_ss(0.f);
     auto value=_mm_sub_ss(_mm_set_ss(std::bit_cast<float>(variance)),zero);
     value=_mm_mul_ss(value,_mm_set_ss(t));
     value=_mm_add_ss(value,zero);
     value=_mm_add_ss(value,_mm_set_ss(std::bit_cast<float>(base)));
-    set_xmm_scalar(a,0,value);set_xmm_scalar(a,1,zero);
+    set_xmm(a,0,value);set_xmm(a,1,zero);
     a.gp[0]=std::bit_cast<std::uint32_t>(_mm_cvtss_f32(value));a.gp[1]=word;a.gp[2]=variance;
     pop_return(m,a);
 }
 
 // 228220: the sound-class row for a class index (stack argument, low 16
 // bits) in the globals' sound-class tag. Returns the row in EAX; ret 4.
-void sound_class_row(M &m,Abi &a) {
+void sound_class_row(M &m,Abi &a,FP,const O &,const Services &) {
     const auto globals=u32(m,sound_globals);
     const auto reference=u32(m,globals+0xc0u)?u32(m,globals+0xc4u):0u;
     const auto datum=u32(m,reference+4u);
@@ -147,7 +71,7 @@ void sound_class_row(M &m,Abi &a) {
 // 127B20: a playback scalar. ECX: request (flags byte, override at +0x38);
 // EAX: sound tag datum. Sound-class driven tags read their class row +0x1C,
 // others their playback row +4. Returns the float in XMM0.
-void playback_scalar(M &m,Abi &a,SourcePhysicsFactoryFloatingPoint fp) {
+void playback_scalar(M &m,Abi &a,FP fp,const O &,const Services &) {
     const auto request=a.gp[1];
     const auto flags=std::uint8_t(u8(m,request)>>3);
     a.gp[2]=(a.gp[2]&~0xffu)|flags;
@@ -162,7 +86,7 @@ void playback_scalar(M &m,Abi &a,SourcePhysicsFactoryFloatingPoint fp) {
             a.gp[2]=(a.gp[2]&0xffff0000u)|(s8(m,sound+2u)&0xffffu);
             const auto entry=a.gp[4];
             store(m,{},0x127b4du,entry-4u,a.gp[2]);store(m,{},0x127b4eu,entry-8u,0x127b53u);
-            a.gp[4]=entry-8u;sound_class_row(m,a);
+            a.gp[4]=entry-8u;sound_class_row(m,a,fp,{},{});
             value=f32(m,a.gp[0]+0x1cu);
         } else {
             a.gp[1]=u32(m,sound_gestalt);
@@ -172,20 +96,10 @@ void playback_scalar(M &m,Abi &a,SourcePhysicsFactoryFloatingPoint fp) {
         }
     }
     Floating floating(a,fp);
-    set_xmm_scalar(a,0,_mm_set_ss(value));
+    set_xmm(a,0,_mm_set_ss(value));
     pop_return(m,a);
 }
 
-__m128 xmm_scalar(const Abi &a,unsigned n) {
-    return _mm_castsi128_ps(_mm_loadu_si128(reinterpret_cast<const __m128i*>(a.xmm[n].data())));
-}
-__m128 short_scalar(std::uint32_t value){return _mm_cvtsi32_ss(_mm_setzero_ps(),std::int32_t(value));}
-// ucomiss equality as the original tests it (LAHF; TEST AH,44h; JNP):
-// true only for ordered, equal operands.
-bool ordered_equal(__m128 x,__m128 y) {
-    const bool equal=_mm_ucomieq_ss(x,y);
-    return equal && !std::isnan(_mm_cvtss_f32(x)) && !std::isnan(_mm_cvtss_f32(y));
-}
 
 // 21F960: pitch range selection. ECX: sound definition (+8 first range,
 // +0xA range count); AX: previous range, -1 for none; XMM1: pitch. Keeps the
@@ -193,12 +107,12 @@ bool ordered_equal(__m128 x,__m128 y) {
 // permutations; otherwise the first range containing the pitch, else the
 // range whose bound is nearest. Returns the range in AX (ECX holds the
 // search result slot the original pops into it).
-void pitch_range(M &m,Abi &a,SourcePhysicsFactoryFloatingPoint fp) {
+void pitch_range(M &m,Abi &a,FP fp,const O &,const Services &) {
     Floating floating(a,fp);
     const auto definition=a.gp[1],gestalt=u32(m,sound_gestalt);
     const auto count=std::int32_t(s8(m,definition+0xau));
     const auto previous=std::int16_t(a.gp[0]);
-    const auto pitch=xmm_scalar(a,1);
+    const auto pitch=xmm(a,1);
     std::uint32_t result=0xffffffffu;
     const auto finish=[&](std::uint32_t range) {
         a.gp[0]=(a.gp[0]&0xffff0000u)|(range&0xffffu);a.gp[1]=result;pop_return(m,a);
@@ -209,9 +123,9 @@ void pitch_range(M &m,Abi &a,SourcePhysicsFactoryFloatingPoint fp) {
     const auto range_row=[&](std::int32_t index){return u32(m,gestalt+0x24u)+std::uint32_t(index)*12u;};
     const auto parameter_row=[&](std::uint32_t range){return u32(m,gestalt+0x1cu)+s16(m,range+2u)*10u;};
     const auto clamp=[&](std::uint32_t parameters) {
-        const auto lower=short_scalar(s16(m,parameters+6u));
+        const auto lower=int_scalar(s16(m,parameters+6u));
         if(_mm_comigt_ss(lower,pitch))return lower;
-        const auto upper=short_scalar(s16(m,parameters+8u));
+        const auto upper=int_scalar(s16(m,parameters+8u));
         if(_mm_comigt_ss(pitch,upper))return upper;
         return pitch;
     };
@@ -228,19 +142,14 @@ void pitch_range(M &m,Abi &a,SourcePhysicsFactoryFloatingPoint fp) {
         if(std::int16_t(s16(m,range+0xau))<=0)continue;
         const auto parameters=parameter_row(range);
         if(ordered_equal(clamp(parameters),pitch))return finish(std::uint32_t(i));
-        const auto natural=short_scalar(s16(m,parameters+4u));
+        const auto natural=int_scalar(s16(m,parameters+4u));
         const auto distance=_mm_comigt_ss(pitch,natural)?_mm_sub_ss(pitch,natural):
-            _mm_sub_ss(short_scalar(s16(m,parameters+2u)),pitch);
+            _mm_sub_ss(int_scalar(s16(m,parameters+2u)),pitch);
         if(_mm_comigt_ss(best,distance)){result=std::uint32_t(i);best=distance;}
     }
     finish(result);
 }
 
-std::uint32_t u16(const M &m,std::uint32_t p){std::array<std::byte,2> b;m.read(p,b);return std::bit_cast<std::uint16_t>(b);}
-void store8(M &m,const O &o,std::uint32_t site,std::uint32_t p,std::uint8_t value) {
-    SourcePhysicsContactRecordStore x{site,p,std::vector<std::byte>(1),std::vector<std::byte>{std::byte(value)}};
-    m.read(p,x.before);m.write(p,x.written);if(o)o(x);
-}
 // Sound classes with flag bit 5 of +0xA keep no permutation history (the
 // shared gate of 21FCC0/21FD20/21FD80/21FDE0/21FED0/21FF70).
 bool keeps_history(const M &m,std::uint32_t definition) {
@@ -298,7 +207,7 @@ std::uint32_t random_permutation(M &m,const O &o,Abi &a,std::uint32_t definition
 // plays once; otherwise a random unused permutation, carrying the range's
 // used mask in the gestalt runtime bank (+0x3C at bit offset range +6).
 // The last permutation is kept at range +4. Returns AX.
-void permutation(M &m,Abi &a,SourcePhysicsFactoryFloatingPoint fp,const O &o) {
+void permutation(M &m,Abi &a,FP fp,const O &o,const Services &) {
     if(a.eflags&0x400u)throw FormatError("Permutation selection entered with the direction flag set");
     Floating floating(a,fp);
     const auto definition=a.gp[7],range_index=u32(m,a.gp[4]+4u);
@@ -336,19 +245,26 @@ void permutation(M &m,Abi &a,SourcePhysicsFactoryFloatingPoint fp,const O &o) {
     pop_return(m,a,4);
 }
 
-// What each kernel owes its compiled callers: return registers at their
-// width, every register the original preserves, x87/SSE state and stores.
-// Scratch registers the original clobbers are not part of the contract.
-struct Contract {
-    std::uint8_t gp_full,gp_low16,xmm;
-};
-Contract contract(std::uint32_t entry) {
-    switch(entry) {
-    case 0x21f960u:return {0xfa,0x01,0xf2};   // AX result; EDX, XMM0/2/3 scratch
-    case 0x21fa80u:return {0xf8,0x01,0xe0};   // AX result; ECX, EDX, XMM0-4 scratch
-    default:return {0xff,0x00,0xff};
-    }
+// 387BAA/387BB5/38A988/38A993: the SDK's C runtime static initializers
+// (CRT rows 46D7E4..46D7F0); each publishes one statistics pointer.
+template<std::uint32_t site,std::uint32_t global,std::uint32_t value>
+void sdk_static(M &m,Abi &a,FP,const O &o,const Services &) {
+    store(m,o,site,global,value);
+    pop_return(m,a);
 }
+
+constexpr Kernel manager_kernels[]{
+    {0x387baau,sdk_static<0x387baau,0x3912a4u,0x390bc0u>},
+    {0x387bb5u,sdk_static<0x387bb5u,0x3912a0u,0x390bc4u>},
+    {0x38a988u,sdk_static<0x38a988u,0x391350u,0x390bc8u>},
+    {0x38a993u,sdk_static<0x38a993u,0x39134cu,0x390bccu>},
+    {0x127e00u,random_bounds},
+    {0x127d70u,random_gain},
+    {0x127b20u,playback_scalar},
+    {0x228220u,sound_class_row},
+    {0x21f960u,pitch_range,{0xfa,0x01,0xf2}},   // AX result; EDX, XMM0/2/3 scratch
+    {0x21fa80u,permutation,{0xf8,0x01,0xe0}},   // AX result; ECX, EDX, XMM0-4 scratch
+};
 
 // Copy-on-write view used to predict a kernel's result without touching the
 // game state; the reference routine then runs on the real memory.
@@ -364,29 +280,48 @@ struct Overlay final : M {
     }
 };
 std::string hex(std::uint64_t v){std::ostringstream s;s<<std::hex<<v;return s.str();}
+const Kernel *find(std::uint32_t entry) {
+    static const auto table=[]{
+        std::map<std::uint32_t,const Kernel *> t;
+        for(const auto group:{sound_manager_kernels(),gain_kernels(),properties_kernels(),listener_kernels(),
+                resource_kernels(),startup_kernels(),object_loop_kernels(),campaign_audio_kernels(),
+                unit_speech_kernels()})
+            for(const auto &kernel:group)if(!t.emplace(kernel.entry,&kernel).second)
+                throw FormatError("Native sound kernel entry registered twice");
+        return t;
+    }();
+    const auto found=table.find(entry);return found==table.end()?nullptr:found->second;
+}
 } // namespace
+std::span<const Kernel> sound_manager_kernels(){return manager_kernels;}
+} // namespace halo2::native_tu15_sound
 
-bool native_tu15_sound_manager_owns_entry(std::uint32_t entry) {
-    switch(entry){case 0x127e00u:case 0x127d70u:case 0x127b20u:case 0x228220u:case 0x21f960u:case 0x21fa80u:return true;
-    default:return false;}
+namespace halo2 {
+using namespace native_tu15_sound;
+
+bool native_tu15_sound_manager_owns_entry(std::uint32_t entry){return find(entry)!=nullptr;}
+void native_tu15_sound_manager_run(M &m,std::uint32_t entry,Abi &a,FP fp,const O &o,const Services &services) {
+    const auto *kernel=find(entry);
+    if(!kernel)throw FormatError("Sound manager entry has no native kernel");
+    kernel->run(m,a,fp,o,services);
 }
-void native_tu15_sound_manager_run(M &m,std::uint32_t entry,Abi &a,SourcePhysicsFactoryFloatingPoint fp,const O &o) {
-    switch(entry) {
-    case 0x127e00u:random_bounds(m,a,fp,o);return;
-    case 0x127d70u:random_gain(m,a,fp,o);return;
-    case 0x127b20u:playback_scalar(m,a,fp);return;
-    case 0x228220u:sound_class_row(m,a);return;
-    case 0x21f960u:pitch_range(m,a,fp);return;
-    case 0x21fa80u:permutation(m,a,fp,o);return;
-    default:throw FormatError("Sound manager entry has no native kernel");
-    }
+bool native_tu15_sound_manager_calls_out(std::uint32_t entry) {
+    const auto *kernel=find(entry);return kernel && kernel->calls_out;
 }
 
-std::string native_tu15_sound_manager_compare(M &m,std::uint32_t entry,Abi &a,SourcePhysicsFactoryFloatingPoint fp,
-    const O &o,const std::function<void(M &,Abi &,const O &)> &reference) {
+std::string native_tu15_sound_manager_compare(M &m,std::uint32_t entry,Abi &a,FP fp,
+    const O &o,const std::function<void(M &,Abi &,const O &)> &reference,const Services &services) {
+    const auto *kernel=find(entry);
+    if(!kernel)throw FormatError("Sound manager entry has no native kernel");
+    return native_tu15_sound_compare_with(m,a,o,[&](M &view,Abi &abi){kernel->run(view,abi,fp,{},services);},
+        reference,kernel->contract.gp_full,kernel->contract.gp_low16,kernel->contract.xmm,entry);
+}
+std::string native_tu15_sound_compare_with(M &m,Abi &a,const O &o,const std::function<void(M &,Abi &)> &run,
+    const std::function<void(M &,Abi &,const O &)> &reference,std::uint8_t gp_full,std::uint8_t gp_low16,
+    std::uint8_t xmm_owed,std::uint32_t entry) {
     const auto entry_esp=a.gp[4];
     Overlay predicted(m);auto native=a;
-    native_tu15_sound_manager_run(predicted,entry,native,fp,{});
+    run(predicted,native);
     std::map<std::uint32_t,std::byte> all;
     const O capture=[&](const SourcePhysicsContactRecordStore &x) {
         for(std::size_t i=0;i<x.written.size();++i)all[std::uint32_t(x.address+i)]=x.written[i];
@@ -402,7 +337,7 @@ std::string native_tu15_sound_manager_compare(M &m,std::uint32_t entry,Abi &a,So
     const auto differ=[&](const std::string &what,std::uint64_t n,std::uint64_t r) {
         if(why.empty() && n!=r)why=what+" native="+hex(n)+" reference="+hex(r);
     };
-    const auto owed=contract(entry);
+    const Contract owed{gp_full,gp_low16,xmm_owed};
     for(unsigned i=0;i<8;++i) {
         if(owed.gp_full&(1u<<i))differ("gp"+std::to_string(i),native.gp[i],a.gp[i]);
         else if(owed.gp_low16&(1u<<i))differ("gp"+std::to_string(i)+" low16",native.gp[i]&0xffffu,a.gp[i]&0xffffu);
@@ -424,6 +359,29 @@ std::string native_tu15_sound_manager_compare(M &m,std::uint32_t entry,Abi &a,So
     if(why.empty() && wrote!=stored)why="stores differ: native "+std::to_string(wrote.size())+" bytes, reference "+std::to_string(stored.size());
     if(!why.empty())why="sound manager "+hex(entry)+": "+why;
     return why;
+}
+
+namespace { thread_local unsigned reference_depth{}; }
+NativeTu15SoundReferenceScope::NativeTu15SoundReferenceScope(){++reference_depth;}
+NativeTu15SoundReferenceScope::~NativeTu15SoundReferenceScope(){--reference_depth;}
+bool native_tu15_sound_reference_active(){return reference_depth!=0;}
+bool native_tu15_sound_census_enabled() {
+    static const bool enabled=[]{const auto *v=std::getenv("HALO2_SOUND_ENTRY_CENSUS");return v && *v && *v!='0';}();
+    return enabled;
+}
+void native_tu15_sound_census(std::uint32_t entry,bool native) {
+    struct Census {
+        std::mutex lock;std::map<std::uint32_t,std::pair<std::uint64_t,bool>> calls;
+        ~Census() {
+            std::fprintf(stderr,"Sound entry census:");
+            for(const auto &[at,call]:calls)std::fprintf(stderr," %x%s=%llu",at,call.second?"(native)":"",
+                static_cast<unsigned long long>(call.first));
+            std::fprintf(stderr,"\n");
+        }
+    };
+    static Census census;
+    std::lock_guard guard(census.lock);
+    auto &call=census.calls[entry];++call.first;call.second=native;
 }
 
 NativeTu15SoundManagerMode native_tu15_sound_manager_mode() {

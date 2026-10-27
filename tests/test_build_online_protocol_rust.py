@@ -16,6 +16,19 @@ SPEC.loader.exec_module(BUILD)
 
 
 class WorkerBuildTests(unittest.TestCase):
+    def test_windows_uses_the_selected_sdk_curl_dll_for_rust_and_cpp(self):
+        sdk = Path('/SDK with spaces/mingw64')
+        options = BUILD.windows_curl_options(sdk, 'x86_64-pc-windows-gnu')
+        self.assertEqual(options[::2], ['--config'] * 3)
+        settings = dict(item.split('=', 1) for item in options[1::2])
+        self.assertEqual(json.loads(settings['target.x86_64-pc-windows-gnu.curl.rustc-link-lib']), ['dylib=curl'])
+        self.assertEqual(json.loads(settings['target.x86_64-pc-windows-gnu.curl.rustc-link-search']),
+                         ['native=/SDK with spaces/mingw64/lib'])
+        self.assertEqual(json.loads(settings['target.x86_64-pc-windows-gnu.curl.include']),
+                         '/SDK with spaces/mingw64/include')
+        self.assertEqual(BUILD.windows_curl_options(sdk, 'x86_64-unknown-linux-gnu'), [])
+        self.assertEqual(BUILD.windows_curl_options(None, 'x86_64-pc-windows-gnu'), [])
+
     def build(self, targets, *, sdk=False, missing_worker=False):
         with tempfile.TemporaryDirectory(prefix='halo2-worker-build-') as temporary:
             root = Path(temporary)

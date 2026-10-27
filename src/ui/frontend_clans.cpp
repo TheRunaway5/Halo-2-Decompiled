@@ -11,11 +11,20 @@ const OnlineClanMember *target_member(const OnlineAccountSnapshot &s, const std:
 }
 }
 void MenuState::set_online_account(std::shared_ptr<OnlineAccount> client) {
+  if(online_account_==client) {
+    // The account survives renderer teardown; its SDL voice adapter does not.
+    if(client && !online_voice_) {
+      online_voice_=std::make_shared<OnlineVoice>(client);
+      voice_={};voice_.revision=~std::uint64_t{};
+    }
+    return;
+  }
   for(auto &account:local_profile_accounts_){if(account)account->sign_out();}
   local_profile_accounts_={};
   if (online_voice_) online_voice_->leave();
   if (online_account_) online_account_->sign_out();
   online_account_ = std::move(client); account_ = {}; account_name_.clear();
+  friend_join_serial_=0;
   pending_ui_sounds_.clear();
   dismissed_party_invites_.clear();
   if(discord_social_)discord_social_->bind_account(online_account_);
@@ -87,20 +96,33 @@ void MenuState::update_online_account() {
       open(26,2); // Leave/removal disposes the party lobby, retaining ONLINE.
     }
   }
+  update_online_friend_join();
   for (auto &f : stack_) {
-    if ((!online_clan_screen(f) && !online_party_screen(f)) || f.screen == 33) continue;
+    if ((!online_clan_screen(f) && !online_party_screen(f) && !(native_friends() && online_friends_screen(f))) || f.screen == 33) continue;
     const auto selected = f.selected; std::string focus;
     if (selected < f.entries.size()) focus = f.entries[selected].label;
     std::string member_focus;
+    const bool friend_roster=native_friends() && online_friends_screen(f) && (f.screen==26 || f.screen==216);
+    if(friend_roster && selected<f.entries.size() && f.entries[selected].destination==31) {
+      const auto index=unsigned(f.entries[selected].value);
+      if(index<previous_account.friends.size())member_focus=previous_account.friends[index].id;
+    }
     if(f.screen==26 && f.context==1 && previous_account.clan && selected<f.entries.size()) {
       const auto index=unsigned(f.entries[selected].value);
       if(index<previous_account.clan->members.size())member_focus=previous_account.clan->members[index].id;
     }
-    f.entries.clear();if(online_party_screen(f))populate_online_party(f);else populate_online_clans(f);
+    f.entries.clear();if(online_friends_screen(f))populate_online_friends(f);else if(online_party_screen(f))populate_online_party(f);else populate_online_clans(f);
     f.selected = f.entries.empty() ? 0 : std::min(selected, unsigned(f.entries.size()-1));
     // Party members may deliberately use identical screen names. Their
     // server order is stable; display text cannot identify the selected row.
-    if(!member_focus.empty() && account_.clan) {
+    if(f.screen==31 && f.context==46 && !previous_account.friend_search && account_.friend_search) {
+      f.selected=0;
+    } else if(!member_focus.empty() && friend_roster) {
+      for(unsigned i=0;i<f.entries.size();++i) {
+        const auto index=unsigned(f.entries[i].value);
+        if(f.entries[i].destination==31 && index<account_.friends.size() && account_.friends[index].id==member_focus){f.selected=i;break;}
+      }
+    } else if(!member_focus.empty() && account_.clan) {
       for(unsigned i=0;i<f.entries.size();++i) {
         const auto index=unsigned(f.entries[i].value);
         if(index<account_.clan->members.size() && account_.clan->members[index].id==member_focus){f.selected=i;break;}

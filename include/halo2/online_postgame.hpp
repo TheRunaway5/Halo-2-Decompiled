@@ -15,4 +15,8 @@ void online_postgame_validate(const MultiplayerState&,const UiVariant&,
     std::span<const OnlineAdmission>,std::span<const std::byte> consumed_report);
 std::shared_ptr<const VistaPcrScreenOwner> online_postgame_screen(
     FrontendSession&,std::shared_ptr<OnlineMatchSession>,std::function<void()> done);
+// Actual disconnected source ending, copied after ordinary original completion.
+// No room, voice session, history/rank commit or departure consent is invented.
+std::shared_ptr<const VistaPcrScreenOwner> online_terminal_postgame_screen(
+    FrontendSession&,const MultiplayerState&,VistaPcrConsumedSnapshot,std::vector<OnlineAdmission>,std::function<void()> done);
 } // namespace halo2

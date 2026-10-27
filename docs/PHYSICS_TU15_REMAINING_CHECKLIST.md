@@ -1,5 +1,460 @@
 # TU1.5 remaining physics checklist
 
+**October25 goal clarification: native kernels and1:1 TU1.5 behavior are both
+required.** See [the required end state](PHYSICS_PLAYERS_VEHICLES_OBJECTS_GOAL.md#required-end-state-native-kernels-with-unchanged-tu15-behavior).
+The historical counts and passes below describe bounded behavioral coverage;
+they do not certify complete native-kernel conversion.
+
+Native execution and parity — required across every completion group:
+
+- Initial source findings are recorded in the
+  [native-kernel migration audit](PHYSICS_NATIVE_KERNEL_MIGRATION.md). This
+  inventory remains incomplete; existing live player/world paths still use
+  instruction lifting and partial native rate kernels retain fallbacks.
+
+- [ ] Inventory every live player/vehicle/object/world physics path and replace
+  remaining instruction-lifted, virtual-CPU or emulated execution with native
+  semantic kernels; no production fallback to the old execution backend.
+- [ ] Preserve English Xbox TU1.5 rules, ordering, timing, numerical behavior,
+  state, callbacks and lifetime semantics. Validate each replacement against
+  independent original evidence without relaxed gates or altered tuning.
+- [ ] Requalify composed native paths visibly in multiplayer using the prepared
+  imported MCC cache, actual vehicle cameras and exact host/peer checks. Record
+  per-path native-kernel coverage and prove no lifted/emulated fallback was
+  exercised, including with required observations enabled. Keep refused/skipped
+  branches and Xbox-specific numerical proof gaps explicitly open.
+- [ ] Keep original execution and emulation confined to offline oracle tests;
+  TU1.1 results do not count toward this goal. Retain small results and required
+  reference evidence, and verify disposable build/capture cleanup.
+
+Native conversion work currently under validation (these bounded proofs do not
+close a gameplay completion group):
+
+- [x] Prove the native `1DA530` non-power scalar domain against complete original
+  calls, numerical controls/status and an arithmetic mutation control: 8,832
+  calls pass. [Results](../analysis/physics/native-lift-scalar-tu15-20261026-final/report.json).
+- [x] Complete the declared positive-exponent power/special/masked-CRT domain:
+  16,560 complete original calls, actual thread-errno ownership and three
+  rejected mutations. [Results](../analysis/physics/native-lift-power-tu15-20261026-crt-final/report.json).
+- [x] Qualify the typed lift consumer against 16,560 original scalar calls,
+  including guarded errno and complete FP state. Then qualify 576 complete
+  original `1DA750` parents: 1,152 native calls reach all four real scalar seams,
+  with 288 calls per seam. The wrong-delta mutation is rejected.
+  [Parent results](../analysis/physics/native-lift-parent-tu15-20261026-final2/report.json).
+- [x] Qualify 96 source-phase alias cases with 144 declared observer writes,
+  including late exponent/acceleration, captured-clock rereads, ratio/scratch
+  aliases and real errno callbacks. This does not admit arbitrary mutable
+  observers in live gameplay.
+  [Results](../analysis/physics/native-lift-alias-tu15-20261026-first/report.json).
+- [x] Qualify the declared live lift scalar/power route on Midship and Lockout:
+  all four native seams execute, with counts `[240,54,94,240]` combined,
+  240 power calls and zero observer refusals. Both captured whole-frame original
+  comparisons pass. The scene bypass fix independently passes 576 original
+  parents and a rejected wrong-result control with exactly one observer pair.
+  [Scene proof](../analysis/physics/native-scene-lift-parent-tu15-20261026/proof/report.json).
+  Broader authored field coverage is running; Pentium III transcendental identity
+  and unmasked faults remain separate open gates.
+- [x] Prove the typed world frame's declared original root-prefix/tail domain:
+  65 cases, 248 ordered persistent stores and 1,330 ordered data reads relative
+  to those stores, with original i386 FP verification and two rejected native
+  mutations. [Results](../build/test-results/native-physics-frame-read-phases-tu15/report.json).
+- [ ] Wire and qualify the native frame with real collision/integration,
+  post-step/contact/publication/destruction callbacks. Convert all residual
+  owners and verify the composed world visibly in multiplayer.
+- [x] Qualify the current partial native frame visibly in multiplayer: v1455
+  passes 9/9 player, camera/vehicle, object, gravity-lift and Cyclotron cases,
+  with 3,515 native frame calls and 2,215 exact LAN comparisons.
+  [Results](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-frame-live-v1455/matrix.json).
+  Its 26,731 residual calls keep the preceding closure gate open.
+- [x] Independently replay the declared actual composed native-frame inputs:
+  v1456 passes vehicle/camera on Coagulation and gravity lift on Lockout, with
+  89,729,945 and 89,185,177 persistent bytes compared respectively, complete
+  MXCSR/x87 policy/status and an empty x87 return. Only the returned private
+  64 KiB callee stack is excluded; volatile GP/SSE are not outputs of this void
+  API. [Results](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-frame-original-v1456/matrix.json).
+  These two captured frames do not close all callback, trajectory, native-world
+  or native-only dependency coverage.
+- [x] Prove the complete semantic vehicle-rate algorithms: 2,230 original cases,
+  including 792 plain typed value-owner cases, exceptional inputs, ordered
+  writes and fault prefixes. The arithmetic mutation is rejected.
+  [Results](../analysis/multiplayer/physics-native-rate-observer-tu15-20261026/verification.json).
+- [ ] Qualify their composed live use with required observation enabled and
+  replace remaining outer controller execution. A few native calls alone do
+  not close this gate.
+- [x] Prove native force/torque/gravity/damping and angular impulse against
+  unchanged physical i386: the expanded 174-case, 1,032-store suite exposed a
+  paired-NaN compiler operand-order bug. Ordered native operations now pass
+  under [Clang](../build/test-results/native-motion-forces-paired-nan-clang-tu15/report.json)
+  and [GCC](../build/test-results/native-motion-forces-paired-nan-gcc-tu15/report.json),
+  with full FP state and a rejected gravity-removal mutation. Physical stores
+  supply NaN authority; 26 cases differ from emulator-generated stores.
+- [x] Prove the native motion pose and quaternion/normalization/matrix closure:
+  210 physical original cases, 8,229 ordered reads, 4,301 ordered stores, seven
+  read-fault prefixes, 24 paired-NaN cases and 206 actual native RSQRTSS
+  observations pass under GCC and Clang. A precise reciprocal-root replacement
+  fails. [Results](../build/test-results/native-motion-pose-tu15/report.json).
+  Xbox/Pentium III estimate bits remain a separate open gate.
+- [ ] Qualify its direct native world binding visibly in multiplayer with
+  per-world pose counts and whole-frame original comparison. The binding model
+  confirms native body motion and omits the former lifted pose call; current
+  [component results](../build/test-results/native-world-integration-pose-binding-tu15/report.json)
+  do not replace live acceptance.
+- [ ] Wire those force kernels through native island/world integration and
+  qualify their real multiplayer execution. A compiled unused module does not
+  close this gate.
+- [x] Prove the declared native island integration domain: 103 original cases,
+  including 96 direct native-force compositions and genuine residual stops.
+  [Results](../build/test-results/native-island-integration-tu15/report.json).
+- [x] Prove the declared native world-integration domain: 110 original cases,
+  1,719 ordered stores and 96 native-force compositions, including external and
+  aliased Step packets. [Results](../build/test-results/native-world-integration-tu15/report.json).
+- [x] Qualify native island-deactivation scheduling and its default policy:
+  290 physical original cases, 3,254 ordered reads, 1,038 stores, 19 read-fault
+  prefixes and 16 paired-NaN controls pass under GCC and Clang. Twelve complete
+  default-policy calls and mutable callback/alias models pass; custom policies
+  remain open. [Proof](PHYSICS_TU15_NATIVE_POSE_CONTROLLER_PROOF_20261026.md).
+- [ ] Qualify the newly wired native deactivation controller visibly with its
+  actual per-world activity and whole-frame original comparison. The native
+  binding model passes, with 19 remaining residual ABI phases.
+- [x] Qualify complete native keyframed motion `323730` and its quaternion
+  rotation dependency `2E5810`, plus authenticated prescribed-force/fixed-pose
+  no-ops. The 275 physical cases include 24 paired-NaN controls and eight
+  read-fault prefixes; both arithmetic mutations are rejected under GCC and
+  Clang. [Results](../analysis/physics/native-kinematic-motion-tu15-20261026-final/report.json).
+- [x] Qualify native island transition `316CD0` and notification `322740`:
+  178 physical cases, 7,680 reads, 914 stores and 44 read-fault prefixes pass
+  under both compilers. Includes real default callbacks, mutable callback
+  models and rejected index mutation. Growth and custom listeners remain
+  explicit dependencies. [Proof](PHYSICS_TU15_NATIVE_ISLAND_TRANSITION_PROOF_20261026.md).
+- [x] Qualify the native short/long body sleep policies: 432 physical cases,
+  including 32 fault prefixes and 48 paired-NaN cases, pass under both compilers;
+  the strict-distance mutation is rejected.
+  [Results](../build/test-results/native-body-deactivation-policy-tu15/report.json).
+- [x] Qualify native array growth/copy, allocator routing and the declared pool
+  domain: 176 unchanged physical calls, 3,574 reads, 2,885 stores, five fault
+  prefixes and four observer mutations pass under GCC and Clang. Capacity,
+  copy-granularity and accounting mutations are rejected. Default/secondary
+  allocators and oversized imported free remain named dependencies.
+  [Results](../analysis/physics/native-array-growth-tu15-20261026-final2/report.json).
+- [ ] Qualify its new native island-transition binding and real multiplayer
+  allocation lifetime; retain per-world growth/pool activity and original
+  comparisons. Unknown allocator owners still execute explicit residual calls.
+- [x] Qualify constrained dynamic accumulator `325410`, transpose `2E4820`
+  and its genuine native angular-impulse composition: 322 physical cases,
+  including 74 read-fault prefixes and 32 paired-NaNs, pass on both compilers;
+  the transpose mutation is rejected. This is a component proof.
+  [Results](../build/test-results/native-dynamic-accumulator-tu15/report.json).
+- [x] Qualify native world collision scheduling `319D50` and both actual
+  collision-listener owners `3228C0`/`3229E0`: the final 300 physical cases
+  include 173 genuine completions, ten required-owner stops, 89 read-fault and
+  28 integer-store fault prefixes, eight paired-NaNs, 7,443 ordered reads and
+  3,431 stores. Both compilers and the collision-flag mutation control pass.
+  [Results](../analysis/physics/native-world-collision-tu15-20261026-final/report.json).
+- [ ] Visibly qualify the new collision/listener binding in a declared build.
+  Its 31-phase actual residual ABI/compaction model and 65-case native-frame
+  proof pass. Island collision/contact owners and custom callbacks remain
+  explicit dependencies; native-only collision closure is still incomplete.
+- [x] Qualify native island collision scheduling `321E50`, allocation monitors
+  `282B70`/`282B90` and allocated-byte summation `149B90`: 190 physical cases
+  include 107 complete helper calls, 35 authentic first-phase stops, 41 read-
+  and seven integer-store fault prefixes. Both compilers and the stride
+  mutation control pass. Remaining phase owners stay explicit.
+  [Results](../analysis/physics/native-island-collision-tu15-20261026-first/report.json).
+- [x] Qualify the native constraint continuation from genuine original solver
+  returns: 185 cases include 124 complete original roots, 57 fault prefixes,
+  four dependency stops and 24 one-row tail cases. No solver result is supplied.
+  [Results](../build/test-results/native-constraint-continuation-tu15/report.json).
+- [x] Qualify all three native motion-commit kernels: 664 physical cases,
+  including 142 read-fault prefixes and 92 paired-NaNs, preserve 13,846 stores,
+  28,406 reads and 594 observed RSQRT estimates under both compilers. Three
+  arithmetic/cursor mutations are rejected. Xbox estimate identity stays open.
+  [Results](../build/test-results/native-motion-commit-tu15/report.json).
+- [x] Qualify the complete typed row-solver domain against 3,000 physical
+  original cases: 49,155 stores, 296,611 reads and 1,110,116 unchanged original
+  instructions, all twelve primary row families, secondary/export branches,
+  GCC/Clang and rejected warm-start/precision mutations.
+  [Results](../build/test-results/native-constraint-solver-tu15/report.json).
+- [x] Qualify the native solver initializer: 113 physical cases, original
+  hash/date rules, real clock and logger boundaries, fault prefixes and rejected
+  mutations. The ready-zero solver/initializer composition also passes 103
+  original cases, including 28 full roots and 73 fault prefixes.
+  [Initializer](../build/test-results/native-constraint-solver-initializer-tu15/report.json),
+  [composition](../build/test-results/native-constraint-solver-initialized-composition-tu15/report.json).
+- [x] Qualify native broad-phase allocation, shape/sweep arguments, pending-pair
+  growth and cleanup against 236 physical original cases with both compilers
+  and a rejected ownership mutation. Nine completed v1459 refresh cases record
+  10,438 actual native broad-phase calls; seven planned cases remain incomplete.
+  [Component proof](../analysis/physics/native-broad-phase-tu15-20261026-final/report.json),
+  [partial live cohort](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-constraint-original-v1459/iteration-02-interruption-summary.json).
+- [x] Qualify all three built-in native custom-schema callbacks: 336 physical
+  cases under both compilers, including actual before-store rejection and
+  after-store observer exceptions. Early-pop/C1 and operand-order mutations
+  are rejected. Unknown registered owners remain explicitly refused.
+  [Results](../build/test-results/native-constraint-custom-schema-final-tu15/report.json).
+- [x] Qualify native FILETIME conversion with 292 original division cases and
+  ten actual clock returns. The live binding consumes the existing recorded
+  world FILETIME input and adjustment. The composed native clock, initializer,
+  solver and three custom callbacks pass 143 cases across all twelve row families.
+  [Clock](../build/test-results/native-constraint-clock-tu15/report.json),
+  [composition](../build/test-results/native-constraint-solver-native-clock-composition-tu15/report.json).
+- [x] Qualify native array reserve2E31E0: 57 physical cases, 2,833 reads,
+  2,226 stores, five fault prefixes and 122 actual allocator calls. GCC/Clang
+  pass; the wrong-capacity mutation is rejected. The expanded64-case proof adds
+  seven actual argument-cell cases, preserving early stride/capacity and late
+  header reads across real allocation; an early-header mutation is rejected.
+  Live reserve activity remains zero; additional internal callers need wiring.
+  [Results](../build/test-results/native-array-reserve-tu15/report.json).
+  [Input phases](../build/test-results/native-array-reserve-input-phases-tu15/report.json).
+- [x] Qualify the scoped vehicle-rate native route with the original frozen and
+  current headers: 2,230 cases each. An additional 1,382 physical original calls
+  include 6,252 actual instruction FP snapshots and both store-failure phases.
+  Source wiring has per-world activity and explicit live refusals; current live
+  ordinary Warthog reversal now exercises239 acceleration/60 approach/299 cursor
+  calls with no refusal,334 actual vehicle-camera frames and a strict original
+  late-frame match. Outer controller conversion remains open.
+  [Results](../analysis/physics/native-vehicle-rate-final-handoff-tu15-20261026/report.json).
+- [x] Qualify native schema14 emission32A390: 69 original cases, including
+  actual argument/header aliases, read/write faults and observer failures.
+  The three real caller continuations consume only the returned payload pointer;
+  their complete original callsite/ABI audit passes. The scoped live seam and
+  per-world counters are wired. All 210 original cases pass with retained and
+  current headers under GCC/Clang. The combined live cohort records15,478
+  native calls/completions through all three original callers, with no refusal.
+  [Emitter](../build/test-results/native-constraint-schema-emitter-final-tu15/report.json),
+  [caller audit](../build/test-results/native-constraint-schema-emitter-abi-tu15/report.json).
+- [x] Qualify the three native geometry kernels2E44D0/2E47B0/2E4690:
+  758 physical cases,38,585 original instructions,6,623 ordered reads and1,673
+  stores under GCC/Clang. Alignment faults, aliases and all three arithmetic
+  mutation controls pass. Native live binding remains open.
+  [Results](../analysis/physics/native-geometry-tu15-20261026-qualified/report.json).
+- [x] Qualify native inverse-affine geometry2E4550:269 physical original cases,
+  2,939 ordered reads and1,212 stores under GCC/Clang. Transpose, arithmetic
+  association and early-translation mutations are rejected. Native caller
+  integration through candidate update2F36F0 remains open.
+  [Results](../build/test-results/native-inverse-geometry-final-tu15/report.json).
+- [x] Qualify the declared2F3140 dispatch input domain with genuine class/factory
+  returns:14 cases,112 ordered data reads and1,265,214,046 persistent bytes per
+  compiler. Both wrong-factory controls are rejected. This is an offline
+  service composition; native factory and actual live creation coverage stay open.
+  [Results](../build/test-results/native-contact-agent-dispatch-read-order-tu15/report.json).
+- [ ] Finish2F36F0 candidate-update read/callback/cleanup qualification and live
+  binding. Its42 completed physical cases include160 real creates,14 releases
+  and43 reserve calls per compiler, but independent source review still found
+  timing/prefix discrepancies. Keep those findings open while correcting them.
+  [Review](../analysis/physics/native-contact-candidate-source-review-tu15-20261026/report.json).
+- [x] Qualify native constraint base329720 against837 physical cases/prefixes:
+  all921 sites,60,160 reads and21,388 stores under GCC/Clang; all four mutations
+  rejected. Private transient error payloads, unmasked traps and Xbox-specific
+  estimates remain separate open gates.
+  [Results](../build/test-results/native-constraint-base-final-tu15/report.json).
+- [ ] Qualify31F770/31F860 native wrapper composition with that native base,
+  then wire and visibly qualify their real per-world execution.
+- [x] Qualify their full native base/emitter composition:922 cases/prefixes,
+  106,429 reads and41,514 stores under GCC/Clang, all three mutations rejected.
+  The working-tree native binding and real-owner model pass; live activation
+  and complete world qualification remain open.
+  [Composition](../build/test-results/native-constraint-producer-first-tu15/report.json),
+  [binding](../build/test-results/native-constraint-producers-binding2-tu15/report.json).
+- [x] Qualify seven native shape-bound owners and their geometry composition:
+  1,195 physical original cases under GCC/Clang,627 complete chains,23,544
+  ordered reads and5,787 stores. All four arithmetic/read-timing mutations
+  are rejected. Twelve transient radius-read x87 fault prefixes remain open.
+  [Results](../build/test-results/native-shape-bounds-final-tu15/report.json).
+- [x] Qualify additional actual2E8120 endpoint/306170 compound bounds:334
+  physical calls/prefixes,9,341 reads and2,463 stores under both compilers, with
+  two rejected operand-order mutations. Private unbalanced radius faults stay
+  explicitly outside the admitted domain.
+  [Results](../build/test-results/native-compound-shape-bounds-tu15/report.json).
+- [ ] Qualify the newly wired native broad-phase bounds in visible multiplayer:
+  require positive native leaf work and zero remaining shape-bound callbacks,
+  actual vehicle camera and strict original-frame comparison. The110-case
+  world proof, nested-transform caller-storage model and rejected old-overlap
+  layout pass; fresh live qualification is queued after the exact-source build.
+  [Binding](../build/test-results/native-world-shape-bounds-binding-tu15/report.json),
+  [storage control](../build/test-results/native-world-shape-bounds-caller-storage-negative-tu15/report.json).
+  v1461/03 now records substantial native leaf/compound work and a passing
+  original frame, but45 residual bounds calls keep this gate red. Exact owner
+  diagnostics are added in the working tree for the next cohort; the earlier
+  single-snapshot census is not an exhaustive trajectory inventory.
+  [Latest live](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-contact-input-original-v1461/iteration-03-summary.json).
+- [x] Qualify native contact-record copy303BA0, predicate303800 and filter304130:
+  796 physical cases,12,741 ordered reads and5,449 stores under GCC/Clang,
+  including130 genuine captured payload inputs and both store-failure phases.
+  Opaque source gaps stay untouched; four arithmetic/publication mutations
+  are rejected. The complete304350 producer and live activation remain open.
+  [Results](../analysis/physics/native-contact-records-tu15-20261026-qualified/report.json).
+- [x] Qualify the declared native island-agent phase composition with genuine
+  original service execution:20 cases,1,228 ordered reads,424 stores and strict
+  91,356,057-byte comparisons per case under both compilers. Actual observed
+  callback-entry GP/private-stack state is an explicit input dependency.
+  [Results](../build/test-results/native-island-agent-hardware-context-final-tu15/report.json).
+- [ ] Qualify the newly wired native island-agent phases with the production
+  callback transport, genuine contact buffers and visible multiplayer activity.
+  Close the service-context dependency and the3205B0 advance-return branch.
+- [x] Qualify the declared live flag-set phase on Warthog:986 phase entries,
+  1,169 real process/finish calls each and986 constructed/destroyed buffers,
+  actual vehicle camera, all required rate/core gates and a strict89,729,945-byte
+  original sample. Flag-clear/minimum remain zero in this case; five time
+  advances still invoke the unconverted owner. The preceding full gate is open.
+  [Results](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-solver-original-v1460/iteration-06-island-agents-vehicle-camera/run/lan-vehicle/report.json).
+- [ ] Visibly qualify the newly wired complete solver/initializer/custom
+  callbacks, scoped vehicle rates and array reserve. Require positive solver
+  iterations/primary rows in the actual vehicle case and record each exercised
+  native owner. Native source wiring and ABI models do not close this gate.
+- [ ] Qualify complete constraint orchestration, dynamic accumulator setup and
+  all actual solver owners, then visibly qualify the newly wired constraint,
+  island-collision and commit paths. Actual solver/builder/allocator services
+  remain dependencies; prefix and component proofs do not complete this group.
+- [ ] Wire and visibly qualify keyframed/fixed motion and native island
+  transitions in the declared live build; qualify every exercised motion kind.
+- [ ] Finish native collision/pose/constraint/action/deactivation/listener and
+  remaining solver ownership; integrate and visibly qualify the full closure.
+
+Latest native world/pose cohort v1457: all nine visible cases and native pose
+activity gates pass, including the actual vehicle camera. Six whole-frame
+original comparisons pass; three Cyclotron raw-bank comparisons remain red.
+A [physical lifetime diagnosis](PHYSICS_TU15_V1457_CONTACT_SCRATCH_DIAGNOSIS_20261026.md)
+locates the representative 95-byte difference entirely in stale inactive
+contact records freed before frame return. The raw failure is preserved; a
+source-owned lifetime audit and matching native writer trace remain separate
+from acceptance. No broad goal group or native-only closure is completed by
+these results.
+
+v1458 adds the native sleep/wake checker and the four lift scalar seams through
+qualified read-only observation scopes. Its five official regressions pass;
+all nine visible cases record native frame/world/island/force/pose/checker
+activity and 2,215 exact LAN comparisons. Eight acceptance reports pass and
+six whole-frame original comparisons pass. The same three Cyclotron raw-bank
+comparisons remain red. Gravity lift additionally fails the required native
+scalar coverage gate: all four call counts are zero, with no observer refusals.
+A dedicated authored force-field case is still needed; prerequisite scalar
+proofs do not satisfy that live requirement. The
+[fresh vehicle-camera clip](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-constraint-original-v1459/iteration-01-vehicle-camera/requested-video/window.mp4)
+shows the current backend with 439 seated frames, approximately 0.6 radians of
+look and 41 post-exit frames. [Cohort summary](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-world-lift-original-v1458/iteration-00-summary.json).
+
+The subsequent v1458 motion/policy cohort passes seven main regressions,
+nine of ten acceptance reports and seven of ten whole-frame original
+comparisons. It records 5,541 native keyframed poses, 5,541 prescribed-motion
+calls, 1,286 body-policy calls and 87 island transitions across 2,779 exact LAN
+comparisons. Fixed-pose live coverage remains absent. The dedicated authored
+Midship field also reports zero scalar call-site activity; its required gate
+remains red while its world-frame original comparison passes. This coverage or
+wiring gap and the three Cyclotron raw-bank failures remain open. The gap is
+now traced to the scene owner's duplicated force parent. The source and
+generator bridge that entry to the dedicated force owner; its independent
+original and fresh live qualification are pending.
+[Results](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-world-lift-original-v1458/iteration-01-summary.json).
+
+The test-only diagnostic then captures the actual `319D50` residual from the
+same compared frame. Its default full GP/SSE/x87/FP and 90,131,353-byte original
+comparison passes; a persistent-byte mutation is rejected. Only the private
+replayer's entry admission literal changes, with its diff and source hashes
+saved. The whole-frame raw gate remains red and the collision owner remains
+lifted. [Proof and cleanup](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-world-lift-original-v1458/iteration-02-collision-private-entry-replay/report.json).
+
+The later scene-route fix resolves the native scalar bypass: a duplicate scene
+`1DA750` had continued to own the live force path. Its exact ABI/FP bridge passes
+576 independent original parents and a rejected zero-result control. All ten
+visible cases now pass, with actual scalar counts `[240, 54, 94, 240]`, 240 power
+calls and zero observation refusals. Midship and Lockout gravity together cover
+all four sites; the earlier zero counters did not prove gravity was unsuitable.
+Seven complete original world frames pass; the three Cyclotron raw-bank cases
+remain red. The first successful scalar-field recording and a losslessly
+compressed exact phase trace are retained.
+[Current scene-route results](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-world-lift-original-v1458/iteration-03-summary.json).
+
+Native array/allocator integration then passes all 16 visible cases, with
+6,917 exact LAN comparisons and 13 growth/13 pool allocation/11 release calls.
+Ten complete original frames pass; Gemini0, Gemini1 and Elongation expose three
+additional raw-bank failures, preserved with separate exact paired diagnostics.
+The next collision/listener cohort passes all ten core/Midship native gates and
+records 4,307 collision/world-listener entries; seven original frames pass and
+three Cyclotron comparisons remain red. Island-listener live coverage is zero.
+No broad closure is inferred. [Array results](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-world-lift-original-v1458/iteration-04-summary.json),
+[collision results](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-world-lift-original-v1458/iteration-05-summary.json).
+
+v1458 explicitly removes its source/build tree after that cohort: 1,131,307,008
+allocated file bytes. Unique requested clips, source pins and required authentic
+comparison inputs remain; no executable or build tree remains.
+[Cleanup receipt](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-world-lift-original-v1458/cleanup-verification.json).
+
+The corrected v1459 constraint/motion cohort passes eight regressions and all
+ten visible/native gates, with 2,629 exact LAN comparisons. Actual commit kinds
+are `[748, 2090, 902]` (kinematic/dynamic/restore); all three have real coverage.
+Seven full original world frames pass and three Cyclotron comparisons remain
+red. An initial caller-packet lifetime bug was held from live execution and
+corrected through a guarded rebuild plus a rejected old-layout control.
+[Results](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-constraint-original-v1459/iteration-01-summary.json).
+Current component wiring replaces the whole solver and its three built-in
+custom callbacks with typed kernels; the clock uses the same actual FILETIME
+receipt. v1460 owns a fresh source/build for visible qualification. The earlier
+frozen cohorts lack the newer typed vehicle-rate module and activity symbol;
+its separate component proof is not selected live coverage. Native-only closure
+remains open.
+
+The completed v1459 failed captures are now losslessly archived: 24,226 files
+roundtrip/hash verified, plus nineteen exact compressed hash reports. The net
+scoped allocated reduction is 759,529,472 bytes, counting retained archive,
+manifests and redirect receipts. The 71,698,926-byte archive remains required
+reference input; its original failures stay red. Vehicle-rate proof cleanup
+independently removes 146,665,472 allocated bytes and retains no large outputs.
+[Capture cleanup](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-constraint-original-v1459/completed-inputs-retirement-01-02/cleanup-verification.json),
+[rate cleanup](../analysis/physics/native-vehicle-rate-final-handoff-tu15-20261026/report.json).
+
+Completed v1460 captures now also have a verified lossless replacement:
+64,599 files roundtrip/hash checked before retiring their unpacked copies.
+The scoped net allocated saving is1,705,365,504 bytes, after the194,532,631-byte
+required archive, manifests and receipts. Protected v1460/00 lower0 and all
+v1458 direct inputs remain. This storage change does not alter any failed gate.
+[Cleanup receipt](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-solver-original-v1460/completed-inputs-retirement-except-lower0/cleanup-verification.json).
+
+v1460/01 records real native solver/custom activation across all sixteen MCC
+cases:138,352 iterations,296,920 primary rows and65,544 custom callbacks, with
+all three native kinds positive and no refusal. Fifteen visible acceptance
+reports pass; the Warthog case's approach-rate gate remains unexercised
+(acceleration121/approach0/cursor121). A genuine Ghost driver supplement also
+records approach0, with56 actual source vehicle-camera frames. Ten strict original
+samples pass; six raw-bank failures remain red. Lower0 passes58 moving-support
+ticks/2.3862369 carry on the repeat, while its earlier different-input failure
+is preserved. Combined v1460/02 executes15,478 native schema-emitter calls through
+all three callers with no refusal, but reserve stays zero on all sixteen cases.
+The reserve's internal lifted helper routes remain a wiring blocker. Separate
+v1460/05 Warthog ordinary SDL reversal passes the unchanged rate gate with
+239 acceleration/60 approach/299 cursor calls,334 original camera frames and
+89,729,945 original bytes equal. Its runtime still has other unconverted owners.
+[Results](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-solver-original-v1460/iteration-01-summary.json).
+[Combined results](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-solver-original-v1460/iteration-02-summary.json).
+[Vehicle rate/camera proof](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-solver-original-v1460/iteration-05-vehicle-rate-reversal-retry-vehicle-camera/run/lan-vehicle/report.json).
+
+Independent original contact traces now follow40 XMM3 provenance segments
+through8,589 unchanged instructions, including actual returns/indirect callers,
+with no read before each real register overwrite. This is case-specific
+register evidence; future memory provenance and native paired histories stay
+open. It does not waive raw bytes or prove every path.
+[Results](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-world-lift-original-v1458/contact-xmm3-liveness-summary/report.json).
+The two contact investigations remove1,997,619,200 measured allocated bytes of
+owned scratch; native-rate proof cleanup and v1459 compression above are separate.
+
+v1455 cleanup verifies removal of 1,125,720,064 allocated bytes of owned
+source/build storage. It retains 57,926,174 bytes of results, including nine
+requested recordings, and no binaries. [Cleanup receipt](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-frame-live-v1455/cleanup-verification.json).
+
+v1456 cleanup verifies removal of 1,120,522,240 allocated bytes of owned
+source/build storage; earlier per-case raw cleanup is additional. No raw banks,
+replay programs, exported runtimes or duplicate recordings remain. Input-hash
+reports are retained losslessly as `.json.xz`; the v1455 requested videos remain
+available. [Cleanup receipt](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-frame-original-v1456/cleanup-verification.json).
+
+v1457 cleanup verifies removal of 1,126,776,832 allocated bytes from the
+owned source/build tree. Seven required failing input directories are preserved
+in a lossless 83,572,194-byte archive after all original diagnostic probes
+finished. Round-trip extraction verifies all 28,264 file hashes; replacing the
+raw captures reclaims another 832,573,440 allocated file bytes, net of the
+archive and hash manifest. The three Cyclotron raw comparisons remain red.
+[Build cleanup](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-world-original-v1457/cleanup-verification.json),
+[archive and unpack receipt](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-world-original-v1457/required-failure-inputs-retirement/report.json).
+
 Checked October20,2026. **14 of24 goal completion groups remain open**.
 These groups contain many interactions;14 is not a count of missing functions
 or unique interactions. Full1:1 physics parity remains incomplete.
@@ -32,8 +487,8 @@ failure was an omitted DXT3 checkpoint format despite existing64-sample
 original constructor proof; the actual-MCC regression fails before the fix.
 Successful copied banks/replay programs and each completed live scratch are
 removed. Earlier deliveries, exact source archives and required shader paths
-remain preserved. The active private build is still owned for the final
-cross-map contact, vehicle-blast and jump-rearm cases, then will be removed.
+remain preserved. The old v1396 and v1453 private source/build trees have been
+removed. Later native conversion tests own separate disposable storage.
 Full1:1 parity is incomplete;14 broad completion groups remain open.
 
 Earlier full delivery v1303 passes33/33 linked checks,

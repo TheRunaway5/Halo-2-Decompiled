@@ -70,7 +70,7 @@ void upload_sprite(Gpu &g,Image image,std::span<const std::byte> raw) {
     vkCmdCopyBufferToImage(g.command,b.handle,image.handle,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,4,r);
     barrier(g,image,VK_IMAGE_ASPECT_COLOR_BIT,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,VK_ACCESS_TRANSFER_WRITE_BIT,VK_ACCESS_SHADER_READ_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);g.end();
 }
-void report(std::span<const std::byte> before,std::span<const std::byte> original,std::span<const std::byte> native) {
+void report(std::span<const std::byte> before,std::span<const std::byte> original,std::span<const std::byte> native,bool exact) {
     unsigned source_changed=0,native_changed=0,different=0,max_channel=0,only_source=0,only_native=0;std::uint64_t absolute=0;
     for(unsigned i=0;i<before.size();i+=4){const bool s=!std::equal(before.begin()+i,before.begin()+i+4,original.begin()+i),n=!std::equal(before.begin()+i,before.begin()+i+4,native.begin()+i);
         source_changed+=s;native_changed+=n;only_source+=s&&!n;only_native+=n&&!s;
@@ -80,12 +80,16 @@ void report(std::span<const std::byte> before,std::span<const std::byte> origina
     }
     require(source_changed==1255&&native_changed>0,"actual source point scene response missing");
     std::cout<<"Actual event215873: source changed "<<source_changed<<", native changed "<<native_changed<<", differing pixels "<<different<<", source-only "<<only_source<<", native-only "<<only_native<<", max channel "<<max_channel<<", total RGB absolute "<<absolute<<'\n';
+    if(exact)require(different==0,"native weather differs from the retained original OpenGL scene");
 }
 }
 int main(int argc,char **argv){try{
-    require(argc==1||(argc==2&&std::string(argv[1])=="--gpu"),"optional --gpu expected");
+    require(argc==1||(argc==2&&(std::string(argv[1])=="--gpu"||std::string(argv[1])=="--gpu-exact")),"optional --gpu or --gpu-exact expected");
+    const bool exact=argc==2&&std::string(argv[1])=="--gpu-exact";
     const auto root=std::filesystem::path(HALO2_SOURCE_DIR),packet_dir=root/"analysis/multiplayer-shading/weather-point-original-reference-event215873";
-    const auto original_dir=root/"analysis/multiplayer-shading/original-weather-20261009/session1/source-snow-event215873",output=root/"analysis/multiplayer-shading/weather-point-scene-prototype";
+    const auto original_dir=root/"analysis/multiplayer-shading/original-weather-20261009/session1/source-snow-event215873";
+    const auto scratch=std::getenv("HALO2_TEST_SCRATCH");require(scratch&&*scratch,"weather scene test requires owned scratch");
+    const auto output=std::filesystem::path(scratch)/"weather-point-scene";
     std::filesystem::create_directories(output);
     const auto code=read(packet_dir/"source-vs22-class0.vp");const auto points=decode<SourceWeatherPointInput>(read(packet_dir/"points-v0-logical-argb.bin"));
     require(points.size()==1015,"actual source event range changed");const auto camera_raw=decode<ShaderVector>(read(packet_dir/"vertex_constants_c0_c11.bin"));require(camera_raw.size()==12,"full source camera missing");
@@ -95,7 +99,15 @@ int main(int argc,char **argv){try{
         s.attributes[1]={float((p.color>>16)&255)/255,float((p.color>>8)&255)/255,float(p.color&255)/255,float(p.color>>24)/255};
         execute_vertex_program(program,s);require(s.outputs[0][3]>0&&std::isfinite(s.outputs[6][0])&&s.outputs[6][0]>0,"actual source event has unsupported output");min_size=std::min(min_size,s.outputs[6][0]);max_size=std::max(max_size,s.outputs[6][0]);cpu_outputs.insert(cpu_outputs.end(),s.outputs.begin(),s.outputs.end());}
     save(output/"cpu-program-outputs.bin",std::as_bytes(std::span(cpu_outputs)));
-    const auto before=read(packet_dir/"before-scene-color.rgba"),after=read(packet_dir/"after-scene-color.rgba"),low24=read(packet_dir/"before-depth-d24-low24.bin"),source_depth=read(original_dir/"before-scene-depth.raw");
+    const auto before=read(packet_dir/"before-scene-color.rgba"),after=read(packet_dir/"after-scene-color.rgba"),source_depth=read(original_dir/"before-scene-depth.raw");
+    // Derive the Vulkan aspect-copy packing from the retained original bytes.
+    // This is an integer shift; the immutable reference is never rewritten.
+    require(source_depth.size()==640*480*4,"source scene depth size changed");
+    auto low24=source_depth;
+    for(std::size_t at=0;at<low24.size();at+=4) {
+        std::uint32_t word;std::memcpy(&word,source_depth.data()+at,4);word>>=8;
+        std::memcpy(low24.data()+at,&word,4);
+    }
     require(before.size()==640*480*4&&after.size()==before.size(),"source scene color size changed");
     std::cout<<"Frozen actual1015 points, all positive W; source oPts range "<<min_size<<".."<<max_size<<"; actual original pre/post scene color and D24 integers\n";
     if(argc==1)return 0;
@@ -112,9 +124,10 @@ int main(int argc,char **argv){try{
     SourceWeatherPointRender renderer({g.physical,g.device,pass,HALO2_WEATHER_POINT_SHADER_DIR,true,true});
     SourceWeatherPointPacket packet{code,camera,pixel,points,sprite.view,sampler,VK_FORMAT_BC3_UNORM_BLOCK,{32,32},4,{clip_raw[0],{640,480,0,0},0,0,7,true,true,1,1,false,SourceWeatherPointSpriteCoordinates::OriginalGlRawRowsUpperLeft}};
     const auto render=[&](){renderer.prepare(packet);auto out=g.buffer(before.size(),VK_BUFFER_USAGE_TRANSFER_DST_BIT);g.begin();VkRenderPassBeginInfo bi{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};bi.renderPass=pass;bi.framebuffer=frame;bi.renderArea={{0,0},extent};vkCmdBeginRenderPass(g.command,&bi,VK_SUBPASS_CONTENTS_INLINE);renderer.record(g.command,{0,0,640,480,0,1},{{0,0},extent});vkCmdEndRenderPass(g.command);g.readback(color.handle,extent,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,out);g.end();std::vector<std::byte> result(out.size);std::memcpy(result.data(),out.mapped,out.size);return result;};
-    const auto native=render();report(before,after,native);save(output/"native-after-scene-color.rgba",native);verify_depth(g,depth,low24,source_depth);
+    const auto native=render();save(output/"native-after-scene-color.rgba",native);verify_depth(g,depth,low24,source_depth);
     upload_color(g,color,before,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);require(render()==native,"reused actual point scene bindings differ");verify_depth(g,depth,low24,source_depth);
     require(validation_errors==0,"weather scene validation diagnostics");
     std::cout<<"All307200 source D24 integers/stencil bytes exact before and after; original alpha unchanged, reused bindings exact; raw GL rows preserved\n";
+    report(before,after,native,exact);
     return 0;
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}

@@ -1,6 +1,17 @@
 # Keep the original vehicle controller component independently buildable while
 # the live object/body/world ownership graph is still being completed.
+add_library(halo2_native_vehicle_rate_consumer STATIC
+    src/physics/native_vehicle_rate_consumer_tu15.cpp)
+target_include_directories(halo2_native_vehicle_rate_consumer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_features(halo2_native_vehicle_rate_consumer PUBLIC cxx_std_20)
+target_link_libraries(halo2_native_vehicle_rate_consumer PUBLIC Threads::Threads)
+if(HALO2_SANITIZERS AND NOT MSVC)
+    target_compile_options(halo2_native_vehicle_rate_consumer PRIVATE
+        -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(halo2_native_vehicle_rate_consumer PUBLIC -fsanitize=address,undefined)
+endif()
 add_library(halo2_physics_vehicle_runtime STATIC src/physics/vehicles/physics_vehicle_runtime_generated.cpp)
+target_link_libraries(halo2_physics_vehicle_runtime PUBLIC halo2_native_vehicle_rate_consumer)
 target_include_directories(halo2_physics_vehicle_runtime PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_physics_vehicle_runtime PUBLIC cxx_std_20)
 if(MSVC)

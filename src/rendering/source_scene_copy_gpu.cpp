@@ -1,4 +1,5 @@
 #include "halo2/source_scene_copy_gpu.hpp"
+#include "halo2/native_fragment_kernel.hpp"
 #include "halo2/cache.hpp"
 #include "halo2/sampler.hpp"
 #include <cstring>
@@ -58,8 +59,8 @@ struct SourceSceneCopyGpu::Impl {
         if(pass)vkDestroyRenderPass(d,pass,nullptr);if(pool)vkDestroyDescriptorPool(d,pool,nullptr);
         if(descriptors)vkDestroyDescriptorSetLayout(d,descriptors,nullptr);if(sampler)vkDestroySampler(d,sampler,nullptr);
     }
-    VkShaderModule shader(const char *name)const {
-        const auto path=context.shader_directory/name;std::ifstream file(path,std::ios::binary|std::ios::ate);
+    VkShaderModule shader(std::string_view name)const {
+        const auto path=context.shader_directory/std::string(name);std::ifstream file(path,std::ios::binary|std::ios::ate);
         if(!file||file.tellg()<=0||file.tellg()%4)throw FormatError("Scene-copy native shader absent: "+path.string());
         std::vector<std::uint32_t> words(std::size_t(file.tellg())/4);file.seekg(0);
         file.read(reinterpret_cast<char*>(words.data()),std::streamsize(words.size()*4));
@@ -118,7 +119,7 @@ struct SourceSceneCopyGpu::Impl {
         check(vkCreatePipelineLayout(context.device,&pl,nullptr,&layout),"create scene-copy pipeline layout");
         VkShaderModule vertex{},fragment{};
         try {
-            vertex=shader("fog.vert.spv");fragment=shader("scene_copy.frag.spv");
+            vertex=shader("fog.vert.spv");fragment=shader(native_fragment_kernel_path("scene-copy",source_scene_copy_program().words));
             VkPipelineShaderStageCreateInfo stages[2]{};
             for(unsigned i=0;i<2;++i){stages[i]={VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};stages[i].stage=i?VK_SHADER_STAGE_FRAGMENT_BIT:VK_SHADER_STAGE_VERTEX_BIT;stages[i].module=i?fragment:vertex;stages[i].pName="main";}
             VkPipelineVertexInputStateCreateInfo vi{VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
@@ -150,7 +151,8 @@ struct SourceSceneCopyGpu::Impl {
     }
     SourceSceneCopyGpuBinding prepare(const SourceSceneCopyGpuInput &in) {
         owner();if(pending)throw FormatError("Scene-copy frame still owns pending GPU work");
-        const auto values=source_scene_copy_shader_uniform(in.copy,in.coordinate_extent);
+        auto values=source_scene_copy_shader_uniform(in.copy,in.coordinate_extent);
+        values.program=native_fragment_uniform_words(values.program);
         VkPhysicalDeviceProperties p;vkGetPhysicalDeviceProperties(context.physical,&p);
         const VkExtent2D destination{std::uint32_t(in.copy.destination_width),std::uint32_t(in.copy.destination_height)};
         if(!in.image_extent.width||!in.image_extent.height||in.image_extent.width>p.limits.maxImageDimension2D||

@@ -62,7 +62,7 @@ void consumer_check(const std::filesystem::path& map, const std::filesystem::pat
     rules.weapon = native.slayer_starting_weapon(0);
     MultiplayerMatch match(content, 0, native.spawns(), rules);
     LanHost host(match, 0, selected);
-    const auto address = "127.0.0.1:" + std::to_string(host.port());
+    const auto address = host.join_address();
     std::array<Controls, multiplayer_capacity> controls{};
     LanClient wrong(address, raw, 1);
     for (unsigned i = 0; i < 64 && wrong.error().empty(); ++i) {

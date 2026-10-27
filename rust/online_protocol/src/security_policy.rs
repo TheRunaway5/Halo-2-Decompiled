@@ -3,8 +3,15 @@ use std::collections::HashSet;
 pub const PLAYER_CAPACITY: u64 = 1000;
 pub const ORIGIN_CAPACITY: u64 = 128;
 pub const FOREIGN_CAPACITY: u64 = 512;
+pub const OWNER_LISTING_CAPACITY: u64 = 16;
+pub const LOCAL_LISTING_CAPACITY: u64 = 1000 - FOREIGN_CAPACITY;
 pub fn listing_admission(origin: u64, foreign: u64, total: u64) -> u16 {
     if origin >= ORIGIN_CAPACITY { 429 } else if foreign >= FOREIGN_CAPACITY || total >= 1000 { 503 } else { 0 }
+}
+pub fn local_listing_admission(owner: u64, local: u64, total: u64) -> u16 {
+    if owner >= OWNER_LISTING_CAPACITY { 429 }
+    else if local >= LOCAL_LISTING_CAPACITY || total >= 1000 { 503 }
+    else { 0 }
 }
 pub fn steam_revocation_accepted(status: u16, body: &str) -> bool {
     status == 200 && body.len() <= 65536 && serde_json::from_str::<serde_json::Value>(body)
@@ -13,10 +20,12 @@ pub fn steam_revocation_accepted(status: u16, body: &str) -> bool {
 // No raw write, ABI, entrypoint, lens-device, or render-pointer capability may
 // cross the network. Player-camera calls also carry raw controller/observer
 // banks that are installed before native execution. Unknown kinds fail closed.
+// Kind 32 is a match step with numeric displayed views for the replay world's
+// own lag-compensation owner.
 // Local diagnostic tapes retain
 // their separate trusted replay API.
 pub fn network_replay_call(kind: u8) -> bool {
-    matches!(kind, 1..=14 | 24 | 29)
+    matches!(kind, 1..=14 | 24 | 29 | 31 | 32)
 }
 #[derive(Default)]
 pub struct EosAdmissions { principals: HashSet<[u64; 4]> }
@@ -70,6 +79,9 @@ mod tests {
         for kind in 15..=23 { assert!(!network_replay_call(kind)); }
         for kind in [0, 25, 26, 27, 28, 30, 255] { assert!(!network_replay_call(kind)); }
         assert!(network_replay_call(1)); assert!(network_replay_call(24));
+        assert!(network_replay_call(31)); // Numeric input to an independently installed native camera.
+        assert!(network_replay_call(32)); // Step with numeric displayed views for the replay world's rewind owner.
+        assert!(!network_replay_call(33));
     }
     #[test]
     fn one_principal_cannot_occupy_queue_or_foreign_bank() {
@@ -78,5 +90,9 @@ mod tests {
         assert_eq!(gate.admit([2;4]),0); gate.release([1;4]); assert_eq!(gate.pending(),1);
         assert_eq!(listing_admission(128,128,128),429);
         assert_eq!(listing_admission(0,128,128),0);
+        assert_eq!(local_listing_admission(16,16,16),429);
+        assert_eq!(local_listing_admission(0,488,488),503);
+        assert_eq!(local_listing_admission(0,487,999),0);
+        assert_eq!(local_listing_admission(0,0,1000),503);
     }
 }

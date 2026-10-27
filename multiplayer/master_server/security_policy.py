@@ -14,10 +14,14 @@ def library():
     path = Path(os.environ.get('H2_SECURITY_LIBRARY', Path(__file__).with_name('libhalo2_online_security_ffi.so')))
     require(path.is_absolute() and path.is_file(), 'Rust security library is not installed', 503)
     lib = ctypes.CDLL(str(path))
+    lib.h2_security_abi.argtypes = []
+    lib.h2_security_abi.restype = ctypes.c_uint32
+    require(lib.h2_security_abi() == 2, 'Rust security library ABI mismatch', 503)
     signatures = {
         'h2_security_abi': ([], ctypes.c_uint32),
         'h2_player_capacity': ([], ctypes.c_uint64),
         'h2_listing_admission': ([ctypes.c_uint64]*3, ctypes.c_uint16),
+        'h2_local_listing_admission': ([ctypes.c_uint64]*3, ctypes.c_uint16),
         'h2_eos_queue_new': ([], ctypes.c_uint64),
         'h2_eos_queue_drop': ([ctypes.c_uint64], None),
         'h2_eos_admit': ([ctypes.c_uint64]*5, ctypes.c_uint16),
@@ -27,7 +31,6 @@ def library():
     }
     for name, (arguments, result) in signatures.items():
         function = getattr(lib, name); function.argtypes = arguments; function.restype = result
-    require(lib.h2_security_abi() == 1, 'Rust security library ABI mismatch', 503)
     return lib
 
 
@@ -38,6 +41,11 @@ def player_capacity():
 def listing_admission(origin, foreign, total):
     status = library().h2_listing_admission(origin, foreign, total)
     require(not status, 'Origin or federation listing capacity reached', status or 503)
+
+
+def local_listing_admission(owner, local, total):
+    status = library().h2_local_listing_admission(owner, local, total)
+    require(not status, 'Owner or local listing capacity reached', status or 503)
 
 
 def persistable_result(raw):

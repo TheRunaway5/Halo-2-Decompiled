@@ -226,7 +226,22 @@ std::uint32_t Cache::load_multiplayer_hill_shader() const {
   if(!tag || !tag->address || !tag->size)throw FormatError("Unavailable settings-selected hill shader");
   return shader;
 }
-Material Cache::load_material(std::uint32_t datum, bool hud) const {
+const std::string& Cache::shader_semantic_name(const Tag& supplied) const {
+  const auto* current=find_tag(supplied.handle());
+  if(!current || current->datum!=supplied.datum || current->group!=supplied.group ||
+     current->name!=supplied.name || current->address!=supplied.address || current->size!=supplied.size)
+    throw FormatError("Shader semantic label requested through a stale or fabricated typed owner");
+  const auto found=shader_semantic_names_.find(current->datum);
+  if(found==shader_semantic_names_.end())return current->name;
+  const auto& entry=found->second;
+  if(!is_preserved_native_shader(*current) || entry.group!=current->group ||
+     entry.storage_name!=current->name || entry.address!=current->address || entry.bytes!=current->size ||
+     entry.semantic_name.empty())
+    throw FormatError("Trusted shader semantic metadata lost its exact installed native identity");
+  return entry.semantic_name;
+}
+
+Material Cache::load_material(std::uint32_t datum, bool hud, bool load_images) const {
   Material result;
   result.source_shader_datum=datum;
   const Bytes data(cache_bytes());
@@ -251,7 +266,7 @@ Material Cache::load_material(std::uint32_t datum, bool hud) const {
       !std::isfinite(result.ambient_brightness))
     throw FormatError("nonfinite shader lighting brightness");
   const auto properties = TagAddressSpace(data, metadata_magic_).block(base + 12, 80);
-  if (properties.count && data.u32(properties.offset + 4) != 0xffffffffu) {
+  if (load_images && properties.count && data.u32(properties.offset + 4) != 0xffffffffu) {
     try {
       result.diffuse = load_bitmap(data.u32(properties.offset + 4), 0);
     } catch (const FormatError &e) {
@@ -287,7 +302,7 @@ Material Cache::load_material(std::uint32_t datum, bool hud) const {
       vertex_constants[i][a] = v;
     }
   const auto &stem = tag(data.u32(definition), "stem");
-  result.template_name = stem.name;
+  result.template_name = shader_semantic_name(stem);
   const auto stem_base = metadata_offset(stem.address, stem.size);
   const auto templates = TagAddressSpace(data, metadata_magic_).block(stem_base + 88, 40);
   if (!templates.count)
@@ -340,7 +355,7 @@ Material Cache::load_material(std::uint32_t datum, bool hud) const {
       const auto remap = implementations.offset + (first + n) * 6,
                  i = impl.offset + n * 306;
       MaterialPass pass;
-      pass.name = spas.name;
+      pass.name = shader_semantic_name(spas);
       pass.template_pass = p;
       pass.implementation = n;
       pass.bitmap_remaps = remaps(data, mappings, {data.u16(remap)});
@@ -435,7 +450,7 @@ Material Cache::load_material(std::uint32_t datum, bool hud) const {
       remap_pixel_externs(pass.program,scalars,{},resolved_externs,
                          pass.fragments,result.shader_switches);
       const auto leaf = spas.name.substr(spas.name.find_last_of('\\') + 1);
-      if (!result.static_lightmap_pass && n == 0 &&
+      if (load_images && !result.static_lightmap_pass && n == 0 &&
           (leaf == "lightmap_tex" || leaf == "lightmap_tex_detail" ||
            leaf == "lightmap_tex_env") &&
           pass.vertex_shader.find("lightmap_perpixel_tex") !=
@@ -491,13 +506,15 @@ Material Cache::load_material(std::uint32_t datum, bool hud) const {
   }
   result.pixel_constants = std::move(pixel_constants);
   result.vertex_constants = std::move(vertex_constants);
-  prepare_surface_material(*this, result);
-  if (!result.static_lightmap_pass && !result.forward_pass)
-    prepare_forward_material(*this,result);
-  prepare_bitmap_animation(*this,result);
-  if (!result.static_lightmap_pass && !result.forward_pass)
-    result.rendering_gaps.push_back(
-        "material uses an unsupported rendering pass");
+  if(load_images) {
+    prepare_surface_material(*this, result);
+    if (!result.static_lightmap_pass && !result.forward_pass)
+      prepare_forward_material(*this,result);
+    prepare_bitmap_animation(*this,result);
+    if (!result.static_lightmap_pass && !result.forward_pass)
+      result.rendering_gaps.push_back(
+          "material uses an unsupported rendering pass");
+  }
   result.passes.publish();
   return result;
 }

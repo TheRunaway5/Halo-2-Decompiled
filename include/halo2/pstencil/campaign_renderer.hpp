@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/effect_light_draw.hpp"
 #include "halo2/pstencil/point_caster.hpp"
+#include "halo2/path_tracing/scene.hpp"
 
 namespace halo2 {
 class Cache;
@@ -21,11 +22,16 @@ struct CampaignLightingInput {
     std::array<std::uint32_t,2> surface;
     std::int32_t frame;
     bool cinematic;
+    bool path_tracing{};
+    // Completed source12F80 bank from submitting camera2. Collection and
+    // receiver admission retain camera above. Absent preserves old callers.
+    const std::array<ShaderVector,12>* submitting_constants{};
 };
 struct CampaignLightingFrame {
     std::vector<EffectLightRawDraw> draws;
     std::vector<PointCaster> casters;
     unsigned lights{},selected{};
+    std::vector<path_tracing::Light> path_tracing_lights;
 };
 // Prepare immutable shader/texture residency before Renderer construction.
 // Each draw borrows an actual completed campaign main view, retaining its

@@ -1,4 +1,5 @@
 #include "halo2/cache.hpp"
+#include "halo2/bitmap_frame_animation.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -9,7 +10,7 @@ template<class T> std::span<const T> range(const std::vector<T> &v,ShaderRange r
     throw FormatError("animated bitmap range outside definition");
   return std::span<const T>(v).subspan(r.first(),r.count());
 }
-template<class F> void frames(Material &m,F consume) {
+template<class F> void frames(const Material &m,F consume) {
   if(!m.forward_pass || m.animation.overlays.empty()) return;
   const auto &a=m.animation;
   const auto &pass=m.passes.at(m.forward_pass_index);
@@ -25,9 +26,12 @@ template<class F> void frames(Material &m,F consume) {
         const auto bitmap=std::find_if(pass.bitmap_remaps.begin(),pass.bitmap_remaps.end(),
             [&](const auto &r){return (r.destination&255)==binding.parameter;});
         if(bitmap==pass.bitmap_remaps.end()) throw FormatError("animated bitmap remap missing");
-        if(bitmap->source!=slot) continue;
+        // 16F40/17530 share the template bitmap-property slot. The remap
+        // source indexes the material's separate bitmap bank (Elite detail
+        // parameter1, for example, reads material bitmap3).
+        if(binding.parameter!=slot) continue;
         if(binding.stage>=4) throw FormatError("animated bitmap stage outside NV2A slots");
-        consume(binding.stage,m.bitmaps.at(slot),a.overlays.at(ref.function));
+        consume(binding.stage,m.bitmaps.at(bitmap->source),a.overlays.at(ref.function));
       }
     }
   }
@@ -72,6 +76,32 @@ int bitmap_frame_index(float value,unsigned count) {
   // __CIfmod computes with x87 precision, then 1B0A0 stores to float before
   // its SSE truncation/negative-fraction correction implements floor.
   return int(std::floor(float(std::fmod(double(value),double(count)))));
+}
+std::vector<BitmapFrameAnimation> bitmap_frame_animations(const Material &material) {
+  std::vector<BitmapFrameAnimation> result;
+  frames(material,[&](unsigned stage,const ShaderBitmap &,const ShaderOverlay &function) {
+    const auto count=material.animated_textures[stage].size();
+    // Derived passes can deliberately replace an animated stage with one
+    // fixed image. Only prepared resident frame banks have owner selections.
+    if(!count)return;
+    if(!material.animation.tables)throw FormatError("animated bitmap function tables missing");
+    result.push_back({stage,unsigned(count),function,material.animation.tables});
+  });
+  return result;
+}
+std::array<std::uint32_t,4> animate_bitmap_frames(
+    std::span<const BitmapFrameAnimation> animations,double seconds,const ShaderInput &input,
+    std::array<std::uint32_t,4> frames) {
+  for(const auto &animation:animations) {
+    if(animation.stage>=frames.size() || !animation.tables)
+      throw FormatError("invalid prepared bitmap frame animation");
+    const auto frame=value(animation.function,seconds,input,*animation.tables);
+    const auto selected=bitmap_frame_index(frame,animation.image_count);
+    if(selected<0 || unsigned(selected)>=animation.image_count)
+      throw FormatError("animated bitmap frame selects an invalid image");
+    frames[animation.stage]=std::uint32_t(selected);
+  }
+  return frames;
 }
 bool animate_material_bitmaps(Material &m,double seconds,const ShaderInput &input) {
   bool changed=false;

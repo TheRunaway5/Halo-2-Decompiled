@@ -203,6 +203,7 @@ def main():
     assert code.at(0x102f64).mnemonic=='call' and code.at(0x102f64).operands[0].imm==0x107d90
     for site,target in ((0x13ab80,0x168ca1),(0x168d55,0x169c46)):
         assert code.at(site).mnemonic=='call' and code.at(site).operands[0].imm==target
+    assert code.at(0x16a479).mnemonic=='call' and code.at(0x16a479).operands[0].imm==0x16a4dd
     assert code.at(0x168cba).mnemonic=='call' and code.at(0x168cba).operands[0].imm==0x150990
     fp_calls={code.at(p).operands[0].imm for p in _trace(code,0x169c46,{0x169c46}).code
               if code.at(p).mnemonic=='call' and code.at(p).operands[0].type==2}
@@ -276,6 +277,14 @@ def main():
                             'source_run_sandbox_special_tu15')
     source = source.replace('source_physics_live_support_tu15_owns_entry',
                             'source_sandbox_special_tu15_owns_entry')
+    include='#include "halo2/source_first_person_action_tu15.hpp"\n'
+    if include not in source:
+        source=source.replace('#include "halo2/source_sandbox_special_tu15.hpp"\n',
+                              '#include "halo2/source_sandbox_special_tu15.hpp"\n'+include)
+    composition='static void run_16a4dd(WorldState &s) {\n'
+    assert source.count(composition)==1
+    source=source.replace(composition,composition+
+        'SourceFirstPersonCompositionObserverTu15::entry(s.memory,s.save());\n')
     args.output.write_text(source)
     report = json.loads((args.directory/'generation.json').read_text())
     report['generated_cpp_sha256'] = sha(args.output)

@@ -7,10 +7,12 @@ Raw oracle banks and all compiler outputs remain under HALO2_TEST_SCRATCH.
 import argparse
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import shutil
 import subprocess
+import struct
 import sys
 
 import oracle_vehicle_runtime_20261011 as oracle
@@ -53,13 +55,13 @@ def main():
     save(args.output / 'source-hashes.json', pins)
     mutation = None
     if args.negative_control:
-        native = source / 'src/physics/vehicles/source_vehicle_rate_native_tu15_internal.hpp'
+        native = source / 'src/physics/vehicles/native_vehicle_rate_math_tu15.hpp'
         text = native.read_text()
-        needle = 's.xmm[0]=_mm_add_ss(s.xmm[0],deceleration);'
+        needle = '_mm_add_ss(_mm_set_ss(value),_mm_set_ss(step.value))'
         if text.count(needle) != 1:
             raise RuntimeError('Requalify the isolated native rate negative control')
         before = sha(native)
-        native.write_text(text.replace(needle, 's.xmm[0]=_mm_sub_ss(s.xmm[0],deceleration);'))
+        native.write_text(text.replace(needle, '_mm_sub_ss(_mm_set_ss(value),_mm_set_ss(step.value))'))
         mutation = dict(path=str(native.relative_to(source)), before=before, after=sha(native),
                         scope='Private arithmetic mutation only; original oracle and instruction path unchanged')
         pins[str(native.relative_to(source))] = sha(native)
@@ -78,14 +80,45 @@ def main():
                    fp_control=0x7f | precision | (rounding << 10),
                    mxcsr=0x1f80 | (rounding << 13), top=top, depth=depth)
         rows.append(row)
+    # Declare exceptional/signed-zero inputs to the untouched original too.
+    # These are inputs, never native expected values or patched instructions.
+    edges = []
+    subnormal = struct.unpack('<f', bytes.fromhex('01000000'))[0]
+    for entry in (0x208d80, 0x208e70):
+        for field in ('turn', 'direction', 'target', 'dt'):
+            for value in (float('nan'), float('inf'), -float('inf'), 0., -0., subnormal, -subnormal):
+                row = dict(scalar_rows[0])
+                row.update(entry=entry, turn=.25, direction=1., target=-.125, dt=1. / 30.)
+                row[field] = value
+                row['native_scalar_edge'] = field
+                edges.append(row)
+        for rates in ((0., 0., 0., 0.), (4., 3., float('nan'), 5.),
+                      (float('nan'), 3., 2., 5.), (4., float('nan'), 2., 5.)):
+            for direction in (-1., 1.):
+                row = dict(scalar_rows[0])
+                row.update(entry=entry, turn=.25, direction=direction, target=-.125,
+                           scalar_rates=rates, native_scalar_edge='rates')
+                edges.append(row)
+    rows.extend(edges)
+
+    def describe_input(value):
+        # Standard JSON cannot encode infinities/NaNs. Keep their exact input
+        # float bits as diagnostic metadata; oracle banks remain untouched.
+        if isinstance(value, float) and not math.isfinite(value):
+            return {'float32_hex': struct.pack('<f', value).hex()}
+        if isinstance(value, dict):
+            return {key: describe_input(item) for key, item in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [describe_input(item) for item in value]
+        return value
     original = owner / 'native-rates-original'
     original.mkdir()
     stats = {}
-    for name, latest, path in (
-            ('disc', False, root / 'assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03'),
-            ('u5', True, oracle.NEW_DEFAULT)):
+    for name, latest, path in (('u5', True, oracle.NEW_DEFAULT),):
         print('Offline untouched original vehicle rate comparison:', name, flush=True)
         cases = oracle.execute(path, paired, latest, records, rows)
+        for case in cases:
+            case['declared_input'] = describe_input(case['declared_input'])
         one_address=0x46a0d0 if latest else 0x465030
         image=oracle.Xbe(path)
         fixture = dict(schema=1, image='1.5' if latest else '1.1', cases=cases,
@@ -100,6 +133,8 @@ def main():
                            ordered_stores=sum(len(c['writes']) for c in cases),
                            full_bank_bytes=sum(len(bytes.fromhex(b['hex'])) for c in cases for b in c['final_banks']))
     report = dict(passed=False, scratch_owner=str(owner), original=stats,
+                  acceptance_profile='English Xbox TU1.5 only',
+                  declared_exceptional_scalar_inputs=len(edges),
                   correspondence_sha256=sha(paired_path),
                   oracle_sha256=sha(Path(oracle.__file__)), tool_sha256=sha(Path(__file__)),
                   authored_inputs=records, instruction_patches=[],

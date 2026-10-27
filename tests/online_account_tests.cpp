@@ -5,6 +5,7 @@
 #include <chrono>
 #include <iostream>
 #include <mutex>
+#include <source_location>
 #include <stdexcept>
 #include <thread>
 using namespace halo2;
@@ -12,10 +13,10 @@ using Json = nlohmann::json;
 namespace {
 void check(bool ok, const char *message) { if (!ok) throw std::runtime_error(message); }
 std::size_t discard(char *, std::size_t size, std::size_t count, void *) { return size * count; }
-template<class F> void eventually(F f) {
+template<class F> void eventually(F f,std::source_location location=std::source_location::current()) {
   const auto end = std::chrono::steady_clock::now() + std::chrono::seconds(4);
   while (!f() && std::chrono::steady_clock::now() < end) std::this_thread::sleep_for(std::chrono::milliseconds(2));
-  check(f(), "Account worker timed out");
+  if(!f())throw std::runtime_error("Account worker timed out at line "+std::to_string(location.line()));
 }
 }
 int main() {
@@ -126,7 +127,7 @@ int main() {
         if(r.url.ends_with("/session") && r.method=="POST")return {201,Json{{"token",token},{"expires_in",900}}.dump()};
         check(r.bearer==token,"Party request leaked Discord authorization");
         if(r.method=="DELETE")return {200,"{}"};
-        if(r.url.ends_with("/party/commands")) {
+        if(r.url.ends_with("/party/commands?countdown=1&privacy=1")) {
           auto body=Json::parse(r.body);++party_posts;
           if(body.at("action")=="invite_discord") {
             check(body.at("discord_id")=="222222222222222222" && body.at("version")==4 && body.size()==4,
@@ -139,7 +140,7 @@ int main() {
           if(party_posts==1)throw std::runtime_error("Lost party response");
           return {200,joined};
         }
-        if(r.url.ends_with("/party?local_players=1&appearance=1"))return {200,party_posts>=2 ? joined : no_party};
+        if(r.url.ends_with("/party?local_players=1&appearance=1&postgame=1&countdown=1&privacy=1"))return {200,party_posts>=2 ? joined : no_party};
         return {200,empty};
       });
       client.connect("Chosen Pilot");
@@ -149,6 +150,8 @@ int main() {
       eventually([&]{return party_posts>=2 && !client.snapshot().busy && client.snapshot().party.has_value();});
       const auto snapshot=client.snapshot();check(snapshot.party->members.size()==2 && snapshot.party->leader &&
           snapshot.party->members[0].name==snapshot.party->members[1].name,"Chosen names conflated party identities");
+      check(!snapshot.party->countdown_supported && !snapshot.party->countdown,
+          "Legacy party response without countdown unexpectedly advertised shared-clock support");
       {std::lock_guard lock(guard);check(party_keys.size()==2 && party_keys[0]==party_keys[1],"Uncertain party request duplicated mutation");}
       check(client.party_command({"invite_discord","222222222222222222"}),"Private SDK invitation was not submitted");
       eventually([&]{return party_posts==3 && !client.snapshot().busy;});
@@ -165,7 +168,7 @@ int main() {
         if(r.url.ends_with("/session") && r.method=="POST")return {201,Json{{"token",token},{"expires_in",900}}.dump()};
         check(r.url.starts_with(options.endpoint+"/v1/") && r.bearer==token,"Activity join left its origin or leaked Discord authorization");
         if(r.method=="DELETE")return {200,"{}"};
-        if(r.url.ends_with("/party/commands")) {
+        if(r.url.ends_with("/party/commands?countdown=1&privacy=1")) {
           const auto body=Json::parse(r.body);
           check(body.size()==3 && body.at("action")=="join_activity" && body.at("join_secret")==secret,
                 "Activity join asserted a version/roster or lost its private secret");
@@ -173,7 +176,7 @@ int main() {
           if(++joins==1)throw std::runtime_error("Lost activity acceptance response");
           return {200,joined};
         }
-        if(r.url.ends_with("/party?local_players=1&appearance=1"))return {200,joins>=2 ? joined : no_party};
+        if(r.url.ends_with("/party?local_players=1&appearance=1&postgame=1&countdown=1&privacy=1"))return {200,joins>=2 ? joined : no_party};
         return {200,empty};
       });
       client.connect("Chosen Pilot");eventually([&]{return client.snapshot().authenticated && !client.snapshot().busy;});
@@ -202,14 +205,14 @@ int main() {
         if(r.method=="POST") {
           post_entered=true;
           while(!release_post && !stop.stop_requested())std::this_thread::sleep_for(std::chrono::milliseconds(1));
-          return r.url.ends_with("/party/commands") ? OnlineMatchmakingResponse{200,R"({"party":null,"invitations":[]})"}
+          return r.url.ends_with("/party/commands?countdown=1&privacy=1") ? OnlineMatchmakingResponse{200,R"({"party":null,"invitations":[]})"}
                                                     : OnlineMatchmakingResponse{200,empty};
         }
         if(r.url.ends_with("/clans?presence=1") && pause_poll) {
           poll_entered=true;
           while(!release_poll && !stop.stop_requested())std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
-        return r.url.ends_with("/party?local_players=1&appearance=1") ? OnlineMatchmakingResponse{200,R"({"party":null,"invitations":[]})"}
+        return r.url.ends_with("/party?local_players=1&appearance=1&postgame=1&countdown=1&privacy=1") ? OnlineMatchmakingResponse{200,R"({"party":null,"invitations":[]})"}
                                          : OnlineMatchmakingResponse{200,empty};
       });
       client.connect("Chosen Pilot");eventually([&]{return client.snapshot().authenticated && !client.snapshot().busy;});
@@ -269,6 +272,173 @@ int main() {
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
       check(writes==1&&reads==1,"Couch profile polled at frontend frame frequency");
       couch->sign_out();
+    }
+    {
+      const auto target="12345678-1234-4123-8123-123456789abc";
+      Json row{{"id",target},{"name","Same Pilot"},{"friend_tag","Same Pilot#00000002"},{"presence","offline"}};
+      std::mutex guard;std::vector<std::string> attempts;std::string chosen="Chosen Pilot";
+      std::atomic<unsigned> requests{};
+      OnlineAccount client(login,options,[&](const OnlineMatchmakingRequest &r,std::stop_token)->OnlineMatchmakingResponse {
+        if(r.method=="POST" && r.url.ends_with("/session")) {
+          std::lock_guard lock(guard);chosen=Json::parse(r.body).at("screen_name");
+          return {201,Json{{"token",token},{"expires_in",900}}.dump()};
+        }
+        if(r.method=="DELETE")return {200,"{}"};
+        check(r.bearer==token,"Friends exposed the upstream authentication token");
+        if(r.url.ends_with("/v1/friends?party=1") || r.url.ends_with("/v1/friends/commands?party=1")) {
+          std::lock_guard lock(guard);
+          Json response{{"friend_tag",chosen+"#00000001"},{"friends",Json::array()}};
+          if(requests) {auto pending=row;pending["state"]="outgoing";response["friends"].push_back(pending);}
+          if(r.method=="POST") {
+            const auto body=Json::parse(r.body);
+            if(body.at("action")=="search") {
+              check(body.at("tag")=="Same Pilot#00000002","Friend search changed the public tag");
+              response["search_result"]=row;
+            } else {
+              check(body.at("action")=="request" && body.at("target")==target,"Friend action used a display name as ownership");
+              attempts.push_back(body.at("request_id"));
+              if(++requests==1)throw std::runtime_error("Lost friend response");
+              auto pending=row;pending["state"]="outgoing";response["friends"]={pending};
+            }
+          }
+          return {200,response.dump()};
+        }
+        return {200,empty};
+      });
+      client.connect("Chosen Pilot");
+      eventually([&]{return client.snapshot().friends_available;});
+      check(client.snapshot().friend_tag=="Chosen Pilot#00000001","Account did not publish its own persistent tag");
+      check(client.friend_command("search","Same Pilot#00000002"),"Friend search denied");
+      eventually([&]{return !client.snapshot().busy && client.snapshot().friend_search.has_value();});
+      check(client.friend_command("request",target),"Friend request denied");
+      eventually([&]{return !client.snapshot().busy && !client.snapshot().friends.empty();});
+      {std::lock_guard lock(guard);check(attempts.size()==2 && attempts[0]==attempts[1],"Friend retry changed its idempotency key");}
+      client.connect("Renamed Pilot");
+      eventually([&]{return client.snapshot().friends_available && client.snapshot().friend_tag=="Renamed Pilot#00000001";});
+      check(client.snapshot().friends[0].id==target,"Rename lost the friendship owner");
+      client.sign_out();
+      check(client.snapshot().friends.empty() && client.snapshot().friend_tag.empty() && !client.snapshot().friend_search,"Sign-out retained friend identity");
+    }
+    for(const bool correct_reply:{false,true}) {
+      auto party_options=options;party_options.enable_parties=true;
+      const std::string target="12345678-1234-4123-8123-123456789abc";
+      const std::string context="12345678-1234-4123-8123-123456789abd";
+      const std::string self="12345678-1234-4123-8123-123456789abe";
+      std::atomic<unsigned> joins{};std::mutex guard;std::vector<std::string> requests;
+      Json friend_{{"id",target},{"name","Same Pilot"},{"friend_tag","Same Pilot#00000002"},
+          {"presence","online"},{"state","friend"},{"party_joinable",true},{"party_context",context}};
+      Json joined{{"party",{{"version",2},{"leader",false},{"members",Json::array({
+          {{"handle",correct_reply?context:"12345678-1234-4123-8123-123456789abf"},{"name","Same Pilot"},
+           {"self",false},{"leader",true},{"online",true},{"ready_playlist",""}},
+          {{"handle",self},{"name","Same Pilot"},{"self",true},{"leader",false},{"online",true},{"ready_playlist",""}}})},
+          {"outgoing",Json::array()},{"privacy",{{"mode",0},{"revision",1},{"context",self}}}}},{"invitations",Json::array()}};
+      const auto no_party=R"({"party":null,"invitations":[]})";
+      OnlineAccount client(login,party_options,[&](const OnlineMatchmakingRequest &r,std::stop_token)->OnlineMatchmakingResponse {
+        if(r.url.ends_with("/session") && r.method=="POST")return {201,Json{{"token",token},{"expires_in",900}}.dump()};
+        if(r.method=="DELETE")return {200,"{}"};
+        if(r.url.ends_with("/v1/friends?party=1"))return {200,Json{{"friend_tag","Chosen Pilot#00000001"},{"friends",Json::array({friend_})}}.dump()};
+        if(r.url.ends_with("/party/commands?countdown=1&privacy=1")) {
+          const auto body=Json::parse(r.body);++joins;
+          check(body.size()==4 && body.at("action")=="join_friend" && body.at("target")==target &&
+                body.at("target_context")==context,"Friend join asserted a roster or lost the selected party context");
+          {std::lock_guard lock(guard);requests.push_back(body.at("request_id"));}
+          return {200,joined.dump()};
+        }
+        if(r.url.find("/party?")!=std::string::npos)return {200,correct_reply && joins?joined.dump():no_party};
+        return {200,empty};
+      });
+      client.connect("Chosen Pilot");eventually([&]{const auto s=client.snapshot();return s.authenticated && s.friends_available && !s.busy;});
+      OnlinePartyCommand command;command.action="join_friend";command.value=target;command.join_context=self;
+      check(!client.party_command(command),"Friend join accepted an unobserved target party context");
+      command.join_context=context;check(client.party_command(command),"Observed Open friend party was not joinable");
+      eventually([&]{const auto s=client.snapshot();return !s.busy && s.party_command_successful.has_value();});
+      const auto result=client.snapshot();
+      check(result.party_command_successful==correct_reply && result.party.has_value()==correct_reply,
+            "Wrong selected target context partially populated native accepted membership");
+      {std::lock_guard lock(guard);if(!correct_reply)check(requests.size()==2 && requests[0]==requests[1],
+          "Rejected join reply retry changed its idempotency key");}
+      client.sign_out();
+    }
+    {
+      auto party_options=options;party_options.enable_parties=true;
+      const std::string context="12345678-1234-4123-8123-123456789abc";
+      const auto party_view=[&](unsigned mode,std::uint64_t revision) {
+        return Json{{"party",{{"version",4},{"leader",true},
+          {"members",Json::array({{{"handle",context},{"name","Chosen Pilot"},{"self",true},
+            {"leader",true},{"online",true},{"ready_playlist","ranked"}}})},
+          {"outgoing",Json::array()},{"privacy",{{"mode",mode},{"revision",revision},{"context",context}}}}},
+          {"invitations",Json::array()}};
+      };
+      std::atomic<unsigned> mode{},posts{};std::atomic<std::uint64_t> privacy_revision{1};std::atomic<bool> fail{};
+      OnlineAccount client(login,party_options,[&](const OnlineMatchmakingRequest &r,std::stop_token)->OnlineMatchmakingResponse {
+        if(r.url.ends_with("/session") && r.method=="POST")return {201,Json{{"token",token},{"expires_in",900}}.dump()};
+        if(r.method=="DELETE")return {200,"{}"};
+        if(r.url.ends_with("/party/commands?countdown=1&privacy=1")) {
+          const auto body=Json::parse(r.body);++posts;
+          check(body.size()==6 && body.at("action")=="privacy" && body.at("version")==4 &&
+                body.at("privacy_context")==context && body.at("privacy_revision")==privacy_revision.load(),
+                "Party privacy lost its exact accepted membership/context revision");
+          if(fail)return {403,R"({"error":"Only the party leader can do that"})"};
+          mode=body.at("privacy").get<unsigned>();++privacy_revision;
+          return {200,party_view(mode,privacy_revision).dump()};
+        }
+        if(r.url.ends_with("/party?local_players=1&appearance=1&postgame=1&countdown=1&privacy=1"))
+          return {200,party_view(mode,privacy_revision).dump()};
+        return {200,empty};
+      });
+      client.connect("Chosen Pilot");
+      eventually([&]{return client.snapshot().party && client.snapshot().party->privacy && !client.snapshot().busy;});
+      const auto submit=[&](unsigned value) {
+        const auto p=*client.snapshot().party;
+        OnlinePartyCommand command;command.action="privacy";command.version=p.version;
+        command.privacy=value;command.privacy_revision=p.privacy->revision;command.privacy_context=p.privacy->context;
+        return client.party_command(std::move(command));
+      };
+      check(submit(0),"Selecting the current authoritative privacy mode was denied");
+      eventually([&]{const auto s=client.snapshot();return !s.busy && s.party_command_serial==1 && s.party_command_successful==true;});
+      check(client.snapshot().party->privacy->revision==2 && client.snapshot().party->version==4 &&
+            client.snapshot().party->members[0].ready_playlist=="ranked",
+            "Privacy acknowledgement changed queue consent or lost the independent revision");
+      check(!submit(3),"Unsupported privacy mode entered a request");
+      auto stale=OnlinePartyCommand{};stale.action="privacy";stale.version=4;stale.privacy=2;
+      stale.privacy_revision=2;stale.privacy_context="00000000-0000-0000-0000-000000000000";
+      check(!client.party_command(stale),"An unrelated membership context submitted privacy");
+      fail=true;check(submit(2),"Authenticated privacy failure control was not submitted");
+      eventually([&]{const auto s=client.snapshot();return !s.busy && s.party_command_serial==2 && s.party_command_successful==false;});
+      check(posts==2 && client.snapshot().party->privacy->mode==0,
+            "Failed privacy mutation fabricated successful state");
+      client.sign_out();
+      const auto read_party=[&](Json value) {
+        OnlineAccount reader(login,party_options,[&](const auto &r,std::stop_token)->OnlineMatchmakingResponse {
+          if(r.url.ends_with("/session") && r.method=="POST")return {201,Json{{"token",token},{"expires_in",900}}.dump()};
+          if(r.method=="DELETE")return {200,"{}"};
+          return {200,r.url.find("/party?")!=std::string::npos?value.dump():empty};
+        });
+        // An invalid initial snapshot completes with an error before the
+        // account can publish authenticated state. Wait for the actual worker
+        // completion, then inspect its successful or rejected result below.
+        reader.connect("Chosen Pilot");eventually([&]{return !reader.snapshot().busy;});
+        return reader.snapshot();
+      };
+      auto legacy=party_view(0,1);legacy["party"].erase("privacy");
+      const auto legacy_snapshot=read_party(legacy);
+      check(legacy_snapshot.authenticated && legacy_snapshot.party && !legacy_snapshot.party->privacy,
+            "Legacy service gained invented Open/privacy capability");
+      for(unsigned malformed=0;malformed<7;++malformed) {
+        auto invalid=party_view(0,1);auto &privacy=invalid["party"]["privacy"];
+        switch(malformed) {
+        case 0:privacy["mode"]=3;break;
+        case 1:privacy["mode"]=true;break;
+        case 2:privacy["revision"]=0;break;
+        case 3:privacy["revision"]="1";break;
+        case 4:privacy.erase("context");break;
+        case 5:privacy["context"]="00000000-0000-0000-0000-000000000000";break;
+        default:privacy["unknown"]=true;break;
+        }
+        const auto rejected=read_party(invalid);
+        check(!rejected.authenticated && !rejected.busy && !rejected.party && !rejected.message.empty(),
+              "Malformed privacy snapshot partially populated accepted party state or lost its actual failure");
+      }
     }
     login->cancel();
     std::cout<<"PASS account token privacy, chosen names, pinned TLS origin, command replay, cancellation race, sign-out, strict bounded JSON and no partial clan state\n";

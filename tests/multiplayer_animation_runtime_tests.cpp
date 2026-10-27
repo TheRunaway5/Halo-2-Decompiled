@@ -294,7 +294,7 @@ int main(int argc,char **argv) {
     std::unique_ptr<NativeLanHost> server;
     if(lan) {
       server=std::make_unique<NativeLanHost>(options);
-      options.join="127.0.0.1:"+std::to_string(server->host.port());
+      options.join=server->host.join_address();
     }
     options.validation=std::getenv("HALO2_ANIMATION_VALIDATION");
     options.desktop=std::make_shared<DesktopSession>();

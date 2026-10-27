@@ -1,7 +1,9 @@
 #include "halo2/source_bsp_ranges.hpp"
+#include "halo2/native_parallel.hpp"
 #include "halo2/source_bsp_accelerator.hpp"
 #include "halo2/source_tag_metadata.hpp"
 #include <algorithm>
+#include <cstdlib>
 #include <bit>
 #include <cmath>
 
@@ -322,14 +324,20 @@ void source_bsp_frustum_cull(std::span<SourceCullDrawUnit> units,
     std::span<const SourceBspFrustumDrawBank> banks,SourceBspRangeArena &arena,
     const SourceBspFrustumCullContext &c,const SourcePortalVisibilitySet &visibility,
     std::span<const std::array<std::uint32_t,4>> associations) {
+    source_bsp_frustum_cull(units,banks,arena,c,visibility,associations,SourceBspFrustumCullExecution::automatic);
+}
+void source_bsp_frustum_cull(std::span<SourceCullDrawUnit> units,
+    std::span<const SourceBspFrustumDrawBank> banks,SourceBspRangeArena &arena,
+    const SourceBspFrustumCullContext &c,const SourcePortalVisibilitySet &visibility,
+    std::span<const std::array<std::uint32_t,4>> associations,SourceBspFrustumCullExecution execution) {
     auto next_units=std::vector<SourceCullDrawUnit>(units.begin(),units.end());
     auto next_arena=arena;
     const unsigned first=c.mode?c.main_prefix&65535u:0u;
     const unsigned end=(c.mode?c.draw_count:c.main_prefix)&65535u;
-    for(unsigned i=first;i<end;++i) {
+    const auto cull_unit=[&](unsigned i) {
         if(i>=32768 || i>=next_units.size())throw FormatError("source BSP frustum unit prefix is unavailable");
         auto &unit=next_units[i];
-        if((unit.words[0]&1) || !(unit.words[0]&0x40))continue;
+        if((unit.words[0]&1) || !(unit.words[0]&0x40))return;
         if(c.query_mode!=0)throw FormatError("source BSP frustum query mode is unsupported");
         if(i>=banks.size())throw FormatError("source BSP frustum draw bank is unavailable");
         if(unit.words[0]&8) {
@@ -340,7 +348,46 @@ void source_bsp_frustum_cull(std::span<SourceCullDrawUnit> units,
             for(unsigned entry=0;entry<128;++entry)if(bits[entry/32]&(1u<<(entry&31)))
                 cull_entry(unit,banks[i],next_arena,c,visibility,entry);
         } else cull_entry(unit,banks[i],next_arena,c,visibility,std::uint16_t(unit.words[6]));
+    };
+    // Each unit's cull writes only its own record and its own pre-allocated
+    // mask words (mask_for maps unit+5; nothing is allocated here), so units
+    // cull in index bands on the worker pool when no two culled units share an
+    // arena word. Every precondition the serial walk would reject keeps the
+    // serial walk, which then rejects it in the same order.
+    // Banded execution stays opt-in (HALO2_NATIVE_BANDED_CULL=1) until a
+    // byte-identical frame capture has been recorded for it.
+    static const bool banded_cull=[]{const auto *p=std::getenv("HALO2_NATIVE_BANDED_CULL");return p && *p;}();
+    const auto workers=native_parallel_workers();
+    const bool requested=execution==SourceBspFrustumCullExecution::banded ||
+        (execution==SourceBspFrustumCullExecution::automatic && banded_cull);
+    bool banded=requested && workers>0 && end>first+1;
+    if(banded) {
+        std::vector<std::pair<std::uint32_t,std::uint32_t>> spans;
+        for(unsigned i=first;i<end && banded;++i) {
+            if(i>=next_units.size()){banded=false;break;}
+            const auto &unit=next_units[i];
+            if((unit.words[0]&1) || !(unit.words[0]&0x40))continue;
+            if(i>=banks.size() || !banks[i].geometry || c.query_mode!=0){banded=false;break;}
+            const auto base=c.mask_arena_address,address=unit.words[5];
+            if(!base || address<base || (address-base)%4){banded=false;break;}
+            const auto word_first=std::uint32_t((address-base)/4),count=std::uint32_t(mask_words(*banks[i].geometry));
+            if(word_first>next_arena.words.size() || count>next_arena.words.size()-word_first){banded=false;break;}
+            spans.emplace_back(word_first,word_first+count);
+        }
+        if(banded) {
+            std::sort(spans.begin(),spans.end());
+            std::uint32_t reach=0;
+            for(const auto &[word_first,word_end]:spans){if(word_first<reach){banded=false;break;}reach=std::max(reach,word_end);}
+        }
     }
+    if(banded) {
+        const unsigned count=end-first,bands=std::min(count,workers+1u);
+        native_parallel_for(bands,[&](std::size_t band) {
+            const unsigned band_first=first+unsigned(std::uint64_t(count)*band/bands);
+            const unsigned band_end=first+unsigned(std::uint64_t(count)*(band+1)/bands);
+            for(unsigned i=band_first;i<band_end;++i)cull_unit(i);
+        });
+    } else for(unsigned i=first;i<end;++i)cull_unit(i);
     std::copy(next_units.begin(),next_units.end(),units.begin());
     arena=next_arena;
 }

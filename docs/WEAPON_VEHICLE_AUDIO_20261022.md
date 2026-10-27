@@ -128,6 +128,45 @@ scratch lifecycle. Final cleanup and retained runtime size are recorded in
 build/source tree is removed; the installed runtime/resources retain
 300,771,138 bytes (about 287 MiB). No large test captures or fixtures remain.
 
+## Native joined SMG follow-up — 2026-10-25
+
+Prepared MCC Lockout now passes actual native local and authenticated localhost
+joined SMG firing/reload delivery. The joined authority emits eight authored
+firing cues and the client submits exactly eight SDL voices, with one reload
+submission and no pre-join or unseen-tail cues counted. The local scenario also
+matches eight requests to eight submissions. The recorded six-test cohort
+passes the native effect-lifetime regression, local/joined announcer and damage
+voice checks, and the rendered remote death scenario. See the
+[bounded source and delivery receipt](../analysis/online-presentation-20261025/native-audio-delivery-endproof.json).
+
+The missing publication was a real birth that retired before its factory
+returned. Original `108A70` requested the authored SMG effect; `17AFB0`
+allocated its full salted generation and colors, then the original initial
+one-second update retired it and returned `NONE`. The old observer discarded
+that birth. The native regression went from nine actual births/nine original
+`NONE` returns/zero publications to nine/nine/nine.
+
+The correction scopes capture to the original `1796E5` factory request and
+retains the actual generation, colors and WORLD locations at `179063`, before
+the first update. Original allocation, retirement, return value, stack and
+native stores remain unchanged. The existing allocation/color publication
+guards remain in force; no replacement effect, host audio voice or admission
+result is supplied. A further private color snapshot protects the captured
+parent generation from nested child stores. Its final four-test formal rerun
+passes native source-execution replay, actual birth retention and both
+local/joined announcer/audio scenarios, as recorded separately in the receipt.
+
+Local and joined native Slayer startup each also reach one original journal,
+one authored announcer cue and one SDL voice. The rendered joined fatal-hit
+case submits one hurt packet and one lethal packet from the actual native
+request journal, retaining authored chance and `NONE` suppression.
+
+This closes the measured stationary single-SMG route on Lockout. Other remote
+weapons, actions, maps, vehicle audio, spatial/DSP behavior, original waveform
+equality and physical speaker output remain unverified. These results apply to
+the recorded test cohort; they do not add an installed-runtime claim to the
+earlier launcher checkpoint.
+
 ## Remaining acceptance
 
 - [x] Inventory all 63 weapon and 37 vehicle reference paths.

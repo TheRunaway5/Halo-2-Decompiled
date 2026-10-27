@@ -86,6 +86,37 @@ class ClassProfileTests(unittest.TestCase):
             with self.subTest(field=field):
                 self.reject(lambda d: d["published_contexts"][2].__setitem__(field, "0" * len(d["published_contexts"][2][field])))
 
+    def test_sky_water_publications_keep_complete_exact_contexts(self):
+        for index in range(4, 8):
+            for owner in ("globals", "legacy"):
+                for field in ("datum", "address", "size", "group", "name"):
+                    with self.subTest(index=index, owner=owner, field=field):
+                        self.reject(lambda d: d["published_contexts"][index][owner].__setitem__(field, 0))
+            for field in ("sound_block", "sound_globals", "class_root", "source_bank_sha256"):
+                with self.subTest(index=index, field=field):
+                    self.reject(lambda d: d["published_contexts"][index].__setitem__(
+                        field, "0" * len(d["published_contexts"][index][field])))
+            self.reject(lambda d: d["published_contexts"][index]["source_maps"].clear())
+            self.reject(lambda d: d["published_contexts"].pop(index))
+            self.reject(lambda d: d["published_contexts"].append(copy.deepcopy(d["published_contexts"][index])))
+        self.reject(lambda d: d["published_contexts"].__setitem__(slice(4, 8), d["published_contexts"][4:8][::-1]))
+
+
+    def test_oldmombasa_publication_keeps_complete_typed_owner_and_proof(self):
+        for owner in ("globals", "legacy"):
+            for field in ("datum", "address", "size", "group", "name"):
+                with self.subTest(owner=owner, field=field):
+                    self.reject(lambda d: d["published_contexts"][9][owner].__setitem__(field, 0))
+        for field in ("sound_block", "sound_globals", "class_root", "source_bank_sha256"):
+            with self.subTest(field=field):
+                self.reject(lambda d: d["published_contexts"][9].__setitem__(field, "0" * len(d["published_contexts"][9][field])))
+        self.reject(lambda d: d["published_contexts"][9]["source_maps"][0].__setitem__("sha256", "0" * 64))
+        self.reject(lambda d: d["published_contexts"][9]["source_maps"][0].__setitem__("map", "another_map"))
+        self.reject(lambda d: d["published_contexts"][9]["source_maps"].clear())
+        self.reject(lambda d: d["published_contexts"].pop(9))
+        self.reject(lambda d: d["published_contexts"].append(copy.deepcopy(d["published_contexts"][9])))
+        self.reject(lambda d: d["evidence"].__setitem__("oldmombasa_current_typed_globals_publication", "0" * 64))
+
 
 if __name__ == "__main__":
     unittest.main()

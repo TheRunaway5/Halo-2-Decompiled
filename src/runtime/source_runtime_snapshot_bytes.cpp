@@ -17,7 +17,7 @@ std::shared_ptr<CacheFileSnapshot> capture(std::span<const std::byte> bytes,
 }
 SourceRuntimeSnapshotBytes::SourceRuntimeSnapshotBytes(std::span<const std::byte> bytes)
     : size_(bytes.size()) {
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(__linux__) || defined(__APPLE__) || defined(_WIN32)
     if (size_ >= file_threshold) { mapped_ = capture(bytes); return; }
 #endif
     owned_.assign(bytes.begin(), bytes.end());
@@ -59,7 +59,7 @@ void SourceRuntimeSnapshotBytes::pop_back() {
     --size_;
 }
 void SourceRuntimeSnapshotBytes::push_back(std::byte byte) {
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(__linux__) || defined(__APPLE__) || defined(_WIN32)
     if (mapped_ || size_ >= file_threshold - 1) {
         auto replacement = capture(std::span<const std::byte>(*this), std::span(&byte, 1));
         mapped_ = std::move(replacement); std::vector<std::byte>{}.swap(owned_); ++size_; return;

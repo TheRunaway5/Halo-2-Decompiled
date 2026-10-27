@@ -8,12 +8,15 @@
 #if defined(__linux__) || defined(__APPLE__)
 #include <fcntl.h>
 #include <unistd.h>
+#elif defined(_WIN32)
+#include <fcntl.h>
+#include <io.h>
 #endif
 
 using namespace halo2;
 void require(bool value, const char *message) { if (!value) throw std::runtime_error(message); }
 int main() try {
-#if !defined(__linux__) && !defined(__APPLE__)
+#if !defined(__linux__) && !defined(__APPLE__) && !defined(_WIN32)
     return 77;
 #endif
     const auto path = std::filesystem::temp_directory_path() /
@@ -36,6 +39,14 @@ int main() try {
         std::equal(expected.begin(), expected.end(), from_descriptor->bytes().begin()),
         "Descriptor capture changed position or complete bytes");
     ::close(source_fd);
+#elif defined(_WIN32)
+    const auto source_fd=::_wopen(path.c_str(),_O_RDONLY|_O_BINARY|_O_NOINHERIT);
+    require(source_fd>=0 && ::_lseeki64(source_fd,37,SEEK_SET)==37,"Capture source descriptor setup failed");
+    auto from_descriptor=CacheFileSnapshot::try_capture_file(source_fd);
+    require(from_descriptor && ::_lseeki64(source_fd,0,SEEK_CUR)==37 &&
+        std::equal(expected.begin(),expected.end(),from_descriptor->bytes().begin()),
+        "Descriptor capture changed position or complete bytes");
+    ::_close(source_fd);
 #endif
     require(std::equal(first->bytes().begin(), first->bytes().end(), expected.begin(), expected.end()), "Snapshot bytes differ");
     first->mutable_bytes()[17] ^= std::byte{255};
@@ -47,7 +58,7 @@ int main() try {
             "Source truncation changed snapshot backing");
     std::filesystem::remove(path);
     require(second->bytes()[65537] == expected[65537], "Source unlink invalidated snapshot");
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(__linux__) || defined(__APPLE__) || defined(_WIN32)
     require(from_descriptor->bytes()[65537] == expected[65537], "Descriptor capture lost independence after source unlink");
 #endif
     require(captured->bytes()[65537] == expected[65537], "Captured bytes lost independence after source unlink");

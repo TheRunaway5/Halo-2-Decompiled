@@ -16,15 +16,24 @@ std::uint32_t narrowed(std::size_t value) {
 }
 }
 SourceBspResidentPlan::SourceBspResidentPlan(const Cache &cache,Mesh &mesh,std::size_t bsp,
-    SourceBspResidentLighting lighting)
+    SourceBspResidentLighting lighting):SourceBspResidentPlan(cache,mesh,bsp,lighting,nullptr) {}
+SourceBspResidentPlan::SourceBspResidentPlan(const Cache &cache,Mesh &mesh,std::size_t bsp,
+    SourceBspResidentLighting lighting,const SourceTextureCameraBindingTu15 *texture_camera,bool live_texture_camera)
     :geometry_(cache.load_source_bsp_admission(bsp)),
      parts_(cache.load_source_transparent_bsp_parts(bsp)),materials_(mesh.materials.size()),
      source_shaders_(mesh.materials.size(),0xffffffffu),raw_vertices_(mesh.vertices) {
     if(lighting!=SourceBspResidentLighting::static_lightmap &&
        lighting!=SourceBspResidentLighting::classification3)
         throw FormatError("unsupported explicit BSP resident lighting classification");
+    if(texture_camera && live_texture_camera)
+        throw FormatError("BSP camera material cannot mix an initial binding and a live producer");
+    const auto prepare_camera=[&](Material &material,unsigned implementation) {
+        return live_texture_camera?prepare_texture_camera_material(cache,material,implementation):
+            texture_camera && prepare_texture_camera_default_material(cache,material,*texture_camera,implementation);
+    };
     // Literal resident-bank construction from the unchanged ordinary scene.
     const unsigned roots=unsigned(mesh.materials.size());
+    std::set<std::string> resolved_camera_materials;
     for(unsigned root=0;root<roots;++root) {
         const auto &original=mesh.materials[root];
         if(original.source_shader_datum==0xffffffffu ||
@@ -41,21 +50,40 @@ SourceBspResidentPlan::SourceBspResidentPlan(const Cache &cache,Mesh &mesh,std::
         if(lighting==SourceBspResidentLighting::classification3 &&
            !raw.lods.empty() && (raw.lods[0].available_layers&(1u<<3))) {
             auto material=raw;material.selected_shader_lod=0;
-            if(!prepare_authored_lighting_material(cache,material))
+            if(!prepare_authored_lighting_material(cache,material) &&
+               !prepare_camera(material,3))
                 throw FormatError("BSP classification3 root requires unresolved source pass: "+raw.name);
+            if((texture_camera || live_texture_camera) && raw.template_name=="shaders\\shader_templates\\texture_camera\\texture_camera")
+                resolved_camera_materials.insert(raw.name);
             mesh.materials[root]=std::move(material);
+        } else if((texture_camera || live_texture_camera) && !original.world_pass) {
+            auto material=raw;material.selected_shader_lod=0;
+            if(prepare_camera(material,per_vertex?1:0)) {
+                resolved_camera_materials.insert(raw.name);mesh.materials[root]=std::move(material);
+            }
         }
         auto &slots=materials_[root];slots.push_back(root);
         for(unsigned lod=1;lod<raw.lods.size();++lod) {
             auto material=raw;material.selected_shader_lod=lod;
-            const bool prepared=lighting==SourceBspResidentLighting::classification3
+            bool prepared=lighting==SourceBspResidentLighting::classification3
                 ?prepare_authored_lighting_material(cache,material)
                 :prepare_world_material(cache,material,per_vertex);
+            if(!prepared && (texture_camera || live_texture_camera))prepared=prepare_camera(material,
+                lighting==SourceBspResidentLighting::classification3?3:per_vertex?1:0);
             if(!prepared)
                 throw FormatError("BSP shader LOD requires unresolved source pass: "+raw.name+" LOD"+std::to_string(lod));
             slots.push_back(unsigned(mesh.materials.size()));mesh.materials.push_back(std::move(material));
         }
     }
+    // Remove only this exact old loader diagnostic after every same-name root
+    // has a complete source binding. Other warnings and failed owners survive.
+    std::erase_if(mesh.material_warnings,[&](const auto &warning) {
+        for(const auto &name:resolved_camera_materials)if(warning==name+": material uses an unsupported rendering pass")
+            return std::all_of(mesh.materials.begin(),mesh.materials.end(),[&](const auto &material) {
+                return material.name!=name || (material.world_pass && material.forward_pass && material.rendering_gaps.empty());
+            });
+        return false;
+    });
     std::set<std::array<std::uint32_t,2>> resident_lightmaps;
     for(const auto &v:mesh.vertices) {
         if(v.bsp_cluster==-1)continue;

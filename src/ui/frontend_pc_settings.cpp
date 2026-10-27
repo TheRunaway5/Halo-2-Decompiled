@@ -266,6 +266,8 @@ MenuFrame MenuState::build_pc(unsigned id, unsigned context) const {
     f.entries.push_back({"CRT Filter",-2,0});
     f.entries.push_back({"2-Player Split Screen",-2,1});
     add(0x89f, vista_menu(276));
+    if(pc_display_.graphics_mode==pstencil::GraphicsMode::PathTracing)
+      f.entries.push_back({"Path Tracing Quality",int(vista_menu(274)),int(video_path_tracing_context)});
     break;
   case 269:
     if (context == 1) {
@@ -308,6 +310,20 @@ MenuFrame MenuState::build_pc(unsigned id, unsigned context) const {
     f.selected = pc_display_.gamma;
     break;
   case 274:
+    if(context>=video_path_tracing_context) {
+      f.title="PATH TRACING QUALITY";
+      f.description="More ray samples and bounces increase GPU cost. Both default to 1.";
+      if(context==video_path_tracing_context) {
+        f.entries.push_back({"Ray Samples Per Pixel: "+std::to_string(pc_display_.path_tracing_samples),int(vista_menu(274)),int(video_path_tracing_samples_context)});
+        f.entries.push_back({"Bounce Depth: "+std::to_string(pc_display_.path_tracing_bounces),int(vista_menu(274)),int(video_path_tracing_bounces_context)});
+      } else {
+        const bool samples=context==video_path_tracing_samples_context;
+        f.title=samples?"RAY SAMPLES PER PIXEL":"BOUNCE DEPTH";
+        f.entries.push_back({"1",-2,1});f.entries.push_back({"2",-2,2});
+        f.selected=(samples?pc_display_.path_tracing_samples:pc_display_.path_tracing_bounces)-1;
+      }
+      break;
+    }
     f.title="UPSCALING";
     if(context==0) {
       f.entries.push_back({std::string("Method: ")+upscaler_name(pc_display_.upscaler),int(vista_menu(274)),1});
@@ -406,6 +422,13 @@ std::string MenuState::pc_value_label(const MenuFrame &f, unsigned index,
     if(index==9)return std::to_string(pc_display_.vehicle_field_of_view);
     if(index==10)return pc_display_.crt_filter?"On":"Off";
     if(index==11)return pc_display_.two_player_split==TwoPlayerSplit::Horizontal?"Horizontal":"Vertical";
+    if(index==13)return std::to_string(pc_display_.path_tracing_samples)+
+        (pc_display_.path_tracing_samples==1?" sample, ":" samples, ")+
+        std::to_string(pc_display_.path_tracing_bounces)+(pc_display_.path_tracing_bounces==1?" bounce":" bounces");
+  }
+  if(is_vista_settings(f.screen,274) && f.context==video_path_tracing_context) {
+    if(index==0)return std::to_string(pc_display_.path_tracing_samples);
+    if(index==1)return std::to_string(pc_display_.path_tracing_bounces);
   }
   if(is_vista_settings(f.screen,274) && f.context==0) {
     if(index==0)return upscaler_name(pc_display_.upscaler);
@@ -448,6 +471,17 @@ void MenuState::accept_pc() {
   const auto f = frame();
   const auto e = f.entries.at(f.selected);
   const auto id = vista_settings_kind(f.screen);
+  const auto update_path_tracing_entry=[&] {
+    if(stack_.empty() || !is_vista_settings(stack_.back().screen,256))return;
+    auto& frame=stack_.back();auto& entries=frame.entries;
+    const auto entry=std::find_if(entries.begin(),entries.end(),[](const auto& row) {
+      return row.destination==int(vista_menu(274)) && row.value==int(video_path_tracing_context);
+    });
+    if(pc_display_.graphics_mode==pstencil::GraphicsMode::PathTracing) {
+      if(entry==entries.end())entries.push_back({"Path Tracing Quality",int(vista_menu(274)),int(video_path_tracing_context)});
+    } else if(entry!=entries.end())entries.erase(entry);
+    if(!entries.empty())frame.selected=std::min(frame.selected,unsigned(entries.size()-1));
+  };
   if(f.context==1 && (id==40 || id==41 || id==42 || id==43 || id==44 || id==183)) {
     const unsigned key=id==41?0x390:id==40?0x391:id==42?0x392:id==43?0x393:id==44?0x394:0x395;
     profile_values_[profile_name()][key]=e.value;save();back();return;
@@ -497,11 +531,22 @@ void MenuState::accept_pc() {
     if(e.value==0)value.crt_filter=!value.crt_filter;
     else if(e.value==1)value.two_player_split=value.two_player_split==TwoPlayerSplit::Horizontal?
         TwoPlayerSplit::Vertical:TwoPlayerSplit::Horizontal;
-    else if(e.value==2)value.graphics_mode=value.graphics_mode==pstencil::GraphicsMode::Original?
-        pstencil::GraphicsMode::pStencil:pstencil::GraphicsMode::Original;
+    else if(e.value==2)value.graphics_mode=pstencil::GraphicsMode(
+        (unsigned(value.graphics_mode)+1)%(unsigned(pstencil::GraphicsMode::PathTracing)+1));
     if(!pc_display_adapter_) { unavailable("A live native renderer is required to apply this setting."); return; }
-    if(const auto error=pc_display_adapter_(value);!error.empty()){unavailable(error);return;}
-    pc_display_=value;save();++revision;return;
+    if(const auto error=pc_display_adapter_(value);!error.empty()) {
+      // An unavailable optional mode must not trap this cyclic control on
+      // pStencil. Original is the next supported choice; report the failed
+      // Path Tracing request after applying that fallback transactionally.
+      if(e.value==2 && value.graphics_mode==pstencil::GraphicsMode::PathTracing) {
+        value.graphics_mode=pstencil::GraphicsMode::Original;
+        if(pc_display_adapter_(value).empty()){pc_display_=value;save();++revision;}
+      }
+      unavailable(error);return;
+    }
+    pc_display_=value;
+    update_path_tracing_entry();
+    save();++revision;return;
   }
   if (id==272 || id==273 || id==274 || id==290 || id==285 ||
       (id==269 && f.context==1) || id==263 || id==242 || id==267 ||
@@ -514,7 +559,9 @@ void MenuState::accept_pc() {
     }
     if(id==273)v.gamma=e.value;
     if(id==274) {
-      if(f.context==1)v.upscaler=Upscaler(e.value);
+      if(f.context==video_path_tracing_samples_context)v.path_tracing_samples=e.value;
+      else if(f.context==video_path_tracing_bounces_context)v.path_tracing_bounces=e.value;
+      else if(f.context==1)v.upscaler=Upscaler(e.value);
       else v.upscaling_quality=UpscalingQuality(e.value);
     }
     if(id==290)v.detail=e.value;
@@ -522,7 +569,7 @@ void MenuState::accept_pc() {
     if(id==263)v.volume=e.value;
     if(id==242)v.subtitles=e.value;
     if(id==267)v.speakers=e.value;
-    if(id==276){const DisplaySettings defaults;v.internal_width=v.internal_height=0;v.upscaler=defaults.upscaler;v.upscaling_quality=defaults.upscaling_quality;v.brightness=defaults.brightness;v.gamma=defaults.gamma;v.detail=0;v.safe_area=false;v.field_of_view=defaults.field_of_view;v.vehicle_field_of_view=defaults.vehicle_field_of_view;v.crt_filter=defaults.crt_filter;v.two_player_split=defaults.two_player_split;v.graphics_mode=defaults.graphics_mode;}
+    if(id==276){const DisplaySettings defaults;v.internal_width=v.internal_height=0;v.upscaler=defaults.upscaler;v.upscaling_quality=defaults.upscaling_quality;v.brightness=defaults.brightness;v.gamma=defaults.gamma;v.detail=0;v.safe_area=false;v.field_of_view=defaults.field_of_view;v.vehicle_field_of_view=defaults.vehicle_field_of_view;v.crt_filter=defaults.crt_filter;v.two_player_split=defaults.two_player_split;v.graphics_mode=defaults.graphics_mode;v.path_tracing_samples=defaults.path_tracing_samples;v.path_tracing_bounces=defaults.path_tracing_bounces;}
     if(id==268){v.volume=10;v.subtitles=0;v.speakers=4;}
     if(id==269) {
       const auto m=e.value<0?std::pair<unsigned,unsigned>{0,0}:pc_video_modes_.at(e.value);
@@ -531,11 +578,14 @@ void MenuState::accept_pc() {
     if(!pc_display_adapter_) { unavailable("A live native renderer is required to apply this setting."); return; }
     const auto error=pc_display_adapter_(v);
     if(!error.empty()){unavailable(error);return;}
-    pc_display_=v;save();back();
+    pc_display_=v;save();back();update_path_tracing_entry();
     if(id==274 && is_vista_settings(frame().screen,274) && frame().context==0) {
       stack_.back().entries.at(0).label=std::string("Method: ")+upscaler_name(pc_display_.upscaler);
       stack_.back().entries.at(1).label=std::string("Quality: ")+upscaling_quality_name(pc_display_.upscaling_quality,pc_display_.upscaler);
       stack_.back().description=upscaling_description(pc_display_.upscaler);
+    } else if(id==274 && is_vista_settings(frame().screen,274) && frame().context==video_path_tracing_context) {
+      stack_.back().entries.at(0).label="Ray Samples Per Pixel: "+std::to_string(pc_display_.path_tracing_samples);
+      stack_.back().entries.at(1).label="Bounce Depth: "+std::to_string(pc_display_.path_tracing_bounces);
     }
     return;
   }

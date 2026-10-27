@@ -7,7 +7,7 @@
 
 namespace halo2 {
 struct AuthorityArchiveDecodeLimits {
-    std::uint64_t encoded_bytes{},decoded_bytes{},allocated_bytes{},container_elements{},fixed_native_bytes{};
+    std::uint64_t encoded_bytes{},decoded_bytes{},allocated_bytes{},container_elements{},fixed_native_bytes{},working_bytes{};
 };
 struct AuthorityArchiveValue {
     std::uint8_t tag{};std::uint64_t bits{},count{};std::size_t next{};
@@ -36,9 +36,14 @@ private:
     explicit ParsedAuthorityArchive(std::unique_ptr<Impl>);
     friend std::unique_ptr<ParsedAuthorityArchive> parse_authority_archive(
         std::span<const std::byte>,AuthorityArchiveDecodeLimits);
+    friend std::unique_ptr<ParsedAuthorityArchive> parse_authority_archive_raw(
+        std::span<const std::byte>,std::array<std::byte,32>,AuthorityArchiveDecodeLimits);
 };
 // Failure is terminal for this archive. Successful syntax parsing grants no
 // native schema, checksum, sender, world-import or callback authority.
 std::unique_ptr<ParsedAuthorityArchive> parse_authority_archive(
     std::span<const std::byte>,AuthorityArchiveDecodeLimits);
+// Expanded delta images still require the Rust grammar and allocation policy.
+std::unique_ptr<ParsedAuthorityArchive> parse_authority_archive_raw(
+    std::span<const std::byte>,std::array<std::byte,32>,AuthorityArchiveDecodeLimits);
 }

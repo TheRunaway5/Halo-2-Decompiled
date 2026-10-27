@@ -6,9 +6,10 @@
 namespace halo2::pstencil {
 // These names belong to the optional native presentation layer. The 2003
 // executable did not have a retail/2003 graphics-mode selector.
-enum class GraphicsMode : std::uint8_t { Original, pStencil };
+enum class GraphicsMode : std::uint8_t { Original, pStencil, PathTracing };
 constexpr const char* graphics_mode_name(GraphicsMode mode) {
-    return mode==GraphicsMode::Original?"Original":mode==GraphicsMode::pStencil?"pStencil":"Unknown";
+    return mode==GraphicsMode::Original?"Original":mode==GraphicsMode::pStencil?"pStencil":
+        mode==GraphicsMode::PathTracing?"Path Tracing":"Unknown";
 }
 
 struct StitchQuad {

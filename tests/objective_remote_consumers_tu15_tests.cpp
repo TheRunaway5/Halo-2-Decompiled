@@ -55,14 +55,14 @@ class Host {
     std::exception_ptr error_;
     std::jthread worker_;
 public:
-    unsigned port{};
+    unsigned port{};std::string join_address;
     explicit Host(MultiplayerOptions selected):worker_([this,selected=std::move(selected)](std::stop_token stop)mutable {
         bool admitted=false;
         try {
             MultiplayerPreparedWorld prepared(selected);prepared.bind_source_local_views(prepared.local_slots);
             const auto fingerprint=custom_slayer_fingerprint(multiplayer_fingerprint(selected.map,prepared.cache->shared_directory(),
                 std::uint32_t(selected.bsp),prepared.network_starting_weapon_identity(),selected.gameplay_xbe),selected.variant);
-            LanHost host(prepared.match,0,fingerprint,selected.variant);admitted_.set_value(host.port());admitted=true;
+            LanHost host(prepared.match,0,fingerprint,selected.variant);join_address=host.join_address();admitted_.set_value(host.port());admitted=true;
             std::array<Controls,multiplayer_capacity> controls{};
             auto next=std::chrono::steady_clock::now();const auto end=next+std::chrono::seconds(180);
             while(!stop.stop_requested()) {
@@ -102,7 +102,7 @@ int main(int argc,char** argv)try {
             server.source_object_savegame_directory=std::filesystem::path(scratch)/("host-"+std::to_string(cases));
             Host host(std::move(server));
             auto client=options(launch(content,map,name,"Objective Peer",false),map);
-            client.join="127.0.0.1:"+std::to_string(host.port);client.frames=120;client.width=640;client.height=480;
+            client.join=host.join_address;client.frames=120;client.width=640;client.height=480;
             client.validation=!std::getenv("HALO2_OBJECTIVE_NO_VALIDATION");
             client.screenshot=std::filesystem::path(scratch)/("peer-"+std::to_string(cases)+".ppm");
             unsigned vertices{},submitted{},ready_views{};

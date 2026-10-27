@@ -17,6 +17,7 @@ from .protocol import require, Problem, fields
 from .couch_players import NATIVE_COUCH, NATIVE_CONTINUITY, NATIVE_DIRECT, NATIVE_EOS, NATIVE_EOS_ACCOUNT
 from .match_continuity import PlayerHostedContinuity
 from .voice_origin import Ed25519PrivateKey, verify_voice
+from .matchmaking_readiness import start_eligible
 
 
 class Room:
@@ -40,6 +41,10 @@ class Room:
         self.signal_counts = {}
         self.players = [(p, names[p], team) for team, players in enumerate(proposal.teams) for p in players]
         self.tokens = {self.owners[p]: secrets.token_urlsafe(32) for p, _, _ in self.players}
+        self.failure_sessions = {s.player: s for s in api.sessions.values() if s.player in self.tokens}
+        self.party_owners = {self.owners[p.id]: frozenset(self.owners[q.id] for q in api.core.tickets[t].players)
+                             for t in proposal.tickets for p in api.core.tickets[t].players}
+        self.local_cancellers = set()
         self.admitted_owners = frozenset(self.tokens)
         self.voice_keys = {owner: Ed25519PrivateKey.generate() for owner in self.admitted_owners}
         self.departed_slots = 0
@@ -62,8 +67,17 @@ class Room:
         self.skills = {p: api.skills.snapshot(p, proposal.playlist, self.skill_configuration)
                        for p, _, _ in self.players if p not in self.guests} if self.skill_configuration else {}
         self.result, self.result_digest, self.confirmations = b"", "", set()
+        self.result_recorded = None
+        self.setup_host_departed = False
         self.peers, self.samples, self.loaded = {}, {}, {}
         self.phase, self.host = "connecting", None
+        # TU1.5 start-match owner 0x76360, normal timer path 0x76481 (retail
+        # locator 0x72700): one session-owned 10000 ms countdown. The service
+        # team-diversity deferral follows 0x721B0. Original Live policy bit31
+        # has no replacement-auth equivalent and is never synthesized here.
+        # Integer monotonic milliseconds never require synchronized PCs.
+        self.clock = lambda: int(api.clock() * 1000)
+        self.start_clock = None
         self.created, self.deadline = time.monotonic(), time.monotonic() + (120 if self.eos_account else 60 if self.eos else 25)
         self.created_wall = api.directory.store.now()
         self.closed = False
@@ -95,6 +109,43 @@ class Room:
 
     def active_member(self, player):
         return player in self.owners and self.owners[player] in self.tokens
+
+    def start_countdown_ms(self):
+        if self.closed or self.phase != "loading" or not self.start_ready():
+            self.start_clock = None
+            return None
+        if self.start_clock is None:
+            self.start_clock = self.clock()
+        return max(0, 10000 - max(0, self.clock() - self.start_clock))
+
+    def start_ready(self):
+        if len(self.peers) != len(self.tokens):
+            return False
+        owners=list(self.tokens)
+        if self.host is None or not 0<=self.host<len(self.players):
+            return False
+        current=self.owners[self.players[self.host][0]]
+        if current not in owners or any(self.owners[p] not in owners for p,_,_ in self.players):
+            return False
+        # Dense physical-peer indices adapt source B's peer bank; seat slots
+        # (including guests) remain separately owned by their actual connection.
+        masks=[sum(1<<i for i,other in enumerate(owners) if not self.direct_udp or owner==other or
+            self.direct_ready.get(owner,{}).get(self.index(other),{}).get("rtt_ms") is not None) for owner in owners]
+        return start_eligible(masks,owners.index(current),
+            [owners.index(self.owners[p]) for p,_,_ in self.players],
+            [team for _,_,team in self.players],self.team_mode)
+
+    def record_failure(self, kind="search_failed", owner=None):
+        if self.phase not in ("connecting", "loading"):
+            return
+        same_party = self.party_owners.get(owner, frozenset())
+        for player, session in self.failure_sessions.items():
+            if player in self.local_cancellers:
+                continue
+            if not any(s is session for s in self.api.sessions.values()):
+                continue
+            code = kind if owner is None or player in same_party else "search_failed"
+            self.api.failures[player] = (session, code)
 
     def voice_auth(self, player):
         # Only this authenticated connection receives its signing seed. Public
@@ -149,13 +200,16 @@ class Room:
         """Explicit authenticated leave; TCP loss alone never retires UDP admission."""
         require(self.direct_udp and player in self.tokens, "Invalid direct departure")
         if self.phase not in ("running", "reviewing", "postgame"):
+            self.record_failure("party_changed", player)
             await self.close("A player left before the match started.")
             return
         if self.phase == "running" and self.host == self.index(player):
-            # No simulation successor may be elected without its validated
-            # complete world. This remains the explicit live migration gate.
-            await self.close("The host left before a surviving authority was ready.")
-            return
+            # Keep presentation admission only for the explicitly negotiated
+            # source-handoff path. The service elects no simulation successor.
+            if not all(p.native_handoff for p in self.peers.values()):
+                await self.close("The host left before a surviving authority was ready.")
+                return
+            self.setup_host_departed = True
         self.peers.pop(player, None)
         self.retire_capability(player)
         if not self.tokens:
@@ -202,15 +256,27 @@ class Room:
             await self.close("A player left before the match started.")
 
     def finish_review(self):
-        if self.phase != "reviewing" or self.confirmations != self.admitted_owners:
+        if self.phase != "reviewing" or not set(self.tokens).issubset(self.confirmations):
             return
-        self.api.results.commit(self)
+        # Surviving owners may finish the original report presentation. A
+        # departed owner cannot supply consent, so competitive/history writes
+        # still require the complete immutable original electorate.
+        self.result_recorded = self.confirmations == self.admitted_owners
+        if self.result_recorded:
+            self.api.results.commit(self)
         self.phase, self.deadline = "postgame", time.monotonic() + 900
         for ticket in self.proposal.tickets:
             if ticket in self.api.core.tickets:
                 self.api.core.cancel(ticket)
-        self.broadcast(json.dumps({"completed": self.result_digest}))
+        for peer in self.peers.values():
+            peer.queue.put_nowait(self.completed(peer))
         self.broadcast(self.voice_membership())
+
+    def completed(self, peer):
+        value = {"completed": self.result_digest}
+        if peer.completion_detail:
+            value["recorded"] = bool(self.result_recorded)
+        return json.dumps(value)
 
     async def world_control(self, player, data):
         actions = {"world_seal", "world_ack", "migration_accept", "migration_rebind"}
@@ -267,6 +333,16 @@ class Room:
         if self.closed:
             return
         self.closed = True
+        self.start_clock = None
+        # Preserve a more specific party/content producer already recorded.
+        for player, session in self.failure_sessions.items():
+            if self.phase in ("connecting", "loading") and player not in self.local_cancellers and player not in self.api.failures and any(s is session for s in self.api.sessions.values()):
+                self.api.failures[player] = (session, "search_failed")
+        if self.phase in ("connecting", "loading"):
+            # Keep only a bounded, credential-free admission view after room
+            # cleanup, so destruction of a rejected native launch cannot race
+            # its authenticated missing-content report.
+            self.api.content_failure_rooms[self.id] = (self.failure_sessions.copy(), self.party_owners.copy(), self.api.clock()+15)
         for ticket in self.proposal.tickets:
             if ticket in self.api.core.tickets:
                 self.api.core.cancel(ticket)
@@ -305,6 +381,8 @@ class Room:
     async def advance(self):
         if self.closed:
             return
+        if self.phase == "loading":
+            self.start_countdown_ms()  # Readiness loss clears the source-owned clock.
         if self.phase == "connecting" and all(len(self.samples.get(p, ())) >= 3 for p in self.tokens) and (
                 not self.direct_udp or set(self.direct_ready) == set(self.tokens)):
             # Explicit native relay score, not an assertion about Xbox QoS.
@@ -335,9 +413,13 @@ class Room:
                 await self.close("Connection quality is insufficient for this playlist.")
                 return
             self.host = self.index(self.owners[proposal.host])
+            if not self.start_ready():
+                self.start_clock = None
+                return
             for player, _, _ in self.players:
                 self.api.core.acknowledge(self.id, player, optimize_host=self.direct_udp, host_quality=host_quality)
             self.phase, self.deadline = "loading", time.monotonic() + 180
+            self.start_clock = self.clock()
             for peer in self.peers.values():
                 peer.queue.put_nowait(self.control())
         if self.phase == "loading" and len(self.loaded) == len(self.tokens):
@@ -383,6 +465,8 @@ class Peer:
         self.socket, self.queue = socket, asyncio.Queue(maxsize=512)
         self.challenge, self.sent = "", 0.
         self.budget = PacketBudget()
+        self.completion_detail = False
+        self.native_handoff = False
 
 
 class MatchTransport:
@@ -525,6 +609,8 @@ class MatchTransport:
             await socket.close(code=1008)
             return socket
         peer = Peer(socket)
+        peer.completion_detail = request.query.get("completion") == "1"
+        peer.native_handoff = peer.completion_detail and request.query.get("native_handoff") == "1"
         previous = room.peers.get(player)
         room.peers[player] = peer
         if previous:
@@ -633,9 +719,14 @@ class MatchTransport:
                         pass
                     elif set(data) == {"postgame"}:
                         report = data["postgame"]
-                        require(room.index(player) == room.host and
+                        require((room.index(player) == room.host or (room.setup_host_departed and peer.native_handoff)) and
                                 (room.phase == "running" or (room.direct_udp and room.phase in ("reviewing", "postgame")))
                                 and (room.direct_udp or len(room.peers) == len(room.tokens)), "Invalid postgame report")
+                        if room.setup_host_departed and room.phase == "running":
+                            # Completion is called by the genuine native host;
+                            # every surviving native owner validates its report.
+                            # This PCR route grants no gameplay authority.
+                            room.host = room.index(player)
                         if room.direct_udp and room.phase in ("reviewing", "postgame"):
                             require(report == room.result.hex(), "Postgame retry differs from the original report")
                             peer.queue.put_nowait(json.dumps({"postgame": report}))
@@ -653,7 +744,7 @@ class MatchTransport:
                         room.confirmations.add(player)
                         if room.phase == "postgame":
                             if room.direct_udp:
-                                peer.queue.put_nowait(json.dumps({"completed": room.result_digest}))
+                                peer.queue.put_nowait(room.completed(peer))
                                 peer.queue.put_nowait(room.voice_membership())
                             continue
                         room.finish_review()

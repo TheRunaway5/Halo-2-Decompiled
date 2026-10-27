@@ -6,7 +6,10 @@
 #include "halo2/appearance.hpp"
 #include "halo2/model.hpp"
 #include "halo2/source_transparent_parts.hpp"
+#include "halo2/model_skin_submission.hpp"
 #include <array>
+#include <functional>
+#include <memory>
 #include <type_traits>
 #include <utility>
 
@@ -19,12 +22,18 @@ public:
         RenderModel model;
         std::vector<unsigned> sections,vertex_materials;
         std::vector<Vertex> vertices;
+        // pose_world_lod may leave this bank's records in local space with
+        // the WORLD palette the renderer deforms them with (deferred).
+        std::vector<std::array<float,12>> palette;
+        bool deferred{};
         bool ordinary_lighting{};
         SourceTransparentModelParts authored_parts;
     };
     struct Slot {unsigned material{},section{},lod{};bool prt{};unsigned shader_lod{};};
     struct ViewDraw {
         std::vector<Vertex> vertices;
+        // Source vertex ordinals of vertices, recorded for deferred LOD banks.
+        std::vector<std::uint32_t> ordinals;
         bool ordinary_lighting{},prt_lighting{};
     };
     struct ViewSelection {
@@ -38,6 +47,8 @@ public:
     // exported spans before exchanging this value; no pose is reevaluated.
     struct PresentationState {
         std::array<std::vector<Vertex>,6> vertices;
+        std::array<std::vector<std::array<float,12>>,6> palettes;
+        std::array<bool,6> deferred{};
         std::array<std::vector<unsigned>,6> active_sections;
         std::array<ViewDraw,4> views;
         std::array<ViewSelection,4> selections;
@@ -45,13 +56,13 @@ public:
     };
     PresentationState capture_presentation()const {
         PresentationState out;
-        for(unsigned n=0;n<6;++n)out.vertices[n]=lods[n].vertices;
+        for(unsigned n=0;n<6;++n){out.vertices[n]=lods[n].vertices;out.palettes[n]=lods[n].palette;out.deferred[n]=lods[n].deferred;}
         out.active_sections=active_sections;out.views=views;
         out.selections=view_selection;out.previous_lod=previous_lod;return out;
     }
     void exchange_presentation(PresentationState &state)noexcept {
         static_assert(std::is_nothrow_swappable_v<PresentationState>);
-        for(unsigned n=0;n<6;++n)lods[n].vertices.swap(state.vertices[n]);
+        for(unsigned n=0;n<6;++n){lods[n].vertices.swap(state.vertices[n]);lods[n].palette.swap(state.palettes[n]);std::swap(lods[n].deferred,state.deferred[n]);}
         active_sections.swap(state.active_sections);views.swap(state.views);
         view_selection.swap(state.selections);previous_lod.swap(state.previous_lod);
     }
@@ -77,6 +88,19 @@ public:
     // pose_world with skin_model_world_nodes. The six independent LOD skins
     // deform together and publish in LOD order with identical results.
     void pose_world_nodes(std::span<const Transform> world_nodes);
+    // The LOD select() chooses for this owner/view: metric, history and
+    // policy alone decide it, posed records take no part.
+    unsigned choose_lod(std::size_t source_object,std::uint32_t handle,Vec3 sphere_center,float radius,
+                        const SourceObjectViewLod &,const std::array<std::int8_t,4> &owner_previous_lod)const;
+    // pose_world for one LOD bank. A pose with gpu set keeps local records
+    // and the WORLD palette; select() then records source ordinals and
+    // view_skin() publishes the deferred geometry. Other LOD banks keep
+    // their earlier records; select() reads only its chosen LOD.
+    void pose_world_lod(unsigned lod,const std::function<ModelSkinWorldPose(const RenderModel &)> &);
+    // The renderer-deformed geometry of a view whose selected LOD bank is
+    // deferred; null when that bank holds WORLD records.
+    std::shared_ptr<ModelSkinGeometry> view_skin(unsigned view_index,std::uint32_t owner,
+                        std::uint32_t definition,std::uint32_t render_model)const;
     void update_banks(const Cache &,std::span<const Transform>,const SourcePrtLighting &,Mesh &);
     std::vector<SourcePrtMaterialBank> owner_banks(const Cache &,std::span<const Transform>,
                                                 const SourcePrtLighting &,unsigned lod,
@@ -105,6 +129,9 @@ public:
     bool ordinary_lighting()const;
     unsigned first_material{},material_count{};
 private:
+    struct LodChoice {SourceObjectLodInput input;SourceGeometryLodChoice choice;unsigned lod{};};
+    LodChoice lod_choice(std::size_t,std::uint32_t,Vec3,float,const SourceObjectViewLod &,
+                         const std::array<std::int8_t,4> &)const;
     ViewDraw selected_section_vertices(unsigned,unsigned,const SourceModelShaderCollector&,
                               const SourceModelShaderView&,std::span<const Vertex>)const;
     void load_impl(const Cache &,const ScenarioObject &,const SourceInitialModelDefinition &,

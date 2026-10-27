@@ -1,4 +1,122 @@
-# Discord Friends in ONLINE
+# Friends in ONLINE
+
+## Game-owned friends and tags
+
+The primary Friends list uses the existing authenticated master account and
+SQLite database. Steam is the login provider; its persona and friends list are
+not account keys or prerequisites for friendship. `player_friend_tags` assigns
+an eight-digit, globally unique random suffix inside the verified identity
+transaction. Schema initialization does not backfill dormant accounts: an old
+account receives its suffix on its next authenticated connection. Database
+uniqueness and bounded collision retries prevent duplicate suffixes.
+
+A friend tag is the current chosen display name followed by `#` and that suffix.
+Renaming preserves the suffix and permanent account ID; exact tag lookup uses
+the new name immediately and rejects the old name. Matchmaking, scoreboards,
+historical carnage names and the EOS OpenID `name` claim continue to use the plain
+display name. Tags are public search labels, never credentials.
+
+`GET /v1/friends` and `POST /v1/friends/commands` use the existing private account
+session. Commands support exact tag search, request, accept, decline, cancel,
+remove, block and unblock. Requests require explicit recipient acceptance;
+crossed requests do not silently accept. Mutations are transactional and replay
+the same request ID after an uncertain network result. Friends and requests
+persist by player ID across sign-out, server restart and renaming. Snapshots
+expose public history aliases, names and tags, without private provider IDs.
+Presence is shared only with accepted friends. Lists are bounded to250 entries
+per account, pending requests to32 incoming and32 outgoing, mutations to256 per
+day, and relationship/block storage to100,000 rows each. Incoming requests cannot
+consume the complete roster. The roster uses one indexed SQL projection.
+
+Blocking removes friendship and pending friend/party/clan invitations in both
+directions, suppresses bilateral voice, and gates new invitations. Unblocking
+does not restore the previous friendship. A block is an account preference, not
+a claim about Steam or Discord relationships.
+
+The original Friends list, selected-player dialog and virtual keyboard now
+provide native friend-tag search and actions. The party invite picker uses
+accepted game friends and clan members. Plain display names remain the primary
+row labels; full tags appear in the selected player's details and on website
+profiles. The website bridge is read-only and never allocates a tag on lookup.
+
+EOS Game Services remain on the existing OpenID/PUID mapping. EOS's built-in
+Friends service belongs to Epic Account Services and cannot use the existing
+custom OpenID Connect login. The portal inspection on25 October2026 found only
+the custom OpenID provider, an additional EAS agreement gate, and a mandatory
+Steam App ID in the Steam provider form. The user confirmed that H2Forever has
+no Steamworks App ID and requires no Epic-account login. The custom storage
+adapter below uses Connect rather than Epic Account Services, and needs a
+separate private storage client policy in the portal.
+See Epic's [Account Services introduction](https://dev.epicgames.com/docs/epic-online-services/accounts-and-social/eos-epic-account-services/epic-account-services-intro)
+and [Auth reference](https://dev.epicgames.com/docs/epic-online-services/accounts-and-social/eos-epic-account-services/auth-interface/auth-reference).
+
+### EOS Player Data Storage boundary
+
+Player Data Storage is a separate EOS Game Service and can use the existing
+Connect login without an Epic account or Steamworks App ID. It supports custom
+per-player files and cross-device cloud saves. It is not the built-in Friends
+service. In the inspected portal, `datastorage:access`, `delete` and `copy` all
+require a signed-in user; they are disabled on the existing server-only profile
+publisher policy. The SDK also takes a local authenticated Product User ID for
+each operation.
+
+The approved hybrid uses `friend_cloud.py` and the Rust/SDK worker's dedicated
+`friends` mode. Master transactions keep the consent ledger and a durable,
+coalescing outbox. EOS holds the encrypted private `h2friends-v1.json` file for
+each player: format, public player alias, current friend tag, monotonic revision
+and relationships by public ID/state. The file excludes auth subjects, tokens,
+mutable peer names and presence; it is bounded to32KiB and250 relationships.
+The existing master remains required for tag lookup, bilateral consent, blocking
+and the coordinating ledger. This adds no separately hosted database and does
+not eliminate the existing master or its small local ledger. The current clan
+roster likewise lives in SQLite, rather than EOS Player Data Storage.
+
+A server-held storage client uses a custom policy with **User required on** and
+only **Player Data Storage: `datastorage:access`**. The SDK uses a user platform
+(`bIsServer=false`) on this trusted headless worker. The existing private OpenID
+issuer delegates a120-second operation for the precise account already bound
+to an EOS PUID. The worker must get that same PUID from Connect login; it never
+creates users, links accounts or falls back to device IDs. The game client keeps
+PDS permissions disabled. The storage client secret and64-hex encryption key
+stay in a private master-only config, never in the game, website API or browser.
+
+Both participants' records are queued in the same transaction as each accepted
+command. Dormant accounts receive their tag only on verified login; accounts
+without an existing verified PUID remain pending until their next bind. Renaming
+changes only the owning player's cloud tag, not their suffix or relationships.
+An isolated worker handles one player/operation at a time, checks existing file
+ownership/revision, writes, clears its local SDK cache and downloads the file
+again. Only exact read-back acknowledges the current outbox revision. Lost
+replies retry safely; superseded revisions remain pending. Errors back off from
+30seconds to15minutes and expose only generic sync status to the owner.
+
+The master rejects unreadable, oversized, non-regular, final-symlink or
+group/world-readable storage configs on POSIX before starting a worker. The
+worker also bounds and validates its dedicated config, ignores inline identity
+and secret overrides, and rejects publisher operations before SDK access. The
+master passes a small environment allowlist with no Steam/publisher credentials
+or master state paths. Each operation gets a private temporary SDK cache under
+`/run/halo2-friends`; cancellation, spawn failure and success retire the child
+before removing that cache. The prepared Docker override disables core dumps
+and bounds process/thread count. These protections need deployment to affect
+the live master; the new portal client alone does not activate the feature.
+
+Run one coordinating master writer per database. EOS files have no transaction
+or compare-and-swap across users; they do not execute friend consent logic.
+The master ledger remains authoritative during outages, with EOS sync eventually
+consistent. A remote newer revision or equal revision with different bytes fails
+closed rather than overwriting cloud data. Restoring a stale master database
+requires explicit reconciliation before resuming writes; automatic cloud import
+or disaster recovery is outside this adapter. Preserve both the master ledger
+and the private encryption key in backups.
+
+Activation, private config and local verification are described in the website
+repository's `backend/eos-worker/README.md`. Local tests use fake transport and
+the official SDK headers/library; they are not evidence of a live EOS upload.
+
+Reference: [Player Data Storage overview](https://dev.epicgames.com/docs/epic-online-services/player-and-game-data/player-data-storage-interface/player-data-storage-overview).
+
+## Legacy optional Discord integration
 
 The native Friends tab uses Discord's official Social SDK. It requests
 `identify openid sdk.social_layer` through a separate PKCE consent

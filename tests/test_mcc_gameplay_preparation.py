@@ -32,12 +32,15 @@ from test_mcc_loading_presentation import v3_summary_fixture
 from native_variant_test_support import variant_fixture
 from native_variant_assets import LAYOUTS, MANIFEST
 from test_controller_prompt_assets import controller_prompt_fixture
+from custom_ui_test_support import custom_ui_fixture, custom_ui_prepare_fixture, empty_custom_map_fixture
 
 
 def bundle_fixture(root):
     layout_fixture(root)
     variant_fixture(root)
     controller_prompt_fixture(root)
+    custom_ui_fixture(root)
+    empty_custom_map_fixture(root)
 
 
 def cache_bytes():
@@ -136,6 +139,7 @@ def import_transaction_worker(project, donor, phase):
          patch.object(loading_assets, "prepare", return_value=dict(complete=True,
                       vista_executable_bank_imported=False)), \
          patch.object(loading_presentation, "preflight_v3"), \
+         patch('custom_ui_assets.prepare', side_effect=custom_ui_prepare_fixture), \
          patch.object(loading_presentation, "prepare_v3", side_effect=lambda root, cache, source, **kwargs: v3_summary_fixture(cache)):
         final, report = preparation.prepare(project, donor, progress)
     print(json.dumps(dict(final=str(final), report=report,
@@ -295,6 +299,9 @@ class TransactionTests(unittest.TestCase):
             return_value=dict(complete=True, summary=dict(synthetic_transaction_fixture=True)))
         inventory.start()
         self.addCleanup(inventory.stop)
+        ranks = patch('custom_ui_assets.prepare', side_effect=custom_ui_prepare_fixture)
+        ranks.start()
+        self.addCleanup(ranks.stop)
 
     @unittest.skipUnless(os.name == "posix", "POSIX SIGTERM cancellation")
     def test_sigterm_during_copy_removes_stage_preserves_inputs_and_allows_retry(self):
@@ -397,35 +404,30 @@ class TransactionTests(unittest.TestCase):
             self.assertEqual(before, {p: (p.read_bytes(), p.stat().st_ino, p.stat().st_mtime_ns) for p in protected})
 
     def test_loading_preparation_uses_mcc_and_authored_files_without_vista_or_xbox(self):
+        from test_mcc_loading_bank_assets import loading_bank_fixture
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             project, pack = root / "port", root / "cache"
-            payload = b"\x12\x34\x56\xff"
-            resource = pack / "bitmap-resources/pixels.bin"
-            resource.parent.mkdir(parents=True)
-            resource.write_bytes(payload)
-            digest = hashlib.sha256(payload).hexdigest()
-            frame = dict(dimensions=[1, 1, 1], type=0, partitions=["one", None, None], additional_mips=0,
-                         format=11, record_hex="source-record")
-            (pack / "bitmap-resources.json").write_text(json.dumps(dict(
-                banks=[dict(map="mainmenu.map", tag="globals\\loading_screen", datum="e0000001", frames=[frame])],
-                resources=dict(one=dict(path="bitmap-resources/pixels.bin", sha256=digest)))))
+            pages = loading_bank_fixture(pack)
             custom = project / loading_assets.CUSTOM
             custom.mkdir(parents=True)
             vector = b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><circle r="1"/></svg>'
             (custom / "ring.svg").write_bytes(vector)
             (custom / "profile.json").write_text(json.dumps(dict(schema="H2_AUTHORED_LOADING_ASSETS_V1", runtime_admitted=False,
                 files={"ring.svg": dict(bytes=len(vector), sha256=hashlib.sha256(vector).hexdigest(), origin="authored-vector")})))
-            result = loading_assets.prepare(project, pack)
-            self.assertEqual(result["frames"], 1)
+            with patch.object(loading_assets, 'ORIGINAL_PAGES', pages):
+                result = loading_assets.prepare(project, pack)
+            self.assertEqual(result["frames"], 11)
             self.assertFalse(result["vista_executable_bank_imported"])
             self.assertFalse(result["external_vista_or_xbox_required"])
             self.assertEqual((pack / "loading/custom/ring.svg").read_bytes(), vector)
             target = pack / result["banks"][0]["frames"][0]["path"]
-            self.assertEqual(target.read_bytes(), dds_image(1, 1, 0, 11, payload)[0])
+            source = pack / result['banks'][0]['frames'][0]['source_payload']['path']
+            self.assertEqual(target.read_bytes(), dds_image(1024, 512, 0, 14, source.read_bytes())[0])
             self.assertFalse((pack / "loading/loading-tone.xbox-adpcm").exists())
             (custom / "ring.svg").write_bytes(b"changed custom asset")
-            with self.assertRaisesRegex(FormatError, "Authored loading asset changed"):
+            with patch.object(loading_assets, 'ORIGINAL_PAGES', pages), \
+                 self.assertRaisesRegex(FormatError, "Authored loading asset changed"):
                 loading_assets.prepare(project, pack)
 
     def test_copy_excludes_programs_and_shader_cache_preserves_audio_fonts_variants(self):

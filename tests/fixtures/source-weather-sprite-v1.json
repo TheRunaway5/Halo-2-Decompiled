@@ -1,0 +1,14 @@
+{
+  "schema": "H2_WEATHER_SPRITE_RESOURCE_REGRESSION_V1",
+  "scope": "Actual original/prepared resource data component; no live particle or GPU draw claim",
+  "compressed_file": "source-weather-sprite-v1.json.zlib",
+  "compressed_bytes": 6504,
+  "compressed_sha256": "b98eef6d3fe150e14cfa2eb172f250df2c073f441d0e4d1644949b5c1dd57b79",
+  "decoded_bytes": 23805,
+  "decoded_sha256": "810ea2998565c14923cbf39b770f2efad887dea291a9d087ee486b661a0ec2a1",
+  "source_map_sha256": [
+    "2b71293c775ad33a73025b7a640ba45e88fc4c01c7783d79cf0cce8862cc2828",
+    "4844a2ea86949fe33b051d86f7410e83f4f3c63d58b5e4aac140b8f7b55c680f"
+  ],
+  "retention_reason": "Required portable actual original/prepared64-square BC3 resource regression input; no cache, code or framebuffer retained"
+}

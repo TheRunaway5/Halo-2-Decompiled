@@ -1,0 +1,1214 @@
+{
+  "schema": "H2_MCC_NATIVE_WORLD_DEFAULT_ROLES_V1",
+  "scope": "Two finite TU1.5 original default resource roles and paired cooked constant layouts; no generated/fallback images or shader interpretation",
+  "paired_source_report": {
+    "path": "analysis/native-renderer-all-20261025/pc-world-raw-paired-cooked-banks.json.xz",
+    "sha256": "278d567fdc1503c9fc690263ed984f0fb3be22b5d97e343378d47ee2791fff02",
+    "decoded_sha256": "45fab49fbc303dcaf7b3da8328d98b00c6f39782bde8ce9b522ed583869a32f0"
+  },
+  "profiles": [
+    {
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_three_detail_blend",
+      "mapping": "tex_bump_three_detail_blend",
+      "source_graph_sha256": "4c4b896df45bba3e9c1a11d89f3780bccf51c75499f2f437af053f8a5c893d3b",
+      "source_graph": {
+        "root_hex": "000000000000000000000000010000000000000000000000000000000000000074696c73ffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+        "source_root_counts": {
+          "0": 0,
+          "16": 0,
+          "24": 0,
+          "40": 0,
+          "48": 0,
+          "56": 0
+        },
+        "definitions": [
+          {
+            "definition_hex": "03000000000000004b000000000000000e000000000000003a00000000000000b700000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 3,
+                "raw_hex": "0032083c0100cdcc4c3d1932083c0100cdcccc3c32320800010000000000",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 75,
+                "raw_hex": "000000000000000201000100010001000100010001020202030204020500050005020600060006000600060006000600060006000600060006020700070007000700070007000702080209020a020b000b000b020c000c000c000c000c000c000c000c000c000c000c000c020d000d000d000d000d000d000d000d000d000d000d000d000d020e000e000e000e000e000e000e000e00",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 14,
+                "raw_hex": "73617073000000000008736170730000000004087361707300000000080e73617073000000000f0a73617073000000001402736170730000000015087361707300000000190873617073000000001d087361707300000000210e7361707300000000280a73617073000000002d0273617073000000002e087361707300000000320873617073000000003608",
+                "typed_references": [
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\lightmap\\lightmap_tex_three_detail_blend"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\shadow\\shadow_generate"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\light_response\\default_light_combined_tex"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\fog\\fog_planar"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\lightmap\\lightmap_tex"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\shadow\\shadow_generate"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\light_response\\default_light_combined_tex"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\fog\\fog_planar"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\lightmap\\lightmap_tex"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\fog\\fog_planar"
+                  ]
+                ]
+              },
+              {
+                "field": 24,
+                "count": 58,
+                "raw_hex": "000a0502060a0b0a1002110a160a1b001b041d0a2200220a27042900290029042b002b042d042f002f0230043200320434023500350035023600360036023700370037023800380038023900390039023a003a003a023b003b003b043d043f0441044300430445044700470449044b004b044d044f04510453045500550859005900590059005900590059005900590059005900590059045b025c045e046002610463046504670469046b006b086f047100710071047300730475047700770278047a007a047c027d007d007d027e007e007e027f007f007f028000800080028100810081028200820082028300830083048504870489048b008b048d048f008f049104930093049504970499049b049d009d08a100a100a100a100a100a100a100a100a100a100a100a100a104a302a404a604a802a904ab04ad04af04b104b300b308b700b700b700b700b700b700b700b700b700b700b700b700",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 183,
+                "raw_hex": "000000000100000102000002030000030400000483000000b2010000b0050001b1090002330d000353110004000000000100000102000002030000030400000483000000b2010000b0050001b1090002330d0003531100040000000001000001020000020300000304000004b2010000b00500010000000001000001020000020300000304000004b2010000b0050001b1090002330d00035311000400000000010000010000000001000001b2010000b00500010000000001000001b20100000000000001000001b2010000b00500010000000500000005000000050000000500000005000000050000000500000000010000018100000082000001b2010000b00500010000000001000001b2010000b00500010000000001000001b2010000b00500010000000001000001b2010000b005000100000000010000018100000082000001b2010000b00500010000000001000001b20100008a1c00058b1c0006b0050001000000000100000183000000b2010000b0050001000000000100000183000000b2010000b005000100000000010000018400000085000001b2010000b00500010000000001000001b2010000b0050001981c0007991c000800000000010000010000000001000001b2010000b00500010000000001000001b20100000000000001000001b2010000b00500010000000500000005000000050000000500000005000000050000000500000000010000018100000082000001b2010000b00500010000000001000001b2010000b00500010000000001000001b2010000b00500010000000001000001b2010000b005000100000000010000018100000082000001b2010000b00500010000000001000001b20100008a1c00058b1c0006b0050001000000000100000183000000b2010000b0050001000000000100000183000000b2010000b005000100000000010000018400000085000001b2010000b00500010000000001000001b2010000b0050001981c0007991c0008",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          }
+        ]
+      },
+      "source_counts": {
+        "4": 6,
+        "12": 2,
+        "20": 9,
+        "28": 3,
+        "36": 75,
+        "44": 14,
+        "52": 58,
+        "60": 0,
+        "68": 0,
+        "76": 0,
+        "84": 0,
+        "92": 5,
+        "100": 2,
+        "108": 6
+      },
+      "shader_type_flags": 1,
+      "runtime_diffuse_slot": 1,
+      "native_source_map": "03a_oldmombasa",
+      "native_source_canonical_sha256": "a249dafbf4bf99413cc4470c65e83e66ba1c1c94d8fc5bf4deffb4870e53f519",
+      "native_record": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\opaque\\tex_bump_three_detail_blend",
+        "bytes": 1542,
+        "payload": "ddf2a4c22ed4ee57179618dfc5ddd3674a5b902eea4d83834612bc7d57e498ba.bin",
+        "fnv64": "e7738fb72ec15233",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            1392
+          ],
+          [
+            116,
+            168
+          ],
+          [
+            124,
+            320
+          ],
+          [
+            132,
+            668
+          ]
+        ],
+        "references": [
+          [
+            172,
+            [
+              "spas",
+              "shaders\\shader_passes\\texture_mapping\\three_detail_blend_texture_zwrite"
+            ]
+          ],
+          [
+            182,
+            [
+              "spas",
+              "shaders\\shader_passes\\lightmap\\old_lightmap_tangentspace"
+            ]
+          ],
+          [
+            192,
+            [
+              "spas",
+              "shaders\\shader_passes\\shadow\\shadow_generate"
+            ]
+          ],
+          [
+            202,
+            [
+              "spas",
+              "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+            ]
+          ],
+          [
+            212,
+            [
+              "spas",
+              "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace"
+            ]
+          ],
+          [
+            222,
+            [
+              "spas",
+              "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+            ]
+          ],
+          [
+            232,
+            [
+              "spas",
+              "shaders\\shader_passes\\fog\\fog_planar"
+            ]
+          ],
+          [
+            242,
+            [
+              "spas",
+              "shaders\\shader_passes\\lightmap\\lightmap_tex"
+            ]
+          ],
+          [
+            252,
+            [
+              "spas",
+              "shaders\\shader_passes\\shadow\\shadow_generate"
+            ]
+          ],
+          [
+            262,
+            [
+              "spas",
+              "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+            ]
+          ],
+          [
+            272,
+            [
+              "spas",
+              "shaders\\shader_passes\\light_response\\default_light_combined_tex_first_person_detail"
+            ]
+          ],
+          [
+            282,
+            [
+              "spas",
+              "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+            ]
+          ],
+          [
+            292,
+            [
+              "spas",
+              "shaders\\shader_passes\\fog\\fog_planar"
+            ]
+          ],
+          [
+            302,
+            [
+              "spas",
+              "shaders\\shader_passes\\lightmap\\lightmap_tex"
+            ]
+          ],
+          [
+            312,
+            [
+              "spas",
+              "shaders\\shader_passes\\fog\\fog_planar"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "native_shape": {
+        "0": 3,
+        "8": 75,
+        "16": 15,
+        "24": 58,
+        "32": 178
+      },
+      "default_bitmap": {
+        "datum": 3783344756,
+        "name": "shaders\\default_bitmaps\\bitmaps\\default_detail",
+        "frame": 0,
+        "log_word": 1064697328,
+        "insert_slot": 6,
+        "original_resource": {
+          "datum": 3788898401,
+          "map": "03a_oldmombasa",
+          "mcc": false,
+          "metadata_sha256": "5d81a3a0a5296c19313c288961379393a15586ef1f76b828ca8d05c8542ba253",
+          "name": "shaders\\default_bitmaps\\bitmaps\\default_detail",
+          "texture": {
+            "bytes": 84,
+            "depth": 0,
+            "format": 11,
+            "height": 4,
+            "layers": 1,
+            "mips": [
+              {
+                "bytes": 64,
+                "height": 4,
+                "sha256": "17a424e5890c8a7b7c42e913b8a52749090f8ff7654b1096c7b761ab040a7aa8",
+                "width": 4
+              },
+              {
+                "bytes": 16,
+                "height": 2,
+                "sha256": "f7647fe3346d42ba156c38687a3d988103ea763b4aeeb9fc540ba9128b8a182f",
+                "width": 2
+              },
+              {
+                "bytes": 4,
+                "height": 1,
+                "sha256": "79dfad351f79ef0e65a11fff0a9ed44bf628f9390ff06b92ee4ee5e2477616ea",
+                "width": 1
+              }
+            ],
+            "pixels_hex": "808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff",
+            "sha256": "2b7d9b47f05ffff0881829e229e843e0412ae7dce02c835cfe76266017257dcf",
+            "width": 4
+          }
+        },
+        "actual_PC_resources": [
+          {
+            "datum": 3783344756,
+            "map": "needle",
+            "mcc": true,
+            "metadata_sha256": "0cc4be376517c9df119f10e077679e114b110f9c70701e68440c26ac8f9c9782",
+            "name": "shaders\\default_bitmaps\\bitmaps\\default_detail",
+            "texture": {
+              "bytes": 84,
+              "depth": 0,
+              "format": 11,
+              "height": 4,
+              "layers": 1,
+              "mips": [
+                {
+                  "bytes": 64,
+                  "height": 4,
+                  "sha256": "17a424e5890c8a7b7c42e913b8a52749090f8ff7654b1096c7b761ab040a7aa8",
+                  "width": 4
+                },
+                {
+                  "bytes": 16,
+                  "height": 2,
+                  "sha256": "f7647fe3346d42ba156c38687a3d988103ea763b4aeeb9fc540ba9128b8a182f",
+                  "width": 2
+                },
+                {
+                  "bytes": 4,
+                  "height": 1,
+                  "sha256": "79dfad351f79ef0e65a11fff0a9ed44bf628f9390ff06b92ee4ee5e2477616ea",
+                  "width": 1
+                }
+              ],
+              "pixels_hex": "808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff808080ff",
+              "sha256": "2b7d9b47f05ffff0881829e229e843e0412ae7dce02c835cfe76266017257dcf",
+              "width": 4
+            }
+          }
+        ]
+      },
+      "default_uv_hex": "0000803f0000803f0000000000000000",
+      "needed_PC_owners": [
+        {
+          "map": "needle",
+          "shader": "scenarios\\shaders\\multi\\needle\\needle_terrain",
+          "datum": 4163502259
+        },
+        {
+          "map": "needle",
+          "shader": "scenarios\\shaders\\multi\\needle\\needle_terrain_metal",
+          "datum": 4164354239
+        }
+      ],
+      "paired_proof": {
+        "complete_main_matches": 14,
+        "complete_original_pairs": 15,
+        "matches": [
+          {
+            "map": "03a_oldmombasa",
+            "shader": "scenarios\\shaders\\solo\\earthcity\\cinematic\\nm_arial_city",
+            "native_shader_payload": "68b60b652c8ebc32d5a6def4078615f3a9ddeaa290c71645db16b13bfa3c6577.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "03b_newmombasa",
+            "shader": "scenarios\\shaders\\solo\\earthcity\\cinematic\\nm_arial_city",
+            "native_shader_payload": "536cf6fc0ae2c5a83e207165be3698af2f901b0156fd0819ea7f0cc1ebd9dab4.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "05a_deltaapproach",
+            "shader": "scenarios\\shaders\\solo\\deltatemple\\ground_bridge",
+            "native_shader_payload": "7b8ef1f4649875cc736d14c291c6caf161d03f336d8e103925416a5e76712dfa.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "05a_deltaapproach",
+            "shader": "scenarios\\shaders\\solo\\deltatemple\\ground_temple",
+            "native_shader_payload": "169d36e0ae41602bcbd264a985dc5180214bee06edf3a1d2d1a05a57781ebf98.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "05a_deltaapproach",
+            "shader": "scenarios\\shaders\\solo\\deltatemple\\ground_temple_entrance",
+            "native_shader_payload": "23b05987bb10d01cfa2cc8b9b59439aeb95a1396f700dcadc857112da26b04f6.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "05a_deltaapproach",
+            "shader": "scenarios\\shaders\\solo\\deltatemple\\ground_grotto",
+            "native_shader_payload": "201bf87066c7c56c5c5b4bb8e60ad3ec15b0d02799e204dec46bf6d1f280b32b.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "05a_deltaapproach",
+            "shader": "scenarios\\shaders\\solo\\deltatemple\\ground_grotto_puddle",
+            "native_shader_payload": "e7a85a6af9ce4bf5834e117b7b5f67bdba633aa4efc3aae5c88019ac2ce5ce45.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "05a_deltaapproach",
+            "shader": "scenarios\\shaders\\solo\\deltatemple\\ground_grotto_shallow",
+            "native_shader_payload": "e2504cf081d33fdb28f9a71585a9ed4893ad03bfea68da621227333fbe3507c3.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "05a_deltaapproach",
+            "shader": "scenarios\\shaders\\solo\\deltatemple\\ground_lz",
+            "native_shader_payload": "1fa42a3b9b914b33e0e1490c1e43ca6d59e6967ed672b75a888852e9c99fa258.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "05b_deltatowers",
+            "shader": "scenarios\\shaders\\solo\\deltatemple\\ground_grotto",
+            "native_shader_payload": "a1f75a7d00d48060052c05937d30826a81c7e22efc16917a143c0b895622841f.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "05b_deltatowers",
+            "shader": "scenarios\\shaders\\solo\\deltatemple\\ground_island",
+            "native_shader_payload": "b297ece379a6e32a6a36baa5e34f03e7a21a309832c8f673ad5b72c9c9e11f8d.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "backwash",
+            "shader": "scenarios\\shaders\\multi\\backwash\\swamp_terrain",
+            "native_shader_payload": "a99aeb9cd4a3e41fb19c12fb6b81d3341ba0d54bc00b61cded707f8169172fab.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "dune",
+            "shader": "scenarios\\shaders\\multi\\dune\\dune_rock",
+            "native_shader_payload": "a3e43a9f6b8e5845ed167e8a6562fc457978bf5a4e3d57618a1a21d50ca2d206.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "dune",
+            "shader": "scenarios\\shaders\\multi\\dune\\dune_sand",
+            "native_shader_payload": "615605c92b456e2d94cc27d7f79a318818ee971fdc8d951dbb71f55ed3cb92dd.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          }
+        ],
+        "authored_differences": [
+          {
+            "map": "03a_oldmombasa",
+            "shader": "scenarios\\shaders\\solo\\earthcity\\beach_sanddry",
+            "native_shader_payload": "4704bc16193a56ca43de5aa393a2d78b11433cee97deae5a47429c708147fb4b.bin",
+            "matches": {
+              "images": false,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "template": "shaders\\shader_templates\\opaque\\tex_env",
+      "mapping": "tex_env",
+      "source_graph_sha256": "cbb132e87cd816ad01f2f77d7b8b0785061fc831357ead75e021431bb8382f75",
+      "source_graph": {
+        "root_hex": "000000000000000000000000010000000000000000000000000000000000000074696c73ffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+        "source_root_counts": {
+          "0": 0,
+          "16": 0,
+          "24": 0,
+          "40": 0,
+          "48": 0,
+          "56": 0
+        },
+        "definitions": [
+          {
+            "definition_hex": "02000000000000003200000000000000080000000000000021000000000000007000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 2,
+                "raw_hex": "0032083c0100cdcccc3c19320800010000000000",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 50,
+                "raw_hex": "00000000000000020100010001000100010001000102020203020402050005000502060006000600060006000600060006000600060006000602070007000700070007000700070007000700070007000700070208000800080008000800080008000800",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 8,
+                "raw_hex": "73617073000000000008736170730000000004087361707300000000080e73617073000000000f0a73617073000000001402736170730000000015087361707300000000190873617073000000001d08",
+                "typed_references": [
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\lightmap\\lightmap_tex_env_no_bump"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\shadow\\shadow_generate"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\light_response\\default_light_combined_tex"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\fog\\fog_planar"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\lightmap\\lightmap_tex_env_no_bump"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\fog\\fog_planar"
+                  ]
+                ]
+              },
+              {
+                "field": 24,
+                "count": 33,
+                "raw_hex": "0006030a08040a060d0a120414061700170017061a021b081f042100210021042300230425042700270228042a002a042c022d002d002d022e002e002e022f002f002f023000300030023100310031023200320032023300330033043504370439043b003b043d043f003f044104430043044504470449044b044d004d085100510051005100510051005100510051005100510051005106540a59045b065e0a630465066800680068066b026c08700070007000700070007000700070007000700070007000",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 112,
+                "raw_hex": "0000000001000002020000018200000083000001640000026500000388000004b2090000b00100010000000001000002020000018200000083000001640000026500000388000004b2090000b001000100000000010000020200000100000000010000020200000166000002b2090000b0010001981c0002991c000300000003010000000000000301000000b2010004b00500010000000301000000b20100040000000301000000b2010004b00500010000000400000004000000040000000400000004000000040000000400000003010000008100000482000005b2010004b00500010000000301000000b2010004b00500010000000301000000b2010004b00500010000000301000000b2010004b005000100000003010000008100000482000005b2010004b00500010000000301000000b20100048a1c00058b1c0006b00500010000000001000002020000018200000083000001640000026500000388000004b2090000b00100010000000001000002020000018200000083000001640000026500000388000004b2090000b001000100000000010000020200000100000000010000020200000166000002b2090000b0010001981c0002991c0003",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          }
+        ]
+      },
+      "source_counts": {
+        "4": 5,
+        "12": 6,
+        "20": 7,
+        "28": 2,
+        "36": 50,
+        "44": 8,
+        "52": 33,
+        "60": 0,
+        "68": 0,
+        "76": 0,
+        "84": 0,
+        "92": 5,
+        "100": 2,
+        "108": 6
+      },
+      "shader_type_flags": 1,
+      "runtime_diffuse_slot": 0,
+      "native_source_map": "deltatap",
+      "native_source_canonical_sha256": "b1dc10c8f04fdfcaa6523baa2bbed8f74995fb2b3d77ea5085a86032c821b450",
+      "native_record": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\opaque\\tex_env",
+        "bytes": 996,
+        "payload": "fb9662836df3b487290695563be25e80a997536011a43056b0c757517b831681.bin",
+        "fnv64": "1769bb496f58ff0c",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            864
+          ],
+          [
+            108,
+            896
+          ],
+          [
+            116,
+            136
+          ],
+          [
+            124,
+            216
+          ],
+          [
+            132,
+            408
+          ]
+        ],
+        "references": [
+          [
+            140,
+            [
+              "spas",
+              "shaders\\shader_passes\\lightmap\\lightmap_tex_env_no_bump"
+            ]
+          ],
+          [
+            150,
+            [
+              "spas",
+              "shaders\\shader_passes\\shadow\\shadow_generate"
+            ]
+          ],
+          [
+            160,
+            [
+              "spas",
+              "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+            ]
+          ],
+          [
+            170,
+            [
+              "spas",
+              "shaders\\shader_passes\\light_response\\default_light_combined_tex"
+            ]
+          ],
+          [
+            180,
+            [
+              "spas",
+              "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+            ]
+          ],
+          [
+            190,
+            [
+              "spas",
+              "shaders\\shader_passes\\fog\\fog_planar"
+            ]
+          ],
+          [
+            200,
+            [
+              "spas",
+              "shaders\\shader_passes\\lightmap\\lightmap_tex_env_no_bump"
+            ]
+          ],
+          [
+            210,
+            [
+              "spas",
+              "shaders\\shader_passes\\fog\\fog_planar"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "native_shape": {
+        "0": 2,
+        "8": 50,
+        "16": 8,
+        "24": 32,
+        "32": 114
+      },
+      "default_bitmap": {
+        "datum": 3796976452,
+        "name": "shaders\\default_bitmaps\\bitmaps\\color_black_alpha_black",
+        "frame": 0,
+        "log_word": 1069055604,
+        "insert_slot": 4,
+        "original_resource": {
+          "datum": 4078440851,
+          "map": "deltatap",
+          "mcc": false,
+          "metadata_sha256": "5ac8d6455f7c0a1087e12592a5f8144d040087c67f1f642b5c95b4d0108e1955",
+          "name": "shaders\\default_bitmaps\\bitmaps\\color_black_alpha_black",
+          "texture": {
+            "bytes": 40,
+            "depth": 0,
+            "format": 14,
+            "height": 8,
+            "layers": 1,
+            "mips": [
+              {
+                "bytes": 32,
+                "height": 8,
+                "sha256": "427d77638f4f46cd5be96ec71d2940415acb556d8e4f3688c664e48ee6bd5ca1",
+                "width": 8
+              },
+              {
+                "bytes": 8,
+                "height": 4,
+                "sha256": "a4fc19766be24020de440104094ea541fd0aa47169b7ff5470cc7fbf65348a54",
+                "width": 4
+              }
+            ],
+            "pixels_hex": "00000100ffffffff00000100ffffffff00000100ffffffff00000100ffffffff00000100ffffffff",
+            "sha256": "baf3241c9a97cd0292abcd8f97feba133e5bb44cbd3494566ced0fb84cea05f1",
+            "width": 8
+          }
+        },
+        "actual_PC_resources": [
+          {
+            "datum": 3796976452,
+            "map": "street_sweeper",
+            "mcc": true,
+            "metadata_sha256": "5458fbb31467a33a395af31dbde75355b41afad5458138d1c15fe981155b1093",
+            "name": "shaders\\default_bitmaps\\bitmaps\\color_black_alpha_black",
+            "texture": {
+              "bytes": 40,
+              "depth": 0,
+              "format": 14,
+              "height": 8,
+              "layers": 1,
+              "mips": [
+                {
+                  "bytes": 32,
+                  "height": 8,
+                  "sha256": "427d77638f4f46cd5be96ec71d2940415acb556d8e4f3688c664e48ee6bd5ca1",
+                  "width": 8
+                },
+                {
+                  "bytes": 8,
+                  "height": 4,
+                  "sha256": "a4fc19766be24020de440104094ea541fd0aa47169b7ff5470cc7fbf65348a54",
+                  "width": 4
+                }
+              ],
+              "pixels_hex": "00000100ffffffff00000100ffffffff00000100ffffffff00000100ffffffff00000100ffffffff",
+              "sha256": "baf3241c9a97cd0292abcd8f97feba133e5bb44cbd3494566ced0fb84cea05f1",
+              "width": 8
+            }
+          }
+        ]
+      },
+      "default_uv_hex": "0000803f0000803f0000000000000000",
+      "needed_PC_owners": [
+        {
+          "map": "street_sweeper",
+          "shader": "scenarios\\shaders\\human\\urban\\metals\\metal_slats",
+          "datum": 4166189174
+        }
+      ],
+      "paired_proof": {
+        "complete_main_matches": 15,
+        "complete_original_pairs": 15,
+        "matches": [
+          {
+            "map": "containment",
+            "shader": "scenarios\\shaders\\multi\\containment\\containment_rusted_blue",
+            "native_shader_payload": "327772be29cd844509038146b5b7c2bcb0a38038e073071fed0dfd8ac03a89cf.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "containment",
+            "shader": "scenarios\\shaders\\multi\\containment\\containment_rusted_grey",
+            "native_shader_payload": "50e7ae1d86bb6c5e7738f6164d404af4a3c8bd475c22dddd0e9e20c3590a1788.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "containment",
+            "shader": "scenarios\\shaders\\multi\\containment\\containment_rusted_grey_dull",
+            "native_shader_payload": "62d441b751e7e31b103933a023786756278a4760d49e905dc2cb9ccab3f51bad.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "containment",
+            "shader": "scenarios\\shaders\\multi\\containment\\containment_rusted_blue_dull",
+            "native_shader_payload": "babbc2df579ee2a423931872ffad63af92a5ac10d89a4dbfded0a01ed38c69eb.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "deltatap",
+            "shader": "scenarios\\shaders\\multi\\deltatap\\sanc_metal_rusted",
+            "native_shader_payload": "699f794c12375a6aede45f947922c892b470644f1a1ba5eff4f588705aa641d7.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "gemini",
+            "shader": "scenarios\\shaders\\solo\\highcharity\\prof_stat",
+            "native_shader_payload": "2331ac3c94983094ac6b501642e94b47cb0fc31535fd9cd394d7549d6d60b0d0.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "gemini",
+            "shader": "scenarios\\shaders\\human\\urban\\metals\\matte_grey",
+            "native_shader_payload": "4e51093f5d8859a19a2200465008b5334e66d01b8c571f05c3b97610a79b6676.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "highplains",
+            "shader": "scenarios\\shaders\\multi\\halo\\highplains\\highplains_metal_shiny",
+            "native_shader_payload": "5fc9d2aeb15e0388fd70825725dd04fd3a9a4db4e75e938512b89a432faefba7.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "triplicate",
+            "shader": "scenarios\\shaders\\multi\\triplicate\\basic_metal",
+            "native_shader_payload": "ece08e67e6b928f9964165acbadf3167ad8b8a7f3ade3d26b937f99a6ba5a89c.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "triplicate",
+            "shader": "scenarios\\shaders\\human\\urban\\metals\\matte_grey",
+            "native_shader_payload": "82b493c77f53cbb31ce48287a144b468d0548ff223f579cccb115b91e408ab32.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "triplicate",
+            "shader": "scenarios\\shaders\\human\\urban\\metals\\metal_slats",
+            "native_shader_payload": "cafee2b3152a35c25e4dd2da126ceb5d0d35916c83d319a2a88eebc20ae498b7.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "triplicate",
+            "shader": "scenarios\\shaders\\multi\\triplicate\\window_station",
+            "native_shader_payload": "494055189f95d25b2c3cc80954304b5c9dee6db4a04993cfd5e8120498413668.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "triplicate",
+            "shader": "scenarios\\shaders\\multi\\triplicate\\window_station_sign",
+            "native_shader_payload": "e7c24d526f09bad4345deb0f6d5c5f7b2dd86cbd1186464e647a3fcb35c8e0f9.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "triplicate",
+            "shader": "scenarios\\shaders\\multi\\triplicate\\window_station_blue",
+            "native_shader_payload": "e1b282f49b15a23e2a747f21fd135c9dad47c9f241a202bbe1d445e3eef5f5c4.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          },
+          {
+            "map": "turf",
+            "shader": "scenarios\\shaders\\human\\urban\\metals\\matte_grey",
+            "native_shader_payload": "f322074b75f48a570045ac9960539ea01bde12881111187b4ac09b5ce743143b.bin",
+            "matches": {
+              "images": true,
+              "pixels": true,
+              "vectors": true,
+              "properties": true,
+              "NIE": true,
+              "lightpass": true
+            }
+          }
+        ],
+        "authored_differences": []
+      }
+    }
+  ]
+}

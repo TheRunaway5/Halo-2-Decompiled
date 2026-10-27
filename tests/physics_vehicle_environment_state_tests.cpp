@@ -1,4 +1,6 @@
 #include "halo2/physics_vehicle_environment_state.hpp"
+#include "halo2/source_first_person_effect_retirement_tu15.hpp"
+#include "halo2/source_first_person_vector_pack_tu15.hpp"
 #include <algorithm>
 #include <cstring>
 #include <filesystem>
@@ -43,9 +45,21 @@ halo2::SourcePhysicsContactRuntimeAbi abi(const J&j){
 struct Stop{halo2::SourcePhysicsContactRuntimeCall call;};
 }
 int main(int argc,char**argv){try{
-    check(argc==2,"Supply original vehicle runtime fixture");if(!std::filesystem::exists(argv[1]))return 77;
+    check(argc==2 || (argc==3 && (std::string_view(argv[2])=="first-person-dispatch" ||
+        std::string_view(argv[2])=="first-person-vector-pack" || std::string_view(argv[2])=="first-person-part-retirement")),"Supply original vehicle runtime fixture and optional first-person dispatch mode");if(!std::filesystem::exists(argv[1]))return 77;
+    const bool first_person_dispatch=argc==3;
+    const bool vector_pack=first_person_dispatch && std::string_view(argv[2])=="first-person-vector-pack";
+    const bool part_retirement=first_person_dispatch && std::string_view(argv[2])=="first-person-part-retirement";
+    const halo2::SourcePhysicsContactRuntimeCall dispatch_call{
+        vector_pack?0x18f2feu:part_retirement?0x17a6a0u:0x17b262u,
+        vector_pack?0x18bbc0u:part_retirement?0x16e8a0u:0x17a230u,false};
+    const auto dispatch=[&](auto &memory,const auto &call,auto &a,auto control,const auto &services,const auto &stores) {
+        return vector_pack?halo2::source_first_person_vector_pack_tu15(memory,call,a,control,services,stores):
+            halo2::source_first_person_effect_retirement_tu15(memory,call,a,control,services,stores);
+    };
     std::ifstream in(argv[1]);const auto fixture=J::parse(in);check(fixture.at("image")=="1.5","TU1.5 is the sole parity target");std::size_t cases=0,writes=0,instructions=0,fullbytes=0;
     for(const auto&c:fixture.at("cases")){
+        if(first_person_dispatch && c.at("entry").get<std::uint32_t>()!=dispatch_call.target)continue;
         const auto name="vehicle_"+std::to_string(c.at("id").get<unsigned>());Memory m;
         for(const auto&b:c.at("initial_banks"))check(m.banks.emplace(b.at("address").get<std::uint32_t>(),bytes(b.at("hex"))).second,"Duplicate contact bank");
         const auto initial=m;auto state=abi(c.at("entry_abi"));std::vector<halo2::SourcePhysicsContactRecordStore> stores;std::vector<std::uint32_t> trace;std::size_t estimates=0,timestamps=0;
@@ -58,8 +72,12 @@ int main(int argc,char**argv){try{
         };
         services.required_owner=[](auto&,const auto&call,auto&,const auto&){throw Stop{call};};
         halo2::SourcePhysicsFactoryFloatingPoint environment{};
-        auto run=[&](auto&memory,auto&a,const auto&s,const auto&o){environment={c.at("entry_abi").at("x87_control_word").get<std::uint16_t>(),c.at("entry_abi").at("mxcsr").get<std::uint32_t>()};halo2::source_run_physics_vehicle_environment_state_runtime(memory,c.at("entry").get<std::uint32_t>(),a,
-            environment,s,o);
+        auto run=[&](auto&memory,auto&a,const auto&s,const auto&o){environment={c.at("entry_abi").at("x87_control_word").get<std::uint16_t>(),c.at("entry_abi").at("mxcsr").get<std::uint32_t>()};
+            if(first_person_dispatch) {
+                check(dispatch(memory,dispatch_call,a,environment,s,o),name+" original FP caller was not owned");
+                check(a.floating_point.has_value(),name+" FP dispatch lost its returned floating-point controls");
+                environment=*a.floating_point;
+            }else halo2::source_run_physics_vehicle_environment_state_runtime(memory,c.at("entry").get<std::uint32_t>(),a,environment,s,o);
             if(c.contains("subsequent_call")&&!c.at("subsequent_call").is_null()&&(a.gp[0]&255u)) {
                 const auto &call=c.at("subsequent_call");
                 for(auto i=call.at("stack").begin();i!=call.at("stack").end();++i){
@@ -76,6 +94,19 @@ int main(int argc,char**argv){try{
                             environment,s,o);
             }
         };
+        if(first_person_dispatch)for(const auto call:std::array<halo2::SourcePhysicsContactRuntimeCall,3>{{
+            {dispatch_call.instruction-1u,dispatch_call.target,false},
+            {dispatch_call.instruction,dispatch_call.target+1u,false},
+            {dispatch_call.instruction,dispatch_call.target,true}}}) {
+            auto untouched=initial;auto a=state;const auto original=a;bool called=false;
+            auto absent=services;absent.instruction=[&](auto){called=true;};
+            check(!dispatch(untouched,call,a,halo2::SourcePhysicsFactoryFloatingPoint{0,0},absent,
+                [&](const auto&){called=true;}),name+" FP retirement accepted a foreign caller/target/tail");
+            check(!called && untouched.banks==initial.banks && a.gp==original.gp && a.xmm==original.xmm &&
+                a.eflags==original.eflags && a.fs_base==original.fs_base && a.x87_depth==original.x87_depth &&
+                a.x87_status==original.x87_status && a.floating_point->x87_control_word==original.floating_point->x87_control_word &&
+                a.floating_point->mxcsr==original.floating_point->mxcsr,name+" unhandled FP retirement call changed retained state");
+        }
         bool stopped=false;
         try{run(m,state,services,halo2::SourcePhysicsContactRecordObserver([&](const auto&s){stores.push_back(s);}));}
         catch(const Stop&e){stopped=true;check(!c.at("complete").get<bool>()&&e.call.target==c.at("exit_entry").get<std::uint32_t>(),name+" unknown owner differs @ "+h(e.call.target));}
@@ -121,5 +152,6 @@ int main(int argc,char**argv){try{
         }
         ++cases;writes+=stores.size();instructions+=expected_trace.size();
     }
-    std::cout<<"PASS original TU1.5 vehicle environment state: "<<cases<<" cases, "<<instructions<<" instructions, "<<writes<<" ordered writes, "<<fullbytes<<" full-state bytes\n";return 0;
+    check(cases>0,"Original runtime fixture contains no requested owner cases");
+    std::cout<<"PASS original TU1.5 "<<(vector_pack?"FP vector-pack dispatch":part_retirement?"FP part-retirement dispatch":first_person_dispatch?"FP effect-retirement dispatch":"vehicle environment state")<<": "<<cases<<" cases, "<<instructions<<" instructions, "<<writes<<" ordered writes, "<<fullbytes<<" full-state bytes\n";return 0;
 }catch(const std::exception&e){std::cerr<<"FAIL "<<e.what()<<'\n';return 1;}}

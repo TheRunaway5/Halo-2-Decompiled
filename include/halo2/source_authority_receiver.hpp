@@ -8,6 +8,7 @@
 
 namespace halo2 {
 class SourcePeerHostTakeover;
+class SourceAuthorityEndpoint;
 // Owning native replay/takeover recipe. Retains the admitted session and
 // gameplay selections, without copying renderer/device callbacks, desktop,
 // prepared worlds or other live presentation borrowers.
@@ -45,6 +46,14 @@ struct SourceAuthorityReceiverState {
     // Historical until successful validation or this context retires; it
     // cannot establish readiness, shrink membership or authorize a takeover.
     std::optional<ValidatedAuthorityCut> rejected;
+    // Optional terminal qualification only. This owning pair is captured by
+    // the receiver at the real validated boundary, before replay advances.
+    // It remains historical evidence while ready is cleared for later input.
+    std::shared_ptr<const SourceAuthorityEndpoint> endpoint;
+    std::uint64_t endpoint_copies{},endpoint_copy_microseconds{},endpoint_bank_bytes{},endpoint_budget_skips{},endpoint_copy_failures{};
+    // Optional local retention failures never change acknowledged replay/error.
+    // Opt-in qualification reports this separately; historical pins stay valid.
+    std::string endpoint_error;
 };
 // Owning recovery input only. The source executor validates this exact cut and
 // its independent roster before export. It is not an election certificate or
@@ -57,6 +66,19 @@ struct SourceAuthorityRetainedWorld {
     SourceMatchAuthority::Checkpoint checkpoint;
     // Present only after paired host/world validation at this exact cut.
     std::optional<LanHost::Continuation> host;
+};
+// Immutable paired native checkpoint and independently checked host proof.
+// Only the receiver may construct one; no executor or memory borrower escapes.
+class SourceAuthorityEndpoint {
+public:
+    const SourceAuthorityRetainedWorld &world()const noexcept{return *world_;}
+    const SourceAuthorityHostProof &proof()const noexcept{return proof_;}
+private:
+    friend class SourceAuthorityReceiver;
+    SourceAuthorityEndpoint(SourceAuthorityHostProof proof,std::shared_ptr<const SourceAuthorityRetainedWorld> world)
+        :proof_(std::move(proof)),world_(std::move(world)){}
+    SourceAuthorityHostProof proof_;
+    std::shared_ptr<const SourceAuthorityRetainedWorld> world_;
 };
 // One client executor's private complete-world candidate. The worker decodes
 // owning bytes only; native construction/preparation stays on this executor.
@@ -118,6 +140,7 @@ public:
     void cancel();
 private:
     void update(bool advance_replay);
+    void retain_endpoint();
     struct Impl;
     std::unique_ptr<Impl> impl_;
 };

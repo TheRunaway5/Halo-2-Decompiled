@@ -56,7 +56,7 @@ int main(int argc,char **argv)try {
     for(const auto &definition:definitions)server.configure_replicated_first_person(definition);
     LanHost host(server,0,0x14f040);
     const std::array<std::int8_t,4> selected_teams{team,team,team,team};
-    LanClient client("127.0.0.1:"+std::to_string(host.port()),0x14f040,4,
+    LanClient client(host.join_address(),0x14f040,4,
         teams?std::span<const std::int8_t>(selected_teams):std::span<const std::int8_t>{},profiles);
     std::array<Controls,16> commands{};std::array<Controls,4> local{};
     for(unsigned n=0;n<64 && !client.ready();++n) {

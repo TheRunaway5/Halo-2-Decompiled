@@ -81,7 +81,7 @@ void match_udp(const FrontendLaunch &launch,const std::filesystem::path &maps) {
   check(rules.score_limit==2 && rules.starting_weapon==5 && rules.starting_grenades,
         "actual native rules lost ordered alias/byte/bit values");
   MultiplayerMatch match(content,0,cache.spawns(),rules);match.join("Source host");
-  LanHost host(match,0,0x3195);LanClient client("127.0.0.1:"+std::to_string(host.port()),0x3195,2);
+  LanHost host(match,0,0x3195);LanClient client(host.join_address(),0x3195,2);
   std::array<Controls,multiplayer_capacity> controls{};std::array<Controls,2> remote{};
   for(unsigned attempt=0;attempt<100 && !client.ready();++attempt) {
     client.send(remote);host.receive(controls);host.broadcast();client.receive();

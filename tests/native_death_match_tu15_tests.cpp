@@ -1,6 +1,7 @@
 #include "halo2/multiplayer.hpp"
 #include "halo2/multiplayer_object_runtime.hpp"
 #include "halo2/multiplayer_scoreboard.hpp"
+#include "halo2/gameplay_font_source.hpp"
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/native_death_camera.hpp"
 #include "halo2/cache.hpp"
@@ -27,11 +28,15 @@ struct Files {
 }
 int main(int argc,char **argv)try {
   std::cout<<std::unitbuf;
-  check(argc==3,"Supply owned English TU1.5 XBE and Xbox map");
-  if(!std::filesystem::exists(argv[1]) || !std::filesystem::exists(argv[2]))return 77;
-  const auto original=OriginalData::load_xbe(argv[1]);
-  Cache cache(argv[2],{},original);auto content=cache.load_content(0,true);
+  check(argc==3,"Supply owned English TU1.5 XBE and Xbox map, or native-mcc and prepared MCC map");
+  const bool native_mcc=std::string_view(argv[1])=="native-mcc";
+  if((!native_mcc&&!std::filesystem::exists(argv[1])) || !std::filesystem::exists(argv[2]))return 77;
+  Cache cache(argv[2],{},native_mcc?std::shared_ptr<const OriginalData>{}:OriginalData::load_xbe(argv[1]));
+  check(!native_mcc||cache.is_mcc(),"native-mcc requires the prepared imported MCC cache");
+  const auto original=cache.original_data();auto content=cache.load_content(0,true);
   const std::string mode=std::getenv("HALO2_TU15_TEST_DAMAGE")?std::getenv("HALO2_TU15_TEST_DAMAGE"):"direct";
+  const bool canonical_voice=std::getenv("HALO2_TU15_TEST_DAMAGE_VOICE")!=nullptr;
+  check(!canonical_voice || mode=="direct","Canonical damage voice acceptance requires the actual direct weapon route");
   const bool automatic_spectate=std::getenv("HALO2_TU15_TEST_AUTO_SPECTATE")!=nullptr;
   const auto respawn_seconds=automatic_spectate?20:5;
   CollisionWorld collision(content.collision);
@@ -67,13 +72,14 @@ int main(int argc,char **argv)try {
     selected[0]=selected[1];
     std::cout<<"Authored ledge distance="<<edge<<" yaw="<<walk_yaw<<'\n';
   }
-  Files files;MultiplayerObjectRuntime source(argv[1],cache,0,files.path);
+  Files files;MultiplayerObjectRuntime source(native_mcc?std::filesystem::path{}:std::filesystem::path(argv[1]),cache,0,files.path);
   auto variant=source_game_variant_default(0);source_game_variant_set(variant,0x59,5);
   source_game_variant_set(variant,0x11,respawn_seconds);
   source.configure_session(variant,1,30,0x12345678u);
   auto rules=slayer_rules({"Slayer",0,{{89,5},{17,respawn_seconds}}});rules.weapon=cache.slayer_starting_weapon(5);
   rules.score_limit=rules.time_ticks=0;
-  MultiplayerMatch match(content,0,selected,rules,{}, {},&source);
+  MultiplayerMatch match(content,0,canonical_voice?std::span<const Spawn>(cache.spawns()):std::span<const Spawn>(selected),rules,{}, {},&source);
+  if(canonical_voice)check(match.source_engine_owned(),"Damage voice fixture bypassed the canonical source engine");
   const auto resident=std::shared_ptr<const Cache>(&cache,[](const Cache*){});
   if(mode=="melee")match.configure_melee_animation(resident,*original->melee_constants);
   match.join("Shooter");
@@ -82,7 +88,7 @@ int main(int argc,char **argv)try {
   std::array<Controls,1> peer_input{};
   if(network) {
     host=std::make_unique<LanHost>(match,0,0x12345678u);
-    client=std::make_unique<LanClient>("127.0.0.1:"+std::to_string(host->port()),0x12345678u,1);
+    client=std::make_unique<LanClient>(host->join_address(),0x12345678u,1);
     std::array<Controls,multiplayer_capacity> incoming{};
     for(unsigned attempt=0;attempt<50 && !client->ready();++attempt) {
       client->send(peer_input);host->receive(incoming);host->broadcast();client->receive();
@@ -95,11 +101,30 @@ int main(int argc,char **argv)try {
     match.step(input);
     if(host){host->broadcast();client->receive();check(client->error().empty(),"Source UDP snapshot rejected");}
   };
-  for(unsigned tick=0;tick<100;++tick)advance();
+  bool positioned=!canonical_voice;
+  const auto aim_canonical=[&] {
+    if(!canonical_voice || !positioned || match.player(0).source_current_object==null_datum || match.player(1).source_current_object==null_datum)return;
+    const auto look=source.player_look(match.player(0).source_datum,match.player(0).source_current_object);if(!look)return;
+    const auto &shooter=match.unit(0),&target=match.unit(1);
+    const auto eye=ordinary_unit_eye(shooter.body.position,shooter.definition.camera_height,shooter.definition.crouch_camera_height,shooter.crouch);
+    const auto delta=target.body.position+Vec3{0,0,target.body.height*.5f}-eye;
+    input[0].yaw+=std::remainder(std::atan2(delta.y,delta.x)-look->x,Bytes(source.memory().view(0x44923cu,4)).f32(0));
+    input[0].pitch+=std::atan2(delta.z,std::hypot(delta.x,delta.y))-look->y;
+  };
+  for(unsigned tick=0;tick<100;++tick) {
+    if(!positioned && match.player(0).source_current_object!=null_datum && match.player(1).source_current_object!=null_datum) {
+      // Declared authored B95D0 positions only; genuine player factory,
+      // original equipment, weapon damage and credited death remain live.
+      source.tu15_world().set_object_position(match.player(0).source_current_object,selected[0].position);
+      source.tu15_world().set_object_position(match.player(1).source_current_object,selected[1].position);positioned=true;
+    }
+    aim_canonical();advance();
+  }
+  check(positioned,"Canonical source factory never birthed the damage witness pair");
   check(!match.unit(0).vitality.dead && !match.unit(1).vitality.dead,"Authored warmup killed a participant");
   const auto victim=match.unit(1).source_datum,owner=match.player(1).source_datum;
   std::uint32_t random=0x12345678u;NativeDeathCamera camera(source,*original,random);
-  Mesh mesh;MultiplayerScoreboard board(cache,cache.shared_directory()/"fonts",mesh,{"Slayer",0,{{89,5}}});
+  Mesh mesh;MultiplayerScoreboard board(cache,gameplay_font_directory(cache),mesh,{"Slayer",0,{{89,5}}});
   check(board.available(),"Original scoreboard providers unavailable");
   const auto ordinary=[&] {
     const auto &u=match.unit(1);
@@ -114,7 +139,8 @@ int main(int argc,char **argv)try {
     const auto eye=ordinary_unit_eye(shooter.body.position,shooter.definition.camera_height,
         shooter.definition.crouch_camera_height,shooter.crouch);
     const auto delta=target.body.position+Vec3{0,0,target.body.height*.5f}-eye;
-    input[0].yaw=std::atan2(delta.y,delta.x);input[0].pitch=std::atan2(delta.z,std::hypot(delta.x,delta.y));
+    if(canonical_voice)aim_canonical();
+    else {input[0].yaw=std::atan2(delta.y,delta.x);input[0].pitch=std::atan2(delta.z,std::hypot(delta.x,delta.y));}
     if(mode=="melee") {
       input[0].forward=length(target.body.position-shooter.body.position)>.75f?.2f:0.f;
       input[0].melee=!shooter.melee_action.active() && input[0].forward==0;
@@ -144,8 +170,17 @@ int main(int argc,char **argv)try {
         <<" velocity="<<body.velocity.x<<','<<body.velocity.y<<','<<body.velocity.z<<'\n';
   }
   check(match.unit(1).vitality.dead && match.player(1).deaths==1 &&
-      (mode=="fall" || (match.player(0).kills==1 && match.simulation().hits()>0)),
+      (mode=="fall" || (match.player(0).kills==1 && (canonical_voice || match.simulation().hits()>0))),
       "Actual authored-spawn damage did not produce a fatal hit");
+  if(std::getenv("HALO2_TU15_TEST_DAMAGE_VOICE")) {
+    const auto state=client?client->state():match.state();
+    const auto voices=std::count_if(state.unit_damage_voices.begin(),state.unit_damage_voices.end(),
+        [&](const auto &event){return event.target==victim;});
+    const auto lethal=std::count_if(state.unit_damage_voices.begin(),state.unit_damage_voices.end(),
+        [&](const auto &event){return event.target==victim && (event.report_flags&1u);});
+    std::cout<<"Actual native damage voice journal: target="<<victim<<" requests="<<voices<<" lethal="<<lethal<<'\n';
+    check(voices && lethal,"Actual native fatal hit omitted the original player hurt/death voice requests");
+  }
   input={};bool observer{},automatic{},replaced{},restored{},ragdoll{};
   const bool spectate=automatic_spectate || std::getenv("HALO2_TU15_TEST_SPECTATE")!=nullptr;
   bool followed{},remote_followed{};Vec3 watched_start{};float watched_travel{};

@@ -4,15 +4,38 @@
 #include "halo2/source_authority_delta.hpp"
 #include "halo2/source_host_continuation_codec.hpp"
 #include "halo2/source_peer_host_takeover.hpp"
+#include "halo2/source_terminal_recovery.hpp"
+#include "halo2/source_admitted_camera.hpp"
 #include <algorithm>
 #include <condition_variable>
 #include <mutex>
 #include <stdexcept>
 #include <thread>
+#include <atomic>
 
 namespace halo2 {
 namespace {
 using Clock=std::chrono::steady_clock;
+// Only a complete-world cut takes this reservation. The permit survives the
+// worker/result boundary and native staging; cancellation destroys it too.
+// Atomic ownership permits worker acquisition and executor-thread release.
+struct NetworkCutReservation {
+    static inline std::atomic<bool> occupied=false;
+    bool held{};
+    ~NetworkCutReservation(){if(held)occupied.store(false,std::memory_order_release);}
+    static std::unique_ptr<NetworkCutReservation> acquire(std::stop_token stop){
+        auto reservation=std::make_unique<NetworkCutReservation>();
+        while(!stop.stop_requested()){
+            bool expected=false;
+            if(occupied.compare_exchange_strong(expected,true,std::memory_order_acquire)){
+                reservation->held=true;return reservation;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+        return {};
+    }
+};
+static_assert(8*sizeof(SourceMatchAuthority::Checkpoint)<authority_network_fixed_bytes);
 void need(bool ok){if(!ok)throw std::invalid_argument("Invalid source authority receiver ownership, admission or cut");}
 std::uint64_t micros(Clock::time_point started){return std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-started).count();}
 void clear_ready(SourceAuthorityReceiverState &state){state.ready.reset();state.host_ready=false;state.host_proof.reset();}
@@ -42,6 +65,48 @@ MultiplayerOptions source_authority_options(const MultiplayerOptions &input){
     out.bsp=input.bsp;out.variant=input.variant;out.starting_weapon=input.starting_weapon;out.session_random_seed=input.session_random_seed;
     out.local_players=input.local_players;out.selected_teams=input.selected_teams;out.selected_profiles=input.selected_profiles;return out;
 }
+std::shared_ptr<MultiplayerPreparedWorld> SourceTerminalRecovery::prepare(const MultiplayerOptions &request,
+    const SourceAuthorityRetainedWorld &saved,const OnlineMatchSession::TerminalObservation &observed) {
+    const auto &session=request.online_match;
+    need(session&&session->terminal_recovery_enabled()&&session->phase()==OnlineMatchSession::Phase::Failed&&
+        session->terminal_observation().has_value()&&session->authority_context()==observed.context()&&
+        session->self()==observed.self()&&observed.context()==saved.cut.context&&saved.cut.peer==observed.self()&&
+        observed.context().host!=observed.self()&&saved.host.has_value()&&session->source_players()==saved.admissions&&
+        saved.local_views==session->local_slots()&&saved.admissions.context==saved.cut.context&&
+        saved.admissions.players.size()==session->roster().size()&&saved.local_views.size()==request.local_players&&
+        saved.checkpoint.match.simulation.ticks==saved.cut.seal.tick&&
+        observed.context().peers==std::uint16_t(observed.retired_peers()|(1u<<observed.self()))&&
+        !(observed.retired_peers()&(1u<<observed.self()))&&observed.retired_peers());
+    auto options=source_authority_options(request);options.source_object_world=request.source_object_world;
+    options.source_object_savegame_directory=request.source_object_savegame_directory;
+    std::vector<unsigned> producer_views;for(const auto &p:session->roster())
+        if(online_admission_peer(p)==saved.cut.context.host)producer_views.push_back(p.slot);
+    need(saved.producer_views==producer_views);
+    // The target is wholly private: import under the producer's exact view
+    // mapping, then run original local-view binding there. This is the same
+    // cold native import owner used by SourcePeerHostTakeover; no second
+    // complete executor or network host activation is necessary.
+    auto target=MultiplayerPreparedWorld::source_shadow(options,MultiplayerPreparedWorld::SourceShadowViews::IncomingHost);
+    need(target->local_slots==producer_views);
+    for(auto slot:saved.local_views) {
+        const auto &p=saved.checkpoint.match.players.at(slot);
+        need(p.connected&&!(p.source_flags&2u)&&p.source_datum==saved.admissions.players.at(slot).player);
+        if(!options.selected_profiles.empty())need(p.source_configuration==target->match.player(slot).source_configuration);
+    }
+    SourceMatchAuthority recipient(target->match,*target->source_objects);
+    auto prepared=recipient.prepare(saved.checkpoint,source_authority_binding(saved.cut.context),saved.admissions.players);
+    need(recipient.commit(std::move(prepared)));
+    target->bind_source_local_views(saved.local_views);
+    need(target->local_slots==session->local_slots()&&recipient.execution_tick()==saved.cut.seal.tick);
+    // Membership comes only from the live authenticated direct observation.
+    // Original depart keeps the source result row and does not synthesize a kill.
+    for(const auto &p:session->roster())if(observed.retired_peers()&(1u<<online_admission_peer(p)))
+        target->match.depart(p.slot);
+    // The original target was configured with this PC's real local views.
+    // Network authority stays retired; permit only a fresh local renderer to
+    // consume this exact native owner after the old runtime has been destroyed.
+    target->shadow_=false;return target;
+}
 struct SourceAuthorityReceiver::Impl {
     const MultiplayerOptions options;const std::shared_ptr<OnlineMatchSession> session;
     const SourceAuthorityStreamMode mode;
@@ -53,15 +118,19 @@ struct SourceAuthorityReceiver::Impl {
     bool paired{};std::optional<LanHost::Continuation> host;
     std::unique_ptr<MultiplayerPreparedWorld> target,workspace;
     std::unique_ptr<SourceMatchAuthority> authority;
+    std::unique_ptr<SourceAdmittedCameraBank> admitted_cameras;
     std::optional<SourceMatchAuthority::ExecutionBoundary> validated_boundary;
     SourceAuthorityReceiverState stats;
+    std::vector<std::weak_ptr<const SourceAuthorityEndpoint>> endpoints;
     struct Job {std::uint64_t generation;ReceivedAuthorityCut cut;AcceptedSourcePlayers admitted;std::optional<AuthorityArchiveImage> base;
-        std::optional<SourceReplayBinding> replay;};
+        std::optional<SourceReplayBinding> replay;bool after_replay{};};
     struct Result {std::uint64_t generation{},decode_us{};ReceivedAuthorityCut cut;AcceptedSourcePlayers admitted;
+        std::unique_ptr<NetworkCutReservation> memory;
         std::optional<SourceMatchAuthority::Checkpoint> checkpoint;std::optional<AuthorityArchiveImage> image;
         std::optional<SourceReplayBatch> replay;std::optional<LanHost::Continuation> host;bool delta{};std::string error;};
     struct ActiveReplay {Result output;std::size_t at{};Clock::time_point started=Clock::now();};
     std::optional<ActiveReplay> active_replay;
+    std::atomic<bool> replay_busy=false;
     mutable std::mutex mutex;std::condition_variable_any condition;std::uint64_t generation{};bool working{};
     std::optional<Job> job;std::optional<Result> result;
     std::jthread worker;
@@ -74,7 +143,7 @@ struct SourceAuthorityReceiver::Impl {
     }
     ~Impl(){worker.request_stop();condition.notify_all();if(worker.joinable())worker.join();}
     void own()const{need(std::this_thread::get_id()==executor);}
-    void discard(){std::lock_guard lock(mutex);++generation;job.reset();result.reset();base.reset();replay.reset();active_replay.reset();host.reset();paired=false;clear_ready(stats);stats.rejected.reset();authority.reset();target.reset();workspace.reset();stats.warmed=stats.workspace_warmed=false;}
+    void discard(){std::lock_guard lock(mutex);++generation;job.reset();result.reset();base.reset();replay.reset();active_replay.reset();replay_busy=false;host.reset();paired=false;clear_ready(stats);stats.rejected.reset();stats.endpoint.reset();stats.endpoint_error.clear();endpoints.clear();admitted_cameras.reset();authority.reset();target.reset();workspace.reset();stats.warmed=stats.workspace_warmed=false;condition.notify_all();}
     void reject_failed(const ReceivedAuthorityCut &cut){
         stats.rejected=ValidatedAuthorityCut{session->self(),cut.context,cut.seal};
         session->reject_authority(cut.context,cut.seal);
@@ -85,6 +154,7 @@ struct SourceAuthorityReceiver::Impl {
         const auto before=authority->execution_boundary();
         auto checked=LanHost::resume(target->match,std::make_shared<HostValidationDatagrams>(),*fingerprint,roster,
             saved,source_authority_binding(*context),accepted.players);
+        if(admitted_cameras)LanHost::verify_admitted_cameras(saved,*admitted_cameras);
         need(authority->execution_boundary()==before);
     }
     void reject_prefetched(){
@@ -124,10 +194,11 @@ struct SourceAuthorityReceiver::Impl {
     void decode(std::stop_token stop){
         while(!stop.stop_requested()){
             std::optional<Job> item;
-            {std::unique_lock lock(mutex);condition.wait(lock,stop,[&]{return bool(job);});if(stop.stop_requested())return;item=std::move(job);job.reset();working=true;}
+            {std::unique_lock lock(mutex);condition.wait(lock,stop,[&]{return job&&(!job->after_replay||!replay_busy.load());});if(stop.stop_requested())return;item=std::move(job);job.reset();working=true;}
             Result out;out.generation=item->generation;out.cut=item->cut;out.admitted=std::move(item->admitted);const auto started=Clock::now();
             try {
-                need(out.cut.bytes&&out.cut.peer==out.cut.context.host&&out.cut.context==out.admitted.context);
+                need(out.cut.bytes&&out.cut.bytes->size()<=authority_network_encoded_bytes&&
+                    out.cut.peer==out.cut.context.host&&out.cut.context==out.admitted.context);
                 if(source_replay_batch_payload(*out.cut.bytes)||source_host_replay_payload(*out.cut.bytes)){
                     need(mode==SourceAuthorityStreamMode::Replay&&item->replay.has_value()&&out.cut.seal.id>item->replay->previous.id);
                     if(source_host_replay_payload(*out.cut.bytes)){
@@ -137,15 +208,17 @@ struct SourceAuthorityReceiver::Impl {
                     }else out.replay=decode_source_replay_batch(*out.cut.bytes,*item->replay);
                     need(out.cut.seal.tick==out.replay->steps.back().after_tick);
                 }else {
-                SourceAuthorityCodecLimits limits;limits.encoded_bytes=64ull*1024*1024;
+                out.memory=NetworkCutReservation::acquire(stop);need(bool(out.memory));
+                const auto limits=source_authority_network_codec_limits();
                 if(source_host_continuation_payload(*out.cut.bytes)){
                     need(mode==SourceAuthorityStreamMode::Replay);const auto fingerprint=session->loaded_fingerprint();need(fingerprint.has_value());
                     auto cut=decode_source_host_continuation(*out.cut.bytes,out.cut.context,*fingerprint,roster,out.admitted.players,limits);
                     out.checkpoint=std::move(cut.world);out.host=std::move(cut.host);
                 }else{
                     out.delta=delta(*out.cut.bytes);need(!out.delta||item->base.has_value());
-                    out.image=out.delta?apply_authority_delta(*item->base,*out.cut.bytes):AuthorityArchiveImage::read(*out.cut.bytes);
-                    out.checkpoint=decode_source_authority(out.image->encode(),limits);
+                    const auto delta_limits=source_authority_network_delta_limits();
+                    out.image=out.delta?apply_authority_delta(*item->base,*out.cut.bytes,delta_limits):AuthorityArchiveImage::read(*out.cut.bytes,delta_limits);
+                    out.checkpoint=decode_source_authority_raw(out.image->raw(),out.image->digest(),limits);
                 }
                 const auto &saved=out.checkpoint->match;
                 const auto binding=source_authority_binding(out.cut.context);
@@ -155,7 +228,7 @@ struct SourceAuthorityReceiver::Impl {
                     else need(!player.connected&&player.source_datum==null_datum);
                 }
                 }
-            }catch(const std::exception &e){out.error=e.what();out.checkpoint.reset();out.image.reset();out.host.reset();}
+            }catch(const std::exception &e){out.error=e.what();out.checkpoint.reset();out.image.reset();out.host.reset();out.memory.reset();}
             out.decode_us=micros(started);
             bool rejected=false;
             {std::lock_guard lock(mutex);working=false;
@@ -192,7 +265,7 @@ void SourceAuthorityReceiver::update(bool advance_replay){
                     s.paired==output->host.has_value());
                 need(s.validated_boundary&&s.authority->execution_boundary()==*s.validated_boundary&&
                     s.validated_boundary->tick==s.replay->previous.tick);
-                clear_ready(s.stats);s.host.reset();s.active_replay.emplace(Impl::ActiveReplay{std::move(*output),0,Clock::now()});
+                clear_ready(s.stats);s.host.reset();s.active_replay.emplace(Impl::ActiveReplay{std::move(*output),0,Clock::now()});s.replay_busy=true;
             }catch(const std::exception &e){s.stats.error=e.what();s.reject_failed(output->cut);}
             else {bool commit_attempted=false;try {
                 const auto accepted=s.admissions();need(accepted&&*accepted==output->admitted&&output->checkpoint&&(output->image||output->host)&&s.target&&s.workspace&&
@@ -207,6 +280,16 @@ void SourceAuthorityReceiver::update(bool advance_replay){
                 need(s.session->authority_context()==s.context&&s.admissions()==accepted);
                 clear_ready(s.stats);s.host.reset();commit_attempted=true;
                 need(s.authority->commit(std::move(prepared)));s.stats.prepare_microseconds=micros(started);
+                if(s.session->terminal_recovery_enabled()){
+                    need(output->host&&s.session->authority_admitted_camera_supported(output->cut.context.host));
+                    // Received raw controller/observer words never initialize
+                    // this owner. A fresh stream must begin at actual tick0;
+                    // later state is obtained solely by authenticated numeric
+                    // replay and checked against the sealed host sidecar.
+                    s.admitted_cameras=std::make_unique<SourceAdmittedCameraBank>(s.target->match,*s.target->source_objects,
+                        *s.target->match.original_data(),*accepted,s.roster);
+                    s.admitted_cameras->activate();
+                }
                 if(output->host)s.validate_host(*output->host,*accepted);
                 const ValidatedAuthorityCut validated{s.session->self(),output->cut.context,output->cut.seal};
                 std::optional<SourceAuthorityHostProof> proof;
@@ -217,9 +300,9 @@ void SourceAuthorityReceiver::update(bool advance_replay){
                 s.stats.ready=validated;s.stats.host_proof=std::move(proof);s.stats.rejected.reset();
                 s.validated_boundary=boundary;
                 if(s.mode==SourceAuthorityStreamMode::Replay){s.replay=SourceReplayBinding{output->cut.context,output->cut.seal,output->cut.seal,1};s.stats.replay_sequence=0;}
-                ++s.stats.prepared;s.stats.delta=output->delta;s.stats.error.clear();
+                ++s.stats.prepared;s.stats.delta=output->delta;s.stats.error.clear();retain_endpoint();
             }catch(const std::exception &e){s.stats.error=e.what();s.reject_failed(output->cut);
-                if(commit_attempted){clear_ready(s.stats);s.host.reset();s.authority.reset();s.target.reset();s.stats.warmed=false;}}
+                if(commit_attempted){clear_ready(s.stats);s.host.reset();s.admitted_cameras.reset();s.authority.reset();s.target.reset();s.stats.warmed=false;}}
             }
         }
     }
@@ -227,7 +310,9 @@ void SourceAuthorityReceiver::update(bool advance_replay){
         auto &active=*s.active_replay;const auto &batch=*active.output.replay;
         need(s.replay&&batch.binding==*s.replay&&s.admissions()==active.output.admitted&&s.session->authority_context()==s.context);
         const auto &step=batch.steps.at(active.at);need(s.authority->execution_boundary().tick==step.before_tick);
-        s.authority->replay_execution_phase(step.phase);need(s.authority->execution_boundary().tick==step.after_tick);
+        std::unique_ptr<SourceAdmittedCameraBank::Binding> cameras;
+        if(s.admitted_cameras)cameras=std::make_unique<SourceAdmittedCameraBank::Binding>(*s.admitted_cameras);
+        s.authority->replay_execution_phase(step.phase);cameras.reset();need(s.authority->execution_boundary().tick==step.after_tick);
         ++active.at;++s.stats.replayed_phases;
         if(active.at==batch.steps.size()){
             std::vector<unsigned> slots;for(const auto &player:active.output.admitted.players)slots.push_back(player.slot);
@@ -244,13 +329,13 @@ void SourceAuthorityReceiver::update(bool advance_replay){
             s.host=std::move(active.output.host);s.stats.host_ready=s.host.has_value();
             s.stats.ready=validated;s.stats.host_proof=std::move(proof);s.stats.rejected.reset();
             s.validated_boundary=boundary;
-            ++s.stats.replay_batches;s.stats.error.clear();s.active_replay.reset();
+            ++s.stats.replay_batches;s.stats.error.clear();s.active_replay.reset();s.replay_busy=false;s.condition.notify_all();retain_endpoint();
         }
     }catch(const std::exception &e){s.stats.error=e.what();
         if(s.active_replay)s.reject_failed(s.active_replay->output.cut);
-        s.active_replay.reset();s.replay.reset();clear_ready(s.stats);s.host.reset();
+        s.active_replay.reset();s.replay_busy=false;s.condition.notify_all();s.replay.reset();clear_ready(s.stats);s.host.reset();
         s.reject_prefetched();
-        s.authority.reset();s.target.reset();s.stats.warmed=false;s.stats.replay_sequence=0;}}
+        s.admitted_cameras.reset();s.authority.reset();s.target.reset();s.stats.warmed=false;s.stats.replay_sequence=0;}}
     if(s.receiving&&s.decoder_available())if(auto accepted=s.admissions())if(auto cut=s.session->received_authority()){
         if(cut->context!=s.context||cut->peer!=s.context->host)return;
         auto expected=s.replay;
@@ -259,8 +344,40 @@ void SourceAuthorityReceiver::update(bool advance_replay){
         // preceding batch has completed all its original execution checks.
         if(s.active_replay){need(expected.has_value());expected->previous=s.active_replay->output.cut.seal;
             expected->first_sequence+=s.active_replay->output.replay->steps.size();}
-        {std::lock_guard lock(s.mutex);s.job.emplace(Impl::Job{s.generation,std::move(*cut),std::move(*accepted),s.base,expected});}
+        // Preserve replay prefetch, but defer complete-world expansion until
+        // the current replay's dynamic values have retired. Only its bounded
+        // encoded transfer slot can overlap the full-cut reservation.
+        const bool defer=s.active_replay&&!source_replay_batch_payload(*cut->bytes)&&!source_host_replay_payload(*cut->bytes);
+        {std::lock_guard lock(s.mutex);s.job.emplace(Impl::Job{s.generation,std::move(*cut),std::move(*accepted),s.base,expected,defer});}
         ++s.stats.received;s.condition.notify_one();
+    }
+}
+void SourceAuthorityReceiver::retain_endpoint(){
+    auto &s=*impl_;
+    if(!s.session->terminal_recovery_enabled()||!s.stats.ready||!s.stats.host_proof)return;
+    // At most two older owning images plus the copy under construction.
+    // The foreground retains its actual displayed image; the worker may
+    // replace its unadopted pending image, without stopping authenticated replay.
+    const std::weak_ptr<const SourceAuthorityEndpoint> previous=s.stats.endpoint;
+    s.stats.endpoint.reset();
+    std::erase_if(s.endpoints,[](const auto &p){return p.expired();});
+    if(s.endpoints.size()>=3){++s.stats.endpoint_budget_skips;s.stats.endpoint=previous.lock();return;}
+    const auto begin=Clock::now();
+    try{
+    auto world=std::make_shared<const SourceAuthorityRetainedWorld>(checkpoint_paired(*s.stats.ready));
+    std::uint64_t bytes{};for(const auto &region:world->checkpoint.world.world.bank.regions)bytes+=region.bytes.size();
+    s.stats.endpoint_bank_bytes=bytes;
+    if(bytes>authority_network_native_bytes)throw FormatError("Terminal endpoint native bank bytes "+std::to_string(bytes)+
+        " exceed local retention image limit "+std::to_string(authority_network_native_bytes));
+    auto endpoint=std::shared_ptr<const SourceAuthorityEndpoint>(new SourceAuthorityEndpoint(*s.stats.host_proof,std::move(world)));
+    s.endpoints.push_back(endpoint);s.stats.endpoint=std::move(endpoint);
+    ++s.stats.endpoint_copies;s.stats.endpoint_copy_microseconds+=micros(begin);s.stats.endpoint_bank_bytes=bytes;s.stats.endpoint_error.clear();
+    }catch(const std::exception &error){
+        // A failed optional copy must not reject an already acknowledged
+        // valid replay or relabel the previous display endpoint.
+        ++s.stats.endpoint_copy_failures;
+        try{s.stats.endpoint_error=std::string("Terminal endpoint retention unavailable: ")+error.what();}catch(...){}
+        s.stats.endpoint=previous.lock();
     }
 }
 SourceAuthorityReceiverState SourceAuthorityReceiver::state()const{auto &s=*impl_;s.own();auto state=s.stats;state.replaying=s.active_replay.has_value();std::lock_guard lock(s.mutex);state.decoding=s.working||bool(s.job);return state;}
@@ -359,7 +476,7 @@ struct SourceAuthorityReplayWorker::Impl {
     ~Impl(){cancel();if(worker.joinable())worker.join();}
     static std::exception_ptr unavailable(){return std::make_exception_ptr(std::runtime_error("Source replay export is unavailable, stale or cancelled"));}
     void cancel(){
-        {std::lock_guard lock(mutex);cancelled=true;clear_ready(stats);stats.rejected.reset();stats.warmed=stats.workspace_warmed=false;}
+        {std::lock_guard lock(mutex);cancelled=true;clear_ready(stats);stats.endpoint.reset();stats.rejected.reset();stats.warmed=stats.workspace_warmed=false;}
         worker.request_stop();condition.notify_all();
     }
     void run(std::stop_token stop)noexcept {
@@ -413,9 +530,9 @@ struct SourceAuthorityReplayWorker::Impl {
                 {std::unique_lock lock(mutex);if(cancelled)break;stats=std::move(state);
                     condition.wait_for(lock,stop,std::chrono::milliseconds(2),[&]{return bool(request)||bool(paired_request)||bool(retention_request)||cancelled||paused!=replay_paused;});}
             }
-        }catch(const std::exception &e){std::lock_guard lock(mutex);stats.error=e.what();clear_ready(stats);stats.warmed=stats.workspace_warmed=false;}
-        catch(...){std::lock_guard lock(mutex);stats.error="Source replay executor failed";clear_ready(stats);stats.warmed=stats.workspace_warmed=false;}
-        {std::lock_guard lock(mutex);stopped=true;exporting=false;
+        }catch(const std::exception &e){std::lock_guard lock(mutex);stats.error=e.what();clear_ready(stats);stats.endpoint.reset();stats.warmed=stats.workspace_warmed=false;}
+        catch(...){std::lock_guard lock(mutex);stats.error="Source replay executor failed";clear_ready(stats);stats.endpoint.reset();stats.warmed=stats.workspace_warmed=false;}
+        {std::lock_guard lock(mutex);stats.endpoint.reset();stopped=true;exporting=false;
             if(request){request->result.set_exception(unavailable());request.reset();}
             if(paired_request){paired_request->result.set_exception(unavailable());paired_request.reset();}
             if(retention){retention->result.set_exception(unavailable());retention.reset();}

@@ -1,4 +1,8 @@
 #include "halo2/source_shadow_draw_storage.hpp"
+#include "halo2/native_world_kernel.hpp"
+#include "halo2/native_fragment_kernel.hpp"
+#include "halo2/world_material_uniform.hpp"
+#include "native_world_kernels.generated.hpp"
 #include <algorithm>
 #include <cstring>
 #include <fstream>
@@ -25,7 +29,7 @@ std::vector<std::uint32_t> shader(const std::filesystem::path &path) {
 struct SourceShadowDrawStorage::Impl {
     SourceShadowDrawStorageContext context;
     SourceWorldDrawStorage storage;
-    std::map<std::tuple<SourceShadowPhase,unsigned,bool>,VkPipeline> pipelines;
+    std::map<std::tuple<SourceShadowPhase,unsigned,bool,std::string_view,std::string_view>,VkPipeline> pipelines;
     explicit Impl(SourceShadowDrawStorageContext input):context(std::move(input)),
         storage({context.device,context.physical,context.texture_layout,context.material_uniform_size}) {
         if(!context.pipeline_layout || !context.generation_pass || !context.application_pass)
@@ -35,18 +39,41 @@ struct SourceShadowDrawStorage::Impl {
         for(const auto &[key,pipeline]:pipelines)vkDestroyPipeline(context.device,pipeline,nullptr);
     }
     std::span<const VkDescriptorSet> upload(std::span<const SourceShadowDrawUpload> draws) {
-        for(const auto &draw:draws)if(draw.vertex_bank.range!=std::array<std::uint32_t,4>{0,49,0,1})
-            throw FormatError("incomplete queued shadow vertex bank");
-        return storage.upload(draws);
+        std::vector<WorldMaterialUniform> uniforms;uniforms.reserve(draws.size());
+        std::vector<SourceShadowDrawUpload> native;native.reserve(draws.size());
+        for(const auto &draw:draws) {
+            if(draw.vertex_bank.range!=std::array<std::uint32_t,4>{0,49,0,1})
+                throw FormatError("incomplete queued shadow vertex bank");
+            if(draw.material_uniform.size()!=sizeof(WorldMaterialUniform))
+                throw FormatError("queued native shadow has an incompatible material ABI");
+            WorldMaterialUniform value;std::memcpy(&value,draw.material_uniform.data(),sizeof(value));
+            uniforms.push_back(native_material_gpu_uniform(value));
+            auto copy=draw;copy.material_uniform={reinterpret_cast<const std::byte*>(&uniforms.back()),sizeof(value)};
+            native.push_back(copy);
+        }
+        return storage.upload(native);
     }
     VkPipeline pipeline(const SourceShadowMaterial &material,SourceShadowPhase phase,SourceShadowRasterInput raster_input) {
         validate_source_shadow_plan_material(material,phase);
         if(raster_input.cull!=0 && raster_input.cull!=0x900 && raster_input.cull!=0x901)
             throw FormatError("invalid explicit shadow cull input");
-        const auto key=std::tuple{phase,raster_input.cull,raster_input.depth_clamp};
+        const auto& authored=material.material;
+        const auto declaration=pack_source_vertex_declaration(authored.vertex_declaration,authored.world_vertex_input_transform);
+        const auto found=std::find_if(generated_native_world_kernels::entries.begin(),generated_native_world_kernels::entries.end(),
+            [&](const auto& entry) {
+                const auto bytes=std::as_bytes(entry.vertex_program);
+                // This explicit conduit always uploads original c0..48 with
+                // camera_inputs=true, independently of the resident material.
+                return entry.declaration==declaration && entry.extended_vertex_bank &&
+                    bytes.size()==authored.vertex_program.size() && std::equal(bytes.begin(),bytes.end(),authored.vertex_program.begin());
+            });
+        if(found==generated_native_world_kernels::entries.end())
+            throw FormatError("queued shadow has no complete native vertex kernel");
+        const auto fragment_path=native_fragment_kernel_path("world",authored.forward_program.words);
+        const auto key=std::tuple{phase,raster_input.cull,raster_input.depth_clamp,found->vertex_path,fragment_path};
         if(const auto found=pipelines.find(key);found!=pipelines.end())return found->second;
-        const auto vertex=shader(context.shader_directory/"world_prt.vert.spv");
-        const auto fragment=shader(context.shader_directory/"world.frag.spv");
+        const auto vertex=shader(context.shader_directory/found->vertex_path);
+        const auto fragment=shader(context.shader_directory/fragment_path);
         VkShaderModule vert{},frag{};
         struct Modules {VkDevice device;VkShaderModule &vert,&frag;~Modules(){if(vert)vkDestroyShaderModule(device,vert,nullptr);if(frag)vkDestroyShaderModule(device,frag,nullptr);}} modules{context.device,vert,frag};
         VkShaderModuleCreateInfo module{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};module.codeSize=vertex.size()*4;module.pCode=vertex.data();
@@ -70,10 +97,11 @@ struct SourceShadowDrawStorage::Impl {
             {9,0,VK_FORMAT_R32_SFLOAT,offsetof(Vertex,prt_cluster)},
             {10,0,VK_FORMAT_R32G32B32A32_SFLOAT,offsetof(Vertex,prt_weights)},
             {11,0,VK_FORMAT_R32_UINT,offsetof(Vertex,source_stipple_level)},
-            {12,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex,source_local_position)}};
+            {12,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex,source_local_position)},
+            {13,0,VK_FORMAT_R32_SFLOAT,offsetof(Vertex,source_color_alpha)}};
         VkPipelineVertexInputStateCreateInfo input{VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
         input.vertexBindingDescriptionCount=1;input.pVertexBindingDescriptions=&binding;
-        input.vertexAttributeDescriptionCount=13;input.pVertexAttributeDescriptions=attributes;
+        input.vertexAttributeDescriptionCount=14;input.pVertexAttributeDescriptions=attributes;
         VkPipelineInputAssemblyStateCreateInfo assembly{VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};assembly.topology=VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         VkPipelineViewportStateCreateInfo viewport{VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};viewport.viewportCount=viewport.scissorCount=1;
         VkPipelineRasterizationStateCreateInfo raster{VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};

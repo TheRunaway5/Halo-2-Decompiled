@@ -1,6 +1,7 @@
 #include "halo2/mcc_script_sound_world_access.hpp"
 #include "halo2/multiplayer_audio.hpp"
 #include "halo2/mcc_sound_variation_provider.hpp"
+#include "halo2/mcc_sound_metadata_publication.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/source_game_variant.hpp"
 #include "halo2/original_data.hpp"
@@ -37,6 +38,14 @@ Expected expected(const Cache&cache,const SoundVariationDefinition&d,std::uint32
  return {source_sound_driver_volume(std::bit_cast<unsigned>(attenuation),driver,{0x027f,0x1f80}),after,std::bit_cast<unsigned>(sample_pitch),unsigned(p)};
 }
 struct Fixture{std::uint32_t sound;float distance;Expected native,raw;};
+void same_metadata(const SoundVariationDefinition &a,const SoundVariationDefinition &b){
+ need(a.datum==b.datum && a.sound==b.sound && a.playback==b.playback && a.sound_class==b.sound_class &&
+     a.range==b.range && a.scale==b.scale && a.permutations==b.permutations && a.used==b.used &&
+     a.sample_rate_index==b.sample_rate_index && a.pitch_ranges.size()==b.pitch_ranges.size(),
+     "Immutable publication differs from genuine initialized native World metadata");
+ for(unsigned n=0;n<a.pitch_ranges.size();++n)need(a.pitch_ranges[n].interval==b.pitch_ranges[n].interval &&
+     a.pitch_ranges[n].permutations==b.pitch_ranges[n].permutations,"Immutable publication changed genuine World pitch intervals");
+}
 Fixture fixture(const Cache&cache,const MccSoundVariationProvider&p){
  for(const auto&t:cache.select_tags({.group=TagGroup{"snd!"},.require_address=true})){
   const auto raw_bytes=cache.read_tag_bytes(t.address,20);const Bytes raw(raw_bytes);if(std::to_integer<unsigned>(raw.slice(10,1)[0])!=1 || !raw.u32(16) || raw.u32(16)>10000)continue;
@@ -53,8 +62,26 @@ Fixture fixture(const Cache&cache,const MccSoundVariationProvider&p){
 }
 int main(int argc,char**argv)try{
  static_assert(sizeof(MultiplayerAudio)==sizeof(void*));if(argc!=3 || !*argv[1] || !std::filesystem::is_regular_file(argv[1]))return 77;std::filesystem::create_directories(argv[2]);
- const Cache cache(argv[1]);auto world=std::make_unique<PhysicsLiveWorldTu15>(cache,argv[2]);world->initialize_map();world->configure_session(source_game_variant_default(0),1,30,0x6a19d3e1);
+ const auto cache_owner=std::make_shared<const Cache>(argv[1]);const auto &cache=*cache_owner;
+ const auto publication=MccSoundMetadataPublication::create(cache_owner);
+ auto world=std::make_unique<PhysicsLiveWorldTu15>(cache,argv[2]);world->initialize_map();world->configure_session(source_game_variant_default(0),1,30,0x6a19d3e1);
  auto provider=world->sound_variation_provider(cache);const auto f=fixture(cache,provider);const std::array<Vec3,1>listeners{Vec3{0,0,0}};
+ same_metadata(provider.load(cache,TagHandle{f.sound}),publication.load(cache,TagHandle{f.sound}));
+ unsigned lift_metadata{};
+ for(const auto &tag:cache.tags())if(tag.group=="snd!" && (tag.name.find("midship_grav_lift")!=std::string::npos || tag.name.find("midship_activate_lift")!=std::string::npos)) {
+  const auto first=provider.load(cache,tag.handle());
+  for(unsigned pitch=0;pitch<first.pitch_ranges.size();++pitch){same_metadata(provider.load(cache,tag.handle(),pitch),publication.load(cache,tag.handle(),pitch));++lift_metadata;}
+ }
+ need(!lift_metadata || lift_metadata>=2,"Actual World metadata fixture omitted one of the base/activation lift sounds");
+ std::cout<<"PASS immutable publication matches "<<lift_metadata<<" genuine initialized native World lift pitch definitions exactly\n";
+ {
+  std::uint32_t seed=0x1872c4d1;MultiplayerAudio replica(cache_owner,7,manual,{},&seed);
+  replica.enroll_continuation();replica.bind_native_loop_metadata(publication);replica.listeners(listeners);
+  const auto voice=replica.play_impulse_at(f.sound,{f.distance,0,0});
+  need(voice && replica.voice_parameters(*voice).volume_hundredths_db==f.native.volume,"Immutable Core binding fell back to raw MCC spatial metadata");
+  rejects([&]{replica.bind_native_loop_metadata(publication);},"quiescent","Active immutable Core replaced its metadata");
+  replica.stop();replica.bind_native_sound_metadata(provider);
+ }
  {
   std::uint32_t seed=0x1872c4d1;MultiplayerAudio raw(cache,7,manual,{},&seed);raw.listeners(listeners);const auto voice=raw.play_impulse_at(f.sound,{f.distance,0,0});need(voice.has_value(),"Raw control failed actual playback");need(raw.voice_parameters(*voice).volume_hundredths_db==f.raw.volume,"Raw baseline calculation drift");raw.stop();
  }

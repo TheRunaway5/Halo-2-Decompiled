@@ -16,7 +16,7 @@ SlayerRules rules(const Cache&cache){auto r=slayer_rules({"Slayer",0,{}});r.weap
 void roundtrip(const LevelContent&content,const Cache&cache){
     const auto selected=rules(cache);MultiplayerMatch host_match(content,0,cache.spawns(),selected);
     host_match.join("Authority");LanHost host(host_match,0,0x11ba50);
-    const auto address="127.0.0.1:"+std::to_string(host.port());LanClient client(address,0x11ba50,1);
+    const auto address=host.join_address();LanClient client(address,0x11ba50,1);
     std::array<Controls,multiplayer_capacity> controls{};
     const auto join=[&](LanClient&peer,unsigned count){
         std::array<Controls,4> neutral{};
@@ -107,7 +107,7 @@ void fragment_recovery(const LevelContent&content,const Cache&cache){
     at.sin_addr.s_addr=htonl(INADDR_LOOPBACK);at.sin_port=0;
     require(bind(proxy.fd,reinterpret_cast<sockaddr*>(&at),sizeof(at))==0,"device UDP proxy bind failed");
     socklen_t size=sizeof(at);require(getsockname(proxy.fd,reinterpret_cast<sockaddr*>(&at),&size)==0,"device UDP proxy address failed");
-    LanClient client("127.0.0.1:"+std::to_string(ntohs(at.sin_port)),0x106790,1);
+    LanClient client(host.join_address("127.0.0.1",ntohs(at.sin_port)),0x106790,1);
     client.send(std::array<Controls,1>{});std::array<char,1500> bytes{};sockaddr_in client_address{};
     size=sizeof(client_address);
     const auto hello=recvfrom(proxy.fd,bytes.data(),bytes.size(),0,reinterpret_cast<sockaddr*>(&client_address),&size);

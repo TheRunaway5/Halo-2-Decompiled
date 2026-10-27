@@ -17,6 +17,11 @@ struct NativeVistaAnnouncerConfiguration {
   SdlSoundPlatformConfiguration platform{
       SdlSoundPlatformConfiguration::Delivery::DeviceCallback,512,{}};
   bool source_tu15=false;
+  // Observe actual native SDL submissions through the same presentation
+  // boundary as world audio; selecting a response alone is not playback.
+  MultiplayerAudioObserver audio_observer;
+  // An explicit selected map can live outside its shared resource directory.
+  std::optional<std::filesystem::path> selected_cache_path;
 };
 struct NativeVistaAnnouncerVoice {
   std::uint32_t queue_token;

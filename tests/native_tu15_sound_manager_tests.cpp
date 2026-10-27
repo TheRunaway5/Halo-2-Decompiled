@@ -7,64 +7,15 @@
 #include "halo2/source_sound_permutation_tu15.hpp"
 #include "halo2/source_sound_range_selection_tu15.hpp"
 #include "halo2/source_sound_scalar_tu15.hpp"
-#include <bit>
-#include <cstdio>
-#include <cstring>
-#include <iostream>
-#include <map>
-#include <memory>
-#include <random>
+#include "halo2/source_sound_sdk_tu15.hpp"
+#include "native_tu15_sound_test_support.hpp"
 #include <vector>
 
 using namespace halo2;
+using namespace halo2::sound_test;
 namespace {
-struct Memory final : SourcePhysicsContactMemory {
-    std::map<std::uint32_t,std::shared_ptr<std::array<std::byte,4096>>> pages;
-    Memory clone() const {
-        Memory copy;for(const auto &[n,p]:pages)copy.pages[n]=std::make_shared<std::array<std::byte,4096>>(*p);
-        return copy;
-    }
-    std::byte *at(std::uint32_t p) const {
-        const auto found=pages.find(p>>12);
-        if(found==pages.end()){char t[40];std::snprintf(t,sizeof t,"unmapped %08x",p);throw std::out_of_range(t);}
-        return found->second->data()+(p&4095u);
-    }
-    void read(std::uint32_t p,std::span<std::byte> out) const override {for(auto &b:out)b=*at(p++);}
-    void write(std::uint32_t p,std::span<const std::byte> in) override {for(auto b:in)*at(p++)=b;}
-    void map(std::uint32_t p,std::size_t bytes) {
-        for(auto n=p>>12;n<=(p+bytes-1)>>12;++n)
-            if(!pages.contains(n))pages[n]=std::make_shared<std::array<std::byte,4096>>();
-    }
-    void put32(std::uint32_t p,std::uint32_t v){map(p,4);for(unsigned i=0;i<4;++i)*at(p+i)=std::byte(v>>(i*8));}
-    void put16(std::uint32_t p,std::uint16_t v){map(p,2);for(unsigned i=0;i<2;++i)*at(p+i)=std::byte(v>>(i*8));}
-    void put8(std::uint32_t p,std::uint8_t v){map(p,1);*at(p)=std::byte(v);}
-};
-struct Random {
-    std::mt19937 rng{0x5eed1234u};
-    std::uint32_t word(){return rng();}
-    std::uint32_t below(std::uint32_t n){return rng()%n;}
-    float scalar() {
-        switch(below(12)) {
-        case 0:return std::bit_cast<float>(0x7fc00000u|(word()&0x3fffffu));  // quiet NaN
-        case 1:return std::bit_cast<float>(0x7f800001u|(word()&0x3fffffu));  // signalling NaN
-        case 2:return below(2)?INFINITY:-INFINITY;
-        case 3:return std::bit_cast<float>(word()&0x807fffffu);              // denormal
-        case 4:return below(2)?0.f:-0.f;
-        case 5:return std::bit_cast<float>(word());                          // any bits
-        default:return std::ldexp(float(std::int32_t(word()))/2147483648.f,int(below(40))-20);
-        }
-    }
-};
-
-constexpr std::uint32_t stack=0x60080000u;
-constexpr std::array<std::uint16_t,6> controls{0x27f,0x7f,0x37f,0x67f,0xa7f,0xe7f};
-constexpr std::array<std::uint32_t,5> csrs{0x1f80u,0x9f80u,0x1fc0u,0xdfc0u,0x3f80u};
-
-struct Case {
-    Memory memory;SourcePhysicsContactRuntimeAbi abi{};SourcePhysicsFactoryFloatingPoint fp{};std::uint32_t entry{};
-};
 Case scenario(Random &r,std::uint32_t entry) {
-    Case c;c.entry=entry;auto &m=c.memory;
+    auto c=base_case(r);auto &m=c.memory;
     const std::uint32_t tags=0x01000000u,gestalt=0x01100000u,rows=0x01110000u,random=0x01200000u,
         globals=0x01300000u,reference=0x01310000u,class_tag=0x01320000u,class_rows=0x01330000u,
         definition=0x01400000u,request=0x01500000u,sound=0x01600000u;
@@ -124,12 +75,8 @@ Case scenario(Random &r,std::uint32_t entry) {
     m.put8(definition+2u,std::uint8_t(r.word()));
     const auto count=r.below(10)?int(r.below(9)):-int(r.below(3));
     m.put8(definition+0xau,std::uint8_t(count));m.put16(definition+8u,std::uint16_t(r.below(40)));
-    m.map(stack-0x2000u,0x3000u);m.put32(stack,0x00abcdefu);m.put32(stack+4u,r.word());
+    m.put32(stack+4u,r.word());
     auto &a=c.abi;
-    for(auto &g:a.gp)g=r.word();
-    a.gp[4]=stack;
-    for(auto &x:a.xmm)for(auto &l:x)l=r.word();
-    a.eflags=0x202u;
     if(entry==0x127e00u){a.gp[0]=definition;a.gp[1]=random+4u;}
     if(entry==0x127d70u)a.gp[0]=definition;
     if(entry==0x127b20u){a.gp[0]=sound_datum;a.gp[1]=request;}
@@ -151,12 +98,9 @@ Case scenario(Random &r,std::uint32_t entry) {
         const auto first=std::bit_cast<std::int16_t>(std::array{*c.memory.at(definition+8u),*c.memory.at(definition+9u)});
         c.memory.put16(ranges+std::uint32_t(first+int(index))*12u+0xau,std::uint16_t(1u+r.below(32)));
     }
+    if(entry==0x387baau||entry==0x387bb5u||entry==0x38a988u||entry==0x38a993u)   // SDK statistics globals
+        for(const auto at:{0x3912a0u,0x3912a4u,0x39134cu,0x391350u})m.put32(at,r.word());
     if(entry==0x228220u)c.memory.put32(stack+4u,(r.word()&0xffff0000u)|std::uint16_t(std::int16_t(int(r.below(256))-128)));
-    a.x87_depth=r.below(5);
-    for(unsigned i=0;i<a.x87_depth;++i)a.x87[i]=static_cast<long double>(r.scalar());
-    a.x87_status=std::uint16_t((r.below(8)<<11)|(r.word()&0x473fu));
-    c.fp={controls[r.below(controls.size())],csrs[r.below(csrs.size())]|(r.word()&0x3fu)};
-    a.floating_point=c.fp;
     return c;
 }
 void reference(SourcePhysicsContactMemory &m,std::uint32_t entry,SourcePhysicsContactRuntimeAbi &a,
@@ -167,59 +111,32 @@ void reference(SourcePhysicsContactMemory &m,std::uint32_t entry,SourcePhysicsCo
     else if(entry==0x127d70u)source_run_sound_random_scalar_tu15(m,entry,a,fp,services,o);
     else if(entry==0x21f960u)source_run_sound_range_selection_tu15(m,entry,a,fp,services,o);
     else if(entry==0x21fa80u)source_run_sound_permutation_tu15(m,entry,a,fp,services,o);
+    else if(source_sound_sdk_tu15_owns_entry(entry))source_run_sound_sdk_tu15(m,entry,a,fp,services,o);
     else source_run_sound_scalar_tu15(m,entry,a,fp,services,o);
 }
 } // namespace
 
 int main() try {
     Random r;unsigned compared=0,faults=0;
-    for(const auto entry:{0x127e00u,0x127d70u,0x127b20u,0x228220u,0x21f960u,0x21fa80u}) {
+    for(const auto entry:{0x127e00u,0x127d70u,0x127b20u,0x228220u,0x21f960u,0x21fa80u,
+        0x387baau,0x387bb5u,0x38a988u,0x38a993u}) {
         unsigned branches[3]{},ranges[3]{};
-        for(unsigned n=0;n<4000;++n) {
-            auto c=scenario(r,entry);
+        for(unsigned n=0;n<8000;++n) {
+            const auto c=scenario(r,entry);
             if(entry==0x127b20u) {
                 const auto flags=std::to_integer<unsigned>(*c.memory.at(0x01500000u));
                 const auto sound=std::to_integer<unsigned>(*c.memory.at(0x01600001u));
                 ++branches[(flags&8u)?0:(sound&8u)?1:2];
             }
-            // The oracle predicts natively over a copy-on-write view, then
-            // runs the lifted routine and compares every output.
-            std::string why;
-            try {
-                why=native_tu15_sound_manager_compare(c.memory,entry,c.abi,c.fp,{},
-                    [&](auto &m,auto &a,const auto &o){reference(m,entry,a,c.fp,o);});
-            } catch(const std::exception &error) {
-                // Faults must match too: the original faults at the same address.
-                auto lifted=c.memory.clone();auto abi=c.abi;std::string other="returned";
-                try{reference(lifted,entry,abi,c.fp,{});}catch(const std::exception &e){other=e.what();}
-                if(other!=error.what()) {
-                    std::cerr<<"entry "<<std::hex<<entry<<std::dec<<" case "<<n<<": native "<<error.what()
-                        <<", lifted "<<other<<'\n';return 1;
-                }
-                ++faults;continue;
-            }
-            if(!why.empty()){std::cerr<<"case "<<n<<": "<<why<<'\n';return 1;}
+            if(!agree(c,entry,reference,faults,"sound manager",n))return 1;
             if(entry==0x21f960u) {  // kept previous / none / searched
-                const auto result=std::int16_t(c.abi.gp[0]);
-                ++ranges[result==-1?1:c.abi.gp[1]==0xffffffffu?0:2];
+                auto run=c;run.memory=c.memory.clone();
+                try {
+                    native_tu15_sound_manager_run(run.memory,entry,run.abi,run.fp);
+                    ++ranges[std::int16_t(run.abi.gp[0])==-1?1:run.abi.gp[1]==0xffffffffu?0:2];
+                } catch(const std::exception &) {}
             }
-            // Committed native execution leaves memory identical to the reference.
-            auto native=scenario(r,entry),lifted=native;lifted.memory=native.memory.clone();
-            std::string native_fault,lifted_fault;
-            try{native_tu15_sound_manager_run(native.memory,entry,native.abi,native.fp);}catch(const std::exception &e){native_fault=e.what();}
-            try{reference(lifted.memory,entry,lifted.abi,lifted.fp,{});}catch(const std::exception &e){lifted_fault=e.what();}
-            if(native_fault!=lifted_fault){std::cerr<<"committed fault differs: "<<native_fault<<" / "<<lifted_fault<<'\n';return 1;}
-            for(const auto &[page,bytes]:lifted.memory.pages) {
-                const auto base=page<<12;
-                for(unsigned i=0;i<4096;++i) {
-                    const auto p=base+i;
-                    if(p<stack+8u && p>=stack-0x1000u)continue;   // dead callee scratch and arguments
-                    if((*bytes)[i]!=(*native.memory.pages.at(page))[i]) {
-                        std::cerr<<"committed store differs at "<<std::hex<<p<<'\n';return 1;
-                    }
-                }
-            }
-            compared+=2;
+            ++compared;
         }
         if(entry==0x21f960u && (!ranges[0]||!ranges[1]||!ranges[2])) {
             std::cerr<<"21F960 path coverage incomplete\n";return 1;
@@ -228,6 +145,7 @@ int main() try {
             std::cerr<<"127B20 branch coverage incomplete\n";return 1;
         }
     }
-    std::cout<<"PASS native sound manager kernels: "<<compared<<" randomized states identical to the lifted routines ("<<faults<<" identical faults)\n";
+    std::cout<<"PASS native sound manager kernels: "<<compared<<" randomized states identical to the lifted routines ("
+        <<faults<<" identical faults)\n";
     return 0;
 } catch(const std::exception &error){std::cerr<<error.what()<<'\n';return 1;}

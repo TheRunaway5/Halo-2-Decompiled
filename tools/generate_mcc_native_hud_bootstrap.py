@@ -24,6 +24,19 @@ def generate(raw):
         sha(r['sha256'])
         if not 0 < r['bytes'] < 16 * 1024 * 1024:
             raise ValueError('Invalid source file extent')
+    original = {row['map']: row for row in data['maps']}
+    prepared = data.get('prepared_inputs', [])
+    if not isinstance(prepared, list) or len(prepared) > 2:
+        raise ValueError('Changed finite corrected PC input set')
+    if [row['map'] for row in prepared] != sorted({row['map'] for row in prepared}) or any(row['map'] not in original for row in prepared):
+        raise ValueError('Changed corrected PC input namespaces')
+    for row in prepared:
+        sha(row['sha256']); sha(row['correction_report_sha256'])
+        if (row.get('source_sha256') != original[row['map']]['sha256'] or
+                row.get('preparation_profile') != 'H2_MCC_SKY_BITMAP_COW_V7' or
+                not 0 < row['bytes'] < 16 * 1024 * 1024 or
+                row['sha256'] == row['source_sha256']):
+            raise ValueError('Corrected PC input lost its exact original or preparation proof')
     expected = [('vrtx', r'rasterizer\vertex_shaders_dx9\screen'),
                 ('stem', r'shaders\shader_templates\hud\widget_simple_flash'),
                 ('spas', r'shaders\shader_passes\hud\widget_simple_flash'),

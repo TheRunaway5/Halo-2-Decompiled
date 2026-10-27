@@ -88,7 +88,8 @@ struct SourceAuthorityPublisher::Impl {
         return c&&c->host==session->self()&&(c->peers&recipients)==recipients&&session->phase()==OnlineMatchSession::Phase::Running&&
             std::ranges::all_of(targets,[&](unsigned peer){return session->authority_supported(peer)&&session->source_players_confirmed(peer)&&
                 (mode!=SourceAuthorityStreamMode::Replay||session->authority_replay_supported(peer))&&
-                (!host||session->authority_host_continuation_supported(peer));});
+                (!host||session->authority_host_continuation_supported(peer))&&
+                (!session->terminal_recovery_enabled()||session->authority_admitted_camera_supported(peer));});
     }
     bool candidate_active(const PeerSnapshotToken &token)const{
         if(!stats.snapshot_candidate_mode||!stats.common_cut_barrier||!host||context!=token.context||
@@ -115,12 +116,12 @@ struct SourceAuthorityPublisher::Impl {
                 need(item->cut.has_value());out.tick=item->cut->match.simulation.ticks;
                 const auto binding=source_authority_binding(item->context);
                 need(item->cut->match.admitted_binding==binding&&item->cut->match.simulation.admitted_binding==binding);
-                SourceAuthorityCodecLimits limits;limits.encoded_bytes=64ull*1024*1024;
+                const auto limits=source_authority_network_codec_limits();
                 out.paired=item->host.has_value();
                 out.payload=item->host?encode_source_host_continuation({item->context,item->serial,std::move(*item->cut),std::move(*item->host)},limits):
                     encode_source_authority(*item->cut,limits);out.full_bytes=out.payload.size();
-                if(!out.paired)out.image=AuthorityArchiveImage::read(out.payload);
-                if(item->base&&!out.paired){auto delta=encode_authority_delta(*item->base,*out.image);
+                if(!out.paired)out.image=AuthorityArchiveImage::read(out.payload,source_authority_network_delta_limits());
+                if(item->base&&!out.paired){auto delta=encode_authority_delta(*item->base,*out.image,source_authority_network_delta_limits());
                     if(delta.size()<out.payload.size()){out.payload=std::move(delta);out.delta=true;}}
                 }
             }catch(const std::exception &e){out.error=e.what();out.image.reset();out.payload.clear();}

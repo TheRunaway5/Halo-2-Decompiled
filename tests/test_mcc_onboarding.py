@@ -18,6 +18,7 @@ from test_mcc_ui_layout import layout_fixture
 from test_mcc_loading_presentation import v3_summary_fixture
 from native_variant_test_support import variant_fixture
 from native_variant_assets import LAYOUTS, MANIFEST
+from custom_ui_test_support import custom_ui_fixture, custom_ui_menu_fixture, empty_custom_map_fixture
 
 
 def bundle_fixture(root):
@@ -25,10 +26,17 @@ def bundle_fixture(root):
     layout_fixture(root)
     variant_fixture(root)
     controller_prompt_fixture(root)
+    custom_ui_fixture(root)
+    empty_custom_map_fixture(root)
 
 
 class MccOnboardingTests(unittest.TestCase):
     def setUp(self):
+        # This suite isolates cache publication and reuse. Exact all-eleven
+        # loading page ownership has its own real-source and fixture checks.
+        loading_sources = patch('mcc_loading_assets.compatible', return_value=True)
+        loading_sources.start()
+        self.addCleanup(loading_sources.stop)
         self.temporary = tempfile.TemporaryDirectory(prefix='halo2-mcc-onboarding-')
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name) / 'port'
@@ -58,6 +66,7 @@ class MccOnboardingTests(unittest.TestCase):
             if not path.exists():
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text('{}')
+        custom_ui_menu_fixture(self.cache, self.root)
         files, omitted = source_files(self.source)
         self.report = dict(schema=PROFILE, source=str(self.source),
                            external_installation_requirement='Halo MCC only', runtime_active=False,
@@ -367,6 +376,19 @@ class MccOnboardingTests(unittest.TestCase):
         self.assertNotIn('port_bundled_loading_ambience', onboarding.selected(self.root)[1])
         self.loading_producer.assert_called_once()
 
+    def test_legacy_loading_inventory_requests_fresh_import_and_preserves_selection(self):
+        self.select()
+        registry = self.root / onboarding.REGISTRY
+        before = registry.read_bytes()
+        old_loading = (self.cache / 'loading/mcc-loading-assets.json').read_bytes()
+        with patch('mcc_loading_assets.compatible', return_value=False), \
+             patch.object(onboarding, 'prepare', side_effect=FormatError('fresh loading stage interrupted')) as prepare:
+            with self.assertRaisesRegex(FormatError, 'fresh loading stage interrupted'):
+                onboarding.setup(self.root, self.source, progress=self.messages.append)
+        prepare.assert_called_once()
+        self.assertEqual(registry.read_bytes(), before)
+        self.assertEqual((self.cache / 'loading/mcc-loading-assets.json').read_bytes(), old_loading)
+
     def test_reuse_repairs_missing_defusal_without_reimporting_or_rewriting_maps(self):
         self.select()
         bomb = self.cache / 'data/tags/variants/bomb-defusal-v1.json'
@@ -482,11 +504,16 @@ class MccOnboardingTests(unittest.TestCase):
     def test_older_graphics_cache_requires_fresh_import_without_editing_it(self):
         self.enable_current_graphics()
         before = (self.cache / 'provenance.json').read_bytes()
-        with patch.object(onboarding, 'prepare', return_value=(self.cache, self.report)) as prepare:
+        # The fresh producer returns a new owner. Returning the old cache here
+        # would incorrectly ask selection to install defaults into that owner.
+        fresh = self.cache.with_name('mcc-fresh')
+        shutil.copytree(self.cache, fresh)
+        with patch.object(onboarding, 'prepare', return_value=(fresh, self.report)) as prepare:
             onboarding.setup(self.root, self.source, progress=self.messages.append)
         prepare.assert_called_once_with(self.root, self.source, progress=self.messages.append, presentation=ANY)
         self.assertFalse(prepare.call_args.kwargs['presentation']['qualified_owner'])
         self.assertEqual((self.cache / 'provenance.json').read_bytes(), before)
+        self.assertEqual(onboarding.selected(self.root)[0], fresh)
         self.assertTrue(any('current graphics corrections' in message for message in self.messages))
 
     def test_complete_current_graphics_cache_reuses_verified_copy(self):

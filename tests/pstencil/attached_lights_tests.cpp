@@ -3,6 +3,8 @@
 #include "halo2/pstencil/native_light_shape_tu15.hpp"
 #include "halo2/pstencil/native_light_constants_tu15.hpp"
 #include "halo2/pstencil/campaign_lights.hpp"
+#include "halo2/path_tracing/source_lights.hpp"
+#include "halo2/object_sky_lighting.hpp"
 #include "halo2/source_view_projection.hpp"
 #include "halo2/source_portal_visibility.hpp"
 #include <cstring>
@@ -131,6 +133,26 @@ int main(int argc,char** argv){try {
         for(unsigned byte=0;byte<4;++byte)require(actual_shape.written[at*4+byte],"Native sphere field was not actually written");
         require(actual_shape.words[at]==expected_shape.shape[at],"Complete native light shape differs from the checked sphere arithmetic");
     }
+    auto rt_records=view.records;
+    for(auto& row:rt_records)row.runtime.overall_fade=0;
+    const auto rt_lights=path_tracing::source_lights(world,rt_records);
+    const auto rt=std::find_if(rt_lights.begin(),rt_lights.end(),[&](const auto& light) {
+        return same(light.position,native.front().frame.position);
+    });
+    require(rt!=rt_lights.end() && rt->radius==expected_shape.diffuse_radius &&
+        same(rt->color,native.front().state.diffuse) && rt->intensity==native.front().state.brightness,
+        "Path Tracing dropped an off-camera emitter or changed its native sphere/energy");
+    require(snapshot().lights.records==before_view.lights.records,
+        "Path Tracing source emitter extraction changed actual light state");
+    ObjectSkyLightingDefinition source_sky;source_sky.outdoor_ambient={.1f,.2f,.3f};
+    require(!path_tracing::source_sky_light(source_sky),"Ambient-only source sky acquired an invented directional light");
+    ObjectSkyLightingDefinition::Light source_sun;
+    source_sun.radiosity=ObjectSkyLightingDefinition::Light::Radiosity{{.2f,.4f,.6f},8};
+    source_sky.lights.push_back(source_sun);
+    const auto sky_light=path_tracing::source_sky_light(source_sky);
+    require(sky_light && sky_light->direction && same(*sky_light->direction,{1,0,0}) &&
+        same(sky_light->color,{.2f,.4f,.6f}) && sky_light->intensity==1,
+        "Path Tracing changed source sky incident orientation or radiosity energy");
     std::array<ShaderVector,9> previous;
     for(unsigned row=0;row<previous.size();++row)for(unsigned component=0;component<4;++component)
         previous[row][component]=float(int(row*4+component)-12)*.03125f;

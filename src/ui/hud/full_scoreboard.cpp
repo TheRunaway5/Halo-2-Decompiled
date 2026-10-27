@@ -104,7 +104,7 @@ std::u16string number(std::int32_t n) {
   const auto s = std::to_string(n);
   return std::u16string(s.begin(), s.end());
 }
-std::u16string score_text(std::int16_t n, int mode) {
+std::u16string score_text(std::int32_t n, int mode) {
   if (mode != 3 && mode != 4 && mode != 8) return number(n);
   const int minutes = n / 60, seconds = n - minutes * 60;
   auto s = minutes ? number(minutes) : std::u16string(u" "); // original437544 literal
@@ -140,6 +140,10 @@ int cap_integer(float value, FullScoreboardRounding r) {
   return 0;
 }
 } // namespace
+
+std::u16string full_scoreboard_score_text(std::int32_t score,std::int32_t mode) {
+  return score_text(score,mode);
+}
 
 FullScoreboardRanks full_scoreboard_ranks(std::span<const FullScoreboardPlayer> players,
     const FullScoreboardOptions& o,std::span<const FullScoreboardTeam> teams) {

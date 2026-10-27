@@ -5,7 +5,7 @@ layout(set=0,binding=2,std140) uniform Copy {
     uvec4 program[15]; vec4 sourceRectangle; vec4 taps;
 } material;
 layout(location=0) out vec4 pixel;
-#include "combiner.glsl"
+#include "native-programs/world/water-copy-combiner.glsl"
 void main() {
     vec2 p=gl_FragCoord.xy/vec2(512,256);
     vec2 uv=material.sourceRectangle.xy+p*material.sourceRectangle.zw;

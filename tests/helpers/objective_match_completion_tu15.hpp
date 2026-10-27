@@ -23,7 +23,7 @@ inline nlohmann::json complete_objective_match_tu15(MultiplayerPreparedWorld& pr
     need(type==1 || type==9,"Objective completion requires original CTF/Assault rules");
     std::vector<unsigned> participants;
     for(unsigned slot=0;slot<multiplayer_capacity;++slot)if(match.player(slot).connected)participants.push_back(slot);
-    need(participants.size()==2,"Objective ONLINE cohort requires its actual two admitted players");
+    need(participants.size()>=2 && participants.size()<=multiplayer_capacity,"Objective cohort requires its actual admitted native players");
     const auto carrier_item=[&](unsigned slot) {
         auto abi=world.prepare_source_call(std::array{1u});abi.gp[0]=match.player(slot).source_datum;
         world.run_actual(0x1a8fd0u,abi);return abi.gp[0];

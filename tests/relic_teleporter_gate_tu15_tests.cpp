@@ -143,7 +143,7 @@ int main(int argc,char **argv)try {
   check(match.player(player).source_teleport_serial==2,"Opened reverse Relic teleporter did not admit ordinary walking");
   walk(content.netgame_flags[unsigned(pairs.pairs[nearby].entrance)].position,3,180);
   check(match.player(player).source_teleport_serial==3,"Relic local player could not return to block the outside exit");
-  LanHost host(match,0,0x1569u);LanClient client("127.0.0.1:"+std::to_string(host.port()),0x1569u,1);
+  LanHost host(match,0,0x1569u);LanClient client(host.join_address(),0x1569u,1);
   std::array<Controls,1> remote{};
   for(unsigned tick=0;tick<20 && !client.ready();++tick) {
     client.send(remote);host.receive(controls);host.broadcast();client.receive();

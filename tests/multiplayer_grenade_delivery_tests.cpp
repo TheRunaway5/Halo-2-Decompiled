@@ -33,7 +33,7 @@ int main(int argc,char **argv){try{
   const auto content=cache.load_content(0,true);UiVariant variant{"Slayer",0,{}};variant.values.set(0x59,5);
   auto rules=slayer_rules(variant);rules.weapon=cache.slayer_starting_weapon(rules.starting_weapon);
   MultiplayerMatch match(content,0,cache.spawns(),rules);match.join("Host");LanHost host(match,0,0x51554c5345ull);
-  LanClient client("127.0.0.1:"+std::to_string(host.port()),0x51554c5345ull,1);
+  LanClient client(host.join_address(),0x51554c5345ull,1);
   std::array<Controls,16> received{};std::array<Controls,1> outgoing{};
   for(unsigned i=0;i<20&&!client.ready();++i){client.send(outgoing);host.receive(received);host.broadcast();client.receive();}
   check(client.ready(),"Actual UDP client failed to join");const auto remote=client.slots()[0];

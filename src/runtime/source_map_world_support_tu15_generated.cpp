@@ -10081,7 +10081,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_1db800(WorldState &s) {
-if(s.services.instruction){s.services.instruction(0x1db800u);} s.set(1,s.flags.minus(s.reg(1,4,0),selected(0xa000693u,s.image),4),4,0);
+if(s.services.instruction){s.services.instruction(0x1db800u);} s.set(1,s.flags.minus(s.reg(1,4,0),source_object_function_compiled_symbol_tu15(s.memory,0x1db800u,selected(0xa000693u,s.image)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1db806u);} s.xmm[1]=_mm_xor_ps(s.xmm[1],s.xmm[1]);
 if(s.services.instruction){s.services.instruction(0x1db809u);} s.set(0,selected(0x1u,s.image),1,0);
 if(s.services.instruction){s.services.instruction(0x1db80bu);} if(s.flags.zf)goto L1db841;

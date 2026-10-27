@@ -36,7 +36,7 @@ SourceExecutionInputs::SourceExecutionInputs(std::span<const SourceExecutionInpu
     if(calls.size()>maximum_calls)throw std::invalid_argument("Native call journal exceeds its bound");
     std::size_t input_end{};
     for(const auto &call:calls){
-        if(call.kind<SourceExecutionCallKind::MatchStep||call.kind>SourceExecutionCallKind::ParticleCollision||
+        if(call.kind<SourceExecutionCallKind::MatchStep||call.kind>source_execution_call_kind_last||
             call.arguments.size()>maximum_call_bytes-call_bytes_)
             throw std::invalid_argument("Invalid native call kind or argument budget");
         if(call.input_begin!=input_end||call.input_end<call.input_begin||call.input_end>entries.size())
@@ -66,7 +66,7 @@ void SourceExecutionInputs::observe_call(SourceExecutionCallKind kind,std::vecto
             failed_=true;throw std::runtime_error("Native source call order or arguments differ from the producer");}
         ++call_cursor_;return;
     }
-    if(kind<SourceExecutionCallKind::MatchStep||kind>SourceExecutionCallKind::ParticleCollision){failed_=true;return;}
+    if(kind<SourceExecutionCallKind::MatchStep||kind>source_execution_call_kind_last){failed_=true;return;}
     if(calls_.size()==maximum_calls||arguments.size()>maximum_call_bytes-call_bytes_){failed_=true;return;}
     call_bytes_+=arguments.size();calls_.push_back({kind,std::move(arguments),std::uint32_t(entries_.size()),std::uint32_t(entries_.size())});
 }

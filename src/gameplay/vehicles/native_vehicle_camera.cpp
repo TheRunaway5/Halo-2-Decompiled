@@ -2,6 +2,7 @@
 #include "halo2/multiplayer_object_runtime.hpp"
 #include "halo2/original_data.hpp"
 #include "halo2/death_camera_binding.hpp"
+#include "halo2/source_original_camera_seed.hpp"
 #include <bit>
 #include <algorithm>
 
@@ -33,7 +34,15 @@ std::optional<NativeDeathCameraView> NativeVehicleCamera::update(unsigned index,
   return update_player(index,player,flags,seconds);
 }
 std::optional<NativeDeathCameraView> NativeVehicleCamera::update_player(unsigned index,
-    std::uint32_t player,std::uint16_t flags,float seconds,bool cycle_pressed) {
+    std::uint32_t player,std::uint16_t flags,float seconds,bool cycle_pressed,
+    std::optional<NativeDeathCameraView> *completed) {
+  return update_player_impl(index,player,flags,seconds,cycle_pressed,nullptr,completed);
+}
+std::optional<NativeDeathCameraView> NativeVehicleCamera::update_player_impl(unsigned index,
+    std::uint32_t player,std::uint16_t flags,float seconds,bool cycle_pressed,const SourceOriginalCameraSeed *seed,
+    std::optional<NativeDeathCameraView> *completed) {
+  if(completed)completed->reset();
+  if(seed&&!seed->available())throw FormatError("Admitted camera lacks its locally initialized original seed");
   if(index>=views_.size())throw FormatError("Native player camera view exceeds its actual local bank");
   if(player==0xffffffffu){views_[index]=View{};return {};}
   const auto players=source_death_camera_players(runtime_.memory(),runtime_.player_pool());
@@ -46,8 +55,14 @@ std::optional<NativeDeathCameraView> NativeVehicleCamera::update_player(unsigned
   const auto frame=runtime_.observer_world_frame(std::int32_t(index),unit,flags,saved_clusters_);
   if(view.player!=player) {
     view=View{};view.player=player;
+    // A typed admitted owner uses only the locally produced157EB0 default.
+    // Its active byte prevents the lower adapter's zero-controller fallback
+    // from selecting a controller out of an imported mutable native bank.
+    if(seed)view.controller=seed->controller_;
     source_observer_reset(view.observer,std::int16_t(frame.bsp),c,w);
   }
+  if(seed&&!(view.controller[0]&255u))
+    throw FormatError("Admitted camera lost its locally initialized controller");
   std::uint8_t camera_mode{};
   auto packet=runtime_.player_camera_packet(player,seconds,view.controller,view.observer,random_,cycle_pressed,&camera_mode);
   const bool death=death_view(index);
@@ -65,8 +80,13 @@ std::optional<NativeDeathCameraView> NativeVehicleCamera::update_player(unsigned
   view.handing_off=seated || death || (view.handing_off && transitioning);
   view.seated=seated;
   source_observer_world(view.observer,frame,runtime_.observer_world_services(),c,d,w);
-  if(!view.handing_off && !death)return {};
-  return NativeDeathCameraView{vector(view.observer,0xb8),vector(view.observer,0xd8),
+  const NativeDeathCameraView result{vector(view.observer,0xb8),vector(view.observer,0xd8),
       vector(view.observer,0xe4),scalar(view.observer,0xf0),scalar(view.observer,0x100),camera_mode};
+  // The ordinary245060 ->CD4A0 ->E18D0 owner corrects the eye from the
+  // actual posed head as pitch changes. Retain its completed observer too;
+  // root plus standing/crouching height cannot replace that source result.
+  if(completed)*completed=result;
+  if(!view.handing_off && !death)return {};
+  return result;
 }
 } // namespace halo2

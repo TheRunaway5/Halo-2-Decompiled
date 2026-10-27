@@ -7,7 +7,7 @@ target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/source_multiplayer
 target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/source_objective_presentation_tu15.cpp)
 target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/source_objective_goal_geometry_tu15.cpp)
 target_sources(halo2_systems PRIVATE src/ui/hud/objective_waypoints.cpp)
-target_sources(halo2_systems PRIVATE src/ui/hud/objective_waypoint_memory_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/ui/hud/objective_waypoint_memory_tu15.cpp src/network/system_link_session.cpp)
 if(NOT MSVC)
     set_source_files_properties(src/gameplay/multiplayer/source_objective_goal_geometry_tu15.cpp
         PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
@@ -105,9 +105,37 @@ if(BUILD_TESTING)
         src/gameplay/multiplayer/multiplayer_runtime.cpp)
     target_include_directories(ctf_assault_runtime_start_tu15_tests PRIVATE ${HALO2_TEST_JSON_INCLUDE})
     target_link_libraries(ctf_assault_runtime_start_tu15_tests PRIVATE halo2_renderer)
+    add_executable(multiplayer_end_presentation_tu15_tests tests/multiplayer_end_presentation_tu15_tests.cpp
+        src/gameplay/multiplayer/multiplayer_runtime.cpp)
+    target_link_libraries(multiplayer_end_presentation_tu15_tests PRIVATE halo2_renderer nlohmann_json::nlohmann_json)
+    target_compile_definitions(multiplayer_end_presentation_tu15_tests PRIVATE HALO2_SHADER_DIR="${HALO2_RUNTIME_SHADER_DIR}")
+    add_dependencies(multiplayer_end_presentation_tu15_tests halo2_shaders)
+    foreach(end_preset IN ITEMS Slayer Oddball King "2 on 1" "CTF Classic" "Single Bomb" "3 Plots")
+        string(TOLOWER "${end_preset}" end_name)
+        string(REPLACE " " "_" end_name "${end_name}")
+        add_test(NAME native_mcc_end_presentation_${end_name}_tu15 COMMAND ${Python3_EXECUTABLE}
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/run_multiplayer_end_presentation_tu15.py"
+            $<TARGET_FILE:multiplayer_end_presentation_tu15_tests> "${HALO2_MCC_MULTIPLAYER_ENGINE_MAP}" "${end_preset}")
+        set_tests_properties(native_mcc_end_presentation_${end_name}_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 660 RUN_SERIAL TRUE)
+    endforeach()
     add_executable(objective_remote_consumers_tu15_tests tests/objective_remote_consumers_tu15_tests.cpp
         src/gameplay/multiplayer/multiplayer_runtime.cpp)
     target_link_libraries(objective_remote_consumers_tu15_tests PRIVATE halo2_renderer nlohmann_json::nlohmann_json)
+    add_executable(ctf_assault_system_link_runtime_tests tests/ctf_assault_system_link_runtime_tests.cpp
+        src/gameplay/multiplayer/multiplayer_runtime.cpp)
+    target_link_libraries(ctf_assault_system_link_runtime_tests PRIVATE halo2_renderer nlohmann_json::nlohmann_json)
+    add_test(NAME native_mcc_ctf_assault_system_link_runtime_tu15 COMMAND ctf_assault_system_link_runtime_tests
+        "${HALO2_MCC_MULTIPLAYER_ENGINE_MAP}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/multiplayer_engines_original_tu15.json"
+        "${CMAKE_CURRENT_BINARY_DIR}/ctf-assault-system-link-runtime.json")
+    set_tests_properties(native_mcc_ctf_assault_system_link_runtime_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180 RUN_SERIAL TRUE ENVIRONMENT "SDL_AUDIODRIVER=dummy")
+    add_executable(ctf_assault_system_link_return_tests tests/ctf_assault_system_link_return_tests.cpp)
+    target_link_libraries(ctf_assault_system_link_return_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME native_mcc_ctf_assault_system_link_return_tu15 COMMAND ctf_assault_system_link_return_tests
+        "${HALO2_MCC_MULTIPLAYER_ENGINE_MAP}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/multiplayer_engines_original_tu15.json"
+        "${CMAKE_CURRENT_BINARY_DIR}/ctf-assault-system-link-return.json")
+    set_tests_properties(native_mcc_ctf_assault_system_link_return_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1800 RUN_SERIAL TRUE ENVIRONMENT "H2_NET_PROFILE=complete")
     add_executable(ctf_assault_online_return_tests tests/ctf_assault_online_return_tests.cpp)
     target_link_libraries(ctf_assault_online_return_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     add_test(NAME native_mcc_ctf_assault_online_return_tu15 COMMAND "${Python3_EXECUTABLE}"
@@ -198,6 +226,14 @@ if(BUILD_TESTING)
         add_executable(multiplayer_round_flow_tu15_tests tests/multiplayer_round_flow_tu15_tests.cpp)
         target_include_directories(multiplayer_round_flow_tu15_tests PRIVATE ${HALO2_TEST_JSON_INCLUDE})
         target_link_libraries(multiplayer_round_flow_tu15_tests PRIVATE halo2_systems)
+        add_executable(multiplayer_round_network_tu15_tests tests/multiplayer_round_network_tu15_tests.cpp)
+        target_include_directories(multiplayer_round_network_tu15_tests PRIVATE ${HALO2_TEST_JSON_INCLUDE})
+        target_link_libraries(multiplayer_round_network_tu15_tests PRIVATE halo2_systems)
+        add_test(NAME native_mcc_multiplayer_round_network_tu15 COMMAND multiplayer_round_network_tu15_tests
+            "${HALO2_MCC_MULTIPLAYER_ENGINE_MAP}" "${CMAKE_CURRENT_BINARY_DIR}/multiplayer-round-network.json")
+        set_tests_properties(native_mcc_multiplayer_round_network_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 600)
+        # This fixture compares complete source journals and byte-exact UDP state.
+        set_property(TEST native_mcc_multiplayer_round_network_tu15 APPEND PROPERTY ENVIRONMENT_MODIFICATION "H2_NET_PROFILE=set:complete")
         add_test(NAME native_mcc_multiplayer_round_flow_tu15 COMMAND multiplayer_round_flow_tu15_tests
             "${HALO2_MCC_MULTIPLAYER_ENGINE_MAP}"
             "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/multiplayer_engines_original_tu15.json"

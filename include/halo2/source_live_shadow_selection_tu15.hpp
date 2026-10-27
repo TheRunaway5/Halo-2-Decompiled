@@ -61,9 +61,12 @@ struct SourceLiveShadowRootTu15 {
 // needed data during this call; references into root/world cannot be retained.
 using SourceShadowRootCompletedTu15=std::function<void(PhysicsLiveWorldTu15&,
     const SourceLiveShadowRootTu15&)>;
+// Runs one root's whole40E80 around the given translated call; the first
+// argument is the call's EAX layer selector. Empty runs the translated call.
+using SourceShadowCommandsTu15=std::function<void(std::uint32_t,const std::function<void()>&)>;
 std::vector<SourceLiveShadowRootTu15> source_live_shadow_root_frames_tu15(
     PhysicsLiveWorldTu15&,std::span<const SourceShadowCandidate>,const SourceShadowAdmissionObserverTu15& = {},
-    const SourceShadowRootCompletedTu15& = {});
+    const SourceShadowRootCompletedTu15& = {},const SourceShadowCommandsTu15& = {});
 // Publish the actual completed ordinary queues before main44710/40E80.
 // Selection subsequently validates those columns without republishing them.
 void source_live_shadow_main_queues_tu15(PhysicsLiveWorldTu15&,

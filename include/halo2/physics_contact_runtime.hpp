@@ -62,6 +62,11 @@ struct SourcePhysicsContactRuntimeServices {
         // Permit literal-PC dispatch only after the state has checked the
         // exact live service-site set. Generic descriptors keep their search.
         bool literal_service_sites{};
+        // The owning caller has qualified a synchronous observation-only
+        // store collector. It may record or reject the completed write, but
+        // must not mutate source state/backing or instruction/trace policy.
+        // Arbitrary observers retain full instruction delivery by default.
+        bool observation_only_stores{};
     } instruction_cursor;
 };
 // Canonical 1.1 entry identifies a statically compiled complete source body.

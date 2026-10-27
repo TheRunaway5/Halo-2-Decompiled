@@ -14,6 +14,7 @@
 namespace halo2 {
 struct BspFogSample;
 class Cache;
+struct SourceTextureCameraScenePrefixTu15;
 
 struct SourceCampaignParticleViewTu15 {
     MuzzleEffectView camera;
@@ -29,6 +30,16 @@ struct SourceCampaignViewInputTu15 {
     std::array<std::int16_t,4> viewport;
     float distance_scale{},coverage_multiplier{};
     bool view_modifier{};
+    // A render frame resets visibility/cache storage once; each admitted view
+    // still gets its own original22830 reset. Secondary then ordinary views
+    // retain the same frame arena and union visibility bank.
+    bool begin_frame=true;
+    unsigned view{},local_players=1;
+    std::int32_t actual_local_user{};
+    // A full source2B770/2B9F0 CPU-prefix capability owns secondary context.
+    // The collector checks its exact packet/camera/environment publication;
+    // it never derives a NONE-user view from an ordinary player camera.
+    const SourceTextureCameraScenePrefixTu15 *source_prefix{};
     // The actual submitting camera/fog/target inputs. Absence retains the
     // existing model-only diagnostic route; it cannot claim a full frame.
     std::optional<SourceCampaignParticleViewTu15> particles;

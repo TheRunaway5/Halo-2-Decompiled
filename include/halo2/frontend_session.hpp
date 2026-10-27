@@ -28,6 +28,10 @@ public:
   // credentials are scoped to a local profile in the OS credential store.
   std::shared_ptr<DiscordLogin> discord_login;
   std::shared_ptr<DiscordSocial> discord_social;
+  // Account, party and queue ownership spans renderer/world invocations.
+  // Runtime adapters borrow this container; explicit account/profile signout
+  // or destruction of the retained session ends the corresponding workers.
+  std::shared_ptr<NativeTu15OnlineServices> online_services;
 
   bool has_content() const noexcept;
   // Complete content setup before creating the state which references it.

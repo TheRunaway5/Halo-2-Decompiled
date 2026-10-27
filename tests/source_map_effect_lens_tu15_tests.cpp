@@ -28,7 +28,7 @@ int main(int argc,char **argv)try {
     if(!target)throw FormatError("Actual map has no authored spark scenery definition");
     std::array<Controls,multiplayer_capacity> controls{};unsigned observations{},active{};
     LanHost authority(world.match,0,0x17c710u);
-    LanClient replica("127.0.0.1:"+std::to_string(authority.port()),0x17c710u,2);
+    LanClient replica(authority.join_address(),0x17c710u,2);
     std::array<Controls,2> remote{};
     for(unsigned n=0;n<128&&!replica.ready();++n) {
         replica.send(remote);authority.receive(controls);authority.broadcast();replica.receive();

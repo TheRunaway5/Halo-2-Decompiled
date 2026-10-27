@@ -349,7 +349,7 @@ mod tests {
                 let width = (rng.next() % 64) as u32;
                 let magnitude = rng.next() & ((1u64 << width.min(62)) - 1);
                 let signed = if n % 3 == 0 { -(magnitude as i64) } else { magnitude as i64 };
-                ((rng.next() % 16 == 0) as u8, magnitude, signed, rng.next() as u8)
+                (rng.next().is_multiple_of(16) as u8, magnitude, signed, rng.next() as u8)
             })
             .collect();
         let (mut flag, mut uint, mut int, mut byte) = (Bit::default(), Uint::default(), Int::default(), Byte::default());

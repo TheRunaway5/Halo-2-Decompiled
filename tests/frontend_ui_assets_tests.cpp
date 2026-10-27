@@ -1,5 +1,7 @@
 #include "halo2/frontend_ui_assets.hpp"
 #include "halo2/frontend.hpp"
+#include <nlohmann/json.hpp>
+#include <openssl/evp.h>
 #include <chrono>
 #include <fstream>
 #include <iostream>
@@ -256,6 +258,63 @@ void library_subset(const std::filesystem::path &root) {
   rejects([&]{load_ui_asset_library(source.images,root,"hud.tsv");},
           "UI library changed logical HUD geometry");
 }
+void custom_ranks(const std::filesystem::path &root) {
+  const auto bank=root/"cache/presentation/custom-ranks";
+  std::filesystem::create_directories(bank/"bitmaps");
+  const auto font=root/"cache/halo2/h2_fonts";
+  std::filesystem::create_directories(font);
+  const auto data=dds(11,4,4,1,std::vector<std::byte>(64,std::byte{0xff}));
+  write(bank/"bitmaps/page.dds",data);
+  std::array<unsigned char,32> digest{};unsigned size{};
+  check(EVP_Digest(data.data(),data.size(),digest.data(),&size,EVP_sha256(),nullptr)==1,
+      "Cannot hash custom rank fixture");
+  constexpr char hex[]="0123456789abcdef";std::string hash;
+  for(auto value:digest){hash+=hex[value>>4];hash+=hex[value&15];}
+  FrontendContent source;source.source_fonts=font;
+  nlohmann::json pages=nlohmann::json::array();
+  unsigned datum=1;
+  for(const auto *name:{"ui\\global_bitmaps\\rank_icons","ui\\global_bitmaps\\rank_icons_sm"}) {
+    UiImage image;image.name=name;
+    image.images.assign(50,stock(2,2));
+    source.images.emplace(datum++,std::move(image));
+    for(unsigned frame=43;frame<50;++frame)
+      pages.push_back({{"name",name},{"frame",frame},{"logical",{2,2}},{"physical",{4,4}},
+          {"path","bitmaps/page.dds"},{"bytes",data.size()},{"sha256",hash}});
+  }
+  nlohmann::json metadata={{"schema","H2_PORT_CUSTOM_RANKS_V1"},{"complete",true},
+      {"original_logical_geometry",true},{"pages",pages}};
+  const auto save=[&]{write(bank/"manifest.json",metadata.dump());};save();
+  const auto result=load_frontend_ui_assets(source,{});
+  check(result.size()==2,"Automatic custom celestial banks were not loaded");
+  for(const auto &[id,image]:source.images) {
+    const auto &sampled=result.at(image.name);
+    for(unsigned frame=0;frame<50;++frame) {
+      check(sampled[frame].width==(frame<43?2u:4u),"Custom art replaced a numbered rank or missed a celestial slot");
+      check(image.images[frame].width==2,"Custom art changed original bank geometry");
+    }
+  }
+  // An optional numeric bank survives; celestial pages retain the explicit
+  // default custom owner even when another texture pack is selected.
+  const auto optional=root/"numeric-pack";std::filesystem::create_directory(optional);
+  write(optional/"page.dds",dds(11,6,6,1,std::vector<std::byte>(144)));
+  std::string rows;
+  for(unsigned frame=0;frame<50;++frame)
+    rows+=row(frame,50,2,2,"page.dds","ui\\global_bitmaps\\rank_icons");
+  manifest(optional,rows);
+  const auto selected=load_frontend_ui_assets(source,optional);
+  check(selected.at("ui\\global_bitmaps\\rank_icons")[0].width==6 &&
+      selected.at("ui\\global_bitmaps\\rank_icons")[43].width==4,
+      "Custom ranks did not preserve selected numeric art and override celestial art");
+  metadata["pages"][0]["frame"]=42;save();
+  rejects([&]{load_frontend_ui_assets(source,{});},"Custom bank admitted a numbered-rank replacement");
+  metadata["pages"]=pages;metadata["pages"][0]["sha256"]=std::string(64,'0');save();
+  rejects([&]{load_frontend_ui_assets(source,{});},"Custom bank admitted changed DDS bytes");
+  metadata["pages"]=pages;metadata["pages"][0]["logical"]={2,3};save();
+  rejects([&]{load_frontend_ui_assets(source,{});},"Custom bank admitted changed logical geometry");
+  metadata["pages"]=pages;metadata["pages"].erase(0);save();
+  rejects([&]{load_frontend_ui_assets(source,{});},"Custom bank admitted an incomplete celestial selection");
+  std::filesystem::remove_all(root/"cache");
+}
 void real_pack(const std::filesystem::path &map,const std::filesystem::path &directory) {
   const Cache cache(map);
   const auto source=cache.load_frontend();
@@ -294,6 +353,7 @@ int main(int argc,char **argv) {
     banks_and_paths(root,temporary.path/"outside.dds");
     malformed_dds(root);
     library_subset(root);
+    custom_ranks(temporary.path);
     if (argc==3) real_pack(argv[1],argv[2]);
     std::cout<<"UI asset pack formats, mip chains, original banks, paths and malformed metadata passed\n";
     return 0;

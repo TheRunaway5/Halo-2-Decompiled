@@ -42,7 +42,7 @@ int main(int argc,char **argv)try{
     MultiplayerMatch authority(content,0,cache.spawns(),rules);
     authority.replicate_prop_regions(props.region_snapshot());
     const auto before=authority.state();LanHost host(authority,0,0x52454749);
-    LanClient client("127.0.0.1:"+std::to_string(host.port()),0x52454749,1);
+    LanClient client(host.join_address(),0x52454749,1);
     std::array<Controls,multiplayer_capacity> controls{};std::array<Controls,1> remote{};
     for(unsigned i=0;i<20 && !client.ready();++i){client.send(remote);host.receive(controls);host.broadcast();client.receive();}
     require(client.ready(),"prop region late join did not receive UDP state");

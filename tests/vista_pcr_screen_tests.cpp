@@ -34,6 +34,35 @@ std::u16string localized(std::uint32_t key,unsigned seed){
  if(seed==23)for(unsigned i=0;i<9;++i)s+="abcdefghijklmnopqrstuvwxy";
  return wide(s);
 }
+void original_xbox_medals(){
+ VistaPcrResults b;b.player_count=1;put(b.players[0],0x80,0xffffffu);
+ VistaPcrRowServices s;s.grid_child=s.text_child=[](unsigned){return true;};
+ s.appearance=[](unsigned){};s.format=[](auto,auto){return u"24";};
+ std::u16string actual;unsigned localized_count{};bool visible{};
+ s.text=[&](unsigned i,std::u16string_view text){if(i==2)actual=text;};
+ s.visible=[&](unsigned i,bool value){require(i==2,"medal visibility child");visible=value;};
+ const VistaLoadingFloatingPoint fp{0x27f,0x1f80};
+ for(auto style:{VistaPcrRowStyle::vista,VistaPcrRowStyle::original_xbox}){
+  const bool xbox=style==VistaPcrRowStyle::original_xbox;
+  for(unsigned length:{1u,31u,32u,63u,64u,255u,511u}){
+   actual.clear();localized_count=0;visible=false;
+   s.localized=[&](unsigned key){
+    static constexpr unsigned keys[]={0xd000756,0x11000755,0xa000754,0xb000753,0x11000752,0x9000751,0x11000750,0x1100074f};
+    require(localized_count<8 && key==keys[localized_count],"descending medal locale order");
+    return std::u16string(length,char16_t(u'A'+localized_count++));
+   };
+   vista_pcr_bind_row(VistaPcrPane::medals,0,b,s,fp,style);
+   std::u16string expected;
+   for(unsigned i=0;i<8;++i){if(i)expected+=u" ";expected+=std::u16string(length,char16_t(u'A'+i));}
+   expected.resize(std::min<std::size_t>(expected.size(),xbox?255:511));
+   require(actual==expected,"original Xbox/Vista medal separator and terminator capacity");
+   require(visible && localized_count==8,"eight descending medals consumed even after truncation");
+  }
+ }
+ put(b.players[0],0x80,0);actual.clear();visible=true;localized_count=0;
+ vista_pcr_bind_row(VistaPcrPane::medals,0,b,s,fp,VistaPcrRowStyle::original_xbox);
+ require(!visible && actual.empty() && !localized_count,"empty Xbox medals hide the text child");
+}
 } // namespace
 int main(int argc,char** argv){try{
  require(argc==2,"fixture argument");std::ifstream file(argv[1]);J cases;file>>cases;unsigned checked{};
@@ -87,6 +116,7 @@ int main(int argc,char** argv){try{
   if(!record.at("returned").is_null())require(returned==bool(record.at("returned").get<unsigned>()),"original PCR input AL");
   ++checked;
  }
- require(checked>1000,"complete original corpus");std::cout<<"Vista PCR screen original cases="<<checked<<" PASS\n";
+ require(checked>1000,"complete original corpus");original_xbox_medals();
+ std::cout<<"Vista PCR screen original cases="<<checked<<"; Xbox medal separator/capacity PASS\n";
  return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

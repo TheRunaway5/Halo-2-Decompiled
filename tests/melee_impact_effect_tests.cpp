@@ -114,7 +114,7 @@ int main(int argc,char **argv)try{
       }
       check(delivered,"Sword terrain strike applied no contact presentation");
     }
-    LanHost host(match,0,0x4d454c45454658ull);LanClient peer("127.0.0.1:"+std::to_string(host.port()),0x4d454c45454658ull,1);
+    LanHost host(match,0,0x4d454c45454658ull);LanClient peer(host.join_address(),0x4d454c45454658ull,1);
     std::array<Controls,16> received{};std::array<Controls,1> outgoing{};
     for(unsigned t=0;t<40 && !peer.ready();++t){peer.send(outgoing);host.receive(received);host.broadcast();peer.receive();}
     check(peer.ready(),"Melee LAN handshake failed");

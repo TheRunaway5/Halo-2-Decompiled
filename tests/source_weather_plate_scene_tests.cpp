@@ -72,7 +72,7 @@ void upload_texture(Gpu &g,Image image,const std::filesystem::path &inputs,unsig
     vkCmdCopyBufferToImage(g.command,b.handle,image.handle,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,regions.size(),regions.data());
     barrier(g,image,VK_IMAGE_ASPECT_COLOR_BIT,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,VK_ACCESS_TRANSFER_WRITE_BIT,VK_ACCESS_SHADER_READ_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);g.end();
 }
-void report(std::span<const std::byte> before,std::span<const std::byte> original,std::span<const std::byte> native) {
+void report(std::span<const std::byte> before,std::span<const std::byte> original,std::span<const std::byte> native,bool exact) {
     unsigned source_changed=0,native_changed=0,different=0,max_channel=0,only_source=0,only_native=0;std::uint64_t absolute=0;
     for(unsigned i=0;i<before.size();i+=4){const bool s=!std::equal(before.begin()+i,before.begin()+i+4,original.begin()+i),n=!std::equal(before.begin()+i,before.begin()+i+4,native.begin()+i);
         source_changed+=s;native_changed+=n;only_source+=s&&!n;only_native+=n&&!s;
@@ -81,19 +81,29 @@ void report(std::span<const std::byte> before,std::span<const std::byte> origina
         for(unsigned c=0;c<3;++c){const auto d=unsigned(std::abs(int(std::to_integer<unsigned>(native[i+c]))-int(std::to_integer<unsigned>(original[i+c]))));absolute+=d;max_channel=std::max(max_channel,d);}
     }
     require(source_changed==181676&&native_changed>0,"actual source plate scene response missing");
-    require(max_channel<=1,"actual source/native plate scene exceeds the observed one-byte comparison boundary");
     std::cout<<"Actual event215778: source changed "<<source_changed<<", native changed "<<native_changed<<", differing pixels "<<different<<", source-only "<<only_source<<", native-only "<<only_native<<", max channel "<<max_channel<<", total RGB absolute "<<absolute<<'\n';
+    if(exact)require(different==0,"native weather differs from the retained original OpenGL plate scene");
+    else require(max_channel<=1,"actual source/native plate scene exceeds the observed one-byte comparison boundary");
 }
 }
 int main(int argc,char **argv){try{
-    require(argc==1||(argc==2&&(std::string(argv[1])=="--gpu"||std::string(argv[1])=="--gpu-baseline")),"optional --gpu expected");
-    const auto root=std::filesystem::path(HALO2_SOURCE_DIR),inputs=root/"analysis/multiplayer-shading/weather-plate-original-reference/event-215778",output=root/"analysis/multiplayer-shading/weather-plate-scene-prototype";
+    require(argc==1||(argc==2&&(std::string(argv[1])=="--gpu"||std::string(argv[1])=="--gpu-baseline"||std::string(argv[1])=="--gpu-exact")),"optional --gpu, --gpu-exact or --gpu-baseline expected");
+    const bool exact=argc==2&&std::string(argv[1])=="--gpu-exact";
+    const auto root=std::filesystem::path(HALO2_SOURCE_DIR),inputs=root/"analysis/multiplayer-shading/weather-plate-original-reference/event-215778";
+    const auto scratch=std::getenv("HALO2_TEST_SCRATCH");require(scratch&&*scratch,"weather scene test requires owned scratch");
+    const auto output=std::filesystem::path(scratch)/"weather-plate-scene";
     std::filesystem::create_directories(output);
     const auto code=read(root/"analysis/multiplayer-shading/weather-gpu-assets/lockout-global21-class0.vp");const auto vertices=decode<SourceWeatherPlateVertex>(read(inputs/"actual-four-vertices.bin"));require(vertices.size()==4,"actual source four-vertex strip changed");
     const auto scroll=decode<ShaderVector>(read(inputs/"actual-scroll-c21-c23.bin")),clip=decode<ShaderVector>(read(inputs/"actual-clip-range.bin"));require(scroll.size()==3&&clip.size()==1,"actual source plate scroll/clip bank changed");
     const auto regions=decode<std::array<std::int32_t,4>>(read(inputs/"actual-clip-regions.bin"));require(regions.size()==8,"actual source clip regions changed");
     const auto ps=decode<std::uint32_t>(read(inputs/"source-mode3-pixel-definition.bin"));require(ps.size()==60,"complete original mode3 definition missing");
-    const auto before=read(inputs/"before-scene-color.rgba"),after=read(inputs/"after-scene-color.rgba"),low24=read(inputs/"before-depth-d24-low24.bin"),source_depth=read(inputs/"before-scene-depth.raw"),alias=read(inputs/"stage-0-mip-0.rgba");
+    const auto before=read(inputs/"before-scene-color.rgba"),after=read(inputs/"after-scene-color.rgba"),source_depth=read(inputs/"before-scene-depth.raw"),alias=read(inputs/"stage-0-mip-0.rgba");
+    require(source_depth.size()==640*480*4,"source plate depth size changed");
+    auto low24=source_depth;
+    for(std::size_t at=0;at<low24.size();at+=4) {
+        std::uint32_t word;std::memcpy(&word,source_depth.data()+at,4);word>>=8;
+        std::memcpy(low24.data()+at,&word,4);
+    }
     require(before.size()==640*480*4&&after.size()==before.size()&&alias.size()==before.size(),"source scene color/alias dimensions changed");
     for(unsigned i=0;i<640*480;++i){require(alias[i*4]==source_depth[i*4+2]&&alias[i*4+1]==source_depth[i*4+1]&&alias[i*4+2]==source_depth[i*4]&&alias[i*4+3]==source_depth[i*4+3],"actual depth-alias byte packing changed");}
     const auto program=decode_vertex_program(code);require(program.count==5,"literal VS21 changed");
@@ -109,11 +119,12 @@ int main(int argc,char **argv){try{
     unsigned record_rejected=0;const auto render=[&](bool prepare,bool record_controls=false){if(prepare)renderer.prepare(packet);auto out=g.buffer(before.size(),VK_BUFFER_USAGE_TRANSFER_DST_BIT);g.begin();VkRenderPassBeginInfo bi{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};bi.renderPass=pass;bi.framebuffer=frame;bi.renderArea={{0,0},extent};vkCmdBeginRenderPass(g.command,&bi,VK_SUBPASS_CONTENTS_INLINE);if(record_controls){const auto reject_record=[&](VkViewport v,VkRect2D r){try{renderer.record(g.command,v,r);}catch(const FormatError&){++record_rejected;return;}throw FormatError("unproved plate viewport/scissor admitted");};
         reject_record({1,0,640,480,0,1},{{0,0},extent});reject_record({0,0,639,480,0,1},{{0,0},extent});reject_record({0,0,640,480,.1f,1},{{0,0},extent});reject_record({0,0,640,480,0,1},{{-1,0},extent});reject_record({0,0,640,480,0,1},{{0,0},{641,480}});}
         renderer.record(g.command,{0,0,640,480,0,1},{{0,0},extent});vkCmdEndRenderPass(g.command);g.readback(color.handle,extent,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,out);g.end();std::vector<std::byte> result(out.size);std::memcpy(result.data(),out.mapped,out.size);return result;};
-    const auto native=render(true);report(before,after,native);save(output/"native-after-scene-color.rgba",native);verify_depth(g,depth,low24,source_depth);
+    const auto native=render(true);save(output/"native-after-scene-color.rgba",native);verify_depth(g,depth,low24,source_depth);
     unsigned rejected=0;const auto reject=[&](SourceWeatherPlatePacket bad){try{renderer.prepare(bad);}catch(const FormatError&){++rejected;return;}throw FormatError("unproved source plate packet admitted");};
     auto bad=packet;bad.pixel.words[54]^=1;reject(bad);bad=packet;bad.vertices[1].registers[0][3]+=1;reject(bad);bad=packet;bad.textures[0].format=VK_FORMAT_D32_SFLOAT;reject(bad);bad=packet;bad.textures[0].mips=2;reject(bad);bad=packet;bad.surface[0]=640.5f;reject(bad);bad=packet;bad.vertices[0].registers[0][0]=std::numeric_limits<float>::max();reject(bad);bad=packet;bad.vertices[0].registers[2][0]=std::numeric_limits<float>::max();bad.scroll[0][0]=std::numeric_limits<float>::max();reject(bad);
     upload_color(g,color,before,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);require(render(false,true)==native,"rejected prepare mutated retained actual plate bindings");verify_depth(g,depth,low24,source_depth);
     upload_color(g,color,before,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);require(render(true)==native,"reused actual plate scene bindings differ");verify_depth(g,depth,low24,source_depth);require(rejected==7&&record_rejected==5,"source admission/record controls incomplete");require(validation_errors==0,"weather plate scene validation diagnostics");
     std::cout<<"All307200 source D24 integers/stencil bytes exact before and after; alpha unchanged, reused bindings exact, seven unproved packets and five viewport/scissor controls rejected; retained bindings exact after rejection\n";
+    report(before,after,native,exact);
     return 0;
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}

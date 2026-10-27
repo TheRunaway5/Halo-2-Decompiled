@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/multiplayer.hpp"
+#include "source_decal_frame_checks.hpp"
 #include <bit>
 
 namespace halo2::test {
@@ -60,6 +61,20 @@ inline void verify_prop_region_snapshot(const MultiplayerState &expected,const M
     }
 }
 inline void verify_multiplayer_snapshot(const MultiplayerState &expected, const MultiplayerState &actual) {
+    require_snapshot(expected.source_object_loop_emitters.has_value()==actual.source_object_loop_emitters.has_value(),
+        "UDP object-loop emitter availability differs from authority");
+    if(expected.source_object_loop_emitters) {
+        const auto &a=*expected.source_object_loop_emitters,&b=*actual.source_object_loop_emitters;
+        require_snapshot(a.size()==b.size(),"UDP object-loop emitter bank extent differs from authority");
+        for(std::size_t n=0;n<a.size();++n)
+            require_snapshot(a[n].loop==b[n].loop && a[n].object==b[n].object && a[n].definition==b[n].definition &&
+                a[n].source_flags==b[n].source_flags && a[n].function_active==b[n].function_active && a[n].cluster==b[n].cluster &&
+                same_snapshot_float(a[n].maximum_distance,b[n].maximum_distance) &&
+                same_snapshot_float(a[n].stop_duration,b[n].stop_duration) && a[n].location==b[n].location,
+                "UDP completed pre-view object-loop emitter differs from authority");
+    }
+    require_snapshot(same_source_decal_frame(expected.source_decals,actual.source_decals),
+        "UDP completed source decal cache differs from authority");
     require_snapshot(expected.source_body_poses_authoritative==actual.source_body_poses_authoritative &&
         expected.source_body_poses.size()==actual.source_body_poses.size(),"UDP source WORLD coverage bank differs");
     for(unsigned n=0;n<expected.source_body_poses.size();++n) {
@@ -119,6 +134,9 @@ inline void verify_multiplayer_snapshot(const MultiplayerState &expected, const 
             a.winner == b.winner &&
             a.score_limit == b.score_limit &&
             a.round_mode == b.round_mode &&
+            a.source_round_lifecycle_available == b.source_round_lifecycle_available &&
+            a.round_phase == b.round_phase && a.round_index == b.round_index &&
+            a.round_countdown == b.round_countdown &&
             a.life_limit == b.life_limit &&
             a.time_ticks == b.time_ticks &&
             a.clock_seconds == b.clock_seconds &&
@@ -171,7 +189,9 @@ inline void verify_multiplayer_snapshot(const MultiplayerState &expected, const 
             a.source_ffa_identity == b.source_ffa_identity &&
             a.source_lives_remaining == b.source_lives_remaining &&
             a.source_king_inside_ticks == b.source_king_inside_ticks &&
-            a.source_respawn_countdown == b.source_respawn_countdown,
+            a.source_respawn_countdown == b.source_respawn_countdown &&
+            a.source_respawn_seconds == b.source_respawn_seconds &&
+            a.source_status == b.source_status,
             "UDP player identity/profile/lifetime differs from authority");
         require_snapshot(same_snapshot_float(a.yaw, b.yaw) &&
             same_snapshot_float(a.pitch, b.pitch) &&

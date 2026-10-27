@@ -8,12 +8,21 @@ namespace halo2::detail {
 inline constexpr MccFrontendStringIdentifier mcc_pc_frontend_string_identifiers[]{
 #include "ui/mcc_pc_frontend_string_ids.inc"
 };
+inline const FrontendContent &frontend_pc_identifier_owner(const FrontendContent &content) {
+  return content.vista ? *content.vista : content;
+}
 
 // Compiled PC constants only. Authored MCC widget IDs are never aliases.
 inline std::optional<std::uint32_t> frontend_pc_compiled_string_id(
     const FrontendContent &content, std::uint32_t original) {
-  if (!mcc_frontend_content(content)) return original;
+  const auto &owner=frontend_pc_identifier_owner(content);
+  if (!mcc_frontend_content(owner)) return original;
   const auto index = StringId{original}.index();
+  if(owner.pc_string_ids) {
+    const auto found=owner.pc_string_ids->find(index);
+    if(found==owner.pc_string_ids->end())return {};
+    return found->second;
+  }
   const auto found = std::lower_bound(std::begin(mcc_pc_frontend_string_identifiers),
       std::end(mcc_pc_frontend_string_identifiers), index,
       [](const auto &row, auto value) { return row.original_index < value; });
@@ -25,15 +34,16 @@ inline std::optional<std::uint32_t> frontend_pc_compiled_string_id(
 inline std::string frontend_pc_compiled_localized(const FrontendContent &content,
     const UiScreen &screen, std::uint32_t original) {
   const auto id = frontend_pc_compiled_string_id(content, original);
-  return id ? content.localized(screen, *id) : std::string{};
+  return id ? frontend_pc_identifier_owner(content).localized(screen, *id) : std::string{};
 }
 
 inline std::string frontend_pc_compiled_low_localized(const FrontendContent &content,
     const UiScreen &screen, std::uint32_t original_index) {
-  if (mcc_frontend_content(content)) {
+  const auto &owner=frontend_pc_identifier_owner(content);
+  if (mcc_frontend_content(owner)) {
     const auto id = frontend_pc_compiled_string_id(content, original_index);
     if (id) {
-      const auto value = content.localized(screen, *id);
+      const auto value = owner.localized(screen, *id);
       if (!value.empty()) return value;
     }
   } else {
@@ -51,7 +61,7 @@ inline bool frontend_pc_compiled_matches(const FrontendContent &content,
 
 inline bool frontend_pc_compiled_low_matches(const FrontendContent &content,
     std::uint32_t authored, std::uint32_t original_index) {
-  if (!mcc_frontend_content(content)) return (authored & 0xffffu) == original_index;
+  if (!mcc_frontend_content(frontend_pc_identifier_owner(content))) return (authored & 0xffffu) == original_index;
   return frontend_pc_compiled_matches(content, authored, original_index);
 }
 

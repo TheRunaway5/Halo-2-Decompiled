@@ -63,7 +63,7 @@ std::uint32_t fade(std::int32_t,const VistaLoadingFloatingPoint&) {
 #endif
 } // namespace
 void vista_pcr_bind_row(VistaPcrPane pane,unsigned row,const VistaPcrResults& bank,
-    const VistaPcrRowServices& s,const VistaLoadingFloatingPoint& fp) {
+    const VistaPcrRowServices& s,const VistaLoadingFloatingPoint& fp,VistaPcrRowStyle style) {
   if(unsigned(pane)>unsigned(VistaPcrPane::weapons))throw FormatError("Invalid Vista PCR pane");
   const bool team=pane==VistaPcrPane::teams;
   if(row>=16 || row>=(team?bank.team_count:bank.player_count))throw FormatError("Invalid Vista PCR displayed row");
@@ -122,9 +122,17 @@ void vista_pcr_bind_row(VistaPcrPane pane,unsigned row,const VistaPcrResults& ba
     integer(1,0x7c);if(!children[2])break;
     static constexpr std::array<std::uint32_t,24> names={0xf00073f,0xf000740,0xf000741,0xf000742,0xf000743,0xf000744,0xb000745,0xe000746,0x9000747,0xc000748,0xe000749,0xf00074a,0xb00074b,0x1000074c,0x1100074d,0x1100074e,0x1100074f,0x11000750,0x9000751,0x11000752,0xb000753,0xa000754,0x11000755,0xd000756};
     std::u16string value;unsigned count{};const auto mask=word(b,0x80);
+    const bool xbox=style==VistaPcrRowStyle::original_xbox;
+    const std::size_t limit=xbox?255:511;
+    auto append_medal=[&](std::u16string_view text){
+      if(value.size()<limit)value.append(text.substr(0,limit-value.size()));
+    };
     for(int i=23;i>=0&&count<8;--i)if(mask&(1u<<i)) {
-      if(count)append(value,u" ");
-      append(value,invoke(s.localized,names[i]));++count;
+      // TU1.5 23B211 passes256 and explicitly terminates[255]. Its actual
+      //437544 UTF16 literal is one space, despite the readable retail
+      // decompilation's comma annotation. Vista40D7DC instead passes512.
+      if(count)append_medal(u" ");
+      append_medal(invoke(s.localized,names[i]));++count;
     }
     if(count){set(2,value);invoke(s.visible,2u,true);}else invoke(s.visible,2u,false);
     break;

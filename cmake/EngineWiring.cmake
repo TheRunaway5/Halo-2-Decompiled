@@ -15,4 +15,6 @@ cmake_language(DEFER CALL halo2_record_engine_wiring)
 if(BUILD_TESTING)
     add_test(NAME launcher_engine_promotion COMMAND ${Python3_EXECUTABLE} -B
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_build_launcher_engine.py")
+    add_test(NAME engine_object_source_wiring COMMAND ${Python3_EXECUTABLE} -B
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_engine_object_wiring.py")
 endif()

@@ -44,6 +44,10 @@ struct OnlineMatchTransportOptions {
   // negotiate it. The default diagnostic migration fixtures omit this feature;
   // an enabled mixed-capability group cannot fall back to their Ready path.
   bool survivor_cut_selection{};
+  // Separate cold-terminal qualification. Keeps a validated source archive
+  // for the sole surviving physical owner; it never elects/promotes a host.
+  // Ordinary delivery remains disabled until runtime/storage costs qualify.
+  bool terminal_recovery{};
   std::optional<OnlineEosOptions> eos;
 };
 class OnlineMatchSession final : public MultiplayerDatagrams {
@@ -93,6 +97,30 @@ public:
   std::vector<unsigned> local_slots() const;
   const std::vector<OnlineAdmission> &roster() const;
   std::string error() const;
+  // New service completion receipt. False means the surviving owners agreed
+  // on presentation, while departed-owner consent prevented history/rank writes.
+  // Missing means an older service supplied no publication receipt.
+  std::optional<bool> result_recorded() const;
+  // Current authenticated report membership only. Unknown until an actual
+  // Reviewing/Postgame voice_host/voice_members publication is validated.
+  std::optional<std::uint16_t> postgame_presence() const;
+  bool terminal_recovery_enabled() const;
+  // Minted only while the live direct transport observes every other admitted
+  // physical owner failed. Master closure and local teardown cannot mint it.
+  class TerminalObservation {
+  public:
+    const AuthorityTransferContext &context() const noexcept{return context_;}
+    unsigned self() const noexcept{return self_;}
+    std::uint16_t retired_peers() const noexcept{return retired_;}
+  private:
+    friend class OnlineMatchSession;
+    TerminalObservation(AuthorityTransferContext c,unsigned s,std::uint16_t r)
+      :context_(std::move(c)),self_(s),retired_(r){}
+    AuthorityTransferContext context_;
+    unsigned self_;
+    std::uint16_t retired_;
+  };
+  std::optional<TerminalObservation> terminal_observation() const;
   bool direct_udp() const;
   // Saturating diagnostic for exceptions rejected by the direct dispatch
   // loop. Protocol owners which consume/reject internally keep their own
@@ -108,6 +136,7 @@ public:
   bool authority_replay_supported(unsigned physical_peer) const;
   bool authority_pipeline_supported(unsigned physical_peer) const;
   bool authority_host_continuation_supported(unsigned physical_peer) const;
+  bool authority_admitted_camera_supported(unsigned physical_peer) const;
   std::optional<std::uint64_t> loaded_fingerprint()const;
   bool authority_delivered(unsigned physical_peer,const AuthorityTransferContext &,const AuthorityCutSeal &)const;
   // Fresh inter-player measurements, never a promotion certificate. The

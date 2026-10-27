@@ -7,6 +7,7 @@
 #include "halo2/source_hud_score.hpp"
 #include "halo2/motion_sensor.hpp"
 #include "halo2/prompt_device.hpp"
+#include "halo2/full_scoreboard_paint_constants.hpp"
 #include <memory>
 namespace halo2 {
 struct HudEffect {
@@ -149,6 +150,11 @@ public:
                            std::optional<Vec2> player_aim_anchor_pixels = {},
                            std::optional<TwoPlayerSplit> split = {},
                            std::optional<SourceHudAimCamera> target_camera = {});
+  // 25B53A..25B5BE: independent centered status line. Alpha is the caller's
+  // actual per-view HUD opacity; the ordinary native caller supplies one.
+  std::vector<Vertex> draw_player_status(std::u16string_view,const MultiplayerState&,
+      unsigned player,unsigned view,unsigned players,unsigned width,unsigned height,
+      const FullScoreboardPaintConstants&,std::optional<TwoPlayerSplit> split,float alpha);
   // Per-viewport shader copies bind the original widget inputs independently.
   void animate(const MultiplayerState &, unsigned player, unsigned view,
                int score_limit, unsigned time_ticks, double seconds);
@@ -162,6 +168,9 @@ private:
   std::array<std::shared_ptr<const RetailFont>, 2> fonts_;
   std::array<std::shared_ptr<const RetailFont>,2> action_fonts_;
   std::array<unsigned,2> action_materials_{};
+  std::array<std::shared_ptr<const RetailFont>,2> status_fonts_;
+  std::array<unsigned,2> status_materials_{};
+  std::array<std::int16_t,2> status_font_offsets_{};
   bool defusal_objectives_{};
   std::optional<unsigned> defusal_marker_material_;
   std::array<std::shared_ptr<const RetailFont>,2> action_button_fonts_;

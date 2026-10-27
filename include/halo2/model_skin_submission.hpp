@@ -49,4 +49,12 @@ struct ModelSkinSubmission {
     std::size_t first{};
     std::shared_ptr<const ModelSkinGeometry> geometry;
 };
+// Passive identity/count evidence for records actually dispatched by the GPU.
+// verified_vertices counts only records whose completed bytes passed readback.
+struct ModelSkinGpuOwnerObservation {
+    std::uint32_t owner{},definition{},render_model{};
+    unsigned lod{};
+    std::size_t vertices{},weighted_vertices{},verified_vertices{};
+    bool post_identity_placement{};
+};
 }

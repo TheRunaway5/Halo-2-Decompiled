@@ -9,6 +9,8 @@ inside each body is checked against the canonical input before publication.
 import argparse
 import hashlib
 import json
+import locale
+import os
 from pathlib import Path
 import re
 
@@ -26,13 +28,27 @@ def sha(value):
     return hashlib.sha256(value.encode()).hexdigest()
 
 
+def write_if_changed(path, value):
+    # Preserve source/header mtimes when only another recovered body changed.
+    # Comparing bytes also preserves the platform's existing write_text output.
+    encoded = value.replace('\n', os.linesep).encode(locale.getpreferredencoding(False))
+    if path.exists() and path.read_bytes() == encoded:
+        return
+    path.write_bytes(encoded)
+
+
 def split(source, directory, count):
     if not 1 <= count <= 128:
         raise ValueError('Native translation partition count must be 1..128')
     text = source.read_text()
     bodies = list(BODY.finditer(text))
     declarations = re.findall(r'^static void (run_[0-9a-f]+)\(WorldState &\);$', text, re.M)
-    if not bodies or declarations != [m[1] for m in bodies]:
+    definitions = [match[1] for match in bodies]
+    # C++ forward declarations need not follow definition order. Require a
+    # unique bijection so appended recovered bodies remain fully owned.
+    if (not bodies or len(set(declarations)) != len(declarations)
+            or len(set(definitions)) != len(definitions)
+            or set(declarations) != set(definitions)):
         raise ValueError('Unsupported native body/declaration correspondence')
     for a, b in zip(bodies, bodies[1:]):
         if text[a.end():b.start()].strip():
@@ -62,21 +78,21 @@ def split(source, directory, count):
         rows.append(dict(entry=m[1], chunk=index, body_sha256=sha(body[body.index('\n'):]),
                          original_bytes=len(m[0]), instruction_body_unchanged=True))
     directory.mkdir(parents=True, exist_ok=True)
-    (directory/'common.hpp').write_text(common)
+    write_if_changed(directory/'common.hpp', common)
     for n, bucket in enumerate(buckets):
         value = '#include "common.hpp"\nnamespace halo2 { namespace ' + module + ' {\n'
         for _, body in sorted(bucket):
             value += body + '\n'
         value += '} }\n'
-        (directory/f'body_{n:03d}.cpp').write_text(value)
+        write_if_changed(directory/f'body_{n:03d}.cpp', value)
     router = '#include "common.hpp"\nnamespace halo2 {\nusing namespace ' + module + ';\n'
     router += footer.removeprefix('} // namespace\n')
-    (directory/'router.cpp').write_text(router)
+    write_if_changed(directory/'router.cpp', router)
     manifest = dict(schema='native-translation-partition-v1', source=str(source),
         source_sha256=sha(text), body_count=len(bodies), chunk_count=count,
         chunk_body_bytes=sizes, shared_prefix_bytes=len(common),
         body_bytes_unchanged=True, entries=sorted(rows, key=lambda r:r['entry']))
-    (directory/'manifest.json').write_text(json.dumps(manifest, indent=2)+'\n')
+    write_if_changed(directory/'manifest.json', json.dumps(manifest, indent=2)+'\n')
     return manifest
 
 

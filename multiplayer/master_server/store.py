@@ -37,6 +37,8 @@ class Store:
         CREATE TABLE IF NOT EXISTS master_identity(id INTEGER PRIMARY KEY CHECK(id=1), value TEXT NOT NULL);
         CREATE INDEX IF NOT EXISTS active_expiry ON records(expires);
         CREATE TABLE IF NOT EXISTS origin_quarantine(origin TEXT PRIMARY KEY, until INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS local_listing_revisions(server TEXT PRIMARY KEY REFERENCES credentials(server),
+          revision INTEGER NOT NULL);
         """)
         from .protocol import public_hex
         self.key, self.id, self.lease, self.clock = key, master_id(public_hex(key)), lease, clock
@@ -44,6 +46,12 @@ class Store:
             self.db.execute("INSERT OR IGNORE INTO master_identity VALUES(1,?)", (self.id,))
             require(self.db.execute("SELECT value FROM master_identity WHERE id=1").fetchone()[0] == self.id,
                     "Database belongs to another master key")
+            # Migrate legacy local history before any listing rows are reclaimed.
+            # One compact watermark per enrolled key is bounded by the existing
+            # owner/key-history quotas; credentials are never reenrolled/deleted.
+            self.db.execute("""INSERT INTO local_listing_revisions(server,revision)
+                SELECT r.server,r.revision FROM records r JOIN credentials c ON c.server=r.server WHERE r.origin=?
+                ON CONFLICT(server) DO UPDATE SET revision=max(revision,excluded.revision)""", (self.id,))
 
     def now(self):
         # A wall-clock correction cannot restore an expiration already observed.
@@ -120,17 +128,26 @@ class Store:
 
     def _record(self, credential, state, data, registered=None):
         now = self.now()
+        self._cleanup_local(now)
         row = self.db.execute("SELECT revision FROM records WHERE origin=? AND server=?", (self.id, credential["server"])).fetchone()
-        require(row is not None or self.db.execute("SELECT count(*) FROM records").fetchone()[0] < MAX_RECORDS,
-                "Directory capacity reached", 503)
+        if row is None:
+            from .security_policy import local_listing_admission
+            local_listing_admission(self.db.execute("""SELECT count(*) FROM records r JOIN credentials c ON c.server=r.server
+                WHERE r.origin=? AND c.owner=?""", (self.id, credential["owner"])).fetchone()[0],
+                self.db.execute("SELECT count(*) FROM records WHERE origin=?", (self.id,)).fetchone()[0],
+                self.db.execute("SELECT count(*) FROM records").fetchone()[0])
+        watermark = self.db.execute("SELECT revision FROM local_listing_revisions WHERE server=?", (credential["server"],)).fetchone()
+        revision = max(row[0] if row else 0, watermark[0] if watermark else 0)
+        require(revision < 2**53-1, "Listing revision exhausted", 409)
         payload = {"v": VERSION, "kind": "listing", "origin_master_id": self.id,
                    "server_id": credential["server"], "server_public_key": credential["public_key"],
                    "owner_id": credential["owner"], "credential_id": credential["id"],
-                   "revision": (row[0] if row else 0) + 1, "registered_at": registered or now,
+                   "revision": revision + 1, "registered_at": registered or now,
                    "last_heartbeat": now, "expires_at": min(now + self.lease, credential["expires"]),
                    "state": state, "metadata": data}
         envelope = signed(self.key, payload)
         self._put(envelope)
+        self.db.execute("INSERT OR REPLACE INTO local_listing_revisions VALUES(?,?)", (credential["server"], revision + 1))
         return payload
 
     def _put(self, envelope):
@@ -142,6 +159,8 @@ class Store:
     def revoke(self, cid, provider=None, subject=None):
         identifier(cid)
         with self.db:
+            now = self.now()  # Serialize lookup and mutation across connections.
+            self._cleanup_local(now)
             credential = self.db.execute("SELECT * FROM credentials WHERE id=?", (cid,)).fetchone()
             require(credential is not None, "Credential not found", 404)
             if provider is not None:
@@ -149,7 +168,10 @@ class Store:
                 require(tuple(owner) == (provider, subject), "Not the credential owner", 403)
             if not credential["revoked"]:
                 self.db.execute("UPDATE credentials SET revoked=1 WHERE id=?", (cid,))
-                self._record(credential, "revoked", {})
+                # An unused key has never published a lease to invalidate.
+                # Revocation must also succeed when every listing slot is full.
+                if self.db.execute("SELECT 1 FROM records WHERE origin=? AND server=?", (self.id, credential["server"])).fetchone():
+                    self._record(credential, "revoked", {})
 
     def announce(self, envelope, method, path):
         fields(envelope, ("payload", "signature"))
@@ -285,11 +307,16 @@ class Store:
                 require(row is not None or self.db.execute("SELECT count(*) FROM records").fetchone()[0] < MAX_RECORDS, "Directory capacity reached", 503)
                 self._put(envelope)
 
+    def _cleanup_local(self, now):
+        # Every earlier lease has expired before its envelope is removed. The
+        # compact credential-bound revision survives for a later registration.
+        self.db.execute("DELETE FROM records WHERE origin=? AND expires<?", (self.id, now-MAX_LEASE-SKEW))
+
     def cleanup(self, trusted=None):
         # Preserve tombstones until every earlier lease must have expired.
-        # Local rows also own revision history and remain under local control.
         with self.db:
             now = self.now()
+            self._cleanup_local(now)
             self.db.execute("DELETE FROM nonces WHERE expires<=?", (now,))
             self.db.execute("DELETE FROM records WHERE origin!=? AND expires<?", (self.id, now-MAX_LEASE-SKEW))
             if trusted is not None:

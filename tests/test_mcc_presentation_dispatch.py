@@ -25,6 +25,7 @@ from test_mcc_prompts import prompt_fixture
 from test_mcc_ui_layout import layout_fixture
 from native_variant_test_support import variant_fixture
 from test_mcc_gameplay_preparation import source as mcc_source_fixture
+from custom_ui_test_support import custom_ui_fixture, custom_ui_prepare_fixture, empty_custom_map_fixture
 
 
 class PresentationOwnerTests(unittest.TestCase):
@@ -215,6 +216,8 @@ class PresentationFilesystemTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name) / 'port'
         bundle_fixture(self.root)
+        custom_ui_fixture(self.root)
+        empty_custom_map_fixture(self.root)
         prompt_fixture(self.root)
         source = Path(__file__).resolve().parents[1]
         target = self.root / loading.AMBIENCE
@@ -273,6 +276,7 @@ class PresentationFilesystemTests(unittest.TestCase):
              patch('mcc_menu_assets.prepare', return_value=dict(complete=True,
                  frame_owners=0, unique_dds_pages=0, fonts={})), \
              patch('mcc_loading_assets.prepare', side_effect=loading_assets), \
+             patch('custom_ui_assets.prepare', side_effect=custom_ui_prepare_fixture), \
              patch.object(preparation, 'inventory_player_screen_flashes',
                  return_value=dict(complete=False, summary={})), \
              patch.object(loading, 'preflight_v3', side_effect=AssertionError('V3 selected')):

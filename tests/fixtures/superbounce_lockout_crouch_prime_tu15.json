@@ -1,0 +1,13 @@
+{
+  "name": "Lockout lower BR crouch priming control; launch remains unqualified",
+  "spawn": [9.0, -0.7, -8.39],
+  "facing": [1.0, 0.0, 0.0],
+  "expected_launch": false,
+  "minimum_forced_crouch_ticks": 80,
+  "segments": [
+    {"ticks": 20},
+    {"ticks": 15, "crouch": true},
+    {"ticks": 65, "crouch": true, "forward": 1.0},
+    {"ticks": 90, "forward": 1.0}
+  ]
+}

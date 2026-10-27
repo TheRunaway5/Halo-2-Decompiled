@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+"""Actual flag-set phase composition with semantic-derived EBP only.
+
+No captured GP or private caller stack enters native dependencies. EBP is the
+actual configuration identity retained by source321A70; ECX/four args/FP are
+actual typed inputs. Other GP starts neutral, while genuine owner execution
+naturally retains its own private bytes across sequential callbacks. This is
+an explicit transitional residual ABI construction, not final native closure.
+"""
+import argparse,difflib,hashlib,json,os,subprocess,sys
+from pathlib import Path
+from oracle_smg_firing_1_1 import ROOT,Xbe,_Code
+from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
+from generate_physics_live_support_tu15 import complete_body
+
+def sha(path):return hashlib.file_digest(Path(path).open('rb'),'sha256').hexdigest()
+def source_abi():
+ assert sha(NEW_DEFAULT)==NEW_PIN;code=_Code(Xbe(NEW_DEFAULT),'.text');body=complete_body(code,0x321a70);writes=[]
+ for pc in sorted(body.code):
+  i=code.at(pc);_,w=i.regs_access()
+  if any(i.reg_name(r)=='ebp'for r in w):writes.append(dict(instruction=pc,bytes=i.bytes.hex(),mnemonic=i.mnemonic,operands=i.op_str))
+ assert[(x['instruction'],x['mnemonic'],x['operands'])for x in writes]==[(0x321b00,'lea','ebp, [esp + 0x10]'),(0x321b11,'mov','ebp, dword ptr [esp + 0x44]'),(0x321c9b,'lea','ebp, [esp + 0x10]'),(0x321ca0,'mov','ebp, dword ptr [esp + 0x44]'),(0x321cc7,'pop','ebp')],writes
+ # Both source loads occur after one packet push: sourceESP=entrySP-0x40,
+ # so+0x44 is the true configuration argument at entrySP+4. No intervening
+ # EBP write precedes any of the two process or finish call sites.
+ return dict(original_sha256=NEW_PIN,entry=0x321a70,sites=len(body.code),ebp_writes=writes,callback_sites=[0x321b5e,0x321c3f,0x321cad],semantic_ebp='configuration.identity',derived_callback_sp='aligned declared phaseEntrySP minus0x50',flag_clear_excluded=True,flag_clear_requirement='actual321D20 retains frame identity entrySP-4 in EBP, not configuration')
+def main():
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',required=True,type=Path);a=p.parse_args();a.output.mkdir(parents=True,exist_ok=True);scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve();abi=source_abi();(a.output/'source-caller-abi.json').write_text(json.dumps(abi,indent=2)+'\n');template=ROOT/'tests/native_tu15_island_agent_hardware_composition_tests.cpp';text=template.read_text();old='dependencies.enter(owner,receiver,args,call.at("stack"),state,call);dependencies.put(native);';new='check(entry==0x321a70&&call.at("stack")==SP-0x50u&&call.at("gp")[5]==config,"Authenticated source flag-set EBP/SP contract differs");dependencies.enter(owner,receiver,args,SP-0x50u,state);auto constructed=dependencies.regs();constructed.rbp=config;dependencies.request(PTRACE_SETREGS,&constructed);';assert text.count(old)==1;text=text.replace(old,new);text=text.replace('{"genuine_input_context",true}', '{"semantic_ebp_constructed",true},{"captured_entry_context_supplied",false}');text=text.replace('actual independently observed caller GP at each actual owner entry','only EBP=actual semantic configuration identity; all other GP neutral');text=text.replace('actual independently observed caller flags','neutral fresh flags');text=text.replace('{"private_stack_bytes",0x4100}', '{"private_stack_bytes",0}');text=text.replace('unchanged i386 hardware original code; current mutable native banks/true args; authenticated actual private caller GP/stack inputs', 'unchanged i386 hardware original code; current mutable native banks/true args; only semantic-derived EBP; no supplied original caller context');generated=scratch/'derived.cpp';generated.write_text(text);(a.output/'test-adaptation.diff').write_text(''.join(difflib.unified_diff(template.read_text().splitlines(True),text.splitlines(True),fromfile=str(template.relative_to(ROOT)),tofile='owned-semantic-derived-ebp.cpp')))
+ source=(ROOT/'tools/validate_native_island_agent_hardware_composition_tu15.py').read_text();source=source.replace("test=ROOT/'tests/native_tu15_island_agent_hardware_composition_tests.cpp'",f'test=Path({str(generated)!r})');source=source.replace('str(f.relative_to(ROOT))','str(f.relative_to(ROOT)if f.is_relative_to(ROOT)else f)');source=source.replace('meta=metadata(image);meta.update','cases=[c for c in cases if c[\'entry\']==0x321a70];meta=metadata(image);meta.update');source=source.replace('actual independently observed GP/flags and0x4100private caller stack bytes; current native packets overwrite and are asserted equal before real owner entry','no captured context; only EBP=semantic configuration; ECX/four args/FP genuine; derived sourcecallbackSP=phaseEntrySP-0x50; all other GP neutral; private bytes only from genuine sequential owner execution');worker=scratch/'worker.py';worker.write_text(source);command=[sys.executable,str(worker),'--output',str(a.output/'execution')];r=subprocess.run(command,env=dict(os.environ,PYTHONPATH=str(ROOT/'tools')));files=[template,Path(__file__),ROOT/'src/physics/native_tu15_island_agent_phase.cpp',ROOT/'include/halo2/native_tu15_island_agent_phase.hpp'];temporary=[p for p in scratch.rglob('*')if p.is_file()];report=dict(passed=r.returncode==0,required_backend='actual-flag-set-semantic-derived-EBP-no-captured-context-v1',command=command,source_caller_abi=abi,supplied_physics_results=False,captured_entry_context_supplied=False,flag_clear_excluded=True,source_hashes={str(p.relative_to(ROOT)):sha(p)for p in files},generated_test_sha256=sha(generated),generated_worker_sha256=sha(worker),owned_scratch=str(scratch),temporary_allocated_bytes_before_cleanup=sum(p.stat().st_blocks*512 for p in temporary),retained_large_artifacts=[],excluded=['live production residual ABI activation','native conversion of remaining actual agents','full original frame raw parity','all-branch collision advance3205B0 return closure','source exception unwind lifetime']);(a.output/'report.json').write_text(json.dumps(report,indent=2)+'\n');return r.returncode
+if __name__=='__main__':raise SystemExit(main())

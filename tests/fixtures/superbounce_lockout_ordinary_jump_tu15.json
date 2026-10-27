@@ -1,0 +1,11 @@
+{
+  "name": "Lockout authored spawn ordinary jump control",
+  "spawn": [7.0335698, -0.134619, -8.2790098],
+  "expected_launch": false,
+  "expected_peak_upward_speed_bits": 1078271672,
+  "segments": [
+    {"ticks": 60},
+    {"ticks": 1, "jump": true},
+    {"ticks": 90}
+  ]
+}

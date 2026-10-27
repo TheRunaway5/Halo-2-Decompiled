@@ -3,6 +3,7 @@
 #include "rendering/models/model_skin_gpu.hpp"
 #include "halo2/native_parallel.hpp"
 #include <atomic>
+#include <bit>
 #include <algorithm>
 #include <cstring>
 #include <limits>
@@ -23,6 +24,7 @@ class FrameModelSkinPlan {
         std::shared_ptr<const ModelSkinGeometry> geometry;
         std::uint32_t palette{};
         std::vector<std::size_t> mapped;
+        unsigned view{};
     };
     struct DestinationRange {std::uint64_t first{},end{};};
     struct PendingRun {
@@ -99,7 +101,7 @@ class FrameModelSkinPlan {
         }
     }
 public:
-    void add_bank(std::span<const Vertex> vertices,std::span<const ModelSkinSubmission> submissions) {
+    void add_bank(std::span<const Vertex> vertices,std::span<const ModelSkinSubmission> submissions,unsigned view=0) {
         if(appending_)throw FormatError("frame model skin bank registered after append began");
         address(vertices);
         if(submissions.empty())return;
@@ -148,7 +150,7 @@ public:
             if(count>std::numeric_limits<std::size_t>::max()-expected)
                 throw FormatError("frame model skin source count overflows");
             expected+=count;
-            pending.push_back({source,submission.geometry,palette->second,std::vector<std::size_t>(count)});
+            pending.push_back({source,submission.geometry,palette->second,std::vector<std::size_t>(count),view});
         }
         if(pending.size()>sources_.max_size()-sources_.size())
             throw FormatError("frame model skin source count exceeds its storage width");
@@ -267,6 +269,19 @@ public:
     std::span<const std::array<float,12>> palette()const{return palette_;}
     std::size_t expected_vertices()const{return expected_;}
     std::size_t mapped_vertices()const{return mapped_;}
+    template<class Observer> void observe_mapped_owners(const Observer &observe)const {
+        for(const auto &source:sources_) {
+            std::size_t vertices{},weighted{};
+            for(std::size_t i=0;i<source.mapped.size();++i) {
+                const auto copies=source.mapped[i];vertices+=copies;
+                if(copies && std::any_of(source.geometry->bindings[i].weights.begin(),
+                    source.geometry->bindings[i].weights.end(),[](float weight) {
+                        return (std::bit_cast<std::uint32_t>(weight)&0x7fffffffu)!=0;
+                    }))weighted+=copies;
+            }
+            if(vertices)observe(source.view,*source.geometry,vertices,weighted);
+        }
+    }
     void validate_complete()const {
         if(mapped_!=expected_)throw FormatError("frame model skin grouping omitted a registered source vertex");
     }

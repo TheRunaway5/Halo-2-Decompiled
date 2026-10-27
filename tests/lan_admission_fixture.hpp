@@ -1,4 +1,5 @@
 // Included inside multiplayer_tests.cpp's fixture namespace.
+#include <cstring>
 void raw_lan_admission_security(){
 #ifndef _WIN32
   using Packet=std::vector<std::byte>;
@@ -25,7 +26,18 @@ void raw_lan_admission_security(){
   send(a.fd,hello);receive(a.fd);
   check(host.peers()==0&&match.available_player_slots()==16,"First unauthenticated hello allocated live player slots");
   LanPacketAuth authentication;LanPacketAuth::Session session;
-  auto secured=header(10);put(secured,456,8);
+  LanPacketAuth::Context context{};
+  const auto make_context=[&](std::uint64_t nonce,std::uint64_t fingerprint){
+    LanPacketAuth::Context value{};
+    for(unsigned i=0;i<2;++i)value[i]=native_multiplayer_protocol>>(8*i);
+    for(unsigned i=0;i<8;++i){value[2+i]=nonce>>(8*i);value[10+i]=fingerprint>>(8*i);}
+    std::memcpy(value.data()+18,&to.sin_addr.s_addr,4);std::memcpy(value.data()+22,&to.sin_port,2);return value;
+  };
+  context=make_context(456,123);LanPacketAuth::Key expected{};const auto token=host.join_address();
+  for(unsigned i=0;i<32;++i)expected[i]=std::stoul(token.substr(token.find('#')+1+i*2,2),nullptr,16);
+  authentication.bind(session,expected,false,context);
+  auto secured=header(10);put(secured,456,8);put(secured,123,8);
+  for(unsigned i=18;i<24;++i)put(secured,context[i],1);
   for(auto b:authentication.public_key())put(secured,b,1);
   secured.insert(secured.end(),hello.begin(),hello.end());hello=std::move(secured);
   const auto wrap=[&](const Packet &body,const Packet &cookie){auto p=header(9);p.insert(p.end(),cookie.begin(),cookie.end());p.insert(p.end(),body.begin(),body.end());return p;};
@@ -33,7 +45,7 @@ void raw_lan_admission_security(){
   auto initial=wrap(hello,empty_cookie);send(a.fd,initial);auto challenge=receive(a.fd);
   check(challenge.size()==1&&challenge[0].size()==31&&challenge[0][6]==std::byte{8},"Hello must receive only a bounded challenge");
   Packet cookie(challenge[0].begin()+15,challenge[0].end());
-  auto invalid_key=hello;std::fill(invalid_key.begin()+15,invalid_key.begin()+47,std::byte{});
+  auto invalid_key=hello;std::fill(invalid_key.begin()+29,invalid_key.begin()+61,std::byte{});
   send(b.fd,wrap(invalid_key,empty_cookie));auto invalid_challenge=receive(b.fd);
   check(invalid_challenge.size()==1,"Invalid-key fixture did not get endpoint proof");
   Packet invalid_cookie(invalid_challenge[0].begin()+15,invalid_challenge[0].end());
@@ -62,12 +74,24 @@ void raw_lan_admission_security(){
   check(receive(a.fd,1).size()<=initial_snapshot.size(),"Repeated admitted hellos regenerated unbounded snapshots");
   auto query=header(6);put(query,789,8);
   send(b.fd,query);check(receive(b.fd).empty(),"Legacy unauthenticated query amplified a reply");
+  LanPacketAuth::Session query_session;const auto query_context=make_context(789,0);
+  authentication.bind(query_session,expected,false,query_context);
+  auto secured_query=header(15);put(secured_query,789,8);put(secured_query,0,8);
+  for(unsigned i=18;i<24;++i)put(secured_query,query_context[i],1);
+  for(auto b:authentication.public_key())put(secured_query,b,1);
+  secured_query.insert(secured_query.end(),query.begin(),query.end());query=std::move(secured_query);
+  auto bad_query=query;std::fill(bad_query.begin()+29,bad_query.begin()+61,std::byte{});
+  send(b.fd,wrap(bad_query,empty_cookie));const auto bad_query_challenge=receive(b.fd);
+  check(bad_query_challenge.size()==1,"Invalid query key did not receive a bounded endpoint challenge");
+  Packet bad_query_cookie(bad_query_challenge[0].begin()+15,bad_query_challenge[0].end());
+  send(b.fd,wrap(bad_query,bad_query_cookie));
+  check(receive(b.fd).empty()&&host.peers()==1,"Invalid query key changed the live host");
   const auto request=wrap(query,empty_cookie);send(b.fd,request);challenge=receive(b.fd);
   std::size_t first_bytes{};for(const auto &p:challenge)first_bytes+=p.size();
   check(challenge.size()==1&&first_bytes<=request.size()&&challenge[0][6]==std::byte{8},"Session query amplified before proof");
   cookie.assign(challenge[0].begin()+15,challenge[0].end());
   send(b.fd,wrap(query,cookie));const auto description=receive(b.fd);
-  std::size_t bytes{};for(const auto &p:description){check(p[6]==std::byte{7},"Verified query did not return configuration");bytes+=p.size();}
+  std::size_t bytes{};for(auto p:description){bytes+=p.size();check(authentication.open(p,query_session,true),"Query description failed host authentication");check(p[6]==std::byte{7},"Verified query did not return configuration");}
   check(bytes>28000&&host.peers()==1,"Verified fragmented configuration or player census changed");
   std::this_thread::sleep_for(std::chrono::milliseconds(5100));
   send(a.fd,hello);receive(a.fd);

@@ -55,7 +55,7 @@ float look_axis(float error) {
 // mix audio and send ordinary SDL controller input through the real runtime.
 // Observers read state; they never supply game state, damage or a game clock.
 int main(int argc, char** argv) try {
-    check(argc == 6, "Supply MAP SHARED XBE host|client OUTPUT_DIRECTORY");
+    check(argc == 6 || argc == 7, "Supply MAP SHARED XBE host|client OUTPUT_DIRECTORY [HOST_JOIN_TOKEN]");
     const bool client = std::string_view(argv[4]) == "client";
     check(client || std::string_view(argv[4]) == "host", "Unknown network role");
     if (!std::getenv("DISPLAY") || !std::filesystem::exists(argv[1]) ||
@@ -69,7 +69,7 @@ int main(int argc, char** argv) try {
     MultiplayerOptions options;
     options.map = argv[1]; options.shared_maps = argv[2]; options.gameplay_xbe = argv[3];
     options.local_players = 1; options.width = 1280; options.height = 720;
-    if (client) options.join = "127.0.0.1:29179";
+    if (client) {check(argc==7,"Client requires the independently exchanged host join token");options.join=argv[6];}
     else options.host_port = 29179;
     options.selected_teams = {std::int8_t(client ? 1 : 0)};
     options.input_instances = {SDL_JoystickInstanceID(pad.joystick)};

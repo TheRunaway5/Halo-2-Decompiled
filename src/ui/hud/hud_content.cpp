@@ -303,7 +303,8 @@ HudContent Cache::load_hud(std::uint32_t biped,std::uint32_t weapon,std::uint32_
       }
       if(!w.effects.empty() && !material.animation.tables)
         material.animation.tables=shader_function_tables();
-      if (mcc_)
+      // The emblem owner already binds its authored MCC names to TU inputs.
+      if (mcc_ && !material.ui_emblem_pass)
         for (auto &overlay : material.animation.overlays) {
           overlay.input = hud_operand(overlay.input);
           overlay.range = hud_operand(overlay.range);

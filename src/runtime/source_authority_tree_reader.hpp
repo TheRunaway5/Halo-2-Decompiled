@@ -5,6 +5,7 @@
 class Reader {
     std::unique_ptr<ParsedAuthorityArchive> values;
     std::size_t position{};
+    std::uint64_t staged_limit{},staged_used{},staged_weight=24;
     AuthorityArchiveValue next(Tag expected) {
         if(position>=values->size())throw FormatError("Truncated authority value tree");
         const auto n=values->node(position++);
@@ -16,9 +17,14 @@ class Reader {
     }
 public:
     static constexpr bool reading=true;
-    explicit Reader(std::unique_ptr<ParsedAuthorityArchive> tree):values(std::move(tree)){}
+    explicit Reader(std::unique_ptr<ParsedAuthorityArchive> tree,std::uint64_t staged=0):values(std::move(tree)),staged_limit(staged){}
     void claim(std::uint64_t count,std::uint64_t extent,bool elements=true) {
+        if(count&&extent>UINT64_MAX/count)throw FormatError("Authority staging extent overflow");
+        const auto bytes=count*extent;
+        if(staged_limit&&bytes>(staged_limit-staged_used)/staged_weight)
+            throw FormatError("Authority archive exceeds cumulative native staging reservation");
         if(!values->claim(count,extent,elements))throw FormatError("Authority archive exceeds materialization reservation budget");
+        if(staged_limit)staged_used+=bytes*staged_weight;
     }
     void name(std::string_view expected)const {
         const auto incoming=values->name(position);
@@ -31,6 +37,13 @@ public:
         ((name(fields.name),add(fields.value)),...);finish(n);
     }
     template<class T>void add(T &v) {
+        const auto enclosing_weight=staged_weight;
+        // New bank storage has at most four checkpoint/restored/platform
+        // backings; other new owner storage reserves16 copies including growth
+        // and binding scratch. Charging6B+24N leaves sufficient staging room
+        // for earlier96MiB worlds even when this cut is tiny.
+        // See security-authority-resource-budget-20261025.md for owner paths.
+        if constexpr(std::is_same_v<T,SourceRuntimeMemory::Checkpoint>)staged_weight=6;
         if constexpr(std::is_pointer_v<T>||std::is_same_v<T,NativeRuntimeAddress>)throw FormatError("Authority archive rejects process addresses");
         else if constexpr(std::is_same_v<T,NativeObjectLifetimes>)throw FormatError("Source authority archive rejects a native-owned lifetime bank");
         else if constexpr(std::is_same_v<T,bool>)v=bool(next(Boolean).bits);
@@ -67,7 +80,10 @@ public:
                 if constexpr(Kind<T>::value==2){
                     if(n.count!=v.size())throw FormatError("Authority archive fixed extent differs");for(auto &item:v)add(item);
                 }else {
-                    claim(n.count,sizeof(V));v.clear();
+                    // Reserve the real synchronization objects and their map
+                    // and control nodes, rather than only16-byte wire values.
+                    constexpr auto extent=std::is_same_v<V,NativeSynchronization::ObjectCheckpoint>?512:sizeof(V);
+                    claim(n.count,extent);v.clear();
                     if constexpr(requires {v.reserve(std::size_t(n.count));})v.reserve(std::size_t(n.count));
                     for(std::uint64_t i=0;i<n.count;++i){auto item=make<V>();add(item);v.push_back(std::move(item));}
                 }
@@ -90,7 +106,12 @@ public:
             constexpr auto names=boost::pfr::names_as_array<T>();const auto n=next(Record);
             if(n.count!=names.size())throw FormatError("Authority archive schema extent differs");
             boost::pfr::for_each_field(v,[&](auto &value,auto index){name(names[index]);add(value);});finish(n);
+            if constexpr(std::is_same_v<T,SourceRuntimeMemory::Checkpoint>)
+                claim(SourceRuntimeMemory::restore_storage_overhead(v),1,false);
         }else static_assert(unhandled<T>,"Add an explicit owning archive visitor for this state type");
+        staged_weight=enclosing_weight;
     }
     bool complete()const {return position==values->size();}
+    AuthorityArchiveParseStats stats()const{return values->stats();}
+    std::uint64_t staged_bytes()const{return staged_used;}
 };

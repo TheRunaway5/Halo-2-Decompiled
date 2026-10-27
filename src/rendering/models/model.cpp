@@ -1,4 +1,5 @@
 #include "halo2/model.hpp"
+#include "halo2/mcc_sky_geometry.hpp"
 #include "halo2/decoded_allocation_budget.hpp"
 #include "halo2/appearance.hpp"
 #include "halo2/math.hpp"
@@ -590,6 +591,8 @@ RenderModel Cache::load_model_with_initial_selection(std::uint32_t datum, bool t
       }
     }
   }
+  if(!object && !initial_selection && restore_mcc_sky_geometry(*this,tag->datum,out,textures,geometry_lod,resident_sections))
+    return out;
   if (out.mesh.vertices.empty() && geometry_lod)
     return out;
   if (out.mesh.vertices.empty())

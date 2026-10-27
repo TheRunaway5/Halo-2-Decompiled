@@ -108,7 +108,7 @@ struct NativeVistaAnnouncer::State:std::enable_shared_from_this<State> {
   }
   explicit State(NativeVistaAnnouncerConfiguration c):configuration(std::move(c)),
       assets(open_vista_announcer_assets(configuration.pc_maps,configuration.scenario,
-          configuration.native_audio_constants)) {
+          configuration.native_audio_constants,configuration.selected_cache_path)) {
     if(configuration.language>=9 || configuration.tick_rate<=0)
       throw FormatError("Native Vista announcer requires actual supported language and positive tick rate");
     // Shared snd! indices belong to shared's ugh!, while a scenario Cache also
@@ -150,7 +150,7 @@ struct NativeVistaAnnouncer::State:std::enable_shared_from_this<State> {
     }
     vista_announcer_events_initialize(source,configuration.tick_rate);
     if(!configuration.mute)audio=std::make_unique<MultiplayerAudio>(sound_cache,
-        configuration.native_secondary_seed,configuration.platform);
+        configuration.native_secondary_seed,configuration.platform,configuration.audio_observer);
   }
   std::uint32_t token() {
     for(std::uint64_t n=0;n<0xffffffffull;++n){const auto candidate=next_token++;

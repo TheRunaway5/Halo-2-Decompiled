@@ -39,7 +39,7 @@ foreach(program normal_accumulation normal_light_utility)
         COMMAND ${GLSLANG_VALIDATOR} -V -I${PROJECT_SOURCE_DIR}/shaders
             ${PROJECT_SOURCE_DIR}/shaders/pstencil/${program}.vert
             -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/${program}.vert.spv
-        DEPENDS shaders/pstencil/${program}.vert shaders/world_vertex.glsl shaders/vertex_program.glsl
+        DEPENDS shaders/pstencil/${program}.vert shaders/world_vertex.glsl shaders/source_water_reflection_projection.glsl shaders/source_world_final_clip.glsl shaders/vertex_program.glsl
             shaders/source_cpu_skin_outputs.glsl VERBATIM)
 endforeach()
 add_custom_target(pstencil_shaders DEPENDS
@@ -269,7 +269,7 @@ if(BUILD_TESTING)
         -P ${PROJECT_SOURCE_DIR}/tests/pstencil/run_renderer.cmake)
     add_executable(pstencil_ui_tests tests/pstencil/ui_tests.cpp)
     target_link_libraries(pstencil_ui_tests PRIVATE halo2_renderer)
-    target_compile_definitions(pstencil_ui_tests PRIVATE HALO2_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+    target_compile_definitions(pstencil_ui_tests PRIVATE HALO2_SOURCE_DIR="${HALO2_TEST_ASSET_SOURCE_ROOT}")
     add_test(NAME pstencil_live_graphics_selector COMMAND pstencil_ui_tests
         ${CMAKE_CURRENT_BINARY_DIR}/pstencil/ui-results)
     if(EXISTS "${PROJECT_SOURCE_DIR}/.tools/validation/usr/share/vulkan/explicit_layer.d/VkLayer_khronos_validation.json")

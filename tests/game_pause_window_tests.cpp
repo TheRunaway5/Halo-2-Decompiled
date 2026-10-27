@@ -1,8 +1,10 @@
 #include "halo2/game_pause_menu.hpp"
 #include "halo2/desktop_session.hpp"
 #include "halo2/renderer.hpp"
+#include <cstdlib>
 #include <iostream>
 #include <sstream>
+#include <string_view>
 using namespace halo2;
 namespace {
 void check(bool value,const char *message) {if(!value)throw FormatError(message);}
@@ -11,8 +13,103 @@ struct ValidationLog {
   std::streambuf *previous=std::cerr.rdbuf(messages.rdbuf());
   ~ValidationLog(){std::cerr.rdbuf(previous);std::cerr<<messages.str();}
 };
+int native_mcc_pause(const std::filesystem::path &maps,const std::filesystem::path &map) {
+  check(Cache(map,maps).is_mcc(),"Native MCC pause requires its actual gameplay cache");
+  DesktopSession desktop;auto *window=desktop.window(960,720,true);Mesh mesh;
+  bool rejected{};
+  try{GamePauseMenu missing(maps,{},mesh,false);}catch(const FormatError&){rejected=true;}
+  check(rejected,"Native MCC pause guessed a gameplay widget owner");
+  GamePauseMenu menu(maps,{},mesh,false,{},{},map);mesh.vertices.resize(3);
+  const bool validation=std::getenv("H2_TEST_VK_VALIDATION")&&std::string_view(std::getenv("H2_TEST_VK_VALIDATION"))=="1";
+  Renderer renderer(window,mesh,validation);menu.bind(window,desktop,renderer);
+  const auto key=[&](SDL_Keycode code){SDL_Event e{};e.type=SDL_KEYDOWN;e.key.windowID=SDL_GetWindowID(window);e.key.keysym.sym=code;return menu.event(e);};
+  const auto choose=[&](unsigned row) {
+    check(row<menu.state().frame().entries.size(),"Native MCC settings row is missing");
+    for(unsigned remaining=unsigned(menu.state().frame().entries.size());remaining&&menu.state().frame().selected!=row;--remaining)
+      check(key(menu.state().frame().selected<row?SDLK_DOWN:SDLK_UP),"Native MCC menu lost keyboard navigation");
+    check(menu.state().frame().selected==row,"Native MCC keyboard could not select its settings row");
+    check(key(SDLK_RETURN),"Native MCC menu lost keyboard activation");
+  };
+  unsigned submitted{};
+  const auto draw=[&]{const auto ui=menu.draw(960,720);check(!ui.vertices.empty(),"Native MCC pause emitted no authored widgets");
+    const auto before=submitted;
+    for(unsigned i=0;i<4;++i)submitted+=renderer.draw(Camera{}, {},{},false,{},{},ui.vertices,{},{},ui.backdrops);
+    check(submitted>before,"Native MCC settings did not submit to the actual Vulkan window");
+    check(menu.visible()&&menu.captures_game_input()&&!menu.pauses_game_time(),
+        "Native MCC settings released gameplay input or paused multiplayer time");};
+  SDL_SetRelativeMouseMode(SDL_TRUE);
+  check(key(SDLK_ESCAPE)&&menu.visible()&&!menu.pauses_game_time(),"Native MCC Escape did not open the multiplayer overlay");draw();
+  check(!SDL_GetRelativeMouseMode(),"Native MCC pause retained relative mouse capture");
+  choose(1);draw();
+  check(menu.state().frame().screen==vista_menu(259)&&menu.state().frame().entries.size()==4,
+      "Native MCC Escape omitted Controller, Keyboard, Sound or Video settings");
+  for(const auto &entry:menu.state().frame().entries)
+    check(!entry.label.empty(),"Native MCC settings category has no localized label");
+  choose(0);draw();
+  check(menu.state().frame().screen==vista_menu(200)&&menu.state().frame().entries.size()==6,
+      "Native MCC Controller settings are unreachable");
+  choose(2);draw();choose(8);
+  check(menu.state().frame().screen==vista_menu(200)&&desktop.controller_settings.sensitivity==9,
+      "Native MCC Controller sensitivity did not reach the gameplay settings owner");
+  key(SDLK_ESCAPE);
+  choose(1);draw();
+  check(menu.state().frame().screen==vista_menu(260)&&menu.state().frame().entries.size()==6,
+      "Native MCC Keyboard settings are unreachable");
+  key(SDLK_ESCAPE);
+  choose(2);draw();
+  check(menu.state().frame().screen==vista_menu(262)&&menu.state().frame().entries.size()==4,
+      "Native MCC Sound settings are unreachable");
+  choose(0);draw();choose(7);
+  check(menu.state().frame().screen==vista_menu(262)&&desktop.display_settings.volume==7&&
+      menu.state().pc_display_settings().volume==7,
+      "Native MCC Sound volume did not reach the gameplay settings owner");
+  key(SDLK_ESCAPE);
+  choose(3);draw();
+  check(menu.state().frame().screen==vista_menu(261)&&menu.state().frame().entries.size()>=14,
+      "Native MCC Video settings are unreachable");
+  choose(9);draw();
+  check(menu.state().frame().context==video_fov_context,"Native MCC Video lost the on-foot FOV settings owner");
+  choose(20);
+  check(menu.state().frame().screen==vista_menu(261)&&desktop.display_settings.field_of_view==90&&
+      menu.state().pc_display_settings().field_of_view==90&&desktop.display_settings.volume==7,
+      "Native MCC Video FOV did not apply independently to the gameplay settings owner");
+  key(SDLK_ESCAPE);key(SDLK_ESCAPE);
+  check(menu.state().frame().entries.size()==3,"Native MCC Settings did not return to its multiplayer pause screen");
+  choose(2);draw();
+  check(menu.state().frame().selected==1&&!menu.quit_requested(),"Native MCC Quit confirmation did not default to Cancel");
+  menu.state().back();check(key(SDLK_ESCAPE)&&!menu.visible(),"Native MCC pause did not resume");
+  check(SDL_GetRelativeMouseMode(),"Native MCC Resume did not restore mouse capture");
+  // The gameplay loop polls this after draining the dismissal event batch.
+  // These direct synthetic events do not hold an SDL physical key down.
+  check(!menu.captures_game_input(),"Released Native MCC dismissal retained the input barrier");
+  const auto pad=[&](Uint8 button) {
+    SDL_Event e{};e.type=SDL_CONTROLLERBUTTONDOWN;e.cbutton.which=37;e.cbutton.button=button;
+    return menu.event(e);
+  };
+  check(!pad(SDL_CONTROLLER_BUTTON_BACK)&&!menu.visible(),"Native MCC Select/Back opened pause instead of remaining available to the scoreboard");
+  check(pad(SDL_CONTROLLER_BUTTON_START)&&menu.visible(),"Native MCC controller Pause/Start did not open pause");
+  SDL_Event escape{};escape.type=SDL_KEYDOWN;escape.key.windowID=SDL_GetWindowID(window);
+  escape.key.keysym.sym=SDLK_ESCAPE;escape.key.repeat=1;
+  check(menu.event(escape)&&menu.visible(),"Native MCC held Escape dismissed a controller-opened pause");
+  escape.key.repeat=0;++escape.key.windowID;
+  check(!menu.event(escape)&&menu.visible(),"Native MCC another window's Escape took over pause");
+  pad(SDL_CONTROLLER_BUTTON_DPAD_DOWN);pad(SDL_CONTROLLER_BUTTON_A);
+  check(menu.state().frame().screen==vista_menu(259),"Native MCC controller could not open Settings");
+  check(key(SDLK_ESCAPE)&&menu.state().frame().screen==vista_menu(18)&&menu.visible(),
+      "Native MCC Escape could not take over a controller-opened settings menu");
+  key(SDLK_DOWN);
+  check(menu.state().frame().selected==2,"Native MCC keyboard navigation retained the prior controller owner");
+  check(key(SDLK_ESCAPE)&&!menu.visible(),"Native MCC Escape could not resume a controller-opened pause");
+  check(!menu.captures_game_input(),"Native MCC keyboard takeover retained the dismissal barrier");
+  check(key(SDLK_ESCAPE)&&menu.visible(),"Native MCC pause did not reopen");
+  choose(2);choose(0);
+  check(menu.quit_requested()&&!menu.visible()&&!SDL_GetRelativeMouseMode(),"Native MCC confirmed Quit did not release gameplay and the pointer");
+  check(submitted>=4,"Native MCC pause did not submit real Vulkan frames");
+  std::cout<<"PASS actual cache-owned MCC Escape -> Controller/Keyboard/Sound/Video settings, live preferences, controller-to-keyboard takeover, Resume and confirmed Quit\n";return 0;
+}
 }
 int main(int argc,char **argv)try {
+  if(argc==4&&std::string_view(argv[2])=="--native-mcc")return native_mcc_pause(argv[1],argv[3]);
   if(argc!=3)return 77;
   ValidationLog validation;
   {

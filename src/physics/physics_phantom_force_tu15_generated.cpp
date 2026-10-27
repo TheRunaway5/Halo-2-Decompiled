@@ -1,10 +1,59 @@
 // Generated from complete owned TU1.5 instructions. No runtime decoder.
 #include "halo2/physics_phantom_force_tu15.hpp"
 #include "halo2/physics_velocity_observation.hpp"
+#include "halo2/native_lift_scalar_consumer_tu15.hpp"
 #include "physics/vehicles/physics_vehicle_motion_math_internal.hpp"
 namespace halo2 {
 namespace {
 using namespace physics_vehicle_motion_math_detail;
+template<class State>
+void native_lift_scalar_call(State&s,std::uint32_t site,std::uint32_t continuation){
+  const auto stack=s.gp[4];bool ordinary{},readonly_observer{},traced{};
+  std::function<void(std::uint32_t)> phase;
+  if(const auto*owner=native_lift_scalar_consumer_policy_tu15(s.memory)){
+    traced=(owner->first_trace&&*owner->first_trace)||(owner->second_trace&&*owner->second_trace);
+    readonly_observer=owner->observation_only_stores;phase=owner->publish_phase;
+    ordinary=stack>=8u&&stack-8u>=owner->caller_stack_begin&&std::uint64_t(stack)+40u<=owner->caller_stack_end;
+  }else{
+    if constexpr(requires{s.instruction_cursor;s.literal_service_sites;}){
+      if(const auto*cursor=s.instruction_cursor;s.literal_service_sites&&cursor){
+        traced=(cursor->first_trace&&*cursor->first_trace)||(cursor->second_trace&&*cursor->second_trace);
+        readonly_observer=cursor->observation_only_stores;phase=[cursor](std::uint32_t pc){*cursor->position=pc;};
+      }
+    }
+    if constexpr(requires{s.memory.try_read_view(stack-8u,48u);})
+      ordinary=stack>=8u&&stack<=0xffffffffu-40u&&bool(s.memory.try_read_view(stack-8u,48u));
+  }
+  if(traced||(s.services.instruction&&!phase)||(s.observe&&!readonly_observer)){
+    native_lift_scalar_observation_refused_tu15(s.memory);
+    throw std::runtime_error("Native lift scalar consumer does not admit full instruction/private-frame observation");
+  }
+  if(s.fp.count||s.active_mmx)throw std::runtime_error("Native lift scalar consumer requires its proved empty incoming x87 stack");
+  if(!ordinary)
+    throw std::runtime_error("Native lift scalar consumer requires ordinary retained caller argument storage");
+  // Only the compatibility CALL/RET protocol remains here. Arithmetic and
+  // branching live exclusively in the typed scalar/power/CRT modules.
+  s.push(site,continuation);const auto incoming=s.fp.word();
+  NativeLiftScalarConsumerTu15 context;
+  context.call_site=site;context.entry_stack=context.stack_pointer=s.gp[4];context.scratch_word=s.gp[1];
+  context.fs_base=s.fs_base;context.continuation=continuation;context.allow_reverse=(s.gp[3]&255u)!=0;
+  context.executor=std::this_thread::get_id();context.floating_point={control_word(),_mm_getcsr(),std::uint8_t(incoming&0x3fu),incoming};context.numeric_status=incoming;
+  const auto publish=[&]{
+    s.gp[4]=context.stack_pointer;if(context.scratch_popped)s.gp[1]=context.scratch_word;
+    s.fp.status=context.numeric_status;s.fp.top=(context.numeric_status>>11u)&7u;
+    load_control_word(context.floating_point.x87_control_word);_mm_setcsr(context.floating_point.mxcsr);
+    std::array<std::uint32_t,7> environment;
+    asm volatile("fnstenv %0":"=m"(environment)::"memory");
+    environment[1]=(environment[1]&~0xc7ffu)|(context.numeric_status&0xc7ffu);
+    asm volatile("fldenv %0"::"m"(environment):"memory");
+  };
+  try{
+    const auto result=native_lift_scalar_consumer_tu15(s.memory,context,phase,s.observe);
+    publish();s.xmm[0]=_mm_set_ss(result.result.velocity_delta);
+  }catch(...){publish();throw;}
+  // Volatile EAX/EDX/other XMM/flags are intentionally not invented. The four
+  // authenticated1DA750 continuations reload them before meaningful use.
+}
 std::uint32_t integer_spill_observed(MathState &s) {
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
  const auto input=s.fp.st(0);std::uint32_t result;std::uint16_t status;
@@ -654,7 +703,7 @@ if(s.services.instruction)s.services.instruction(0x1dabb5u); s.push(0x1dabb5u,s.
 if(s.services.instruction)s.services.instruction(0x1dabb6u); w(s.memory,s.observe,0x1dabb6u,(0x0u+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction)s.services.instruction(0x1dabbbu); s.push(0x1dabbbu,s.reg(0,4,0));
 if(s.services.instruction)s.services.instruction(0x1dabbcu); s.set(3,0x1u,1,0);
-if(s.services.instruction)s.services.instruction(0x1dabbeu); s.push(0x1dabbeu,0x1dabc3u);run_1da530(s);
+if(s.services.instruction)s.services.instruction(0x1dabbeu); native_lift_scalar_call(s,0x1dabbeu,0x1dabc3u);
 if(s.services.instruction)s.services.instruction(0x1dabc3u); s.set(1,r(s.memory,(0x51df54u),4),4,0);
 if(s.services.instruction)s.services.instruction(0x1dabc9u); s.xmm[1]=_mm_set_ss(f(r(s.memory,(0x74u+s.gp[4]),4)));
 if(s.services.instruction)s.services.instruction(0x1dabcfu); s.xmm[2]=_mm_set_ss(f(r(s.memory,(0x78u+s.gp[4]),4)));
@@ -860,7 +909,7 @@ if(s.services.instruction)s.services.instruction(0x1daf90u); s.push(0x1daf90u,s.
 if(s.services.instruction)s.services.instruction(0x1daf91u); w(s.memory,s.observe,0x1daf91u,(0x0u+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction)s.services.instruction(0x1daf96u); s.push(0x1daf96u,s.reg(2,4,0));
 if(s.services.instruction)s.services.instruction(0x1daf97u); s.set(3,0x1u,1,0);
-if(s.services.instruction)s.services.instruction(0x1daf99u); s.push(0x1daf99u,0x1daf9eu);run_1da530(s);
+if(s.services.instruction)s.services.instruction(0x1daf99u); native_lift_scalar_call(s,0x1daf99u,0x1daf9eu);
 if(s.services.instruction)s.services.instruction(0x1daf9eu); s.xmm[6]=_mm_set_ss(f(r(s.memory,(0x98u+s.gp[4]),4)));
 if(s.services.instruction)s.services.instruction(0x1dafa7u); s.xmm[7]=_mm_set_ss(f(r(s.memory,(0x9cu+s.gp[4]),4)));
 if(s.services.instruction)s.services.instruction(0x1dafb0u); s.xmm[3]=_mm_set_ss(f(r(s.memory,(0xa0u+s.gp[4]),4)));
@@ -1026,7 +1075,7 @@ if(s.services.instruction)s.services.instruction(0x1db2c7u); s.push(0x1db2c7u,s.
 if(s.services.instruction)s.services.instruction(0x1db2c8u); w(s.memory,s.observe,0x1db2c8u,(0x0u+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction)s.services.instruction(0x1db2cdu); s.push(0x1db2cdu,s.reg(2,4,0));
 if(s.services.instruction)s.services.instruction(0x1db2ceu); s.set(3,0x1u,1,0);
-if(s.services.instruction)s.services.instruction(0x1db2d0u); s.push(0x1db2d0u,0x1db2d5u);run_1da530(s);
+if(s.services.instruction)s.services.instruction(0x1db2d0u); native_lift_scalar_call(s,0x1db2d0u,0x1db2d5u);
 if(s.services.instruction)s.services.instruction(0x1db2d5u); s.xmm[3]=_mm_set_ss(f(r(s.memory,(0x150u+s.gp[4]),4)));
 if(s.services.instruction)s.services.instruction(0x1db2deu); s.xmm[1]=s.xmm[0];
 if(s.services.instruction)s.services.instruction(0x1db2e1u); s.xmm[1]=_mm_mul_ss(s.xmm[1],_mm_set_ss(f(r(s.memory,(0x148u+s.gp[4]),4))));
@@ -1146,7 +1195,7 @@ if(s.services.instruction)s.services.instruction(0x1db4d2u); s.push(0x1db4d2u,s.
 if(s.services.instruction)s.services.instruction(0x1db4d3u); w(s.memory,s.observe,0x1db4d3u,(0x0u+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction)s.services.instruction(0x1db4d8u); s.push(0x1db4d8u,s.reg(2,4,0));
 if(s.services.instruction)s.services.instruction(0x1db4d9u); s.set(3,0x1u,1,0);
-if(s.services.instruction)s.services.instruction(0x1db4dbu); s.push(0x1db4dbu,0x1db4e0u);run_1da530(s);
+if(s.services.instruction)s.services.instruction(0x1db4dbu); native_lift_scalar_call(s,0x1db4dbu,0x1db4e0u);
 if(s.services.instruction)s.services.instruction(0x1db4e0u); s.xmm[1]=_mm_set_ss(f(r(s.memory,(0xccu+s.gp[4]),4)));
 if(s.services.instruction)s.services.instruction(0x1db4e9u); s.set(0,r(s.memory,(0x51df54u),4),4,0);
 if(s.services.instruction)s.services.instruction(0x1db4eeu); s.xmm[2]=s.xmm[1];

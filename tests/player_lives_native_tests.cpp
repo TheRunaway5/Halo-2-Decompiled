@@ -31,7 +31,7 @@ int main(int argc,char** argv)try {
   for(unsigned i=0;i<300;++i)match.step({});
   check(match.player(0).source_lives_remaining==0 && match.player(0).source_current_object==null_datum &&
       match.player(0).respawn.countdown==countdown,"Exhausted player respawned or mutated a gated countdown");
-  LanHost host(match,0,0x160570);LanClient client("127.0.0.1:"+std::to_string(host.port()),0x160570,2);
+  LanHost host(match,0,0x160570);LanClient client(host.join_address(),0x160570,2);
   std::array<Controls,16> controls{};
   for(unsigned i=0;i<100 && !client.ready();++i){client.send(std::array<Controls,2>{});host.receive(controls);host.broadcast();client.receive();}
   check(client.ready() && client.state().life_limit==2 && client.state().players[0].source_lives_remaining==0 &&

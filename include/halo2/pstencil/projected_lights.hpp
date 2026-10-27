@@ -22,7 +22,8 @@ public:
     ProjectedLightFrame draw(PhysicsLiveWorldTu15&,const SourceEffectLightViewRecord&,
         float selected_fade,const NativeLightReceiver&,const NativeLightGeometry&,
         const SourceViewProjectionBank&,Vec3 eye,std::array<std::int16_t,4> viewport,
-        std::array<std::uint32_t,2> surface,std::vector<PointCaster>&,std::uint32_t domain);
+        std::array<std::uint32_t,2> surface,std::vector<PointCaster>&,std::uint32_t domain,
+        const std::array<ShaderVector,12>* submitting_constants=nullptr);
 private:
     struct Impl;std::unique_ptr<Impl> impl_;
 };

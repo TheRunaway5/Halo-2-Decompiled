@@ -1456,12 +1456,12 @@ if(s.services.instruction){s.services.instruction(0x208d96u);} s.fp.push(ext(f(r
 if(s.services.instruction){s.services.instruction(0x208d9au);} s.flags.scalar_compare(s.xmm[1],s.xmm[0],false);
 if(s.services.instruction){s.services.instruction(0x208d9du);} s.fp.st(0)=std::fabs(s.fp.st(0));
 if(s.services.instruction){s.services.instruction(0x208d9fu);} s.fp.push(s.fp.st(0));
-if(s.services.instruction){s.services.instruction(0x208da1u);} s.fp.st(0)=mul(s.fp.st(0),ext(f(r(s.memory,(0x8u+s.gp[2]),4))));
-if(s.services.instruction){s.services.instruction(0x208da4u);} s.fp.st(0)=mul(s.fp.st(0),ext(f(r(s.memory,(0x8u+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x208da8u);} w(s.memory,s.observe,0x208da8u,(0x4u+s.gp[4]),4,u(spill(s.fp.st(0))));s.fp.pop();
-if(s.services.instruction){s.services.instruction(0x208dacu);} s.fp.st(0)=mul(s.fp.st(0),ext(f(r(s.memory,(0xcu+s.gp[2]),4))));
-if(s.services.instruction){s.services.instruction(0x208dafu);} s.fp.st(0)=mul(s.fp.st(0),ext(f(r(s.memory,(0x8u+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x208db3u);} w(s.memory,s.observe,0x208db3u,(0x8u+s.gp[4]),4,u(spill(s.fp.st(0))));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x208da1u);} vehicle_rate_multiply_extended_reference(s,(0x8u+s.gp[2]));
+if(s.services.instruction){s.services.instruction(0x208da4u);} vehicle_rate_multiply_extended_reference(s,(0x8u+s.gp[4]));
+if(s.services.instruction){s.services.instruction(0x208da8u);} vehicle_rate_publish_extended_reference(s,0x208da8u,(0x4u+s.gp[4]));
+if(s.services.instruction){s.services.instruction(0x208dacu);} vehicle_rate_multiply_extended_reference(s,(0xcu+s.gp[2]));
+if(s.services.instruction){s.services.instruction(0x208dafu);} vehicle_rate_multiply_extended_reference(s,(0x8u+s.gp[4]));
+if(s.services.instruction){s.services.instruction(0x208db3u);} vehicle_rate_publish_extended_reference(s,0x208db3u,(0x8u+s.gp[4]));
 if(s.services.instruction){s.services.instruction(0x208db7u);} s.xmm[1]=_mm_set_ss(f(r(s.memory,(0x8u+s.gp[4]),4)));
 if(s.services.instruction){s.services.instruction(0x208dbdu);} if(s.flags.cf||s.flags.zf)goto L208e0f;
 if(s.services.instruction){s.services.instruction(0x208dbfu);} s.xmm[2]=s.xmm[0];

@@ -305,15 +305,17 @@ std::vector<ParticleDraw> SourceWorldParticleDrawsTu15::draw_first_person(Physic
 }
 void SourceWorldParticleDrawsTu15::prepare_view(PhysicsLiveWorldTu15 &world,
     const SourcePortalVisibilitySet &visibility,const MuzzleEffectView &view,
-    unsigned local_view,float angle,float lighting_scale) {
-    if(local_view>=4)throw FormatError("Original particle view exceeds its four-view bank");
+    unsigned local_view,float angle,float lighting_scale,std::optional<std::int32_t> actual_user) {
+    if(local_view>=4 || (actual_user && (*actual_user< -1 || *actual_user>=4)))
+        throw FormatError("Original particle view exceeds its actual ordinal/user bank");
     for(const auto p:{0x4c65c0u,0x491e38u}) {
         for(const auto &[offset,v]:std::array<std::pair<unsigned,Vec3>,3>{{{0,view.position},{12,view.forward},{24,view.up}}}) {
             put(world,p+offset,std::bit_cast<std::uint32_t>(v.x));put(world,p+offset+4,std::bit_cast<std::uint32_t>(v.y));put(world,p+offset+8,std::bit_cast<std::uint32_t>(v.z));
         }
         put(world,p+0x28,std::bit_cast<std::uint32_t>(angle));put(world,p+0x2c,std::bit_cast<std::uint32_t>(lighting_scale));
     }
-    put(world,0x4c66f8u,local_view);world.publish_render_visibility(visibility);
+    put(world,0x4c66f8u,std::bit_cast<std::uint32_t>(actual_user.value_or(std::int32_t(local_view))));
+    world.publish_render_visibility(visibility);
     SourcePhysicsWorldRuntimeAbi reset{};reset.gp[4]=0x600f0000u;reset.gp[2]=0x556e18u;
     reset.fs_base=0x60200000u;reset.eflags=2;reset.floating_point=SourcePhysicsFactoryFloatingPoint{0x27f,0x1f80};
     put(world,reset.gp[4],0x60300000u);world.run_actual(0x1373f0u,reset);

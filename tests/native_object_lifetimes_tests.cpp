@@ -173,7 +173,7 @@ void live_match(const char* map,const char* shared,const char* executable) {
     network_match.replicate_prop_removals(std::span(&removal,1));
     require(!network_bank.contains(removal.handle),"prop removal retained allocation");
     LanHost host(network_match,0,0x534841524544ull);
-    LanClient client("127.0.0.1:"+std::to_string(host.port()),0x534841524544ull,1);
+    LanClient client(host.join_address(),0x534841524544ull,1);
     for(unsigned i=0;i<32 && !client.ready();++i) {
         client.send(std::array<Controls,1>{});host.receive(controls);host.broadcast();client.receive();
     }

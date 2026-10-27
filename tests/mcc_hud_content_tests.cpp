@@ -1,5 +1,7 @@
 #include "halo2/hud.hpp"
+#include "halo2/frontend_emblem.hpp"
 #include "halo2/mcc_cache.hpp"
+#include "halo2/mcc_hud_reference.hpp"
 #include "halo2/texture.hpp"
 #include <algorithm>
 #include <cstring>
@@ -78,7 +80,7 @@ unsigned check_sprites(const Cache& cache,unsigned datum,const UiImage& image) {
   }
   return sprites;
 }
-struct Counts {unsigned huds{},images{},sprites{},sensor_images{};};
+struct Counts {unsigned huds{},images{},sprites{},sensor_images{},emblems{},emblem_namespace_guards{};};
 struct Locale {UiStrings strings;unsigned first{},count{},selected{};Json report;};
 Locale locale(const Cache& cache,const std::filesystem::path& map) {
   const auto* globals=cache.find_tag(cache.globals_tag(),tag_groups::globals);
@@ -132,6 +134,35 @@ void inspect(const Cache& cache,unsigned biped,unsigned weapon,const std::array<
   phase="HUD loading";
   const auto hud=cache.load_hud(biped,weapon);++counts.huds;
   require(hud.strings==english.strings,"HUD localized IDs/bytes/range differ from actual source cache table");
+  phase="HUD emblem native input ownership";
+  for(const auto& [datum,material]:hud.shaders)if(material.ui_emblem_pass) {
+    const auto bound=frontend_emblem_material(cache,datum);
+    require(!bound.animation.overlays.empty() &&
+        material.animation.overlays.size()==bound.animation.overlays.size(),
+        "HUD emblem lost its authored native overlay bank");
+    for(unsigned n=0;n<bound.animation.overlays.size();++n) {
+      const auto& a=material.animation.overlays[n];const auto& b=bound.animation.overlays[n];
+      require(a.input==b.input && a.range==b.range && a.period==b.period && a.curve==b.curve,
+          "HUD remapped an emblem overlay after its native owner bound it");
+    }
+    // The real MCC namespace gives native 0x170005fb a different name
+    // (Lockout: current_difficulty). Reinterpreting that already-bound
+    // callback must still fail validation rather than weaken typed IDs.
+    const auto name=cache.string_id(0x170005fb);
+    if(name!="emblem_background_index") {
+      bool rejected=false;
+      try {(void)normalize_mcc_hud_function_operand(0x170005fb,name);}
+      catch(const FormatError&){rejected=true;}
+      require(rejected,"Native emblem input was accepted in a foreign MCC namespace");
+      ++counts.emblem_namespace_guards;
+    }
+    auto animated=material;FrontendAppearance appearance;
+    appearance.foreground=26;appearance.background=9;
+    animate_material_bitmaps(animated,0,[&](unsigned id){return frontend_emblem_input(appearance,id,1);});
+    require(animated.texture_frames[0]==9 && animated.texture_frames[1]==26,
+        "Loaded HUD emblem no longer selects its actual native foreground/background pages");
+    ++counts.emblems;
+  }
   for(const auto& [datum,material]:hud.shaders)if(!material.rendering_gaps.empty())
     report["shader_requirements"][std::to_string(datum)]={
         {"path",material.name},{"requirements",material.rendering_gaps}};
@@ -231,6 +262,7 @@ int main(int argc,char** argv)try {
     if(weapon!=null_datum)inspect(cache,biped,weapon,ids,english,counts,report);
   }
   report["huds"]=counts.huds;report["images"]=counts.images;report["sprites"]=counts.sprites;
+  report["native_emblems"]=counts.emblems;report["emblem_namespace_guards"]=counts.emblem_namespace_guards;
   phase="malformed source negatives";
   report["sensor_images"]=counts.sensor_images;report["negative_cases"]=argc==3?negatives(cache,*bipeds.begin(),argv[1]):0;
   std::cout<<report.dump()<<'\n';return 0;

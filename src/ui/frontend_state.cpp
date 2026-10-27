@@ -8,22 +8,33 @@
 #include "halo2/frontend_multiplayer_maps.hpp"
 #include "halo2/frontend_lobby_ready.hpp"
 #include "halo2/native_player_profile.hpp"
+#include "halo2/vista_pcr_owner_state.hpp"
+#include "halo2/original_pcr_intro.hpp"
+#include "halo2/original_ui_map_intro.hpp"
 #include "ui/mcc_frontend_string_ids.hpp"
 #include "ui/mcc_pc_frontend_string_ids.hpp"
+#include "ui/frontend_og_matchmaking_layout.hpp"
 #include <algorithm>
 #include <array>
 #include <atomic>
 #include <bit>
 #include <cctype>
+#include <chrono>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <utility>
 #include <openssl/rand.h>
 namespace halo2 {
 namespace {
 // A painter may render several disposable MenuState objects. Its screen
 // allocation identity must therefore be unique across those objects too.
 std::atomic<std::uint64_t> next_menu_instance{1};
+std::uint32_t pcr_milliseconds() {
+  //75870/79690 uses GetTickCount rather than the PC UI delta accumulator.
+  return std::uint32_t(std::chrono::duration_cast<std::chrono::milliseconds>(
+      std::chrono::steady_clock::now().time_since_epoch()).count());
+}
 const UiVariant &builtin_variant(const FrontendContent &content,unsigned index) {
   return index<content.variants.size()?content.variants.at(index):content.bundled_variants.at(index-content.variants.size());
 }
@@ -160,7 +171,13 @@ MenuState::MenuState(const FrontendContent &content,
         } else if(kind=="pc_crt_filter") {
           unsigned enabled{};if(file>>enabled && enabled<2)pc_display_.crt_filter=enabled!=0;
         } else if(kind=="pc_graphics_mode") {
-          unsigned mode{};if(file>>mode && mode<2)pc_display_.graphics_mode=pstencil::GraphicsMode(mode);
+          unsigned mode{};if(file>>mode && mode<=unsigned(pstencil::GraphicsMode::PathTracing))
+            pc_display_.graphics_mode=pstencil::GraphicsMode(mode);
+        } else if(kind=="pc_path_tracing") {
+          unsigned samples{},bounces{};
+          if(file>>samples>>bounces && valid_path_tracing_quality(samples,bounces)) {
+            pc_display_.path_tracing_samples=samples;pc_display_.path_tracing_bounces=bounces;
+          }
         } else if(kind=="pc_fov") {
           unsigned on_foot{},vehicle{};
           if(file>>on_foot>>vehicle && valid_field_of_view(on_foot) && valid_field_of_view(vehicle)) {
@@ -212,6 +229,7 @@ void MenuState::bind_primary_login() {
   if(login_profile_==key)return;
   discord_login_->bind_profile(preferences_.empty()?std::string{}:std::filesystem::absolute(preferences_).lexically_normal().string(),key);
   login_profile_=key;saved_login_suppressed_=false;
+  online_prior_report_.reset();
   if(online_account_)online_account_->sign_out();account_={};
   if(online_matchmaking_)online_matchmaking_->sign_out();
   matchmaking_active_=quickmatch_pending_=false;
@@ -227,6 +245,91 @@ void MenuState::return_online(std::string message) {
   open(6);awaiting_discord_login_=!online_identity();open(186);
   if(!message.empty())unavailable(std::move(message));
 }
+void MenuState::return_online_lobby(std::string message) {
+  // TU1.5: leaving game session B (PCR Done 0x233792, a dropped or abandoned
+  // match) returns party A to pre-game, and 0x19B1C9 opens pregame lobby14;
+  // a Live matchmaking party selects pane2 (0x24FF0A) with its hopper kept.
+  // take_launch transfers the match transport and pauses that queue worker.
+  // End its completed/abandoned intent explicitly; renderer teardown keeps
+  // the retained service alive, and a later Start needs a fresh queue intent.
+  if(online_matchmaking_)online_matchmaking_->cancel_queue();
+  quickmatch_pending_=false;
+  reset_online_matchmaking_progress();
+  return_online();
+  if(frame().screen==20){pending_online_screen_=14;pending_online_context_=0;}
+  else open(14);
+  enter_online_matchmaking_lobby();
+  if(!message.empty())unavailable(std::move(message));
+}
+bool MenuState::online_postgame_host() const {
+  return !account_.authenticated || !account_.party || !online_party_follower(*account_.party);
+}
+void MenuState::vista_pcr_dialog(const std::array<std::uint32_t, 8> &request) {
+  // 40C01A requests {3,0x98,4,controller mask,40C00D}; 40C00D is Leave Party.
+  dialog(request[1], -18);
+}
+void MenuState::update_online_postgame() {
+  if(online_postgame_host() || !online_party_leader_left_postgame(*account_.party))return;
+  const auto pcr=std::find_if(stack_.begin(),stack_.end(),[](const auto &f){return f.vista_pcr && f.vista_pcr->online;});
+  if(pcr==stack_.end())return;
+  // The leader's Done moved the party back to pre-game; this report follows.
+  const auto owner=pcr->vista_pcr;
+  if(owner->input.continue_session)owner->input.continue_session();
+}
+void MenuState::enter_online_matchmaking_lobby() {
+  online_lobby_matchmaking_=true;
+  online_lobby_countdown_party_.clear();
+  cancel_online_lobby_countdown();
+  if(account_.party && account_.party->countdown && account_.party->countdown->complete)
+    online_lobby_countdown_consumed_=account_.party->countdown->serial;
+  if(frame().screen==14 && mode_==3){stack_.back().entries.clear();populate_online_party(stack_.back());++revision;}
+}
+void MenuState::cancel_online_lobby_countdown() {
+  online_lobby_countdown_=online_lobby_countdown_stage_=-1;
+}
+bool MenuState::update_online_lobby_countdown() {
+  const bool lobby=mode_==3 && std::any_of(stack_.begin(),stack_.end(),[](const auto &f){return f.screen==14;});
+  if(online_lobby_leave_pending_)return false;
+  if(!lobby || !account_.party || !account_.party->countdown_supported) {
+    online_lobby_countdown_party_.clear();
+    if(online_lobby_countdown_>=0){cancel_online_lobby_countdown();++revision;}
+    return false;
+  }
+  const auto &published=account_.party->countdown;
+  if(published && published->seconds && *published->seconds>0 && online_lobby_countdown_party_.empty())
+    for(const auto &m:account_.party->members)online_lobby_countdown_party_.push_back(m.handle);
+  if(!published && !online_lobby_countdown_party_.empty()) {
+    const auto counted=std::exchange(online_lobby_countdown_party_,{});
+    const bool departed=std::any_of(counted.begin(),counted.end(),[&](const auto &handle){
+      return std::none_of(account_.party->members.begin(),account_.party->members.end(),[&](const auto &m){return m.handle==handle;});
+    });
+    if(departed) {
+      // Actual accepted member departure invalidated party A's parameter.
+      // 250804 presents its departure states6/14/19 as the original0xAE.
+      cancel_online_lobby_countdown();quickmatch_pending_=false;
+      if(online_matchmaking_)online_matchmaking_->cancel_queue();
+      reset_online_matchmaking_progress();
+      while(stack_.size()>1 && frame().screen!=14)stack_.pop_back();
+      dialog(0xae,-5,true);++revision;return true;
+    }
+  }
+  const auto seconds=published && published->seconds &&
+    (!published->complete || published->serial!=online_lobby_countdown_consumed_)?*published->seconds:-1;
+  if(seconds!=online_lobby_countdown_){online_lobby_countdown_=seconds;++revision;}
+  // 0x250A8B: UI sound10 for each new stage 0..3.
+  if(matchmaking_lobby_countdown_beeps(online_lobby_countdown_stage_,online_lobby_countdown_) &&
+     pending_ui_sounds_.size()<16)pending_ui_sounds_.push_back(FrontendUiSound::PregameCountdown);
+  online_lobby_countdown_stage_=online_lobby_countdown_;
+  if(!published || !published->complete || published->serial==online_lobby_countdown_consumed_)return false;
+  // 0x6E410: a zero countdown stops and a matchmaking party enters mode6,
+  // which 0x19B1C9 presents as screen210 for the retained playlist.
+  online_lobby_countdown_consumed_=published->serial;
+  online_lobby_countdown_party_.clear();
+  cancel_online_lobby_countdown();
+  while(stack_.size()>1 && frame().screen!=14)stack_.pop_back();
+  open(210);
+  return true;
+}
 std::optional<DiscordIdentity> MenuState::online_identity() const {
   if (online_account_ && !account_.authenticated) return std::nullopt;
   return discord_login_ ? discord_login_->snapshot().identity : std::nullopt;
@@ -236,6 +339,9 @@ void MenuState::update_online_login() {
   update_online_couch();
   update_online_friends();
   update_online_account();
+  update_online_privacy();
+  update_online_lobby_leave();
+  update_online_postgame();
   if (!discord_login_) return;
   const auto status = discord_login_->snapshot();
   if (frame().screen == 20) {
@@ -335,6 +441,7 @@ void MenuState::commit_appearance_edit() {
   appearance_profile_.clear();
   appearance_snapshots_.clear();
   save();
+  ++couch_revision_;
 }
 void MenuState::preview_appearance_selection() {
   if (!appearance_edit_ || frame().selected >= frame().entries.size())
@@ -415,6 +522,7 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
     add(0x284, 30, 0);
     add(0x285, 30, 1);
     add(0x286, 19);
+    f.entries.push_back({"EXIT GAME", -19, 0});
     break;
   case 19:
     add(0x196, 193);
@@ -632,14 +740,25 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
     }
     break;
   case 23:
+    if(detail::mcc_frontend_content(content_))
+      f.title=detail::og_matchmaking_layout::original_string(23,
+          detail::og_matchmaking_layout::data().at("original").at("screens").at("23").at("header"));
     if (const auto lobby = lobby_view())
       for (const auto &row : frontend_lobby_setup_rows(lobby->input.session_enum))
         f.entries.push_back({detail::frontend_compiled_localized(content_, s, row.label), row.destination, row.semantic});
     break;
   case 25:
-    add(0x201, -2, 0);
-    add(0x202, -2, 1);
-    add(0x203, -2, 2);
+    if(mode_==3 && detail::mcc_frontend_content(content_)) {
+      f.title=detail::og_matchmaking_layout::original_string(25,
+          detail::og_matchmaking_layout::data().at("original").at("screens").at("25").at("header"));
+      constexpr std::array<std::uint32_t,3> privacy_strings{0x04000201,0x0f000202,0x06000203};
+      for(unsigned mode=0;mode<privacy_strings.size();++mode)
+        f.entries.push_back({detail::og_matchmaking_layout::original_string(25,privacy_strings[mode]),-2,int(mode)});
+    } else {
+      add(0x201, -2, 0);
+      add(0x202, -2, 1);
+      add(0x203, -2, 2);
+    }
     break;
   case 30:
     f.entries = {{profile_name(), 14, 0}, {by_index(content_, s, 0x28a), 10, 1}};
@@ -691,7 +810,7 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
     break;
   case 31:
     if(online_couch_screen(f)){populate_online_couch(f);break;}
-    if(context==43 || context==44){populate_online_friends(f);break;}
+    if(context==43 || context==44 || context==46){populate_online_friends(f);break;}
     if (context == 41) { populate_online_clans(f); break; }
     if(context==42 || context==45){populate_online_party(f);break;}
     add(0x2a6, 215);
@@ -805,6 +924,8 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
       selected_value = appearance().foreground;
     else if (id == 233)
       selected_value = appearance().background;
+    else if (id == 25 && mode_ == 3 && account_.party && account_.party->privacy)
+      selected_value = int(account_.party->privacy->mode);
     else if (const auto v = profile_values_.find(profile_name());
              v != profile_values_.end()) {
       const auto key = id == 50 ? 0x100 + context : id;
@@ -851,13 +972,20 @@ void MenuState::open(unsigned screen, unsigned context) {
   if (appearance_child)
     appearance_snapshots_.emplace_back(stack_.size(), appearance());
   stack_.push_back(build(screen, context));
+  if(screen==25 && mode_==3 && account_.party && account_.party->privacy) {
+    const auto &privacy=*account_.party->privacy;
+    online_privacy_pending_=OnlinePrivacyPending{frame().instance,0,privacy.revision,privacy.mode,privacy.context};
+  }
   if(screen==14 && mode_==3) {
+    // Custom Game/Create Party from the ONLINE menu forms a lobby with no
+    // matchmaking hopper; matchmaking returns re-mark it afterwards.
+    if(stack_.size()>=2 && stack_[stack_.size()-2].screen==186){online_lobby_matchmaking_=false;cancel_online_lobby_countdown();}
     if(online_account_ && !account_.party && !online_account_->snapshot().busy)
       online_account_->party_command({"create"});
     if(!matchmaking_active_)refresh_online_matchmaking();
   }
   if (screen == 219 && context == online_server_browser_context) refresh_online_directory();
-  if (screen == 219 && context == 0) refresh_online_matchmaking();
+  if ((screen == 219 || screen == 237) && context == 0) refresh_online_matchmaking();
   if (screen == 210) {
     quickmatch_pending_ = true;
     if (!matchmaking_active_) refresh_online_matchmaking();
@@ -870,9 +998,10 @@ void MenuState::open(unsigned screen, unsigned context) {
     keyboard_selected_ = !keyboard_text.empty();
     keyboard_flags_ = 0;
     if (context == 4) { stack_.back().title="CREATE CLAN"; stack_.back().description="Enter a clan name. Maximum 15 letters, numbers or spaces."; }
-    if (context == 7) { stack_.back().title="DISCORD USERNAME"; stack_.back().description="Enter the Discord username of a player who has signed into ONLINE."; }
+    if (context == 7) { stack_.back().title="FRIEND TAG"; stack_.back().description="Enter the player's current friend tag, including # and all eight digits."; }
     if (context == 8) { stack_.back().title="MESSAGE CLAN"; stack_.back().description="Send a text message to your clan. Maximum 128 characters."; }
-    if(context==9){stack_.back().title="INVITE TO PARTY";stack_.back().description="Enter the Discord username of a player who has signed into ONLINE.";}
+    if(context==9){stack_.back().title="INVITE TO PARTY";stack_.back().description="Enter the player's current friend tag, including # and all eight digits.";}
+    if(context==11){stack_.back().title="FIND PLAYER";stack_.back().description="Enter a friend tag, such as EmkMage#12345678.";}
     if(context==10){stack_.back().title="SERVICE TAG";stack_.back().description="Use up to four letters or digits. Leave blank to clear your tag.";}
     keyboard_labels();
   }
@@ -885,6 +1014,33 @@ void MenuState::open_game_pause(bool campaign) {
   stack_.push_back(build(vista_menu(18),unsigned(campaign)));
   ++revision;
 }
+void MenuState::set_pcr_clock(std::function<std::uint32_t()> clock) {
+  if(std::any_of(stack_.begin(),stack_.end(),[](const auto &f){return bool(f.vista_pcr);}))
+    throw FormatError("An open PCR must retain its original clock owner");
+  pcr_clock_=std::move(clock);
+}
+void MenuState::initialize_mainmenu_map() {
+  if(content_.gameplay_overlay)
+    throw FormatError("Mainmenu map initialization requires its actual frontend map owner");
+  ui_map_initialized_clock_=ui_clock_;
+}
+std::optional<std::uint32_t> MenuState::ui_map_intro_color() const {
+  if(!ui_map_initialized_clock_ || content_.gameplay_overlay)return {};
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+  std::uint16_t control;std::uint32_t sse;
+  asm volatile("fnstcw %0; stmxcsr %1":"=m"(control),"=m"(sse));
+  return original_ui_map_intro_color(*ui_map_initialized_clock_,ui_clock_,4,true,3,
+      control,sse);
+#else
+  throw FormatError("Original mainmenu UI intro requires its native x87 owner");
+#endif
+}
+std::optional<std::uint32_t> MenuState::pcr_intro_color(const MenuFrame &f) const {
+  if(!f.vista_pcr)return {};
+  const auto &fp=f.vista_pcr->floating_point;
+  return original_pcr_intro_color(f.screen==vista_menu(185),f.pcr_open_clock,
+      pcr_clock_?pcr_clock_():pcr_milliseconds(),fp.x87_control_word,fp.mxcsr);
+}
 void MenuState::open_vista_pcr(unsigned id,std::shared_ptr<const VistaPcrScreenOwner> owner) {
   if((id!=16 && id!=185) || !owner || !owner->results || owner->pane>=6 ||
       owner->results->player_count>16 || owner->results->team_count>16 ||
@@ -894,6 +1050,7 @@ void MenuState::open_vista_pcr(unsigned id,std::shared_ptr<const VistaPcrScreenO
   f.instance=next_menu_instance.fetch_add(1,std::memory_order_relaxed);
   f.pane_created_clock=ui_clock_;f.screen=vista_menu(id);f.context=owner->pane;
   f.vista_pcr=std::move(owner);
+  if(id==16 && f.vista_pcr->online)online_prior_report_=f.vista_pcr->lobby_review;
   const auto count=f.context?f.vista_pcr->results->player_count:f.vista_pcr->results->team_count;
   if(f.vista_pcr->selected_row!=0xffffffffu && f.vista_pcr->selected_row>=count)
     throw FormatError("Vista PCR initial focus is outside actual retained rows");
@@ -902,8 +1059,38 @@ void MenuState::open_vista_pcr(unsigned id,std::shared_ptr<const VistaPcrScreenO
   for(unsigned i=0;i<count;++i)f.entries[i].value=int(i);
   // A source PCR allocation owns a new postmatch channel lifetime. Retaining
   // an old match's lobby as Back history can accidentally resume that match.
-  stack_.clear();launch.reset();quit=false;
+  // 2510AA's lobby-review factory opens another channel over the existing
+  // lobby. Only the completed-match PCR16 replaces old navigation.
+  if(id!=185 || !f.vista_pcr->online)stack_.clear();
+  launch.reset();quit=false;
+  //233423/239E08 stamps the monotonic clock after all six tab children
+  // initialize. Report allocation and any preceding resource load do not
+  // consume the screen's two-second hold/two-second fade lifetime.
+  f.pcr_open_clock=pcr_clock_?pcr_clock_():pcr_milliseconds();
   stack_.push_back(std::move(f));++revision;
+}
+bool MenuState::switch_pcr_tab(int direction) {
+  if(!frame().vista_pcr)return false;
+  const auto &bank=*frame().vista_pcr->results;
+  vista_pcr_pane(vista_pcr_tab_step(frame().context,direction,bank.team_count>0));
+  if(direction && pending_ui_sounds_.size()<16)pending_ui_sounds_.push_back(FrontendUiSound::Tab);
+  return true;
+}
+bool MenuState::has_online_prior_stats() const {
+  return online_prior_report_ && online_prior_report_->results && online_prior_report_->results->player_count>0;
+}
+bool MenuState::review_online_postgame() {
+  // 250B1E param5 ->2510AA: only actual retained, populated statistics open.
+  if(mode_!=3 || frame().screen!=14 || !has_online_prior_stats())return false;
+  // Each review factory recreates the initial tab/list focus. The result
+  // rows share a copied bank with PCR16, whose previous selection may differ.
+  if(online_prior_report_->select_row)online_prior_report_->select_row(online_prior_report_->selected_row);
+  open_vista_pcr(185,online_prior_report_);return true;
+}
+void MenuState::close_online_prior_stats() {
+  if(frame().screen!=vista_menu(185) || !frame().vista_pcr || !frame().vista_pcr->online)return;
+  if(stack_.size()<2)return;
+  stack_.pop_back();++revision;
 }
 void MenuState::vista_pcr_pane(unsigned pane) {
   auto& f=stack_.back();
@@ -929,6 +1116,25 @@ void MenuState::open_vista_lobby() {
   auto lobby=build(14,0);
   stack_.clear();launch.reset();quit=false;
   stack_.push_back(std::move(lobby));++revision;
+}
+void MenuState::set_system_link_lobby(bool host,std::vector<FrontendLobbyRosterPlayer> players,unsigned machines) {
+  if(players.empty() || players.size()>16 || !machines || machines>16)
+    throw FormatError("System Link lobby requires its actual retained participant roster");
+  mode_=2;system_link_host_=host;system_link_players_=std::move(players);system_link_machines_=machines;
+}
+void MenuState::leave_system_link_lobby() {
+  system_link_host_.reset();system_link_players_.clear();system_link_machines_=0;system_link_leave_={};
+  lobby_session_action_={};session_countdown_.reset();stack_.clear();launch.reset();mode_=2;
+  open(13);
+}
+void MenuState::adopt_system_link_configuration(std::string_view map,const UiVariant& variant) {
+  if(mode_!=2 || (system_link_host_ && *system_link_host_))throw FormatError("Only a pending or retained System Link client adopts host configuration");
+  const auto selected=std::ranges::find_if(content_.multiplayer_maps,[&](const auto& row){
+    const auto slash=row.scenario_path.find_last_of("/\\");return row.scenario_path.substr(slash==std::string::npos?0:slash+1)==map;
+  });
+  if(selected==content_.multiplayer_maps.end())throw FormatError("System Link host selected an unavailable native map");
+  (void)source_game_variant(variant);map_=unsigned(selected-content_.multiplayer_maps.begin());
+  engine_=variant.engine;variant_values_=variant.values;variant_name_=variant.name;saved_variant_=-1;
 }
 void MenuState::open_native_mainmenu(const std::function<void()>& before_register) {
   if(!before_register)throw FormatError("Native main-menu return requires its source presence publication owner");
@@ -1210,16 +1416,12 @@ void MenuState::accept() {
   if(f.screen==14 && f.selected<2 && lobby_session_action_ &&
       lobby_session_action_(f.selected?FrontendLobbySessionAction::Setup:FrontendLobbySessionAction::Start))return;
   if (f.screen == 210) return;
-  if (f.screen == 219 && f.context == 0) {
+  if ((f.screen == 219 || f.screen == 237) && f.context == 0) {
     if (f.selected < matchmaking_.playlists.size()) {
-      selected_playlist_ = matchmaking_.playlists[f.selected].id; open(237);
+      const auto &playlist=matchmaking_.playlists[f.selected];
+      if(!playlist.eligible){pending_ui_sounds_.push_back(FrontendUiSound::Error);return;}
+      selected_playlist_=playlist.id;prepare_online_matchmaking_lobby(false);
     } else refresh_online_matchmaking();
-    return;
-  }
-  if (f.screen == 237 && f.context == 0) {
-    if(f.selected==1) {match_voice_=!match_voice_;stack_.back().entries.clear();populate_online_matchmaking(stack_.back());++revision;return;}
-    const auto selected = std::find_if(matchmaking_.playlists.begin(), matchmaking_.playlists.end(), [&](const auto &p) { return p.id == selected_playlist_; });
-    if (selected != matchmaking_.playlists.end() && selected->eligible) open(210);
     return;
   }
   if (f.screen == 219 && f.context == online_server_browser_context) {
@@ -1248,6 +1450,7 @@ void MenuState::accept() {
         party_voice_wanted_=false;
         if(discord_social_)discord_social_->disconnect();
         saved_login_suppressed_=true;discord_login_->sign_out();
+        online_prior_report_.reset();
         clear_online_couch();
         if (online_directory_) online_directory_->cancel();
         online_directory_active_ = false;
@@ -1268,6 +1471,11 @@ void MenuState::accept() {
     return;
   }
   if (f.screen == 186 && f.selected == 3) { open(20); return; }
+  if (f.screen == 186 && f.selected == 0) {
+    // 230F92 Quickmatch creates party A mode3/49A4=2 with its saved hopper;
+    // lifecycle19B1C9 presents pregame14 before a new search can begin.
+    prepare_online_matchmaking_lobby(true);return;
+  }
   if (f.screen == 9) {
     open(10);
     return;
@@ -1311,6 +1519,11 @@ void MenuState::accept() {
   }
   const auto entry = f.entries.at(f.selected);
   if (f.screen == 6) {
+    if (entry.destination == -19) {
+      quit = true;
+      ++revision;
+      return;
+    }
     if (f.selected == 0) {
       mode_ = 0;
       level_ = 0;
@@ -1330,6 +1543,20 @@ void MenuState::accept() {
     const auto rows = frontend_lobby_setup_rows(lobby->input.session_enum);
     if (f.selected >= rows.size()) return;
     const auto row = rows[f.selected];
+    if(mode_==3) {
+      if(!account_.party || !account_.party->leader){unavailable("Only the party leader can change Game Setup.");return;}
+      if(row.semantic==9) {
+        //250FB3 ->2BBACB builds23; enum6 row9 ->2BBF06(true) opens
+        // the original237 playlist listing on lobby channel3.
+        stack_.pop_back();open(237);return;
+      }
+      if(row.semantic==6 || row.semantic==7) {
+        // Original switches retain the ONLINE protocol. Switching mode_ to
+        // native local co-op/custom here would falsely discard that owner.
+        unavailable(row.semantic==6?"ONLINE cooperative sessions are not available from this service.":
+            "ONLINE custom-game hosting is not available from this service.");return;
+      }
+    }
     if (row.action == FrontendLobbySetupAction::AlternateSession) {
       unavailable("This network session mode is not implemented by the native runtime.");
       return;
@@ -1419,7 +1646,39 @@ void MenuState::accept() {
     clear_online_couch();
     signed_in_.clear();local_profiles_={};local_inputs_={-1,-1,-1,-1};
     open_local_title();
+  } else if (entry.destination == -16) {
+    // 0x252150 "Leave Matchmaking": cancel the search; party A returns to
+    // pre-game, which 0x19B1C9 presents as pregame lobby14 pane2.
+    quickmatch_pending_ = false;
+    if (online_matchmaking_) online_matchmaking_->cancel_queue();
+    reset_online_matchmaking_progress();
+    while (stack_.size() > 1 && frame().screen != 186) stack_.pop_back();
+    if (mode_ == 3) { open(14); enter_online_matchmaking_lobby(); }
+    else ++revision; // A direct preview of the service menu has no party lobby.
+  } else if (entry.destination == -18) {
+    if(system_link_leave_){const auto leave=system_link_leave_;leave();return;}
+    // PCR16 dialog98 Leave Party (40C00D): leave the report's session
+    // (6151E2(0) -> 5AD6AF) and the party.
+    const auto pcr=std::find_if(stack_.begin(),stack_.end(),[](const auto &f){return f.vista_pcr && f.vista_pcr->online;});
+    const auto owner=pcr==stack_.end()?nullptr:pcr->vista_pcr;
+    if(account_.party && (!online_account_ || !online_account_->party_command({"leave"}))) {
+      back();unavailable("Wait for the current ONLINE operation to finish.");return;
+    }
+    if(owner && owner->leave_session)owner->leave_session();
+    update_online_account();return_online();
   } else if (entry.destination == -11) {
+    if(mode_==3 && std::any_of(stack_.begin(),stack_.end(),[](const auto &frame){return frame.screen==14;})) {
+      // Original0x8B callbacks25132E/251345 leave the sessions, not merely
+      // their widgets. A submitted command is acknowledged before UI return.
+      if(online_lobby_leave_pending_)return;
+      if(account_.party && (!online_account_ || !online_account_->party_command({"leave_lobby"}))) {
+        if(pending_ui_sounds_.size()<16)pending_ui_sounds_.push_back(FrontendUiSound::Error);
+        return;
+      }
+      online_lobby_leave_pending_=true;
+      if(online_matchmaking_)online_matchmaking_->cancel_queue();
+      quickmatch_pending_=false;update_online_account();update_online_lobby_leave();return;
+    }
     while (stack_.size() > 1 && frame().screen != 6)
       stack_.pop_back();
     ++revision;
@@ -1454,6 +1713,27 @@ void MenuState::accept() {
         open(14);
     }
   } else if (entry.destination == -2) {
+    if(f.screen==25 && mode_==3) {
+      if(!online_account_ || !account_.party || !account_.party->privacy) {
+        unavailable("This ONLINE service does not support party privacy settings.");return;
+      }
+      if(!account_.party->leader){unavailable("Only the party leader can change party privacy.");return;}
+      if(account_.busy || (online_privacy_pending_ && online_privacy_pending_->command_serial)){
+        unavailable("Wait for the current ONLINE operation to finish.");return;
+      }
+      if(entry.value<0 || entry.value>2)throw FormatError("Original party privacy selection is outside its authored range");
+      const auto before=*account_.party->privacy;
+      if(!online_privacy_pending_ || online_privacy_pending_->frame_instance!=f.instance ||
+          online_privacy_pending_->context!=before.context) {
+        unavailable("The party changed before its privacy selection was accepted.");return;
+      }
+      OnlinePartyCommand command;command.action="privacy";command.version=account_.party->version;
+      command.privacy=unsigned(entry.value);command.privacy_revision=before.revision;command.privacy_context=before.context;
+      if(!online_account_->party_command(std::move(command))){unavailable("Wait for the current ONLINE operation to finish.");return;}
+      online_privacy_pending_=OnlinePrivacyPending{f.instance,online_account_->snapshot().party_command_serial,
+          before.revision,unsigned(entry.value),before.context};
+      update_online_account();return;
+    }
     if (f.screen == 11 || f.screen == 2) {
       level_ = unsigned(entry.value);
       if (f.screen == 11 && f.context != 1)
@@ -1547,6 +1827,7 @@ void MenuState::accept() {
   ++revision;
 }
 void MenuState::back() {
+  if(online_lobby_leave_pending_)return; //199E3C's leave task owns completion.
   if(online_couch_screen(frame())) {
     if(online_local_options_) {
       const auto login=local_discord_logins_[*online_local_options_];
@@ -1574,8 +1855,11 @@ void MenuState::back() {
       back_refused_ = true;
       return;
     }
-    quickmatch_pending_ = false;
-    if (online_matchmaking_) online_matchmaking_->cancel_queue();
+    // Dialog 0x8D when every party player is on this console, else 0x8C.
+    const auto party_players = account_.party ? account_.party->members.size() : std::size_t{0};
+    dialog(party_players <= local_players().size() ? matchmaking_leave_dialog_local
+                                                   : matchmaking_leave_dialog_party, -16);
+    return;
   }
   if (frame().screen == 20 && awaiting_discord_login_) {
     if (discord_login_) discord_login_->cancel();
@@ -1610,6 +1894,17 @@ void MenuState::back() {
     return;
   }
   if (frame().screen == 14 || frame().screen == 30) {
+    if(frame().screen==14 && mode_==3 && account_.party && account_.party->leader && online_lobby_countdown_>=0) {
+      // 250B1E param1/0xD: an active leader's B runs25122F/19A7E9 and
+      // stays in the lobby. The later idle B may ask with0x8B.
+      if(!online_account_ || !online_account_->party_command({"countdown_cancel"}))
+        if(pending_ui_sounds_.size()<16)pending_ui_sounds_.push_back(FrontendUiSound::Error);
+      return;
+    }
+    if(frame().screen==14 && mode_==3 && account_.party && !account_.party->leader && online_lobby_countdown_>=0)
+      // 2511B6's member route runs25122F before its0x8B: the real mode1
+      // request can be observed even when the later confirmation is canceled.
+      if(online_account_)online_account_->party_command({"countdown_request"});
     dialog(frame().screen == 14 ? 0x8b : 0x37, -11);
     return;
   }
@@ -1649,13 +1944,19 @@ void MenuState::back() {
 }
 void MenuState::auxiliary() {
   if(frame().vista_pcr)return; // Source details is component3/Y, not X.
-  // c_matchmaking_screen::v10 (0x251AFA) consumes button3 from pane2 on.
-  if(frame().screen==210 && matchmaking_progress_consumes_x(online_matchmaking_progress_pane()))return;
   if(frame().screen==14 && lobby_session_action_ &&
       lobby_session_action_(FrontendLobbySessionAction::Auxiliary))return;
   if (frame().screen == 211 && frame().context == 41) { ++clan_message_page_; ++revision; return; }
   update_online_login();
-  if(frame().screen==14 && mode_==3){open(216);return;}
+  if(frame().screen==14 && mode_==3) {
+    // Authored host status 0x200001F0: X cancels a running start countdown.
+    if(online_lobby_countdown_>=0) {
+      if(!online_account_ || !account_.party || !online_account_->party_command({account_.party->leader?"countdown_cancel":"countdown_request"}))
+        if(pending_ui_sounds_.size()<16)pending_ui_sounds_.push_back(FrontendUiSound::Error);
+      return;
+    }
+    open(216);return;
+  }
   if (frame().screen == 219 && online_identity()) {
     if (frame().context == online_server_browser_context) refresh_online_directory();
     else refresh_online_matchmaking();
@@ -1672,6 +1973,15 @@ void MenuState::auxiliary() {
     appearance_edit_->flags ^= 1;
     ++revision;
   } else if (frame().screen == 23) {
+    if(mode_==3) {
+      if(!account_.party || !account_.party->privacy){unavailable("This ONLINE service does not support party privacy settings.");return;}
+      if(!account_.party->leader){unavailable("Only the party leader can change party privacy.");return;}
+      if(account_.busy){unavailable("Wait for the current ONLINE operation to finish.");return;}
+      // TU1.5 2C5A6B only suppresses X for session enums0/1; enum6
+      // replaces channel3's Setup with source25. Privacy changes preserve
+      // the actual party countdown and every member's hopper consent.
+      stack_.pop_back();open(25);return;
+    }
     const auto lobby = lobby_view();
     if (lobby && lobby->input.session_enum != 0 && lobby->input.session_enum != 1) {
       // Original2BBED0 X/param2 opens privacy on non-local-only sessions.
@@ -1695,6 +2005,8 @@ void MenuState::auxiliary() {
 }
 void MenuState::players() {
   if(frame().vista_pcr){vista_pcr_event(3);return;}
+  // c_matchmaking_screen::v10 (0x251AFA) consumes Y (param3) from pane2 on.
+  if(frame().screen==210 && matchmaking_progress_consumes_y(online_matchmaking_progress_pane()))return;
   if (frame().screen == 167)
     text(" ");
   else if (frame().screen != 9 && frame().screen != 26)
@@ -1713,6 +2025,10 @@ bool MenuState::activate_pointer(FrontendPointerTarget target) {
   case Action::InviteTab:
     if(!party_invite_picker() || target.index>1)return false;
     return switch_invite_tab(target.index==party_invite_tab_?0:1);
+  case Action::PcrTab:
+    if(target.index>1)return false;
+    return switch_pcr_tab(target.index?1:-1);
+  case Action::PriorStats: return review_online_postgame();
   case Action::Entry:
     if (target.index >= frame().entries.size() ||
         (frame().screen == 167 && !keyboard_key_enabled(target.index)) ||
@@ -1746,8 +2062,13 @@ void MenuState::commit_text() {
     update_online_account();++revision;return;
   }
   if(frame().screen==167 && keyboard_purpose_==9) {
-    if(keyboard_text.empty()){unavailable("Enter a Discord username first.");return;}
+    if(keyboard_text.empty()){unavailable("Enter a friend tag first.");return;}
     party_command({"invite",keyboard_text});return;
+  }
+  if(frame().screen==167 && keyboard_purpose_==11) {
+    if(keyboard_text.empty()){unavailable("Enter a friend tag first.");return;}
+    if(!online_account_ || !online_account_->friend_command("search",keyboard_text)){unavailable("Wait for the current ONLINE operation to finish.");return;}
+    back();open(31,46);update_online_account();return;
   }
   if (frame().screen == 167 && (keyboard_purpose_ == 4 || keyboard_purpose_ == 7 || keyboard_purpose_ == 8)) {
     if (keyboard_text.empty()) { unavailable("Enter a name or message first."); return; }
@@ -1864,12 +2185,15 @@ void MenuState::keyboard_labels() {
   }
 }
 bool MenuState::keyboard_key_visible(unsigned key) const {
-  // 237998 and g_44A9F8: all currently exposed profile, variant and
-  // gamertag purposes use type flags 2 or 8. Their active Symbols/Accents
-  // keys (43/44) are replaced by the noninteractive artwork at 45/46.
+  // 237998 and g_44A9F8: flags1/4 expose the original symbol keys43/44
+  // and hide inactive45/46. Native friend tags require this unrestricted
+  // branch: their '#' is the original extra-symbol page's key35 (string516).
+  if(keyboard_purpose_==7 || keyboard_purpose_==9 || keyboard_purpose_==11)return key<45;
+  // Profile/variant purposes retain flags2/8's restricted branch.
   return key < 47 && key != 43 && key != 44;
 }
 bool MenuState::keyboard_key_enabled(unsigned key) const {
+  if(keyboard_purpose_==7 || keyboard_purpose_==9 || keyboard_purpose_==11)return key<45;
   return key < 43;
 }
 bool MenuState::keyboard_key_active(unsigned key) const {
@@ -1878,8 +2202,7 @@ bool MenuState::keyboard_key_active(unsigned key) const {
 void MenuState::navigate(int horizontal, int vertical) {
   if(frame().vista_pcr) {
     if(vertical)move(vertical);
-    // Horizontal pane changes belong to the source tab owner. The explicit
-    // vista_pcr_pane entry accepts its actual pane; do not turn them into rows.
+    if(horizontal)switch_pcr_tab(horizontal);
     return;
   }
   if (frame().screen == 14 && horizontal &&
@@ -1940,7 +2263,7 @@ void MenuState::text(const std::string &value) {
     keyboard_cursor_ = 0;
     keyboard_selected_ = false;
   }
-  if (count(keyboard_text) + count(value) > (keyboard_purpose_==10 ? 4 : keyboard_purpose_ == 4 ? 15 : keyboard_purpose_ == 7 || keyboard_purpose_==9 ? 32 : keyboard_purpose_ == 8 ? 128 : 16))
+  if (count(keyboard_text) + count(value) > (keyboard_purpose_==10 ? 4 : keyboard_purpose_ == 4 ? 15 : keyboard_purpose_ == 7 || keyboard_purpose_==9 || keyboard_purpose_==11 ? 73 : keyboard_purpose_ == 8 ? 128 : 16))
     return;
   keyboard_text.insert(keyboard_cursor_, value);
   keyboard_cursor_ += value.size();
@@ -2008,6 +2331,7 @@ void MenuState::save() const {
   file << "pc_fov " << pc_display_.field_of_view << ' ' << pc_display_.vehicle_field_of_view << '\n';
   file << "pc_crt_filter " << pc_display_.crt_filter << '\n';
   file << "pc_graphics_mode " << unsigned(pc_display_.graphics_mode) << '\n';
+  file << "pc_path_tracing " << pc_display_.path_tracing_samples << ' ' << pc_display_.path_tracing_bounces << '\n';
   file << "pc_two_player_split " << unsigned(pc_display_.two_player_split) << '\n';
   if (saved_pc_video_)
     file << "pc_video " << (*saved_pc_video_)[0] << ' ' << (*saved_pc_video_)[1]
@@ -2048,8 +2372,24 @@ std::optional<FrontendLobbyView> MenuState::lobby_view() const {
   if(mode_==3) {
     FrontendLobbyView view;view.protocol=2;view.input.session_enum=6;
     view.input.host=account_.party && account_.party->leader;
-    view.input.start_permission=view.input.host;
+    view.input.start_permission=online_lobby_start_error().empty();
+    // This service does not publish Xbox Live's ordinary idle status enum.
+    // The source kernel's unknown branch owns no authored status string.
+    view.input.status=-1;
+    view.input.countdown=online_lobby_countdown_>=0;
+    if(view.input.countdown)view.input.status=10;
+    if(account_.party && account_.party->countdown && !account_.party->countdown->requester.empty()) {
+      const auto &members=account_.party->members;
+      const auto requester=std::find_if(members.begin(),members.end(),[&](const auto &m){return m.handle==account_.party->countdown->requester;});
+      if(requester!=members.end()) {
+        view.input.delayed_player=int(requester-members.begin());
+        view.input.countdown_cancelled=requester->leader; // 19ABE4: requester's machine is session leader.
+      }
+    }
+    view.input.party_privacy=account_.party && account_.party->privacy?int(account_.party->privacy->mode):-1;
     view.input.max_players=16;view.input.player_count=int(online_party_members().size());
+    view.machines=account_.party?int(account_.party->members.size()):int(!local_players().empty());
+    view.input.prior_stats_count=has_online_prior_stats()?int(online_prior_report_->results->player_count):0;
     view.party_names=std::vector<std::string>{};
     for(const auto &m:online_party_members()) {
       if(view.party_players.size()==16)break; // Authored lobby capacity; social list retains every member.
@@ -2139,6 +2479,18 @@ std::optional<FrontendLobbyView> MenuState::lobby_view() const {
     view.quick_options = frontend_lobby_quick_options(content_, engine_, queries,
         detail::frontend_compiled_localized(content_,content_.screens.at(14),0x1a001820));
   }
+  if(mode_==2 && system_link_host_) {
+    view.input.host=*system_link_host_;view.input.start_permission=*system_link_host_ && !session_countdown_;
+    view.party_names.emplace();view.party_players=system_link_players_;view.machines=int(system_link_machines_);
+    unsigned teams{};
+    for(const auto& player:system_link_players_) {
+      view.party_names->push_back(player.name);view.party_speakers.push_back(2);
+      if(player.team>=0 && player.team<8)teams|=1u<<player.team;
+    }
+    view.input.player_count=int(system_link_players_.size());
+    if(!session_countdown_)view.input.status=frontend_lobby_ready_status({view.input.session_enum,
+        view.input.player_count,view.input.player_count,view.input.team_mode,std::popcount(teams),int(view.team_count)});
+  }
   return view;
 }
 bool MenuState::lobby_team_event(int type, int param) {
@@ -2189,13 +2541,15 @@ std::string MenuState::expand(const std::string &source) const {
           break;
         case 0xe41f:
           if (const auto lobby = lobby_view())
-            result += detail::frontend_compiled_localized(content_,content_.screens.at(14),
-                frontend_lobby_protocol_string(lobby->input.session_enum));
+            result += mode_==3&&detail::mcc_frontend_content(content_)?
+                detail::og_matchmaking_layout::original_string(14,frontend_lobby_protocol_string(lobby->input.session_enum)):
+                detail::frontend_compiled_localized(content_,content_.screens.at(14),frontend_lobby_protocol_string(lobby->input.session_enum));
           break;
         case 0xe425:
           if (const auto lobby = lobby_view()) {
             const auto id = frontend_lobby_player_count_string(lobby->input.player_count);
-            if (id) result += detail::frontend_compiled_localized(content_,content_.screens.at(14),*id);
+            if (id) result += mode_==3&&detail::mcc_frontend_content(content_)?detail::og_matchmaking_layout::original_string(14,*id):
+                detail::frontend_compiled_localized(content_,content_.screens.at(14),*id);
           }
           break;
         case 0xe426:
@@ -2208,13 +2562,23 @@ std::string MenuState::expand(const std::string &source) const {
               frontend_lobby_difficulty_string(std::int16_t(difficulty_)));
           break;
         case 0xe413:
-          result += session_countdown_?std::to_string(*session_countdown_):"0";
+          result += mode_==3 && online_lobby_countdown_>=0?matchmaking_lobby_countdown_text(online_lobby_countdown_):
+            session_countdown_?std::to_string(*session_countdown_):"0";
+          break;
+        case 0xe414:
+          if(mode_==3 && account_.party && account_.party->countdown)
+            for(const auto &m:account_.party->members)if(m.handle==account_.party->countdown->requester){result+=m.name;break;}
           break;
         case 0xe424:
           result += "Player";
           break;
         case 0xe43a:
-          result += "Rumble Pit";
+        case 0xe43b:
+          // 22D52E/22D566 retain party A's selected hopper. The service
+          // catalog supplies its actual public name/description.
+          if(const auto hopper=std::find_if(matchmaking_.playlists.begin(),matchmaking_.playlists.end(),
+              [&](const auto &p){return p.id==selected_playlist_;});hopper!=matchmaking_.playlists.end())
+            result += code==0xe43a?hopper->name:hopper->description;
           break;
         default:
           break;
@@ -2225,6 +2589,10 @@ std::string MenuState::expand(const std::string &source) const {
     }
     result += source[i++];
   }
+  // These templates and their protocol token are authenticated Xbox strings.
+  // Keep the exact authored wording within the original matchmaking owner.
+  if(detail::mcc_frontend_content(content_) &&
+     detail::og_matchmaking_layout::goal_frame(frame(),this))return result;
   return frontend_online_text(result);
 }
 } // namespace halo2

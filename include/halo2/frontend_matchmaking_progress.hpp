@@ -4,7 +4,12 @@
 // it. Evidence: multiplayer/docs/halo2-matchmaking-progress-evidence.md and
 // tools/reference/halo2-decompiled/src/{unknown_250155,unknown_19987f,
 // unknown_058dd0,unknown_058ee0,user_interface_text_parser}.cpp.
+// Unqualified addresses below are retail decompiler locators. Independently
+// executed TU1.5 controls cover roster 0x25780B and the normal start timer
+// 0x76360/0x76481; TU1.5's additional readiness-deferral producers are not
+// represented by the replacement service's ordinary connected-peer gate.
 #include <algorithm>
+#include <bit>
 #include <cstdint>
 #include <cstdio>
 #include <optional>
@@ -29,8 +34,9 @@ enum class MatchmakingProgressUi : int {
 
 // 0x59590 returns NONE unless manager state7 has established B's countdown.
 inline constexpr std::int32_t matchmaking_countdown_none = -1;
-// c_session_state_start_match::update (0x72700) waits this long once every
-// game-session peer is ready, then sets B's mode4.
+// c_session_state_start_match::update (retail0x72700; TU1.5 0x76360,
+// normal timer block0x76481) waits this long once every game-session peer
+// is ready, then sets B's mode4. This is its ordinary countdown path.
 inline constexpr std::int32_t matchmaking_start_countdown_ms = 10000;
 // 0x25217B refuses Cancel this long after the screen reaches pane2 or later.
 inline constexpr std::uint32_t matchmaking_cancel_lock_ms = 60000;
@@ -47,6 +53,13 @@ inline MatchmakingStartCountdown matchmaking_start_countdown(std::uint32_t elaps
   if (remaining < 0) remaining = 0;
   return {std::int32_t((remaining + 999) / 1000), remaining == 0};
 }
+// The service owns B's start clock. A native observer converts its published
+// remaining milliseconds with 0x72700's same ceiling, and never treats an
+// unavailable countdown as elapsed or launch-ready.
+inline MatchmakingStartCountdown matchmaking_published_start_countdown(std::optional<unsigned> remaining_ms) {
+  if(!remaining_ms || *remaining_ms>unsigned(matchmaking_start_countdown_ms))return {};
+  return {std::int32_t((*remaining_ms+999)/1000),*remaining_ms==0};
+}
 
 // 0x25142F: the authored pane for a UI state. The countdown argument is
 // 0x59590's value, NONE until B's countdown exists.
@@ -59,6 +72,13 @@ inline unsigned matchmaking_progress_pane(MatchmakingProgressUi ui, std::int32_t
   case MatchmakingProgressUi::have_fun: return 3;
   default: return 0;
   }
+}
+
+// TU1.5 257E77/257EB7 (retail251B39): a changed pane requests UI
+// sound12 exactly when the new pane is3. This is the matched-entry cue;
+// the independent lobby stage3..0 sound10 policy is below.
+inline std::optional<unsigned> matchmaking_progress_pane_sound(unsigned previous,unsigned pane) {
+  return previous!=pane && pane==3 ? std::optional<unsigned>{12} : std::nullopt;
 }
 
 // The PC (Vista/MCC) screen210 authors only the first three panes. Its raw
@@ -111,8 +131,11 @@ inline std::string matchmaking_countdown_text(std::int32_t seconds) {
 inline bool matchmaking_progress_cancel_allowed(unsigned pane, std::uint32_t pane_elapsed_ms) {
   return pane < 2 || pane_elapsed_ms >= matchmaking_cancel_lock_ms;
 }
-// c_matchmaking_screen::v10 (0x251AFA) consumes button3 at pane2 or later.
-inline bool matchmaking_progress_consumes_x(unsigned pane) { return pane >= 2; }
+// c_matchmaking_screen::v10 (0x251AFA) consumes button3 (Y, the online Y
+// menu) at pane2 or later.
+inline bool matchmaking_progress_consumes_y(unsigned pane) { return pane >= 2; }
+// Leave-matchmaking dialogs: 0x8C names remote party members, 0x8D does not.
+inline constexpr unsigned matchmaking_leave_dialog_party = 0x8c, matchmaking_leave_dialog_local = 0x8d;
 
 // 0x2514FD pane3 roster order over game-session B. `ranked` is 0x19A0C5
 // (hopper types 2/4/5 display rank), `teams` is 0x19A127 (types 3/4/5).
@@ -143,5 +166,58 @@ inline std::vector<unsigned> matchmaking_progress_order(const std::vector<Matchm
 // hopper; team NONE uses the default (no-team) color.
 inline bool matchmaking_progress_team_colors(std::int32_t countdown, bool teams) {
   return countdown != matchmaking_countdown_none && teams;
+}
+
+// 0x2514FD selects party A before pane1, and in ranked panes1/2. Only
+// pane3 reveals game B's ranked opponents. Datum16 becomes "Matched Player"
+// (0x251703); NONE becomes a blank slot (0x251778). `maximum` is available
+// only with the original accepted-membership/count-provider gate.
+enum class MatchmakingProgressRow { player, matched, empty };
+// Screen210 entry values reserved for the two rows that have no player.
+inline constexpr int matchmaking_matched_player_row = -2, matchmaking_empty_player_row = -3;
+inline constexpr std::uint32_t matchmaking_matched_player_xbox = 0x0e00075e,
+                               matchmaking_matched_player_pc = 0x0e00075c;
+inline bool matchmaking_progress_uses_party(unsigned pane, bool ranked) {
+  return pane != 3 && (pane < 1 || ranked);
+}
+inline std::vector<MatchmakingProgressRow> matchmaking_progress_rows(
+    unsigned pane, bool ranked, unsigned party_players, unsigned game_players,
+    std::optional<unsigned> maximum) {
+  const bool party = matchmaking_progress_uses_party(pane, ranked);
+  const unsigned known = party ? party_players : game_players;
+  const unsigned count = party || pane == 1 ? std::max(known, maximum.value_or(0)) : known;
+  std::vector<MatchmakingProgressRow> rows;
+  rows.reserve(count);
+  for (unsigned i = 0; i < count; ++i)
+    rows.push_back(i < known ? MatchmakingProgressRow::player :
+        i < game_players ? MatchmakingProgressRow::matched : MatchmakingProgressRow::empty);
+  return rows;
+}
+
+// Matchmaking pregame lobby (screen14 pane2) start countdown.
+// 0x25106C -> 0x19A78E(controller,10,3): START GAME on a ready lobby
+// (state9) starts a 10 s countdown; another press while it runs (state10)
+// shortens it by one second while it is above the 3 s minimum.
+inline constexpr std::int32_t matchmaking_lobby_countdown_initial = 10, matchmaking_lobby_countdown_minimum = 3;
+inline std::int32_t matchmaking_lobby_countdown_press(std::int32_t current) {
+  if (current < 0) return matchmaking_lobby_countdown_initial;
+  return current > matchmaking_lobby_countdown_minimum ? current - 1 : current;
+}
+// c_session_state_pre_game 0x6E360: once a published value has stood for
+// 1000 ms it is republished one lower; the clock restarts on every change.
+inline bool matchmaking_lobby_countdown_due(std::int32_t current, std::uint32_t elapsed_ms) {
+  return current > 0 && std::bit_cast<std::int32_t>(elapsed_ms) >= 1000;
+}
+// c_screen_24fd74::update_countdown 0x250A8B: UI sound10 on each new stage
+// 0..3.
+inline bool matchmaking_lobby_countdown_beeps(std::int32_t previous, std::int32_t stage) {
+  return stage >= 0 && stage <= 3 && stage != previous;
+}
+// 0x22D730 parse_countdown (token E413).
+inline std::string matchmaking_lobby_countdown_text(std::int32_t seconds) {
+  if (seconds < 0) return "-:--";
+  char buffer[24];
+  std::snprintf(buffer, sizeof buffer, "%d:%02d", int(seconds / 60), int(seconds % 60));
+  return buffer;
 }
 } // namespace halo2

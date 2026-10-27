@@ -1,9 +1,11 @@
 #include "halo2/source_match_authority.hpp"
+#include "halo2/native_tu15_physics_frame_residuals.hpp"
 #include "halo2/source_contrail_draw.hpp"
 #include "halo2/physics_velocity_observation.hpp"
 #include "helpers/source_device_script_input_tu15.hpp"
 #include "helpers/live_phantom_original_capture_tu15.hpp"
 #include "helpers/live_physics_entry_capture_tu15.hpp"
+#include "helpers/live_native_physics_frame_capture_tu15.hpp"
 #include "helpers/original_support_carry_tu15.hpp"
 #include "helpers/destruction_firing_lane_inputs_tu15.hpp"
 #include "halo2/source_physics_entry_observation.hpp"
@@ -617,6 +619,85 @@ Json inventory(const MultiplayerPreparedWorld &world) {
   out["physical_body_count_available"]=bool(count);
   if(count)out["source_physical_body_count"]=*count;
   if(world.source_objects) {
+    const auto native_frames=world.source_objects->tu15_world().native_physics_frame_activity();
+    out["native_physics_frame_activity"]={{"frame_calls",native_frames.frame_calls},
+        {"residual_calls",native_frames.residual_calls},{"world_integrations",native_frames.world_integrations},
+        {"island_integrations",native_frames.island_integrations},{"native_force_calls",native_frames.native_force_calls},{"native_pose_calls",native_frames.native_pose_calls},{"native_deactivation_calls",native_frames.native_deactivation_calls},
+        {"native_kinematic_pose_calls",native_frames.native_kinematic_pose_calls},
+        {"native_fixed_pose_calls",native_frames.native_fixed_pose_calls},
+        {"native_prescribed_force_calls",native_frames.native_prescribed_force_calls},
+        {"native_body_policy_calls",native_frames.native_body_policy_calls},
+        {"native_island_transition_calls",native_frames.native_island_transition_calls},
+        {"native_array_growth_calls",native_frames.native_array_growth_calls},
+        {"native_array_reserve_calls",native_frames.native_array_reserve_calls},
+        {"native_array_pool_allocations",native_frames.native_array_pool_allocations},
+        {"native_array_pool_releases",native_frames.native_array_pool_releases},
+        {"native_world_collision_calls",native_frames.native_world_collision_calls},
+        {"native_world_collision_listener_calls",native_frames.native_world_collision_listener_calls},
+        {"native_island_collision_listener_calls",native_frames.native_island_collision_listener_calls},
+        {"native_constraint_calls",native_frames.native_constraint_calls},
+        {"native_dynamic_accumulator_calls",native_frames.native_dynamic_accumulator_calls},
+        {"native_constraint_setup_calls",native_frames.native_constraint_setup_calls},
+        {"native_island_collision_calls",native_frames.native_island_collision_calls},
+        {"native_island_agent_flag_clear_calls",native_frames.native_island_agent_flag_clear_calls},
+        {"native_island_agent_flag_set_calls",native_frames.native_island_agent_flag_set_calls},
+        {"native_island_agent_process_calls",native_frames.native_island_agent_process_calls},
+        {"native_island_agent_finish_calls",native_frames.native_island_agent_finish_calls},
+        {"native_island_contact_minimum_calls",native_frames.native_island_contact_minimum_calls},
+        {"native_island_contact_time_calls",native_frames.native_island_contact_time_calls},
+        {"native_island_contact_buffers_constructed",native_frames.native_island_contact_buffers_constructed},
+        {"native_island_contact_buffers_destroyed",native_frames.native_island_contact_buffers_destroyed},
+        {"native_contact_advance_calls",native_frames.native_contact_advance_calls},
+        {"native_contact_advance_motion_calls",native_frames.native_contact_advance_motion_calls},
+        {"native_contact_advance_process_calls",native_frames.native_contact_advance_process_calls},
+        {"native_contact_advance_single_iterations",native_frames.native_contact_advance_single_iterations},
+        {"native_contact_advance_paired_iterations",native_frames.native_contact_advance_paired_iterations},
+        {"native_contact_advance_negative_single_restores",native_frames.native_contact_advance_negative_single_restores},
+        {"native_contact_advance_negative_paired_restores",native_frames.native_contact_advance_negative_paired_restores},
+        {"native_motion_commit_calls",native_frames.native_motion_commit_calls},
+        {"native_motion_commit_kinds",native_frames.native_motion_commit_kinds},
+        {"native_broad_phase_calls",native_frames.native_broad_phase_calls},
+        {"native_shape_bounds_box_calls",native_frames.native_shape_bounds_box_calls},
+        {"native_shape_bounds_convex_calls",native_frames.native_shape_bounds_convex_calls},
+        {"native_shape_bounds_transformed_calls",native_frames.native_shape_bounds_transformed_calls},
+        {"native_shape_bounds_forward_calls",native_frames.native_shape_bounds_forward_calls},
+        {"native_shape_bounds_motion_calls",native_frames.native_shape_bounds_motion_calls},
+        {"native_shape_bounds_centered_box_calls",native_frames.native_shape_bounds_centered_box_calls},
+        {"native_shape_bounds_centered_radius_calls",native_frames.native_shape_bounds_centered_radius_calls},
+        {"shape_bounds_residual_calls",native_frames.shape_bounds_residual_calls},
+        {"shape_bounds_residual_owners",native_frames.shape_bounds_residual_owners},
+        {"named_residual_owner_calls",native_frames.residual_owner_calls},
+        {"native_shape_bounds_endpoint_calls",native_frames.native_shape_bounds_endpoint_calls},
+        {"native_shape_bounds_compound_calls",native_frames.native_shape_bounds_compound_calls},
+        {"native_shape_bounds_compound_child_calls",native_frames.native_shape_bounds_compound_child_calls},
+        {"native_solver_calls",native_frames.native_solver_calls},
+        {"native_solver_initializations",native_frames.native_solver_initializations},
+        {"native_solver_iterations",native_frames.native_solver_iterations},
+        {"native_solver_primary_rows",native_frames.native_solver_primary_rows},
+        {"native_solver_secondary_rows",native_frames.native_solver_secondary_rows},
+        {"native_solver_exported_rows",native_frames.native_solver_exported_rows},
+        {"native_solver_custom_refusals",native_frames.native_solver_custom_refusals},
+        {"native_solver_custom_calls",native_frames.native_solver_custom_calls},
+        {"native_solver_clock_calls",native_frames.native_solver_clock_calls},
+        {"native_solver_custom_kinds",native_frames.native_solver_custom_kinds},
+        {"native_constraint_producer_axis_calls",native_frames.native_constraint_producer_axis_calls},
+        {"native_constraint_producer_scaled_calls",native_frames.native_constraint_producer_scaled_calls},
+        {"native_constraint_producer_base_calls",native_frames.native_constraint_producer_base_calls},
+        {"native_constraint_producer_base_rows",native_frames.native_constraint_producer_base_rows},
+        {"native_constraint_producer_property_lookups",native_frames.native_constraint_producer_property_lookups},
+        {"native_constraint_producer_emissions",native_frames.native_constraint_producer_emissions},
+        {"native_constraint_producer_completed_emissions",native_frames.native_constraint_producer_completed_emissions},
+        {"native_vehicle_rate_acceleration_calls",native_frames.native_vehicle_rate_acceleration_calls},
+        {"native_vehicle_rate_approach_calls",native_frames.native_vehicle_rate_approach_calls},
+        {"native_vehicle_rate_cursor_calls",native_frames.native_vehicle_rate_cursor_calls},
+        {"native_vehicle_rate_refusals",native_frames.native_vehicle_rate_refusals},
+        {"native_schema_emitter_calls",native_frames.native_schema_emitter_calls},
+        {"native_schema_emitter_completed_calls",native_frames.native_schema_emitter_completed_calls},
+        {"native_schema_emitter_cursor_calls",native_frames.native_schema_emitter_cursor_calls},
+        {"native_schema_emitter_refusals",native_frames.native_schema_emitter_refusals},
+        {"native_schema_emitter_caller_kinds",native_frames.native_schema_emitter_caller_kinds},
+        {"native_schema_emitter_refusal_kinds",native_frames.native_schema_emitter_refusal_kinds},
+        {"world_residual_calls",native_frames.world_residual_calls},{"native_only_closure",false}};
     out["actual_source_objects"]=Json::array();
     out["selected_phantom_source_owners"]=Json::array();
     for(const auto &object:world.source_objects->live_objects()) {
@@ -646,8 +727,9 @@ Json inventory(const MultiplayerPreparedWorld &world) {
   return out;
 }
 struct Host {
-  unsigned port{},host_slot{};
+  std::string join_address;unsigned port{},host_slot{};
   Json initial_inventory;
+  NativeTu15PhysicsFrameExecutionStats native_frames;
   Json impulses=Json::array();
   Json scene_lifecycle=Json::array();
   Json script_stages=Json::array();
@@ -738,7 +820,7 @@ struct Host {
         support_field_trace.open(options.source_object_savegame_directory.parent_path()/"authority-support-field-stores.jsonl");
         check(bool(support_field_trace),"Cannot retain original biped field stores");
         support_store_binding.owner=world.source_objects.get();
-        world.source_objects->observe_physics_stores([&](std::uint32_t instruction,const SourcePhysicsContactRecordStore &store) {
+        world.source_objects->observe_physics_stores_read_only([&](std::uint32_t instruction,const SourcePhysicsContactRecordStore &store) {
           const auto &player=world.match.player(1);
           if(!player.connected || player.source_current_object==null_datum)return;
           const auto &memory=world.source_objects->memory();
@@ -841,7 +923,7 @@ struct Host {
       LanHost transport(world.match,0,multiplayer_fingerprint(options.map,world.cache->shared_directory(),0,world.network_starting_weapon_identity(),options.gameplay_xbe),effective_variant);
       initial_inventory=inventory(world);content=std::make_shared<LevelContent>(world.content);
       initial_inventory["original_source_engine_owned"]=world.match.source_engine_owned();
-      port=transport.port();host_slot=world.local_slots.front();
+      port=transport.port();join_address=transport.join_address();host_slot=world.local_slots.front();
       started=true;startup.set_value();
       std::set<std::uint32_t> observed_source_generations;
       std::ofstream machine_trace;
@@ -867,6 +949,25 @@ struct Host {
         original_force_capture=std::make_unique<test::LivePhantomOriginalCaptureTu15>(
             options.source_object_savegame_directory.parent_path()/"original-force-capture");
       }
+      std::optional<test::LiveNativePhysicsFrameCaptureTu15> native_frame_capture;
+      std::optional<NativeTu15PhysicsFrameObserverBinding> native_frame_observer;
+      if(std::getenv("HALO2_TU15_CAPTURE_NATIVE_FRAME_SEMANTICS")) {
+        native_frame_capture.emplace(options.source_object_savegame_directory.parent_path()/"original-native-frame-input");
+        std::optional<std::uint32_t> requested_capture_tick;
+        if(const auto requested=std::getenv("HALO2_TU15_NATIVE_FRAME_CAPTURE_TICK")) {
+          const std::string text=requested;std::size_t used{};const auto value=std::stoul(text,&used);
+          check(used==text.size()&&value<=9000,"Native frame capture tick must be a declared0..9000 authority tick");
+          requested_capture_tick=std::uint32_t(value);
+          std::ofstream trigger(options.source_object_savegame_directory.parent_path()/"native-frame-capture-trigger.json");
+          trigger<<Json{{"authority_tick",*requested_capture_tick},{"scope","Read-only native-frame observation trigger; no gameplay input or physics result"}}.dump(2)<<'\n';
+          check(bool(trigger),"Could not retain declared native frame capture trigger");
+        }
+        native_frame_observer.emplace(world.source_objects->memory(),[&,requested_capture_tick](const auto &event) {
+          const auto tick=world.match.simulation().ticks();
+          if(requested_capture_tick?tick>=*requested_capture_tick:(capture_world_requested.load() || tick>=180))
+            native_frame_capture->observe(event,world.source_objects->memory());
+        });
+      }
       std::map<std::uint32_t,std::unique_ptr<test::LivePhysicsEntryCaptureTu15>> physics_entry_captures;
       std::map<std::uint32_t,std::unique_ptr<test::LivePhysicsEntryCaptureTu15>> post_impulse_captures;
       if(std::getenv("HALO2_TU15_VEHICLE_BLAST_INPUT"))for(auto entry:{0xb8f40u,0x1cc8d0u})
@@ -882,7 +983,7 @@ struct Host {
             options.source_object_savegame_directory.parent_path()/(entry==0xb8f40u?"original-post-restore-object-capture":"original-post-restore-world-capture")));
       std::optional<SourcePhysicsEntryObserverBinding> physics_entry_observer;
       const auto add_capture=[&](std::uint32_t entry) {
-        const auto name=entry==0x14fec0u?"original-player-update-capture":entry==0x1cc8d0u?"original-world-capture":entry==0xb8f40u?"original-object-update-capture":entry==0x2ee660u?"original-broadphase-capture":"original-query-capture";
+        const auto name=entry==0x14fec0u?"original-player-update-capture":entry==0x1cc8d0u?"original-world-capture":entry==0xb8f40u?"original-object-update-capture":entry==0x2ee660u?"original-broadphase-capture":entry==0x3205b0u?"original-contact-time-capture":"original-query-capture";
         physics_entry_captures.emplace(entry,std::make_unique<test::LivePhysicsEntryCaptureTu15>(
             options.source_object_savegame_directory.parent_path()/name));
       };
@@ -892,7 +993,7 @@ struct Host {
       } else if(std::getenv("HALO2_TU15_BROADPHASE_ORIGINAL_CAPTURE")) {
         const auto selected=std::getenv("HALO2_TU15_QUERY_CAPTURE_ENTRY");
         const auto entry=selected?std::uint32_t(std::stoul(selected,nullptr,0)):0x2ee660u;
-        check(entry==0x2f9d70u || entry==0x2ee660u || entry==0x2f1930u || entry==0x2fc5d0u || entry==0x1cc8d0u || entry==0xb8f40u,"Select an authenticated live physics entry");
+        check(entry==0x2f9d70u || entry==0x2ee660u || entry==0x2f1930u || entry==0x2fc5d0u || entry==0x1cc8d0u || entry==0xb8f40u || entry==0x3205b0u,"Select an authenticated live physics entry");
         add_capture(entry);
       }
       if(!physics_entry_captures.empty())physics_entry_observer.emplace(world.source_objects->memory(),[&](bool entering,std::uint32_t entry,const auto &state) {
@@ -943,7 +1044,7 @@ struct Host {
         check(!std::getenv("HALO2_TU15_PHANTOM_TRACE"),"Contrail diagnostic requires its independent store observer");
         contrail_store_trace.open(options.source_object_savegame_directory.parent_path()/"authority-contrail-stores.jsonl");
         check(bool(contrail_store_trace),"Cannot retain original attachment allocation stores");
-        world.source_objects->observe_physics_stores([&](std::uint32_t,const SourcePhysicsContactRecordStore &store) {
+        world.source_objects->observe_physics_stores_read_only([&](std::uint32_t,const SourcePhysicsContactRecordStore &store) {
           if(store.instruction!=0xc0e54u && store.instruction!=0x17e97eu && store.instruction!=0x17e9d6u &&
               store.instruction!=0xc0f25u && store.instruction!=0x16e71cu)return;
           const auto &memory=world.source_objects->memory();const auto word=[&](auto p){return Bytes(memory.view(p,4)).u32(0);};
@@ -959,7 +1060,7 @@ struct Host {
         check(bool(phantom_trace),"Could not retain actual source phantom phase");
         velocity_trace.open(options.source_object_savegame_directory.parent_path()/"authority-velocity-stores.jsonl");
         check(bool(velocity_trace),"Could not retain actual source velocity stores");
-        world.source_objects->observe_physics_stores([&](std::uint32_t actual_instruction,const SourcePhysicsContactRecordStore &store) {
+        world.source_objects->observe_physics_stores_read_only([&](std::uint32_t actual_instruction,const SourcePhysicsContactRecordStore &store) {
           for(const auto &[address,owner]:velocity_targets) {
             if(store.address>=address+16u || std::uint64_t(store.address)+store.written.size()<=address)continue;
             const auto &memory=world.source_objects->memory();
@@ -1453,6 +1554,7 @@ struct Host {
         transport.broadcast();
         next+=std::chrono::microseconds(33333);std::this_thread::sleep_until(next);
       }
+      native_frames=world.source_objects->tu15_world().native_physics_frame_activity();
       Json objects=Json::array();
       for(const auto &object:world.match.simulation().scene().objects())if(object.handle!=null_datum) {
         const auto *tag=world.cache->find_tag(TagHandle{world.content.objects.at(object.placement).definition});
@@ -1524,6 +1626,14 @@ int main(int argc,char **argv) try {
         "Declared drive duration requires a moving vehicle and 1..600 source ticks");
   }
   const bool vehicle_collision_test=vehicle && std::getenv("HALO2_TU15_VEHICLE_COLLISION_INPUT");
+  const bool vehicle_rate_reversal_input=std::getenv("HALO2_TU15_VEHICLE_RATE_REVERSAL_INPUT");
+  if(vehicle_rate_reversal_input) {
+    check(vehicle&&!fixed_turret_test&&!vehicle_collision_test,
+        "Rate reversal requires an ordinary moving driver and no wall-approach override");
+    if(!source_drive_ticks)source_drive_ticks=240;
+    check(source_drive_ticks>=180,"Rate reversal needs at least180 completed authority drive ticks");
+  }
+
   const bool vehicle_blast_test=vehicle && std::getenv("HALO2_TU15_VEHICLE_BLAST_INPUT");
   check(!vehicle_blast_test || lan,"Vehicle blast diagnostics require the actual LAN authority; select lan-vehicle");
   std::optional<unsigned> vehicle_blast_started;
@@ -2014,7 +2124,7 @@ int main(int argc,char **argv) try {
     if(!host_options.selected_teams.empty())host_options.selected_teams.resize(1);
     host=std::make_unique<Host>(host_options,recreate_test?prop_placement:std::nullopt,std::move(script_input));
     report["initial_inventory"]=host->initial_inventory;
-    o.join="127.0.0.1:"+std::to_string(host->port);report["udp_port"]=host->port;
+    o.join=host->join_address;report["udp_port"]=host->port;
     o.source_object_world=false; // Remote authority owns the solved source bank.
     o.native_spawn_inputs.clear(); // The authority alone owns declared test spawns.
     if(const auto selected=std::getenv("HALO2_TU15_CLIENT_LIGHT_CHOICE")) {
@@ -2087,6 +2197,8 @@ int main(int argc,char **argv) try {
     report["actor_view"]=actor_view;report["observer_view"]=watcher_view;
   }
   if(source_drive_ticks)report["declared_source_drive_ticks"]=source_drive_ticks;
+  if(vehicle_rate_reversal_input)report["declared_vehicle_rate_reversal_input"]=
+      "SDL W+D, S+A, W+D in three equal authority-tick drive intervals";
   if(takeoff_pitch_input)report["declared_takeoff_pitch_input"]=*takeoff_pitch_input;
   Json samples=Json::array(),frames=Json::array();
   Json impulses=Json::array();
@@ -2446,7 +2558,7 @@ int main(int argc,char **argv) try {
     // Schedule this finite restore stimulus by completed authoritative ticks,
     // as the existing passenger/blast fixtures do; do not consume its driving
     // interval while no original physics frames have executed.
-    const auto elapsed=(player_rearm_test || vehicle_blast_test || accompanied_driver || script_test || support_test ||
+    const auto elapsed=(player_rearm_test || vehicle_rate_reversal_input || vehicle_blast_test || accompanied_driver || script_test || support_test ||
         std::getenv("HALO2_TU15_AUTHORITY_RESTORE"))?s.tick-start_authority_tick:step-start_step;const auto &p=s.players[local_slot];const auto &c=commands[actor_view];
     if(vehicle)for(const auto &v:s.world_vehicles) {
       check(v.placement<interaction_content.objects.size(),"Vehicle snapshot has no authored authority template");
@@ -2782,7 +2894,7 @@ int main(int argc,char **argv) try {
         // A real desktop focus loss clears SDL's keys. Reacquire the actual
         // window and deliver the remaining observed input budget, instead of
         // silently shortening the driving sequence while counting wall ticks.
-        if(!forward_released && !c.forward) {focus(window);key(window_id,SDL_SCANCODE_W,true);}
+        if(!vehicle_rate_reversal_input && !forward_released && !c.forward) {focus(window);key(window_id,SDL_SCANCODE_W,true);}
         if(vehicle_collision_test && vehicle_position && vehicle_forward && !forward_released) {
           const auto delta=collision_wall->position-*vehicle_position;
           const auto yaw=std::atan2(delta.y,delta.x);
@@ -2824,7 +2936,7 @@ int main(int argc,char **argv) try {
             check(SDL_PushEvent(&e)==1,"SDL rejected vehicle driving look input");
           }
         }
-        if(!vehicle_collision_test && steering_started && !steering_released) {
+        if(!vehicle_rate_reversal_input && !vehicle_collision_test && steering_started && !steering_released) {
           if(steering_commands>=25) {key(window_id,SDL_SCANCODE_D,false);steering_released=true;}
           else if(!c.right)key(window_id,SDL_SCANCODE_D,true);
         }
@@ -2832,6 +2944,16 @@ int main(int argc,char **argv) try {
             vehicle_drive_commands>=(long_vehicle_sequence?300u:65u)) && !forward_released &&
             (!turret_damage_test || (turret_fire_started && elapsed>=*turret_fire_started+120u))) {
           key(window_id,SDL_SCANCODE_W,false);forward_released=true;drive_end=elapsed;
+        }
+        if(vehicle_rate_reversal_input) {
+          const auto phase=elapsed-*drive_start;
+          const bool reverse=phase>=source_drive_ticks/3u && phase<(source_drive_ticks*2u)/3u;
+          const bool active=!forward_released;
+          key(window_id,SDL_SCANCODE_W,active&&!reverse);
+          key(window_id,SDL_SCANCODE_S,active&&reverse);
+          key(window_id,SDL_SCANCODE_D,active&&!reverse);
+          key(window_id,SDL_SCANCODE_A,active&&reverse);
+          if(!active)steering_released=true;
         }
         if(drive_end && elapsed>=*drive_end+45 && !exit_press) {
           exit_press=elapsed;key(window_id,SDL_Scancode(pickup),true);
@@ -3846,6 +3968,191 @@ int main(int argc,char **argv) try {
     passed&=host->source_authority_restored;
   }
   const auto native_rates_after=source_vehicle_native_rate_activity();
+  const auto native_frames=lan?host->native_frames:
+      o.prepared_world->source_objects->tu15_world().native_physics_frame_activity();
+  report["native_physics_frame_activity"]={{"frame_calls",native_frames.frame_calls},
+      {"residual_calls",native_frames.residual_calls},{"native_only_closure",false},
+      {"world_integrations",native_frames.world_integrations},{"island_integrations",native_frames.island_integrations},
+      {"native_force_calls",native_frames.native_force_calls},{"native_pose_calls",native_frames.native_pose_calls},{"native_deactivation_calls",native_frames.native_deactivation_calls},
+        {"native_kinematic_pose_calls",native_frames.native_kinematic_pose_calls},
+        {"native_fixed_pose_calls",native_frames.native_fixed_pose_calls},
+        {"native_prescribed_force_calls",native_frames.native_prescribed_force_calls},
+        {"native_body_policy_calls",native_frames.native_body_policy_calls},
+        {"native_island_transition_calls",native_frames.native_island_transition_calls},
+        {"native_array_growth_calls",native_frames.native_array_growth_calls},
+        {"native_array_reserve_calls",native_frames.native_array_reserve_calls},
+        {"native_array_pool_allocations",native_frames.native_array_pool_allocations},
+        {"native_array_pool_releases",native_frames.native_array_pool_releases},
+        {"native_world_collision_calls",native_frames.native_world_collision_calls},
+        {"native_world_collision_listener_calls",native_frames.native_world_collision_listener_calls},
+        {"native_island_collision_listener_calls",native_frames.native_island_collision_listener_calls},
+        {"native_constraint_calls",native_frames.native_constraint_calls},
+        {"native_dynamic_accumulator_calls",native_frames.native_dynamic_accumulator_calls},
+        {"native_constraint_setup_calls",native_frames.native_constraint_setup_calls},
+        {"native_island_collision_calls",native_frames.native_island_collision_calls},
+        {"native_island_agent_flag_clear_calls",native_frames.native_island_agent_flag_clear_calls},
+        {"native_island_agent_flag_set_calls",native_frames.native_island_agent_flag_set_calls},
+        {"native_island_agent_process_calls",native_frames.native_island_agent_process_calls},
+        {"native_island_agent_finish_calls",native_frames.native_island_agent_finish_calls},
+        {"native_island_contact_minimum_calls",native_frames.native_island_contact_minimum_calls},
+        {"native_island_contact_time_calls",native_frames.native_island_contact_time_calls},
+        {"native_island_contact_buffers_constructed",native_frames.native_island_contact_buffers_constructed},
+        {"native_island_contact_buffers_destroyed",native_frames.native_island_contact_buffers_destroyed},
+        {"native_contact_advance_calls",native_frames.native_contact_advance_calls},
+        {"native_contact_advance_motion_calls",native_frames.native_contact_advance_motion_calls},
+        {"native_contact_advance_process_calls",native_frames.native_contact_advance_process_calls},
+        {"native_contact_advance_single_iterations",native_frames.native_contact_advance_single_iterations},
+        {"native_contact_advance_paired_iterations",native_frames.native_contact_advance_paired_iterations},
+        {"native_contact_advance_negative_single_restores",native_frames.native_contact_advance_negative_single_restores},
+        {"native_contact_advance_negative_paired_restores",native_frames.native_contact_advance_negative_paired_restores},
+        {"native_motion_commit_calls",native_frames.native_motion_commit_calls},
+        {"native_motion_commit_kinds",native_frames.native_motion_commit_kinds},
+        {"native_broad_phase_calls",native_frames.native_broad_phase_calls},
+        {"native_shape_bounds_box_calls",native_frames.native_shape_bounds_box_calls},
+        {"native_shape_bounds_convex_calls",native_frames.native_shape_bounds_convex_calls},
+        {"native_shape_bounds_transformed_calls",native_frames.native_shape_bounds_transformed_calls},
+        {"native_shape_bounds_forward_calls",native_frames.native_shape_bounds_forward_calls},
+        {"native_shape_bounds_motion_calls",native_frames.native_shape_bounds_motion_calls},
+        {"native_shape_bounds_centered_box_calls",native_frames.native_shape_bounds_centered_box_calls},
+        {"native_shape_bounds_centered_radius_calls",native_frames.native_shape_bounds_centered_radius_calls},
+        {"shape_bounds_residual_calls",native_frames.shape_bounds_residual_calls},
+        {"shape_bounds_residual_owners",native_frames.shape_bounds_residual_owners},
+        {"named_residual_owner_calls",native_frames.residual_owner_calls},
+        {"native_shape_bounds_endpoint_calls",native_frames.native_shape_bounds_endpoint_calls},
+        {"native_shape_bounds_compound_calls",native_frames.native_shape_bounds_compound_calls},
+        {"native_shape_bounds_compound_child_calls",native_frames.native_shape_bounds_compound_child_calls},
+        {"native_solver_calls",native_frames.native_solver_calls},
+        {"native_solver_initializations",native_frames.native_solver_initializations},
+        {"native_solver_iterations",native_frames.native_solver_iterations},
+        {"native_solver_primary_rows",native_frames.native_solver_primary_rows},
+        {"native_solver_secondary_rows",native_frames.native_solver_secondary_rows},
+        {"native_solver_exported_rows",native_frames.native_solver_exported_rows},
+        {"native_solver_custom_refusals",native_frames.native_solver_custom_refusals},
+        {"native_solver_custom_calls",native_frames.native_solver_custom_calls},
+        {"native_solver_clock_calls",native_frames.native_solver_clock_calls},
+        {"native_solver_custom_kinds",native_frames.native_solver_custom_kinds},
+        {"native_constraint_producer_axis_calls",native_frames.native_constraint_producer_axis_calls},
+        {"native_constraint_producer_scaled_calls",native_frames.native_constraint_producer_scaled_calls},
+        {"native_constraint_producer_base_calls",native_frames.native_constraint_producer_base_calls},
+        {"native_constraint_producer_base_rows",native_frames.native_constraint_producer_base_rows},
+        {"native_constraint_producer_property_lookups",native_frames.native_constraint_producer_property_lookups},
+        {"native_constraint_producer_emissions",native_frames.native_constraint_producer_emissions},
+        {"native_constraint_producer_completed_emissions",native_frames.native_constraint_producer_completed_emissions},
+        {"native_vehicle_rate_acceleration_calls",native_frames.native_vehicle_rate_acceleration_calls},
+        {"native_vehicle_rate_approach_calls",native_frames.native_vehicle_rate_approach_calls},
+        {"native_vehicle_rate_cursor_calls",native_frames.native_vehicle_rate_cursor_calls},
+        {"native_vehicle_rate_refusals",native_frames.native_vehicle_rate_refusals},
+        {"native_schema_emitter_calls",native_frames.native_schema_emitter_calls},
+        {"native_schema_emitter_completed_calls",native_frames.native_schema_emitter_completed_calls},
+        {"native_schema_emitter_cursor_calls",native_frames.native_schema_emitter_cursor_calls},
+        {"native_schema_emitter_refusals",native_frames.native_schema_emitter_refusals},
+        {"native_schema_emitter_caller_kinds",native_frames.native_schema_emitter_caller_kinds},
+        {"native_schema_emitter_refusal_kinds",native_frames.native_schema_emitter_refusal_kinds},{"world_residual_calls",native_frames.world_residual_calls},
+      {"scope","Actual authority/local world frame; residual physics owners still require native conversion"}};
+  if(std::getenv("HALO2_REQUIRE_NATIVE_WORLD_COLLISION")) {
+    report["native_world_collision_gate"]=native_frames.native_world_collision_calls>0;
+    passed&=native_frames.native_world_collision_calls>0;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_ISLAND_COLLISION")) {
+    report["native_island_collision_gate"]=native_frames.native_island_collision_calls>0;
+    passed&=native_frames.native_island_collision_calls>0;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_ISLAND_AGENTS")) {
+    const bool agents_passed=native_frames.native_island_agent_flag_clear_calls+
+      native_frames.native_island_agent_flag_set_calls>0&&
+      native_frames.native_island_agent_process_calls>0&&native_frames.native_island_agent_finish_calls>0&&
+      native_frames.native_island_contact_buffers_constructed>0&&
+      native_frames.native_island_contact_buffers_constructed==native_frames.native_island_contact_buffers_destroyed;
+    report["native_island_agents_gate"]=agents_passed;passed&=agents_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONTACT_ADVANCE")) {
+    const bool advance_passed=native_frames.native_contact_advance_calls>0&&
+      native_frames.native_contact_advance_motion_calls>0&&native_frames.native_contact_advance_process_calls>0;
+    report["native_contact_advance_gate"]=advance_passed;passed&=advance_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_ISLAND_CONTACT_MINIMUM")) {
+    report["native_island_contact_minimum_gate"]=native_frames.native_island_contact_minimum_calls>0;
+    passed&=native_frames.native_island_contact_minimum_calls>0;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_ARRAY_RESERVE")) {
+    report["native_array_reserve_gate"]=native_frames.native_array_reserve_calls>0;
+    passed&=native_frames.native_array_reserve_calls>0;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_BROAD_PHASE")) {
+    report["native_broad_phase_gate"]=native_frames.native_broad_phase_calls>0;
+    passed&=native_frames.native_broad_phase_calls>0;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_SHAPE_BOUNDS")) {
+    const bool bounds_passed=native_frames.native_shape_bounds_box_calls+
+      native_frames.native_shape_bounds_centered_box_calls+native_frames.native_shape_bounds_endpoint_calls>0&&
+      native_frames.shape_bounds_residual_calls==0;
+    report["native_shape_bounds_gate"]=bounds_passed;passed&=bounds_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONSTRAINT_PRODUCERS")) {
+    const auto&emissions=native_frames.native_constraint_producer_completed_emissions;
+    const bool producers_passed=native_frames.native_constraint_producer_axis_calls+
+      native_frames.native_constraint_producer_scaled_calls>0&&native_frames.native_constraint_producer_base_calls>0&&
+      native_frames.native_constraint_producer_base_rows>0&&emissions[0]+emissions[1]+emissions[2]>0;
+    report["native_constraint_producers_gate"]=producers_passed;passed&=producers_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_SCHEMA_EMITTER")) {
+    const auto&completed_direct=native_frames.native_constraint_producer_completed_emissions;
+    const auto direct=completed_direct[0]+completed_direct[1]+completed_direct[2];
+    const bool emitter_passed=native_frames.native_schema_emitter_calls+direct>0&&
+      native_frames.native_schema_emitter_completed_calls==native_frames.native_schema_emitter_calls&&
+      native_frames.native_schema_emitter_cursor_calls+direct>0&&native_frames.native_schema_emitter_refusals==0;
+    report["native_schema_emitter_gate"]=emitter_passed;
+    passed&=emitter_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_VEHICLE_RATES")) {
+    const bool rates_passed=native_frames.native_vehicle_rate_acceleration_calls>0&&
+      native_frames.native_vehicle_rate_approach_calls>0&&native_frames.native_vehicle_rate_cursor_calls>0&&
+      native_frames.native_vehicle_rate_refusals==0;
+    report["native_vehicle_rates_gate"]=rates_passed;
+    passed&=rates_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONSTRAINT_SOLVER")) {
+    const bool solver_passed=native_frames.native_solver_calls>0&&native_frames.native_solver_custom_refusals==0;
+    report["native_constraint_solver_gate"]=solver_passed;
+    passed&=solver_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONSTRAINT_SOLVER_ITERATIONS")) {
+    const bool iterations_passed=native_frames.native_solver_iterations>0&&native_frames.native_solver_primary_rows>0;
+    report["native_constraint_solver_iterations_gate"]=iterations_passed;
+    passed&=iterations_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONSTRAINT_STEP")) {
+    report["native_constraint_gate"]=native_frames.native_constraint_calls>0;
+    passed&=native_frames.native_constraint_calls>0;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_DYNAMIC_ACCUMULATOR")) {
+    report["native_dynamic_accumulator_gate"]=native_frames.native_dynamic_accumulator_calls>0;
+    passed&=native_frames.native_dynamic_accumulator_calls>0;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_MOTION_COMMIT")) {
+    report["native_motion_commit_gate"]=native_frames.native_motion_commit_calls>0;
+    passed&=native_frames.native_motion_commit_calls>0;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_PHYSICS_FRAME"))passed&=native_frames.frame_calls>0;
+  if(std::getenv("HALO2_REQUIRE_NATIVE_PHYSICS_INTEGRATION"))passed&=
+      native_frames.world_integrations>0&&native_frames.island_integrations>0&&native_frames.native_force_calls>0;
+  if(std::getenv("HALO2_REQUIRE_NATIVE_PHYSICS_POSE")) {
+    report["native_physics_pose_gate"]=native_frames.native_pose_calls>0;
+    passed&=native_frames.native_pose_calls>0;
+  }
+  report["native_lift_scalar_activity"]={{"caller_calls",native_frames.native_lift_scalar_calls},
+      {"power_calls",native_frames.native_lift_power_calls},{"errno_writes",native_frames.native_lift_errno_writes},
+      {"observation_refusals",native_frames.native_lift_observation_refusals},
+      {"scope","Actual authority/local world; each of the four authenticated scalar consumer sites"}};
+  if(std::getenv("HALO2_REQUIRE_NATIVE_LIFT_SCALAR")) {
+    std::uint64_t calls{};for(const auto count:native_frames.native_lift_scalar_calls)calls+=count;
+    report["native_lift_scalar_gate"]=calls>0&&native_frames.native_lift_observation_refusals==0;
+    passed&=calls>0&&native_frames.native_lift_observation_refusals==0;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_PHYSICS_DEACTIVATION")) {
+    report["native_physics_deactivation_gate"]=native_frames.native_deactivation_calls>0;
+    passed&=native_frames.native_deactivation_calls>0;
+  }
   report["native_vehicle_rate_activity"]={{"acceleration_calls",native_rates_after.acceleration_calls-native_rates_before.acceleration_calls},
       {"approach_calls",native_rates_after.approach_calls-native_rates_before.approach_calls},
       {"live_cursor_calls",native_rates_after.live_cursor_calls-native_rates_before.live_cursor_calls},

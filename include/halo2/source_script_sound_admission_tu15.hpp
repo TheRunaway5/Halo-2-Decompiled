@@ -11,7 +11,12 @@ struct Admission {
   std::function<void(const SoundEvent &)> submit;
   bool draining{};
 };
-inline thread_local std::map<const Simulation *,std::shared_ptr<Admission>> admissions;
+// Function-local TLS preserves one registry per thread across translation
+// units without MinGW namespace-scope TLS initializer aliases.
+inline std::map<const Simulation *,std::shared_ptr<Admission>>& admissions() {
+    static thread_local std::map<const Simulation *,std::shared_ptr<Admission>> value;
+    return value;
+}
 }
 // The caller owns the host audio adapter and its fault diagnostics. This
 // binding changes delivery phase only; it is never serialized with Simulation.
@@ -26,15 +31,15 @@ public:
       admission_(std::make_shared<source_script_sound_detail::Admission>(
           source_script_sound_detail::Admission{std::move(submit)})) {
     if(!admission_->submit ||
-        !source_script_sound_detail::admissions.emplace(owner_,admission_).second)
+        !source_script_sound_detail::admissions().emplace(owner_,admission_).second)
       throw std::runtime_error("Script sound admission requires one live host callback per Simulation");
   }
   ~SourceScriptSoundAdmissionBindingTu15() {
     if(thread_!=std::this_thread::get_id())std::terminate();
-    const auto found=source_script_sound_detail::admissions.find(owner_);
-    if(found==source_script_sound_detail::admissions.end() || found->second!=admission_)
+    const auto found=source_script_sound_detail::admissions().find(owner_);
+    if(found==source_script_sound_detail::admissions().end() || found->second!=admission_)
       std::terminate();
-    source_script_sound_detail::admissions.erase(found);
+    source_script_sound_detail::admissions().erase(found);
   }
   SourceScriptSoundAdmissionBindingTu15(const SourceScriptSoundAdmissionBindingTu15 &)=delete;
   SourceScriptSoundAdmissionBindingTu15 &operator=(const SourceScriptSoundAdmissionBindingTu15 &)=delete;
@@ -45,8 +50,8 @@ public:
 // at a time and do not hold an iterator/reference across host delivery.
 inline void source_admit_queued_script_sounds_tu15(const Simulation &owner,
     std::vector<SoundEvent> &pending) {
-  const auto found=source_script_sound_detail::admissions.find(&owner);
-  if(found==source_script_sound_detail::admissions.end())return;
+  const auto found=source_script_sound_detail::admissions().find(&owner);
+  if(found==source_script_sound_detail::admissions().end())return;
   const auto admission=found->second;
   if(admission->draining)return;
   struct Draining {
@@ -57,8 +62,8 @@ inline void source_admit_queued_script_sounds_tu15(const Simulation &owner,
   while(!pending.empty()) {
     // Keep the in-flight callback alive, but do not deliver another event
     // after its binding was removed or replaced by host lifecycle work.
-    const auto live=source_script_sound_detail::admissions.find(&owner);
-    if(live==source_script_sound_detail::admissions.end() || live->second!=admission)return;
+    const auto live=source_script_sound_detail::admissions().find(&owner);
+    if(live==source_script_sound_detail::admissions().end() || live->second!=admission)return;
     const auto event=pending.front();pending.erase(pending.begin());
     admission->submit(event);
   }

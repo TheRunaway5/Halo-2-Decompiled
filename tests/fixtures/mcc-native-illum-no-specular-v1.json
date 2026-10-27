@@ -1,0 +1,22 @@
+{
+  "schema": "H2_MCC_NATIVE_ILLUM_NO_SPECULAR_REGRESSION_V1",
+  "fixture_schema": "H2_MCC_NATIVE_ILLUM_NO_SPECULAR_FIXTURE_V1",
+  "scope": "Literal single-profile clock-only illumination data admission; translated native test allocations; no live/GPU draw claim",
+  "compressed_file": "mcc-native-illum-no-specular-v1.json.zlib",
+  "compressed_bytes": 4304,
+  "compressed_sha256": "8aecaa8b1a1ddf3fbd037ffa8ef86ce1d0d6ecd270b961b396fd6e112d3f92fe",
+  "decoded_bytes": 56229,
+  "decoded_sha256": "7c742c70747e53def9b8be13e53967260e3d2ca37fb4b2d31773a61bf601196b",
+  "source_map_sha256": {
+    "turf": "fa0d7255e8db62bc5501f45ebb47aebe2740d640f9292c1847fceae23823a4a6",
+    "street_sweeper": "a607587a4d4cf64a5fc52471810d292fbefaff06cd1aae09ee7fc24cacab67e6"
+  },
+  "native_source_libraries": {
+    "turf": "c3b6a581743e04a9b95bf33838c76216a5cc82597a65a68f89e613aca2a5b745"
+  },
+  "pc_geometry_owners": 2,
+  "paired_original_fixtures": 1,
+  "exporter": "tools/export_mcc_native_illum_no_specular_fixture.py",
+  "exporter_sha256": "23ff83ad503511e0019a6ef51e4101a7ed76002c1c81adfe6295350b7e3babf7",
+  "retention_reason": "Required portable literal metadata/curve admission regression input; no cache, texture, shader program or object code included."
+}

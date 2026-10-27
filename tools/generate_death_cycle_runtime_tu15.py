@@ -479,6 +479,18 @@ def main():
             source = source.replace(old, new)
         assert all(dict(re.findall(pattern, source, re.S))[entry] == body
                    for entry, body in old_bodies.items())
+    # Passive typed producer boundary. The original F0DF1 call remains direct
+    # and every authenticated instruction/return is unchanged. Apply after
+    # qualified append validation so existing qualified bodies stay intact.
+    producer_include = '#include "halo2/source_first_person_action_tu15.hpp"\n'
+    if producer_include not in source:
+        source = source.replace('#include "halo2/death_cycle_runtime_tu15.hpp"\n',
+            '#include "halo2/death_cycle_runtime_tu15.hpp"\n' + producer_include)
+    producer_entry = 'static void run_16b736(WorldState &s) {'
+    producer_observation = 'SourceFirstPersonActionObserverTu15::entry(s.memory,s.save(),s.services);'
+    assert source.count(producer_entry) == 1
+    if producer_entry + '\n' + producer_observation not in source:
+        source = source.replace(producer_entry,producer_entry + '\n' + producer_observation)
     args.output.write_text(source)
     report = json.loads((args.directory / 'generation.json').read_text())
     report['bounded_blocks'] = {'000dbd64': {'stop_before': '000dbfcc',

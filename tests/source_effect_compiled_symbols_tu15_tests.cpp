@@ -35,7 +35,7 @@ int main()try {
         need(source_effect_compiled_symbol_tu15(a,0x0400054f)==0x0400054f);
     }
     for(const auto bad:{0x030000d9u,0x0700055au,0x0400055bu,0x07000558u,0x0800055cu,
-        0x1a000729u,0x110005a7u,0x0600056cu}) {
+        0x1a000729u,0x110005a7u,0x0600056cu,0x0a00069fu}) {
         rejects([&]{SourceEffectCompiledSymbolsTu15 partial(a,true,[&](auto id){return id==bad?"foreign":names(id);});});
         need(source_effect_compiled_symbol_tu15(a,0x0400054f)==0x0400054f);
     }
@@ -46,10 +46,11 @@ int main()try {
         // Folded arithmetic operands are not StringIDs. Their target names
         // validate independently; only the exact instruction/operand pair
         // may acquire the adapted distance.
-        for(const auto [pc,original,adapted]:std::array<std::array<std::uint32_t,3>,3>{{
+        for(const auto [pc,original,adapted]:std::array<std::array<std::uint32_t,3>,4>{{
             {0xbef88u,0x0200011eu,0x02000121u},
             {0xc91b9u,0x513u,0x51fu},
-            {0x10be5cu,0x06000560u,0x0600056cu}}}) {
+            {0x10be5cu,0x06000560u,0x0600056cu},
+            {0x1db800u,0x0a000693u,0x0a00069fu}}}) {
             need(source_object_function_compiled_symbol_tu15(a,pc,original)==adapted);
             need(source_object_function_compiled_symbol_tu15(b,pc,original)==original);
             need(source_object_function_compiled_symbol_tu15(a,pc+1,original)==original);

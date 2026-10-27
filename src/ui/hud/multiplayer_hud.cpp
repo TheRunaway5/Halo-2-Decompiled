@@ -4,6 +4,7 @@
 #include "halo2/slayer.hpp"
 #include "halo2/source_camera.hpp"
 #include "halo2/full_scoreboard_providers.hpp"
+#include "halo2/full_scoreboard_painter.hpp"
 #include "halo2/frontend_ui_assets.hpp"
 #include "halo2/frontend_font_sampling.hpp"
 #include "halo2/controller_prompt_artwork.hpp"
@@ -562,6 +563,19 @@ MultiplayerHud::MultiplayerHud(HudContent content,
     auto &material=mesh_.materials.back();material.ui_full_surface=true;
     material.texture_states[0].address_u=material.texture_states[0].address_v=3;
   }
+  if(!hand_)for(unsigned i=0;i<2;++i) {
+    const unsigned selector=i?5:6;
+    status_font_offsets_[i]=std::int16_t(gameplay_font_horizontal_offset(font_source,selector));
+    if(action_fonts_[i]) {
+      status_fonts_[i]=action_fonts_[i];status_materials_[i]=action_materials_[i];
+    } else {
+      status_fonts_[i]=font_bank->font(selector);
+      status_materials_[i]=unsigned(mesh_.materials.size());
+      mesh_.materials.push_back({"player-status/font"+std::to_string(selector),status_fonts_[i]->atlas});
+      auto& material=mesh_.materials.back();material.ui_full_surface=true;
+      material.texture_states[0].address_u=material.texture_states[0].address_v=3;
+    }
+  }
   if(defusal_objectives_) {
     Texture solid;solid.width=solid.height=1;solid.format=11;solid.pixels=std::vector<std::byte>(4,std::byte{255});
     defusal_marker_material_=unsigned(mesh_.materials.size());
@@ -692,9 +706,7 @@ MultiplayerHud::MultiplayerHud(HudContent content,
       m.diffuse.width=m.diffuse.height=size;m.diffuse.format=11;m.diffuse.pixels.resize(size*size*4);
       // Literal final2548F0 pixel definition, opacity1. The radar input has
       // already passed the original contact/sweeper/mask composition.
-      auto &p=m.forward_program.words;
-      p[0]=0x18110000;p[8]=8;p[9]=0x1800;p[10]=0xffffffff;
-      p[26]=0x80;p[34]=0x08010000;p[43]=0xff00ff00;p[45]=0x80;p[53]=1;p[54]=1;
+      m.forward_program=source_motion_sensor_final_program_tu15();
       m.texture_states[0].address_u=m.texture_states[0].address_v=3;
       m.texture_states[0].mip_filter=0;
       sensors_[view].material=unsigned(mesh_.materials.size());
@@ -972,6 +984,48 @@ std::string MultiplayerHud::action_text_impl(const MultiplayerState &s,unsigned 
       text.replace(at,token.size(),label);
   }
   return text;
+}
+std::vector<Vertex> MultiplayerHud::draw_player_status(std::u16string_view text,
+    const MultiplayerState& state,unsigned id,unsigned view,unsigned players,
+    unsigned width,unsigned height,const FullScoreboardPaintConstants& constants,
+    std::optional<TwoPlayerSplit> split,float alpha) {
+  Call call(*this,false);
+  if(id>=state.players.size() || view>=materials_.size() || !width || !height ||
+      !std::isfinite(alpha) || alpha<0 || alpha>1)
+    throw FormatError("Invalid player status view");
+  if(hand_ || !state.players[id].connected || text.empty() || alpha==0)return {};
+  const bool widescreen=hud_layout_widescreen(players,std::uint64_t(width)*3>std::uint64_t(height)*4,split);
+  auto viewport=hud_viewport(players,view,widescreen,split);
+  const float scale=std::min(width/640.f,height/480.f),left=(width-640*scale)/2,top=(height-480*scale)/2;
+  const auto old=viewport.outer;
+  viewport.outer={(old.top*height/480.f-top)/scale,(old.left*width/640.f-left)/scale,
+      (old.bottom*height/480.f-top)/scale,(old.right*width/640.f-left)/scale};
+  viewport.safe={viewport.outer.top+viewport.safe.top-old.top,viewport.outer.left+viewport.safe.left-old.left,
+      viewport.outer.bottom+viewport.safe.bottom-old.bottom,viewport.outer.right+viewport.safe.right-old.right};
+  const auto short_word=[](int value){return std::bit_cast<std::int16_t>(std::uint16_t(value));};
+  const auto index=players>1?1u:0u;const auto& font=*status_fonts_[index];
+  const auto line_height=font.ascent+font.descent+font.leading;
+  const auto row_top=short_word(int(viewport.safe.bottom)-int(viewport.outer.top)-22);
+  FullScoreboardLayout layout;layout.status=FullScoreboardStatus::Ready;
+  auto& title=layout.title;title.valid=true;title.right_justified=true;title.text=text;
+  title.text_rectangle={row_top,short_word(int(viewport.safe.left)-int(viewport.outer.left)),
+      short_word(int(row_top)+line_height*5),short_word(int(viewport.safe.right)-int(viewport.outer.left))};
+  const auto rgb=source_hud_message_color(elite_hud(content_,state.players[id]));
+  title.foreground={alpha,rgb[0],rgb[1],rgb[2]};
+  FullScoreboardPaintFrame frame;
+  frame.clip={0,0,short_word(int(viewport.outer.bottom)-int(viewport.outer.top)),
+      short_word(int(viewport.outer.right)-int(viewport.outer.left))};
+  frame.clock={30,tick_seconds,std::int32_t(state.tick)};
+  frame.font_horizontal_offset=status_font_offsets_[index];frame.shadow_enabled=true;frame.x87_control_word=0x27f;
+  const FullScoreboardPainter painter(font,status_materials_[index],status_materials_[index]);
+  auto result=painter.draw(layout,constants,frame);
+  if(result.status!=FullScoreboardPaintStatus::Ready)
+    throw FormatError("Original player status requires unavailable text controls or glyph state");
+  for(auto& vertex:result.draw.vertices) {
+    vertex.position.x=((vertex.position.x+viewport.outer.left)*scale+left)*640/width;
+    vertex.position.y=((vertex.position.y+viewport.outer.top)*scale+top)*480/height;
+  }
+  return std::move(result.draw.vertices);
 }
 std::vector<Vertex> MultiplayerHud::draw(const MultiplayerState &s, unsigned id,
                                          unsigned view, unsigned players,

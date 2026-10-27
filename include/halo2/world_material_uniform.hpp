@@ -1,4 +1,5 @@
 #pragma once
+#include "halo2/native_fragment_kernel.hpp"
 #include "halo2/vertex_program.hpp"
 #include "halo2/source_vertex_declaration.hpp"
 #include <array>
@@ -28,6 +29,15 @@ struct WorldMaterialUniform {
     std::array<std::uint32_t,4> source_camera_control{};
     PackedSourceVertexDeclaration vertex_declaration=legacy_source_vertex_declaration;
 };
+// CPU-side completed programs retain their full identities for kernel lookup
+// and source remaps. GPU copies contain ordinary constants only.
+inline WorldMaterialUniform native_material_gpu_uniform(WorldMaterialUniform value) {
+    value.program=native_fragment_uniform_words(value.program);
+    value.vertex_instructions={};
+    value.flags[3]=0;
+    value.vertex_declaration={};
+    return value;
+}
 static_assert(std::is_standard_layout_v<WorldMaterialUniform>);
 static_assert(offsetof(WorldMaterialUniform,program)==0);
 static_assert(offsetof(WorldMaterialUniform,transforms)==240);

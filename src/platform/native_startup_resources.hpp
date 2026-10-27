@@ -6,6 +6,24 @@
 
 #if defined(__APPLE__)
 #include "macos/startup_resources.hpp"
+#elif defined(_WIN32)
+#include "platform/windows_api.hpp"
+#include <io.h>
+#include <sys/stat.h>
+namespace halo2::native_startup_resources {
+struct Worker {DWORD id{};explicit operator bool()const noexcept{return id!=0;}};
+inline Worker current_worker(){return {::GetCurrentThreadId()};}
+inline bool raise_worker_priority(const Worker& worker) {
+    if(!worker)throw std::invalid_argument("Native Windows priority requires an actual worker identity");
+    const auto thread=::OpenThread(THREAD_SET_INFORMATION,FALSE,worker.id);
+    if(!thread)return false;
+    const auto result=::SetThreadPriority(thread,THREAD_PRIORITY_ABOVE_NORMAL);::CloseHandle(thread);return result!=FALSE;
+}
+inline bool same_file_extent_and_time(const struct stat& before,const struct stat& after) {
+    return before.st_size==after.st_size && before.st_mtime==after.st_mtime;
+}
+inline int synchronize_file(int descriptor){return ::_commit(descriptor);}
+}
 #elif defined(__linux__)
 #include <sys/resource.h>
 #include <sys/stat.h>

@@ -1,11 +1,13 @@
 #include "halo2/online_matchmaking.hpp"
 #include "halo2/online_service.hpp"
 #include "halo2/online_search_qos.hpp"
+#include "halo2/original_matchmaking_readiness.hpp"
 #include "halo2-online-protocol-bridge/src/lib.rs.h"
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 #include <openssl/rand.h>
 #include <algorithm>
+#include <bit>
 #include <condition_variable>
 #include <cctype>
 #include <cstdlib>
@@ -14,6 +16,7 @@
 #include <set>
 #include <stdexcept>
 #include <thread>
+#include <utility>
 
 namespace halo2 {
 namespace {
@@ -23,6 +26,8 @@ constexpr std::size_t max_body = 65536;
 void require(bool ok) { if (!ok) throw std::runtime_error("Invalid matchmaking response"); }
 struct StatusError { long status; std::string message{}; };
 struct MatchConnectionError { std::string message; };
+struct MatchCountdownUnsupported {};
+struct MatchTerminalFailure { std::int32_t state; std::string message; };
 std::string origin(const std::string &value, bool local) {
   require(!value.empty() && value.size() <= 2048 && std::none_of(value.begin(), value.end(), [](unsigned char c) { return c <= 32 || c == 127 || c == '\\'; }));
   static const auto initialized = curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -139,8 +144,37 @@ std::vector<OnlinePlaylist> catalog(const Json &root) {
   require(defaults <= 1);
   return result;
 }
+void start_countdown(const Json &root, OnlineMatchmakingSnapshot &s) {
+  s.start_countdown_supported = root.contains("start_countdown_ms");
+  s.start_countdown_ms.reset();
+  if (s.start_countdown_supported && !root.at("start_countdown_ms").is_null())
+    s.start_countdown_ms = number(root, "start_countdown_ms", 0, 10000);
+}
+std::optional<FrontendAppearance> player_appearance(const Json &row) {
+  if(!row.contains("appearance")||row.at("appearance").is_null())return {};
+  const auto encoded=text(row,"appearance",18);require(encoded.size()==18);
+  std::array<std::uint8_t,9> bytes{};
+  const auto nibble=[](char c)->unsigned{require((c>='0'&&c<='9')||(c>='a'&&c<='f'));return c<='9'?unsigned(c-'0'):unsigned(c-'a'+10);};
+  for(unsigned i=0;i<9;++i)bytes[i]=std::uint8_t(nibble(encoded[2*i])*16+nibble(encoded[2*i+1]));
+  require(bytes[4]<=1);return std::bit_cast<FrontendAppearance>(bytes);
+}
+std::string encoded_appearance(const FrontendAppearance &appearance) {
+  require(appearance.species==0||appearance.species==1);
+  constexpr char digits[]="0123456789abcdef";std::string encoded;encoded.reserve(18);
+  for(auto value:std::bit_cast<std::array<std::uint8_t,9>>(appearance)){encoded+=digits[value>>4];encoded+=digits[value&15];}
+  return encoded;
+}
 void ticket(const Json &root, OnlineMatchmakingSnapshot &s) {
-  require(root.is_object() && (root.size() == 4 || (root.size() == 5 && root.contains("progress"))));
+  require(root.is_object() && root.size() == 4u + unsigned(root.contains("progress")) +
+      unsigned(root.contains("start_countdown_ms")) + unsigned(root.contains("failure")));
+  start_countdown(root, s);
+  s.failure_state.reset();
+  if(root.contains("failure") && !root.at("failure").is_null()) {
+    const auto kind=text(root,"failure");
+    require(kind=="search_failed" || kind=="missing_content" || kind=="party_changed" || kind=="party_cancelled");
+    throw MatchTerminalFailure{kind=="missing_content"?5:kind=="party_changed"?6:kind=="party_cancelled"?4:1,
+        kind=="missing_content"?"A party member is missing required content.":kind=="party_changed"?"A member left the party.":"Matchmaking failed. Try again."};
+  }
   const auto state = text(root, "state");
   s.playlist_id = text(root, "playlist_id", 64, true);
   s.queued_players = number(root, "queued_players", 0, 1000);
@@ -163,10 +197,11 @@ void ticket(const Json &root, OnlineMatchmakingSnapshot &s) {
     require(rows.is_array() && rows.size() == count);
     unsigned selves = 0;
     for (const auto &row : rows) {
-      require(row.is_object() && (row.size() == 2 || (row.size() == 3 && row.contains("level"))));
+      require(row.is_object() && row.size()==2u+unsigned(row.contains("level"))+unsigned(row.contains("appearance")));
       gathering.players.push_back({text(row, "name"), boolean(row, "self")});
       if(row.contains("level") && !row.at("level").is_null())
         gathering.players.back().level=number(row,"level",1,50);
+      gathering.players.back().appearance=player_appearance(row);
       selves += gathering.players.back().self;
     }
     require(selves == 1);
@@ -184,10 +219,11 @@ void ticket(const Json &root, OnlineMatchmakingSnapshot &s) {
   require(players.is_array() && players.size() >= 2 && players.size() <= 16);
   unsigned selves = 0;
   for (const auto &p : players) {
-    require(p.is_object() && (p.size() == 3 || (p.size() == 4 && p.contains("level"))));
+    require(p.is_object() && p.size()==3u+unsigned(p.contains("level"))+unsigned(p.contains("appearance")));
     match.players.push_back({text(p, "name"), number(p, "team", 0, 15), boolean(p, "self")});
     if(p.contains("level") && !p.at("level").is_null())
       match.players.back().level=number(p,"level",1,50);
+    match.players.back().appearance=player_appearance(p);
     selves += match.players.back().self;
   }
   require(selves == 1);
@@ -225,10 +261,18 @@ struct OnlineMatchmaking::Impl {
   std::condition_variable_any wake;
   OnlineMatchmakingSnapshot state;
   std::shared_ptr<OnlineMatchSession> match_session;
+  // The authenticated room outlives transient queue-poll failures. Keep its
+  // admitted presentation with that owner so recovery cannot lose the match
+  // while the service publishes its final countdown.
+  std::optional<OnlineMatch> connected_match;
   bool transferred{};
+  std::string transport_id;
+  bool content_rejected{};
+  bool local_cancel{};
   bool active{}, pending{}, configured{};
   std::string name, desired;
   std::vector<OnlineLocalPlayer> local_players;
+  std::optional<FrontendAppearance> primary_appearance;
   std::uint64_t generation{};
   std::stop_source request_stop;
   std::jthread worker;
@@ -257,25 +301,33 @@ struct OnlineMatchmaking::Impl {
     next.revision = state.revision + 1; state = std::move(next);
   }
   void command(bool enabled, std::string screen_name, std::string playlist,
-               std::vector<OnlineLocalPlayer> additional = {}) {
+               std::vector<OnlineLocalPlayer> additional = {},bool cancel_intent=false,
+               std::optional<FrontendAppearance> appearance = {}) {
     std::lock_guard lock(mutex);
     if (!configured) return;
     active = enabled; name = std::move(screen_name); desired = std::move(playlist);
     local_players=std::move(additional);
-    match_session.reset(); transferred=false;
+    primary_appearance=appearance;
+    local_cancel=cancel_intent && !transferred;
+    match_session.reset();connected_match.reset();transferred=false;
+    transport_id.clear();content_rejected=false;
     ++generation; pending = true; request_stop.request_stop();
     state.status = enabled ? (desired.empty() ? OnlineMatchmakingStatus::Connecting : OnlineMatchmakingStatus::Joining) : OnlineMatchmakingStatus::Idle;
     state.message = enabled ? "Connecting to matchmaking..." : "Signed out of matchmaking.";
     state.playlist_id = desired; state.match.reset(); state.gathering.reset(); state.queued_players = 0;
+    state.start_countdown_supported=false;state.start_countdown_ms.reset();
+    state.failure_state.reset();
     if (!enabled) state.playlists.clear();
     ++state.revision; wake.notify_all();
   }
   void run(std::stop_token stop) {
-    std::string session, session_name, id;
+    std::string session, session_configuration, session_authorization, id;
     std::unique_ptr<OnlineSearchQos> qos;
     Clock::time_point expires{};
     bool queued = false, accepted = false;
     std::uint64_t previous = std::numeric_limits<std::uint64_t>::max();
+    std::optional<std::uint64_t> unsupported_countdown;
+    std::optional<std::uint64_t> terminal_failure;
     auto cleanup = [&](const char *path) {
       if (!session.empty()) try { http({"DELETE", options.endpoint + path, {}, session}, {}); } catch (...) {}
     };
@@ -289,6 +341,10 @@ struct OnlineMatchmaking::Impl {
       const bool enabled = active;
       const auto screen_name = name, playlist = desired;
       const auto additional=local_players;
+      const auto selected_appearance=primary_appearance;
+      const auto rejected_content=std::exchange(content_rejected,false);
+      const auto rejected_room=transport_id;
+      const auto cancelled_locally=std::exchange(local_cancel,false);
       auto next = state;
       request_stop = std::stop_source{};
       auto source = request_stop;
@@ -297,15 +353,17 @@ struct OnlineMatchmaking::Impl {
       const auto token = source.get_token();
       const bool changed = version != previous;
       if (changed) {
-        if (queued) cleanup("/v1/matchmaking/ticket");
+        if (queued) cleanup(cancelled_locally?"/v1/matchmaking/ticket?cancel=1":"/v1/matchmaking/ticket");
         queued = false; accepted = false; id.clear(); previous = version;
       }
       if (!enabled || !login->authorization()) {
         qos.reset();
-        cleanup("/v1/matchmaking/session"); session.clear();
+        cleanup("/v1/matchmaking/session");session.clear();session_configuration.clear();session_authorization.clear();
         next = {}; next.status = OnlineMatchmakingStatus::Idle; next.message = "Sign in with Discord to use matchmaking.";
         publish(std::move(next), version); continue;
       }
+      if(unsupported_countdown==version)continue;
+      if(terminal_failure==version)continue;
       try {
         auto call = [&](const std::string &method, const char *path, const Json &body = Json()) {
           require(!token.stop_requested());
@@ -316,44 +374,63 @@ struct OnlineMatchmaking::Impl {
           }
           return parse(r.body);
         };
-        if (session.empty() || session_name != screen_name || Clock::now() >= expires) {
-          qos.reset();
-          cleanup("/v1/matchmaking/session"); session.clear(); queued = false; accepted = false; id.clear();
-          const auto authorization = login->authorization(); require(authorization.has_value());
-          text(Json{{"name", screen_name}}, "name");
-          auto session_body = Json{{"screen_name", screen_name}, {"maps", options.maps}, {"compatibility", options.compatibility}};
-          const bool direct=options.compatibility=="halo2-native-queue-v12"||options.compatibility=="halo2-native-queue-v13"||options.compatibility=="halo2-native-queue-v14";
-          const bool gathering=options.compatibility=="halo2-native-queue-v8" || options.compatibility=="halo2-native-queue-v9" || options.compatibility=="halo2-native-queue-v10" || direct;
-          if(gathering)session_body["language"]=options.language;
-          require(additional.size()<=3);
-          if(!additional.empty()) {
-            require(options.compatibility=="halo2-native-queue-v9" || options.compatibility=="halo2-native-queue-v10" || direct);
-            session_body["local_players"]=Json::array();
-            for(const auto &player:additional) {
-              text(Json{{"name",player.name}},"name");
-              Json row={{"screen_name",player.name}};
-              if(player.login) {
-                const auto grant=player.login->authorization();require(grant.has_value());
-                row[player.login->uses_steam()?"identity_token":"discord_token"]=*grant;
-              }
-              session_body["local_players"].push_back(std::move(row));
+        if(rejected_content && !session.empty() && !rejected_room.empty()) {
+          // The loader's actual content failure is independent of the socket
+          // closing as its rejected launch is destroyed. The session capability
+          // still identifies the immutable room and original party membership.
+          try { call("POST","/v1/matchmaking/failure",{{"match_id",rejected_room},{"kind","missing_content"}}); }
+          catch(...) { /* Local admission remains failed if notification is unavailable. */ }
+          throw MatchTerminalFailure{5,"Required match content is unavailable."};
+        }
+        const auto authorization=login->authorization();require(authorization.has_value());
+        text(Json{{"name", screen_name}}, "name");
+        auto session_body=Json{{"screen_name",screen_name},{"maps",options.maps},{"compatibility",options.compatibility}};
+        if(selected_appearance)session_body["appearance"]=encoded_appearance(*selected_appearance);
+        const bool direct=options.compatibility=="halo2-native-queue-v12"||options.compatibility=="halo2-native-queue-v13"||options.compatibility=="halo2-native-queue-v14";
+        const bool gathering=options.compatibility=="halo2-native-queue-v8" || options.compatibility=="halo2-native-queue-v9" || options.compatibility=="halo2-native-queue-v10" || direct;
+        if(gathering)session_body["language"]=options.language;
+        require(additional.size()<=3);
+        if(!additional.empty()) {
+          require(options.compatibility=="halo2-native-queue-v9" || options.compatibility=="halo2-native-queue-v10" || direct);
+          session_body["local_players"]=Json::array();
+          for(const auto &player:additional) {
+            text(Json{{"name",player.name}},"name");
+            Json row={{"screen_name",player.name}};
+            if(player.appearance)row["appearance"]=encoded_appearance(*player.appearance);
+            if(player.login) {
+              const auto grant=player.login->authorization();require(grant.has_value());
+              row[player.login->uses_steam()?"identity_token":"discord_token"]=*grant;
             }
+            session_body["local_players"].push_back(std::move(row));
           }
+        }
+        const auto configuration=session_body.dump();
+        if(session.empty() || configuration!=session_configuration || *authorization!=session_authorization || Clock::now()>=expires) {
+          // A lease refresh re-verifies external login and all signed-in
+          // locals. Deleting first would clear the whole party's hopper
+          // consent and its live ticket during a long game or search.
+          if(!session.empty())session_body["renew_session"]=session;
           const auto r = http({"POST", options.endpoint + "/v1/matchmaking/session",
               session_body.dump(), *authorization}, token);
           if (r.status != 201) throw StatusError{r.status};
           const auto body = parse(r.body); require(body.is_object() && body.size() == 2);
-          session = text(body, "token", 128);
-          require(session.size() >= 32 && std::all_of(session.begin(), session.end(), [](unsigned char c) { return std::isalnum(c) || c == '-' || c == '_'; }));
-          expires = Clock::now() + std::chrono::seconds(number(body, "expires_in", 1, 900)); session_name = screen_name;
-          if(gathering)qos=std::make_unique<OnlineSearchQos>(options.endpoint,session,options.allow_loopback_http);
-          next.playlists.clear();
+          const auto renewed=text(body,"token",128);
+          require(renewed.size()>=32 && std::all_of(renewed.begin(),renewed.end(),[](unsigned char c){return std::isalnum(c)||c=='-'||c=='_';}));
+          if(renewed!=session) {
+            qos.reset();queued=false;accepted=false;id.clear();next.playlists.clear();
+            {std::lock_guard guard(mutex);if(version==generation){match_session.reset();connected_match.reset();}}
+          }
+          session=renewed;session_configuration=configuration;session_authorization=*authorization;
+          // Renew ahead of the hard server expiry, including while gameplay
+          // owns the already-transferred relay. This clock is lease-only.
+          expires=Clock::now()+std::chrono::milliseconds(number(body,"expires_in",1,900)*750);
+          if(gathering && !qos)qos=std::make_unique<OnlineSearchQos>(options.endpoint,session,options.allow_loopback_http);
         }
         if (changed || next.playlists.empty()) next.playlists = catalog(call("GET", "/v1/matchmaking/playlists"));
         if (playlist.empty() && !accepted) {
           // Accepted party members observe their leader's queue without
           // issuing a second enqueue or submitting a client-owned roster.
-          ticket(call("GET", "/v1/matchmaking/ticket?progress=1&ranks=1"), next);
+          ticket(call("GET", "/v1/matchmaking/ticket?progress=1&ranks=1&start=1&failure=1&appearance=1"), next);
           if(next.status!=OnlineMatchmakingStatus::Ready)queued=accepted=true;
         } else if (!accepted) {
           const auto entry = std::find_if(next.playlists.begin(), next.playlists.end(), [&](const auto &p) { return p.id == playlist; });
@@ -367,23 +444,35 @@ struct OnlineMatchmaking::Impl {
           // POST retains the legacy response for older clients. If it has
           // already formed a match, fetch its opted-in display roster before
           // connection setup can advance directly to the loading phase.
-          if(next.match)ticket(call("GET", "/v1/matchmaking/ticket?progress=1&ranks=1"),next);
+          if(next.match)ticket(call("GET", "/v1/matchmaking/ticket?progress=1&ranks=1&start=1&failure=1&appearance=1"),next);
         } else {
           std::shared_ptr<OnlineMatchSession> relay;
           bool handed_off;
-          { std::lock_guard guard(mutex); relay=match_session; handed_off=transferred; }
+          { std::lock_guard guard(mutex); relay=match_session;handed_off=transferred;
+            if(relay)next.match=connected_match; }
           if (handed_off) continue;
           if (relay) {
             if(relay->phase()==OnlineMatchSession::Phase::Failed) {
               const auto failure=relay->error();
-              {std::lock_guard guard(mutex);match_session.reset();}
+              // A room may already have retired its ticket. Read its explicit
+              // terminal producer before local cleanup clears that outcome.
+              OnlineMatchmakingSnapshot outcome;
+              ticket(call("GET","/v1/matchmaking/ticket?failure=1"),outcome);
+              {std::lock_guard guard(mutex);match_session.reset();connected_match.reset();}
               cleanup("/v1/matchmaking/ticket");queued=false;accepted=false;id.clear();
-              throw MatchConnectionError{failure};
+              throw MatchTerminalFailure{1,failure};
             }
             next.status=relay->phase()==OnlineMatchSession::Phase::Connecting ? OnlineMatchmakingStatus::CheckingConnections : OnlineMatchmakingStatus::Loading;
             next.message=next.status==OnlineMatchmakingStatus::Loading ? "Loading ONLINE match..." : "Checking connections...";
             next.gathering.reset();
-          } else ticket(call("GET", "/v1/matchmaking/ticket?progress=1&ranks=1"), next);
+            OnlineMatchmakingSnapshot progress;
+            ticket(call("GET", "/v1/matchmaking/ticket?start=1&failure=1"),progress);
+            next.start_countdown_supported=progress.start_countdown_supported;
+            next.start_countdown_ms=progress.start_countdown_ms;
+            if(next.status==OnlineMatchmakingStatus::Loading && !next.start_countdown_supported)
+              throw MatchCountdownUnsupported{};
+            if(next.status!=OnlineMatchmakingStatus::Loading)next.start_countdown_ms.reset();
+          } else ticket(call("GET", "/v1/matchmaking/ticket?progress=1&ranks=1&start=1&failure=1&appearance=1"), next);
           if (next.status == OnlineMatchmakingStatus::Ready) { queued = false; accepted = false; id.clear(); }
         }
         if(next.match && (next.status==OnlineMatchmakingStatus::CheckingConnections || next.status==OnlineMatchmakingStatus::AwaitingTransport)) {
@@ -395,6 +484,7 @@ struct OnlineMatchmaking::Impl {
             const bool couch=descriptor.contains("local_slots");
             require(descriptor.is_object() && descriptor.size()==(direct?7u:couch?(options.compatibility=="halo2-native-queue-v10"?6u:5u):4u));
             OnlineMatchTransportOptions transport;
+            transport.terminal_recovery=options.terminal_recovery;
             if(direct) {
               require(couch && descriptor.contains("transport"));
               const auto &value=descriptor.at("transport");
@@ -426,6 +516,8 @@ struct OnlineMatchmaking::Impl {
             const auto &rows=descriptor.at("players");
             require(rows.is_array() && rows.size()==next.match->players.size());
             std::vector<OnlineAdmission> roster;
+            const auto admitted_policy=std::find_if(next.playlists.begin(),next.playlists.end(),[&](const auto &p){return p.id==next.playlist_id;});
+            require(admitted_policy!=next.playlists.end());
             for(unsigned i=0;i<rows.size();++i) {
               require(rows[i].is_object() && rows[i].size()==(couch?5u:3u));
               roster.push_back({i,text(rows[i],"name"),int(number(rows[i],"team",0,15))});
@@ -437,6 +529,9 @@ struct OnlineMatchmaking::Impl {
               require(identity.size()==16 && identity.find_first_not_of("0123456789abcdef")==std::string::npos);
               for(unsigned j=0;j<8;++j)roster.back().identity[j]=std::byte(std::stoul(identity.substr(j*2,2),nullptr,16));
               require(roster.back().name==next.match->players[i].name && unsigned(roster.back().team)==next.match->players[i].team);
+              if(admitted_policy->ranked && !roster.back().guest)
+                roster.back().matchmaking_level=next.match->players[i].level;
+              else require(!next.match->players[i].level);
             }
             const auto self=number(descriptor,"slot",0,unsigned(roster.size()-1));
             require(next.match->players[self].self);
@@ -455,23 +550,42 @@ struct OnlineMatchmaking::Impl {
               for(const auto &p:roster)require((online_admission_peer(p)==self)==local.contains(p.slot));
             }
             auto relay=std::make_shared<OnlineMatchSession>(options.endpoint,text(descriptor,"id"),text(descriptor,"token",128),self,std::move(roster),options.allow_loopback_http,descriptor.contains("team_mode")?std::optional(boolean(descriptor,"team_mode")):std::nullopt,false,std::move(transport));
-            std::lock_guard guard(mutex); if(version==generation)match_session=std::move(relay);
+            std::lock_guard guard(mutex); if(version==generation){match_session=std::move(relay);connected_match=next.match;transport_id=text(descriptor,"id");}
           }
         }
         publish(std::move(next), version);
+      } catch (const MatchTerminalFailure &e) {
+        {std::lock_guard guard(mutex);if(version==generation){match_session.reset();connected_match.reset();transport_id.clear();transferred=false;}}
+        cleanup("/v1/matchmaking/ticket");queued=false;accepted=false;id.clear();
+        terminal_failure=version;
+        next.status=OnlineMatchmakingStatus::Failed;next.match.reset();next.gathering.reset();
+        next.start_countdown_ms.reset();next.failure_state=e.state;
+        next.message=e.message.empty()?"Matchmaking failed. Try again.":e.message;
+        publish(std::move(next),version);
+      } catch (const MatchCountdownUnsupported &) {
+        {std::lock_guard guard(mutex);if(version==generation){match_session.reset();connected_match.reset();}}
+        cleanup("/v1/matchmaking/ticket");queued=false;accepted=false;id.clear();
+        unsupported_countdown=version;
+        next.status=OnlineMatchmakingStatus::Failed;next.match.reset();next.gathering.reset();
+        next.start_countdown_supported=false;next.start_countdown_ms.reset();
+        next.message="Update the matchmaking service to support the game-start countdown.";
+        publish(std::move(next),version);
       } catch (const MatchConnectionError &e) {
         next.status=OnlineMatchmakingStatus::Failed;next.match.reset();next.gathering.reset();
+        next.start_countdown_ms.reset();
         next.message=e.message.empty()?"The player connection failed. Retrying...":e.message;
         publish(std::move(next),version);
       } catch (const StatusError &e) {
-        if (e.status == 401) { qos.reset(); session.clear(); queued = false; accepted = false; id.clear(); }
+        if (e.status == 401) { qos.reset();session.clear();session_configuration.clear();session_authorization.clear();queued=false;accepted=false;id.clear(); }
         if (e.status == 409) { cleanup("/v1/matchmaking/ticket"); queued = false; accepted = false; id.clear(); next.playlists.clear(); }
         next.status = OnlineMatchmakingStatus::Failed; next.match.reset(); next.gathering.reset();
+        next.start_countdown_ms.reset();
         next.message = e.status == 503 ? "Matchmaking playlists are not configured on this service." : e.status == 401 ? "Matchmaking authorization expired. Reconnecting..." : "Matchmaking request failed. Reconnecting...";
         if(!e.message.empty() && e.status!=401)next.message=e.message;
         publish(std::move(next), version);
       } catch (...) {
         next.status = OnlineMatchmakingStatus::Failed; next.match.reset(); next.gathering.reset(); next.message = "Matchmaking service unavailable. Retrying...";
+        next.start_countdown_ms.reset();
         publish(std::move(next), version);
       }
     }
@@ -481,21 +595,58 @@ struct OnlineMatchmaking::Impl {
 };
 OnlineMatchmaking::OnlineMatchmaking(std::shared_ptr<DiscordLogin> l, OnlineMatchmakingOptions o, Http h) : impl_(std::make_unique<Impl>(std::move(l), std::move(o), std::move(h))) {}
 OnlineMatchmaking::~OnlineMatchmaking() = default;
-void OnlineMatchmaking::refresh(const std::string &name, std::vector<OnlineLocalPlayer> additional) { impl_->command(true, name, {},std::move(additional)); }
+void OnlineMatchmaking::refresh(const std::string &name, std::vector<OnlineLocalPlayer> additional,std::optional<FrontendAppearance> appearance) { impl_->command(true,name,{},std::move(additional),false,appearance); }
 void OnlineMatchmaking::join(const std::string &playlist) {
-  std::string name;std::vector<OnlineLocalPlayer> additional;
-  { std::lock_guard lock(impl_->mutex); name = impl_->name;additional=impl_->local_players; }
-  impl_->command(true, std::move(name), playlist,std::move(additional));
+  std::string name;std::vector<OnlineLocalPlayer> additional;std::optional<FrontendAppearance> appearance;
+  { std::lock_guard lock(impl_->mutex); name = impl_->name;additional=impl_->local_players;appearance=impl_->primary_appearance; }
+  impl_->command(true,std::move(name),playlist,std::move(additional),false,appearance);
 }
-void OnlineMatchmaking::cancel_queue() { std::string name;std::vector<OnlineLocalPlayer> additional; { std::lock_guard lock(impl_->mutex); name = impl_->name;additional=impl_->local_players; } impl_->command(true, std::move(name), {},std::move(additional)); }
+void OnlineMatchmaking::cancel_queue() { std::string name;std::vector<OnlineLocalPlayer> additional;std::optional<FrontendAppearance> appearance; { std::lock_guard lock(impl_->mutex); name = impl_->name;additional=impl_->local_players;appearance=impl_->primary_appearance; } impl_->command(true,std::move(name),{},std::move(additional),true,appearance); }
+void OnlineMatchmaking::reject_content() {
+  std::lock_guard lock(impl_->mutex);
+  if(impl_->transport_id.empty())return;
+  impl_->content_rejected=true;impl_->pending=true;impl_->request_stop.request_stop();impl_->wake.notify_all();
+}
 void OnlineMatchmaking::sign_out() { impl_->command(false, {}, {}); }
 OnlineMatchmakingSnapshot OnlineMatchmaking::snapshot() const { std::lock_guard lock(impl_->mutex); return impl_->state; }
 std::optional<OnlineMatchmakingSnapshot> OnlineMatchmaking::snapshot_after(std::uint64_t revision) const {
   std::lock_guard lock(impl_->mutex); if (impl_->state.revision == revision) return {}; return impl_->state;
 }
+std::optional<unsigned> OnlineMatchmaking::player_speaker(unsigned row) const {
+  std::shared_ptr<OnlineMatchSession> session;
+  {std::lock_guard lock(impl_->mutex);
+    session=impl_->match_session;
+    if(!session||!impl_->connected_match||row>=impl_->connected_match->players.size()||
+       row>=session->roster().size())return {};
+    const auto &shown=impl_->connected_match->players[row];const auto &admitted=session->roster()[row];
+    if(shown.name!=admitted.name||int(shown.team)!=admitted.team||admitted.slot!=row||
+       online_admission_peer(admitted)!=row)return {};
+  }
+  const auto audio=session->retained_voice();if(!audio)return {};
+  const auto state=audio->snapshot();
+  if(row==session->self())return !state.enabled||state.microphone_muted?2u:state.transmitting?0u:1u;
+  if(!state.enabled)return {};
+  if(state.talking[row])return 0u;
+  return session->postgame_voice_enabled(row)?std::optional<unsigned>(1):std::nullopt;
+}
 std::shared_ptr<OnlineMatchSession> OnlineMatchmaking::take_launch() {
   std::lock_guard lock(impl_->mutex);
-  if(!impl_->match_session || impl_->transferred || impl_->match_session->phase()!=OnlineMatchSession::Phase::Loading)return {};
+  if(!impl_->match_session || impl_->transferred || impl_->match_session->phase()!=OnlineMatchSession::Phase::Loading ||
+      !impl_->state.start_countdown_supported || impl_->state.start_countdown_ms!=0)return {};
+  if(impl_->match_session->team_mode().value_or(false)) {
+    const auto &roster=impl_->match_session->roster();
+    std::array<OriginalMatchmakingPeer,16> peers{};
+    std::vector<OriginalMatchmakingSeat> seats;
+    unsigned count=0;for(const auto &seat:roster)count=std::max(count,online_admission_peer(seat)+1);
+    if(count>16)return {};
+    // Loading is the transport owner's actual complete-link admission. Every
+    // physical owner has completed its reciprocal measurement handshake.
+    for(unsigned i=0;i<count;++i)peers[i].connections=(1u<<count)-1;
+    for(const auto &seat:roster)seats.push_back({true,online_admission_peer(seat),std::int8_t(seat.team)});
+    if(!original_matchmaking_eligibility(true,original_matchmaking_connected_teams(
+        std::span<const OriginalMatchmakingPeer>(peers.data(),count),impl_->match_session->self(),seats),
+        false,false,false).ready)return {};
+  }
   impl_->transferred=true;
   return std::move(impl_->match_session);
 }

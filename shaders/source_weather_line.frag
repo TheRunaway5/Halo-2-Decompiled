@@ -6,12 +6,11 @@ layout(location=2) flat in vec4 position0;
 layout(location=3) flat in vec4 position1;
 layout(location=4) flat in vec4 position2;
 layout(set=0,binding=0,std140) uniform WeatherVertex {
-    uvec4 instructions[136];vec4 camera[12];uvec4 flags;
+    vec4 camera[12];uvec4 flags;
     vec4 clipRange;vec4 surface;vec4 depth;
 } weather;
-layout(set=0,binding=1,std140) uniform WeatherPixel {uvec4 program[15];} material;
 layout(location=0) out vec4 pixel;
-#include "combiner.glsl"
+#include "native-programs/weather/line-fragment.glsl"
 #include "particle_depth.glsl"
 void main() {
     float w=particleWDepth(gl_FragCoord.xy,position0,position1,position2,

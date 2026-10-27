@@ -2,6 +2,10 @@
 #include "halo2/simulation.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/native_object_lifetimes.hpp"
+#include "halo2/model_markers.hpp"
+#include "halo2/model_selection.hpp"
+#include "../src/runtime/world_continuation_bindings.hpp"
+#include "../src/gameplay/weapons/native_grenade_preflight.hpp"
 #include <algorithm>
 #include <bit>
 #include <iostream>
@@ -61,6 +65,14 @@ std::shared_ptr<const Cache> cache(const char *map,const char *xbe){return std::
 void native(const char *map,const char *xbe,int type) {
     auto ac=cache(map,xbe),bc=cache(map,xbe);const auto c=ac->load_content(0,true);
     const auto constants=*ac->original_data()->grenade_constants;
+    const auto model_definition=ac->load_initial_model_definition(c.player.datum);
+    const auto markers=source_model_markers(ac->load_source_tag_metadata(model_definition.render_model),0x09000100);
+    const auto selection=ac->load_initial_model_selection(c.player.datum);
+    const auto unit_tag=ac->load_source_tag_metadata(c.player.datum);
+    const auto speed=Bytes(unit_tag.bytes_at(unit_tag.source_address(),0x1b4)).f32(0x1b0);
+    check(world_continuation::grenade_unit(ac->load_model(c.player.datum,false),markers,selection.permutations,speed)==
+          world_continuation::grenade_unit(ac->load_model_hierarchy(c.player.datum),markers,selection.permutations,speed),
+          "Grenade hierarchy-only residency changed the admitted immutable digest");
     NativeGrenadeSandbox a(ac,c.player.datum,constants),b(bc,c.player.datum,constants);
     NativeObjectLifetimes al,bl;std::array<Unit,1> au,bu;
     auto &u=au[0];u.definition=c.player;u.source_datum=al.reserve(0);al.publish_native(u.source_datum,c.player.datum);
@@ -77,6 +89,16 @@ void native(const char *map,const char *xbe,int type) {
     const auto fp=ac->load_unit_weapon_action(w.first_person_animation,0x030000d9,0x030000d9,0x030000d9,0x0d000021);
     check(a.action_clip(fp.source_graph,fp.source_index),"Actual selected clip residency unavailable");
     const auto saved=a.authority_checkpoint(au),before=b.authority_checkpoint(bu);
+    const auto asset_bytes=grenade_preflight::admit(*ac,saved);
+    check(asset_bytes<=authority_network_asset_bytes,"Actual grenade fixture exceeded its asset preflight bound");
+    std::cout<<"Grenade continuation immutable asset preflight bytes="<<asset_bytes<<'\n';
+    std::uint64_t no_asset_budget{};
+    rejects([&]{grenade_preflight::animation(*ac,fp.source_graph,fp.source_index,no_asset_budget);});
+    auto invalid_bindings=saved;invalid_bindings.selected_clip_bindings.emplace(std::pair{fp.source_graph,UINT32_MAX},NativeGrenadeSandbox::AuthorityDigest{});
+    rejects([&]{b.prepare_authority(invalid_bindings,au);});same(before,b.authority_checkpoint(bu));
+    invalid_bindings=saved;
+    for(unsigned i=0;i<257;++i)invalid_bindings.unit_bindings.emplace(i,NativeGrenadeSandbox::AuthorityDigest{});
+    rejects([&]{b.prepare_authority(invalid_bindings,au);});same(before,b.authority_checkpoint(bu));
     check(!saved.attachments.empty() && !saved.weapon_clip_bindings.empty() && !saved.selected_clip_bindings.empty() && !saved.pending_events.empty(),
         "Grenade fixture omitted attachment, decoded caches or pending events");
     {auto staged=b.prepare_authority(saved,au);rejects([&]{b.take_events();});rejects([&]{b.cancel_unit(bu[0]);});

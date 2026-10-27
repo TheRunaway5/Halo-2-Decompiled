@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from generate_physics_world_bootstrap_runtime_20261011 import generate,sha
 from oracle_smg_firing_1_1 import ROOT,Xbe,_Code,PIN
 from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
+from native_damage_voice_request_tu15 import install_native_damage_voice_request
 
 BASE=ROOT/'analysis/damage-shields-goal-20261011/delivery-runtime'
 AUTHORITY=ROOT/'analysis/damage-shields-goal-20261011/dispatcher-boundary/pairing/report.json'
@@ -181,7 +182,7 @@ def main():
     ending='} // namespace halo2\n'
     assert text.endswith(ending)
     owns='bool source_damage_delivery_owns_entry(std::uint32_t p) {switch(p){'+''.join(f'case 0x{int(p,16):x}u:' for p in sorted(entries))+'return true;default:return false;}}\n'
-    a.output.write_text(text[:-len(ending)]+owns+ending)
+    a.output.write_text(install_native_damage_voice_request(text[:-len(ending)]+owns+ending))
     manifest=json.loads(a.manifest.read_text());manifest['generated_cpp_sha256']=sha(a.output)
     manifest['configuration_tool_sha256']=sha(Path(__file__))
     manifest['scalar_add_multiply_operand_order']='literal ADDSS/MULSS, including quiet NaN payload selection'

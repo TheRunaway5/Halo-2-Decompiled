@@ -35,6 +35,7 @@ if(BUILD_TESTING)
             src/audio/runtime/source_runtime_sound_sdk_resources.cpp
             src/rendering/effects/effect_audio_auxiliary.cpp
             src/ui/vista/native_vista_announcer.cpp
+            src/audio/source_announcer_assets_tu15.cpp
             src/audio/vista_announcer_assets.cpp
             src/audio/vista_announcer_events.cpp
             src/audio/vista_announcer_queue.cpp)

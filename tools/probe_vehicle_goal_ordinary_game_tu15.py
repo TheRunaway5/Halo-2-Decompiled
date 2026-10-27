@@ -131,6 +131,14 @@ run
             report['diagnostic_script']=dict(sha256=sha(script),text=script.read_text(),actual_native_pid=game_pid)
         if capture:capture.bind_process(game,game_pid,args.runtime)
         if counters:counters.bind_process(game)
+        key_deadline=time.monotonic()+180
+        while 'LAN join token: ' not in log.read_text():
+            if game.poll() is not None or time.monotonic()>=key_deadline:
+                raise RuntimeError('Host did not publish its independently exchanged raw LAN key')
+            time.sleep(.05)
+        observe[3]=next(line.removeprefix('LAN join token: ').replace('HOST_ADDRESS','127.0.0.1')
+                        for line in log.read_text().splitlines() if line.startswith('LAN join token: '))
+        report['observer_command']=observe
         peer=subprocess.Popen(observe,env=environment,stdout=peer_log,stderr=subprocess.STDOUT)
         inputs=Inputs(display)
         def key(name,down):

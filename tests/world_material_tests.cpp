@@ -7,6 +7,8 @@
 #include "halo2/model_selection.hpp"
 #include "halo2/source_transparent_parts.hpp"
 #include "halo2/source_prt.hpp"
+#include "halo2/pstencil/light_response_material.hpp"
+#include "halo2/pstencil/texture_accumulation_2003.hpp"
 #include <algorithm>
 #include <bit>
 #include <fstream>
@@ -18,6 +20,11 @@
 
 namespace {
 using namespace halo2;
+static_assert(source_alpha_add_blend!=pstencil::light_utility_blend_2003 &&
+    source_alpha_add_blend!=pstencil::dependent_light_blend_2003 &&
+    source_alpha_add_blend!=pstencil::normal_accumulation_blend_2003 &&
+    source_alpha_add_blend!=pstencil::normal_light_utility_blend_2003 &&
+    source_alpha_add_blend!=pstencil::texture_accumulation_blend_2003);
 void check(bool value, const std::string &message) {
   if (!value) throw std::runtime_error(message);
 }
@@ -209,6 +216,7 @@ void exact_pass(const Material &emitted, const Material &original, unsigned laye
     source_blend==0x306 && destination_blend==0x300?6:
     source_blend==1 && destination_blend==0x303?2:
     source_blend==0x302 && destination_blend==0x303?1:
+    source_blend==0x302 && destination_blend==1?source_alpha_add_blend:
     source_blend==0x305 && destination_blend==0x304?7:
     source_blend==0x304 && destination_blend==1?8:0xffffffffu;
   check(emitted.forward_blend==expected,"world pass changed original blend factors");
@@ -428,6 +436,42 @@ void model_lower_lods(const std::filesystem::path &disc,const std::filesystem::p
 
 int main(int argc, char **argv) {
   try {
+    if(argc>1 && std::string(argv[1])=="--campaign-late") {
+      const auto directory=argc>2?std::filesystem::path(argv[2]):std::filesystem::path("assets/disc/maps");
+      const Cache cache(directory/"01b_spacestation.map");
+      const auto tag=std::find_if(cache.tags().begin(),cache.tags().end(),[](const auto &value) {
+        return value.group=="shad" && value.name=="scenarios\\shaders\\solo\\spacestation\\glass_hangar_breach_char";
+      });
+      check(tag!=cache.tags().end(),"Cairo hangar breach glass source owner missing");
+      const auto authored=cache.load_material(tag->datum);
+      const auto selected=selected_passes(authored,15,0);
+      check(selected==std::vector<unsigned>{0,1},"Cairo glass authored layer15 order changed");
+      auto emitted=authored;
+      check(prepare_world_material(cache,emitted),"Cairo two-pass glass was not admitted");
+      check(emitted.forward_pass_index==selected[0] && emitted.world_overlays_after.size()==1 &&
+            emitted.world_overlays_after[0]->forward_pass_index==selected[1],
+            "Cairo glass dropped or reordered its masked environment pass");
+      const auto &environment=*emitted.world_overlays_after[0];
+      exact_pass(emitted,authored,15,0);
+      exact_pass(environment,authored,15,0);
+      std::map<TextureKey,Texture> resident;
+      exact_textures(cache,authored,emitted,authored.passes[selected[0]],resident);
+      exact_textures(cache,authored,environment,authored.passes[selected[1]],resident);
+      check(emitted.rendering_gaps.empty() && environment.rendering_gaps.empty(),
+            "Cairo glass retained a collapsed-pass scheduling gap");
+      check(emitted.forward_blend==2 && emitted.forward_raster.color_write==0x00010101 &&
+            environment.forward_blend==source_alpha_add_blend && environment.forward_raster.color_write==0x01010101 &&
+            !emitted.forward_raster.depth_write && !environment.forward_raster.depth_write,
+            "Cairo glass changed its authored two-pass blend, channels, or depth writes");
+      // An unresolved later pass must reject the whole preparation, retaining
+      // the original owner instead of publishing an incomplete first pass.
+      auto incomplete=authored;
+      incomplete.passes[selected[1]].vertex_externs.push_back({0,0,255});
+      check(!prepare_world_material(cache,incomplete) && !incomplete.world_pass &&
+            incomplete.world_overlays_after.empty(),"Cairo glass accepted an unresolved later pass");
+      std::cout<<"Cairo hangar glass: two ordered source passes, exact programs/constants/textures/raster; unresolved child rejected\n";
+      return 0;
+    }
     if(argc>1 && std::string(argv[1])=="--model-lods") {
       std::cout<<std::unitbuf;
       model_lower_lods(argc>2?std::filesystem::path(argv[2]):std::filesystem::path("assets/disc/maps"),

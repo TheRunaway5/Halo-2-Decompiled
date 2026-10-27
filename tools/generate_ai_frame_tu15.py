@@ -42,6 +42,15 @@ def main():
             if i.mnemonic=='call':assert code.inside(target);entries.add(target)
             elif i.mnemonic=='jmp' and i.operands[0].type!=2:
                 assert code.inside(target);indirect_tails.add((pc,target))
+    # Actual Campaign deathCD052 reaches this missing whole actor cleanup.
+    # Keep its complete weapon/death closure; existing private25980 stays here.
+    actor_death_entries={0x1ead40,0xc9460,0x106980,0x106ae0,0x106df0}
+    assert code.at(0xcd052).mnemonic=='call' and code.at(0xcd052).operands[0].imm==0x1ead40
+    for source_path in (Path(__file__).resolve().parents[1]/'src').rglob('*_generated.cpp'):
+        if source_path.name=='source_ai_frame_tu15_generated.cpp':continue
+        owned={int(p,16)for p in re.findall(r'^static void run_([0-9a-f]+)\(WorldState &s\) \{',source_path.read_text(),re.M)}
+        assert not actor_death_entries&owned,source_path
+    entries.update(actor_death_entries)
     # Complete descriptor-table closure for the original 1B0020 indirect
     # call at 1B0195. Authored campaign actors reach row130 in 47B478;
     # the original descriptor, not a supplied service result, names 1C9C90.
@@ -113,6 +122,8 @@ def main():
     generate(SimpleNamespace(output=a.output,manifest=a.directory/'generation.json',correspondence=correspondence,additional_entries=Path(__file__)),paired)
     source=a.output.read_text().replace('tools/generate_physics_live_support_tu15.py','tools/generate_ai_frame_tu15.py').replace('halo2/physics_live_support_tu15.hpp','halo2/source_ai_frame_tu15.hpp').replace('source_run_physics_live_support_tu15','source_run_ai_frame_tu15').replace('source_physics_live_support_tu15_owns_entry','source_ai_frame_tu15_owns_entry')
     exported_helpers=[0x20b620,0x20a160,0x272550,0x2063e0,0x1ed450]
+    if 0x1b06c0 in entries:exported_helpers.append(0x1b06c0)
+    if 0x1ead40 in entries:exported_helpers.append(0x1ead40)
     if 0x211da0 in entries:exported_helpers.append(0x211da0)
     if 0x266d30 in entries:exported_helpers.append(0x266d30)
     if 0x2658b0 in entries:exported_helpers.append(0x2658b0)

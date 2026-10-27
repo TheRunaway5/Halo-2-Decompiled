@@ -10,20 +10,14 @@ layout(set=0,binding=0,std140) uniform WeatherVertex {
     ivec4 clipRegion[8];
 } weather;
 layout(set=0,binding=1,std140) uniform WeatherPixel {
-    uvec4 program[15];vec4 constants[18];
+    vec4 constants[18];
 } material;
 layout(set=0,binding=2) uniform sampler2D aliasDepth;
 layout(set=0,binding=3) uniform sampler2D layer1;
 layout(set=0,binding=4) uniform sampler2D layer2;
 layout(set=0,binding=5) uniform sampler2D layer3;
 layout(location=0) out vec4 pixel;
-vec4 originalConstant(uint i) {
-    if(i>=10u && i<18u)return material.constants[(i-10u)*2u];
-    if(i>=18u && i<26u)return material.constants[(i-18u)*2u+1u];
-    return material.constants[16u+(i-43u)];
-}
-#define H2_COMBINER_CONSTANT(index) originalConstant(index)
-#include "combiner.glsl"
+#include "native-programs/weather/plate-fragment.glsl"
 #include "particle_depth.glsl"
 void main() {
     vec2 coordinate=gl_FragCoord.xy-0.5;

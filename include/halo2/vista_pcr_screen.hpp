@@ -7,6 +7,7 @@ namespace halo2 {
 // Supplied Vista33119398...: the six actual+68 row callbacks. Widget/locale
 // services resolve the caller's real child objects; no UI is allocated here.
 enum class VistaPcrPane { teams,summary,numeric,opponents,medals,weapons };
+enum class VistaPcrRowStyle { vista,original_xbox };
 struct VistaPcrTeamColor {
   std::array<std::uint32_t,3> text,bitmap;
 };
@@ -29,9 +30,12 @@ struct VistaPcrRowServices {
 };
 //40D1DF/40D32E/40D52A/40D6B2/40D7DC/40DA4E. Output callback order, absent
 // children, repeated selection queries, medal visibility, and512-unit append
-// semantics are preserved. Missing consumed owners/invalid indices reject.
+// semantics are preserved. The Xbox projection uses TU1.5 23B211's256-unit
+// medal buffer (its actual437544 literal is also one space). Other row fields use the equivalent
+// semantic carrier fields. Missing consumed owners/invalid indices reject.
 void vista_pcr_bind_row(VistaPcrPane,unsigned row,const VistaPcrResults&,
-    const VistaPcrRowServices&,const VistaLoadingFloatingPoint&);
+    const VistaPcrRowServices&,const VistaLoadingFloatingPoint&,
+    VistaPcrRowStyle=VistaPcrRowStyle::vista);
 // Actual40C1A7/40C214/40C36E/40C423/40C490/40C4FD source heading
 // replacements. An absent value preserves that child's authored string.
 std::array<std::optional<std::uint32_t>,5> vista_pcr_headings(VistaPcrPane,

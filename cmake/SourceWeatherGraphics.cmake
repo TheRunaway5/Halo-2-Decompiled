@@ -1,6 +1,7 @@
 # Explicit-input weather passes. The live renderer must supply independently
 # admitted current producers before it can call these modules.
 function(halo2_add_source_weather_graphics weather_source_root)
+    file(GLOB native_weather_includes CONFIGURE_DEPENDS "${weather_source_root}/shaders/native-programs/weather/*.glsl")
     set(weather_shader_directory "${CMAKE_CURRENT_BINARY_DIR}/shaders")
     set(weather_shader_outputs)
     foreach(weather_shader source_weather_point.vert source_weather_point.frag
@@ -13,6 +14,7 @@ function(halo2_add_source_weather_graphics weather_source_root)
                 "-I${weather_source_root}/shaders"
                 "${weather_source_root}/shaders/${weather_shader}" -o "${weather_output}"
             DEPENDS "${weather_source_root}/shaders/${weather_shader}"
+                ${native_weather_includes}
                 "${weather_source_root}/shaders/source_weather_point_program.glsl"
                 "${weather_source_root}/shaders/vertex_program.glsl"
                 "${weather_source_root}/shaders/combiner.glsl"
@@ -33,6 +35,20 @@ function(halo2_add_source_weather_graphics weather_source_root)
     target_link_libraries(halo2_weather_render PUBLIC
         halo2_cache Vulkan::Vulkan halo2_weather_simulation)
     add_dependencies(halo2_weather_render source_weather_graphics_shaders)
+    if(BUILD_TESTING)
+        add_executable(source_weather_sprite_profile_probe
+            "${weather_source_root}/tests/source_weather_sprite_profile_tests.cpp"
+            "${weather_source_root}/src/rendering/texture.cpp"
+            "${weather_source_root}/src/rendering/bitmap_mips.cpp"
+            "${weather_source_root}/src/assets/cache.cpp")
+        target_include_directories(source_weather_sprite_profile_probe PRIVATE "${weather_source_root}/include")
+        target_compile_definitions(source_weather_sprite_profile_probe PRIVATE HALO2_CACHE_BYTES_ONLY=1)
+        target_link_libraries(source_weather_sprite_profile_probe PRIVATE nlohmann_json::nlohmann_json OpenSSL::Crypto)
+        add_test(NAME source_weather_sprite_profile COMMAND "${Python3_EXECUTABLE}" -B
+            "${weather_source_root}/tests/source_weather_sprite_profile_tests.py"
+            --repo-root "${weather_source_root}" --test-executable $<TARGET_FILE:source_weather_sprite_profile_probe>)
+        set_tests_properties(source_weather_sprite_profile PROPERTIES TIMEOUT 180 LABELS "weather;source-resource")
+    endif()
     if(BUILD_TESTING AND EXISTS "${weather_source_root}/analysis/multiplayer-shading/weather-particle-packet/source-vs22-class0.vp")
         add_executable(source_weather_line_render_tests "${weather_source_root}/tests/source_weather_line_render_tests.cpp")
         target_link_libraries(source_weather_line_render_tests PRIVATE halo2_weather_render)
@@ -48,8 +64,8 @@ function(halo2_add_source_weather_graphics weather_source_root)
         target_compile_options(halo2_weather_render PRIVATE -fno-fast-math -ffp-contract=off)
     endif()
 
-    # Actual original snapshots are private analysis artifacts, not synthetic
-    # repository fixtures. Opt in explicitly when the retained banks exist.
+    # Original snapshots are immutable private analysis reference inputs.
+    # Readbacks and comparison products stay in each test's owned scratch.
     option(HALO2_WEATHER_REFERENCE_TESTS "Build tests using retained original weather captures" OFF)
     if(NOT BUILD_TESTING OR NOT HALO2_WEATHER_REFERENCE_TESTS)
         return()
@@ -90,10 +106,22 @@ function(halo2_add_source_weather_graphics weather_source_root)
         endif()
         add_test(NAME original_${weather_test}_cpu COMMAND ${weather_test}_tests)
         add_test(NAME original_${weather_test}_gpu COMMAND ${weather_test}_tests --gpu)
-        # Tests save their readbacks in the reference's analysis directory.
-        # Serialize them to preserve a single coherent readback set.
+        # Readbacks belong to each test's HALO2_TEST_SCRATCH owner. Serialize
+        # these retained-scene GPU checks to keep device pressure bounded.
         set_tests_properties(original_${weather_test}_cpu original_${weather_test}_gpu
             PROPERTIES SKIP_RETURN_CODE 77 RUN_SERIAL TRUE LABELS "weather;original-reference")
+        if(NOT weather_test STREQUAL "source_weather_point_render")
+            add_test(NAME original_${weather_test}_gpu_exact
+                COMMAND ${weather_test}_tests --gpu-exact)
+            set_tests_properties(original_${weather_test}_gpu_exact PROPERTIES
+                SKIP_RETURN_CODE 77 RUN_SERIAL TRUE
+                LABELS "weather;original-reference;exact-pixels")
+        endif()
     endforeach()
     add_dependencies(source_weather_point_render_tests source_weather_point_probe_shader)
+    add_test(NAME source_weather_sprite_profile_gpu COMMAND "${Python3_EXECUTABLE}" -B
+        "${weather_source_root}/tests/source_weather_sprite_profile_tests.py"
+        --repo-root "${weather_source_root}" --gpu-executable $<TARGET_FILE:source_weather_point_render_tests>)
+    set_tests_properties(source_weather_sprite_profile_gpu PROPERTIES
+        SKIP_RETURN_CODE 77 RUN_SERIAL TRUE TIMEOUT 180 LABELS "weather;source-resource;gpu")
 endfunction()

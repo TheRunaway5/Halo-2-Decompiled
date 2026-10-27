@@ -88,7 +88,7 @@ void authored_attributes(const char* map,const char* maps){
 }
 void network_fades(){
   auto c=arena();const auto spawn=starts();MultiplayerMatch match(c,0,spawn,rules());const auto local=match.join("Host");
-  LanHost host(match,0,0xcafefade);LanClient client("127.0.0.1:"+std::to_string(host.port()),0xcafefade,1);
+  LanHost host(match,0,0xcafefade);LanClient client(host.join_address(),0xcafefade,1);
   std::array<Controls,multiplayer_capacity> controls{};std::array<Controls,1> outgoing{};
   for(unsigned i=0;i<20 && !client.ready();++i){client.send(outgoing);host.receive(controls);host.broadcast();client.receive();}
   check(client.ready(),"Camouflage UDP fixture did not join");const auto remote=client.slots()[0];

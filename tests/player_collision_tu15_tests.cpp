@@ -102,7 +102,7 @@ int main(int argc,char **argv)try {
       host=std::make_unique<LanHost>(match,0,0x15c011u);
       const std::array<SourcePlayerConfiguration,1> profiles{configuration};
       const std::array<std::int8_t,1> selected_teams{0};
-      client=std::make_unique<LanClient>("127.0.0.1:"+std::to_string(host->port()),0x15c011u,1,
+      client=std::make_unique<LanClient>(host->join_address(),0x15c011u,1,
           teams?std::span<const std::int8_t>(selected_teams):std::span<const std::int8_t>{},profiles);
       std::array<Controls,1> remote{};
       for(unsigned tick=0;tick<30 && !client->ready();++tick) {

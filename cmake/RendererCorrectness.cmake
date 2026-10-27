@@ -95,11 +95,18 @@ if(BUILD_TESTING)
         target_compile_options(renderer_lighting_sanitized PRIVATE
             -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -ffp-contract=off)
         add_dependencies(renderer_lighting_sanitized halo2_renderer)
+        # This lifetime test never selects an upscaler. Compile the real bridge
+        # without optional NGX discovery: VK_NVX_binary_import alone makes
+        # NVIDIA's vkCreateDevice fail under ASAN before any renderer work.
+        # Production and the dedicated DLSS tests retain their normal bridge.
         add_executable(renderer_transparent_lighting_tests tests/renderer_transparent_lighting_tests.cpp
+            src/rendering/renderer/native_upscaler.cpp
             $<TARGET_OBJECTS:renderer_lighting_sanitized>)
         target_link_libraries(renderer_transparent_lighting_tests PRIVATE halo2_renderer)
+        target_compile_definitions(renderer_transparent_lighting_tests PRIVATE
+            HALO2_UPSCALER_DIR="${CMAKE_CURRENT_SOURCE_DIR}/external/upscaling")
         target_compile_options(renderer_transparent_lighting_tests PRIVATE
-            -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer)
+            -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -UHALO2_HAS_NGX)
         target_link_options(renderer_transparent_lighting_tests PRIVATE -fsanitize=address,undefined)
         add_test(NAME native_renderer_transparent_lighting_sanitized COMMAND ${_renderer_image_display} $<TARGET_FILE:renderer_transparent_lighting_tests>
             ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map)

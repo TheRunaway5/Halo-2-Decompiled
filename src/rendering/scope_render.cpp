@@ -1,4 +1,5 @@
 #include "halo2/scope_render.hpp"
+#include "halo2/native_fragment_kernel.hpp"
 #include <cstring>
 #include <fstream>
 
@@ -119,7 +120,7 @@ struct ScopeRender::Impl {
         VkFramebufferCreateInfo f{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};f.renderPass=pass;f.attachmentCount=1;f.pAttachments=&target.view;f.width=f.height=64;f.layers=1;
         check(vkCreateFramebuffer(context.device,&f,nullptr,&framebuffer),"scope copy framebuffer");
     }
-    VkShaderModule shader(const char *name) {
+    VkShaderModule shader(std::string_view name) {
         std::ifstream f(context.shader_directory/name,std::ios::binary|std::ios::ate);
         const auto size=f.tellg();if(size<=0 || size%4)throw FormatError("invalid scope copy shader");
         std::vector<std::uint32_t> words(std::size_t(size)/4);f.seekg(0);
@@ -128,7 +129,7 @@ struct ScopeRender::Impl {
         VkShaderModule module{};check(vkCreateShaderModule(context.device,&s,nullptr,&module),"scope copy shader");return module;
     }
     void make_pipeline() {
-        const auto vertex=shader("fog.vert.spv"),pixel=shader("scope_copy.frag.spv");
+        const auto vertex=shader("fog.vert.spv"),pixel=shader(native_fragment_kernel_path("scope-copy",scope_copy_frame({}).program.words));
         const VkPipelineShaderStageCreateInfo stages[]{
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_VERTEX_BIT,vertex,"main",nullptr},
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_FRAGMENT_BIT,pixel,"main",nullptr}};
@@ -151,7 +152,10 @@ struct ScopeRender::Impl {
         if(frames.size()>4)throw FormatError("scope copy local view count exceeds four");
         active.fill(false);
         for(unsigned i=0;i<frames.size();++i)if(frames[i]) {
-            active[i]=true;const CopyUniform data{frames[i]->program.words,frames[i]->source_rectangle};
+            if(native_fragment_kernel_path("scope-copy",frames[i]->program.words)!=
+               native_fragment_kernel_path("scope-copy",scope_copy_frame({}).program.words))
+                throw FormatError("scope copy program differs from its compiled original kernel");
+            active[i]=true;const CopyUniform data{native_fragment_uniform_words(frames[i]->program.words),frames[i]->source_rectangle};
             void *mapped{};check(vkMapMemory(context.device,uniforms[i].memory,0,sizeof(data),0,&mapped),"scope copy uniform map");
             std::memcpy(mapped,&data,sizeof(data));vkUnmapMemory(context.device,uniforms[i].memory);
         }

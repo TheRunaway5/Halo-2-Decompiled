@@ -3,6 +3,7 @@
 #include "halo2/renderer.hpp"
 #include "halo2/audio.hpp"
 #include "halo2/frontend_ui_assets.hpp"
+#include "halo2/gameplay_font_source.hpp"
 #include "halo2/source_tag_metadata_store.hpp"
 #include <SDL_vulkan.h>
 #include <algorithm>
@@ -58,15 +59,24 @@ UiStrings load_campaign_pause_objectives(const Cache &cache,const std::filesyste
 }
 GamePauseMenu::GamePauseMenu(const std::filesystem::path &maps,
     const std::filesystem::path &hud_assets,Mesh &mesh,bool campaign,
-    const std::filesystem::path &preferences,const std::filesystem::path &menu_assets):campaign_(campaign) {
-  const auto assets=hud_menu_asset_directory(hud_assets);
-  content_=Cache(maps/"mainmenu.map").load_frontend();
+    const std::filesystem::path &preferences,const std::filesystem::path &menu_assets,
+    const std::filesystem::path &gameplay_map):campaign_(campaign) {
+  const Cache menu(maps/"mainmenu.map");
+  content_=menu.load_frontend();
   content_.gameplay_overlay=true;
-  // This supplied solo cache retains the shared gameplay pause/settings bank
-  // and source file selectors for shared art. Mainmenu has no pause widgets.
-  auto pause_content=load_vista_pause(assets/"maps/01a_tutorial.map");
-  // This owner remains the original Vista gameplay widget bank. Only its
-  // bitmap samples and font rasters come from the separately selected pack.
+  std::filesystem::path pause_map;
+  if(menu.is_mcc()) {
+    if(gameplay_map.empty() || std::filesystem::absolute(gameplay_map).parent_path().lexically_normal()!=
+        std::filesystem::absolute(maps).lexically_normal())
+      throw FormatError("MCC pause widgets require the admitted gameplay map in their own cache");
+    // load_vista_pause reads this scenario's actual wgtz/wigl owner. MCC's
+    // native gameplay widgets and fonts do not require a sampled HUD pack.
+    pause_map=gameplay_map;
+  } else {
+    // The supplied legacy solo cache retains the shared pause/settings bank.
+    pause_map=hud_menu_asset_directory(hud_assets)/"maps/01a_tutorial.map";
+  }
+  auto pause_content=load_vista_pause(pause_map);
   pause_content->gameplay_overlay=true;
   content_.vista=std::move(pause_content);
   state_=std::make_unique<MenuState>(content_,preferences);
@@ -86,7 +96,7 @@ GamePauseMenu::GamePauseMenu(const std::filesystem::path &maps,
     if(window_ && action!=GamePauseAction::Quit)SDL_SetRelativeMouseMode(SDL_TRUE);
     return std::string{};
   });
-  painter_=std::make_unique<FrontendPainter>(content_,maps/"fonts",mesh,
+  painter_=std::make_unique<FrontendPainter>(content_,gameplay_font_directory(menu),mesh,
       std::filesystem::path{},load_frontend_ui_assets(content_,menu_assets),
       menu_assets.empty()?std::filesystem::path{}:menu_assets/"fonts");
 }
@@ -192,6 +202,7 @@ bool GamePauseMenu::event(const SDL_Event &e) {
       e.type==SDL_MOUSEMOTION || e.type==SDL_MOUSEWHEEL ||
       e.type==SDL_CONTROLLERBUTTONDOWN || e.type==SDL_CONTROLLERBUTTONUP ||
       e.type==SDL_CONTROLLERAXISMOTION;
+  const bool escape_pressed=e.type==SDL_KEYDOWN && !e.key.repeat && e.key.keysym.sym==SDLK_ESCAPE;
   if(!visible_) {
     if(e.type==SDL_KEYDOWN || e.type==SDL_MOUSEBUTTONDOWN)painter_->prompt_device(PromptDevice::KeyboardMouse);
     else if(e.type==SDL_CONTROLLERBUTTONDOWN)painter_->prompt_device(controller_prompt_device(SDL_GameControllerFromInstanceID(e.cbutton.which)));
@@ -206,7 +217,9 @@ bool GamePauseMenu::event(const SDL_Event &e) {
   if(visible_) {
     if((e.type==SDL_CONTROLLERBUTTONDOWN || e.type==SDL_CONTROLLERBUTTONUP || e.type==SDL_CONTROLLERAXISMOTION) &&
         (e.type==SDL_CONTROLLERAXISMOTION?e.caxis.which:e.cbutton.which)!=input_instance_)return game_input;
-    if(input_instance_>=0 && (e.type==SDL_KEYDOWN || e.type==SDL_KEYUP || e.type==SDL_MOUSEBUTTONDOWN ||
+    // Escape can take keyboard ownership of a controller-opened pause menu.
+    // Other devices remain isolated until that explicit, non-repeated press.
+    if(input_instance_>=0 && !escape_pressed && (e.type==SDL_KEYDOWN || e.type==SDL_KEYUP || e.type==SDL_MOUSEBUTTONDOWN ||
         e.type==SDL_MOUSEBUTTONUP || e.type==SDL_MOUSEMOTION || e.type==SDL_MOUSEWHEEL))return game_input;
   }
   state_->ui_clock(SDL_GetTicks());
@@ -223,8 +236,10 @@ bool GamePauseMenu::event(const SDL_Event &e) {
     }
   }
   if(e.type==SDL_KEYDOWN && e.key.keysym.sym==SDLK_ESCAPE) {
-    if(!visible_) {input_instance_=-1;painter_->prompt_device(PromptDevice::KeyboardMouse);}
-    if(!e.key.repeat) {if(visible_)state_->back();else show();}
+    if(escape_pressed) {
+      input_instance_=-1;painter_->prompt_device(PromptDevice::KeyboardMouse);
+      if(visible_)state_->back();else show();
+    }
     refresh();return true;
   }
   if(e.type==SDL_CONTROLLERBUTTONDOWN && e.cbutton.button==SDL_CONTROLLER_BUTTON_START) {

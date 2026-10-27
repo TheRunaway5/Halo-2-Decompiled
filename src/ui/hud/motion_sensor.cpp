@@ -6,6 +6,12 @@
 #include <bit>
 
 namespace halo2 {
+PixelProgram source_motion_sensor_final_program_tu15() {
+  PixelProgram result;auto &p=result.words;
+  p[0]=0x18110000;p[8]=8;p[9]=0x1800;p[10]=0xffffffff;
+  p[26]=0x80;p[34]=0x08010000;p[43]=0xff00ff00;p[45]=0x80;p[53]=1;p[54]=1;
+  return result;
+}
 namespace {
 void finite(float v) {
   if(!std::isfinite(v))throw FormatError("Non-finite original motion sensor input");

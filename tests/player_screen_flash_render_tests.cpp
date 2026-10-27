@@ -33,7 +33,7 @@ void transport() {
   content.weapons.emplace(3,w);content.multiplayer_starting_equipment_flags=2;
   std::array<Spawn,2> spawns;spawns[0].player_type=spawns[1].player_type=0;spawns[1].position={4,0,0};
   auto rules=slayer_rules({"Slayer",0,{}});rules.weapon=3;MultiplayerMatch match(content,0,spawns,rules);
-  LanHost host(match,0,123);LanClient client("127.0.0.1:"+std::to_string(host.port()),123,1);
+  LanHost host(match,0,123);LanClient client(host.join_address(),123,1);
   std::array<Controls,1> input{};std::array<Controls,multiplayer_capacity> controls{};
   for(unsigned i=0;i<100 && !client.ready();++i) {
     client.send(input);host.receive(controls);host.broadcast();client.receive();std::this_thread::sleep_for(std::chrono::milliseconds(1));

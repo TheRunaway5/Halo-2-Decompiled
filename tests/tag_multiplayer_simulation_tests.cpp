@@ -149,12 +149,12 @@ int main(int argc, char **argv) try {
     if (network) {
         const auto fingerprint = multiplayer_fingerprint(argv[1], argv[2], 0, rules.weapon, argv[3]);
         host = std::make_unique<LanHost>(match, 0, fingerprint);
-        const auto address = "127.0.0.1:" + std::to_string(host->port());
+        const auto address = host->join_address();
         for (unsigned i = authority_seats; i < participants; i += peer_seats) {
             auto peer_address = address;
             if (faults) {
                 proxies.push_back(std::make_unique<test::LoopbackPacketProxy>(host->port()));
-                peer_address = "127.0.0.1:" + std::to_string(proxies.back()->port());
+                peer_address = host->join_address("127.0.0.1",proxies.back()->port());
             }
             std::vector<std::int8_t> membership(peer_seats);
             for (unsigned seat = 0; seat < peer_seats; ++seat) membership[seat] = std::int8_t((i + seat) % 2);

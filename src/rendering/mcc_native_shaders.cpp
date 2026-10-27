@@ -1,5 +1,11 @@
 #include "halo2/cache.hpp"
 #include "halo2/mcc_native_shaders.hpp"
+#include "halo2/mcc_native_no_alpha.hpp"
+#include "halo2/mcc_native_world_animated.hpp"
+#include "halo2/mcc_native_illum_no_specular.hpp"
+#include "halo2/mcc_native_illum_three_channel.hpp"
+#include "halo2/mcc_native_world_default_roles.hpp"
+#include "halo2/mcc_native_character_shared.hpp"
 #include "halo2/mcc_native_library.hpp"
 #include "halo2/mcc_prepared_map_owner.hpp"
 #include "halo2/mcc_hud_shader_reference.hpp"
@@ -455,6 +461,9 @@ void Cache::initialize_mcc_native_shaders(const MccPreparedMapOwner* owner) {
     const auto owned_tables=table_snapshot(directory/"function-tables.bin");
     Json bank;
     std::map<std::string,std::filesystem::path> supplemental_payloads;
+    bool additional_world_programs=false;
+    std::map<std::pair<std::string,std::string>,std::string> vehicle_semantics;
+    std::map<std::string,std::filesystem::path> vehicle_payloads;
     if(hud_only) {
         supplemental_payloads=bootstrap_mcc_native_hud_library(bank,path_,tags_,
             [&](std::uint32_t address,std::size_t size) {
@@ -462,6 +471,33 @@ void Cache::initialize_mcc_native_shaders(const MccPreparedMapOwner* owner) {
             },[&](std::uint32_t id){return string_id(id);},root,
             binding.input_bytes,binding.input_sha256,library_snapshot);
         if(supplemental_payloads.empty())return;
+        const auto pc_sky=supplement_mcc_native_pc_sky_library(bank,path_,tags_,
+            [&](std::uint32_t address,std::size_t size) {
+                return Bytes(storage_).slice(metadata_offset(address,size),size);
+            },root,binding.input_bytes,binding.input_sha256,library_snapshot);
+        supplemental_payloads.insert(pc_sky.begin(),pc_sky.end());
+        if(!pc_sky.empty()) {
+            const auto pc_world=supplement_mcc_native_pc_world_library(bank,path_,root,
+                binding.input_bytes,binding.input_sha256,library_snapshot);
+            supplemental_payloads.insert(pc_world.begin(),pc_world.end());
+            if(!pc_world.empty()) {
+                const auto programs=supplement_mcc_native_pc_world_programs(bank,path_,root,
+                    binding.input_bytes,binding.input_sha256,library_snapshot);
+                supplemental_payloads.insert(programs.begin(),programs.end());
+                additional_world_programs=!programs.empty();
+                if(additional_world_programs) {
+                    auto vehicles=supplement_mcc_native_vehicle_library(bank,path_,tags_,
+                        [&](std::uint32_t address,std::size_t size) {
+                            return Bytes(storage_).slice(metadata_offset(address,size),size);
+                        },[&](std::uint32_t handle,std::uint32_t frame){return frame<bitmap_count(handle);},
+                        Bytes(storage_).u32(48),[&](std::uint32_t id){return string_id(id);},
+                        root,binding.input_bytes,binding.input_sha256,library_snapshot);
+                    supplemental_payloads.insert(vehicles.payloads.begin(),vehicles.payloads.end());
+                    vehicle_payloads=vehicles.payloads;
+                    vehicle_semantics=std::move(vehicles.semantic_names);
+                }
+            }
+        }
         function_tables_=owned_tables;
     } else {
         bank=Json::parse(snapshot(directory/"library.json"));
@@ -477,6 +513,9 @@ void Cache::initialize_mcc_native_shaders(const MccPreparedMapOwner* owner) {
     const std::set<std::string> shader_groups{"shad","stem","spas","vrtx"};
     const auto& records=bank.at("shader_tags");
     if(!records.is_array() || records.size()>65536)throw FormatError("Excessive preserved shader directory");
+    std::map<std::uint32_t,Tag> source_world_templates;
+    if(additional_world_programs)for(const auto& tag:tags_)
+        if(tag.group=="stem"&&tag.address&&tag.size)source_world_templates.emplace(tag.datum,tag);
     std::map<std::pair<std::string,std::string>,std::uint32_t> identities;
     for(const auto& t:tags_)if(t.datum!=0xffffffffu)
         if(!identities.emplace(std::pair(t.group,t.name),t.datum).second)throw FormatError("Duplicate MCC tag identity for native shader binding");
@@ -539,7 +578,13 @@ void Cache::initialize_mcc_native_shaders(const MccPreparedMapOwner* owner) {
         const auto filename=record.at("payload").get<std::string>();
         if(filename.size()!=68 || filename.substr(64)!=".bin" || filename.find_first_not_of("0123456789abcdef")<64)
             throw FormatError("Invalid preserved shader payload filename");
-        auto payload=read(payload_path(filename),16u*1024u*1024u);
+        std::vector<std::byte> payload;
+        if(const auto owned=vehicle_payloads.find(filename);owned!=vehicle_payloads.end()) {
+            const auto& raw=snapshot(owned->second);
+            if(raw.size()>16u*1024u*1024u)throw FormatError("Excessive snapshotted native vehicle payload");
+            const auto bytes=std::as_bytes(std::span(raw.data(),raw.size()));
+            payload.assign(bytes.begin(),bytes.end());
+        } else payload=read(payload_path(filename),16u*1024u*1024u);
         if(payload.size()!=record.at("bytes").get<std::size_t>() ||
            fnv(payload)!=std::stoull(record.at("fnv64").get<std::string>(),nullptr,16))
             throw FormatError("Preserved shader payload fingerprint mismatch");
@@ -624,6 +669,67 @@ void Cache::initialize_mcc_native_shaders(const MccPreparedMapOwner* owner) {
         if(original.address&&original.size)retained_tag_allocations_.push_back(original);
         retain_pointer_map(record,handle,address,size);
     }
+    // Uplift's complete NoAlpha PC setup differs from ordinary lightmapping
+    // only in its authored impl0 RGB write mask. Qualify every original setup
+    // and material bank before publishing independent native metadata owners.
+    // VS/PS instructions remain the authenticated existing TU programs.
+    {
+        const auto* no_alpha_stem=query_tag({.group=TagGroup{"stem"},
+            .name="shaders\\shader_templates\\opaque\\tex_bump_no_alpha",.require_address=true});
+        const auto* no_alpha_pass=query_tag({.group=TagGroup{"spas"},
+            .name="shaders\\shader_passes\\lightmap\\lightmap_tex_detail_no_alpha",.require_address=true});
+        const auto* normal_stem=query_tag({.group=TagGroup{"stem"},
+            .name="shaders\\shader_templates\\opaque\\tex_bump",.require_address=true});
+        const auto* normal_pass=query_tag({.group=TagGroup{"spas"},
+            .name="shaders\\shader_passes\\lightmap\\lightmap_tex_detail",.require_address=true});
+        const Json* stem_record=nullptr;const Json* pass_record=nullptr;
+        for(const auto& record:records) {
+            if(record.at("group")=="stem"&&record.at("name")=="shaders\\shader_templates\\opaque\\tex_bump")stem_record=&record;
+            if(record.at("group")=="spas"&&record.at("name")=="shaders\\shader_passes\\lightmap\\lightmap_tex_detail")pass_record=&record;
+        }
+        if(no_alpha_stem&&no_alpha_pass&&normal_stem&&normal_pass&&stem_record&&pass_record) {
+            const Tag source_stem=*no_alpha_stem,source_pass=*no_alpha_pass,base_stem=*normal_stem,base_pass=*normal_pass;
+            const auto stem_payload=read(payload_path(stem_record->at("payload")),16u*1024u*1024u);
+            const auto pass_payload=read(payload_path(pass_record->at("payload")),16u*1024u*1024u);
+            const MccShaderRead source_read=[&](auto address,auto size) {
+                return Bytes(storage_).slice(metadata_offset(address,size),size);
+            };
+            const MccShaderFind source_find=[&](auto handle)->const Tag* {return find_tag({handle});};
+            const MccShaderNamedFind source_named=[&](std::string_view group,std::string_view name)->const Tag* {
+                return query_tag({.group=TagGroup::from_string(group),.name=std::string(name),.require_address=true});
+            };
+            auto owners=project_mcc_no_alpha_native_owners(source_stem,source_pass,base_stem,base_pass,
+                stem_payload,pass_payload,source_read,source_find,source_named);
+            if(owners) {
+                std::vector<std::pair<Tag,MccOwnedShaderProjection>> pending;
+                const auto candidates=tags_;
+                for(const auto& original:candidates) {
+                    if(original.group!="shad"||!original.address||restored.contains(original.datum))continue;
+                    auto projected=project_mcc_no_alpha_material(original,source_stem,source_pass,base_stem,stem_payload,
+                        source_read,source_find,[&](auto handle,auto frame){return frame<bitmap_count(handle);},
+                        [&](auto id){return string_id(id);});
+                    if(projected)pending.emplace_back(original,std::move(*projected));
+                }
+                if(!pending.empty()) {
+                    const auto publish=[&](const Tag& original,MccOwnedShaderProjection&& projected) {
+                        const auto address=next_address();
+                        if(address+projected.bytes.size()>0x100000000ull)throw FormatError("NoAlpha native allocation overflow");
+                        for(const auto& [field,target]:projected.pointers)word(projected.bytes,field,std::uint32_t(address+target));
+                        storage_.resize(std::size_t(std::int64_t(address)-metadata_magic_));
+                        storage_.insert(storage_.end(),projected.bytes.begin(),projected.bytes.end());
+                        auto& owned=tags_.at(original.datum&0xffffu);
+                        if(owned.datum!=original.datum)throw FormatError("NoAlpha source owner salt changed");
+                        owned.address=std::uint32_t(address);owned.size=std::uint32_t(projected.bytes.size());
+                        if(original.size)retained_tag_allocations_.push_back(original);
+                        preserved_native_pointer_maps_.push_back({{owned.datum},owned.address,owned.size,std::move(projected.pointers)});
+                        restored.insert(owned.datum);
+                    };
+                    publish(source_pass,std::move(owners->pass));publish(source_stem,std::move(owners->stem));
+                    for(auto& [original,projection]:pending)publish(original,std::move(projection));
+                }
+            }
+        }
+    }
     // Unmatched donor materials can reuse this exact retained template only
     // after their data has been projected into its original cooked contract.
     // Every child bank is copied; donor banks may be shared by other tags.
@@ -683,6 +789,73 @@ void Cache::initialize_mcc_native_shaders(const MccPreparedMapOwner* owner) {
             restored.insert(owned.datum);
         }
     }
+    // Additional PC-only world data must match the complete paired MCC
+    // compiler remap graph before reaching an authenticated native template.
+    if(additional_world_programs)for(const auto& record:records) {
+        if(record.at("group")!="stem")continue;
+        const auto* current=query_tag({.group=TagGroup{"stem"},
+            .name=record.at("name").get<std::string>(),.require_address=true});
+        if(!current)continue;
+        const auto source=source_world_templates.find(current->datum);
+        if(source==source_world_templates.end())continue;
+        const Tag native_stem=*current;
+        const auto filename=record.at("payload").get<std::string>();
+        const auto payload=read(payload_path(filename),16u*1024u*1024u);
+        const auto candidates=tags_;
+        for(const auto& original:candidates) {
+            if(original.group!="shad"||!original.address||restored.contains(original.datum))continue;
+            auto projected=project_mcc_unanimated_world_cooked(original,source->second,native_stem,filename,payload,
+                [&](std::uint32_t address,std::size_t size) {
+                    return Bytes(storage_).slice(metadata_offset(address,size),size);
+                },[&](std::uint32_t handle)->const Tag* {return find_tag({handle});},
+                [&](std::uint32_t handle,std::uint32_t frame) {return frame<bitmap_count(handle);});
+            if(!projected)projected=project_mcc_character_shared(original,source->second,native_stem,filename,payload,
+                [&](std::uint32_t address,std::size_t size) {
+                    return Bytes(storage_).slice(metadata_offset(address,size),size);
+                },[&](std::uint32_t handle)->const Tag* {return find_tag({handle});},
+                [&](std::uint32_t handle,std::uint32_t frame) {return frame<bitmap_count(handle);},
+                [&](std::uint32_t id){return string_id(id);});
+            if(!projected)projected=project_mcc_animated_clock_world(original,source->second,native_stem,filename,payload,
+                [&](std::uint32_t address,std::size_t size) {
+                    return Bytes(storage_).slice(metadata_offset(address,size),size);
+                },[&](std::uint32_t handle)->const Tag* {return find_tag({handle});},
+                [&](std::uint32_t handle,std::uint32_t frame) {return frame<bitmap_count(handle);});
+            if(!projected)projected=project_mcc_clock_illum_no_specular(original,source->second,native_stem,filename,payload,
+                [&](std::uint32_t address,std::size_t size) {
+                    return Bytes(storage_).slice(metadata_offset(address,size),size);
+                },[&](std::uint32_t handle)->const Tag* {return find_tag({handle});},
+                [&](std::uint32_t handle,std::uint32_t frame) {return frame<bitmap_count(handle);});
+            if(!projected)projected=project_mcc_clock_illum_three_channel(original,source->second,native_stem,filename,payload,
+                [&](std::uint32_t address,std::size_t size) {
+                    return Bytes(storage_).slice(metadata_offset(address,size),size);
+                },[&](std::uint32_t handle)->const Tag* {return find_tag({handle});},
+                [&](std::uint32_t handle,std::uint32_t frame) {return frame<bitmap_count(handle);});
+            if(!projected)projected=project_mcc_world_default_roles(original,source->second,native_stem,filename,payload,
+                [&](std::uint32_t address,std::size_t size) {
+                    return Bytes(storage_).slice(metadata_offset(address,size),size);
+                },[&](std::uint32_t handle)->const Tag* {return find_tag({handle});},
+                [&](std::uint32_t handle,std::uint32_t frame) {return frame<bitmap_count(handle);},
+                [&](std::string_view name)->std::optional<MccWorldDefaultBitmap> {
+                    const auto* bitmap=query_tag({.group=tag_groups::bitmap,.name=std::string(name),.require_address=true});
+                    if(!bitmap)return {};
+                    return MccWorldDefaultBitmap{*bitmap,load_bitmap(bitmap->datum,0)};
+                });
+            if(!projected)continue;
+            const auto address=next_address();
+            if(address+projected->bytes.size()>0x100000000ull)
+                throw FormatError("Native world cooked allocation overflow");
+            for(const auto& [field,target]:projected->pointers)
+                word(projected->bytes,field,std::uint32_t(address+target));
+            storage_.resize(std::size_t(std::int64_t(address)-metadata_magic_));
+            storage_.insert(storage_.end(),projected->bytes.begin(),projected->bytes.end());
+            auto& owned=tags_.at(original.datum&0xffffu);
+            if(owned.datum!=original.datum)throw FormatError("Native world cooked full datum changed");
+            owned.address=std::uint32_t(address);owned.size=std::uint32_t(projected->bytes.size());
+            retained_tag_allocations_.push_back(original);
+            preserved_native_pointer_maps_.push_back({{owned.datum},owned.address,owned.size,std::move(projected->pointers)});
+            restored.insert(owned.datum);
+        }
+    }
     // The MCC-only grey instance uses the same retained HUD program as its
     // original red/green peers. Project its authenticated parameter metadata;
     // do not replace its authored constants, curves, or any shader program.
@@ -733,7 +906,7 @@ void Cache::initialize_mcc_native_shaders(const MccPreparedMapOwner* owner) {
             restored.insert(owned.datum);
         }
     }
-    // The PC-exclusive maps have authority for only the tiny HUD closure.
+    // PC maps retain their exact HUD and finite paired sky closures.
     // Keep their globals, world lighting and StringID bank unchanged.
     if(!hud_only) {
     const auto* globals=query_tag({.handle=globals_tag_.is_null()?std::nullopt:std::optional<TagHandle>{globals_tag_},.group=tag_groups::globals,.require_address=true});
@@ -765,6 +938,22 @@ void Cache::initialize_mcc_native_shaders(const MccPreparedMapOwner* owner) {
     vista_metadata_regions_=tag_metadata_regions(tags_,retained_regions);
     mcc_native_shaders_.resize(tags_.size());
     for(auto handle:restored)mcc_native_shaders_[handle&0xffffu]=true;
+    // Publish trusted labels only after every complete record, relocation,
+    // typed reference and native flag in the authenticated batch is installed.
+    std::map<std::uint32_t,ShaderSemanticOwner> staged_semantics;
+    for(const auto& [identity,semantic]:vehicle_semantics) {
+        const auto entry=identities.find(identity);
+        if(entry==identities.end() || !restored.contains(entry->second))
+            throw FormatError("Vehicle semantic label has no installed authenticated owner");
+        const auto& actual=tags_.at(entry->second&0xffffu);
+        if(actual.datum!=entry->second || actual.group!=identity.first || actual.name!=identity.second ||
+           !actual.address || !actual.size || !is_preserved_native_shader(actual) ||
+           !staged_semantics.emplace(actual.datum,ShaderSemanticOwner{actual.group,actual.name,semantic,
+               actual.address,actual.size}).second)
+            throw FormatError("Vehicle semantic label differs from its final native storage identity");
+    }
+    if(!shader_semantic_names_.empty())throw FormatError("Native shader semantic metadata was already published");
+    shader_semantic_names_.swap(staged_semantics);
     if(!hud_only)function_tables_=owned_tables;
 }
 }

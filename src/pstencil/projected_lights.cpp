@@ -119,7 +119,8 @@ const std::vector<std::string>& ProjectedLights::unavailable()const{return impl_
 ProjectedLightFrame ProjectedLights::draw(PhysicsLiveWorldTu15& world,const SourceEffectLightViewRecord& light,
     float selected_fade,const NativeLightReceiver& receiver,const NativeLightGeometry& geometry,
     const SourceViewProjectionBank& camera,Vec3 eye,std::array<std::int16_t,4> viewport,
-    std::array<std::uint32_t,2> surface,std::vector<PointCaster>& point_casters,std::uint32_t domain) {
+    std::array<std::uint32_t,2> surface,std::vector<PointCaster>& point_casters,std::uint32_t domain,
+    const std::array<ShaderVector,12>* submitting_constants) {
     auto& i=*impl_;const auto found=i.lights.find(light.definition_identity);
     if(found==i.lights.end())throw FormatError("Selected projected light has no admitted native material/gel owner");
     const auto& definition=found->second;
@@ -150,7 +151,7 @@ ProjectedLightFrame ProjectedLights::draw(PhysicsLiveWorldTu15& world,const Sour
     }
     const Vec3 origin{std::bit_cast<float>(shape.words[11]),std::bit_cast<float>(shape.words[12]),std::bit_cast<float>(shape.words[13])};
     MenuWorldSourceConstants constants{};
-    const auto bank=source_view_shader_bank(camera,1024.f,eye,
+    const auto bank=submitting_constants?*submitting_constants:source_view_shader_bank(camera,1024.f,eye,
         {float(viewport[1]),float(viewport[0]),float(viewport[3]-viewport[1]),float(viewport[2]-viewport[0])},false);
     std::copy(bank.begin(),bank.end(),constants.begin());
     auto stencil_light=light.runtime;stencil_light.position=origin;

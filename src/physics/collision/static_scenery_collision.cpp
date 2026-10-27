@@ -38,8 +38,9 @@ std::shared_ptr<const StaticSceneryCollisionDefinition> load_static_scenery_coll
     if(bsp.node!=0)throw FormatError("Fixed scenery collision refers to an unavailable WORLD node");
   return result;
 }
-std::vector<CollisionTriangle> model_collision_triangles(const ModelCollision&d,
-    std::span<const Transform>nodes,std::span<const std::uint8_t>permutations,std::size_t placement){
+namespace {
+template<class Emit>void visit_model_collision_triangles(const ModelCollision&d,
+    std::span<const Transform>nodes,std::span<const std::uint8_t>permutations,std::size_t placement,Emit emit){
   std::array<int,16> active;active.fill(-1);
   if(permutations.size()<d.model_regions.size()||d.regions.size()>16)
     throw FormatError("Authored collision selection bank unavailable");
@@ -48,7 +49,6 @@ std::vector<CollisionTriangle> model_collision_triangles(const ModelCollision&d,
     if(r.collision==255||p>=128||p>=r.permutations.size())continue;
     const auto selected=r.permutations[p];if(selected!=255)active.at(r.collision)=selected;
   }
-  std::vector<CollisionTriangle> result;
   for(unsigned r=0;r<d.regions.size();++r){
     if(active.at(r)<0)continue;
     const auto&bank=d.regions[r].at(unsigned(active[r]));
@@ -61,21 +61,37 @@ std::vector<CollisionTriangle> model_collision_triangles(const ModelCollision&d,
         Vec3 normal{(b[2].x*p.z+b[1].x*p.y)+b[0].x*p.x,
           (b[2].y*p.z+b[1].y*p.y)+b[0].y*p.x,(b[2].z*p.z+b[1].z*p.y)+b[0].z*p.x};
         normal=normal*(plane&0x8000?-1.f:1.f);
-        std::vector<Vec3> polygon;auto edge=s.first_edge;
-        do{const auto&e=bsp.edges.at(edge);const unsigned side=e.surfaces[0]==si?0:1;
-          if(e.surfaces[side]!=si||polygon.size()>bsp.edges.size())throw FormatError("Invalid authored collision edge cycle");
-          Transform local;local.position=bsp.vertices.at(e.vertices[side]);
-          polygon.push_back(compose_transform(matrix,local).position);edge=e.next[side];
-        }while(edge!=s.first_edge);
+        Vec3 first{},previous{};std::size_t vertices{};auto edge=s.first_edge;
         const auto material=d.materials.at(std::uint16_t(s.material)).global_material;
-        for(unsigned v=1;v+1<polygon.size();++v)
-          if(length(cross(polygon[v]-polygon[0],polygon[v+1]-polygon[0]))>1e-8f)
-            result.push_back({polygon[0],polygon[v],polygon[v+1],std::uint16_t(material),s.flags,
+        do{const auto&e=bsp.edges.at(edge);const unsigned side=e.surfaces[0]==si?0:1;
+          if(e.surfaces[side]!=si||vertices>bsp.edges.size())throw FormatError("Invalid authored collision edge cycle");
+          Transform local;local.position=bsp.vertices.at(e.vertices[side]);
+          const auto current=compose_transform(matrix,local).position;
+          if(vertices>=2 && length(cross(previous-first,current-first))>1e-8f)
+            emit(CollisionTriangle{first,previous,current,std::uint16_t(material),s.flags,
               {-1,int((r<<16)|(unsigned(active[r])<<8)|bi),int(si),int(placement),plane},normal});
+          if(!vertices)first=current;
+          previous=current;++vertices;edge=e.next[side];
+        }while(edge!=s.first_edge);
       }
     }
   }
+}
+}
+std::vector<CollisionTriangle> model_collision_triangles(const ModelCollision&d,
+    std::span<const Transform>nodes,std::span<const std::uint8_t>permutations,std::size_t placement){
+  std::vector<CollisionTriangle> result;
+  visit_model_collision_triangles(d,nodes,permutations,placement,[&](const auto &triangle){result.push_back(triangle);});
   return result;
+}
+std::size_t model_collision_triangle_count(const ModelCollision&d,
+    std::span<const Transform>nodes,std::span<const std::uint8_t>permutations,std::size_t maximum){
+  std::size_t count{};
+  visit_model_collision_triangles(d,nodes,permutations,0,[&](const auto &){
+    if(count==maximum)throw FormatError("Generated collision exceeds its admitted triangle budget");
+    ++count;
+  });
+  return count;
 }
 StaticSceneryCollision::StaticSceneryCollision(const LevelContent&content):content_(&content){}
 bool StaticSceneryCollision::synchronize(const SceneObjects&scene){

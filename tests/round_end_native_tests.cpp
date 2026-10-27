@@ -102,7 +102,7 @@ int main(int argc,char** argv)try {
         (*match.player(0).source_configuration)[0x7c]==0 &&
         match.player(0).source_lives_remaining==lives,"Native life match lost the actual menu-selected profile");
     LanHost host(match,0,0x15e440);const std::array<std::int8_t,1> membership{7};
-    LanClient peer("127.0.0.1:"+std::to_string(host.port()),0x15e440,1,
+    LanClient peer(host.join_address(),0x15e440,1,
         team?std::span<const std::int8_t>(membership):std::span<const std::int8_t>{});
     std::array<Controls,16> controls{};
     for(unsigned n=0;n<100 && !peer.ready();++n){peer.send(std::array<Controls,1>{});host.receive(controls);host.broadcast();peer.receive();}

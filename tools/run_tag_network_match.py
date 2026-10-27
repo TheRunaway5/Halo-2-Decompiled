@@ -48,11 +48,16 @@ def main():
     errors = []
     started = time.monotonic()
     deadline = started + args.timeout
+    host_join = None
     try:
         for role in ('host', 'client'):
             log = output / (role + '.log')
             stream = log.open('w')
             command = common + [role, str(output / role)]
+            if role == 'client':
+                if host_join is None:
+                    raise RuntimeError('Host did not publish its independently exchanged raw LAN key')
+                command.append(host_join)
             try:
                 process = subprocess.Popen(command, cwd=ROOT, stdout=stream, stderr=subprocess.STDOUT)
             except Exception:
@@ -62,12 +67,14 @@ def main():
             print(f'{role}: PID {process.pid}', flush=True)
             if role == 'host':
                 ready_deadline = min(deadline, time.monotonic() + 25)
-                while 'LAN host UDP port=29179' not in log.read_text():
+                while 'LAN join token: ' not in log.read_text():
                     if process.poll() is not None:
                         raise RuntimeError('Host exited before binding its UDP socket')
                     if time.monotonic() >= ready_deadline:
                         raise TimeoutError('Host did not bind its UDP socket within the startup deadline')
                     time.sleep(.1)
+                host_join = next(line.removeprefix('LAN join token: ').replace('HOST_ADDRESS', '127.0.0.1')
+                                 for line in log.read_text().splitlines() if line.startswith('LAN join token: '))
         for role, process, stream, command, log in children:
             status = process.wait(timeout=max(.01, deadline - time.monotonic()))
             stream.close()

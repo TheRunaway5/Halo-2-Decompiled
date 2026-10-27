@@ -8,7 +8,7 @@ from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
 from generate_physics_live_support_tu15 import generate,sha
 
 ENTRIES=(0x2f9d70,0x2f7480,0x2f6ca0,0x2e44d0,0x3040d0,0x303da0,0x303e20,0x303f80,0x304ac0,0x325d80,0x303ea0,0x303930,0x3039b0,0x303a30,0x2f4880,0x2f4580,0x2f3260,0x2f4690,0x2f3de0,0x2f3190,0x2f70d0,0x2ee660,0x2ebbe0,0x2ebc70,0x1ce2c0,0x2f1930,0x2f1590,0x2fc5d0,0x2fc3e0,0x2e46e0,0x2fc690,0x2fc150)
-ENTRIES=(*ENTRIES,0x304c90,0x2f4de0)
+ENTRIES=(*ENTRIES,0x304c90,0x2f4de0,0x2f5600)
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -39,6 +39,11 @@ def main():
     assert code.at(0x186965).bytes.hex()=='ff94828c210000'
     assert code.at(0x2f197a).operands[0].imm==0x2f1590
     assert code.at(0x2f7038).bytes.hex()=='ff94b18c110000'
+    # A late crouch release onto Turf's authored medical tent reaches this
+    # shape-pair slot. Preserve its complete original scoped collector and
+    # call into the existing 2F4DE0 owner, including the original SEH frame.
+    assert code.at(0x2f5644).bytes.hex()=='e897f7ffff'
+    assert image.read(0x2f5622,7).hex()=='c7042440ca4100'
     # Actual Flood Lab BSP3 actor settling reaches this shape-pair wrapper.
     # Keep its original collector/SEH frame and complete 2F4DE0 query owner.
     assert code.at(0x304cf3).bytes.hex()=='e8e800ffff'
@@ -49,7 +54,7 @@ def main():
     # wrapper and query body; never supply an intersection/collector result.
     assert code.at(0x2f6f28).bytes.hex()=='ff94b18c210000'
     assert code.at(0x2fc6da).operands[0].imm==0x2fc150
-    for entry,count in ((0x2fc690,24),(0x2fc150,187),(0x304c90,34),(0x2f4de0,248)):
+    for entry,count in ((0x2fc690,24),(0x2fc150,187),(0x304c90,34),(0x2f4de0,248),(0x2f5600,25)):
         body=_trace(code,entry,set(ENTRIES))
         assert len(body.code)==count and not body.tables
     sites,instructions,addresses,routines={},{},{},[]
@@ -82,8 +87,26 @@ def main():
     assert source.count(direct)==1
     source=source.replace(direct,indirect)
     source=source.replace('#include "halo2/source_collision_query_tu15.hpp"','#include "halo2/source_collision_query_tu15.hpp"\n#include "halo2/source_physics_entry_observation.hpp"')
+    source=source.replace('#include "halo2/source_collision_query_tu15.hpp"',
+        '#include "halo2/source_collision_query_tu15.hpp"\n#include "halo2/native_tu15_scoped_contact_query.hpp"')
+    public_entry='    constexpr auto image=SourcePhysicsContactImage::TitleUpdate15;'
+    assert source.count(public_entry)==1
+    source=source.replace(public_entry,
+        '    if(entry==0x2f5600u){native_tu15_scoped_contact_query(m,abi,fp,services,observe);return;}\n'+public_entry)
+    # The complete recovered wrapper authenticates the native contract above;
+    # production contains no lifted fallback for this entry, even internally.
+    start=source.index('static void run_2f5600(WorldState &s) {')
+    end=source.index('static void run_',start+1)
+    source=source[:start]+source[end:]
+    source=source.replace('static void run_2f5600(WorldState &);\n','')
+    source=source.replace('case 0x2f5600u:run_2f5600(s);return;',
+        'case 0x2f5600u:{auto abi=s.save();native_tu15_scoped_contact_query(s.memory,abi,abi.floating_point.value(),s.services,s.observe);s.load(abi);return;}')
+    source=source.replace('case 0x2f5600u:run_2f5600(s);break;\n','')
     source=source.replace('LiveState s{m,observe,services,image};s.load(abi);','LiveState s{m,observe,services,image};s.load(abi);\n    SourcePhysicsEntryObservation diagnostic(m,entry,[&]{return s.save();});')
     temporary=a.output.with_name(a.output.name+'.tmp');temporary.write_text(source);os.replace(temporary,a.output)
     report=json.loads((a.directory/'generation.json').read_text());report['generated_cpp_sha256']=sha(a.output)
+    native=Path(__file__).resolve().parents[1]/'src/physics/collision/native_tu15_scoped_contact_query.cpp'
+    report.update(native_semantic_entries=[0x2f5600],native_semantic_source_sha256=sha(native),
+        native_semantic_residual_queries=[0x2f4de0],full_native_physics_closure=False)
     (a.directory/'generation.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
 if __name__=='__main__':main()

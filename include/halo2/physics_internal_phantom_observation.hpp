@@ -8,12 +8,16 @@ namespace halo2 {
 // module. A static original child call does not cross required_owner.
 // Registration is tied to its actual memory owner and executor thread.
 using SourceInternalPhantomObserver=std::function<void(bool,const SourcePhysicsWorldRuntimeAbi &)>;
-inline thread_local std::map<const SourcePhysicsContactMemory *,SourceInternalPhantomObserver>
-    source_internal_phantom_observers;
+// Function-local TLS preserves one registry per thread across translation
+// units without MinGW namespace-scope TLS initializer aliases.
+inline std::map<const SourcePhysicsContactMemory *,SourceInternalPhantomObserver>& source_internal_phantom_observers() {
+    static thread_local std::map<const SourcePhysicsContactMemory *,SourceInternalPhantomObserver> value;
+    return value;
+}
 inline void source_bind_internal_phantom_observer(const SourcePhysicsContactMemory &memory,
                                                   SourceInternalPhantomObserver observer) {
-    if(observer)source_internal_phantom_observers.insert_or_assign(&memory,std::move(observer));
-    else source_internal_phantom_observers.erase(&memory);
+    if(observer)source_internal_phantom_observers().insert_or_assign(&memory,std::move(observer));
+    else source_internal_phantom_observers().erase(&memory);
 }
 class SourceInternalPhantomObservation {
     SourceInternalPhantomObserver observer_;
@@ -22,8 +26,8 @@ class SourceInternalPhantomObservation {
 public:
     SourceInternalPhantomObservation(const SourcePhysicsContactMemory &memory,
                                     std::function<SourcePhysicsWorldRuntimeAbi()> state) {
-        const auto found=source_internal_phantom_observers.find(&memory);
-        if(found==source_internal_phantom_observers.end())return;
+        const auto found=source_internal_phantom_observers().find(&memory);
+        if(found==source_internal_phantom_observers().end())return;
         observer_=found->second;state_=std::move(state);observer_(true,state_());
     }
     ~SourceInternalPhantomObservation() noexcept(false) {

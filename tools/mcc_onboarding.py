@@ -95,6 +95,15 @@ def private_cache(root, cache, *, verify=False, source=None, progress=print):
                 raise FormatError("The installed MCC content changed during verification")
         from mcc_native_map_owner_publication import verify_owner_index
         verify_owner_index(cache, report)
+        if 'custom_ui_assets' in report:
+            from custom_ui_assets import verify as verify_custom_ui
+            verify_custom_ui(cache, report['custom_ui_assets'])
+        if 'bundled_custom_maps' in report:
+            from custom_map_assets import verify as verify_custom_maps
+            verify_custom_maps(cache, report)
+        if report.get('h2ek_loading_ambience', {}).get('complete') is True:
+            from h2ek_loading_ambience import verify as verify_h2ek_ambience
+            verify_h2ek_ambience(cache, report['h2ek_loading_ambience'])
     return cache, report
 
 
@@ -116,6 +125,11 @@ def selected(root):
 def select(root, cache, *, verify=True, progress=print):
     root = Path(root).resolve()
     cache, report = private_cache(root, cache, verify=verify, progress=progress)
+    from custom_map_assets import compatible as custom_maps_compatible
+    if not custom_maps_compatible(root, cache, report):
+        raise FormatError("The selected cache needs the bundled custom maps; run MCC setup to prepare a fresh cache. Existing files were retained.")
+    from custom_ui_assets import repair as repair_custom_ui
+    cache, report = repair_custom_ui(root, cache, progress=progress)
     from native_variant_assets import install as install_variants
     install_variants(root, cache, progress=progress)
     install_variants(root, root, progress=progress)
@@ -480,6 +494,8 @@ def _needs_graphics_reimport(root, report):
     from mcc_bitmap_correction_bundle_v4 import BUNDLE_V4, MAP_NAME as SACRED_ICON_MAP, PROFILES_V4
     from mcc_bitmap_correction_bundle_v5 import BUNDLE_V5, MAP_NAME as ELONGATION_MAP, PROFILES_V5
     from mcc_bitmap_correction_bundle_v6 import BUNDLE_V6, OWNERS_V6, PROFILES_V6
+    from mcc_bitmap_correction_bundle_v7 import BUNDLE_V7, read_v7, profiles_for_map_v7
+    from mcc_decal_bitmap_corrections import BUNDLE as DECAL_BUNDLE, read_bundle as read_decals, profiles_for_map as decal_profiles
     if not all((root / path).is_file() for path in (BUNDLE_V2, BUNDLE_V3)):
         return False
     graphics = report.get("graphics_corrections", {})
@@ -487,14 +503,33 @@ def _needs_graphics_reimport(root, report):
         return True
     sources = [("zanzibar.map", PROFILES_V2), (MAP_NAME, PROFILES_V3)]
     has_v4 = (root / BUNDLE_V4).is_file()
-    minimum = 6 if (root / BUNDLE_V6).is_file() else 5 if (root / BUNDLE_V5).is_file() else 4 if has_v4 else 3
-    for version in (3, 4, 5, 6):
+    has_v7 = (root / BUNDLE_V7).is_file()
+    minimum = 7 if has_v7 else 6 if (root / BUNDLE_V6).is_file() else 5 if (root / BUNDLE_V5).is_file() else 4 if has_v4 else 3
+    decal_sources = []
+    if (root / DECAL_BUNDLE).is_file():
+        path, manifest, _ = read_decals(root)
+        decal_sources = [(name, decal_profiles(root, name))
+                         for name in dict.fromkeys(o["map"] for o in manifest["owners"])]
+        expected_decals = [dict(map=name, tag=p["tag"], restored_mips=p["mip_count"],
+                               format=p["format"], target_sha256=p["target_sha256"])
+                           for name, profiles in decal_sources for p in profiles]
+        receipt = graphics.get("decal_bitmap_corrections", {})
+        if (not isinstance(receipt, dict) or receipt.get("schema") != manifest["schema"] or
+                receipt.get("manifest_sha256") != file_sha(path.with_suffix("")) or
+                receipt.get("profiles") != expected_decals or
+                receipt.get("restored_mips") != sum(p["restored_mips"] for p in expected_decals)):
+            return True
+    for version in (3, 4, 5, 6, 7):
         if version == 4 and (has_v4 or minimum < 5):
             sources.append((SACRED_ICON_MAP, PROFILES_V4))
         if version == 5:
             sources.append((ELONGATION_MAP, PROFILES_V5))
         if version == 6:
             sources.extend((owner["map"], PROFILES_V6) for owner in OWNERS_V6)
+        if version == 7 and has_v7:
+            _, manifest, _ = read_v7(root)
+            sources.extend((name, profiles_for_map_v7(root, name))
+                           for name in dict.fromkeys(owner["map"] for owner in manifest["owners"]))
         if version < minimum:
             continue
         expected = [dict(map=name, tag=p["tag"], restored_mips=p["mip_count"],
@@ -537,6 +572,14 @@ def setup(root, mcc_source=None, *, progress=print):
         if not mcc_presentation.compatible(report, presentation):
             progress("Existing MCC loading presentation belongs to a different runtime family; preserving it and preparing a separate cache.")
             continue
+        from mcc_loading_assets import compatible as loading_sources_compatible
+        if not loading_sources_compatible(root, cache, report):
+            progress("Existing MCC cache needs the complete loading-image inventory; preparing a fresh private import. The previous cache is preserved.")
+            continue
+        from custom_map_assets import compatible as custom_maps_compatible
+        if not custom_maps_compatible(root, cache, report):
+            progress("Existing MCC cache predates the bundled custom maps; preparing a fresh private import. The previous cache is preserved.")
+            continue
         # Older imports did not have a portable material library. Repair those
         # when this installation includes one; no MCC bytes need re-copying.
         from native_shader_bundle import BUNDLE
@@ -548,6 +591,8 @@ def setup(root, mcc_source=None, *, progress=print):
         cache, report = mcc_presentation.repair(root, cache, source, presentation, progress=progress)
         from controller_prompt_assets import repair as repair_controller_prompts
         cache, report = repair_controller_prompts(root,cache,progress=progress)
+        from h2ek_loading_ambience import repair as repair_h2ek_ambience
+        cache, report = repair_h2ek_ambience(root, cache, progress=progress)
         mcc_presentation.recheck(presentation)
         return select(root, cache, verify=False, progress=progress)
     cache, report = prepare(root, source, progress=progress, presentation=presentation)

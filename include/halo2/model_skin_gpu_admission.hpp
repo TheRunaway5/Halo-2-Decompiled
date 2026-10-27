@@ -2,6 +2,8 @@
 #include "halo2/model.hpp"
 #include <algorithm>
 #include <bit>
+#include <cstdint>
+#include <vector>
 #if defined(__x86_64__) || defined(_M_X64)
 #include <xmmintrin.h>
 #endif
@@ -114,6 +116,108 @@ inline bool model_skin_gpu_arithmetic_admitted(std::span<const Vertex> vertices,
             model_skin_admission_detail::absolute_bits(v.position.y) ||
             model_skin_admission_detail::absolute_bits(v.position.z)) &&
            translation_exponent+weight_exponent-23<-126)return false;
+    }
+    return true;
+}
+// The palette-independent part of model_skin_gpu_arithmetic_admitted, built
+// once per immutable vertex/binding bank: every attribute and weight gate,
+// and the per-vertex exponents the per-frame palette check combines with.
+// model_skin_gpu_arithmetic_admitted(summary,palette) decides exactly as the
+// full predicate over the same vertices, bindings and palette.
+struct ModelSkinAdmissionStatic {
+    struct VertexSummary {
+        int attribute_exponent=128,weight_exponent=128;
+        std::int8_t last=-1;std::uint8_t nonzero=0;
+        bool position_nonzero=false;
+        std::array<std::uint16_t,4> bones{};
+        std::array<bool,4> contributes{};
+    };
+    // A size mismatch or any vertex failing a palette-independent gate: the
+    // full predicate returns false for every palette.
+    bool rejected=false;
+    std::vector<VertexSummary> vertices;
+};
+inline ModelSkinAdmissionStatic model_skin_gpu_admission_static(std::span<const Vertex> vertices,
+    std::span<const SkinBinding> bindings) {
+    ModelSkinAdmissionStatic out;
+    if(vertices.size()!=bindings.size()){out.rejected=true;return out;}
+    constexpr int absent=128;
+    out.vertices.resize(vertices.size());
+    for(std::size_t i=0;i<vertices.size();++i) {
+        const auto &v=vertices[i];auto &summary=out.vertices[i];
+        for(const auto *attribute:{&v.position,&v.normal,&v.tangent,&v.binormal})
+            for(auto value:{attribute->x,attribute->y,attribute->z}) {
+                const auto bits=model_skin_admission_detail::absolute_bits(value);
+                if(!model_skin_admission_detail::normal_bounded(bits,0x49800000u)){out.rejected=true;return out;}
+                if(bits)summary.attribute_exponent=std::min(summary.attribute_exponent,model_skin_admission_detail::exponent(bits));
+            }
+        for(unsigned j=0;j<4;++j) {
+            const auto bits=model_skin_admission_detail::absolute_bits(bindings[i].weights[j]);
+            if(!model_skin_admission_detail::normal_bounded(bits,0x3f800000u)){out.rejected=true;return out;}
+            summary.bones[j]=bindings[i].bones[j];summary.contributes[j]=bits!=0;
+            if(bits) {
+                summary.last=std::int8_t(j);++summary.nonzero;
+                summary.weight_exponent=std::min(summary.weight_exponent,model_skin_admission_detail::exponent(bits));
+            }
+        }
+        summary.position_nonzero=model_skin_admission_detail::absolute_bits(v.position.x) ||
+            model_skin_admission_detail::absolute_bits(v.position.y) ||
+            model_skin_admission_detail::absolute_bits(v.position.z);
+        (void)absent;
+    }
+    return out;
+}
+inline bool model_skin_gpu_arithmetic_admitted(const ModelSkinAdmissionStatic &summary,
+    std::span<const std::array<float,12>> palette)noexcept {
+    if(summary.rejected)return false;
+    constexpr int absent=128;
+    struct RowSummary {int coefficient_exponent,translation_exponent;bool normal_valid;};
+    std::array<RowSummary,256> summaries;
+    const bool summarized=palette.size()<=summaries.size();
+    for(std::size_t row_index=0;row_index<palette.size();++row_index) {
+        if(summarized) {
+            auto &row=summaries[row_index];row={absent,absent,true};
+            for(unsigned k=0;k<12;++k) {
+                const auto bits=model_skin_admission_detail::absolute_bits(palette[row_index][k]);
+                if(bits>0x49800000u)return false;
+                if(!model_skin_admission_detail::normal_bounded(bits,0x49800000u))row.normal_valid=false;
+                if(bits>=0x00800000u) {
+                    const auto exponent=model_skin_admission_detail::exponent(bits);
+                    row.coefficient_exponent=std::min(row.coefficient_exponent,exponent);
+                    if(k%4==3)row.translation_exponent=std::min(row.translation_exponent,exponent);
+                }
+            }
+        } else for(auto value:palette[row_index])
+            if(!model_skin_admission_detail::finite_bounded(value,0x49800000u))return false;
+    }
+    for(const auto &v:summary.vertices) {
+        if(v.last<0)continue;
+        int palette_exponent=absent,translation_exponent=absent;
+        for(int j=v.last;j>=0;--j) {
+            const auto bone=v.bones[unsigned(j)];if(bone>=palette.size())return false;
+            const bool contributes=v.contributes[unsigned(j)];
+            if(summarized) {
+                const auto &row=summaries[bone];
+                if(!row.normal_valid)return false;
+                if(contributes) {
+                    palette_exponent=std::min(palette_exponent,row.coefficient_exponent);
+                    translation_exponent=std::min(translation_exponent,row.translation_exponent);
+                }
+            } else for(unsigned k=0;k<12;++k) {
+                const auto bits=model_skin_admission_detail::absolute_bits(palette[bone][k]);
+                if(!model_skin_admission_detail::normal_bounded(bits,0x49800000u))return false;
+                if(contributes && bits) {
+                    palette_exponent=std::min(palette_exponent,model_skin_admission_detail::exponent(bits));
+                    if(k%4==3)translation_exponent=std::min(translation_exponent,model_skin_admission_detail::exponent(bits));
+                }
+            }
+        }
+        if(palette_exponent==absent)continue;
+        const auto blend_exponent=palette_exponent+v.weight_exponent-(v.nonzero>1?23:0);
+        if(blend_exponent<-126 ||
+           (v.attribute_exponent!=absent && blend_exponent+v.attribute_exponent-23<-126))return false;
+        if(v.nonzero==1 && translation_exponent!=absent && v.position_nonzero &&
+           translation_exponent+v.weight_exponent-23<-126)return false;
     }
     return true;
 }

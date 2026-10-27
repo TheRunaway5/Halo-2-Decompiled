@@ -1,0 +1,357 @@
+{
+  "schema": "H2_MCC_NATIVE_WORLD_BITMAP_OWNER_V1",
+  "scope": "Exact missing Zanzibar granite bump owner; reuses the fingerprinted identical MCC resource; original maps remain offline references",
+  "tag": "scenarios\\objects\\nature\\boulders\\granite\\bitmaps\\granite_bump",
+  "target": {
+    "map": "zanzibar.map",
+    "prepared_map_sha256": "2751a31d21e01ff516f4a4300602e101579a7df59364716e884f8f7c28bfa080",
+    "directory_count": 23131,
+    "shader": {
+      "group": "shad",
+      "name": "scenarios\\shaders\\multi\\zanzibar\\zanzibar_cliff1",
+      "bytes": 936,
+      "payload": "8683ce527b11ad3a122acbd35b84750528700e163d9b86c31281a89f12cfed24.bin",
+      "fnv64": "324764a0cbc7742d",
+      "pointers": [
+        [
+          16,
+          84
+        ],
+        [
+          36,
+          164
+        ],
+        [
+          48,
+          820
+        ],
+        [
+          172,
+          288
+        ],
+        [
+          180,
+          348
+        ],
+        [
+          188,
+          364
+        ],
+        [
+          196,
+          864
+        ],
+        [
+          204,
+          492
+        ],
+        [
+          212,
+          544
+        ],
+        [
+          220,
+          560
+        ],
+        [
+          260,
+          880
+        ],
+        [
+          268,
+          912
+        ],
+        [
+          276,
+          912
+        ]
+      ],
+      "references": [
+        [
+          4,
+          [
+            "stem",
+            "shaders\\shader_templates\\opaque\\tex_bump_detail_keep_blend"
+          ]
+        ],
+        [
+          88,
+          [
+            "bitm",
+            "scenarios\\bitmaps\\multi\\zanzibar\\zanzibar_cliff"
+          ]
+        ],
+        [
+          164,
+          [
+            "stem",
+            "shaders\\shader_templates\\opaque\\tex_bump_detail_keep_blend"
+          ]
+        ],
+        [
+          288,
+          [
+            "bitm",
+            "scenarios\\objects\\nature\\boulders\\granite\\bitmaps\\granite_bump"
+          ]
+        ],
+        [
+          300,
+          [
+            "bitm",
+            "scenarios\\bitmaps\\multi\\zanzibar\\zanzibar_cliff"
+          ]
+        ],
+        [
+          312,
+          [
+            "bitm",
+            "scenarios\\bitmaps\\detail_maps\\nature\\rock\\slate"
+          ]
+        ],
+        [
+          324,
+          [
+            "bitm",
+            "scenarios\\bitmaps\\nature\\ground\\weeds"
+          ]
+        ],
+        [
+          336,
+          [
+            "bitm",
+            "rasterizer\\linear_corner_fade"
+          ]
+        ],
+        [
+          824,
+          [
+            "bitm",
+            "scenarios\\objects\\nature\\boulders\\granite\\bitmaps\\granite_bump"
+          ]
+        ],
+        [
+          832,
+          [
+            "bitm",
+            "scenarios\\bitmaps\\multi\\zanzibar\\zanzibar_cliff"
+          ]
+        ],
+        [
+          840,
+          [
+            "bitm",
+            "scenarios\\bitmaps\\detail_maps\\nature\\rock\\slate"
+          ]
+        ],
+        [
+          848,
+          [
+            "bitm",
+            "scenarios\\bitmaps\\nature\\ground\\weeds"
+          ]
+        ],
+        [
+          856,
+          [
+            "bitm",
+            "rasterizer\\linear_corner_fade"
+          ]
+        ]
+      ],
+      "strings": [
+        [
+          8,
+          "hard_terrain_stone"
+        ]
+      ]
+    }
+  },
+  "donor": {
+    "map": "ascension.map",
+    "map_sha256": "04cb69156ed247e12e55e46cbf2364ce4dfdde8b1d7bf29c902f5ed0839464e9",
+    "datum": 3786932254,
+    "address": 52894240,
+    "tag_size": 248,
+    "metadata_sha256": "875861b31a2cc6f4a3dd24931e7435fe6f393598d1867bdd8d28f05a3524c427",
+    "metadata_hex": "00000400020010000000000000000000cdcc4c420000000000010001f7ed000000000000000000000000000000000000000000000000000000000000000000000000000001000000701a2703000000006d74696200010001010000000b0001020000000008000000000000001e00b8e100000000000000000000000000000000000000000000000080053b0c0000000000000000ffffffffffffffffffffffff2b370300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "partition_pointer": 205194624,
+    "partition_bytes": 210731,
+    "raw_resource_sha256": "9dc9c6e2bda50a2006be7a56d863d110dbe102464f4a788975fa9094251fbf25"
+  },
+  "original": {
+    "address": 2153994532,
+    "datum": 4105704242,
+    "depth": 0,
+    "format": 11,
+    "height": 256,
+    "layers": 1,
+    "mcc": false,
+    "metadata_hex": "00000400020010000000000000000000cdcc4c420000000000010001f7ed000000000000000000000000000000000000000000000000000000000000000000000000000001000000705963806d746962000100010100000011000d128000800008002205000000000098590200425902002c5902ffffffffffffffffffffffff8055010080550000801500000000000000000000000000003213b8f400000000000000000000a04000000000807b0200800000000e0008000800010000000000",
+    "metadata_sha256": "09cca54832c9c52fd930c1973da245788b85e6f665a0b6cf8236df24d6f97558",
+    "mips": [
+      {
+        "depth": 1,
+        "height": 256,
+        "offset": 0,
+        "sha256": "6bddef8c74ed6e7449ed1425a9dbe68252e067342308b52403e4f30f5db0221b",
+        "size": 262144,
+        "width": 256
+      },
+      {
+        "depth": 1,
+        "height": 128,
+        "offset": 262144,
+        "sha256": "46d9b776e256b8205ee5f7c65aa0695dec5bb9ba0f6d554383e299b1b45ca853",
+        "size": 65536,
+        "width": 128
+      },
+      {
+        "depth": 1,
+        "height": 64,
+        "offset": 327680,
+        "sha256": "d0bb9a1f063c9b6b28fccaae8d89d6fb3d2eb7b79e5b4f96e598ceaf94bbb26d",
+        "size": 16384,
+        "width": 64
+      },
+      {
+        "depth": 1,
+        "height": 32,
+        "offset": 344064,
+        "sha256": "41583379beeb8c8fc9a4361758391bfc35c2e3a372ec9e474c0849d888ed6dc9",
+        "size": 4096,
+        "width": 32
+      },
+      {
+        "depth": 1,
+        "height": 16,
+        "offset": 348160,
+        "sha256": "b8371a4164696eb301d6f6c295bc683bea48ffe572e203a2c8b95c826619899b",
+        "size": 1024,
+        "width": 16
+      },
+      {
+        "depth": 1,
+        "height": 8,
+        "offset": 349184,
+        "sha256": "184a0e219fec729705c0447f9c68e990b9eff90a450010df047ab2b17340e953",
+        "size": 256,
+        "width": 8
+      },
+      {
+        "depth": 1,
+        "height": 4,
+        "offset": 349440,
+        "sha256": "770715e45e90adbae4d5af9a196f24ac2081e50b5debefeb7ab3cd152f249e74",
+        "size": 64,
+        "width": 4
+      },
+      {
+        "depth": 1,
+        "height": 2,
+        "offset": 349504,
+        "sha256": "d24ef7993b6b2b8365793ad54ef0e0eba80d428c340de27f664fc993f50e90f3",
+        "size": 16,
+        "width": 2
+      },
+      {
+        "depth": 1,
+        "height": 1,
+        "offset": 349520,
+        "sha256": "7d3637f853b2bd5a74fcb24776369cb407f4588675dcc5a32165bf6994a32c9b",
+        "size": 4,
+        "width": 1
+      }
+    ],
+    "pixel_bytes": 349524,
+    "pixels_sha256": "b5c2bb471f66530077a63e42692ecc3b695862f3419916f71b6c4186a875b938",
+    "tag_bytes": 192,
+    "width": 256
+  },
+  "original_map": {
+    "map": "zanzibar.map",
+    "sha256": "2000bfc26fa38929e3ae8792618465ca5a60cc6bbeb753426e9d3a99954bdafb"
+  },
+  "pixels": {
+    "encoding": "rgba8",
+    "width": 256,
+    "height": 256,
+    "format": 11,
+    "bytes": 349524,
+    "sha256": "b5c2bb471f66530077a63e42692ecc3b695862f3419916f71b6c4186a875b938",
+    "mips": [
+      {
+        "depth": 1,
+        "height": 256,
+        "offset": 0,
+        "sha256": "6bddef8c74ed6e7449ed1425a9dbe68252e067342308b52403e4f30f5db0221b",
+        "size": 262144,
+        "width": 256
+      },
+      {
+        "depth": 1,
+        "height": 128,
+        "offset": 262144,
+        "sha256": "46d9b776e256b8205ee5f7c65aa0695dec5bb9ba0f6d554383e299b1b45ca853",
+        "size": 65536,
+        "width": 128
+      },
+      {
+        "depth": 1,
+        "height": 64,
+        "offset": 327680,
+        "sha256": "d0bb9a1f063c9b6b28fccaae8d89d6fb3d2eb7b79e5b4f96e598ceaf94bbb26d",
+        "size": 16384,
+        "width": 64
+      },
+      {
+        "depth": 1,
+        "height": 32,
+        "offset": 344064,
+        "sha256": "41583379beeb8c8fc9a4361758391bfc35c2e3a372ec9e474c0849d888ed6dc9",
+        "size": 4096,
+        "width": 32
+      },
+      {
+        "depth": 1,
+        "height": 16,
+        "offset": 348160,
+        "sha256": "b8371a4164696eb301d6f6c295bc683bea48ffe572e203a2c8b95c826619899b",
+        "size": 1024,
+        "width": 16
+      },
+      {
+        "depth": 1,
+        "height": 8,
+        "offset": 349184,
+        "sha256": "184a0e219fec729705c0447f9c68e990b9eff90a450010df047ab2b17340e953",
+        "size": 256,
+        "width": 8
+      },
+      {
+        "depth": 1,
+        "height": 4,
+        "offset": 349440,
+        "sha256": "770715e45e90adbae4d5af9a196f24ac2081e50b5debefeb7ab3cd152f249e74",
+        "size": 64,
+        "width": 4
+      },
+      {
+        "depth": 1,
+        "height": 2,
+        "offset": 349504,
+        "sha256": "d24ef7993b6b2b8365793ad54ef0e0eba80d428c340de27f664fc993f50e90f3",
+        "size": 16,
+        "width": 2
+      },
+      {
+        "depth": 1,
+        "height": 1,
+        "offset": 349520,
+        "sha256": "7d3637f853b2bd5a74fcb24776369cb407f4588675dcc5a32165bf6994a32c9b",
+        "size": 4,
+        "width": 1
+      }
+    ]
+  }
+}

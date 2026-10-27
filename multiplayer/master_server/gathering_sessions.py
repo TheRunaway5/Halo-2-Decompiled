@@ -138,6 +138,11 @@ class GatheringSessions:
             return len(sizes) == 2
         if not policy.team_size:
             return True
+        if policy.team_count>2:
+            from .team_balance import can_add
+            parties=[index for index,size in enumerate(sizes) for _ in range(size)]
+            return any(can_add(policy.team_count,policy.team_size,parties,use_parties=preserve)
+                       for preserve in (True,False))
         # Keep every admitted party intact. A partial gathering must still fit
         # two teams; requiring a complete central subset here would recreate
         # the old assembly-before-selection behavior.

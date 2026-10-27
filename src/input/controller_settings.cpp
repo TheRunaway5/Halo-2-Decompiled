@@ -95,6 +95,9 @@ ControllerInput controller_input(const ControllerSample &s,
   r.switch_grenade = down(11);
   r.accept = down(12);
   r.cancel = down(13);
+  // TU1.5 127710 publishes Back at processed+1D; 15E70D reads its
+  // held counter directly, independently of the gameplay button preset.
+  r.scoreboard = down(7);
   return r;
 }
 void controller_look(const ControllerInput &input,

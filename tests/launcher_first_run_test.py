@@ -13,6 +13,7 @@ import sys
 import tempfile
 import unittest
 import zipfile
+from helpers.native_renderer_admission_fixture import install_renderer_admission_fixture
 
 REPO = Path(__file__).resolve().parents[1]
 LAUNCHER = Path(sys.argv.pop(1)).resolve()
@@ -56,6 +57,7 @@ raise SystemExit(int(os.environ.get('H2_TEST_SHADER_REPAIR_STATUS','0')))
         self.environment = {**os.environ, 'SDL_VIDEODRIVER': 'dummy', 'SDL_AUDIODRIVER': 'dummy'}
         self.environment.pop('DISPLAY', None)
         self.environment.pop('WAYLAND_DISPLAY', None)
+        install_renderer_admission_fixture(REPO, self.root/'tools/native_renderer_shaders.py')
 
     def run_launcher(self, *arguments):
         return subprocess.run([str(self.launcher), *arguments], cwd=self.temporary.name,
@@ -115,6 +117,21 @@ pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], 
         binary.chmod(0o755)
         return binary
 
+    def test_unselected_runtime_requires_a_successful_native_package_verifier(self):
+        self.ready_assets()
+        binary = self.runtime()
+        result = self.run_launcher('--launcher-info')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = self.call('renderer-admission')
+        self.assertIn('--verify-aot-package', argv)
+        self.assertEqual(argv[argv.index('--executable')+1], str(binary))
+        self.assertEqual(argv[argv.index('--directory')+1], str(binary.parent/'shaders'))
+        (self.root/'reject-renderer-admission').touch()
+        result = self.run_launcher('--launcher-info')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Runtime: not built', result.stdout)
+        self.assertFalse((self.root/'runtime-call.json').exists())
+
     def legacy_registries(self):
         (self.root / 'assets').mkdir(exist_ok=True)
         for name in ('asset-sources', 'gameplay-source', 'hud-source', 'menu-source', 'loading-source'):
@@ -142,7 +159,7 @@ pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], 
                       validation=dict(passed=True, scope='mcc-lockout-native-gameplay-test', report_sha256='1' * 64))
         binary.with_name(binary.name + '.native-test.json').write_text(json.dumps(report))
         for name in ('native_gameplay_test.py', 'frontend_runtime_selection.py', 'packaged_shader_defaults.py',
-                     'native_renderer_shaders.py'):
+                     ):
             shutil.copy2(REPO / 'tools' / name, self.root / 'tools' / name)
         return binary
 

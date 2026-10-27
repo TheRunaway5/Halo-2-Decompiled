@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <memory>
+#include <map>
 #include <optional>
 #include <span>
 #include <stdexcept>
@@ -83,6 +84,7 @@ struct SourcePrtDefinition;
 struct SourcePrtLighting;
 struct SourcePrtVertex;
 struct BspSurfaceLighting;
+struct SourceDecoratorDecalBspTu15;
 struct OriginalData;
 struct FirstPersonBindingDefinition;
 struct ModelCollision;
@@ -215,7 +217,7 @@ struct Material {
     bool light_volume_pass{}; // Procedural 4FE20 glow; no material-template pass/remaps.
     std::uint32_t forward_pass_index = 0xffffffffu;
     unsigned forward_vertex{}; // 1: transparent; 2: emissive; 3: texture; 4: environment; 5: planar fog; 6: world lighting; 7/8: water; 9: PRT; 10: shadow; 11: projected decal; 12: immediate world RGBA11.
-    unsigned forward_blend{}; // 1: alpha; 2: premultiplied; 3: additive; 5: constant white RGB/zero alpha; 10: sphere RGB additive/alpha replace; 12: component max.
+    unsigned forward_blend{}; // 1: alpha; 2: premultiplied; 3: additive; 5: constant white RGB/zero alpha; 10: sphere RGB additive/alpha replace; 12: component max; 18: SRC_ALPHA/ONE.
     std::uint32_t forward_blend_color{}; // Original dynamic state75, ARGB bytes.
     ForwardRasterState forward_raster;
     PixelProgram forward_program;
@@ -240,6 +242,9 @@ struct Material {
     std::array<std::shared_ptr<Material>,3> world_planar_passes;
     bool water_reflection_texture{},water_refraction_texture{},water_pass{};
     bool scope_texture{}; // Original texture extern27, target16 during first person.
+    // Live original extern18. The renderer requires an actual frame/target
+    // capability and chooses default2D only for the original recursive/no-target branch.
+    bool texture_camera_texture{};
     bool camouflage_scene_texture{}; // Original extern17 at stage2 of layer18; produced target19.
     bool camouflage_group_pass{}; // Submitted only inside the source camouflage group.
     int water_definition=-1;
@@ -398,6 +403,9 @@ public:
     const Tag* query_tag(TagQuery) const;
     TagRange select_tags(TagQuery query = {}) const { return {tags_, query}; }
     const Tag& tag_at_index(std::size_t) const;
+    // Canonical authored label for an authenticated native storage identity.
+    // Exact lookups and references keep Tag.name; vertex program names remain storage keys.
+    const std::string& shader_semantic_name(const Tag&) const;
     // Borrowed resident bytes, with source-address conversion in one place.
     std::span<const std::byte> read_tag_bytes(std::uint32_t address, std::size_t size) const;
     std::span<const std::byte> tag_payload(TagHandle) const;
@@ -460,7 +468,9 @@ public:
     std::optional<std::vector<SourcePrtVertex>> load_source_prt_vertex_stream(
         std::uint32_t render_model,unsigned source_lod,unsigned section) const;
     std::optional<Texture> load_object_surface_texture(std::uint32_t shader) const;
-    Material load_material(std::uint32_t shader, bool hud = false) const;
+    // Offline shader compilation can request complete program/pass metadata
+    // without decoding texture images or preparing drawable adapters.
+    Material load_material(std::uint32_t shader, bool hud = false, bool load_images = true) const;
     // Original King2BE670 follows matg+16C/mulg runtime+534 settings pointer
     // and reads settings+C4. No tag-name or variant-name selection.
     std::uint32_t load_multiplayer_hill_shader() const;
@@ -572,6 +582,7 @@ public:
     std::vector<PredictedResource> model_bitmap_resources(std::uint32_t datum) const;
     std::vector<PredictedResource> object_resources(std::uint32_t datum) const;
     std::vector<std::vector<std::byte>> load_bsp_resources(std::size_t index) const;
+    SourceDecoratorDecalBspTu15 load_source_decorator_decals_tu15(std::size_t index) const;
     AnimationClip load_animation(std::uint32_t datum, unsigned animation) const;
     AnimationClip load_animation_identifier(std::uint32_t graph,std::uint32_t packed) const;
     // Complete animation lookup can read from an admitted immutable resource
@@ -714,5 +725,10 @@ private:
     BspLighting load_bsp_lighting(const Bytes& metadata, std::int64_t magic) const;
     std::vector<Tag> retained_tag_allocations_;
     std::vector<PreservedNativePointerMap> preserved_native_pointer_maps_;
+    struct ShaderSemanticOwner {
+        std::string group,storage_name,semantic_name;
+        std::uint32_t address{},bytes{};
+    };
+    std::map<std::uint32_t,ShaderSemanticOwner> shader_semantic_names_;
 };
 } // namespace halo2

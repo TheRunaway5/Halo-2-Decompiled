@@ -8,7 +8,9 @@ namespace halo2 {
 namespace {
 using namespace continuation_wire;
 constexpr std::size_t host_limit=512*1024;
-constexpr std::string_view host_magic="H2HOST02";
+// Revision 3 retains authenticated optional matchmaking levels in every
+// admission. Older envelopes lack those bytes and are rejected explicitly.
+constexpr std::string_view host_magic="H2HOST03";
 void valid_binding(const LanHost::ContinuationBinding &b){
   need(b.context.host<16&&(b.context.peers&(1u<<b.context.host))&&
       std::ranges::any_of(b.context.session,[](auto v){return v!=std::byte{};})&&b.world.id&&b.world.bytes&&
@@ -74,7 +76,8 @@ auto native_roster(std::span<const SourcePlayerAdmission> input){
 bool same_admissions(std::span<const OnlineAdmission> a,std::span<const OnlineAdmission> b){
   if(a.size()!=b.size())return false;for(unsigned i=0;i<a.size();++i)
     if(a[i].slot!=b[i].slot||a[i].name!=b[i].name||a[i].team!=b[i].team||a[i].identity!=b[i].identity||
-        online_admission_peer(a[i])!=online_admission_peer(b[i])||a[i].guest!=b[i].guest)return false;return true;
+        online_admission_peer(a[i])!=online_admission_peer(b[i])||a[i].guest!=b[i].guest||
+        a[i].matchmaking_level!=b[i].matchmaking_level)return false;return true;
 }
 auto view_admissions(const auto &saved,const auto &peer){
   std::vector<SourcePlayerAdmission> views;for(auto slot:peer.ids){
@@ -91,7 +94,8 @@ void valid_data(const auto &s,const LanHost::ContinuationBinding &b){
     // Matchmaking uses one placement group per player in FFA (0..15).
     // These admission groups are separate from the native selected-team
     // requests below, which still require -1 or an actual source team0..7.
-    need(p.slot<16&&owner<16&&!(seats&(1u<<p.slot))&&p.name.size()<=1024&&p.team>=-1&&p.team<=15);
+    need(p.slot<16&&owner<16&&!(seats&(1u<<p.slot))&&p.name.size()<=1024&&p.team>=-1&&p.team<=15&&
+        (!p.matchmaking_level||(*p.matchmaking_level>=1&&*p.matchmaking_level<=50)));
     seats|=std::uint16_t(1u<<p.slot);}
   for(const auto &p:s.roster)need(seats&(1u<<p.slot));
   for(auto player:s.local_players)if(player!=null_datum){
@@ -130,10 +134,11 @@ std::vector<std::byte> LanHost::encode_continuation(const Continuation &cut,cons
   static_assert(boost::pfr::tuple_size_v<Continuation::Data> ==8);
   static_assert(boost::pfr::tuple_size_v<Continuation::Data::Peer> ==21);
   static_assert(boost::pfr::tuple_size_v<MultiplayerSnapshotStamp> ==7);
-  static_assert(boost::pfr::tuple_size_v<OnlineAdmission> ==6&&boost::pfr::tuple_size_v<SourcePlayerAdmission> ==3);
+  static_assert(boost::pfr::tuple_size_v<OnlineAdmission> ==7&&boost::pfr::tuple_size_v<SourcePlayerAdmission> ==3);
   Writer w{host_limit,{}};w.u(native_multiplayer_protocol,2);binding(w,bound);w.octets(s.binding);w.u(s.fingerprint,8);w.u(s.tick,8);
   w.blob(s.configuration,65536);for(auto p:s.local_players)w.u(p,4);w.u(s.admissions.size(),1);
-  for(const auto &p:s.admissions){w.u(p.slot,1);w.string(p.name);w.i32(p.team);w.octets(p.identity);w.u(p.peer,4);w.boolean(p.guest);}
+  for(const auto &p:s.admissions){w.u(p.slot,1);w.string(p.name);w.i32(p.team);w.octets(p.identity);w.u(p.peer,4);w.boolean(p.guest);
+    w.boolean(p.matchmaking_level.has_value());if(p.matchmaking_level)w.u(*p.matchmaking_level,1);}
   w.u(s.roster.size(),1);for(const auto &p:s.roster){w.u(p.slot,1);w.u(p.player,4);w.octets(p.identity);}
   w.u(s.peers.size(),1);for(const auto &p:s.peers){
     w.u(p.endpoint,1);w.u(p.nonce,8);w.u(p.cookie,8);w.u(p.ids.size(),1);for(auto slot:p.ids)w.u(slot,1);
@@ -163,7 +168,8 @@ LanHost::Continuation LanHost::decode_continuation(std::span<const std::byte> by
   r.octets(s->binding);s->fingerprint=r.u(8);s->tick=r.u(8);const auto configuration=r.blob(65536);
   s->configuration.assign(configuration.begin(),configuration.end());for(auto &p:s->local_players)p=r.u(4);
   const auto count=r.u(1);need(count>0&&count<=16);s->admissions.resize(count);
-  for(auto &p:s->admissions){p.slot=r.u(1);p.name=r.string();p.team=r.i32();r.octets(p.identity);p.peer=r.u(4);p.guest=r.boolean();}
+  for(auto &p:s->admissions){p.slot=r.u(1);p.name=r.string();p.team=r.i32();r.octets(p.identity);p.peer=r.u(4);p.guest=r.boolean();
+    if(r.boolean())p.matchmaking_level=r.u(1);}
   const auto players=r.u(1);need(players>0&&players<=16);s->roster.resize(players);
   for(auto &p:s->roster){p.slot=r.u(1);p.player=r.u(4);r.octets(p.identity);}
   need(s->fingerprint==fingerprint&&s->binding==source_authority_binding(expected.context)&&s->tick==expected.world.tick&&

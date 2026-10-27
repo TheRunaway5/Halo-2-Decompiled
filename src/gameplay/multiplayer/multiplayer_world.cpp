@@ -11,6 +11,10 @@
 #include <cstdlib>
 #include <mutex>
 #include <thread>
+#ifdef _WIN32
+#include <atomic>
+#include <random>
+#endif
 
 namespace halo2 {
 namespace {
@@ -79,7 +83,20 @@ std::shared_ptr<const std::filesystem::path> source_storage(
     std::filesystem::create_directories(options.source_object_savegame_directory);
     return std::make_shared<const std::filesystem::path>(options.source_object_savegame_directory);
   }
-#if defined(__linux__)
+#if defined(_WIN32)
+  const auto parent=std::filesystem::temp_directory_path();
+  std::random_device random;static std::atomic<unsigned> next{};
+  for(unsigned attempt=0;attempt<32;++attempt) {
+    const auto directory=parent/("halo2-world-"+std::to_string(random())+"-"+std::to_string(next.fetch_add(1)));
+    std::error_code error;
+    if(std::filesystem::create_directory(directory,error))
+      return {new std::filesystem::path(directory),[](const std::filesystem::path* path) {
+        std::error_code ignored;std::filesystem::remove_all(*path,ignored);delete path;
+      }};
+    if(error && error!=std::errc::file_exists)break;
+  }
+  throw FormatError("Could not create source world scratch storage");
+#elif defined(__linux__)
   auto name=(std::filesystem::temp_directory_path()/"halo2-world-XXXXXX").string();
   const auto directory=::mkdtemp(name.data());
   if(!directory)throw FormatError("Could not create source world scratch storage");
@@ -321,6 +338,7 @@ MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& opt
    teams_(options.selected_teams),profiles_(options.selected_profiles),seed_(options.session_random_seed),
    source_object_world_(options.source_object_world),campaign_difficulty_(options.campaign_difficulty),source_object_savegame_directory_(options.source_object_savegame_directory),
    native_spawn_inputs_(options.native_spawn_inputs),shadow_(shadow!=nullptr) {
+  match.bind_native_first_person_cache(cache);
   if(assets){gameplay_fonts=assets->fonts;map_assets=std::move(assets);}
   if(!options.native_spawn_inputs.empty() && (options.online_match || options.host_port || !options.join.empty() || options.dedicated))
     throw FormatError("Declared native spawn inputs require an offline acceptance world");
@@ -332,6 +350,14 @@ MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& opt
     match.set_source_player_activation_owner(options.defer_initial_player_spawn,options.player_birth_owner,options.pre_player_update_owner);
   }
   match.configure_weapon_pickups();
+  // Host netcode mode (H2_NET_MODE overrides). Original installs nothing;
+  // a world without remote views keeps no lag-compensation history. Source
+  // shadows are configured like the host: they replay its rewound steps and
+  // can be promoted, and an imported cut adopts the producer's mode and
+  // rewind history. Joining clients only retain the mode value.
+  match.configure_netcode(resolve_netcode_mode(options.netcode_mode),cache,options.bsp,
+      shadow || (options.join.empty() &&
+      (!options.online_match || options.online_match->host()==options.online_match->self())));
   if(cache->original_data() && cache->original_data()->melee_constants)
     match.configure_melee_animation(cache,*cache->original_data()->melee_constants);
   if(cache->original_data() && cache->original_data()->grenade_constants)
@@ -349,16 +375,21 @@ MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& opt
       if(match.join(player.name,rules.team_mode?player.team:-1,profile,player.slot)!=player.slot)
         throw FormatError("Source shadow birth changed an accepted native player slot");
     }
-    if(match.source_engine_owned_ && !options.defer_initial_player_spawn)match.step({});
     bind_source_local_views(shadow->locals);
+    if(match.source_engine_owned_ && !options.defer_initial_player_spawn)match.step({});
   }else if(!options.online_match && options.join.empty())
     for(unsigned i=0;i<options.local_players;++i)
       local_slots.push_back(match.join(options.selected_profiles.empty()?"Player "+std::to_string(i+1):
           native_player_configuration_name(options.selected_profiles[i]),
           options.selected_teams.empty()?-1:options.selected_teams[i],
           options.selected_profiles.empty()?std::nullopt:std::optional(options.selected_profiles[i])));
-  if(!shadow && !local_slots.empty() && match.source_engine_owned_ && !options.defer_initial_player_spawn)
-    match.step({});
+  if(!shadow && !local_slots.empty() && match.source_engine_owned_) {
+    //14F620's genuine birth continuation requires the selected local/input
+    // user before it constructs18A0C0 and16B16A. Deferred views already admit
+    // current_unit=NONE; keep this identity in place for the first engine tick.
+    const auto locals=local_slots;bind_source_local_views(locals);
+    if(!options.defer_initial_player_spawn)match.step({});
+  }
   if(match.source_engine_owned_) {
     match.first_person_setup_tick_=match.simulation_.ticks();
     // Existing presentation templates need a weapon reference. Observe one

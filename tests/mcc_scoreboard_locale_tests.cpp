@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
+#include <map>
 
 int main(int argc, char** argv) try {
     using namespace halo2;
@@ -25,7 +26,23 @@ int main(int argc, char** argv) try {
             std::cerr << n << ": MCC=" << converted.team_names[n] << "; Xbox=" << expected.team_names[n] << '\n';
         throw FormatError("MCC scoreboard locale labels differ from the paired original map");
     }
-    std::cout << "PASS actual MCC shared locale offsets: three scoreboard labels and nine team names match original Xbox\n";
+    const auto statuses=[](const FullScoreboardAssets &assets) {
+        std::map<std::int16_t,std::pair<std::string,std::string>> rows;
+        for(const auto &row:assets.player_status) {
+            if(row.text.empty() || row.team_text.empty() ||
+                !rows.emplace(row.status,std::pair{row.text,row.team_text}).second)
+                throw FormatError("Scoreboard player status bank has missing text or duplicate status values");
+        }
+        return rows;
+    };
+    if(expected.player_status.empty() || statuses(converted)!=statuses(expected) ||
+        converted.game_over_label.empty() || converted.round_over_label.empty() ||
+        converted.waiting_for_next_round_label.empty() ||
+        converted.game_over_label!=expected.game_over_label ||
+        converted.round_over_label!=expected.round_over_label ||
+        converted.waiting_for_next_round_label!=expected.waiting_for_next_round_label)
+        throw FormatError("MCC death/status text or lifecycle labels differ from the paired original map");
+    std::cout << "PASS actual MCC shared locale offsets: three scoreboard labels, nine team names, status text bank and three lifecycle labels match Xbox by status value; relocated SIDs are independent\n";
 } catch (const std::exception& error) {
     std::cerr << error.what() << '\n';
     return 1;

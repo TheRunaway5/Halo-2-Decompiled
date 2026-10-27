@@ -166,6 +166,10 @@ class Directory:
         self.clan_voice = ClanVoice(self.clans)
         from .parties_http import PartyApi
         self.parties = PartyApi(self)
+        from .friends_http import FriendsApi
+        self.friends = FriendsApi(self)
+        from .friend_cloud import FriendCloud
+        self.friend_cloud = FriendCloud(self)
         from .carnage_history import HistoryApi
         self.history = HistoryApi(self)
         from .clan_voice import PartyVoice
@@ -418,6 +422,7 @@ def create_app(settings, owner_verifier=None, clock=time.time):
                           handler_args={"auto_decompress": False, "max_field_size": 4096, "max_line_size": 8192})
     app[web.AppKey("directory", Directory)] = directory
     app.cleanup_ctx.append(directory.lifetime)
+    app.cleanup_ctx.append(directory.parties.lifetime)
     app.add_routes([
         web.get("/v1/health", directory.health), web.get("/v1/online/status", directory.online_status),
         web.get("/v1/masters", directory.masters),
@@ -437,6 +442,9 @@ def create_app(settings, owner_verifier=None, clock=time.time):
     app.add_routes(directory.matchmaking.routes())
     app.add_routes(directory.steam.routes())
     app.add_routes(directory.steam_friends.routes())
+    app.add_routes(directory.friends.routes())
+    app.on_startup.append(directory.friend_cloud.start)
+    app.on_shutdown.append(directory.friend_cloud.close)
     app.add_routes(directory.history.routes())
     from .search_qos import SearchQos
     directory.search_qos = SearchQos(directory.matchmaking)

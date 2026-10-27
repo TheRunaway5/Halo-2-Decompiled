@@ -1,26 +1,42 @@
 #include "halo2/source_decal_renderer.hpp"
 #include "halo2/sampler.hpp"
+#include "halo2/native_fragment_kernel.hpp"
 #include <cstring>
 #include <fstream>
 #include <map>
+#include <tuple>
 namespace halo2 {
 namespace {
 void check(VkResult r){if(r!=VK_SUCCESS)throw FormatError("cached decal Vulkan failure: "+std::to_string(r));}
 VkBlendFactor factor(unsigned v){switch(v){case 0:return VK_BLEND_FACTOR_ZERO;case 1:return VK_BLEND_FACTOR_ONE;case 0x300:return VK_BLEND_FACTOR_SRC_COLOR;case 0x303:return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;case 0x306:return VK_BLEND_FACTOR_DST_COLOR;default:throw FormatError("Unsupported source decal blend factor");}}
+struct FragmentShader {
+    VkDevice device;VkShaderModule module{};
+    FragmentShader(VkDevice d,const std::filesystem::path& directory,std::string_view name):device(d) {
+        std::ifstream file(directory/std::string(name),std::ios::binary|std::ios::ate);
+        if(!file||file.tellg()<=0||file.tellg()%4)throw FormatError("Compiled native decal fragment kernel missing");
+        std::vector<std::uint32_t> words(std::size_t(file.tellg())/4);file.seekg(0);
+        if(!file.read(reinterpret_cast<char*>(words.data()),words.size()*4))throw FormatError("Truncated native decal fragment kernel");
+        VkShaderModuleCreateInfo info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};info.codeSize=words.size()*4;info.pCode=words.data();
+        check(vkCreateShaderModule(device,&info,nullptr,&module));
+    }
+    ~FragmentShader(){if(module)vkDestroyShaderModule(device,module,nullptr);}
+};
 }
 struct SourceDecalRenderer::Impl {
     VkPhysicalDevice physical;VkDevice device;VkQueue queue;VkRenderPass pass;
     VkPhysicalDeviceProperties properties{};VkCommandPool uploads{};
     VkDescriptorSetLayout set_layout{};VkPipelineLayout layout{};
     std::array<VkShaderModule,3> shaders{};
+    std::filesystem::path shader_directory;
     struct Buffer{VkBuffer handle{};VkDeviceMemory memory{};};
     struct Image{VkImage handle{};VkDeviceMemory memory{};VkImageView view{};VkSampler sampler{};};
     struct Uniform{std::array<ShaderVector,192> constants;ShaderVector color,viewport,clip,depth;std::array<std::uint32_t,60> program;};
     struct Vertex{Vec3 position;std::uint32_t projection;};
     struct Draw{VkDescriptorSet set{};VkPipeline pipeline{};std::uint32_t first{},count{},layer{};};
-    std::map<const Texture*,Image> images;std::map<unsigned,VkPipeline> pipelines;
+    using PipelineKey=std::tuple<unsigned,std::string>;
+    std::map<const Texture*,Image> images;std::map<PipelineKey,VkPipeline> pipelines;
     Buffer vertices,uniforms;VkDescriptorPool descriptors{};std::vector<Draw> draws;
-    Impl(VkPhysicalDevice p,VkDevice d,VkQueue q,unsigned family,VkRenderPass rp,const std::filesystem::path&directory):physical(p),device(d),queue(q),pass(rp){
+    Impl(VkPhysicalDevice p,VkDevice d,VkQueue q,unsigned family,VkRenderPass rp,const std::filesystem::path&directory):physical(p),device(d),queue(q),pass(rp),shader_directory(directory){
         try{
         vkGetPhysicalDeviceProperties(physical,&properties);
         VkCommandPoolCreateInfo pool{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};pool.queueFamilyIndex=family;check(vkCreateCommandPool(device,&pool,nullptr,&uploads));
@@ -28,7 +44,7 @@ struct SourceDecalRenderer::Impl {
         VkDescriptorSetLayoutCreateInfo set{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};set.bindingCount=bindings.size();set.pBindings=bindings.data();check(vkCreateDescriptorSetLayout(device,&set,nullptr,&set_layout));
         VkPipelineLayoutCreateInfo li{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};li.setLayoutCount=1;li.pSetLayouts=&set_layout;check(vkCreatePipelineLayout(device,&li,nullptr,&layout));
         const char*names[]{"source_decal.vert.spv","source_decal.geom.spv","source_decal.frag.spv"};
-        for(unsigned n=0;n<3;++n){std::ifstream f(directory/names[n],std::ios::binary|std::ios::ate);if(!f||f.tellg()<=0||f.tellg()%4)throw FormatError("Compiled source decal shader missing");std::vector<std::uint32_t> code(std::size_t(f.tellg())/4);f.seekg(0);if(!f.read(reinterpret_cast<char*>(code.data()),code.size()*4))throw FormatError("Truncated source decal shader");VkShaderModuleCreateInfo si{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};si.codeSize=code.size()*4;si.pCode=code.data();check(vkCreateShaderModule(device,&si,nullptr,&shaders[n]));}
+        for(unsigned n=0;n<2;++n){std::ifstream f(directory/names[n],std::ios::binary|std::ios::ate);if(!f||f.tellg()<=0||f.tellg()%4)throw FormatError("Compiled source decal shader missing");std::vector<std::uint32_t> code(std::size_t(f.tellg())/4);f.seekg(0);if(!f.read(reinterpret_cast<char*>(code.data()),code.size()*4))throw FormatError("Truncated source decal shader");VkShaderModuleCreateInfo si{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};si.codeSize=code.size()*4;si.pCode=code.data();check(vkCreateShaderModule(device,&si,nullptr,&shaders[n]));}
         }catch(...){release();throw;}
     }
   unsigned memory_type(unsigned mask,VkMemoryPropertyFlags flags) const {
@@ -97,10 +113,13 @@ struct SourceDecalRenderer::Impl {
       throw;
     }
   }
-    VkPipeline pipeline(unsigned layer){
-        if(auto i=pipelines.find(layer);i!=pipelines.end())return i->second;
+    VkPipeline pipeline(unsigned layer,std::span<const std::uint32_t> words){
+        const std::string fragment_path(native_fragment_kernel_path("decal",words));
+        const PipelineKey key{layer,fragment_path};
+        if(auto i=pipelines.find(key);i!=pipelines.end())return i->second;
+        const FragmentShader fragment(device,shader_directory,fragment_path);
         const auto state=source_decal_layer_state_tu15(layer);
-        const VkPipelineShaderStageCreateInfo stages[]{{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_VERTEX_BIT,shaders[0],"main",nullptr},{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_GEOMETRY_BIT,shaders[1],"main",nullptr},{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_FRAGMENT_BIT,shaders[2],"main",nullptr}};
+        const VkPipelineShaderStageCreateInfo stages[]{{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_VERTEX_BIT,shaders[0],"main",nullptr},{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_GEOMETRY_BIT,shaders[1],"main",nullptr},{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_FRAGMENT_BIT,fragment.module,"main",nullptr}};
         VkVertexInputBindingDescription binding{0,sizeof(Vertex),VK_VERTEX_INPUT_RATE_VERTEX};
         const VkVertexInputAttributeDescription attributes[]{{0,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex,position)},{1,0,VK_FORMAT_R32_UINT,offsetof(Vertex,projection)}};
         VkPipelineVertexInputStateCreateInfo vi{VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};vi.vertexBindingDescriptionCount=1;vi.pVertexBindingDescriptions=&binding;vi.vertexAttributeDescriptionCount=2;vi.pVertexAttributeDescriptions=attributes;
@@ -112,7 +131,7 @@ struct SourceDecalRenderer::Impl {
         VkPipelineColorBlendAttachmentState cb{};cb.blendEnable=VK_TRUE;cb.srcColorBlendFactor=cb.srcAlphaBlendFactor=factor(state.source_blend);cb.dstColorBlendFactor=cb.dstAlphaBlendFactor=factor(state.destination_blend);cb.colorBlendOp=cb.alphaBlendOp=state.blend_equation==0x8008?VK_BLEND_OP_MAX:VK_BLEND_OP_ADD;constexpr unsigned shift[]{16,8,0,24};for(unsigned c=0;c<4;++c)if((state.color_mask>>shift[c])&1u)cb.colorWriteMask|=1u<<c;
         VkPipelineColorBlendStateCreateInfo bs{VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};bs.attachmentCount=1;bs.pAttachments=&cb;
         const VkDynamicState dynamic[]{VK_DYNAMIC_STATE_VIEWPORT,VK_DYNAMIC_STATE_SCISSOR};VkPipelineDynamicStateCreateInfo di{VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};di.dynamicStateCount=2;di.pDynamicStates=dynamic;
-        VkGraphicsPipelineCreateInfo pi{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};pi.stageCount=3;pi.pStages=stages;pi.pVertexInputState=&vi;pi.pInputAssemblyState=&ia;pi.pViewportState=&vs;pi.pRasterizationState=&rs;pi.pMultisampleState=&ms;pi.pDepthStencilState=&ds;pi.pColorBlendState=&bs;pi.pDynamicState=&di;pi.layout=layout;pi.renderPass=pass;VkPipeline result{};check(vkCreateGraphicsPipelines(device,VK_NULL_HANDLE,1,&pi,nullptr,&result));pipelines.emplace(layer,result);return result;
+        VkGraphicsPipelineCreateInfo pi{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};pi.stageCount=3;pi.pStages=stages;pi.pVertexInputState=&vi;pi.pInputAssemblyState=&ia;pi.pViewportState=&vs;pi.pRasterizationState=&rs;pi.pMultisampleState=&ms;pi.pDepthStencilState=&ds;pi.pColorBlendState=&bs;pi.pDynamicState=&di;pi.layout=layout;pi.renderPass=pass;VkPipeline result{};check(vkCreateGraphicsPipelines(device,VK_NULL_HANDLE,1,&pi,nullptr,&result));pipelines.emplace(key,result);return result;
     }
     void clear(){free_buffer(vertices);free_buffer(uniforms);vertices={};uniforms={};draws.clear();if(descriptors)vkDestroyDescriptorPool(device,descriptors,nullptr);descriptors=VK_NULL_HANDLE;}
     void prepare(std::span<const SourceDecalDraw> source){
@@ -121,7 +140,7 @@ struct SourceDecalRenderer::Impl {
         std::vector<std::byte> constants(stride*source.size());std::vector<Vertex> geometry;draws.resize(source.size());
         const std::array<VkDescriptorPoolSize,2> sizes{{{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,std::uint32_t(source.size())},{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,std::uint32_t(source.size())}}};VkDescriptorPoolCreateInfo pool{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};pool.maxSets=source.size();pool.poolSizeCount=2;pool.pPoolSizes=sizes.data();check(vkCreateDescriptorPool(device,&pool,nullptr,&descriptors));
         std::vector<VkDescriptorSetLayout> layouts(source.size(),set_layout);std::vector<VkDescriptorSet> sets(source.size());VkDescriptorSetAllocateInfo ai{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};ai.descriptorPool=descriptors;ai.descriptorSetCount=sets.size();ai.pSetLayouts=layouts.data();check(vkAllocateDescriptorSets(device,&ai,sets.data()));
-        for(std::size_t n=0;n<source.size();++n){const auto &d=source[n];if(!d.texture)throw FormatError("Source decal texture owner missing");auto [at,created]=images.try_emplace(d.texture);if(created){ShaderTextureState sampler;sampler.address_u=sampler.address_v=sampler.address_w=3;at->second=make_image(*d.texture,sampler);}auto &g=draws[n];g.set=sets[n];g.layer=d.layer;g.pipeline=pipeline(d.layer);g.first=geometry.size();for(const auto &quad:d.quads)for(unsigned i:{0u,1u,2u,0u,2u,3u})geometry.push_back({quad[i].position,quad[i].packed_projection});g.count=geometry.size()-g.first;Uniform uniform{d.constants,d.color,d.viewport,d.clip_range,{0,d.state.depth_bias,1,1},d.state.pixel.words};std::memcpy(constants.data()+stride*n,&uniform,sizeof(uniform));}
+        for(std::size_t n=0;n<source.size();++n){const auto &d=source[n];if(!d.texture)throw FormatError("Source decal texture owner missing");auto [at,created]=images.try_emplace(d.texture);if(created){ShaderTextureState sampler;sampler.address_u=sampler.address_v=sampler.address_w=3;at->second=make_image(*d.texture,sampler);}auto &g=draws[n];g.set=sets[n];g.layer=d.layer;g.pipeline=pipeline(d.layer,d.state.pixel.words);g.first=geometry.size();for(const auto &quad:d.quads)for(unsigned i:{0u,1u,2u,0u,2u,3u})geometry.push_back({quad[i].position,quad[i].packed_projection});g.count=geometry.size()-g.first;Uniform uniform{d.constants,d.color,d.viewport,d.clip_range,{0,d.state.depth_bias,1,1},native_fragment_uniform_words(d.state.pixel.words)};std::memcpy(constants.data()+stride*n,&uniform,sizeof(uniform));}
         if(geometry.empty())return;
         vertices=make_buffer(geometry.size()*sizeof(Vertex),VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,geometry.data());uniforms=make_buffer(constants.size(),VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,constants.data());
         for(std::size_t n=0;n<source.size();++n){const auto &image=images.at(source[n].texture);VkDescriptorImageInfo ii{image.sampler,image.view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};VkDescriptorBufferInfo bi{uniforms.handle,n*stride,sizeof(Uniform)};const std::array<VkWriteDescriptorSet,2> writes{{{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,nullptr,sets[n],0,0,1,VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,&ii,nullptr,nullptr},{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,nullptr,sets[n],2,0,1,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,nullptr,&bi,nullptr}}};vkUpdateDescriptorSets(device,writes.size(),writes.data(),0,nullptr);}

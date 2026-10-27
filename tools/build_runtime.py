@@ -1,14 +1,16 @@
 """Build the local runtime after asset preparation, preserving moved build trees."""
 import argparse
 import os
+import platform as host_platform
 from pathlib import Path
 import queue
 import shutil
 import subprocess
 import threading
+import tomllib
 
 
-def current_cache(root, build):
+def current_cache(root, build, platform=None):
     cache = build / "CMakeCache.txt"
     if not cache.is_file():
         return (not build.exists() and not build.is_symlink()) or (build.is_dir() and not any(build.iterdir()))
@@ -17,12 +19,18 @@ def current_cache(root, build):
         if "=" in line and not line.startswith(("#", "//")):
             key, value = line.split("=", 1)
             values[key] = value
+    toolchain = values.get("CMAKE_TOOLCHAIN_FILE:FILEPATH", values.get("CMAKE_TOOLCHAIN_FILE:UNINITIALIZED", ""))
+    expected_toolchain = root / "cmake/windows/MinGW.cmake"
+    if platform == "windows" and (not toolchain or Path(toolchain).resolve() != expected_toolchain.resolve()):
+        return False
+    if platform == "linux" and toolchain and Path(toolchain).resolve() == expected_toolchain.resolve():
+        return False
     return all(values.get(key) and Path(values[key]).resolve() == expected.resolve()
                for key, expected in (("CMAKE_HOME_DIRECTORY:INTERNAL", root),
                                      ("CMAKE_CACHEFILE_DIR:INTERNAL", build)))
 
 
-def build_runtime(root, build=None, progress=print):
+def _build_platform(root, build=None, progress=print, *, platform="linux", sdk=None, default_windows=False):
     root = Path(root).resolve()
     build = Path(build).absolute() if build is not None else root / "build"
     if not (root / "CMakeLists.txt").is_file():
@@ -32,7 +40,7 @@ def build_runtime(root, build=None, progress=print):
     cmake = shutil.which("cmake")
     if cmake is None:
         raise RuntimeError("CMake is required to build Halo 2. Install CMake, then launch again.")
-    reuse = current_cache(root, build)
+    reuse = current_cache(root, build, platform)
     fresh = not reuse or not (build / "CMakeCache.txt").is_file()
     if fresh and shutil.which("ninja") is None:
         raise RuntimeError("Ninja is required to build Halo 2. Install Ninja, then launch again.")
@@ -48,7 +56,16 @@ def build_runtime(root, build=None, progress=print):
     log_path = build / "launcher-build.log"
     configure = [cmake, "-S", str(root), "-B", str(build)]
     if fresh:
-        configure += ["-G", "Ninja", "-DCMAKE_BUILD_TYPE=RelWithDebInfo", "-DBUILD_TESTING=OFF"]
+        configure += ["-G", "Ninja", "-DCMAKE_BUILD_TYPE=" + ("Release" if platform == "windows" else "RelWithDebInfo")]
+    # Explicit targets below do not invoke the Linux ALL companion target.
+    # Keep that target enabled for the next ordinary default build when this
+    # is the dual-platform profile; single-platform requests opt out.
+    configure += ["-DHALO2_BUILD_WINDOWS=" + ("ON" if default_windows else "OFF"),
+                  "-DBUILD_TESTING=OFF",
+                  "-DHALO2_STAGE_BUILD_OUTPUT=" + ("OFF" if "HALO2_TEST_SCRATCH" in os.environ else "ON")]
+    if platform == "windows":
+        configure += ["-DCMAKE_TOOLCHAIN_FILE=" + str(root / "cmake/windows/MinGW.cmake"),
+                      "-DHALO2_WINDOWS_SDK=" + str(sdk), "-DBUILD_TESTING=OFF"]
     compile_command = [cmake, "--build", str(build), "--target", "halo2_native", "halo2_launcher",
                        "halo2_title_launcher", "halo2_onboarding", "--parallel"]
     if not os.environ.get("CMAKE_BUILD_PARALLEL_LEVEL"):
@@ -73,12 +90,56 @@ def build_runtime(root, build=None, progress=print):
                 status = process.wait()
             if status:
                 raise RuntimeError(f"{stage} failed (exit {status}). Full build output: {log_path}")
-    progress("Build complete.")
-    if (root / 'gameplay-runtime-selection.json').is_file():
+    progress(f"{platform.capitalize()} build complete.")
+    custom_receipt = build / 'custom-assets/custom-assets.json'
+    if custom_receipt.is_file():
+        progress('Custom textures, controller buttons, maps and game modes: ' + str(custom_receipt))
+    if platform == 'linux' and (root / 'gameplay-runtime-selection.json').is_file():
         progress('Play uses its qualified runtime selection. Build, check and select current engine sources with ./Halo2-Launcher --build-engine.')
-    output = root / "dist/builds/linux-x86_64"
+    output = root / f"dist/builds/{platform}-x86_64"
     if (output / "build-output.json").is_file():
-        progress(f"Latest Linux x86_64 build binaries: {output}")
+        progress(f"Latest {platform.capitalize()} x86_64 build binaries: {output}")
+
+
+def build_runtime(root, build=None, progress=print, *, platform=None, windows_build=None, windows_sdk=None):
+    """The desktop profile builds both native targets on a Linux x86_64 host."""
+    root = Path(root).resolve()
+    platform = platform or ("both" if host_platform.system() == "Linux" else "linux")
+    if platform not in {"both", "linux", "windows"}:
+        raise RuntimeError("Build platform must be both, linux or windows")
+    linux_build = Path(build).absolute() if build is not None else root / "build"
+    requested_windows_build = windows_build or os.environ.get("HALO2_WINDOWS_BUILD_DIR")
+    windows_build = Path(requested_windows_build).absolute() if requested_windows_build else (
+        linux_build if platform == "windows" and build is not None else Path(str(linux_build) + "-windows"))
+    sdk = Path(windows_sdk or os.environ.get("HALO2_WINDOWS_SDK") or
+               root / ".tools/windows-sdk/mingw64").resolve()
+    if platform in {"both", "windows"}:
+        if host_platform.system() != "Linux" or host_platform.machine().lower() not in {"x86_64", "amd64"}:
+            raise RuntimeError("The desktop Windows cross-build profile requires a Linux x86_64 host")
+        prepare = root / "tools/windows/prepare_sdk.py"
+        if not prepare.is_file():
+            raise RuntimeError("Missing pinned Windows SDK preparation tool: " + str(prepare))
+        toolchain_manifest = root / "rust/online_protocol_bridge/rust-toolchain.toml"
+        if toolchain_manifest.is_file():
+            pinned = tomllib.loads(toolchain_manifest.read_text())["toolchain"]["channel"]
+            rustup = shutil.which("rustup")
+            if rustup is None:
+                raise RuntimeError("Windows requires rustup and the pinned Rust toolchain; install rustup, then retry")
+            progress("Preparing pinned Rust Windows standard library…")
+            subprocess.run([rustup, "target", "add", "--toolchain", pinned,
+                            "x86_64-pc-windows-gnu"], cwd=root, check=True)
+        progress("Preparing the Windows x86_64 SDK…")
+        subprocess.run([os.sys.executable, "-B", str(prepare), "--root", str(root), "--sdk", str(sdk)],
+                       cwd=root, check=True)
+    if platform in {"both", "linux"}:
+        _build_platform(root, linux_build, progress, default_windows=platform == "both")
+    if platform in {"both", "windows"}:
+        _build_platform(root, windows_build, progress, platform="windows", sdk=sdk)
+        package = root / "tools/windows/package_runtime.py"
+        progress("Packaging the Windows executable, Vulkan shaders and runtime DLLs…")
+        subprocess.run([os.sys.executable, "-B", str(package), "--root", str(root),
+                        "--build-dir", str(windows_build), "--sdk", str(sdk)], cwd=root, check=True)
+    progress("Desktop build profile complete.")
 
 
 class BuildWindow:
@@ -172,7 +233,17 @@ def main():
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--build-dir", type=Path)
     parser.add_argument("--no-gui", action="store_true")
+    parser.add_argument("--platform", choices=("both", "linux", "windows"),
+                        default="both" if host_platform.system() == "Linux" else "linux",
+                        help="desktop build profile (default on Linux: both)")
+    parser.add_argument("--windows-build-dir", type=Path)
+    parser.add_argument("--windows-sdk", type=Path)
+    parser.add_argument("--companion", action="store_true", help=argparse.SUPPRESS)
+
     args = parser.parse_args()
+    if args.companion and "HALO2_TEST_SCRATCH" in os.environ:
+        print("Windows companion skipped during disposable validation.", flush=True)
+        return 0
     if not args.no_gui:
         try:
             import tkinter as tk
@@ -184,13 +255,16 @@ def main():
             except tk.TclError:
                 pass
             else:
-                progress = BuildWindow(window, args.root, args.build_dir)
+                operation = lambda root, build, progress: build_runtime(root, build, progress,
+                    platform=args.platform, windows_build=args.windows_build_dir, windows_sdk=args.windows_sdk)
+                progress = BuildWindow(window, args.root, args.build_dir, operation=operation)
                 window.mainloop()
                 return progress.result
     try:
-        build_runtime(args.root, args.build_dir, progress=lambda message: print(message, flush=True))
+        build_runtime(args.root, args.build_dir, progress=lambda message: print(message, flush=True),
+                      platform=args.platform, windows_build=args.windows_build_dir, windows_sdk=args.windows_sdk)
         return 0
-    except (OSError, RuntimeError) as error:
+    except (OSError, RuntimeError, subprocess.CalledProcessError) as error:
         print(f"Halo 2 build: {error}", flush=True)
         return 1
 

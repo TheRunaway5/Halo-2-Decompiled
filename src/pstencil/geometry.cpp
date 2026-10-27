@@ -1,31 +1,18 @@
 #include "halo2/pstencil/geometry.hpp"
 #include "halo2/pstencil/shadow.hpp"
+#include "native_position_kernels.generated.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
 
 namespace halo2::pstencil {
-VertexProgram position_prefix(const VertexProgram& program) {
-    for(unsigned i=0;i<program.count;++i) {
-        const auto& t=program.instructions[i];
-        const auto mac=(t[1]>>21)&15u;
-        // Authored world projection: DPH/DP4 oPos.x, world, c0. Capture
-        // the actual source operand before projection, retaining every
-        // preceding decompression, relative palette read and skin operation.
-        if((mac==6 || mac==7) && ((t[2]>>11)&3u)==3 &&
-           ((t[1]>>13)&255u)==0 && !(t[3]&2u) &&
-           (t[3]&0xf800u)==0x8800u && ((t[3]>>3)&15u)==0 && !(t[3]&4u)) {
-            auto prefix=program;prefix.count=i+1;prefix.relative_constants=false;
-            for(unsigned n=0;n<i;++n)prefix.instructions[n][3]&=~1u;
-            auto& probe=prefix.instructions[i];
-            probe[1]=(t[1]&0x1fffffu)|(1u<<21); // MOV, same source A.
-            probe[3]=0xf800u|(9u<<3)|1u; // Full oT0, last instruction.
-            return prefix;
-        }
-    }
-    throw FormatError("pStencil position adapter lacks an authored world/c0 projection boundary");
-}
 namespace {
+const NativeCpuPositionKernelEntry& position_kernel(const VertexProgram& program) {
+    for(const auto& entry:generated_native_position_kernels::entries)
+        if(entry.program.size()==program.count &&
+           std::equal(entry.program.begin(),entry.program.end(),program.instructions.begin()))return entry;
+    throw FormatError("pStencil position input has no complete native CPU kernel");
+}
 unsigned components(MenuWorldSourceFormat format) {
     switch(format) {
     case MenuWorldSourceFormat::float32x3:case MenuWorldSourceFormat::snorm16x3:return 3;
@@ -66,8 +53,11 @@ ShaderVector fetch(const MenuWorldSourceBinding& binding,unsigned input,unsigned
 }
 bool finite(Vec3 p){return std::isfinite(p.x)&&std::isfinite(p.y)&&std::isfinite(p.z);}
 }
+void execute_native_position_prefix(const VertexProgram& program,VertexProgramState& state) {
+    position_kernel(program).run(state);
+}
 std::vector<Vec3> world_positions(const MenuWorldSourceBinding& binding) {
-    const auto program=position_prefix(binding.program());
+    const auto& program=position_kernel(binding.program());
     std::vector<Vec3> out(binding.draw().geometry->vertex_count());
     std::vector<bool> used(out.size());
     for(const auto index:binding.draw().indices()) {
@@ -77,7 +67,7 @@ std::vector<Vec3> world_positions(const MenuWorldSourceBinding& binding) {
         for(auto& attribute:state.attributes)attribute={0,0,0,1};
         for(unsigned input=0;input<binding.inputs().size();++input)
             state.attributes[binding.inputs()[input].vertex_register]=fetch(binding,input,index);
-        execute_vertex_program(program,state);
+        program.run(state);
         const auto& position=state.outputs[9];out[index]={position[0],position[1],position[2]};
         if(!finite(out[index]))throw FormatError("pStencil source position is nonfinite");
         used[index]=true;

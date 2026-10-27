@@ -26,7 +26,7 @@ void validate(const Checkpoint &saved,const LevelContent &content,std::uint64_t 
             event.tag==null_datum || event.serial || event.tick)
             throw FormatError("Invalid pending device authority effect request");
     std::set<std::uint32_t> slots;std::set<std::size_t> placements;
-    std::vector<CollisionTriangle> rebuilt;
+    std::size_t triangle_count{};
     for(const auto &[handle,p]:saved.collision_poses) {
         if(handle!=p.handle || handle==null_datum || !(handle>>16) || (handle&65535u)>=2048 ||
             !slots.insert(handle&65535u).second || !placements.insert(p.placement).second ||
@@ -39,12 +39,24 @@ void validate(const Checkpoint &saved,const LevelContent &content,std::uint64_t 
             if(!d.machine)throw FormatError("Device cached collision lacks its actual machine channels");
             const auto locals=source_machine_local_pose(d.collision->hierarchy,*d.machine,p.position,p.power);
             const auto nodes=pose_model_locals_nodes_world(d.collision->hierarchy,p.root,locals);
-            auto part=model_collision_triangles(d.collision->collision,nodes,d.collision->permutations,p.placement);
-            rebuilt.insert(rebuilt.end(),part.begin(),part.end());
+            triangle_count+=model_collision_triangle_count(d.collision->collision,nodes,d.collision->permutations,
+                saved.triangles.size()-triangle_count);
         }
     }
     for(const auto &t:saved.triangles)if(!finite(t.a)||!finite(t.b)||!finite(t.c)||!finite(t.source_normal))
         throw FormatError("Device continuation has a nonfinite cached triangle");
+    if(triangle_count!=saved.triangles.size())
+        throw FormatError("Device continuation generated collision count differs from its admitted bank");
+    std::vector<CollisionTriangle> rebuilt;rebuilt.reserve(triangle_count);
+    for(const auto &[handle,p]:saved.collision_poses) {
+        (void)handle;const auto &d=*content.devices[p.placement];
+        if(!p.bsp_hidden && d.collision) {
+            const auto locals=source_machine_local_pose(d.collision->hierarchy,*d.machine,p.position,p.power);
+            const auto nodes=pose_model_locals_nodes_world(d.collision->hierarchy,p.root,locals);
+            auto part=model_collision_triangles(d.collision->collision,nodes,d.collision->permutations,p.placement);
+            rebuilt.insert(rebuilt.end(),part.begin(),part.end());
+        }
+    }
     if(triangles(rebuilt)!=triangles(saved.triangles))
         throw FormatError("Device continuation cached collision/order differs from its retained poses");
     if(!saved.collision_dirty) {

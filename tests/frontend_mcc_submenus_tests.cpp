@@ -237,6 +237,60 @@ int main(int argc, char **argv) try {
     }
     require(matched == 1, "Original logical widget count differs: " + name);
   };
+  nlohmann::json branding_checks = nlohmann::json::array();
+  const auto branding = [&](const MenuState &state, const UiDraw &output,
+                            std::array<unsigned, 2> viewport) {
+    const auto subtitle_vertex = [&](const Vertex &vertex) {
+      return mesh.materials.at(vertex.material).name.starts_with("font/") &&
+          std::abs(vertex.color.x - 182.f / 255) < .00001f &&
+          std::abs(vertex.color.y - 217.f / 255) < .00001f &&
+          std::abs(vertex.color.z - 247.f / 255) < .00001f;
+    };
+    std::array<float, 4> logo{640, 480, 0, 0}, subtitle{640, 480, 0, 0};
+    unsigned logo_vertices{}, subtitle_vertices{};
+    float logo_alpha{}, subtitle_alpha{};
+    const auto include = [](std::array<float, 4> &bounds, const Vertex &vertex) {
+      bounds[0] = std::min(bounds[0], vertex.position.x);
+      bounds[1] = std::min(bounds[1], vertex.position.y);
+      bounds[2] = std::max(bounds[2], vertex.position.x);
+      bounds[3] = std::max(bounds[3], vertex.position.y);
+    };
+    for (const auto &vertex : output.vertices) {
+      if (mesh.materials.at(vertex.material).name ==
+          "ui\\screens\\game_shell\\start_screen\\start_screen") {
+        include(logo, vertex);
+        logo_alpha = vertex.position.z;
+        ++logo_vertices;
+      } else if (subtitle_vertex(vertex)) {
+        include(subtitle, vertex);
+        subtitle_alpha = vertex.position.z;
+        ++subtitle_vertices;
+      }
+    }
+    require(logo_vertices == 6 && subtitle_vertices == 7 * 6,
+            "Title branding lost its logo or seven FOREVER glyphs on screen " +
+                std::to_string(state.frame().screen));
+    require(subtitle[0] > logo[0] && subtitle[2] < logo[2] &&
+            std::abs((subtitle[0] + subtitle[2]) - (logo[0] + logo[2])) < .01f &&
+            subtitle[1] > logo[3] && subtitle[3] < 480 &&
+            std::abs(logo_alpha - subtitle_alpha) < .00001f,
+            "FOREVER subtitle is not centered below its animated logo");
+    float following_text = 480;
+    for (const auto &vertex : output.vertices)
+      if (!subtitle_vertex(vertex) &&
+          mesh.materials.at(vertex.material).name.starts_with("font/") &&
+          vertex.position.y >= logo[3])
+        following_text = std::min(following_text, vertex.position.y);
+    require(subtitle[3] < following_text,
+            "FOREVER subtitle overlaps title options or the Start prompt on screen " +
+                std::to_string(state.frame().screen));
+    branding_checks.push_back({{"screen", state.frame().screen}, {"viewport", viewport},
+        {"logo_bounds", logo}, {"forever_bounds", subtitle},
+        {"following_text_top", following_text}});
+  };
+  MenuState title(content);
+  for (const auto viewport : {std::array<unsigned, 2>{640, 480}, {1280, 720}, {2553, 1380}})
+    branding(title, painter.draw(title, 5.f, -1, 20000, viewport), viewport);
   const auto visual_preferences = std::filesystem::path(scratch_value) / "visual.cfg";
   for (unsigned species : {0u, 1u}) {
     {
@@ -256,6 +310,24 @@ int main(int argc, char **argv) try {
           require(std::any_of(output.vertices.begin(), output.vertices.end(), [&](const auto &v) {
             return mesh.materials.at(v.material).name.ends_with("/original-role/10");
           }), "Main-menu text lost original logical font role");
+          branding(visual, output, viewport);
+          require(visual.frame().entries.size() == 6 &&
+                  visual.frame().entries.front().destination == 218 &&
+                  visual.frame().entries.back().label == "EXIT GAME",
+                  "Main menu lost Campaign or its final Exit Game option");
+          visual.select(unsigned(visual.frame().entries.size() - 1));
+          const auto selected_exit = painter.draw(visual, 5.f, -1, 20000, viewport);
+          branding(visual, selected_exit, viewport);
+          std::array<bool, 6> visible_entries{};
+          for (int y = 0; y < 480; ++y)
+            for (int x = 0; x < 640; x += 2)
+              if (const auto hit = painter.pointer_hit(float(x), float(y));
+                  hit && hit->action == FrontendPointerAction::Entry &&
+                  hit->index < visible_entries.size())
+                visible_entries[hit->index] = true;
+          require(std::all_of(visible_entries.begin(), visible_entries.end(), [](bool hit) { return hit; }),
+                  "Selecting Exit Game scrolls Campaign or another main-menu option off screen");
+          visual.select(0);
         } else {
           extent(output, "ui\\screens\\game_shell\\4way_multiplayer_signin\\mp_signin", 512, 512);
           extent(output, "ui\\global_bitmaps\\ul_09", 256, 256);
@@ -323,6 +395,15 @@ int main(int argc, char **argv) try {
   require(applied.crt_filter && applied.two_player_split == TwoPlayerSplit::Vertical &&
           applied.graphics_mode == pstencil::GraphicsMode::pStencil && settings.stack().size() == before_toggle,
           "MCC native video toggles lost existing behavior");
+  choose(settings, 0, vista_menu(256));
+  require(applied.graphics_mode == pstencil::GraphicsMode::PathTracing &&
+          settings.pc_value_label(settings.frame(), 0) == "Path Tracing" &&
+          MenuState(content, preferences).pc_display_settings().graphics_mode == pstencil::GraphicsMode::PathTracing &&
+          settings.stack().size() == before_toggle,
+          "MCC Path Tracing mode did not apply in place and persist");
+  choose(settings, 0, vista_menu(256));
+  require(applied.graphics_mode == pstencil::GraphicsMode::Original,
+          "MCC graphics mode did not wrap to Original");
   settings.back();
   settings.select(3);
   draw(settings, true);
@@ -525,6 +606,7 @@ int main(int argc, char **argv) try {
       {"observations", observations},
       {"pc_bitmap_projection", projection_checks},
       {"stationary_category_selectors", selector_checks},
+      {"title_branding", branding_checks},
       {"original_logical_layout", logical_checks},
       {"mock_video_mode_calls", mode_calls}, {"host_display_changed", false},
       {"online_scope", "Offline sign-in presentation and browser/matchmaking access gate only; no services or remote actions"}});

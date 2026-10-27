@@ -92,6 +92,31 @@ int main(int argc,char**argv) {
         check(rejected,"Native physical protection admitted unsupported flags or escaped its allocation");
       }
     }
+    {
+      // The guard's lock-free read-only page mirror decides exactly as the
+      // checked set: a write overlapping any protected page throws, pages
+      // beside it pass, and protection changes take effect at once.
+      SourceRuntimeMemory pages;SourceRuntimeHostPhysicalMemory host(pages);
+      const auto base=host.allocate({0x3000u,0x30000u,0x32fffu,0x1000u,4u});
+      check(base!=0,"Native guard-test backing allocation failed");
+      const auto writes=[&](std::uint32_t at,std::size_t n) {
+        std::vector<std::byte> bytes(n,std::byte{1});
+        try{pages.write(at,bytes);return true;}catch(const std::runtime_error&){return false;}
+      };
+      check(writes(base+16u,4) && writes(base+0x1010u,4) && writes(base+0x2010u,4),"Writable physical pages accept writes");
+      host.protect(base+0x1000u,0x1000u,2u);
+      check(!writes(base+0x1010u,4),"Write inside a read-only physical page throws");
+      check(writes(base+16u,4) && writes(base+0x2010u,4),"Pages beside a read-only page still accept writes");
+      check(!writes(base+0xffcu,8),"Write spanning into a read-only page throws");
+      check(!writes(base+0x1ffcu,8),"Write spanning out of a read-only page throws");
+      check(!writes(base+0x1000u,0x1000u),"Whole read-only page write throws");
+      host.protect(base+0x1000u,0x1000u,4u);
+      check(writes(base+0x1010u,4) && writes(base+0xffcu,8),"Unprotected page accepts writes again");
+      host.protect(base,0x3000u,2u);
+      check(!writes(base,4) && !writes(base+0x2ffcu,4),"Every page of a read-only range throws");
+      host.protect(base,0x3000u,4u);
+      check(writes(base,4) && writes(base+0x2ffcu,4),"Whole range writable again");
+    }
     std::ifstream in(argv[1]);const auto fixture=J::parse(in);
     const auto directory=std::filesystem::path(argv[1]).parent_path();
     check(fixture.at("sequences").size()==3,"All original physical stage request sequences");

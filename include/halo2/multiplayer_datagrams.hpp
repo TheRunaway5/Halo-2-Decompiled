@@ -4,6 +4,7 @@
 #include <span>
 #include <string>
 #include <vector>
+#include <optional>
 namespace halo2 {
 //35 carries the complete authoritative device bank, including shared groups
 // and current motion/lifetimes. Older peers keep their initial machinery.
@@ -63,7 +64,38 @@ namespace halo2 {
 //netcode), carries snapshot acks in every input and compact LNA2 frames.
 //106 preserves exact completed source coverage bounds alongside compressed
 //visual WORLD matrices. Older peers must reject the changed snapshot schema.
-inline constexpr unsigned native_multiplayer_protocol = 106;
+//107 requires an independently exchanged host key and binds the complete raw
+//LAN handshake context before any authenticated first frame is accepted.
+//108 carries authenticated retained System Link session/PCR control messages.
+//109 carries completed original decal records, exact shared cache pages and
+//seven cluster head banks. Older peers cannot consume the new snapshot schema.
+//110 carries distinct original respawn seconds and the completed per-player
+//status/lifecycle query used by death text and scoreboard titles.
+//111 adds actual original round phase/index/countdown. The body codec keeps
+//110's layout as a separate branch; normal111 packet/fingerprint admission
+//rejects110 peers before any shifted state body can be interpreted.
+//112 carries bounded original pre-view object-loop emitter descriptions.
+//Listeners/PAS and voice allocation remain local;110/111 bodies have no bank.
+//113 adds the host-selected netcode mode to snapshot bodies and System Link
+//state, and every input carries the displayed snapshot time (tick low 16
+//bits + 1/255 blend, 3 bytes) for lag-compensated hitscan. Its snapshot
+//bodies also end with the bounded presentation journal of completed point
+//impulses on loose physics objects (binary16, NETCODE_ENHANCED_GOAL 4a).
+//113 inputs also end with a per-view predicted-motion block (17 bytes, or one
+//zero byte when absent) and up to two repeated earlier inputs as changed
+//held fields (no motion: only the newest report is adopted); snapshot bodies name the consumed input sequence and each
+//view's forced-motion sequence (NETCODE_ENHANCED_GOAL items 1 and 5).
+//114 appends pointer-free original viewport-fade tick observations. Each
+//physical machine retains its own actual local-view/render geometry state;
+//legacy110..113 snapshot extents remain unchanged.
+//115 adds recipient-local original first-person temporal inputs.
+//116 publishes each current biped's native physical state so an ordinary
+//walking predictor cannot overwrite native Sword/cancel momentum. Older
+//snapshot bodies leave that state unknown rather than inferring mode1.
+// 117 carries source-qualified WORLD attachment frames. Older body codecs
+// remain explicit legacy formats; peers still require the current header and
+// the matching source-cohort fingerprint.
+inline constexpr unsigned native_multiplayer_protocol = 117;
 // Endpoint numbers are authenticated room slots for ONLINE, opaque UDP peers
 // for local transport. Packet contents retain the native host/client protocol.
 class MultiplayerDatagrams {
@@ -79,6 +111,9 @@ struct OnlineAdmission {
   // Connection endpoint owning this player; legacy solo descriptors use slot.
   unsigned peer = ~0u;
   bool guest{};
+  // Authenticated public hopper level1..50, copied only from a known ranked
+  // admission. Absent for unranked/System Link/older missing metadata.
+  std::optional<unsigned> matchmaking_level;
 };
 inline unsigned online_admission_peer(const OnlineAdmission &player) {
   return player.peer == ~0u ? player.slot : player.peer;

@@ -37,7 +37,18 @@ std::unique_ptr<ParsedAuthorityArchive> parse_authority_archive(std::span<const 
     try {
         auto value=online_protocol_bridge::parse_authority_archive(
             rust::Slice<const std::uint8_t>(reinterpret_cast<const std::uint8_t*>(packet.data()),packet.size()),
-            {l.encoded_bytes,l.decoded_bytes,l.allocated_bytes,l.container_elements,l.fixed_native_bytes});
+            {l.encoded_bytes,l.decoded_bytes,l.allocated_bytes,l.container_elements,l.fixed_native_bytes,l.working_bytes});
+        auto impl=std::make_unique<ParsedAuthorityArchive::Impl>(std::move(value));
+        return std::unique_ptr<ParsedAuthorityArchive>(new ParsedAuthorityArchive(std::move(impl)));
+    }catch(const rust::Error &){return {};}
+}
+std::unique_ptr<ParsedAuthorityArchive> parse_authority_archive_raw(std::span<const std::byte> raw,
+    std::array<std::byte,32> hash,AuthorityArchiveDecodeLimits l) {
+    try {
+        std::array<std::uint8_t,32> digest{};for(unsigned i=0;i<32;++i)digest[i]=std::to_integer<std::uint8_t>(hash[i]);
+        auto value=online_protocol_bridge::parse_authority_archive_raw(
+            rust::Slice<const std::uint8_t>(reinterpret_cast<const std::uint8_t*>(raw.data()),raw.size()),digest,
+            {l.encoded_bytes,l.decoded_bytes,l.allocated_bytes,l.container_elements,l.fixed_native_bytes,l.working_bytes});
         auto impl=std::make_unique<ParsedAuthorityArchive::Impl>(std::move(value));
         return std::unique_ptr<ParsedAuthorityArchive>(new ParsedAuthorityArchive(std::move(impl)));
     }catch(const rust::Error &){return {};}

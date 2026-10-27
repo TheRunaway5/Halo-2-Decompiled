@@ -57,7 +57,7 @@ void projectile(const LevelContent &original,Cache &cache,bool teammate,bool lan
   std::unique_ptr<LanClient> client;
   std::array<Controls,16> controls{};
   if(lan) {
-    client=std::make_unique<LanClient>("127.0.0.1:"+std::to_string(host.port()),0x158ee0,1,chosen);
+    client=std::make_unique<LanClient>(host.join_address(),0x158ee0,1,chosen);
     for(unsigned n=0;n<64 && !client->ready();++n) {
       client->send(std::array<Controls,1>{});host.receive(controls);host.broadcast();client->receive();
     }
@@ -105,7 +105,7 @@ void lan_roster(const LevelContent &content,Cache &cache) {
   auto selected=rules(cache);selected.score_limit=2;
   MultiplayerMatch match(content,0,cache.spawns(),selected);
   match.join("Host red",0);match.join("Host blue",1);
-  LanHost host(match,0,0x1597e0);const auto address="127.0.0.1:"+std::to_string(host.port());
+  LanHost host(match,0,0x1597e0);const auto address=host.join_address();
   const std::array<std::int8_t,2> choices{0,1};
   LanClient one(address,0x1597e0,2,choices),two(address,0x1597e0,2,choices),missing(address,0x1597e0,2);
   std::array<Controls,16> controls{};

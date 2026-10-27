@@ -23,7 +23,7 @@ template<class F>void rejects(F f) {
 }
 }
 int main(int argc,char** argv)try {
-  check(argc==2,"Provide original PCR owner-state fixture");std::ifstream file(argv[1]);
+  check(argc==3,"Provide original PCR owner-state and TU1.5 tab-selection fixtures");std::ifstream file(argv[1]);
   check(bool(file),"Cannot open original PCR owner-state fixture");nlohmann::json rows;file>>rows;
   unsigned focus_count{},voice_count{},initialization_count{};
   for(const auto& row:rows) {
@@ -64,7 +64,17 @@ int main(int argc,char** argv)try {
   rejects([&]{vista_pcr_session_identity_slot({},true,4,{});});
   VistaPcrResults lobby;lobby.player_count=1;
   check(!vista_pcr_offline_voice(lobby,0,1,{},true,4).visible,"PC185 consumed a live session voice owner");
+  std::ifstream tabs_file(argv[2]);check(bool(tabs_file),"Cannot open unchanged TU1.5 tab fixture");
+  nlohmann::json tabs;tabs_file>>tabs;
+  check(tabs.at("source_sha256")=="21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd" &&
+    tabs.at("original_entry")==0x2bdf46u,"PCR tab fixture lost its TU1.5 authority");
+  for(const auto &row:tabs.at("cases"))
+    check(vista_pcr_tab_step(row.at("pane"),row.at("direction"),row.at("teams"))==row.at("selected").get<unsigned>(),
+      "PCR native tab selection differs from the unchanged TU1.5 widget walk");
+  check(vista_pcr_tab_step(1,0,false)==1,"PCR idle input moved its tab focus");
+  rejects([&]{vista_pcr_tab_step(6,1,true);});
   std::cout<<focus_count<<" original populated-focus cases, "<<voice_count<<" original live identity/voice cases and "
-    <<initialization_count<<" actual supplied-DLL voice initializations passed\n";
+    <<initialization_count<<" actual supplied-DLL voice initializations, plus "<<tabs.at("cases").size()
+    <<" unchanged TU1.5 tab-selection cases passed\n";
   return 0;
 } catch(const std::exception& e) {std::cerr<<e.what()<<'\n';return 1;}

@@ -92,7 +92,7 @@ int main(int argc,char **argv) {
           match.apply_source_player_activation(handle,player->source_flags,player->source_flags|1u);
       };
     }
-    std::unique_ptr<Host> host;if(lan){host=std::make_unique<Host>(options);options.join="127.0.0.1:"+std::to_string(host->host.port());}
+    std::unique_ptr<Host> host;if(lan){host=std::make_unique<Host>(options);options.join=host->host.join_address();}
     options.desktop=std::make_shared<DesktopSession>();
     auto *window=options.desktop->window(options.width,options.height,false);
     const auto window_id=SDL_GetWindowID(window);

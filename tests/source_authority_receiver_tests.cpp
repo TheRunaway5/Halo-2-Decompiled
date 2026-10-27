@@ -107,8 +107,19 @@ void run(int argc,char **argv){
         alter(bad,row+4);const std::array<unsigned,1> targets{other};session->publish_authority(context,bad.match.simulation.ticks,encode_source_authority(bad),targets);
         wait([&]{pump();return std::filesystem::exists(files/"bad-rejected");},"Forged nonlocal source identity was not rejected");
         check(session->validated_authority().empty(),"Forged remote source identity produced a world receipt");
-        {SourceAuthorityPublisher publisher(*authority,session,other,90s);unsigned captures=0;const auto deadline=Wall::now()+180s;
-            while(publisher.state().validations<2){pump();publisher.update();const auto state=publisher.state();check(state.error.empty(),state.error.c_str());
+        {SourceAuthorityPublisher publisher(*authority,session,other,90s);unsigned captures=0;std::uint64_t publications=0;
+            auto diagnostic=Wall::now();const auto deadline=Wall::now()+180s;
+            while(publisher.state().validations<2){pump();publisher.update();const auto state=publisher.state();
+                if(Wall::now()-diagnostic>=10s||!state.error.empty()){
+                    std::cerr<<"Receiver fixture sender: publications="<<state.publications<<" validations="<<state.validations
+                        <<" encoding="<<state.encoding<<" waiting="<<state.awaiting_validation<<" delivered="
+                        <<(state.pending_group&&session->authority_delivered(other,state.pending_group->context,state.pending_group->seal))
+                        <<" error="<<state.error<<'\n';diagnostic=Wall::now();
+                }
+                check(state.error.empty(),state.error.c_str());
+                if(state.publications!=publications){publications=state.publications;std::cerr<<"Receiver fixture publication "<<publications
+                    <<" encoded="<<state.payload_bytes<<" full="<<state.full_bytes<<" delta="<<state.delta
+                    <<" encode="<<state.encoding_microseconds<<"us validations="<<state.validations<<'\n';}
                 if(captures<2&&state.validations==captures&&!state.encoding&&!state.awaiting_validation){
                     if(captures)host_world->source_objects->advance_effect_frame(1.f/60.f);
                     check(publisher.capture(),"Full prepared-world host capture failed");write(files/("bodies-"+std::to_string(host_world->match.simulation().ticks())),bodies(*host_world));++captures;
@@ -159,9 +170,13 @@ void run(int argc,char **argv){
         // cold path exposes that prototype at a warm-and-return boundary,
         // before the received cut can prepare or mutate the live candidate.
         retain_candidate_baseline();
-        marker(files/"receiver-ready");bool rejected=false;unsigned prepared=0;
+        marker(files/"receiver-ready");bool rejected=false;unsigned prepared=0;auto diagnostic=Wall::now();
         wait([&]{pump();receiver->update();retain_candidate_baseline();const auto state=receiver->state();
+            if(Wall::now()-diagnostic>=10s){std::cerr<<"Receiver fixture recipient: received="<<state.received
+                <<" prepared="<<state.prepared<<" decoding="<<state.decoding<<" error="<<state.error<<'\n';diagnostic=Wall::now();}
+            if(prepared&&!state.error.empty())throw FormatError("Validated receiver later rejected cut: "+state.error);
             if(!rejected&&state.received==1&&!state.decoding&&!state.error.empty()){
+                std::cerr<<"Receiver first-cut rejection: "<<state.error<<'\n';
                 check(state.error.find("full source player identity")!=std::string::npos,"Malformed cut failed before the independent full-roster identity gate");
                 check(candidate_baseline&&state.prepared==0&&!state.ready&&receiver->world()==candidate_baseline->owner&&
                     receiver->world()->match.simulation().ticks()==candidate_baseline->tick&&bodies(*receiver->world(),false)==candidate_baseline->bodies,

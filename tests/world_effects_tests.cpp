@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
     bool directional_sparks{},handoff_checked{};unsigned light_handoffs{};
     std::set<std::uint32_t> impact_spark_bitmaps;
     LanHost host(match, 0, 0x454646454354ull);
-    LanClient peer("127.0.0.1:" + std::to_string(host.port()),
+    LanClient peer(host.join_address(),
                    0x454646454354ull, 1);
     std::array<Controls, 16> received{};
     std::array<Controls, 1> outgoing{};

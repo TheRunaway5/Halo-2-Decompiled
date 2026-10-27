@@ -56,7 +56,7 @@ struct Server {
       poll_entered=true;
       while(!release_poll && !stop.stop_requested())std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
-    if(r.url.ends_with("/v1/party/commands")) {
+    if(r.url.ends_with("/v1/party/commands?countdown=1&privacy=1")) {
       const auto body=Json::parse(r.body);
       if(body.at("action")=="invite_discord") {
         ++invites;
@@ -93,7 +93,7 @@ struct Server {
       return {200,Json{{"party_id","00000000-0000-0000-0000-000000000001"},{"version",version},
           {"current_size",size},{"max_size",16},{"join_secret",secret},{"expires_in",600}}.dump()};
     }
-    if(r.url.ends_with("/v1/party?local_players=1&appearance=1"))return {200,view().dump()};
+    if(r.url.ends_with("/v1/party?local_players=1&appearance=1&postgame=1&countdown=1&privacy=1"))return {200,view().dump()};
     return {200,R"({"clan":null,"invitations":[]})"};
   }
 };

@@ -29,11 +29,16 @@ def port():
 
 async def main():
     binary = str(Path(sys.argv[1]).resolve())
-    xbe = "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
+    # The separate MCC acceptance mode has no runtime executable input. The
+    # older disc/reference mode remains an explicitly offline source control.
+    mcc_map = os.environ.get("HALO2_SOURCE_AUTHORITY_MCC_MAP")
+    if mcc_map:
+        assert Path(mcc_map).is_file(), "Configured prepared MCC map is missing"
+    xbe = "" if mcc_map else "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
     owners = ("one", "two")
     verified = []
     output = Path(os.environ.get("HALO2_PUBLISHER_TEST_OUTPUT",
-        str(ROOT / ".local/player-host-continuity-20261014/authority-publisher")))
+        str(Path(os.environ["HALO2_TEST_SCRATCH"]) / "authority-publisher")))
     output.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="halo2-source-publisher-") as temp:
         path = Path(temp) / "playlists.json"
@@ -55,17 +60,43 @@ async def main():
             rate_per_minute=100000, matchmaking_catalog=str(path)), verify)
         async with TestClient(TestServer(app)) as client:
             processes = []
+            drains = []
+            tails = {}
+
+            async def drain(owner, stream):
+                # Keep real process output even when a different owner fails
+                # first and the fixture tears down the remaining native PC.
+                # Both readers share one bounded tail on this asyncio thread.
+                tail = tails[owner]
+                while chunk := await stream.read(8192):
+                    tail.extend(chunk)
+                    if len(tail) > 256 * 1024:
+                        del tail[:-256 * 1024]
+                    (output / (owner + ".log")).write_bytes(tail)
             try:
                 for owner in owners:
                     env = os.environ | dict(HTTP_PROXY="http://127.0.0.1:1", NO_PROXY="", no_proxy="")
                     processes.append(await asyncio.create_subprocess_exec(binary, str(ROOT), str(client.make_url("/")).rstrip("/"),
                         owner, port(), xbe, temp, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, env=env))
+                    tails[owner] = bytearray()
+                    drains.extend((asyncio.create_task(drain(owner, processes[-1].stdout)),
+                                   asyncio.create_task(drain(owner, processes[-1].stderr))))
                 async def collect(owner, process):
-                    out, err = await process.communicate()
-                    (output / (owner + ".log")).write_bytes(out + err)
-                    print(owner, process.returncode, out.decode(), err.decode(), flush=True)
+                    await process.wait()
+                    await asyncio.shield(asyncio.gather(*drains[2 * owners.index(owner):2 * owners.index(owner) + 2]))
+                    print(owner, process.returncode, bytes(tails[owner]).decode(errors="replace"), flush=True)
                     assert process.returncode == 0, "Native source publisher process failed"
                 await asyncio.wait_for(asyncio.gather(*(collect(owner, p) for owner, p in zip(owners, processes))), 300)
+                if os.environ.get("HALO2_ADMITTED_CAMERA_ONGOING"):
+                    receipts = list(Path(temp).glob("ongoing-*.json"))
+                    assert len(receipts) == 1, "Actual ongoing receiver did not retain its bounded receipt"
+                    for report in receipts:
+                        payload = report.read_bytes()
+                        assert len(payload) <= 1024 * 1024
+                        result = json.loads(payload)
+                        assert result["passed"] and len(result["adoptions"]) >= 3
+                        assert result["default_terminal_recovery"] is False
+                        (output / report.name).write_bytes(payload)
                 assert set(verified) == set(owners)
                 directory = next(iter(app.values()))
                 assert not directory.matchmaking.sessions and not directory.matchmaking.core.tickets
@@ -80,6 +111,11 @@ async def main():
                     if process.returncode is None:
                         process.kill()
                         await process.wait()
+                # These readers are independent of collect()/gather(), so a
+                # cancelled wait never discards communicate()'s private buffer.
+                await asyncio.gather(*drains, return_exceptions=True)
+                for owner, tail in tails.items():
+                    (output / (owner + ".log")).write_bytes(tail)
 
 
 if __name__ == "__main__":

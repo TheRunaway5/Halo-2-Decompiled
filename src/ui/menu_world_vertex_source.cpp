@@ -15,7 +15,7 @@ struct Operand {
   bool negative{};
   bool relative{};
 };
-Operand operand(const VertexInstruction &t,unsigned which,bool skinned=false,bool material_attributes=false) {
+Operand operand(const VertexInstruction &t,unsigned which,bool skinned=false,bool material_attributes=false,bool renderer_arithmetic=false) {
   Operand result;
   if(which==0) {
     result.file=t[2]>>26&3;result.index=t[2]>>28;
@@ -34,7 +34,7 @@ Operand operand(const VertexInstruction &t,unsigned which,bool skinned=false,boo
     if(result.index>12)throw UnsupportedVertexProgram("menu source temporary input exceeds register file");
   } else if(result.file==2) {
     result.index=t[1]>>9&15;
-    if(result.index>(skinned?6u:4u) &&
+    if(!renderer_arithmetic && result.index>(skinned?6u:4u) &&
        !(material_attributes && (result.index==10 || result.index==11)))
       throw UnsupportedVertexProgram("menu source vertex input is outside proved corridor");
   } else if(result.file==3) {
@@ -131,7 +131,9 @@ unsigned read_lanes(unsigned operation,unsigned argument,unsigned mask) {
   if(operation==5)return 14;
   if(operation==6)return argument==0?14u:15u;
   if(operation==7)return 15;
-  if(operation==19 || operation==20)return 8;
+  if(operation==8)return mask&(argument==0?6u:5u);
+  if(operation>=18 && operation<=22)return (mask&14u)?8u:(operation<=20?8u:0u);
+  if(operation==23)return (mask&4u?8u:0u)|(mask&2u?13u:0u);
   return mask;
 }
 unsigned position_reads(unsigned operation,unsigned mask,const std::vector<Operand> &inputs) {
@@ -263,8 +265,97 @@ MenuWorldVertexSource menu_world_skinned_vertex_source(const VertexProgram &prog
 MenuWorldVertexSource menu_world_material_vertex_source(const VertexProgram &program,bool skinned) {
   return emit_vertex_source(program,skinned,true);
 }
-std::array<std::uint8_t,16> menu_world_vertex_input_components(const VertexProgram &program,bool skinned) {
-  (void)emit_vertex_source(program,skinned,true);
+MenuWorldVertexSource menu_world_renderer_vertex_source(const VertexProgram &program,bool skinned) {
+  if(program.count==0 || program.count>program.instructions.size())
+    throw FormatError("renderer source instruction count is invalid");
+  if(program.relative_constants && !skinned)
+    throw UnsupportedVertexProgram("renderer source relative constants require a model palette");
+  MenuWorldVertexSource result;result.helpers=helpers;
+  std::ostringstream text;
+  text<<"    int h2MenuAddress=0;\n";
+  for(unsigned i=0;i<12;++i)text<<"    vec4 h2MenuTemp"<<i<<"=vec4(0.0);\n";
+  for(unsigned i=0;i<16;++i)text<<"    vpOut["<<i<<"]=vec4(0.0,0.0,0.0,1.0);\n";
+  bool address_written=false;
+  const auto write=[&](const std::string &destination,const std::string &value,unsigned mask) {
+    if(mask)text<<"    "<<destination<<'.'<<components(mask)<<'='<<value<<'.'<<components(mask)<<";\n";
+  };
+  for(unsigned i=0;i<program.count;++i) {
+    const auto&t=program.instructions[i];const auto mac=t[1]>>21&15u,ilu=t[1]>>25&7u;
+    if(bool(t[3]&1u)!=(i+1==program.count))throw FormatError("renderer source final marker is invalid");
+    if(mac>13)throw UnsupportedVertexProgram("renderer source MAC opcode is undefined");
+    if((t[3]&2u) && (!skinned || !address_written))
+      throw UnsupportedVertexProgram("renderer source relative read has no admitted address producer");
+    const auto reg=t[3]>>20&15u,mm=t[3]>>24&15u,im=t[3]>>16&15u,om=t[3]>>12&15u;
+    const auto output=t[3]>>3&255u;const bool output_ilu=t[3]&4u;
+    if((mm && !mac)||(im && !ilu))throw UnsupportedVertexProgram("renderer source masks an absent operation");
+    if((mm||im)&&reg>12)throw UnsupportedVertexProgram("renderer source destination exceeds temporaries");
+    if(om && (!(t[3]&2048u) || !(output==0 || output==3 || output==4 || output==5 ||
+        output==7 || output==8 || (output>=9 && output<=12))))
+      throw UnsupportedVertexProgram("renderer source output has no raw interface owner");
+    if(om && (output_ilu?!ilu:!mac))throw UnsupportedVertexProgram("renderer source output selects an absent operation");
+    if(mac==13 && (!skinned || mm || (om&&!output_ilu)))
+      throw UnsupportedVertexProgram("renderer source address load escapes the admitted palette corridor");
+    if(!mac&&!ilu)continue;
+    text<<"    // renderer instruction "<<i<<"\n";
+    const std::string suffix=std::to_string(i),a="h2RendererA"+suffix,b="h2RendererB"+suffix,
+      c="h2RendererC"+suffix,m="h2RendererM"+suffix,l="h2RendererL"+suffix;
+    const bool used[]{mac!=0,mac==2 || (mac>=4&&mac<=12),ilu!=0 || mac==3 || mac==4};
+    for(unsigned which=0;which<3;++which)
+      text<<"    vec4 "<<(which==0?a:which==1?b:c)<<'='<<
+        (used[which]?expression(operand(t,which,skinned,true,true),result):"vec4(0.0)")<<";\n";
+    text<<"    precise vec4 "<<m<<"=vec4(0.0),"<<l<<"=vec4(0.0);\n";
+    switch(mac) {
+    case 0:case 13:break;
+    case 1:text<<"    "<<m<<'='<<a<<";\n";break;
+    case 2:text<<"    "<<m<<"=h2MenuMultiply("<<a<<','<<b<<");\n";break;
+    case 3:text<<"    "<<m<<'='<<a<<'+'<<c<<";\n";break;
+    case 4:text<<"    "<<m<<"=h2MenuMultiply("<<a<<','<<b<<")+"<<c<<";\n";break;
+    case 5:case 6:case 7:
+      text<<"    vec4 h2RendererProduct"<<i<<"=h2MenuMultiply("<<a<<','<<b<<");\n"
+          <<"    precise float h2RendererDot"<<i<<"=(h2RendererProduct"<<i<<".x+h2RendererProduct"<<i<<".y)+h2RendererProduct"<<i<<".z;\n";
+      if(mac==6)text<<"    h2RendererDot"<<i<<"+="<<b<<".w;\n";
+      if(mac==7)text<<"    h2RendererDot"<<i<<"+=h2RendererProduct"<<i<<".w;\n";
+      text<<"    "<<m<<"=vec4(h2RendererDot"<<i<<");\n";break;
+    case 8:text<<"    "<<m<<"=vec4(1.0,h2MenuMultiply("<<a<<','<<b<<").y,"<<a<<".z,"<<b<<".w);\n";break;
+    case 9:text<<"    "<<m<<"=min("<<a<<','<<b<<");\n";break;
+    case 10:text<<"    "<<m<<"=max("<<a<<','<<b<<");\n";break;
+    case 11:text<<"    "<<m<<"=vec4(lessThan("<<a<<','<<b<<"));\n";break;
+    case 12:text<<"    "<<m<<"=vec4(greaterThanEqual("<<a<<','<<b<<"));\n";break;
+    }
+    switch(ilu) {
+    case 0:break;
+    case 1:text<<"    "<<l<<'='<<c<<";\n";break;
+    case 2:text<<"    "<<l<<"=vec4(1.0/"<<c<<".x);\n";break;
+    case 3:
+      text<<"    float h2RendererReciprocal"<<i<<"=1.0/"<<c<<".x;\n"
+          <<"    if(h2RendererReciprocal"<<i<<">0.0 || floatBitsToUint(h2RendererReciprocal"<<i<<")==0u)\n"
+          <<"        h2RendererReciprocal"<<i<<"=clamp(h2RendererReciprocal"<<i<<",5.421010862427522e-20,1.8446744073709552e19);\n"
+          <<"    else if(!isnan(h2RendererReciprocal"<<i<<")) h2RendererReciprocal"<<i<<"=clamp(h2RendererReciprocal"<<i<<",-1.8446744073709552e19,-5.421010862427522e-20);\n"
+          <<"    "<<l<<"=vec4(h2RendererReciprocal"<<i<<");\n";break;
+    case 4:text<<"    "<<l<<"=vec4(inversesqrt(abs("<<c<<".x)));\n";break;
+    case 5:text<<"    "<<l<<"=vec4(exp2(floor("<<c<<".x)),fract("<<c<<".x),exp2("<<c<<".x),1.0);\n";break;
+    case 6:
+      text<<"    float h2RendererLog"<<i<<"=log2(abs("<<c<<".x));\n"
+          <<"    "<<l<<"=vec4(floor(h2RendererLog"<<i<<"),abs("<<c<<".x)/exp2(floor(h2RendererLog"<<i<<")),h2RendererLog"<<i<<",1.0);\n";break;
+    case 7:text<<"    "<<l<<"=vec4(1.0,max("<<c<<".x,0.0),"<<c<<".x>0.0?pow(max("<<c<<".y,0.0),clamp("<<c<<".w,-128.0,128.0)):0.0,1.0);\n";break;
+    }
+    if(mac)result.helper_operations.push_back(mac);
+    if(ilu)result.helper_operations.push_back(16+ilu);
+    if(mac==13) {text<<"    h2MenuAddress=int(floor("<<a<<".x));\n";address_written=true;}
+    // Source order: MAC temporary, ILU temporary, selected output. Every
+    // result above already owns the old operands, including R12/oPos aliases.
+    if(mac && mac!=13 && !(ilu&&reg==1))write(temporary(reg),m,mm);
+    if(ilu)write(temporary(mac?1u:reg),l,im);
+    if(om)write("vpOut["+std::to_string(output)+"]",output_ilu?l:m,om);
+  }
+  std::sort(result.consumed_inputs.begin(),result.consumed_inputs.end());
+  std::sort(result.consumed_constants.begin(),result.consumed_constants.end());
+  result.statements=text.str();return result;
+}
+namespace {
+std::array<std::uint8_t,16> input_components(const VertexProgram &program,bool skinned,bool renderer_arithmetic) {
+  if(program.count==0 || program.count>program.instructions.size())
+    throw FormatError("vertex input metadata requires a valid program extent");
   std::array<std::uint8_t,16> result{};
   const auto read=[&](unsigned operation,unsigned mask,const std::vector<Operand>& inputs) {
     for(unsigned argument=0;argument<inputs.size();++argument) {
@@ -280,26 +371,33 @@ std::array<std::uint8_t,16> menu_world_vertex_input_components(const VertexProgr
     const auto mac=t[1]>>21&15,ilu=t[1]>>25&7,reg=t[3]>>20&15;
     const auto mm=t[3]>>24&15,im=t[3]>>16&15,om=t[3]>>12&15;
     const auto output=t[3]>>3&255u;
-    const auto output_mask=output==5?12u:om;
+    const auto output_mask=output==5&&!renderer_arithmetic?12u:om;
     const bool output_ilu=t[3]&4u;
     if(mac==13) {
-      read(1,8,{operand(t,0,skinned,true)});
-      if(ilu)read(16+ilu,im | (om?output_mask:0u),{operand(t,2,skinned,true)});
+      read(1,8,{operand(t,0,skinned,true,renderer_arithmetic)});
+      if(ilu)read(16+ilu,im | (om?output_mask:0u),{operand(t,2,skinned,true,renderer_arithmetic)});
       continue;
     }
     if(mac) {
-      std::vector<Operand> inputs{operand(t,0,skinned,true)};
-      if(mac==2 || mac==4 || mac==5 || mac==6 || mac==7)inputs.push_back(operand(t,1,skinned,true));
-      if(mac==3 || mac==4)inputs.push_back(operand(t,2,skinned,true));
+      std::vector<Operand> inputs{operand(t,0,skinned,true,renderer_arithmetic)};
+      if(mac==2 || (mac>=4&&mac<=12))inputs.push_back(operand(t,1,skinned,true,renderer_arithmetic));
+      if(mac==3 || mac==4)inputs.push_back(operand(t,2,skinned,true,renderer_arithmetic));
       read(mac,((ilu && reg==1)?0u:mm) | ((om && !output_ilu)?output_mask:0u),inputs);
     }
     if(ilu) {
-      auto input=operand(t,2,skinned,true);
-      if(ilu!=1)input.swizzle.fill(input.swizzle[0]);
+      auto input=operand(t,2,skinned,true,renderer_arithmetic);
+      if(ilu>=2 && ilu<=6)input.swizzle.fill(input.swizzle[0]);
       read(16+ilu,im | ((om && output_ilu)?output_mask:0u),{input});
     }
   }
   return result;
+}
+}
+std::array<std::uint8_t,16> menu_world_vertex_input_components(const VertexProgram &program,bool skinned) {
+  return input_components(program,skinned,false);
+}
+std::array<std::uint8_t,16> menu_world_renderer_vertex_input_components(const VertexProgram &program,bool skinned) {
+  return input_components(program,skinned,true);
 }
 std::uint32_t menu_world_vertex_default_texture_w_mask(const VertexProgram &program) {
   if(program.count==0 || program.count>program.instructions.size())

@@ -14,6 +14,7 @@ from pathlib import Path
 from oracle_smg_firing_1_1 import ROOT, Xbe, _Code, _trace, PIN
 from research_mp_sandbox_update_functions import NEW_DEFAULT, NEW_PIN, full_tokens
 from native_damage_model_kernel_tu15 import install_native_model_lookup,strip_native_model_lookup
+from native_damage_voice_request_tu15 import install_native_damage_voice_request,strip_native_damage_voice_request
 
 BASELINE_SHA256='32a7d51b0159e2927cf34a75dcf5d00b6be28c42bd2ae42b3e5465c7f45a6142'
 # The coherent374-case vehicle build pins the newer complete source at
@@ -54,6 +55,7 @@ def sha(path):
     with path.open('rb') as source:return hashlib.file_digest(source,'sha256').hexdigest()
 
 def canonical(source):
+    source=strip_native_damage_voice_request(source)
     from native_difficulty_parameter_kernel_tu15 import strip_native_difficulty_routes
     source=strip_native_difficulty_routes(source)
     from native_damage_material_kernel_tu15 import strip_native_material_lookup
@@ -111,6 +113,7 @@ def main():
     output=install_native_material_lookup(output)
     from native_difficulty_parameter_kernel_tu15 import install_native_difficulty_routes
     output=install_native_difficulty_routes(output,'delivery')
+    output=install_native_damage_voice_request(output)
     assert canonical(output)==source
     args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(output)
     report=dict(scope=__doc__,source_sha256=sha(args.source),canonical_baseline_sha256=canonical_pin,

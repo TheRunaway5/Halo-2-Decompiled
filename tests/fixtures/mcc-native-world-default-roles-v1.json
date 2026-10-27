@@ -1,0 +1,31 @@
+{
+  "schema": "H2_MCC_NATIVE_WORLD_DEFAULT_ROLES_REGRESSION_V1",
+  "fixture_schema": "H2_MCC_NATIVE_WORLD_DEFAULT_ROLES_FIXTURE_V1",
+  "scope": "Literal original default role data component; actual shared bitmap owners; no live/GPU claim",
+  "compressed_file": "mcc-native-world-default-roles-v1.json.zlib",
+  "compressed_bytes": 12716,
+  "compressed_sha256": "556839c4d709c4c6891fd89da1d9cd0756065b6e002f6cc3695b44f43e541b9d",
+  "decoded_bytes": 146085,
+  "decoded_sha256": "44a6db9f8968724b59494aecc1a236311b9625e35d564d397459be89cdcb58df",
+  "source_map_sha256": {
+    "needle": "bdf79ad0880e0ded968745bc102dcadaeb2ac690dd0eab42eb994f6f4f1d5fb7",
+    "street_sweeper": "a607587a4d4cf64a5fc52471810d292fbefaff06cd1aae09ee7fc24cacab67e6",
+    "03a_oldmombasa": "395ad7bccefdb3d50950dc911e8adeee770a75e6ad109c3979d6a641fd648475",
+    "03b_newmombasa": "f9c2f526ca8b5213c11a4be0fb4886ea64d741b3938ee01d1b98540c3e82d073",
+    "deltatap": "917165194b13758a247b0dcec6609226c5f6fb1ab99c8481bf315ddc7784eb38",
+    "containment": "7d27e2443a8467f89cd3714f07bfe161d5d543b1255823f8649dcf24c293dc95"
+  },
+  "native_source_libraries": {
+    "03a_oldmombasa": "a249dafbf4bf99413cc4470c65e83e66ba1c1c94d8fc5bf4deffb4870e53f519",
+    "deltatap": "b1dc10c8f04fdfcaa6523baa2bbed8f74995fb2b3d77ea5085a86032c821b450"
+  },
+  "exporter": "tools/export_mcc_native_world_default_roles_fixture.py",
+  "exporter_sha256": "d34a502e50714d4847ebceaf4f712a35769a4e2cc8830028413c584a38b91274",
+  "base_exporter": "tools/export_mcc_native_world_cooked_fixture.py",
+  "base_exporter_sha256": "50664ef464fe55fd2a75a4c0dd47e5a7f4c7560f671da49b7f799553bb409664",
+  "pc_geometry_owners": 3,
+  "paired_original_fixtures": 4,
+  "excluded_paired_census_rows": 1,
+  "resource_proof": "Every exact original default mip is retained in the source component and validated at admission; no generated textures",
+  "retention_reason": "Required portable literal actual source metadata/default resource regression input; no cache/frame/binary retained"
+}

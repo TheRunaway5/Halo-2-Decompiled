@@ -19,7 +19,7 @@ using namespace halo2;
 namespace {
 void check(bool yes,const char *why){if(!yes)throw FormatError(why);}
 struct Host {
-    unsigned port{};
+    std::string join_address;unsigned port{};
     std::atomic<bool> step{},join{},leave{};
     std::exception_ptr error;std::mutex mutex;std::jthread worker;
     explicit Host(const MultiplayerOptions &o) {
@@ -31,12 +31,12 @@ struct Host {
             auto &match=world.match;const auto &cache=*world.cache;
             match.configure_replicated_first_person(cache.load_first_person_binding(world.rules.weapon,2));
             const auto fingerprint=multiplayer_fingerprint(server.map,cache.shared_directory(),0,world.network_starting_weapon_identity(),server.gameplay_xbe);
-            LanHost host(match,0,fingerprint);ready.set_value(host.port());published=true;
+            LanHost host(match,0,fingerprint);join_address=host.join_address();ready.set_value(host.port());published=true;
             std::array<Controls,multiplayer_capacity> controls{};std::unique_ptr<LanClient> late;
             std::array<std::optional<unsigned>,multiplayer_capacity> initial_ammunition;
             auto next=std::chrono::steady_clock::now();
             while(!stop.stop_requested()) {
-                if(join.exchange(false))late=std::make_unique<LanClient>("127.0.0.1:"+std::to_string(host.port()),fingerprint,1);
+                if(join.exchange(false))late=std::make_unique<LanClient>(host.join_address(),fingerprint,1);
                 if(late){Controls neutral{};late->send(std::span(&neutral,1));}
                 if(leave.exchange(false))late.reset();
                 host.receive(controls);
@@ -66,7 +66,7 @@ int main(int argc,char **argv)try {
     MultiplayerOptions options;options.map=argv[1];options.shared_maps=argv[2];options.gameplay_xbe=argv[3];
     options.local_players=4;options.starting_weapon=5;options.width=960;options.height=540;
     options.validation=std::getenv("HALO2_REPLICA_VALIDATION");
-    Host host(options);options.join="127.0.0.1:"+std::to_string(host.port);
+    Host host(options);options.join=host.join_address;
     options.desktop=std::make_shared<DesktopSession>();options.desktop->window(options.width,options.height,false);
     enum class Phase {Warm,Settle,Join,Leave,Done};Phase phase=Phase::Warm;
     std::uint32_t tick{},frozen{},last_requested=~0u;unsigned accepted{},refreshes{},stage_refreshes{},draws{};

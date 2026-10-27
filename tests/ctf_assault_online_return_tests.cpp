@@ -1,12 +1,14 @@
 #define SDL_MAIN_HANDLED
 #include "helpers/objective_match_completion_tu15.hpp"
 #include "halo2/online_matchmaking.hpp"
+#include "halo2/online_account.hpp"
 #include "halo2/online_postgame.hpp"
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/frontend_session.hpp"
 #include "halo2/native_vista_announcer.hpp"
 #include <SDL.h>
 #include <curl/curl.h>
+#include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -51,6 +53,11 @@ int main(int argc,char** argv)try {
      need(curl_easy_perform(curl.get())==CURLE_OK,"Objective fixture OAuth callback failed");}
     wait("OAuth authorization",[&]{return login->authorization().has_value();});
     frontend->discord_login=login;menu.set_discord_login(login);
+    OnlineAccountOptions account_options;account_options.endpoint=argv[2];account_options.allow_loopback_http=true;
+    account_options.enable_parties=true;account_options.poll_interval=1500ms;
+    auto account=std::make_shared<OnlineAccount>(login,account_options);account->connect("Objective "+owner);
+    menu.set_online_account(account);
+    wait("authenticated ONLINE account",[&]{menu.update_online_login();return account->snapshot().authenticated && !account->snapshot().busy;});
     OnlineMatchmakingOptions cfg;cfg.endpoint=argv[2];cfg.allow_loopback_http=true;cfg.maps={map.stem().string()};cfg.poll_interval=20ms;
     auto queue=std::make_shared<OnlineMatchmaking>(login,cfg);menu.set_online_matchmaking(queue);
     const auto search=[&] {
@@ -62,8 +69,20 @@ int main(int argc,char** argv)try {
         const auto selected=std::ranges::find(catalog,std::string("casual"),&OnlinePlaylist::id);
         need(selected!=catalog.end() && selected->eligible,"Objective playlist missing");
         menu.select(unsigned(selected-catalog.begin()));menu.accept();need(menu.frame().screen==237,"Objective playlist details missing");
-        menu.accept();need(menu.frame().screen==210,"Objective Find Match did not enter native search");
-        wait("actual launch",[&]{menu.update_online_login();menu.update_online_matchmaking();
+        menu.accept();need(menu.frame().screen==14,"Objective playlist skipped its original pregame lobby");
+        wait("actual party hopper consent",[&]{menu.update_online_login();menu.update_online_matchmaking();
+            const auto s=account->snapshot();return s.party && s.party->leader && !s.busy &&
+                std::all_of(s.party->members.begin(),s.party->members.end(),[](const auto &m){return m.ready_playlist=="casual";});});
+        const auto& entries=menu.frame().entries;
+        const auto begin=std::find_if(entries.begin(),entries.end(),[](const auto& e){return e.destination==-17;});
+        need(begin!=entries.end(),"Objective pregame lobby has no native Start Game action");
+        menu.select(unsigned(begin-entries.begin()));menu.accept();
+        wait("published shared pregame countdown",[&]{menu.update_online_login();menu.update_online_matchmaking();return menu.online_lobby_countdown()>0;});
+        need(menu.online_lobby_countdown()<=10 && !menu.launch,"Objective pregame Start skipped its original countdown");
+        // Advance only the pregame UI countdown; the final matched-room
+        // countdown still waits for its real service-published zero.
+        std::uint32_t menu_clock{};
+        wait("actual launch",[&]{menu.ui_clock(menu_clock+=250);menu.update_online_login();menu.update_online_matchmaking();
             const auto status=queue->snapshot();if(status.status==OnlineMatchmakingStatus::Failed)throw FormatError(status.message);
             if(menu.frame().title=="UNAVAILABLE")throw FormatError(menu.frame().description);
             return menu.launch.has_value();});
@@ -240,12 +259,12 @@ int main(int argc,char** argv)try {
     audio.reset();
     host.reset();client.reset();const std::weak_ptr<MultiplayerPreparedWorld> retired=world;world.reset();
     need(retired.expired(),"Objective ONLINE return retained a departed source world");
-    bool done{};auto pcr=online_postgame_screen(*frontend,session,[&]{done=true;menu.return_online();});
+    bool done{};auto pcr=online_postgame_screen(*frontend,session,[&]{done=true;menu.return_online_lobby();});
     need(pcr->results->player_count==2 && pcr->results->variant==type && pcr->results->team_count==2,
         "Objective ONLINE PCR lost original engine/team/players");
     frontend->enter(FrontendOptions::Entry::postgame_report,pcr);menu.back();
-    need(done && menu.frame().screen==186 && menu.local_players().size()==1 && login->authorization(),
-        "Objective PCR Done failed its fresh ONLINE return");
+    need(done && menu.frame().screen==14 && menu.has_online_prior_stats() && menu.local_players().size()==1 && login->authorization(),
+        "Objective PCR Done failed its retained pregame lobby return");
     pcr.reset();launch.online_match.reset();session.reset();
     auto second=search();need(second.online_match->roster().size()==2,"Objective fresh requeue failed");
     // Both actual new admissions must be observed before either endpoint leaves.

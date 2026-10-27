@@ -5,7 +5,14 @@
 #include <memory>
 
 namespace halo2 {
-// Native active/finished-Slayer adapter, including explicit teams. Current
+// Deliver published native match fields to the original roster leaf. Static
+// variant comparison flags remain in the supplied base options.
+FullScoreboardOptions multiplayer_scoreboard_options(FullScoreboardOptions,
+    const MultiplayerState &);
+// TU1.5 127965..1279B5 right-Y dead zone/scaling after the native SDL axis
+// sign transport. Independent of the gameplay stick preset and look invert.
+std::int16_t multiplayer_scoreboard_scroll_axis(std::int16_t native_right_y);
+// Native active/finished multiplayer adapter, including explicit teams. Current
 // ownership and the source respawn countdown also drive automatic display.
 // The original roster, palette, text and geometry leaves use native session
 // and input bindings. Special watched-player observers have no native owner.
@@ -38,15 +45,18 @@ public:
   // Swap-only; the consumed token retains displaced CPU values for retirement.
   bool commit_restore(PreparedRestore &)noexcept;
   bool available() const {return bool(painter_);}
+  std::optional<std::u16string> status_text(const MultiplayerState &,unsigned player_slot,
+      bool suppress_playing=true,std::size_t capacity=256)const;
   void step(unsigned view,bool held);
-  void step(unsigned view,bool held,const MultiplayerState&,unsigned player_slot);
+  void step(unsigned view,bool held,const MultiplayerState&,unsigned player_slot,
+      std::int16_t source_scroll_axis=0);
   struct Draw {
     bool normal_hud=true;
     FullScoreboardLayout layout;
     FullScoreboardPaintResult paint;
   };
   Draw draw(const MultiplayerState &,std::span<const unsigned> local_ids,
-      unsigned view,unsigned width,unsigned height,std::optional<TwoPlayerSplit> split = {}) const;
+      unsigned view,unsigned width,unsigned height,std::optional<TwoPlayerSplit> split = {});
 private:
   struct Continuity;class Call;
   std::shared_ptr<const OriginalData> original_;

@@ -1,0 +1,10 @@
+{
+  "schema": "H2_MCC_NATIVE_CHARACTER_SHARED_REGRESSION_V1",
+  "compressed_file": "mcc-native-character-shared-v1.json.zlib",
+  "compressed_bytes": 8709,
+  "compressed_sha256": "032236ef3db789cd5dbe7654e10bfdfeea80f6f3d099c228e9f5b2edc00fa091",
+  "decoded_bytes": 48965,
+  "decoded_sha256": "23a7442fd4a988d942829d5def83d114f97dfc8d1d0d5a9e19cccd070146cb9a",
+  "source_policy_sha256": "c983641e6e47abc5f7d129d65dc47f121b98c9dc9b55589c67cb26ce728ec83e",
+  "source": "Actual retained shared.map two source owners; original Coagulation full program/material owner proof in policy; includes exact complete source compiler graph/banks/curves and expected transformed original banks"
+}

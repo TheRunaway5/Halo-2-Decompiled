@@ -17,7 +17,9 @@ struct VertexProgramState {
   std::array<ShaderVector,192> constants{};
   std::array<ShaderVector,16> attributes{}, outputs{};
 };
-// Arithmetic reference for original vertex programs. Native float arithmetic
+// Offline test-only arithmetic reference for original vertex programs. The
+// shipped renderer has no implementation or call to this interpreter.
+// Native float arithmetic
 // is not a claim of NV2A reciprocal precision or hardware rounding parity.
 void execute_vertex_program(const VertexProgram &, VertexProgramState &);
 }

@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 import subprocess
 from PIL import Image, ImageChops
+from qualify_frontend_runtime import intro_capture_witness
 
 
 def main():
@@ -51,9 +52,12 @@ def main():
         for variant in ("stock", "vista"):
             assert identity() == pins, "capture inputs changed"
             stem = name + "-" + variant
+            # Preserve each authored animation sample; readiness comes from
+            # the native map-intro owner, not --menu-ui-ms.
             command = [str(root / "build-frontend/Halo2-Title-Launcher"),
                        "--skip-intro", "--freeze-menu", "--menu-tick", "181",
                        "--menu-screen", str(screen), "--frames", str(frames),
+                       "--menu-wait-intro-clear",
                        "--menu-ui-ms", str(clock), "--menu-ui-step-ms", str(step),
                        "--viewport", str(width), str(height), "--hidden", "--mute",
                        "--validation", "--screenshot", str(output / (stem + ".ppm"))]
@@ -63,8 +67,14 @@ def main():
                                  stderr=subprocess.STDOUT, text=True, timeout=180)
             (output / (stem + ".log")).write_text(run.stdout)
             errors = re.findall(r"VUID-|Validation Error|validation error|Fatal|cannot initialize", run.stdout)
+            intro_clear = None
+            if run.returncode == 0:
+                try:
+                    intro_clear = intro_capture_witness(run.stdout, frames)
+                except ValueError as error:
+                    errors.append(str(error))
             report["runs"].append(dict(name=stem, argv=command, returncode=run.returncode,
-                                       validation_errors=errors))
+                                       validation_errors=errors, intro_clear=intro_clear))
             (output / "runs.json").write_text(json.dumps(report, indent=2) + "\n")
             print(stem, "exit", run.returncode, "validation errors", len(errors), flush=True)
             assert run.returncode == 0 and not errors
@@ -73,6 +83,7 @@ def main():
             with Image.open(output / (stem + ".ppm")) as image:
                 assert image.size == (width, height)
                 rendered.append(image.convert("RGB"))
+                assert rendered[-1].getbbox() is not None, "frontend content is entirely black after intro clear"
                 image.save(output / (stem + ".png"))
             assert identity() == pins, "capture inputs changed"
         difference = ImageChops.difference(*rendered)

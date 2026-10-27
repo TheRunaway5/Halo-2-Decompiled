@@ -34,7 +34,9 @@ adapter.
 | [Acknowledged deltas](../rust/online_protocol/src/netcode/stream.rs) | Every input packet carries the newest decoded snapshot sequence, a 32-message mask and a reset flag. The host codes each tick against the newest acknowledged message (64-message window). Loss never stalls: the next message references a baseline the client is known to hold. |
 | [Generic codec](../rust/online_protocol/src/netcode/generic.rs) | Lossless. Runs that match the aligned baseline and did not change in it cost one length. Other units use the baseline's change history as context; floats marked by `put_float` are ordered-integer residuals with constant-velocity prediction. Keyed anchors (list sections, entity handles, event serials) re-align after list insertions/removals without searching; a new entry is compared with the baseline copy of its preceding sibling (journal events, joins and spawns share a layout). |
 | [Range coder](../rust/online_protocol/src/netcode/range.rs) | 16-bit adaptive probabilities, so an unchanged world costs about 5 bytes of payload. Models reset per message; no coder state crosses a datagram. |
-| [Poses](../rust/online_protocol/src/netcode/pose.rs) | Presentation-only. Rigid nodes become smallest-three quaternions (1/4096) plus positions relative to the sphere center (1/1024 world unit); non-rigid nodes stay raw. Each body has a priority that grows with viewer relevance while it differs from what the client is known to hold. Every moving body sends a root update (sphere + node 0) every tick, outside the budget, like the original's per-tick object positions, so rigid objects such as a falling barrel move at full rate. The host fills the remaining budget with full refreshes, delta-coded against an acknowledged refresh of the same body or of another body with the same skeleton. The client keeps the latest refresh per body and carries held poses rigidly with newer roots. |
+| [Poses](../rust/online_protocol/src/netcode/pose.rs) | Presentation-only. Rigid nodes become smallest-three quaternions (1/4096) plus positions relative to the sphere center (1/1024 world unit); non-rigid nodes stay raw. Each body has a priority that grows with viewer relevance while it differs from what the client is known to hold. Every moving body sends a root update (sphere + node 0) every tick, outside the budget, like the original's per-tick object positions, so rigid objects such as a falling barrel move at full rate. The host fills the remaining budget with full refreshes, delta-coded against an acknowledged refresh of the same body or of another body with the same skeleton. Some refreshes bypass the budget:
+- A body that starts moving after resting longer than the acknowledgement ring (about 2 s, so there is no root baseline) gets an immediate full refresh. Otherwise a pushed barrel waited behind budgeted refreshes before moving on the client.
+- Melee and grenade-throw bodies and ragdolls (dying players' bodies and corpses) are refreshed every tick while their pose changes. The client keeps the latest refresh per body and carries held poses rigidly with newer roots. |
 | [Budget](../rust/online_protocol/src/netcode/bandwidth.rs) | Token bucket per client using the retail constants: start 30720, floor 4096, ceiling 71680, +min(3072, 20%) per 2 s round only while demand exceeds the budget, ×0.8 when more than 10% of 32 messages are lost. Game state goes out **every tick** (the original sent player state every tick; skipping would delay the final postgame state and unpair migration cuts from client receipts). The budget governs pose refreshes; one overdue full refresh may overdraw by half the 0.25 s debt cap. |
 | [Compact authentication](../rust/online_protocol/src/lan_auth.rs) | After a peer proves the shared key, raw-LAN frames switch from `LNA1` (public key + 32-byte HMAC, 77 bytes) to `LNA2` (pinned session, 128-bit truncated HMAC-SHA256, 29 bytes). Same sequence space and 1024-packet replay window. |
 
@@ -66,8 +68,17 @@ facing plus its unit's position, forward, up and velocities
 motion into the biped after a finite-values check (`unknown_067e10.cpp:2026`,
 `unknown_0a0190.cpp:79`); damage stays host-only (`damage.cpp:645`) and
 host-replicated projectiles wait for the host (`projectiles.cpp:2151`).
-Corrections blend 45% (position) and 35% (orientation) per tick
-(`unknown_0a58d0.cpp:383`).
+The 45% (position) and 35% (orientation) per-tick blend
+(`unknown_0a58d0.cpp:383`) is presentation only, for other objects; the
+client's own unit took host corrections only above the mode-1 distance, and
+then snapped.
+
+The motion setters `0xA9F70` (classify) and `0xAA260` (apply) are retail
+addresses; the TU1.5 copies are `0xB41D0` and `0xB44C0` (teleport `0xB4DA0`,
+velocity nudge `0xB4F00`). TU1.5 changed the distances (biped/vehicle): the
+client snaps its own unit at 2.5/7.5 world units (retail 3.0/8.0), and the
+host rejects client motion beyond 3.0/9.0 (retail 2.0/5.0). See
+[NETCODE_ENHANCED_GOAL.md](NETCODE_ENHANCED_GOAL.md) item 1.
 
 The port's host runs TU1.5 in local mode and clients have no native world, so
 a non-host's own look and movement came back a round trip late.
@@ -78,14 +89,52 @@ a non-host's own look and movement came back a round trip late.
   has not consumed yet, so aim answers on the same frame. Seated views keep
   host angles, because `0x18A300` applies seat limits and auto-level on the
   host. Predicted pitch is clamped to ±88°.
-- **Movement (next).** Faithful parity needs a client-side TU1.5 world that
-  steps the local biped each tick (the authority replay worker already builds
-  one on clients), client motion in the input request, a host setter
-  equivalent to `0xA9F70`/`0xAA260`, and the 45%/35% correction blend. A
-  Quake-style rewind/replay is not the original model.
+- **Movement (implemented, protocol 113).** A native predictor steps each
+  local on-foot biped on the input tick, replays unacknowledged inputs on each
+  snapshot (trust 0.05 wu, 45% blend, snap past 2.5 wu) and sends its motion
+  (17 bytes per view). The host consumes inputs in order (each packet repeats
+  the two before it) and adopts the motion through native TU1.5 `B44C0`
+  decision 2 (`B4F00` + `B9800`) within the TU1.5 limits and anti-cheat
+  bounds. Details, wire layout, measurements and the remaining work are in
+  [NETCODE_ENHANCED_GOAL.md](NETCODE_ENHANCED_GOAL.md#item-1-non-host-movement-prediction)
+  (items 1 and 5).
 - **Firing (next).** Local fire presentation on press, deduplicated by the
   host `shot_tick`; then barrel `+0x34` local projectile creation once a
   client world exists.
+- **Physics objects and projectiles (implemented,
+  [NETCODE_ENHANCED_GOAL.md](NETCODE_ENHANCED_GOAL.md) 3b/4a).** Presentation
+  only, in every mode; the host's simulation is unchanged.
+  - *Impulse journal.* The host's tolerant publisher on the completed
+    `1D94CE`→`324F80` point impulse reads the root body's motion record after
+    the original call (linear velocity `+0x40`, angular `+0x50`).
+    `MultiplayerMatch` coalesces each object's impulses per step into its
+    final root velocities and publishes `MultiplayerState::physics_impulses`
+    (units, projectiles and attached objects excluded): contiguous serials,
+    the newest 32 events, none older than 300 ticks. The impulse vector and
+    application point are not published; no replica reads them. Vectors use
+    a shared exponent and three 8-bit mantissas. On the wire the journal is
+    the newest serial plus 32 fixed slots (serial mod 32; 17 bytes when
+    occupied): retained events stay byte-identical and a new event
+    overwrites an old one in place, so the delta codec pays only for the new
+    bytes. It rides the every-tick generic state, outside the pose budget.
+  - *Dead reckoning* (`ReplicaMotion`, client only). Loose weapons,
+    unoccupied vehicles, source dynamic objects, scene props (not machines,
+    controls or fixtures), weapon projectiles and released grenades advance
+    from the newest accepted snapshot with their replicated linear velocity
+    (derived from successive roots where none is replicated) and angular
+    velocity measured from successive orientations. Projectiles add their
+    authored gravity (`proj+164` × retail gravity; F8EB0's exact ballistic
+    segment). Havok bodies add world gravity (4.1712594 wu/s²) only while the
+    authority's own velocity shows free flight, integrated as Havok does
+    (velocity before position). A fresh impulse event replaces the body's
+    motion at once, so it moves on the first presented frame after that
+    snapshot. A newer snapshot's disagreement is blended out at the 2004
+    client's per-tick object rates (45% position, 35% orientation, retail
+    `A9A70`/`A9B40`), continuously between frames; errors over 2 wu or
+    1 rad snap. Extrapolation stops 0.25 s after the newest snapshot.
+    Players and occupied vehicles keep ordinary interpolation. Posed bodies
+    carry their newest WORLD nodes rigidly with the same motion
+    (`SourceWorldInterpolation`/`SceneInterpolation::present`).
 
 ## Online sandbox parity
 
@@ -134,7 +183,9 @@ remote visuals matter.
 
 `H2_NET_STATS=1` prints each client's rate, budget, message size, pose
 refresh/root/held counts, skipped ticks, keyframes, resets, loss and RTT
-every five seconds. The CTest suite runs with `unlimited`, because fixtures
+every five seconds. Non-hosts add their presentation delay (`H2 net view:`,
+the adaptive interpolation buffer of
+[NETCODE_ENHANCED_GOAL.md](NETCODE_ENHANCED_GOAL.md) item 3a). The CTest suite runs with `unlimited`, because fixtures
 assert that every `broadcast()` replicates; budget behavior has its own tests.
 
 ## Qualification
@@ -147,6 +198,8 @@ assert that every `broadcast()` replicates; budget behavior has its own tests.
 | Captured ONLINE Lockout bodies replayed through the codec | 193 bytes/tick payload with 2 players, 336 with 4 (sibling alignment: −13% / −6%) |
 | Rust stream simulation, 8 skeletal bodies + 10 static bodies, 30 s, `original` | 900/900 ticks delivered at 59.3 kbit/s; every moving root every tick (6881 root updates), 305 budgeted full refreshes, none held; no failures |
 | Unchanged world | ≤ 6 bytes of payload per message |
+| Impulse events, same fixture, full journal, random contents (protocol 113) | +4.8 kbit/s at 1 event/tick (about 20 B/event), +13.0 kbit/s at 4/tick (about 14 B/event); 150/150 states each |
+| `native_replica_motion` | Projectile and Havok-prop predictions land within 1e-6 wu of the next authoritative snapshot; corrections are continuous (5% left after 5 ticks); large errors snap |
 | 208 KB body, release build | about 1.4 ms per tick for encode, decode, materialize and scene generation together |
 | ONLINE lobby → match → postgame (Vista PCR) → requeue, `original` budget | Core, team, party, casual, casual party, ranked/casual gathering, voice blocks, variant mismatch, peer host takeover, common-cut runtime: all pass |
 | `native_request_protocol` | Rust/C++ reference differential includes the ack fields |
@@ -172,7 +225,11 @@ and missing local inputs (`default.xbe`; CTest's Python lacks `aiohttp`).
   still arrive every tick and carry held bodies rigidly. Very large skeleton counts can
   still leave distant bodies visibly stepping.
 - Outside the budget: client input upstream (about 120 bytes per tick plus
-  compact authentication), ONLINE migration snapshot candidates (complete
+  compact authentication; protocol 113 adds 3 bytes of displayed snapshot
+  time, see [lag-compensated hitscan](NETCODE_ENHANCED_GOAL.md#item-2-lag-compensated-hitscan),
+  a 17-byte motion block per predicting view and two repeated inputs as
+  changed held fields: one view measures 163.9 bytes per packet against about
+  143 before, see [items 1 and 5](NETCODE_ENHANCED_GOAL.md#item-5-redundant-input)), ONLINE migration snapshot candidates (complete
   packets, at most every 3 s when enabled), authority-archive transfers, voice
   and session configuration.
 - Mixed-version peers are rejected by the protocol version (105).

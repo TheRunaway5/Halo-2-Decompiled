@@ -1,4 +1,5 @@
 #include "halo2/menu_world_vertex_catalog.hpp"
+#include "halo2/original_data.hpp"
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
@@ -19,7 +20,7 @@ std::string json_string(std::string_view text) {
 }
 template<class Range>void numbers(std::ostream &out,const Range &values) {
   out<<'[';bool first=true;
-  for(const auto value:values){if(!first)out<<',';first=false;out<<value;}
+  for(const auto value:values){if(!first)out<<',';first=false;out<<+value;}
   out<<']';
 }
 void write(const std::filesystem::path &path,std::span<const std::byte> bytes) {
@@ -39,20 +40,34 @@ struct Entry {
 struct Rejected {Tag tag;unsigned vertex_class;std::string kind,reason;};
 }
 int main(int argc,char **argv) {try {
-  std::filesystem::path map,output;
-  bool attributes=false;
+  std::filesystem::path map,output,shared,prepared,image;
+  bool attributes=false,renderer_arithmetic=false;
   for(int i=1;i<argc;++i) {
     const std::string option=argv[i];
     if(option=="--constant-attributes" && !attributes){attributes=true;continue;}
+    if(option=="--renderer-arithmetic" && !renderer_arithmetic){renderer_arithmetic=true;continue;}
     if(i+1>=argc)throw FormatError("menu vertex catalog option has no value");
     if(option=="--map" && map.empty())map=argv[++i];
     else if(option=="--output" && output.empty())output=argv[++i];
+    else if(option=="--shared-directory" && shared.empty())shared=argv[++i];
+    else if(option=="--prepared-root" && prepared.empty())prepared=argv[++i];
+    else if(option=="--xbe" && image.empty())image=argv[++i];
     else throw FormatError("unknown or duplicate menu vertex catalog option");
   }
   if(map.empty() || output.empty())
     throw FormatError("usage: generate_menu_world_vertex_catalog --map mainmenu.map --output directory");
-  const Cache cache(map);std::vector<Tag> tags;
-  for(const auto &tag:cache.tags())if(tag.group=="vrtx")tags.push_back(tag);
+  std::shared_ptr<const OriginalData> original;
+  if(!image.empty()) {
+    original=OriginalData::load_xbe(image);
+    if(original->image!=OriginalData::Image::TitleUpdate15)
+      throw FormatError("Raw vertex catalog source image must be authenticated TU1.5");
+  }
+  const Cache cache(map,shared,original,prepared);std::vector<Tag> tags;
+  unsigned non_native_inputs{};
+  for(const auto &tag:cache.tags())if(tag.group=="vrtx") {
+    if(cache.is_mcc() && !cache.is_preserved_native_shader(tag.handle())){++non_native_inputs;continue;}
+    tags.push_back(tag);
+  }
   std::sort(tags.begin(),tags.end(),[](const auto &a,const auto &b){return a.datum<b.datum;});
   std::vector<Entry> entries;std::vector<Rejected> rejected;
   for(const auto &tag:tags)for(unsigned vertex_class:{0u,1u,2u,3u,4u,5u,6u}) {
@@ -63,7 +78,8 @@ int main(int argc,char **argv) {try {
         return entry.program==program && entry.declaration==declaration;
       });
       if(existing!=entries.end()){existing->aliases.push_back(tag);continue;}
-      auto source=attributes?menu_world_material_vertex_shader_source(program,declaration):
+      auto source=renderer_arithmetic?menu_world_renderer_vertex_shader_source(program,declaration):
+          attributes?menu_world_material_vertex_shader_source(program,declaration):
           menu_world_vertex_shader_source(program,declaration);
       entries.push_back({std::move(program),std::move(declaration),std::move(source),{tag}});
     } catch(const UnsupportedVertexProgram &error) {
@@ -73,12 +89,13 @@ int main(int argc,char **argv) {try {
       rejected.push_back({tag,vertex_class,"invalid_or_absent_source",error.what()});
     }
   }
-  if(entries.empty())throw FormatError("menu cache contains no supported raw class0..6 vertex programs");
   std::filesystem::create_directories(output);
   std::ostringstream manifest;
   manifest<<"{\n  \"schema\":\"halo2-menu-world-vertex-source-v1\",\n  \"abi\":"
-      <<(attributes?menu_world_vertex_attribute_catalog_abi:menu_world_vertex_catalog_abi)<<",\n  \"target\":\"vulkan1.3\",\n  \"cache\":"
+      <<(renderer_arithmetic?menu_world_renderer_vertex_catalog_abi:
+          attributes?menu_world_vertex_attribute_catalog_abi:menu_world_vertex_catalog_abi)<<",\n  \"target\":\"vulkan1.3\",\n  \"cache\":"
       <<json_string(std::filesystem::absolute(map).string())<<",\n  \"vrtx_count\":"<<tags.size()
+      <<",\n  \"non_native_pc_vertex_metadata_owners\":"<<non_native_inputs
       <<",\n  \"entries\":[\n";
   for(std::size_t i=0;i<entries.size();++i) {
     const auto &entry=entries[i];const auto stem="menu-world-vs-"+std::to_string(i);
@@ -88,7 +105,9 @@ int main(int argc,char **argv) {try {
         <<",\"class_index\":"<<entry.declaration.class_index<<",\"semantics\":";
     numbers(manifest,entry.declaration.semantics);manifest<<",\"consumed_inputs\":";
     numbers(manifest,entry.source.consumed_inputs);manifest<<",\"consumed_constants\":";
-    numbers(manifest,entry.source.consumed_constants);manifest<<",\"aliases\":[";
+    numbers(manifest,entry.source.consumed_constants);manifest<<",\"consumed_input_components\":";
+    numbers(manifest,entry.source.consumed_input_components);
+    manifest<<",\"default_texture_w_mask\":"<<entry.source.default_texture_w_mask<<",\"aliases\":[";
     for(std::size_t j=0;j<entry.aliases.size();++j) {
       if(j)manifest<<',';manifest<<"{\"datum\":"<<entry.aliases[j].datum
           <<",\"name\":"<<json_string(entry.aliases[j].name)<<'}';
@@ -102,6 +121,7 @@ int main(int argc,char **argv) {try {
         <<",\"class_index\":"<<entry.vertex_class<<",\"kind\":"<<json_string(entry.kind)<<",\"reason\":"<<json_string(entry.reason)<<'}';
   }
   manifest<<"\n  ]\n}\n";write(output/"sources.json",manifest.str());
+  if(entries.empty())throw FormatError("menu cache contains no supported raw class0..6 vertex programs");
   std::cout<<"menu raw vertex source catalog: "<<entries.size()<<" unique supported programs, "
       <<rejected.size()<<" explicit rejections, "<<tags.size()<<" actual vrtx tags\n";
   return 0;

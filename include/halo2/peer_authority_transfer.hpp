@@ -6,6 +6,7 @@
 #include <optional>
 #include <span>
 #include <vector>
+#include "halo2/authority_network_limits.hpp"
 
 namespace halo2 {
 using AuthorityTransferDigest=std::array<std::byte,32>;
@@ -45,8 +46,11 @@ inline constexpr std::uint32_t authority_feature_source_projectile_contacts=64u;
 // Bounded two-cut delivery; byte receipt is still not native validation.
 inline constexpr std::uint32_t authority_feature_source_pipeline=128u;
 inline constexpr std::uint32_t authority_feature_source_host_continuation=256u;
+// Numeric owner/view operands for locally seeded admitted native cameras.
+// This does not grant the older raw controller/observer operation25.
+inline constexpr std::uint32_t authority_feature_source_admitted_camera=4096u;
 struct AuthorityTransferLimits {
-    std::uint64_t maximum_bytes=64ull*1024*1024;
+    std::uint64_t maximum_bytes=authority_network_encoded_bytes;
     std::uint64_t bytes_per_second=512ull*1024;
     std::uint64_t burst_bytes=16*1024;
     std::uint64_t retry_ms=250,offer_ms=500,idle_ms=15'000,lifetime_ms=300'000;

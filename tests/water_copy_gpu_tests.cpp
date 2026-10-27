@@ -26,11 +26,17 @@ void save(const std::filesystem::path &path,std::span<const std::byte> bytes) {
 }
 }
 int main(int argc,char **argv)try {
-    check(argc==4,"Original destination fixture, shader directory and capture directory required");
+    check(argc==5,"Original destination fixture, shader directory, capture directory and native copy manifest required");
     std::ifstream file(argv[1]);check(bool(file),"Missing original destination fixture");
     const auto fixture=nlohmann::json::parse(file);
     check(fixture.at("schema")=="original-scene-copy-destinations-v1" &&
         fixture.at("instruction_patches").empty() && fixture.at("supplied_returns").empty(),"Invalid original copy evidence");
+    std::ifstream native_file(argv[4]);check(bool(native_file),"Native water-copy manifest missing");
+    const auto native=nlohmann::json::parse(native_file);
+    check(native.at("schema")=="HALO2_NATIVE_WATER_COPY_COMBINER_V1" &&
+        native.at("runtime_instruction_interpreter")==false &&
+        native.at("program_words").get<std::array<std::uint32_t,60>>()==water_copy_program().words,
+        "Direct native water-copy combiner differs from all60 actual source program words");
     const auto shaders=std::filesystem::path(argv[2]),output=std::filesystem::path(argv[3]);
     std::filesystem::create_directories(output);
     const auto &inputs=fixture.at("inputs"),&rows=fixture.at("versions").at("retail").at("results");

@@ -2,6 +2,7 @@
 #include "halo2/source_dynamic_model_shaders.hpp"
 #include "halo2/source_shadow.hpp"
 #include "halo2/object_light_query.hpp"
+#include "halo2/damage_feedback_names.hpp"
 #include <memory>
 
 namespace halo2 {
@@ -20,6 +21,7 @@ private:
     ShadowCasterDefinition bounds_;
     std::vector<ObjectFunction> functions_;
     std::shared_ptr<const ShaderFunctionTables> tables_;
+    DamageFeedbackNames names_;
 };
 // Resident authored unit/creature passes, including vehicle bodies/turrets,
 // independent of AI team or species.

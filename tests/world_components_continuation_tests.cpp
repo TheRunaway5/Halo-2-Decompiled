@@ -147,6 +147,12 @@ void scenery(const char *xbe,const char *path) {
         check(!source.commit_authority(std::move(staged)),"Foreign scenery publication accepted");}
     same(initial.triangles,target.triangles());
     auto bad=saved;bad.owners.at(h).placement=first.objects.size();rejects([&]{target.prepare_authority(bad,scene);});
+    bad=saved;bad.triangles.clear();
+    bool preflight_rejected{};
+    try{target.prepare_authority(bad,scene);}catch(const FormatError &e){
+        preflight_rejected=std::string_view(e.what()).find("admitted triangle budget")!=std::string_view::npos;
+    }
+    check(preflight_rejected,"Scenery generated collision allocated before checking the admitted triangle extent");
     bad=saved;bad.triangles[0].material^=1;rejects([&]{target.prepare_authority(bad,scene);});
     bad=saved;bad.owners.at(h).solved_nodes=std::vector<Transform>{};rejects([&]{target.prepare_authority(bad,scene);});
     auto changed=second;auto d=std::make_shared<StaticSceneryCollisionDefinition>(*changed.static_scenery_collision[placement]);

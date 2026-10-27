@@ -17,6 +17,13 @@ struct SourceWeatherRecord {
 static_assert(sizeof(SourceWeatherState)==20);
 static_assert(sizeof(SourceWeatherRecord)==24);
 struct SourceWeatherClock {float previous{},elapsed{};};
+// Synchronous borrow of the actual owner, not a weather-state copy. Source
+// rendering keeps these globals separate from the checkpointed command record.
+struct SourceWeatherRenderState {
+    SourceWeatherState &state;
+    SourceWeatherClock &clock;
+    SourceWeatherRecord &record;
+};
 // Commands write the retained record when supplied; only398D0 reads it back.
 void source_weather_start(SourceWeatherState &,float seconds,SourceWeatherRecord * = nullptr);
 void source_weather_stop(SourceWeatherState &,float seconds,SourceWeatherRecord * = nullptr);

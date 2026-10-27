@@ -9,15 +9,18 @@
 #include "halo2/frontend_session.hpp"
 #include "halo2/native_player_profile.hpp"
 #include "halo2/desktop_session.hpp"
+#include "halo2/audio.hpp"
 #include "halo2/source_authority_receiver.hpp"
 #include "halo2/source_authority_binding.hpp"
 #include <SDL.h>
 #include <curl/curl.h>
+#include <nlohmann/json.hpp>
 #include <atomic>
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <set>
 #include <thread>
 using namespace halo2;
 using namespace std::chrono_literals;
@@ -47,11 +50,17 @@ struct Synthetic:VoiceDevices {
 int main(int argc,char **argv)try {
   check(argc==7 || argc==8,"Supply ROOT ORIGIN OWNER CALLBACK_PORT OUTPUT MODE [PLAYLIST]");
   SDL_SetMainReady();const std::filesystem::path root=argv[1],output=argv[5];
+  const auto imported_root=std::getenv("HALO2_ONLINE_FLOW_UI_ROOT");
+  const std::filesystem::path mcc_root=imported_root?imported_root:"";
   std::filesystem::path vista;
-  {std::ifstream sources(root/"assets/asset-sources.tsv");std::string line;
+  if(mcc_root.empty()){std::ifstream sources(root/"assets/asset-sources.tsv");std::string line;
     while(std::getline(sources,line))if(line.starts_with("vista\t"))vista=line.substr(6);}
-  check(!vista.empty() && std::filesystem::is_regular_file(vista/"maps/mainmenu.map"),"Configured Vista UI bank is unavailable");
   const std::string owner=argv[3],mode=argv[6];
+  check(mode!="party" || !mcc_root.empty(),"Party UI validation requires an explicit prepared MCC root");
+  const auto maps=mcc_root.empty()?root/"assets/disc/maps":mcc_root/"halo2/h2_maps_win64_dx11";
+  const auto menu_settings=mcc_root.empty()?vista/"maps/mainmenu.map":maps/"mainmenu.map";
+  check(std::filesystem::is_regular_file(menu_settings),"Selected UI bank is unavailable");
+  const auto runtime_ui=mcc_root.empty()?vista:mcc_root;
   const std::string first_playlist=argc==8?argv[7]:"ranked";
   const bool clan=mode=="clan" || mode=="clan-major" || mode=="clan-full";
   const bool group=mode=="party" || clan;
@@ -73,7 +82,6 @@ int main(int argc,char **argv)try {
     wait_stage="native continuation";
   };
   unsigned search_round{};
-  const auto maps=root/"assets/disc/maps";
   if(!std::filesystem::exists(maps/"lockout.map"))return 77;
   std::string browser;DiscordLoginOptions authorization;authorization.callback_port=std::stoul(argv[4]);
   auto login=std::make_shared<DiscordLogin>([&](const auto &url){browser=url;return true;},authorization,
@@ -88,7 +96,7 @@ int main(int argc,char **argv)try {
   check(curl_easy_perform(curl.get())==CURLE_OK,"Fixture OAuth callback failed");wait([&]{return login->authorization().has_value();});
   std::shared_ptr<OnlineAccount> account;
   if(group) {
-    OnlineAccountOptions options;options.endpoint=argv[2];options.allow_loopback_http=true;options.enable_parties=true;options.poll_interval=1500ms;
+    OnlineAccountOptions options;options.endpoint=argv[2];options.allow_loopback_http=true;options.enable_parties=true;options.poll_interval=mode=="party"?20s:1500ms;
     account=std::make_shared<OnlineAccount>(login,options);account->connect("Same Pilot");
     wait_stage="account authentication";
     wait([&]{return account->snapshot().authenticated && !account->snapshot().busy;});
@@ -148,16 +156,52 @@ int main(int argc,char **argv)try {
   if(const auto *profile=std::getenv("HALO2_MATCHMAKING_GATHERINGS");profile && std::string(profile)=="1")
     o.compatibility="halo2-native-queue-v8";
   auto queue_owner=std::make_shared<OnlineMatchmaking>(login,o);auto &queue=*queue_owner;
+  nlohmann::json visible_frames={{"schema","H2_NATIVE_PARTY_FRAMES_1"},
+    {"behavior_source","OG Xbox TU1.5"},{"source_xbe_sha256","21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd"},
+    {"owner",owner},{"frames",nlohmann::json::array()},{"inputs",nlohmann::json::array()},{"sounds",nlohmann::json::array()}};
+  const auto record_frame=[&](const MenuState &actual,const std::filesystem::path &path,std::uint32_t clock) {
+    nlohmann::json row={{"file",path.filename().string()},{"screen",actual.frame().screen},{"pane",actual.frame().context},
+      {"ui_clock",clock},{"ui_countdown",actual.online_lobby_countdown()},
+      {"progress_pane",actual.online_matchmaking_progress_pane()},
+      {"source_session_state",int(actual.online_matchmaking_ui())},{"matched_countdown",actual.online_matchmaking_countdown()},
+      {"worker_queue_status",unsigned(queue.snapshot().status)}};
+    const auto map_color=actual.ui_map_intro_color();
+    row["map_intro_argb_observed_after_painter"]=map_color?nlohmann::json(*map_color):nlohmann::json(nullptr);
+    if(const auto &p=actual.online_party_observation()) {
+      row["leader"]=p->leader;row["party_version"]=p->version;
+      if(p->countdown)row["countdown"]={{"serial",p->countdown->serial},
+        {"seconds",p->countdown->seconds?nlohmann::json(*p->countdown->seconds):nlohmann::json(nullptr)},
+        {"mode",p->countdown->mode},{"complete",p->countdown->complete}};
+      else row["countdown"]=nullptr;
+    }
+    if(actual.frame().vista_pcr) {
+      row["results"]={{"players",actual.frame().vista_pcr->results->player_count},
+        {"teams",actual.frame().vista_pcr->results->team_count},{"variant",actual.frame().vista_pcr->results->variant}};
+      row["pcr_open_clock"]=actual.frame().pcr_open_clock;
+      const auto color=actual.pcr_intro_color(actual.frame());
+      row["pcr_intro_argb_observed_after_painter"]=color?nlohmann::json(*color):nlohmann::json(nullptr);
+    }
+    auto &frames=visible_frames["frames"];
+    const auto previous=std::find_if(frames.begin(),frames.end(),[&](const auto &r){return r.at("file")==path.filename().string();});
+    if(previous==frames.end())frames.push_back(std::move(row));else *previous=std::move(row);
+    std::ofstream file(output/(owner+"-ui-frames.json"));file<<visible_frames.dump(2)<<'\n';check(bool(file),"Could not record actual native frame provenance");
+  };
   std::optional<FrontendContent> party_content;
-  std::unique_ptr<MenuState> party_menu;
+  std::shared_ptr<FrontendSession> party_frontend;
+  MenuState *party_menu{};
   std::optional<FrontendLaunch> party_launch;
   if(group) {
     const Cache menu(maps/"mainmenu.map");party_content=menu.load_frontend();
-    party_content->vista=load_vista_settings(vista/"maps/mainmenu.map");
+    party_content->vista=load_vista_settings(menu_settings);
     // A finite custom validation round uses the real selected source variant.
     // Only its duration/round count are adjusted, identically on every client.
     for(auto &v:party_content->variants)if(v.name.starts_with("Team Slayer")){v.values.set(10,8);v.values.set(2,0);}
-    party_menu=std::make_unique<MenuState>(*party_content);
+    party_frontend=std::make_shared<FrontendSession>();party_frontend->discord_login=login;
+    party_frontend->retain_content(std::move(*party_content));party_content.reset();
+    party_frontend->online_services=std::make_shared<NativeTu15OnlineServices>();
+    party_frontend->online_services->login=login;party_frontend->online_services->account=account;
+    party_frontend->online_services->matchmaking=queue_owner;
+    party_menu=&party_frontend->create_state();
     party_menu->accept();party_menu->accept();party_menu->text("Same Pilot");party_menu->commit_text();party_menu->back();
     party_menu->set_discord_login(login);party_menu->set_online_account(account);party_menu->set_online_matchmaking(queue_owner);
     party_menu->update_online_login();
@@ -168,23 +212,146 @@ int main(int argc,char **argv)try {
       wait_stage="authenticated catalog";
       wait([&]{party_menu->update_online_login();party_menu->update_online_matchmaking();return queue.snapshot().status==OnlineMatchmakingStatus::Ready;});
       barrier("authenticated-catalog-"+std::to_string(++search_round));
-      // All independent testers finish reconnecting before selecting fresh
-      // consent. Two publications exclude an older already-in-flight read.
-      const auto previous=account->snapshot().revision;
-      wait([&]{return account->snapshot().revision>=previous+2 && !account->snapshot().busy;});
+      // The account generation gate discards reads begun before a command.
+      // Observe actual accepted membership here; unrelated periodic social
+      // publications are neither a consent owner nor a synchronization clock.
+      wait([&]{const auto s=account->snapshot();return s.party && s.party->members.size()==party_end-party_begin && !s.busy;});
       const auto catalog=queue.snapshot().playlists;
       const auto row=std::find_if(catalog.begin(),catalog.end(),[&](const auto &p){return p.id==playlist;});
       check(row!=catalog.end(),"Party playlist absent");
       check(row->ranked || !row->level,"Casual party playlist exposed hidden skill to native client");
       party_menu->select(unsigned(row-catalog.begin()));party_menu->accept();
-      check(party_menu->frame().screen==237,"Party playlist details did not open");
-      if(clan)check(row->clan_match && row->level &&
-        party_menu->online_matchmaking_text(party_menu->frame(),0).find("Your clan level:")!=std::string::npos,
-        "Vista clan details lost clan-owned rank");
+      check(party_menu->frame().screen==14,"Party playlist selection did not return directly to its original lobby");
+      if(clan)check(row->clan_match && row->level,"Authenticated clan playlist lost clan-owned rank");
       wait_stage="per-member playlist consent";
       if(leader)wait([&]{party_menu->update_online_login();const auto s=account->snapshot();return s.party && !s.busy && std::all_of(s.party->members.begin(),s.party->members.end(),[&](const auto &m){return m.self || m.ready_playlist==playlist;});});
-      party_menu->accept();check(party_menu->frame().screen==210,"Party Find Match did not open native search");
-      std::cout<<"Native party "<<(leader?"leader":"member")<<" chose "<<playlist<<" through Vista playlist/search owners"<<std::endl;
+      check(party_menu->frame().screen==14,"Chosen playlist did not enter the original pregame lobby before searching");
+      const bool rendered_party=mode=="party" && search_round==1 && std::getenv("DISPLAY");
+      if(leader && !rendered_party) {
+        // Confirmation publishes this leader's own consent asynchronously.
+        // Start is refused while its actual account command is still busy.
+        wait_stage="leader's acknowledged pregame consent";
+        wait([&]{party_menu->update_online_login();party_menu->update_online_matchmaking();
+          const auto s=account->snapshot();return s.party && !s.busy &&
+            std::all_of(s.party->members.begin(),s.party->members.end(),[&](const auto &m){return m.ready_playlist==playlist;});});
+        const auto &entries=party_menu->frame().entries;
+        const auto start=std::find_if(entries.begin(),entries.end(),[](const auto &e){return e.destination==-17;});
+        check(start!=entries.end(),"Confirmed party hopper has no original Start Game action");
+        party_menu->select(unsigned(start-entries.begin()));party_menu->accept();
+        wait_stage="published party pregame countdown";
+        wait([&]{party_menu->update_online_login();party_menu->update_online_matchmaking();return party_menu->online_lobby_countdown()>0;});
+        check(party_menu->online_lobby_countdown()<=10 && !party_menu->launch,"Party Start skipped its original ten-second countdown");
+      }
+      if(rendered_party) {
+        FrontendOptions options;options.session=party_frontend;options.entry=FrontendOptions::Entry::online_return;
+        options.maps=maps;options.ui_assets=mcc_root.empty()?vista:std::filesystem::path{};options.vista_settings=menu_settings;
+        options.skip_intro=options.hidden=options.mute=true;options.width=1280;options.height=720;
+        const bool capture_audio=owner=="one" && std::getenv("HALO2_ONLINE_MATCH_AUDIO");
+        if(capture_audio) {
+          options.mute=false;
+          const Cache admitted_menu(maps/"mainmenu.map");
+          nlohmann::json sources={{"source_cache","admitted MCC"},{"slots",nlohmann::json::array()}};
+          check(admitted_menu.is_mcc(),"Actual rendered party audio lost its admitted MCC owner");
+          for(const auto slot:{10u,12u}) {
+            const auto datum=party_frontend->content().sounds.at(slot);
+            const auto encoded=admitted_menu.load_sound(datum);const auto prepared=decode_sound(encoded);
+            write_wav(prepared,output/(owner+"-ui-slot-"+std::to_string(slot)+".wav"));
+            sources["slots"].push_back({{"slot",slot},{"datum",datum},{"name",encoded.name},{"codec",encoded.codec},
+              {"encoded_bytes",encoded.data.size()},{"sample_rate",encoded.sample_rate},{"channels",encoded.channels},
+              {"source_class",encoded.sound_class},{"actual_decoded_frames",prepared.frames()}});
+          }
+          std::ofstream(output/(owner+"-ui-audio-source.json"))<<sources.dump(2)<<'\n';
+        }
+        unsigned phase{};int before_repeat{};std::uint64_t before_repeat_serial{};std::string capture_tag="idle";
+        std::uint32_t observed_ui_clock{};
+        const auto started=std::chrono::steady_clock::now();auto restart_observed=started;
+        const auto version_before=account->snapshot().party->version;
+        const auto capture_path=[&](const std::string &tag,const std::string &who){return output/(who+"-party-lobby-"+tag+".ppm");};
+        const auto all_captured=[&](const std::string &tag){return std::all_of(owners.begin(),owners.begin()+participants,
+          [&](const auto &who){return std::filesystem::is_regular_file(capture_path(tag,who));});};
+        const auto key=[&](SDL_Keycode sym) {SDL_Event e{};e.type=SDL_KEYDOWN;e.key.keysym.sym=sym;
+          check(SDL_PushEvent(&e)==1,"Rendered lobby rejected its actual SDL keyboard event");
+          e.type=SDL_KEYUP;check(SDL_PushEvent(&e)==1,"Rendered lobby rejected its actual SDL key release");
+          visible_frames["inputs"].push_back({{"sdl_key",sym},{"ui_clock",observed_ui_clock},
+            {"screen",party_menu->frame().screen},{"ui_countdown",party_menu->online_lobby_countdown()}});
+        };
+        const auto select_action=[&](MenuState &actual,int action) {
+          const auto &entries=actual.frame().entries;
+          const auto entry=std::find_if(entries.begin(),entries.end(),[&](const auto &e){return e.destination==action;});
+          check(entry!=entries.end(),"Rendered lobby lost its source button action");
+          const auto target=unsigned(entry-entries.begin());check(target<2,"Rendered lobby action is not one of its two source buttons");
+          if(actual.frame().selected!=target)key(target?SDLK_RIGHT:SDLK_LEFT);
+        };
+        options.session_update=[&](MenuState &actual,std::uint32_t clock,const auto &) {
+          observed_ui_clock=clock;
+          if(std::chrono::steady_clock::now()-started>90s)throw FormatError("Rendered shared lobby countdown timed out at phase "+std::to_string(phase));
+          const auto s=account->snapshot();
+          if(!s.party || s.party->version!=version_before)throw FormatError("Shared countdown changed the accepted party or its consent version");
+          if(queue.snapshot().status==OnlineMatchmakingStatus::Failed)throw FormatError(queue.snapshot().message);
+          const auto left=actual.online_lobby_countdown();
+          const auto &bound=actual.online_party_observation();
+          for(const auto cue:actual.ui_sound_observation())if(cue==FrontendUiSound::PregameCountdown || cue==FrontendUiSound::MatchmakingAdvance) {
+            nlohmann::json receipt={{"cue",unsigned(cue)},{"ui_clock",clock},{"screen",actual.frame().screen},{"ui_countdown",left},
+              {"progress_pane",actual.online_matchmaking_progress_pane()},{"match_countdown",actual.online_matchmaking_countdown()}};
+            if(const auto &p=actual.online_party_observation();p && p->countdown)
+              receipt["publication"]={{"serial",p->countdown->serial},{"seconds",p->countdown->seconds?nlohmann::json(*p->countdown->seconds):nlohmann::json(nullptr)}};
+            visible_frames["sounds"].push_back(std::move(receipt));
+          }
+          if(phase==0 && !actual.ui_map_intro_color() && all_captured("idle") && !s.busy &&
+             std::all_of(s.party->members.begin(),s.party->members.end(),[&](const auto &m){return m.ready_playlist==playlist;})) {
+            if(leader){select_action(actual,-17);key(SDLK_RETURN);}phase=1;
+          } else if(phase==1 && left>0) {capture_tag="start";phase=2;}
+          else if(phase==2 && all_captured("start") && !s.busy) {if(leader)key(SDLK_x);phase=3;}
+          else if(phase==3 && left<0 && !s.busy && !s.party->countdown) {capture_tag="cancel";phase=4;}
+          else if(phase==4 && all_captured("cancel") && !s.busy) {if(leader){select_action(actual,-17);key(SDLK_RETURN);}phase=5;}
+          else if(phase==5 && left>0) {
+            restart_observed=std::chrono::steady_clock::now();phase=6;
+            if(!leader)std::this_thread::sleep_for(1600ms); // Real delayed UI observer, service/identity workers continue.
+          } else if(phase==6 && left>0 && left<10 && std::chrono::steady_clock::now()-restart_observed>=1600ms &&
+                    s.party->countdown && s.party->countdown->seconds && left==*s.party->countdown->seconds) {
+            // The worker can publish between this frame's menu update and
+            // our observation. Capture once both actual observers agree.
+            check(bound && bound->countdown,"Late frame lost its bound countdown");
+            before_repeat=left;before_repeat_serial=bound->countdown->serial;
+            capture_tag="late";phase=7;
+          } else if(phase==7 && all_captured("late") && !s.busy) {
+            check(bound && bound->countdown,"Rendered repeat lost the actual bound countdown");
+            if(leader){select_action(actual,23);key(SDLK_RETURN);}phase=8;
+          } else if(phase==8 && left>0 && left<before_repeat && !s.busy && bound && bound->countdown &&
+                    bound->countdown->serial!=before_repeat_serial) {capture_tag="shorten";phase=9;}
+          else if(phase==9 && all_captured("shorten") && !s.busy) {if(!leader)key(SDLK_x);phase=10;}
+          else if(phase==10 && bound && bound->countdown && bound->countdown->mode==1 && left==10) {capture_tag="member-request";phase=11;}
+          else if(phase==11 && all_captured("member-request") && !s.busy) {
+            if(left>3 && leader){select_action(actual,23);key(SDLK_RETURN);}
+            if(left==3){capture_tag="floor3";phase=12;}
+          } else if(phase==12 && all_captured("tick-3"))phase=13;
+          if(actual.frame().screen==210 && phase>=12) {capture_tag="zero-search";phase=14;}
+          return false;
+        };
+        options.frame_capture=[&](const MenuState &actual) {
+          if(actual.ui_map_intro_color())return std::filesystem::path{};
+          std::string tag=capture_tag;
+          if(phase>=12 && actual.frame().screen==14 && actual.online_lobby_countdown()>=1 && actual.online_lobby_countdown()<=3)
+            tag="tick-"+std::to_string(actual.online_lobby_countdown());
+          if(std::filesystem::is_regular_file(capture_path(tag,owner)) && actual.frame().screen==210)
+            tag="actual-pane-"+std::to_string(actual.online_matchmaking_progress_pane())+"-source-state-"+std::to_string(int(actual.online_matchmaking_ui()));
+          const auto path=capture_path(tag,owner);
+          if(std::filesystem::is_regular_file(path))return std::filesystem::path{};
+          record_frame(actual,path,observed_ui_clock);return path;
+        };
+        check(run_frontend(options).has_value() && party_menu->launch,"Rendered shared lobby did not reach the actual native match handoff");
+        if(capture_audio)std::ofstream(output/(owner+"-ui-audio-complete"))<<"Actual rendered frontend returned its matched launch\n";
+        for(const auto &tag:{"idle","start","cancel","late","shorten","member-request","tick-3","tick-2","tick-1","zero-search"})
+          check(std::filesystem::is_regular_file(capture_path(tag,owner)),"Rendered shared countdown omitted an actual UI phase");
+        for(const auto stage:{3,2,1})check(std::any_of(visible_frames["sounds"].begin(),visible_frames["sounds"].end(),[&](const auto &r){
+          return r.at("cue")==unsigned(FrontendUiSound::PregameCountdown) && r.at("ui_countdown")==stage;
+        }),"Actual rendered countdown did not request original UI sound10 at stage3/2/1");
+        check(std::count_if(visible_frames["sounds"].begin(),visible_frames["sounds"].end(),[](const auto &r){
+          return r.at("cue")==unsigned(FrontendUiSound::MatchmakingAdvance) && r.at("screen")==210 && r.at("progress_pane")==3;
+        })==1,"Actual matched pane3 did not request original UI sound12 exactly once");
+        std::cout<<"PASS actual rendered party lobby: shared Start/X cancel/restart, delayed observer, repeated A, member mode1 request, stages3/2/1/shared zero -> native match\n";
+      }
+      std::cout<<"Native party "<<(leader?"leader":"member")<<" chose "<<playlist<<" through playlist/pregame/search owners"<<std::endl;
     } else {
       std::vector<OnlineLocalPlayer> guests;
       if(mode=="source-render")for(unsigned n=1;n<4;++n)guests.push_back({"Guest "+owner+" "+std::to_string(n),{}});
@@ -196,6 +363,7 @@ int main(int argc,char **argv)try {
       queue.join(playlist);
     }
   };
+  // Both party-A and matched-B countdowns use real service publications.
   auto take_session=[&] {
     if(!group)return queue.take_launch();
     party_menu->update_online_login();party_menu->update_online_matchmaking();
@@ -206,8 +374,11 @@ int main(int argc,char **argv)try {
   search(first_playlist);
   wait_stage="match handoff";
   std::shared_ptr<OnlineMatchSession> session;wait([&]{session=take_session();return bool(session);});
-  queue.sign_out();
+  if(!group)queue.sign_out(); // A real accepted party keeps its API session through game B/PCR.
   check(session->roster().size()==participants,"Match did not retain every authenticated player");
+  for(const auto &admitted:session->roster())
+    check(admitted.matchmaking_level.has_value()==(first_playlist!="casual" && !admitted.guest),
+      "Authenticated known ranked/unranked admission lost or fabricated its public hopper level");
   if(group) {
     check(party_launch && party_launch->variant.name=="Team Slayer" && party_launch->selected_teams.size()==1 &&
           party_launch->selected_teams[0]==session->roster()[session->self()].team,"Native party UI launch lost actual source variant or assigned team");
@@ -218,14 +389,70 @@ int main(int argc,char **argv)try {
   }
   auto complete_and_requeue=[&](bool render) {
     check(session->phase()==OnlineMatchSession::Phase::Postgame,"Match did not receive its completed publication");
-    auto frontend=std::make_shared<FrontendSession>();frontend->discord_login=login;
-    const Cache menu(maps/"mainmenu.map");frontend->retain_content(menu.load_frontend());
-    frontend->content().vista=load_vista_settings(vista/"maps/mainmenu.map");
-    auto &state=frontend->create_state();state.accept();state.accept();state.text("Same Pilot");state.commit_text();state.back();
+    auto frontend=group?party_frontend:std::make_shared<FrontendSession>();frontend->discord_login=login;
+    if(!group) {
+      const Cache menu(maps/"mainmenu.map");frontend->retain_content(menu.load_frontend());
+      frontend->content().vista=load_vista_settings(menu_settings);
+      auto &initial=frontend->create_state();initial.accept();initial.accept();initial.text("Same Pilot");initial.commit_text();initial.back();
+    }
+    auto &state=frontend->state();
     state.set_discord_login(login);
-    bool done{};auto report=online_postgame_screen(*frontend,session,[&]{done=true;state.return_online();});
+    const bool retained_requeue=mode!="source-render";
+    std::uint64_t party_version_at_report{};
+    std::uint64_t account_revision_before_done{};
+    auto pump_retained=[&] {
+      state.update_online_login();state.update_online_matchmaking();
+      if(queue.snapshot().status==OnlineMatchmakingStatus::Failed)throw FormatError(queue.snapshot().message);
+    };
+    if(retained_requeue) {
+      if(!account) {
+        OnlineAccountOptions options;options.endpoint=argv[2];options.allow_loopback_http=true;
+        options.enable_parties=true;options.poll_interval=1500ms;
+        account=std::make_shared<OnlineAccount>(login,options);account->connect("Same Pilot");
+        wait_stage="retained account authentication";
+        wait([&]{return account->snapshot().authenticated && !account->snapshot().busy;});
+      }
+      state.set_online_account(account);state.set_online_matchmaking(queue_owner);
+      frontend->online_services=std::make_shared<NativeTu15OnlineServices>();
+      frontend->online_services->login=login;frontend->online_services->account=account;
+      frontend->online_services->matchmaking=queue_owner;
+      if(!group) {
+      state.return_online();state.open(219);
+      wait_stage="retained completed-match hopper catalog";
+      wait([&]{pump_retained();return queue.snapshot().status==OnlineMatchmakingStatus::Ready;});
+      const auto catalog=queue.snapshot().playlists;
+      const auto hopper=std::find_if(catalog.begin(),catalog.end(),[&](const auto &p){return p.id==first_playlist;});
+      check(hopper!=catalog.end() && hopper->eligible,"Completed match hopper is unavailable in its actual authenticated catalog");
+      state.select(unsigned(hopper-catalog.begin()));state.accept();
+      check(state.frame().screen==14,"Actual Optimatch selection did not return directly to the lobby");
+      check(state.frame().screen==14 && queue.snapshot().status==OnlineMatchmakingStatus::Ready && !state.launch,
+        "Priming the real retained hopper started a queue before lobby Start");
+      }
+      wait_stage="retained party hopper consent";
+      wait([&]{pump_retained();const auto s=account->snapshot();return s.party && !s.busy &&
+        std::all_of(s.party->members.begin(),s.party->members.end(),[&](const auto &m){return m.ready_playlist==first_playlist;});});
+      party_version_at_report=account->snapshot().party->version;
+      // Every process has selected its real hopper without a ticket. The
+      // same retained state will now own the actual completed publication.
+      barrier("retained-hopper-before-report");
+    }
+    bool done{};auto report=online_postgame_screen(*frontend,session,[&]{
+      done=true;
+      if(retained_requeue)account_revision_before_done=account->snapshot().revision;
+      state.return_online_lobby();
+    });
     check(report->online,"ONLINE postgame lost its Vista asset provenance");
     check(report->results->player_count==participants && report->results->variant==2,"Vista report omitted a real participant");
+    for(unsigned row=0;row<report->results->player_count;++row) {
+      const auto &display=report->results->players[row];
+      const auto admitted=std::find_if(session->roster().begin(),session->roster().end(),[&](const auto &p){
+        return std::equal(p.identity.begin(),p.identity.end(),display.begin()+0x100);
+      });
+      check(admitted!=session->roster().end(),"Ranked PCR lost its actual admitted identity");
+      std::uint32_t rank{};for(unsigned i=0;i<4;++i)rank|=std::to_integer<unsigned>(display[0x78+i])<<(8*i);
+      check(rank==(admitted->matchmaking_level?*admitted->matchmaking_level-1:0xffffffffu),
+        "Actual admitted ranked hopper level/unranked absence did not reach PCR");
+    }
     if(team) {
       check(report->results->team_count==2,"Vista report omitted admitted teams");
       const auto &names=frontend->content().vista->vista_team_names;
@@ -237,27 +464,218 @@ int main(int argc,char **argv)try {
     }
     const auto old_identity=session->roster()[0].identity;
     if(render) {
+      const auto retained_services=frontend->online_services;
       FrontendOptions options;options.session=frontend;options.entry=FrontendOptions::Entry::postgame_report;options.postgame_report=report;
-      options.maps=maps;options.ui_assets=vista;
-      options.vista_settings=options.ui_assets/"maps/mainmenu.map";options.width=1280;options.height=720;
+      options.maps=maps;options.ui_assets=mcc_root.empty()?vista:std::filesystem::path{};
+      options.vista_settings=menu_settings;options.width=1280;options.height=720;
       options.skip_intro=options.hidden=options.mute=true;options.screenshot=output/(owner+"-postgame.ppm");
-      // Observe the genuine four-second PCR fade before a finite capture.
-      std::this_thread::sleep_for(4500ms);options.frames=30;
+      // The real screen open starts the original clock. Sleeping before
+      // run_frontend would merely age the preallocated report invisibly.
+      options.frames=0;
+      const auto pane_count=team?6u:5u;std::set<unsigned> report_panes;
+      std::uint32_t observed_ui_clock{};const auto pcr_started=std::chrono::steady_clock::now();
+      const auto pane_path=[&](unsigned pane){return output/(owner+"-pcr-pane-"+std::to_string(pane)+".ppm");};
+      const auto intro_path=[&](const std::string &phase){return output/(owner+"-pcr-intro-"+phase+".ppm");};
+      options.frame_capture=[&](const MenuState &actual) {
+        if(!actual.frame().vista_pcr)return std::filesystem::path{};
+        const auto color=actual.pcr_intro_color(actual.frame());
+        check(color.has_value(),"Actual PCR16 unexpectedly selected prior-stats intro bypass");
+        const auto alpha=*color>>24;
+        const auto map_color=actual.ui_map_intro_color();
+        const auto map_alpha=map_color?*map_color>>24:0u;
+        const std::string phase=alpha==255?"black":alpha>32 && alpha<224 && map_alpha<224?"fade":
+            alpha==0 && !map_color?"clear":"";
+        if(!phase.empty() && !std::filesystem::is_regular_file(intro_path(phase))) {
+          const auto path=intro_path(phase);record_frame(actual,path,observed_ui_clock);return path;
+        }
+        if(alpha || map_color || std::filesystem::is_regular_file(pane_path(actual.frame().context)))return std::filesystem::path{};
+        const auto path=pane_path(actual.frame().context);record_frame(actual,path,observed_ui_clock);return path;
+      };
+      options.session_update=[&](MenuState &actual,std::uint32_t clock,const auto &) {
+        observed_ui_clock=clock;
+        if(std::chrono::steady_clock::now()-pcr_started>30s)throw FormatError("Rendered actual PCR tab traversal timed out");
+        if(!actual.frame().vista_pcr)return false;
+        const auto pane=actual.frame().context;
+        if(std::filesystem::is_regular_file(pane_path(pane)) && report_panes.insert(pane).second) {
+          if(report_panes.size()==pane_count)return true;
+          SDL_Event event{};event.type=SDL_KEYDOWN;event.key.keysym.sym=SDLK_RIGHT;
+          check(SDL_PushEvent(&event)==1,"Rendered PCR rejected its real horizontal SDL input");
+        }
+        return false;
+      };
       run_frontend(options);
+      for(const auto *phase:{"black","fade","clear"})check(std::filesystem::is_regular_file(intro_path(phase)),
+        "Actual native PCR open did not render its source black/partial/clear transition");
+      check(report_panes.size()==pane_count,"Actual completed report did not render every admitted source tab");
       check(frontend->discord_login==login && login->authorization().has_value(),"World/menu return discarded Discord identity");
+      if(retained_requeue)check(frontend->online_services==retained_services &&
+        retained_services->account==account && retained_services->matchmaking==queue_owner &&
+        account->snapshot().authenticated && state.online_identity(),
+        "Rendered report replaced or signed out its retained real account/queue services");
+      // A party follower's Done (40C01A host false): dialog98 over the report.
+      bool asked{};options.screenshot=output/(owner+"-postgame-leave-party.ppm");
+      options.frames=0;const auto question_started=std::chrono::steady_clock::now();
+      options.frame_capture=[&](const MenuState &menu) {
+        if(!asked || menu.ui_map_intro_color() || std::filesystem::is_regular_file(options.screenshot))
+          return std::filesystem::path{};
+        record_frame(menu,options.screenshot,observed_ui_clock);return options.screenshot;
+      };
+      options.session_update=[&](MenuState &menu,std::uint32_t clock,const auto &) {
+        observed_ui_clock=clock;
+        if(std::chrono::steady_clock::now()-question_started>30s)
+          throw FormatError("Rendered PCR follower question did not become visible after both source intros");
+        if(!asked && menu.frame().vista_pcr && !menu.ui_map_intro_color() &&
+           (*menu.pcr_intro_color(menu.frame())>>24)==0) {
+          menu.vista_pcr_dialog({3,0x98,4,1,0x40c00d,0,0,0});asked=true;
+        }
+        return asked && std::filesystem::is_regular_file(options.screenshot);
+      };
+      run_frontend(options);
+      if(retained_requeue)check(frontend->online_services==retained_services &&
+        retained_services->account==account && retained_services->matchmaking==queue_owner &&
+        account->snapshot().authenticated && state.online_identity(),
+        "Second rendered report invocation replaced or signed out its retained real ONLINE services");
+      check(asked && state.frame().entries.size()==2 && state.frame().entries[0].destination==-18,"Rendered report did not ask with dialog98");
+      state.back();
     } else frontend->enter(FrontendOptions::Entry::postgame_report,report);
-    state.back();check(done && !state.frame().vista_pcr,"Original PCR Done did not allocate fresh ONLINE navigation");
-    session.reset();
-    search(clan?first_playlist:"casual");
-    wait([&]{session=take_session();return bool(session);});queue.sign_out();
+    // Real horizontal input must reach all six source tabs (five in FFA),
+    // including Hit Stats. Direct pane setters would miss a disconnected
+    // input route while still producing correct isolated painter captures.
+    const auto first_pane=state.frame().context;
+    std::vector<unsigned> visited;
+    for(unsigned i=0;i<(team?6u:5u);++i) {
+      visited.push_back(state.frame().context);state.navigate(1,0);
+    }
+    check(state.frame().context==first_pane && std::find(visited.begin(),visited.end(),5)!=visited.end() &&
+      (std::find(visited.begin(),visited.end(),0)!=visited.end())==team,"PCR real input omitted a tab or exposed FFA team stats");
+    // A party member who is not the leader (40C01A host false) asks with
+    // dialog98 instead; its Cancel keeps the report.
+    state.vista_pcr_dialog({3,0x98,4,1,0x40c00d,0,0,0});
+    check(state.frame().title==frontend->content().dialogs.at(0x98).title && state.frame().entries.size()==2 &&
+          state.frame().entries[0].destination==-18,"PCR follower Done did not ask with dialog98");
+    state.back();check(state.frame().vista_pcr && !done,"Dialog98 Cancel left the report");
+    if(retained_requeue && group) {
+      // Poll the genuine match-room presence before the leader leaves; a
+      // follower cannot manufacture the leader's session permission.
+      wait_stage="party postgame presence";
+      wait([&]{state.update_online_login();const auto s=account->snapshot();return s.party &&
+        std::all_of(s.party->members.begin(),s.party->members.end(),[](const auto &m){return m.postgame==true;});});
+      barrier("party-report-presence-observed");
+      if(!leader) {
+        state.back();
+        check(!state.frame().vista_pcr && state.frame().entries.size()==2 &&
+          state.frame().entries[0].destination==-18 && !done,"A real party follower's Done did not ask with dialog98");
+        state.back();check(state.frame().vista_pcr && !done,"A real follower's dialog98 Cancel left its report");
+      }
+      barrier("party-report-done-permissions");
+      if(leader)state.back();
+      else {
+        wait_stage="party follower observes leader Done";
+        wait([&]{state.update_online_login();return done;});
+      }
+    } else state.back();
+    check(done && !state.frame().vista_pcr,"Original PCR Done did not allocate fresh ONLINE navigation");
+    check(state.frame().screen==14 && state.has_online_prior_stats(),"PCR Done did not retain prior stats in the returned pregame lobby");
+    const auto lobby_instance=state.frame().instance;
+    const auto results=report->results;
+    report.reset();session.reset();
+    check(state.review_online_postgame() && state.frame().screen==vista_menu(185) &&
+      state.frame().vista_pcr->results==results && !state.frame().vista_pcr->voice_update &&
+      !state.frame().vista_pcr->input.continue_session && !state.frame().vista_pcr->leave_session,
+      "Prior stats did not reuse the real completed publication without retaining match transport callbacks");
+    const FrontendPointerTarget old_done{FrontendPointerAction::Back,0,state.revision};
+    state.navigate(-1,0);
+    check(state.frame().context==5,"Prior stats did not wrap to the real hit statistics pane");
+    state.back();
+    check(state.frame().screen==14 && state.frame().instance==lobby_instance && state.has_online_prior_stats() &&
+      !state.activate_pointer(old_done),"Prior stats Done discarded or replaced the lobby, or accepted stale report input");
+    check(state.review_online_postgame() && state.frame().vista_pcr->results==results,"Reviewing prior stats consumed the publication");
+    state.back();
+    if(retained_requeue) {
+      wait_stage="returned lobby retained hopper";
+      // Require fresh server observations after the real Done callback,
+      // rather than accepting cached pre-report consent or party version.
+      wait([&]{pump_retained();const auto s=account->snapshot();return queue.snapshot().status==OnlineMatchmakingStatus::Ready &&
+        s.party && !s.busy && s.revision>=account_revision_before_done+2;});
+      const auto returned_party=account->snapshot().party;
+      check(returned_party->version==party_version_at_report &&
+        std::all_of(returned_party->members.begin(),returned_party->members.end(),[&](const auto &m){return m.ready_playlist==first_playlist;}),
+        "PCR Done/prior stats changed the actual party version or discarded member hopper consent");
+      barrier("prior-stats-returned-lobby");
+      const auto &entries=state.frame().entries;
+      const auto start=std::find_if(entries.begin(),entries.end(),[](const auto &e){return e.destination==-17;});
+      check(start!=entries.end(),"The completed match's retained lobby lost Start Game");
+      if(account->snapshot().party->leader) {
+        state.select(unsigned(start-entries.begin()));state.accept();
+        wait_stage="shared post-report countdown publication";
+        wait([&]{pump_retained();return !account->snapshot().busy && state.online_lobby_countdown()>0;});
+        check(state.online_lobby_countdown()<=10 && !state.launch,"Post-report Start skipped its ten-second native countdown");
+        const auto setup=std::find_if(entries.begin(),entries.end(),[](const auto &e){return e.destination==23;});
+        check(setup!=entries.end(),"Retained lobby lost its Game Setup focus target");
+        const auto before=state.online_lobby_countdown();state.select(unsigned(setup-entries.begin()));state.accept();
+        wait_stage="shared repeated Start publication";
+        wait([&]{pump_retained();return !account->snapshot().busy && state.online_lobby_countdown()<before;});
+        check(state.frame().screen==14 && state.online_lobby_countdown()<=before-1,
+          "Active countdown A followed Game Setup focus instead of shortening the native countdown");
+        while(state.online_lobby_countdown()>3) {
+          const auto previous=state.online_lobby_countdown();state.accept();
+          wait([&]{pump_retained();return !account->snapshot().busy && state.online_lobby_countdown()<previous;});
+        }
+        check(state.frame().screen==14 && state.online_lobby_countdown()>0 && state.online_lobby_countdown()<=3,
+          "Active countdown A did not preserve the original three-second shortening minimum");
+        const auto serial=account->snapshot().party->countdown->serial;state.accept();
+        wait([&]{pump_retained();return !account->snapshot().busy;});
+        check(account->snapshot().party->countdown->serial==serial,
+          "Pressing A at the minimum restarted the shared countdown clock");
+      }
+      wait_stage="same retained frontend queues next completed-match hopper";
+      wait([&]{pump_retained();if(!state.launch)return false;session=state.launch->online_match;state.launch.reset();return bool(session);});
+      check(queue.snapshot().playlist_id==first_playlist,"Post-report Start changed the retained hopper");
+    } else {
+      search(clan?first_playlist:"casual");
+      wait([&]{session=take_session();return bool(session);});
+    }
     check(session->roster().size()==participants && session->roster()[0].identity!=old_identity,"Requeue reused old room identity or lost roster");
-    std::cout<<"PASS completed match -> actual Vista PCR16 -> Done -> retained Discord sign-in -> fresh matched room\n";
+    if(retained_requeue && !group) {
+      // A transferred queue pauses on its old Loading snapshot. A real
+      // abandon/disconnect return must reset that intent without requiring
+      // a renderer-owned signout, then permit Start on the retained hopper.
+      barrier("post-transfer-before-abandon");
+      check(queue.snapshot().status==OnlineMatchmakingStatus::Loading,"Fixture did not reach the actual transferred queue boundary");
+      const auto abandoned_identity=session->roster()[0].identity;
+      frontend->enter(FrontendOptions::Entry::online_return);
+      session.reset();
+      check(state.frame().screen==14 && !state.launch,"Abandoned transfer did not return to the retained pregame lobby");
+      wait_stage="abandoned transferred queue returns to Ready";
+      wait([&]{pump_retained();return queue.snapshot().status==OnlineMatchmakingStatus::Ready;});
+      const auto &entries=state.frame().entries;
+      const auto start=std::find_if(entries.begin(),entries.end(),[](const auto &e){return e.destination==-17;});
+      check(start!=entries.end(),"Abandon return discarded the retained hopper's Start action");
+      state.select(unsigned(start-entries.begin()));state.accept();
+      wait_stage="shared abandon-return countdown publication";
+      wait([&]{pump_retained();return state.online_lobby_countdown()>0;});
+      check(state.online_lobby_countdown()<=10,"Abandon return could not start the next native pregame countdown");
+      wait_stage="abandon return starts a fresh queue intent";
+      wait([&]{pump_retained();const auto s=queue.snapshot();return s.playlist_id==first_playlist &&
+        (s.status==OnlineMatchmakingStatus::Searching || s.status==OnlineMatchmakingStatus::CheckingConnections ||
+         s.status==OnlineMatchmakingStatus::AwaitingTransport || s.status==OnlineMatchmakingStatus::Loading);});
+      wait_stage="fresh match after abandoned transferred queue";
+      wait([&]{pump_retained();if(!state.launch)return false;session=state.launch->online_match;state.launch.reset();return bool(session);});
+      check(session->roster().size()==participants && session->roster()[0].identity!=abandoned_identity,
+        "Abandon return reused the transferred room or lost the actual admitted roster");
+      barrier("abandoned-transfer-started-again");
+      std::cout<<"PASS abandoned transferred queue -> Ready -> retained lobby Start -> fresh authenticated matched handoff\n";
+    }
+    queue.sign_out();
+    std::cout<<(retained_requeue?
+      "PASS completed match -> actual Vista PCR16 -> Done -> prior stats -> same lobby Start -> retained hopper -> fresh matched room\n":
+      "PASS eight-seat completed publication -> actual Vista PCR16 -> Done -> prior stats -> fresh matched room\n");
   };
   if(mode=="source-render") {
     if(!std::getenv("DISPLAY"))return 77;
     MultiplayerOptions runtime;runtime.map=maps/"lockout.map";runtime.shared_maps=maps;runtime.online_match=session;
     runtime.gameplay_xbe="/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe";
-    runtime.ui_assets=vista;runtime.width=1280;runtime.height=720;runtime.hidden=true;runtime.mute=true;runtime.replay=true;
+    runtime.ui_assets=runtime_ui;runtime.width=1280;runtime.height=720;runtime.hidden=true;runtime.mute=true;runtime.replay=true;
     runtime.source_object_world=true; // Replay controls must not select the fallback world.
     bool native_world{};runtime.source_world_observer=[&](const auto &){native_world=true;};
     runtime.local_players=4;runtime.variant={"Slayer",0,{}};runtime.variant.values.set(10,100);runtime.variant.values.set(2,0);
@@ -330,7 +748,7 @@ int main(int argc,char **argv)try {
     std::filesystem::create_directories(output);
     MultiplayerOptions runtime;runtime.map=maps/"lockout.map";runtime.shared_maps=maps;runtime.online_match=session;
     runtime.gameplay_xbe=root/"assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03";
-    runtime.ui_assets=vista;
+    runtime.ui_assets=runtime_ui;
     runtime.width=1280;runtime.height=720;runtime.hidden=true;runtime.mute=true;runtime.replay=true;
     runtime.variant.name=team?"Team Slayer":"Slayer";
     runtime.variant.values.set(10,8);runtime.variant.values.set(2,0);runtime.variant.values.set(91,int(team));
@@ -542,7 +960,7 @@ int main(int argc,char **argv)try {
   std::cout<<"PASS passive postgame voice across teams without world positions; mutual mute/unmute and actual talking state\n";
   if(blocks)std::cout<<"PASS private SDK block handoff -> authenticated service -> bilateral native playback suppression -> manual unmute isolation -> explicit unblock recovery in gameplay and postgame\n";
   barrier("postgame-voice-checked");
-  complete_and_requeue(mode=="team" && std::getenv("DISPLAY"));
+  complete_and_requeue((mode=="team" || mode=="party") && std::getenv("DISPLAY"));
   check(!voice.snapshot().enabled,"Done left the departed session microphone enabled");
   session->loaded(fingerprint,variant);wait([&]{return session->phase()==OnlineMatchSession::Phase::Running;});
   barrier("fresh-room-running-before-host-loss");
@@ -557,6 +975,169 @@ int main(int argc,char **argv)try {
     check(outcome.reason==MultiplayerExitReason::online_disconnected,"Pre-world disconnect escaped clean handoff ownership");
     check(!outcome.state || !outcome.state->finished,"Pre-world disconnect fabricated a completed match");
     std::cout<<"PASS disconnect before native world handoff -> clean return without postgame fabrication\n";
+  }
+  if(mode=="party") {
+    session.reset();barrier("before-real-lobby-back");
+    auto &state=*party_menu;
+    auto pump=[&]{state.update_online_login();state.update_online_matchmaking();};
+    const auto asked=[&](unsigned id){const auto &d=party_frontend->content().dialogs.at(id);return state.frame().screen==d.screen && state.frame().title==d.title;};
+    const auto choose_retained_hopper=[&] {
+      state.return_online_lobby();state.open(219);
+      wait_stage="B regression real retained catalog";
+      wait([&]{pump();return queue.snapshot().status==OnlineMatchmakingStatus::Ready && !state.frame().entries.empty();});
+      const auto catalog=queue.snapshot().playlists;
+      const auto selected=std::find_if(catalog.begin(),catalog.end(),[&](const auto &p){return p.id==first_playlist;});
+      check(selected!=catalog.end(),"B regression lost the actual retained hopper");
+      const auto &entries=state.frame().entries;
+      const auto row=std::find_if(entries.begin(),entries.end(),[&](const auto &e){return e.label==selected->name;});
+      check(row!=entries.end(),"B regression catalog is not selectable");state.select(unsigned(row-entries.begin()));state.accept();
+      check(state.frame().screen==14,"B regression selected hopper did not return directly to the lobby");
+      wait_stage="B regression own acknowledged consent";
+      wait([&]{pump();const auto s=account->snapshot();return s.party && !s.busy &&
+        std::any_of(s.party->members.begin(),s.party->members.end(),[&](const auto &m){return m.self && m.ready_playlist==first_playlist;});});
+    };
+    const auto start=[&]{const auto &entries=state.frame().entries;const auto row=std::find_if(entries.begin(),entries.end(),[](const auto &e){return e.destination==-17;});
+      check(row!=entries.end(),"B regression lobby lost Start");state.select(unsigned(row-entries.begin()));state.accept();};
+    choose_retained_hopper();barrier("before-real-lobby-back-consent");
+    if(std::getenv("DISPLAY")) {
+      FrontendOptions options;options.session=party_frontend;options.entry=FrontendOptions::Entry::online_return;
+      options.maps=maps;options.vista_settings=menu_settings;options.skip_intro=options.hidden=options.mute=true;
+      options.width=960;options.height=720;
+      unsigned phase{};std::uint32_t ui_clock{};std::string tag="ready";
+      auto changed=std::chrono::steady_clock::now();const auto began=changed;
+      const auto version=account->snapshot().party->version;
+      const auto path=[&](const std::string &label,const std::string &who){return output/(who+"-party-back-"+label+".ppm");};
+      const auto all=[&](const std::string &label){return std::all_of(owners.begin(),owners.begin()+participants,
+        [&](const auto &who){return std::filesystem::is_regular_file(path(label,who));});};
+      const auto captured=[&]{return std::filesystem::is_regular_file(path(tag,owner));};
+      const auto show=[&](std::string next){if(tag!=next){tag=std::move(next);changed=std::chrono::steady_clock::now();}};
+      const auto key=[&](SDL_Keycode value){SDL_Event event{};event.type=SDL_KEYDOWN;event.key.keysym.sym=value;
+        check(SDL_PushEvent(&event)==1,"Party B flow rejected actual SDL key input");event.type=SDL_KEYUP;
+        check(SDL_PushEvent(&event)==1,"Party B flow rejected actual SDL key release");
+        visible_frames["inputs"].push_back({{"phase","party-back-"+tag},{"sdl_key",value},{"screen",state.frame().screen},{"ui_clock",ui_clock}});};
+      const auto button=[&](const MenuState &actual,int destination){const auto &rows=actual.frame().entries;
+        const auto found=std::find_if(rows.begin(),rows.end(),[&](const auto&e){return e.destination==destination;});
+        check(found!=rows.end(),"Rendered B flow lost an original lobby button");const auto target=unsigned(found-rows.begin());
+        check(target<2,"Rendered B flow selected a non-button row");if(actual.frame().selected!=target)key(target?SDLK_RIGHT:SDLK_LEFT);key(SDLK_RETURN);};
+      options.frame_capture=[&](const MenuState &actual)->std::filesystem::path {
+        if(actual.ui_map_intro_color() || captured() || std::chrono::steady_clock::now()-changed<1000ms)return {};
+        const auto target=path(tag,owner);record_frame(actual,target,ui_clock);return target;
+      };
+      options.session_update=[&](MenuState &actual,std::uint32_t clock,const auto&) {
+        ui_clock=clock;
+        const auto s=account->snapshot();const auto &f=actual.frame();const auto left=actual.online_lobby_countdown();
+        const auto lobby=actual.lobby_view();const auto q=queue.snapshot();
+        const auto diagnostic=[&] {
+          nlohmann::json value={{"phase",phase},{"screen",f.screen},{"description",f.description},
+            {"queue_status",unsigned(q.status)},{"queue_message",q.message},{"queue_playlist",q.playlist_id},
+            {"account_busy",s.busy},{"account_message",s.party_message},{"selected_hopper",actual.expand("\xee\x90\xba")},
+            {"source_start_permission",lobby && lobby->input.start_permission},{"countdown",left}};
+          if(s.party) {
+            value["party_version"]=s.party->version;value["leader"]=s.party->leader;value["members"]=nlohmann::json::array();
+            for(const auto&m:s.party->members)value["members"].push_back({{"self",m.self},{"online",m.online},{"ready_playlist",m.ready_playlist}});
+          }
+          if(const auto &bound=actual.online_party_observation();bound) {
+            value["bound_version"]=bound->version;value["bound_ready"]=nlohmann::json::array();
+            for(const auto&m:bound->members)value["bound_ready"].push_back(m.ready_playlist);
+          }
+          return value.dump();
+        };
+        if(f.screen==8)throw FormatError("Rendered party B/Start actual refusal: "+diagnostic());
+        if(std::chrono::steady_clock::now()-began>150s)throw FormatError("Rendered party B/reinvite timed out: "+diagnostic());
+        check(!actual.launch,"Rendered B/reinvite flow queued before a new explicit Start");
+        // The rendered source button consumes the menu-bound acknowledged
+        // readiness, not another process's file barrier. Social snapshots can
+        // lag the peer's already completed ready command by one polling turn.
+        if(phase==0 && !actual.ui_map_intro_color() && all("ready") && s.party && !s.busy && (!leader || (lobby && lobby->input.start_permission))) {if(leader)button(actual,-17);phase=1;}
+        else if(phase==1 && left>0 && !s.busy){show("start");phase=2;}
+        else if(phase==2 && all("start") && !s.busy){if(leader)key(SDLK_ESCAPE);phase=3;}
+        else if(phase==3 && f.screen==14 && left<0 && !s.busy){show("cancelled");phase=4;}
+        else if(phase==4 && all("cancelled") && !s.busy){if(leader)button(actual,-17);phase=5;}
+        else if(phase==5 && left>0 && !s.busy){show("restart");phase=6;}
+        else if(phase==6 && all("restart") && !s.busy){if(!leader)key(SDLK_ESCAPE);phase=7;}
+        else if(phase==7 && !s.busy && s.party && s.party->countdown && s.party->countdown->mode==1 &&
+                (leader?f.screen==14:asked(0x8b))){show("first-question");phase=8;}
+        else if(phase==8 && all("first-question") && !s.busy){if(!leader)key(SDLK_ESCAPE);phase=9;}
+        else if(phase==9 && f.screen==14 && s.party && s.party->version==version && !s.busy){show("kept-membership");phase=10;}
+        else if(phase==10 && all("kept-membership") && !s.busy){if(!leader)key(SDLK_ESCAPE);phase=11;}
+        else if(phase==11 && !s.busy && (leader?f.screen==14:asked(0x8b))){show("second-question");phase=12;}
+        else if(phase==12 && all("second-question") && !s.busy){if(!leader){if(f.selected)key(SDLK_UP);key(SDLK_RETURN);}phase=13;}
+        else if(phase==13 && !s.busy && (leader?(s.party && s.party->members.size()==1 && asked(0xae)):(!s.party && f.screen==6))){show("left");phase=14;}
+        else if(phase==14 && all("left") && !s.busy){if(leader)key(SDLK_RETURN);phase=15;}
+        else if(phase==15 && !s.busy && (!leader || (f.screen==14 && left<0))) {
+          if(leader){check(account->party_command({"invite",owners[party_begin+1]}),"Rendered B flow fresh native invitation was refused");
+            visible_frames["service_commands"].push_back({{"phase","fresh-reinvite"},{"action","invite"},{"recipient_fixture_owner",owners[party_begin+1]}});}
+          phase=16;
+        } else if(phase==16 && !s.busy && (leader || actual.invite_notice().has_value())){show("fresh-invite");phase=17;}
+        else if(phase==17 && all("fresh-invite") && !s.busy){if(!leader)key(SDLK_F9);phase=18;}
+        else if(phase==18 && s.party && s.party->members.size()==2 && !s.busy && f.screen==14) {
+          check(std::all_of(s.party->members.begin(),s.party->members.end(),[](const auto&m){return m.ready_playlist.empty();}),
+            "Actual fresh invitation acceptance fabricated retained playlist consent");
+          show("rejoined");phase=19;
+        } else if(phase==19 && all("rejoined") && !s.busy){button(actual,23);phase=20;}
+        else if(phase==20 && f.screen==23){show("setup");if(captured()){check(f.entries.size()==3 && f.entries[0].value==9,"Fresh consent lost source enum6 Setup rows");if(f.selected)for(unsigned i=0;i<f.selected;++i)key(SDLK_UP);key(SDLK_RETURN);phase=21;}}
+        else if(phase==21 && f.screen==237 && !f.entries.empty()) {
+          show("playlist");if(captured()) {const auto catalog=queue.snapshot().playlists;
+            const auto chosen=std::find_if(catalog.begin(),catalog.end(),[&](const auto&p){return p.id==first_playlist;});
+            check(chosen!=catalog.end(),"Rendered fresh consent lost the authenticated retained hopper");
+            const auto row=std::find_if(f.entries.begin(),f.entries.end(),[&](const auto&e){return e.label==chosen->name;});
+            check(row!=f.entries.end(),"Rendered original listing omitted the retained hopper");const auto index=unsigned(row-f.entries.begin());
+            if(index>f.selected)for(unsigned i=f.selected;i<index;++i)key(SDLK_DOWN);else for(unsigned i=index;i<f.selected;++i)key(SDLK_UP);
+            key(SDLK_RETURN);phase=22;
+          }
+        } else if(phase==22 && f.screen==14 && s.party && !s.busy && std::any_of(s.party->members.begin(),s.party->members.end(),
+            [&](const auto&m){return m.self && m.ready_playlist==first_playlist;})){show("fresh-consent");phase=23;}
+        else if(phase==23 && all("fresh-consent")) {
+          check(queue.snapshot().status==OnlineMatchmakingStatus::Ready && left<0 && !actual.launch,
+            "Fresh rendered rejoin autoqueued before a new explicit Start");return true;
+        }
+        return false;
+      };
+      check(!run_frontend(options).has_value() && phase==23,"Rendered B flow did not retain its actual unqueued lobby");
+      for(const auto label:{"ready","start","cancelled","restart","first-question","kept-membership","second-question","left","fresh-invite","rejoined","setup","playlist","fresh-consent"})
+        check(std::filesystem::is_regular_file(path(label,owner)),"Rendered party B/rejoin flow omitted an actual owner capture");
+      std::cout<<"PASS actual four-owner SDL/Vulkan party B: leader cancel; member question/cancel/confirm; authoritative leave/peer AE; native invitation and SDL acceptance; original Setup23/list237 fresh consent without autoqueue\n";
+    } else {
+    wait_stage="B regression actual shared countdown";if(leader)start();
+    wait([&]{pump();return state.online_lobby_countdown()>0 && !account->snapshot().busy;});
+    if(leader){state.back();check(state.frame().screen==14,"Active leader B asked to leave instead of canceling source countdown");}
+    wait([&]{pump();return state.online_lobby_countdown()<0 && !account->snapshot().busy;});
+    barrier("real-lobby-back-cancelled");if(leader)start();
+    wait([&]{pump();return state.online_lobby_countdown()>0 && !account->snapshot().busy;});
+    const auto version=account->snapshot().party->version;
+    if(!leader) {
+      state.back();check(asked(0x8b),"Member B did not open original Leave confirmation");
+      wait([&]{pump();const auto s=account->snapshot();return s.party && !s.busy && s.party->countdown && s.party->countdown->mode==1;});
+      state.back();check(state.frame().screen==14 && account->snapshot().party->version==version,
+        "Canceling original Leave confirmation changed accepted membership");
+      state.back();check(asked(0x8b),"Member second B lost original Leave confirmation");
+      wait([&]{pump();return !account->snapshot().busy;});state.select(0);state.accept();
+      wait_stage="B confirmed authoritative party departure";
+      wait([&]{pump();return !account->snapshot().party && !account->snapshot().busy && state.frame().screen==6;});
+      check(!state.launch,"Confirmed B departure queued the counted-down hopper");
+    } else {
+      wait_stage="B peer departure original notice";
+      wait([&]{pump();const auto s=account->snapshot();return s.party && s.party->members.size()==1 && asked(0xae);});
+      state.accept();check(state.frame().screen==14 && state.online_lobby_countdown()<0 && !state.launch,
+        "Actual member departure did not cancel the shared countdown and retain original pregame");
+    }
+    barrier("real-lobby-back-left");
+    if(leader){check(account->party_command({"invite",owners[party_begin+1]}),"B regression fresh reinvitation refused");}
+    else {
+      wait_stage="B regression real fresh invitation";
+      wait([&]{pump();return state.invite_notice().has_value() && !account->snapshot().busy;});
+      check(state.act_invite_notice(true),"B regression fresh accepted invitation refused");
+    }
+    wait_stage="B regression rejoined accepted party";
+    wait([&]{pump();const auto s=account->snapshot();return s.party && s.party->members.size()==2 && !s.busy;});
+    const auto rejoined=account->snapshot().party;
+    check(std::all_of(rejoined->members.begin(),rejoined->members.end(),[](const auto &m){return m.ready_playlist.empty();}),
+      "Fresh B rejoin fabricated retained playlist consent");
+    choose_retained_hopper();barrier("real-lobby-back-rejoined-consent");
+    check(queue.snapshot().status==OnlineMatchmakingStatus::Ready && !state.launch && state.online_lobby_countdown()<0,
+      "Fresh B rejoin autoqueued before a new explicit Start");
+    std::cout<<"PASS two-native party B: active leader cancels; member cancel/confirm leaves both sessions; peer AE; real reinvite/rejoin requires fresh consent without autoqueue\n";
+    }
   }
   std::cout<<"PASS matched native "<<(hosting?"host":"client")<<" players="<<roster<<" tick="<<tick<<" moved="<<moved<<" minimum_loaded="<<minimum_loaded<<" audible_frames="<<audio->audible<<"; opt-in, radio, "<<(o.compatibility=="halo2-native-queue-v12"?"direct UDP":"legacy relay")<<", mute/unmute, speaker labels and queue teardown\n";
   std::this_thread::sleep_for(500ms);return 0;

@@ -18,6 +18,10 @@ pub mod prospective_role;
 pub mod survivor_selection;
 pub mod lan_auth;
 pub mod security_policy;
+pub mod party_countdown;
+pub mod party_privacy;
+pub mod matchmaking_readiness;
+pub mod team_balance;
 
 const MAGIC: &[u8; 4] = b"H2N2";
 const VOICE_KIND: u8 = 6;

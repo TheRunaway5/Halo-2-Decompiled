@@ -174,7 +174,7 @@ int main(int argc,char** argv)try {
             if(network) {
                 host=std::make_unique<LanHost>(match,0,0x6374666173730000ull+index,options.variant);
                 const std::array<std::int8_t,1> team{0};
-                client=std::make_unique<LanClient>("127.0.0.1:"+std::to_string(host->port()),0x6374666173730000ull+index,1,team);
+                client=std::make_unique<LanClient>(host->join_address(),0x6374666173730000ull+index,1,team);
                 const std::array<Controls,1> input{};
                 for(unsigned n=0;n<240 && (!client->ready() || client->slots().empty() || match.player(client->slots()[0]).source_current_object==null_datum);++n) {
                     client->send(input);host->receive(controls);match.step(controls);host->broadcast();client->receive();
@@ -321,7 +321,7 @@ int main(int argc,char** argv)try {
                 need(client && !objective_late_join,"Objective late join has no genuine transport owner");
                 const std::array<std::int8_t,1> team{1};unsigned joined=multiplayer_capacity;
                 {
-                    LanClient observer("127.0.0.1:"+std::to_string(host->port()),0x6374666173730000ull+index,1,team);
+                    LanClient observer(host->join_address(),0x6374666173730000ull+index,1,team);
                     const std::array<Controls,1> input{};
                     for(unsigned n=0;n<80 && !observer.ready() && observer.error().empty();++n) {
                         observer.send(input);step();observer.receive();

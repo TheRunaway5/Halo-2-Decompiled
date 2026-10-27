@@ -325,6 +325,12 @@ public:
       std::uint32_t ignored_scene_prop=null_datum,std::uint32_t projectile_definition=null_datum);
   const SourceWeatherState &weather() const { return weather_; }
   const SourceWeatherClock &weather_clock() const { return weather_clock_; }
+  // Synchronous native rendering borrow, like the retained primary RNG.
+  // Rendering owns36AA0 reset/36B40 advancement; no state is copied or seeded.
+  SourceWeatherRenderState weather_render_state() {
+    NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
+    return {weather_,weather_clock_,weather_record_};
+  }
   std::uint32_t &source_primary_random() {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;return random_state_;}
   // Render-time weather advancement belongs to source view0. Callers supply
   // absolute realtime; game ticks and additional local views do not advance it.

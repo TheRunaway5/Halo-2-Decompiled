@@ -1,0 +1,16 @@
+{
+  "name": "Turf medical-tent super bounce through the native match scene",
+  "spawn": [-8.5, 8.25, 2.01],
+  "facing": [0.0, 1.0, 0.0],
+  "expected_launch": true,
+  "observe_after_tick": 50,
+  "minimum_launch_height_gain": 10.0,
+  "segments": [
+    {"ticks": 20},
+    {"ticks": 12, "forward": 1.0},
+    {"ticks": 1, "forward": 1.0, "jump": true},
+    {"ticks": 12, "forward": 1.0, "crouch": true},
+    {"ticks": 36, "crouch": true},
+    {"ticks": 100, "pitch": -1.5}
+  ]
+}

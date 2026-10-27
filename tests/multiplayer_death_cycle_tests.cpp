@@ -46,7 +46,7 @@ void live_cycle(const Cache& cache,const LevelContent& original,const UiVariant&
   // respawn owners run; unrelated Lockout falls cannot kill the shooter.
   content.collision.clear();content.kill_triggers.clear();
   auto rules=slayer_rules(variant);rules.weapon=cache.slayer_starting_weapon(5);
-  rules.score_limit=rules.time_ticks=0;rules.respawn_ticks=30;
+  rules.score_limit=rules.time_ticks=0;rules.respawn_ticks=150;
   MultiplayerMatch match(content,0,spawns,rules);
   match.join("Shooter");match.join("Victim");
 
@@ -67,7 +67,7 @@ void live_cycle(const Cache& cache,const LevelContent& original,const UiVariant&
   std::optional<LanHost> host;std::optional<LanClient> peer;
   if(network) {
     host.emplace(match,0,0xdead0015);
-    peer.emplace("127.0.0.1:"+std::to_string(host->port()),0xdead0015,1);
+    peer.emplace(host->join_address(),0xdead0015,1);
     for(unsigned n=0;n<80 && !peer->ready();++n) {
       peer->send(std::array<Controls,1>{});host->receive(inputs);host->broadcast();peer->receive();
     }
@@ -78,23 +78,31 @@ void live_cycle(const Cache& cache,const LevelContent& original,const UiVariant&
     host->broadcast();peer->receive();
     check(peer->state().tick==match.state().tick &&
         peer->state().players[1].source_unit==match.state().players[1].source_unit &&
-        peer->state().players[1].source_respawn_countdown==match.player(1).respawn.countdown,
+        peer->state().players[1].source_respawn_countdown==match.player(1).respawn.countdown &&
+        peer->state().players[1].source_respawn_seconds==match.player(1).respawn.displayed_seconds,
         "UDP snapshot lost actual death/respawn ownership or countdown");
     return peer->state();
   };
   Mesh mesh;MultiplayerScoreboard board(cache,cache.shared_directory()/"fonts",mesh,variant);
   check(board.available(),"Original scoreboard providers unavailable");
   const std::array<unsigned,2> ids{0,1};
-  bool automatic{},respawned{},restored{};inputs={};
-  for(unsigned n=0;n<160;++n) {
+  bool automatic{},respawned{},restored{},seconds_gate{};inputs={};
+  for(unsigned n=0;n<240;++n) {
     const auto state=snapshot();
+    check(state.players[1].source_respawn_countdown==match.player(1).respawn.countdown &&
+        state.players[1].source_respawn_seconds==match.player(1).respawn.displayed_seconds,
+        "Snapshot conflated original raw respawn ticks and displayed seconds");
     for(unsigned view=0;view<ids.size();++view)board.step(view,false,state,ids[view]);
     const auto living=board.draw(state,ids,0,1280,720);
     const auto victim=board.draw(state,ids,1,1280,720);
     check(living.normal_hud && living.paint.draw.vertices.empty(),
         "Automatic victim scoreboard leaked to a living local view");
-    if(state.players[1].source_unit==null_datum && state.players[1].source_respawn_countdown>1)
+    if(state.players[1].source_unit==null_datum && state.players[1].source_respawn_seconds>1)
       check(victim.paint.draw.vertices.empty(),"Automatic scoreboard preceded the original countdown gate");
+    if(state.players[1].source_unit==null_datum &&
+        state.players[1].source_respawn_countdown>30 &&
+        state.players[1].source_respawn_seconds==1 && !victim.normal_hud)
+      seconds_gate=true;
     if(!victim.normal_hud) {
       check(victim.layout.status==FullScoreboardStatus::Ready &&
           !victim.paint.draw.vertices.empty(),"Automatic death scoreboard did not submit actual roster/font/cells");
@@ -113,7 +121,7 @@ void live_cycle(const Cache& cache,const LevelContent& original,const UiVariant&
     if(restored)break;
     match.step(inputs);
   }
-  check(automatic && respawned && restored,
+  check(automatic && respawned && restored && seconds_gate,
       "Actual fatal hit/automatic scoreboard/source-slot respawn/HUD restoration cycle incomplete");
   const auto* corpse=match.unit_from_datum(old_body);
   check(corpse && corpse->vitality.dead && corpse->source_previous_player==old_owner,

@@ -8,7 +8,7 @@ namespace halo2 {
 // calls. Logical 32-bit source identities remain distinct from host addresses.
 // An undeclared operand remains an error; this is not a sparse XBE image.
 SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&);
-// Admit the complete native object-type runtime owner before public restore.
+// Admit required native object-type and animation-mask owners before restore.
 // Offline image banks retain their existing whole-section ownership.
 void native_tu15_validate_type_runtime_restore(const SourceRuntimeMemory&,
     const SourceRuntimeMemory::Checkpoint&);

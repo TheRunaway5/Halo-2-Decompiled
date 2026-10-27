@@ -16,6 +16,7 @@ from .playlist_skill import PlaylistSkills, POLICIES, display_level
 from .clan_skill import ClanSkills
 from .search_lifecycle import GatheringConfiguration, retail_configuration
 from .couch_players import LocalPlayer, NATIVE_GATHERING, guest_id, screen_name, verify_local_players, supports_compatibility, same_continuity_protocol
+from .player_profile import appearance as profile_appearance
 
 
 @dataclass(frozen=True)
@@ -41,7 +42,7 @@ def load_catalog(path):
     for row in root["playlists"]:
         fields(row, ("id", "revision", "name", "description", "ranked", "quickmatch", "team_size",
                      "minimum_players", "maximum_players", "maximum_party", "games", "stages", "skill", "provenance"),
-               ("party_balance", "rank_configuration", "clan_match", "candidate_selection", "gathering", "required_compatibility"))
+               ("party_balance", "rank_configuration", "clan_match", "candidate_selection", "gathering", "required_compatibility", "team_count"))
         require(type(row["quickmatch"]) is bool, "Invalid Quickmatch flag")
         require(type(row["games"]) is list and 1 <= len(row["games"]) <= 256, "Invalid game pool")
         games = []
@@ -84,11 +85,13 @@ def load_catalog(path):
                           tuple(games), tuple(stages), row["provenance"],
                           PARTY_RULES_2007.get(balance), historical, skill.get("high_rank_radius"),
                           skill.get("mixed_party_floor", False), skill.get("radius"), CLAN_RULES_RETAIL.get(clan_match),
-                          row.get("candidate_selection"), gathering)
+                          row.get("candidate_selection"), gathering, row.get("team_count",2))
         required = row.get("required_compatibility")
         require(required is None or required in NATIVE_GATHERING, "Unknown required native compatibility")
         configuration = row.get("rank_configuration")
         require(configuration is None or configuration in POLICIES, "Unknown rank configuration")
+        require(policy.team_count==2 or configuration in POLICIES,
+                "Original multi-team balancing requires an authenticated raw-rating configuration")
         require(clan_match is None or configuration in POLICIES, "Clan playlists require a supported clan rank configuration")
         # Retail types1/3 update the same per-hopper XP while hiding its level;
         # types2/4 expose it. Visibility is independent of the versioned tables.
@@ -109,9 +112,10 @@ class Session:
     seen: float
     language: int = 0  # Native title-language index, never a Discord locale.
     local_players: tuple[LocalPlayer, ...] = ()
+    appearance: bytes | None = None
 
     def seats(self):
-        return self.local_players or (LocalPlayer(self.player, self.screen_name),)
+        return self.local_players or (LocalPlayer(self.player, self.screen_name, appearance=self.appearance),)
 
 
 class MatchmakingApi:
@@ -119,6 +123,10 @@ class MatchmakingApi:
         self.directory, self.entries, self.clock = directory, entries, clock
         self.core = Coordinator(tuple(e.policy for e in entries), clock=clock) if entries else None
         self.sessions, self.requests = {}, {}
+        # Session-bound terminal search outcomes survive ticket/room teardown.
+        # They are presentation state, never identities or Xbox Live policy.
+        self.failures = {}
+        self.content_failure_rooms = {}
         initialize(directory.store.db)
         directory.store.db.executescript("""
         CREATE TABLE IF NOT EXISTS players(id TEXT PRIMARY KEY, provider TEXT NOT NULL,
@@ -146,6 +154,9 @@ class MatchmakingApi:
     def cleanup(self):
         if not self.core:
             return
+        self.content_failure_rooms = {key: value for key, value in self.content_failure_rooms.items() if value[2]>self.clock()}
+        while len(self.content_failure_rooms)>1024:
+            self.content_failure_rooms.pop(next(iter(self.content_failure_rooms)))
         self.core.cleanup()
         for ticket in tuple(self.core.tickets.values()):
             if ticket.clan and any(self.member_clan(p.id) != ticket.clan for p in ticket.players):
@@ -157,6 +168,7 @@ class MatchmakingApi:
     def remove_session(self, key):
         session = self.sessions.pop(key, None)
         if session:
+            self.failures.pop(session.player, None)
             qos = getattr(self, "search_qos", None)
             if qos:
                 qos.discard(session.player)
@@ -184,7 +196,8 @@ class MatchmakingApi:
     async def create_session(self, request):
         self.enabled()
         body = await self.directory.body(request)
-        fields(body, ("screen_name", "maps", "compatibility"), ("language", "local_players"))
+        fields(body, ("screen_name", "maps", "compatibility"), ("language", "local_players", "renew_session", "appearance"))
+        primary_appearance=profile_appearance(body["appearance"]) if "appearance" in body else None
         name, compatibility = text(body["screen_name"]), text(body["compatibility"])
         require(not compatibility.startswith("halo2-native-queue-") or compatibility in
                 ("halo2-native-queue-v7", *NATIVE_GATHERING),
@@ -208,6 +221,14 @@ class MatchmakingApi:
         # Replacing this primary connection is allowed; taking another PC's
         # independently authenticated seat is not.
         existing_primary = db.execute("SELECT player FROM player_identities WHERE provider=? AND subject=?", (provider, subject)).fetchone()
+        renewal = None
+        if "renew_session" in body:
+            renewal_token = text(body["renew_session"], maximum=128)
+            renewal = self.sessions.get(hashlib.sha256(renewal_token.encode()).hexdigest())
+            require(renewal is not None and renewal.expires > self.clock(),
+                    "Matchmaking session expired; reconnect", 401)
+            require(existing_primary is not None and renewal.player == existing_primary[0],
+                    "Matchmaking session belongs to another account", 403)
         for owner in verified_owners:
             existing = db.execute("SELECT player FROM player_identities WHERE provider=? AND subject=?", owner).fetchone()
             if existing:
@@ -223,16 +244,37 @@ class MatchmakingApi:
                     require(self.directory.parties.party(existing[0]) is None,
                             "Leave this player's separate party before adding their local profile", 409)
         player = resolve_player(db, (provider, subject), name, request.get(VERIFIED_DISCORD_USERNAME, ""))
-        seats = (LocalPlayer(player, name),) + tuple(LocalPlayer(
-            resolve_player(db, owner, local_name, username) if owner else guest_id(), local_name, owner is None)
-            for local_name, owner, username in locals_verified)
+        local_seats = [(resolve_player(db, owner, local_name, username) if owner else None, local_name)
+                       for local_name, owner, username in locals_verified]
+        local_appearances=tuple(profile_appearance(row["appearance"]) if "appearance" in row else None
+                                for row in body.get("local_players",()))
+        # A fresh external primary grant and every signed-in local grant have
+        # been checked above. Only an unchanged physical connection renews;
+        # guest IDs, queue clocks and the party's consent remain its own.
+        if (renewal is not None and renewal.screen_name == name and renewal.maps == maps
+                and renewal.compatibility == compatibility and renewal.language == language
+                and len(renewal.seats()) == 1 + len(local_seats)
+                and all(old.screen_name == local_name and old.guest == (identity is None)
+                        and (old.guest or old.player == identity)
+                        for old, (identity, local_name) in zip(renewal.seats()[1:], local_seats))):
+            renewal.expires, renewal.seen = self.clock() + 900, self.clock()
+            # Cosmetics are physical-session profile inputs, not a new identity
+            # or party revision. A verified renewal keeps all guest IDs and
+            # the existing ticket while updating the exact current profiles.
+            renewal.appearance=primary_appearance
+            renewal.local_players=tuple(LocalPlayer(old.player,old.screen_name,old.guest,raw)
+                for old,raw in zip(renewal.seats(),(primary_appearance,*local_appearances)))
+            return web.json_response({"token": renewal_token, "expires_in": 900}, status=201)
+        seats = (LocalPlayer(player, name,appearance=primary_appearance),) + tuple(
+            LocalPlayer(identity or guest_id(),local_name,identity is None,raw)
+            for (identity,local_name),raw in zip(local_seats,local_appearances))
         for key, old in list(self.sessions.items()):
             if old.player == player:
                 self.remove_session(key)
         require(len(self.sessions) < 1000, "Session capacity reached", 503)
         token = secrets.token_urlsafe(32)
         self.sessions[hashlib.sha256(token.encode()).hexdigest()] = Session(player, name, maps, compatibility,
-                                                                        self.clock() + 900, self.clock(), language, seats)
+                                                                        self.clock() + 900, self.clock(), language, seats, primary_appearance)
         return web.json_response({"token": token, "expires_in": 900}, status=201)
 
     async def delete_session(self, request):
@@ -343,6 +385,8 @@ class MatchmakingApi:
             current = self.ticket(session.player)
             require(current is None or current.playlist == policy.id, "Already searching another playlist", 409)
             party_id, members = self.directory.parties.queue_members(session.player, policy)
+            for member in members:
+                self.failures.pop(member.player, None)
             require(same_continuity_protocol(members), "Every party member must use the same host-continuation protocol", 409)
             require(not policy.candidate_selection or all(member.compatibility in NATIVE_GATHERING for member in members),
                     "Every party member must update Halo 2 for gathering matchmaking", 409)
@@ -384,6 +428,16 @@ class MatchmakingApi:
         else:
             self.core.advance(playlist, allow_pending_connectivity=True)
 
+    def player_appearance(self,player):
+        # Identity is the authenticated admitted seat, never its display name.
+        for session in self.sessions.values():
+            for seat in session.seats():
+                if seat.player==player:
+                    if seat.appearance is not None:return seat.appearance.hex()
+                    if seat.guest:return None
+        row=self.directory.store.db.execute("SELECT appearance FROM player_customization WHERE player=?",(player,)).fetchone()
+        return bytes(row[0]).hex() if row else None
+
     def view(self, session):
         ticket = self.ticket(session.player)
         if not ticket:
@@ -413,7 +467,20 @@ class MatchmakingApi:
         if request.query.get("progress") == "1":
             result["progress"] = (self.gatherings.progress(self.ticket(session.player),session.player)
                                   if result["state"] == "searching" else None)
-        if request.query.get("ranks") == "1":
+        if request.query.get("start") == "1":
+            # The core ticket has already retired when readiness commits.
+            # Read this authenticated owner's live room instead of using the
+            # legacy ticket's idle state or starting a clock in the observer.
+            room = next((room for room in self.transport.rooms.values()
+                         if not room.closed and room.phase == "loading"
+                         and room.active_member(session.player)), None)
+            result["start_countdown_ms"] = room.start_countdown_ms() if room else None
+        if request.query.get("failure") == "1":
+            outcome = self.failures.get(session.player)
+            result["failure"] = outcome[1] if outcome and outcome[0] is session else None
+        ranks=request.query.get("ranks") == "1"
+        appearances=request.query.get("appearance") == "1"
+        if ranks or appearances:
             # Only the admitted roster's public artwork level crosses this
             # boundary. Raw XP/search skill and account identifiers stay private.
             ticket = self.ticket(session.player)
@@ -434,16 +501,52 @@ class MatchmakingApi:
                               if self.core.playlists[t.playlist].ranked and not p.guest else None
                               for t in group for p in t.players}
                     for row, player in zip(rows, ordered):
-                        row["level"] = levels[player]
+                        if ranks:row["level"] = levels[player]
+                        if appearances:row["appearance"]=self.player_appearance(player)
         return web.json_response(result)
 
     async def cancel(self, request):
         _, session = self.session(request)
+        if request.query.get("cancel") == "1":
+            for room in self.transport.rooms.values():
+                if room.active_member(session.player) and room.phase in ("connecting", "loading"):
+                    room.local_cancellers.add(session.player)
+                    room.record_failure("party_cancelled", session.player)
+        self.failures.pop(session.player, None)
         ticket = self.ticket(session.player)
         if ticket:
             self.core.cancel(ticket.id)
         self.gatherings.cleanup()
         return web.json_response({"state": "idle", "playlist_id": "", "queued_players": 0, "match": None})
+
+    async def content_failure(self, request):
+        body = await self.directory.body(request)
+        fields(body, ("match_id", "kind"))
+        _, session = self.session(request)
+        require(body["kind"] == "missing_content", "Invalid match failure")
+        room = self.transport.rooms.get(text(body["match_id"]))
+        if room is None:
+            recent = self.content_failure_rooms.get(body["match_id"])
+            require(recent is not None and recent[0].get(session.player) is session, "Match admission required", 403)
+            outcome = self.failures.get(session.player)
+            require(outcome is not None and outcome[0] is session and self.ticket(session.player) is None,
+                    "Match content rejection is no longer current", 409)
+            owners, parties, _ = recent
+            for player, admitted in owners.items():
+                current = self.failures.get(player)
+                if current and current[0] is admitted:
+                    self.failures[player] = (admitted, "missing_content" if player in parties[session.player] else "search_failed")
+            return web.json_response({"accepted": True})
+        require(room is not None and room.active_member(session.player), "Match admission required", 403)
+        # A just-rejected native launch may already have closed its socket.
+        # Never allow an older room to overwrite a newer search's outcome.
+        latest = next((r for r in reversed(tuple(self.transport.rooms.values()))
+                       if r.active_member(session.player)), None)
+        require(latest is room and room.phase in ("connecting", "loading") and self.ticket(session.player) is None,
+                "Match content rejection is no longer current", 409)
+        room.record_failure("missing_content", session.player)
+        await room.close("A party member is missing required content.")
+        return web.json_response({"accepted": True})
 
     def routes(self):
         return [web.post("/v1/matchmaking/session", self.create_session),
@@ -451,4 +554,5 @@ class MatchmakingApi:
                 web.get("/v1/matchmaking/playlists", self.playlists),
                 web.post("/v1/matchmaking/ticket", self.enqueue),
                 web.get("/v1/matchmaking/ticket", self.poll),
+                web.post("/v1/matchmaking/failure", self.content_failure),
                 web.delete("/v1/matchmaking/ticket", self.cancel)]

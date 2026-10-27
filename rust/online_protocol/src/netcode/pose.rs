@@ -15,20 +15,53 @@ const ROT_LIMIT: i32 = 2896; // 4096 / sqrt(2)
 const COORD_LIMIT: f32 = (1u32 << 30) as f32;
 const MAX_NODES: usize = 0x7fff / 0x34;
 const MAX_BODIES: usize = 2048;
+const FRAME_MAGIC: &[u8; 4] = b"H2WP";
+pub type ParentFrame = [u32; 13];
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum Format {
+    #[default]
+    Legacy,
+    ParentFrame,
+}
+impl Format {
+    pub fn header_bytes(self) -> usize {
+        if self == Self::Legacy { 3 } else { 8 }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
+pub struct Binding {
+    pub parent: u32,
+    pub node: u8,
+}
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub struct Key {
     pub object: u32,
     pub nodes: u16,
+    /// None is legacy unavailable, not source-qualified unparented NONE.
+    pub binding: Option<Binding>,
+}
+impl Key {
+    pub fn has_parent(self) -> bool {
+        self.binding.is_some_and(|b| b.parent != u32::MAX)
+    }
+    fn prefix_bytes(self) -> usize {
+        6 + self.binding.map_or(0, |_| 5) + if self.has_parent() { 52 } else { 0 }
+    }
 }
 
+#[derive(Clone)]
 pub struct RawPose {
     pub key: Key,
     pub sphere: [f32; 4],
     pub nodes: Vec<[f32; 13]>,
+    pub parent_frame: Option<ParentFrame>,
 }
 
 pub struct RawBank {
+    pub format: Format,
     pub authoritative: u8,
     pub poses: Vec<RawPose>,
 }
@@ -39,12 +72,20 @@ fn f32_at(bytes: &[u8], at: usize) -> f32 {
 
 /// Parses the native pose bank wire layout; `None` leaves it generic.
 pub fn parse(bytes: &[u8]) -> Option<RawBank> {
-    let authoritative = *bytes.first()?;
-    let count = usize::from(u16::from_le_bytes(bytes.get(1..3)?.try_into().ok()?));
+    let (format, header) = if bytes.starts_with(FRAME_MAGIC) {
+        if *bytes.get(4)? != 1 {
+            return None;
+        }
+        (Format::ParentFrame, 5usize)
+    } else {
+        (Format::Legacy, 0usize)
+    };
+    let authoritative = *bytes.get(header)?;
+    let count = usize::from(u16::from_le_bytes(bytes.get(header + 1..header + 3)?.try_into().ok()?));
     if count > MAX_BODIES || authoritative > 1 {
         return None;
     }
-    let mut at = 3usize;
+    let mut at = header + 3;
     let mut poses = Vec::with_capacity(count);
     for _ in 0..count {
         let object = u32::from_le_bytes(bytes.get(at..at + 4)?.try_into().ok()?);
@@ -53,6 +94,29 @@ pub fn parse(bytes: &[u8]) -> Option<RawBank> {
         if nodes == 0 || usize::from(nodes) > MAX_NODES {
             return None;
         }
+        let mut parent_frame = None;
+        let binding = if format == Format::ParentFrame {
+            let parent = u32::from_le_bytes(bytes.get(at..at + 4)?.try_into().ok()?);
+            let node = *bytes.get(at + 4)?;
+            at += 5;
+            if parent != u32::MAX {
+                if parent >> 16 == 0 || parent & 65535 >= 2048 || parent == object {
+                    return None;
+                }
+                let frame = bytes.get(at..at + 52)?;
+                let words = std::array::from_fn(|n| {
+                    u32::from_le_bytes(frame[n * 4..n * 4 + 4].try_into().expect("frame word"))
+                });
+                if !valid_frame(&words) {
+                    return None;
+                }
+                parent_frame = Some(words);
+                at += 52;
+            }
+            Some(Binding { parent, node })
+        } else {
+            None
+        };
         let end = at.checked_add(16 + usize::from(nodes) * NODE_BYTES)?;
         let body = bytes.get(at..end)?;
         let sphere = std::array::from_fn(|n| f32_at(body, n * 4));
@@ -62,10 +126,23 @@ pub fn parse(bytes: &[u8]) -> Option<RawBank> {
         if sphere.iter().any(|v| !v.is_finite()) {
             return None;
         }
-        poses.push(RawPose { key: Key { object, nodes }, sphere, nodes: nodes_raw });
+        poses.push(RawPose { key: Key { object, nodes, binding }, sphere, nodes: nodes_raw, parent_frame });
         at = end;
     }
-    (at == bytes.len()).then_some(RawBank { authoritative, poses })
+    (at == bytes.len()).then_some(RawBank { format, authoritative, poses })
+}
+
+pub fn valid_frame(frame: &ParentFrame) -> bool {
+    frame.iter().all(|word| f32::from_bits(*word).is_finite())
+}
+
+pub fn write_header(format: Format, authoritative: u8, count: u16, out: &mut Vec<u8>) {
+    if format == Format::ParentFrame {
+        out.extend_from_slice(FRAME_MAGIC);
+        out.push(1);
+    }
+    out.push(authoritative);
+    out.extend_from_slice(&count.to_le_bytes());
 }
 
 /// Float offsets and per-body anchors of a native pose bank starting at
@@ -73,10 +150,10 @@ pub fn parse(bytes: &[u8]) -> Option<RawBank> {
 pub fn bank_layout(bank: &RawBank, origin: u32) -> (Vec<u32>, Vec<(u32, u64)>) {
     const SECTION: u64 = 0xFE << 40;
     let (mut floats, mut anchors) = (Vec::new(), vec![(origin, SECTION | 0xFFFF_FFFF)]);
-    let mut at = origin + 3;
+    let mut at = origin + bank.format.header_bytes() as u32;
     for pose in &bank.poses {
         anchors.push((at, SECTION | u64::from(pose.key.object)));
-        at += 6;
+        at += pose.key.prefix_bytes() as u32;
         let words = 4 + u32::from(pose.key.nodes) * (NODE_BYTES as u32 / 4);
         floats.extend((0..words).map(|n| at + n * 4));
         at += words * 4;
@@ -84,8 +161,9 @@ pub fn bank_layout(bank: &RawBank, origin: u32) -> (Vec<u32>, Vec<(u32, u64)>) {
     (floats, anchors)
 }
 
-pub fn bank_len(keys: &[Key]) -> usize {
-    3 + keys.iter().map(|k| 6 + 16 + usize::from(k.nodes) * NODE_BYTES).sum::<usize>()
+pub fn bank_len(format: Format, keys: &[Key]) -> usize {
+    format.header_bytes()
+        + keys.iter().map(|k| k.prefix_bytes() + 16 + usize::from(k.nodes) * NODE_BYTES).sum::<usize>()
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -201,7 +279,8 @@ fn rigid(m: &Matrix) -> bool {
         }
     }
     let (a, b, c) = (column(0), column(1), column(2));
-    let det = a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0]) + a[2] * (b[0] * c[1] - b[1] * c[0]);
+    let det =
+        a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0]) + a[2] * (b[0] * c[1] - b[1] * c[0]);
     det > 0.0
 }
 
@@ -266,18 +345,19 @@ pub fn quantize(raw: &RawPose) -> Pose {
 
 /// Native wire bytes for one entry. `root` re-roots a held full pose onto a
 /// newer sphere/node-0 update; the result is presentation-only.
-pub fn materialize(key: Key, pose: &Pose, root: Option<&Root>, out: &mut Vec<u8>) {
+pub fn materialize(key: Key, pose: &Pose, root: Option<&Root>, parent_frame: Option<&ParentFrame>, out: &mut Vec<u8>) {
     let held = pose.root();
     let target = root.copied().unwrap_or(held);
     let center = target.center.map(dequantize_coord);
     out.extend_from_slice(&key.object.to_le_bytes());
     out.extend_from_slice(&key.nodes.to_le_bytes());
-    for v in center {
-        out.extend_from_slice(&v.to_le_bytes());
+    if let Some(binding) = key.binding {
+        out.extend_from_slice(&binding.parent.to_le_bytes());
+        out.push(binding.node);
     }
-    out.extend_from_slice(&(target.radius as f32 / POS_SCALE).to_le_bytes());
     let origin = held.center.map(dequantize_coord);
-    let world = |pos: [i32; 3], base: [f32; 3]| std::array::from_fn::<f32, 3, _>(|a| base[a] + dequantize_coord(pos[a]));
+    let world =
+        |pos: [i32; 3], base: [f32; 3]| std::array::from_fn::<f32, 3, _>(|a| base[a] + dequantize_coord(pos[a]));
     // Rigid motion from the held node 0 to the newer node 0.
     let held0 = world(held.pos, origin);
     let target0 = world(target.pos, center);
@@ -286,9 +366,7 @@ pub fn materialize(key: Key, pose: &Pose, root: Option<&Root>, out: &mut Vec<u8>
             let a = matrix(decode_quat(la, ca));
             let b = matrix(decode_quat(lb, cb));
             // b * a^T
-            Some(std::array::from_fn(|r| {
-                std::array::from_fn(|c| (0..3).map(|k| b[r][k] * a[c][k]).sum())
-            }))
+            Some(std::array::from_fn(|r| std::array::from_fn(|c| (0..3).map(|k| b[r][k] * a[c][k]).sum())))
         }
         _ => None,
     };
@@ -296,6 +374,18 @@ pub fn materialize(key: Key, pose: &Pose, root: Option<&Root>, out: &mut Vec<u8>
         Some(m) => std::array::from_fn::<f32, 3, _>(|r| (0..3).map(|k| m[r][k] * v[k]).sum()),
         None => v,
     };
+    if let Some(frame) = parent_frame {
+        // Selected atomically with the effective full/root/held entry. A
+        // newer root uses its own exact native frame, preserving fresh local
+        // root animation instead of cancelling it with a synthesized frame.
+        for word in frame {
+            out.extend_from_slice(&word.to_le_bytes());
+        }
+    }
+    for v in center {
+        out.extend_from_slice(&v.to_le_bytes());
+    }
+    out.extend_from_slice(&(target.radius as f32 / POS_SCALE).to_le_bytes());
     for node in &pose.nodes {
         out.extend_from_slice(&node.scale.to_le_bytes());
         let basis: Matrix = match node.rot {
@@ -304,7 +394,7 @@ pub fn materialize(key: Key, pose: &Pose, root: Option<&Root>, out: &mut Vec<u8>
         };
         let raw = matches!(node.rot, Rot::Raw(_));
         for column in (0..3).map(|c| basis.map(|row| row[c])) {
-            let column = if raw { column } else { apply(&rotation, column) };
+            let column = if raw && key.binding.is_none() { column } else { apply(&rotation, column) };
             for v in column {
                 out.extend_from_slice(&v.to_le_bytes());
             }
@@ -395,7 +485,9 @@ fn predict(velocity: Option<&Velocity>, index: usize, elapsed: u32) -> i64 {
     if velocity.span == 0 || elapsed == 0 || elapsed > 1 << 16 {
         return 0;
     }
-    let Some(&residual) = velocity.residuals.get(index) else { return 0 };
+    let Some(&residual) = velocity.residuals.get(index) else {
+        return 0;
+    };
     let elapsed = elapsed.min(velocity.span.saturating_mul(4));
     (i64::from(residual) * i64::from(elapsed) / i64::from(velocity.span)).clamp(-(1 << 30), 1 << 30)
 }
@@ -461,12 +553,13 @@ pub fn encode_full(e: &mut Encoder, m: &mut Models, pose: &Pose, reference: Opti
         }
         return residuals;
     };
-    let code = |e: &mut Encoder, model: &mut [Int; 2], index: usize, value: i64, base: i64, residuals: &mut Vec<i32>| {
-        let residual = value - base;
-        let prediction = predict(r.velocity, index, r.elapsed);
-        model[usize::from(prediction != 0)].encode(e, residual - prediction);
-        residuals[index] = residual.clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32;
-    };
+    let code =
+        |e: &mut Encoder, model: &mut [Int; 2], index: usize, value: i64, base: i64, residuals: &mut Vec<i32>| {
+            let residual = value - base;
+            let prediction = predict(r.velocity, index, r.elapsed);
+            model[usize::from(prediction != 0)].encode(e, residual - prediction);
+            residuals[index] = residual.clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32;
+        };
     for axis in 0..3 {
         code(e, &mut m.center, axis, i64::from(pose.center[axis]), i64::from(r.pose.center[axis]), &mut residuals);
     }
@@ -516,7 +609,14 @@ pub fn encode_full(e: &mut Encoder, m: &mut Models, pose: &Pose, reference: Opti
             }
         }
         for axis in 0..3 {
-            code(e, &mut m.pos_delta, index + 3 + axis, i64::from(node.pos[axis]), i64::from(base.pos[axis]), &mut residuals);
+            code(
+                e,
+                &mut m.pos_delta,
+                index + 3 + axis,
+                i64::from(node.pos[axis]),
+                i64::from(base.pos[axis]),
+                &mut residuals,
+            );
         }
     }
     residuals
@@ -589,7 +689,12 @@ pub fn decode_full(
     if r.pose.nodes.len() != count {
         return Err(Error);
     }
-    let code = |d: &mut Decoder<'_>, model: &mut [Int; 2], index: usize, base: i64, residuals: &mut Vec<i32>| -> Result<i64, Error> {
+    let code = |d: &mut Decoder<'_>,
+                model: &mut [Int; 2],
+                index: usize,
+                base: i64,
+                residuals: &mut Vec<i32>|
+     -> Result<i64, Error> {
         let prediction = predict(r.velocity, index, r.elapsed);
         let residual = model[usize::from(prediction != 0)].decode(d)?.checked_add(prediction).ok_or(Error)?;
         residuals[index] = residual.clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32;
@@ -599,7 +704,8 @@ pub fn decode_full(
     for (axis, value) in center.iter_mut().enumerate() {
         *value = narrow(code(d, &mut m.center, axis, i64::from(r.pose.center[axis]), &mut residuals)?)?;
     }
-    let radius = u32::try_from(code(d, &mut m.radius, 3, i64::from(r.pose.radius), &mut residuals)?).map_err(|_| Error)?;
+    let radius =
+        u32::try_from(code(d, &mut m.radius, 3, i64::from(r.pose.radius), &mut residuals)?).map_err(|_| Error)?;
     let mut out = Vec::with_capacity(count);
     for (n, base) in r.pose.nodes.iter().enumerate() {
         let index = 4 + n * 6;
@@ -617,7 +723,8 @@ pub fn decode_full(
                 if d.bit(&mut m.largest_same) {
                     let mut c = [0i16; 3];
                     for k in 0..3 {
-                        c[k] = rot_component(code(d, &mut m.rot_delta, index + k, i64::from(base_c[k]), &mut residuals)?)?;
+                        c[k] =
+                            rot_component(code(d, &mut m.rot_delta, index + k, i64::from(base_c[k]), &mut residuals)?)?;
                     }
                     Rot::Quat { largest: base_largest, c }
                 } else {
@@ -779,7 +886,12 @@ pub(crate) mod tests {
                 values
             })
             .collect();
-        RawPose { key: Key { object, nodes: 0 }, sphere: [center[0], center[1], center[2], 0.8], nodes }
+        RawPose {
+            key: Key { object, nodes: 0, binding: None },
+            sphere: [center[0], center[1], center[2], 0.8],
+            nodes,
+            parent_frame: None,
+        }
     }
 
     fn bytes_of(poses: &[RawPose]) -> Vec<u8> {
@@ -806,9 +918,9 @@ pub(crate) mod tests {
         let mut bytes = bytes_of(&poses);
         let bank = parse(&bytes).unwrap();
         assert_eq!(bank.poses.len(), 2);
-        assert_eq!(bank.poses[0].key, Key { object: 0x1234_0001, nodes: 20 });
+        assert_eq!(bank.poses[0].key, Key { object: 0x1234_0001, nodes: 20, binding: None });
         let keys: Vec<Key> = bank.poses.iter().map(|p| p.key).collect();
-        assert_eq!(bank_len(&keys), bytes.len());
+        assert_eq!(bank_len(Format::Legacy, &keys), bytes.len());
         bytes.push(0);
         assert!(parse(&bytes).is_none());
     }
@@ -818,13 +930,13 @@ pub(crate) mod tests {
         let raw = body(0x2000_0001, 50, [120.5, -33.25, 8.0], 0.4);
         let pose = quantize(&raw);
         let mut out = Vec::new();
-        materialize(Key { object: 0x2000_0001, nodes: 50 }, &pose, None, &mut out);
+        materialize(Key { object: 0x2000_0001, nodes: 50, binding: None }, &pose, None, None, &mut out);
         assert_eq!(out.len(), 6 + 16 + 50 * NODE_BYTES);
         for (n, values) in raw.nodes.iter().enumerate() {
-            for k in 0..13 {
+            for (k, value) in values.iter().enumerate() {
                 let decoded = f32_at(&out, 22 + n * NODE_BYTES + k * 4);
                 let tolerance = if k >= 10 { 1.5e-3 } else { 2e-3 };
-                assert!((decoded - values[k]).abs() <= tolerance, "node {n} word {k}: {decoded} vs {}", values[k]);
+                assert!((decoded - value).abs() <= tolerance, "node {n} word {k}: {decoded} vs {value}");
             }
         }
         let radius = f32_at(&out, 18);
@@ -838,7 +950,7 @@ pub(crate) mod tests {
         let pose = quantize(&raw);
         assert!(matches!(pose.nodes[2].rot, Rot::Raw(_)));
         let mut out = Vec::new();
-        materialize(Key { object: 2, nodes: 4 }, &pose, None, &mut out);
+        materialize(Key { object: 2, nodes: 4, binding: None }, &pose, None, None, &mut out);
         for k in 1..10 {
             assert_eq!(f32_at(&out, 22 + 2 * NODE_BYTES + k * 4).to_bits(), raw.nodes[2][k].to_bits());
         }
@@ -849,7 +961,8 @@ pub(crate) mod tests {
         let sent = encode_full(&mut e, &mut Models::default(), pose, reference);
         let bytes = e.finish();
         let mut d = Decoder::new(&bytes);
-        let (decoded, residuals) = decode_full(&mut d, &mut Models::default(), pose.nodes.len() as u16, reference).unwrap();
+        let (decoded, residuals) =
+            decode_full(&mut d, &mut Models::default(), pose.nodes.len() as u16, reference).unwrap();
         assert_eq!(&decoded, pose);
         assert_eq!(residuals, sent);
         bytes.len()
@@ -883,20 +996,61 @@ pub(crate) mod tests {
         let mut e = Encoder::default();
         let sent = encode_root(&mut e, &mut Models::default(), &root, &base, None, 1);
         let bytes = e.finish();
-        let (decoded, residuals) = decode_root(&mut Decoder::new(&bytes), &mut Models::default(), &base, None, 1).unwrap();
+        let (decoded, residuals) =
+            decode_root(&mut Decoder::new(&bytes), &mut Models::default(), &base, None, 1).unwrap();
         assert_eq!(decoded, root);
         assert_eq!(residuals, sent);
         assert!(bytes.len() < 16);
         let mut out = Vec::new();
-        materialize(Key { object: 9, nodes: 12 }, &held, Some(&root), &mut out);
+        materialize(Key { object: 9, nodes: 12, binding: None }, &held, Some(&root), None, &mut out);
         // Node 0 lands exactly where the newer root put it.
         let expected = moved.root();
         let center = expected.center.map(dequantize_coord);
-        for axis in 0..3 {
+        for (axis, center) in center.iter().enumerate() {
             let got = f32_at(&out, 22 + 40 + axis * 4);
-            let want = center[axis] + dequantize_coord(expected.pos[axis]);
+            let want = center + dequantize_coord(expected.pos[axis]);
             assert!((got - want).abs() < 2e-3, "axis {axis} {got} {want}");
         }
+    }
+
+    #[test]
+    fn parent_frame_is_lossless_and_raw_child_basis_rotates_with_new_format_root() {
+        let mut raw = body(0x20002, 3, [1.0, 0.0, 0.0], 0.0);
+        raw.key.nodes = 3;
+        for node in &mut raw.nodes[..2] {
+            node[1..10].copy_from_slice(&[1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]);
+        }
+        raw.nodes[1][1] = 1.25; // Nonrigid WORLD column, intentionally kept raw.
+        let held = quantize(&raw);
+        let mut current = raw.clone();
+        let turn = rotation(std::f32::consts::FRAC_PI_2, 0.0);
+        for c in 0..3 {
+            for r in 0..3 {
+                current.nodes[0][1 + c * 3 + r] = turn[r][c];
+            }
+        }
+        let root = quantize(&current).root();
+        let frame = [1.0f32, 0.0, 1.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 10.0, -0.0, 0.0].map(f32::to_bits);
+        let mut key = raw.key;
+        key.binding = Some(Binding { parent: 0x10001, node: 0 });
+        let mut out = Vec::new();
+        write_header(Format::ParentFrame, 1, 1, &mut out);
+        materialize(key, &held, Some(&root), Some(&frame), &mut out);
+        let decoded = parse(&out).unwrap();
+        assert_eq!(decoded.poses[0].parent_frame, Some(frame));
+        let basis = &decoded.poses[0].nodes[1][1..10];
+        assert!(
+            basis[0].abs() < 0.002 && (basis[1] - 1.25).abs() < 0.002,
+            "raw child WORLD basis did not undergo the actual rigid root rotation: {basis:?}"
+        );
+        let mut legacy = Vec::new();
+        write_header(Format::Legacy, 1, 1, &mut legacy);
+        materialize(raw.key, &held, Some(&root), None, &mut legacy);
+        assert_eq!(
+            &parse(&legacy).unwrap().poses[0].nodes[1][1..10],
+            &raw.nodes[1][1..10],
+            "new-format raw-basis correction changed the promised legacy materializer"
+        );
     }
 
     #[test]

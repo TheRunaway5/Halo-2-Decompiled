@@ -70,6 +70,35 @@ int main(int argc,char **argv) try {
     menu.back();check(menu.frame().screen==vista_menu(259),"Settings Back lost pause hub");
   }
   menu.set_pc_display_adapter([](const DisplaySettings &){return std::string{};});
+  menu.open_game_pause(false);choose(menu,1);choose(menu,3);
+  check(menu.pc_display_settings().graphics_mode==pstencil::GraphicsMode::Original,
+      "pause graphics mode did not start with Original");
+  choose(menu,0);
+  check(menu.pc_display_settings().graphics_mode==pstencil::GraphicsMode::pStencil,
+      "pause Graphics Mode did not select pStencil");
+  choose(menu,0);
+  check(menu.frame().screen==vista_menu(261) &&
+      menu.pc_display_settings().graphics_mode==pstencil::GraphicsMode::PathTracing &&
+      menu.pc_value_label(menu.frame(),0)=="Path Tracing",
+      "pause Graphics Mode did not select Path Tracing in place");
+  check(menu.frame().entries.at(14).label=="Path Tracing Quality" &&
+      menu.pc_display_settings().path_tracing_samples==1 && menu.pc_display_settings().path_tracing_bounces==1,
+      "pause Path Tracing quality defaults missing");
+  choose(menu,14);choose(menu,0);
+  check(menu.frame().context==video_path_tracing_samples_context && menu.frame().entries.size()==2,
+      "pause ray choices did not cap samples at two");
+  choose(menu,1);choose(menu,1);
+  check(menu.frame().context==video_path_tracing_bounces_context && menu.frame().entries.size()==2,
+      "pause bounce choices did not cap depth at two");
+  choose(menu,1);
+  check(menu.pc_display_settings().path_tracing_samples==2 && menu.pc_display_settings().path_tracing_bounces==2 &&
+      menu.pc_display_settings().graphics_mode==pstencil::GraphicsMode::PathTracing &&
+      !painter.draw(menu,2,-1,2000).vertices.empty(),"pause RT quality did not apply or render");
+  menu.back();
+  choose(menu,0);
+  check(menu.pc_display_settings().graphics_mode==pstencil::GraphicsMode::Original && menu.frame().entries.size()==14 &&
+      menu.pc_display_settings().path_tracing_samples==2 && menu.pc_display_settings().path_tracing_bounces==2,
+      "pause Graphics Mode did not wrap to Original");
   menu.open_game_pause(false);choose(menu,1);choose(menu,3);choose(menu,9);choose(menu,50);
   check(menu.frame().screen==vista_menu(261) && menu.pc_display_settings().field_of_view==120 &&
       menu.pc_display_settings().vehicle_field_of_view==70,"pause on-foot FOV did not apply independently");
@@ -199,8 +228,15 @@ int main(int argc,char **argv) try {
   event={};event.type=SDL_KEYDOWN;event.key.keysym.sym=SDLK_ESCAPE;overlay.event(event);
   check(!overlay.visible(),"Queued dismissal input reopened pause before the release barrier");
   check(!overlay.captures_game_input(),"Released Resume input never returned to gameplay");
-  event={};event.type=SDL_CONTROLLERBUTTONDOWN;event.cbutton.button=SDL_CONTROLLER_BUTTON_START;
-  overlay.event(event);check(overlay.visible(),"Controller Start did not open pause");overlay.event(event);check(!overlay.visible(),"Controller Start did not resume");
+  event={};event.type=SDL_CONTROLLERBUTTONDOWN;event.cbutton.button=SDL_CONTROLLER_BUTTON_BACK;
+  check(!overlay.event(event)&&!overlay.visible(),"Controller Select/Back was captured by pause instead of the scoreboard");
+  event.cbutton.button=SDL_CONTROLLER_BUTTON_START;
+  overlay.event(event);check(overlay.visible(),"Controller Pause/Start did not open pause");
+  SDL_Event escape{};escape.type=SDL_KEYDOWN;escape.key.keysym.sym=SDLK_ESCAPE;
+  check(overlay.event(escape)&&!overlay.visible(),"Escape could not resume a controller-opened pause");
+  check(!overlay.captures_game_input(),"Controller-to-keyboard Resume retained released input");
+  overlay.event(event);check(overlay.visible(),"Controller Pause/Start did not reopen pause");
+  overlay.event(event);check(!overlay.visible(),"Controller Pause/Start did not resume");
   Mesh solo_mesh;GamePauseMenu solo(maps,assets,solo_mesh,true);
   event={};event.type=SDL_KEYDOWN;event.key.keysym.sym=SDLK_ESCAPE;
   solo.event(event);check(solo.pauses_game_time(),"Campaign pause did not freeze game time");

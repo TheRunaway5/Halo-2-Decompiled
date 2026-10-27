@@ -17,8 +17,7 @@ import sys
 from bundle import bundle, command, digest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from native_variant_assets import install as install_variants
-from controller_prompt_assets import install as install_controller_prompts
+from custom_assets import inventory as custom_asset_inventory, install as install_custom_assets
 
 
 def package(root, launcher, sdk, app, arches, libraries, licenses, engine=None, shaders=None, steam_sdk=None,
@@ -31,6 +30,7 @@ def package(root, launcher, sdk, app, arches, libraries, licenses, engine=None, 
         raise RuntimeError('Include an engine and its shader directory together')
     if bool(loading_converter) != bool(vorbis_sdk):
         raise RuntimeError('Include the loading converter and its owned Vorbis SDK together')
+    custom_inputs = custom_asset_inventory(root)
     manifest = json.loads((sdk / 'manifest.json').read_text())
     if manifest.get('schema') != 'H2_MACOS_PYTHON_RUNTIME_V1' or not set(arches) <= set(manifest['architectures']):
         raise RuntimeError('Python runtime does not provide the requested architectures')
@@ -44,7 +44,8 @@ def package(root, launcher, sdk, app, arches, libraries, licenses, engine=None, 
     macos, resources = contents / 'MacOS', contents / 'Resources'
     macos.mkdir(parents=True)
     resources.mkdir()
-    variants = install_variants(root, resources)
+    custom_assets = install_custom_assets(root, resources)
+    variants = custom_assets['groups']['native_variants']
     shutil.copy2(launcher, macos / 'Halo2-Launcher')
     (contents / 'Info.plist').write_bytes(plistlib.dumps(dict(
         CFBundleExecutable='Halo2-Launcher', CFBundleIdentifier='net.halo2forever.launcher',
@@ -65,13 +66,14 @@ def package(root, launcher, sdk, app, arches, libraries, licenses, engine=None, 
                 raise RuntimeError('Steam SDK input changed: ' + name)
         shutil.copytree(steam_sdk, resources / 'steam')
     tools = resources / 'tools'
-    tools.mkdir()
+    tools.mkdir(exist_ok=True)
     for source in (root / 'tools').glob('*.py'):
         if not source.is_symlink():
             shutil.copy2(source, tools / source.name)
     (tools / 'steam').mkdir()
     shutil.copy2(root / 'tools/steam/content-profile.json', tools / 'steam/content-profile.json')
-    shutil.copytree(root / 'tools/data', tools / 'data', ignore=shutil.ignore_patterns('__pycache__'))
+    shutil.copytree(root / 'tools/data', tools / 'data', dirs_exist_ok=True,
+                    ignore=shutil.ignore_patterns('__pycache__'))
     reference = tools / 'reference'
     reference.mkdir()
     for source in (root / 'tools/reference').glob('*.tsv'):
@@ -87,7 +89,6 @@ def package(root, launcher, sdk, app, arches, libraries, licenses, engine=None, 
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(root / 'resources' / name, destination)
     shutil.copytree(root / 'resources/licenses', resources / 'resources/licenses')
-    install_controller_prompts(root,resources)
     for name in ('LICENSE', 'LICENSE.md', 'LICENSE.txt', 'COPYING'):
         source = root / name
         if source.is_file():
@@ -108,6 +109,7 @@ def package(root, launcher, sdk, app, arches, libraries, licenses, engine=None, 
         steam_sdk_input_sha256=digest(steam_sdk / 'manifest.json') if steam_sdk is not None else None,
         loading_converter=loading,
         bundled_native_variants=variants,
+        bundled_custom_assets=custom_assets,
         engine_included=bool(engine), playable_engine_verified=False,
         installation_requirement='User-owned Halo MCC installation; import remains subject to existing admission checks',
         bundled_game_media=False), indent=2) + '\n')
@@ -115,6 +117,8 @@ def package(root, launcher, sdk, app, arches, libraries, licenses, engine=None, 
     if loading is not None:
         from package_loading_converter import write_manifest
         sealers = (lambda: write_manifest(resources, arches),)
+    if custom_asset_inventory(root) != custom_inputs:
+        raise RuntimeError('Bundled custom assets changed during packaging')
     bundle(app, arches, libraries, licenses, resource_sealers=sealers)
 
 

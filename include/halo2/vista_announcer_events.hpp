@@ -45,7 +45,8 @@ struct VistaAnnouncerAssets {
 // datum or guessed filename mapping is used. Explicit native audio constants
 // are passed through to the owned Cache for the separate host audio adapter.
 VistaAnnouncerAssets open_vista_announcer_assets(const std::filesystem::path& pc_maps,
-    const std::string& actual_scenario,std::shared_ptr<const OriginalData> native_audio_constants={});
+    const std::string& actual_scenario,std::shared_ptr<const OriginalData> native_audio_constants={},
+    std::optional<std::filesystem::path> selected_cache_path={});
 struct VistaAnnouncerRecent {
   std::uint32_t hash{};
   std::array<std::uint32_t,4> sounds{};

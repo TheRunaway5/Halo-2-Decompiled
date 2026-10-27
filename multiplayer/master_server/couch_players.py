@@ -30,6 +30,7 @@ class LocalPlayer:
     player: str
     screen_name: str
     guest: bool = False
+    appearance: bytes | None = None  # Exact current nine-byte local profile, session-only.
 
 
 def screen_name(value):
@@ -53,7 +54,10 @@ async def verify_local_players(directory, body, primary):
         return ("player", row[0]) if row else owner
     owners, result = {canonical(primary)}, []
     for row in rows:
-        fields(row, ("screen_name",), ("discord_token", "identity_token"))
+        fields(row, ("screen_name",), ("discord_token", "identity_token", "appearance"))
+        if "appearance" in row:
+            from .player_profile import appearance
+            appearance(row["appearance"])
         name = screen_name(row["screen_name"])
         owner, username = None, ""
         require(not ("discord_token" in row and "identity_token" in row), "Supply one identity proof per couch player")

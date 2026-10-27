@@ -34,6 +34,12 @@ struct NativeVehicleCamera::Prepared::Data {
 std::uint64_t NativeVehicleCamera::checkpoint_allocation(const Checkpoint &saved){
   return saved.data_?sizeof(Checkpoint::Data):0;
 }
+bool NativeVehicleCamera::same_checkpoint(const Checkpoint &a,const Checkpoint &b)noexcept {
+  if(!a.data_||!b.data_)return !a.data_&&!b.data_;
+  const auto &x=*a.data_,&y=*b.data_;
+  return x.binding==y.binding&&x.tick==y.tick&&x.views==y.views&&x.clusters.bsp==y.clusters.bsp&&
+      x.clusters.clusters==y.clusters.clusters&&x.random==y.random&&x.identities==y.identities;
+}
 NativeVehicleCamera::Checkpoint NativeVehicleCamera::rebind_checkpoint(const Checkpoint &saved,
     AuthorityBinding previous,AuthorityBinding next,std::span<const SourcePlayerAdmission> views){
   if(!saved.data_||saved.data_->binding!=previous||previous==next||views.empty()||views.size()>4||

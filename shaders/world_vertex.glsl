@@ -51,8 +51,13 @@ layout(set=0,binding=7,std140) uniform VertexBank {
 #define H2_SOURCE_VIEW_SHADER_CONSTANTS
 #define H2_SOURCE_VERTEX_DECLARATION
 #define H2_SOURCE_IMMEDIATE_COLOR11
+// Authored programs are supplied only by the AOT generator. The ordinary
+// wrapper is the fixed procedural/no-program kernel and contains no VM.
+#define H2_NATIVE_VERTEX_PROGRAM
 #include "vertex_program.glsl"
 #include "source_cpu_skin_outputs.glsl"
+#include "source_water_reflection_projection.glsl"
+#include "source_world_final_clip.glsl"
 void main() {
     gl_Position=camera.viewProjection*vec4(position,1);
     world=position;tint=color;uv=texcoord;lightmapUV=lightmapCoord;
@@ -80,21 +85,34 @@ void main() {
     forwardColor=clamp(material.diffuseColor*facing+material.specularColor*(1.0-facing),0.0,1.0);
     if(material.flags.z==11u)forwardColor=vec4(color,sourceColorAlpha);
     for(uint i=0u;i<4u;++i)stageCoordinates[i]=vec4(texcoord,0,1);
+#if !defined(H2_NATIVE_WORLD_VERTEX_KERNEL)
+#ifdef H2_NATIVE_VERTEX_PROGRAM
+    // The production wrapper is procedural-only; its source identity was
+    // admitted on the CPU. It never needs an Xbox instruction count.
+    if((material.sourceCameraControl.x&2u)!=0u && camera.eyePosition.w==3.0) {
+#else
+    // Only the offline generic reference distinguishes authored programs.
+    if(material.flags.w==0u && (material.sourceCameraControl.x&2u)!=0u && camera.eyePosition.w==3.0) {
+#endif
+        // Source3BCF0/12F80 owns the bank. This fixed native projection is
+        // generated from the complete authenticated stencil_texture program;
+        // it reads no program words or runtime opcode/declaration table.
+        runSourceWaterReflectionProjection();
+        gl_Position=sourceFinalWorldClip(vpOut[0],sourceEmblemWindow);
+    }
+#endif
+#ifdef H2_NATIVE_WORLD_VERTEX_KERNEL
     if(material.flags.w!=0u) {
         runVertexProgram();
         applySourceCPUSkinTextureCoordinates();
         // Authored oPos is already in target pixels after perspective divide.
         // NV2A keeps 1/16-pixel XY precision. Undo that viewport transform
         // for Vulkan, including the original c11 half-pixel position bias.
-        vec4 screen=vpOut[0];
-        screen.xy=trunc(screen.xy*16.0)/16.0;
-        screen.w=(screen.w<0.0?-1.0:1.0)*clamp(abs(screen.w),5.421010862427522e-20,1.8446744073709552e19);
-        sourceEmblemWindow=screen;
-        vec2 ndc=(screen.xy-camera.viewport.xy)*2.0/camera.viewport.zw-1.0;
-        gl_Position=vec4(ndc*screen.w,(screen.z/16777215.0)*screen.w,screen.w);
+        gl_Position=sourceFinalWorldClip(vpOut[0],sourceEmblemWindow);
         eyeDirection=clamp(vpOut[3],0.0,1.0);
         lightingDirection=clamp(vpOut[4],0.0,1.0);
         forwardColor=eyeDirection;
         for(uint i=0u;i<4u;++i)stageCoordinates[i]=vpOut[9u+i];
     }
+#endif
 }

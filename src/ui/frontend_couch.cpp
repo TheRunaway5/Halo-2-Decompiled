@@ -128,7 +128,7 @@ void MenuState::clear_online_couch() {
 std::vector<OnlineLocalPlayer> MenuState::online_local_players() const {
   std::vector<OnlineLocalPlayer> result;
   for(const auto &player:local_players())if(player.controller)
-    result.push_back({player.name,local_discord_logins_[player.controller]});
+    result.push_back({player.name,local_discord_logins_[player.controller],player.appearance});
   return result;
 }
 } // namespace halo2

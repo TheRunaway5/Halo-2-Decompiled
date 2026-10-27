@@ -69,7 +69,7 @@ int main(int argc,char **argv){try {
   SDL_SetMainReady();SDL_SetHint(SDL_HINT_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT,"0x0000/0x0000");
   MultiplayerOptions o;o.map=argv[1];o.shared_maps=argv[2];o.gameplay_xbe=argv[3];
   o.starting_weapon=5;o.width=640;o.height=480;
-  Host host(o);o.join="127.0.0.1:"+std::to_string(host.host.port());
+  Host host(o);o.join=host.host.join_address();
   o.desktop=std::make_shared<DesktopSession>();o.desktop->window(o.width,o.height,false);
   unsigned sounds{};bool replicated_removal{};
   o.input_observer=[&](unsigned tick,std::span<const Controls>,const MultiplayerState &s) {

@@ -201,7 +201,7 @@ NativeVistaPcr::NativeVistaPcr(const MultiplayerMatch& match,unsigned slot,
     if(n>=pc.vista_team_names.size() || pc.vista_team_names[n].empty())throw FormatError("Actual Vista team-name locale unavailable");
     return wide(pc.vista_team_names[n]);
   };
-  build.score=[](std::int32_t value){return native_vista_pcr_format(u"%d",std::span(&value,1));};
+  build.score=[type](std::int32_t value){return full_scoreboard_score_text(value,int(type));};
   build.placement=[&](std::int32_t value){return wide(detail::frontend_pc_compiled_localized(pc,pc.screens.at(16),native_vista_pcr_placement_key(value)));};
   build.live_identity=[&](unsigned index)->std::optional<VistaLocalUserIdentity> {
     const auto& actual=match.player(index);
@@ -227,15 +227,16 @@ void NativeVistaPcr::initialize_assets(const FrontendContent& pc) {
   assets_.rank_owner_present=pc.vista_pcr_rank_owner_present;assets_.rank_ranges=pc.vista_pcr_rank_ranges;
 }
 NativeVistaPcr::NativeVistaPcr(VistaPcrConsumedSnapshot source,std::vector<OnlineAdmission> roster,
-    const FrontendContent& content,VistaLoadingFloatingPoint fp)
-    :online_roster_(std::move(roster)),content_(content),source_(std::move(source)),results_(std::make_shared<VistaPcrResults>()) {
+    const FrontendContent& content,VistaLoadingFloatingPoint fp,
+    std::function<std::optional<std::uint16_t>()> current_presence)
+    :online_roster_(std::move(roster)),online_presence_(std::move(current_presence)),content_(content),source_(std::move(source)),results_(std::make_shared<VistaPcrResults>()) {
   const auto& pc=pc_content(content_,16);(void)pc_content(content_,185);services_.floating_point=fp;
   const bool team=source_.source[0x13]==std::byte{1};
   const auto type=word(source_.source,0x64);
   const bool objective=type==1 || type==9;
-  if(online_roster_.size()<2 || online_roster_.size()>16 ||
+  if(online_roster_.empty() || online_roster_.size()>16 ||
       source_.source[0x13]!=std::byte(team) || ((source_.source[0x68]&std::byte{1})!=std::byte(team)) ||
-      (type!=2 && !objective) || (objective && !team))
+      (type!=1 && type!=2 && type!=3 && type!=4 && type!=7 && type!=8 && type!=9) || (objective && !team))
     throw FormatError("ONLINE PCR requires its admitted original multiplayer roster");
   const auto order=vista_pcr_order(source_.source);
   if(order.player_count!=online_roster_.size())
@@ -243,13 +244,14 @@ NativeVistaPcr::NativeVistaPcr(VistaPcrConsumedSnapshot source,std::vector<Onlin
   unsigned team_mask{};
   for(unsigned i=0;i<16;++i) {
     const auto at=0x370+i*0x94;
-    if(i<online_roster_.size()) {
-      if(online_roster_[i].slot!=i || source_.source[at]!=std::byte{1} ||
-          !std::equal(online_roster_[i].identity.begin(),online_roster_[i].identity.end(),source_.source.begin()+at+2))
+    const auto admitted=std::ranges::find(online_roster_,i,&OnlineAdmission::slot);
+    if(admitted!=online_roster_.end()) {
+      if(admitted->slot!=i || source_.source[at]!=std::byte{1} ||
+          !std::equal(admitted->identity.begin(),admitted->identity.end(),source_.source.begin()+at+2))
         throw FormatError("ONLINE PCR identity differs from authenticated admission");
-      const auto expected=wide(online_roster_[i].name);
+      const auto expected=wide(admitted->name);
       if(team) {
-        const auto selected=online_roster_[i].team;
+        const auto selected=admitted->team;
         if(selected<0 || selected>7 || source_.source[at+0x88]!=std::byte(selected))
           throw FormatError("ONLINE PCR team differs from admission");
         team_mask|=1u<<selected;
@@ -271,13 +273,30 @@ NativeVistaPcr::NativeVistaPcr(VistaPcrConsumedSnapshot source,std::vector<Onlin
     if(name.empty())throw FormatError("Actual Vista team-name locale unavailable");
     return wide(name);
   };
-  build.score=[](std::int32_t n){return native_vista_pcr_format(u"%d",std::span(&n,1));};
+  // Original159130/PC470182 uses the shared source time formatter for
+  // Oddball3, King4 and Territories8; their score is not a decimal counter.
+  build.score=[type](std::int32_t n){return full_scoreboard_score_text(n,int(type));};
   build.placement=[&](std::int32_t n){return wide(detail::frontend_pc_compiled_localized(pc,pc.screens.at(16),native_vista_pcr_placement_key(n)));};
   // No retail Live achievement service exists for these native room keys.
   // The live-PC identity lookup is explicitly absent; display rows still use
   // the retained native keys through this adapter's appearance queries.
   build.live_identity=[](unsigned)->std::optional<VistaLocalUserIdentity>{return {};};
-  vista_pcr_build(*results_,source_.source,build);initialize_assets(pc);
+  vista_pcr_build(*results_,source_.source,build);
+  // OG232D77's19A0C5/196DA0 branch records the ranked hopper's actual
+  // admitted public level. PC40C8CE leaves this NONE; adapt only this bound
+  // native metadata, using TU1.5's already-proven0..49 range convention.
+  for(unsigned row=0;row<results_->player_count;++row) {
+    auto &display=results_->players[row];
+    const auto admitted=std::find_if(online_roster_.begin(),online_roster_.end(),[&](const auto &p){
+      return std::equal(p.identity.begin(),p.identity.end(),display.begin()+0x100);
+    });
+    if(admitted!=online_roster_.end() && admitted->matchmaking_level) {
+      const auto level=*admitted->matchmaking_level;
+      if(level<1 || level>50 || admitted->guest)throw FormatError("Invalid authenticated PCR hopper level");
+      for(unsigned i=0;i<4;++i)display[0x78+i]=std::byte((level-1)>>(8*i));
+    }
+  }
+  initialize_assets(pc);
 }
 VistaPcrRowServices NativeVistaPcr::rows(unsigned screen) {
   (void)pc_content(content_,screen);VistaPcrRowServices out;
@@ -292,6 +311,7 @@ VistaPcrRowServices NativeVistaPcr::rows(unsigned screen) {
 VistaPcrPlayerPresentation NativeVistaPcr::appearance(unsigned row,unsigned screen,unsigned pane) {
   if(pane==0 || pane>=6)throw FormatError("Native Vista PCR appearance requires an actual player pane");
   const auto& pc=pc_content(content_,screen);const auto& definition=pc.screens.at(screen).panes.at(pane);
+  if(!session_)appearance_presence_=online_presence_?online_presence_():std::nullopt;
   if(definition.lists.empty())throw FormatError("Actual Vista PCR pane has no row skin");
   const auto& outer=pc.skins.at(definition.lists.front().skin);
   if(outer.grids.empty())throw FormatError("Actual Vista PCR row has no appearance group");
@@ -316,17 +336,18 @@ void NativeVistaPcr::select_row(std::uint32_t row) {
   selected_row_=row;
 }
 bool NativeVistaPcr::identity_query(std::array<std::byte,8> id) {
-  if(!session_)return std::any_of(online_roster_.begin(),online_roster_.end(),[&](const auto &p){return p.identity==id;});
+  if(!session_)return appearance_presence_ && std::any_of(online_roster_.begin(),online_roster_.end(),[&](const auto &p){return p.identity==id && p.slot<16 && (*appearance_presence_&(1u<<p.slot));});
   const auto active=services_.lifecycle_active();
   // Source5AD782 does not consume lifecycle kind when disabled.
   return native_vista_pcr_identity_query(session_->bank(),active,active?services_.lifecycle_kind():0,id);
 }
 std::uint32_t NativeVistaPcr::primary_player_query(std::array<std::byte,8> id) {
-  if(!session_){for(const auto &p:online_roster_)if(p.identity==id)return p.slot;return 0xffffffffu;}
+  if(!session_){for(const auto &p:online_roster_)if(p.identity==id && appearance_presence_ && p.slot<16 && (*appearance_presence_&(1u<<p.slot)))return p.slot;return 0xffffffffu;}
   return native_vista_pcr_primary_player_query(session_->bank(),services_.lifecycle_active(),id);
 }
 bool NativeVistaPcr::player_query(std::uint32_t player) {
-  if(!session_)return player<online_roster_.size();
+  if(!session_)return player<16 && appearance_presence_ && (*appearance_presence_&(1u<<player)) &&
+      std::ranges::find(online_roster_,player,&OnlineAdmission::slot)!=online_roster_.end();
   return native_vista_pcr_player_query(session_->bank(),services_.lifecycle_active(),player);
 }
 } // namespace halo2

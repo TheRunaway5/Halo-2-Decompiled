@@ -1,4 +1,5 @@
 #include "halo2/renderer.hpp"
+#include "halo2/source_decal_pass.hpp"
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -39,15 +40,14 @@ int main(int argc,char** argv)try {
         const Texture blue{1,1,11,{std::byte{16},std::byte{32},std::byte{180},std::byte{255}}};
         const Texture white{1,1,11,{std::byte{255},std::byte{255},std::byte{255},std::byte{255}}};
         Material material;material.diffuse=red;material.animated_textures[0]={red,blue};
-        // Declared combiner isolation inputs: final D samples stage0 and
-        // final G is one. Animated updates belong to forward materials;
-        // explicit baked-lightmap admission exercises their alias descriptors.
+        // Use the complete source43A30 layer4 program with white color inputs
+        // and an opaque sprite. Its actual stage0 image then isolates animated
+        // descriptor ownership. Neutral test raster keeps aliases independent.
         material.forward_pass=true;material.forward_vertex=3;material.baked_lightmap_texture=true;
         material.forward_raster.depth_enable=0;material.forward_raster.depth_write=0;material.forward_raster.cull=0;
         material.forward_transforms[0]=material.forward_transforms[1]={1,1,0,0};
         material.forward_transforms[2]={1,1,1,1};
-        material.forward_program.words[8]=8;material.forward_program.words[9]=0x2000;
-        material.forward_program.words[54]=1;
+        material.forward_program=source_decal_pass(4).program;
         MaterialPass pass;pass.name="descriptor_animation_probe";
         pass.program=pass.definition=material.forward_program;
         material.forward_pass_index=0;material.passes.push_back(std::move(pass));

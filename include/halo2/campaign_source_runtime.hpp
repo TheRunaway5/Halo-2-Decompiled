@@ -2,6 +2,10 @@
 #include "halo2/multiplayer_object_runtime.hpp"
 #include "halo2/multiplayer.hpp"
 namespace halo2 {
+class PhysicsLiveWorldTu15;
+enum class CampaignRenderBspLifecycle { activation,checkpoint_restore };
+using CampaignRenderBspObserver=std::function<void(PhysicsLiveWorldTu15 &,std::size_t,
+    CampaignRenderBspLifecycle)>;
 // One source authority for campaign objects, weapons, targeting and physics.
 // Simulation retains script/presentation values and borrows this owner's pool.
 class CampaignSourceRuntime {
@@ -20,6 +24,11 @@ public:
   void set_team_allegiance(std::int16_t,std::int16_t,bool);
   void set_kill_volume_enabled(std::int16_t trigger,bool enabled);
   void switch_bsp(std::size_t);
+  // Local renderer binding only; never serialized/checkpointed. Activation
+  // follows genuine gameplay callbacks and precedes scenario factories.
+  // Restore is a distinct resource-rebind notification, NOT an implicit
+  // weather/RNG initializer or a replay of gameplay BSP callbacks.
+  void render_bsp_lifecycle(CampaignRenderBspObserver);
   void publish(Simulation &simulation){adopt(simulation);}
   std::optional<unsigned> random_choice(unsigned count,std::uint32_t visited);
   void deliver_controls(Simulation &,const Controls &);
@@ -61,6 +70,7 @@ private:
   std::unique_ptr<MultiplayerObjectRuntime> objects_;
   std::uint32_t player_=null_datum;
   std::map<std::pair<int,int>,std::uint32_t> placements_;
+  CampaignRenderBspObserver render_bsp_observer_;
   void adopt(Simulation &);
   void adopt_unit(Unit &,const LevelContent &,NativeObjectLifetimes &);
 };

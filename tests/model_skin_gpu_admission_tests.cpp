@@ -71,6 +71,8 @@ bool compare(std::span<const Vertex> vertices,std::span<const SkinBinding> bindi
     need(before.same(middle) && before.same(after),"Arithmetic predicate changed full SSE/x87/errno ownership");
     need(allocations.load(std::memory_order_relaxed)==count,"Arithmetic predicate allocated heap storage");
     need(now==old,"Row summary changed source-pinned arithmetic admission");
+    const auto summary=model_skin_gpu_admission_static(vertices,bindings);
+    need(model_skin_gpu_arithmetic_admitted(summary,palette)==old,"Static summary changed source-pinned arithmetic admission");
     ++comparisons;if(now)++accepted;else ++rejected;return now;
 }
 bool compare(const Fixture &fixture) {return compare(fixture.vertices,fixture.bindings,fixture.palette);}

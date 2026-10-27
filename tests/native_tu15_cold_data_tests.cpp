@@ -24,6 +24,49 @@ template<class Call>void rejects(Call call,const char* message) {
     try{call();}catch(const std::out_of_range&){rejected=true;}
     check(rejected,message);
 }
+void animation_mask_scratch(const SourceRuntimeMemory &cold) {
+    const auto saved=cold.checkpoint();const auto &bank=region(saved,0x56e060u);
+    check(bank.bytes.size()==32 && bank.access==SourceRuntimeMemory::Access::ReadWrite &&
+        bank.owner=="native TU1.5 animation node-mask intersection scratch" &&
+        !bank.page_bytes && bank.committed.empty() &&
+        std::ranges::all_of(bank.bytes,[](auto byte){return byte==std::byte{};}),
+        "Native animation mask scratch lost its authentic cold extent, access or owner");
+    cold.validate_mutable_view(0x56e060u,32);
+    rejects([&]{(void)cold.view(0x56e060u,33);},"Animation mask scratch borrowed its adjacent owner");
+    SourceRuntimeMemory live;live.restore(saved);const auto native=live.native_address(0x56e060u,32);
+    std::array<std::byte,32> mask{};
+    for(unsigned i=0;i<mask.size();++i)mask[i]=std::byte((i*37u+11u)&255u);
+    live.write(0x56e060u,mask);
+    check(live.native_address(0x56e060u,32)==native && live.source_address(native,32)==0x56e060u,
+        "Native mask scratch write replaced its actual source/native backing");
+    const auto written=live.checkpoint();
+    native_tu15_validate_type_runtime_restore(cold,written);
+    SourceRuntimeMemory restored;restored.restore(written);
+    check(restored.checkpoint()==written && std::ranges::equal(restored.view(0x56e060u,32),mask),
+        "Native mask scratch contents or ownership were lost during checkpoint recovery");
+    native_tu15_validate_type_runtime_restore(cold,saved);
+    const auto rejects_topology=[&](auto corrupt) {
+        auto incoming=written;corrupt(incoming);
+        bool rejected=false;
+        try{native_tu15_validate_type_runtime_restore(cold,incoming);}
+        catch(const FormatError&){rejected=true;}
+        check(rejected && cold.checkpoint()==saved,
+            "Native restore admitted or applied missing/foreign animation mask workspace");
+    };
+    rejects_topology([](auto& incoming){std::erase_if(incoming.regions,
+        [](const auto& bank){return bank.address==0x56e060u;});});
+    const auto alter_bank=[&](auto alter) {
+        rejects_topology([&](auto& incoming){alter(*std::ranges::find(incoming.regions,0x56e060u,
+            &SourceRuntimeMemory::CheckpointRegion::address));});
+    };
+    alter_bank([](auto& bank){bank.owner="foreign animation workspace";});
+    alter_bank([](auto& bank){bank.bytes.pop_back();});
+    alter_bank([](auto& bank){bank.bytes.push_back(std::byte{});});
+    alter_bank([](auto& bank){bank.access=SourceRuntimeMemory::Access::ReadOnly;});
+    alter_bank([](auto& bank){++bank.address;});
+    std::cout<<"PASS native animation mask workspace: exact cold32B RW owner, live native writes and "
+        "checkpoint recovery, missing/foreign/extent/access/address restore rejection\n";
+}
 void name_mapping_operands(const SourceRuntimeMemory& cold) {
     constexpr auto owner="native TU1.5 original name token and private glyph operands";
     // Full raw-byte fingerprints from the independently authenticated export,
@@ -173,6 +216,7 @@ int main()try {
         check(rejected,"Cold factory admitted an invalid retained platform dependency");
     }
     auto memory=native_tu15_world_memory(clock);
+    animation_mask_scratch(memory);
     name_mapping_operands(memory);
     saved_session_storage(memory);
     const auto checkpoint=memory.checkpoint();

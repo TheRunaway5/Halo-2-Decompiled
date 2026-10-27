@@ -22,10 +22,11 @@ struct PointCasterBank::Impl {
     using Key=std::tuple<MenuWorldSourceSectionKind,std::uint32_t,unsigned>;
     std::map<Key,Section> sections;
     Impl(const Cache& source,unsigned index):cache(source),bsp(index),geometry(cache.load_source_bsp_admission(bsp)) {
-        const auto shader=std::find_if(cache.tags().begin(),cache.tags().end(),[](const auto& tag){
-            return tag.group=="vrtx" && tag.name.ends_with("\\lightaccum_sphere_diffuse");
-        });
-        if(shader==cache.tags().end())throw FormatError("pStencil source position program is absent");
+        // MCC also retains the DX9 program with this leaf name. The raw
+        // source binding consumes the separately admitted original identity.
+        const auto shader=cache.query_tag({.group=tag_groups::vertex_shader,
+            .name="rasterizer\\vertex_shaders_xbox\\lightaccum_sphere_diffuse",.require_address=true});
+        if(!shader)throw FormatError("pStencil source position program is absent");
         position_shader=shader->datum;
         const auto owned=cache.load_source_tag_metadata(position_shader);
         position_classes=Bytes(owned.bytes_at(owned.source_address(),12)).u32(4);

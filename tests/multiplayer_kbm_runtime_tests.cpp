@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
     options.validation = std::getenv("HALO2_KBM_VALIDATION");
     if (const auto *capture = std::getenv("HALO2_KBM_CAPTURE")) {
       options.screenshot = capture;
-      options.capture_tick = 156;
+      options.capture_tick = 190;
     }
     options.desktop = std::make_shared<DesktopSession>();
     auto *window = options.desktop->window(options.width, options.height, false);
@@ -86,6 +86,13 @@ int main(int argc, char **argv) {
     focus(window_id, true);
     key(window_id, SDL_SCANCODE_W, true);
     check(SDL_SetRelativeMouseMode(SDL_TRUE) == 0, "Relative mouse capture failed");
+    const auto pad_direction=[&](Sint16 x,Sint16 y,bool jump) {
+      check(SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_LEFTX,x)==0 &&
+          SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_LEFTY,y)==0 &&
+          SDL_JoystickSetVirtualButton(joystick,SDL_CONTROLLER_BUTTON_A,jump)==0,
+          "Could not deliver virtual Xbox A plus movement");
+      SDL_GameControllerUpdate();
+    };
     std::vector<Sample> samples;
     options.input_observer = [&](std::uint32_t step, std::span<const Controls> controls,
                                  const MultiplayerState &state) {
@@ -125,7 +132,18 @@ int main(int argc, char **argv) {
         break;
       case 146: key(window_id, SDL_SCANCODE_W, false); mouse(window_id, false); break;
       case 150: key(window_id, SDL_SCANCODE_F1, true); key(window_id, SDL_SCANCODE_F1, false); break;
-      case 153:
+      case 153: key(window_id,SDL_SCANCODE_W,true);key(window_id,SDL_SCANCODE_SPACE,true);break;
+      case 156: key(window_id,SDL_SCANCODE_W,false);key(window_id,SDL_SCANCODE_S,true);break;
+      case 159: key(window_id,SDL_SCANCODE_S,false);key(window_id,SDL_SCANCODE_A,true);break;
+      case 162: key(window_id,SDL_SCANCODE_A,false);key(window_id,SDL_SCANCODE_D,true);break;
+      case 165: key(window_id,SDL_SCANCODE_D,false);key(window_id,SDL_SCANCODE_SPACE,false);break;
+      case 168: pad_direction(0,-32767,true);break;
+      case 171: pad_direction(0,32767,true);break;
+      case 174: pad_direction(-32767,0,true);break;
+      case 177: pad_direction(32767,0,true);break;
+      case 180: pad_direction(32767,0,false);break;
+      case 183: pad_direction(0,0,false);break;
+      case 187:
         if (options.screenshot.empty()) { SDL_Event quit{}; quit.type = SDL_QUIT; push(quit); }
         break;
       }
@@ -147,7 +165,7 @@ int main(int argc, char **argv) {
       }
       check(bool(trace), "Real input observation write failed");
     }
-    check(result == 0 && samples.size() >= 154, "Rendered runtime stopped before input verification");
+    check(result == 0 && samples.size() >= 188, "Rendered runtime stopped before input verification");
     const auto sample = [&](unsigned tick) -> const Sample & { return samples.at(tick); };
     check(sample(2).controls.forward == 1 && sample(7).controls.forward == -1 &&
           sample(12).controls.right == -1 && sample(17).controls.right == 1,
@@ -199,12 +217,33 @@ int main(int argc, char **argv) {
     for (unsigned tick = 148; tick < 154; ++tick)
       check(!sample(tick).controls.forward && !sample(tick).controls.fire,
             "Released gameplay input returned after pressing F1");
+    for(const unsigned begin:{154u,169u}) {
+      const std::array<std::array<float,2>,4> directions{{{1,0},{-1,0},{0,-1},{0,1}}};
+      for(unsigned direction=0;direction<directions.size();++direction)
+        for(unsigned held=0;held<3;++held) {
+          const auto &input=sample(begin+direction*3+held).controls;
+          check(input.jump && input.forward==directions[direction][0] && input.right==directions[direction][1],
+              "Rendered runtime lost Space/WASD or Xbox A/stick evasion direction");
+        }
+    }
+    for(unsigned tick=166;tick<169;++tick) {
+      const auto &input=sample(tick).controls;
+      check(!input.jump && !input.forward && !input.right,"Released keyboard evasion chord replayed in runtime");
+    }
+    for(unsigned tick=181;tick<184;++tick) {
+      const auto &input=sample(tick).controls;
+      check(!input.jump && input.right==1 && !input.forward,"Xbox A release also released movement or retained jump");
+    }
+    for(unsigned tick=184;tick<188;++tick) {
+      const auto &input=sample(tick).controls;
+      check(!input.jump && !input.forward && !input.right,"Released Xbox evasion chord replayed in runtime");
+    }
     SDL_GameControllerClose(controller); SDL_JoystickClose(joystick);
     check(SDL_JoystickDetachVirtual(device) == 0, "Virtual controller did not detach");
-    std::cout << "PASS: actual rendered multiplayer, 154+ observed simulation ticks, idle attached controller, "
+    std::cout << "PASS: actual rendered multiplayer, 188+ observed simulation ticks, idle attached controller, "
                  "WASD movement, Shift crouch, single Space/R taps, LMB ammunition, R reload, mouse look, focus reset, "
-                 "inert F1 and normal held-input release\n";
-    std::cout << "LIMIT: scope/switch/scoreboard/melee/grenade gameplay handlers are not validated by this probe\n";
+                 "inert F1, all four held Space/WASD and virtual Xbox A/stick directions, and normal held-input release\n";
+    std::cout << "LIMIT: Banshee maneuver movement and scope/switch/scoreboard/melee/grenade gameplay handlers are not validated by this probe\n";
   } catch (const std::exception &error) { std::cerr << error.what() << '\n'; return 1; }
 #endif
 }

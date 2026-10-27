@@ -1,4 +1,6 @@
 #include "halo2/source_effect_frame_tu15.hpp"
+#include <cstdlib>
+#include <iostream>
 #include "halo2/source_campaign_lens_restore_tu15.hpp"
 #include "halo2/physics_internal_phantom_observation.hpp"
 #include "halo2/multiplayer_object_runtime.hpp"
@@ -45,6 +47,8 @@
 #include <ifaddrs.h>
 #include <net/if.h>
 #include <netpacket/packet.h>
+#elif defined(_WIN32)
+#include "platform/windows_network_observation.hpp"
 #endif
 #if defined(__i386__) || defined(__x86_64__)
 #include <immintrin.h>
@@ -80,7 +84,9 @@ SourceRuntimeKernelTickCount native_tick_input() {
   return input;
 }
 SourceMachineIdentity native_machine_identity() {
-#if defined(__linux__)
+#if defined(_WIN32)
+  return windows_network::machine_identity();
+#elif defined(__linux__)
   ifaddrs *interfaces=nullptr;
   if(::getifaddrs(&interfaces)!=0)
     throw std::system_error(errno,std::generic_category(),"Native source machine interface enumeration");
@@ -883,12 +889,70 @@ ScriptValue MultiplayerObjectRuntime::script_device(const std::string &name,cons
   const auto result=invoke(power?0x10c240u:0x10c1f0u,std::array{value},object);
   return position?ScriptValue::numeric((result&255u)!=0u,5):ScriptValue{};
 }
+namespace {
+// 153BA0 gathers a unit's action candidates with BD080's sphere query before
+// 153F20 consults the CB3D0 seat selector per vehicle. Its vehicle pass uses
+// radius = unit bound radius (+3C) + [46A240] + [46A0E4] around the unit's
+// bounding center (+30); BD080 admits an object when
+// (radius + object radius)^2 >= dz^2 + dy^2 + dx^2, accumulated in that order
+// (comiss/jb: NaN also rejects). A vehicle outside that sphere is never a
+// candidate in the original. BD080's preceding cluster walk can only remove
+// objects, so this test admits a superset of the original candidates.
+bool seat_candidate_in_sphere(const SourcePhysicsContactMemory &m,std::uint32_t unit_body,std::uint32_t vehicle_body) {
+  const auto f=[&](std::uint32_t p){return std::bit_cast<float>(word(m,p));};
+  const float radius=(f(unit_body+0x3cu)+f(0x46a240u))+f(0x46a0e4u);
+  const float dz=f(vehicle_body+0x38u)-f(unit_body+0x38u);
+  const float dy=f(vehicle_body+0x34u)-f(unit_body+0x34u);
+  const float dx=f(vehicle_body+0x30u)-f(unit_body+0x30u);
+  const float distance=(dz*dz+dy*dy)+dx*dx;
+  const float reach=f(vehicle_body+0x3cu)+radius;
+  return reach*reach>=distance;
+}
+const bool reference_seat_candidates=[]{const auto *p=std::getenv("HALO2_REFERENCE_SEAT_CANDIDATES");return p && *p;}();
+const bool seat_candidate_oracle=[]{const auto *p=std::getenv("HALO2_SEAT_CANDIDATE_ORACLE");return p && *p;}();
+struct SeatCandidateOracle {
+  std::uint64_t calls=0,filtered=0,accepted=0,accepted_outside=0,in_query=0,query_outside=0,extra=0;
+  void report()const {
+    std::cerr<<"Seat candidate oracle: calls="<<calls<<" filtered="<<filtered<<" accepted="<<accepted<<
+      " accepted_outside_sphere="<<accepted_outside<<" bd080_members="<<in_query<<" bd080_outside_sphere="<<query_outside<<
+      " sphere_not_bd080="<<extra<<'\n';
+  }
+  ~SeatCandidateOracle(){if(calls)report();}
+};
+SeatCandidateOracle seat_oracle;
+}
 SourceVehicleSeatTarget MultiplayerObjectRuntime::vehicle_seat_target(std::uint32_t unit,std::uint32_t vehicle) {Continuation::PublicCall active(*continuation_);
   if(!tu15_)throw FormatError("Live vehicle seat query requires its TU1.5 owner");
   (void)object_body(unit);(void)object_body(vehicle);
+  const auto unit_body=source_object_body(unit),vehicle_body=source_object_body(vehicle);
+  const bool in_sphere=reference_seat_candidates || seat_candidate_in_sphere(memory(),unit_body,vehicle_body);
+  if(!in_sphere && !seat_candidate_oracle)return {};
   constexpr std::uint32_t selected=0x6004a000u,seat=selected+4u;
   const std::array arguments{unit,vehicle,selected,seat};
   const auto kind=tu15_->call_actual(0xcb3d0u,arguments)&0xffffu;
+  if(seat_candidate_oracle) {
+    // Original pass-1 query: BD080(NONE, mask, &unit.location(+28), &unit.center(+30), radius, results, 64).
+    auto& [calls,filtered,accepted,accepted_outside,in_query,query_outside,extra]=seat_oracle;
+    constexpr std::uint32_t results=0x6004a100u;
+    const auto f=[&](std::uint32_t p){return std::bit_cast<float>(word(memory(),p));};
+    const float radius=(f(unit_body+0x3cu)+f(0x46a240u))+f(0x46a0e4u);
+    const std::array query{0u,0xffffebcbu,unit_body+0x28u,unit_body+0x30u,std::bit_cast<std::uint32_t>(radius),results,64u};
+    const auto count=tu15_->call_actual(0xbd080u,query)&0xffffu;
+    bool found=false;
+    for(unsigned i=0;i<count && i<64u;++i)if(word(memory(),results+i*4u)==vehicle)found=true;
+    ++calls;if(!in_sphere)++filtered;if(kind)++accepted;if(kind && !in_sphere)++accepted_outside;
+    if(found)++in_query;if(found && !in_sphere)++query_outside;if(in_sphere && !found)++extra;
+    if((found && !in_sphere) || (kind && !in_sphere)) {
+      const float dz=f(vehicle_body+0x38u)-f(unit_body+0x38u),dy=f(vehicle_body+0x34u)-f(unit_body+0x34u),dx=f(vehicle_body+0x30u)-f(unit_body+0x30u);
+      const float reach=f(vehicle_body+0x3cu)+radius;
+      if(query_outside+accepted_outside<=4)std::cerr<<"Seat candidate outside sphere: unit="<<std::hex<<unit<<" vehicle="<<vehicle<<std::dec<<
+        " kind="<<kind<<" bd080="<<found<<" unit_center=("<<f(unit_body+0x30u)<<','<<f(unit_body+0x34u)<<','<<f(unit_body+0x38u)<<") r="<<f(unit_body+0x3cu)<<
+        " vehicle_center=("<<f(vehicle_body+0x30u)<<','<<f(vehicle_body+0x34u)<<','<<f(vehicle_body+0x38u)<<") r="<<f(vehicle_body+0x3cu)<<
+        " d="<<std::sqrt((dz*dz+dy*dy)+dx*dx)<<" reach="<<reach<<" constants=["<<f(0x46a240u)<<','<<f(0x46a0e4u)<<','<<f(0x45695cu)<<"]\n";
+    }
+    if(calls%2400==0)seat_oracle.report();
+    if(!in_sphere)return {};
+  }
   if(!kind)return {};
   if(kind>3u)throw FormatError("Original TU1.5 seat selector returned an invalid action kind");
   const auto object=word(memory(),selected);
@@ -1287,6 +1351,10 @@ void MultiplayerObjectRuntime::observe_physics_stores(SourcePhysicsStoreObserver
   if(!tu15_)throw FormatError("Physics store observation requires its TU1.5 live world");
   tu15_->observe_physics_stores(std::move(observer));
 }
+void MultiplayerObjectRuntime::observe_physics_stores_read_only(SourcePhysicsStoreObserverTu15 observer){Continuation::PublicCall active(*continuation_);
+  if(!tu15_)throw FormatError("Read-only physics store observation requires its TU1.5 live world");
+  tu15_->observe_physics_stores_read_only(std::move(observer));
+}
 void MultiplayerObjectRuntime::observe_phantom_phase(SourcePhantomPhaseObserverTu15 observer){Continuation::PublicCall active(*continuation_);
   if(!tu15_)throw FormatError("Phantom phase observation requires its TU1.5 live world");
   auto *memory=&tu15_->memory();
@@ -1298,6 +1366,10 @@ void MultiplayerObjectRuntime::observe_phantom_phase(SourcePhantomPhaseObserverT
 void MultiplayerObjectRuntime::observe_body_impulses(std::function<void(const SourceBodyImpulseTu15 &)> observer) {Continuation::PublicCall active(*continuation_);
   if(!tu15_)throw FormatError("Point-impulse observation requires the TU1.5 world");
   tu15_->observe_body_impulses(std::move(observer));
+}
+void MultiplayerObjectRuntime::publish_body_impulses(std::function<void(const SourceBodyImpulseTu15 &)> publisher) {Continuation::PublicCall active(*continuation_);
+  if(!tu15_)throw FormatError("Point-impulse publication requires the TU1.5 world");
+  tu15_->publish_body_impulses(std::move(publisher));
 }
 void MultiplayerObjectRuntime::observe_weapon_effect_phase(SourceFirstPersonPhaseObserverTu15 observer) {Continuation::PublicCall active(*continuation_);
   if(!tu15_)throw FormatError("Scheduled effect observation requires the TU1.5 source owner");
@@ -1400,6 +1472,10 @@ std::vector<Transform> MultiplayerObjectRuntime::world_nodes(std::uint32_t objec
     result[i]={scalar(p),{vector(p+4),vector(p+16),vector(p+28)},vector(p+40)};
   }
   return result;
+}
+std::vector<Transform> MultiplayerObjectRuntime::completed_body_world_nodes(std::uint32_t object) {
+  Continuation::PublicCall active(*continuation_,false);
+  return tu15_?tu15_->completed_body_world_nodes(object):impl_->world_nodes(object);
 }
 ShadowCasterSphere MultiplayerObjectRuntime::object_sphere(std::uint32_t object)const {Continuation::PublicCall active(*continuation_,false);
   if(!tu15_)return impl_->object_sphere(object);
@@ -1665,6 +1741,10 @@ bool MultiplayerObjectRuntime::PreparedAuthority::for_owner(const MultiplayerObj
 const SourceRuntimeMemory &MultiplayerObjectRuntime::PreparedAuthority::replacement_memory() const {
   if(!impl_)throw FormatError("Native object authority preparation has no replacement bank");
   return impl_->world->replacement_memory();
+}
+SourcePhysicsWorldRuntimeAbi MultiplayerObjectRuntime::PreparedAuthority::replacement_caller() const {
+  if(!impl_)throw FormatError("Native object authority preparation has no staged caller owner");
+  return impl_->world->replacement_caller();
 }
 MultiplayerObjectRuntime::PreparedAuthority MultiplayerObjectRuntime::prepare_authority(const AuthorityCheckpoint &saved) {
   PreparedAuthority prepared;prepared.impl_=std::make_unique<PreparedAuthority::Impl>(*this,saved);return prepared;

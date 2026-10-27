@@ -178,6 +178,7 @@ struct NativeWorldEffects::Impl {
     std::vector<Sprite> sprites;
     Texture texture;
   };
+  bool source_decal_cache{};
   std::map<std::uint32_t, DecalDefinition> decal_definitions;
   std::map<std::uint32_t, std::string> decal_boundaries;
   struct Decal {
@@ -401,7 +402,7 @@ struct NativeWorldEffects::Impl {
        native_light_supported(o.native_light_supported),
        light_queries(o.light_queries),light_selection(o.light_selection),
        source_light_queries(o.source_light_queries),source_light_selection(o.source_light_selection),
-       decal_definitions(o.decal_definitions),
+       source_decal_cache(o.source_decal_cache),decal_definitions(o.decal_definitions),
        decal_boundaries(o.decal_boundaries),decal_bank(o.decal_bank),definitions(o.definitions),effects(o.effects) {
     // Every raw link points into this owner's copied definition graph. A
     // checkpoint must survive destruction of its intermediate restored owner.
@@ -783,6 +784,7 @@ struct NativeWorldEffects::Impl {
   }
   void begin_parts(Effect &e, Event &event, std::uint64_t t) {
       for (const auto &part : event.definition->parts) {
+        if(source_decal_cache && part.decal!=none)continue;
         const auto markers=frames(e,part.location);
         for(const auto &marker:markers) {
         if(part.light!=none){
@@ -1150,6 +1152,10 @@ std::vector<WorldEffectLensRequest> NativeWorldEffects::replica_lenses()const {
     }
   }
   return out;
+}
+void NativeWorldEffects::source_decal_cache(bool authoritative) {
+  if(authoritative && !impl_->source_decal_cache)impl_->decal_bank.clear();
+  impl_->source_decal_cache=authoritative;
 }
 void NativeWorldEffects::impact(const BulletImpact &hit) {
   auto &i = *impl_;

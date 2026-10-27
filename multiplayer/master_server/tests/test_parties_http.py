@@ -1,4 +1,5 @@
 from dataclasses import replace
+import hashlib
 import json
 import unittest
 import uuid
@@ -23,7 +24,7 @@ class PartiesHttpTests(unittest.IsolatedAsyncioTestCase):
         return await response.json()
 
     async def command(self, headers, action, status=200, **kw):
-        if action in ("invite","invite_discord","invite_steam","invite_member","invite_clan","cancel","leave","remove","transfer","ready","unready") and "version" not in kw:
+        if action in ("invite","invite_discord","invite_steam","invite_member","invite_clan","cancel","leave","leave_lobby","remove","transfer","ready","unready","countdown_start","countdown_cancel","countdown_request") and "version" not in kw:
             kw["version"] = (await self.view(headers))["party"]["version"]
         body = dict(action=action,request_id=str(uuid.uuid4())) | kw
         response = await self.client.post("/v1/party/commands",headers=headers,json=body)
@@ -53,6 +54,118 @@ class PartiesHttpTests(unittest.IsolatedAsyncioTestCase):
         self.queue.entries = tuple(replace(e,policy=replace(e.policy,team_size=2,minimum_players=4,
                                   maximum_players=4,maximum_party=2)) for e in self.queue.entries)
         self.queue.core.playlists = {e.policy.id:e.policy for e in self.queue.entries}
+
+    async def test_shared_original_pregame_countdown_start_shorten_cancel_and_late_member(self):
+        self.team_policy()
+        await self.command(self.a,"create")
+        await self.join(self.a,self.b,"pilot_two")
+        for owner,account in (("one",self.a),("two",self.b)):
+            await self.queue_session(owner)
+            await self.command(account,"ready",playlist_id="ranked",revision="lab-1")
+        before=(await self.view(self.a))["party"]
+        now=[0.0];self.parties.clock=lambda:now[0]
+        async def countdown(headers):
+            response=await self.client.get("/v1/party/countdown",headers=headers)
+            self.assertEqual(response.status,200,await response.text())
+            return (await response.json())["countdown"]
+        async def start():
+            await self.command(self.a,"countdown_start",playlist_id="ranked",revision="lab-1")
+        self.assertEqual((await self.client.get("/v1/party/countdown")).status,401)
+        await self.command(self.b,"countdown_start",403,playlist_id="ranked",revision="lab-1")
+        await start()
+        initial=await countdown(self.a)
+        self.assertEqual(initial,await countdown(self.b))
+        self.assertEqual(initial["seconds"],10)
+        self.assertEqual((await self.view(self.a))["party"],before)
+        now[0]=.999;self.parties.advance_countdowns()
+        self.assertEqual((await countdown(self.b))["seconds"],10)
+        now[0]=1.0;self.parties.advance_countdowns()
+        self.assertEqual((await countdown(self.b))["seconds"],9)
+        now[0]=20.0;self.parties.advance_countdowns()
+        self.assertEqual((await countdown(self.b))["seconds"],8) # one source update, no catchup
+        await start()
+        self.assertEqual((await countdown(self.b))["seconds"],7)
+        for _ in range(8):
+            await start()
+        minimum=await countdown(self.a)
+        self.assertEqual(minimum["seconds"],3)
+        await start()
+        self.assertEqual(await countdown(self.a),minimum)
+        await self.command(self.b,"countdown_cancel",403)
+        await self.command(self.b,"countdown_request")
+        requested=await countdown(self.a)
+        self.assertEqual((requested["seconds"],requested["mode"]),(10,1))
+        stored=next(iter(self.parties.countdowns.values()))
+        self.assertIsNotNone(stored.requester)
+        now[0]+=1;self.parties.advance_countdowns()
+        self.assertEqual(((await countdown(self.a))["seconds"],stored.mode,stored.requester),(9,0,None))
+        await self.command(self.a,"countdown_cancel")
+        self.assertIsNone(await countdown(self.b))
+        await start()
+        for _ in range(5):
+            now[0]+=1;self.parties.advance_countdowns()
+        late=await countdown(self.b)
+        self.assertEqual(late,await countdown(self.a))
+        self.assertEqual(late["seconds"],5)
+        for _ in range(5):
+            now[0]+=1;self.parties.advance_countdowns()
+        zero=await countdown(self.a)
+        self.assertEqual((zero["seconds"],zero["complete"]),(0,True))
+        await start()
+        self.assertEqual(await countdown(self.b),zero) # state10 at zero cannot restart itself
+        leader=self.directory.store.db.execute("SELECT leader FROM parties WHERE id=?",(next(iter(self.parties.countdowns)),)).fetchone()[0]
+        self.parties.queue_members(leader,self.queue.core.playlists["ranked"])
+        consumed=await countdown(self.b)
+        self.assertEqual((consumed["seconds"],consumed["complete"],consumed["serial"]),(None,True,zero["serial"]))
+        self.assertEqual((await self.view(self.b))["party"]["version"],before["version"])
+        self.assertTrue(all(m["ready_playlist"]=="ranked" for m in (await self.view(self.b))["party"]["members"]))
+
+    async def test_original_lobby_confirm_leaves_accepted_party_and_invalidates_countdown(self):
+        self.team_policy()
+        await self.command(self.a,"create")
+        await self.join(self.a,self.b,"pilot_two")
+        for owner,account in (("one",self.a),("two",self.b)):
+            await self.queue_session(owner)
+            await self.command(account,"ready",playlist_id="ranked",revision="lab-1")
+        await self.command(self.a,"countdown_start",playlist_id="ranked",revision="lab-1")
+        version=(await self.view(self.a))["party"]["version"]
+        await self.command(self.b,"leave_lobby")
+        self.assertIsNone((await self.view(self.b))["party"])
+        remaining=(await self.view(self.a))["party"]
+        self.assertEqual(len(remaining["members"]),1)
+        self.assertGreater(remaining["version"],version)
+        self.assertEqual(remaining["members"][0]["ready_playlist"],"")
+        self.assertFalse(self.parties.countdowns)
+        self.assertFalse(self.queue.core.tickets)
+        # Rejoin is a fresh accepted membership and requires fresh consent.
+        await self.join(self.a,self.b,"pilot_two")
+        await self.command(self.a,"countdown_start",409,playlist_id="ranked",revision="lab-1")
+        # 251345's two-member leader confirm kicks its sole remote first.
+        await self.command(self.a,"leave_lobby")
+        self.assertIsNone((await self.view(self.a))["party"])
+        self.assertIsNone((await self.view(self.b))["party"])
+
+    async def test_verified_lease_renewal_preserves_party_consent_and_live_ticket(self):
+        self.team_policy()
+        await self.command(self.a, "create")
+        await self.join(self.a, self.b, "pilot_two")
+        headers = [await self.queue_session(owner) for owner in ("one", "two")]
+        for account in (self.a, self.b):
+            await self.command(account, "ready", playlist_id="ranked", revision="lab-1")
+        await self.enqueue(headers[0])
+        before = (await self.view(self.a))["party"]
+        old_token = headers[0]["Authorization"][7:]
+        session = self.queue.sessions[hashlib.sha256(old_token.encode()).hexdigest()]
+        session.expires = self.queue.clock() + 1
+        ticket = self.queue.ticket(session.player)
+        response = await self.client.post("/v1/matchmaking/session", headers={"Authorization": "Bearer one"},
+            json=dict(screen_name="Same Pilot", maps=["lockout"], compatibility="test-v1", renew_session=old_token))
+        self.assertEqual(response.status, 201, await response.text())
+        self.assertEqual((await response.json())["token"], old_token)
+        self.assertIs(self.queue.ticket(session.player), ticket)
+        self.assertIn(session, self.queue.sessions.values())
+        self.assertGreater(session.expires, self.queue.clock() + 899)
+        self.assertEqual((await self.view(self.a))["party"], before)
 
     async def test_identity_invite_accept_decline_block_cancel_and_privacy(self):
         self.assertEqual((await self.client.get("/v1/party")).status,401)
@@ -113,6 +226,49 @@ class PartiesHttpTests(unittest.IsolatedAsyncioTestCase):
         legacy = (await self.view(self.a))["party"]["members"]
         self.assertTrue(all("appearance" not in m for m in legacy))
         self.assertEqual((await self.client.get("/v1/party?appearance=1")).status, 401)
+
+    async def test_postgame_presence_is_opt_in_and_follows_report_peers(self):
+        await self.command(self.a, "create")
+        await self.join(self.a, self.b, "pilot_two")
+        leader = self.directory.store.db.execute("SELECT leader FROM parties").fetchone()[0]
+
+        class Socket:
+            closed = False
+
+        class Peer:
+            challenge, sent = None, 0.0
+
+            def __init__(self):
+                self.socket = Socket()
+
+        class Room:
+            closed, phase, deadline, guests = False, "postgame", float("inf"), ()
+
+            def __init__(self, peers):
+                self.peers, self.owners = peers, {who: who for who in peers}
+
+        class Transport:
+            rooms = {}
+
+        transport = Transport()
+        transport.rooms = {"room": Room({leader: Peer()})}
+        self.directory.match_transport = transport
+
+        async def flags():
+            response = await self.client.get("/v1/party?postgame=1", headers=self.b)
+            self.assertEqual(response.status, 200, await response.text())
+            return {m["leader"]: m["postgame"] for m in (await response.json())["party"]["members"]}
+
+        # The leader is still on the carnage report; the member is not.
+        self.assertEqual(await flags(), {True: True, False: False})
+        # Older clients and command responses keep the exact legacy fields.
+        self.assertTrue(all("postgame" not in m for m in (await self.view(self.b))["party"]["members"]))
+        # Leaving the report (Done closes the room connection) clears it.
+        transport.rooms["room"].peers[leader].socket.closed = True
+        self.assertEqual(await flags(), {True: False, False: False})
+        transport.rooms["room"].peers[leader].socket.closed = False
+        transport.rooms["room"].phase = "running"
+        self.assertEqual(await flags(), {True: False, False: False})
 
     async def test_sdk_subject_invite_survives_recycled_username_and_preserves_privacy(self):
         db=self.directory.store.db

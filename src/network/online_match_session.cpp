@@ -45,10 +45,11 @@ std::string digest(std::span<const std::byte> bytes) {
   for(auto n:hash){result+=digits[n>>4];result+=digits[n&15];}return result;
 }
 std::uint64_t transfer_time(){return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now().time_since_epoch()).count();}
-AuthorityTransferLimits source_transfer_limits(bool snapshot_candidates=false,bool survivor_selection=false){
+AuthorityTransferLimits source_transfer_limits(bool snapshot_candidates=false,bool survivor_selection=false,bool terminal=false){
   AuthorityTransferLimits limits;limits.features=authority_feature_source_replay|authority_feature_source_state|authority_feature_source_camera|authority_feature_source_lens_query|authority_feature_source_lens_draw|authority_feature_source_particle_collision|authority_feature_source_projectile_contacts|authority_feature_source_pipeline|authority_feature_source_host_continuation|authority_feature_source_common_cut;
   if(snapshot_candidates)limits.features|=authority_feature_source_snapshot_candidate;
   if(survivor_selection)limits.features|=authority_feature_survivor_selection;
+  if(terminal){limits.features&=~authority_feature_source_common_cut;limits.features|=authority_feature_source_admitted_camera;}
   return limits;
 }
 online_protocol_bridge::MigrationPreparationCut preparation_cut(const AuthorityCutSeal &cut){
@@ -67,6 +68,8 @@ struct OnlineMatchSession::Impl {
   std::optional<std::uint64_t> native_fingerprint;
   std::string completion, confirmation;
   std::vector<std::byte> report;
+  std::optional<bool> result_recorded;
+  std::optional<TerminalObservation> terminal;
   std::deque<Frame> incoming, outgoing;
   std::deque<std::string> continuation_outgoing;
   std::deque<OnlineWorldSeal> seals;
@@ -98,6 +101,8 @@ struct OnlineMatchSession::Impl {
   std::array<std::uint16_t,16> voice_mutes{};
   std::array<unsigned,16> voice_sequences{};
   std::uint16_t voice_members{};
+  bool postgame_presence_observed{};
+  bool postgame_presence_closed{};
   std::uint16_t voice_blocked{};
   Clock::time_point voice_preferences_at{};
   std::array<double,16> voice_credits{10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10};
@@ -116,6 +121,8 @@ struct OnlineMatchSession::Impl {
     require(!transport_options.peer_host_migration || (transport_options.direct_udp&&!supports_continuity));
     require(!transport_options.snapshot_candidates || (transport_options.direct_udp&&transport_options.peer_host_migration));
     require(!transport_options.survivor_cut_selection || transport_options.peer_host_migration);
+    require(!transport_options.terminal_recovery || (transport_options.direct_udp&&!supports_continuity&&
+        !transport_options.peer_host_migration&&!transport_options.snapshot_candidates&&!transport_options.survivor_cut_selection));
     agreement_history.reserve(15); // Each committed generation removes one of at most sixteen PCs.
     require(online_admission_peer(roster[self])==self && !roster[self].guest);
     for(unsigned i=0;i<roster.size();++i) {
@@ -137,7 +144,8 @@ struct OnlineMatchSession::Impl {
     require(origin.starts_with("https://") || (local && origin.starts_with("http://127.0.0.1:")));
     require(origin.find_first_of("@?#\\\r\n\t ") == std::string::npos);
     const auto scheme = origin.find(':');
-    const auto url = std::string(origin.starts_with("https:") ? "wss" : "ws") + origin.substr(scheme) + "/v1/matches/" + room + (transport_options.direct_udp?"/signal":"/relay");
+    const auto url = std::string(origin.starts_with("https:") ? "wss" : "ws") + origin.substr(scheme) + "/v1/matches/" + room + (transport_options.direct_udp?"/signal":"/relay") +
+        (transport_options.peer_host_migration?"?completion=1&native_handoff=1":"?completion=1");
     const auto room_api=origin+"/v1/matches/"+room;
     worker = std::jthread([this, url, room_api, bearer](std::stop_token stop) { run(url, room_api, bearer, stop); });
   }
@@ -270,6 +278,10 @@ struct OnlineMatchSession::Impl {
     require(name=="connecting" || name=="loading" || name=="running" ||
         (supports_continuity && (name=="awaiting_world" || name=="migrating" || name=="rebinding")));
     std::lock_guard lock(mutex);
+    // A direct/native terminal failure retires this Session. A delayed master
+    // phase publication cannot revive its stopped peer worker or relabel the
+    // retained source retirement observation as a live generation.
+    if(phase==Phase::Failed)return;
     // After initial admission this direct mode obtains host/epoch/membership
     // only from its local peer agreement, including across master reconnects.
     if(transport_options.peer_host_migration&&peer_started)return;
@@ -313,9 +325,9 @@ struct OnlineMatchSession::Impl {
     if(transport_options.direct_udp&&!authority&&(phase==Phase::Loading||phase==Phase::Running)&&host<16){
       std::uint16_t physical=0;for(const auto &player:roster)if(online_admission_peer(player)==player.slot)physical|=std::uint16_t(1u<<player.slot);
       const AuthorityTransferContext context{authority_session,continuity_state.epoch,0,physical,host};
-      authority=std::make_shared<PeerAuthorityTransfer>(self,context,source_transfer_limits(transport_options.snapshot_candidates,transport_options.survivor_cut_selection));
+      authority=std::make_shared<PeerAuthorityTransfer>(self,context,source_transfer_limits(transport_options.snapshot_candidates,transport_options.survivor_cut_selection,transport_options.terminal_recovery));
       source_admissions=std::make_shared<PeerSourceAdmissions>(self,context,roster);
-      if(std::popcount(physical)>1)common_cut=std::make_shared<PeerCommonCutAgreement>(self,context);
+      if(std::popcount(physical)>1&&!transport_options.terminal_recovery)common_cut=std::make_shared<PeerCommonCutAgreement>(self,context);
       if(transport_options.snapshot_candidates&&std::popcount(physical)>1)
         snapshot_candidate=std::make_shared<PeerSnapshotCandidate>(self,context);
       if(transport_options.peer_host_migration&&std::popcount(physical)>1){agreement_context=context;
@@ -609,8 +621,22 @@ struct OnlineMatchSession::Impl {
           }
           fence_peer_generation();
           if(phase==Phase::Failed)return;
-          if(!(transport_options.peer_host_migration&&peer_started)&&host<roster.size()&&self!=host&&phase!=Phase::Postgame&&phase!=Phase::Reviewing&&direct->failed(host))
-            throw std::runtime_error("Direct player connection was lost. Search again.");
+          if(!(transport_options.peer_host_migration&&peer_started)&&host<roster.size()&&self!=host&&phase!=Phase::Postgame&&phase!=Phase::Reviewing&&direct->failed(host)) {
+            bool observing_survivors=false;
+            if(transport_options.terminal_recovery&&phase==Phase::Running&&authority&&source_admissions&&source_admissions->accepted()) {
+              const auto context=authority->context();std::uint16_t retired{};
+              for(unsigned peer=0;peer<16;++peer)if(peer!=self&&(context.peers&(1u<<peer))&&direct->failed(peer))retired|=std::uint16_t(1u<<peer);
+              if(context.host==host&&context.peers==std::uint16_t(retired|(1u<<self)))
+                terminal=TerminalObservation(context,self,retired);
+              else if(context.host==host)observing_survivors=true;
+            }
+            // A host callback can precede other genuine close/failure
+            // callbacks in the same mass departure. Keep observing the live
+            // transport until all are retired or the existing native client
+            // liveness timeout returns. No new grace clock or host is created.
+            if(observing_survivors)error="Player host was lost; observing the remaining direct connections.";
+            else throw std::runtime_error("Direct player connection was lost. Search again.");
+          }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
       }
@@ -642,8 +668,12 @@ struct OnlineMatchSession::Impl {
         try {run_control(url,bearer,stop,direct.get());}
         catch(const TerminalMatchError &){
           std::lock_guard lock(mutex);
-          if(!transport_options.peer_host_migration||!peer_started||phase==Phase::Failed)throw;
-          error="Master admission ended; direct peers retain authority until the native handoff completes.";
+          if(transport_options.terminal_recovery&&direct&&phase==Phase::Running) {
+            error="Match admission ended; waiting for actual direct-peer status.";
+          } else {
+            if(!transport_options.peer_host_migration||!peer_started||phase==Phase::Failed)throw;
+            error="Master admission ended; direct peers retain authority until the native handoff completes.";
+          }
         }
         catch(const std::exception &) {
           // Once admitted, gameplay/audio do not depend on the master socket.
@@ -762,10 +792,13 @@ struct OnlineMatchSession::Impl {
               for(const auto &p:roster)require(bool(members&(1u<<p.slot))==bool(members&(1u<<online_admission_peer(p))));
               if(host!=leader||voice_members!=members)fence_audio();
               host=leader;voice_members=std::uint16_t(members);
+              postgame_presence_observed=true;
               for(unsigned slot=0;slot<16;++slot)if(!(members&(1u<<slot)))voice_enabled[slot]=false;
             } else if(data.contains("completed")) {
-              require(data.size()==1 && data["completed"].is_string());
+              require(data.size()==1+unsigned(data.contains("recorded")) && data["completed"].is_string());
+              if(data.contains("recorded"))require(data["recorded"].is_boolean());
               std::lock_guard lock(mutex);require(phase==Phase::Reviewing && !confirmation.empty() && data["completed"].get<std::string>()==digest(report));
+              result_recorded=data.contains("recorded")?std::optional(data["recorded"].get<bool>()):std::nullopt;
               phase=Phase::Postgame;
             } else if (data.contains("ping")) {
               require(data.size() == 1 && data["ping"].is_string() && data["ping"].get<std::string>().size() == 16);
@@ -829,6 +862,16 @@ OnlineMatchSession::~OnlineMatchSession() {
   if(impl_->audio)impl_->audio->enable(false);
 }
 OnlineMatchSession::Phase OnlineMatchSession::phase() const { std::lock_guard lock(impl_->mutex); return impl_->phase; }
+std::optional<bool> OnlineMatchSession::result_recorded() const { std::lock_guard lock(impl_->mutex);return impl_->result_recorded; }
+std::optional<std::uint16_t> OnlineMatchSession::postgame_presence() const {
+  std::lock_guard lock(impl_->mutex);
+  return !impl_->postgame_presence_closed&&impl_->postgame_presence_observed&&(impl_->phase==Phase::Reviewing||impl_->phase==Phase::Postgame)?
+      std::optional(impl_->voice_members):std::nullopt;
+}
+bool OnlineMatchSession::terminal_recovery_enabled() const{return impl_->transport_options.terminal_recovery;}
+std::optional<OnlineMatchSession::TerminalObservation> OnlineMatchSession::terminal_observation() const {
+  std::lock_guard lock(impl_->mutex);return impl_->terminal;
+}
 unsigned OnlineMatchSession::self() const { return impl_->self; }
 bool OnlineMatchSession::direct_udp() const {return impl_->transport_options.direct_udp;}
 std::uint64_t OnlineMatchSession::rejected_direct_dispatches()const noexcept {
@@ -884,6 +927,12 @@ bool OnlineMatchSession::authority_host_continuation_supported(unsigned peer)con
   std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
   return peer<16&&(impl_->direct_ready.load(std::memory_order_relaxed)&(1u<<peer))&&transfer&&
       transfer->feature_supported(peer,authority_feature_source_host_continuation);
+}
+bool OnlineMatchSession::authority_admitted_camera_supported(unsigned peer)const{
+  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  return impl_->transport_options.terminal_recovery&&peer<16&&
+      (impl_->direct_ready.load(std::memory_order_relaxed)&(1u<<peer))&&transfer&&
+      transfer->feature_supported(peer,authority_feature_source_admitted_camera);
 }
 std::vector<PeerHostQuality> OnlineMatchSession::host_candidates()const {
   std::shared_ptr<PeerMeshQuality> quality;unsigned host;Phase phase;
@@ -1296,6 +1345,7 @@ void OnlineMatchSession::pump_postgame_voice() {
   for(auto &frame:audio->outgoing()){frame.source=local;if(hosting)route(std::move(frame));else voice(leader,frame);}
 }
 void OnlineMatchSession::close_postgame() {
+  {std::lock_guard lock(impl_->mutex);impl_->postgame_presence_closed=true;impl_->postgame_presence_observed=false;}
   if(const auto audio=retained_voice())audio->close();
   impl_->worker.request_stop();if(impl_->worker.joinable())impl_->worker.join();
 }

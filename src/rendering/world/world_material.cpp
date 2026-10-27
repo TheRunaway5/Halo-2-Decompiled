@@ -2,6 +2,7 @@
 #include "halo2/source_shader_texture.hpp"
 #include "halo2/source_vertex_extern.hpp"
 #include "halo2/source_shader_state.hpp"
+#include "halo2/source_texture_camera_tu15.hpp"
 #include "halo2/water.hpp"
 #include "halo2/texture.hpp"
 #include "halo2/appearance.hpp"
@@ -69,7 +70,8 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
                                   const EffectLightDefinition *projected_definition=nullptr,
                                   bool load_images=true,
                                   bool hologram_copy=false,
-                                  const Material *camouflage_original=nullptr) {
+                                  const Material *camouflage_original=nullptr,
+                                  bool texture_camera_default=false) {
   const auto &p = m.passes.at(selected);
   // No unresolved uniform is silently substituted. Pixel brightness externs
   // 21/22 were resolved from the shader by Cache::load_material (1BBF0).
@@ -163,6 +165,12 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
       *stages[binding.stage]=cache.load_scope_default_bitmap();
       continue;
     }
+    if(texture_camera_default && binding.external==18 && binding.stage==0) {
+      // Actual19510/198B8: source texture-camera view or no selected18/20
+      // target binds matg rasterizer+64, frame0. The typed caller established
+      // that branch after the independent target lifecycle completed.
+      *stages[binding.stage]=cache.load_scope_default_bitmap();continue;
+    }
     if(shadow_opacity && binding.external==8 && binding.stage==0)continue;
     //19530's extern17 is target19. Its typed layer21 caller retains this
     // dependency separately and must bind an actual produced scene copy.
@@ -255,6 +263,7 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
     else if(source==0x8001 && destination==0x303 && blend_color==0x00ffffff && p.state_externs.empty())
       pass->forward_blend=5;
     else if (source == 0x302 && destination == 0x303) pass->forward_blend = 1;
+    else if (source == 0x302 && destination == 1) pass->forward_blend = source_alpha_add_blend;
     else if (source == 0x306 && destination == 0x300) pass->forward_blend = 6;
     else if (source == 0x305 && destination == 0x304) pass->forward_blend = 7;
     else if (source == 0x304 && destination == 1) pass->forward_blend = 8;
@@ -734,7 +743,10 @@ static bool prepare_world_lighting(const Cache &cache, Material &material, unsig
     // It still needs its original additive/color/depth raster state.
     if (emissives.size() == 1) result = bind_pass(cache, material, emissives[0], 2, false);
     else if (overlays.size() == 1) result = bind_pass(cache, material, overlays[0], 3, false);
-    else if(late.size()==1)
+    // TU1.5 40F50 visits the complete authored layer15 range. A standalone
+    // transparent material can start with multiple passes (Cairo's hangar
+    // breach glass); append_late_passes retains every remaining ordinal.
+    else if(!late.empty())
       result=bind_late_pass(cache,material,late[0],object_lighting,volume_textures,camouflage);
     else return false;
     if (!result) return false;
@@ -809,6 +821,34 @@ static bool prepare_world_lighting(const Cache &cache, Material &material, unsig
 }
 bool prepare_world_material(const Cache &cache, Material &material, bool per_vertex) {
   return prepare_world_lighting(cache, material, per_vertex ? 1u : 0u);
+}
+namespace {
+bool prepare_texture_camera_pass(const Cache &cache,Material &material,unsigned implementation) {
+  if(implementation>3)return false;
+  const auto selected=layer_passes(material,3,implementation);
+  if(selected.size()!=1)return false;
+  const auto &pass=material.passes[selected[0]];
+  if(pass.name!="shaders\\shader_passes\\texture_camera\\texture_camera" ||
+     !pass.vertex_shader.ends_with("\\stencil_texture") || !pass.vertex_externs.empty() ||
+     !pass.pixel_externs.empty() || !pass.state_externs.empty() || pass.textures.size()!=1)return false;
+  const auto texture=pass.textures[0];
+  if(texture.parameter!=255 || texture.external!=18 || texture.stage!=0 || texture.flags!=0)return false;
+  auto prepared=bind_pass(cache,material,selected[0],3,false,nullptr,false,nullptr,nullptr,
+      nullptr,nullptr,true,false,nullptr,true);
+  if(!prepared)return false;
+  for(const auto &gap:material.rendering_gaps)
+    if(gap!="material uses an unsupported rendering pass")prepared->rendering_gaps.push_back(gap);
+  material=std::move(*prepared);return true;
+}
+}
+bool prepare_texture_camera_default_material(const Cache &cache,Material &material,
+    const SourceTextureCameraBindingTu15 &binding,unsigned implementation) {
+  if(binding.texture()!=SourceTextureCameraTextureTu15::default2d)return false;
+  return prepare_texture_camera_pass(cache,material,implementation);
+}
+bool prepare_texture_camera_material(const Cache &cache,Material &material,unsigned implementation) {
+  if(!prepare_texture_camera_pass(cache,material,implementation))return false;
+  material.texture_camera_texture=true;return true;
 }
 bool prepare_authored_lighting_material(const Cache &cache, Material &material) {
   if (layer_passes(material, 3, 3).empty()) return false;

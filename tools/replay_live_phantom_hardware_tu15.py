@@ -6,8 +6,11 @@ original RET. A ptrace observer changes EIP at that completed return boundary;
 default replay replaces no original instruction or callee. Explicit MCC modes
 link authenticated StringID operands and captured read-only bitmap input views.
 An optional clock bridge delivers only actual recorded operating-system UTC
-inputs. Every mode compares all captured final bytes and CPU/FP state; no
-damage, collision, RNG, allocation/admission or solver result is provided.
+inputs. Ordinary ABI mode compares all captured final bytes and CPU/FP state.
+The explicit native void-frame contract compares persistent bytes and complete
+FP/live x87 outputs; callee stack temporaries and unreturned volatile registers
+are outside that API. No damage, collision, RNG, allocation/admission or solver
+result is provided.
 """
 import argparse,hashlib,json,struct,subprocess
 from pathlib import Path
@@ -140,15 +143,22 @@ def reference_text_gaps(image,capture,regions,output,section_name='.text',span=N
 
 
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--return-breakpoints',action='store_true');p.add_argument('--component-inputs',action='store_true');p.add_argument('--mcc-symbol-reference',action='store_true',help='Explicit authenticated StringID operand linking for MCC input namespaces');p.add_argument('--mcc-input-views',action='store_true',help='Validate and expose actual read-only CPU bitmap input views from the BEFORE image');p.add_argument('--recorded-platform-time',action='store_true',help='Link the original clock import to its actual captured external UTC inputs');p.add_argument('--capture',required=True,type=Path);p.add_argument('--output',required=True,type=Path);a=p.parse_args()
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--native-frame-semantics',action='store_true',help='Compare the explicit void native1CC8D0 contract: persistent bytes and complete FP/empty live x87 return, without inventing a volatile register postimage');p.add_argument('--return-breakpoints',action='store_true');p.add_argument('--component-inputs',action='store_true');p.add_argument('--mcc-symbol-reference',action='store_true',help='Explicit authenticated StringID operand linking for MCC input namespaces');p.add_argument('--mcc-input-views',action='store_true',help='Validate and expose actual read-only CPU bitmap input views from the BEFORE image');p.add_argument('--recorded-platform-time',action='store_true',help='Link the original clock import to its actual captured external UTC inputs');p.add_argument('--capture',required=True,type=Path);p.add_argument('--output',required=True,type=Path);a=p.parse_args()
  a.capture=a.capture.resolve();a.output=a.output.resolve();assert not a.output.exists();a.output.mkdir(parents=True)
  sha=lambda p:hashlib.file_digest(Path(p).open('rb'),'sha256').hexdigest()
- assert sha(NEW_DEFAULT)==NEW_PIN;image=Xbe(NEW_DEFAULT);d=json.loads((a.capture/'capture.json').read_text());assert d['entry'] in (0xdd5e0,0xdc540,0xd8110,0xd80a0,0x105460,0xd91d0,0xe89b0,0x1e9290,0x304c90,0x2f4de0,0x2fc690,0xb9090,0x28c2c0,0x290030,0x2fbb70,0x2fc570,0x2fbb10,0x119060,0x297270,0x297400,0x296180,0xc1120,0xf0e70,0xb9180,0xc92c0,0xf2340,0xf48c0,0xce440,0x1da750,0x355d0,0x1e1170,0x1cc8d0,0x14fec0,0xb8f40,0x37c5d0,0x2ee660,0x2f1930,0x2f18d0,0x2fc5d0,0x158340,0x245ea0,0x18a300,0x18a2a0,0xec780,0xcb7a0,0x157fe0,0x158290,0x2f9d70,0x217470,0x217310,0x382230,0x170030,0x170080,0xbc440,0x158690) and d['reference']=='English TU1.5 only'
+ assert sha(NEW_DEFAULT)==NEW_PIN;image=Xbe(NEW_DEFAULT);d=json.loads((a.capture/'capture.json').read_text());assert d['entry'] in (0xdd5e0,0xdc540,0xd8110,0xd80a0,0x105460,0xd91d0,0xe89b0,0x1e9290,0x304c90,0x2f4de0,0x2f5600,0x2fc690,0xb9090,0x28c2c0,0x290030,0x2fbb70,0x2fc570,0x2fbb10,0x119060,0x297270,0x297400,0x296180,0xc1120,0xf0e70,0xb9180,0xc92c0,0xf2340,0xf48c0,0xce440,0x1da750,0x1f9c80,0x355d0,0x1e1170,0x1cc8d0,0x14fec0,0xb8f40,0x37c5d0,0x2ee660,0x2f1930,0x2f18d0,0x2fc5d0,0x158340,0x245ea0,0x18a300,0x18a2a0,0xec780,0xcb7a0,0x157fe0,0x158290,0x2f9d70,0x217470,0x217310,0x382230,0x170030,0x170080,0xbc440,0x158690) and d['reference']=='English TU1.5 only'
  if a.component_inputs:
   assert d['entry'] in (0xd8110,0xdc540) and d.get('input_kind')=='declared_component' and d.get('after_origin')=='unchanged_original_unicorn'
   if d['entry']==0xdc540:assert d.get('declared_callback_invocations')==0,'Child callback fixtures are not whole-original hardware captures'
  else:
   assert d.get('input_kind')!='declared_component','Declared component inputs require their explicit qualification mode'
+ semantic_fields={'mxcsr','x87_control_word','x87_status','x87_values'}
+ if a.native_frame_semantics:
+  assert not a.component_inputs and d['entry']==0x1cc8d0 and d.get('comparison_contract')=='native_tu15_void_world_frame_v1'
+  assert set(d['after'])==semantic_fields and d['before']['x87_values']==[] and d['after']['x87_values']==[]
+  assert d['before']['gp'][4]==0x600f0000 and d['private_returned_stack']=={'first':0x600e0000,'end':0x600f0000}
+ else:
+  assert 'comparison_contract' not in d,'Semantic native frame captures require their explicit comparison contract'
  inputs_path=a.capture/'external-inputs.json'
  if inputs_path.exists():
   inputs=json.loads(inputs_path.read_text())
@@ -238,19 +248,29 @@ def main():
   # words. The original force instructions are never modified to clear IF.
   trace=json.loads((a.output/'trace.json').read_text());flag_mask=0xfffffdff
   assert (trace['entry_eflags']^initial['eflags'])&flag_mask==0,'Unexpected hardware entry flags'
-  differences=[dict(field=k,original=v,native=d['after'][k]) for k,v in actual.items()
+  compared_outputs={k:v for k,v in actual.items()if not a.native_frame_semantics or k in semantic_fields}
+  differences=[dict(field=k,original=v,native=d['after'][k]) for k,v in compared_outputs.items()
     if k=='eflags' and (v&flag_mask)!=(d['after'][k]&flag_mask)]
-  differences += [dict(field=k,original=v,native=d['after'][k]) for k,v in actual.items()
+  differences += [dict(field=k,original=v,native=d['after'][k]) for k,v in compared_outputs.items()
     if k!='eflags' and v!=d['after'][k]]
-  compared=0
+  if a.native_frame_semantics:
+   if struct.unpack_from('<H',raw,48)[0]!=0xffff:differences.append(dict(field='x87_tag_word',original=struct.unpack_from('<H',raw,48)[0],native=0xffff))
+   assert actual['gp'][4]==initial['gp'][4]+4,'Original world did not return to its true standalone caller'
+  compared=0;private_stack_bytes=0
   for r in regions:
    expected_path=a.capture/r.get('after_file',r['before_file']);expected=expected_path.read_bytes()
    if namespace_symbols:expected=namespace_symbols.link(r['address'],expected)
    if input_views:expected=input_views.link(r['address'],expected)
    if platform_time:expected=platform_time.link(r['address'],expected)
-   original=output.read(r['size']);assert len(original)==r['size'];compared+=len(original)
-   if original!=expected:
-    first=next(n for n,(x,y) in enumerate(zip(original,expected)) if x!=y);differences.append(dict(field='memory',address=r['address']+first,size=r['size']))
+   original=output.read(r['size']);assert len(original)==r['size']
+   spans=[(0,len(original))]
+   if a.native_frame_semantics:
+    lo=max(r['address'],0x600e0000)-r['address'];hi=min(r['address']+r['size'],0x600f0000)-r['address']
+    if lo<hi:spans=[(0,lo),(hi,len(original))];private_stack_bytes+=hi-lo
+   for lo,hi in spans:
+    compared+=hi-lo
+    if original[lo:hi]!=expected[lo:hi]:
+     first=next(n for n in range(lo,hi)if original[n]!=expected[n]);differences.append(dict(field='memory',address=r['address']+first,size=hi-lo))
   if platform_time:
    consumed=struct.unpack('<I',output.read(4))[0]
    assert consumed==len(platform_time.values),'Original clock reads differ from the actual input recording'
@@ -277,6 +297,13 @@ def main():
    native_gameplay_or_native_ABI_equivalence_asserted=False,original_execution_completed=True)
   for difference in report['differences']:
    if 'native' in difference:difference['component_expected']=difference.pop('native')
+ if a.native_frame_semantics:
+  report.update(boundary=d['boundary'],comparison_contract=d['comparison_contract'],
+   compared_native_outputs=sorted(semantic_fields),returned_private_stack_bytes=private_stack_bytes,
+   returned_private_stack={'first':0x600e0000,'end':0x600f0000},
+   volatile_register_postimage_compared=False,
+   private_stack_reason='Fresh void host call has returned; its callee stack temporaries have no live consumer. Every other captured byte is compared.',
+   native_only_physics_closure=False)
  (a.output/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({k:v for k,v in report.items() if k!='original_abi'}));return 0 if report['passed'] else 1
 
 if __name__=='__main__':raise SystemExit(main())

@@ -23,6 +23,11 @@ function(halo2_add_source_weather_reference_checks weather_source_root)
     add_test(NAME original_source_weather_connected_scene_gpu COMMAND source_weather_connected_scene_tests --gpu)
     set_tests_properties(original_source_weather_connected_scene_cpu original_source_weather_connected_scene_gpu
         PROPERTIES SKIP_RETURN_CODE 77 RUN_SERIAL TRUE LABELS "weather;original-reference;connected")
+    add_test(NAME original_source_weather_connected_scene_gpu_exact
+        COMMAND source_weather_connected_scene_tests --gpu-exact)
+    set_tests_properties(original_source_weather_connected_scene_gpu_exact PROPERTIES
+        SKIP_RETURN_CODE 77 RUN_SERIAL TRUE
+        LABELS "weather;original-reference;connected;exact-pixels")
 
     # The frozen source arithmetic helper currently admits x86 SSE host
     # controls only. Do not register typed fixture/GPU checks on other hosts.

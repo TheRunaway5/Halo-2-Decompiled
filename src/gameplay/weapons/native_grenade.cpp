@@ -7,6 +7,7 @@
 #include "halo2/source_shadow.hpp"
 #include "halo2/projectile_material_response.hpp"
 #include "runtime/world_continuation_bindings.hpp"
+#include "gameplay/weapons/native_grenade_preflight.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -79,6 +80,9 @@ struct NativeGrenadeSandbox::UnitDefinition {
   float speed{};
 };
 struct NativeGrenadeSandbox::WeaponClips {AnimationClip ordinary;std::optional<AnimationClip> preferred;};
+NativeGrenadeSandbox::NativeGrenadeSandbox(const NativeGrenadeSandbox &owner,AuthorityRestore)
+    :initial_unit_(owner.initial_unit_),constants_(owner.constants_),binding_(owner.binding_),
+     cache_(owner.cache_),definition_(owner.definition_) {}
 NativeGrenadeSandbox::NativeGrenadeSandbox(std::shared_ptr<const Cache> cache,
     std::uint32_t unit,NativeGrenadeConstants constants):initial_unit_(unit),constants_(constants),cache_(std::move(cache)){
   if(!cache_)throw FormatError("Grenade adapter requires a retained Cache");
@@ -117,7 +121,9 @@ const NativeGrenadeSandbox::UnitDefinition &NativeGrenadeSandbox::unit_definitio
   auto d=std::make_shared<UnitDefinition>();
   const auto unit_tag=cache_->load_source_tag_metadata(unit);d->speed=root(unit_tag).f32(0x1b0);
   const auto modeldef=cache_->load_initial_model_definition(unit);
-  d->model=cache_->load_model(unit,false);const auto selection=cache_->load_initial_model_selection(unit);
+  // Attachment consumes only the model hierarchy. Its continuation digest
+  // already binds precisely those fields and never hashes mesh resources.
+  d->model=cache_->load_model_hierarchy(unit);const auto selection=cache_->load_initial_model_selection(unit);
   if(!selection.resolved())throw FormatError("Grenade marker needs actual model permutation owner");
   d->permutations=selection.permutations;
   d->marker=source_model_markers(cache_->load_source_tag_metadata(modeldef.render_model),0x09000100);
@@ -459,14 +465,22 @@ NativeGrenadeSandbox::PreparedAuthority NativeGrenadeSandbox::prepare_authority(
   authority_.prepare();
   if(saved.version!=1 || saved.initial_unit!=initial_unit_ || saved.binding!=binding_ || (saved.source_driven && !qualified_source_world))
     throw FormatError("Grenade continuation import has incompatible local bindings");
+  grenade_preflight::admit(*cache_,saved);
   PreparedAuthority p;p.impl_=std::make_unique<PreparedAuthority::Impl>();
   p.impl_->owner=this;p.impl_->staging=&authority_.staging;authority_.staging=true;
-  auto &next=p.impl_->next;next=std::make_unique<NativeGrenadeSandbox>(cache_,initial_unit_,constants_);
+  // The pinned immutable definition and resident hierarchy need no repeated
+  // mesh load or whole-cache rehash while constructing a replacement owner.
+  auto &next=p.impl_->next;next.reset(new NativeGrenadeSandbox(*this,AuthorityRestore{}));
   if(next->binding_!=saved.binding)throw FormatError("Grenade resident cache changed after admission");
-  for(const auto &[id,digest]:saved.unit_bindings){(void)digest;next->unit_definition(id);}
-  for(const auto &[key,digest]:saved.weapon_clip_bindings){(void)digest;next->weapon_clips(key.first,key.second);}
+  for(const auto &[id,digest]:saved.unit_bindings){(void)digest;
+    if(const auto found=units_.find(id);found!=units_.end())next->units_.emplace(*found);
+    else next->unit_definition(id);}
+  for(const auto &[key,digest]:saved.weapon_clip_bindings){(void)digest;
+    if(const auto found=clips_.find(key);found!=clips_.end())next->clips_.emplace(*found);
+    else next->weapon_clips(key.first,key.second);}
   for(const auto &[key,digest]:saved.selected_clip_bindings){(void)digest;
-    next->selected_clips_.emplace(key,cache_->load_animation(key.first,key.second));}
+    if(const auto found=selected_clips_.find(key);found!=selected_clips_.end())next->selected_clips_.emplace(*found);
+    else next->selected_clips_.emplace(key,cache_->load_animation(key.first,key.second));}
   next->validate_authority(saved,units);
   next->projectiles_=saved.projectiles;next->events_=saved.pending_events;next->detonations_=saved.detonations;
   next->attachments_=saved.attachments;next->detonation_serial_=saved.detonation_serial;next->source_driven_=saved.source_driven;return p;

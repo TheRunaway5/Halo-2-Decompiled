@@ -1,0 +1,2067 @@
+{
+  "schema": "H2_MCC_NATIVE_CHARACTER_SHARED_V1",
+  "source_shared_sha256": "fafaceef449ec05fcf7a1e35a9164788813a41eb082ff5353932c94a9bbf888f",
+  "source_library_canonical_sha256": "f523c80325d5fe3f8bff7d4f3768a3b97fb2d9904a9fa455f307757e7436917e",
+  "scope": "Two exact actual shared character setups only; images and original animation input IDs/curves remain authored",
+  "profiles": [
+    {
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_env_four_change_color",
+      "source_graph": {
+        "root_hex": "000000000000000000000000010000000000000000000000000000000000000074696c73ffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+        "definitions": [
+          {
+            "definition_hex": "02000000000000003200000000000000090000000000000022000000000000009300000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 2,
+                "raw_hex": "0032083d0100cdcccc3c19320800010000000000",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 50,
+                "raw_hex": "00000000000000020100010001000100010202000202030204020502060006000602070007000700070007000700070007000700070007000702080008000800080008000800080008000800080008000800080209000900090009000900090009000900",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 9,
+                "raw_hex": "7361707300000000000873617073000000000402736170730000000005087361707300000000090e7361707300000000100a736170730000000015027361707300000000160873617073000000001a0873617073000000001e08",
+                "typed_references": [
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\lightmap\\lightmap_tex_four_change_color"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\environment_mapping\\default_environment_map_tangent_space"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\shadow\\shadow_generate"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\light_response\\default_light_combined_tex_four_change_color"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\fog\\fog_planar"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\lightmap\\lightmap_tex_change_color_env"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\fog\\fog_planar"
+                  ]
+                ]
+              },
+              {
+                "field": 24,
+                "count": 34,
+                "raw_hex": "00080402050809080d020e081208160418081c082000200824062704290c2f043100310031043300330435043700370238043a003a043c023d003d003d023e003e003e023f003f003f02400040004002410041004102420042004202430043004306460448064b064e004e0651065400540657065a005a065d06600462066504670067086b006b006b006b006b006b006b006b006b006b006b006b006b086f0a740476087a0a7f048108850487088b088f008f08930093009300930093009300930093009300930093009300",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 147,
+                "raw_hex": "0000000001000002020000030300000489000000b2010000b0050001b1090002330d00030000000001000002020000030300000489000000b2010000b0050001b1090002330d0003000000000100000202000003030000048a0000008b000001b2010000b0050001b1090002330d000300000000010000020200000303000004b2010000b0050001b1090002330d000300000005010000000200000262000002830000038a1c00048b1c00056a1c00066b1c0007b2050000b009000100000000010000020000000001000002b2010000b00500010000000001000002b20100000000000001000002b2010000b0050001000000060000000600000006000000060000000600000006000000060000000001000002020000048700000088000001b2010000b0050001b1090008000000000100000202000004b2010000b0050001b1090008000000000100000202000004b2010000b0050001b1090008000000000100000202000004b2010000b0050001b10900080000000001000002020000048700000088000001b2010000b0050001b10900080000000001000002b20100008a1c00098b1c000ab0050001000000000100000202000005030000048100000482000005630000066400000787000000b2010000b0050001000000000100000202000005030000048100000482000005630000066400000787000000b2010000b0050001000000000100000202000005030000048500000467000006b2010000b00500018d1c00098e1c000a00000000010000020200000503000004b2010000b0050001981c000b991c000c",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          }
+        ]
+      },
+      "source_graph_sha256": "4734a5b3fdb9c8ab9d481565eedc7ab3cf0ac1dea1d329c307c1705c9db20f61",
+      "source_root_hex": "6d657473000000000000000001000000000000000100000000000000000000000300000000000000ffffffff070000000000000074696c73ffffffff06000100010000000000803f000000000000000000000000",
+      "source_definition_hex": "00000000070000000000000008000000000000000d00000000000000020000000000000032000000000000000900000000000000220000000000000000000000000000000000000000000000000000000000000000000000000000000500000000000000020000000000000006000000000000000000000000000000",
+      "source_banks": {
+        "4": "0000000000000000d75e8a400000000000000000d75e8a400000000000000000d75e8a400000000000000000323e57400000000000000000f0fd75400000000000000000747e38400000000000000000f0fdf53f",
+        "12": "87c2cc00c7d6d9000000000087737800b0d9d9009e916e00000000cc0000004d",
+        "20": "0000803f0000803f00000000000000000000803f0000803f0000000000000000000010410000104100000000000000000000803f0000803f00000000000000009a99593f9a99593fd7a3303f00000000f628dc3e85eb113f52b81e3f00000000000000000000000000000000cdcc4c3f0000000000000000000000009a99993e0000803f0000803f0000000000000000cdcc4c3f5c8f423f14ae073f000000009a99593f3d0a573f14ae473f00000000df4f8d3edf4f8d3e7b146e3f0000000014aec73e000000007b146e3f00000000",
+        "28": "000000000032000000001932",
+        "36": "00000000000000020100010001000100010202000202030204020502060006000602070007000700070007000700070007000700070007000702080008000800080008000800080008000800080008000800080209000900090009000900090009000900",
+        "44": "000804020508090e100a150216081a081e08",
+        "52": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "60": "",
+        "68": "",
+        "76": "",
+        "84": "",
+        "92": "0200ffffffffffffffffffffffffffff0100ffff",
+        "100": "000000000000000000000000000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "images": [
+        [
+          [
+            "bitm",
+            "objects\\characters\\masterchief\\bitmaps\\masterchief_bump"
+          ],
+          0,
+          1082810071
+        ],
+        [
+          [
+            "bitm",
+            "objects\\characters\\masterchief\\bitmaps\\masterchief_bump_camo"
+          ],
+          0,
+          1082810071
+        ],
+        [
+          [
+            "bitm",
+            "objects\\characters\\masterchief\\bitmaps\\masterchief"
+          ],
+          0,
+          1082810071
+        ],
+        [
+          [
+            "bitm",
+            "objects\\bitmaps\\detail_maps\\metal_dirty"
+          ],
+          0,
+          1079459378
+        ],
+        [
+          [
+            "bitm",
+            "objects\\characters\\masterchief\\bitmaps\\masterchief_cc"
+          ],
+          0,
+          1081474544
+        ],
+        [
+          [
+            "bitm",
+            "objects\\bitmaps\\reflection_maps\\masterchief_armor"
+          ],
+          0,
+          1077444212
+        ],
+        [
+          [
+            "bitm",
+            "rasterizer\\linear_corner_fade"
+          ],
+          0,
+          1073085936
+        ]
+      ],
+      "runtime_hex": "6d746962000000006d746962ffffffff000000000000000000000000000000000000000000000000000000006d746962ffffffff6d746962ffffffff0000000000000000000000000000000000000000",
+      "curves": [],
+      "native_source_map": "coagulation",
+      "input_names": [],
+      "native_record": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\opaque\\tex_bump_env_four_change_color",
+        "bytes": 2134,
+        "payload": "73d431f241685f4d35b77bd8bea2ced94413744177c33c3436a2e1781ad2f3e8.bin",
+        "fnv64": "f6c96f96cceed7cf",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            1984
+          ],
+          [
+            116,
+            168
+          ],
+          [
+            124,
+            388
+          ],
+          [
+            132,
+            852
+          ]
+        ],
+        "references": [
+          [
+            172,
+            [
+              "spas",
+              "shaders\\shader_passes\\texture_mapping\\default_texture_four_change_color_zwrite"
+            ]
+          ],
+          [
+            182,
+            [
+              "spas",
+              "shaders\\shader_passes\\lightmap\\old_lightmap_tangentspace"
+            ]
+          ],
+          [
+            192,
+            [
+              "spas",
+              "shaders\\shader_passes\\environment_mapping\\default_environment_map_tangent_space"
+            ]
+          ],
+          [
+            202,
+            [
+              "spas",
+              "shaders\\shader_passes\\shadow\\shadow_generate"
+            ]
+          ],
+          [
+            212,
+            [
+              "spas",
+              "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+            ]
+          ],
+          [
+            222,
+            [
+              "spas",
+              "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace"
+            ]
+          ],
+          [
+            232,
+            [
+              "spas",
+              "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+            ]
+          ],
+          [
+            242,
+            [
+              "spas",
+              "shaders\\shader_passes\\fog\\fog_planar"
+            ]
+          ],
+          [
+            252,
+            [
+              "spas",
+              "shaders\\shader_passes\\texture_mapping\\default_texture_four_change_color_zwrite"
+            ]
+          ],
+          [
+            262,
+            [
+              "spas",
+              "shaders\\shader_passes\\lightmap\\lightmap_env"
+            ]
+          ],
+          [
+            272,
+            [
+              "spas",
+              "shaders\\shader_passes\\shadow\\shadow_generate"
+            ]
+          ],
+          [
+            282,
+            [
+              "spas",
+              "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+            ]
+          ],
+          [
+            292,
+            [
+              "spas",
+              "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace"
+            ]
+          ],
+          [
+            302,
+            [
+              "spas",
+              "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+            ]
+          ],
+          [
+            312,
+            [
+              "spas",
+              "shaders\\shader_passes\\fog\\fog_planar"
+            ]
+          ],
+          [
+            322,
+            [
+              "spas",
+              "shaders\\shader_passes\\lightmap\\lightmap_tex_change_color_env"
+            ]
+          ],
+          [
+            332,
+            [
+              "spas",
+              "shaders\\shader_passes\\shadow\\shadow_generate"
+            ]
+          ],
+          [
+            342,
+            [
+              "spas",
+              "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+            ]
+          ],
+          [
+            352,
+            [
+              "spas",
+              "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace"
+            ]
+          ],
+          [
+            362,
+            [
+              "spas",
+              "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+            ]
+          ],
+          [
+            372,
+            [
+              "spas",
+              "shaders\\shader_passes\\texture_mapping\\default_texture_four_change_color_zwrite"
+            ]
+          ],
+          [
+            382,
+            [
+              "spas",
+              "shaders\\shader_passes\\fog\\fog_planar"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "native_shader_record": {
+        "group": "shad",
+        "name": "objects\\characters\\masterchief\\shaders\\masterchief",
+        "bytes": 1704,
+        "payload": "7603caa3d3976888f54f7be1ab9a979b0f083723205fb9c534e7578e6eac5ea0.bin",
+        "fnv64": "d714763ecc860ca9",
+        "pointers": [
+          [
+            16,
+            84
+          ],
+          [
+            36,
+            164
+          ],
+          [
+            48,
+            1584
+          ],
+          [
+            172,
+            288
+          ],
+          [
+            180,
+            372
+          ],
+          [
+            188,
+            404
+          ],
+          [
+            196,
+            596
+          ],
+          [
+            204,
+            616
+          ],
+          [
+            212,
+            768
+          ],
+          [
+            220,
+            812
+          ],
+          [
+            260,
+            1648
+          ],
+          [
+            268,
+            1680
+          ],
+          [
+            276,
+            1680
+          ]
+        ],
+        "references": [
+          [
+            4,
+            [
+              "stem",
+              "shaders\\shader_templates\\opaque\\tex_bump_env_four_change_color"
+            ]
+          ],
+          [
+            88,
+            [
+              "bitm",
+              "objects\\characters\\masterchief\\bitmaps\\masterchief"
+            ]
+          ],
+          [
+            164,
+            [
+              "stem",
+              "shaders\\shader_templates\\opaque\\tex_bump_env_four_change_color"
+            ]
+          ],
+          [
+            288,
+            [
+              "bitm",
+              "objects\\characters\\masterchief\\bitmaps\\masterchief_bump"
+            ]
+          ],
+          [
+            300,
+            [
+              "bitm",
+              "objects\\characters\\masterchief\\bitmaps\\masterchief_bump_camo"
+            ]
+          ],
+          [
+            312,
+            [
+              "bitm",
+              "objects\\characters\\masterchief\\bitmaps\\masterchief"
+            ]
+          ],
+          [
+            324,
+            [
+              "bitm",
+              "objects\\bitmaps\\detail_maps\\metal_dirty"
+            ]
+          ],
+          [
+            336,
+            [
+              "bitm",
+              "objects\\characters\\masterchief\\bitmaps\\masterchief_cc"
+            ]
+          ],
+          [
+            348,
+            [
+              "bitm",
+              "objects\\bitmaps\\reflection_maps\\masterchief_armor"
+            ]
+          ],
+          [
+            360,
+            [
+              "bitm",
+              "rasterizer\\linear_corner_fade"
+            ]
+          ],
+          [
+            1588,
+            [
+              "bitm",
+              "objects\\characters\\masterchief\\bitmaps\\masterchief_bump"
+            ]
+          ],
+          [
+            1596,
+            [
+              "bitm",
+              "objects\\characters\\masterchief\\bitmaps\\masterchief_bump_camo"
+            ]
+          ],
+          [
+            1604,
+            [
+              "bitm",
+              "objects\\characters\\masterchief\\bitmaps\\masterchief"
+            ]
+          ],
+          [
+            1612,
+            [
+              "bitm",
+              "objects\\bitmaps\\detail_maps\\metal_dirty"
+            ]
+          ],
+          [
+            1620,
+            [
+              "bitm",
+              "objects\\characters\\masterchief\\bitmaps\\masterchief_cc"
+            ]
+          ],
+          [
+            1628,
+            [
+              "bitm",
+              "objects\\bitmaps\\reflection_maps\\masterchief_armor"
+            ]
+          ],
+          [
+            1636,
+            [
+              "bitm",
+              "rasterizer\\linear_corner_fade"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "native_banks": {
+        "12": "87c2cc00c7d6d9000000000087737800b0d9d9009e916e00000000cc0000004d",
+        "20": "000010410000104100000000000000000000803f0000803f000000000000000000000000000000000000803f0000803f0000803f0000803f0000000000000000df4f8d3edf4f8d3e7b146e3f0000000014aec73e000000007b146e3f000000009a99593f9a99593fd7a3303f00000000f628dc3e85eb113f52b81e3f00000000000000000000000000000000cdcc4c3f0000000000000000000000009a99993ecdcc4c3f5c8f423f14ae073f000000009a99593f3d0a573f14ae473f00000000",
+        "28": "000000000032000000001932000000003232",
+        "36": "000000020100010202000200020002000202030003020402050206020700070007020800080008000800080008000800080008000802090009020a000a000a000a000a000a000a020b020c020d020e000e000e020f000f000f000f000f000f000f000f000f000f000f000f02100010001000100010001000100211021202130214021500150216001600160016001600160016001600",
+        "44": "0002010a060207060a0e110a160217081b021c082006230e2a0a2f023008340838063b0e420a470248024908",
+        "52": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "68": "",
+        "76": "",
+        "84": "",
+        "92": "0200ffffffffffffffffffffffffffff0100ffff",
+        "100": "000000000000000000000000000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "native_shape": {
+        "0": 3,
+        "8": 75,
+        "16": 22,
+        "24": 77,
+        "32": 280
+      },
+      "original_images": [
+        [
+          [
+            "bitm",
+            "objects\\characters\\masterchief\\bitmaps\\masterchief_bump"
+          ],
+          0,
+          1082810071
+        ],
+        [
+          [
+            "bitm",
+            "objects\\characters\\masterchief\\bitmaps\\masterchief_bump_camo"
+          ],
+          0,
+          1082810071
+        ],
+        [
+          [
+            "bitm",
+            "objects\\characters\\masterchief\\bitmaps\\masterchief"
+          ],
+          0,
+          1082810071
+        ],
+        [
+          [
+            "bitm",
+            "objects\\bitmaps\\detail_maps\\metal_dirty"
+          ],
+          0,
+          1079459378
+        ],
+        [
+          [
+            "bitm",
+            "objects\\characters\\masterchief\\bitmaps\\masterchief_cc"
+          ],
+          0,
+          1081474544
+        ],
+        [
+          [
+            "bitm",
+            "objects\\bitmaps\\reflection_maps\\masterchief_armor"
+          ],
+          0,
+          1077444212
+        ],
+        [
+          [
+            "bitm",
+            "rasterizer\\linear_corner_fade"
+          ],
+          0,
+          1073085936
+        ]
+      ],
+      "image_log_words_retained_from_source": false,
+      "prediction_roles": [
+        [
+          [
+            "bitm",
+            "objects\\characters\\masterchief\\bitmaps\\masterchief_bump"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "objects\\characters\\masterchief\\bitmaps\\masterchief_bump_camo"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "objects\\characters\\masterchief\\bitmaps\\masterchief"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "objects\\bitmaps\\detail_maps\\metal_dirty"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "objects\\characters\\masterchief\\bitmaps\\masterchief_cc"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "objects\\bitmaps\\reflection_maps\\masterchief_armor"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "rasterizer\\linear_corner_fade"
+          ],
+          0
+        ]
+      ],
+      "runtime_reference_slots": {
+        "4": 2,
+        "12": -1,
+        "48": -1,
+        "56": -1
+      }
+    },
+    {
+      "template": "shaders\\shader_templates\\opaque\\emblem_overlay_simple",
+      "source_graph": {
+        "root_hex": "0000000000000000000000000100000000000000000000000000000000000000ffffffffffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+        "definitions": [
+          {
+            "definition_hex": "01000000000000001900000000000000010000000000000001000000000000000400000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 1,
+                "raw_hex": "00320400000000000000",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 25,
+                "raw_hex": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 1,
+                "raw_hex": "73617073000000000002",
+                "typed_references": [
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\texture_mapping\\emblem_overlay_simple"
+                  ]
+                ]
+              },
+              {
+                "field": 24,
+                "count": 1,
+                "raw_hex": "000201040302",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 4,
+                "raw_hex": "000000006500000066000001b0010000",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          }
+        ]
+      },
+      "source_graph_sha256": "17ef4fbf3460cec54e17e5b0bcb17296010ef40730f578364be844dcc268ff62",
+      "source_root_hex": "6d657473000000000000000001000000000000000100000000000000000000000300000000000000ffffffff400000000000000074696c73ffffffff000000000000000000000000000000000000000000000000",
+      "source_definition_hex": "0000000001000000000000000200000000000000010000000000000001000000000000001900000000000000010000000000000001000000000000000c000000000000000c00000000000000030000000000000004000000000000000500000000000000020000000000000006000000000000000000000000000000",
+      "source_banks": {
+        "4": "0000000000000000f0fd7540",
+        "12": "0000000000000000",
+        "20": "0000803f0000803f0000000000000000",
+        "28": "040000000032",
+        "36": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "03020300030000040202",
+        "60": "08060018000000000000803f140000000000000006060017000000000000803f140000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c000000000000000b06000d000000000000803f1400000000000000",
+        "68": "0000ffff0100000002000100030002000400030005000400060005000700060008000700090008000a0009000b00ffff",
+        "76": "000201140b02",
+        "84": "6500000066000002b001000100000001",
+        "92": "ffffffffffffffffffffffffffffffffffffffff",
+        "100": "000000000000000000000000000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "images": [
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          0,
+          1081474544
+        ]
+      ],
+      "runtime_hex": "6d746962ffffffff6d746962ffffffff000000000000000000000000000000000000000000000000000000006d746962ffffffff6d746962ffffffff0000000000000000000000000000000000000000",
+      "curves": [
+        "00000000000000000000803f0000000000000000",
+        "0000000000000000000080420000000000000000",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "00000000000000000000803f0000000000000000"
+      ],
+      "native_source_map": "coagulation",
+      "input_names": [
+        "emblem_toggle_foreground",
+        "emblem_foreground_index",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "emblem_active"
+      ],
+      "native_record": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\opaque\\emblem_overlay_simple",
+        "bytes": 242,
+        "payload": "57dcd3b1a631edbbad9d3262b6031bfdf283c40a2576cde30575a812b8568ca2.bin",
+        "fnv64": "41521b91a8a2f1fc",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            148
+          ],
+          [
+            124,
+            160
+          ],
+          [
+            132,
+            168
+          ]
+        ],
+        "references": [
+          [
+            152,
+            [
+              "spas",
+              "shaders\\shader_passes\\texture_mapping\\emblem_overlay_simple"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "native_shader_record": {
+        "group": "shad",
+        "name": "objects\\characters\\masterchief\\shaders\\mc_emblem",
+        "bytes": 1416,
+        "payload": "5c9712114e9b362d8333a2c8c6e7e780f2a2dd03343742d890dafed0b2948a3e.bin",
+        "fnv64": "775f7333598425fc",
+        "pointers": [
+          [
+            16,
+            1120
+          ],
+          [
+            36,
+            84
+          ],
+          [
+            48,
+            608
+          ],
+          [
+            92,
+            208
+          ],
+          [
+            100,
+            1200
+          ],
+          [
+            108,
+            1216
+          ],
+          [
+            116,
+            220
+          ],
+          [
+            124,
+            228
+          ],
+          [
+            132,
+            280
+          ],
+          [
+            140,
+            284
+          ],
+          [
+            148,
+            296
+          ],
+          [
+            156,
+            536
+          ],
+          [
+            164,
+            584
+          ],
+          [
+            172,
+            592
+          ],
+          [
+            180,
+            1360
+          ],
+          [
+            188,
+            1392
+          ],
+          [
+            196,
+            1392
+          ],
+          [
+            312,
+            1232
+          ],
+          [
+            332,
+            1264
+          ],
+          [
+            352,
+            1296
+          ],
+          [
+            372,
+            1296
+          ],
+          [
+            392,
+            1296
+          ],
+          [
+            412,
+            1328
+          ],
+          [
+            432,
+            1328
+          ],
+          [
+            452,
+            1328
+          ],
+          [
+            472,
+            1328
+          ],
+          [
+            492,
+            1328
+          ],
+          [
+            512,
+            1328
+          ],
+          [
+            532,
+            1232
+          ]
+        ],
+        "references": [
+          [
+            4,
+            [
+              "stem",
+              "shaders\\shader_templates\\opaque\\emblem_overlay_simple"
+            ]
+          ],
+          [
+            84,
+            [
+              "stem",
+              "shaders\\shader_templates\\opaque\\emblem_overlay_simple"
+            ]
+          ],
+          [
+            208,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            612,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            620,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            628,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            636,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            644,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            652,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            660,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            668,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            676,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            684,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            692,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            700,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            708,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            716,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            724,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            732,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            740,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            748,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            756,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            764,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            772,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            780,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            788,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            796,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            804,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            812,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            820,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            828,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            836,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            844,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            852,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            860,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            868,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            876,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            884,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            892,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            900,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            908,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            916,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            924,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            932,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            940,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            948,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            956,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            964,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            972,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            980,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            988,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            996,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1004,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1012,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1020,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1028,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1036,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1044,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1052,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1060,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1068,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1076,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1084,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1092,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1100,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1108,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1116,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ]
+        ],
+        "strings": [
+          [
+            296,
+            "emblem_toggle_foreground"
+          ],
+          [
+            316,
+            "emblem_foreground_index"
+          ],
+          [
+            516,
+            "emblem_active"
+          ]
+        ]
+      },
+      "native_banks": {
+        "12": "0000000000000000",
+        "20": "0000803f0000803f0000000000000000",
+        "28": "040000000032",
+        "36": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "03020300030000040202",
+        "68": "0000ffff0100000002000100030002000400030005000400060005000700060008000700090008000a0009000b00ffff",
+        "76": "000201140b02",
+        "84": "8000030000010302b001000100000001",
+        "92": "ffffffffffffffffffffffffffffffffffffffff",
+        "100": "000000000000000000000000000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "native_shape": {
+        "0": 1,
+        "8": 25,
+        "16": 1,
+        "24": 1,
+        "32": 4
+      },
+      "original_images": [
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          0,
+          1079459378
+        ]
+      ],
+      "image_log_words_retained_from_source": true,
+      "prediction_roles": [
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          1
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          2
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          3
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          4
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          5
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          6
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          7
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          8
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          9
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          10
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          11
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          12
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          13
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          14
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          15
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          16
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          17
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          18
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          19
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          20
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          21
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          22
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          23
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          24
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          25
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          26
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          27
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          28
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          29
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          30
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          31
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          32
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          33
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          34
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          35
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          36
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          37
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          38
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          39
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          40
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          41
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          42
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          43
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          44
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          45
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          46
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          47
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          48
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          49
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          50
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          51
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          52
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          53
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          54
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          55
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          56
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          57
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          58
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          59
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          60
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          61
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          62
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          63
+        ]
+      ],
+      "runtime_reference_slots": {
+        "4": -1,
+        "12": -1,
+        "48": -1,
+        "56": -1
+      }
+    }
+  ]
+}

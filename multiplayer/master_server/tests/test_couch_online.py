@@ -39,6 +39,30 @@ class CouchOnlineTests(unittest.IsolatedAsyncioTestCase):
     async def enqueue(self, headers, playlist="casual"):
         return await baseline.MatchmakingHttpTests.enqueue(self, headers, playlist)
 
+    async def test_lease_renewal_preserves_guests_and_rechecks_signed_local_proofs(self):
+        roster = [{"screen_name": "Signed Local", "discord_token": "three"},
+                  {"screen_name": "Guest 3"}, {"screen_name": "Guest 4"}]
+        headers = await self.session(local_players=roster)
+        session = next(iter(self.api.sessions.values()))
+        seats = session.seats()
+        body = dict(screen_name="Same Name", maps=["lockout"], compatibility="halo2-native-queue-v9",
+                    language=0, local_players=roster, renew_session=headers["Authorization"][7:])
+        response = await self.client.post("/v1/matchmaking/session", headers={"Authorization": "Bearer one"}, json=body)
+        self.assertEqual(response.status, 201, await response.text())
+        self.assertEqual((await response.json())["token"], headers["Authorization"][7:])
+        self.assertIs(next(iter(self.api.sessions.values())), session)
+        self.assertEqual(session.seats(), seats)
+        self.assertEqual(self.verified.count("three"), 2)
+        body["local_players"] = [{"screen_name": "Signed Local", "discord_token": "forged"}]
+        response = await self.client.post("/v1/matchmaking/session", headers={"Authorization": "Bearer one"}, json=body)
+        self.assertEqual(response.status, 401, await response.text())
+        self.assertEqual(session.seats(), seats)
+        body["local_players"] = roster[:2]
+        response = await self.client.post("/v1/matchmaking/session", headers={"Authorization": "Bearer one"}, json=body)
+        self.assertEqual(response.status, 201, await response.text())
+        self.assertNotEqual((await response.json())["token"], headers["Authorization"][7:])
+        self.assertEqual(len(next(iter(self.api.sessions.values())).seats()), 3)
+
     async def test_four_slots_and_guest_policy_are_server_owned(self):
         headers = await self.session()
         session = next(iter(self.api.sessions.values()))

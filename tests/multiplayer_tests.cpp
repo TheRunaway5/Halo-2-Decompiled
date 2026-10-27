@@ -1,8 +1,11 @@
 #include "halo2/math.hpp"
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/lan_packet_auth.hpp"
+#include "halo2/replica_motion.hpp"
 #include <algorithm>
+#include <array>
 #include <chrono>
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <thread>
@@ -10,9 +13,13 @@
 #include <mutex>
 #include <deque>
 #include <bit>
+#include <cstring>
 #include <map>
 #include <optional>
 #include <random>
+#include <limits>
+#include <string>
+#include <vector>
 #ifndef _WIN32
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -113,10 +120,10 @@ void session_configuration() {
   socklen_t address_bytes=sizeof(proxy_address);
   check(!getsockname(proxy.fd,reinterpret_cast<sockaddr*>(&proxy_address),&address_bytes),"Read session query proxy port");
   sockaddr_in authority=proxy_address;authority.sin_port=htons(host.port());
-  sockaddr_in client{};bool have_client{},dropped{},reordered{};unsigned duplicates{};
+  sockaddr_in client{};bool have_client{},dropped{},reordered{},plaintext_race{};unsigned duplicates{};
   std::vector<std::vector<std::byte>> pending;
   auto result=std::async(std::launch::async,[&] {
-    return query_lan_session("127.0.0.1:"+std::to_string(ntohs(proxy_address.sin_port)),std::chrono::seconds(3));
+    return query_lan_session(host.join_address("127.0.0.1",ntohs(proxy_address.sin_port)),std::chrono::seconds(3));
   });
   while(result.wait_for(std::chrono::milliseconds(0))!=std::future_status::ready) {
     std::array<std::byte,1500> packet{};sockaddr_in from{};socklen_t length=sizeof(from);
@@ -124,15 +131,26 @@ void session_configuration() {
         reinterpret_cast<sockaddr*>(&from),&length))>0;length=sizeof(from)) {
       if(from.sin_port!=authority.sin_port) {
         client=from;have_client=true;
+        if(!plaintext_race && n>=38) {
+          // The nonce is observable in the clear admission envelope. Spoof a
+          // rejection and malformed config before forwarding to the real host.
+          for(unsigned type:{5u,7u}) {
+            std::vector<std::byte> forged(packet.begin(),packet.begin()+7);forged[6]=std::byte(type);
+            forged.insert(forged.end(),packet.begin()+30,packet.begin()+38);
+            forged.resize(type==7?32:20);
+            sendto(proxy.fd,forged.data(),forged.size(),0,reinterpret_cast<sockaddr*>(&client),sizeof(client));
+          }
+          plaintext_race=true;
+        }
         sendto(proxy.fd,packet.data(),n,0,reinterpret_cast<sockaddr*>(&authority),sizeof(authority));
       }else {
         check(have_client && n>=31,"Unexpected session description fragment");
         if(packet[6]==std::byte{8}){
           sendto(proxy.fd,packet.data(),n,0,reinterpret_cast<sockaddr*>(&client),sizeof(client));continue;
         }
-        check(packet[6]==std::byte{7},"Unexpected session description packet type");
-        const auto index=std::to_integer<unsigned>(packet[23])|(std::to_integer<unsigned>(packet[24])<<8);
-        const auto count=std::to_integer<unsigned>(packet[25])|(std::to_integer<unsigned>(packet[26])<<8);
+        check(packet[0]==std::byte{'L'}&&packet[3]==std::byte{'1'}&&packet[45+6]==std::byte{7},"Unexpected authenticated session description packet type");
+        const auto index=std::to_integer<unsigned>(packet[45+23])|(std::to_integer<unsigned>(packet[45+24])<<8);
+        const auto count=std::to_integer<unsigned>(packet[45+25])|(std::to_integer<unsigned>(packet[45+26])<<8);
         check(count>1,"Session description did not exercise fragmentation");
         if(!dropped && index==0){dropped=true;continue;}
         pending.emplace_back(packet.begin(),packet.begin()+n);
@@ -150,10 +168,10 @@ void session_configuration() {
     host.receive(controls);std::this_thread::sleep_for(std::chrono::milliseconds(2));
   }
   const auto description=result.get();
-  check(dropped && reordered && duplicates,"Session query loss/reorder/duplicate routes were not exercised");
+  check(dropped && reordered && duplicates && plaintext_race,"Session query plaintext-race/loss/reorder/duplicate routes were not exercised");
 #else
   auto result=std::async(std::launch::async,[&] {
-    return query_lan_session("127.0.0.1:"+std::to_string(host.port()),std::chrono::seconds(3));
+    return query_lan_session(host.join_address(),std::chrono::seconds(3));
   });
   while(result.wait_for(std::chrono::milliseconds(0))!=std::future_status::ready) {
     host.receive(controls);std::this_thread::sleep_for(std::chrono::milliseconds(2));
@@ -171,7 +189,7 @@ void session_configuration() {
   MultiplayerMatch undeclared(content,0,spawn,handwritten);
   LanHost legacy(undeclared,0,0x5155455259ull);
   auto missing=std::async(std::launch::async,[&] {
-    return query_lan_session("127.0.0.1:"+std::to_string(legacy.port()),std::chrono::seconds(3));
+    return query_lan_session(legacy.join_address(),std::chrono::seconds(3));
   });
   while(missing.wait_for(std::chrono::milliseconds(0))!=std::future_status::ready) {
     legacy.receive(controls);std::this_thread::sleep_for(std::chrono::milliseconds(2));
@@ -214,13 +232,13 @@ void session_configuration_while_loading() {
   // The rendering/loading thread is not pumping gameplay receive yet.
   // Discovery must still answer without creating a player or world tick.
   const auto before=match.state();
-  const auto description=query_lan_session("127.0.0.1:"+std::to_string(host.port()),
+  const auto description=query_lan_session(host.join_address(),
       std::chrono::milliseconds(150));
   check(description.fingerprint==0x4c4f4144494e47ull &&
       description.variant.values==selected.session_configuration->values &&
       host.peers()==0 && match.state().tick==before.tick,
       "Loading host did not answer its actual session configuration independently");
-  LanClient client("127.0.0.1:"+std::to_string(host.port()),description.fingerprint,1);
+  LanClient client(host.join_address(),description.fingerprint,1);
   const std::array<Controls,1> neutral{};client.send(neutral);
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   check(host.peers()==0 && match.state().tick==before.tick,
@@ -521,26 +539,48 @@ void native_request_ingress() {
   check(client.ready()&&client.slots().size()==4&&host.peers()==1,"Healthy four-seat join failed after malformed requests");
   for(auto &c:local)c.forward=.25f;
   client.send(local);const auto baseline=take();inject(baseline);
+  unsigned retained_calls=0;
   const auto retained=[&](float value){
+    ++retained_calls;
     check(host.peers()==1&&match.state().tick==before,"Rejected input retired its healthy peer or advanced world");
-    for(auto slot:client.slots())check(delivered[slot].forward==value,"Rejected input partially changed an admitted couch seat");
+    for(auto slot:client.slots())if(delivered[slot].forward!=value)
+      throw std::runtime_error("Rejected input partially changed an admitted couch seat (check "+
+          std::to_string(retained_calls)+", forward "+std::to_string(delivered[slot].forward)+")");
   };
   retained(.25f);
   for(auto &c:local)c.forward=-.75f;
   client.send(local);const auto valid=take();
-  for(unsigned n=0;n<5;++n){
+  // Protocol 113 tail after the 3-byte displayed snapshot time: four absent
+  // motion blocks, one repeated input (the baseline's changed forward, mask
+  // plus float per view).
+  const std::size_t tail=4+1+4*(1+4);
+  check(valid[valid.size()-tail-1]==std::byte{255},"Unviewed input lost its absent snapshot marker");
+  check(valid[valid.size()-tail+4]==std::byte{1},"Second input did not repeat the first");
+  for(unsigned n=0;n<9;++n){
     auto p=valid;
     if(n==0){const auto bits=0x7fc00000u;for(unsigned j=0;j<4;++j)p[28+j]=std::byte(bits>>(8*j));}
-    if(n==1)p.back()=std::byte{2}; // Invalid final-seat intent, after all earlier controls.
+    if(n==1)p[p.size()-tail-4]=std::byte{2}; // Invalid ack flags, after all earlier controls.
     if(n==2)p[27]=std::byte{3};
     if(n==3)p[15]^=std::byte{1}; // Valid grammar, wrong live cookie.
     if(n==4)std::copy(baseline.begin()+23,baseline.begin()+27,p.begin()+23); // Replay sequence, changed controls.
+    if(n==5)p[p.size()-tail-3]=std::byte{1}; // Ambiguous absent view.
+    if(n==6)p[p.size()-tail+3]=std::byte{2}; // Last view's motion: a flag without presence.
+    if(n==7)p[p.size()-4*5]|=std::byte{0x80}; // Repeat mask reserved bit (first view).
+    if(n==8)p[p.size()-tail+4]=std::byte{3}; // Three repeated inputs.
     inject(p);retained(.25f);
   }
   inject(valid);retained(-.75f);
+  // Item 5: a lost input is recovered from the next packet's repeat and the
+  // host consumes both, in order, one per tick.
+  for(auto &c:local)c.forward=.5f;
+  client.send(local);take(); // lost
+  for(auto &c:local)c.forward=.125f;
+  client.send(local);const auto recovered=take();inject(recovered);retained(.5f);
+  host.receive(delivered);retained(.125f);
+  host.receive(delivered);retained(.125f); // nothing queued: the last input is held
   auto leave=Packet(valid.begin(),valid.begin()+23);leave[6]=std::byte{4};
-  auto foreign=leave;foreign[15]^=std::byte{1};inject(foreign);retained(-.75f);
-  auto trailing=leave;trailing.push_back(std::byte{});inject(trailing);retained(-.75f);
+  auto foreign=leave;foreign[15]^=std::byte{1};inject(foreign);retained(.125f);
+  auto trailing=leave;trailing.push_back(std::byte{});inject(trailing);retained(.125f);
   inject(leave);
   const auto state=match.state();
   check(host.peers()==0&&state.tick==before&&std::none_of(state.players.begin(),state.players.end(),[](const auto &p){return p.connected;}),
@@ -549,7 +589,7 @@ void native_request_ingress() {
 void network_vehicle_intent() {
   const auto content=arena();const auto spawn=starts();
   MultiplayerMatch match(content,0,spawn,rules());LanHost host(match,0,789);
-  LanClient client("127.0.0.1:"+std::to_string(host.port()),789,1);
+  LanClient client(host.join_address(),789,1);
   std::array<Controls,1> local{};std::array<Controls,16> delivered{};
   for(unsigned i=0;i<64 && !client.ready();++i) {
     client.send(local);host.receive(delivered);host.broadcast();client.receive();
@@ -606,7 +646,9 @@ void network() {
   r.time_ticks = 34567;
   MultiplayerMatch match(c, 0, spawn, r);
   LanHost host(match, 0, 123);
-  const auto address = "127.0.0.1:" + std::to_string(host.port());
+  const auto address = host.join_address();
+  rejects([&]{LanClient unbound("127.0.0.1:"+std::to_string(host.port()),123,1);},"Bare raw address bypassed independent host-key admission");
+  rejects([&]{LanClient malformed(address+"x",123,1);},"Malformed raw host key was accepted");
   LanClient one(address, 123, 1), two(address, 123, 2), wrong(address, 124, 1);
   std::array<Controls, 16> controls{};
   std::array<Controls, 1> i1{};
@@ -750,7 +792,7 @@ void network_startup_delay() {
   const auto content=arena();const auto spawn=starts();
   MultiplayerMatch match(content,0,spawn,rules());
   LanHost host(match,0,0x137fe0);
-  LanClient client("127.0.0.1:"+std::to_string(host.port()),0x137fe0,1);
+  LanClient client(host.join_address(),0x137fe0,1);
   // Reproduce graphics preparation outliving the unanswered-request deadline.
   // No request has been sent and the live host has no peer to expire yet.
   std::this_thread::sleep_for(std::chrono::milliseconds(10100));
@@ -842,7 +884,7 @@ void network_snapshot_stream() {
     }
     LanHost host(match,0,654);
     UdpProxy proxy(host.port());
-    LanClient client(proxy.address(),654,1);
+    LanClient client(host.join_address("127.0.0.1",ntohs(proxy.self.sin_port)),654,1);
     std::array<Controls,1> local{};std::array<Controls,16> controls{};
     client.send(local);proxy.pump();host.receive(controls);
     const auto challenge=proxy.pump();
@@ -891,14 +933,18 @@ void network_snapshot_stream() {
     check(client.state().tick==match.state().tick&&client.error().empty(),"Stale stream datagrams cannot roll back");
   }
   struct Measure {std::uint64_t bytes{};double seconds{};unsigned states{},ticks{};bool exact{};};
-  const auto measure=[&](const char *name,unsigned ticks) {
+  // impulses: replicated physics impulse events published per tick (item 4a),
+  // with random realistic values over a small object pool.
+  const auto measure=[&](const char *name,unsigned ticks,unsigned impulses=0) {
     NetProfile profile(name);
+    std::mt19937 impulse_random(4004);
+    const auto uniform=[&](float bound){return std::uniform_real_distribution<float>(-bound,bound)(impulse_random);};
     MultiplayerMatch match(content,0,spawn,selected);
     std::vector<unsigned> bots;
     for(unsigned i=0;i<7;++i)bots.push_back(match.join("Bot "+std::to_string(i)));
     LanHost host(match,0,987);
     UdpProxy proxy(host.port());
-    LanClient client(proxy.address(),987,1);
+    LanClient client(host.join_address("127.0.0.1",ntohs(proxy.self.sin_port)),987,1);
     std::array<Controls,1> local{};std::array<Controls,16> controls{};
     for(unsigned i=0;i<200&&!client.ready();++i) {
       client.send(local);proxy.pump();host.receive(controls);host.broadcast();
@@ -906,6 +952,23 @@ void network_snapshot_stream() {
       client.receive();std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
     check(client.ready(),"Budget fixture client joins");
+    const auto random_impulse=[&] {
+      PhysicsImpulseEvent e;e.object=0x00500000u|(std::uint32_t(impulse_random()%12)+40);
+      e.linear_velocity={uniform(6),uniform(6),uniform(6)};e.angular_velocity={uniform(8),uniform(8),uniform(8)};
+      return e;
+    };
+    // Steady state of a match with recent impulses: every run (including
+    // the baseline) takes one settling step; impulse runs start with a full
+    // journal, so measured events overwrite retained ones in place.
+    if(impulses)for(unsigned i=0;i<physics_impulse_journal_capacity;++i){
+      auto e=random_impulse();e.object=0x00600000u+i;match.publish_physics_impulse(e);
+    }
+    client.send(local);proxy.pump();host.receive(controls);match.step(controls);host.broadcast();
+    for(unsigned i=0;i<20;++i) {
+      client.send(local);proxy.pump();host.receive(controls);host.broadcast();
+      for(const auto &packet:proxy.pump())proxy.deliver(packet);
+      client.receive();std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
     std::map<std::uint32_t,MultiplayerState> history;
     Measure result;result.ticks=ticks;
     const auto start=std::chrono::steady_clock::now();const auto counted=proxy.delivered_bytes;
@@ -914,6 +977,7 @@ void network_snapshot_stream() {
       local[0].forward=1;local[0].yaw=0.05f*float(n);
       client.send(local);proxy.pump();host.receive(controls);
       for(unsigned b=0;b<bots.size();++b){controls[bots[b]].forward=1;controls[bots[b]].yaw=0.07f*float(n)+float(b);}
+      for(unsigned i=0;i<impulses;++i)match.publish_physics_impulse(random_impulse());
       match.step(controls);history.emplace(match.state().tick,match.state());host.broadcast();
       for(const auto &packet:proxy.pump())proxy.deliver(packet);
       client.receive();result.states+=unsigned(client.received_states().size());
@@ -932,6 +996,121 @@ void network_snapshot_stream() {
   // Game state reaches the client every tick; the budget bounds poses only.
   check(budgeted.states==budgeted.ticks,"Budgeted stream skipped a game-state tick");
   check(budgeted.bytes*20<complete.bytes,"Delta stream did not substantially reduce snapshot traffic");
+  // Item 4a: replicated impulses ride the every-tick generic state, outside
+  // the pose budget. Measure the same budgeted run with 1 and 4 per tick.
+  const auto light=measure("original",150,1),heavy=measure("original",150,4);
+  const auto added=[&](const Measure &m,unsigned per_tick){
+    return (double(m.bytes)-double(budgeted.bytes))/(double(per_tick)*double(m.ticks));};
+  std::cout<<"Physics impulse events: 1/tick "<<rate(light)<<" kbit/s (+"<<added(light,1)<<" B/event), 4/tick "
+      <<rate(heavy)<<" kbit/s (+"<<added(heavy,4)<<" B/event); "<<light.states<<"/"<<light.ticks<<", "
+      <<heavy.states<<"/"<<heavy.ticks<<" states\n";
+  check(light.exact&&heavy.exact&&light.states==light.ticks&&heavy.states==heavy.ticks,
+      "Impulse publication delayed or changed a game-state tick");
+  // Worst-case random contents (17 raw bytes per occupied slot). A message
+  // pays a fixed cost once for any journal change, then the event bytes.
+  check(added(light,1)<=24&&added(heavy,4)<=16,"Replicated impulse events exceed their per-event cost bound");
+#endif
+}
+// Replicated physics impulses over actual UDP under the retail budget
+// (NETCODE_ENHANCED_GOAL item 4a): the host publishes completed impulses on
+// the next snapshot, coalesced per object and retained for eight ticks, and
+// the non-host replica of a shot loose weapon moves on its first presented
+// frame after that snapshot (item 3b dead reckoning).
+void network_impulse_events() {
+#ifndef _WIN32
+  NetProfile profile("original");
+  const auto content=arena();auto spawn=starts();
+  // The observer client's own player spawns clear of the line of fire.
+  auto third=spawn[0];third.position={0,4,0};spawn.push_back(third);
+  MultiplayerMatch match(content,0,spawn,rules());
+  match.configure_weapon_pickups();
+  const auto shooter=match.join("Shooter"),target=match.join("Target");
+  LanHost host(match,0,0x4a11);
+  LanClient client(host.join_address(),0x4a11,1);
+  std::array<Controls,1> local{};std::array<Controls,16> controls{},held{};
+  for(unsigned i=0;i<200&&!client.ready();++i) {
+    client.send(local);host.receive(controls);host.broadcast();client.receive();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  }
+  check(client.ready(),"Impulse fixture client joins");
+  const auto deliver=[&] {
+    const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(3);
+    while(client.state().tick!=match.state().tick&&std::chrono::steady_clock::now()<deadline) {
+      client.send(local);host.receive(controls);host.broadcast();client.receive();
+      std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+    check(client.state().tick==match.state().tick,"Impulse snapshot did not reach the client");
+  };
+  const auto step=[&] {
+    client.send(local);host.receive(controls);
+    controls[shooter]=held[shooter];controls[target]=held[target];
+    match.step(controls);host.broadcast();client.receive();deliver();
+  };
+  deliver();
+  const auto delta=match.unit(target).body.position-match.unit(shooter).body.position;
+  held[shooter].yaw=std::atan2(delta.y,delta.x);held[shooter].fire=true;held[target].yaw=match.unit(target).yaw;
+  step();held[shooter].fire=false;
+  {
+    const auto shot_state=match.state();
+    check(shot_state.players[target].dead,"Impulse fixture shot did not kill its target: shooter "+
+        std::to_string(shooter)+" at "+std::to_string(match.unit(shooter).body.position.x)+","+
+        std::to_string(match.unit(shooter).body.position.y)+" target "+std::to_string(target)+" at "+
+        std::to_string(delta.x)+","+std::to_string(delta.y)+" health "+std::to_string(shot_state.players[target].health)+
+        " shots "+std::to_string(shot_state.players[shooter].shot_tick)+" loaded "+std::to_string(shot_state.players[shooter].loaded));
+  }
+  check(!match.state().world_weapons.empty()&&client.state().world_weapons.size()==match.state().world_weapons.size(),
+      "Killed target did not leave a replicated loose weapon");
+  const auto weapon=client.state().world_weapons.front();
+  ReplicaMotion shot,control;double clock=100;
+  const auto receive=[&] {
+    shot.receive(client.state(),clock);
+    auto quiet=client.state();quiet.physics_impulses.clear();control.receive(quiet,clock);
+  };
+  for(unsigned n=0;n<2;++n){step();receive();clock+=1.0/30;}
+  // Two impulses on the weapon in one step coalesce; an unrelated one stays.
+  PhysicsImpulseEvent hit;hit.object=weapon.handle;hit.linear_velocity={2,0,1.5f};hit.angular_velocity={0,0,4};
+  auto second=hit;second.linear_velocity={6,.3f,3};second.angular_velocity={0,1,5};
+  PhysicsImpulseEvent other;other.object=0x00090123u;other.linear_velocity={.5f,0,0};
+  match.publish_physics_impulse(hit);match.publish_physics_impulse(other);match.publish_physics_impulse(second);
+  step();
+  const auto published=match.state().physics_impulses;
+  check(published.size()==2&&published[0].object==weapon.handle&&published[1].object==other.object&&
+      published[0].tick==match.state().tick&&published[1].serial==published[0].serial+1&&
+      published[0].linear_velocity.x==6&&published[0].linear_velocity.y==.3125f&&
+      published[0].angular_velocity.z==5,"Host did not coalesce and quantize one step's impulses");
+  const auto replicated=client.state().physics_impulses;
+  check(replicated.size()==published.size()&&same_physics_impulse(replicated[0],published[0])&&
+      same_physics_impulse(replicated[1],published[1]),"Impulse journal did not survive UDP exactly");
+  receive();
+  const auto at_receipt=shot.root(ReplicaMotion::Kind::world_weapon,weapon.handle,clock);
+  const auto unshot=control.root(ReplicaMotion::Kind::world_weapon,weapon.handle,clock);
+  check(at_receipt&&unshot&&length(at_receipt->position-unshot->position)<1e-5f,"Impulse receipt was discontinuous");
+  const auto first=shot.root(ReplicaMotion::Kind::world_weapon,weapon.handle,clock+1.0/60);
+  const auto still=control.root(ReplicaMotion::Kind::world_weapon,weapon.handle,clock+1.0/60);
+  check(first&&still&&first->position.x-still->position.x>.08f&&first->position.z-still->position.z>.03f&&
+      std::atan2(first->basis[0].y,first->basis[0].x)!=std::atan2(still->basis[0].y,still->basis[0].x),
+      "Shot loose weapon did not move on the client's first presented frame");
+  std::cout<<"Impulse reaction on the first 60 Hz frame: moved "<<length(first->position-still->position)<<" wu\n";
+  // A retained event is not applied again by a later snapshot.
+  step();clock+=1.0/30;receive();
+  check(shot.statistics().impulses==1,"Retained impulse was applied twice");
+  // Retained for 10 s (300 ticks), then retired, on host and client alike.
+  while(match.state().tick-published[0].tick<physics_impulse_retention_ticks)step();
+  check(match.state().physics_impulses.size()==2&&client.state().physics_impulses.size()==2,
+      "Impulses were not retained for their 300-tick window");
+  step();
+  check(match.state().physics_impulses.empty()&&client.state().physics_impulses.empty(),
+      "Impulses outlived their 300-tick retention");
+  for(unsigned n=0;n<40;++n) {
+    PhysicsImpulseEvent e;e.object=0x00300000u+n;e.linear_velocity={float(n),0,0};match.publish_physics_impulse(e);
+  }
+  step();
+  const auto bounded=client.state().physics_impulses;
+  check(match.state().physics_impulses.size()==physics_impulse_journal_capacity&&bounded.size()==physics_impulse_journal_capacity&&
+      bounded.front().object==0x00300008u&&bounded.back().object==0x00300027u,"Impulse journal exceeded its capacity");
+  rejects([&]{match.publish_physics_impulse(PhysicsImpulseEvent{});},"Impulse without a full object was published");
+  rejects([&]{PhysicsImpulseEvent e;e.object=0x00300001u;e.linear_velocity.x=std::numeric_limits<float>::infinity();
+      match.publish_physics_impulse(e);},"Non-finite impulse was published");
 #endif
 }
 void network_snapshot_fragments() {
@@ -954,13 +1133,18 @@ void network_snapshot_fragments() {
   socklen_t size=sizeof(address);
   check(getsockname(proxy.fd,reinterpret_cast<sockaddr *>(&address),&size)==0,"Read proxy address");
   sockaddr_in host_address=address;host_address.sin_port=htons(host.port());
-  LanClient client("127.0.0.1:"+std::to_string(ntohs(address.sin_port)),456,1);
+  LanClient client(host.join_address("127.0.0.1",ntohs(address.sin_port)),456,1);
   std::array<Controls,1> local{};std::array<Controls,16> controls{};
   client.send(local);
   sockaddr_in client_address{};size=sizeof(client_address);std::array<char,1501> bytes{};
   const auto hello_size=recvfrom(proxy.fd,bytes.data(),bytes.size(),MSG_DONTWAIT,
       reinterpret_cast<sockaddr *>(&client_address),&size);
-  check(hello_size>0,"Actual hello arrives at proxy");
+  check(hello_size>38,"Actual hello arrives at proxy");
+  std::vector<char> spoofed_rejection(bytes.begin(),bytes.begin()+7);spoofed_rejection[6]=5;
+  spoofed_rejection.insert(spoofed_rejection.end(),bytes.begin()+30,bytes.begin()+38);
+  spoofed_rejection.push_back('x');
+  sendto(proxy.fd,spoofed_rejection.data(),spoofed_rejection.size(),0,reinterpret_cast<sockaddr*>(&client_address),sizeof(client_address));
+  client.receive();check(client.error().empty()&&!client.ready(),"Unauthenticated pre-join rejection won the host race");
   check(sendto(proxy.fd,bytes.data(),hello_size,0,reinterpret_cast<sockaddr *>(&host_address),sizeof(host_address))==hello_size,
       "Relay actual native hello");
   host.receive(controls);
@@ -1118,8 +1302,14 @@ void retail(const std::filesystem::path &maps) {
       verify_smg_option(dlc / (std::string(name) + ".map"));
 }
 } // namespace
+int run_replica_motion_tests();
+int run_adaptive_interpolation_tests();
+int run_predicted_impact_tests();
 int main(int argc, char **argv) {
   try {
+    if(argc==2 && std::string(argv[1])=="--replica-motion")return run_replica_motion_tests();
+    if(argc==2 && std::string(argv[1])=="--adaptive-interpolation")return run_adaptive_interpolation_tests();
+    if(argc==2 && std::string(argv[1])=="--predicted-impacts")return run_predicted_impact_tests();
     if(argc==2 && std::string(argv[1])=="--admission-security") {
       raw_lan_admission_security();network();network_snapshot_fragments();
       std::cout<<"Raw UDP endpoint proof, authenticated controls/leave and reordered/tampered snapshot recovery passed\n";return 0;
@@ -1160,6 +1350,11 @@ int main(int argc, char **argv) {
     if(argc==2 && std::string(argv[1])=="--snapshot-stream") {
       network_snapshot_stream();
       std::cout<<"Acknowledged delta snapshots join, recover and stay within the retail budget over actual UDP\n";
+      return 0;
+    }
+    if(argc==2 && std::string(argv[1])=="--impulse-events") {
+      network_impulse_events();
+      std::cout<<"Physics impulses replicate on the next snapshot and move the non-host replica at once\n";
       return 0;
     }
     if(argc==2 && std::string(argv[1])=="--startup-delay") {

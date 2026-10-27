@@ -320,24 +320,81 @@ int main(int argc, char **argv) {
           MenuState(content,preferences).pc_display_settings().graphics_mode==pstencil::GraphicsMode::pStencil,
           "pStencil mode did not apply and persist");
     choose(state,0);
-    check(applied_display.graphics_mode==pstencil::GraphicsMode::Original,"Original mode did not restore");
-    choose(state,0);choose(state,12);choose(state,11);choose(state,13);choose(state,0);
+    check(applied_display.graphics_mode==pstencil::GraphicsMode::PathTracing &&
+          state.pc_value_label(state.frame(),0)=="Path Tracing" &&
+          MenuState(content,preferences).pc_display_settings().graphics_mode==pstencil::GraphicsMode::PathTracing,
+          "Path Tracing mode did not apply and persist");
+    check(applied_display.path_tracing_samples==1 && applied_display.path_tracing_bounces==1 &&
+          state.frame().entries.at(14).label=="Path Tracing Quality",
+          "Path Tracing did not expose conservative ray/bounce defaults in Video Settings");
+    choose(state,14);
+    check(state.frame().context==video_path_tracing_context && state.frame().entries.size()==2,
+          "Path Tracing quality submenu missing");
+    choose(state,0);
+    check(state.frame().context==video_path_tracing_samples_context && state.frame().entries.size()==2,
+          "Path Tracing ray cap exposed values beyond 1..2");
+    choose(state,1);
+    check(applied_display.path_tracing_samples==2 && applied_display.path_tracing_bounces==1 &&
+          state.frame().context==video_path_tracing_context &&
+          state.frame().entries.at(0).label=="Ray Samples Per Pixel: 2",
+          "Path Tracing ray selection changed bounce depth or failed to return");
+    choose(state,1);
+    check(state.frame().context==video_path_tracing_bounces_context && state.frame().entries.size()==2,
+          "Path Tracing bounce cap exposed values beyond 1..2");
+    choose(state,1);
+    check(applied_display.path_tracing_samples==2 && applied_display.path_tracing_bounces==2 &&
+          applied_display.graphics_mode==pstencil::GraphicsMode::PathTracing &&
+          MenuState(content,preferences).pc_display_settings()==applied_display,
+          "Path Tracing quality did not apply independently and persist");
+    state.back();
+    choose(state,0);
+    check(applied_display.graphics_mode==pstencil::GraphicsMode::Original && state.frame().entries.size()==14 &&
+          applied_display.path_tracing_samples==2 && applied_display.path_tracing_bounces==2,
+          "Original mode did not restore or inactive RT quality altered graphics mode");
+    choose(state,0);choose(state,0);
+    check(applied_display.graphics_mode==pstencil::GraphicsMode::PathTracing,
+          "video defaults fixture did not select Path Tracing");
+    choose(state,12);choose(state,11);choose(state,13);choose(state,0);
     check(applied_display.field_of_view==78 && applied_display.vehicle_field_of_view==70 && !applied_display.crt_filter &&
           applied_display.two_player_split==TwoPlayerSplit::Horizontal &&
-          applied_display.graphics_mode==pstencil::GraphicsMode::Original,
+          applied_display.graphics_mode==pstencil::GraphicsMode::Original &&
+          applied_display.path_tracing_samples==1 && applied_display.path_tracing_bounces==1 &&
+          state.frame().entries.size()==14,
           "video defaults did not reset FOV, CRT and split controls");
     {
       MenuState rejected(content);
       rejected.set_pc_display_adapter([](const DisplaySettings &value){return value.crt_filter?"CRT unavailable":std::string{};});
       rejected.open(vista_menu(256));choose(rejected,11);
       check(!rejected.pc_display_settings().crt_filter,"rejected CRT toggle modified preferences");
+      MenuState rejected_path(content);
+      DisplaySettings rejected_applied;
+      rejected_path.set_pc_display_adapter([&](const DisplaySettings &value){
+        if(value.graphics_mode!=pstencil::GraphicsMode::PathTracing)rejected_applied=value;
+        return value.graphics_mode==pstencil::GraphicsMode::PathTracing?"Path Tracing unavailable":std::string{};
+      });
+      rejected_path.open(vista_menu(256));choose(rejected_path,0);choose(rejected_path,0);
+      check(rejected_path.pc_display_settings().graphics_mode==pstencil::GraphicsMode::Original &&
+            rejected_applied.graphics_mode==pstencil::GraphicsMode::Original &&
+            rejected_path.frame().description=="Path Tracing unavailable",
+            "unavailable Path Tracing trapped the graphics cycle instead of restoring Original");
       const auto invalid=preferences.string()+".invalid-crt";
-      {std::ofstream file(invalid);file<<"pc_crt_filter 2\npc_two_player_split 2\npc_graphics_mode 99\n";}
+      {std::ofstream file(invalid);file<<"halo2-native-menu-v1\npc_crt_filter 2\npc_two_player_split 2\npc_graphics_mode 99\n";}
       check(!MenuState(content,invalid).pc_display_settings().crt_filter,"invalid saved CRT value was accepted");
       check(MenuState(content,invalid).pc_display_settings().two_player_split==TwoPlayerSplit::Horizontal,
             "invalid saved split layout was accepted");
       check(MenuState(content,invalid).pc_display_settings().graphics_mode==pstencil::GraphicsMode::Original,
             "invalid saved graphics mode was accepted");
+      for(const auto quality:std::array<std::array<unsigned,2>,4>{{{0,1},{1,0},{3,1},{1,3}}}) {
+        {std::ofstream file(invalid);file<<"halo2-native-menu-v1\npc_path_tracing "<<quality[0]<<' '<<quality[1]<<'\n';}
+        const auto saved=MenuState(content,invalid).pc_display_settings();
+        check(saved.path_tracing_samples==1 && saved.path_tracing_bounces==1,
+              "Invalid saved ray/bounce cap bypassed conservative defaults");
+      }
+      {std::ofstream file(invalid);file<<"halo2-native-menu-v1\npc_graphics_mode 2\n";}
+      const auto legacy=MenuState(content,invalid).pc_display_settings();
+      check(legacy.graphics_mode==pstencil::GraphicsMode::PathTracing &&
+            legacy.path_tracing_samples==1 && legacy.path_tracing_bounces==1,
+            "Older configuration did not retain conservative RT quality defaults");
       std::filesystem::remove(invalid);
     }
     Mesh mesh;
@@ -400,7 +457,7 @@ int main(int argc, char **argv) {
       check(task_draw.scenes.front().before_vertex<=task_draw.vertices.size(),"PC model lost its draw ordering boundary");
       leave.close_vista_leave_task(task,3);
       check(leave.frame().screen==6 && leave.frame().instance!=old_lobby &&
-          leave.frame().entries.size()==5,"Task close did not retain the native main menu");
+          leave.frame().entries.size()==6,"Task close did not retain the native main menu");
       bool rejected{};try{leave.open(vista_menu(13));}catch(const FormatError&){rejected=true;}
       check(rejected && leave.frame().screen==6,"Retired PC13 was reachable through native navigation");
 

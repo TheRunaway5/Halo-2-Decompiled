@@ -1,5 +1,6 @@
 #include "halo2/multiplayer_audio.hpp"
 #include "halo2/audio.hpp"
+#include "halo2/mcc_sound_metadata_publication.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -37,9 +38,12 @@ int main(int argc,char** argv)try{
         check(event.sound==(packets%2?b:a),"Phase output selected a different authored sound");++packets;
       });
   audio.enroll_continuation();
+  const auto metadata=MccSoundMetadataPublication::create(cache);
+  audio.bind_native_loop_metadata(metadata);
   const MultiplayerLoopPacketTu15 input{a,0xffffffffu,0,0,0,{300,-3,1},{}};
   const auto voice=audio.play_loop_packet(input,audio.presentation_frames()+1024);
   check(voice && packets==1,"Initial actual phase PCM was not submitted");
+  rejects([&]{audio.bind_native_loop_metadata(metadata);},"Active loop voice admitted immutable metadata rebind");
   const auto parameters=audio.voice_parameters(*voice);
   rejects([&]{audio.queue_loop_packet_phase(*voice,different,0,0);},
       "Differing phase controls were silently substituted");
@@ -69,6 +73,6 @@ int main(int argc,char** argv)try{
   rejects([&]{audio.queue_loop_packet_phase(*voice,b,0,0);},"Retired phase receipt survived publication");
   same_pcm(expected,audio.render(remaining));audio.update();audio.stop();
   std::cout<<"PASS actual Banshee phase PCM: same native stream, two-slot backpressure, no underrun, exact restored suffix\n"
-      <<"LIMIT native output-port control with raw MCC metadata; source phase/synchronization ownership and launcher gameplay are separate\n";
+      <<"LIMIT native output-port control with actual immutable converted metadata; source phase/synchronization ownership and launcher gameplay are separate\n";
   return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}

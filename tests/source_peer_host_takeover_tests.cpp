@@ -14,6 +14,7 @@
 #include "halo2/cache.hpp"
 #include "halo2/mcc_sound_variation_provider.hpp"
 #include "halo2/multiplayer_audio.hpp"
+#include "halo2/native_lag_compensation.hpp"
 #include "helpers/source_peer_held_foreground.hpp"
 #ifdef HALO2_TAKEOVER_HELD_LENS_TEST
 #include "helpers/source_peer_held_lens.hpp"
@@ -1317,6 +1318,14 @@ int main(int argc,char **argv)try{
     check(!runtime.client()&&runtime.host()&&runtime.host()->peers()==1&&!runtime.pending_takeover(),"Replacement host lost its runtime role or surviving four-seat native peer");
     check(&runtime.match()==&staged->world().match&&&runtime.match()!=resident_match&&resident_cache->path()==runtime.world().cache->path(),
         "Runtime adoption changed immutable map resources or retained the old live Match");
+    // The promoted host keeps the old host's lag-compensated hitscan: the
+    // source shadow adopted its netcode mode and rewind owner from the cut.
+    check(runtime.match().netcode_mode()==paired.world.match.netcode_mode&&
+        bool(runtime.match().lag_compensation())==paired.world.match.lag_compensation.has_value()&&
+        (!runtime.match().lag_compensation()||runtime.match().lag_compensation()->mode()==paired.world.match.netcode_mode),
+        "Promoted host lost the old host's netcode mode or rewind owner");
+    std::cout<<"Promoted host netcode "<<netcode_mode_name(runtime.match().netcode_mode())<<", rewind owner "
+        <<(runtime.match().lag_compensation()?"installed":"absent")<<'\n';
     struct ClientPresentationAdoption {
         MultiplayerRuntimeAuthority &runtime;LanClient &client;LanClient::PreparedRebind &old;
         const MultiplayerMatch &match;const MultiplayerSnapshotOrigin &later;

@@ -8,6 +8,7 @@
 #include "halo2/source_geometry_lod.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/cache.hpp"
+#include "halo2/path_tracing/source_lights.hpp"
 #include <algorithm>
 #include <bit>
 #include <iterator>
@@ -48,6 +49,11 @@ CampaignLightingFrame CampaignRenderer::draw(PhysicsLiveWorldTu15& world,
     candidates.depth_plane={inverse.basis[0].z,inverse.basis[1].z,inverse.basis[2].z,inverse.position.z};
     candidates.pixel_scale=input.camera.viewport_half_metrics.y;
     auto lights=i.lights.view(world,input.eye,collection,candidates,input.frame,input.cinematic,true);
+    if(input.path_tracing) {
+        CampaignLightingFrame out;out.lights=lights.records.size();
+        out.path_tracing_lights=path_tracing::source_lights(world,lights.records);
+        return out;
+    }
     i.lights.select_native(world,lights,candidates,
         std::bit_cast<std::int32_t>(collection.local_player),input.frame,input.cinematic);
     const auto containing=source_bsp_fog_admission(i.atmosphere,{true,true,input.fog.planar_datum,0});
@@ -62,7 +68,7 @@ CampaignLightingFrame CampaignRenderer::draw(PhysicsLiveWorldTu15& world,
     // Sphere queries run first while the current context still owns the main
     // frame. Both paths retain the same main prefix and independent casters.
     out.draws=i.spheres->draw(lights,receivers,main.bsp,input.camera,input.fog,input.eye,
-        input.viewport,input.surface,1,&models,&out.casters,2);
+        input.viewport,input.surface,1,&models,&out.casters,2,input.submitting_constants);
     for(const auto& selected:lights.selected) {
         const auto at=std::find_if(lights.records.begin(),lights.records.end(),
             [&](const auto& row){return row.runtime.identity==selected.identity;});
@@ -72,7 +78,7 @@ CampaignLightingFrame CampaignRenderer::draw(PhysicsLiveWorldTu15& world,
         const auto receiver=native_light_receiver_tu15(world,selected.identity);
         const auto geometry=native_light_geometry_tu15(world,receiver);
         auto projected=i.projected->draw(world,*at,selected.requested_fade,receiver,geometry,
-            input.camera,input.eye,input.viewport,input.surface,out.casters,2);
+            input.camera,input.eye,input.viewport,input.surface,out.casters,2,input.submitting_constants);
         out.draws.insert(out.draws.end(),std::make_move_iterator(projected.draws.begin()),
             std::make_move_iterator(projected.draws.end()));
     }

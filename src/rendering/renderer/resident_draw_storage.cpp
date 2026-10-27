@@ -20,6 +20,7 @@ struct ResidentDrawStorage::Impl {
     VkDeviceMemory memory{};
     void *mapping{};
     std::size_t capacity{};
+    VkDeviceSize allocation_bytes{};
     std::vector<VkDescriptorSet> sets;
     Impl(VkDevice d,VkPhysicalDevice p,VkDescriptorSetLayout l,VkDeviceSize size)
         :device(d),physical(p),layout(l),uniform_size(size) {
@@ -39,7 +40,7 @@ struct ResidentDrawStorage::Impl {
         if(mapping)vkUnmapMemory(device,memory);
         if(memory)vkFreeMemory(device,memory,nullptr);
         mapping=nullptr;
-        pool=VK_NULL_HANDLE;buffer=VK_NULL_HANDLE;memory=VK_NULL_HANDLE;capacity=0;sets.clear();
+        pool=VK_NULL_HANDLE;buffer=VK_NULL_HANDLE;memory=VK_NULL_HANDLE;capacity=0;allocation_bytes=0;sets.clear();
     }
     void reserve(std::size_t count) {
         if(count<=capacity)return;
@@ -62,6 +63,7 @@ struct ResidentDrawStorage::Impl {
         VkMemoryAllocateInfo allocation{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
         allocation.allocationSize=requirements.size;allocation.memoryTypeIndex=type;
         check(vkAllocateMemory(device,&allocation,nullptr,&memory),"allocate resident draw constants");
+        allocation_bytes=requirements.size;
         check(vkBindBufferMemory(device,buffer,memory,0),"bind resident draw constants");
         check(vkMapMemory(device,memory,0,VK_WHOLE_SIZE,0,&mapping),"map resident draw constants");
         const VkDescriptorPoolSize sizes[]{
@@ -76,7 +78,7 @@ struct ResidentDrawStorage::Impl {
         allocation_sets.descriptorPool=pool;allocation_sets.descriptorSetCount=std::uint32_t(count);allocation_sets.pSetLayouts=layouts.data();
         check(vkAllocateDescriptorSets(device,&allocation_sets,sets.data()),"allocate resident draw descriptors");
     }
-    std::span<const VkDescriptorSet> upload(std::span<const ResidentDrawUpload> draws) {
+    std::span<const VkDescriptorSet> upload(std::span<const ResidentDrawUpload> draws,const ResidentDescriptorObserver &observer) {
         for(const auto&draw:draws) {
             if(!draw.resident || draw.material.size()!=uniform_size)
                 throw FormatError("incomplete resident draw upload");
@@ -124,11 +126,14 @@ struct ResidentDrawStorage::Impl {
         // Vulkan's writes-before-copies order preserves the original result.
         vkUpdateDescriptorSets(device,std::uint32_t(writes.size()),writes.data(),
             std::uint32_t(copies.size()),copies.data());
+        if(observer)observer(writes,copies); // Actual completed synchronous API call.
         return std::span<const VkDescriptorSet>{sets}.first(draws.size());
     }
 };
 ResidentDrawStorage::ResidentDrawStorage(VkDevice d,VkPhysicalDevice p,VkDescriptorSetLayout l,VkDeviceSize s)
     :impl_(std::make_unique<Impl>(d,p,l,s)){}
 ResidentDrawStorage::~ResidentDrawStorage()=default;
-std::span<const VkDescriptorSet> ResidentDrawStorage::upload(std::span<const ResidentDrawUpload> draws){return impl_->upload(draws);}
+std::span<const VkDescriptorSet> ResidentDrawStorage::upload(std::span<const ResidentDrawUpload> draws,const ResidentDescriptorObserver &observer){return impl_->upload(draws,observer);}
+std::size_t ResidentDrawStorage::allocated_bytes()const noexcept{return std::size_t(impl_->allocation_bytes);}
+std::size_t ResidentDrawStorage::cpu_bytes()const noexcept{return sizeof(*impl_)+impl_->sets.capacity()*sizeof(VkDescriptorSet);}
 }

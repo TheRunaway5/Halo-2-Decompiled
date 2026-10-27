@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/multiplayer.hpp"
+#include "halo2/native_lag_compensation_history.hpp"
 #include "halo2/simulation_authority.hpp"
 
 namespace halo2 {
@@ -8,12 +9,13 @@ namespace halo2 {
 // Local presentation roster/definitions must match before preparing; moving
 // authority to a PC with different local views still needs a session rebind.
 struct MultiplayerMatch::AuthorityCheckpoint {
-  std::uint32_t version=2,service_roles{},logical_result_seconds{};
+  std::uint32_t version=3,service_roles{},logical_result_seconds{};
   AuthorityDigest admitted_binding{},configuration_binding{};
   bool source_backed{};
   std::optional<DatumPool> owned_players;
   std::optional<DatumPool::SourceBinding> source_players;
   Simulation::AuthorityCheckpoint simulation;
+  std::optional<NativeFirstPersonRegistryCheckpointTu15> native_first_person;
   std::map<std::uint32_t,Simulation::AuthorityCheckpoint::UnitRecord> retained_units;
   std::vector<RumbleJournalEvent> rumble_events;
   std::uint64_t rumble_serial{};
@@ -35,7 +37,10 @@ struct MultiplayerMatch::AuthorityCheckpoint {
   std::vector<NativeWeaponEffectEvent> weapon_effect_journal;
   std::uint32_t weapon_effect_serial{};
   std::vector<SourceMultiplayerEventTu15> source_engine_events;
+  std::optional<SourceGameplayFadeJournalTu15> source_gameplay_fade;
   std::uint32_t source_engine_event_serial{};
+  std::vector<PhysicsImpulseEvent> physics_impulses;
+  std::uint32_t physics_impulse_serial{};
   std::uint16_t infection_zombies{};
   bool infection_started{};
   std::uint32_t infection_start_tick{};
@@ -54,5 +59,11 @@ struct MultiplayerMatch::AuthorityCheckpoint {
   std::uint8_t retained_team_mask{};
   std::array<std::int16_t,8> team_scores;
   SourceTeamMapping team_mapping;
+  // Host netcode mode and its lag-compensation rewind history
+  // (NETCODE_ENHANCED_GOAL item 2). Present exactly when the producer has a
+  // rewind owner; an importing world adopts both, so replayed steps rewind
+  // identically and a promoted host keeps rewinding.
+  NetcodeMode netcode_mode=NetcodeMode::original;
+  std::optional<NativeLagCompensationHistory> lag_compensation;
 };
 }

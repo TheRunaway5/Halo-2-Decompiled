@@ -31,6 +31,27 @@ std::u16string ascii_name(const std::string &name) {
 FullScoreboardRect rectangle(const UiRect &r) {
   return {std::int16_t(r.top),std::int16_t(r.left),std::int16_t(r.bottom),std::int16_t(r.right)};
 }
+std::optional<std::u16string> player_status_text(const FullScoreboardAssets &assets,
+    const MultiplayerState &state,unsigned slot,bool suppress,std::size_t capacity) {
+  if(slot>=state.players.size() || !state.players[slot].connected)return {};
+  const auto &player=state.players[slot];
+  if(!player.source_status)return {};
+  const auto &status=*player.source_status;
+  SourcePlayerStatusTextInput input;
+  input.team_mode=state.team_mode;
+  input.lifecycle=state.source_round_lifecycle_available?state.round_phase:status.lifecycle;
+  input.special_mode=state.source_round_lifecycle_available?state.finished:status.special_mode;
+  input.status=status.status;
+  input.suppress_playing=suppress;
+  input.respawn_seconds=player.source_respawn_seconds;
+  input.lives_remaining=player.source_lives_remaining;
+  const auto score=[&](std::int32_t value) {return full_scoreboard_score_text(value,state.source_engine);};
+  input.player_score=score(std::bit_cast<std::int16_t>(std::uint16_t(player.score)));
+  input.score_to_win=score(state.score_limit);
+  if(player.source_membership>=0 && player.source_membership<8)
+    input.team_score=score(state.team_scores[unsigned(player.source_membership)]);
+  return source_player_status_text(assets,input,capacity);
+}
 Material dead_emblem_material(const Cache &cache,std::uint32_t shader,const Texture &image) {
   auto material=cache.load_material(shader,true);
   if(material.passes.size()!=1)throw FormatError("Unsupported scoreboard death indicator pass");
@@ -75,6 +96,25 @@ struct MultiplayerScoreboard::PreparedRestore::Data {
   std::weak_ptr<Continuity> owner;std::uint64_t revision{};const Mesh *mesh{};const Material *roots{};std::size_t materials{};
   const FullScoreboardPainter *painter{};FullScoreboardHeldState replacement;bool consumed{};
 };
+FullScoreboardOptions multiplayer_scoreboard_options(FullScoreboardOptions options,
+    const MultiplayerState &state) {
+  // Game+180 selects15BB50's decimal/time formatter. The public source
+  // engine kind is the serialized variant+44, not the frontend selector.
+  options.display_mode=state.source_engine;
+  options.round_limit=state.round_mode;
+  options.score_limit=state.score_limit;
+  options.life_limit=state.life_limit;
+  options.team_mode=state.team_mode;
+  options.engine_active=state.source_round_lifecycle_available?state.round_phase==1:!state.finished;
+  options.game_over=state.source_round_lifecycle_available?state.finished:state.results_finalized;
+  return options;
+}
+std::int16_t multiplayer_scoreboard_scroll_axis(std::int16_t native_right_y) {
+  const int raw=std::clamp(-int(native_right_y),-32768,32767);
+  if(raw>9000)return std::int16_t((raw-9000)*32767/23767);
+  if(raw< -9000)return std::int16_t(-((-raw-9000)*32768/23768));
+  return 0;
+}
 MultiplayerScoreboard::MultiplayerScoreboard(const Cache &cache,
     const std::filesystem::path &directory,Mesh &mesh,const UiVariant &variant,
     const std::filesystem::path &ui_assets)
@@ -157,12 +197,19 @@ MultiplayerScoreboard::MultiplayerScoreboard(const Cache &cache,
   painter_=std::make_unique<FullScoreboardPainter>(font_,font,solid);
   const auto source=source_game_variant(variant);
   const auto parameter=[&](unsigned id) { return source_game_variant_get(source,int(id)); };
-  // Native active-Slayer adapter. Source mode2 is the original Slayer variant+44;
-  // native UiVariant.engine0 is a separate cache/UI selector.
-  options_.engine_present=true;options_.engine_active=true;options_.display_mode=2;
+  options_.engine_present=true;options_.engine_active=true;
+  options_.display_mode=source_game_variant_type(source);
+  // Game+184 bit4 is variant+48 bit4 (parameter12), used by248A70/248C90
+  // for extended score comparison after wins and accumulated score tie.
+  options_.extended_round_comparison=parameter(12)!=0;
   options_.round_limit=parameter(0);options_.life_limit=parameter(0x10);
 }
 MultiplayerScoreboard::~MultiplayerScoreboard(){continuity_->alive=false;}
+std::optional<std::u16string> MultiplayerScoreboard::status_text(const MultiplayerState &state,
+    unsigned slot,bool suppress,std::size_t capacity)const {
+  Call call(*this,false);
+  return player_status_text(assets_,state,slot,suppress,capacity);
+}
 bool MultiplayerScoreboard::Checkpoint::valid()const noexcept{const auto owner=data_?data_->owner.lock():nullptr;return owner&&owner->own();}
 MultiplayerScoreboard::Checkpoint MultiplayerScoreboard::checkpoint()const {
   Call call(*this,false);Checkpoint out;out.data_=std::make_shared<const Checkpoint::Data>(Checkpoint::Data{
@@ -214,7 +261,7 @@ void MultiplayerScoreboard::step(unsigned view,bool held) {
   held_.inactive_counter=0;
 }
 void MultiplayerScoreboard::step(unsigned view,bool requested,
-    const MultiplayerState& state,unsigned slot) {
+    const MultiplayerState& state,unsigned slot,std::int16_t source_scroll_axis) {
   Call call(*this,true);
   if(view>=4 || slot>=state.players.size() || !state.players[slot].connected)
     throw FormatError("Scoreboard has no local participant binding");
@@ -222,22 +269,35 @@ void MultiplayerScoreboard::step(unsigned view,bool requested,
   const auto& player=state.players[slot];
   FullScoreboardHeldInput input;input.local_view=std::int16_t(view);input.input_user=int(view);
   input.processed_record_present=true;input.held=requested;input.engine_present=true;
+  input.scroll_axis=source_scroll_axis;
   input.lifecycle=state.results_finalized?2:1;
   input.engine_status=state.finished?2:1;input.options_state=4;
+  if(player.source_status) {
+    input.lifecycle=player.source_status->lifecycle;
+    input.engine_status=player.source_status->engine_status;
+    input.options_state=player.source_status->options_state;
+  }
   input.current_unit=player.source_unit;
-  input.death_countdown=player.source_respawn_countdown;input.player_flags=player.source_flags;
+  input.death_countdown=player.source_respawn_seconds;input.player_flags=player.source_flags;
   input.exhausted=source_player_lives_exhausted(state.life_limit,player.source_unit,
       player.source_lives_remaining);
-  // Native participants have no source watched-player (+1B0) owner. The
-  // original1656D0 first rejects NONE, before its special ten-second interval.
-  // Ordinary deaths use the real current ownership and signed respawn timer;
-  // Unit.dead alone does not admit the original15E6BC automatic scoreboard.
-  if(!full_scoreboard_update_held(held_,input,{30,tick_seconds,std::int32_t(state.tick)},
+  auto gate_tick=std::int32_t(state.tick);
+  if(player.source_status && player.source_status->scoreboard_gate) {
+    // The original counter tail precedes object death, late respawn and the
+    // clock increment. Consume its captured owners from that same frame.
+    const auto &gate=*player.source_status->scoreboard_gate;
+    gate_tick=gate.tick;input.current_unit=gate.current_unit;
+    input.death_countdown=gate.respawn_seconds;input.player_flags=gate.player_flags;
+    input.lifecycle=gate.lifecycle;input.options_state=gate.options_state;input.engine_status=gate.engine_status;
+    input.exhausted=source_player_lives_exhausted(gate.life_limit,gate.current_unit,gate.lives_remaining);
+    input.death_observer_excluded=gate.death_observer_excluded;
+  }
+  if(!full_scoreboard_update_held(held_,input,{30,tick_seconds,gate_tick},
       FullScoreboardRounding::NearestEven,*original_->full_scoreboard_constants))
     throw FormatError("Scoreboard input outside original bounds");
 }
 MultiplayerScoreboard::Draw MultiplayerScoreboard::draw(const MultiplayerState &state,
-    std::span<const unsigned> ids,unsigned view,unsigned width,unsigned height,std::optional<TwoPlayerSplit> split) const {
+    std::span<const unsigned> ids,unsigned view,unsigned width,unsigned height,std::optional<TwoPlayerSplit> split) {
   Call call(*this,false);
   Draw out;
   if(!available() || view>=ids.size() || !width || !height)return out;
@@ -296,10 +356,7 @@ MultiplayerScoreboard::Draw MultiplayerScoreboard::draw(const MultiplayerState &
   viewport.safe={viewport.outer.top+viewport.safe.top-old.top,viewport.outer.left+viewport.safe.left-old.left,
       viewport.outer.bottom+viewport.safe.bottom-old.bottom,viewport.outer.right+viewport.safe.right-old.right};
   const auto outer=rectangle(viewport.outer),inner=rectangle(viewport.safe);
-  auto options=options_;options.score_limit=state.score_limit;
-  options.life_limit=state.life_limit;
-  options.team_mode=state.team_mode;
-  options.engine_active=!state.finished;options.game_over=state.results_finalized;
+  const auto options=multiplayer_scoreboard_options(options_,state);
   if(state.team_mode) {
     if(assets_.team_palette.size()<8)throw FormatError("Native scoreboard team palette unavailable");
     const auto playing=source_team_presence(0,std::span(presence).first(presence_count)).playing;
@@ -312,9 +369,17 @@ MultiplayerScoreboard::Draw MultiplayerScoreboard::draw(const MultiplayerState &
     }
   }
   const auto name=ascii_name(assets_.name_label),wins=ascii_name(assets_.wins_label),score=ascii_name(assets_.score_label);
+  const auto title=player_status_text(assets_,state,ids[view],false,80).value_or(u"");
   out.layout=full_scoreboard_layout(roster,state.players[ids[view]].source_player,options,
-      outer,inner,held_.scroll[view],alpha,{u"",name,wins,score},constants,
+      outer,inner,held_.scroll[view],alpha,{title,name,wins,score},constants,
       state.team_mode ? std::span<const FullScoreboardTeam>(teams) : std::span<const FullScoreboardTeam>{});
+  // Original1634B6/1634F0 writes the layout's per-view clamp back before
+  // drawing. Retain it so reversing at either end responds on the next tick.
+  if(out.layout.status==FullScoreboardStatus::Ready &&
+      std::bit_cast<std::uint32_t>(held_.scroll[view])!=std::bit_cast<std::uint32_t>(out.layout.scroll)) {
+    if(continuity_->revision==UINT64_MAX)throw FormatError("Scoreboard scroll continuation exhausted");
+    held_.scroll[view]=out.layout.scroll;++continuity_->revision;
+  }
   FullScoreboardPaintFrame frame;frame.clip={0,0,std::int16_t(outer.bottom-outer.top),std::int16_t(outer.right-outer.left)};
   frame.clock=clock;frame.font_horizontal_offset=font_horizontal_offset_;frame.shadow_enabled=true;frame.x87_control_word=0x27f;
   const FullScoreboardEmblem emblem=mesh_?FullScoreboardEmblem([&](const FullScoreboardRow &row)->std::optional<unsigned> {

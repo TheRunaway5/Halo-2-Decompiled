@@ -344,6 +344,10 @@ struct Codec {
   }
 };
 struct View {
+  std::optional<UiScreen> original_goal_background;
+  std::optional<UiScreen> original_friends_footer;
+  std::optional<UiScreen> other_lobby;
+  std::map<unsigned,UiScreen> other_goal_dialogs;
   FrontendContent content;
   FrontendUiAssetPack rasters;
   bool full_surface_friends{};
@@ -495,6 +499,30 @@ inline std::optional<View> make_view(const FrontendContent &source) {
           }))throw FormatError("MCC empty-party bitmap differs from its stock source descriptor");
       view.rasters.emplace(actual.name,actual.images);
       out.images.emplace(id,actual);
+      continue;
+    }
+    // These actual selected-cache banks also serve the original PCR/progress
+    // graph. Keep their exact existing datum, descriptor and native pixels;
+    // the OG augmentation creates separate private source raster owners.
+    static constexpr std::string_view retained_matchmaking_banks[]{
+      "ui\\list_skins\\pcr_lists\\player",
+      "ui\\list_skins\\pcr_lists\\pvp_others",
+      "ui\\list_skins\\pcr_lists\\selecto",
+      "ui\\list_skins\\pcr_lists\\team",
+      "ui\\screens\\game_shell\\difficulty\\difficulty_options",
+      "ui\\screens\\game_shell\\postgame_statistics\\3_column",
+      "ui\\screens\\game_shell\\postgame_statistics\\5_column",
+      "ui\\screens\\game_shell\\postgame_statistics\\spinners",
+      "ui\\screens\\game_shell\\postgame_statistics\\team",
+      "ui\\screens\\game_shell\\xbox_live\\matchmaking_progress_dialog\\done",
+      "ui\\screens\\game_shell\\xbox_live\\matchmaking_progress_dialog\\matchmaking",
+      "ui\\screens\\game_shell\\xbox_live\\matchmaking_progress_dialog\\progress_dots",
+      "ui\\screens\\game_shell\\xbox_live\\matchmaking_progress_dialog\\progress_numbers",
+    };
+    if (std::find(std::begin(retained_matchmaking_banks), std::end(retained_matchmaking_banks), actual.name)
+        != std::end(retained_matchmaking_banks)) {
+      view.rasters.try_emplace(actual.name, actual.images);
+      out.images.try_emplace(id, actual);
       continue;
     }
     const auto expected = original.at("map_images").find(actual.name);

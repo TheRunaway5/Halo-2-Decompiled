@@ -1,4 +1,5 @@
 #include "helpers/gameplay_fixture.hpp"
+#include "helpers/first_person_dual_variants.hpp"
 #define SDL_MAIN_HANDLED
 #include "halo2/animation_presentation.hpp"
 #include "halo2/multiplayer.hpp"
@@ -18,7 +19,9 @@
 #include <cmath>
 #include <cstring>
 #include <fstream>
+#include <future>
 #include <iostream>
+#include <mutex>
 #include <nlohmann/json.hpp>
 #include <set>
 #include <thread>
@@ -46,6 +49,228 @@ void trigger(Uint32 window,Uint8 button,bool down) {
   e.button.button=button;e.button.state=down?SDL_PRESSED:SDL_RELEASED;
   check(SDL_PushEvent(&e)==1,"Queue weapon trigger");
 }
+void configure_test_display(DesktopSession &desktop,nlohmann::json &report,bool gpu=false) {
+  const auto *requested=std::getenv("HALO2_TEST_RENDER_MODE");
+  const std::string mode=requested?requested:"";
+  check(mode.empty() || mode=="original" || mode=="pstencil","Unsupported private test render mode");
+  if(!gpu && mode.empty())return;
+  check(!gpu || mode.empty() || mode=="original","GPU verification requires the Original test render mode");
+  const bool pstencil_mode=!gpu && mode=="pstencil";
+  desktop.display_settings.graphics_mode=pstencil_mode?pstencil::GraphicsMode::pStencil:pstencil::GraphicsMode::Original;
+  desktop.display_settings.upscaler=Upscaler::Off;
+  desktop.upscaling_preferences_initialized=true;
+  report["declared_display"]={{"graphics_mode",pstencil_mode?"pStencil":"Original"},{"upscaler","Off"},
+      {"gpu_verification",gpu},{"private_session_only",true},{"preferences_saved",false}};
+}
+nlohmann::json retained_body_manager(MultiplayerObjectRuntime &source,std::uint32_t unit) {
+  const auto body=source.source_object_body(unit);const auto &memory=source.memory();
+  const auto word=[&](std::uint32_t at){return Bytes(memory.view(at,4)).u32(0);};
+  const auto offset=[&](std::uint32_t at){return std::bit_cast<std::int16_t>(Bytes(memory.view(at,2)).u16(0));};
+  const auto manager_offset=offset(body+0x12au),extension_offset=offset(body+0x33eu);
+  nlohmann::json result{{"unit",unit},{"source_body",body},{"manager_offset",manager_offset},
+      {"extension_offset",extension_offset}};
+  if(manager_offset>0) {
+    const auto manager=body+std::uint32_t(manager_offset);
+    result["manager"]=manager;result["mode_70"]=word(manager+0x70u);
+    result["class_74"]=word(manager+0x74u);result["type_78"]=word(manager+0x78u);
+    result["activity_7c"]=word(manager+0x7cu);
+  }
+  if(extension_offset>0) {
+    const auto extension=body+std::uint32_t(extension_offset);
+    result["primary_context_94"]=word(extension+0x94u);result["secondary_context_98"]=word(extension+0x98u);
+    result["arm_104"]=word(extension+0x104u);result["arm_108"]=word(extension+0x108u);
+    result["grip_10c"]=word(extension+0x10cu);result["grip_110"]=word(extension+0x110u);
+  }
+  return result;
+}
+void record_body_manager(nlohmann::json &trace,std::optional<nlohmann::json> &previous,
+    nlohmann::json context,unsigned tick) {
+  if(previous && *previous==context)return;
+  previous=context;
+  if(trace.size()<64){context["tick"]=tick;trace.push_back(std::move(context));}
+}
+// Exercise the joining client's ordinary render path. The offline dual test
+// below obtains its matrices from168DED; a joining client instead consumes
+// the authority's two clock channels and its own authored model bindings.
+// Keeping this case separate prevents the offline source draw from proving
+// coverage of a path it never enters.
+template<class Channel>
+bool check_authored_dual_channel(const Channel &channel,const test::AuthoredFirstPersonDualVariants &variants) {
+  if(!variants.has_activity(channel.activity))return false;
+  check(variants.contains(channel.graph,channel.activity,channel.animation_identifier),
+      "Native dual channel left its actual authored dual-class variant chain or graph");
+  return true;
+}
+int network_dual_runtime(const MultiplayerOptions &request,unsigned representation,nlohmann::json &report) {
+  report["scenario"]="native-authority-to-joining-client-dual";
+  struct Host {
+    std::string address;
+    std::exception_ptr error;
+    std::mutex mutex;
+    nlohmann::json body_manager_context=nlohmann::json::array();
+    std::jthread worker;
+    FirstPersonBindingDefinition dual_binding;
+    std::optional<test::AuthoredFirstPersonDualVariants> dual_variants;
+    Host(MultiplayerOptions options,unsigned representation) {
+      options.host_port=1; // Select host preparation; LanHost owns an ephemeral socket below.
+      if(options.starting_weapon)options.variant.values.set(89,int(options.starting_weapon));
+      std::promise<std::string> ready;auto startup=ready.get_future();
+      worker=std::jthread([this,options,representation,ready=std::move(ready)](std::stop_token stop)mutable {
+        bool published{};
+        try {
+          MultiplayerPreparedWorld world(options);world.bind_source_local_views(world.local_slots);
+          check(world.cache->is_mcc(),"Network dual runtime requires prepared MCC assets");
+          check(world.source_objects && world.source_objects->owns_physics(),
+              "Network dual host has no native TU1.5 world");
+          dual_binding=world.cache->load_first_person_binding(world.rules.weapon,representation);
+          dual_variants.emplace(*world.cache,dual_binding);
+          const NetgameEquipment *pickup=nullptr;
+          for(const auto &row:world.content.netgame_equipment)
+            if(!row.classification && source_netgame_equipment_selector(row,true,world.rules.source_engine)>=0 &&
+                row.items.size()==1 && row.items.front().definition==world.rules.weapon) {
+              pickup=&row;break;
+            }
+          check(pickup,"Network dual host has no authored starting-weapon pickup");
+          const auto fingerprint=multiplayer_fingerprint(options.map,world.cache->shared_directory(),
+              unsigned(options.bsp),world.network_starting_weapon_identity());
+          LanHost host(world.match,0,fingerprint,options.variant);
+          ready.set_value(host.join_address());published=true;
+          std::array<Controls,multiplayer_capacity> commands{};
+          std::optional<nlohmann::json> previous_body_manager;
+          auto next=std::chrono::steady_clock::now();
+          while(!stop.stop_requested()) {
+            host.receive(commands);
+            const auto state=world.match.state();
+            for(unsigned id=0;id<state.players.size();++id)
+              if(state.players[id].connected && id!=world.local_slots.front() &&
+                  state.players[id].source_unit!=null_datum && !state.players[id].dead) {
+                // Declared diagnostic placement only. The original native
+                // pickup/action/clock owners still perform the transfer.
+                auto position=pickup->position;position.x-=.2f;
+                world.source_objects->tu15_world().set_object_position(state.players[id].source_unit,position);
+              }
+            world.match.step(commands);
+            const auto completed=world.match.state();
+            for(unsigned id=0;id<completed.players.size();++id)
+              if(completed.players[id].connected && id!=world.local_slots.front() &&
+                  completed.players[id].source_unit!=null_datum) {
+                auto context=retained_body_manager(*world.source_objects,completed.players[id].source_unit);
+                std::lock_guard lock(mutex);
+                record_body_manager(body_manager_context,previous_body_manager,std::move(context),completed.tick);
+              }
+            host.broadcast();
+            next+=std::chrono::microseconds(33333);std::this_thread::sleep_until(next);
+          }
+        }catch(...) {
+          if(!published)ready.set_exception(std::current_exception());
+          std::lock_guard lock(mutex);error=std::current_exception();
+        }
+      });
+      address=startup.get();
+    }
+    void finish() {
+      worker.request_stop();if(worker.joinable())worker.join();
+      std::lock_guard lock(mutex);if(error)std::rethrow_exception(error);
+    }
+  };
+  Host host(request,representation);report["native_world_constructor_completed"]=true;report["runtime_cache_source"]="MCC";
+  auto options=request;options.join=host.address;
+  options.frames=0;options.width=800;options.height=600;options.mute=true;
+  options.desktop=std::make_shared<DesktopSession>();
+  configure_test_display(*options.desktop,report);
+  auto *window=options.desktop->window(options.width,options.height,false);
+  SDL_RaiseWindow(window);SDL_SetWindowInputFocus(window);
+  const auto window_id=SDL_GetWindowID(window);SDL_FlushEvents(SDL_FIRSTEVENT,SDL_LASTEVENT);
+  check(SDL_SetRelativeMouseMode(SDL_TRUE)==0,"Network dual could not capture its actual SDL mouse");
+  enum class Stage {pickup,ready,offhand,primary,reload,done};Stage stage=Stage::pickup;
+  std::optional<unsigned> slot;std::uint32_t stage_tick{};
+  std::array<std::uint32_t,2> weapons{null_datum,null_datum};
+  std::array<unsigned,2> draws{};
+  std::array<std::set<std::vector<std::uint32_t>>,2> poses;
+  std::array<std::set<std::pair<std::uint32_t,std::uint32_t>>,2> channels;
+  std::array<std::set<std::uint32_t>,2> hand_clips;
+  bool offhand_fired{},primary_fired{},reloaded{},quit{};
+  const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(180);
+  options.input_observer=[&](unsigned,std::span<const Controls>,const MultiplayerState &state) {
+    check(std::chrono::steady_clock::now()<deadline,"Network dual SDL sequence timed out");
+    if(SDL_GetKeyboardFocus()!=window){SDL_RaiseWindow(window);SDL_SetWindowInputFocus(window);}
+    if(!slot)for(unsigned id=1;id<state.players.size();++id)
+      if(state.players[id].connected && state.players[id].source_unit!=null_datum){slot=id;break;}
+    if(!slot)return;
+    const auto &player=state.players[*slot];
+    check(!player.dead,"Network dual participant died before its pose assertions");
+    weapons={player.source_weapon,player.secondary_weapon.datum};
+    report["network_dual"]={{"tick",state.tick},{"slot",*slot},{"stage",unsigned(stage)},
+        {"weapons",weapons},{"draws",draws},{"primary_clock",player.first_person_clock.present},
+        {"offhand_clock",player.secondary_weapon.clock.present},{"primary_loaded",player.loaded},
+        {"offhand_loaded",player.secondary_weapon.loaded},
+        {"channel_samples",{channels[0].size(),channels[1].size()}},
+        {"clips_per_hand",{hand_clips[0].size(),hand_clips[1].size()}}};
+    {std::lock_guard lock(host.mutex);report["authority_body_manager_context"]=host.body_manager_context;}
+    const auto advance=[&](Stage next){stage=next;stage_tick=state.tick;};
+    if(stage==Stage::pickup) {
+      hold_key(window_id,SDL_SCANCODE_X,true);
+      if(weapons[1]!=null_datum){hold_key(window_id,SDL_SCANCODE_X,false);advance(Stage::ready);}
+    }else if(stage==Stage::ready && state.tick-stage_tick>=20) {
+      check(player.first_person_clock.present && player.secondary_weapon.clock.present,
+          "Joining-client dual authority did not publish both native pose channels");
+      check(check_authored_dual_channel(player.first_person_clock.current,*host.dual_variants) &&
+          check_authored_dual_channel(player.secondary_weapon.clock.current,*host.dual_variants),
+          "Joining-client dual authority did not select an authored dual-class pose");
+      check(draws[0] && draws[1],"Joining-client dual pickup did not render both authoritative weapon owners");
+      trigger(window_id,SDL_BUTTON_RIGHT,true);advance(Stage::offhand);
+    }else if(stage==Stage::offhand) {
+      offhand_fired|=player.secondary_weapon.loaded<60;
+      check(player.loaded==60,"Joining-client offhand trigger consumed primary ammunition");
+      if(state.tick-stage_tick>=10) {
+        trigger(window_id,SDL_BUTTON_RIGHT,false);trigger(window_id,SDL_BUTTON_LEFT,true);advance(Stage::primary);
+      }
+    }else if(stage==Stage::primary) {
+      primary_fired|=player.loaded<60;
+      if(state.tick-stage_tick>=10) {
+        trigger(window_id,SDL_BUTTON_LEFT,false);key(window_id,SDL_SCANCODE_R);advance(Stage::reload);
+      }
+    }else if(stage==Stage::reload) {
+      reloaded|=offhand_fired && primary_fired && player.loaded==60 && player.secondary_weapon.loaded==60;
+      if(reloaded && state.tick-stage_tick>=10)advance(Stage::done);
+    }
+    if(stage!=Stage::pickup)check(weapons[0]!=null_datum && weapons[1]!=null_datum,
+        "Joining-client dual sequence lost an authoritative hand owner");
+    if(stage==Stage::done && !quit && draws[0]>10 && draws[1]>10 && poses[0].size()>3 && poses[1].size()>3 &&
+        channels[0].size()>3 && channels[1].size()>3 && hand_clips[0].size()>=3 && hand_clips[1].size()>=3) {
+      SDL_Event event{};event.type=SDL_QUIT;check(SDL_PushEvent(&event)==1,"Exit network dual runtime");quit=true;
+    }
+  };
+  options.animation_observer=[&](unsigned view,unsigned player,const AnimationRenderObservation &draw) {
+    if(view || !slot || player!=*slot || !draw.first_person || weapons[1]==null_datum)return;
+    for(unsigned hand=0;hand<2;++hand)if(draw.weapon==weapons[hand]) {
+      check(!draw.vertices.empty() && !draw.weapon_nodes.empty(),"Joining-client dual hand submitted no geometry/nodes");
+      ++draws[hand];std::vector<std::uint32_t> words;words.reserve(draw.weapon_nodes.size()*13);
+      channels[hand].insert({draw.animation,std::bit_cast<std::uint32_t>(draw.frame)});
+      hand_clips[hand].insert(draw.animation);
+      for(const auto &node:draw.weapon_nodes) {
+        const auto values=std::bit_cast<std::array<std::uint32_t,13>>(node);
+        words.insert(words.end(),values.begin(),values.end());
+      }
+      poses[hand].insert(std::move(words));
+    }
+  };
+  const auto result=run_multiplayer(options);host.finish();
+  check(result==0 && quit && reloaded,"Joining-client dual fire/reload sequence did not complete");
+  for(unsigned hand=0;hand<2;++hand)
+    check(draws[hand]>10 && poses[hand].size()>3 && channels[hand].size()>3 && hand_clips[hand].size()>=3,
+        "Joining-client dual weapon was absent or its own animation channel stayed frozen");
+  report["render_loop_completed"]=true;report["network_dual"]["passed"]=true;
+  report["network_dual"]["draws"]=draws;
+  report["network_dual"]["distinct_node_banks"]={poses[0].size(),poses[1].size()};
+  report["network_dual"]["distinct_channel_samples"]={channels[0].size(),channels[1].size()};
+  report["network_dual"]["clips_per_hand"]={hand_clips[0].size(),hand_clips[1].size()};
+  std::cout<<"PASS native MCC authority -> authenticated localhost UDP -> joining-client SDL dual pickup, "
+      "independent fire/reload, actual hand draws="<<draws[0]<<','<<draws[1]
+      <<" distinct node banks="<<poses[0].size()<<','<<poses[1].size()<<'\n';
+  std::cout<<"LIMIT localhost transport; no WAN/DTLS, framebuffer or original-hardware parity claim\n";
+  return 0;
+}
 }
 int main(int argc,char **argv){HistoryReport history;try {
   check(argc==4 || argc==5,"Supply MAP SHARED XBE [CAPTURE]");
@@ -58,15 +283,27 @@ int main(int argc,char **argv){HistoryReport history;try {
   SDL_SetMainReady();MultiplayerOptions options;options.map=argv[1];options.shared_maps=argv[2];
   if(!mcc)options.gameplay_xbe=argv[3];
   options.width=800;options.height=600;options.local_players=1;options.starting_weapon=5;options.mute=false;options.input_instances={-1};
-  options.frames=argc==5?0u:320u;options.reference_tick_cadence=true;options.reference_render_fraction=.5f;
-  const bool verify_world_poses=std::getenv("HALO2_TEST_DUAL_WORLD_POSES")!=nullptr;
-  if(verify_world_poses)options.reference_render_fraction=1.f; // Exact completed-tick original palette comparison.
   const auto *representation_option=std::getenv("HALO2_TEST_REPRESENTATION");
   const unsigned representation=representation_option?unsigned(std::stoul(representation_option)):2u;
   check(representation==2 || representation==3,"Unsupported actual multiplayer representation");
   if(representation==3){auto profile=source_default_player_configuration();profile[0x44]=1;options.selected_profiles={profile};}
+  history.data["representation"]=representation;
   options.validation=std::getenv("HALO2_ANIMATION_VALIDATION");
   if(const auto *artwork=std::getenv("HALO2_TEST_HUD_UI_ASSETS"))options.ui_assets=artwork;
+  if(std::getenv("HALO2_TEST_NETWORK_DUAL")) {
+    check(mcc && argc==4,"Network dual validation requires prepared MCC and no capture argument");
+    return network_dual_runtime(options,representation,history.data);
+  }
+  options.frames=argc==5?0u:320u;options.reference_tick_cadence=true;options.reference_render_fraction=.5f;
+  const bool verify_world_poses=std::getenv("HALO2_TEST_DUAL_WORLD_POSES")!=nullptr;
+  const bool verify_dual_gpu=std::getenv("HALO2_TEST_DUAL_GPU")!=nullptr;
+  if(verify_dual_gpu) {
+    check(mcc,"Dual GPU validation requires prepared MCC assets");
+    check(std::getenv("HALO2_VERIFY_GPU_FIRST_PERSON_INPUTS") && std::getenv("HALO2_VERIFY_GPU_SKINNING"),
+        "Dual GPU validation requires source-bank and actual GPU readback verification");
+    check(!verify_world_poses,"Dual GPU validation uses passive nodes rather than posed WORLD draw observers");
+  }
+  if(verify_world_poses)options.reference_render_fraction=1.f; // Exact completed-tick original palette comparison.
   options.prepared_world=std::make_shared<MultiplayerPreparedWorld>(options);
   const auto &world=*options.prepared_world;
   check(!mcc || world.cache->is_mcc(),"Weapon runtime testing requires an MCC cache");
@@ -92,7 +329,9 @@ int main(int argc,char **argv){HistoryReport history;try {
   // Only initial diagnostic placement is supplied. Item allocation, transfer,
   // clocks, trigger/reload/grenade outcomes and poses come from the live loop.
   const auto location=row->position;const auto slot=world.local_slots.at(0);
-  options.desktop=std::make_shared<DesktopSession>();auto *window=options.desktop->window(800,600,false);
+  options.desktop=std::make_shared<DesktopSession>();
+  configure_test_display(*options.desktop,history.data,verify_dual_gpu);
+  auto *window=options.desktop->window(800,600,false);
   SDL_RaiseWindow(window);SDL_SetWindowInputFocus(window);
   std::cout<<"Native SDL video driver: "<<SDL_GetCurrentVideoDriver()<<'\n';
   const auto window_id=SDL_GetWindowID(window);SDL_FlushEvents(SDL_FIRSTEVENT,SDL_LASTEVENT);
@@ -105,8 +344,20 @@ int main(int argc,char **argv){HistoryReport history;try {
   unsigned firing_particles{},firing_sounds{},fired_rounds{};
   std::optional<std::array<int,2>> previous_ammunition;
   const auto firing_sound=world.content.weapons.at(world.rules.weapon).sound;
+  const auto dual_binding=verify_dual_gpu?world.cache->load_first_person_binding(world.rules.weapon,representation):
+      FirstPersonBindingDefinition{};
+  std::optional<test::AuthoredFirstPersonDualVariants> dual_variants;
+  if(verify_dual_gpu)dual_variants.emplace(*world.cache,dual_binding);
   std::set<std::uint32_t> posed_weapons;std::set<unsigned> clips;
+  std::array<std::set<std::uint64_t>,2> gpu_hand_nodes;
+  std::array<std::set<std::pair<std::uint32_t,std::uint32_t>>,2> gpu_hand_channels;
+  std::array<std::set<std::uint32_t>,2> gpu_hand_activities;
+  std::array<std::optional<std::uint64_t>,2> gpu_latest_nodes;
+  unsigned gpu_dual_frames{},gpu_distinct_hand_frames{};
+  std::uint64_t gpu_verified_vertices{},gpu_foreground_vertices{},gpu_deformed_vertices{};
   unsigned history_checks{},history_mismatches{};
+  std::optional<nlohmann::json> previous_body_manager;
+  history.data["body_manager_context"]=nlohmann::json::array();
   unsigned world_pose_publications{},world_pose_draws{},dropped_pose_draws{},world_pose_mismatches{},world_palette_matrices{};
   history.data["world_pose_metrics"]={{"enabled",verify_world_poses},{"render_fraction",options.reference_render_fraction}};
   const bool follow_drop=std::getenv("HALO2_TEST_DUAL_DROP_LIFETIME")!=nullptr;
@@ -248,6 +499,9 @@ int main(int argc,char **argv){HistoryReport history;try {
   };
   options.input_observer=[&](unsigned tick,std::span<const Controls> controls,const MultiplayerState &state){
     step=tick;current=state;const auto &p=state.players[slot];
+    if(history.path && p.source_unit!=null_datum)
+      record_body_manager(history.data["body_manager_context"],previous_body_manager,
+          retained_body_manager(*options.prepared_world->source_objects,p.source_unit),state.tick);
     if(verify_world_poses) {
       auto *source=options.prepared_world->match.source_object_runtime();
       check(source && source->owns_physics(),"World pose comparison requires original source objects");
@@ -428,7 +682,7 @@ int main(int argc,char **argv){HistoryReport history;try {
     report_observations();
     check(!start || tick<*start+250,"Live dual pickup/animation sequence timed out");
   };
-  options.animation_observer=[&](unsigned,unsigned,const AnimationRenderObservation &sample){
+  if(!verify_dual_gpu)options.animation_observer=[&](unsigned,unsigned,const AnimationRenderObservation &sample){
     if(!sample.first_person)return;
     for(const auto &v:sample.vertices)check(std::isfinite(v.position.x)&&std::isfinite(v.position.y)&&std::isfinite(v.position.z),"Nonfinite posed weapon vertex");
     if(current.players[slot].secondary_weapon.datum!=null_datum) {
@@ -438,9 +692,54 @@ int main(int argc,char **argv){HistoryReport history;try {
   options.audio_observer=[&](const MultiplayerAudioSubmission &s) {
     if(s.sound==firing_sound){check(s.frames>0,"SMG firing sound submitted empty PCM");++firing_sounds;}
   };
-  options.effect_observer=[&](unsigned,unsigned,std::span<const ParticleDraw> particles) {
+  if(!verify_dual_gpu)options.effect_observer=[&](unsigned,unsigned,std::span<const ParticleDraw> particles) {
     if(dual_at)firing_particles+=unsigned(particles.size());
   };
+  if(verify_dual_gpu) {
+    // These observers do not request posed CPU vertices and therefore keep
+    // the ordinary GPU admission path active. Source-bank verification checks
+    // each actual hand before submission; renderer verification compares its
+    // completed GPU bytes with the original CPU deformation and placement.
+    options.node_observer=[&](unsigned view,unsigned,const MultiplayerNodeObservation &sample) {
+      if(view || sample.stage!=MultiplayerNodeStage::first_person_interpolated || sample.mode!=1 ||
+          current.players[slot].secondary_weapon.datum==null_datum)return;
+      const auto &player=current.players[slot];
+      for(unsigned hand=0;hand<2;++hand)
+        if(sample.owner==(hand?player.secondary_weapon.datum:player.source_weapon)) {
+          check(!sample.nodes.empty(),"Ordinary dual GPU hand has no source node bank");
+          std::uint64_t hash=1469598103934665603ull;
+          for(auto byte:std::as_bytes(sample.nodes))hash=(hash^std::to_integer<unsigned char>(byte))*1099511628211ull;
+          gpu_latest_nodes[hand]=hash;gpu_hand_nodes[hand].insert(hash);
+          posed_weapons.insert(sample.owner);++draws;
+          const auto binding=options.prepared_world->source_objects->first_person_view(view);
+          check(binding.hands[hand].weapon==sample.owner,"Ordinary dual GPU node owner differs from its native registration");
+          const auto &channel=binding.hands[hand];clips.insert(channel.animation_identifier>>16);
+          if(dual_at && current.tick>=*dual_at+20)
+            check_authored_dual_channel(channel,*dual_variants);
+          gpu_hand_channels[hand].insert({channel.animation_identifier,std::bit_cast<std::uint32_t>(channel.frame)});
+          gpu_hand_activities[hand].insert(channel.activity);
+        }
+    };
+    options.frame_observer=[&](const MultiplayerFrameTiming &frame) {
+      if(!frame.submitted || current.players[slot].secondary_weapon.datum==null_datum)return;
+      const auto &renderer=frame.renderer;
+      if(renderer.model_skin_gpu_post_identity_vertices) {
+        ++gpu_dual_frames;gpu_foreground_vertices+=renderer.model_skin_gpu_post_identity_vertices;
+        gpu_verified_vertices+=renderer.model_skin_gpu_verified_vertices;
+        gpu_deformed_vertices+=renderer.model_skin_gpu_deformed_vertices;
+        check(renderer.model_skin_gpu_verified_vertices>=renderer.model_skin_gpu_post_identity_vertices,
+            "Ordinary dual foreground GPU vertices escaped actual readback verification");
+        if(gpu_latest_nodes[0] && gpu_latest_nodes[1] && *gpu_latest_nodes[0]!=*gpu_latest_nodes[1])++gpu_distinct_hand_frames;
+      }
+      history.data["dual_gpu"]={{"frames",gpu_dual_frames},{"distinct_hand_frames",gpu_distinct_hand_frames},
+          {"foreground_vertices",gpu_foreground_vertices},{"verified_vertices",gpu_verified_vertices},
+          {"deformed_vertices",gpu_deformed_vertices},{"primary_node_banks",gpu_hand_nodes[0].size()},
+          {"offhand_node_banks",gpu_hand_nodes[1].size()},
+          {"channel_samples",{gpu_hand_channels[0].size(),gpu_hand_channels[1].size()}},
+          {"activities",{gpu_hand_activities[0],gpu_hand_activities[1]}},
+          {"animation_observer",false},{"effect_observer",false},{"render_overlap",false}};
+    };
+  }
   std::map<std::uint32_t,SourceModelPaletteDefinition> palette_definitions;
   if(verify_world_poses)options.world_weapon_source_draw_observer=[&](unsigned,unsigned tick,
       std::uint32_t owner,std::uint32_t definition,std::span<const Transform> nodes,
@@ -492,7 +791,7 @@ int main(int argc,char **argv){HistoryReport history;try {
           {"serial",event.serial},{"name",location.name},
           {"transform_words",std::bit_cast<std::array<std::uint32_t,13>>(location.frame)}});
     LanHost host(options.prepared_world->match,0,0xd770u);
-    LanClient client("127.0.0.1:"+std::to_string(host.port()),0xd770u,1);
+    LanClient client(host.join_address(),0xd770u,1);
     std::array<Controls,multiplayer_capacity> incoming{};std::array<Controls,1> neutral{};
     for(unsigned n=0;n<128 && (!client.ready() || !client.state().source_body_poses_authoritative);++n) {
       client.send(neutral);host.receive(incoming);host.broadcast();client.receive();
@@ -570,8 +869,21 @@ int main(int argc,char **argv){HistoryReport history;try {
   check(offhand_radar && primary_radar,"Actual independent SDL triggers did not retain their original radar bits");
   check(posed_weapons.size()==2 && clips.size()>=3 && draws>20,"Both real weapon datums did not submit animated poses");
   std::cout<<"SMG firing observations: sounds="<<firing_sounds<<" rounds="<<fired_rounds<<'\n';
-  check(firing_sounds==fired_rounds && fired_rounds>1 && firing_particles>0,
+  check(firing_sounds==fired_rounds && fired_rounds>1 && (verify_dual_gpu || firing_particles>0),
       "Live dual SMGs did not submit exactly one authored sound per fired round");
+  if(verify_dual_gpu) {
+    check(gpu_dual_frames>10 && gpu_distinct_hand_frames>10 && gpu_verified_vertices && gpu_deformed_vertices &&
+        gpu_hand_nodes[0].size()>3 && gpu_hand_nodes[1].size()>3 &&
+        gpu_hand_channels[0].size()>3 && gpu_hand_channels[1].size()>3,
+        "Ordinary dual weapon path did not deform and verify two independently moving hands on the GPU");
+    for(unsigned hand=0;hand<2;++hand)
+      check(gpu_hand_activities[hand].contains(0x0400000cu) && gpu_hand_activities[hand].contains(0x06000006u) &&
+          (gpu_hand_activities[hand].contains(0x0b000065u) || gpu_hand_activities[hand].contains(0x0c000064u)),
+          "Ordinary dual GPU hand did not play its own native idle/fire/reload activities");
+    history.data["dual_gpu"]["passed"]=true;
+    std::cout<<"PASS ordinary dual GPU path: "<<gpu_dual_frames<<" frames, "<<gpu_foreground_vertices
+        <<" foreground vertices, "<<gpu_verified_vertices<<" actual GPU vertices matched original CPU output\n";
+  }
   if(argc!=5) {
     std::cout<<"SMG grenade observations: request_tick="<<grenade_at.value_or(0)<<" thrown="<<thrown
         <<" dropped="<<dropped<<" radar_phase="<<grenade_radar_phase<<'\n';

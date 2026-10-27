@@ -236,7 +236,16 @@ def build_index(provenance, conversion, verified_inputs, catalog, banks, *,
             name = _namespace(row.get("map"))
             _identity(row, "HUD bootstrap input")
             _require(name not in hud_maps, "duplicate HUD bootstrap owner")
-            hud_maps[name] = row
+            hud_maps[name] = [row]
+        for row in hud_policy.get("prepared_inputs", []):
+            _require(isinstance(row, dict), "invalid corrected HUD bootstrap input")
+            name = _namespace(row.get("map"))
+            _identity(row, "corrected HUD bootstrap input")
+            _require(name in hud_maps and len(hud_maps[name]) == 1 and
+                     row.get("source_sha256") == hud_maps[name][0]["sha256"] and
+                     row.get("preparation_profile") == "H2_MCC_SKY_BITMAP_COW_V7" and
+                     _sha(row.get("correction_report_sha256")), "unproved corrected HUD bootstrap owner")
+            hud_maps[name].append(row)
     rows = []
     for owner, identity in inputs.items():
         stock = identity["stock_conversion_owner"]
@@ -249,9 +258,10 @@ def build_index(provenance, conversion, verified_inputs, catalog, banks, *,
             row.update({key: stock_banks[name][key] for key in BANK_FIELDS})
             row.update(native_mode="owned-bank", bank_owner_map=owner)
         elif stock and row["cache_role"] == "scenario" and name in hud_maps:
-            expected = hud_maps[name]
-            _require(row["input_sha256"] == row["source_sha256"] == expected["sha256"] and
-                     row["input_bytes"] == expected["bytes"], "HUD bootstrap exact input differs: " + owner)
+            expected = next((item for item in hud_maps[name] if
+                row["input_sha256"] == item["sha256"] and row["input_bytes"] == item["bytes"] and
+                row["source_sha256"] == item.get("source_sha256", item["sha256"])), None)
+            _require(expected is not None, "HUD bootstrap exact input differs: " + owner)
             source = stock_banks.get(hud_policy["source_map"])
             _require(source is not None and source["canonical_sha256"] == hud_policy["source_canonical_sha256"],
                      "HUD common dependency is missing or customized")

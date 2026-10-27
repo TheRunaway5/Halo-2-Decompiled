@@ -1,9 +1,12 @@
 #include "halo2/pstencil/native_lights.hpp"
 #include "halo2/pstencil/native_light_shape_tu15.hpp"
+#include "halo2/path_tracing/source_lights.hpp"
+#include "halo2/source_tag_metadata.hpp"
 #include "halo2/multiplayer_object_runtime.hpp"
 #include "halo2/original_data.hpp"
 #include "halo2/cache.hpp"
 #include <bit>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <set>
@@ -64,6 +67,27 @@ int main(int argc,char**argv)try {
         const auto row=after.lights.record(id);definitions.insert(row[1]);
         const auto shape=pstencil::native_light_shape_tu15(world,id);
         if(shape.type()!=2)throw FormatError("Actual scenario frustum became a sphere");
+        const auto metadata=cache.load_source_tag_metadata(row[1]);
+        const auto bytes=metadata.bytes_at(metadata.source_address(),228);
+        EffectLightDefinition definition;std::copy(bytes.begin(),bytes.end(),definition.bytes.begin());
+        SourceEffectLightViewRecord rt_record{};rt_record.definition=&definition;
+        rt_record.runtime.identity=id;rt_record.runtime.flags=std::uint8_t(row[0]>>16);
+        const auto scalar=[&](unsigned offset){return std::bit_cast<float>(row.at(offset/4));};
+        rt_record.runtime.state.diffuse={scalar(0xd4),scalar(0xd8),scalar(0xdc)};
+        rt_record.runtime.state.brightness=scalar(0xec);
+        const auto rt=path_tracing::source_lights(world,std::span{&rt_record,1});
+        if(rt.size()!=1)throw FormatError("Path Tracing dropped a native scenario projector");
+        const auto cameras=pstencil::native_light_cameras_tu15(world,id);
+        if(cameras.size()!=1 || rt.front().planes!=cameras.front().full_frustum.planes)
+            throw FormatError("Path Tracing changed an actual native projector boundary");
+        const auto value=[&](unsigned offset){return std::bit_cast<float>(shape.words.at(offset));};
+        if(rt.front().position.x!=value(11) || rt.front().position.y!=value(12) || rt.front().position.z!=value(13))
+            throw FormatError("Path Tracing changed the source projector's virtual origin");
+        for(const auto corner:cameras.front().full_frustum.corners) {
+            const auto x=corner.x-rt.front().position.x,y=corner.y-rt.front().position.y,z=corner.z-rt.front().position.z;
+            if(std::sqrt((x*x+y*y)+z*z)>rt.front().radius)
+                throw FormatError("Path Tracing radial bound clips a native projector corner");
+        }
         std::cout<<"LIGHT "<<std::hex<<id<<" definition="<<row[1]<<std::dec
                  <<" placement="<<row[2]<<" flags="<<(row[0]>>16)<<'\n';
     }

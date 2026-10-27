@@ -16,11 +16,12 @@ Material material_for(const Cache& cache,std::uint32_t shader,const Texture& ima
     if(!m.passes.empty() && m.passes.front().name=="shaders\\shader_passes\\hud\\waypoint_emblem") {
         m=frontend_emblem_material(cache,shader);m.ui_full_surface=true;
     }
+    // frontend_emblem_material has completed its native input binding.
+    if(m.ui_emblem_pass)return m;
     if(cache.is_mcc())for(auto& overlay:m.animation.overlays) {
         overlay.input=normalize_mcc_hud_function_operand(overlay.input,cache.string_id(overlay.input));
         overlay.range=normalize_mcc_hud_function_operand(overlay.range,cache.string_id(overlay.range));
     }
-    if(m.ui_emblem_pass)return m;
     if(m.passes.size()!=1)throw FormatError("Objective waypoint requires its actual single HUD pass");
     const auto& p=m.passes.front();unsigned src=0x302,dst=0x303;
     for(const auto& state:p.states){if(state.index==62)src=state.value;if(state.index==63)dst=state.value;}

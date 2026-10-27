@@ -112,3 +112,4 @@
     ObjectFunctionSymbol{0x10be81u,0x5000561u,0x500056du,0x500056du,"delay"},
     ObjectFunctionSymbol{0x10bf83u,0xf00055eu,0xf00056au,0xf00056au,"change_in_power"},
     ObjectFunctionSymbol{0x10bf8eu,0x1200055fu,0x1200056bu,0x1200056bu,"change_in_position"},
+    ObjectFunctionSymbol{0x1db800u,0xa000693u,0xa00069fu,0xa00069fu,"phantom_on"},

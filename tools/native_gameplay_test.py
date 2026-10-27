@@ -177,16 +177,28 @@ def _runtime_owner(root, runtime, *, frontend=False):
         raise ValueError("Unsupported native-test shader binding")
     if directory.is_symlink() or directory.resolve(strict=True) != directory:
         raise ValueError("Native test requires the validated compiled default shader owner")
-    files = shaders["files"]
     # The original qualified family has 97 files. New renderer programs may
     # expand it; every added file still needs the passed inventory's exact hash,
     # and the complete directory must match that inventory below.
-    from native_renderer_shaders import PROFILE, REQUIRED_FILES
+    from native_renderer_shaders import (PROFILE, REQUIRED_FILES, AOT_PROFILE,
+                                         AOT_PACKAGE_NAME, validate_native_package)
     profile = shaders.get("profile")
-    if profile is None:
+    package = directory/AOT_PACKAGE_NAME
+    if profile == AOT_PROFILE or package.exists() or package.is_symlink():
+        declaration = shaders.get('package')
+        if (profile != AOT_PROFILE or 'files' in shaders or
+                not isinstance(declaration, dict) or set(declaration) != {'path', 'sha256'} or
+                declaration.get('path') != AOT_PACKAGE_NAME):
+            raise ValueError('Native AOT shader capability lacks its exact package declaration')
+        files = validate_native_package(directory, expected_sha256=_digest(declaration['sha256']),
+                                        executable=payload)['files']
+        complete = True
+    elif profile is None:
+        files = shaders["files"]
         complete = (isinstance(files, dict) and len(files) >= 97 and
                     {"world.vert.spv", "world.frag.spv", "hud.frag.spv"} <= files.keys())
     else:
+        files = shaders["files"]
         complete = (profile == PROFILE and isinstance(files, dict) and REQUIRED_FILES <= files.keys())
     if not complete:
         raise ValueError("Native test requires its complete declared shader family")

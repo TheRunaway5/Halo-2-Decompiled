@@ -314,11 +314,20 @@ def prepare(root, mcc_source=None, progress=print, *, presentation=None):
     presentation_bytes = mcc_presentation.required_bytes(root, presentation)
     import controller_prompt_assets
     presentation_bytes += controller_prompt_assets.required_bytes(root)
+    import custom_ui_assets
+    presentation_bytes += custom_ui_assets.required_bytes(root)
+    from custom_loading_assets import inventory as custom_loading_sources
+    presentation_bytes += sum(row['bytes'] for row in custom_loading_sources(root).values())
+    import h2ek_loading_ambience
+    presentation_bytes += h2ek_loading_ambience.required_bytes(root)
+    import custom_map_assets
+    custom_map_bytes = custom_map_assets.required_bytes(root)
     from native_variant_assets import source_bundle, install as install_variants
     variant_bytes = sum(map(len, source_bundle(root).values()))
     imports.mkdir(parents=True, exist_ok=True)
     from mcc_ui_layout import required_bytes as ui_layout_bytes, prepare as prepare_ui_layout
-    needed = sum(stat.st_size for _, stat in files) + ui_layout_bytes(root) + presentation_bytes + variant_bytes
+    needed = (sum(stat.st_size for _, stat in files) + ui_layout_bytes(root) +
+              presentation_bytes + variant_bytes + custom_map_bytes)
     if shutil.disk_usage(imports).free < needed + 2 * 1024**3:
         raise FormatError("Insufficient free space for MCC data and decoded bitmap cache")
     mcc_presentation.preflight(root, source, presentation)
@@ -341,6 +350,8 @@ def prepare(root, mcc_source=None, progress=print, *, presentation=None):
         loading = prepare_loading(root, stage)
         presentation_report = mcc_presentation.prepare(root, stage, source, presentation, progress=progress)
         presentation_report['controller_prompts']=controller_prompt_assets.prepare(root,stage,progress=progress)
+        presentation_report['custom_ui_assets'] = custom_ui_assets.prepare(root, stage, progress=progress)
+        presentation_report['h2ek_loading_ambience'] = h2ek_loading_ambience.prepare(root, stage, progress=progress)
         ui_layout = prepare_ui_layout(root, stage, progress=progress)
         install_variants(root, stage, progress=progress)
         from preserve_native_shaders import copy_selected as preserve_shaders
@@ -387,8 +398,10 @@ def prepare(root, mcc_source=None, progress=print, *, presentation=None):
                 unique_dds_pages=menu_inventory["unique_dds_pages"], fonts=len(menu_inventory["fonts"])),
             native_shader_library=shaders,
             graphics_corrections=graphics,
-            policy=dict(assets="Private verified MCC copy", shaders="Native port renderer remains selected; MCC binaries/shader cache excluded",
+            policy=dict(assets="Private verified MCC copy, authored port content, and optional authenticated H2EK loading ambience",
+                shaders="Native port renderer remains selected; MCC binaries/shader cache excluded",
                 prompt_artwork="Port-owned Xbox/PlayStation control rasters per local player; verified MCC fonts retain ordinary text and logical metrics",
+                rank_artwork="MCC ordinary rank pages; port-authored celestial DDS in original bitmap slots",
                 embedded_material_metadata="Retained in original caches for inspection, never admitted as native shader programs",
                 visuals="No guessed correction; launch and DLC differences require separate reference checks"))
         if shaders.get("maps"):
@@ -396,6 +409,8 @@ def prepare(root, mcc_source=None, progress=print, *, presentation=None):
             progress("Binding final converted map paths to their retained native libraries…")
             report = publish_staged_owner_index(stage, report)
         write_json(stage / "provenance.json", report)
+        custom_map_assets.prepare(root, stage, progress=progress)
+        report = json.loads((stage / "provenance.json").read_text())
         mcc_presentation.recheck(presentation)
         stage.rename(final)
         progress(f"Prepared MCC cache: {final}")

@@ -12,6 +12,10 @@ struct VistaPcrInitialFocus {
 // PC185 layout (six lists, each with sixteen original61FFC9 child widgets).
 // Pane0 is teams; pane1 is summary. An empty selected bank has no datum row.
 VistaPcrInitialFocus vista_pcr_initial_focus(const VistaPcrResults&);
+// TU1.5 c_y_menu_tab_bar::v10 (2B41EA): event2/4 walks the visible
+// previous/next sibling and wraps. PCR233423 hides only the empty team tab.
+// direction is the native input adapter's sign; one event moves one tab.
+unsigned vista_pcr_tab_step(unsigned pane,int direction,bool teams);
 // Actual616CFC→5AD782→616C85→5AD423/5C20C8. Lifecycle flag/manager state
 // are the caller's actual820FC0/+4 values; the real live bank supplies the
 // membership mask and eight-byte identity. Results are source player slots,

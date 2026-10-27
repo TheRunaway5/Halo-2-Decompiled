@@ -52,6 +52,10 @@ struct SourceEffectLightModelViewTu15 {
     // store the translated main40E80 performs and reports the closed write
     // set, as the foundation for its native oracle. No behavior change.
     std::function<void(const std::function<void()>&)> main_commands;
+    // Set by draw only while main_collected runs: the same native40E80
+    // kernel for the shadow roots' secondary-context calls; the first
+    // argument is the call's EAX layer selector.
+    std::function<void(std::uint32_t,const std::function<void()>&)> secondary_commands;
     // The actual main view/C35D0 must finish before sampling native attached
     // light fades and selecting the shared light budget. This producer returns
     // completed simulation-pool views and genuine receiver queries for draw.
@@ -96,7 +100,8 @@ public:
         Vec3 eye,std::array<std::int16_t,4> viewport,
         std::array<std::uint32_t,2> surface,unsigned local_players,
         SourceEffectLightModelViewTu15* models=nullptr,
-        std::vector<pstencil::PointCaster>* point_casters=nullptr,std::uint32_t light_domain=0);
+        std::vector<pstencil::PointCaster>* point_casters=nullptr,std::uint32_t light_domain=0,
+        const std::array<ShaderVector,12>* submitting_constants=nullptr);
     const std::vector<std::string>& unavailable() const;
     // Actual immutable model sections admitted before renderer construction.
     std::size_t resident_model_sections()const noexcept;

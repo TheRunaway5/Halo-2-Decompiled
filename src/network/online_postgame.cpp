@@ -26,15 +26,15 @@ FullScoreboardRanks ranks(const MultiplayerState& state,bool extended,unsigned c
   std::vector<FullScoreboardPlayer> players;
   std::array<FullScoreboardTeam,8> teams{};
   std::array<TeamRespawnPlayer,16> presence{};
-  for(unsigned i=0;i<count;++i) {
-    const auto &p=state.players[i];
+  for(unsigned i=0;i<16;++i) {
+    const auto &p=state.players[i];if(!p.connected)continue;
     FullScoreboardPlayer row;row.datum=p.source_player;row.current_unit=p.source_unit;
     row.flags=p.source_flags;row.membership=std::int8_t(p.source_membership);
     row.lives_remaining=p.source_lives_remaining;row.wins=p.wins;row.total_score=p.total_score;
     row.stat8=std::int16_t(p.kills);row.stat_a=std::int16_t(p.deaths);row.stat10=std::int16_t(p.assists);
     players.push_back(row);presence[i]={row.membership,row.flags,0};
   }
-  const auto playing=source_team_presence(0,std::span(presence).first(count)).playing;
+  const auto playing=source_team_presence(0,std::span(presence)).playing;
   if(state.team_mode)for(unsigned i=0;i<8;++i) {
     auto &team=teams[i];const auto &stats=state.team_statistics[i];
     team.retained=bool(state.retained_team_mask&(1u<<i));team.playing=bool(playing&(1u<<i));
@@ -51,8 +51,9 @@ VistaPcrConsumedSnapshot online_postgame_publish(const MultiplayerMatch& match,
     const UiVariant& variant,std::span<const OnlineAdmission> roster) {
   const auto state=match.state();
   if(!state.finished || !state.results_finalized || !state.game_over_complete() ||
-      !vista_pcr_ranking_available(match.source_round_lifecycle().flags) || roster.size()<2 || roster.size()>16)
+      !vista_pcr_ranking_available(match.source_round_lifecycle().flags) || roster.empty() || roster.size()>16)
     throw FormatError("ONLINE postgame requires a completed admitted original match");
+  unsigned slots{};for(const auto& p:roster){if(p.slot>=16 || (slots&(1u<<p.slot)))throw FormatError("Invalid native network result roster");slots|=1u<<p.slot;}
   VistaPcrPublicationInput input;input.variant=vista_pcr_multiplayer_variant(source_game_variant(variant));
   input.statistics=match.recorded_statistics();input.recording=match.result_recording();
   if(!input.statistics || !input.recording.enabled || !input.recording.frozen)
@@ -73,20 +74,21 @@ VistaPcrConsumedSnapshot online_postgame_publish(const MultiplayerMatch& match,
   }
   for(unsigned i=0;i<16;++i) {
     const auto &p=match.player(i);
-    if(i>=roster.size()){if(p.connected)throw FormatError("Unadmitted ONLINE postgame participant");continue;}
-    if(!p.connected || roster[i].slot!=i || p.source_datum==null_datum ||
+    const auto admitted=std::ranges::find(roster,i,&OnlineAdmission::slot);
+    if(admitted==roster.end()){if(p.connected)throw FormatError("Unadmitted native network postgame participant");continue;}
+    if(!p.connected || admitted->slot!=i || p.source_datum==null_datum ||
         (p.source_datum&0xffffu)!=i || !p.source_profile_request)
       throw FormatError("ONLINE postgame participant lacks its actual selected profile");
-    auto &row=input.players[i];row.occupied=1;row.identity=roster[i].identity;
+    auto &row=input.players[i];row.occupied=1;row.identity=admitted->identity;
     row.configuration=native_vista_selected_profile_payload(*p.source_profile_request);
     // The relay admission owns the chosen display name. Retain the selected
     // PC-compatible appearance instead of copying Xbox sanitized species2/3.
     std::array<std::uint8_t,9> appearance{};
-    const auto name=native_selected_player_configuration(roster[i].name,appearance,-1);
+    const auto name=native_selected_player_configuration(admitted->name,appearance,-1);
     for(unsigned j=0;j<64;++j)row.configuration[j]=std::byte(name[j]);
-    if(state.team_mode && p.source_membership!=roster[i].team)
+    if(state.team_mode && p.source_membership!=admitted->team)
       throw FormatError("ONLINE final team differs from admission");
-    row.configuration[0x7c]=std::byte(state.team_mode?roster[i].team:0xff);
+    row.configuration[0x7c]=std::byte(state.team_mode?admitted->team:0xff);
     row.placement=standings.players[i]/2;
     row.score=vista_pcr_accumulated_player_score(statistics,p.source_datum);
   }
@@ -95,9 +97,10 @@ VistaPcrConsumedSnapshot online_postgame_publish(const MultiplayerMatch& match,
 void online_postgame_validate(const MultiplayerState& state,const UiVariant& variant,
     std::span<const OnlineAdmission> roster,std::span<const std::byte> raw) {
   auto check=[](bool ok){if(!ok)throw FormatError("ONLINE match results differ from the final admitted game state");};
-  check(raw.size()==vista_pcr_source_size && roster.size()>=2 && roster.size()<=16);
+  check(raw.size()==vista_pcr_source_size && !roster.empty() && roster.size()<=16);
   check(state.finished && state.results_finalized && state.game_over_complete());
   check(raw[0]==std::byte{1} && raw[1]==std::byte{1} && raw[0x10]==std::byte{1} && raw[0x11]==std::byte{1} && raw[0x13]==std::byte(state.team_mode));
+  unsigned slots{};for(const auto& p:roster){check(p.slot<16);check(!(slots&(1u<<p.slot)));slots|=1u<<p.slot;}
   const auto expected=vista_pcr_multiplayer_variant(source_game_variant(variant));
   check(std::equal(expected.bytes.begin(),expected.bytes.end(),raw.begin()+0x20));
   auto word=[&](std::size_t at){return std::uint16_t(std::to_integer<unsigned>(raw[at])|(std::to_integer<unsigned>(raw[at+1])<<8));};
@@ -106,16 +109,17 @@ void online_postgame_validate(const MultiplayerState& state,const UiVariant& var
   unsigned admitted_teams{};
   for(unsigned i=0;i<16;++i) {
     const auto at=0x370+i*0x94;const auto &p=state.players[i];
-    if(i>=roster.size()){check(!p.connected && raw[at]==std::byte{});continue;}
-    check(p.connected && roster[i].slot==i && raw[at]==std::byte{1});
-    check(std::equal(roster[i].identity.begin(),roster[i].identity.end(),raw.begin()+at+2));
-    std::array<std::uint8_t,9> appearance{};const auto name=native_selected_player_configuration(roster[i].name,appearance,-1);
+    const auto admitted=std::ranges::find(roster,i,&OnlineAdmission::slot);
+    if(admitted==roster.end()){check(!p.connected && raw[at]==std::byte{});continue;}
+    check(p.connected && admitted->slot==i && raw[at]==std::byte{1});
+    check(std::equal(admitted->identity.begin(),admitted->identity.end(),raw.begin()+at+2));
+    std::array<std::uint8_t,9> appearance{};const auto name=native_selected_player_configuration(admitted->name,appearance,-1);
     for(unsigned j=0;j<64;++j)check(raw[at+12+j]==std::byte(name[j]));
     if(state.team_mode) {
-      check(roster[i].team>=0 && roster[i].team<8 && p.source_membership==roster[i].team);
-      admitted_teams|=1u<<roster[i].team;
+      check(admitted->team>=0 && admitted->team<8 && p.source_membership==admitted->team);
+      admitted_teams|=1u<<admitted->team;
     }
-    check(raw[at+0x88]==std::byte(state.team_mode?roster[i].team:0xff));
+    check(raw[at+0x88]==std::byte(state.team_mode?admitted->team:0xff));
     check(std::bit_cast<std::int16_t>(word(at+0x92))==p.total_score);
     check(std::to_integer<unsigned>(raw[at+0x90])==standings.players[i]/2);
     const std::array<std::pair<unsigned,int>,4> stats{{{7,p.kills},{9,p.deaths},{8,p.assists},{11,p.suicides}}};
@@ -137,9 +141,14 @@ std::shared_ptr<const VistaPcrScreenOwner> online_postgame_screen(
   if(session->phase()!=OnlineMatchSession::Phase::Postgame || bytes.size()!=vista_pcr_source_size)
     throw FormatError("ONLINE report has no acknowledged completed publication");
   VistaPcrConsumedSnapshot source;std::copy(bytes.begin(),bytes.end(),source.source.begin());
-  auto pcr=std::make_shared<NativeVistaPcr>(std::move(source),session->roster(),frontend.content(),floating_point());
+  const auto weak=std::weak_ptr<OnlineMatchSession>(session);
+  auto pcr=std::make_shared<NativeVistaPcr>(std::move(source),session->roster(),frontend.content(),floating_point(),[weak]()->std::optional<std::uint16_t>{
+    if(const auto active=weak.lock())return active->postgame_presence();
+    return {}; // PCR185 after Done has no authenticated room membership.
+  });
   auto owner=std::make_shared<VistaPcrScreenOwner>();owner->results=pcr->results();owner->rows=pcr->rows(16);
   owner->online=true;
+  owner->result_recorded=session->result_recorded();
   owner->appearance=[pcr,&frontend](unsigned row){return pcr->appearance(row,16,frontend.state().frame().context);};
   auto slot=[session](const std::array<std::byte,8>& identity) {
     for(const auto &p:session->roster())if(p.identity==identity)return std::uint32_t(p.slot);
@@ -169,14 +178,67 @@ std::shared_ptr<const VistaPcrScreenOwner> online_postgame_screen(
       if(selected<session->roster().size() && selected!=session->self())audio->mute(selected,!(snapshot.muted&(1u<<selected)));
     }
   };
-  // Native solo queue owns local Done navigation. There is no retail party or
-  // Live details service behind these room identities.
-  owner->input.host=[]()->std::uint8_t{return 1;};owner->input.details_available=[]()->std::uint8_t{return 0;};
+  // ONLINE has no per-machine session host: a solo player or the party
+  // leader owns Done, and a follower's Done asks with dialog98 while the
+  // leader's Done brings it along. There is no Live details service behind
+  // these room identities.
+  owner->input.host=[&frontend]()->std::uint8_t{return frontend.state().online_postgame_host();};
+  owner->input.details_available=[]()->std::uint8_t{return 0;};
   owner->input.continue_session=[session,done=std::move(done)]{session->close_postgame();done();};
+  owner->input.dialog=[&frontend](const std::array<std::uint32_t,8>& request){frontend.state().vista_pcr_dialog(request);};
+  owner->leave_session=[session]{session->close_postgame();};
   owner->select_row=[pcr](unsigned row){pcr->select_row(row);};
   owner->elapsed=[&frontend](std::uint32_t creation){return frontend.ui_clock()-creation;};
   owner->floating_point=pcr->floating_point();owner->controller=0;owner->creation_clock=frontend.ui_clock();
   const auto focus=vista_pcr_initial_focus(*owner->results);owner->pane=focus.pane;owner->selected_row=focus.selected_row;
+  // TU1.5 2510AA ->233395 reopens the retained results as PCR185. Build
+  // this owner from the copied publication; no match/voice callback survives
+  // in lobby history after PCR16 Done closes the completed transport.
+  auto review=std::make_shared<VistaPcrScreenOwner>();
+  review->online=true;review->result_recorded=owner->result_recorded;review->results=pcr->results();review->rows=pcr->rows(185);
+  review->appearance=[pcr,&frontend](unsigned row){return pcr->appearance(row,185,frontend.state().frame().context);};
+  review->select_row=[pcr](unsigned row){pcr->select_row(row);};
+  review->input.host=[]()->std::uint8_t{return 1;};
+  review->input.details_available=[]()->std::uint8_t{return 0;};
+  review->input.close=[&frontend](unsigned){frontend.state().close_online_prior_stats();};
+  review->elapsed=[&frontend](std::uint32_t creation){return frontend.ui_clock()-creation;};
+  review->floating_point=pcr->floating_point();review->controller=owner->controller;
+  review->pane=focus.pane;review->selected_row=focus.selected_row;
+  owner->lobby_review=std::move(review);
+  pcr->select_row(focus.selected_row);return owner;
+}
+std::shared_ptr<const VistaPcrScreenOwner> online_terminal_postgame_screen(
+    FrontendSession &frontend,const MultiplayerState &completed,VistaPcrConsumedSnapshot source,
+    std::vector<OnlineAdmission> roster,std::function<void()> done) {
+  if(!completed.finished||!completed.results_finalized||!completed.game_over_complete())
+    throw FormatError("Terminal ONLINE report requires its actual completed source state");
+  std::uint16_t present{};for(const auto &p:roster) {
+    if(p.slot>=16||!completed.players[p.slot].connected)throw FormatError("Terminal ONLINE report lost an admitted source result row");
+    if(!(completed.players[p.slot].source_flags&2u))present|=std::uint16_t(1u<<p.slot);
+  }
+  auto presence=std::make_shared<std::optional<std::uint16_t>>(present);
+  auto pcr=std::make_shared<NativeVistaPcr>(std::move(source),roster,frontend.content(),floating_point(),
+      [presence]{return *presence;});
+  auto owner=std::make_shared<VistaPcrScreenOwner>();owner->online=true;owner->result_recorded=false;owner->results=pcr->results();owner->rows=pcr->rows(16);
+  owner->appearance=[pcr,&frontend](unsigned row){return pcr->appearance(row,16,frontend.state().frame().context);};
+  owner->voice=[](unsigned){return VistaPcrVoicePresentation{};};
+  // No live session is represented here. The remaining physical owner can
+  // close its own report; party membership remains with the real account API.
+  owner->input.host=[]()->std::uint8_t{return 1;};
+  owner->input.details_available=[]()->std::uint8_t{return 0;};
+  owner->input.continue_session=[presence,done=std::move(done)]{presence->reset();done();};
+  owner->input.dialog=[&frontend](const std::array<std::uint32_t,8>& request){frontend.state().vista_pcr_dialog(request);};
+  owner->select_row=[pcr](unsigned row){pcr->select_row(row);};
+  owner->elapsed=[&frontend](std::uint32_t creation){return frontend.ui_clock()-creation;};
+  owner->floating_point=pcr->floating_point();owner->controller=0;owner->creation_clock=frontend.ui_clock();
+  const auto focus=vista_pcr_initial_focus(*owner->results);owner->pane=focus.pane;owner->selected_row=focus.selected_row;
+  auto review=std::make_shared<VistaPcrScreenOwner>();review->online=true;review->result_recorded=false;review->results=pcr->results();review->rows=pcr->rows(185);
+  review->appearance=[pcr,&frontend](unsigned row){return pcr->appearance(row,185,frontend.state().frame().context);};
+  review->select_row=[pcr](unsigned row){pcr->select_row(row);};review->input.host=[]()->std::uint8_t{return 1;};
+  review->input.details_available=[]()->std::uint8_t{return 0;};
+  review->input.close=[&frontend](unsigned){frontend.state().close_online_prior_stats();};
+  review->elapsed=owner->elapsed;review->floating_point=owner->floating_point;review->controller=0;
+  review->pane=focus.pane;review->selected_row=focus.selected_row;owner->lobby_review=std::move(review);
   pcr->select_row(focus.selected_row);return owner;
 }
 } // namespace halo2

@@ -7,12 +7,14 @@
 #include "halo2/peer_prospective_role.hpp"
 #include "halo2/native_vehicle_camera.hpp"
 #include "halo2/multiplayer_snapshot_origin.hpp"
+#include "halo2/native_request_protocol.hpp"
 #include <memory>
 #include <chrono>
 namespace halo2 {
 struct LanSessionDescription {
   std::uint64_t fingerprint{};
   UiVariant variant;
+  std::string map; // Authenticated scenario leaf when supplied by a retained LAN session.
 };
 // Read the host's complete configuration before cold world/model preparation.
 // This query does not admit a player, allocate a body or start a peer timeout.
@@ -28,12 +30,17 @@ LanSessionDescription query_lan_session(std::shared_ptr<MultiplayerDatagrams>,un
 // network_starting_weapon_identity(), rather than a birth-dependent live tag.
 // MCC v13 additionally identifies native TU1.5 gameplay and its actual resource
 // banks/h2_fonts; it never reads or accepts an original executable as input.
+// Exact normalized wire-source cohort; different packet implementations must
+// fail match admission even when they share a feature protocol number.
+std::uint64_t native_multiplayer_wire_schema();
 std::uint64_t multiplayer_fingerprint(const std::filesystem::path &map,
                                      const std::filesystem::path &shared_maps,
                                      std::uint32_t bsp,
                                      std::uint32_t starting_weapon,
                                      const std::filesystem::path &gameplay_xbe = {});
 class LanClient;
+class SourceAdmittedCameraBank;
+struct SystemLinkState;
 class LanHost {
 public:
   // TU1.5 peer-table operations run on their native world's executor. The
@@ -46,8 +53,14 @@ public:
           std::vector<OnlineAdmission>,const UiVariant &);
   ~LanHost();
   unsigned port() const;
+  // Share this address and full ephemeral host key independently of UDP.
+  // Address is the IP/name clients use; the key changes with each host process.
+  std::string join_address(const std::string &host_address = "127.0.0.1",unsigned destination_port = 0) const;
   void receive(std::array<Controls, multiplayer_capacity> &);
   void broadcast();
+  // Optional numeric-journal owner. Bind only on the actual admitted source
+  // tick0 executor; the bank and native world outlive this host.
+  void bind_admitted_cameras(std::shared_ptr<SourceAdmittedCameraBank>);
   // Negotiated preparation chooses an actual future native broadcast. The
   // opaque receipt is valid only while those exact per-peer stamps remain
   // current; it does not certify a native world or permit migration.
@@ -67,6 +80,16 @@ public:
       const PeerSnapshotToken &);
   bool candidate_current(const CandidateEmission &,const std::shared_ptr<PeerSnapshotCandidate> &)const noexcept;
   unsigned peers() const;
+  // Retain the actual raw-LAN socket, authentication and peer/profile roster
+  // across match destruction. ONLINE continuations use their separate owner.
+  void enable_system_link_return(std::string map);
+  const SystemLinkState& system_link_state() const;
+  void publish_system_link_results();
+  void retire_system_link_world();
+  void service_system_link_lobby();
+  void continue_system_link_lobby();
+  void system_link_countdown(std::int32_t);
+  void resume_system_link_world(MultiplayerMatch&,std::uint64_t,const UiVariant&,std::string map);
   enum class PeerRemovalReason { authenticated_leave, idle_timeout };
   // Passive current-host diagnostics only. No address, cookie, nonce or player
   // identity is retained. Times use steady_clock nanoseconds in this process;
@@ -85,7 +108,10 @@ public:
   // Copy only on the host's existing native executor. At most one completed
   // removal is retained; reading it performs no native world operation.
   std::optional<PeerRemoval> last_peer_removal()const;
-  struct SnapshotDiagnostics { std::uint64_t body_bytes{};unsigned fragments{},peers{}; };
+  struct SnapshotDiagnostics {
+    std::uint64_t body_bytes{};unsigned fragments{},peers{};
+    std::uint64_t stream_wire_bytes{},stream_messages{},stream_packets{},stream_over_budget{},stream_budget_bps{};
+  };
   // Sum of the latest actually serialized snapshots, without their payloads,
   // identities or connection material. Creator/native executor only. Stream
   // bodies count their reconstructed size; fragments assume complete packets.
@@ -104,6 +130,9 @@ public:
   // Only the authenticated logical-endpoint transport is supported. No socket,
   // pending transport packet, device, executor or borrowed world is retained.
   Continuation checkpoint(MultiplayerMatch::AuthorityDigest)const;
+  // Compare derived local camera values with the authenticated host sidecar.
+  // No received camera/controller/observer value is installed by this check.
+  static void verify_admitted_cameras(const Continuation &,const SourceAdmittedCameraBank &);
   static std::uint64_t continuation_allocation(const Continuation &);
   // Restore the complete world first, then pair it with this exact sidecar and
   // independently accepted full native roster. Recreates the same remote view
@@ -177,6 +206,8 @@ private:
 };
 class LanClient {
 public:
+  // Raw joins require ADDRESS:PORT#<64 hex host-key digits>, exchanged outside
+  // the datagram path. Bare addresses fail closed before sending a hello.
   LanClient(const std::string &address, std::uint64_t fingerprint,
             unsigned local_players, std::span<const std::int8_t> selected_teams = {},
             std::span<const SourcePlayerConfiguration> selected_profiles = {});
@@ -184,14 +215,40 @@ public:
             std::span<const std::int8_t> selected_teams = {},
             std::span<const SourcePlayerConfiguration> selected_profiles = {});
   ~LanClient();
+  // Presentation time displayed when the next input is sent: the older
+  // interpolation endpoint's tick, the newer one, and the blend between them.
+  // Every later input carries it until replaced (protocol 113); hosts in a
+  // lag-compensated mode rewind hitscan targets to it.
+  void set_view(std::uint32_t older_tick,std::uint32_t newer_tick,float blend);
+  // Predicted motion of `view`'s own biped after the next input (protocol 113,
+  // NETCODE_ENHANCED_GOAL item 1). Consumed by the next send(); absent when
+  // not set again. Every input also repeats the two before it (item 5).
+  void set_motion(unsigned view,std::optional<NativeMotionReport>);
+  // Sequence the next send() will carry once connected.
+  std::uint32_t next_input_sequence() const;
   void send(std::span<const Controls>);
   void receive();
+  const SystemLinkState* system_link_state() const;
+  void confirm_system_link_results();
+  void service_system_link_lobby();
+  void resume_system_link_world();
   bool ready() const;
   const MultiplayerState &state() const;
   // Raw look sample (yaw, pitch) the host consumed to produce this local
   // view's angles in state(). The original client owned its own look: draw
   // those angles plus the newer raw look not yet acknowledged, on foot.
   std::optional<std::array<float,2>> consumed_look(unsigned view) const;
+  // Input bookkeeping each snapshot names: the input sequence the host's
+  // step consumed for this connection, and per view the first input whose
+  // authoritative motion includes a move the host forced (teleport, respawn,
+  // damage, impulse). One per received_states() entry, in the same order.
+  struct InputReceipt {
+    bool known{};
+    std::uint32_t consumed{};
+    std::array<std::optional<std::uint32_t>,4> forced{};
+  };
+  std::span<const InputReceipt> received_inputs() const;
+  InputReceipt input_receipt() const;
   // Receipt of the most recently adopted state, retained across empty polls.
   // A real continuity bind/rebind clears it until another state is accepted;
   // pre-admission receipts do not own decoded values or prove an ONLINE cut.

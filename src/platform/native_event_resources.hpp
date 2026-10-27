@@ -5,6 +5,8 @@
 namespace halo2::native_events {enum class Clock {Monotonic,Realtime};}
 #if defined(__APPLE__)
 #include "macos/native_event_resources.hpp"
+#elif defined(_WIN32)
+#include "platform/windows_event_resources.hpp"
 #elif defined(__linux__)
 #include <algorithm>
 #include <cerrno>

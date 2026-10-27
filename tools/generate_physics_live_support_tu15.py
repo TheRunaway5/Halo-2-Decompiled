@@ -359,6 +359,13 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
                 # The live required owner runs it and observes its real return.
                 target=get(i,op[0]);externals[f'{p:08x}']=dict(target=i.op_str,full_guest_abi=True)
                 return f's.push(0x{p:x}u,{imm(next)});s.required(0x{p:x}u,{target},false);'
+            if op[0].type==2 and addresses.get(op[0].imm) in (0x1a8740,0x1a87a0):
+                # A completed native multiplayer event is also consumed by
+                # remote presentation. Preserve this real CALL boundary when
+                # the full callee is internal; the live owner executes the
+                # original body and observes its unchanged event exactly once.
+                target=get(i,op[0]);externals[f'{p:08x}']=dict(target=i.op_str,full_guest_abi=True)
+                return f's.push(0x{p:x}u,{imm(next)});s.required(0x{p:x}u,{target},false);'
             if op[0].type==2 and op[0].imm in ENTRIES:
                 return f's.push(0x{p:x}u,{imm(next)});run_{op[0].imm:x}(s);'
             target=get(i,op[0]);externals[f'{p:08x}']=dict(target=i.op_str,full_guest_abi=True)
@@ -500,6 +507,12 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
             lines.append('SourceProjectileUpdateScope projectile_scope(s.memory,r(s.memory,s.gp[4]+4u,4));')
         if entry==0x1d5320:
             lines.append('SourceWeaponAnimationQueryScopeTu15 weapon_query_scope(s.memory,r(s.memory,s.gp[4],4),s.gp[0]);')
+        if entry==0x1d3d30:
+            lines.append('SourceWeaponAnimationQueryScopeTu15 weapon_query_scope(s.memory,r(s.memory,s.gp[4],4),r(s.memory,s.gp[4]+8u,4));')
+        if entry==0x116570:
+            lines.append('SourceWeaponAnimationQueryScopeTu15 weapon_body_request_scope(s.memory,r(s.memory,s.gp[4],4),r(s.memory,s.gp[4]+8u,4));')
+        if entry==0x16b736:
+            lines.append('SourceFirstPersonActionObserverTu15::entry(s.memory,s.save(),s.services);')
         from object_function_symbols_tu15 import OBJECT_FUNCTION_SYMBOLS
         for i in ins:
             translated=emit(i);lowered[f'{i.address:08x}']=dict(mnemonic=i.mnemonic,source_bytes=i.bytes.hex())
@@ -563,15 +576,32 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
                 assert translated.count(value)==1
                 translated=translated.replace(value,
                     'source_weapon_animation_query_symbol_tu15(s.memory,r(s.memory,s.gp[5]+4u,4),'+value+')')
-            if ((entry==0xeac70 and i.address==0xead6a) or
-                (entry==0x112420 and i.address in (0x1124b7,0x1125d6))):
-                # These complete equip owners copy the compiled dual class
-                # into the body lookup/setter. Preserve original algorithms
-                # and results; qualify only the actual named Cache operand.
-                assert i.mnemonic=='mov' and i.operands[-1].type==2 and i.operands[-1].imm==0x0400054b
+            if ((entry==0x1123b0 and i.address==0x112401) or
+                (entry==0x112420 and i.address==0x1125db)):
+                # Canonical dual must survive1D45A0's semantic exception.
+                # Qualify only these early equip availability searches; the
+                # setter's1124E8 scope is bound at the1D5320 entry above.
+                target=0x1d46a0 if i.address==0x112401 else 0x1d34e0
+                assert i.mnemonic=='call' and i.operands[0].type==2 and i.operands[0].imm==target
+                key='r(s.memory,s.gp[4]+4u,4)' if i.address==0x112401 else 's.gp[1]'
+                translated=('{SourceWeaponAnimationQueryScopeTu15 body_equip_lookup_scope(s.memory,'+
+                    f'0x{i.address+i.size:x}u,'+key+');'+translated+'}')
+            if entry==0x115af0 and i.address in (
+                    0x115ccf,0x115ce8,0x115d0c,0x115d2a,0x115d68,0x115d83,
+                    0x115cd4,0x115ced,0x115d11,0x115d2f):
+                # This owner retains canonical class/flags and stores the
+                # returned packed overlays for114750's actual body sampler.
+                # Qualify only copied lookup operands, including EBX after
+                # the original115CB8 dual-class comparison.
+                assert i.mnemonic=='mov'
+                if i.address==0x115cd4:assert i.bytes.hex()=='8bcb'
+                else:
+                    expected=(0x0b00054a if i.address in (0x115ccf,0x115ce8) else
+                        0x0400054b if i.address in (0x115ced,0x115d11,0x115d2f) else 0x0400060b)
+                    assert i.operands[-1].type==2 and i.operands[-1].imm==expected
                 value=get(i,i.operands[-1]);assert translated.count(value)==1
                 translated=translated.replace(value,
-                    f'source_weapon_animation_equip_class_symbol_tu15(s.memory,0x{i.address:x}u,'+value+')')
+                    f'source_weapon_animation_body_query_symbol_tu15(s.memory,0x{i.address:x}u,'+value+')')
             if entry==0x1e3420 and i.address==0x1e34a3:
                 #1D5320 retains canonical activity/state. Only this copied
                 # action-record search key uses its qualified FP query scope.
@@ -580,6 +610,37 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
                 assert translated.count(value)==1
                 translated=translated.replace(value,
                     'source_weapon_animation_scoped_query_symbol_tu15(s.memory,'+value+')')
+            if entry==0x2a0100 and i.address==0x2a019a:
+                # The FP playback/timing owners retain canonical dual class
+                # for original channel flags and override policy. Only this
+                # copied class-record search key enters the MCC namespace.
+                assert i.bytes.hex()=='51'
+                value=get(i,i.operands[0]);assert translated.count(value)==1
+                translated=translated.replace(value,
+                    'source_weapon_animation_scoped_class_symbol_tu15(s.memory,'+value+')')
+            if entry==0x16ad45 and i.address in (0x16b0d1,0x16b0e5,0x16b108,0x16b128):
+                #169432's original dual/any class remains in the FP manager
+                # and scratch. Only these four cached channel searches may
+                # resolve its copied class key against the MCC graph names.
+                target=0x1d37d0 if i.address==0x16b0d1 else 0x1d3c80
+                assert i.mnemonic=='call' and i.operands[0].type==2 and i.operands[0].imm==target
+                translated=('{SourceWeaponAnimationQueryScopeTu15 fp_extra_lookup_scope(s.memory,'+
+                    f'0x{i.address+i.size:x}u,s.gp[7]);'+translated+'}')
+            if entry==0x116570 and i.address in (0x11664f,0x1166df):
+                # The first owner searches an overlay; its failure falls
+                # through111B10 to1D5320. Preserve canonical request/state,
+                # and qualify only these matching native lookup scopes.
+                target=0x1d37d0 if i.address==0x11664f else 0x111b10
+                assert i.mnemonic=='call' and i.operands[0].type==2 and i.operands[0].imm==target
+                caller=0x116654 if i.address==0x11664f else 0x1166e4
+                activity='s.gp[7]' if i.address==0x11664f else 'r(s.memory,s.gp[4]+16u,4)'
+                translated=('{SourceWeaponAnimationQueryScopeTu15 weapon_body_lookup_scope(s.memory,'+
+                    f'0x{caller:x}u,'+activity+');'+translated+'}')
+            if entry==0x1e3f30 and i.address==0x1e3fb3:
+                assert i.bytes.hex()=='57'
+                value=get(i,i.operands[0]);assert translated.count(value)==1
+                translated=translated.replace(value,
+                    'source_weapon_animation_scoped_overlay_symbol_tu15(s.memory,'+value+')')
             if entry==0xbaf10 and i.address==0xbaf5f:
                 translated='attachment_scope.inputs(s.gp[2],s.gp[1],s.gp[5],s.gp[7]);'+translated
             if entry==0xbaf10 and i.address==0xbb1ef:
@@ -1002,10 +1063,19 @@ void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
         bodies=[body.replace(needle,
             'source_vehicle_input_reset_tu15(s.memory,s.gp[6],s.gp[3],r(s.memory,s.gp[4]+0x24u,4)+0x150u);\n'+needle)
             for body in bodies]
+    if 0x14f620 in ENTRIES:
+        # Actual successful non-NONE unit binding, before the local-view gate.
+        preamble='#include "halo2/source_gameplay_fade_phase_tu15.hpp"\n'+preamble
+        needle='if(s.services.instruction){s.services.instruction(0x14f755u);}'
+        assert sum(body.count(needle) for body in bodies)==1
+        bodies=[body.replace(needle,'source_observe_gameplay_fade_tu15(s.memory,2u,s.save());\n'+needle) for body in bodies]
     # The duration instruction has a dedicated x87 helper. Do not inject its
     # unused definition or unrelated declarations into every recovered module:
     # that makes unchanged modules drift whenever this owner is extended.
     body_source='\n\n'.join(bodies)
+    if 'SourceFirstPersonActionObserverTu15::entry(' in body_source:
+        preamble=preamble.replace('#include "physics/runtime/physics_world_runtime_internal.hpp"',
+            '#include "physics/runtime/physics_world_runtime_internal.hpp"\n#include "halo2/source_first_person_action_tu15.hpp"')
     if 'SourcePhysicsEntryObservation area_diagnostic' in body_source:
         preamble=preamble.replace('#include "physics/runtime/physics_world_runtime_internal.hpp"',
             '#include "physics/runtime/physics_world_runtime_internal.hpp"\n#include "halo2/source_physics_entry_observation.hpp"')
@@ -1019,7 +1089,10 @@ void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
             '#include "physics/runtime/physics_world_runtime_internal.hpp"\n#include "halo2/source_vehicle_compiled_symbols_tu15.hpp"')
     if any(name in body_source for name in ('source_weapon_animation_query_symbol_tu15(',
             'source_weapon_animation_scoped_query_symbol_tu15(',
-            'source_weapon_animation_equip_class_symbol_tu15(','SourceWeaponAnimationQueryScopeTu15')):
+            'source_weapon_animation_scoped_class_symbol_tu15(',
+            'source_weapon_animation_body_query_symbol_tu15(',
+            'source_weapon_animation_scoped_overlay_symbol_tu15(',
+            'SourceWeaponAnimationQueryScopeTu15')):
         preamble=preamble.replace('#include "physics/runtime/physics_world_runtime_internal.hpp"',
             '#include "physics/runtime/physics_world_runtime_internal.hpp"\n#include "halo2/source_weapon_animation_query_symbols_tu15.hpp"')
     if 'native_sound_duration_divide(' not in body_source:

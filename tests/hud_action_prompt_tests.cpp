@@ -168,7 +168,7 @@ int main(int argc,char **argv){try{
   require(hud.action_text(match.state(),id,0).empty(),"Looking away retained the keypad prompt");
   unit.yaw-=3.14159265f;
   // Exercise the actual host snapshot route used by remote HUDs.
-  LanHost host(match,0,0x151110);LanClient peer("127.0.0.1:"+std::to_string(host.port()),0x151110,1);
+  LanHost host(match,0,0x151110);LanClient peer(host.join_address(),0x151110,1);
   std::array<Controls,1> neutral{};
   for(unsigned attempt=0;attempt<64 && !peer.ready();++attempt){peer.send(neutral);host.receive(input);host.broadcast();peer.receive();}
   require(peer.ready(),"Prompt LAN peer did not join");

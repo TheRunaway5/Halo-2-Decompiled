@@ -26,6 +26,25 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def windows_curl_options(sdk, target):
+    """Bind Rust and C++ to the same selected native DLL, without vendored curl.
+
+    curl-sys probes vcpkg (not pkg-config) on Windows and otherwise embeds its
+    own curl in our static archive. Cargo's supported links override supplies
+    the already selected SDK instead of modifying the pinned upstream crate.
+    """
+    if sdk is None or target != 'x86_64-pc-windows-gnu':
+        return []
+    prefix = f'target.{target}.curl.'
+    values = {'rustc-link-lib': ['dylib=curl'],
+              'rustc-link-search': ['native=' + str(sdk/'lib')],
+              'include': str(sdk/'include')}
+    result = []
+    for key, value in values.items():
+        result.extend(['--config', prefix + key + '=' + json.dumps(value)])
+    return result
+
+
 def worker_link_arguments(target, linker, flags, sdk_library=None, sdk_import=None):
     """Link the process-main worker using the same selected native SDK input."""
     result = ['-C', f'linker={linker}']
@@ -82,6 +101,7 @@ def main():
     parser.add_argument('--eos-sdk-import-library', type=Path)
     parser.add_argument('--worker-link-flags', default='')
     parser.add_argument('--worker-linker')
+    parser.add_argument('--windows-sdk', type=Path)
     args = parser.parse_args()
     sdk_library = args.eos_sdk_library.resolve(strict=True) if args.eos_sdk_library else None
     sdk_import = args.eos_sdk_import_library.resolve(strict=True) if args.eos_sdk_import_library else None
@@ -108,6 +128,15 @@ def main():
         flags += ' -isysroot ' + shlex.quote(args.sysroot)
         worker_flags += ' -isysroot ' + shlex.quote(args.sysroot)
     env['CXXFLAGS'] = flags
+    windows_sdk = None
+    if args.windows_sdk:
+        sdk = args.windows_sdk.resolve(strict=True)
+        windows_sdk = sdk
+        env.update(OPENSSL_DIR=str(sdk), OPENSSL_LIB_DIR=str(sdk/'lib'),
+                   OPENSSL_INCLUDE_DIR=str(sdk/'include'),
+                   PKG_CONFIG_ALLOW_CROSS='1', PKG_CONFIG_SYSROOT_DIR=str(sdk.parent),
+                   PKG_CONFIG_LIBDIR=os.pathsep.join(map(str, (sdk/'lib/pkgconfig', sdk/'share/pkgconfig'))),
+                   PKG_CONFIG_PATH='', CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=args.cxx)
     if args.deployment_target:
         env['MACOSX_DEPLOYMENT_TARGET'] = args.deployment_target
     version = run([args.rustc, '--version', '--verbose'], manifest.parent, env)
@@ -119,8 +148,9 @@ def main():
     security_libraries = []
     workers = []
     for target in args.target:
+        sdk_options = windows_curl_options(windows_sdk, target)
         command = [args.cargo, 'rustc', '--manifest-path', str(manifest), '--locked',
-                   '--release', '--lib', '--target', target]
+                   '--release', '--lib', '--target', target, *sdk_options]
         if args.offline:
             command.append('--offline')
         command += ['--', '--print=native-static-libs']
@@ -137,7 +167,7 @@ def main():
             raise ValueError(f'Missing compiled Rust archive: {archive}')
         archives.append(archive)
         command = [args.cargo, 'rustc', '--manifest-path', str(manifest), '--locked',
-                   '--release', '--bin', 'eos_sdk_worker', '--target', target]
+                   '--release', '--bin', 'eos_sdk_worker', '--target', target, *sdk_options]
         if args.offline:
             command.append('--offline')
         command += ['--', *worker_link_arguments(target, args.worker_linker or args.cxx, worker_flags,
@@ -146,7 +176,7 @@ def main():
         workers.append(output/'cargo'/target/'release'/worker_name)
         if args.security_library_name:
             security_manifest=manifest.parent.parent/'online_security_ffi'/'Cargo.toml'
-            command=[args.cargo,'build','--manifest-path',str(security_manifest),'--locked','--release','--target',target]
+            command=[args.cargo,'build','--manifest-path',str(security_manifest),'--locked','--release','--target',target,*sdk_options]
             if args.offline:command.append('--offline')
             run(command,security_manifest.parent,env)
             security_libraries.append(output/'cargo'/target/'release'/args.security_library_name)
@@ -177,14 +207,23 @@ def main():
         path.write_bytes(data)
     # The final C++ linker consumes rustc's actual native dependencies. Do not
     # guess a platform library list or pass an rlib to the native linker.
-    response = (subprocess.list2cmdline(native_flags) if any('windows-msvc' in t for t in args.target)
-                else ' '.join(shlex.quote(value) for value in native_flags))
+    # rustc reports -lcurl for its DLL import. Resolve that one library to the
+    # same SDK import used by CMake; do not alter the compiler's CRT search.
+    resolved_flags = list(native_flags)
+    if windows_sdk:
+        curl_import = windows_sdk/'lib/libcurl.dll.a'
+        if not curl_import.is_file():
+            raise ValueError('Missing selected Windows curl import library')
+        resolved_flags = [str(curl_import) if value == '-lcurl' else value for value in native_flags]
+    response = (subprocess.list2cmdline(resolved_flags) if any('windows-msvc' in t for t in args.target)
+                else ' '.join(shlex.quote(value) for value in resolved_flags))
     (output/'native-libs.rsp').write_text(response+'\n')
     if digest(lock) != before_lock:
         raise ValueError('Locked Rust build changed Cargo.lock')
     report = {'scope': 'Rust static library, process-main SDK worker and generated CXX interface, not runtime acceptance',
               'rustc': version, 'targets': args.target, 'lock_sha256': before_lock,
               'cxx_version': '1.0.205', 'native_flags': native_flags,
+              'resolved_native_flags': resolved_flags,
               'requested_cxx': args.cxx, 'requested_cxx_flags': env['CXXFLAGS'],
               'archive': str(destination), 'archive_sha256': digest(destination),
               'worker': str(worker_destination), 'worker_sha256': digest(worker_destination),

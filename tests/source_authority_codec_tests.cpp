@@ -2,6 +2,7 @@
 #include "halo2/native_player_profile.hpp"
 #include "halo2/original_data.hpp"
 #include "halo2/source_game_variant.hpp"
+#include "halo2/source_authority_delta.hpp"
 #include <algorithm>
 #include <atomic>
 #include <cstdlib>
@@ -35,13 +36,16 @@ struct Clock final:PhysicsLiveClockSource {
 constexpr SourceMatchAuthority::AuthorityDigest binding{std::byte{0x15},std::byte{0x43}};
 struct Owner {
     Cache cache;LevelContent content;Directory files;std::shared_ptr<Clock> clock=std::make_shared<Clock>();
-    std::uint32_t result_seconds{};
+    std::uint32_t result_seconds{};unsigned budget_birth_ticks{};
     std::unique_ptr<MultiplayerObjectRuntime> world;std::unique_ptr<MultiplayerMatch> match;
     std::unique_ptr<SourceMatchAuthority> authority;
     Owner(const char *xbe,const char *map,std::uint32_t time):cache(map,{},OriginalData::load_xbe(xbe)),content(cache.load_content(0,true)){
         clock->time=time;result_seconds=100000u+time/1000u;world=std::make_unique<MultiplayerObjectRuntime>(xbe,cache,0,files.path,clock);
         UiVariant variant{"Slayer",0,{{0x59,5}}};auto rules=slayer_rules(variant);
         rules.weapon=cache.slayer_starting_weapon(5);rules.score_limit=rules.time_ticks=0;
+        // A finite complete default respawn/suicide/betrayal interval plus one
+        // source second; actual lifecycle state is never supplied by the test.
+        budget_birth_ticks=rules.respawn_ticks+rules.suicide_ticks+rules.betrayal_ticks+30;
         world->configure_session(source_game_variant(variant),1,30,rules.random_seed);
         match=std::make_unique<MultiplayerMatch>(content,0,cache.spawns(),rules,MultiplayerKingServices{},
             [this]{return result_seconds;},world.get());
@@ -102,7 +106,40 @@ void run(const char *exe,const char *xbe,const char *map,const char *receiver=nu
         input[0].fire=tick<12;input[0].reload=tick==12;input[0].grenade=tick>=17;a.step(input);}
     const auto saved=a.authority->checkpoint(binding);
     check(a.match->unit(0).weapon.loaded==54&&a.match->unit(0).grenade_action.held()!=null_datum,"Codec cut omitted active weapon/grenade state");
-    const auto encoded=encode_source_authority(saved);std::cout<<"Encoded complete source cut: "<<encoded.size()<<" bytes\n";
+    const auto network_limits=source_authority_network_codec_limits();
+    {
+        const auto offline=encode_source_authority(saved);std::uint64_t declared{};
+        for(unsigned i=0;i<8;++i)declared|=std::to_integer<std::uint64_t>(offline[16+i])<<(8*i);
+        std::cerr<<"Measured source checkpoint: "<<offline.size()<<" encoded / "<<declared<<" declared decoded bytes\n";
+        for(const auto &region:saved.world.world.bank.regions)if(region.bytes.size()>=1024*1024)
+            std::cerr<<"Source region "<<std::hex<<region.address<<std::dec<<" bytes="<<region.bytes.size()
+                <<" page_bytes="<<region.page_bytes<<" committed="<<std::count(region.committed.begin(),region.committed.end(),1)
+                <<'/'<<region.committed.size()<<" owner="<<region.owner<<'\n';
+        auto pilot_limits=AuthorityDeltaLimits{};pilot_limits.decoded_bytes=SourceAuthorityCodecLimits{}.decoded_bytes;
+        const auto pilot_image=AuthorityArchiveImage::read(offline,pilot_limits);
+        SourceAuthorityCodecStats pilot_stats;
+        const auto pilot=decode_source_authority_raw(pilot_image.raw(),pilot_image.digest(),SourceAuthorityCodecLimits{},&pilot_stats);
+        const auto &bank=pilot.world.world.bank;
+        std::uint64_t bank_claim=bank.regions.size()*sizeof(SourceRuntimeMemory::CheckpointRegion)+
+            SourceRuntimeMemory::restore_storage_overhead(bank);
+        for(const auto &region:bank.regions)bank_claim+=region.bytes.size()+region.owner.size()+region.committed.size();
+        std::cerr<<"Measured normalized native: "<<pilot_stats.native_claimed<<" bank="<<bank_claim
+            <<" other="<<(pilot_stats.native_claimed-bank_claim)<<" metadata="<<pilot_stats.metadata_bytes
+            <<" parserpeak="<<pilot_stats.working_peak<<"\n";
+    }
+    const auto encoded=encode_source_authority(saved,network_limits);
+    const auto image=AuthorityArchiveImage::read(encoded,source_authority_network_delta_limits());
+    std::cout<<"Network source image input: "<<encoded.size()<<" encoded / "<<image.decoded_size()<<" canonical bytes\n";
+    SourceAuthorityCodecStats measured;
+    const auto canonical=decode_source_authority_raw(image.raw(),image.digest(),network_limits,&measured);
+    auto staged_limit=network_limits;staged_limit.staged_bytes=measured.staged_claimed-1;
+    rejects([&]{decode_source_authority_raw(image.raw(),image.digest(),staged_limit);});
+    rejects([&]{decode_source_authority(encoded,staged_limit);});
+    check(encode_source_authority(canonical,network_limits)==encoded,"Raw network materialization changed owning state");
+    std::cout<<"Encoded complete source cut: "<<encoded.size()<<" bytes; canonical: "<<image.decoded_size()
+        <<" bytes; dynamic native: "<<measured.native_claimed<<" metadata: "<<measured.metadata_bytes
+        <<" parser peak: "<<measured.working_peak<<" staged input: "<<measured.staged_claimed
+        <<" network decode reservation: "<<network_limits.working_bytes<<" bytes\n";
     const auto decoded=decode_source_authority(encoded);
     check(encoded==encode_source_authority(decoded),"Authority archive round trip changed owning values");
     auto prepared=b.authority->prepare(decoded,binding);check(b.authority->commit(std::move(prepared)),"Decoded complete source cut did not restore");
@@ -137,6 +174,52 @@ void run(const char *exe,const char *xbe,const char *map,const char *receiver=nu
     pid_t child{};check(posix_spawn(&child,arguments.front().c_str(),nullptr,nullptr,argv.data(),environ)==0,"Cannot execute independent source codec receiver");
     int status{};check(waitpid(child,&status,0)==child&&WIFEXITED(status)&&WEXITSTATUS(status)==0,"Independent source codec receiver failed");
 #endif
+    // Measure an actual full16-seat source roster using the existing producer
+    // after the deterministic four-seat/cross-process checks have completed.
+    for(unsigned slot=4;slot<multiplayer_capacity;++slot){
+        const auto defaults=source_default_player_configuration();std::array<std::uint8_t,9> appearance;
+        std::copy_n(defaults.begin()+0x40,appearance.size(),appearance.begin());
+        const auto name="Budget seat "+std::to_string(slot);
+        check(a.match->join(name,-1,native_selected_player_configuration(name,appearance,-1))==slot,
+            "Full-roster network budget pilot could not admit an actual source player");
+    }
+    const auto all_bound=[&]{
+        for(unsigned slot=0;slot<multiplayer_capacity;++slot){const auto &player=a.match->player(slot);const auto &unit=a.match->unit(slot);
+            if(!player.connected||player.source_datum==null_datum||!player.source_current_unit||!unit.exists||
+                unit.source_datum==null_datum||unit.source_player!=player.source_datum||player.source_current_object!=unit.source_datum)return false;
+        }return true;
+    };
+    unsigned birth_ticks=0;
+    for(;birth_ticks<a.budget_birth_ticks&&(birth_ticks<10||!all_bound());++birth_ticks){
+        std::array<Controls,multiplayer_capacity> input{};
+        for(unsigned slot=0;slot<multiplayer_capacity;++slot)input[slot].yaw=a.match->unit(slot).yaw;
+        a.step(input);
+    }
+    std::cerr<<"16-seat body lifecycle: "<<birth_ticks<<'/'<<a.budget_birth_ticks<<" genuine source ticks\n";
+    bool full_bodies=true;
+    for(unsigned slot=0;slot<multiplayer_capacity;++slot){
+        const auto &player=a.match->player(slot);const auto &unit=a.match->unit(slot);
+        const bool bound=player.connected&&player.source_datum!=null_datum&&player.source_current_unit&&unit.exists&&
+            unit.source_datum!=null_datum&&unit.source_player==player.source_datum&&player.source_current_object==unit.source_datum;
+        if(!bound){
+            std::cerr<<"16-seat body admission slot="<<slot<<" connected="<<player.connected<<" current="<<player.source_current_unit
+                <<" exists="<<unit.exists<<" player="<<std::hex<<player.source_datum<<" object="<<player.source_current_object
+                <<" unit="<<unit.source_datum<<" unit_player="<<unit.source_player<<std::dec
+                <<" countdown="<<player.respawn.countdown<<" lives="<<player.source_lives_remaining<<'\n';
+            full_bodies=false;continue;
+        }
+        const auto body=a.world->source_object_body(unit.source_datum);
+        check(body&&a.world->memory().view(body,4).size()==4,"Full-roster budget pilot lacks actual source body backing");
+    }
+    check(full_bodies,"Full-roster budget pilot lacks an actual bound source unit");
+    const auto maximum=encode_source_authority(a.authority->checkpoint(binding),network_limits);
+    const auto maximum_image=AuthorityArchiveImage::read(maximum,source_authority_network_delta_limits());
+    SourceAuthorityCodecStats maximum_stats;
+    const auto maximum_cut=decode_source_authority_raw(maximum_image.raw(),maximum_image.digest(),network_limits,&maximum_stats);
+    check(std::ranges::count_if(maximum_cut.match.players,[](const auto &player){return player.connected;})==multiplayer_capacity,
+        "Full-roster budget pilot omitted source players");
+    std::cout<<"PASS16-player network budget: "<<maximum.size()<<" encoded / "<<maximum_image.decoded_size()
+        <<" canonical bytes; native="<<maximum_stats.native_claimed<<" staged="<<maximum_stats.staged_claimed<<'\n';
 }
 }
 int main(int argc,char **argv)try{

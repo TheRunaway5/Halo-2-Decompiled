@@ -1,6 +1,7 @@
 #include "halo2/bsp_postprocess.hpp"
 #include "halo2/math.hpp"
 #include "halo2/source_bloom_sampling.hpp"
+#include "halo2/native_fragment_kernel.hpp"
 #include <algorithm>
 #include <array>
 #include <cstring>
@@ -26,7 +27,7 @@ struct BspPostprocess::Impl {
     VkRenderPass target_pass{};
     VkDescriptorSetLayout patchy_set_layout{},bloom_set_layout{};
     VkPipelineLayout patchy_layout{},bloom_layout{};
-    VkPipeline noise_pipeline{},patchy_pipeline{},bloom_filter_pipeline{},bloom_pipeline{};
+    std::map<std::pair<std::string,unsigned>,VkPipeline> native_pipelines;
     VkDescriptorPool pool{};
     VkSampler repeat_sampler{},clamp_sampler{},depth_sampler{};
     VkImageView gradient{};
@@ -45,6 +46,7 @@ struct BspPostprocess::Impl {
         std::array<VkFramebuffer,2> blur_framebuffers{};
         std::array<Uniform,8> uniforms;
         std::array<VkDescriptorSet,8> descriptors{};
+        std::array<VkPipeline,8> pipelines{};
     };
     std::array<View,4> views;
     std::size_t view_count{};
@@ -70,10 +72,6 @@ struct BspPostprocess::Impl {
         pi.maxSets=32;pi.poolSizeCount=2;pi.pPoolSizes=sizes;
         check(vkCreateDescriptorPool(context.device,&pi,nullptr,&pool),"BSP postprocess descriptor pool");
         make_target_pass();
-        noise_pipeline=make_pipeline("bsp_patchy_noise.frag.spv",patchy_layout,target_pass,0);
-        patchy_pipeline=make_pipeline("bsp_patchy_composite.frag.spv",patchy_layout,context.color_pass,1);
-        bloom_filter_pipeline=make_pipeline("bloom.frag.spv",bloom_layout,target_pass,0);
-        bloom_pipeline=make_pipeline("bloom.frag.spv",bloom_layout,context.color_pass,2);
         for(unsigned index=0;index<views.size();++index) {
             auto &view=views[index];
             std::array<VkDescriptorSetLayout,8> layouts;layouts.fill(bloom_set_layout);
@@ -99,7 +97,7 @@ struct BspPostprocess::Impl {
                 if(uniform.memory)vkFreeMemory(context.device,uniform.memory,nullptr);
             }
         }
-        for(auto pipeline:{noise_pipeline,patchy_pipeline,bloom_filter_pipeline,bloom_pipeline})if(pipeline)vkDestroyPipeline(context.device,pipeline,nullptr);
+        for(const auto& [key,pipeline]:native_pipelines)if(pipeline)vkDestroyPipeline(context.device,pipeline,nullptr);
         if(pool)vkDestroyDescriptorPool(context.device,pool,nullptr);
         if(patchy_layout)vkDestroyPipelineLayout(context.device,patchy_layout,nullptr);
         if(bloom_layout)vkDestroyPipelineLayout(context.device,bloom_layout,nullptr);
@@ -192,6 +190,14 @@ struct BspPostprocess::Impl {
         vkDestroyShaderModule(context.device,vertex,nullptr);vkDestroyShaderModule(context.device,pixel,nullptr);
         check(result,"BSP postprocess graphics pipeline");return pipeline;
     }
+    VkPipeline native_pipeline(std::string_view family,const PixelProgram& program,
+        VkPipelineLayout layout,VkRenderPass pass,unsigned blending) {
+        const std::string path(native_fragment_kernel_path(family,program.words));
+        const auto key=std::pair(path,blending);
+        if(auto found=native_pipelines.find(key);found!=native_pipelines.end())return found->second;
+        const auto pipeline=make_pipeline(path.c_str(),layout,pass,blending);
+        native_pipelines.emplace(key,pipeline);return pipeline;
+    }
     void make_image(Image &target,VkExtent2D size,VkFormat format,VkImageUsageFlags usage) {
         VkImageCreateInfo info{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};info.imageType=VK_IMAGE_TYPE_2D;info.format=format;info.extent={size.width,size.height,1};
         info.mipLevels=info.arrayLayers=1;info.samples=VK_SAMPLE_COUNT_1_BIT;info.tiling=VK_IMAGE_TILING_OPTIMAL;info.usage=usage|VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -273,7 +279,10 @@ struct BspPostprocess::Impl {
                 image_binding(view.descriptors[0],2,selected,repeat_sampler);
                 const float inverse=1.f/std::max(.0001f,sample.patchy->distance[1]-sample.patchy->distance[0]);
                 for(unsigned pass=0;pass<2;++pass) {
-                    const PatchyUniform uniform{(pass?view.frame.shading.direct:view.frame.shading.noise).words,view.frame.shading.rows,
+                    const auto& program=pass?view.frame.shading.direct:view.frame.shading.noise;
+                    view.pipelines[pass]=native_pipeline(pass?"bsp-patchy-composite":"bsp-patchy-noise",program,
+                        patchy_layout,pass?context.color_pass:target_pass,pass?1:0);
+                    const PatchyUniform uniform{native_fragment_uniform_words(program.words),view.frame.shading.rows,
                         {view.frame.shading.vertical,float(pass?view.size.width:view.half.width),float(pass?view.size.height:view.half.height),
                             pass?view.frame.composite_minimum_depth:0.f},
                         {1024.f*inverse,0,0.f-sample.patchy->distance[0]*inverse,0}};
@@ -291,7 +300,10 @@ struct BspPostprocess::Impl {
                 const auto controls=source_bloom_filter_controls(pass<5?view.bloom.programs.radii[pass]:0,
                     {float(physical.width),float(physical.height)},
                     pass<5?view.input.source_bloom_filter_extent:std::nullopt);
-                const BloomUniform uniform{(pass==0?view.bloom.programs.threshold:pass==5?view.bloom.programs.composite:view.bloom.programs.blur).words,
+                const auto& program=pass==0?view.bloom.programs.threshold:pass==5?view.bloom.programs.composite:view.bloom.programs.blur;
+                view.pipelines[pass+2]=native_pipeline("bloom",program,bloom_layout,
+                    pass==5?context.color_pass:target_pass,pass==5?2:0);
+                const BloomUniform uniform{native_fragment_uniform_words(program.words),
                     controls,{0,0,1,1}};
                 write_uniform(view.uniforms[pass+2],uniform);
             }
@@ -324,8 +336,8 @@ struct BspPostprocess::Impl {
             depth.srcAccessMask=VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;depth.dstAccessMask=VK_ACCESS_SHADER_READ_BIT;
             depth.oldLayout=VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;depth.newLayout=VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT|VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,0,0,nullptr,0,nullptr,1,&depth);
-            pass(command,target_pass,view.noise_framebuffer,view.half,{{0,0},view.half},noise_pipeline,patchy_layout,view.descriptors[0],true);
-            pass(command,context.color_pass,target.color_framebuffer,context.extent,view.input.rectangle,patchy_pipeline,patchy_layout,view.descriptors[1],false);
+            pass(command,target_pass,view.noise_framebuffer,view.half,{{0,0},view.half},view.pipelines[0],patchy_layout,view.descriptors[0],true);
+            pass(command,context.color_pass,target.color_framebuffer,context.extent,view.input.rectangle,view.pipelines[1],patchy_layout,view.descriptors[1],false);
             depth.srcAccessMask=VK_ACCESS_SHADER_READ_BIT;depth.dstAccessMask=VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT|VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
             depth.oldLayout=VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;depth.newLayout=VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
             vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT|VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,0,0,nullptr,0,nullptr,1,&depth);
@@ -348,8 +360,8 @@ struct BspPostprocess::Impl {
         vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT|VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,0,0,nullptr,0,nullptr,2,barriers.data());
         view.scene_initialized=true;
         for(unsigned pass_index=0;pass_index<5;++pass_index)
-            pass(command,target_pass,view.blur_framebuffers[pass_index%2],view.quarter,{{0,0},view.quarter},bloom_filter_pipeline,bloom_layout,view.descriptors[pass_index+2],true);
-        pass(command,context.color_pass,target.color_framebuffer,context.extent,view.input.rectangle,bloom_pipeline,bloom_layout,view.descriptors[7],false);
+            pass(command,target_pass,view.blur_framebuffers[pass_index%2],view.quarter,{{0,0},view.quarter},view.pipelines[pass_index+2],bloom_layout,view.descriptors[pass_index+2],true);
+        pass(command,context.color_pass,target.color_framebuffer,context.extent,view.input.rectangle,view.pipelines[7],bloom_layout,view.descriptors[7],false);
         }
         VkRenderPassBeginInfo resume{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};resume.renderPass=context.continuation_pass;resume.framebuffer=target.continuation_framebuffer;
         resume.renderArea={{0,0},context.extent};vkCmdBeginRenderPass(command,&resume,VK_SUBPASS_CONTENTS_INLINE);viewport(command,view.input.rectangle);

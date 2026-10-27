@@ -9,6 +9,8 @@
 #include <system_error>
 #if defined(__APPLE__)
 #include "macos/native_network_observation.hpp"
+#elif defined(_WIN32)
+#include "platform/windows_network_observation.hpp"
 #endif
 #if defined(__linux__)
 #include <ifaddrs.h>
@@ -77,6 +79,8 @@ NativeNetworkLinkObservation observe_native_network_link(std::string_view prefer
     return inactive.value_or(NativeNetworkLinkObservation{});
 #elif defined(__APPLE__)
     return macos_network::observe_link(preferred);
+#elif defined(_WIN32)
+    return windows_network::observe_link(preferred);
 #else
     throw std::runtime_error("Native network link platform is unavailable");
 #endif

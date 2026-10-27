@@ -1,4 +1,5 @@
 #include "halo2/source_shadow_plan.hpp"
+#include "halo2/menu_world_vertex_catalog.hpp"
 #include "halo2/vertex_program.hpp"
 #include "halo2/texture_program.hpp"
 #include <algorithm>
@@ -7,21 +8,13 @@
 namespace halo2 {
 namespace {
 void world_stream(const Material &material) {
-    const auto program=decode_vertex_program(material.vertex_program);
-    if(program.relative_constants)
+    if(!material.vertex_declaration)throw FormatError("shadow world-stream lacks its original vertex declaration");
+    const auto& metadata=menu_world_vertex_metadata_lookup(material.vertex_program,*material.vertex_declaration);
+    if(metadata.relative_constants)
         throw FormatError("shadow world-stream plan cannot bind a relative palette");
-    for(unsigned i=0;i<program.count;++i) {
-        const auto &t=program.instructions[i];
-        const unsigned mac=(t[1]>>21)&15,ilu=(t[1]>>25)&7;
-        const bool active[]{mac!=0,mac==2 || (mac>=4 && mac<=12),ilu!=0 || mac==3 || mac==4};
-        const unsigned mux[]{(t[2]>>26)&3,(t[2]>>11)&3,(t[3]>>28)&3};
-        for(unsigned operand=0;operand<3;++operand)if(active[operand] && mux[operand]==3) {
-            const unsigned index=(t[1]>>13)&255;
-            if((index>=12 && index<=17) || (index>=37 && index<=39) ||
-               (index>=49 && index!=172))
-                throw FormatError("shadow plan requires an unrepresented source register/stream");
-        }
-    }
+    for(const auto index:metadata.consumed_constants)
+        if((index>=12 && index<=17) || (index>=37 && index<=39) || (index>=49 && index!=172))
+            throw FormatError("shadow plan requires an unrepresented source register/stream");
 }
 const SourceShadowPlanMaterial &find_material(std::span<const SourceShadowPlanMaterial> bank,
                                             unsigned slot) {

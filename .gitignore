@@ -21,6 +21,28 @@
 # Generated reference captures and oracle payloads can contain original bytes.
 # Keep the fixture documentation and Python generators with the tests.
 /tests/fixtures/*
+!/tests/fixtures/mcc-native-world-cooked-v1.json
+!/tests/fixtures/mcc-native-world-cooked-v1.json.zlib
+!/tests/fixtures/mcc-native-world-animated-v1.json
+!/tests/fixtures/mcc-native-world-animated-v1.json.zlib
+!/tests/fixtures/source-weather-sprite-v1.json
+!/tests/fixtures/source-weather-sprite-v1.json.zlib
+!/tests/fixtures/mcc-native-world-default-roles-v1.json
+!/tests/fixtures/mcc-native-world-default-roles-v1.json.zlib
+!/tests/fixtures/mcc-native-illum-no-specular-v1.json
+!/tests/fixtures/mcc-native-illum-no-specular-v1.json.zlib
+!/tests/fixtures/mcc-native-illum-three-channel-v1.json
+!/tests/fixtures/mcc-native-illum-three-channel-v1.json.zlib
+!/tests/fixtures/mcc-native-character-shared-v1.json
+!/tests/fixtures/mcc-native-character-shared-v1.json.zlib
+!/tests/fixtures/mcc-native-no-alpha-v1.json
+!/tests/fixtures/mcc-native-no-alpha-v1.json.zlib
+!/tests/fixtures/matchmaking_roster_tu15_original.json
+!/tests/fixtures/team_balance_tu15_original.json
+!/tests/fixtures/matchmaking_widgets_tu15_original.json
+!/tests/fixtures/tu15_pcr_tabs_original.json
+!/tests/fixtures/tu15_party_countdown_original.json
+!/tests/fixtures/tu15_matchmaking_readiness_original.json
 !/tests/fixtures/objective_native_original_tu15.json
 !/tests/fixtures/objective_owners_original_tu15.json
 !/tests/fixtures/objective_overtime_original_tu15.json
@@ -32,11 +54,20 @@
 !/tests/fixtures/source_shadow_native_query_tu15_original.json
 !/tests/fixtures/shadow_array_swap_tu15_original.json
 !/tests/fixtures/mcc_action_prompt_templates.json
+!/tests/fixtures/mcc-pc-sky-closure-regions.json
 !/tests/fixtures/*.md
 !/tests/fixtures/*.py
 !/tests/fixtures/mcc_scoreboard_hud_metadata.json
+!/tests/fixtures/player_status_tu15_original.json
+!/tests/fixtures/scoreboard_scroll_tu15.json
 !/tests/fixtures/mcc_elongation_glass_tu15.json
 !/tests/fixtures/bundled_loading_ambience_original.json
+# Hand-authored native movement commands contain no extracted game payloads.
+!/tests/fixtures/turf_late_crouch_contact_tu15.json
+!/tests/fixtures/superbounce_lockout_ordinary_jump_tu15.json
+!/tests/fixtures/superbounce_lockout_crouch_prime_tu15.json
+!/tests/fixtures/superbounce_turf_candidate_tu15.json
+!/tests/fixtures/superbounce_turf_native_match_tu15.json
 !/tests/fixtures/player_screen_flash_tu15/
 
 # Builds, downloaded tools/references, and local analysis workspaces.

@@ -77,7 +77,23 @@ def selected_gameplay_runtime(root, *, selection_name=SELECTION, cache_candidate
                 'bsp_patchy_composite.frag.spv', 'patchy_noise.frag.spv', 'patchy_composite.frag.spv',
                 'bloom.vert.spv', 'bloom.frag.spv', 'crt_oled.frag.spv', 'display.frag.spv',
                 'overlay.vert.spv', 'overlay.frag.spv', 'ui.vert.spv', 'ui.frag.spv', 'hud.frag.spv'}
-    if not baseline <= expected or actual != expected:
+    from native_renderer_shaders import AOT_PACKAGE_NAME, validate_native_package
+    package = shaders/AOT_PACKAGE_NAME
+    if package.exists() or package.is_symlink():
+        declaration = qualification.get('native_renderer_shader_package', {})
+        item = files.get('shaders/'+AOT_PACKAGE_NAME, {})
+        if (declaration.get('passed') is not True or
+                declaration.get('report') != str(package.relative_to(root)) or
+                declaration.get('report_sha256') != item.get('sha256')):
+            raise ValueError('Gameplay qualification lacks its native shader package identity')
+        package_proof = validate_native_package(shaders, expected_sha256=_digest(item['sha256']),
+                                                executable=runtime)
+        if (set(package_proof['files']) != expected or
+                package_proof['module_count'] != declaration.get('module_count')):
+            raise ValueError('Gameplay native shader catalog differs from qualification')
+    elif not baseline <= expected:
+        raise ValueError('Gameplay shader inventory omits its declared legacy family')
+    if actual != expected:
         raise ValueError('Gameplay shader inventory changed')
     for name, value in files.items():
         if name.startswith(('shaders/', 'data/', 'upscalers/')):

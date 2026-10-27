@@ -36,9 +36,10 @@ struct SourceWeatherPointPacket {
     std::array<ShaderVector,12> camera;
     PixelProgram pixel;
     std::span<const SourceWeatherPointInput> points;
-    // Explicit current sprite binding; its caller retains the actual four
-    // BC3 levels32/16/8/4 and source sampler. This module never selects mips,
-    // manufactures readiness or substitutes an authored full chain.
+    // Explicit current2D sprite binding; its caller retains the actual BC3
+    // levels32/16/8/4 (snow) or64/32/16/8/4 (flood spores), and source sampler.
+    // This module never selects mips, manufactures readiness or substitutes
+    // an authored full chain. The resource owner validates one2D layer.
     VkImageView sprite_view{};
     VkSampler sprite_sampler{};
     VkFormat sprite_format{};

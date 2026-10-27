@@ -106,6 +106,9 @@ public:
       ParticleCollisionQuery)const;
   bool commit_restore(PreparedRestore &&)noexcept;
   bool restore_ready(const PreparedRestore &)const noexcept;
+  // Completed source cache ownership replaces only procedural decal parts.
+  // A present empty authoritative frame still owns and clears this output.
+  void source_decal_cache(bool authoritative);
   void impact(const BulletImpact &);
   void melee_impact(const MeleeImpact &);
   void spawn(std::uint32_t effect, std::uint32_t owner, std::uint64_t tick,

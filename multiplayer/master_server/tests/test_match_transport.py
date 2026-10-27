@@ -84,12 +84,83 @@ class MatchTransportTests(unittest.IsolatedAsyncioTestCase):
         await sockets[c].send_bytes(bytes([host])+packet)
         self.assertEqual(await asyncio.wait_for(queues[h].get(), 2), bytes([descriptors[c]["slot"]])+packet)
 
+    async def test_start_countdown_is_shared_opt_in_and_disappears_on_readiness_loss(self):
+        headers, descriptors, sockets, _, _ = await self.pair()
+        room = self.api.transport.rooms[descriptors[0]["id"]]
+        now = room.start_clock
+        room.clock = lambda: now
+        legacy = await (await self.client.get("/v1/matchmaking/ticket", headers=headers[0])).json()
+        self.assertNotIn("start_countdown_ms", legacy)
+        first = await (await self.client.get("/v1/matchmaking/ticket?start=1", headers=headers[0])).json()
+        self.assertIn("start_countdown_ms", first)
+        self.assertEqual(first["start_countdown_ms"], 10000)
+        # A late observer reads this room's original clock. Reading never
+        # starts or extends the countdown and never exposes a platform clock.
+        for elapsed, expected in ((0, 10000), (3001, 6999), (9999, 1), (10000, 0), (11000, 0)):
+            now = room.start_clock + elapsed
+            for header in headers:
+                value = await (await self.client.get("/v1/matchmaking/ticket?start=1", headers=header)).json()
+                self.assertEqual(value["start_countdown_ms"], expected)
+        room.phase = "running"
+        value = await (await self.client.get("/v1/matchmaking/ticket?start=1", headers=headers[0])).json()
+        self.assertIsNone(value["start_countdown_ms"])
+        room.phase = "loading"
+        outsider = await self.session("three")
+        value = await (await self.client.get("/v1/matchmaking/ticket?start=1", headers=outsider)).json()
+        self.assertIsNone(value["start_countdown_ms"])
+        await sockets[1].close()
+        value = await (await self.client.get("/v1/matchmaking/ticket?start=1", headers=headers[0])).json()
+        self.assertIsNone(value["start_countdown_ms"])
+
     async def test_data_mismatch_closes_everyone(self):
         _, _, sockets, queues, _ = await self.pair()
         await sockets[0].send_json({"loaded": "1234567890abcdef:000001a"})
         await sockets[1].send_json({"loaded": "2234567890abcdef:000001a"})
         for queue in queues:
             self.assertIsNone(await asyncio.wait_for(queue.get(), 2))
+
+    async def test_opt_in_terminal_failure_survives_room_teardown_and_fresh_search_clears_it(self):
+        headers, descriptors, sockets, _, _ = await self.pair()
+        room = self.api.transport.rooms[descriptors[0]["id"]]
+        await room.close("Connection quality is insufficient for this playlist.")
+        for header in headers:
+            legacy = await (await self.client.get("/v1/matchmaking/ticket", headers=header)).json()
+            self.assertNotIn("failure", legacy)
+            state = await (await self.client.get("/v1/matchmaking/ticket?failure=1&start=1", headers=header)).json()
+            self.assertEqual(state["failure"], "search_failed")
+            self.assertIsNone(state["start_countdown_ms"])
+        await self.client.delete("/v1/matchmaking/ticket", headers=headers[0])
+        state = await (await self.client.get("/v1/matchmaking/ticket?failure=1", headers=headers[0])).json()
+        self.assertIsNone(state["failure"])
+
+    async def test_content_rejection_is_authenticated_and_publishes_original_party_failure(self):
+        headers, descriptors, _, _, _ = await self.pair()
+        body = {"match_id": descriptors[0]["id"], "kind": "missing_content"}
+        outsider = await self.session("three")
+        self.assertEqual((await self.client.post("/v1/matchmaking/failure", headers=outsider, json=body)).status, 403)
+        await self.api.transport.rooms[descriptors[0]["id"]].close("Rejected native launch was destroyed.")
+        await self.api.transport.cleanup()
+        self.assertNotIn(descriptors[0]["id"], self.api.transport.rooms)
+        self.assertEqual((await self.client.post("/v1/matchmaking/failure", headers=headers[0], json=body)).status, 200)
+        own = await (await self.client.get("/v1/matchmaking/ticket?failure=1", headers=headers[0])).json()
+        other = await (await self.client.get("/v1/matchmaking/ticket?failure=1", headers=headers[1])).json()
+        self.assertEqual(own["failure"], "missing_content")
+        self.assertEqual(other["failure"], "search_failed")  # Different party A.
+
+    async def test_team_readiness_loss_resets_the_shared_start_clock(self):
+        headers, descriptors, _, _, _ = await self.pair()
+        room = self.api.transport.rooms[descriptors[0]["id"]]
+        now = room.start_clock + 5000
+        room.clock = lambda: now
+        room.team_mode = True
+        original = room.players[:]
+        room.players = [(p, name, 0) for p, name, _ in original]
+        self.assertIsNone(room.start_countdown_ms())
+        self.assertIsNone(room.start_clock)
+        room.players = original
+        self.assertEqual(room.start_countdown_ms(), 10000)
+        now += 10000
+        self.assertEqual(room.start_countdown_ms(), 0)
 
     async def test_audio_flood_is_bounded_on_the_authenticated_stream(self):
         from multiplayer.master_server.match_transport import PacketBudget

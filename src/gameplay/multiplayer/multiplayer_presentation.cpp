@@ -2,6 +2,8 @@
 #include "halo2/render_interpolation.hpp"
 #include "halo2/source_model_pose.hpp"
 #include "halo2/math.hpp"
+#include <algorithm>
+#include <bit>
 #include <unordered_map>
 
 namespace halo2 {
@@ -76,8 +78,10 @@ MultiplayerState multiplayer_presentation(const MultiplayerState &previous,
         out.position=render_lerp(a.position,b.position,fraction);
         out.yaw=render_angle(a.yaw,b.yaw,fraction);
         out.pitch=std::lerp(a.pitch,b.pitch,fraction);out.crouch=std::lerp(a.crouch,b.crouch,fraction);
-        if(current.tick-previous.tick==1)
+        if(current.tick-previous.tick==1) {
+            out.source_player_camera=sample_camera(a.source_player_camera,b.source_player_camera,fraction);
             out.source_vehicle_camera=sample_camera(a.source_vehicle_camera,b.source_vehicle_camera,fraction);
+        }
         const auto &ga=a.grenade_action,&gb=b.grenade_action;
         if(current.tick-previous.tick==1 && ga.animation_active && gb.animation_active &&
            ga.graph==gb.graph && ga.clip==gb.clip && ga.activity==gb.activity &&
@@ -109,5 +113,37 @@ MultiplayerState multiplayer_presentation(const MultiplayerState &previous,
         b.position=render_lerp(a->position,b.position,fraction);
     }
     return shown;
+}
+std::vector<SourceWorldPredictedRoot> predicted_body_roots(const MultiplayerState &previous,
+    const MultiplayerState &current,const MultiplayerState &shown,std::span<const unsigned> slots,
+    std::span<const std::optional<Vec3>> predicted) {
+    const auto same=[](Vec3 a,Vec3 b) {
+        return std::bit_cast<std::uint32_t>(a.x)==std::bit_cast<std::uint32_t>(b.x) &&
+            std::bit_cast<std::uint32_t>(a.y)==std::bit_cast<std::uint32_t>(b.y) &&
+            std::bit_cast<std::uint32_t>(a.z)==std::bit_cast<std::uint32_t>(b.z);
+    };
+    std::vector<SourceWorldPredictedRoot> roots;
+    for(unsigned view=0;view<slots.size() && view<predicted.size();++view) {
+        const auto slot=slots[view];
+        if(slot>=shown.players.size() || !predicted[view])continue;
+        const auto &p=shown.players[slot];
+        // The camera is drawn from the shown position: the body follows it
+        // only while that position is the prediction, on a living, unseated
+        // unit (the unit is then its own WORLD root).
+        if(!p.connected || p.dead || p.source_unit==null_datum || p.source_parent!=null_datum ||
+           p.source_seat!=-1 || !same(p.position,*predicted[view]))continue;
+        if(std::any_of(roots.begin(),roots.end(),[&](const auto &root){return root.object==p.source_unit;}))continue;
+        roots.push_back({p.source_unit,previous.players[slot].position,current.players[slot].position,p.position});
+    }
+    return roots;
+}
+ShadowCasterSphere predicted_body_sphere(std::span<const SourceWorldPredictedRoot> roots,
+    std::uint32_t object,const ShadowCasterSphere &current) {
+    for(const auto &root:roots)if(root.object==object) {
+        // The completed sphere belongs to the current endpoint's origin.
+        auto moved=current;moved.center=current.center+(root.predicted-root.current);
+        return moved;
+    }
+    return current;
 }
 }

@@ -11,8 +11,9 @@ done
 task_flags=(-O2)
 if [ "$task_mode" = asan ]; then task_flags=(-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer);
 elif [ "$task_mode" != normal ]; then exit 2; fi
-c++ -std=c++20 -ffp-contract=off -fno-fast-math "${task_flags[@]}" \
+c++ -std=c++20 -ffp-contract=off -fno-fast-math -ffunction-sections -fdata-sections "${task_flags[@]}" \
     -I"$task_root/include" -I"$task_root/tests" \
     "-DHALO2_SOURCE_DIR=\"$task_root\"" "-DHALO2_WEATHER_POINT_SHADER_DIR=\"$task_build/shaders\"" \
     "$task_root/src/rendering/weather/source_weather_point_render.cpp" "$task_root/tests/source_weather_point_scene_tests.cpp" \
-    "$task_archive" -lvulkan -lz -llz4 -o "$task_build/source_weather_point_scene_tests"
+    "$task_root/src/rendering/vertex_program.cpp" "$task_root/tests/reference/vertex_program_reference.cpp" \
+    "$task_root/src/assets/cache.cpp" "$task_archive" -Wl,--gc-sections -lvulkan -lz -llz4 -o "$task_build/source_weather_point_scene_tests"

@@ -5,6 +5,9 @@
 // Complete authenticated bodies compile to native arithmetic and static calls.
 #include "physics/runtime/physics_world_runtime_internal.hpp"
 #include "halo2/source_damage_delivery_runtime.hpp"
+// BEGIN native damage voice request include
+#include "halo2/source_damage_voice_request_tu15.hpp"
+// END native damage voice request include
 // BEGIN native material damage include
 #include "gameplay/objects/source_damage_material_native_tu15_internal.hpp"
 // END native material damage include
@@ -1919,7 +1922,13 @@ if(s.services.instruction){s.services.instruction(damage_observation_pc(0xcb7b2u
 if(s.services.instruction){s.services.instruction(damage_observation_pc(0xcb7b7u,0xcc937u,s));} s.push(damage_observation_pc(0xcb7b7u,0xcc937u,s),s.reg(0,4,0));
 if(s.services.instruction){s.services.instruction(damage_observation_pc(0xcb7b8u,0xcc938u,s));} s.set(0,r(s.memory,(0x2cu+s.gp[4]),1),1,0);
 if(s.services.instruction){s.services.instruction(damage_observation_pc(0xcb7bcu,0xcc93cu,s));} s.push(damage_observation_pc(0xcb7bcu,0xcc93cu,s),s.reg(3,4,0));
-if(s.services.instruction){s.services.instruction(damage_observation_pc(0xcb7bdu,0xcc93du,s));} s.push(damage_observation_pc(0xcb7bdu,0xcc93du,s),selected(0xcb7c2u,s.image));run_115fa0(s);
+if(s.services.instruction){s.services.instruction(damage_observation_pc(0xcb7bdu,0xcc93du,s));} s.push(damage_observation_pc(0xcb7bdu,0xcc93du,s),selected(0xcb7c2u,s.image));
+// BEGIN native damage voice request publication
+source_damage_voice_request_tu15(s.memory,
+    s.image==SourcePhysicsContactImage::TitleUpdate15?0xcc93du:0xcb7bdu,
+    s.gp[3],s.gp[5],s.gp[6]);
+// END native damage voice request publication
+run_115fa0(s);
 if(s.services.instruction){s.services.instruction(damage_observation_pc(0xcb7c2u,0xcc942u,s));} s.xmm[1]=_mm_xor_ps(s.xmm[1],s.xmm[1]);
 Lcb7c5: if(s.services.instruction){s.services.instruction(damage_observation_pc(0xcb7c5u,0xcc945u,s));} s.xmm[0]=_mm_set_ss(f(r(s.memory,(0x44u+s.gp[5]),4)));
 if(s.services.instruction){s.services.instruction(damage_observation_pc(0xcb7cau,0xcc94au,s));} s.flags.scalar_compare(s.xmm[0],s.xmm[1],false);

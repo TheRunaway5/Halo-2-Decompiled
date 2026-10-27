@@ -26,7 +26,7 @@ int main(int argc,char **argv) {
       std::array<Controls,16> controls{};
       auto connect=[&] {
         if (lan) {
-          client=std::make_unique<LanClient>("127.0.0.1:"+std::to_string(host->port()),0x16d560,1);
+          client=std::make_unique<LanClient>(host->join_address(),0x16d560,1);
           for(unsigned i=0;i<64 && !client->ready();++i) {
             client->send(std::array<Controls,1>{});host->receive(controls);
             host->broadcast();client->receive();

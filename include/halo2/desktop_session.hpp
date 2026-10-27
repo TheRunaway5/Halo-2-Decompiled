@@ -3,6 +3,7 @@
 #include "halo2/pc_settings.hpp"
 #include "halo2/controller_settings.hpp"
 #include "halo2/vista_loading_assets.hpp"
+#include "halo2/frontend_network_transition.hpp"
 #include <SDL.h>
 #include <filesystem>
 #include <functional>
@@ -17,6 +18,7 @@ struct Mesh;
 struct SourceShadowPlanMaterial;
 struct SourceShadowRawPlanMaterial;
 class DesktopLoadingBridge;
+struct GameplayFontSource;
 struct DesktopLoadingSnapshot {
   bool active{},fade_active{},fade_complete{};
   std::uint32_t clock_origin{},deadline{},gain_bits{},sleeps{},present_calls{},submitted_frames{};
@@ -53,6 +55,17 @@ public:
   // Owned converted MCC inputs use the same animation, fade and renderer
   // handoff. Admission is atomic; no executable/Vista bank is discovered here.
   void configure_loading(const VistaLoadingAssets&);
+  // Independent original Xbox multiplayer map-wait presentation. Fonts are
+  // admitted MCC/H2EK inputs; campaign/Vista loading keeps its separate owner.
+  void configure_source_loading_wait(const GameplayFontSource&);
+  // Original screen231 network transition dialog ("PLEASE WAIT") for ONLINE
+  // map preparation and departures, painted from the selected menu content.
+  // Like the map wait, it must be configured before the first renderer.
+  void configure_network_transition(std::shared_ptr<FrontendNetworkTransitionPainter>);
+  bool network_transition_configured() const;
+  void begin_network_transition(FrontendNetworkTransitionStatus);
+  // Status shown from the next presented frame; no effect when inactive.
+  void network_transition_status(FrontendNetworkTransitionStatus);
   std::shared_ptr<Renderer> make_renderer(Mesh&,bool validation,
       std::span<const SourceShadowPlanMaterial> shadow_materials={},
       const SourceBspResidentPlan *bsp_resident_plan=nullptr,
@@ -61,10 +74,17 @@ public:
   // Called after actual GPU/audio initialization, before an ordinary frame.
   void renderer_ready(const std::shared_ptr<Renderer>&);
   void begin_loading();
+  void begin_source_loading_wait();
   void finish_loading();
   void cancel_loading() noexcept;
   bool loading_active() const;
+  // The original logo/sweep presentation; preferred over the map-copy wait.
+  bool vista_loading_configured() const;
+  bool source_loading_wait_configured() const;
+  bool source_loading_wait_active() const;
   std::optional<DesktopLoadingSnapshot> loading_snapshot() const;
+  // Source MP captures must be queued before next-renderer admission; once
+  // quiescent, its device belongs to ordinary first-frame GPU preparation.
   void capture_loading(const std::filesystem::path&);
   // Original782052 argument intent. Its consumer is not assumed to be a
   // linear master-volume setter. The optional service runs on the loader.

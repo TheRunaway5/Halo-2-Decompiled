@@ -1,5 +1,6 @@
 #include "halo2/audio.hpp"
 #include "halo2/frontend.hpp"
+#include "halo2/original_matchmaking_audio.hpp"
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -219,8 +220,29 @@ int main(int argc, char **argv) {
       const auto pcm = decode_sound(encoded);
       check(pcm.frames() > 0 && pcm.sound_class == encoded.sound_class,
             "required Xbox UI sound is not preloadable with its source class");
+      if(original_matchmaking_audio_slot(unsigned(slot))) {
+        const auto private_sound=load_original_matchmaking_audio(unsigned(slot));
+        check(private_sound.name==encoded.name && private_sound.sample_rate==encoded.sample_rate &&
+              private_sound.channels==encoded.channels && private_sound.codec==encoded.codec &&
+              private_sound.samples==encoded.samples && private_sound.sound_class==encoded.sound_class &&
+              private_sound.data==encoded.data && private_sound.packet_chunks.empty(),
+              "Private countdown sound differs from the actual original DVD encoded owner");
+        const auto private_pcm=decode_sound(private_sound);
+        check(private_pcm.stereo==pcm.stereo && private_pcm.rate==pcm.rate && private_pcm.sound_class==pcm.sound_class,
+              "Private countdown PCM differs from decoding the actual original DVD asset");
+        SDL_setenv("SDL_AUDIODRIVER","dummy",1);
+        AudioEngine mixer(false);
+        const auto voice=mixer.play(std::make_shared<PcmSound>(private_pcm),frontend_ui_sound_request_scale);
+        check(voice && mixer.active_voices()==1,"Original countdown did not create an actual native voice");
+        const auto rendered=mixer.render(pcm.frames()+512);
+        check(std::equal(pcm.stereo.begin(),pcm.stereo.end(),rendered.begin()) &&
+              std::all_of(rendered.begin()+pcm.stereo.size(),rendered.end(),[](float v){return v==0;}) &&
+              mixer.active_voices()==0,"Original countdown output or natural voice completion differs");
+      }
     }
     check(decoded.size() == 10, "source sound alias/NONE handling differs");
+    for(unsigned slot=0;slot<13;++slot)
+      check(original_matchmaking_audio_slot(slot)==(slot==10 || slot==12),"Private source audio leaked into another UI role");
     std::cout << "13 original Xbox/Vista slots; 10 unique native UI sounds have byte-identical Vista payloads and metadata, including countdown; literal PC request scale; no mixer/playback or trigger-timing claim\n";
     return 0;
   } catch (const std::exception &e) {

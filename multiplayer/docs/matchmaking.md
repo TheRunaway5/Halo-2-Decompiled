@@ -177,6 +177,17 @@ It configures names, revisions, ranked/casual classification, player and party
 limits, weighted map/variant pools, widening stages, explicit skill policy and
 provenance. Unsupported or malformed catalogs fail startup; an absent catalog
 leaves discovery working and returns503 from matchmaking endpoints.
+An explicit four-team offering is supplied in
+[`matchmaking-multiteam-native.json`](../master_server/examples/matchmaking-multiteam-native.json).
+Select it with `MATCHMAKING_CATALOG=/absolute/path/to/matchmaking-multiteam-native.json`
+when applying `compose.production-matchmaking.yaml`, or set `H2_MATCHMAKING_CATALOG`
+to that path for a directly run service. It offers twelve players, four teams,
+guests and parties up to twelve, using the original TU1.5 assignment/count
+kernels and authenticated raw hopper ratings. Its single Lockout/default Team
+Slayer pool is an explicit native offering, not a reconstruction of missing
+historical rotation weights or downloaded variant buffers. The full-count-only
+gathering uses recovered candidate/rank selection; its finite service timeout
+is declared native policy. No deployed catalog changes merely by adding this file.
 Optional `rank_configuration: "retail-launch-2004"` chooses recovered XP
 arithmetic independently of rank visibility. Optional stage field
 `unbounded_skill: true` is accepted only on a final casual stage after zero;

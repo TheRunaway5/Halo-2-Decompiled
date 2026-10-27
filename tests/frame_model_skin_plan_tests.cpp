@@ -301,13 +301,44 @@ void banded_local_mismatch() {
         need(!plan.contains(bank),"Rejected mismatched bank was retained");
     }
 }
+void mapped_owner_witness() {
+    auto world=geometry(3,0x10001),foreground=geometry(3,0x20002),rigid=geometry(3,0x30003);
+    foreground->post_identity_placement=true;
+    for(auto &binding:rigid->bindings) {
+        binding.weights={0.f,std::bit_cast<float>(0x80000000u),0.f,0.f};binding.bones.fill(65535);
+    }
+    auto a=world->vertices,b=foreground->vertices,c=world->vertices,d=rigid->vertices;
+    FrameModelSkinPlan plan;
+    plan.add_bank(a,submission(0,world),0);plan.add_bank(b,submission(0,foreground),0);
+    plan.add_bank(c,submission(0,world),3);plan.add_bank(d,submission(0,rigid),2);
+    unsigned observations{};
+    plan.observe_mapped_owners([&](auto,const auto&,auto,auto){++observations;});
+    need(!observations,"Registered but unmapped owners were reported as dispatched records");
+    plan.append(a,0);plan.append(b,10);plan.append(c,20);plan.append(d,30);
+    plan.append(std::span{a}.first(1),40);plan.validate_complete();
+    std::size_t vertices{},weighted{};unsigned world_views{};
+    plan.observe_mapped_owners([&](unsigned view,const ModelSkinGeometry &owner,std::size_t count,std::size_t influences) {
+        ++observations;vertices+=count;weighted+=influences;
+        if(owner.owner==world->owner) {
+            ++world_views;need((view==0 && count==4)||(view==3 && count==3),
+                "Shared geometry owner lost its submitting view or repeated actual destination count");
+            need(influences==count && !owner.post_identity_placement,"WORLD owner acquired foreground/zero-weight attribution");
+        } else if(owner.owner==foreground->owner)
+            need(view==0 && count==3 && influences==3 && owner.post_identity_placement,
+                "First-person records were attributed to a third-person body");
+        else need(owner.owner==rigid->owner && view==2 && count==3 && !influences,
+            "Signed-zero influences were reported as weighted GPU deformation");
+    });
+    need(observations==4 && world_views==2 && vertices==plan.records().size() && weighted==10,
+        "GPU owner witness differs from actual grouped record coverage");
+}
 int main()try {
     empty_and_bounds();grouped_parts_and_repeated_copies();owner_identity_and_source_aliases();
     foreground_post_modes_and_lifetime();
     section_duplicates_completion_and_failures();
     fragmented_ranges_and_atomic_aliases();dense_and_sparse_ordinal_bindings();
     shared_packet_geometry_and_bank_validation();bounded_fragmented_storage_growth();
-    empty_submissions_preserve_registered_plan();banded_local_mismatch();
+    empty_submissions_preserve_registered_plan();banded_local_mismatch();mapped_owner_witness();
     std::cout<<"PASS frame model skin source/owner/grouped destination provenance and rejection gates\n";
     return 0;
 }catch(const std::exception &error) {std::cerr<<error.what()<<'\n';return 1;}

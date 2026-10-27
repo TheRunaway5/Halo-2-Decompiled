@@ -1,0 +1,132 @@
+{
+  "schema": "H2_MCC_NATIVE_WORLD_ANIMATED_REGRESSION_V1",
+  "fixture_schema": "H2_MCC_NATIVE_WORLD_ANIMATED_FIXTURE_V1",
+  "scope": "Literal clock-only data admission component; translated native test allocations; no live/GPU draw claim",
+  "compressed_file": "mcc-native-world-animated-v1.json.zlib",
+  "compressed_bytes": 10347,
+  "compressed_sha256": "e3cd7945d97d59aca2237398cfd2682563754998d76f7e46beaa98c382366826",
+  "decoded_bytes": 183913,
+  "decoded_sha256": "d8feb87169f7f7533e61bd8ac858549a1095265ccb11448b6c36d8a51b5dc874",
+  "source_map_sha256": {
+    "needle": "bdf79ad0880e0ded968745bc102dcadaeb2ac690dd0eab42eb994f6f4f1d5fb7",
+    "lockout": "8141212c439bbf559963ae9c4323d573fa4f8d3d44bc99d5923d509358a9d6ee",
+    "coagulation": "2bb23227c845c14d80360a67cff42588344adad9529af47e04d34703db623b19",
+    "dune": "5ea54b1f229f3bde277320c2308fc3bf85ed813aad8a4a653699a136e5d0db3b",
+    "zanzibar": "01311e3a20af3ad4638471bd68ff505f64525397950d92bb2417697da41c67d3"
+  },
+  "native_source_libraries": {
+    "dune": "d4ba6bf2e48b7f27be3059b7eb90dd8ca12e093330450d44dafcb4b0f66f56e8",
+    "lockout": "12a25b27abcb4aacf8b57bdfc1a4be2bc1383b57904631eaf4e9c7327fea57a1",
+    "coagulation": "f523c80325d5fe3f8bff7d4f3768a3b97fb2d9904a9fa455f307757e7436917e",
+    "zanzibar": "836dc371006640ddaf22b931904c88ee1a9602702fa69c9216b72100ac6cdb84"
+  },
+  "exporter": "tools/export_mcc_native_world_animated_fixture.py",
+  "exporter_sha256": "156041190d7cc326cc9fcc002abeb00571e87dd37aa4189df683dbf56cdd8745",
+  "base_exporter": "tools/export_mcc_native_world_cooked_fixture.py",
+  "base_exporter_sha256": "50664ef464fe55fd2a75a4c0dd47e5a7f4c7560f671da49b7f799553bb409664",
+  "pc_geometry_owners": 8,
+  "paired_original_fixtures": 4,
+  "profiles": [
+    "shaders\\shader_templates\\transparent\\plasma_alpha",
+    "shaders\\shader_templates\\transparent\\two_alpha_clouds",
+    "shaders\\shader_templates\\water\\water_static"
+  ],
+  "pc_owners": [
+    {
+      "map": "needle",
+      "shader": "scenarios\\shaders\\multi\\needle\\grav_lift",
+      "datum": 4164485313,
+      "template": "shaders\\shader_templates\\transparent\\plasma_alpha",
+      "source_stem_graph_sha256": "9b524a1618876c6d638464e70f600eb1fd21032878dae06a3b88ee7c4578350e",
+      "native_template_sha256": "18336a3526a0a6681fdf33e5c52b5bb38b8d7b12de0c8a757c4286ce4812de5b"
+    },
+    {
+      "map": "needle",
+      "shader": "scenarios\\shaders\\multi\\needle\\grav_lift_lit",
+      "datum": 4164747461,
+      "template": "shaders\\shader_templates\\transparent\\plasma_alpha",
+      "source_stem_graph_sha256": "9b524a1618876c6d638464e70f600eb1fd21032878dae06a3b88ee7c4578350e",
+      "native_template_sha256": "18336a3526a0a6681fdf33e5c52b5bb38b8d7b12de0c8a757c4286ce4812de5b"
+    },
+    {
+      "map": "needle",
+      "shader": "scenarios\\shaders\\multi\\needle\\waves_shoreline_edge_fade",
+      "datum": 4164812998,
+      "template": "shaders\\shader_templates\\transparent\\two_alpha_clouds",
+      "source_stem_graph_sha256": "8c4d7cbd0f2809967a818d694d96ae546f41d57ea31122922d12fa2f4bbcbf9b",
+      "native_template_sha256": "87f9c1a6979697e8609e1b48fcaf9911fa8c49d0f5ea2e26d0a3b372a4f84743"
+    },
+    {
+      "map": "needle",
+      "shader": "scenarios\\shaders\\multi\\needle\\waves_shoreline",
+      "datum": 4165206220,
+      "template": "shaders\\shader_templates\\transparent\\two_alpha_clouds",
+      "source_stem_graph_sha256": "8c4d7cbd0f2809967a818d694d96ae546f41d57ea31122922d12fa2f4bbcbf9b",
+      "native_template_sha256": "87f9c1a6979697e8609e1b48fcaf9911fa8c49d0f5ea2e26d0a3b372a4f84743"
+    },
+    {
+      "map": "needle",
+      "shader": "scenarios\\shaders\\multi\\needle\\waves_strong_edge_fade",
+      "datum": 4165337294,
+      "template": "shaders\\shader_templates\\transparent\\two_alpha_clouds",
+      "source_stem_graph_sha256": "8c4d7cbd0f2809967a818d694d96ae546f41d57ea31122922d12fa2f4bbcbf9b",
+      "native_template_sha256": "87f9c1a6979697e8609e1b48fcaf9911fa8c49d0f5ea2e26d0a3b372a4f84743"
+    },
+    {
+      "map": "needle",
+      "shader": "scenarios\\shaders\\multi\\needle\\waves_strong",
+      "datum": 4165533905,
+      "template": "shaders\\shader_templates\\transparent\\two_alpha_clouds",
+      "source_stem_graph_sha256": "8c4d7cbd0f2809967a818d694d96ae546f41d57ea31122922d12fa2f4bbcbf9b",
+      "native_template_sha256": "87f9c1a6979697e8609e1b48fcaf9911fa8c49d0f5ea2e26d0a3b372a4f84743"
+    },
+    {
+      "map": "needle",
+      "shader": "scenarios\\shaders\\multi\\needle\\waves_weak_edge_fade",
+      "datum": 4165664979,
+      "template": "shaders\\shader_templates\\transparent\\two_alpha_clouds",
+      "source_stem_graph_sha256": "8c4d7cbd0f2809967a818d694d96ae546f41d57ea31122922d12fa2f4bbcbf9b",
+      "native_template_sha256": "87f9c1a6979697e8609e1b48fcaf9911fa8c49d0f5ea2e26d0a3b372a4f84743"
+    },
+    {
+      "map": "needle",
+      "shader": "scenarios\\shaders\\multi\\needle\\water_static",
+      "datum": 4166451423,
+      "template": "shaders\\shader_templates\\water\\water_static",
+      "source_stem_graph_sha256": "aa6edb3a9e5b19c266afc72792107e4f2548c00c9f4ab9b5594b8a72b45d975c",
+      "native_template_sha256": "30cec8f7c7ea6312d9598b318c88f339169e4f0e8f97065d15479590d763f2d3"
+    }
+  ],
+  "paired_original_controls": [
+    {
+      "map": "lockout",
+      "shader": "scenarios\\shaders\\multi\\lockout\\grav_lift",
+      "datum": 4159897813,
+      "template": "shaders\\shader_templates\\transparent\\plasma_alpha",
+      "original_shader_payload": "75d6d963ef69b24ecfdb4ee076ab232e61d94b5413a7e5af2fc896e15eb00965.bin"
+    },
+    {
+      "map": "coagulation",
+      "shader": "scenarios\\shaders\\multi\\lockout\\grav_lift",
+      "datum": 4163240199,
+      "template": "shaders\\shader_templates\\transparent\\plasma_alpha",
+      "original_shader_payload": "4ebeff7e9eca4981d4ebe2f87577d9389a9dc6fd8e045e75c50914003c2856f6.bin"
+    },
+    {
+      "map": "dune",
+      "shader": "scenarios\\shaders\\multi\\dune\\dune_waves",
+      "datum": 4171235660,
+      "template": "shaders\\shader_templates\\transparent\\two_alpha_clouds",
+      "original_shader_payload": "0be9e1a66f9b05ecc150db1267d8ad13e3598171a2cc37b85d0304959b619335.bin"
+    },
+    {
+      "map": "zanzibar",
+      "shader": "scenarios\\shaders\\multi\\zanzibar\\water_static",
+      "datum": 4195746435,
+      "template": "shaders\\shader_templates\\water\\water_static",
+      "original_shader_payload": "c30dd0f9e132b27d3f039a97cd3a79a64cd5f67b05696f62ecfbf9b85886a6b4.bin"
+    }
+  ],
+  "function_tables_sha256": "1261274f49fbf8f8fd36e9a56f9b7a701a2bad1c5d84be168c69826a62484118",
+  "retention_reason": "Required portable literal metadata regression input; no textures, frames, object code, GPU programs or cache files are included."
+}

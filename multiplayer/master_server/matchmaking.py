@@ -105,6 +105,7 @@ class Playlist:
     clan_match: ClanMatch | None = None
     candidate_selection: str | None = None
     gathering: GatheringConfiguration | None = None
+    team_count: int = 2  # Original generic balancer supports up to four teams.
 
     def __post_init__(self):
         require(self.candidate_selection in (None, "retail-candidates-native-relay-v1"), "Unknown candidate selection policy")
@@ -117,9 +118,12 @@ class Playlist:
         integer(self.minimum_players, 2, 16)
         integer(self.maximum_players, self.minimum_players, 16)
         integer(self.team_size, 0, 8)
-        integer(self.maximum_party, 1, self.team_size or self.maximum_players)
-        require(not self.team_size or self.maximum_players == 2 * self.team_size,
-                "Team playlist requires two full equal teams")
+        integer(self.team_count, 2, 4)
+        integer(self.maximum_party, 1, self.maximum_players if self.team_count>2 else self.team_size or self.maximum_players)
+        require(not self.team_size or self.maximum_players == self.team_count * self.team_size,
+                "Team playlist capacity differs from its configured team count")
+        require(self.team_count==2 or (self.team_size and not self.ranked and not self.clan_match and self.party_balance is None),
+                "Original multi-team assignment requires an explicit casual team policy")
         require(not self.team_size or self.clan_match is not None or self.minimum_players == self.maximum_players,
                 "Reduced team counts require a separately specified policy")
         if self.clan_match is not None:
@@ -408,6 +412,24 @@ class Coordinator:
             return tuple(tuple(p.id for p in ticket.players) for ticket in group)
         if not policy.team_size:
             return tuple((p.id,) for ticket in group for p in ticket.players)
+        if policy.team_count>2:
+            from .team_balance import balance, can_add
+            players=[player for ticket in group for player in ticket.players]
+            require(all(p.raw_rank is not None for p in players),
+                    "Original multi-team balancing requires authenticated raw ratings")
+            parties=[index for index,ticket in enumerate(group) for _ in ticket.players]
+            # Original7E210 first[] at+D4 supplies unadjusted raw ratings to
+            # final gathering71730 ->91FC0, not adjusted party search ranks.
+            weights=[p.raw_rank for p in players]
+            for preserve in (True,False):
+                # Casual gathering first tries party preservation, then retries
+                # original balancing with individual seats if that cannot fit.
+                if not can_add(policy.team_count,policy.team_size,parties,use_parties=preserve):continue
+                assignment=balance(policy.team_count,policy.team_size,parties,weights,use_parties=preserve)
+                if assignment is not None:
+                    return tuple(tuple(p.id for p,t in zip(players,assignment) if t==team)
+                                 for team in range(policy.team_count))
+            return None
         partitions = []
         # Fix the first party on team0 to avoid mirrored duplicate partitions.
         for count in range(len(group)):

@@ -167,7 +167,7 @@ int main(int argc,char**argv){try{
       removal.effect_position.z==live_event.effect_position.z && removal.effect_forward.x==live_event.effect_forward.x &&
       removal.effect_forward.y==live_event.effect_forward.y && removal.effect_forward.z==live_event.effect_forward.z,
       "Prop tombstone reconstructed or lost the actual emitted visual request");
-  LanHost host(match,0,0x50524f50);LanClient client("127.0.0.1:"+std::to_string(host.port()),0x50524f50,1);
+  LanHost host(match,0,0x50524f50);LanClient client(host.join_address(),0x50524f50,1);
   std::array<Controls,1> remote{};
   for(unsigned i=0;i<20 && !client.ready();++i){client.send(remote);host.receive(controls);host.broadcast();client.receive();}
   check(client.ready() && client.state().prop_removals==removals,"Late LAN join omitted authoritative prop removal bank");

@@ -19,7 +19,7 @@ int main(int argc,char **argv) {
       client->send(std::array<Controls,4>{});host.receive(controls);host.broadcast();client->receive();
     };
     const auto connect=[&] {
-      client=std::make_unique<LanClient>("127.0.0.1:"+std::to_string(host.port()),0x169d8a,4);
+      client=std::make_unique<LanClient>(host.join_address(),0x169d8a,4);
       for(unsigned i=0;i<64 && !client->ready();++i)exchange();
       check(client->ready() && client->slots().size()==4,"Four-view native UDP join");
       for(unsigned i=0;i<4;++i)check(client->slots()[i]==i,"Assigned view slot order");

@@ -24,6 +24,7 @@
 #include "rendering/renderer/material_fog_phase.hpp"
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "halo2/renderer.hpp"
+#include "halo2/source_view_projection.hpp"
 #include "halo2/temporal_upscaler.hpp"
 #include "halo2/pstencil/light_response_material.hpp"
 #include "halo2/pstencil/texture_accumulation_2003.hpp"
@@ -32,6 +33,7 @@
 #include "halo2/bloom.hpp"
 #include "halo2/math.hpp"
 #include "halo2/vertex_program.hpp"
+#include "halo2/bitmap_frame_animation.hpp"
 #include "halo2/world_material_uniform.hpp"
 #include "halo2/world_material.hpp"
 #include "halo2/presentation_format.hpp"
@@ -67,10 +69,17 @@
 #include "halo2/pstencil/adaptation.hpp"
 #include "halo2/pstencil/detail.hpp"
 #include "halo2/pstencil/specular_mask.hpp"
+#include "halo2/path_tracing/render.hpp"
+#include "halo2/path_tracing/scene.hpp"
+#include "halo2/path_tracing/geometry.hpp"
+#include "halo2/path_tracing/material_residency.hpp"
 #include "halo2/source_shadow_draw_storage.hpp"
 #include "rendering/renderer/resident_draw_storage.hpp"
 #include "halo2/mainmenu_world_source.hpp"
 #include "halo2/menu_world_vertex_source.hpp"
+#include "halo2/native_world_kernel.hpp"
+#include "halo2/native_fragment_kernel.hpp"
+#include "native_world_kernels.generated.hpp"
 #ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
 #include "halo2/menu_world_native_packet.hpp"
 #include "halo2/menu_world_depth.hpp"
@@ -94,7 +103,9 @@
 #include <iostream>
 #include <limits>
 #include <map>
+#include <mutex>
 #include <set>
+#include <sstream>
 #include <tuple>
 #include <vector>
 
@@ -166,6 +177,19 @@ glm::mat4 view_projection(const Camera& camera, VkExtent2D extent, bool title = 
     projection[2][1] += camera.projection_clip_offset.y;
     projection[1][1] *= -1;
     return projection * glm::lookAt(eye, eye + forward, up);
+}
+glm::mat4 source_water_reflection_clip(const std::array<ShaderVector,7> &constants) {
+    // Original12D30 already produced the complete view/projection products.
+    // Their common W normalization cancels in perspective division. Retain
+    // every source row and convert only source-up clipY to Vulkan-down clipY.
+    // No camera pose, aspect, clipping plane or GLM perspective is rebuilt.
+    glm::mat4 result;
+    for(unsigned row=0;row<4;++row)for(unsigned column=0;column<4;++column) {
+        const auto value=constants[row][column];
+        if(!std::isfinite(value))throw FormatError("Water reflection source clip coefficient is nonfinite");
+        result[column][row]=row==1?-value:value;
+    }
+    return result;
 }
 } // namespace
 
@@ -268,6 +292,7 @@ struct Renderer::Impl {
     VkRenderPass continuation_pass{}, fog_pass{};
     std::vector<VkFramebuffer> fog_framebuffers;
     VkPipeline fog_pipeline{};
+    std::map<std::string_view,VkPipeline> fog_pipelines;
     VkPipelineLayout fog_layout{};
     VkDescriptorSetLayout fog_texture_layout{};
     VkDescriptorPool fog_pool{};
@@ -282,6 +307,7 @@ struct Renderer::Impl {
     VkRenderPass patchy_pass{};
     VkFramebuffer patchy_framebuffer{};
     VkPipeline patchy_noise_pipeline{},patchy_composite_pipeline{};
+    std::map<std::string_view,VkPipeline> patchy_noise_pipelines,patchy_composite_pipelines;
     VkPipelineLayout patchy_layout{};
     VkDescriptorSetLayout patchy_texture_layout{};
     VkDescriptorPool patchy_pool{};
@@ -307,7 +333,8 @@ struct Renderer::Impl {
     std::array<VkDescriptorSet,postprocess_count> bloom_descriptors{};
     std::array<VkBuffer,postprocess_count> bloom_buffers{};
     std::array<VkDeviceMemory,postprocess_count> bloom_memories{};
-    VkPipeline bloom_filter_pipeline{},bloom_composite_pipeline{},scene_filter_pipeline{};
+    std::map<std::string_view,VkPipeline> bloom_filter_pipelines,bloom_composite_pipelines,scene_filter_pipelines;
+    std::array<VkPipeline,postprocess_count> postprocess_pipelines{};
     VkPipeline crt_pipeline{},display_pipeline{};
     VkPipelineLayout crt_layout{},display_layout{};
     std::array<VkFramebuffer,2> bloom_framebuffers{};
@@ -346,6 +373,15 @@ struct Renderer::Impl {
     std::vector<bool> camouflage_group_materials;
     std::array<std::vector<VkDescriptorSet>,4> camouflage_descriptors;
     std::array<std::unique_ptr<SourceSceneCopyGpu>,4> camouflage_copies;
+    std::vector<bool> texture_camera_materials;
+    std::array<std::vector<VkDescriptorSet>,2> texture_camera_descriptors;
+    std::array<std::unique_ptr<SourceSceneCopyGpu>,2> texture_camera_copies;
+    std::array<SourceSceneCopyGpuBinding,2> texture_camera_bindings{};
+    std::array<std::optional<SourceSceneCopyContext>,2> texture_camera_copy_contexts;
+    std::array<std::int32_t,2> texture_camera_coordinate_extent{};
+    std::array<bool,2> texture_camera_pending{},texture_camera_produced{},texture_camera_before_produced{};
+    std::uint64_t texture_camera_epoch{};
+    std::uint64_t texture_camera_submit_serial{};
     std::array<bool,4> camouflage_copy_pending{};
     std::unique_ptr<SourceWeatherDepthAlias> camouflage_alias;
     bool camouflage_alias_pending{};
@@ -364,7 +400,9 @@ struct Renderer::Impl {
     VkPipelineLayout vista_loading_layout{};
     std::array<VkPipeline,3> vista_loading_pipelines{};
     std::vector<std::optional<VistaLoadingMaterial>> vista_loading_materials;
-    std::array<VkPipeline,5> hud_pipelines{};
+    std::vector<bool> source_loading_wait_materials;
+    std::vector<bool> network_transition_materials;
+    std::map<std::string_view,std::array<VkPipeline,5>> hud_pipelines;
     std::vector<unsigned> hud_materials;
     std::vector<bool> ui_emblem_materials;
     std::vector<bool> ui_full_surfaces;
@@ -380,18 +418,26 @@ struct Renderer::Impl {
         bool emblem_w_depth{};
         bool pstencil_mask{};
         bool camouflage_alias{};
+        unsigned native_kernel=~0u;
+        bool base_world{};
     };
     static std::array<std::uint32_t,60> combiner_controls(std::array<std::uint32_t,60> program) {
         std::fill(program.begin()+10,program.begin()+26,0);
         program[43]=program[44]=0;
         return program;
     }
-    bool specialize_combiners=[] {
-        const auto *reference=std::getenv("HALO2_REFERENCE_GENERIC_COMBINERS");
-        return !reference || !*reference;
-    }();
+    static bool native_kernel_matches(const NativeWorldKernelEntry& entry,const Material& material) {
+        const auto bytes=std::as_bytes(entry.vertex_program);
+        return (material.forward_pass || material.static_lightmap_pass) &&
+            entry.declaration==pack_source_vertex_declaration(material.vertex_declaration,material.world_vertex_input_transform) &&
+            entry.extended_vertex_bank==bool(material.vertex_bank) && bytes.size()==material.vertex_program.size() &&
+            std::equal(bytes.begin(),bytes.end(),material.vertex_program.begin());
+    }
     std::vector<unsigned> specialized_pipeline_indices,active_forward_pipeline_indices;
+    std::vector<unsigned> native_world_kernel_indices;
     std::vector<ForwardPipeline> forward_pipelines;
+    std::mutex native_forward_pipeline_mutex;
+    std::map<std::pair<unsigned,std::array<std::uint32_t,60>>,unsigned> native_forward_variants;
     std::vector<unsigned> pstencil_response_phases;
     std::vector<unsigned> forward_pipeline_indices;
     VkPipelineLayout overlay_layout{};
@@ -518,6 +564,23 @@ struct Renderer::Impl {
             }
         }
     }
+    void observe_descriptor_copies(std::span<const VkCopyDescriptorSet> copies) {
+        if(!capture_bsp_draw_bindings)return;
+        for(const auto &copy:copies) {
+            const auto source=observed_descriptors.find(observed_handle(copy.srcSet));
+            if(source==observed_descriptors.end() || copy.srcBinding!=copy.dstBinding ||
+               copy.srcArrayElement || copy.dstArrayElement)
+                throw FormatError("Actual owner descriptor copy escaped its observed source bank");
+            auto &target=observed_descriptors[observed_handle(copy.dstSet)];target.handle=observed_handle(copy.dstSet);
+            if(copy.srcBinding<4 && copy.descriptorCount==1)
+                target.images[0][copy.dstBinding]=source->second.images[0][copy.srcBinding];
+            else if((copy.srcBinding==5 || copy.srcBinding==6) && copy.descriptorCount==4)
+                target.images[copy.dstBinding-4]=source->second.images[copy.srcBinding-4];
+            else if(copy.srcBinding==7 && copy.descriptorCount==1)
+                target.buffers[1]=source->second.buffers[1];
+            else throw FormatError("Actual owner descriptor copy has an unsupported binding extent");
+        }
+    }
     void observe_shader(VkShaderModule module,std::span<const std::uint32_t> words) {
         if(capture_bsp_draw_bindings)observed_shader_modules[observed_handle(module)]={words.begin(),words.end()};
     }
@@ -584,6 +647,22 @@ struct Renderer::Impl {
     std::vector<SourceShadowRawPlanMaterial> raw_shadow_materials;
     std::unique_ptr<SourceShadowRender> shadow_render;
     std::unique_ptr<pstencil::Render> pstencil_render;
+    // Borrow the existing asset owner; inactive RT retains no geometry/image
+    // snapshots. The explicit binder guarantees the Mesh lifetime.
+    const Mesh* path_tracing_source_mesh{};
+    struct PathTracingState {
+        std::array<std::unique_ptr<path_tracing::Render>,5> renderers;
+        std::array<std::optional<path_tracing::Scene>,5> scenes;
+        std::array<std::unique_ptr<ResidentDrawStorage>,5> sky_storage;
+    };
+    bool path_tracing_fragment_stores{};
+    std::unique_ptr<PathTracingState> path_tracing_state;
+    void release_path_tracing() {
+        if(!path_tracing_state)return;
+        if(std::any_of(path_tracing_state->renderers.begin(),path_tracing_state->renderers.end(),[](const auto& p){return bool(p);}))
+            check(vkWaitForFences(device,1,&fence,VK_TRUE,UINT64_MAX),"retire Path Tracing resources");
+        path_tracing_state.reset();
+    }
     std::vector<std::uint8_t> pstencil_caster_materials;
     std::unique_ptr<SourceShadowDrawStorage> shadow_storage;
     std::unique_ptr<SourceWorldDrawStorage> raw_shadow_storage;
@@ -636,6 +715,7 @@ struct Renderer::Impl {
     std::vector<std::array<unsigned,3>> world_planar_materials;
     std::map<unsigned,MaterialPass> fog_material_passes;
     std::map<unsigned,ShaderAnimation> owner_material_animations;
+    std::map<unsigned,std::vector<BitmapFrameAnimation>> owner_bitmap_animations;
     std::map<unsigned,std::array<std::int32_t,8>> fog_material_switches;
     std::vector<unsigned> material_roots;
     std::vector<std::vector<ShaderRemap>> view_direction_remaps,view_fog_remaps;
@@ -801,6 +881,7 @@ struct Renderer::Impl {
         presentation_copy_worker.reset();
         if (device) {
             vkDeviceWaitIdle(device);
+            for(auto &copy:texture_camera_copies)copy.reset();texture_camera_pending={};
             model_skin_gpu.reset();
             release_texture_staging();
             release_texture_upload_pool();
@@ -1065,6 +1146,8 @@ struct Renderer::Impl {
         VkPhysicalDeviceFeatures enabled{};
         enabled.textureCompressionBC = features.textureCompressionBC;
         enabled.shaderStorageImageExtendedFormats=features.shaderStorageImageExtendedFormats;
+        enabled.fragmentStoresAndAtomics=features.fragmentStoresAndAtomics;
+        path_tracing_fragment_stores=enabled.fragmentStoresAndAtomics;
         if(!features.depthClamp)throw FormatError("original sky rasterization requires depth clamp support");
         enabled.depthClamp=VK_TRUE;
         enabled.geometryShader=features.geometryShader;
@@ -1919,6 +2002,8 @@ struct Renderer::Impl {
             // they do not own a shader-template pass or its fog extern bank.
             fog_material_passes.emplace(i,materials[i]->passes.at(materials[i]->forward_pass_index));
             if(!materials[i]->animation.overlays.empty())owner_material_animations.emplace(i,materials[i]->animation);
+            auto bitmap_animations=bitmap_frame_animations(*materials[i]);
+            if(!bitmap_animations.empty())owner_bitmap_animations.emplace(i,std::move(bitmap_animations));
             fog_material_switches.emplace(i,materials[i]->shader_switches);
         }
         // These authored mappings never change when animation updates the
@@ -1982,7 +2067,8 @@ struct Renderer::Impl {
             add_geometry_pair(binding[0],binding[1]);
         const auto scope_count=std::count_if(materials.begin(),materials.end(),[](const auto *m){return m->scope_texture;});
         const auto camouflage_count=std::count(camouflage_scene_materials.begin(),camouflage_scene_materials.end(),true);
-        const auto resident_sets=std::uint64_t(count)+geometry_pairs.size()+std::uint64_t(scope_count)+4ull*camouflage_count;
+        const auto camera_count=std::count_if(materials.begin(),materials.end(),[](const auto *m){return m->texture_camera_texture;});
+        const auto resident_sets=std::uint64_t(count)+geometry_pairs.size()+std::uint64_t(scope_count)+4ull*camouflage_count+2ull*camera_count;
         if(resident_sets>std::numeric_limits<std::uint32_t>::max()/12u)
             throw FormatError("resident material descriptors exceed Vulkan count range");
         const auto sets = static_cast<std::uint32_t>(resident_sets);
@@ -1997,6 +2083,7 @@ struct Renderer::Impl {
         animated_textures.resize(count);wanted_frames.resize(count);bound_frames.resize(count);
         stage_samplers.resize(count);stage_sampler_states.resize(count);
         scope_materials.resize(count);scope_descriptors.resize(count);
+        texture_camera_materials.resize(count);
         lightmap_textures.resize(mesh.lightmaps.size()+1);
         const Texture white{1,1,11,{std::byte{255},std::byte{255},std::byte{255},std::byte{255}}, {}};
         const Texture flat_normal{1,1,11,{std::byte{128},std::byte{128},std::byte{255},std::byte{255}}, {}};
@@ -2035,6 +2122,7 @@ struct Renderer::Impl {
         material_stride=stride;
         vertex_bank_stride=(sizeof(VertexBankUniform)+alignment-1)/alignment*alignment;
         material_uniforms.resize(count);
+        native_world_kernel_indices.assign(count,~0u);
         pstencil_response_phases.resize(count);
         pstencil_environment_materials.resize(count);
         pstencil_combined_visors.resize(count);
@@ -2089,6 +2177,7 @@ struct Renderer::Impl {
                 effect_light_blends[i]=material.forward_blend;
             }
             scope_materials[i]=material.scope_texture;
+            texture_camera_materials[i]=material.texture_camera_texture;
             water_material_definitions[i]=material.water_definition;
             water_materials[i]=material.water_pass && material.forward_vertex>=7;
             water_texture_bindings[i]={material.water_reflection_texture,material.water_refraction_texture};
@@ -2102,6 +2191,15 @@ struct Renderer::Impl {
                material.vista_loading->shader>3 || unsigned(material.vista_loading->blend)>2))
                 throw FormatError("invalid explicit Vista loading material");
             vista_loading_materials.push_back(material.vista_loading);
+            source_loading_wait_materials.push_back(material.name=="source-loading-wait/font3" &&
+                material.ui_full_surface && !material.forward_pass && !material.hud_pass && !material.ui_emblem_pass &&
+                material.diffuse.format==11 && !material.diffuse.pixels.empty());
+            // Canvas UI owners of the screen231 dialog; never full-surface,
+            // frame-extension, emblem or world materials.
+            network_transition_materials.push_back(material.name.starts_with("network-transition/") &&
+                !material.ui_full_surface && !material.forward_pass && !material.hud_pass && !material.ui_emblem_pass &&
+                !material.vista_loading && material.ui_frame_extension==UiFrameExtension::None &&
+                !material.ui_frame_center && !material.diffuse.pixels.empty());
             ui_widescreen_backgrounds.push_back(material.ui_widescreen_background);
             ui_frame_extensions.push_back(material.ui_frame_extension);
             ui_frame_widths.push_back(material.ui_frame_center?material.diffuse.width:0);
@@ -2125,20 +2223,30 @@ struct Renderer::Impl {
                 if(stage==0 && pstencil::texture_masked_specular_material(material))uniform.texture_effects[stage][1]|=32u;
             }
             const auto &pixel_program=material.forward_pass?material.forward_program:material.lightmap_program;
+            if((material.forward_pass || material.static_lightmap_pass) &&
+               !material.hud_pass && !material.light_volume_pass && !material.vertex_program.empty()) {
+                const auto declaration=pack_source_vertex_declaration(material.vertex_declaration,material.world_vertex_input_transform);
+                const auto &entries=generated_native_world_kernels::entries;
+                for(unsigned kernel=0;kernel<entries.size();++kernel) {
+                    const auto &entry=entries[kernel];
+                    const auto bytes=std::as_bytes(entry.vertex_program);
+                    if(entry.declaration==declaration &&
+                       entry.extended_vertex_bank==bool(material.vertex_bank) &&
+                       bytes.size()==material.vertex_program.size() &&
+                       std::equal(bytes.begin(),bytes.end(),material.vertex_program.begin())) {
+                        native_world_kernel_indices[i]=kernel;break;
+                    }
+                }
+                if(native_world_kernel_indices[i]==~0u)
+                    throw FormatError("World material has no exact native Vulkan vertex kernel: "+material.name);
+            }
             material_fragment_offsets[i]=pixel_program.fragment_offsets;
-            if((material.forward_pass || material.static_lightmap_pass) && !texture_program_supported(pixel_program))
-                std::cerr << "Texture addressing fallback: " << material.name << " requires unsupported texture operations\n";
-            if(texture_program_supported(pixel_program) && !material.vertex_program.empty() &&
-                ((!material.forward_pass && material.static_lightmap_pass) ||
-                 (material.forward_vertex>=1 && material.forward_vertex<=10) || material.forward_vertex==12)) {
-                try {
-                    const auto vertex=decode_vertex_program(material.vertex_program);
+            if(native_world_kernel_indices[i]!=~0u) {
+                    const auto& vertex=generated_native_world_kernels::entries[native_world_kernel_indices[i]];
                     if(vertex.relative_constants &&
                        (!material.vertex_bank || material.vertex_bank->constants.empty()))
                         throw FormatError("relative vertex program has no explicit source constant bank: "+material.name);
-                    uniform.vertex_instructions=vertex.instructions;
-                    uniform.flags[3]=vertex.count;
-                    uniform.alpha_test[3]=menu_world_vertex_default_texture_w_mask(vertex);
+                    uniform.alpha_test[3]=vertex.default_texture_w_mask;
                     uniform.vertex_constants=material.program_constants[1];
                     uniform.vertex_attributes=material.program_constants[0];
                     uniform.vertex_declaration=pack_source_vertex_declaration(material.vertex_declaration,material.world_vertex_input_transform);
@@ -2147,15 +2255,9 @@ struct Renderer::Impl {
                            [](auto semantic){return semantic==19 || semantic==20;}) &&
                        (!material.vertex_bank || !material.vertex_bank->prt_inputs))
                         throw FormatError("source PRT declaration has no explicit vertex stream bank: "+material.name);
-                } catch (const UnsupportedVertexProgram& error) {
-                    // Retain the existing fixed vertex path for valid retail
-                    // programs whose instructions are not implemented yet.
-                    // Malformed lengths/markers still propagate as errors.
-                    std::cerr << "Vertex program fallback: " << material.name
-                              << ": " << error.what() << '\n';
-                }
             }
-            std::memcpy(static_cast<std::byte*>(mapped)+stride*i,&uniform,sizeof(uniform));
+            const auto gpu_uniform=native_material_gpu_uniform(uniform);
+            std::memcpy(static_cast<std::byte*>(mapped)+stride*i,&gpu_uniform,sizeof(gpu_uniform));
             material_uniforms[i]=uniform;
             const auto bank=source_vertex_bank(material);
             std::memcpy(static_cast<std::byte*>(bank_mapped)+vertex_bank_stride*i,&bank,sizeof(bank));
@@ -2206,27 +2308,23 @@ struct Renderer::Impl {
             after_fog.push_back(detail::material_after_fog(material));
             projected_decal_layers.push_back(material.forward_vertex==11?material.forward_pass_index:~0u);
             if(!material.hud_pass && !material.light_volume_pass &&
-                (material.world_pass || material.forward_blend || material.accumulation_texture || material.environment_pass)) {
+                (material.forward_pass || material.static_lightmap_pass || material.world_pass || material.forward_blend || material.accumulation_texture || material.environment_pass ||
+                 native_world_kernel_indices[i]!=~0u)) {
                 const bool emblem_w_depth=!pstencil_response_phases[i] && material.template_name.ends_with("\\emblem_overlay_simple");
                 const bool pstencil_mask=pstencil_response_phases[i]!=3 && (source_material_layers[i]==13 || pstencil_response_phases[i]!=0);
                 const bool alias=source_material_layers[i]==19;
+                const auto native=native_world_kernel_indices[i];
+                const bool base_world=!material.forward_pass;
+                const auto controls=combiner_controls(material_uniforms[i].program);
                 const auto found=std::find_if(forward_pipelines.begin(),forward_pipelines.end(),
                     [&](const auto &p){return p.blend==material.forward_blend && p.state==material.forward_raster &&
-                        p.extended_vertex_bank==bool(material.vertex_bank) && !p.controls && p.emblem_w_depth==emblem_w_depth && p.pstencil_mask==pstencil_mask && p.camouflage_alias==alias;});
+                        p.extended_vertex_bank==bool(material.vertex_bank) && p.native_kernel==native && p.base_world==base_world &&
+                        p.controls==controls && p.emblem_w_depth==emblem_w_depth && p.pstencil_mask==pstencil_mask && p.camouflage_alias==alias;});
                 const auto index=unsigned(found-forward_pipelines.begin());
                 if(found==forward_pipelines.end())
-                    forward_pipelines.push_back({material.forward_blend,material.forward_raster,{},{},bool(material.vertex_bank),{},emblem_w_depth,pstencil_mask,alias});
+                    forward_pipelines.push_back({material.forward_blend,material.forward_raster,{},{},bool(material.vertex_bank),controls,emblem_w_depth,pstencil_mask,alias,native,base_world});
                 forward_pipeline_indices.push_back(index);
                 unsigned specialized=~0u;
-                if(specialize_combiners && !pstencil_response_phases[i]) {
-                    const auto controls=combiner_controls(material_uniforms[i].program);
-                    const auto found_specialized=std::find_if(forward_pipelines.begin(),forward_pipelines.end(),
-                        [&](const auto &p){return p.blend==material.forward_blend && p.state==material.forward_raster &&
-                            p.extended_vertex_bank==bool(material.vertex_bank) && p.controls==controls && p.emblem_w_depth==emblem_w_depth && p.pstencil_mask==pstencil_mask && p.camouflage_alias==alias;});
-                    specialized=unsigned(found_specialized-forward_pipelines.begin());
-                    if(found_specialized==forward_pipelines.end())
-                        forward_pipelines.push_back({material.forward_blend,material.forward_raster,{},{},bool(material.vertex_bank),controls,emblem_w_depth,pstencil_mask,alias});
-                }
                 specialized_pipeline_indices.push_back(specialized);
             } else {
                 forward_pipeline_indices.push_back(~0u);specialized_pipeline_indices.push_back(~0u);
@@ -2334,6 +2432,10 @@ struct Renderer::Impl {
             view.resize(count);
             for(unsigned m=0;m<count;++m)if(camouflage_scene_materials[m])descriptor(m,0,view[m]);
         }
+        for(auto &target:texture_camera_descriptors) {
+            target.resize(count);
+            for(unsigned m=0;m<count;++m)if(texture_camera_materials[m])descriptor(m,0,target[m]);
+        }
         for(const auto &[material,lightmap]:geometry_pairs)
             descriptor(material,lightmap,geometry_descriptors[{material,lightmap}]);
         flush_descriptors();
@@ -2352,6 +2454,11 @@ struct Renderer::Impl {
     }
 
     void retire_weather_aliases() {
+        for(unsigned i=0;i<2;++i)if(texture_camera_pending[i]) {
+            if(!texture_camera_copies[i]->retire())
+                throw FormatError("Texture camera image outlived its completed frame fence");
+            texture_camera_pending[i]=false;
+        }
         for(std::size_t i=0;i<weather_aliases.size();++i)if(weather_alias_pending[i]) {
             weather_aliases[i]->retire(fence);weather_alias_pending[i]=false;
         }
@@ -2442,6 +2549,7 @@ struct Renderer::Impl {
         if(camouflage_alias_framebuffer)vkDestroyFramebuffer(device,camouflage_alias_framebuffer,nullptr);
         camouflage_alias_framebuffer={};camouflage_alias.reset();camouflage_alias_pending=false;
         for(auto &copy:camouflage_copies)copy.reset();camouflage_copy_pending={};
+        ++texture_camera_epoch; // Private camera images survive same-device target recreation.
         if(camouflage_alias_pass)vkDestroyRenderPass(device,camouflage_alias_pass,nullptr);
         camouflage_alias_pass={};
         for(auto &[source,texture]:weather_sprites) {
@@ -2470,6 +2578,7 @@ struct Renderer::Impl {
         effect_light_storage.reset();
         shadow_render.reset();
         pstencil_render.reset();
+        path_tracing_state.reset();
         object_draw_storage.reset();
 #ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
         particle_renderer.reset();
@@ -2497,10 +2606,12 @@ struct Renderer::Impl {
             if(target->memory)vkFreeMemory(device,target->memory,nullptr);
             *target={};
         }
-        if(bloom_filter_pipeline)vkDestroyPipeline(device,bloom_filter_pipeline,nullptr);
-        if(bloom_composite_pipeline)vkDestroyPipeline(device,bloom_composite_pipeline,nullptr);
-        if(scene_filter_pipeline)vkDestroyPipeline(device,scene_filter_pipeline,nullptr);
-        bloom_filter_pipeline=bloom_composite_pipeline=scene_filter_pipeline=VK_NULL_HANDLE;
+        for(auto* bank:{&bloom_filter_pipelines,&bloom_composite_pipelines,&scene_filter_pipelines,
+                        &patchy_noise_pipelines,&patchy_composite_pipelines,&fog_pipelines}) {
+            for(const auto& [path,pipeline]:*bank)if(pipeline)vkDestroyPipeline(device,pipeline,nullptr);
+            bank->clear();
+        }
+        postprocess_pipelines.fill(VK_NULL_HANDLE);
         for(auto fb:bloom_framebuffers)if(fb)vkDestroyFramebuffer(device,fb,nullptr);
         bloom_framebuffers={};
         for(auto target:{&bloom_scene,&bloom_targets[0],&bloom_targets[1]}) {
@@ -2510,8 +2621,6 @@ struct Renderer::Impl {
             *target={};
         }
         bloom_scene_initialized=false;
-        if(patchy_noise_pipeline)vkDestroyPipeline(device,patchy_noise_pipeline,nullptr);
-        if(patchy_composite_pipeline)vkDestroyPipeline(device,patchy_composite_pipeline,nullptr);
         if(patchy_framebuffer)vkDestroyFramebuffer(device,patchy_framebuffer,nullptr);
         if(patchy_pass)vkDestroyRenderPass(device,patchy_pass,nullptr);
         if(patchy_target.view)vkDestroyImageView(device,patchy_target.view,nullptr);
@@ -2521,7 +2630,6 @@ struct Renderer::Impl {
         patchy_framebuffer=VK_NULL_HANDLE;patchy_pass=VK_NULL_HANDLE;patchy_target={};
         for(auto framebuffer:fog_framebuffers)vkDestroyFramebuffer(device,framebuffer,nullptr);
         fog_framebuffers.clear();
-        if(fog_pipeline)vkDestroyPipeline(device,fog_pipeline,nullptr);
         if(fog_pass)vkDestroyRenderPass(device,fog_pass,nullptr);
         if(continuation_pass)vkDestroyRenderPass(device,continuation_pass,nullptr);
         fog_pipeline=VK_NULL_HANDLE;fog_pass=VK_NULL_HANDLE;continuation_pass=VK_NULL_HANDLE;
@@ -2543,7 +2651,9 @@ struct Renderer::Impl {
         sky_pipeline=VK_NULL_HANDLE;
         if(light_volume_pipeline)vkDestroyPipeline(device,light_volume_pipeline,nullptr);
         light_volume_pipeline=VK_NULL_HANDLE;
-        for(auto &hud:hud_pipelines){if(hud)vkDestroyPipeline(device,hud,nullptr);hud=VK_NULL_HANDLE;}
+        for(auto &[path,variants]:hud_pipelines)
+            for(auto hud:variants)if(hud)vkDestroyPipeline(device,hud,nullptr);
+        hud_pipelines.clear();
         for(auto &loading:vista_loading_pipelines){if(loading)vkDestroyPipeline(device,loading,nullptr);loading=VK_NULL_HANDLE;}
         if (ui_pipeline) vkDestroyPipeline(device, ui_pipeline, nullptr);
         ui_pipeline = VK_NULL_HANDLE;
@@ -2589,12 +2699,48 @@ struct Renderer::Impl {
     }
 
     std::string validate_display(const DisplaySettings &s) const {
-        if(s.graphics_mode!=pstencil::GraphicsMode::Original && s.graphics_mode!=pstencil::GraphicsMode::pStencil)
+        if(s.graphics_mode!=pstencil::GraphicsMode::Original && s.graphics_mode!=pstencil::GraphicsMode::pStencil &&
+           s.graphics_mode!=pstencil::GraphicsMode::PathTracing)
             return "Invalid graphics mode.";
+        if(s.graphics_mode==pstencil::GraphicsMode::PathTracing) {
+            if(!path_tracing_fragment_stores)return "Path Tracing requires fragment storage writes and atomics.";
+            VkPhysicalDeviceProperties properties{};vkGetPhysicalDeviceProperties(physical,&properties);
+            if(properties.limits.maxPerStageDescriptorStorageBuffers<6 || properties.limits.maxDescriptorSetStorageBuffers<6 ||
+               properties.limits.maxFragmentCombinedOutputResources<7)
+                return "Path Tracing requires six fragment storage buffers on this graphics device.";
+            if(properties.limits.maxPerStageDescriptorSamplers<13 || properties.limits.maxDescriptorSetSamplers<13 ||
+               properties.limits.maxPerStageDescriptorSampledImages<13 || properties.limits.maxDescriptorSetSampledImages<13)
+                return "Path Tracing requires the native material samplers and one sky environment sampler.";
+            for(const auto* name:{"world.vert.spv","world.frag.spv"})
+                if(!std::filesystem::is_regular_file(shader_directory/"path_tracing"/name))
+                    return "Path Tracing shaders are unavailable in this runtime.";
+            if(!std::filesystem::is_regular_file(shader_directory/"path_tracing/depth.frag.spv"))
+                return "Path Tracing visibility shader is unavailable in this runtime.";
+            if(!std::filesystem::is_regular_file(shader_directory/"path_tracing/lighting.frag.spv"))
+                return "Path Tracing HDR lighting shader is unavailable in this runtime.";
+            for(const auto* name:{"world.frag.spv","lighting.frag.spv"}) {
+                std::error_code error;
+                const auto size=std::filesystem::file_size(shader_directory/"path_tracing"/name,error);
+                if(error || size<20 || size%4)
+                    return "Path Tracing temporal lighting shaders are unavailable in this runtime.";
+            }
+            for(const auto* name:{"world.frag.spv","lighting.frag.spv","depth.frag.spv"}) {
+                std::error_code error;
+                const auto size=std::filesystem::file_size(shader_directory/"path_tracing"/name,error);
+                if(error || size<20 || size>32u*1024u*1024u || size%4)
+                    return "Path Tracing authored surface shaders are unavailable in this runtime.";
+            }
+            VkImageFormatProperties visibility_properties{};
+            if(vkGetPhysicalDeviceImageFormatProperties(physical,VK_FORMAT_D32_SFLOAT,VK_IMAGE_TYPE_2D,
+                VK_IMAGE_TILING_OPTIMAL,VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                0,&visibility_properties)!=VK_SUCCESS)
+                return "Path Tracing requires transferable D32 visibility depth.";
+        }
         if(s.graphics_mode==pstencil::GraphicsMode::pStencil &&
            (!source_world_device.depth_clamp_enabled || depth_format!=VK_FORMAT_D24_UNORM_S8_UINT))
             return "pStencil is unavailable on this graphics device.";
-        if(!valid_upscaling(s.upscaler,s.upscaling_quality) || s.brightness>9 || s.gamma>10 || s.detail>2 ||
+        if(s.path_tracing_samples<1 || s.path_tracing_samples>2 || s.path_tracing_bounces<1 || s.path_tracing_bounces>2 ||
+           !valid_upscaling(s.upscaler,s.upscaling_quality) || s.brightness>9 || s.gamma>10 || s.detail>2 ||
            !valid_field_of_view(s.field_of_view) || !valid_field_of_view(s.vehicle_field_of_view) ||
            (s.two_player_split!=TwoPlayerSplit::Horizontal && s.two_player_split!=TwoPlayerSplit::Vertical))
             return "Invalid native video setting.";
@@ -2626,6 +2772,7 @@ struct Renderer::Impl {
     }
     std::string prepare_display(const DisplaySettings& settings) {
         if(auto error=validate_display(settings);!error.empty())return error;
+        if(settings.graphics_mode!=pstencil::GraphicsMode::PathTracing)release_path_tracing();
         if(settings.upscaler==Upscaler::Off){prepared_upscaler.reset();return {};}
         int w{},h{};SDL_Vulkan_GetDrawableSize(window,&w,&h);
         const VkExtent2D output{unsigned(std::max(1,w)),unsigned(std::max(1,h))};
@@ -2782,6 +2929,7 @@ struct Renderer::Impl {
         extent={render_size.first,render_size.second};
         const bool offscreen=active_upscaler!=Upscaler::Off || source_double_buffer ||
             std::any_of(camouflage_scene_materials.begin(),camouflage_scene_materials.end(),[](bool x){return x;}) ||
+            std::any_of(texture_camera_materials.begin(),texture_camera_materials.end(),[](bool x){return x;}) ||
             extent.width!=presentation_extent.width || extent.height!=presentation_extent.height;
         scene_layout=offscreen?VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
         if(offscreen && !(capabilities.supportedUsageFlags&VK_IMAGE_USAGE_TRANSFER_DST_BIT))
@@ -2909,19 +3057,132 @@ struct Renderer::Impl {
         check(vkCreateImageView(device,&view,nullptr,&depth_attachment_view),"create original depth/stencil attachment view");
     }
 
+    void make_native_forward_pipeline(ForwardPipeline& p) {
+        if(!p.controls)throw FormatError("World pipeline has no complete native fragment identity");
+        const bool normal_producer=p.blend==pstencil::normal_accumulation_blend_2003;
+        const bool normal_utility=p.blend==pstencil::normal_light_utility_blend_2003;
+        const bool texture_accumulation=p.blend==pstencil::texture_accumulation_blend_2003;
+        const std::string_view family=texture_accumulation?"pstencil-texture":normal_producer?"pstencil-normal":
+            normal_utility?"pstencil-normal-utility":p.blend==pstencil::light_utility_blend_2003?"pstencil-light-utility":
+            p.blend==pstencil::dependent_light_blend_2003?"pstencil-dependent-light":p.emblem_w_depth?"world-emblem":
+            p.native_kernel==~0u?"world-fixed":"world";
+        std::string_view vertex_path=p.extended_vertex_bank?"world_prt.vert.spv":"world.vert.spv";
+        if(p.native_kernel!=~0u) {
+            const auto& entry=generated_native_world_kernels::entries.at(p.native_kernel);
+            vertex_path=normal_producer?entry.normal_vertex_path:normal_utility?entry.normal_utility_vertex_path:entry.vertex_path;
+        } else if(normal_producer || normal_utility) {
+            throw FormatError("pStencil normal producer lacks its complete native vertex kernel identity");
+        }
+        std::array<VkShaderModule,3> modules{};
+        struct Retire {VkDevice device;std::array<VkShaderModule,3>& values;
+            ~Retire(){for(const auto value:values)if(value)vkDestroyShaderModule(device,value,nullptr);}
+        } retire{device,modules};
+        const auto load=[&](std::string_view path,unsigned index) {
+            const auto words=shader(std::string(path).c_str());
+            VkShaderModuleCreateInfo description{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
+            description.codeSize=words.size()*4;description.pCode=words.data();
+            check(vkCreateShaderModule(device,&description,nullptr,&modules.at(index)),"create fixed native world shader");
+            observe_shader(modules[index],words);
+        };
+        load(vertex_path,0);load(native_fragment_kernel_path(family,*p.controls),1);
+        if(p.emblem_w_depth) {
+            if(!source_world_device.geometry_shader_enabled)
+                throw FormatError("original armor emblem W-depth requires geometry shader support");
+            load("world_emblem.geom.spv",2);
+        }
+        const VkPipelineShaderStageCreateInfo stages[]{
+            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_VERTEX_BIT,modules[0],"main",nullptr},
+            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_FRAGMENT_BIT,modules[1],"main",nullptr},
+            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_GEOMETRY_BIT,modules[2],"main",nullptr}};
+        const VkVertexInputBindingDescription binding{0,sizeof(Vertex),VK_VERTEX_INPUT_RATE_VERTEX};
+        const VkVertexInputAttributeDescription attributes[]{
+            {0,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex,position)},
+            {1,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex,color)},
+            {2,0,VK_FORMAT_R32G32_SFLOAT,offsetof(Vertex,uv)},
+            {3,0,VK_FORMAT_R32G32_SFLOAT,offsetof(Vertex,lightmap_uv)},
+            {4,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex,normal)},
+            {5,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex,tangent)},
+            {6,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex,binormal)},
+            {7,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex,incident)},
+            {8,0,VK_FORMAT_R32_UINT,offsetof(Vertex,lightmap)},
+            {11,0,VK_FORMAT_R32_UINT,offsetof(Vertex,source_stipple_level)},
+            {12,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex,source_local_position)},
+            {13,0,VK_FORMAT_R32_SFLOAT,offsetof(Vertex,source_color_alpha)},
+            {9,0,VK_FORMAT_R32_SFLOAT,offsetof(Vertex,prt_cluster)},
+            {10,0,VK_FORMAT_R32G32B32A32_SFLOAT,offsetof(Vertex,prt_weights)}};
+        VkPipelineVertexInputStateCreateInfo input{VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
+        input.vertexBindingDescriptionCount=1;input.pVertexBindingDescriptions=&binding;
+        input.vertexAttributeDescriptionCount=p.extended_vertex_bank?14:12;input.pVertexAttributeDescriptions=attributes;
+        VkPipelineInputAssemblyStateCreateInfo assembly{VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
+        assembly.topology=VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        VkPipelineViewportStateCreateInfo viewport{VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
+        viewport.viewportCount=viewport.scissorCount=1;
+        VkPipelineRasterizationStateCreateInfo raster{VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};
+        raster.polygonMode=VK_POLYGON_MODE_FILL;raster.frontFace=VK_FRONT_FACE_COUNTER_CLOCKWISE;raster.lineWidth=1;
+        raster.depthBiasEnable=source_depth_bias!=0 && source_output_state[0]!=0;
+        if(p.state.cull!=0 && p.state.cull!=0x900 && p.state.cull!=0x901)
+            throw FormatError("unsupported retail forward cull state");
+        raster.cullMode=p.state.cull==0x901?VK_CULL_MODE_FRONT_BIT:p.state.cull==0x900?VK_CULL_MODE_BACK_BIT:VK_CULL_MODE_NONE;
+        VkPipelineMultisampleStateCreateInfo samples{VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
+        samples.rasterizationSamples=VK_SAMPLE_COUNT_1_BIT;
+        VkPipelineDepthStencilStateCreateInfo depth{VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
+        depth.depthTestEnable=p.state.depth_enable!=0;depth.depthWriteEnable=p.state.depth_write!=0;
+        if(p.state.depth_function<0x200 || p.state.depth_function>0x207)
+            throw FormatError("unsupported retail forward depth comparison");
+        depth.depthCompareOp=VkCompareOp(p.state.depth_function-0x200);depth.stencilTestEnable=p.pstencil_mask;
+        depth.front=depth.back={VK_STENCIL_OP_KEEP,VK_STENCIL_OP_KEEP,VK_STENCIL_OP_KEEP,VK_COMPARE_OP_EQUAL,255,0,128};
+        VkPipelineColorBlendAttachmentState blend{};
+        blend.blendEnable=p.blend!=0 && p.blend!=pstencil::light_utility_blend_2003 && !normal_producer && !normal_utility && !texture_accumulation;
+        blend.colorBlendOp=blend.alphaBlendOp=p.blend==12?VK_BLEND_OP_MAX:VK_BLEND_OP_ADD;
+        blend.srcColorBlendFactor=p.blend==9?VK_BLEND_FACTOR_DST_COLOR:p.blend==8?VK_BLEND_FACTOR_DST_ALPHA:p.blend==7?VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA:p.blend==6?VK_BLEND_FACTOR_DST_COLOR:(p.blend==1 || p.blend==source_alpha_add_blend)?VK_BLEND_FACTOR_SRC_ALPHA:VK_BLEND_FACTOR_ONE;
+        blend.dstColorBlendFactor=p.blend==11?VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR:p.blend==9?VK_BLEND_FACTOR_ZERO:p.blend==10?VK_BLEND_FACTOR_ONE:p.blend==8?VK_BLEND_FACTOR_ONE:p.blend==7?VK_BLEND_FACTOR_DST_ALPHA:p.blend==6?VK_BLEND_FACTOR_SRC_COLOR:(p.blend==3 || p.blend==source_alpha_add_blend || p.blend==pstencil::dependent_light_blend_2003)?VK_BLEND_FACTOR_ONE:VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        blend.srcAlphaBlendFactor=p.blend==8?VK_BLEND_FACTOR_DST_ALPHA:p.blend==7?VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA:p.blend==6?VK_BLEND_FACTOR_DST_ALPHA:p.blend==source_alpha_add_blend?VK_BLEND_FACTOR_SRC_ALPHA:p.blend==5?VK_BLEND_FACTOR_ZERO:VK_BLEND_FACTOR_ONE;
+        blend.dstAlphaBlendFactor=p.blend==11?VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA:p.blend==10?VK_BLEND_FACTOR_ZERO:p.blend==6?VK_BLEND_FACTOR_SRC_ALPHA:blend.dstColorBlendFactor;
+        constexpr unsigned shifts[]{16,8,0,24};
+        for(unsigned channel=0;channel<4;++channel)if((p.state.color_write>>shifts[channel])&1)blend.colorWriteMask|=1u<<channel;
+        if(p.base_world) {
+            blend.blendEnable=source_output_state[4]!=0;
+            blend.srcColorBlendFactor=blend.srcAlphaBlendFactor=source_output_state[5]?VK_BLEND_FACTOR_ONE:VK_BLEND_FACTOR_ZERO;
+            blend.dstColorBlendFactor=blend.dstAlphaBlendFactor=source_output_state[6]?VK_BLEND_FACTOR_ONE:VK_BLEND_FACTOR_ZERO;
+            blend.colorBlendOp=blend.alphaBlendOp=VkBlendOp(source_output_state[7]-0x8006);
+            blend.colorWriteMask=VK_COLOR_COMPONENT_R_BIT|VK_COLOR_COMPONENT_G_BIT|VK_COLOR_COMPONENT_B_BIT|VK_COLOR_COMPONENT_A_BIT;
+            depth.depthTestEnable=source_depth_mode!=0;depth.depthWriteEnable=source_depth_write!=0;
+            depth.depthCompareOp=VkCompareOp(source_depth_function-0x200);raster.cullMode=VK_CULL_MODE_NONE;
+        }
+        VkPipelineColorBlendStateCreateInfo color{VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};
+        color.attachmentCount=1;color.pAttachments=&blend;
+        const VkDynamicState states[]{VK_DYNAMIC_STATE_VIEWPORT,VK_DYNAMIC_STATE_SCISSOR,VK_DYNAMIC_STATE_BLEND_CONSTANTS};
+        VkPipelineDynamicStateCreateInfo dynamic{VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};
+        dynamic.dynamicStateCount=3;dynamic.pDynamicStates=states;
+        VkGraphicsPipelineCreateInfo info{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
+        info.stageCount=p.emblem_w_depth?3:2;info.pStages=stages;info.pVertexInputState=&input;info.pInputAssemblyState=&assembly;
+        info.pViewportState=&viewport;info.pRasterizationState=&raster;info.pMultisampleState=&samples;
+        info.pDepthStencilState=&depth;info.pColorBlendState=&color;info.pDynamicState=&dynamic;info.layout=pipeline_layout;
+        if((normal_producer || normal_utility || p.blend==pstencil::light_utility_blend_2003) && !pstencil_render)
+            throw FormatError("native pStencil pipeline lacks its admitted render target");
+        info.renderPass=p.camouflage_alias?camouflage_alias_pass:normal_producer?pstencil_render->normal_pass():
+            (p.blend==pstencil::light_utility_blend_2003 || normal_utility)?pstencil_render->utility_pass():render_pass;
+        check(vkCreateGraphicsPipelines(device,pipeline_cache->get(),1,&info,nullptr,&p.handle),"create native forward material pipeline");observe_pipeline(p.handle,info);
+        try {
+            raster.depthClampEnable=VK_TRUE;raster.cullMode=VK_CULL_MODE_NONE;
+            check(vkCreateGraphicsPipelines(device,pipeline_cache->get(),1,&info,nullptr,&p.sky_handle),"create native sky material pipeline");observe_pipeline(p.sky_handle,info);
+        }catch(...) {vkDestroyPipeline(device,p.handle,nullptr);p.handle=VK_NULL_HANDLE;throw;}
+    }
+    unsigned native_forward_pipeline(unsigned material,const MaterialUniform& uniform) {
+        std::lock_guard guard(native_forward_pipeline_mutex);
+        const auto base=forward_pipeline_indices.at(material);
+        if(base==~0u)return base;
+        const auto controls=combiner_controls(uniform.program);
+        if(forward_pipelines.at(base).controls==controls)return base;
+        const auto key=std::pair{base,controls};
+        if(const auto found=native_forward_variants.find(key);found!=native_forward_variants.end())return found->second;
+        if(forward_pipelines.size()>=65536)throw FormatError("native world pipeline variant count exceeds finite bound");
+        auto candidate=forward_pipelines.at(base);candidate.handle=candidate.sky_handle=VK_NULL_HANDLE;candidate.controls=controls;
+        make_native_forward_pipeline(candidate);
+        const auto index=unsigned(forward_pipelines.size());
+        forward_pipelines.push_back(candidate);native_forward_variants.emplace(key,index);return index;
+    }
     void make_pipeline() {
-        VkPipelineCreateFlags specialized_compile_flags{};
-#if defined(__linux__)
-        // This measured device/driver stalls in forward specialization before
-        // the first frame. Preserve every shader/control/raster input while
-        // selecting Vulkan's creation-time optimization policy. Other hosts
-        // retain their existing policy; see VEHICLE_CONTRAIL_SNAPSHOT_TU15.md.
-        VkPhysicalDeviceProperties compile_properties{};
-        vkGetPhysicalDeviceProperties(physical,&compile_properties);
-        if(compile_properties.vendorID==0x10deu && compile_properties.deviceID==0x2c02u &&
-            compile_properties.driverVersion==0x99d38200u)
-            specialized_compile_flags=VK_PIPELINE_CREATE_DISABLE_OPTIMIZATION_BIT;
-#endif
         VkAttachmentDescription attachments[2]{};
         attachments[0].format = format;
         attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
@@ -3196,7 +3457,9 @@ struct Renderer::Impl {
                     }
                 }
         }
-        const auto vertex = shader("world.vert.spv"), fragment = shader("world.frag.spv");
+        const std::array<std::uint32_t,60> fixed_world_program{};
+        const std::string fixed_world_fragment(native_fragment_kernel_path("world-fixed",fixed_world_program));
+        const auto vertex = shader("world.vert.spv"), fragment = shader(fixed_world_fragment.c_str());
         VkShaderModule vert{}, frag{};
         struct Modules { VkDevice device; VkShaderModule& a; VkShaderModule& b;
             ~Modules() { if (a) vkDestroyShaderModule(device, a, nullptr); if (b) vkDestroyShaderModule(device, b, nullptr); }
@@ -3282,112 +3545,7 @@ struct Renderer::Impl {
         raster.depthClampEnable=VK_FALSE;
         depth_state.depthWriteEnable=VK_FALSE;
         blend.blendEnable=VK_TRUE;blend.colorBlendOp=blend.alphaBlendOp=VK_BLEND_OP_ADD;
-        VkShaderModule extended_vert{};
-        struct ExtendedModule {
-            VkDevice device;VkShaderModule &module;
-            ~ExtendedModule(){if(module)vkDestroyShaderModule(device,module,nullptr);}
-        } extended_module{device,extended_vert};
-        VkShaderModule emblem_geometry{},emblem_fragment{};
-        Modules emblem_modules{device,emblem_geometry,emblem_fragment};
-        if(std::any_of(forward_pipelines.begin(),forward_pipelines.end(),
-                      [](const auto &p){return p.emblem_w_depth;})) {
-            if(!source_world_device.geometry_shader_enabled)
-                throw FormatError("original armor emblem W-depth requires geometry shader support");
-            const auto geometry=shader("world_emblem.geom.spv"),fragment=shader("world_emblem.frag.spv");
-            module.codeSize=geometry.size()*4;module.pCode=geometry.data();
-            check(vkCreateShaderModule(device,&module,nullptr,&emblem_geometry),"create armor emblem depth geometry shader");observe_shader(emblem_geometry,geometry);
-            module.codeSize=fragment.size()*4;module.pCode=fragment.data();
-            check(vkCreateShaderModule(device,&module,nullptr,&emblem_fragment),"create armor emblem depth fragment shader");observe_shader(emblem_fragment,fragment);
-            stages[2]={VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_GEOMETRY_BIT,emblem_geometry,"main",nullptr};
-        }
-        if(std::any_of(forward_pipelines.begin(),forward_pipelines.end(),
-                      [](const auto &p){return p.extended_vertex_bank;})) {
-            const auto extended=shader("world_prt.vert.spv");
-            module.codeSize=extended.size()*4;module.pCode=extended.data();
-            check(vkCreateShaderModule(device,&module,nullptr,&extended_vert),"create extended source vertex shader");observe_shader(extended_vert,extended);
-        }
-        VkShaderModule utility_fragment{},dependent_fragment{};
-        Modules response_modules{device,utility_fragment,dependent_fragment};
-        if(pstencil_render && std::any_of(pstencil_response_phases.begin(),pstencil_response_phases.end(),[](auto phase){return phase!=0;})) {
-            const auto utility=shader("pstencil/light_utility.frag.spv"),dependent=shader("pstencil/dependent_light.frag.spv");
-            module.codeSize=utility.size()*4;module.pCode=utility.data();
-            check(vkCreateShaderModule(device,&module,nullptr,&utility_fragment),"create pStencil utility shader");observe_shader(utility_fragment,utility);
-            module.codeSize=dependent.size()*4;module.pCode=dependent.data();
-            check(vkCreateShaderModule(device,&module,nullptr,&dependent_fragment),"create pStencil dependent-light shader");observe_shader(dependent_fragment,dependent);
-        }
-        VkShaderModule normal_vertex{},normal_fragment{},normal_utility_vertex{},normal_utility_fragment{};
-        Modules normal_modules{device,normal_vertex,normal_fragment};
-        Modules normal_utility_modules{device,normal_utility_vertex,normal_utility_fragment};
-        if(std::any_of(pstencil_response_phases.begin(),pstencil_response_phases.end(),[](auto phase){return phase==3;})) {
-            const auto load_normal=[&](const char* name,VkShaderModule& target) {
-                const auto words=shader(name);module.codeSize=words.size()*4;module.pCode=words.data();
-                check(vkCreateShaderModule(device,&module,nullptr,&target),"create pStencil normal shader");observe_shader(target,words);
-            };
-            load_normal("pstencil/normal_accumulation.vert.spv",normal_vertex);
-            load_normal("pstencil/normal_accumulation.frag.spv",normal_fragment);
-            load_normal("pstencil/normal_light_utility.vert.spv",normal_utility_vertex);
-            load_normal("pstencil/normal_light_utility.frag.spv",normal_utility_fragment);
-        }
-        VkShaderModule texture_accumulation_fragment{};
-        ExtendedModule texture_accumulation_module{device,texture_accumulation_fragment};
-        if(std::any_of(forward_pipelines.begin(),forward_pipelines.end(),[](const auto& p){return p.blend==pstencil::texture_accumulation_blend_2003;})) {
-            const auto words=shader("pstencil/texture_accumulation.frag.spv");module.codeSize=words.size()*4;module.pCode=words.data();
-            check(vkCreateShaderModule(device,&module,nullptr,&texture_accumulation_fragment),"create pStencil texture accumulation shader");observe_shader(texture_accumulation_fragment,words);
-        }
-        for(auto &p:forward_pipelines) {
-            info.flags=p.controls?specialized_compile_flags:0;
-            std::array<std::uint32_t,61> constants{};
-            std::array<VkSpecializationMapEntry,61> entries{};
-            VkSpecializationInfo specialization{};
-            if(p.controls) {
-                constants[0]=1;
-                std::copy(p.controls->begin(),p.controls->end(),constants.begin()+1);
-                for(unsigned i=0;i<entries.size();++i)entries[i]={i,std::uint32_t(i*sizeof(constants[0])),sizeof(constants[0])};
-                specialization={unsigned(entries.size()),entries.data(),sizeof(constants),constants.data()};
-            }
-            stages[1].pSpecializationInfo=p.controls?&specialization:nullptr;
-            const bool normal_producer=p.blend==pstencil::normal_accumulation_blend_2003;
-            const bool normal_utility=p.blend==pstencil::normal_light_utility_blend_2003;
-            const bool texture_accumulation=p.blend==pstencil::texture_accumulation_blend_2003;
-            stages[1].module=texture_accumulation?texture_accumulation_fragment:normal_producer?normal_fragment:normal_utility?normal_utility_fragment:
-                p.blend==pstencil::light_utility_blend_2003?utility_fragment:
-                p.blend==pstencil::dependent_light_blend_2003?dependent_fragment:p.emblem_w_depth?emblem_fragment:frag;
-            info.stageCount=p.emblem_w_depth?3:2;
-            stages[0].module=normal_producer?normal_vertex:normal_utility?normal_utility_vertex:
-                p.extended_vertex_bank?extended_vert:vert;
-            input.vertexAttributeDescriptionCount=p.extended_vertex_bank?14:12;
-            blend.blendEnable=p.blend!=0 && p.blend!=pstencil::light_utility_blend_2003 && !normal_producer && !normal_utility && !texture_accumulation;
-            blend.colorBlendOp=blend.alphaBlendOp=p.blend==12?VK_BLEND_OP_MAX:VK_BLEND_OP_ADD;
-            blend.srcColorBlendFactor=p.blend==9?VK_BLEND_FACTOR_DST_COLOR:p.blend==8?VK_BLEND_FACTOR_DST_ALPHA:p.blend==7?VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA:p.blend==6?VK_BLEND_FACTOR_DST_COLOR:p.blend==1?VK_BLEND_FACTOR_SRC_ALPHA:VK_BLEND_FACTOR_ONE;
-            blend.dstColorBlendFactor=p.blend==11?VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR:p.blend==9?VK_BLEND_FACTOR_ZERO:p.blend==10?VK_BLEND_FACTOR_ONE:p.blend==8?VK_BLEND_FACTOR_ONE:p.blend==7?VK_BLEND_FACTOR_DST_ALPHA:p.blend==6?VK_BLEND_FACTOR_SRC_COLOR:(p.blend==3 || p.blend==pstencil::dependent_light_blend_2003)?VK_BLEND_FACTOR_ONE:VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-            // Planar fog's CONSTANT_COLOR is packed 00FFFFFF: source RGB
-            // factor one, source alpha factor zero (59/62/63/74/75 states).
-            blend.srcAlphaBlendFactor=p.blend==8?VK_BLEND_FACTOR_DST_ALPHA:p.blend==7?VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA:p.blend==6?VK_BLEND_FACTOR_DST_ALPHA:p.blend==5?VK_BLEND_FACTOR_ZERO:VK_BLEND_FACTOR_ONE;
-            blend.dstAlphaBlendFactor=p.blend==11?VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA:p.blend==10?VK_BLEND_FACTOR_ZERO:p.blend==6?VK_BLEND_FACTOR_SRC_ALPHA:blend.dstColorBlendFactor;
-            blend.colorWriteMask=0;
-            constexpr unsigned channel_shift[]{16,8,0,24}; // Retail ARGB mask.
-            for(unsigned channel=0;channel<4;++channel)
-                if((p.state.color_write>>channel_shift[channel])&1)blend.colorWriteMask|=1u<<channel;
-            depth_state.depthTestEnable=p.state.depth_enable!=0;
-            depth_state.depthWriteEnable=p.state.depth_write!=0;
-            if(p.state.depth_function<0x200 || p.state.depth_function>0x207)
-                throw FormatError("unsupported retail forward depth comparison");
-            depth_state.depthCompareOp=VkCompareOp(p.state.depth_function-0x200);
-            depth_state.stencilTestEnable=p.pstencil_mask;
-            depth_state.front=depth_state.back={VK_STENCIL_OP_KEEP,VK_STENCIL_OP_KEEP,VK_STENCIL_OP_KEEP,
-                VK_COMPARE_OP_EQUAL,255,0,128};
-            // D3D culls the named screen winding. Vk frontFace is CCW here.
-            if(p.state.cull!=0 && p.state.cull!=0x900 && p.state.cull!=0x901)
-                throw FormatError("unsupported retail forward cull state");
-            raster.cullMode=p.state.cull==0x901?VK_CULL_MODE_FRONT_BIT:
-                p.state.cull==0x900?VK_CULL_MODE_BACK_BIT:VK_CULL_MODE_NONE;
-            info.renderPass=p.camouflage_alias?camouflage_alias_pass:normal_producer?pstencil_render->normal_pass():
-                (p.blend==pstencil::light_utility_blend_2003 || normal_utility)?pstencil_render->utility_pass():render_pass;
-            check(vkCreateGraphicsPipelines(device,pipeline_cache->get(),1,&info,nullptr,&p.handle),"create forward material pipeline");observe_pipeline(p.handle,info);
-            raster.depthClampEnable=VK_TRUE;raster.cullMode=VK_CULL_MODE_NONE;
-            check(vkCreateGraphicsPipelines(device,pipeline_cache->get(),1,&info,nullptr,&p.sky_handle),"create original sky material pipeline");observe_pipeline(p.sky_handle,info);
-            raster.depthClampEnable=VK_FALSE;
-        }
+        for(auto& p:forward_pipelines)make_native_forward_pipeline(p);
         info.flags=0;
         stages[1].pSpecializationInfo=nullptr;
         info.renderPass=render_pass;
@@ -3400,7 +3558,9 @@ struct Renderer::Impl {
         vkDestroyShaderModule(device, vert, nullptr); vert = VK_NULL_HANDLE;
         vkDestroyShaderModule(device, frag, nullptr); frag = VK_NULL_HANDLE;
         if(light_volume_materials) {
-        const auto volume_vertex=shader("light_volume.vert.spv"),volume_fragment=shader("light_volume.frag.spv");
+        const auto volume_program=light_volume_program();
+        const std::string volume_path(native_fragment_kernel_path("light-volume",volume_program.words));
+        const auto volume_vertex=shader("light_volume.vert.spv"),volume_fragment=shader(volume_path.c_str());
         module.codeSize=volume_vertex.size()*4;module.pCode=volume_vertex.data();
         check(vkCreateShaderModule(device,&module,nullptr,&vert),"create light-volume vertex shader");
         module.codeSize=volume_fragment.size()*4;module.pCode=volume_fragment.data();
@@ -3456,17 +3616,26 @@ struct Renderer::Impl {
         blend.colorWriteMask=VK_COLOR_COMPONENT_R_BIT|VK_COLOR_COMPONENT_G_BIT|VK_COLOR_COMPONENT_B_BIT|VK_COLOR_COMPONENT_A_BIT;
         vkDestroyShaderModule(device,vert,nullptr);vert=VK_NULL_HANDLE;
         vkDestroyShaderModule(device,frag,nullptr);frag=VK_NULL_HANDLE;
-        const auto fog_vertex=shader("fog.vert.spv"),fog_fragment=shader("fog.frag.spv");
+        const auto make_native_fragments=[&](std::string_view family,auto& pipelines) {
+            for(const auto path:native_fragment_kernel_paths(family)) {
+                const auto words=shader(std::string(path).c_str());
+                module.codeSize=words.size()*4;module.pCode=words.data();
+                check(vkCreateShaderModule(device,&module,nullptr,&frag),"create compiled native fragment shader");
+                stages[1].module=frag;VkPipeline pipeline{};
+                check(vkCreateGraphicsPipelines(device,pipeline_cache->get(),1,&info,nullptr,&pipeline),"create compiled native fragment pipeline");
+                pipelines.emplace(path,pipeline);
+                vkDestroyShaderModule(device,frag,nullptr);frag=VK_NULL_HANDLE;
+            }
+        };
+        const auto fog_vertex=shader("fog.vert.spv");
         module.codeSize=fog_vertex.size()*4;module.pCode=fog_vertex.data();
         check(vkCreateShaderModule(device,&module,nullptr,&vert),"create fog vertex shader");
-        module.codeSize=fog_fragment.size()*4;module.pCode=fog_fragment.data();
-        check(vkCreateShaderModule(device,&module,nullptr,&frag),"create fog fragment shader");
-        stages[0].module=vert;stages[1].module=frag;
+        stages[0].module=vert;
         blend.srcColorBlendFactor=VK_BLEND_FACTOR_ONE;
         blend.srcAlphaBlendFactor=VK_BLEND_FACTOR_ZERO;
         blend.dstAlphaBlendFactor=VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         info.layout=fog_layout;info.renderPass=fog_pass;
-        check(vkCreateGraphicsPipelines(device,pipeline_cache->get(),1,&info,nullptr,&fog_pipeline),"create fog composite pipeline");
+        make_native_fragments("fog",fog_pipelines);
         if(water_copy_pass) {
             vkDestroyShaderModule(device,frag,nullptr);frag=VK_NULL_HANDLE;
             const auto copy=shader("water_copy.frag.spv");
@@ -3484,35 +3653,24 @@ struct Renderer::Impl {
         module.codeSize=patchy_vertex.size()*4;module.pCode=patchy_vertex.data();
         check(vkCreateShaderModule(device,&module,nullptr,&vert),"create original haze quad vertex shader");
         stages[0].module=vert;
-        const auto patchy_noise=shader("patchy_noise.frag.spv");
-        module.codeSize=patchy_noise.size()*4;module.pCode=patchy_noise.data();
-        check(vkCreateShaderModule(device,&module,nullptr,&frag),"create patchy noise shader");
-        stages[1].module=frag;blend.blendEnable=VK_FALSE;
+        blend.blendEnable=VK_FALSE;
         info.layout=patchy_layout;info.renderPass=patchy_pass;
-        check(vkCreateGraphicsPipelines(device,pipeline_cache->get(),1,&info,nullptr,&patchy_noise_pipeline),"create patchy noise pipeline");
-        vkDestroyShaderModule(device,frag,nullptr);frag=VK_NULL_HANDLE;
-        const auto patchy_composite=shader("patchy_composite.frag.spv");
-        module.codeSize=patchy_composite.size()*4;module.pCode=patchy_composite.data();
-        check(vkCreateShaderModule(device,&module,nullptr,&frag),"create patchy composite shader");
-        stages[1].module=frag;blend.blendEnable=VK_TRUE;info.renderPass=fog_pass;
-        check(vkCreateGraphicsPipelines(device,pipeline_cache->get(),1,&info,nullptr,&patchy_composite_pipeline),"create patchy composite pipeline");
-        vkDestroyShaderModule(device,frag,nullptr);frag=VK_NULL_HANDLE;
+        make_native_fragments("patchy-noise",patchy_noise_pipelines);
+        blend.blendEnable=VK_TRUE;info.renderPass=fog_pass;
+        make_native_fragments("patchy-composite",patchy_composite_pipelines);
         vkDestroyShaderModule(device,vert,nullptr);vert=VK_NULL_HANDLE;
         const auto bloom_vertex=shader("bloom.vert.spv");
         module.codeSize=bloom_vertex.size()*4;module.pCode=bloom_vertex.data();
         check(vkCreateShaderModule(device,&module,nullptr,&vert),"create postprocess vertex shader");
-        const auto bloom_fragment=shader("bloom.frag.spv");
-        module.codeSize=bloom_fragment.size()*4;module.pCode=bloom_fragment.data();
-        check(vkCreateShaderModule(device,&module,nullptr,&frag),"create bloom fragment shader");
-        stages[0].module=vert;stages[1].module=frag;blend.blendEnable=VK_FALSE;
+        stages[0].module=vert;blend.blendEnable=VK_FALSE;
         info.layout=bloom_layout;info.renderPass=patchy_pass;
-        check(vkCreateGraphicsPipelines(device,pipeline_cache->get(),1,&info,nullptr,&bloom_filter_pipeline),"create bloom filter pipeline");
+        make_native_fragments("bloom",bloom_filter_pipelines);
         blend.blendEnable=VK_TRUE;blend.srcColorBlendFactor=VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
         blend.dstColorBlendFactor=VK_BLEND_FACTOR_ONE;blend.srcAlphaBlendFactor=VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
         blend.dstAlphaBlendFactor=VK_BLEND_FACTOR_ONE;info.renderPass=fog_pass;
-        check(vkCreateGraphicsPipelines(device,pipeline_cache->get(),1,&info,nullptr,&bloom_composite_pipeline),"create bloom composite pipeline");
+        make_native_fragments("bloom",bloom_composite_pipelines);
         blend.blendEnable=VK_FALSE;
-        check(vkCreateGraphicsPipelines(device,pipeline_cache->get(),1,&info,nullptr,&scene_filter_pipeline),"create title color filter pipeline");
+        make_native_fragments("bloom",scene_filter_pipelines);
         info.layout=overlay_layout;info.renderPass=render_pass;blend.blendEnable=VK_TRUE;
         blend.dstColorBlendFactor=VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         blend.srcColorBlendFactor=VK_BLEND_FACTOR_SRC_ALPHA;
@@ -3543,14 +3701,20 @@ struct Renderer::Impl {
         check(vkCreateGraphicsPipelines(device,pipeline_cache->get(),1,&info,nullptr,&ui_frame_pipeline),"create frame sampling pipeline");
         vkDestroyShaderModule(device,frag,nullptr);frag=VK_NULL_HANDLE;
         info.layout=pipeline_layout;
-        const auto hud_fragment=shader("hud.frag.spv");
-        module.codeSize=hud_fragment.size()*4;module.pCode=hud_fragment.data();
-        check(vkCreateShaderModule(device,&module,nullptr,&frag),"create HUD fragment shader");stages[1].module=frag;
-        for(unsigned i=1;i<hud_pipelines.size();++i){
-            blend.srcColorBlendFactor=i==1?VK_BLEND_FACTOR_SRC_ALPHA:VK_BLEND_FACTOR_ONE;
-            blend.dstColorBlendFactor=i==4?VK_BLEND_FACTOR_SRC_ALPHA:i==3?VK_BLEND_FACTOR_ONE:VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-            blend.srcAlphaBlendFactor=blend.srcColorBlendFactor;blend.dstAlphaBlendFactor=blend.dstColorBlendFactor;
-            check(vkCreateGraphicsPipelines(device,pipeline_cache->get(),1,&info,nullptr,&hud_pipelines[i]),"create authored HUD blend pipeline");
+        for(unsigned material=0;material<hud_materials.size();++material)if(hud_materials[material]) {
+            const auto path=native_fragment_kernel_path("hud",material_uniforms.at(material).program);
+            if(hud_pipelines.contains(path))continue;
+            const auto hud_fragment=shader(std::string(path).c_str());
+            module.codeSize=hud_fragment.size()*4;module.pCode=hud_fragment.data();
+            check(vkCreateShaderModule(device,&module,nullptr,&frag),"create native HUD fragment kernel");stages[1].module=frag;
+            auto &variants=hud_pipelines[path];
+            for(unsigned i=1;i<variants.size();++i){
+                blend.srcColorBlendFactor=i==1?VK_BLEND_FACTOR_SRC_ALPHA:VK_BLEND_FACTOR_ONE;
+                blend.dstColorBlendFactor=i==4?VK_BLEND_FACTOR_SRC_ALPHA:i==3?VK_BLEND_FACTOR_ONE:VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+                blend.srcAlphaBlendFactor=blend.srcColorBlendFactor;blend.dstAlphaBlendFactor=blend.dstColorBlendFactor;
+                check(vkCreateGraphicsPipelines(device,pipeline_cache->get(),1,&info,nullptr,&variants[i]),"create compiled authored HUD blend pipeline");
+            }
+            vkDestroyShaderModule(device,frag,nullptr);frag=VK_NULL_HANDLE;
         }
         vkDestroyShaderModule(device,vert,nullptr);vert=VK_NULL_HANDLE;
         vkDestroyShaderModule(device,frag,nullptr);frag=VK_NULL_HANDLE;
@@ -3574,6 +3738,9 @@ struct Renderer::Impl {
         if(materials.size()!=material_count) throw FormatError("animated material table size changed");
 
         auto update=[&](std::size_t i,const Material &m) {
+            if(native_world_kernel_indices[i]!=~0u &&
+               !native_kernel_matches(generated_native_world_kernels::entries[native_world_kernel_indices[i]],m))
+                throw FormatError("Animated material changed its complete native world kernel identity");
             if(bool(m.vista_loading)!=bool(vista_loading_materials[i]))
                 throw FormatError("animated draw changed its Vista loading category");
             if(m.vista_loading) {
@@ -3597,7 +3764,7 @@ struct Renderer::Impl {
             wanted_frames[i]=m.texture_frames;
             material_fragment_offsets[i]=m.forward_program.fragment_offsets;
             auto &u=material_uniforms[i];
-            if(u.flags[3] && u.vertex_declaration!=pack_source_vertex_declaration(m.vertex_declaration,m.world_vertex_input_transform))
+            if(native_world_kernel_indices[i]!=~0u && u.vertex_declaration!=pack_source_vertex_declaration(m.vertex_declaration,m.world_vertex_input_transform))
                 throw FormatError("animated draw changed its source vertex declaration");
             if(u.program==m.forward_program.words && shader_constants_equal(u.vertex_constants,m.program_constants[1]) &&
                shader_constants_equal(u.vertex_attributes,m.program_constants[0])) return;
@@ -3788,7 +3955,19 @@ struct Renderer::Impl {
                 std::chrono::duration<double,std::milli>(Clock::now()-begin).count();
         };
         std::span<const VkDescriptorSet> result;
-        try { result=storage.upload(inputs); }
+        std::vector<MaterialUniform> native_uniforms;native_uniforms.reserve(inputs.size());
+        std::vector<SourceWorldDrawUpload> native_inputs;native_inputs.reserve(inputs.size());
+        for(const auto &input:inputs) {
+            if(input.material_uniform.size()!=sizeof(MaterialUniform))
+                throw FormatError("Native queued world upload has a different material ABI");
+            MaterialUniform completed;
+            std::memcpy(&completed,input.material_uniform.data(),sizeof(completed));
+            native_uniforms.push_back(native_material_gpu_uniform(completed));
+            auto copy=input;
+            copy.material_uniform={reinterpret_cast<const std::byte*>(&native_uniforms.back()),sizeof(completed)};
+            native_inputs.push_back(copy);
+        }
+        try { result=storage.upload(native_inputs); }
         catch(...) { finish();throw; }
         finish();
         ++frame_timing.world_storage_upload_completed_calls;
@@ -3992,19 +4171,28 @@ struct Renderer::Impl {
 #endif
     void prepare_loading() {
         check(vkDeviceWaitIdle(device),"retire ordinary frame before loading");
+        release_path_tracing();
     }
     bool draw_loading(unsigned base,std::span<const Material> materials,
-                      std::span<const Vertex> vertices,const std::filesystem::path& screenshot) {
+                      std::span<const Vertex> vertices,const std::filesystem::path& screenshot,bool source_wait=false,
+                      unsigned transition_materials=0) {
+        release_path_tracing();
         touch_lens_queries();
-        if(materials.empty() || base>textures.size() || materials.size()>textures.size()-base ||
+        const std::size_t count=transition_materials?transition_materials:source_wait?1:materials.size();
+        if(!count || base>textures.size() || count>textures.size()-base ||
            vertices.empty() || vertices.size()%6 || vertices.size()>debug_capacity)
-            throw FormatError("invalid resident Vista loading submission");
+            throw FormatError("invalid resident loading submission");
+        if(source_wait && !transition_materials && !source_loading_wait_materials.at(base))
+            throw FormatError("Source loading wait lacks its admitted resident font3");
+        for(unsigned i=0;i<transition_materials;++i)
+            if(!network_transition_materials.at(base+i))
+                throw FormatError("Network transition submission lacks an admitted resident slot");
         for(unsigned i=0;i<materials.size();++i)
             if(!materials[i].vista_loading || !vista_loading_materials.at(base+i) ||
                materials[i].vista_loading->shader>3 || unsigned(materials[i].vista_loading->blend)>2)
                 throw FormatError("Vista loading submission lacks an admitted resident slot");
-        for(const auto& v:vertices)if(v.material>=materials.size())
-            throw FormatError("Vista loading triangle addresses an absent resident slot");
+        for(const auto& v:vertices)if(v.material>=count)
+            throw FormatError("Loading triangle addresses an absent resident slot");
         if(SDL_GetWindowFlags(window)&SDL_WINDOW_MINIMIZED)return false;
         int width{},height{};SDL_Vulkan_GetDrawableSize(window,&width,&height);
         if(width<=0 || height<=0)return false;
@@ -4051,6 +4239,15 @@ struct Renderer::Impl {
         for(std::size_t first=0;first<vertices.size();) {
             const auto slot=vertices[first].material;std::size_t end=first+1;
             while(end<vertices.size() && vertices[end].material==slot)++end;
+            if(source_wait) {
+                const auto canvas=frontend_canvas(extent.width,extent.height);
+                const VkViewport viewport{canvas.left,canvas.top,canvas.width,canvas.height,0,1};
+                vkCmdSetViewport(command,0,1,&viewport);
+                vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,ui_pipeline);
+                vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,
+                    &textures.at(base+slot).descriptor,1,&bank);
+                vkCmdDraw(command,std::uint32_t(end-first),1,std::uint32_t(first),0);first=end;continue;
+            }
             const auto& material=*materials[slot].vista_loading;
             struct Push {ShaderVector constant0;Vec2 reserved_offset;std::uint32_t program,reserved;};
             static_assert(sizeof(Push)==32);
@@ -4106,6 +4303,7 @@ struct Renderer::Impl {
         submit.commandBufferCount=1;submit.pCommandBuffers=&command;
         submit.signalSemaphoreCount=1;submit.pSignalSemaphores=&present_ready[presentation_index];
         check(vkQueueSubmit(queue,1,&submit,fence),"submit loading frame");
+        ++texture_camera_submit_serial;
         last_submitted_color=index;if(source_double_buffer){source_color_written[index]=true;++source_frames_submitted;}
         VkPresentInfoKHR present{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
         present.waitSemaphoreCount=1;present.pWaitSemaphores=&present_ready[presentation_index];
@@ -4134,7 +4332,86 @@ struct Renderer::Impl {
         }
         return true;
     }
-    bool draw(const Camera& camera, const std::filesystem::path& screenshot, std::span<const Vertex> debug, bool reticle, std::span<const Vertex> first_person, ScreenEffects effects, std::span<const Vertex> ui, std::span<const ModelView> views, std::span<const Vertex> background, std::span<const UiBackdrop> backdrops, const BspFogSample *mainmenu_fog, const MainmenuWorldDraw *mainmenu_world, bool ui_full_surface_bounds, const RendererHostPreparationTiming *host_preparation) {
+    bool draw(const Camera& camera, const std::filesystem::path& screenshot, std::span<const Vertex> debug, bool reticle, std::span<const Vertex> first_person, ScreenEffects effects, std::span<const Vertex> ui, std::span<const ModelView> views, std::span<const Vertex> background, std::span<const UiBackdrop> backdrops, const BspFogSample *mainmenu_fog, const MainmenuWorldDraw *mainmenu_world, bool ui_full_surface_bounds, const RendererHostPreparationTiming *host_preparation,
+        const RendererTextureCameraSubmissionTu15 *texture_camera=nullptr) {
+        std::vector<ModelView> camera_views;
+        const bool camera_scene=texture_camera && texture_camera->source && texture_camera->source->scene_view().has_value();
+        if(texture_camera) {
+            if(!texture_camera->source || bool(texture_camera->scene)!=camera_scene)
+                throw FormatError("Texture camera submission lost its exact native scene request");
+            texture_camera->source->targets().require_current();
+            if(camera_scene) {
+                if(texture_camera->source->before().copy_complete)
+                    throw FormatError("Positive texture-camera copy_complete has no admitted native target-routing owner");
+                if(texture_camera->scene->before_ui_vertex)
+                    throw FormatError("Texture camera scene must precede the ordinary world/UI");
+                if(!texture_camera->source->completed_scene_view() || !texture_camera->source->completed_scene_prefix())
+                    throw FormatError("Texture camera scene lacks its actual source CPU-prefix completion");
+                const auto &completed=*texture_camera->source->completed_scene_prefix();
+                const Bytes original(completed.packet);
+                const auto &native=texture_camera->scene->camera;
+                const auto same_vector=[&](Vec3 v,unsigned p) {
+                    return std::bit_cast<std::uint32_t>(v.x)==original.u32(p) &&
+                        std::bit_cast<std::uint32_t>(v.y)==original.u32(p+4u) &&
+                        std::bit_cast<std::uint32_t>(v.z)==original.u32(p+8u);
+                };
+                if(!native.oriented || !same_vector(native.position,0x18u) ||
+                   !same_vector(native.forward,0x24u) || !same_vector(native.up,0x30u) ||
+                   !native.projection_vertical_angle ||
+                   std::bit_cast<std::uint32_t>(*native.projection_vertical_angle)!=original.u32(0x40u))
+                    throw FormatError("Texture camera ModelView differs from its actual source submitting camera2");
+                const auto &view=*texture_camera->scene;
+                if(!view.projection_clip_planes ||
+                   std::bit_cast<std::uint32_t>(view.projection_clip_planes->x)!=original.u32(0x58u) ||
+                   std::bit_cast<std::uint32_t>(view.projection_clip_planes->y)!=original.u32(0x5cu))
+                    throw FormatError("Texture camera ModelView lost its distinct packetcamera2 clip planes");
+                SourceViewProjectionBank submitting;
+                std::memcpy(&submitting,completed.packet.data()+0x8cu,sizeof(submitting));
+                const auto constants=source_view_shader_constants(submitting,original.f32(0x5cu),false);
+                if(!view.source_view_shader_constants ||
+                   std::memcmp(view.source_view_shader_constants->world.data(),constants.data(),sizeof(constants)))
+                    throw FormatError("Texture camera world constants differ from actual12D30 packetprojection/W inputs");
+                if(const auto target=texture_camera->source->copy_target()) {
+                    const auto &copy=texture_camera_copy_contexts[*target==18?0u:1u];
+                    if(!copy || std::bit_cast<std::uint32_t>(copy->near_plane)!=completed.copy_depth_bits[0] ||
+                       std::bit_cast<std::uint32_t>(copy->far_plane)!=completed.copy_depth_bits[1] ||
+                       copy->camera_rectangle!=completed.copy_rectangle)
+                        throw FormatError("Texture camera resolve lost actual globalcamera1 rectangle/configured depth operands");
+                }
+                auto &producer=camera_views.emplace_back(*texture_camera->scene);
+                producer.full_surface=true;
+                const auto source_rectangle=source_texture_camera_viewport_tu15(*texture_camera->source);
+                if(texture_camera_coordinate_extent[0]<=0 || texture_camera_coordinate_extent[1]<=0 ||
+                   !extent.width || !extent.height)
+                    throw FormatError("Texture camera lacks its logical-source and actual native image extents");
+                // Original14BA0 arithmetic is complete in source coordinates.
+                // This explicit native-resolution conversion uses this real
+                // attachment, independently of the caller's drawable space.
+                std::array<std::int32_t,4> physical;
+                for(unsigned n=0;n<4;++n) {
+                    const auto native_extent=n%2?extent.width:extent.height;
+                    const auto source_extent=texture_camera_coordinate_extent[n%2?0u:1u];
+                    const auto value=static_cast<long double>(source_rectangle[n])*native_extent/source_extent;
+                    if(value<std::numeric_limits<std::int32_t>::min() || value>std::numeric_limits<std::int32_t>::max())
+                        throw FormatError("Texture camera native viewport conversion overflows");
+                    physical[n]=std::int32_t(value);
+                }
+                // The actual target/SDK viewport owner clips far edges to
+                // its attachment while preserving a signed source origin.
+                physical[2]=std::min(physical[2],std::int32_t(extent.height));
+                physical[3]=std::min(physical[3],std::int32_t(extent.width));
+                if(physical[3]<=physical[1] || physical[2]<=physical[0])
+                    throw FormatError("Texture camera native viewport is empty or reversed");
+                producer.source_ui_viewport=physical;
+                producer.left=float(physical[1])*640.f/extent.width;
+                producer.top=float(physical[0])*480.f/extent.height;
+                producer.width=float(physical[3]-physical[1])*640.f/extent.width;
+                producer.height=float(physical[2]-physical[0])*480.f/extent.height;
+            }
+            if(!texture_camera->source->suppress_ordinary_view())camera_views.insert(camera_views.end(),views.begin(),views.end());
+            views=camera_views;
+        } else if(std::any_of(texture_camera_materials.begin(),texture_camera_materials.end(),[](bool v){return v;}))
+            throw FormatError("Live texture-camera materials lack their native frame capability");
         touch_lens_queries();
         // Reject unsupported captured resource/history states before recording
         // commands or resizing any attachments. Admitted plans have no
@@ -4156,8 +4433,17 @@ struct Renderer::Impl {
             throw FormatError("title source world and fog do not share the current retained frame");
         std::optional<std::filesystem::path> haze_trace_path;
         frame_timing={};campaign_capture_completed=false;
-        if (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) return false;
         const auto display=*shared_display;
+        const bool path_tracing_enabled=display.graphics_mode==pstencil::GraphicsMode::PathTracing && !mainmenu_world &&
+            (vertex_count || !debug.empty() || !first_person.empty() ||
+             std::any_of(views.begin(),views.end(),[](const auto& view){return view.full_surface;}));
+        struct PathTracingCaptureView {std::uint64_t draws{},vertices{},sky_draws{},sky_vertices{};};
+        std::optional<std::array<PathTracingCaptureView,5>> path_tracing_capture;
+        if(path_tracing_enabled && !screenshot.empty())path_tracing_capture.emplace();
+        if(!path_tracing_enabled)release_path_tracing();
+        if (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) {
+            release_path_tracing();return false;
+        }
         const bool game_world=std::all_of(views.begin(),views.end(),[](const auto& view){return view.full_surface;});
         if(frame_has_game_world!=game_world){frame_has_game_world=game_world;dirty=true;}
         const bool pstencil_enabled=display.graphics_mode==pstencil::GraphicsMode::pStencil;
@@ -4276,11 +4562,12 @@ struct Renderer::Impl {
             }
         }
         FrameModelSkinPlan skin_plan;
-        for(const auto &view:views) {
-            skin_plan.add_bank(view.vertices,view.deferred_skins);
-            skin_plan.add_bank(view.foreground,view.deferred_foreground_skins);
+        for(unsigned view_index=0;view_index<views.size();++view_index) {
+            const auto &view=views[view_index];
+            skin_plan.add_bank(view.vertices,view.deferred_skins,view_index);
+            skin_plan.add_bank(view.foreground,view.deferred_foreground_skins,view_index);
             for(const auto &object:view.objects) {
-                skin_plan.add_bank(object.vertices,object.deferred_skins);
+                skin_plan.add_bank(object.vertices,object.deferred_skins,view_index);
             }
         }
         if(skin_plan.expected_vertices() && !model_skin_gpu)
@@ -4828,8 +5115,10 @@ struct Renderer::Impl {
                 // their unchanged 640x480 source rectangle.
                 const ShaderVector controls{popup.radii[i],wide?popup_canvas.background_logical_width():640.f,480,0};
                 const auto slot=7+channel*4+i;
+                postprocess_pipelines[slot]=scene_filter_pipelines.at(native_fragment_kernel_path("bloom",popup.program.words));
+                const auto colors=native_fragment_uniform_words(popup.program.words);
                 void *mapped{};check(vkMapMemory(device,bloom_memories[slot],0,272,0,&mapped),"map popup blur constants");
-                std::memcpy(mapped,popup.program.words.data(),240);
+                std::memcpy(mapped,colors.data(),240);
                 std::memcpy(static_cast<std::byte*>(mapped)+240,controls.data(),16);
                 std::memcpy(static_cast<std::byte*>(mapped)+256,source.data(),16);
                 vkUnmapMemory(device,bloom_memories[slot]);
@@ -5036,23 +5325,28 @@ struct Renderer::Impl {
             const auto raster=frontend_post_raster(extent.width,extent.height,160,120);
             for(unsigned i=0;i<6;++i) {
                 const auto &program=i==0?bloom.threshold:i==5?bloom.composite:bloom.blur;
+                const auto path=native_fragment_kernel_path("bloom",program.words);
+                postprocess_pipelines[i]=(i==5?bloom_composite_pipelines:bloom_filter_pipelines).at(path);
+                const auto colors=native_fragment_uniform_words(program.words);
                 const ShaderVector controls{i<5?bloom.radii[i]:0,i==5?viewport.width:float(bloom_extent.width),
                     i==5?viewport.height:float(bloom_extent.height),0};
                 // Threshold fills the padded raster at the original texel
                 // spacing. Blur operates on it; composite crops its margins.
                 const ShaderVector source=i==0?raster.source:i==5?raster.crop:ShaderVector{0,0,1,1};
                 void *mapped{};check(vkMapMemory(device,bloom_memories[i],0,272,0,&mapped),"map bloom constants");
-                std::memcpy(mapped,program.words.data(),240);std::memcpy(static_cast<std::byte*>(mapped)+240,controls.data(),16);
+                std::memcpy(mapped,colors.data(),240);std::memcpy(static_cast<std::byte*>(mapped)+240,controls.data(),16);
                 std::memcpy(static_cast<std::byte*>(mapped)+256,source.data(),16);
                 vkUnmapMemory(device,bloom_memories[i]);
             }
         }
         if(title_scene && scene_filter) {
+            postprocess_pipelines[6]=scene_filter_pipelines.at(native_fragment_kernel_path("bloom",scene_filter->words));
+            const auto colors=native_fragment_uniform_words(scene_filter->words);
             const ShaderVector controls{0,viewport.width,viewport.height,0};
             const ShaderVector source{viewport.x/extent.width,viewport.y/extent.height,
                 viewport.width/extent.width,viewport.height/extent.height};
             void *mapped{};check(vkMapMemory(device,bloom_memories[6],0,272,0,&mapped),"map title color filter");
-            std::memcpy(mapped,scene_filter->words.data(),240);
+            std::memcpy(mapped,colors.data(),240);
             std::memcpy(static_cast<std::byte*>(mapped)+240,controls.data(),16);
             std::memcpy(static_cast<std::byte*>(mapped)+256,source.data(),16);
             vkUnmapMemory(device,bloom_memories[6]);
@@ -5065,8 +5359,10 @@ struct Renderer::Impl {
         const auto menu_fog=atmosphere?menu_fog_draw(*atmosphere,camera.position):std::nullopt;
         if(atmosphere) {
             if(menu_fog) {
+                fog_pipeline=fog_pipelines.at(native_fragment_kernel_path("fog",menu_fog->program.words));
+                const auto colors=native_fragment_uniform_words(menu_fog->program.words);
                 void *mapped{};check(vkMapMemory(device,fog_memory,0,272,0,&mapped),"map fog constants");
-                std::memcpy(mapped,menu_fog->program.words.data(),240);
+                std::memcpy(mapped,colors.data(),240);
                 std::memcpy(static_cast<std::byte*>(mapped)+240,menu_fog->lookup_coordinates.data(),32);
                 vkUnmapMemory(device,fog_memory);
             }
@@ -5154,8 +5450,11 @@ struct Renderer::Impl {
                 const float inverse=1.f/std::max(.0001f,patch.distance[1]-patch.distance[0]);
                 for(unsigned i=0;i<2;++i) {
                     const auto &program=i?frame.direct:frame.noise;
+                    const auto path=native_fragment_kernel_path(i?"patchy-composite":"patchy-noise",program.words);
+                    if(i)patchy_composite_pipeline=patchy_composite_pipelines.at(path);
+                    else patchy_noise_pipeline=patchy_noise_pipelines.at(path);
                     PatchyFogUniform uniform;
-                    uniform.program=program.words;uniform.rows=frame.rows;
+                    uniform.program=native_fragment_uniform_words(program.words);uniform.rows=frame.rows;
                     uniform.controls={frame.vertical,float(i?extent.width:patchy_extent.width),
                         float(i?extent.height:patchy_extent.height),0};
                     uniform.lookup={1024.f*inverse,0,0.f-patch.distance[0]*inverse,0};
@@ -5287,6 +5586,10 @@ struct Renderer::Impl {
                     const auto physical=full_surface_viewport({view.left,view.top,view.width,view.height},extent.width,extent.height);
                     rectangle={{int(physical.left),int(physical.top)},{unsigned(physical.width),unsigned(physical.height)}};
                 }
+                if(view.source_ui_viewport) {
+                    const auto &r=*view.source_ui_viewport;
+                    rectangle={{r[1],r[0]},{unsigned(r[3]-r[1]),unsigned(r[2]-r[0])}};
+                }
                 post_views.push_back({view.camera,*view.atmosphere,rectangle,
                     source_player_bloom_screen_context(std::int16_t(post_views.size())),
                     view.projection_clip_planes.value_or(Vec2{.015625f,1024.f})});
@@ -5357,13 +5660,12 @@ struct Renderer::Impl {
             if(specialized!=~0u)active_forward_pipeline_indices[m]=specialized;
         }
         const auto admit_combiner=[&](std::size_t m,const MaterialUniform &uniform) {
-            const auto active=active_forward_pipeline_indices[m];
-            if(active!=~0u && forward_pipelines[active].controls &&
-               combiner_controls(uniform.program)!=*forward_pipelines[active].controls)
-                active_forward_pipeline_indices[m]=forward_pipeline_indices[m];
+            return native_forward_pipeline(unsigned(m),uniform);
         };
         for(std::size_t m=0;m<material_uniforms.size();++m)
-            if(global_material_roots[material_roots[m]])admit_combiner(m,material_uniforms[m]);
+            if(global_material_roots[material_roots[m]])active_forward_pipeline_indices[m]=admit_combiner(m,material_uniforms[m]);
+        std::array<std::vector<unsigned>,4> view_native_pipeline_indices;
+        for(std::size_t i=0;i<views.size();++i)view_native_pipeline_indices[i]=active_forward_pipeline_indices;
         const auto *uncached_bindings=std::getenv("HALO2_REFERENCE_UNCACHED_VIEW_BINDINGS");
         const bool cache_view_bindings=!(uncached_bindings && *uncached_bindings);
         const auto view_material_uniform=[&](const ModelView &view,std::size_t m,
@@ -5394,7 +5696,9 @@ struct Renderer::Impl {
                 uniform.source_camera_world=source.world;
                 uniform.source_camera_reflection=source.reflection;
                 uniform.source_camera_foreground=source.foreground;
-                uniform.source_camera_control[0]=1;
+                // Bit1 admits only the source-owned procedural reflection
+                // projection. Authored AOT programs retain their exact path.
+                uniform.source_camera_control[0]=view.water_reflection_source_rendering?3u:1u;
                 const auto layer=source_material_layers[m];
                 uniform.source_camera_control[1]=layer && source_shader_layer_stipple(
                     *layer,source_shader_gameplay_frame_type);
@@ -5488,10 +5792,11 @@ struct Renderer::Impl {
                 pstencil::adapt_combined_environment_strength(response,pstencil_environment_parameters[m],pstencil_polished_armor[m]);
                 uniform.program=response.words;
             }
-            admit_combiner(m,uniform);
+            view_native_pipeline_indices[std::size_t(&view-views.data())][m]=admit_combiner(m,uniform);
             return uniform;
         };
         std::array<bool,4> view_fog_enabled{};
+        std::array<VkPipeline,4> view_fog_native_pipelines{};
         if(!views.empty()) {
             void *mapped{};
             for(std::size_t i=0;i<views.size();++i) if(views[i].atmosphere) {
@@ -5500,8 +5805,10 @@ struct Renderer::Impl {
                 const auto selected=bsp_fog_draw(*views[i].atmosphere,camera_w,fog_draw_controls);
                 if(!selected)continue;
                 view_fog_enabled[i]=true;const auto &composite=*selected;
+                view_fog_native_pipelines[i]=fog_pipelines.at(native_fragment_kernel_path("fog",composite.program.words));
+                const auto colors=native_fragment_uniform_words(composite.program.words);
                 check(vkMapMemory(device,view_fog_memories[i],0,272,0,&mapped),"map viewport fog composite");
-                std::memcpy(mapped,composite.program.words.data(),240);
+                std::memcpy(mapped,colors.data(),240);
                 std::memcpy(static_cast<std::byte*>(mapped)+240,composite.lookup_coordinates.data(),32);
                 vkUnmapMemory(device,view_fog_memories[i]);
             }
@@ -5512,6 +5819,11 @@ struct Renderer::Impl {
                     const auto physical=full_surface_viewport({v.left,v.top,v.width,v.height},extent.width,extent.height);
                     rectangle={physical.left/extent.width,physical.top/extent.height,
                                physical.width/extent.width,physical.height/extent.height};
+                }
+                if(v.source_ui_viewport) {
+                    const auto &r=*v.source_ui_viewport;
+                    rectangle={float(r[1])/extent.width,float(r[0])/extent.height,
+                               float(r[3]-r[1])/extent.width,float(r[2]-r[0])/extent.height};
                 }
                 const auto source_taps=water_copy_taps(rectangle[2],rectangle[3]);
                 const ShaderVector taps{source_taps[0][0],source_taps[0][1],source_taps[1][0],source_taps[2][1]};
@@ -5587,11 +5899,28 @@ struct Renderer::Impl {
         for(auto &draws:view_foreground)bind_geometry(draws);
         for(auto &draws:view_background)bind_geometry(draws);
         for(auto &draws:view_reflection_background)bind_geometry(draws);
+        // One19510 selection policy serves both ordinary resident draws and
+        // owner aliases. Owner storage copies this image/sampler bank before
+        // replacing only its independent material and optional vertex UBOs.
+        const auto texture_camera_target=[&](unsigned material,std::size_t view,bool completed)->std::optional<unsigned> {
+            if(!texture_camera_materials[material])return {};
+            if(!texture_camera)throw FormatError("Texture camera draw lost its source frame");
+            if(camera_scene && view==0)return {}; // Recursive source19510 default2D.
+            const auto target=texture_camera->source->targets().selected();
+            if(!target)return {};
+            const auto slot=*target==18?0u:1u;
+            if(completed && !texture_camera_produced[slot])
+                throw FormatError("Texture camera target was never produced by its actual scene");
+            return slot;
+        };
         std::vector<std::map<std::pair<unsigned,unsigned>,std::size_t>> object_aliases;
         std::vector<MaterialUniform> object_uniforms;
+        std::vector<unsigned> object_native_pipeline_indices;
         std::vector<std::uint32_t> object_blend_colors;
         std::vector<std::optional<VertexBankUniform>> object_vertex_banks;
         std::vector<VkDescriptorSet> object_residents;
+        struct OwnerBitmapFrame {std::size_t owner;unsigned material,stage,frame;};
+        std::vector<OwnerBitmapFrame> object_bitmap_frames;
         const auto alias_owner=[&](const ModelView &view,std::span<Draw> list,
                                    const ObjectLightingState *lighting,const ObjectColors *colors=nullptr,const ShaderInput *input=nullptr,
                                    std::span<const SourcePrtMaterialBank> prt_banks=std::span<const SourcePrtMaterialBank>{},
@@ -5617,12 +5946,23 @@ struct Renderer::Impl {
                 aliases.emplace(std::pair{material,lightmap},object_uniforms.size());
                 std::uint32_t blend{};
                 object_uniforms.push_back(view_material_uniform(view,material,lighting,colors,input,camouflage,&blend));
+                object_native_pipeline_indices.push_back(admit_combiner(material,object_uniforms.back()));
+                if(input)if(const auto animation=owner_bitmap_animations.find(material);animation!=owner_bitmap_animations.end()) {
+                    const auto frames=animate_bitmap_frames(animation->second,view.effect_time,*input,bound_frames[material]);
+                    // Extern18 owns stage0, including recursive/default2D;
+                    // a shader-parameter bitmap animation cannot replace it.
+                    for(unsigned stage=0;stage<frames.size();++stage)if(!(texture_camera_materials[material] && stage==0) && frames[stage]!=bound_frames[material][stage])
+                        object_bitmap_frames.push_back({object_uniforms.size()-1,material,stage,frames[stage]});
+                }
                 object_blend_colors.push_back(blend);
                 const auto bank=banks.find(material);
                 object_vertex_banks.push_back(bank==banks.end()?std::nullopt:std::optional{bank->second});
                 const auto view_index=std::size_t(&view-views.data());
-                object_residents.push_back(camouflage_scene_materials[material]?
-                    camouflage_descriptors[view_index][material]:geometry_descriptor(material,lightmap));
+                auto resident=camouflage_scene_materials[material]?
+                    camouflage_descriptors[view_index][material]:geometry_descriptor(material,lightmap);
+                if(const auto target=texture_camera_target(material,view_index,false))
+                    resident=texture_camera_descriptors[*target][material];
+                object_residents.push_back(resident);
             };
             for(auto &draw:list) {
                 draw.object_alias=owner;add(draw.material,draw.lightmap);
@@ -5648,12 +5988,41 @@ struct Renderer::Impl {
             if(!step.particles && !step.light_source)alias_owner(views[i],step.geometry,
                 step.lighting?&*step.lighting:nullptr);
         }
+        std::vector<MaterialUniform> object_gpu_uniforms;object_gpu_uniforms.reserve(object_uniforms.size());
         std::vector<ResidentDrawUpload> object_uploads;object_uploads.reserve(object_uniforms.size());
-        for(std::size_t i=0;i<object_uniforms.size();++i)
-            object_uploads.push_back({object_residents[i],{reinterpret_cast<const std::byte*>(&object_uniforms[i]),sizeof(MaterialUniform)},object_vertex_banks[i]});
+        for(std::size_t i=0;i<object_uniforms.size();++i) {
+            object_gpu_uniforms.push_back(native_material_gpu_uniform(object_uniforms[i]));
+            object_uploads.push_back({object_residents[i],{reinterpret_cast<const std::byte*>(&object_gpu_uniforms[i]),sizeof(MaterialUniform)},object_vertex_banks[i]});
+        }
         if(!object_draw_storage && !object_uploads.empty())
             object_draw_storage=std::make_unique<ResidentDrawStorage>(device,physical,texture_layout,sizeof(MaterialUniform));
-        const auto object_descriptors=object_draw_storage?object_draw_storage->upload(object_uploads):std::span<const VkDescriptorSet>{};
+        const ResidentDescriptorObserver object_descriptor_observer=[&](auto writes,auto copies) {
+            observe_descriptor_writes(writes.data(),writes.size());observe_descriptor_copies(copies);
+        };
+        const auto object_descriptors=object_draw_storage?object_draw_storage->upload(object_uploads,
+            capture_bsp_draw_bindings?object_descriptor_observer:ResidentDescriptorObserver{}):std::span<const VkDescriptorSet>{};
+        // ResidentDrawStorage has copied the global descriptor bank. Replace
+        // only this owner's animated image selections after those copies;
+        // another corpse may share the shader while selecting another frame.
+        for(const auto &binding:object_bitmap_frames) {
+            const auto &texture=animated_textures.at(binding.material).at(binding.stage).at(binding.frame);
+            if(texture.cube_view && !sampler_non_seamless_cube)
+                throw FormatError("original animated cube face filtering requires VK_EXT_non_seamless_cube_map");
+            const auto sampler=stage_samplers[binding.material][binding.stage];
+            const std::array<VkDescriptorImageInfo,3> images{{
+                {sampler,texture.depth?image_fallback.view:texture.view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
+                {sampler,texture.cube_view?texture.cube_view:cube_fallback.cube_view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
+                {sampler,texture.depth?texture.view:volume_fallback.view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}}};
+            std::array<VkWriteDescriptorSet,3> writes{};
+            for(unsigned table=0;table<writes.size();++table) {
+                auto &write=writes[table];write={VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+                write.dstSet=object_descriptors[binding.owner];write.dstBinding=table?table+4:binding.stage;
+                write.dstArrayElement=table?binding.stage:0;write.descriptorCount=1;
+                write.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;write.pImageInfo=&images[table];
+            }
+            vkUpdateDescriptorSets(device,unsigned(writes.size()),writes.data(),0,nullptr);
+            observe_descriptor_writes(writes.data(),unsigned(writes.size()));
+        }
         if(!views.empty()) {
             void *mapped{};
             mapped=material_mapping;
@@ -5696,7 +6065,7 @@ struct Renderer::Impl {
                 auto &initialized=view_material_initialized[i];
                 initialized.resize(material_uniforms.size());
                 for(const auto m:materials) {
-                    const auto uniform=view_material_uniform(view,m);
+                    const auto uniform=native_material_gpu_uniform(view_material_uniform(view,m));
                     if(view.completed_material_upload_observer) {
                         RendererCompletedMaterialUpload upload;
                         upload.root_material_count=material_count;
@@ -5708,6 +6077,10 @@ struct Renderer::Impl {
                         upload.source_frames_submitted=source_frames_submitted;
                         upload.wanted_frames=wanted_frames.at(m);upload.bound_frames=bound_frames.at(m);
                         upload.texture_states=stage_sampler_states.at(m);
+                        if(native_world_kernel_indices.at(m)!=~0u)
+                            upload.native_world_kernel=native_world_kernel_indices[m];
+                        for(const auto &instruction:uniform.vertex_instructions)
+                            for(const auto word:instruction)upload.uploaded_vertex_instruction_words+=word!=0u;
                         upload.baked_lightmap=baked_materials.at(m);
                         upload.accumulation=accumulation_materials.at(m);upload.scope=scope_materials.at(m);
                         upload.water_targets=water_texture_bindings.at(m);
@@ -5764,6 +6137,54 @@ struct Renderer::Impl {
                 });
                 for(const auto &error:upload_errors)if(error)std::rethrow_exception(error);
             }
+        }
+        struct PathSkyAliases {
+            std::map<std::pair<unsigned,unsigned>,std::size_t> indices;
+            std::vector<MaterialUniform> uniforms;
+            std::vector<VertexBankUniform> banks;
+            std::vector<unsigned> pipelines;
+            std::vector<std::uint32_t> blend_colors;
+            std::span<const VkDescriptorSet> descriptors;
+        };
+        std::array<PathSkyAliases,5> path_sky_aliases;
+        if(path_tracing_enabled) {
+            if(!path_tracing_state)path_tracing_state=std::make_unique<PathTracingState>();
+            const auto prepare_sky_aliases=[&](std::size_t slot,const ModelView* view,const std::vector<Draw>& list) {
+                auto& aliases=path_sky_aliases[slot];
+                const auto add=[&](unsigned material,unsigned lightmap) {
+                    if(material==~0u || aliases.indices.contains({material,lightmap}))return;
+                    aliases.indices.emplace(std::pair{material,lightmap},aliases.uniforms.size());
+                    std::uint32_t blend=material_blend_colors[material];
+                    auto uniform=view?view_material_uniform(*view,material,nullptr,nullptr,nullptr,nullptr,&blend):material_uniforms[material];
+                    const auto native=admit_combiner(material,uniform);
+                    if(native==~0u || forward_pipelines[native].native_kernel==~0u)
+                        throw FormatError("Path Tracing sky capture lacks its exact native shader");
+                    // Only camera globals change for a cubemap face. All
+                    // native instructions, colors, texture transforms and
+                    // source sampler/animated image bindings stay authored.
+                    uniform.source_camera_control[0]=0;
+                    aliases.uniforms.push_back(native_material_gpu_uniform(uniform));
+                    auto bank=vertex_bank_uniforms[material];bank.range[3]=0;aliases.banks.push_back(bank);
+                    aliases.pipelines.push_back(native);aliases.blend_colors.push_back(blend);
+                };
+                for(const auto& draw:list)if(draw.count) {
+                    add(draw.material,draw.lightmap);add(environment_materials[draw.material],draw.lightmap);
+                    for(const auto m:world_before[draw.material])add(m,draw.lightmap);
+                    for(const auto m:world_after[draw.material])add(m,draw.lightmap);
+                }
+                // Preserve index order rather than the map's material order.
+                std::vector<ResidentDrawUpload> uploads(aliases.uniforms.size());
+                for(const auto& [key,index]:aliases.indices)
+                    uploads[index]={geometry_descriptor(key.first,key.second),
+                        {reinterpret_cast<const std::byte*>(&aliases.uniforms[index]),sizeof(MaterialUniform)},aliases.banks[index]};
+                auto& storage=path_tracing_state->sky_storage[slot];
+                if(uploads.empty()){storage.reset();return;}
+                if(!storage)storage=std::make_unique<ResidentDrawStorage>(device,physical,texture_layout,sizeof(MaterialUniform));
+                aliases.descriptors=storage->upload(uploads);
+            };
+            prepare_sky_aliases(0,nullptr,background_draws);
+            for(std::size_t i=0;i<views.size();++i)if(views[i].full_surface)
+                prepare_sky_aliases(i+1,&views[i],view_background[i]);
         }
         struct ShadowDrawRecord {
             const SourceShadowMaterial *authored{};
@@ -6230,6 +6651,76 @@ struct Renderer::Impl {
                 make_buffer(depth_capture_size+stencil_capture_size,VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                     depth_capture,depth_capture_memory);
         }
+        if(path_tracing_enabled) {
+            if(!path_tracing_source_mesh || path_tracing_source_mesh->materials.size()!=material_count)
+                throw FormatError("Path Tracing requires the current scene's explicit asset owner");
+            const auto& path_tracing_materials=path_tracing_source_mesh->materials;
+            if(!path_tracing_state)path_tracing_state=std::make_unique<PathTracingState>();
+            // Each view owns its light/environment bank. Full BSP residency is
+            // independent of primary visibility: secondary rays leave the view.
+            const auto prepare=[&](std::size_t slot,const ModelView* view) {
+                auto& scene=path_tracing_state->scenes[slot];
+                if(!scene)scene=path_tracing::build_scene({},path_tracing_materials);
+                std::vector<Vertex> geometry;
+                const auto append=[&](std::span<const Vertex> bank) {
+                    if(bank.size()%3)throw FormatError("Path Tracing requires complete source triangles");
+                    for(std::size_t first=0;first<bank.size();first+=3) {
+                        const auto material=bank[first].material;
+                        if(material>=path_tracing_materials.size())throw FormatError("Path Tracing material outside resident roots");
+                        if(path_tracing::traces_material(path_tracing_materials[material]))
+                            geometry.insert(geometry.end(),bank.begin()+first,bank.begin()+first+3);
+                    }
+                };
+                // Ordinary game views without a resident plan already carry
+                // their BSP followed by dynamic vertices in the same bank.
+                if(view && view->source_bsp_resident_plan) {
+                    const auto& resident=*view->source_bsp_resident_plan;
+                    const auto& bank=resident.resident_vertices();
+                    const auto& parts=resident.parts();
+                    if(view->source_bsp_bindings.size()!=parts.size())
+                        throw FormatError("Path Tracing BSP bindings lost their resident part owner");
+                    for(std::size_t part=0;part<parts.size();++part) {
+                        const auto& range=parts[part];
+                        const auto material=view->source_bsp_bindings[part].material.value_or(range.original.material);
+                        if(material>=path_tracing_materials.size())throw FormatError("Path Tracing BSP material outside resident roots");
+                        if(!path_tracing::traces_material(path_tracing_materials[material]))continue;
+                        for(const auto& source:std::span(bank).subspan(range.first,range.count)) {
+                            auto vertex=source;vertex.material=material;geometry.push_back(vertex);
+                        }
+                    }
+                } else if(!view || !view->full_surface)
+                    append(path_tracing_source_mesh->vertices);
+                if(view) {
+                    append(path_tracing::posed_vertices(view->vertices,view->deferred_skins));
+                    for(const auto& object:view->objects)
+                        append(path_tracing::posed_vertices(object.vertices,object.deferred_skins));
+                    path_tracing::refresh_materials_for_geometry(*scene,path_tracing_materials,geometry);
+                    path_tracing::update_geometry(*scene,geometry,view->path_tracing_lights);
+                } else {
+                    append(debug);
+                    path_tracing::refresh_materials_for_geometry(*scene,path_tracing_materials,geometry);
+                    path_tracing::update_geometry(*scene,geometry);
+                }
+                auto& renderer=path_tracing_state->renderers[slot];
+                if(!renderer)renderer=std::make_unique<path_tracing::Render>(path_tracing::RenderContext{
+                    device,physical,render_pass,texture_layout,shader_directory});
+                renderer->set_quality(display.path_tracing_samples,display.path_tracing_bounces);
+                const auto source_environment=view?view->path_tracing_environment:Vec3{};
+                renderer->upload(*scene,scene->uniform(source_environment));
+                renderer->prepare_environment(format,depth_format,64,
+                    (view?!view->background.empty():!background.empty()) ||
+                    source_environment.x>0 || source_environment.y>0 || source_environment.z>0);
+                renderer->prepare_visibility(extent);
+            };
+            const bool global_view=!full_surface_scene || !debug.empty() || !first_person.empty();
+            if(global_view)prepare(0,nullptr);
+            for(std::size_t i=0;i<views.size();++i)if(views[i].full_surface)prepare(i+1,&views[i]);
+            for(std::size_t slot=0;slot<path_tracing_state->renderers.size();++slot) {
+                const bool used=slot==0?global_view:
+                    slot<=views.size() && views[slot-1].full_surface;
+                if(!used){path_tracing_state->renderers[slot].reset();path_tracing_state->scenes[slot].reset();path_tracing_state->sky_storage[slot].reset();}
+            }
+        }
         check(vkResetCommandBuffer(command, 0), "reset commands");
         VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
         begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -6247,6 +6738,10 @@ struct Renderer::Impl {
                     for(std::size_t i=0;i<renderer.weather_aliases.size();++i)if(renderer.weather_alias_pending[i]) {
                         renderer.weather_aliases[i]->discard_unsubmitted(renderer.command);
                         renderer.weather_alias_pending[i]=false;
+                    }
+                    for(unsigned i=0;i<2;++i)if(renderer.texture_camera_pending[i]) {
+                        renderer.texture_camera_copies[i]->discard_unsubmitted(renderer.command);
+                        renderer.texture_camera_pending[i]=false;renderer.texture_camera_produced[i]=renderer.texture_camera_before_produced[i];
                     }
                     for(unsigned i=0;i<renderer.camouflage_copies.size();++i)if(renderer.camouflage_copy_pending[i]) {
                         renderer.camouflage_copies[i]->discard_unsubmitted(renderer.command);renderer.camouflage_copy_pending[i]=false;
@@ -6355,6 +6850,7 @@ struct Renderer::Impl {
             bool camera_known{},viewport_known{},scissor_known{},target_known{};
             std::uint64_t serial{};std::vector<RendererObservedTargetTransition> transitions;
         } bsp_capture;
+        std::array<std::byte,path_tracing::Render::camera_bytes> path_tracing_camera{};
         const auto capture_unknown=[&]{if(!capture_bsp_draw_bindings)return;bsp_capture.camera_known=bsp_capture.viewport_known=bsp_capture.scissor_known=bsp_capture.target_known=false;};
         // SourceDecalRenderer::record contains only in-pass state/binding/draw
         // commands, no render-pass transitions or secondary commands. Retain
@@ -6371,6 +6867,10 @@ struct Renderer::Impl {
         // shadow-v32-observer-binding-only-repair-v1 controls.
         const auto capture_binding_only=[]{};
         const auto capture_push=[&](const void* data,std::size_t size) {
+            if(path_tracing_enabled) {
+                if(size!=path_tracing_camera.size())throw FormatError("Path Tracing camera ABI differs from112 bytes");
+                std::memcpy(path_tracing_camera.data(),data,size);
+            }
             if(!bsp_capture.view || !bsp_capture.view->completed_bsp_draw_observer)return;
             if(size!=bsp_capture.push.size())throw FormatError("BSP recorded camera push ABI differs from112 bytes");
             std::memcpy(bsp_capture.push.data(),data,size);bsp_capture.camera_known=true;
@@ -6403,24 +6903,85 @@ struct Renderer::Impl {
             glm::vec4(viewport.x,viewport.y,viewport.width,viewport.height)};
         {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(camera_uniform),&camera_uniform);capture_push(&camera_uniform,sizeof(camera_uniform));}
         std::uint32_t material_bank_offset=0;
+        std::size_t active_material_view=std::numeric_limits<std::size_t>::max();
+        std::optional<std::size_t> path_sky_capture;
         bool sky_raster=false,first_person_draw=false;
+        bool path_tracing_material=false;
+        const auto draw_material_geometry=[&](const Draw& draw) {
+            vkCmdDraw(command, draw.count, 1, draw.first, 0);
+            if(path_tracing_capture && path_sky_capture) {
+                auto& captured=path_tracing_capture->at(*path_sky_capture);
+                ++captured.sky_draws;captured.sky_vertices+=draw.count;
+            }
+            if(path_tracing_capture && path_tracing_material) {
+                const auto slot=active_material_view<views.size()?active_material_view+1:0;
+                auto& captured=path_tracing_capture->at(slot);
+                ++captured.draws;captured.vertices+=draw.count;
+            }
+        };
+        const auto trace_material=[&](unsigned material) {
+            return path_tracing_enabled && !sky_raster &&
+                (active_material_view>=views.size() || views[active_material_view].full_surface) &&
+                path_tracing_source_mesh && material<path_tracing_source_mesh->materials.size() &&
+                path_tracing::traces_material(path_tracing_source_mesh->materials[material]);
+        };
         const PreparedViewMaterialInputs *camouflage_view=nullptr;
         const auto material_descriptor=[&](unsigned material,unsigned lightmap) {
+            if(const auto target=texture_camera_target(material,active_material_view,true))
+                return texture_camera_descriptors[*target][material];
             return first_person_draw && scope_descriptors[material]?scope_descriptors[material]:geometry_descriptor(material,lightmap);
         };
-        const auto bind_material=[&](const Draw &draw,unsigned material) {
+        const auto material_binding=[&](const Draw &draw,unsigned material) {
+            if(path_sky_capture) {
+                const auto& aliases=path_sky_aliases[*path_sky_capture];
+                return std::pair{aliases.descriptors[aliases.indices.at({material,draw.lightmap})],std::uint32_t(0)};
+            }
             const bool owner=draw.object_alias!=std::numeric_limits<std::size_t>::max();
+            if(owner)(void)texture_camera_target(material,active_material_view,true);
             const auto descriptor=owner?object_descriptors[object_aliases.at(draw.object_alias).at({material,draw.lightmap})]:
                 material_descriptor(material,draw.lightmap);
             const std::uint32_t bank=owner?0u:material_bank_offset;
-            vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,&descriptor,1,&bank);
             return std::pair{descriptor,bank};
         };
-        auto material_pipeline=[&](unsigned m,const Draw *draw=nullptr) {const auto index=active_forward_pipeline_indices[m];
+        const auto bind_material=[&](const Draw &draw,unsigned material) {
+            const auto [descriptor,bank]=material_binding(draw,material);
+            if(path_tracing_material) {
+                const auto slot=active_material_view<views.size()?active_material_view+1:0;
+                path_tracing_state->renderers.at(slot)->bind(command,descriptor,bank,path_tracing_camera,material);
+            } else vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,&descriptor,1,&bank);
+            return std::pair{descriptor,bank};
+        };
+        auto material_pipeline=[&](unsigned m,const Draw *draw=nullptr) {
+            path_tracing_material=trace_material(m);
+            if(path_tracing_material) {
+                const auto slot=active_material_view<views.size()?active_material_view+1:0;
+                const auto handle=path_tracing_state->renderers.at(slot)->pipeline();
+                vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,handle);
+                return std::tuple{handle,~0u,std::array<float,4>{}};
+            }
+            if(path_tracing_enabled && !path_sky_capture)
+                vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,
+                    path_tracing_camera.size(),path_tracing_camera.data());
+            const auto owner=draw && draw->object_alias!=std::numeric_limits<std::size_t>::max()?
+                object_aliases.at(draw->object_alias).at({m,draw->lightmap}):std::numeric_limits<std::size_t>::max();
+            const auto sky_alias=path_sky_capture?path_sky_aliases[*path_sky_capture].indices.at({m,draw?draw->lightmap:0}):0;
+            const auto index=path_sky_capture?path_sky_aliases[*path_sky_capture].pipelines[sky_alias]:
+                owner!=std::numeric_limits<std::size_t>::max()?object_native_pipeline_indices.at(owner):
+                active_material_view<views.size()?view_native_pipeline_indices[active_material_view].at(m):active_forward_pipeline_indices[m];
+            if(native_world_kernel_indices[m]!=~0u && (index==~0u ||
+               forward_pipelines.at(index).native_kernel!=native_world_kernel_indices[m]))
+                throw FormatError("Native world draw selected an incompatible pipeline");
+            const bool authored_sky=material_uniforms[m].flags[3]!=0u ||
+                source_material_identities.at(m)[0]!=0xffffffffu || source_material_layers.at(m)==15 ||
+                (draw && (draw->source_section!=0xffffffffu || draw->source_part!=0xffffffffu));
+            if(sky_raster && authored_sky && (native_world_kernel_indices[m]==~0u ||
+               index==~0u || forward_pipelines.at(index).native_kernel==~0u))
+                throw FormatError("Sky material has no exact native Vulkan kernel");
             const auto handle=index!=~0u?(sky_raster?forward_pipelines.at(index).sky_handle:forward_pipelines.at(index).handle):
                 (sky_raster?sky_pipeline:pipeline);
             vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,handle);
-            const auto color=draw && draw->object_alias!=std::numeric_limits<std::size_t>::max()?
+            const auto color=path_sky_capture?path_sky_aliases[*path_sky_capture].blend_colors[sky_alias]:
+                draw && draw->object_alias!=std::numeric_limits<std::size_t>::max()?
                 object_blend_colors.at(object_aliases.at(draw->object_alias).at({m,draw->lightmap})):material_blend_colors[m];
             const float constants[]{float((color>>16)&255)/255.f,float((color>>8)&255)/255.f,
                 float(color&255)/255.f,float(color>>24)/255.f};
@@ -6449,10 +7010,54 @@ struct Renderer::Impl {
             vkCmdBindVertexBuffers(command,0,1,&buffer,&offset);
             return buffer;
         };
+        const auto record_path_visibility=[&](std::size_t slot,
+            std::span<const Draw> first,VkBuffer first_buffer,std::span<const Draw> second,VkBuffer second_buffer,
+            const VkViewport& target_viewport,const VkRect2D& target_clip) {
+            if(!path_tracing_enabled)return;
+            auto& rt=*path_tracing_state->renderers.at(slot);
+            // This private depth pass uses the identical source W expression,
+            // current material bindings and alpha/stipple coverage. Rejecting
+            // hidden fragments then happens before their expensive ray work.
+            vkCmdEndRenderPass(command);
+            rt.begin_visibility(command);
+            const auto actual_viewport=temporal_viewport(target_viewport);
+            vkCmdSetViewport(command,0,1,&actual_viewport);
+            vkCmdSetScissor(command,0,1,&target_clip);
+            bool lighting=false;
+            const auto emit=[&](const Draw& draw,unsigned material,VkBuffer buffer) {
+                if(!draw.count || !draw_visible(draw) || !layer_enabled(material) || !trace_material(material))return;
+                const auto [descriptor,bank]=material_binding(draw,material);
+                if(lighting)rt.bind_lighting(command,descriptor,bank,path_tracing_camera,material);
+                else rt.bind_visibility(command,descriptor,bank,path_tracing_camera,material);
+                bind_draw_vertices(draw,buffer);
+                vkCmdDraw(command,draw.count,1,draw.first,0);
+            };
+            const auto bank=[&](std::span<const Draw> list,VkBuffer buffer) {
+                // Only submitted opaque parents are occluders. Independent
+                // overlay/transparent schedules retain their original order;
+                // omitting them here is conservative, never a false cull.
+                for(const auto& draw:list)emit(draw,draw.material,buffer);
+            };
+            bank(first,first_buffer);bank(second,second_buffer);
+            rt.end_visibility(command);
+            rt.begin_lighting(command);lighting=true;
+            bank(first,first_buffer);bank(second,second_buffer);
+            rt.end_lighting(command);
+            auto resumed=render;resumed.renderPass=continuation_pass;
+            resumed.clearValueCount=0;resumed.pClearValues=nullptr;
+            {vkCmdBeginRenderPass(command,&resumed,VK_SUBPASS_CONTENTS_INLINE);capture_target(resumed);}
+            {set_temporal_viewport(target_viewport);}{vkCmdSetScissor(command,0,1,&target_clip);capture_scissor(target_clip);}
+            vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,
+                path_tracing_camera.size(),path_tracing_camera.data());
+        };
+        std::uint64_t generic_geometry_serial{};
         const auto emit_bsp_draw=[&](const Draw& draw,unsigned material,VkBuffer ordinary,RendererBspDrawPhase phase) {
             const auto [handle,index,blend_constants]=material_pipeline(material,&draw);
             const auto [descriptor,dynamic_offset]=bind_material(draw,material);
             const auto buffer=bind_draw_vertices(draw,ordinary);
+            if(path_tracing_material && bsp_capture.view &&
+               (bsp_capture.view->completed_bsp_draw_observer || bsp_capture.view->completed_object_draw_observer))
+                throw FormatError("Original material draw capture is unavailable for the optional Path Tracing pipeline");
             if(draw.observed_bsp_token && bsp_capture.view && bsp_capture.view->completed_bsp_draw_observer) {
                 if(!capture_bsp_draw_bindings || !bsp_capture.camera_known || !bsp_capture.viewport_known ||
                    !bsp_capture.scissor_known || !bsp_capture.target_known || sky_raster || first_person_draw ||
@@ -6498,7 +7103,42 @@ struct Renderer::Impl {
                 observed.source_vertices=draw.observed_bsp_vertices;
                 bsp_capture.view->completed_bsp_draw_observer(observed);
             }
-            vkCmdDraw(command,draw.count,1,draw.first,0);
+            draw_material_geometry(draw);
+            if(bsp_capture.view && bsp_capture.view->completed_geometry_draw_observer) {
+                const auto pipeline_facts=observed_pipelines.find(observed_handle(handle));
+                const auto descriptor_facts=observed_descriptors.find(observed_handle(descriptor));
+                if(!capture_bsp_draw_bindings || !bsp_capture.camera_known || !bsp_capture.viewport_known ||
+                   !bsp_capture.scissor_known || pipeline_facts==observed_pipelines.end() || descriptor_facts==observed_descriptors.end())
+                    throw FormatError("Generic geometry observation lacks actual command/descriptor provenance");
+                RendererObservedGeometryDraw facts;facts.serial=generic_geometry_serial++;
+                facts.pipeline_handle=observed_handle(handle);facts.pipeline=&pipeline_facts->second;
+                facts.descriptor=&descriptor_facts->second;facts.vertex_buffer=observed_handle(buffer);
+                facts.source_material=source_material_identities.at(material);facts.material_slot=material;
+                facts.parent_material=draw.material;facts.first=draw.first;facts.count=draw.count;facts.dynamic_offset=dynamic_offset;
+                facts.object_index=draw.observed_object;facts.owner_constants=draw.object_alias!=std::numeric_limits<std::size_t>::max();
+                facts.camera_push=bsp_capture.push;facts.viewport=bsp_capture.viewport;facts.scissor=bsp_capture.scissor;
+                if(facts.owner_constants) {
+                    const auto alias=object_aliases.at(draw.object_alias).at({material,draw.lightmap});
+                    const auto &uniform=object_gpu_uniforms.at(alias);
+                    facts.material_uniform={reinterpret_cast<const std::byte*>(&uniform),sizeof(uniform)};
+                    if(object_vertex_banks.at(alias)) {
+                        const auto &bank=*object_vertex_banks.at(alias);
+                        facts.vertex_bank_uniform={reinterpret_cast<const std::byte*>(&bank),sizeof(bank)};
+                    }
+                } else {
+                    if(descriptor_facts->second.buffers[0][0]!=observed_handle(material_buffer) ||
+                       descriptor_facts->second.buffers[0][1]!=material_stride*material ||
+                       descriptor_facts->second.buffers[0][2]!=sizeof(MaterialUniform))
+                        throw FormatError("Generic geometry uniform lacks its actual mapped source bank");
+                    facts.material_uniform={static_cast<const std::byte*>(material_mapping)+material_stride*material+dynamic_offset,sizeof(MaterialUniform)};
+                }
+                if(facts.vertex_bank_uniform.empty() && descriptor_facts->second.buffers[1][0]==observed_handle(vertex_bank_buffer) &&
+                   descriptor_facts->second.buffers[1][1]==vertex_bank_stride*material && descriptor_facts->second.buffers[1][2]==sizeof(VertexBankUniform)) {
+                    const auto &bank=vertex_bank_uniforms.at(material);
+                    facts.vertex_bank_uniform={reinterpret_cast<const std::byte*>(&bank),sizeof(bank)};
+                }
+                bsp_capture.view->completed_geometry_draw_observer(facts);
+            }
             if(draw.observed_object!=std::numeric_limits<std::size_t>::max() && bsp_capture.view &&
                bsp_capture.view->completed_object_draw_observer)
                 bsp_capture.view->completed_object_draw_observer({draw.observed_object,phase,
@@ -6527,25 +7167,36 @@ struct Renderer::Impl {
                     emit_bsp_draw(draw,draw.material,debug_buffer,RendererBspDrawPhase::decal);
                 }
         };
-        auto draw_texture_mapping_overlays = [&](const std::vector<Draw>& list,VkBuffer buffer) {
-            // 2C052 submits layer2 after lighting/environment/self illumination
-            // and before fog. 44370's layer2 target is the current final target,
-            // not layer1's accumulation target. Emblems are standalone parts.
-            for(const auto &draw:list)if(draw.count && draw_visible(draw) &&
-                texture_mapping_overlay(draw.material) && layer_enabled(draw.material)) {
-                emit_bsp_draw(draw,draw.material,buffer,RendererBspDrawPhase::texture_mapping);
+        auto draw_texture_mapping_overlays = [&](const std::vector<Draw>& list,VkBuffer buffer,bool children=false) {
+            // TU1.5 2C032 submits shader layer2 between cached decal layers1/2.
+            // Its target is the current final target, not accumulation layer1.
+            for(const auto &draw:list)if(draw.count && draw_visible(draw)) {
+                const auto emit=[&](unsigned material) {
+                    if(texture_mapping_overlay(material) && layer_enabled(material))
+                        emit_bsp_draw(draw,material,buffer,RendererBspDrawPhase::texture_mapping);
+                };
+                emit(draw.material);
+                if(children) {
+                    for(const auto material:world_before[draw.material])emit(material);
+                    for(const auto material:world_after[draw.material])if(!after_fog[material])emit(material);
+                }
             }
         };
-        auto draw_overlays = [&](const std::vector<Draw>& list,bool before,VkBuffer buffer,bool late=false) {
+        auto draw_overlays = [&](const std::vector<Draw>& list,bool before,VkBuffer buffer,bool late=false,bool defer_texture_mapping=false) {
             vkCmdBindVertexBuffers(command,0,1,&buffer,&offset);
             for(const auto &draw:list)if(draw_visible(draw))for(const auto material:(before?world_before:world_after)[draw.material]) {
                 if((!before && after_fog[material]!=late) || !layer_enabled(material))continue;
+                const auto vertex=material_uniforms[material].flags[2];
+                // Keep authored self-illumination in the primary view. Its
+                // separately admitted RT payload supplies indirect light.
+                if(trace_material(draw.material) && (vertex==4 || vertex==6 || vertex==9))continue;
+                if(defer_texture_mapping && texture_mapping_overlay(material))continue;
                 emit_bsp_draw(draw,material,buffer,before?RendererBspDrawPhase::overlay_before:RendererBspDrawPhase::overlay_after);
             }
         };
-        auto draw_environment = [&](const std::vector<Draw>& list) {
+        auto draw_environment = [&](const std::vector<Draw>& list,bool defer_texture_mapping=false) {
             vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
-            for(const auto &draw:list)if(draw.count && draw_visible(draw) && environment_materials[draw.material]!=~0u) {
+            for(const auto &draw:list)if(draw.count && draw_visible(draw) && !trace_material(draw.material) && environment_materials[draw.material]!=~0u) {
                 const auto material=environment_materials[draw.material];
                 if(!layer_enabled(material))continue;
                 emit_bsp_draw(draw,material,debug_buffer,RendererBspDrawPhase::environment);
@@ -6558,13 +7209,14 @@ struct Renderer::Impl {
                         source_material_identities[material][1],draw.count);
                 }
             }
-            draw_overlays(list,false,debug_buffer);
-            draw_texture_mapping_overlays(list,debug_buffer);
-            draw_overlays(list,true,debug_buffer);
+            draw_overlays(list,false,debug_buffer,false,defer_texture_mapping);
+            if(!defer_texture_mapping)draw_texture_mapping_overlays(list,debug_buffer);
+            draw_overlays(list,true,debug_buffer,false,defer_texture_mapping);
         };
         auto base_dynamic=[&](const std::vector<Draw>& list) {
             vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
             for(const auto &draw:list)if(draw.count && draw_visible(draw)) {
+                if(trace_material(draw.material))continue;
                 const auto material=pstencil_enabled && pstencil_texture_mask_materials[draw.material]!=~0u?
                     pstencil_texture_mask_materials[draw.material]:environment_materials[draw.material]!=~0u?draw.material:
                     pstencil_enabled?pstencil_texture_mask_materials[draw.material]:~0u;
@@ -6572,7 +7224,7 @@ struct Renderer::Impl {
                 emit_bsp_draw(draw,material,debug_buffer,RendererBspDrawPhase::accumulation_base);
             }
         };
-        auto composite_view_fog=[&](VkDescriptorSet descriptor) {
+        auto composite_view_fog=[&](VkDescriptorSet descriptor,VkPipeline selected_pipeline) {
             vkCmdEndRenderPass(command);
             VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
             barrier.srcAccessMask=VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
@@ -6587,7 +7239,7 @@ struct Renderer::Impl {
             auto composite=render;composite.renderPass=fog_pass;composite.framebuffer=fog_framebuffers[index];
             composite.clearValueCount=0;composite.pClearValues=nullptr;
             {vkCmdBeginRenderPass(command,&composite,VK_SUBPASS_CONTENTS_INLINE);capture_target(composite);}
-            vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,fog_pipeline);
+            vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,selected_pipeline);
             vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,fog_layout,0,1,&descriptor,0,nullptr);
             vkCmdDraw(command,3,1,0,0);vkCmdEndRenderPass(command);
             barrier.srcAccessMask=VK_ACCESS_SHADER_READ_BIT;
@@ -6601,6 +7253,46 @@ struct Renderer::Impl {
             resumed.clearValueCount=0;resumed.pClearValues=nullptr;
             {vkCmdBeginRenderPass(command,&resumed,VK_SUBPASS_CONTENTS_INLINE);capture_target(resumed);}
         };
+        if(path_tracing_enabled) {
+            constexpr unsigned side=64;
+            const std::array<glm::vec3,6> directions{{{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}}};
+            const std::array<glm::vec3,6> ups{{{0,-1,0},{0,-1,0},{0,0,1},{0,0,-1},{0,-1,0},{0,-1,0}}};
+            const VkViewport sky_viewport{0,0,float(side),float(side),0,1};
+            const VkRect2D sky_clip{{0,0},{side,side}};
+            for(std::size_t slot=0;slot<path_tracing_state->renderers.size();++slot)if(path_tracing_state->renderers[slot]) {
+                const auto* view=slot?&views[slot-1]:nullptr;
+                active_material_view=slot?slot-1:std::numeric_limits<std::size_t>::max();
+                const auto& list=slot?view_background[slot-1]:background_draws;
+                const auto eye=view?view->camera.position:camera.position;
+                const auto fallback=view?view->path_tracing_environment:Vec3{};
+                // c12..17 are the source fog bank even for native sky
+                // programs. Preserve the primary phase's selector while
+                // replacing only the cubemap's camera c0..11 inputs.
+                const float source_w=view?(view->atmosphere && source_depth_mode==2?1.f:0.f):camera_uniform.eye.w;
+                const auto clear=list.empty()?fallback:view && view->atmosphere?
+                    view->atmosphere->clear.value_or(Vec3{}):scene_clear.value_or(Vec3{});
+                auto& rt=*path_tracing_state->renderers[slot];
+                path_sky_capture=slot;sky_raster=true;
+                for(unsigned face=0;face<6;++face) {
+                    rt.begin_environment(command,face,{clear.x,clear.y,clear.z,1});
+                    // Cube faces use their native sampling orientation. In
+                    // contrast to the presentation camera, this projection
+                    // deliberately has no extra Vulkan Y inversion.
+                    const auto position=glm::vec3(eye.x,eye.y,eye.z);
+                    const auto matrix=glm::perspective(1.5707963267948966f,1.f,.015625f,1024.f)*
+                        glm::lookAt(position,position+directions[face],ups[face]);
+                    const CameraUniform uniform{matrix,glm::vec4(directions[face],source_w),glm::vec4(position,1),glm::vec4(0,0,side,side)};
+                    vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(uniform),&uniform);
+                    vkCmdSetViewport(command,0,1,&sky_viewport);vkCmdSetScissor(command,0,1,&sky_clip);
+                    draw_dynamic(list);draw_environment(list);draw_overlays(list,false,debug_buffer,true);
+                    rt.end_environment(command);
+                }
+                path_sky_capture.reset();sky_raster=false;
+            }
+            active_material_view=std::numeric_limits<std::size_t>::max();
+            vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(camera_uniform),&camera_uniform);
+            set_temporal_viewport(viewport);vkCmdSetScissor(command,0,1,&scissor);
+        }
         const bool empty_full_surface_accumulation=full_surface_scene &&
             background_draws.empty() && dynamic_draws.empty() && foreground_draws.empty();
         if(accumulation_pass && !empty_full_surface_accumulation) {
@@ -6613,6 +7305,7 @@ struct Renderer::Impl {
             sky_raster=true;base_dynamic(background_draws);sky_raster=false;
             vkCmdBindVertexBuffers(command,0,1,&vertex_buffer,&offset);
             for(const auto &draw:draws) if(!full_surface_scene) {
+                if(trace_material(draw.material))continue;
                 const auto material=pstencil_enabled && pstencil_texture_mask_materials[draw.material]!=~0u?
                     pstencil_texture_mask_materials[draw.material]:environment_materials[draw.material]!=~0u?draw.material:
                     pstencil_enabled?pstencil_texture_mask_materials[draw.material]:~0u;
@@ -6653,7 +7346,7 @@ struct Renderer::Impl {
                 !texture_mapping_overlay(draw.material) &&
                 (!atmosphere || after_fog[draw.material]==bool(phase))) {
 #ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
-                if(!phase)if(const auto raw=source_title_draws.find(draw_key(draw));raw!=source_title_draws.end()) {
+                if(!phase && !trace_material(draw.material))if(const auto raw=source_title_draws.find(draw_key(draw));raw!=source_title_draws.end()) {
                     for(const auto &pair:raw->second) {
                         record_native_world(*menu_world_native,command,pair.first);
                         ++source_base_recorded;
@@ -6663,16 +7356,18 @@ struct Renderer::Impl {
                 }
 #endif
                 material_pipeline(draw.material,&draw);
-                vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,&draw.descriptor,1,&material_bank_offset);
-                vkCmdDraw(command,draw.count,1,draw.first,0);
+                bind_material(draw,draw.material);
+                draw_material_geometry(draw);
             }
         };
+        if(path_tracing_enabled && !full_surface_scene)
+            record_path_visibility(0,draws,vertex_buffer,dynamic_draws,debug_buffer,viewport,scissor);
         draw_world_phase(0);
-        for(const auto &draw:draws) if(!full_surface_scene && environment_materials[draw.material]!=~0u) {
+        for(const auto &draw:draws) if(!full_surface_scene && !trace_material(draw.material) && environment_materials[draw.material]!=~0u) {
             const auto material=environment_materials[draw.material];material_pipeline(material,&draw);
             const auto descriptor=geometry_descriptor(material,draw.lightmap);
             vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,&descriptor,1,&material_bank_offset);
-            vkCmdDraw(command,draw.count,1,draw.first,0);
+            draw_material_geometry(draw);
         }
         if(!full_surface_scene) {
             draw_overlays(draws,false,vertex_buffer);
@@ -6737,7 +7432,7 @@ struct Renderer::Impl {
                 if(submerged || !draw.count || planar_materials[draw.material]==~0u)continue;
                 const auto material=planar_materials[draw.material];material_pipeline(material,&draw);
                 vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,&textures[material].descriptor,1,&material_bank_offset);
-                vkCmdDraw(command,draw.count,1,draw.first,0);
+                draw_material_geometry(draw);
             }
         }
         // Authored material order is retained within the transparent phase.
@@ -6746,13 +7441,13 @@ struct Renderer::Impl {
 #ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
         std::size_t expected_base{},expected_fog{};
         for(const auto &[identity,pairs]:source_title_draws) {
-            expected_base+=pairs.size();
+            if(!trace_material(std::get<0>(identity)))expected_base+=pairs.size();
             expected_fog+=std::count_if(pairs.begin(),pairs.end(),
                 [](const auto &pair){return bool(pair.second);});
         }
         if(source_base_recorded!=expected_base || source_fog_recorded!=expected_fog)
             throw FormatError("source title replacement did not submit its complete base/fog pairs");
-        if(source_title_first && !source_title_draws.empty())
+        if(source_title_first && !source_title_draws.empty() && !path_tracing_enabled)
             std::cout<<"Source title recorded: base="<<source_base_recorded<<" fog="<<source_fog_recorded
                 <<" duplicate_cpu_base=0 duplicate_cpu_fog=0\n";
 #endif
@@ -6830,6 +7525,8 @@ struct Renderer::Impl {
             {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(camera_uniform),&camera_uniform);capture_push(&camera_uniform,sizeof(camera_uniform));}
         }
         if (!first_person.empty()) {
+            if(path_tracing_enabled)
+                record_path_visibility(0,foreground_draws,debug_buffer,{},debug_buffer,viewport,scissor);
             VkClearAttachment depth_clear{};
             depth_clear.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
             depth_clear.clearValue.depthStencil = {1,0};
@@ -6851,7 +7548,7 @@ struct Renderer::Impl {
                 blur.renderPass=patchy_pass;blur.framebuffer=bloom_framebuffers[i%2];blur.renderArea=quarter_clip;
                 blur.clearValueCount=1;blur.pClearValues=&clear_bloom;
                 {vkCmdBeginRenderPass(command,&blur,VK_SUBPASS_CONTENTS_INLINE);capture_target(blur);}
-                vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,bloom_filter_pipeline);
+                vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,postprocess_pipelines[i]);
                 vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,bloom_layout,0,1,&bloom_descriptors[i],0,nullptr);
                 vkCmdDraw(command,3,1,0,0);vkCmdEndRenderPass(command);
             }
@@ -6859,7 +7556,7 @@ struct Renderer::Impl {
             auto composite=render;composite.renderPass=fog_pass;composite.framebuffer=fog_framebuffers[index];
             composite.clearValueCount=0;composite.pClearValues=nullptr;
             {vkCmdBeginRenderPass(command,&composite,VK_SUBPASS_CONTENTS_INLINE);capture_target(composite);}
-            vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,bloom_composite_pipeline);
+            vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,postprocess_pipelines[5]);
             vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,bloom_layout,0,1,&bloom_descriptors[5],0,nullptr);
             vkCmdDraw(command,3,1,0,0);vkCmdEndRenderPass(command);
             auto resumed=render;resumed.renderPass=continuation_pass;resumed.clearValueCount=0;resumed.pClearValues=nullptr;
@@ -6874,7 +7571,7 @@ struct Renderer::Impl {
             auto filtered=render;filtered.renderPass=fog_pass;filtered.framebuffer=fog_framebuffers[index];
             filtered.clearValueCount=0;filtered.pClearValues=nullptr;
             {vkCmdBeginRenderPass(command,&filtered,VK_SUBPASS_CONTENTS_INLINE);capture_target(filtered);}
-            vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,scene_filter_pipeline);
+            vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,postprocess_pipelines[6]);
             vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,bloom_layout,0,1,&bloom_descriptors[6],0,nullptr);
             vkCmdDraw(command,3,1,0,0);vkCmdEndRenderPass(command);
             auto resumed=render;resumed.renderPass=continuation_pass;resumed.clearValueCount=0;resumed.pClearValues=nullptr;
@@ -6967,6 +7664,10 @@ struct Renderer::Impl {
             vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,ui_pipeline);
             vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
             auto draw_view = [&](std::size_t i) {
+                struct RestoreMaterialView {std::size_t& target;std::size_t previous;
+                    ~RestoreMaterialView(){target=previous;}
+                } restore_material_view{active_material_view,active_material_view};
+                active_material_view=i;
                 const auto& v=views[i];
                 const auto actual_pass=bsp_capture.pass;const auto actual_framebuffer=bsp_capture.framebuffer;
                 const bool actual_target_known=bsp_capture.target_known;
@@ -7091,7 +7792,7 @@ struct Renderer::Impl {
                         for(const auto &draw:list)if(admitted(draw)) {
                             const auto material=camouflage_variants[draw.material][4];
                             material_pipeline(material);bind_material(draw,material);bind_draw_vertices(draw,debug_buffer);
-                            vkCmdDraw(command,draw.count,1,draw.first,0);
+                            draw_material_geometry(draw);
                         }
                         vkCmdEndRenderPass(command);
                         vkCmdBeginRenderPass(command,&resumed,VK_SUBPASS_CONTENTS_INLINE);capture_target(resumed);restore();
@@ -7114,7 +7815,7 @@ struct Renderer::Impl {
                                 const auto descriptor=camouflage_scene_materials[material]?camouflage_descriptors[i][material]:geometry_descriptor(material,draw.lightmap);
                                 vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,&descriptor,1,&material_bank_offset);
                             }
-                            bind_draw_vertices(draw,debug_buffer);vkCmdDraw(command,draw.count,1,draw.first,0);
+                            bind_draw_vertices(draw,debug_buffer);draw_material_geometry(draw);
                             if(v.completed_camouflage_draw_observer)
                                 v.completed_camouflage_draw_observer(binding.owner,18,implementation,foreground,binding.primary,draw.count);
                         }
@@ -7135,7 +7836,7 @@ struct Renderer::Impl {
                                 const auto &binding=*owner_range(draw);
                                 const auto material=camouflage_variants[draw.material][3];
                                 material_pipeline(material);bind_material(draw,material);bind_draw_vertices(draw,debug_buffer);
-                                vkCmdDraw(command,draw.count,1,draw.first,0);
+                                draw_material_geometry(draw);
                                 if(v.completed_camouflage_draw_observer)
                                     v.completed_camouflage_draw_observer(binding.owner,19,0,foreground,binding.primary,draw.count);
                             }
@@ -7193,7 +7894,7 @@ struct Renderer::Impl {
                             for(auto material:source_layer15_passes[draw.material]) {
                                 material_pipeline(material,&draw);bind_material(draw,material);
                                 bind_draw_vertices(draw,debug_buffer);
-                                vkCmdDraw(command,draw.count,1,draw.first,0);
+                                draw_material_geometry(draw);
                             }
                     }
                     {set_temporal_viewport(model_view);}{vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);}
@@ -7229,6 +7930,8 @@ struct Renderer::Impl {
                     sky_raster=false;
                     vkCmdClearAttachments(command,1,&depth_clear,1,&area);
                 }
+                if(path_tracing_enabled && v.full_surface)
+                    record_path_visibility(i+1,view_draws[i],debug_buffer,{},debug_buffer,model_view,clip);
                 draw_dynamic(view_draws[i],v.atmosphere?0:-1);
 #ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
                 if(pstencil_enabled && !pstencil_frame.lightmaps(i).empty()) {
@@ -7252,7 +7955,7 @@ struct Renderer::Impl {
                     vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);
                 }
 #endif
-                draw_environment(view_draws[i]);
+                draw_environment(view_draws[i],true);
 #if HALO2_SOURCE_DECALS_AVAILABLE
                 if(decal_renderer) {
                     const auto [first,count]=decal_ranges[i];
@@ -7282,7 +7985,7 @@ struct Renderer::Impl {
                     capture_unknown();
                     shadow_render->record(command,{framebuffers[index],temporal_viewport(model_view),clip},submissions,observer);
                 };
-                if(!shadow_views[i].empty()) {
+                if(!path_tracing_enabled && !shadow_views[i].empty()) {
                     // Original335E0 follows world/environment layer8/20 and
                     // precedes fog, late transparency and first person.
                     std::vector<SourceShadowSubmission> submissions;
@@ -7311,7 +8014,7 @@ struct Renderer::Impl {
                     {set_temporal_viewport(model_view);}{vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);}
                 }
 #ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
-                if(!raw_shadow_views[i].empty()) {
+                if(!path_tracing_enabled && !raw_shadow_views[i].empty()) {
                     std::vector<SourceShadowRawSubmission> submissions;
                     std::vector<std::array<std::vector<SourceShadowRawCallback>,2>> roots(raw_shadow_views[i].size());
                     submissions.reserve(roots.size());
@@ -7347,7 +8050,7 @@ struct Renderer::Impl {
                 // Original2BCD0 runs31C80 after335E0, retaining the same world
                 // depth. Explicit submissions already contain source-cull and
                 // shader selections; preserve their complete light/pass order.
-                for(const auto &draw:light_views[i]) {
+                if(!path_tracing_enabled)for(const auto &draw:light_views[i]) {
                     material_pipeline(draw.material);
                     vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
                     const auto descriptor=light_descriptors[draw.binding];
@@ -7358,7 +8061,7 @@ struct Renderer::Impl {
                 }
 #ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
                 const VkViewport raw_light_viewport{0,0,float(extent.width),float(extent.height),0,1};
-                if(!raw_light_views[i].empty()){set_temporal_viewport(raw_light_viewport);}
+                if(!path_tracing_enabled && !raw_light_views[i].empty()){set_temporal_viewport(raw_light_viewport);}
                 if(pstencil_enabled && !pstencil_frame.lights(i).empty()) {
                     capture_unknown();pstencil_render->begin(command,index);
                     const auto draw_response=[&](std::size_t receiver) {
@@ -7408,10 +8111,10 @@ struct Renderer::Impl {
                         });
                     }
                     pstencil_render->end(command,framebuffers[index]);
-                } else {
+                } else if(!path_tracing_enabled) {
                     for(const auto draw:raw_light_views[i]){capture_binding_only();record_native_world(*effect_light_native,command,draw);}
                 }
-                if(!raw_light_views[i].empty()) {
+                if(!path_tracing_enabled && !raw_light_views[i].empty()) {
                     {set_temporal_viewport(model_view);}
                     {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);capture_push(&model_uniform,sizeof(model_uniform));}
                     vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
@@ -7420,7 +8123,16 @@ struct Renderer::Impl {
 #if HALO2_SOURCE_DECALS_AVAILABLE
                 if(decal_renderer) {
                     const auto [first,count]=decal_ranges[i];
-                    capture_in_pass();decal_renderer->record(command,model_view,clip,first,count,0x3eu);
+                    capture_in_pass();decal_renderer->record(command,model_view,clip,first,count,2u);
+                    {set_temporal_viewport(model_view);}{vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);}
+                    {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);capture_push(&model_uniform,sizeof(model_uniform));}
+                }
+#endif
+                draw_texture_mapping_overlays(view_draws[i],debug_buffer,true);
+#if HALO2_SOURCE_DECALS_AVAILABLE
+                if(decal_renderer) {
+                    const auto [first,count]=decal_ranges[i];
+                    capture_in_pass();decal_renderer->record(command,model_view,clip,first,count,0x3cu);
                     {set_temporal_viewport(model_view);}{vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);}
                     {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);capture_push(&model_uniform,sizeof(model_uniform));}
                 }
@@ -7438,7 +8150,7 @@ struct Renderer::Impl {
                 }
                 draw_decals(view_draws[i]);
                 if(v.atmosphere) {
-                    if(view_fog_enabled[i])composite_view_fog(view_fog_descriptors[i]);
+                    if(view_fog_enabled[i])composite_view_fog(view_fog_descriptors[i],view_fog_native_pipelines[i]);
                     {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);capture_push(&model_uniform,sizeof(model_uniform));}
                     vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
                     for(const auto &draw:view_draws[i]) {
@@ -7469,9 +8181,19 @@ struct Renderer::Impl {
                     reflection.renderArea=target_clip;reflection.clearValueCount=2;reflection.pClearValues=water_clear.data();
                     {vkCmdBeginRenderPass(command,&reflection,VK_SUBPASS_CONTENTS_INLINE);capture_target(reflection);}
                     const auto &c=v.water_reflection_camera;
+                    glm::mat4 reflected_matrix;
+                    if(v.water_reflection_source_rendering) {
+                        if(!v.source_view_shader_constants || !v.projection_clip_planes)
+                            throw FormatError("Native water reflection lost its exact source bank/W-distance owner");
+                        const auto expected=source_view_shader_constants(*v.water_reflection_source_rendering,
+                            v.projection_clip_planes->y,false);
+                        if(std::memcmp(expected.data(),v.source_view_shader_constants->reflection.data(),sizeof(expected)))
+                            throw FormatError("Water reflection c0..6 differ from the actual completed3BCF0/12F80 bank");
+                        reflected_matrix=source_water_reflection_clip(expected);
+                    } else reflected_matrix=view_projection(c,{unsigned(model_view.width),unsigned(model_view.height)},true);
                     // 3BD00 changes the raster rectangle, retaining the
                     // player's projection coefficients and aspect ratio.
-                    const CameraUniform reflected{view_projection(c,{unsigned(model_view.width),unsigned(model_view.height)},true),
+                    const CameraUniform reflected{reflected_matrix,
                         glm::vec4(c.forward.x,c.forward.y,c.forward.z,0),glm::vec4(c.position.x,c.position.y,c.position.z,3),
                         glm::vec4(0,0,512,256)};
                     {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(reflected),&reflected);capture_push(&reflected,sizeof(reflected));}
@@ -7527,7 +8249,7 @@ struct Renderer::Impl {
                     material_pipeline(draw.material,&draw);
                     vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,&draw.descriptor,1,&material_bank_offset);
                     bind_draw_vertices(draw,debug_buffer);
-                    vkCmdDraw(command,draw.count,1,draw.first,0);
+                    draw_material_geometry(draw);
                 }
                 // 2BCE0 -> 3C3C0 -> 2C340: independent water precedes the
                 // authored transparent queue (highest-LOD layer 15).
@@ -7617,11 +8339,15 @@ struct Renderer::Impl {
                         {vkCmdBeginRenderPass(command,&resumed,VK_SUBPASS_CONTENTS_INLINE);capture_target(resumed);}
                     }
                     if(!v.atmosphere)vkCmdClearAttachments(command,1,&depth_clear,1,&area);
+                    if(path_tracing_enabled && v.full_surface)
+                        record_path_visibility(i+1,view_foreground[i],debug_buffer,{},debug_buffer,model_view,clip);
                     draw_camouflage(view_foreground[i],true);
                     draw_dynamic(view_foreground[i]);draw_environment(view_foreground[i]);
                     draw_overlays(view_foreground[i],false,debug_buffer,true);
                     first_person_draw=false;
                 }
+                if(path_tracing_enabled && v.full_surface)
+                    path_tracing_state->renderers[i+1]->disable_visibility();
 #ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
                 if(!v.foreground_transparent && particle_range.foreground_count)
                     {capture_unknown();record_particles({0,0,float(extent.width),float(extent.height),0,1},clip,
@@ -7639,7 +8365,7 @@ struct Renderer::Impl {
                         material_pipeline(material,&draw);
                         bind_material(draw,material);
                         bind_draw_vertices(draw,debug_buffer);
-                        vkCmdDraw(command,draw.count,1,draw.first,0);
+                        draw_material_geometry(draw);
                     }
                     bsp_postprocess->record_bloom(i,post_target);
                 }
@@ -7694,7 +8420,7 @@ struct Renderer::Impl {
                     auto filtered=render;filtered.renderPass=fog_pass;filtered.framebuffer=fog_framebuffers[index];
                     filtered.clearValueCount=0;filtered.pClearValues=nullptr;
                     {vkCmdBeginRenderPass(command,&filtered,VK_SUBPASS_CONTENTS_INLINE);capture_target(filtered);}
-                    vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,scene_filter_pipeline);
+                    vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,postprocess_pipelines[7+channel*4+i]);
                     vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,bloom_layout,0,1,&bloom_descriptors[7+channel*4+i],0,nullptr);
                     vkCmdDraw(command,3,1,0,0);vkCmdEndRenderPass(command);
                     auto resumed=render;resumed.renderPass=continuation_pass;resumed.clearValueCount=0;resumed.pClearValues=nullptr;
@@ -7771,7 +8497,38 @@ struct Renderer::Impl {
                 while(next_backdrop<backdrops.size() && first==backdrops[next_backdrop].before_vertex)
                     draw_backdrop(next_backdrop++);
                 while(next_view<views.size() && views[next_view].before_ui_vertex==first) {
-                    if(!native_ui_recorded)draw_view(next_view);
+                    if(!native_ui_recorded) {
+                        draw_view(next_view);
+                        if(camera_scene && next_view==0 && texture_camera->source->copy_target()) {
+                            const auto target=*texture_camera->source->copy_target();const auto slot=target==18?0u:1u;
+                            if(!texture_camera_copies[slot] || texture_camera->source->targets().selected()!=target)
+                                throw FormatError("Texture camera copy lost its actual selected native allocation");
+                            vkCmdEndRenderPass(command);
+                            if(!weather_submission.fence_reset) {
+                                check(vkResetFences(device,1,&fence),"reset texture-camera frame fence");weather_submission.fence_reset=true;
+                            }
+                            const auto image=texture_camera_copies[slot]->record({device,command,images[index],format,extent,
+                                VK_IMAGE_USAGE_TRANSFER_SRC_BIT,scene_layout,VK_SAMPLE_COUNT_1_BIT,1,1,queue_family,fence,true,true});
+                            if(!texture_camera_pending[slot])texture_camera_before_produced[slot]=texture_camera_produced[slot];
+                            texture_camera_pending[slot]=texture_camera_produced[slot]=true;
+                            if(capture_bsp_draw_bindings) {
+                                RendererObservedImageBinding facts;facts.image=observed_handle(image.image);facts.view=observed_handle(image.view);
+                                facts.width=image.extent.width;facts.height=image.extent.height;facts.layers=facts.mip_count=1;
+                                facts.format=image.format;facts.image_owner_known=true;observed_image_views[facts.view]=facts;
+                                // Enrich actual earlier descriptor-write records with newly
+                                // observed owner facts; this is not an invented write event.
+                                for(auto &[handle,descriptor]:observed_descriptors)for(auto &table:descriptor.images)for(auto &bound:table)
+                                    if(bound.view==facts.view) {
+                                        const auto sampler=bound.sampler;const auto layout=bound.layout;const auto present=bound.present;
+                                        bound=facts;bound.sampler=sampler;bound.layout=layout;bound.present=present;
+                                    }
+                            }
+                            if(texture_camera->copied)texture_camera->copied(target,
+                                observed_handle(image.image),observed_handle(image.view));
+                            auto resumed=render;resumed.renderPass=continuation_pass;resumed.clearValueCount=0;resumed.pClearValues=nullptr;
+                            vkCmdBeginRenderPass(command,&resumed,VK_SUBPASS_CONTENTS_INLINE);capture_target(resumed);
+                        }
+                    }
                     ++next_view;
                 }
                 flush_flashes(first);
@@ -7838,7 +8595,8 @@ struct Renderer::Impl {
                     }
                     first=end;continue;
                 }
-                vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,hud_blend?hud_pipelines.at(hud_blend):
+                vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,hud_blend?hud_pipelines.at(
+                    native_fragment_kernel_path("hud",material_uniforms.at(material).program)).at(hud_blend):
                     next_backdrop<backdrops.size()?ui_backdrop_pipeline:ui_pipeline);
                 vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,&textures[material].descriptor,1,&material_bank_offset);
                 vkCmdDraw(command,static_cast<std::uint32_t>(end-first),1,ui_first+static_cast<std::uint32_t>(first),0);
@@ -7965,6 +8723,8 @@ struct Renderer::Impl {
             host.buffer = capture;
             host.size = VK_WHOLE_SIZE;
             vkCmdPipelineBarrier(command, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT, 0, 0, nullptr, 1, &host, 0, nullptr);
+            if(path_tracing_capture)for(const auto& renderer:path_tracing_state->renderers)
+                if(renderer)renderer->record_temporal_stats(command);
         }
         if((!capture || capture_internal_color) && presentation_layout!=VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
             VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
@@ -7991,6 +8751,7 @@ struct Renderer::Impl {
         submit.signalSemaphoreCount = 1;
         submit.pSignalSemaphores = &present_ready[presentation_index];
         check(vkQueueSubmit(queue, 1, &submit, fence), "submit frame");
+        ++texture_camera_submit_serial;
         last_submitted_color=index;if(source_double_buffer){source_color_written[index]=true;++source_frames_submitted;}
         weather_submission.submitted=true;
         if(lens_queries)lens_queries->submitted();
@@ -8020,6 +8781,21 @@ struct Renderer::Impl {
                     throw FormatError("ordinary GPU skin differs from complete original CPU vertex bytes at destination "+std::to_string(destination));
             frame_timing.model_skin_gpu_verified_vertices=verified_skin_vertices.size();
         }
+        if(frame_timing.model_skin_gpu_jobs && std::any_of(views.begin(),views.end(),
+            [](const auto &view){return bool(view.model_skin_gpu_owner_observer);})) {
+            // The source mapping counts exactly the records appended to the
+            // compute plan, including repeated material/view copies. A CPU
+            // fallback never reaches this actual-GPU submission witness.
+            const bool verified=!skin_plan.records().empty() &&
+                frame_timing.model_skin_gpu_verified_vertices==skin_plan.records().size();
+            skin_plan.observe_mapped_owners([&](unsigned index,const ModelSkinGeometry &geometry,
+                std::size_t vertices,std::size_t weighted) {
+                if(index>=views.size())throw FormatError("GPU skin owner escaped its submitting view");
+                const auto &observe=views[index].model_skin_gpu_owner_observer;
+                if(observe)observe({geometry.owner,geometry.definition,geometry.render_model,geometry.lod,
+                    vertices,weighted,verified?vertices:0,geometry.post_identity_placement});
+            });
+        }
         if (capture) {
             check(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX), "wait screenshot");
             void* mapped;
@@ -8039,6 +8815,7 @@ struct Renderer::Impl {
                 rgb[i*3+2]=char(pixels[i*4+(bgra?0:2)]);
             }
             file.write(rgb.data(),std::streamsize(rgb.size()));
+            file.flush();
             if (!file) throw std::runtime_error("failed writing screenshot");
             std::cout << (capture_internal_color?"Captured internal RGB ":"Captured ") << screenshot.string()
                 << " (" << capture_extent.width << 'x' << capture_extent.height << ')';
@@ -8060,6 +8837,56 @@ struct Renderer::Impl {
                 write(".depth-d24-low24.bin",bytes,depth_capture_size);
                 write(".stencil-u8.bin",bytes+depth_capture_size,stencil_capture_size);
                 std::cout<<"Captured D24S8 depth/stencil aspects ("<<extent.width<<'x'<<extent.height<<")\n";
+            }
+            if(path_tracing_capture) {
+                // This receipt follows successful submission, the actual frame
+                // fence, readback and image write. Selecting a mode alone does
+                // not increment its submitted RT geometry counters.
+                std::uint64_t count{},draws{},vertices{},triangles{},lights{},emitters{},gpu_bytes{};
+                Vec3 source_environment{};
+                std::ostringstream per_view;
+                for(std::size_t slot=0;slot<path_tracing_capture->size();++slot) {
+                    const auto& rt=path_tracing_state->renderers[slot];
+                    const auto& scene=path_tracing_state->scenes[slot];
+                    if(!rt || !scene)continue;
+                    const auto environment=slot && slot<=views.size()?views[slot-1].path_tracing_environment:Vec3{};
+                    source_environment.x=std::max(source_environment.x,environment.x);
+                    source_environment.y=std::max(source_environment.y,environment.y);
+                    source_environment.z=std::max(source_environment.z,environment.z);
+                    const auto& captured=(*path_tracing_capture)[slot];
+                    const auto history=rt->temporal_stats();
+                    if(count++)per_view<<',';
+                    per_view<<"{\"slot\":"<<slot<<",\"opaque_draws\":"<<captured.draws
+                        <<",\"vertices\":"<<captured.vertices<<",\"triangles\":"<<scene->triangles.size()
+                        <<",\"lights\":"<<scene->lights.size()<<",\"emissive_triangles\":"<<scene->emissive_count
+                        <<",\"sky_capture_draws\":"<<captured.sky_draws<<",\"sky_capture_vertices\":"<<captured.sky_vertices
+                        <<",\"environment_side\":64,\"environment_faces\":6"
+                        <<",\"frame_serial\":"<<history.frame_serial
+                        <<",\"history_world_cells\":"<<history.banks[0].sampled_cells
+                        <<",\"history_world_valid\":"<<history.banks[0].sampled_valid_count
+                        <<",\"history_world_max\":"<<history.banks[0].maximum_count
+                        <<",\"history_world_mean\":"<<history.banks[0].mean_count
+                        <<",\"history_foreground_cells\":"<<history.banks[1].sampled_cells
+                        <<",\"history_foreground_valid\":"<<history.banks[1].sampled_valid_count
+                        <<",\"history_foreground_max\":"<<history.banks[1].maximum_count
+                        <<",\"history_foreground_mean\":"<<history.banks[1].mean_count
+                        <<",\"source_environment\":["<<environment.x<<','<<environment.y<<','<<environment.z<<"]}";
+                    draws+=captured.draws;vertices+=captured.vertices;triangles+=scene->triangles.size();
+                    lights+=scene->lights.size();emitters+=scene->emissive_count;gpu_bytes+=rt->allocated_bytes();
+                    if(const auto& aliases=path_tracing_state->sky_storage[slot])gpu_bytes+=aliases->allocated_bytes();
+                }
+                std::ostringstream receipt;
+                receipt<<"Path Tracing frame: {\"completed\":true,\"views\":"<<count
+                    <<",\"opaque_draws\":"<<draws<<",\"vertices\":"<<vertices
+                    <<",\"triangles\":"<<triangles<<",\"lights\":"<<lights
+                    <<",\"emissive_triangles\":"<<emitters<<",\"gpu_bytes\":"<<gpu_bytes
+                    <<",\"source_environment\":["<<source_environment.x<<','<<source_environment.y<<','<<source_environment.z<<']'
+                    <<",\"samples_per_pixel\":"<<display.path_tracing_samples
+                    <<",\"max_bounces\":"<<display.path_tracing_bounces
+                    <<",\"max_ray_queries_per_fragment\":"<<display.path_tracing_samples*(1+2*display.path_tracing_bounces)
+                    <<",\"width\":"<<capture_extent.width<<",\"height\":"<<capture_extent.height
+                    <<",\"view_counts\":["<<per_view.str()<<"]}";
+                std::cout<<receipt.str()<<'\n';
             }
         }
         measure(frame_timing.screenshot_ms);
@@ -8188,7 +9015,7 @@ Renderer::Renderer(SDL_Window* window, const Mesh& mesh, bool validation,
 bool Renderer::can_skin_models() const noexcept {
     return bool(impl_->model_skin_gpu) && !impl_->temporal_upscaler &&
         impl_->shared_display->upscaler==Upscaler::Off &&
-        impl_->shared_display->graphics_mode!=pstencil::GraphicsMode::pStencil &&
+        impl_->shared_display->graphics_mode==pstencil::GraphicsMode::Original &&
         !std::getenv("HALO2_GROUP_INPUT_DIAGNOSTICS") && !std::getenv("HALO2_VIEW_DIAGNOSTICS");
 }
 Renderer::~Renderer() {
@@ -8198,25 +9025,170 @@ bool Renderer::draw_loading(unsigned base,std::span<const Material> materials,
     std::span<const Vertex> vertices,const std::filesystem::path& screenshot) {
     return impl_->draw_loading(base,materials,vertices,screenshot);
 }
+bool Renderer::draw_source_loading_wait(unsigned base,std::span<const Vertex> vertices,
+    const std::filesystem::path& screenshot) {
+    return impl_->draw_loading(base,{},vertices,screenshot,true);
+}
+bool Renderer::draw_network_transition(unsigned base,unsigned materials,std::span<const Vertex> vertices,
+    const std::filesystem::path& screenshot) {
+    if(!materials)throw FormatError("Network transition submission has no resident bank");
+    return impl_->draw_loading(base,{},vertices,screenshot,true,materials);
+}
 void Renderer::prepare_loading(){impl_->prepare_loading();}
 void Renderer::release_presentation(){
     device_lease_.retire();
     check(vkDeviceWaitIdle(impl_->device),"retire presentation before renderer handoff");
     impl_->destroy_swapchain();impl_->dirty=true;
 }
-bool Renderer::draw(const Camera& camera, const std::filesystem::path& screenshot, std::span<const Vertex> debug, bool reticle, std::span<const Vertex> first_person, ScreenEffects effects, std::span<const Vertex> ui, std::span<const ModelView> views, std::span<const Vertex> background, std::span<const UiBackdrop> backdrops, const BspFogSample *mainmenu_fog, const MainmenuWorldDraw *mainmenu_world, bool ui_full_surface_bounds, const RendererHostPreparationTiming *host_preparation) {
+bool Renderer::draw(const Camera& camera, const std::filesystem::path& screenshot, std::span<const Vertex> debug, bool reticle, std::span<const Vertex> first_person, ScreenEffects effects, std::span<const Vertex> ui, std::span<const ModelView> views, std::span<const Vertex> background, std::span<const UiBackdrop> backdrops, const BspFogSample *mainmenu_fog, const MainmenuWorldDraw *mainmenu_world, bool ui_full_surface_bounds, const RendererHostPreparationTiming *host_preparation,
+                    const std::function<void()> *overlap) {
     impl_->touch_lens_queries();
     if(impl_->source_coordinate_registers!=renderer_passthrough_registers)
         throw FormatError("Native texture coordinates differ from the retained programmable shader contract");
-    return impl_->draw(camera, screenshot, debug, reticle, first_person, effects, ui, views, background, backdrops, mainmenu_fog, mainmenu_world, ui_full_surface_bounds, host_preparation);
+    const auto run=[&]{return impl_->draw(camera, screenshot, debug, reticle, first_person, effects, ui, views, background, backdrops, mainmenu_fog, mainmenu_world, ui_full_surface_bounds, host_preparation);};
+    if(!overlap || !*overlap)return run();
+    bool submitted=false;
+    native_overlap_run([&]{submitted=run();},*overlap);
+    return submitted;
+}
+void Renderer::renew_texture_camera_frame(SourceTextureCameraFrameTu15 &frame) {
+    if(frame.submission_->load()!=0u || !frame.completed_ || !frame.prefix_ || frame.targets_.owner_.lock().get()!=impl_.get() ||
+       frame.targets_.serial_!=impl_->texture_camera_submit_serial)
+        throw FormatError("Texture camera renewal requires its same unsubmitted renderer/frame");
+    const auto unchanged=[&] {
+        for(unsigned i=0;i<2;++i)if(frame.targets_.copies_[i]!=impl_->texture_camera_copies[i].get() ||
+            frame.targets_.views_[i]!=Impl::observed_handle(impl_->texture_camera_bindings[i].view))
+            throw FormatError("Texture camera renewal cannot replace its captured actual18/20 images");
+    };
+    unchanged();const auto &completed=*frame.prefix_;
+    auto contexts=impl_->texture_camera_copy_contexts;
+    for(auto &copy:contexts)if(copy) {
+        copy->camera_rectangle=completed.copy_rectangle;
+        copy->near_plane=std::bit_cast<float>(completed.copy_depth_bits[0]);
+        copy->far_plane=std::bit_cast<float>(completed.copy_depth_bits[1]);
+    }
+    if(!contexts[0])throw FormatError("Texture camera renewal lost its exact1DE30 target18 context");
+    // Existing native scene coordinate space, supplied by its owning prepare.
+    auto renewed=prepare_texture_camera_targets(frame.before_,*contexts[0],impl_->texture_camera_coordinate_extent,contexts[1]);
+    unchanged();frame.targets_=std::move(renewed);
+}
+bool Renderer::draw_texture_camera(const Camera &camera,const RendererTextureCameraSubmissionTu15 &texture_camera,
+    std::span<const ModelView> views,const std::filesystem::path &screenshot,bool reticle,
+    ScreenEffects effects,std::span<const Vertex> ui,std::span<const UiBackdrop> backdrops,
+    const std::function<void()> *overlap) {
+    if(!texture_camera.source)throw FormatError("Texture camera submission lost its source work receipt");
+    unsigned expected=0;
+    if(!texture_camera.source->submission_->compare_exchange_strong(expected,1u))
+        throw FormatError("Texture camera source work was already submitted or is being recorded");
+    struct Submission {
+        std::atomic<unsigned> &state;bool submitted{};
+        ~Submission(){state.store(submitted?2u:0u);}
+    } receipt{*texture_camera.source->submission_};
+    impl_->touch_lens_queries();
+    if(impl_->source_coordinate_registers!=renderer_passthrough_registers)
+        throw FormatError("Native texture coordinates differ from the retained programmable shader contract");
+    const auto run=[&]{return impl_->draw(camera,screenshot,{},reticle,{},effects,ui,views,{},backdrops,
+        nullptr,nullptr,false,nullptr,&texture_camera);};
+    if(!overlap || !*overlap){receipt.submitted=run();return receipt.submitted;}
+    native_overlap_run([&]{receipt.submitted=run();},*overlap);return receipt.submitted;
+}
+SourceTextureCameraNativeTargetsTu15 Renderer::prepare_texture_camera_targets(
+    const SourceTextureCameraInputsTu15 &input,const SourceSceneCopyContext &copy18,
+    std::array<std::int32_t,2> coordinates,const std::optional<SourceSceneCopyContext> &copy20) {
+    const auto device=device_lease().acquire();
+    if(std::this_thread::get_id()!=impl_->renderer_executor)
+        throw FormatError("Texture camera preparation requires its actual renderer owner thread");
+    if(!impl_->frame_has_game_world){impl_->frame_has_game_world=true;impl_->dirty=true;}
+    const auto display=*impl_->shared_display;
+    if(display.internal_width!=impl_->active_internal_width || display.internal_height!=impl_->active_internal_height ||
+       display.upscaler!=impl_->active_upscaler || display.upscaling_quality!=impl_->active_upscaling_quality ||
+       display.detail!=impl_->active_detail)impl_->dirty=true;
+    if((impl_->dirty || !impl_->swapchain) && !impl_->create_swapchain())
+        throw FormatError("Texture camera current native targets could not be realized");
+    if(copy18.destination_width!=640 || copy18.destination_height!=480)
+        throw FormatError("Texture camera18 allocation differs from exact original1DE30/640x480");
+    if(impl_->scene_layout!=VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL || (impl_->scene_targets.empty() && !impl_->can_capture))
+        throw FormatError("Texture camera requires an actual readable native scene attachment");
+    check(vkWaitForFences(impl_->device,1,&impl_->fence,VK_TRUE,UINT64_MAX),"wait texture-camera resources");
+    impl_->retire_weather_aliases();
+    const bool needed=(input.cinematic_auxiliary && input.cinematic) ||
+        (input.camera_words[0] && input.camera_words[0]!=0xffffffffu);
+    const std::array<bool,2> allocate{needed,copy20.has_value()};
+    for(unsigned slot=0;slot<2;++slot) {
+        if(!allocate[slot]) {
+            impl_->texture_camera_copies[slot].reset();impl_->texture_camera_bindings[slot]={};
+            impl_->texture_camera_copy_contexts[slot].reset();
+            impl_->texture_camera_produced[slot]=false;continue;
+        }
+        auto &copy=impl_->texture_camera_copies[slot];
+        if(copy && impl_->texture_camera_bindings[slot].format!=impl_->format) {
+            copy.reset();impl_->texture_camera_produced[slot]=false;
+        }
+        if(!copy)copy=std::make_unique<SourceSceneCopyGpu>(SourceSceneCopyGpuContext{
+            impl_->physical,impl_->device,impl_->queue_family,impl_->format,impl_->shader_directory});
+        const auto context=slot?*copy20:copy18;
+        const auto binding=copy->prepare({context,coordinates,impl_->extent});
+        impl_->texture_camera_copy_contexts[slot]=context;
+        if(binding.view!=impl_->texture_camera_bindings[slot].view)impl_->texture_camera_produced[slot]=false;
+        impl_->texture_camera_bindings[slot]=binding;
+        for(unsigned m=0;m<impl_->texture_camera_materials.size();++m)if(impl_->texture_camera_materials[m]) {
+            const VkDescriptorImageInfo image{impl_->stage_samplers[m][0],binding.view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+            VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};write.dstSet=impl_->texture_camera_descriptors[slot][m];
+            write.dstBinding=0;write.descriptorCount=1;write.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;write.pImageInfo=&image;
+            vkUpdateDescriptorSets(impl_->device,1,&write,0,nullptr);impl_->observe_descriptor_writes(&write,1);
+        }
+    }
+    impl_->texture_camera_coordinate_extent=coordinates;
+    const auto epoch=++impl_->texture_camera_epoch;const auto generation=impl_->target_generation;
+    std::weak_ptr<Impl> weak=impl_;const auto lease=device_lease();
+    const std::array<std::uint64_t,2> views{Impl::observed_handle(impl_->texture_camera_bindings[0].view),
+        Impl::observed_handle(impl_->texture_camera_bindings[1].view)};
+    const std::array<const void *,2> copies{impl_->texture_camera_copies[0].get(),impl_->texture_camera_copies[1].get()};
+    return SourceTextureCameraNativeTargetsTu15(input,allocate[0],allocate[1],impl_,views,copies,
+        impl_->texture_camera_submit_serial,[weak,lease,epoch,generation] {
+        const auto use=lease.acquire();const auto owner=weak.lock();
+        if(!owner || owner->dirty || owner->texture_camera_epoch!=epoch || owner->target_generation!=generation)
+            throw FormatError("Texture camera native target capability is stale or retired");
+    });
 }
 void Renderer::resized() { impl_->touch_lens_queries();impl_->dirty = true; }
 void Renderer::upscale_world(bool enabled) {
     if(impl_->world_upscaling_enabled!=enabled){impl_->world_upscaling_enabled=enabled;impl_->dirty=true;}
 }
 const DisplaySettings& Renderer::display_settings() const { return *impl_->shared_display; }
-void Renderer::display_settings(DisplaySettings value) { *impl_->shared_display=value; }
-void Renderer::share_display_settings(DisplaySettings& value) { impl_->shared_display=&value; }
+void Renderer::display_settings(DisplaySettings value) {
+    if(value.graphics_mode!=pstencil::GraphicsMode::PathTracing)impl_->release_path_tracing();
+    *impl_->shared_display=value;
+}
+void Renderer::path_tracing_source(const Mesh& source) {
+    if(impl_->path_tracing_source_mesh!=&source)impl_->release_path_tracing();
+    impl_->path_tracing_source_mesh=&source;
+}
+RendererPathTracingResources Renderer::path_tracing_resources()const {
+    RendererPathTracingResources usage;
+    if(!impl_->path_tracing_state)return usage;
+    usage.cpu_bytes=sizeof(Impl::PathTracingState);
+    for(const auto& renderer:impl_->path_tracing_state->renderers)if(renderer) {
+        ++usage.views;usage.gpu_bytes+=renderer->allocated_bytes();
+    }
+    for(const auto& storage:impl_->path_tracing_state->sky_storage)if(storage) {
+        usage.gpu_bytes+=storage->allocated_bytes();usage.cpu_bytes+=storage->cpu_bytes();
+    }
+    for(const auto& scene:impl_->path_tracing_state->scenes)if(scene) {
+        usage.cpu_bytes+=scene->nodes.capacity()*sizeof(path_tracing::GpuNode)+
+            scene->triangles.capacity()*sizeof(path_tracing::GpuTriangle)+
+            scene->materials.capacity()*sizeof(path_tracing::GpuMaterial)+
+            scene->lights.capacity()*sizeof(path_tracing::GpuLight)+
+            scene->pixels.capacity()*sizeof(std::uint32_t)+
+            scene->material_image_keys.capacity()*sizeof(scene->material_image_keys[0])+
+            scene->material_texel_capacities.capacity()*sizeof(std::uint32_t);
+    }
+    return usage;
+}
+void Renderer::share_display_settings(DisplaySettings& value) {
+    if(value.graphics_mode!=pstencil::GraphicsMode::PathTracing)impl_->release_path_tracing();
+    impl_->shared_display=&value;
+}
 void Renderer::measure_frames(bool enabled) { impl_->measure_frames=enabled || impl_->timing_report.is_open(); }
 bool Renderer::writes_frame_timings() const noexcept { return impl_->timing_report.is_open(); }
 RendererFrameTiming Renderer::frame_timing() const { return impl_->frame_timing; }

@@ -175,7 +175,7 @@ int main(int argc,char **argv) {
       host=std::make_unique<LanHost>(match,0,0x15e470u);
       auto profile=source_default_player_configuration();profile[0x44]=representation;
       const std::array<SourcePlayerConfiguration,1> profiles{profile};
-      client=std::make_unique<LanClient>("127.0.0.1:"+std::to_string(host->port()),0x15e470u,1,
+      client=std::make_unique<LanClient>(host->join_address(),0x15e470u,1,
           std::span<const std::int8_t>{},profiles);
       const std::array<Controls,1> input{};
       for(unsigned i=0;i<30 && !client->ready();++i){client->send(input);host->receive(commands);host->broadcast();client->receive();}

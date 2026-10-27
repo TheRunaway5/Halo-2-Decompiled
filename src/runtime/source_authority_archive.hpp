@@ -124,6 +124,9 @@ public:
     explicit Writer(SourceAuthorityCodecLimits l):limits(l){}
     void raw(std::span<const std::byte> value){
         if(value.size()>limits.decoded_bytes-bytes.size())throw FormatError("Authority archive exceeds decoded byte budget");
+        const auto size=bytes.size()+value.size();
+        if(size>bytes.capacity())bytes.reserve(std::size_t(std::min<std::uint64_t>(limits.decoded_bytes,
+            std::max<std::uint64_t>(size,std::uint64_t(bytes.capacity())*2))));
         bytes.insert(bytes.end(),value.begin(),value.end());
     }
     void put(std::uint64_t value,unsigned n){std::array<std::byte,8> b{};for(unsigned i=0;i<n;++i)b[i]=std::byte(value>>(8*i));raw(std::span(b).first(n));}
@@ -166,7 +169,7 @@ inline std::array<std::byte,32> digest(std::span<const std::byte> bytes){std::ar
     if(!SHA256(reinterpret_cast<const unsigned char *>(bytes.data()),bytes.size(),reinterpret_cast<unsigned char *>(result.data())))
         throw FormatError("Cannot checksum authority archive");return result;}
 inline void source_only(const SourceMatchAuthority::Checkpoint &v){
-    if(v.version!=2||v.match.version!=2||v.world.world.version!=3||!v.match.source_backed||!v.match.simulation.source_backed||v.match.owned_players||v.match.simulation.owned_lifetimes)
+    if(v.version!=2||v.match.version!=3||v.world.world.version!=3||!v.match.source_backed||!v.match.simulation.source_backed||v.match.owned_players||v.match.simulation.owned_lifetimes)
         throw FormatError("Authority archive requires the complete coupled TU1.5 source checkpoint");
 }
 }

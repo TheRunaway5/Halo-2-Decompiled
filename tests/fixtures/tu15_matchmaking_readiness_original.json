@@ -1,0 +1,125 @@
+{
+  "original_xbe_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "tool_sha256": "683136ba28670fb4150d7cc3167cd43fa69e4183cb55e123a1c3878088a9625b",
+  "scope": "Original TU1.5 start-match host eligibility and deferral controls.\n\nRequires tools/run_test.py ownership. Complete original readiness, connected\nteam counting, local host-policy test and cached logon-task lookup execute on\nsynthetic data. No instruction/callee stubs or native implementation imports.\nThe initial host-leave transaction, policy download/validation and\nmode-change publication remain outside these controls.\n",
+  "readiness_controls": [
+    {
+      "name": "two_connected_teams",
+      "inputs": {},
+      "ready": true,
+      "defer": false
+    },
+    {
+      "name": "one_connected_team",
+      "inputs": {
+        "teams": [
+          0,
+          0
+        ]
+      },
+      "ready": false,
+      "defer": true
+    },
+    {
+      "name": "no_valid_second_team",
+      "inputs": {
+        "teams": [
+          0,
+          -1
+        ]
+      },
+      "ready": false,
+      "defer": true
+    },
+    {
+      "name": "second_team_peer_incomplete",
+      "inputs": {
+        "second_connected": false
+      },
+      "ready": false,
+      "defer": true
+    },
+    {
+      "name": "solo_hopper_does_not_require_teams",
+      "inputs": {
+        "teams": [
+          0,
+          0
+        ],
+        "team_required": 0
+      },
+      "ready": true,
+      "defer": false
+    },
+    {
+      "name": "team_check_disabled_by_configuration",
+      "inputs": {
+        "teams": [
+          0,
+          0
+        ],
+        "debug_policy": 1
+      },
+      "ready": true,
+      "defer": false
+    },
+    {
+      "name": "local_host_policy_bit31",
+      "inputs": {
+        "local_flag": 2147483648
+      },
+      "ready": false,
+      "defer": true
+    },
+    {
+      "name": "local_policy_requires_successful_logon",
+      "inputs": {
+        "local_flag": 2147483648,
+        "logon": 0
+      },
+      "ready": true,
+      "defer": false
+    },
+    {
+      "name": "local_policy_check_argument_off",
+      "inputs": {
+        "local_flag": 2147483648,
+        "local_check": 0
+      },
+      "ready": true,
+      "defer": false
+    },
+    {
+      "name": "local_check_disabled_by_configuration",
+      "inputs": {
+        "local_flag": 2147483648,
+        "debug_policy": 256
+      },
+      "ready": true,
+      "defer": false
+    },
+    {
+      "name": "offline_ignores_online_eligibility_checks",
+      "inputs": {
+        "teams": [
+          0,
+          0
+        ],
+        "local_flag": 2147483648,
+        "online": 0
+      },
+      "ready": true,
+      "defer": false
+    },
+    {
+      "name": "current_peer_exception",
+      "inputs": {
+        "current_peer": 1,
+        "second_connected": false
+      },
+      "ready": true,
+      "defer": false
+    }
+  ],
+  "executed_distinct_instructions": 498
+}

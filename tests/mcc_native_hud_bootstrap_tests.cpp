@@ -37,7 +37,15 @@ struct Fixture {
         }
         const auto found=std::ranges::find_if(directory,[](const Tag& t){return t.group=="vrtx" && t.name=="rasterizer\\vertex_shaders_xbox\\screen";});
         if(found!=directory.end()){
-            check(found+1==directory.end(),"Native allocator did not append its real owner");directory.pop_back();
+            const auto original_count=std::size_t(found-directory.begin());
+            check(found->handle().index()==original_count,"Native allocator did not append its real screen owner");
+            // The separately authenticated PC sky closure may append its
+            // reflection vertex owner after this HUD bootstrap. Reconstruct
+            // the original namespace prefix for this HUD-only fixture.
+            for(auto tag=found+1;tag!=directory.end();++tag)
+                check(tag->group=="vrtx" && tag->name=="rasterizer\\vertex_shaders_xbox\\transparent_generic_reflection" &&
+                    c.is_preserved_native_shader(*tag),"Unexpected owner follows the finite PC HUD/sky closures");
+            directory.resize(original_count);
         }
     }
     auto sid(){return [&](unsigned id){return wrong_sid?std::string("custom"):cache.string_id(id);};}

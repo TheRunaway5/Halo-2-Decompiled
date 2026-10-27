@@ -1,8 +1,10 @@
 #include "halo2/multiplayer_authority.hpp"
 #include "halo2/multiplayer_object_runtime.hpp"
+#include "halo2/native_lag_compensation.hpp"
 #include "network/multiplayer_authority_fields.hpp"
 #include "runtime/world_continuation_bindings.hpp"
 #include <algorithm>
+#include <bit>
 #include <set>
 #include <sstream>
 #include <type_traits>
@@ -85,6 +87,13 @@ void validate(const Saved &s,const DatumPool &pool,unsigned maximum,const LevelC
     std::uint32_t serial=0;
     for(const auto &e:s.weapon_effect_journal){if(e.serial<=serial||e.serial>s.weapon_effect_serial||e.tick>s.simulation.ticks||!finite(e.velocity))
         throw FormatError("Match continuation changed weapon effect journal ordering");serial=e.serial;}
+    validate_physics_impulse_journal(s.physics_impulses,std::uint32_t(s.simulation.ticks));
+    if(!s.physics_impulses.empty()&&std::bit_cast<std::int32_t>(s.physics_impulses.back().serial-s.physics_impulse_serial)>0)
+        throw FormatError("Match continuation changed physics impulse journal ordering");
+    // The rewind owner's own staging validates the frames against its window.
+    if(std::uint8_t(s.netcode_mode)>std::uint8_t(NetcodeMode::full)||
+       (s.lag_compensation&&(s.netcode_mode==NetcodeMode::original||s.lag_compensation->mode!=s.netcode_mode)))
+        throw FormatError("Match continuation has an invalid netcode mode or rewind history");
 }
 }
 std::uint32_t MultiplayerMatch::authority_service_roles()const {
@@ -92,7 +101,8 @@ std::uint32_t MultiplayerMatch::authority_service_roles()const {
     for(bool present:{bool(source_object_world_),bool(king_services_.record),bool(king_services_.score_changed),bool(king_services_.notification),
         bool(first_person_event_owner_),bool(weapon_effect_owner_),bool(result_wall_clock_),bool(game_engine_presentation_owner_),
         bool(player_birth_owner_),bool(pre_player_update_owner_),
-        source_object_world_&&source_object_world_->has_projectile_effect_observer()}){if(present)result|=1u<<i;++i;}
+        source_object_world_&&source_object_world_->has_projectile_effect_observer(),
+        bool(native_first_person_registry_)}){if(present)result|=1u<<i;++i;}
     return result;
 }
 MultiplayerMatch::AuthorityCheckpoint MultiplayerMatch::authority_checkpoint(AuthorityDigest binding,bool qualified_source_world)const {
@@ -103,6 +113,9 @@ MultiplayerMatch::AuthorityCheckpoint MultiplayerMatch::authority_checkpoint(Aut
     if(saved.source_backed&&!qualified_source_world)throw FormatError("Match continuation requires its complete qualified source world");
     if(saved.source_backed)saved.source_players=player_pool_.source_binding();else saved.owned_players=player_pool_;
     saved.simulation=simulation_.authority_checkpoint(binding,qualified_source_world);
+    if(native_first_person_registry_)saved.native_first_person=native_first_person_registry_->checkpoint();
+    saved.netcode_mode=netcode_mode_;
+    if(lag_compensation_)saved.lag_compensation=lag_compensation_->history();
 #define SAVE(name) saved.name=name##_;
     HALO2_MULTIPLAYER_AUTHORITY_VALUES(SAVE)
 #undef SAVE
@@ -116,7 +129,13 @@ struct MultiplayerMatch::PreparedAuthority::Impl {
     std::map<std::uint32_t,Unit> retained_units;
     std::optional<DatumPool::PreparedSourceView> source_players;
     std::optional<Simulation::PreparedAuthority> simulation;
+    std::unique_ptr<NativeFirstPersonRegistryTu15> native_first_person;
     std::optional<std::uint32_t> result_clock_adjustment;
+    // A detached replacement rewind owner (the cut's mode differs from this
+    // world's owner, or this world has none), and the staged history.
+    std::unique_ptr<NativeLagCompensation> lag_owner;
+    NativeLagCompensation::StagedHistory lag_history;
+    bool lag_replace{};
     ~Impl(){if(staging)*staging=false;}
 };
 MultiplayerMatch::PreparedAuthority::PreparedAuthority()=default;
@@ -124,13 +143,14 @@ MultiplayerMatch::PreparedAuthority::~PreparedAuthority()=default;
 MultiplayerMatch::PreparedAuthority::PreparedAuthority(PreparedAuthority &&) noexcept=default;
 MultiplayerMatch::PreparedAuthority &MultiplayerMatch::PreparedAuthority::operator=(PreparedAuthority &&) noexcept=default;
 bool MultiplayerMatch::PreparedAuthority::for_owner(const MultiplayerMatch &m)const noexcept{return impl_&&impl_->owner==&m;}
-MultiplayerMatch::PreparedAuthority MultiplayerMatch::prepare_authority(const Saved &saved,AuthorityDigest binding,const SourceRuntimeMemory *replacement) {
+MultiplayerMatch::PreparedAuthority MultiplayerMatch::prepare_authority(const Saved &saved,AuthorityDigest binding,
+    const SourceRuntimeMemory *replacement,const SourcePhysicsWorldRuntimeAbi *native_caller) {
     authority_calls_.prepare();
     const char *first_failed{};std::uint32_t current_service_roles{};bool observed_source_backing{};
     const auto incompatible=[&](const char *name,bool failed)noexcept{
         if(failed)first_failed=name;return failed;
     };
-    if(incompatible("version",saved.version!=2)||incompatible("admitted_binding",saved.admitted_binding!=binding)||
+    if(incompatible("version",saved.version!=3)||incompatible("admitted_binding",saved.admitted_binding!=binding)||
        incompatible("simulation.admitted_binding",saved.simulation.admitted_binding!=binding)||
        incompatible("configuration_binding",saved.configuration_binding!=authority_configuration())||
        incompatible("service_roles",saved.service_roles!=(current_service_roles=authority_service_roles()))||
@@ -141,7 +161,7 @@ MultiplayerMatch::PreparedAuthority MultiplayerMatch::prepare_authority(const Sa
        incompatible("simulation.source_backed",saved.source_backed!=(observed_source_backing=saved.simulation.source_backed))) {
         std::ostringstream message;message<<"Match continuation has incompatible admission, definitions or local service roles"
             <<"; first_failed="<<first_failed;
-        if(std::string_view(first_failed)=="version")message<<" saved_version="<<saved.version<<" expected_version=2";
+        if(std::string_view(first_failed)=="version")message<<" saved_version="<<saved.version<<" expected_version=3";
         else if(std::string_view(first_failed)=="service_roles")message<<" saved_roles="<<saved.service_roles
             <<" current_roles="<<current_service_roles<<" differing_roles="<<(saved.service_roles^current_service_roles);
         else if(std::string_view(first_failed)=="player_pool.source_memory"||std::string_view(first_failed)=="source_players"||
@@ -150,6 +170,13 @@ MultiplayerMatch::PreparedAuthority MultiplayerMatch::prepare_authority(const Sa
             message<<" saved_source_backed="<<saved.source_backed<<" observed_source_backing="<<observed_source_backing;
         throw FormatError(message.str());
     }
+    if(saved.source_gameplay_fade.has_value()!=source_engine_owned_)
+        throw FormatError("Match continuation changed its native viewport-fade source owner");
+    if(saved.native_first_person.has_value()!=bool(native_first_person_registry_))
+        throw FormatError("Match continuation changed its native first-person Cache owner");
+    if(saved.native_first_person && !native_caller)
+        throw FormatError("Native FP continuation requires its staged native caller");
+    if(saved.source_gameplay_fade)validate_source_gameplay_fade_journal_tu15(*saved.source_gameplay_fade);
     PreparedAuthority p;p.impl_=std::make_unique<PreparedAuthority::Impl>();auto &n=*p.impl_;n.owner=this;
     n.staging=&authority_calls_.staging;authority_calls_.staging=true;
     if(saved.source_backed) {
@@ -163,9 +190,33 @@ MultiplayerMatch::PreparedAuthority MultiplayerMatch::prepare_authority(const Sa
         validate(saved,*saved.owned_players,rules_.maximum_players,content_,source_game_context_.game_type);
     }
     n.values=saved;
+    // Mirror the producer's rewind owner: keep this owner when the mode
+    // matches, build a detached one when it differs or is missing, and drop
+    // it for a cut without one. The history is validated and staged now.
+    if(saved.lag_compensation) {
+        if(!netcode_capable_)throw FormatError("Lag-compensated continuation requires a host-capable TU1.5 world");
+        if(!lag_compensation_||lag_compensation_->mode()!=saved.lag_compensation->mode) {
+            n.lag_owner=make_lag_compensation(saved.lag_compensation->mode,false);n.lag_replace=true;
+        }
+        n.lag_history=(n.lag_owner?*n.lag_owner:*lag_compensation_).stage_history(*saved.lag_compensation,saved.simulation.ticks);
+    }else n.lag_replace=bool(lag_compensation_);
+    n.values.lag_compensation.reset();
     for(const auto &[h,r]:saved.retained_units){Unit u=r.value;if(r.animation)u.custom_animation=std::make_shared<const AnimationClip>(*r.animation);
         n.retained_units.emplace(h,std::move(u));}
-    n.simulation.emplace(simulation_.prepare_authority(saved.simulation,binding,replacement));return p;
+    n.simulation.emplace(simulation_.prepare_authority(saved.simulation,binding,replacement));
+    if(saved.native_first_person) {
+        NativeFirstPersonRegistryTu15::Bindings bindings;
+        for(unsigned slot=0;slot<bindings.size();++slot) {
+            const auto &player=saved.players[slot];if(!player.connected || (player.source_flags&2u))continue;
+            const auto representation=source_session_player_representation(
+                player.source_configuration,source_game_context_.game_type);
+            bindings[slot]={player.source_datum,multiplayer_biped(content_,representation).datum,
+                int(representation),player.connected && !(player.source_flags&2u)};
+        }
+        n.native_first_person=native_first_person_registry_->prepare_restore(*replacement,*native_caller,*saved.native_first_person,
+            bindings,std::uint32_t(saved.simulation.ticks));
+    }
+    return p;
 }
 bool MultiplayerMatch::prepare_result_clock(PreparedAuthority &p) const noexcept {
     if(!p.for_owner(*this)||!authority_calls_.staging||authority_calls_.depth)return false;
@@ -185,6 +236,16 @@ bool MultiplayerMatch::commit_authority(PreparedAuthority &&p) noexcept {
     HALO2_MULTIPLAYER_AUTHORITY_VALUES(SWAP)
 #undef SWAP
     result_wall_adjustment_=*n.result_clock_adjustment;
-    retained_units_.swap(n.retained_units);authority_calls_.fault=false;p.impl_.reset();return true;
+    retained_units_.swap(n.retained_units);native_first_person_registry_.swap(n.native_first_person);
+    if(n.lag_replace) {
+        // One owner registration replaces (or clears) the world's owner; it
+        // allocates nothing. A refusal leaves this transaction faulted.
+        try{if(n.lag_owner)n.lag_owner->attach();else lag_compensation_->detach();}catch(...){return false;}
+        if(n.lag_owner&&lag_compensation_)lag_compensation_->displaced();
+        lag_compensation_.swap(n.lag_owner);
+    }
+    if(lag_compensation_)lag_compensation_->adopt_history(n.lag_history);
+    netcode_mode_=n.values.netcode_mode;
+    authority_calls_.fault=false;p.impl_.reset();return true;
 }
 }

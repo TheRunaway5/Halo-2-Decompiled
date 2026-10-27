@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "playlists": [
+    {
+      "id": "multi-team",
+      "revision": "native-multiteam-1",
+      "name": "Multi-Team",
+      "description": "12 players on four teams. Native Lockout Team Slayer pool; guests and parties up to twelve are allowed.",
+      "ranked": false,
+      "quickmatch": true,
+      "team_size": 3,
+      "team_count": 4,
+      "minimum_players": 12,
+      "maximum_players": 12,
+      "maximum_party": 12,
+      "rank_configuration": "title-update-1.5-defaults",
+      "required_compatibility": "halo2-native-queue-v10",
+      "games": [
+        {
+          "id": "native-lockout-team-slayer",
+          "map": "lockout",
+          "variant": "Team Slayer",
+          "weight": 1
+        }
+      ],
+      "stages": [
+        {
+          "after_seconds": 0,
+          "rank_numerator": 1,
+          "rank_denominator": 1,
+          "minimum_connection": 50
+        }
+      ],
+      "skill": {
+        "kind": "custom",
+        "radius": 0
+      },
+      "candidate_selection": "retail-candidates-native-relay-v1",
+      "gathering": {
+        "countdown_ms": [
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647
+        ],
+        "timeout_ms": 150000,
+        "provenance": "Explicit native full-roster-only gathering. At min=max=12, original full-count readiness is immediate and incomplete-count timers cannot start a game. The finite search timeout is native service policy, not a recovered Multi-Team TMS setting."
+      },
+      "provenance": "Bungie Dec2005: unranked12/four teams/maxparty12. TU1.5 native 9E1A0/9E010/9E0E0 uses authenticated raw ratings. This explicit native single-map default Team Slayer offering uses weight1 only to select its sole game; it is not a historical rotation. Native gathering uses recovered raw-rank windows; legacy stage/radius fields are unused. Original downloaded Multi-Team weights, full variant buffers and hopper/network configuration remain unavailable."
+    }
+  ]
+}

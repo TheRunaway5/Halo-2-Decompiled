@@ -20,6 +20,8 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--capture-name',required=True)
     parser.add_argument('--output',required=True,type=Path)
+    parser.add_argument('--native-frame-semantics',action='store_true',
+        help='Use the existing explicit native void-frame persistent-memory/FP contract')
     args=parser.parse_args()
     if not os.environ.get('HALO2_TEST_SCRATCH'):parser.error('Use tools/run_test.py or its finite session')
     if Path(args.capture_name).name!=args.capture_name:parser.error('Capture must be a direct owned directory name')
@@ -28,15 +30,22 @@ def main():
     if capture.is_symlink() or capture.resolve(strict=True).parent!=scratch:raise ValueError('Capture escaped its finite owner')
     metadata=json.loads((capture/'capture.json').read_text())
     if metadata['reference']!='English TU1.5 only':raise ValueError('Different original authority')
+    if args.native_frame_semantics and (metadata['entry']!=0x1cc8d0 or
+        metadata.get('comparison_contract')!='native_tu15_void_world_frame_v1'):
+        raise ValueError('Native frame mode requires its actual semantic capture contract')
     args.output=args.output.resolve();args.output.mkdir(parents=True,exist_ok=False)
     oracle=scratch/(args.capture_name+'-original')
     if oracle.exists():raise ValueError('Original comparison output already exists')
     log=scratch/(args.capture_name+'-original.log')
     command=[sys.executable,str(ROOT/'tools/replay_live_phantom_hardware_tu15.py'),
         '--capture',str(capture),'--output',str(oracle)]
+    if args.native_frame_semantics:command.append('--native-frame-semantics')
     execution=dict(passed=False,command=command,entry=metadata['entry'],tool_sha256=sha(Path(__file__)),capture_metadata_sha256=sha(capture/'capture.json'),
         required_temporary_reference_input=str(capture),temporary_oracle_output=str(oracle),
         scope='One actual original entry/return and all captured accessible banks; no all-branch or full-goal acceptance')
+    if args.native_frame_semantics:
+        execution.update(comparison_contract='native_tu15_void_world_frame_v1',
+            scope='One actual native void world frame: all persistent bytes and complete FP/live x87 outputs; returned private stack and volatile registers excluded by its declared API')
     def save():
         (args.output/'execution.json').write_text(json.dumps(execution,indent=2)+'\n')
     save()

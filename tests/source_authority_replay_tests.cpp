@@ -5,10 +5,12 @@
 #include "halo2/online_matchmaking.hpp"
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/source_host_continuation_codec.hpp"
+#include "halo2/source_admitted_camera.hpp"
 #include <curl/curl.h>
 #include <openssl/sha.h>
 #include <rtc/global.hpp>
 #include <fstream>
+#include <nlohmann/json.hpp>
 #include <thread>
 
 namespace {
@@ -69,8 +71,15 @@ auto packet_bytes(const auto &packets){
 auto body_hash(std::span<const std::byte> bytes){std::array<std::byte,32> result{};
     check(SHA256(reinterpret_cast<const unsigned char *>(bytes.data()),bytes.size(),reinterpret_cast<unsigned char *>(result.data())),"Cannot hash paired native fixture");return result;}
 void run(int argc,char **argv){
+    check(!OnlineMatchmakingOptions{}.terminal_recovery&&!OnlineMatchTransportOptions{}.terminal_recovery,
+        "Unqualified terminal recovery became a default matchmaking delivery path");
     check(argc==7,"Supply ROOT ORIGIN OWNER CALLBACK_PORT XBE PRIVATE_FIXTURE_DIRECTORY");
-    const std::filesystem::path root=argv[1],files=argv[6];const auto map=root/"assets/disc/maps/lockout.map";
+    const std::filesystem::path root=argv[1],files=argv[6];
+    const auto native_mcc_map=std::getenv("HALO2_SOURCE_AUTHORITY_MCC_MAP");
+    const bool mcc_source=native_mcc_map&&*native_mcc_map;
+    const std::filesystem::path map=mcc_source?std::filesystem::path(native_mcc_map):root/"assets/disc/maps/lockout.map";
+    check(std::filesystem::is_regular_file(map),"Configured source authority map is unavailable");
+    std::cout<<"SOURCE world_mode="<<(mcc_source?"prepared-MCC-no-executable":"offline-Xbox-reference-control")<<" map="<<map.filename().string()<<'\n';
     const std::string account=argv[3];std::string browser;DiscordLoginOptions auth;auth.callback_port=std::stoul(argv[4]);
     auto login=std::make_shared<DiscordLogin>([&](const auto &url){browser=url;return true;},auth,
         [&](const DiscordHttpRequest &r,std::stop_token)->DiscordHttpResponse{
@@ -82,6 +91,7 @@ void run(int argc,char **argv){
     curl_easy_setopt(curl.get(),CURLOPT_PROXY,"");curl_easy_setopt(curl.get(),CURLOPT_TIMEOUT_MS,2000L);curl_easy_setopt(curl.get(),CURLOPT_WRITEFUNCTION,discard);
     check(curl_easy_perform(curl.get())==CURLE_OK,"Fixture authorization callback failed");wait([&]{return login->authorization().has_value();},"OAuth grant timeout");
     OnlineMatchmakingOptions options;options.endpoint=argv[2];options.allow_loopback_http=true;options.maps={"lockout"};options.poll_interval=100ms;
+    const bool numeric_stream=std::getenv("HALO2_ADMITTED_CAMERA_STREAM");options.terminal_recovery=numeric_stream;
     OnlineMatchmaking queue(login,options);std::vector<OnlineLocalPlayer> guests;
     for(unsigned i=1;i<4;++i)guests.push_back({"Guest "+account+" "+std::to_string(i),{}});
     queue.refresh("Pilot "+account,guests);wait([&]{return queue.snapshot().status==OnlineMatchmakingStatus::Ready;},"Native queue login timeout");queue.join("casual");
@@ -92,7 +102,9 @@ void run(int argc,char **argv){
     const auto locals=session->local_slots();std::vector<unsigned> host_locals;
     for(const auto &p:session->roster())if(online_admission_peer(p)==host)host_locals.push_back(p.slot);
     const UiVariant variant{"Slayer",0,{{0x59,5},{10,0},{2,0}}};
-    MultiplayerOptions gameplay;gameplay.online_match=session;gameplay.map=map;gameplay.shared_maps=map.parent_path();gameplay.gameplay_xbe=argv[5];
+    MultiplayerOptions gameplay;gameplay.online_match=session;gameplay.map=map;gameplay.shared_maps=map.parent_path();
+    if(mcc_source){check(!*argv[5],"Native MCC authority stream must not accept an injected executable");gameplay.source_object_world=true;}
+    else gameplay.gameplay_xbe=argv[5];
     gameplay.variant=variant;gameplay.local_players=4;gameplay.session_random_seed=4242;
     const auto defaults=source_default_player_configuration();std::array<std::uint8_t,9> appearance{};std::copy_n(defaults.begin()+0x40,appearance.size(),appearance.begin());
     for(auto slot:locals)gameplay.selected_profiles.push_back(native_selected_player_configuration(session->roster()[slot].name,appearance,-1));
@@ -132,8 +144,10 @@ void run(int argc,char **argv){
     const auto receive_world_exists=[&]{return background?background->state().warmed:bool(receiver->world());};
     const auto receive_checkpoint=[&](const ValidatedAuthorityCut &cut){return background?background->checkpoint(cut).get():receiver->checkpoint(cut);};
     const auto receive_paired=[&](const ValidatedAuthorityCut &cut){return background?background->checkpoint_paired(cut).get():receiver->checkpoint_paired(cut);};
-    Cache fingerprint_cache(map,map.parent_path(),OriginalData::load_xbe(argv[5]));const auto weapon=fingerprint_cache.slayer_starting_weapon(5);
-    const auto fingerprint=custom_slayer_fingerprint(multiplayer_fingerprint(map,map.parent_path(),0,weapon,argv[5]),variant);
+    Cache fingerprint_cache(map,map.parent_path(),mcc_source?std::shared_ptr<const OriginalData>{}:OriginalData::load_xbe(argv[5]));
+    check(!mcc_source||fingerprint_cache.is_mcc(),"Native authority stream selected a non-MCC runtime cache");
+    const auto weapon=fingerprint_cache.slayer_starting_weapon(5);
+    const auto fingerprint=custom_slayer_fingerprint(multiplayer_fingerprint(map,map.parent_path(),0,weapon,gameplay.gameplay_xbe),variant);
     session->loaded(fingerprint,variant);wait([&]{return session->phase()==OnlineMatchSession::Phase::Running;},"Receiver real session loading timeout");
     const auto datagrams=std::make_shared<CheckedDatagrams>(session);
     if(hosting)lan_host=std::make_unique<LanHost>(host_world->match,datagrams,fingerprint,session->roster(),variant);
@@ -144,6 +158,210 @@ void run(int argc,char **argv){
         if(session->phase()==OnlineMatchSession::Phase::Failed)throw FormatError(session->error());
         return hosting?lan_host->peers()==1:lan_client->ready();},"Actual native grouped source profile admission timeout");
     wait([&]{pump();return session->authority_supported(other);},"Receiver direct authority capability timeout");
+    if(numeric_stream){
+        const bool ongoing=std::getenv("HALO2_ADMITTED_CAMERA_ONGOING");
+        check(!ongoing||mcc_source,"Ongoing endpoint qualification requires an actual MCC world without an injected executable");
+        check(hosting||background,"Admitted numeric stream requires the actual replay worker");
+        wait([&]{return session->authority_admitted_camera_supported(other);},"Numeric camera capability was not independently negotiated");
+        const auto context=*session->authority_context();const auto binding=source_authority_binding(context);
+        if(hosting){
+            std::cout<<"NUMERIC host source admission begin tick="<<authority->execution_tick()<<'\n';
+            std::vector<unsigned> slots;for(const auto &p:session->roster())slots.push_back(p.slot);
+            check(authority->execution_tick()==0,"Numeric stream already advanced its source tick0 constructor");
+            check(session->publish_source_players(context,authority->player_admissions(slots)),"Numeric stream source roster export failed");
+            wait([&]{return session->source_players_confirmed(other)&&std::filesystem::exists(files/"numeric-ready");},
+                "Numeric stream receiver did not independently accept its source identities");
+            auto cameras=std::make_shared<SourceAdmittedCameraBank>(host_world->match,*host_world->source_objects,
+                *host_world->match.original_data(),*session->source_players(),session->roster());
+            lan_host->bind_admitted_cameras(cameras);
+            SourceAuthorityPublisher publisher(*authority,*lan_host,session,other,90s);
+            check(publisher.capture(),"Numeric stream refused its untouched tick0 world/host base");cameras->activate();
+            std::cout<<"NUMERIC host paired base captured tick="<<authority->execution_tick()<<'\n';
+            const auto steps=[&](unsigned count){for(unsigned frame=0;frame<count;++frame){
+                if(!(frame%16))std::cout<<"NUMERIC host step="<<frame<<'/'<<count<<" tick="<<authority->execution_tick()<<'\n';
+                check(publisher.execute([&]{host_clock->time+=33;host_clock->filetime+=330000;
+                    std::array<Controls,16> input{};for(unsigned slot=0;slot<8;++slot)input[slot].yaw=host_world->match.unit(slot).yaw;
+                    input[locals.front()].forward=frame%8<4?.25f:-.25f;
+                    host_world->match.step(input);lan_host->receive(controls);lan_host->broadcast();
+                }),"Actual numeric camera frame lost its native replay journal");
+            }};
+            if(ongoing){
+                auto heartbeat=Wall::time_point{};
+                wait([&]{
+                    publisher.update();const auto state=publisher.state();check(state.error.empty(),state.error.c_str());
+                    if(Wall::now()>=heartbeat){
+                        heartbeat=Wall::now()+100ms;
+                        check(publisher.execute([&]{lan_host->receive(controls);lan_host->broadcast();}),
+                            "Ongoing bootstrap lost its real authenticated heartbeat journal");
+                    }
+                    return state.host_ready&&state.ready&&state.ready->seal.tick==0&&
+                        std::filesystem::exists(files/"ongoing-base-adopted");
+                },"Ongoing exact-source bootstrap never matched its actual tick0 snapshot receipt");
+                marker(files/"ongoing-active");unsigned frames{};const auto began=Wall::now();
+                while(!std::filesystem::exists(files/"ongoing-three-adopted")){
+                    check(Wall::now()-began<120s,"Ongoing source replay never adopted3 independently certified moving endpoints");
+                    steps(1);++frames;publisher.update();check(publisher.state().error.empty(),publisher.state().error.c_str());
+                    std::this_thread::sleep_for(33ms);
+                }
+                const auto state=publisher.state();
+                check(frames>=3&&state.replay_batches&&state.acknowledged_phases,
+                    "Ongoing endpoint case silently used a stopped-input/full-cut fallback");
+                std::filesystem::remove(files/"ongoing-active");marker(files/"ongoing-host-stopped");
+                wait([&]{publisher.update();return std::filesystem::exists(files/"ongoing-receiver-checked");},
+                    "Ongoing receiver did not retain its actual displayed pair after native replay advanced");
+                std::cout<<"PASS actual MCC ongoing source producer: frames="<<frames<<" tick="<<authority->execution_tick()
+                    <<" publications="<<state.publications<<" native_validations="<<state.validations
+                    <<" acknowledged_phases="<<state.acknowledged_phases<<" elapsed_ms="
+                    <<std::chrono::duration_cast<std::chrono::milliseconds>(Wall::now()-began).count()<<'\n';
+                publisher.cancel();return;
+            }
+            // This finite fixture certifies an ended input sequence. Keep pumping
+            // authenticated transport/replay, but do not append fresh source
+            // calls while waiting for the previous calls to drain. Runtime
+            // publication/adoption during ongoing play is a separate gate.
+            const auto settle=[&](const std::string &stage){auto diagnostic=Wall::time_point{};
+                wait([&]{publisher.update();const auto state=publisher.state();check(state.error.empty(),state.error.c_str());
+                    if(Wall::now()>=diagnostic){diagnostic=Wall::now()+1s;
+                        std::cout<<"NUMERIC host settle="<<stage<<" tick="<<authority->execution_tick()
+                            <<" session_phase="<<unsigned(session->phase())<<" captures="<<state.captures<<" published="<<state.publications
+                            <<" validations="<<state.validations<<" ack_phases="<<state.acknowledged_phases<<" queued="<<state.queued_phases
+                            <<" bytes="<<state.queued_bytes<<" encoding="<<state.encoding<<" awaiting="<<state.awaiting_validation
+                            <<" ready_tick="<<(state.ready?std::to_string(state.ready->seal.tick):"none")
+                            <<" pending_id="<<(state.pending_group?std::to_string(state.pending_group->seal.id):"none")
+                            <<" native_acks="<<state.pending_native_validated_peers<<'\n';}
+                    if(state.host_ready&&state.ready&&state.ready->seal.tick==authority->execution_tick()&&
+                        !state.awaiting_validation&&!state.encoding&&!state.queued_phases){
+                        const auto world=encode_source_authority(authority->checkpoint(binding));
+                        const LanHost::ContinuationBinding proof{context,{1,authority->execution_tick(),world.size(),body_hash(world)}};
+                        write(files/(stage+"-world"),world);
+                        write(files/(stage+"-host"),LanHost::encode_continuation(publisher.host_checkpoint(*state.ready),proof));
+                        marker(files/(stage+"-complete"));return true;
+                    }
+                    return false;
+                },"Actual admitted numeric source stream did not validate its batch endpoint");
+            };
+            steps(72);settle("numeric-first");
+            wait([&]{return std::filesystem::exists(files/"numeric-first-checked");},"Numeric receiver did not compare its complete first pair");
+            steps(2);settle("numeric-next");
+            wait([&]{return std::filesystem::exists(files/"numeric-next-checked");},"Numeric receiver did not compare its continued pair");
+            check(publisher.state().replay_batches&&publisher.state().acknowledged_phases>=74,
+                "Numeric stream silently fell back to complete checkpoint repair");
+            std::cout<<"PASS finite ended-input admitted numeric camera publisher:74 actual native movement frames, raw25 denied, sealed derived camera sidecars, phases="
+                <<publisher.state().acknowledged_phases<<" batches="<<publisher.state().replay_batches<<'\n';
+            publisher.cancel();
+        }else{
+            wait([&]{return session->source_players().has_value();},"Numeric source admissions did not arrive");
+            lan_client->bind_continuity(context,self,session->roster());marker(files/"numeric-ready");
+            if(ongoing){
+                std::deque<MultiplayerSnapshotOrigin> receipts;
+                std::shared_ptr<const SourceAuthorityEndpoint> displayed,historical;
+                MultiplayerSnapshotOrigin displayed_origin,historical_origin;
+                std::vector<std::shared_ptr<const SourceAuthorityEndpoint>> budget_holders;bool budget_tested{};
+                std::array<std::byte,32> historical_digest{};unsigned adopted{},peak{},snapshots{};std::uint64_t queued_bytes{},peak_bytes{};
+                nlohmann::json adoptions=nlohmann::json::array();const auto began=Wall::now();
+                wait([&]{
+                    pump();for(const auto &origin:lan_client->received_origins())if(origin.context()){
+                        receipts.push_back(origin);++snapshots;queued_bytes+=origin.encoded_body_bytes();
+                    }
+                    peak=std::max(peak,unsigned(receipts.size()));peak_bytes=std::max(peak_bytes,queued_bytes);check(receipts.size()<=256&&queued_bytes<=64ull*1024*1024,"Ongoing receipt queue exceeded its declared qualification bound");
+                    const auto state=background->state();check(state.error.empty(),state.error.c_str());
+                    check(!state.endpoint_copy_failures&&state.endpoint_error.empty(),state.endpoint_error.c_str());
+                    const auto endpoint=state.endpoint;
+                    if(endpoint&&(!displayed||endpoint->world().cut.seal!=displayed->world().cut.seal)){
+                        const auto found=std::find_if(receipts.begin(),receipts.end(),[&](const auto &origin){
+                            try{return endpoint->proof().prove_snapshot(*lan_client,origin).matches(origin);}
+                            catch(const FormatError &){return false;}
+                        });
+                        if(found!=receipts.end()){
+                            const auto &world=endpoint->world();const auto &snapshot=found->accepted_state();
+                            check(snapshot.tick==world.cut.seal.tick&&world.checkpoint.match.simulation.ticks==snapshot.tick,
+                                "Ongoing endpoint changed its exact native/snapshot tick association");
+                            if(!displayed){check(snapshot.tick==0,"Ongoing base was not an actual source tick0 image");marker(files/"ongoing-base-adopted");}
+                            else if(snapshot.tick>displayed->world().cut.seal.tick){
+                                check(std::filesystem::exists(files/"ongoing-active"),"Endpoint adoption was certified only after actual source inputs stopped");
+                                ++adopted;
+                                if(adopted<=3)budget_holders.push_back(endpoint);
+                                if(!historical){historical=endpoint;historical_origin=*found;
+                                    historical_digest=body_hash(encode_source_authority(world.checkpoint));}
+                                adoptions.push_back({{"tick",snapshot.tick},{"sequence",found->sequence().value()},
+                                    {"elapsed_ms",std::chrono::duration_cast<std::chrono::milliseconds>(Wall::now()-began).count()},
+                                    {"replaying",state.replaying},{"pending_decode",state.decoding},
+                                    {"copy_count",state.endpoint_copies},{"copy_us",state.endpoint_copy_microseconds},
+                                    {"native_bank_bytes",state.endpoint_bank_bytes},{"budget_skips",state.endpoint_budget_skips}});
+                            }
+                            displayed=endpoint;displayed_origin=*found;
+                            for(auto i=receipts.begin();i!=std::next(found);++i)queued_bytes-=i->encoded_body_bytes();
+                            receipts.erase(receipts.begin(),std::next(found));
+                            if(adopted>=4&&budget_tested)marker(files/"ongoing-three-adopted");
+                        }
+                    }
+                    if(!budget_tested&&budget_holders.size()==3&&state.endpoint_budget_skips){
+                        check(state.error.empty()&&state.endpoint_error.empty(),"Optional pin budget poisoned native replay status");
+                        budget_holders.clear();budget_tested=true;
+                    }
+                    return adopted>=4&&budget_tested&&std::filesystem::exists(files/"ongoing-host-stopped");
+                },"Actual MCC ongoing source worker did not retain/adopt exact live batch endpoints");
+                check(displayed&&historical&&displayed->world().cut.seal.tick>historical->world().cut.seal.tick,
+                    "Ongoing case did not advance beyond its retained historical native image");
+                check(historical_digest==body_hash(encode_source_authority(historical->world().checkpoint))&&
+                    historical->proof().prove_snapshot(*lan_client,historical_origin).matches(historical_origin),
+                    "Advancing the replay worker mutated or invalidated its owning historical pair");
+                rejects([&]{historical->proof().prove_snapshot(*lan_client,displayed_origin);});
+                check(displayed->proof().prove_snapshot(*lan_client,displayed_origin).matches(displayed_origin),
+                    "Latest adopted pair did not prove its exact opaque snapshot receipt");
+                nlohmann::json report={{"passed",true},{"scope","Actual MCC two-process authenticated source replay with ongoing native movement and UDP/input; historical and current exact receipt pins. No renderer/host-loss/EOS/default-delivery claim."},
+                    {"adoptions",adoptions},{"queue_peak",peak},{"queue_wire_bytes_peak",peak_bytes},{"snapshots",snapshots},{"native_bank_image_limit",3},
+                    {"retention_budget_skip_then_resume",budget_tested},{"default_terminal_recovery",OnlineMatchmakingOptions{}.terminal_recovery}};
+                {std::ofstream out(files/("ongoing-"+account+".json"));out<<report.dump(2)<<'\n';check(bool(out),"Cannot retain bounded ongoing endpoint receipt");}
+                marker(files/"ongoing-receiver-checked");background->cancel();
+                check(!background->state().endpoint,"Cancelled replay worker retained a publishable endpoint");
+                check(displayed->proof().prove_snapshot(*lan_client,displayed_origin).matches(displayed_origin),
+                    "Worker cancellation invalidated its separately owning historical display proof");
+                background.reset();
+                std::cout<<"PASS actual MCC ongoing exact endpoint adoption="<<adopted<<" queue_peak="<<peak<<" snapshots="<<snapshots
+                    <<" historical_immutability=true stale_receipt_rejected=true default_terminal_recovery=false\n";
+                return;
+            }
+            MultiplayerSnapshotOrigin origin;unsigned snapshots{};
+            const auto ingress=[&]{pump();for(const auto &receipt:lan_client->received_origins()){origin=receipt;++snapshots;}};
+            const auto verify=[&](const std::string &stage,unsigned tick){
+                auto diagnostic=Wall::time_point{};
+                wait([&]{ingress();const auto state=background->state();check(state.error.empty(),state.error.c_str());
+                    if(Wall::now()>=diagnostic){diagnostic=Wall::now()+1s;
+                        std::cout<<"NUMERIC receiver stage="<<stage<<" expected_tick="<<tick<<" session_phase="<<unsigned(session->phase())
+                            <<" origin_tick="<<(origin.tick()?std::to_string(*origin.tick()):"none")<<" received="<<state.received
+                            <<" prepared="<<state.prepared<<" warmed="<<state.warmed<<" workspace="<<state.workspace_warmed
+                            <<" decoding="<<state.decoding<<" replaying="<<state.replaying<<" batches="<<state.replay_batches
+                            <<" phases="<<state.replayed_phases<<" sequence="<<state.replay_sequence<<" host_ready="<<state.host_ready
+                            <<" ready_tick="<<(state.ready?std::to_string(state.ready->seal.tick):"none")
+                            <<" rejected_id="<<(state.rejected?std::to_string(state.rejected->seal.id):"none")
+                            <<" producer_complete="<<std::filesystem::exists(files/(stage+"-complete"))<<'\n';}
+                    return std::filesystem::exists(files/(stage+"-complete"))&&state.host_ready&&state.ready&&
+                        state.ready->seal.tick==tick&&!state.replaying&&state.replayed_phases>=tick;
+                },"Actual numeric replay worker did not derive its sealed endpoint");
+                const auto state=background->state();auto saved=background->checkpoint_paired(*state.ready).get();
+                const auto world=encode_source_authority(saved.checkpoint);
+                const LanHost::ContinuationBinding proof{context,{1,tick,world.size(),body_hash(world)}};
+                check(world==read(files/(stage+"-world"))&&saved.host&&
+                    LanHost::encode_continuation(*saved.host,proof)==read(files/(stage+"-host")),
+                    "Numeric replay changed complete native world or the certified host/camera sidecar");
+                ingress();check(state.host_proof&&state.host_proof->prove_snapshot(*lan_client,origin).matches(origin),
+                    "Numeric source cut does not prove the last actually adopted native snapshot");
+                return saved;
+            };
+            auto first=verify("numeric-first",72);marker(files/"numeric-first-checked");
+            auto next=verify("numeric-next",74);
+            rejects([&]{lan_client->prove_snapshot(*first.host,first.cut,origin);});
+            check(lan_client->prove_snapshot(*next.host,next.cut,origin).matches(origin),
+                "Current numeric source cut failed the actual displayed origin guard");
+            auto retained=background->retain_validated_world().get();
+            check(retained.cut.seal==next.cut.seal&&encode_source_authority(retained.checkpoint)==encode_source_authority(next.checkpoint),
+                "Numeric terminal drain relabeled or rolled back the independently validated endpoint");
+            marker(files/"numeric-next-checked");background.reset();
+            std::cout<<"PASS admitted numeric camera receiver: full-world and host/camera bytes exact at72/74, last adopted snapshot proof, stale-cut rejection, owning retention; snapshots="<<snapshots<<'\n';
+        }
+        return;
+    }
     if(std::getenv("HALO2_HOST_CONTINUATION_STREAM")){
         check(hosting||background,"Paired stream case requires the native replay worker");
         wait([&]{return session->authority_host_continuation_supported(other);},"Paired stream capability was not negotiated");
@@ -154,15 +372,21 @@ void run(int argc,char **argv){
             wait([&]{return session->source_players_confirmed(other)&&std::filesystem::exists(files/"paired-stream-ready");},"Paired stream receiver not admitted");
             SourceAuthorityPublisher publisher(*authority,*lan_host,session,other,90s);
             check(publisher.capture(),"Paired publisher refused initial native world/host capture");
-            for(unsigned i=0;i<70;++i){check(publisher.execute([&]{
+            const auto paired_first_tick=authority->execution_tick();
+            for(unsigned i=0;i<70;++i){check(!publisher.execute([&]{
                 std::array<Controls,16> input{};for(unsigned slot=0;slot<8;++slot)input[slot].yaw=host_world->match.unit(slot).yaw;
-                host_world->match.step(input);lan_host->broadcast();}),"Paired publisher did not record a complete native frame");}
-            bool overlapped{};wait([&]{publisher.update();const auto state=publisher.state();
-                check(state.error.empty(),state.error.c_str());overlapped|=publisher.in_flight_cuts()==2;
-                check(publisher.in_flight_cuts()<=2,"Paired publisher exceeded two admitted cuts");
-                return state.acknowledged_phases==70&&state.host_ready&&state.ready&&!state.awaiting_validation&&!state.encoding&&state.queued_phases==0;
-            },"Paired publisher/worker did not catch up");
-            check(overlapped,"Paired source stream never prefetched a successor");
+                host_world->match.step(input);lan_host->broadcast();}),"Local camera capability was admitted to a network replay journal");
+                if(!i)check(publisher.state().error.find("local-only execution capability: 25")!=std::string::npos,
+                    "Paired recorder failed for a reason other than denied local camera capability");}
+            check(authority->execution_tick()==paired_first_tick+70,"Journal rejection skipped actual native host work");
+            check(!publisher.state().tracking_replay,"Local-only host work left an unsafe network journal active");
+            bool recaptured{};wait([&]{publisher.update();
+                if(!recaptured)recaptured=publisher.capture();
+                const auto state=publisher.state();if(recaptured)check(state.error.empty(),state.error.c_str());
+                check(publisher.in_flight_cuts()<=2,"Paired checkpoint fallback exceeded admitted cuts");
+                return recaptured&&state.acknowledged_phases==0&&state.replay_batches==0&&state.host_ready&&state.ready&&
+                    state.ready->seal.tick==authority->execution_tick()&&!state.awaiting_validation&&!state.encoding&&state.queued_phases==0;
+            },"Paired publisher complete-checkpoint fallback did not validate");
             auto world=encode_source_authority(authority->checkpoint(binding));auto ready=*publisher.state().ready;
             const auto write_paired=[&]{const LanHost::ContinuationBinding proof{context,{1,authority->execution_tick(),world.size(),body_hash(world)}};
                 write(files/"paired-stream-world",world);write(files/"paired-stream-host",LanHost::encode_continuation(publisher.host_checkpoint(ready),proof));};
@@ -170,12 +394,15 @@ void run(int argc,char **argv){
             auto wrong=ready;++wrong.seal.tick;rejects([&]{publisher.host_checkpoint(wrong);});
             marker(files/"paired-stream-complete");
             wait([&]{return std::filesystem::exists(files/"paired-stream-export-checked");},"Paired worker did not complete its nonterminal exact export");
-            for(unsigned i=0;i<2;++i)check(publisher.execute([&]{
+            for(unsigned i=0;i<2;++i)check(!publisher.execute([&]{
                 std::array<Controls,16> input{};for(unsigned slot=0;slot<8;++slot)input[slot].yaw=host_world->match.unit(slot).yaw;
-                host_world->match.step(input);lan_host->broadcast();}),"Paired publisher did not continue after a nonterminal receiver export");
-            wait([&]{publisher.update();const auto state=publisher.state();check(state.error.empty(),state.error.c_str());
-                return state.acknowledged_phases==72&&state.host_ready&&state.ready&&!state.awaiting_validation&&!state.encoding&&state.queued_phases==0;
-            },"Paired worker stopped accepting replay after its nonterminal export");
+                host_world->match.step(input);lan_host->broadcast();}),"Unsafe camera journals restarted after a nonterminal checkpoint export");
+            check(authority->execution_tick()==paired_first_tick+72,"Checkpoint fallback skipped later native host work");
+            recaptured=false;wait([&]{publisher.update();if(!recaptured)recaptured=publisher.capture();
+                const auto state=publisher.state();if(recaptured)check(state.error.empty(),state.error.c_str());
+                return recaptured&&state.acknowledged_phases==0&&state.replay_batches==0&&state.host_ready&&state.ready&&
+                    state.ready->seal.tick==authority->execution_tick()&&!state.awaiting_validation&&!state.encoding&&state.queued_phases==0;
+            },"Paired worker stopped accepting complete checkpoints after its nonterminal export");
             world=encode_source_authority(authority->checkpoint(binding));ready=*publisher.state().ready;write_paired();
             marker(files/"paired-stream-next-complete");
             wait([&]{return std::filesystem::exists(files/"paired-stream-downgrade-ready");},"Paired worker did not reach downgrade preflight");
@@ -188,7 +415,7 @@ void run(int argc,char **argv){
             wait([&]{return std::filesystem::exists(files/"paired-stream-retained");},"Paired worker did not retain both owners");
             publisher.cancel();check(!publisher.state().host_ready,"Cancelled paired publisher retained host readiness");
             rejects([&]{publisher.host_checkpoint(ready);});
-            std::cout<<"PASS production paired publisher: 72 actual native frames, historical end-of-batch host state, bounded two-cut prefetch and exact validated host checkpoint\n";
+            std::cout<<"PASS production paired publisher: 72 actual native frames reject local-only camera journals and validate complete checkpoint fallback across nonterminal export\n";
         }else{
             wait([&]{return session->source_players().has_value();},"Paired stream source admissions did not arrive");
             lan_client->bind_continuity(context,self,session->roster());
@@ -199,15 +426,10 @@ void run(int argc,char **argv){
             // snapshots would test the bounded datagram queue instead.
             const auto pump_receipts=[&]{pump();for(const auto &receipt:lan_client->received_origins()){
                 origin=receipt;++snapshot_receipts;}};
-            check(background->pause_replay(true),"Cannot pause paired worker before prefetch");
-            wait([&]{return background->state().replay_paused;},"Paired replay pause was not acknowledged");marker(files/"paired-stream-ready");
+            marker(files/"paired-stream-ready");
             wait([&]{pump_receipts();const auto s=background->state();check(s.error.empty(),s.error.c_str());
-                return s.received>=3&&s.replaying;},"Paired worker did not receive full baseline and two replay cuts");
-            {const auto s=background->state();check(!s.host_ready&&!s.ready&&!s.host_proof,"Partially applied paired stream exported readiness or proof");}
-            check(background->pause_replay(false),"Cannot resume paired native replay");
-            wait([&]{pump_receipts();const auto s=background->state();check(s.error.empty(),s.error.c_str());
-                return s.host_ready&&s.ready&&!s.replaying&&s.replayed_phases==70&&std::filesystem::exists(files/"paired-stream-complete");},
-                "Paired worker did not validate all native phases and host owners");
+                return s.host_ready&&s.ready&&!s.replaying&&s.replayed_phases==0&&std::filesystem::exists(files/"paired-stream-complete");},
+                "Paired worker did not validate the complete native checkpoint and host owner");
             auto good=background->state();
             check(good.host_proof&&good.host_proof->cut().peer==self&&good.host_proof->cut().context==context&&
                 good.host_proof->cut().seal==good.ready->seal,"Paired replay worker omitted its exact validated host proof");
@@ -232,13 +454,13 @@ void run(int argc,char **argv){
             wrong=original_ready;++wrong.seal.tick;rejects([&]{background->checkpoint_paired(wrong).get();});
             const auto unchanged=background->state();
             check(!background->stopped()&&!unchanged.replay_paused&&unchanged.ready&&unchanged.ready->seal==original_ready.seal&&
-                unchanged.host_ready&&unchanged.host_proof&&unchanged.replayed_phases==70&&
+                unchanged.host_ready&&unchanged.host_proof&&unchanged.replayed_phases==0&&
                 encode_source_authority(background->checkpoint_paired(original_ready).get().checkpoint)==exported_world,
                 "Rejected or repeated paired export stopped replay or changed the validated world");
             marker(files/"paired-stream-export-checked");
             wait([&]{pump_receipts();const auto s=background->state();check(s.error.empty(),s.error.c_str());
-                return s.host_ready&&s.ready&&!s.replaying&&s.replayed_phases==72&&std::filesystem::exists(files/"paired-stream-next-complete");},
-                "Nonterminal paired export prevented later authenticated replay validation");
+                return s.host_ready&&s.ready&&!s.replaying&&s.replayed_phases==0&&std::filesystem::exists(files/"paired-stream-next-complete");},
+                "Nonterminal paired export prevented later authenticated checkpoint validation");
             good=background->state();
             check(good.ready->seal!=original_ready.seal&&good.ready->seal.tick==original_ready.seal.tick+2&&good.host_proof,
                 "Paired continuation reused the exported cut instead of validating later native phases");
@@ -252,10 +474,16 @@ void run(int argc,char **argv){
             wait([&]{if(origin.tick()!=good.ready->seal.tick)pump_receipts();
                 return origin.context()==context&&origin.tick()==good.ready->seal.tick;},"Later paired snapshot did not reach the existing native client");
             check(good.host_proof->prove_snapshot(*lan_client,origin).matches(origin),"Later independently validated host proof lost its authentic receipt");
+            // The earlier complete cut is still an authentic owning value,
+            // but it may not certify the later adopted display's body. Neutral
+            // controls do not permit rolling the native tick/clock back.
+            rejects([&]{lan_client->prove_snapshot(*exported.host,exported.cut,origin);});
+            check(lan_client->prove_snapshot(*continued.host,continued.cut,origin).matches(origin),
+                "The current paired native cut failed its exact adopted snapshot proof");
             marker(files/"paired-stream-downgrade-ready");
             wait([&]{const auto s=background->state();return s.received>good.received&&!s.decoding&&!s.error.empty();},"Paired stream did not reject a stripped host owner");
             const auto rejected=background->state();check(rejected.host_ready&&rejected.ready&&rejected.ready->seal==good.ready->seal&&
-                rejected.ready->context==good.ready->context&&!rejected.replaying&&rejected.replayed_phases==72&&
+                rejected.ready->context==good.ready->context&&!rejected.replaying&&rejected.replayed_phases==0&&
                 rejected.host_proof&&rejected.host_proof->cut().seal==good.host_proof->cut().seal,
                 "Rejected downgrade replaced the last validated paired world");
             check(rejected.rejected&&rejected.rejected->peer==self&&rejected.rejected->context==context&&
@@ -276,7 +504,7 @@ void run(int argc,char **argv){
                 LanHost::encode_continuation(*exported.host,exported_binding)==exported_host&&
                 encode_source_authority(continued.checkpoint)==encoded,
                 "Nonterminal paired exports retained a borrower into the destroyed native worker");
-            std::cout<<"PASS paired stream retains "<<snapshot_receipts<<" accepted gameplay receipts beside native replay; exact host proof survives downgrade rejection and worker destruction\n";
+            std::cout<<"PASS paired stream retains "<<snapshot_receipts<<" accepted gameplay receipts beside complete checkpoint fallback; exact host proof survives downgrade rejection and worker destruction\n";
             auto world=MultiplayerPreparedWorld::source_shadow(gameplay,MultiplayerPreparedWorld::SourceShadowViews::IncomingHost,workspace_clock);
             SourceMatchAuthority imported(world->match,*world->source_objects);
             auto prepared=imported.prepare(retained.checkpoint,binding,retained.admissions.players);
@@ -498,6 +726,7 @@ void run(int argc,char **argv){
         std::uint64_t identity_receive_baseline{},identity_replay_baseline{};
         wait([&]{receive_update();const auto state=receive_state();
             if(!rejected&&!state.error.empty()){
+                std::cerr<<"Replay first-cut rejection: "<<state.error<<'\n';
                 check(state.error.find("full source player identity")!=std::string::npos&&state.prepared==0&&!state.ready,"Replay mode bypassed independent full-roster identities");
                 rejected=true;marker(files/"bad-rejected");}
             if(stage==4&&!chain_rejected&&state.error.find("Invalid source replay batch")!=std::string::npos){

@@ -233,7 +233,7 @@ void flow(FrontendContent &content, const std::filesystem::path &maps) {
     if(system_link) {
       host=std::make_unique<LanHost>(match,0,0x18fd94);
       const std::array<std::int8_t,1> choices{std::int8_t(7-team)};
-      client=std::make_unique<LanClient>("127.0.0.1:"+std::to_string(host->port()),0x18fd94,1,choices);
+      client=std::make_unique<LanClient>(host->join_address(),0x18fd94,1,choices);
       for(unsigned n=0;n<100 && !client->ready();++n) {
         client->send(remote_input);host->receive(controls);host->broadcast();client->receive();
         std::this_thread::sleep_for(std::chrono::milliseconds(1));

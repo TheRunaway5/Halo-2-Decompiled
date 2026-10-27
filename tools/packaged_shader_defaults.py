@@ -142,11 +142,17 @@ def relocate_compiled_shader_default(payload, original_directory, *, target_dire
     return postimage, record
 
 
-def shader_inventory(directory):
-    """The complete existing bank includes nested and non-SPIR-V companion files."""
+def shader_inventory(directory, *, executable=None):
+    """Validate a native AOT package or the preserved legacy portable bank."""
     directory = Path(directory)
     if directory.is_symlink() or directory.resolve(strict=True) != directory:
         raise ValueError("Shader bank requires its canonical directory owner")
+    from native_renderer_shaders import AOT_PACKAGE_NAME, validate_native_package
+    package = directory / AOT_PACKAGE_NAME
+    if package.exists() or package.is_symlink():
+        if executable is None:
+            raise ValueError("Native AOT shader inventory requires its executable-bound catalog")
+        return validate_native_package(directory, executable=executable)['files']
     result = {}
     for path in sorted(directory.rglob("*")):
         if path.is_symlink():

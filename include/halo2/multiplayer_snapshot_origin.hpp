@@ -11,6 +11,9 @@ class MultiplayerSnapshotOrigin {
 public:
     std::optional<std::uint32_t> tick()const noexcept;
     std::optional<std::uint32_t> sequence()const noexcept;
+    // Actual authenticated complete body extent, for bounded local retention.
+    // Zero for an absent receipt; this confers no proof or decoded admission.
+    std::uint32_t encoded_body_bytes()const noexcept;
     std::optional<AuthorityTransferContext> context()const noexcept;
     bool same(const MultiplayerSnapshotOrigin &)const noexcept;
     // Only independently continuity-bound receipts retain decoded values.

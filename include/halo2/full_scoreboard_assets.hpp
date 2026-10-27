@@ -15,6 +15,13 @@ struct FullScoreboardAssets {
   std::vector<FullScoreboardColorBits> team_palette;
   std::array<std::string,9> team_names;
   std::string name_label,wins_label,score_label;
+  struct PlayerStatus {
+    std::int16_t status{};
+    std::uint32_t string_id{},team_string_id{};
+    std::string text,team_text;
+  };
+  std::vector<PlayerStatus> player_status;
+  std::string game_over_label,round_over_label,waiting_for_next_round_label;
   std::uint32_t emblem_shader=0xffffffffu, emblem_bitmap=0xffffffffu;
   std::uint32_t dead_shader=0xffffffffu, dead_bitmap=0xffffffffu;
 };

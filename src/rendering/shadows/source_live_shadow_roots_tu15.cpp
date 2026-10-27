@@ -7,7 +7,8 @@
 namespace halo2 {
 std::vector<SourceLiveShadowRootTu15> source_live_shadow_root_frames_tu15(
     PhysicsLiveWorldTu15& world,std::span<const SourceShadowCandidate> selected,
-    const SourceShadowAdmissionObserverTu15& observe,const SourceShadowRootCompletedTu15& completed_root) {
+    const SourceShadowAdmissionObserverTu15& observe,const SourceShadowRootCompletedTu15& completed_root,
+    const SourceShadowCommandsTu15& commands) {
     auto& memory=world.memory();
     const auto word=[&](std::uint32_t p){return Bytes(memory.view(p,4)).u32(0);};
     const auto real=[&](std::uint32_t p){return std::bit_cast<float>(word(p));};
@@ -161,7 +162,8 @@ std::vector<SourceLiveShadowRootTu15> source_live_shadow_root_frames_tu15(
                 try {
                     a=world.prepare_source_call(); //EAX0 selects all shadow layers.
                     if(observe)observe(true,0x40e80u,root.owner,a,memory);
-                    world.run_actual(0x40e80u,a);
+                    const auto translated=[&]{world.run_actual(0x40e80u,a);};
+                    if(commands)commands(a.gp[0],translated);else translated();
                     if(observe)observe(false,0x40e80u,root.owner,a,memory);
                     auto& banks=root.commands.emplace();
                     for(unsigned n=0;n<banks.size();++n) {

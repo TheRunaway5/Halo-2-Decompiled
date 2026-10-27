@@ -96,6 +96,7 @@ std::span<const std::byte> Bytes::slice(std::size_t offset, std::size_t size) co
     return data_.subspan(offset, size);
 }
 
+#ifndef HALO2_CACHE_BYTES_ONLY
 std::span<const std::byte> Cache::cache_bytes() const {
     return snapshot_ ? snapshot_->bytes() : std::span<const std::byte>(storage_);
 }
@@ -550,4 +551,5 @@ std::string Cache::describe() const {
         << ",\"tags\":" << tags_.size() << ",\"bsps\":" << bsps_.size() << ",\"spawns\":" << spawns_.size() << '}';
     return out.str();
 }
+#endif
 } // namespace halo2

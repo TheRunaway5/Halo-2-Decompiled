@@ -6,6 +6,17 @@
 #include <iostream>
 #include <random>
 #include <stdexcept>
+#include <cstdlib>
+#include <new>
+
+// Cap this one hostile request so the regression is safe before remediation.
+thread_local bool guard_authority_allocation=false,large_authority_allocation=false;
+void *operator new(std::size_t size){
+    if(guard_authority_allocation&&size>64ull*1024*1024){large_authority_allocation=true;throw std::bad_alloc();}
+    if(auto *p=std::malloc(size?size:1))return p;throw std::bad_alloc();
+}
+void operator delete(void *p)noexcept{std::free(p);}
+void operator delete(void *p,std::size_t)noexcept{std::free(p);}
 
 using namespace halo2;
 namespace {
@@ -26,6 +37,16 @@ template<class F>Bytes mutate_patch(Bytes p,F f){const auto size=get(p,32);Bytes
     f(raw);auto compressed=packed(raw);p.resize(144);set(p,32,raw.size());set(p,40,compressed.size());digest_into(p,112,raw);
     p.insert(p.end(),compressed.begin(),compressed.end());return p;}
 void run(){
+    auto bomb=archive(Bytes(1,std::byte{}));set(bomb,16,1024ull*1024*1024);
+    guard_authority_allocation=true;
+    rejects([&]{AuthorityArchiveImage::read(bomb);});
+    guard_authority_allocation=false;
+    check(!large_authority_allocation,"Host archive requested gigabyte storage before rejecting its declaration");
+    // Invalid declarations below the decoded cap must also fail before a
+    // disproportionate request. A tight cumulative budget includes the base,
+    // patch and replacement together rather than granting each its own limit.
+    auto high_ratio=archive(Bytes(1,std::byte{}));set(high_ratio,16,64ull*1024*1024);
+    rejects([&]{AuthorityArchiveImage::read(high_ratio,source_authority_network_delta_limits());});
     std::mt19937 random(0x1500);Bytes raw(2*1024*1024);for(unsigned i=0;i<1024*1024;++i)raw[i]=std::byte(random());
     const auto base=AuthorityArchiveImage::read(archive(raw));auto target=raw;
     for(unsigned i:{23u,5013u,700115u})target[i]^=std::byte{0x15};
@@ -36,6 +57,8 @@ void run(){
     check(restored.digest()==next.digest()&&restored.decoded_size()==target.size()&&restored.encode()==archive(target),"Insert/delete/moved/repeated regions did not reconstruct complete canonical bytes");
     check(delta.size()<20000,"Delta resent unchanged source regions instead of copying exact base ranges");
     const auto identical=encode_authority_delta(base,base);check(identical.size()<256,"Unchanged complete image did not reduce to one copy");
+    auto cumulative=source_authority_network_delta_limits();cumulative.working_bytes=base.decoded_size();
+    rejects([&]{apply_authority_delta(base,identical,cumulative);});
     check(apply_authority_delta(base,identical).encode()==base.encode(),"Unchanged archive differs");
     const auto other=AuthorityArchiveImage::read(archive(Bytes(2000,std::byte{7})));
     rejects([&]{apply_authority_delta(other,delta);});
@@ -61,6 +84,21 @@ void run(){
         auto result=apply_authority_delta(base,delta);check(result.digest()==next.digest(),"Concurrent reconstruction changed the cut");
         check(AuthorityArchiveImage::read(result.encode()).digest()==next.digest(),"Concurrent archive encoding changed state");}));
     for(auto &worker:work)worker.get();
+    // Network ceiling is usable for highly compressible native-memory banks.
+    // The unchanged delta exercises a maximum-size output with a tiny patch.
+    {
+        const auto bounded=source_authority_network_delta_limits();
+        const auto bytes=archive(Bytes(bounded.decoded_bytes,std::byte{}));
+        const auto maximum=AuthorityArchiveImage::read(bytes,bounded);
+        const auto copy=encode_authority_delta(maximum,maximum,bounded);
+        check(apply_authority_delta(maximum,copy,bounded).digest()==maximum.digest(),"Maximum network delta failed");
+        auto too_large=bytes;set(too_large,16,bounded.decoded_bytes+1);
+        for(unsigned attempt=0;attempt<16;++attempt)rejects([&]{AuthorityArchiveImage::read(too_large,bounded);});
+        auto too_large_patch=copy;set(too_large_patch,32,bounded.patch_bytes+1);
+        rejects([&]{apply_authority_delta(maximum,too_large_patch,bounded);});
+        std::cout<<"Network maximum image: "<<maximum.decoded_size()<<" decoded / "<<bytes.size()
+            <<" encoded bytes; unchanged delta: "<<copy.size()<<" bytes; decode/patch reservation "<<bounded.working_bytes<<" bytes\n";
+    }
     // Tiny states, complete replacement and growing/shrinking cuts exercise
     // the literal-only path independently of the copy index.
     for(unsigned n:{1u,63u,64u,65u,1023u,4097u}){Bytes value(n);for(auto &v:value)v=std::byte(random());

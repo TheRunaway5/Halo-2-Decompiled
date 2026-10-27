@@ -1,6 +1,7 @@
 """Real native Vista party UI, authenticated HTTP membership and a peer."""
 import asyncio
 import contextlib
+import json
 import os
 from pathlib import Path
 import sys
@@ -15,6 +16,7 @@ from aiohttp.test_utils import TestClient, TestServer
 from multiplayer.master_server.service import Settings, create_app
 from multiplayer.master_server.protocol import Problem
 from multiplayer.master_server.player_identity import VerifiedOwner
+from multiplayer.master_server.tests.test_matchmaking_http import catalog
 
 
 async def main():
@@ -36,14 +38,21 @@ async def main():
                 raise Problem(401, "Fixture authorization denied")
             return VerifiedOwner("discord", "222222222222222222" if token == "peer" else "private-"+token,
                                  "verified_user" if token == "t" else "peer_pilot" if token == "peer" else token)
+        # A two-member party cannot fill this four-player playlist, so its
+        # search stays in progress until a member cancels it.
+        playlists = catalog()
+        playlists["playlists"] = [playlists["playlists"][1] | dict(id="party-search", name="Party Search lab",
+                                  minimum_players=4, maximum_players=4, maximum_party=2)]
+        (Path(temp)/"playlists.json").write_text(json.dumps(playlists))
         app = create_app(Settings(state=Path(temp), public_url="http://127.0.0.1:8080", allow_http=True,
-                                  rate_per_minute=100000), verify)
+                                  rate_per_minute=100000, matchmaking_catalog=str(Path(temp)/"playlists.json")), verify)
         async with TestClient(TestServer(app)) as client:
             async def sign_in(token, name):
                 response = await client.post("/v1/account/session", headers={"Authorization":"Bearer "+token}, json={"screen_name":name})
                 assert response.status == 201, await response.text()
                 return {"Authorization":"Bearer "+(await response.json())["token"]}
             peer = await sign_in("peer", "Pilot")  # Deliberate same chosen name.
+            blocked_peers = [await sign_in("layout_blocked_"+str(i), "Duplicate Blocked") for i in range(2)]
             response = await client.put("/v1/account/profile", headers=peer,
                 json={"appearance": "080c0901011a098100"})
             assert response.status == 200, await response.text()
@@ -58,15 +67,41 @@ async def main():
                     json=dict(action=action, request_id=str(uuid.uuid4())) | kw)
                 assert response.status == 200, await response.text()
                 return await response.json()
+            api = next(iter(app.values())).matchmaking
             async def partner():
-                joined = reinvited = stress_done = False
+                joined = reinvited = stress_done = cancelled = False
+                queue = None
                 while True:
+                    friends=await (await client.get('/v1/friends',headers=peer)).json()
+                    for friend in friends['friends']:
+                        if friend['state']=='incoming':
+                            accepted=await client.post('/v1/friends/commands',headers=peer,json=dict(
+                                action='accept',request_id=str(uuid.uuid4()),target=friend['id']))
+                            assert accepted.status==200,await accepted.text()
                     data = await view(peer)
                     if not joined and data["invitations"]:
                         invite = data["invitations"][0]
                         data = await command(peer, "accept", target=invite["id"], version=invite["version"])
                         joined = True
                     party = data["party"]
+                    leader = next((m for m in party["members"] if m["leader"]), None) if party else None
+                    me = next((m for m in party["members"] if m["self"]), None) if party else None
+                    if leader and me and not leader["self"] and leader["ready_playlist"] == "party-search":
+                        # The member consents to the leader's playlist, then
+                        # cancels the leader's first party search.
+                        if queue is None:
+                            response = await client.post("/v1/matchmaking/session", headers={"Authorization": "Bearer peer"},
+                                json=dict(screen_name="Pilot", maps=["lockout"], compatibility="halo2-native-queue-v7"))
+                            assert response.status == 201, await response.text()
+                            queue = {"Authorization": "Bearer "+(await response.json())["token"]}
+                        if me["ready_playlist"] != "party-search":
+                            # A concurrent party change makes this stale; the next poll retries.
+                            await client.post("/v1/party/commands", headers=peer, json=dict(action="ready",
+                                request_id=str(uuid.uuid4()), version=party["version"], playlist_id="party-search", revision="lab-1"))
+                        if not cancelled and any(t.playlist == "party-search" for t in api.core.tickets.values()):
+                            response = await client.delete("/v1/matchmaking/ticket", headers=queue)
+                            assert response.status == 200, await response.text()
+                            cancelled = True
                     if guests and not stress_done:
                         for guest in guests:
                             guest_view = await view(guest)
@@ -84,6 +119,10 @@ async def main():
                     await asyncio.sleep(1)
             task = asyncio.create_task(partner())
             env = os.environ | dict(SDL_AUDIODRIVER="dummy", HTTP_PROXY="http://127.0.0.1:1", NO_PROXY="", no_proxy="")
+            env['H2_TEST_PEER_FRIEND_TAG']=(await (await client.get('/v1/friends',headers=peer)).json())['friend_tag']
+            env['H2_TEST_BLOCKED_FRIEND_TAGS']=json.dumps([
+                (await (await client.get('/v1/friends',headers=headers)).json())['friend_tag']
+                for headers in blocked_peers])
             process = await asyncio.create_subprocess_exec(str(Path(sys.argv[1]).resolve()), *assets.source,
                 "--party-url", str(client.make_url("/")).rstrip("/"),
                 "--callback-port",callback_port(),*native_options, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, env=env)

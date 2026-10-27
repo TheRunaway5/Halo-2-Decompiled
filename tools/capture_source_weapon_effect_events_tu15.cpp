@@ -147,7 +147,7 @@ int main(int argc,char **argv)try {
   std::array<Controls,16> received{};std::array<Controls,1> outgoing{};
   if(network) {
     host=std::make_unique<LanHost>(world.match,0,0x545531354658ull);
-    peer=std::make_unique<LanClient>("127.0.0.1:"+std::to_string(host->port()),0x545531354658ull,1);
+    peer=std::make_unique<LanClient>(host->join_address(),0x545531354658ull,1);
     for(unsigned n=0;n<64 && !peer->ready();++n) {
       peer->send(outgoing);host->receive(received);host->broadcast();peer->receive();
     }

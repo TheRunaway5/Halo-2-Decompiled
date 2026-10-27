@@ -11,8 +11,14 @@ struct SourceWorldPoseBank {
     std::vector<SourceWorldPose> poses;
     std::size_t consumed{};
 };
+// Legacy body versions retain their original numeric bank verbatim and have
+// no attachment metadata. Parent-frame banks require explicit source linkage
+// for every owner, including an actual unparented NONE value.
+enum class SourceWorldPoseWireFormat { legacy, parent_frame };
 std::vector<std::byte> encode_source_world_poses(bool authoritative,
-    std::span<const SourceWorldPose>,std::span<const SourceWorldPoseOwner>);
+    std::span<const SourceWorldPose>,std::span<const SourceWorldPoseOwner>,
+    SourceWorldPoseWireFormat = SourceWorldPoseWireFormat::legacy);
 SourceWorldPoseBank decode_source_world_poses(std::span<const std::byte>,
-    std::span<const SourceWorldPoseOwner>);
+    std::span<const SourceWorldPoseOwner>,
+    SourceWorldPoseWireFormat = SourceWorldPoseWireFormat::legacy);
 }

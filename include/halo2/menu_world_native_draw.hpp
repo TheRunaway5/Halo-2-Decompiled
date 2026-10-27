@@ -47,6 +47,9 @@ struct MenuWorldNativeDrawInput {
   std::array<ShaderVector,16> vertex_attributes{};
   std::array<std::uint8_t,16> vertex_attribute_components{};
   bool fog_alpha_bound{};
+  // Complete CPU-side identity. GPU uniforms carry only completed colors;
+  // this key selects immutable compiled fragment arithmetic.
+  std::array<std::uint32_t,60> fragment_program{};
 };
 
 // Standalone Vulkan resource/submission seam; selects no owners, visibility,

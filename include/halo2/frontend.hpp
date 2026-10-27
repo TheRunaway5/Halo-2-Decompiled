@@ -83,6 +83,7 @@ struct UiBitmap {
   std::uint32_t datum = 0xffffffffu;
   std::uint32_t placeholder{};
   float fps{};
+  bool matchmaking_map_preview{}; // Native binding of the original screen210 map-shot widget.
 };
 struct UiGrid {
   std::uint32_t skin = 0xffffffffu;
@@ -199,6 +200,7 @@ struct FrontendTypewriterSettings {
 struct VistaLobbyMetadata;
 class VistaWidgetCacheBank;
 struct FrontendContent {
+  bool original_matchmaking_layout{};
   bool gameplay_overlay{};
   // PC resource datums, skins, fonts and animations keep their own namespace.
   std::shared_ptr<const FrontendContent> vista;
@@ -206,6 +208,11 @@ struct FrontendContent {
   // This does not choose the 3D backdrop or enable a different menu route.
   std::shared_ptr<const VistaLobbyMetadata> vista_lobby_metadata;
   std::filesystem::path source_fonts;
+  // Gameplay MCC maps own a different symbol table from mainmenu. Compiled
+  // PC constants use an immutable exact-name join into that actual owner;
+  // authored widget StringIDs remain untouched. Null retains the pinned
+  // mainmenu namespace (or the original PC namespace for legacy resources).
+  std::shared_ptr<const std::map<std::uint32_t,std::uint32_t>> pc_string_ids;
   const UiScreen &screen(unsigned id) const {
     return is_vista_menu(id) ? (vista ? *vista : *this).screens.at(id & 0xffffu)
                              : screens.at(id);
@@ -315,6 +322,9 @@ struct VistaPcrScreenOwner {
   // Native session provenance selects the ONLINE Vista asset bank; it does
   // not modify the original retained PCR result bytes or widget records.
   bool online{};
+  // Replacement-service receipt, separate from the original PCR result bytes.
+  // False also identifies a disconnected source ending with no commit attempt.
+  std::optional<bool> result_recorded;
   std::shared_ptr<const VistaPcrResults> results;
   // Only team_color/selected_row/localized/format are external here. Native
   // child lookup/text/color/visibility callbacks are installed by the painter.
@@ -328,6 +338,11 @@ struct VistaPcrScreenOwner {
   std::function<void(bool)> voice_update;
   std::function<void(unsigned,unsigned,unsigned)> voice_control; // action,pane,row
   VistaPcrInputServices input;
+  // Dialog98 Leave Party (40C00D -> 6151E2(0)) closes this report's session.
+  std::function<void()> leave_session;
+  // Detached PCR185 presentation of these actual results. Its callbacks own
+  // result data only, never the completed match transport or its voice room.
+  std::shared_ptr<const VistaPcrScreenOwner> lobby_review;
   std::function<std::uint32_t(std::uint32_t)> elapsed;
   std::function<void(unsigned)> select_row;
   VistaLoadingFloatingPoint floating_point;
@@ -359,6 +374,9 @@ struct MenuFrame {
   // a new lifetime. Recreated pane children have a separate generation.
   std::uint64_t instance{}, pane_generation{};
   std::uint32_t pane_created_clock{};
+  // Original233423/23A0F3 screen lifetime uses a monotonic GetTickCount
+  // service; pane changes and report allocation do not restart this clock.
+  std::uint32_t pcr_open_clock{};
 };
 // Source constructors2306CF/237758/23768D/2BB477/2519F7+251AA6 use
 // null layout containers and focus-driven230427 pane reconstruction.
@@ -371,6 +389,7 @@ constexpr bool frontend_text_widgets_recreated_on_focus(unsigned screen) {
 struct FrontendLobbyView {
   FrontendLobbyInput input;
   int protocol = -1;
+  int machines = 1; // Physical session peers, independently of couch seats.
   unsigned engine{}, difficulty{};
   const UiLobbyMap *map{};
   std::optional<FrontendAppearance> player_appearance;
@@ -410,7 +429,7 @@ struct FrontendLaunch {
 enum class FrontendLobbySessionAction { Start, Setup, Back, Auxiliary };
 // Native pointer actions share the menu's existing command handlers. Prompt
 // targets come from the actual clipped text layout, including Vista scaling.
-enum class FrontendPointerAction { Entry, Accept, Back, Auxiliary, Players, CommitText, ClearBinding, InviteAccept, InviteDismiss, InviteTab };
+enum class FrontendPointerAction { Entry, Accept, Back, Auxiliary, Players, CommitText, ClearBinding, InviteAccept, InviteDismiss, InviteTab, PcrTab, PriorStats };
 struct FrontendInviteNotice { std::string id,name; bool accepting{},can_accept{}; };
 enum class GamePauseAction { Resume, Revert, Restart, Quit };
 struct FrontendPointerTarget {
@@ -436,6 +455,10 @@ public:
   const std::vector<MenuFrame> &stack() const { return stack_; }
   // Explicit original UI clock input, supplied before navigation events.
   void ui_clock(std::uint32_t value);
+  // Real mainmenu map initialization, not a menu open/resize. The source
+  // global UI intro retains its frame-delta clock independently of PCR16.
+  void initialize_mainmenu_map();
+  std::optional<std::uint32_t> ui_map_intro_color() const;
   void open(unsigned screen, unsigned context = 0);
   void open_game_pause(bool campaign);
   void set_game_pause_action(std::function<std::string(GamePauseAction)> action) {
@@ -447,9 +470,16 @@ public:
   // Explicit real PCR factory boundary. Raw source16/185 only; no automatic
   // timer/completion route, synthetic report or reuse of an old lobby frame.
   void open_vista_pcr(unsigned,std::shared_ptr<const VistaPcrScreenOwner>);
+  void set_pcr_clock(std::function<std::uint32_t()>);
+  std::optional<std::uint32_t> pcr_intro_color(const MenuFrame&) const;
   // A completed source menu-return factory allocates a fresh lobby frame from
   // retained local selections. It never resumes a pre-match Back stack.
   void open_vista_lobby();
+  void set_system_link_lobby(bool host,std::vector<FrontendLobbyRosterPlayer>,unsigned machines);
+  void leave_system_link_lobby();
+  void adopt_system_link_configuration(std::string_view map,const UiVariant&);
+  void system_link_configuration_error(){unavailable("This session supports CTF and Assault. Leave the session to choose another game type.");}
+  void set_system_link_leave(std::function<void()> action){system_link_leave_=std::move(action);}
   void open_local_title();
   // Native presentation of the completed source main-menu return. Allocate
   // the same menu as startup and publish presence before registering it.
@@ -467,7 +497,15 @@ public:
   unsigned vista_session_screen() const;
   FrontendLaunch selected_multiplayer_configuration() const;
   void vista_pcr_pane(unsigned);
+  bool switch_pcr_tab(int direction);
+  bool has_online_prior_stats() const;
+  bool review_online_postgame();
+  void close_online_prior_stats();
   bool vista_pcr_event(std::uint32_t source_code);
+  // ONLINE PCR16 services: 6156D2's host predicate is false for a party
+  // member who is not the leader, whose Done opens dialog98 (40C00D).
+  bool online_postgame_host() const;
+  void vista_pcr_dialog(const std::array<std::uint32_t, 8> &);
   void move(int);
   void mouse_wheel(int vertical);
   void navigate(int horizontal, int vertical);
@@ -512,9 +550,13 @@ public:
   bool online_couch_mutable() const;
   void set_discord_social(std::shared_ptr<DiscordFriends>);
   bool online_friends_screen(const MenuFrame &) const;
+  bool online_friends_available() const;
   std::string online_friends_text(const MenuFrame &, unsigned) const;
   std::string online_friends_column(const MenuFrame &, unsigned, unsigned) const;
   void return_online(std::string message = {});
+  // Leaving an ONLINE match (PCR Done, abandon, disconnect) returns the party
+  // to its matchmaking pregame lobby, as TU1.5 does.
+  void return_online_lobby(std::string message = {});
   void update_online_login();
   std::optional<DiscordIdentity> online_identity() const;
   void set_online_directory(std::shared_ptr<OnlineDirectory>);
@@ -526,6 +568,10 @@ public:
   void voice_push_to_talk(bool);
   void update_online_account();
   std::vector<FrontendUiSound> take_ui_sounds();
+  // Read-only observations of the actual menu-bound snapshot and queued
+  // cues. A renderer observer must not resample a worker between pane/draw.
+  const std::optional<OnlineParty> &online_party_observation() const { return account_.party; }
+  const std::vector<FrontendUiSound> &ui_sound_observation() const { return pending_ui_sounds_; }
   bool online_clan_screen(const MenuFrame &) const;
   std::string online_clan_text(const MenuFrame &, unsigned) const;
   std::string online_clan_column(const MenuFrame &, unsigned, unsigned) const;
@@ -536,7 +582,12 @@ public:
   void set_online_matchmaking(std::shared_ptr<OnlineMatchmaking>);
   void update_online_matchmaking();
   std::string online_matchmaking_text(const MenuFrame &, unsigned text_index) const;
+  std::string online_matchmaking_original_text(unsigned pane, unsigned text_index) const;
+  std::optional<std::uint32_t> online_matchmaking_map_bitmap() const;
+  std::optional<unsigned> online_matchmaking_game_icon() const;
   std::optional<unsigned> online_matchmaking_rank(unsigned row) const;
+  std::optional<FrontendAppearance> online_matchmaking_player_appearance(unsigned row) const;
+  std::optional<unsigned> online_matchmaking_speaker(unsigned row) const;
   unsigned online_matchmaking_pane() const;
   // TU1.5 screen210 state (0x199D7C), its four-pane selector (0x25142F) and
   // the start-match countdown getter (0x59590). online_matchmaking_pane()
@@ -550,6 +601,9 @@ public:
   // A Back request refused by the screen (TU1.5 0x25217B) has already queued
   // its error cue; the caller must not also play the Back cue.
   bool take_back_refused() { return std::exchange(back_refused_, false); }
+  // Matchmaking pregame lobby START GAME countdown (TU1.5 0x19A78E/0x6E360),
+  // -1 while none runs.
+  std::int32_t online_lobby_countdown() const { return online_lobby_countdown_; }
   std::string expand(const std::string &) const;
   std::string profile_name() const;
   const std::string &signed_in_profile() const { return signed_in_; }
@@ -618,6 +672,10 @@ private:
   std::function<std::array<unsigned,3>()> pc_video_query_;
   std::function<void(const FrontendLaunch &)> multiplayer_map_validator_;
   std::function<bool(FrontendLobbySessionAction)> lobby_session_action_;
+  std::function<void()> system_link_leave_;
+  std::optional<bool> system_link_host_;
+  std::vector<FrontendLobbyRosterPlayer> system_link_players_;
+  unsigned system_link_machines_{};
   std::optional<std::uint8_t> vista_mainmenu_pbuffer_byte_;
   std::shared_ptr<DiscordLogin> discord_login_;
   std::array<std::shared_ptr<DiscordLogin>,4> local_discord_logins_{};
@@ -635,10 +693,15 @@ private:
   std::shared_ptr<DiscordFriends> discord_social_;
   DiscordSocialSnapshot friends_;
   std::string friend_target_;
+  std::uint64_t friend_join_serial_{};
+  void update_online_friend_join();
   std::string activity_target_;
   void populate_online_friends(MenuFrame &) const;
   bool accept_online_friends();
   void update_online_friends();
+  bool native_friends() const;
+  void populate_native_friends(MenuFrame &) const;
+  bool accept_native_friends();
   std::shared_ptr<OnlineAccount> online_account_;
   std::shared_ptr<OnlineVoice> online_voice_;
   OnlineVoiceSnapshot voice_;
@@ -671,6 +734,7 @@ private:
   std::shared_ptr<OnlineMatchmaking> online_matchmaking_;
   OnlineMatchmakingSnapshot matchmaking_;
   bool matchmaking_active_{}, quickmatch_pending_{}, match_voice_{};
+  bool matchmaking_consent_pending_{};
   std::string selected_playlist_, matchmaking_name_;
   void refresh_online_matchmaking();
   void populate_online_matchmaking(MenuFrame &) const;
@@ -683,8 +747,42 @@ private:
   bool matchmaking_have_fun_{};
   // c_matchmaking_screen +0x618 current pane and +0x614 pane clock (0x251B39).
   unsigned matchmaking_progress_pane_{};
+  int matchmaking_progress_title_state_{}; // Original c_matchmaking_screen+610, updated only on pane change.
   std::uint32_t matchmaking_pane_clock_{};
   bool back_refused_{};
+  // Party A's member handles while a search it did not cancel locally runs;
+  // empty otherwise (0x250804 session-state notices).
+  std::vector<std::string> matchmaking_search_party_;
+  // True when the screen changed: a member follows the leader's search into
+  // screen210, or a party-wide end of the search returned to the lobby.
+  bool update_online_party_search();
+  // Party A's lobby after matchmaking keeps its hopper (TU1.5 value49a4=2,
+  // +49C8): START GAME searches it again after the lobby countdown.
+  bool online_lobby_matchmaking_{};
+  bool online_lobby_playlist_pending_{};
+  bool online_lobby_create_submitted_{};
+  struct OnlinePrivacyPending {
+    std::uint64_t frame_instance{},command_serial{},revision{};
+    unsigned mode{};
+    std::string context;
+  };
+  std::optional<OnlinePrivacyPending> online_privacy_pending_;
+  void update_online_privacy();
+  void prepare_online_matchmaking_lobby(bool quickmatch);
+  std::string online_lobby_start_error() const;
+  std::shared_ptr<const VistaPcrScreenOwner> online_prior_report_;
+  std::int32_t online_lobby_countdown_ = -1, online_lobby_countdown_stage_ = -1;
+  std::uint32_t online_lobby_countdown_clock_{};
+  std::uint64_t online_lobby_countdown_consumed_{};
+  std::vector<std::string> online_lobby_countdown_party_;
+  bool online_lobby_leave_pending_{};
+  void update_online_lobby_leave();
+  void enter_online_matchmaking_lobby();
+  void cancel_online_lobby_countdown();
+  // True when the countdown reached zero and opened the search.
+  bool update_online_lobby_countdown();
+  // A party follower's report continues once the leader has left it.
+  void update_online_postgame();
   unsigned pending_online_screen_ = 186, pending_online_context_{};
   bool awaiting_discord_login_{};
   bool saved_login_suppressed_{};
@@ -692,6 +790,8 @@ private:
   std::filesystem::path preferences_;
   std::vector<MenuFrame> stack_;
   std::uint32_t ui_clock_{};
+  std::optional<std::uint32_t> ui_map_initialized_clock_;
+  std::function<std::uint32_t()> pcr_clock_;
   std::optional<std::int32_t> session_countdown_;
   std::vector<std::string> profiles_;
   std::string signed_in_;
@@ -747,7 +847,7 @@ struct FrontendOptions {
   // Retained configuration/content. A later invocation requires an explicit
   // source factory request; the old navigation stack cannot resume implicitly.
   std::shared_ptr<FrontendSession> session;
-  enum class Entry { initial, postgame_report, fresh_lobby, session_return, online_return };
+  enum class Entry { initial, postgame_report, fresh_lobby, session_return, online_return, system_link_browser };
   Entry entry=Entry::initial;
   std::shared_ptr<const VistaPcrScreenOwner> postgame_report;
   // Called after actual mainmenu Cache/GPU initialization and before any old
@@ -758,6 +858,9 @@ struct FrontendOptions {
   // return requests this invocation to yield; no quit/launch is manufactured.
   std::function<bool(MenuState&,std::uint32_t,
       const std::function<void(FrontendUiSound)>&)> session_update;
+  // Read-only validation capture after the actual UI update. An empty path
+  // leaves the ordinary draw unchanged; this cannot provide state or time.
+  std::function<std::filesystem::path(const MenuState&)> frame_capture;
   std::filesystem::path maps = "assets/disc/maps", screenshot, sweep;
   // Optional sampled 2D art; original content retains every logical extent.
   std::filesystem::path ui_assets;
@@ -770,6 +873,9 @@ struct FrontendOptions {
   // Diagnostic frame-by-frame clock progression for retained widget state.
   // Used only with --frames and --menu-ui-ms; ordinary UI uses its live clock.
   unsigned capture_ui_step_ms{};
+  // Capture-only warm-up: ordinary UI/session time and input remain live;
+  // the finite frame budget starts once the actual new-map intro is clear.
+  bool wait_intro_clear{};
   std::string movie;
   bool skip_intro{};
   bool hidden{}, validation{}, mute{}, resize_test{}, audit{}, freeze_scene{};
@@ -791,6 +897,7 @@ public:
   std::optional<FrontendPointerTarget> pointer_hit(float x, float y) const;
 
 private:
+  friend class FrontendNetworkTransitionPainter;
   struct Impl;
   std::unique_ptr<Impl> impl_;
 };

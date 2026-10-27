@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/render_program.hpp"
+#include <functional>
 #include <memory>
 #include <optional>
 #include <span>
@@ -15,11 +16,14 @@ struct ResidentDrawUpload {
 // descriptors, retaining distinct material and optional vertex UBOs per draw.
 // upload must follow the previous frame's fence. No gameplay capacity or
 // original visibility/admission policy is imposed by this storage.
+using ResidentDescriptorObserver=std::function<void(std::span<const VkWriteDescriptorSet>,std::span<const VkCopyDescriptorSet>)>;
 class ResidentDrawStorage {
 public:
     ResidentDrawStorage(VkDevice,VkPhysicalDevice,VkDescriptorSetLayout,VkDeviceSize uniform_size);
     ~ResidentDrawStorage();
-    std::span<const VkDescriptorSet> upload(std::span<const ResidentDrawUpload>);
+    std::span<const VkDescriptorSet> upload(std::span<const ResidentDrawUpload>,const ResidentDescriptorObserver& = {});
+    std::size_t allocated_bytes()const noexcept;
+    std::size_t cpu_bytes()const noexcept;
 private:
     struct Impl;
     std::unique_ptr<Impl> impl_;

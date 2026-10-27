@@ -12,7 +12,8 @@ RUN pip install --no-cache-dir -r requirements.txt \
     && groupadd --gid 10001 directory \
     && useradd --uid 10001 --gid 10001 --no-create-home directory \
     && mkdir -p /state/a /state/b && chown -R 10001:10001 /state
-COPY multiplayer/master_server /app/multiplayer/master_server
+COPY multiplayer/master_server/*.py multiplayer/master_server/retail_gathering.json /app/multiplayer/master_server/
+COPY multiplayer/master_server/data/retail-launch-2004-rank.json multiplayer/master_server/data/title-update-1.5-rank.json /app/multiplayer/master_server/data/
 COPY --from=security /build/rust/online_security_ffi/target/release/libhalo2_online_security_ffi.so /app/multiplayer/master_server/
 USER 10001:10001
 EXPOSE 8080

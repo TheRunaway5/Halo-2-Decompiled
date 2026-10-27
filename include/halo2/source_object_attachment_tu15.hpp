@@ -10,19 +10,23 @@ struct SourceObjectAttachmentTu15 {
     bool operator==(const SourceObjectAttachmentTu15 &) const = default;
 };
 using SourceObjectAttachmentHandlerTu15=std::function<void(const SourceObjectAttachmentTu15 &)>;
-inline thread_local std::map<const SourcePhysicsContactMemory *,SourceObjectAttachmentHandlerTu15>
-    source_object_attachment_handlers_tu15;
+// Function-local TLS preserves one registry per thread across translation
+// units without MinGW namespace-scope TLS initializer aliases.
+inline std::map<const SourcePhysicsContactMemory *,SourceObjectAttachmentHandlerTu15>& source_object_attachment_handlers_tu15() {
+    static thread_local std::map<const SourcePhysicsContactMemory *,SourceObjectAttachmentHandlerTu15> value;
+    return value;
+}
 class SourceObjectAttachmentBindingTu15 {
     const SourcePhysicsContactMemory *memory_;
     SourceObjectAttachmentHandlerTu15 previous_;
 public:
     SourceObjectAttachmentBindingTu15(const SourcePhysicsContactMemory &memory,SourceObjectAttachmentHandlerTu15 handler):memory_(&memory) {
-        auto &slot=source_object_attachment_handlers_tu15[memory_];
+        auto &slot=source_object_attachment_handlers_tu15()[memory_];
         previous_=std::move(slot);slot=std::move(handler);
     }
     ~SourceObjectAttachmentBindingTu15() {
-        if(previous_)source_object_attachment_handlers_tu15[memory_]=std::move(previous_);
-        else source_object_attachment_handlers_tu15.erase(memory_);
+        if(previous_)source_object_attachment_handlers_tu15()[memory_]=std::move(previous_);
+        else source_object_attachment_handlers_tu15().erase(memory_);
     }
     SourceObjectAttachmentBindingTu15(const SourceObjectAttachmentBindingTu15 &)=delete;
 };
@@ -37,8 +41,8 @@ public:
         event_={parent,parent_marker,child,child_marker,0};
     }
     void complete(std::uint32_t actual_return) {
-        const auto found=source_object_attachment_handlers_tu15.find(&memory_);
-        if(found!=source_object_attachment_handlers_tu15.end()) {
+        const auto found=source_object_attachment_handlers_tu15().find(&memory_);
+        if(found!=source_object_attachment_handlers_tu15().end()) {
             event_.caller_return=actual_return;found->second(event_);
         }
     }

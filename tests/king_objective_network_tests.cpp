@@ -72,7 +72,7 @@ void run(const Cache& cache,const LevelContent& content,bool teams,bool moving) 
   MultiplayerMatch match(content,0,cache.spawns(),rules,services);
   for(unsigned i=0;i<15;++i)match.join("Full King roster "+std::to_string(i)+std::string(60,'x'),teams?0:-1);
   LanHost host(match,0,0x4b494e47);Proxy proxy(host.port());std::array<std::int8_t,1> team{0};
-  LanClient client("127.0.0.1:"+std::to_string(proxy.port()),0x4b494e47,1,teams?std::span<const std::int8_t>(team):std::span<const std::int8_t>{});
+  LanClient client(host.join_address("127.0.0.1",proxy.port()),0x4b494e47,1,teams?std::span<const std::int8_t>(team):std::span<const std::int8_t>{});
   std::array<Controls,1> local{};std::array<Controls,multiplayer_capacity> controls{};
   for(unsigned i=0;i<32 && !client.ready();++i) {
     client.send(local);proxy.pump();host.receive(controls);host.broadcast();proxy.deliver(proxy.pump(),true,true);client.receive();

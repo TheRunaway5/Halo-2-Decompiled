@@ -19,6 +19,8 @@
 #include <sys/vfs.h>
 #elif defined(__APPLE__)
 #include "macos/cache_file_snapshot_storage.hpp"
+#elif defined(_WIN32)
+#include "windows/cache_file_snapshot_storage.hpp"
 #endif
 
 namespace halo2 {
@@ -116,6 +118,12 @@ std::shared_ptr<CacheFileSnapshot> CacheFileSnapshot::try_open(const std::filesy
         info.st_size <= 0 || std::uint64_t(info.st_size) > 1024ull * 1024 * 1024) return {};
     const auto size = std::size_t(info.st_size);
     return clone_file(source.fd, size, false);
+#elif defined(_WIN32)
+    const cache_snapshot_windows::File source{::_wopen(path.c_str(),_O_RDONLY|_O_BINARY|_O_NOINHERIT)};
+    struct _stat64 info{};
+    if(source.fd<0 || ::_fstat64(source.fd,&info) || !(info.st_mode&_S_IFREG) ||
+        info.st_size<=0 || std::uint64_t(info.st_size)>1024ull*1024*1024)return {};
+    return clone_file(source.fd,std::size_t(info.st_size),false);
 #else
     (void)path;
     return {};
@@ -128,6 +136,11 @@ std::shared_ptr<CacheFileSnapshot> CacheFileSnapshot::try_capture_file(int descr
     if (::fstat(descriptor, &info) || !S_ISREG(info.st_mode) || info.st_size < 0 ||
         std::uint64_t(info.st_size) > std::numeric_limits<std::size_t>::max()) return {};
     return clone_file(descriptor, std::size_t(info.st_size), true);
+#elif defined(_WIN32)
+    struct _stat64 info{};
+    if(::_fstat64(descriptor,&info) || !(info.st_mode&_S_IFREG) || info.st_size<0 ||
+        std::uint64_t(info.st_size)>std::numeric_limits<std::size_t>::max())return {};
+    return clone_file(descriptor,std::size_t(info.st_size),true);
 #else
     (void)descriptor;
     return {};
@@ -146,6 +159,14 @@ std::shared_ptr<CacheFileSnapshot> CacheFileSnapshot::clone_file(
     if (::fstat(snapshot.fd, &copied) || copied.st_size < 0 ||
         std::uint64_t(copied.st_size) != size) return {};
     return map_file(snapshot.fd, size);
+#elif defined(_WIN32)
+    (void)disk_only; // Windows snapshot_file admits only disk volumes.
+    if(!size)return std::shared_ptr<CacheFileSnapshot>(new CacheFileSnapshot(nullptr,0));
+    const cache_snapshot_windows::File snapshot{cache_snapshot_windows::snapshot_file()};
+    if(snapshot.fd<0 || !cache_snapshot_windows::copy_contents(descriptor,snapshot.fd,size))return {};
+    struct _stat64 copied{};
+    if(::_fstat64(snapshot.fd,&copied) || copied.st_size<0 || std::uint64_t(copied.st_size)!=size)return {};
+    return map_file(snapshot.fd,size);
 #else
     (void)descriptor; (void)size; (void)disk_only;
     return {};
@@ -184,6 +205,30 @@ std::shared_ptr<CacheFileSnapshot> CacheFileSnapshot::try_capture(
         }
     }
     return map_file(snapshot.fd, size);
+#elif defined(_WIN32)
+    if(suffix.size()>std::numeric_limits<std::size_t>::max()-bytes.size())return {};
+    const auto size=bytes.size()+suffix.size();
+    if(!size || size>std::uint64_t(std::numeric_limits<std::int64_t>::max()))return {};
+    const cache_snapshot_windows::File snapshot{cache_snapshot_windows::snapshot_file()};
+    if(snapshot.fd<0 || ::_chsize_s(snapshot.fd,size))return {};
+    constexpr std::size_t batch=1024*1024;
+    std::size_t offset=0;
+    for(auto segment:{bytes,suffix}) {
+        while(!segment.empty()) {
+            const auto chunk=segment.first(std::min(batch,segment.size()));
+            if(!std::all_of(chunk.begin(),chunk.end(),[](auto byte){return byte==std::byte{};})) {
+                if(::_lseeki64(snapshot.fd,offset,SEEK_SET)<0)return {};
+                for(std::size_t written=0;written<chunk.size();) {
+                    const auto count=::_write(snapshot.fd,chunk.data()+written,unsigned(chunk.size()-written));
+                    if(count<=0)return {};
+                    written+=std::size_t(count);
+                }
+                if(::_commit(snapshot.fd))return {};
+            }
+            offset+=chunk.size();segment=segment.subspan(chunk.size());
+        }
+    }
+    return map_file(snapshot.fd,size);
 #else
     (void)bytes; (void)suffix;
     return {};
@@ -198,6 +243,16 @@ std::shared_ptr<CacheFileSnapshot> CacheFileSnapshot::map_file(int descriptor, s
     try { result = new CacheFileSnapshot(mapping, size); }
     catch (...) { ::munmap(mapping, size); throw; }
     return std::shared_ptr<CacheFileSnapshot>(result);
+#elif defined(_WIN32)
+    const cache_snapshot_windows::Handle section{CreateFileMappingW(
+        cache_snapshot_windows::handle(descriptor),nullptr,PAGE_WRITECOPY,0,0,nullptr)};
+    if(!section.value)return {};
+    auto *mapping=MapViewOfFile(section.value,FILE_MAP_COPY,0,0,size);
+    if(!mapping)return {};
+    CacheFileSnapshot *result;
+    try{result=new CacheFileSnapshot(mapping,size);}
+    catch(...){UnmapViewOfFile(mapping);throw;}
+    return std::shared_ptr<CacheFileSnapshot>(result);
 #else
     (void)descriptor; (void)size;
     return {};
@@ -207,6 +262,8 @@ std::shared_ptr<CacheFileSnapshot> CacheFileSnapshot::map_file(int descriptor, s
 CacheFileSnapshot::~CacheFileSnapshot() {
 #if defined(__linux__) || defined(__APPLE__)
     if (mapping_) ::munmap(mapping_, size_);
+#elif defined(_WIN32)
+    if(mapping_)UnmapViewOfFile(mapping_);
 #endif
 }
 std::span<const std::byte> CacheFileSnapshot::bytes() const {

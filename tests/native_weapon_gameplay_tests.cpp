@@ -206,7 +206,7 @@ void network_inventory() {
   content.weapons.at(3).projectile_speed=3;
   auto spawns=starts();MultiplayerMatch match(content,0,spawns,rules());
   match.configure_weapon_pickups();LanHost host(match,0,12345);
-  LanClient client("127.0.0.1:"+std::to_string(host.port()),12345,1);
+  LanClient client(host.join_address(),12345,1);
   std::array<Controls,1> local{};std::array<Controls,16> commands{};
   for(unsigned tick=0;tick<40 && !client.ready();++tick) {
     client.send(local);host.receive(commands);host.broadcast();client.receive();

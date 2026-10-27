@@ -1,9 +1,11 @@
 """Promotion policy tests. Synthetic recorders establish no gameplay parity."""
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import sys
 import tempfile
 import unittest
@@ -11,16 +13,62 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 import build_launcher_engine as engine
+import native_renderer_shaders as native_shaders
+import stage_native_renderer_shaders as native_staging
+import custom_assets
+from native_variant_test_support import variant_fixture
+from custom_ui_test_support import custom_ui_fixture, empty_custom_map_fixture
+from test_controller_prompt_assets import controller_prompt_fixture
 
 
 class EnginePromotionTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Actual small Vulkan modules keep the publication fixture compatible
+        # with the production stager and reader. They prove admission policy,
+        # not the rendered behavior of a game shader.
+        compiler = shutil.which('glslangValidator')
+        if not compiler:
+            raise unittest.SkipTest('Vulkan shader compiler unavailable')
+        scratch = Path(os.environ['HALO2_TEST_SCRATCH']) / 'engine-admission-modules'
+        scratch.mkdir()
+        cls.modules = {}
+        sources = {
+            'vert': '#version 450\nvoid main(){gl_Position=vec4(0,0,0,1);}',
+            'geom': '#version 450\nlayout(points)in;layout(points,max_vertices=1)out;void main(){gl_Position=gl_in[0].gl_Position;EmitVertex();EndPrimitive();}',
+            'frag': '#version 450\nlayout(location=0)out vec4 c;void main(){c=vec4(1);}',
+            'comp': '#version 450\nlayout(local_size_x=1)in;void main(){}',
+        }
+        for stage, source in sources.items():
+            path = scratch / ('module.' + stage)
+            path.write_text(source)
+            target = path.with_name(path.name + '.spv')
+            subprocess.run([compiler, '-V', str(path), '-o', str(target)],
+                           check=True, stdout=subprocess.DEVNULL)
+            cls.modules[stage] = target.read_bytes()
+
     def setUp(self):
         self.owner = tempfile.TemporaryDirectory()
         self.addCleanup(self.owner.cleanup)
         self.root = Path(self.owner.name) / 'checkout'
         self.root.mkdir()
+        variant_fixture(self.root)
+        custom_ui_fixture(self.root)
+        empty_custom_map_fixture(self.root)
+        controller_prompt_fixture(self.root)
+        asset_pins = custom_assets.inventory(self.root)
+        self.addCleanup(lambda: self.assertEqual(custom_assets.inventory(self.root), asset_pins,
+            'Engine promotion must preserve the original custom asset sources'))
         (self.root / 'CMakeLists.txt').write_text('Synthetic policy fixture')
         (self.root / 'tests').mkdir()
+        (self.root / 'cmake').mkdir()
+        (self.root / 'cmake/NativeRendererProductionShaders.cmake').write_text(
+            'set(native_renderer_fixed_shaders\n' +
+            '\n'.join(sorted(native_shaders.AOT_FIXED_FILES)) + '\n)\n')
+        for name in native_shaders.AOT_FIXED_FILES:
+            origin = self.root / 'shaders' / native_staging.ALIASES.get(name, name[:-4])
+            origin.parent.mkdir(parents=True, exist_ok=True)
+            origin.write_text('Synthetic source owner for ' + name)
         self.cache = self.root / 'assets/imported/mcc-test'
         self.maps = self.cache / 'halo2/h2_maps_win64_dx11'
         self.maps.mkdir(parents=True)
@@ -64,18 +112,45 @@ class EnginePromotionTests(unittest.TestCase):
     def build(self, command, **kwargs):
         build = self.scratch / 'build'
         build.mkdir(exist_ok=True)
+        self.assertIn('--cmake-arg=-DHALO2_STAGE_CUSTOM_ASSETS=ON', command)
+        self.assertIn('--cmake-arg=-DHALO2_CUSTOM_ASSET_ROOT=' + str(self.root), command)
+        self.assertIn('--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT=' + str(self.root), command)
+        if not getattr(self, 'omit_build_custom_assets', False):
+            custom_assets.install(self.root, build / 'custom-assets')
         for name in ('halo2_native', 'Halo2-Launcher', 'Halo2-Title-Launcher', 'eos_sdk_worker'):
             (build / name).write_text('synthetic new binary')
             (build / name).chmod(0o755)
         shader_directory = next(v.split('=', 2)[2] for v in command
                                 if v.startswith('--cmake-arg=-DHALO2_RUNTIME_SHADER_DIR='))
-        (build / 'halo2_native').write_bytes(b'Synthetic admission input: ' + shader_directory.encode())
+        generated = ['native_world/v-' + '1' * 64 + '.vert.spv',
+                     'native_world/f-' + '2' * 64 + '.frag.spv',
+                     'native-fragments/hud/' + '3' * 64 + '.frag.spv']
+        (build / 'halo2_native').write_bytes(b'Synthetic admission input: ' + shader_directory.encode() +
+            b'\0' + b'\0'.join(name.encode() for name in generated) + b'\0')
         (build / 'shaders').mkdir(exist_ok=True)
-        # Use the same shader-name inventory as the actual compiled launcher.
-        text = (Path(__file__).resolve().parents[1] / 'src/app/launcher.cpp').read_text()
-        block = engine.re.search(r'shader_names\{(.*?)\};', text, engine.re.S)[1]
-        for name in engine.re.findall(r'"([^"\n]+\.spv)"', block):
-            (build / 'shaders' / name).write_bytes(b'synthetic shader')
+        names = sorted(native_shaders.AOT_FIXED_FILES | set(generated))
+        rows = []
+        for name in names:
+            target = build / 'shaders' / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            payload = self.modules[name.rsplit('.', 2)[-2]]
+            target.write_bytes(payload)
+            if name in generated:
+                rows.append(dict(path=name, bytes=len(payload), sha256=hashlib.sha256(payload).hexdigest()))
+        (build / 'CMakeCache.txt').write_text(
+            'CMAKE_HOME_DIRECTORY:INTERNAL=' + str(self.scratch / 'source') + '\n')
+        (build / 'production-shaders.txt').write_text('\n'.join(names) + '\n')
+        for name, manifest in {
+            'native-world-kernel-catalog/compiled.json': dict(
+                schema='HALO2_NATIVE_WORLD_KERNEL_COMPILED_V1', runtime_instruction_interpreter=False,
+                stages=[row for row in rows if row['path'].startswith('native_world/')]),
+            'native-fragment-catalog/compiled.json': dict(
+                schema='HALO2_COMPILED_NATIVE_FRAGMENT_KERNELS_V1', passed=True,
+                modules=[row for row in rows if row['path'].startswith('native-fragments/')]),
+        }.items():
+            target = build / name
+            target.parent.mkdir(exist_ok=True)
+            target.write_text(json.dumps(manifest))
         (build / 'engine-targets.txt').write_text('halo2_native|halo2_systems||src/app/main.cpp\n'
                                                 'halo2_systems|||src/engine.cpp\n')
         return subprocess.CompletedProcess(command, 0)
@@ -100,6 +175,24 @@ class EnginePromotionTests(unittest.TestCase):
         self.assertEqual(len(report['requested_smoke_cases']), 3)
         self.assertEqual(len(report['smoke']), 3, 'One failed case must not hide the rest of the requested cohort')
 
+    def test_interpreter_module_is_rejected_before_smoke_and_root_publication(self):
+        def changed(command, **kwargs):
+            result = self.build(command, **kwargs)
+            # An unowned generic program cannot enter the declared production
+            # bank even if the incremental build happens to contain it.
+            inventory = self.scratch / 'build/production-shaders.txt'
+            names = inventory.read_text().splitlines() + ['world.frag.spv']
+            inventory.write_text('\n'.join(sorted(names)) + '\n')
+            return result
+        with self.assertRaisesRegex(ValueError, 'differs from its authored/compiler owners'):
+            self.attempt(dict(passed=True), changed)
+        self.assertEqual(self.selection.read_bytes(), self.original_selection)
+        for name in ('Halo2-Launcher', 'Halo2-Title-Launcher'):
+            self.assertEqual((self.root / name).read_text(), 'previous launcher')
+        self.assertEqual(list((self.root / 'bin/engine-builds').iterdir()), [])
+        report = json.loads((self.args.output / 'report.json').read_text())
+        self.assertEqual(report.get('smoke', []), [])
+
     def test_failed_weapon_audio_preserves_selection_and_both_launchers(self):
         self.args.weapon_audio_reference_xbe = self.root / 'reference.xbe'
         self.args.weapon_audio_reference_xbe.write_bytes(b'synthetic reference identity')
@@ -121,6 +214,35 @@ class EnginePromotionTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'source changed'):
             self.attempt(dict(passed=True), changed)
         self.assertEqual(self.selection.read_bytes(), self.original_selection)
+
+    def test_generator_change_cannot_promote_a_mixed_build(self):
+        tools = self.root/'tools'
+        tools.mkdir()
+        emitter = tools/'native_world_fragment_kernel.py'
+        emitter.write_text('source-owned combiner generator')
+        def changed(command, **kwargs):
+            result=self.build(command, **kwargs)
+            (self.scratch/'source/tools'/emitter.name).write_text('generator changed during compile')
+            return result
+        with self.assertRaisesRegex(RuntimeError, 'source changed'):
+            self.attempt(dict(passed=True), changed)
+        self.assertEqual(self.selection.read_bytes(), self.original_selection)
+        self.assertEqual((self.root/'Halo2-Launcher').read_text(), 'previous launcher')
+
+    def test_generator_pins_exclude_temporary_outputs_and_preserve_legacy_status(self):
+        tools=self.root/'tools';tools.mkdir()
+        emitter=tools/'compile_native_fragment_kernels.py';emitter.write_text('original generator')
+        before=engine.source_hashes(self.root)
+        for name in ('__pycache__/emitter.py','build/generated.cpp','.git/fixture.py',
+                     'emitter.pyc','emitter.o','emitter.tmp.py'):
+            path=tools/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text('temporary')
+        self.assertEqual(engine.source_hashes(self.root),before)
+        (self.scratch/'source-hashes.json').write_text(json.dumps(before))
+        emitter.write_text('changed generator')
+        self.assertIn('1 files differ',engine.source_status(self.root,self.runtime))
+        legacy={name:pin for name,pin in before.items() if not name.startswith('tools/')}
+        (self.scratch/'source-hashes.json').write_text(json.dumps(legacy))
+        self.assertIn('lacks generator source provenance',engine.source_status(self.root,self.runtime))
 
     def test_eos_release_refuses_a_missing_runtime_library(self):
         self.args.eos_client_config = self.root / 'private-client.env'
@@ -167,6 +289,19 @@ class EnginePromotionTests(unittest.TestCase):
         (self.root / 'CMakeLists.txt').write_text('next engine revision')
         self.assertEqual(engine.source_hashes(destination), pins)
         self.assertNotEqual(engine.source_hashes(self.root), pins)
+
+    def test_frozen_build_borrows_existing_vista_fixtures_without_copying_assets(self):
+        vista = self.root / 'Halo 2 Vista installer'
+        (vista / 'maps').mkdir(parents=True)
+        fixture = vista / 'maps/01a_tutorial.map'
+        fixture.write_bytes(b'existing reference fixture')
+        destination = self.scratch / 'frozen'
+        pins = engine.freeze_source(self.root, destination)
+        self.assertTrue((destination / 'assets').is_symlink())
+        self.assertTrue((destination / vista.name).is_symlink())
+        self.assertEqual((destination / vista.name / 'maps/01a_tutorial.map').resolve(), fixture)
+        self.assertEqual(engine.source_hashes(destination), pins)
+        self.assertEqual(fixture.read_bytes(), b'existing reference fixture')
 
     def test_another_tasks_selection_is_not_overwritten(self):
         def changed(command, **kwargs):
@@ -250,6 +385,27 @@ class EnginePromotionTests(unittest.TestCase):
                      'source-hashes.json', 'frontend-selection.json'):
             self.assertTrue((runtime.parent / name).is_file(), name)
         self.assertEqual(json.loads((runtime.parent / 'qualification.json').read_text()), report)
+
+    def test_reused_older_cohort_receives_current_pinned_assets_without_a_cmake_asset_target(self):
+        self.args.prepare_only = True
+        self.args.reuse_owned_build = True
+        self.args.worker = True
+        self.omit_build_custom_assets = True
+        source = self.scratch / 'source'
+        frozen = engine.freeze_source(self.root, source)
+        (self.root / 'CMakeLists.txt').write_text('Later working tree; keep the active frozen cohort')
+        build = self.scratch / 'build'
+        build.mkdir()
+        (build / 'CMakeCache.txt').write_text('CMAKE_HOME_DIRECTORY:INTERNAL=' + str(source) + '\n')
+        expected_assets = custom_assets.inventory(self.root)
+        self.attempt(dict(passed=True))
+        report = json.loads((self.args.output / 'report.json').read_text())
+        self.assertTrue(report['passed'])
+        self.assertEqual(report['source_cohort']['kind'], 'active_owned_frozen')
+        self.assertEqual(engine.source_hashes(source), frozen)
+        runtime = self.root / report['runtime']
+        self.assertEqual(custom_assets.inventory(runtime.parent / 'custom-assets'), expected_assets)
+        self.assertEqual(self.selection.read_bytes(), self.original_selection)
 
     def test_prepare_only_preserves_foreign_root_changes_during_validation(self):
         self.args.prepare_only = True
@@ -591,6 +747,176 @@ class EnginePromotionTests(unittest.TestCase):
                 ('halo2_native|new_library||src/app/main.cpp\nnew_library|||src/new.cpp\n', True)):
             graph.write_text(graph_text)
             self.assertEqual(engine.wiring(graph, self.root)['passed'], expected)
+
+    def test_direct_object_sources_reach_the_engine_through_the_owning_archive(self):
+        source = self.root / 'src/context.cpp'
+        source.parent.mkdir()
+        source.write_text('object implementation')
+        graph = self.scratch / 'graph.txt'
+        graph.write_text('halo2_native|halo2_systems||src/app/main.cpp\n'
+                         'halo2_systems|||$<TARGET_OBJECTS:context>\n'
+                         f'context|||{source}\n')
+        result = engine.wiring(graph, self.root)
+        self.assertTrue(result['passed'])
+        self.assertIn('context', result['engine_targets'])
+        self.assertIn('src/context.cpp', result['engine_sources'])
+        self.assertNotIn('src/context.cpp', result['separate_components'])
+
+    def test_cmake_parent_relative_absolute_sources_keep_their_real_owner(self):
+        source = self.root / 'src/context.cpp'
+        source.parent.mkdir()
+        source.write_text('linked implementation')
+        (self.root / 'cmake').mkdir(exist_ok=True)
+        graph = self.scratch / 'graph.txt'
+        graph.write_text('halo2_native|halo2_systems||src/app/main.cpp\n'
+                         f'halo2_systems|||{self.root}/cmake/../src/context.cpp\n')
+        result = engine.wiring(graph, self.root)
+        self.assertTrue(result['passed'])
+        self.assertIn('src/context.cpp', result['engine_sources'])
+        self.assertNotIn('src/context.cpp', result['unregistered_sources'])
+
+    def test_absolute_sources_outside_the_cohort_cannot_admit_a_local_source(self):
+        source = self.root / 'src/context.cpp'
+        source.parent.mkdir()
+        source.write_text('local implementation without a linked owner')
+        outside = self.root.parent / 'outside.cpp'
+        outside.write_text('different implementation')
+        graph = self.scratch / 'graph.txt'
+        graph.write_text('halo2_native|||src/app/main.cpp;'
+                         f'{self.root}/src/../../outside.cpp\n')
+        result = engine.wiring(graph, self.root)
+        self.assertFalse(result['passed'])
+        self.assertEqual(result['unexpected_unwired_sources'], ['src/context.cpp'])
+        self.assertFalse(any('..' in name for name in result['engine_sources']))
+
+    def test_build_dependencies_and_conditional_object_sources_do_not_prove_membership(self):
+        source = self.root / 'src/context.cpp'
+        source.parent.mkdir()
+        source.write_text('object implementation')
+        graph = self.scratch / 'graph.txt'
+        for owner in ('halo2_systems||context|\n',
+                      'halo2_systems|||$<$<BOOL:0>:$<TARGET_OBJECTS:context>>\n',
+                      'unlinked_test|||$<TARGET_OBJECTS:context>\n'):
+            with self.subTest(owner=owner):
+                graph.write_text('halo2_native|halo2_systems||src/app/main.cpp\n' +
+                    owner + f'context|||{source}\n')
+                result = engine.wiring(graph, self.root)
+                self.assertFalse(result['passed'])
+                self.assertNotIn('context', result['engine_targets'])
+                self.assertEqual(result['unexpected_unwired_sources'], ['src/context.cpp'])
+
+    def test_unadmitted_decorator_components_keep_an_explicit_boundary(self):
+        components = (
+            'src/rendering/world/source_decorator_decals_tu15.cpp',
+            'src/rendering/world/source_decorator_owners_tu15_generated.cpp',
+            'src/rendering/effects/source_decorator_decal_draw.cpp',
+            'src/rendering/effects/source_decorator_decal_material.cpp')
+        for name in components:
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('separate decorator component')
+        graph = self.scratch / 'graph.txt'
+        graph.write_text('halo2_native|||src/app/main.cpp\n')
+        result = engine.wiring(graph, self.root)
+        self.assertTrue(result['passed'])
+        self.assertEqual(set(result['component_boundaries']), set(components))
+        self.assertTrue(set(components).isdisjoint(result['engine_sources']))
+        unknown = self.root / 'src/rendering/effects/source_decorator_unknown.cpp'
+        unknown.write_text('unregistered production source')
+        self.assertEqual(engine.wiring(graph, self.root)['unexpected_unwired_sources'],
+                         ['src/rendering/effects/source_decorator_unknown.cpp'])
+
+    def test_unadmitted_loading_components_keep_an_explicit_boundary(self):
+        components = (
+            'src/rendering/loading/source_loading_program_tu15_generated.cpp',
+            'src/ui/source_loading_assets.cpp')
+        for name in components:
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('loading component without a production caller')
+        graph = self.scratch / 'graph.txt'
+        graph.write_text('halo2_native|||src/app/main.cpp\n')
+        result = engine.wiring(graph, self.root)
+        self.assertTrue(result['passed'])
+        self.assertEqual(set(result['component_boundaries']), set(components))
+        self.assertTrue(set(components).isdisjoint(result['engine_sources']))
+        for name in components:
+            self.assertIn('without a production', result['component_boundaries'][name])
+        unknown = ('src/rendering/loading/source_loading_unknown.cpp',
+                   'src/ui/source_loading_unknown.cpp')
+        for name in unknown:
+            (self.root / name).write_text('unregistered loading source remains a wiring failure')
+        result = engine.wiring(graph, self.root)
+        self.assertFalse(result['passed'])
+        self.assertEqual(result['unexpected_unwired_sources'], list(unknown))
+
+    def test_native_motion_pose_component_keeps_the_original_virtual_owner_boundary(self):
+        name = 'src/physics/native_tu15_motion_pose.cpp'
+        source = self.root / name
+        source.parent.mkdir(parents=True)
+        source.write_text('standalone native pose component')
+        graph = self.scratch / 'graph.txt'
+        graph.write_text('halo2_native|||src/app/main.cpp\n')
+        result = engine.wiring(graph, self.root)
+        self.assertTrue(result['passed'])
+        self.assertNotIn(name, result['engine_sources'])
+        self.assertIn('original production virtual owner', result['component_boundaries'][name])
+        unknown = source.with_name('native_tu15_motion_pose_unknown.cpp')
+        unknown.write_text('unknown source remains a failure')
+        self.assertEqual(engine.wiring(graph, self.root)['unexpected_unwired_sources'],
+                         ['src/physics/native_tu15_motion_pose_unknown.cpp'])
+
+    def test_unadmitted_broad_phase_and_solver_keep_explicit_residual_boundaries(self):
+        components = (
+            'src/physics/native_tu15_broad_phase.cpp',
+            'src/physics/native_tu15_constraint_solver.cpp',
+            'src/physics/native_tu15_constraint_solver_rows.cpp')
+        for name in components:
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('standalone component without an admitted production caller')
+        graph = self.scratch / 'graph.txt'
+        graph.write_text('halo2_native|||src/app/main.cpp\n')
+        result = engine.wiring(graph, self.root)
+        self.assertTrue(result['passed'])
+        self.assertEqual(set(result['unregistered_sources']), set(components))
+        self.assertEqual(set(result['component_boundaries']), set(components))
+        self.assertTrue(set(components).isdisjoint(result['engine_sources']))
+        self.assertIn('0x321700 residual', result['component_boundaries'][components[0]])
+        for name in components[1:]:
+            self.assertIn('0x326A40 residual', result['component_boundaries'][name])
+        unknown = self.root / 'src/physics/native_tu15_constraint_solver_unknown.cpp'
+        unknown.write_text('unknown source remains a wiring failure')
+        result = engine.wiring(graph, self.root)
+        self.assertFalse(result['passed'])
+        self.assertEqual(result['unexpected_unwired_sources'],
+                         ['src/physics/native_tu15_constraint_solver_unknown.cpp'])
+
+    def test_offline_xbox_asset_controls_keep_an_explicit_reference_boundary(self):
+        components = (
+            'src/ui/original_matchmaking_fonts.cpp',
+            'src/ui/original_matchmaking_emblems.cpp',
+            'src/ui/original_matchmaking_audio.cpp',
+            'src/ui/original_loading_assets.cpp')
+        for name in components:
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('offline Xbox reference control')
+        graph = self.scratch / 'graph.txt'
+        graph.write_text('halo2_native|||src/app/main.cpp\n' + ''.join(
+            f'offline_reference_{index}|||{self.root / name}\n'
+            for index, name in enumerate(components)))
+        result = engine.wiring(graph, self.root)
+        self.assertTrue(result['passed'])
+        self.assertEqual(set(result['component_boundaries']), set(components))
+        self.assertTrue(set(components).isdisjoint(result['engine_sources']))
+        for index, name in enumerate(components):
+            self.assertEqual(result['separate_components'][name], [f'offline_reference_{index}'])
+            self.assertIn('excluded from the MCC runtime', result['component_boundaries'][name])
+        unknown = self.root / 'src/ui/original_unknown.cpp'
+        unknown.write_text('unregistered source remains a wiring failure')
+        self.assertEqual(engine.wiring(graph, self.root)['unexpected_unwired_sources'],
+                         ['src/ui/original_unknown.cpp'])
 
 
 class CachePublicationTests(unittest.TestCase):

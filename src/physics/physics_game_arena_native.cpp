@@ -19,7 +19,11 @@
 #include <utility>
 #include <set>
 #include <optional>
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(_WIN32)
+#include "platform/windows_api.hpp"
+#include <io.h>
+#include <fcntl.h>
+#elif defined(__linux__) || defined(__APPLE__)
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -157,7 +161,9 @@ struct SourcePhysicsGameArenaNative::Impl {
     NativeFile(int fd,std::string name) noexcept:fd(fd),name(std::move(name)) {}
     NativeFile(NativeFile &&other) noexcept:fd(std::exchange(other.fd,-1)),name(std::move(other.name)) {}
     ~NativeFile() {
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(_WIN32)
+      if(fd>=0)::_close(fd);
+#elif defined(__linux__) || defined(__APPLE__)
       if(fd>=0)::close(fd);
 #endif
     }
@@ -179,7 +185,7 @@ struct SourcePhysicsGameArenaNative::Impl {
        physical(m),scratch(m,config.worker_stack_address) {
     require(!config.savegame_directory.empty() && config.worker_stack_address,
             "Native startup needs explicit file and private-stack owners");
-#if !defined(__linux__) && !defined(__APPLE__)
+#if !defined(__linux__) && !defined(__APPLE__) && !defined(_WIN32)
     throw std::runtime_error("Native arena startup platform is unavailable");
 #endif
   }
@@ -292,7 +298,7 @@ struct SourcePhysicsGameArenaNative::Impl {
     case 0x2dbea6: {
       require(arg(0)==worker && arg(1)==1 && native_worker,
               "Original async priority request differs");
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(__linux__) || defined(__APPLE__) || defined(_WIN32)
       // Named native priority policy with the real host success/failure BOOL;
       // the original12226A caller consumes no BOOL or last-error value.
       const auto result=native_startup_resources::raise_worker_priority(native_worker);
@@ -356,7 +362,16 @@ struct SourcePhysicsGameArenaNative::Impl {
       const auto name=string(shared,arg(0));
       require(name=="n:\\savegame0.bin" || name=="n:\\savegame1.bin",
               "Reached source file namespace owner unavailable");
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(_WIN32)
+      const auto path=config.savegame_directory/name.substr(3);
+      const auto handle=::CreateFileW(path.c_str(),GENERIC_READ|GENERIC_WRITE,
+          FILE_SHARE_READ|FILE_SHARE_DELETE,nullptr,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,nullptr);
+      if(handle==INVALID_HANDLE_VALUE){finish(28,0xffffffffu);return true;}
+      const auto fd=::_open_osfhandle(reinterpret_cast<intptr_t>(handle),_O_RDWR|_O_BINARY|_O_NOINHERIT);
+      if(fd<0){::CloseHandle(handle);finish(28,0xffffffffu);return true;}
+      const auto alias=next_file;NativeFile opened(fd,name.substr(3));
+      files.emplace(alias,std::move(opened));++next_file;finish(28,alias);return true;
+#elif defined(__linux__) || defined(__APPLE__)
       const auto path=config.savegame_directory/name.substr(3);
       auto retained_name=name.substr(3);
       const auto fd=::open(path.c_str(),O_RDWR|O_CREAT|O_CLOEXEC,0600);
@@ -372,7 +387,11 @@ struct SourcePhysicsGameArenaNative::Impl {
       const auto found=files.find(arg(0));
       require(found!=files.end() && arg(2) && word(shared,arg(2))==0 && arg(3)==0,
               "Reached startup seek owner unavailable");
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(_WIN32)
+      const auto offset=::_lseeki64(found->second.fd,arg(1),SEEK_SET);
+      require(offset<=UINT32_MAX,"Native source file position exceeds reached ABI");
+      finish(16,offset<0?0xffffffffu:std::uint32_t(offset));return true;
+#elif defined(__linux__) || defined(__APPLE__)
       const auto offset=::lseek(found->second.fd,arg(1),SEEK_SET);
       require(offset<=UINT32_MAX,"Native source file position exceeds reached ABI");
       finish(16,offset<0?0xffffffffu:std::uint32_t(offset));return true;
@@ -382,7 +401,10 @@ struct SourcePhysicsGameArenaNative::Impl {
     }
     case 0x2dc2f4: {
       const auto found=files.find(arg(0));require(found!=files.end(),"Reached startup file extent owner unavailable");
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(_WIN32)
+      const auto position=::_lseeki64(found->second.fd,0,SEEK_CUR);
+      finish(4,std::uint32_t(position>=0 && ::_chsize_s(found->second.fd,position)==0));return true;
+#elif defined(__linux__) || defined(__APPLE__)
       const auto position=::lseek(found->second.fd,0,SEEK_CUR);
       const auto ok=position>=0 && ::ftruncate(found->second.fd,position)==0;
       finish(4,std::uint32_t(ok));return true;
@@ -443,7 +465,21 @@ SourcePhysicsGameArenaNative::OwnershipCheckpoint SourcePhysicsGameArenaNative::
   OwnershipCheckpoint saved{1,impl_->worker,impl_->worker_stack,impl_->worker_semaphore,impl_->next_file,
       impl_->scratch.cursor_checkpoint(),impl_->physical.ownership_checkpoint(),impl_->synchronization.checkpoint(),{}};
   for(const auto &[alias,file]:impl_->files) {
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(_WIN32)
+    const auto handle=reinterpret_cast<HANDLE>(::_get_osfhandle(file.fd));
+    BY_HANDLE_FILE_INFORMATION before{},after{};
+    if(!::GetFileInformationByHandle(handle,&before))throw std::system_error(::GetLastError(),std::system_category(),"Capture arena file extent");
+    const auto position=::_lseeki64(file.fd,0,SEEK_CUR);
+    const auto size=(std::uint64_t(before.nFileSizeHigh)<<32)|before.nFileSizeLow;
+    require(!(before.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY) && size<=UINT32_MAX && position>=0 &&
+            std::uint64_t(position)<=UINT32_MAX,"Arena file exceeds retained source ABI");
+    FileCheckpoint copy{alias,std::uint32_t(position),file.name,SourceRuntimeSnapshotBytes::capture_file(file.fd)};
+    if(!::GetFileInformationByHandle(handle,&after))throw std::system_error(::GetLastError(),std::system_category(),"Recheck arena file extent");
+    require(copy.bytes.size()==size && before.nFileSizeHigh==after.nFileSizeHigh && before.nFileSizeLow==after.nFileSizeLow &&
+        ::CompareFileTime(&before.ftLastWriteTime,&after.ftLastWriteTime)==0 && ::_lseeki64(file.fd,0,SEEK_CUR)==position,
+        "Arena file changed during checkpoint");
+    saved.files.push_back(std::move(copy));
+#elif defined(__linux__) || defined(__APPLE__)
     struct stat before{},after{};
     if(::fstat(file.fd,&before))throw std::system_error(errno,std::generic_category(),"Capture arena file extent");
     const auto position=::lseek(file.fd,0,SEEK_CUR);
@@ -485,7 +521,29 @@ struct SourcePhysicsGameArenaNative::PreparedOwnership::Impl {
     physical.emplace(target.physical.prepare_ownership(saved.physical,bank,replacement));
     synchronization.emplace(target.synchronization.prepare_restore(saved.synchronization));
     for(const auto &saved_file:saved.files) {
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(_WIN32)
+      std::array<wchar_t,MAX_PATH> temporary{};
+      if(!::GetTempFileNameW(target.config.savegame_directory.c_str(),L"h2a",0,temporary.data()))
+        throw std::system_error(::GetLastError(),std::system_category(),"Stage private arena file");
+      const auto handle=::CreateFileW(temporary.data(),GENERIC_READ|GENERIC_WRITE,
+          FILE_SHARE_READ|FILE_SHARE_DELETE,nullptr,OPEN_EXISTING,
+          FILE_ATTRIBUTE_TEMPORARY|FILE_FLAG_DELETE_ON_CLOSE,nullptr);
+      if(handle==INVALID_HANDLE_VALUE){const auto error=::GetLastError();::DeleteFileW(temporary.data());
+        throw std::system_error(error,std::system_category(),"Open private arena file");}
+      const auto fd=::_open_osfhandle(reinterpret_cast<intptr_t>(handle),_O_RDWR|_O_BINARY|_O_NOINHERIT);
+      if(fd<0){::CloseHandle(handle);throw std::system_error(errno,std::generic_category(),"Own private arena file");}
+      SourcePhysicsGameArenaNative::Impl::NativeFile file(fd,saved_file.name);
+      if(::_chsize_s(fd,saved_file.bytes.size()))throw std::system_error(errno,std::generic_category(),"Stage arena file extent");
+      for(std::size_t done=0;done<saved_file.bytes.size();) {
+        const auto bytes=std::span(saved_file.bytes).subspan(done,std::min<std::size_t>(1024*1024,saved_file.bytes.size()-done));
+        const auto count=::_write(fd,bytes.data(),unsigned(bytes.size()));
+        if(count<=0)throw std::system_error(errno?errno:EIO,std::generic_category(),"Stage arena file bytes");
+        done+=std::size_t(count);
+      }
+      if(::_commit(fd) || ::_lseeki64(fd,saved_file.position,SEEK_SET)<0)
+        throw std::system_error(errno,std::generic_category(),"Stage arena file position");
+      files.emplace(saved_file.alias,std::move(file));
+#elif defined(__linux__) || defined(__APPLE__)
       auto name=saved_file.name;
       const auto pattern=(target.config.savegame_directory/".halo2-arena-XXXXXX").string();
       std::vector<char> path(pattern.begin(),pattern.end());path.push_back('\0');

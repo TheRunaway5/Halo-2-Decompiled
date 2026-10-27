@@ -14,7 +14,8 @@ public:
   GamePauseMenu(const std::filesystem::path &xbox_maps,
                 const std::filesystem::path &vista_assets, Mesh &, bool campaign,
                 const std::filesystem::path &preferences = {},
-                const std::filesystem::path &menu_assets = {});
+                const std::filesystem::path &menu_assets = {},
+                const std::filesystem::path &gameplay_map = {});
   ~GamePauseMenu();
   void bind(SDL_Window *, DesktopSession &, Renderer &);
   void audio(AudioEngine *);

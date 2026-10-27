@@ -238,14 +238,26 @@ def main():
         'halo2/source_scene_device_constructor_tu15.hpp').replace('source_run_physics_live_support_tu15',
         'source_run_scene_device_constructor_tu15').replace('source_physics_live_support_tu15_owns_entry',
         'source_scene_device_constructor_tu15_owns_entry')
-    # MACH117A8C calls this owned body internally, so it does not cross
-    # the live external-owner observation boundary. Read-only diagnostics
-    # retain the same actual ABI/memory and detach with their native owner.
+    # MACH117A8C must reach the same force owner as external phantom calls.
+    # Keeping a second generated1DA750 here bypasses its native scalar seams.
+    # Retain internal observation and transfer actual ABI/FP, including faults.
     source=source.replace('#include "halo2/source_projectile_effect_observer.hpp"',
-        '#include "halo2/source_projectile_effect_observer.hpp"\n#include "halo2/physics_internal_phantom_observation.hpp"')
+        '#include "halo2/source_projectile_effect_observer.hpp"\n#include "halo2/physics_internal_phantom_observation.hpp"\n#include "halo2/physics_phantom_force_tu15.hpp"')
     phase='static void run_1da750(WorldState &s) {\n'
     assert source.count(phase)==1
-    source=source.replace(phase,phase+'SourceInternalPhantomObservation phase(s.memory,[&]{return s.save();});\n',1)
+    begin=source.index(phase)
+    end=source.index('static void run_1dbb30(WorldState &s) {',begin)
+    source=source[:begin]+'''static void run_1da750(WorldState &s) {
+    SourceInternalPhantomObservation phase(s.memory,[&]{return s.save();});
+    auto abi=s.save();auto floating_point=*abi.floating_point;
+    try {
+        source_run_physics_phantom_force_tu15_runtime(s.memory,0x1da750u,
+            abi,floating_point,s.services,s.observe);
+    } catch(...) {s.load(abi);throw;}
+    s.load(abi);
+}
+
+'''+source[end:]
     a.output.write_text(source)
     report = json.loads(manifest.read_text())
     report.update(generated_cpp_sha256=sha(a.output), wrapper_sha256=sha(Path(__file__)),

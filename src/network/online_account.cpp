@@ -19,7 +19,7 @@ namespace halo2 {
 namespace {
 using Json = nlohmann::json;
 using Clock = std::chrono::steady_clock;
-constexpr std::size_t max_body = 65536;
+constexpr std::size_t max_body = 256 * 1024;
 void require(bool ok) { if (!ok) throw std::runtime_error("Invalid ONLINE response"); }
 struct HttpError : std::runtime_error { using std::runtime_error::runtime_error; };
 std::string origin(const std::string &value, bool local) {
@@ -163,10 +163,58 @@ void parse_social(const Json &root, OnlineAccountSnapshot &s) {
   s.clan = std::move(clan);
 }
 void social(const Json &root, OnlineAccountSnapshot &s) { auto next=s; parse_social(root,next); s=std::move(next); }
+bool valid_friend_tag(const std::string &tag) {
+  const auto at=tag.rfind('#');
+  return at!=std::string::npos && at>0 && tag.size()-at==9 && tag.size()<=73 &&
+    std::all_of(tag.begin()+at+1,tag.end(),[](char c){return c>='0' && c<='9';});
+}
+void parse_friends(const Json &root,OnlineAccountSnapshot &snapshot) {
+  auto next=snapshot;
+  next.friend_tag=text(root,"friend_tag",73);require(valid_friend_tag(next.friend_tag));
+  auto read=[](const Json &row,bool relationship) {
+    OnlineFriend f;f.id=text(row,"id",36);f.name=text(row,"name");f.tag=text(row,"friend_tag",73);
+    require(f.id.size()==36 && valid_friend_tag(f.tag) && f.tag==f.name+f.tag.substr(f.tag.rfind('#')));
+    f.presence=text(row,"presence",16);
+    require(f.presence=="offline" || f.presence=="online" || f.presence=="playing");
+    if(relationship) {
+      f.state=text(row,"state",16);
+      require(f.state=="friend" || f.state=="incoming" || f.state=="outgoing" || f.state=="blocked");
+    }
+    if(row.contains("party_joinable")) {
+      f.party_joinable=boolean(row,"party_joinable");
+      require(!*f.party_joinable || (relationship && f.state=="friend" && f.presence!="offline"));
+    }
+    if(row.contains("party_context") && !row.at("party_context").is_null()) {
+      f.party_context=text(row,"party_context",36);
+      require(f.party_context.size()==36 && relationship && f.state=="friend" && f.presence!="offline");
+    }
+    require(f.party_joinable!=true || !f.party_context.empty());
+    return f;
+  };
+  const auto &rows=root.at("friends");require(rows.is_array() && rows.size()<=250);
+  std::vector<OnlineFriend> friends;std::set<std::string> seen;
+  for(const auto &row:rows){auto f=read(row,true);require(seen.insert(f.id).second);friends.push_back(std::move(f));}
+  next.friends=std::move(friends);next.friends_available=true;next.friends_message.clear();
+  if(root.contains("search_result"))next.friend_search=read(root.at("search_result"),false);
+  snapshot=std::move(next);
+}
 std::uint64_t version(const Json &r) {
   const auto &v=r.at("version");
   require(v.is_number_integer() && v>0 && v<=std::numeric_limits<std::int64_t>::max());
   return v.get<std::uint64_t>();
+}
+std::optional<OnlineParty::Countdown> parse_party_countdown(const Json &r) {
+  if(r.is_null())return {};
+  require(r.is_object() && r.size()==5);
+  OnlineParty::Countdown c;
+  const auto &serial=r.at("serial");require(serial.is_number_integer() && serial>0 && serial<=std::numeric_limits<std::int64_t>::max());
+  c.serial=serial.get<std::uint64_t>();
+  if(!r.at("seconds").is_null())c.seconds=number(r,"seconds",0,10);
+  c.mode=number(r,"mode",0,1);c.complete=boolean(r,"complete");
+  if(!r.at("requester").is_null())c.requester=text(r,"requester",36);
+  require(c.mode==1?!c.requester.empty():c.requester.empty());
+  require(c.complete?(!c.seconds || *c.seconds==0):(c.seconds && *c.seconds>0));
+  return c;
 }
 void parse_party(const Json &root, OnlineAccountSnapshot &s) {
   const auto appearance=[](const Json &row)->std::optional<FrontendAppearance> {
@@ -193,24 +241,36 @@ void parse_party(const Json &root, OnlineAccountSnapshot &s) {
   }
   const auto &p=root.at("party");
   if(!p.is_null()) {
-    require(p.is_object() && p.size()==4);
+    require(p.is_object() && p.size()==4+unsigned(p.contains("countdown"))+unsigned(p.contains("privacy")));
     OnlineParty party;party.version=version(p);party.leader=boolean(p,"leader");
+    if(p.contains("privacy")) {
+      const auto &privacy=p.at("privacy");require(privacy.is_object() && privacy.size()==3);
+      const auto &revision=privacy.at("revision");
+      require(revision.is_number_integer() && revision>0 && revision<=std::numeric_limits<std::int64_t>::max());
+      const auto context=text(privacy,"context",36);require(context.size()==36);
+      party.privacy=OnlineParty::Privacy{unsigned(number(privacy,"mode",0,2)),revision.get<std::uint64_t>(),context};
+    }
+    party.countdown_supported=p.contains("countdown");
+    if(party.countdown_supported)party.countdown=parse_party_countdown(p.at("countdown"));
     const auto &members=p.at("members");require(members.is_array() && !members.empty() && members.size()<=16);
     unsigned selves{},leaders{};ids.clear();
     for(const auto &r:members) {
-      require(r.is_object() && r.size()==6+unsigned(r.contains("local_players"))+unsigned(r.contains("appearance")));
+      require(r.is_object() && r.size()==6+unsigned(r.contains("local_players"))+unsigned(r.contains("appearance"))+unsigned(r.contains("postgame")));
       OnlinePartyMember member{text(r,"handle",36),text(r,"name"),text(r,"ready_playlist",64,true),
                                boolean(r,"self"),boolean(r,"leader"),boolean(r,"online")};
       require(ids.insert(member.handle).second);
       member.appearance=appearance(r);
+      if(r.contains("postgame"))member.postgame=boolean(r,"postgame");
       if(r.contains("local_players")) {
         const auto &locals=r.at("local_players");require(locals.is_array() && locals.size()<=3);
         for(const auto &local:locals){require(local.is_object() && local.size()==2+unsigned(local.contains("appearance")));member.local_players.push_back({text(local,"name"),boolean(local,"guest"),appearance(local)});}
       }
-      if(member.self){++selves;require(member.leader==party.leader);}
+      if(member.self){++selves;require(member.leader==party.leader && (!party.privacy || party.privacy->context==member.handle));}
       leaders+=member.leader;party.members.push_back(std::move(member));
     }
     require(selves==1 && leaders==1);
+    if(party.countdown && !party.countdown->requester.empty())
+      require(std::any_of(party.members.begin(),party.members.end(),[&](const auto &m){return m.handle==party.countdown->requester && !m.leader;}));
     const auto &outgoing=p.at("outgoing");require(outgoing.is_array() && outgoing.size()<=100);ids.clear();
     for(const auto &r:outgoing) {
       require(r.is_object() && r.size()==2);auto id=text(r,"id",36);require(ids.insert(id).second);
@@ -328,12 +388,21 @@ struct OnlineAccount::Impl {
     auto next_profile_attempt=Clock::time_point{};
     std::string linked_session;
     auto next_identity_attempt=Clock::time_point{};
+    auto next_social_poll=Clock::time_point{};
     Clock::time_point expires{};
     auto cleanup = [&] { if (!session.empty()) try { http({"DELETE",options.endpoint+"/v1/account/session",{},session},{}); } catch (...) {} session.clear(); session_name.clear();session_subject.clear(); };
     while (!stop.stop_requested()) {
       std::unique_lock lock(mutex);
       if (!active) wake.wait(lock,stop,[&]{ return pending; });
-      else wake.wait_for(lock,stop,options.poll_interval,[&]{ return pending; });
+      else {
+        const auto cadence=state.party && state.party->countdown_supported?
+          (state.party->countdown && state.party->countdown->seconds?std::chrono::milliseconds(100):std::chrono::milliseconds(500)):
+          options.poll_interval;
+        // The dedicated countdown endpoint permits ten reads per second.
+        // A shorter configurable social interval must not exceed that budget;
+        // actual commands still wake this wait immediately through pending.
+        wake.wait_for(lock,stop,cadence,[&]{ return pending; });
+      }
       if (stop.stop_requested()) break;
       const auto was_authenticated = state.authenticated; const auto enabled = active; const auto value = name; const auto version = generation;
       const auto profile = desired_profile; const auto profile_version = profile_serial;
@@ -352,13 +421,14 @@ struct OnlineAccount::Impl {
       cancellation = std::stop_source{}; auto cancelled = cancellation.get_token();
       auto next = state; lock.unlock();
       if (!enabled) { cleanup(); continue; }
+      bool party_command_acknowledged{};
       try {
         auto call = [&](const std::string &method, const std::string &path, const std::string &body, const std::string &bearer) {
           auto response = http({method, options.endpoint+path, body, bearer}, cancelled);
           require(!cancelled.stop_requested());
           auto json = parse(response.body);
           if (response.status < 200 || response.status >= 300) {
-            if (response.status == 401) { session.clear(); next.authenticated = false; }
+            if (response.status == 401) { session.clear(); next = {}; }
             throw HttpError(text(json,"error",256));
           }
           return json;
@@ -372,7 +442,23 @@ struct OnlineAccount::Impl {
         if(!activity && previous_activity.serial && previous_activity_subject!=authorization->subject) {
           activity=previous_activity;activity->successful=false;activity->link.reset();
         }
+        if(!cmd && !fetch_friends && next.authenticated && next.party && next.party->countdown_supported &&
+           !session.empty() && session_subject==authorization->subject && session_name==value &&
+           Clock::now()<expires && Clock::now()<next_social_poll && profile_version==sent_profile) {
+          const auto reply=call("GET","/v1/party/countdown",{},session);
+          require(reply.is_object() && reply.size()==2);
+          if(reply.at("version").is_number_integer() && reply.at("version")==next.party->version) {
+            auto countdown=parse_party_countdown(reply.at("countdown"));
+            if(countdown && !countdown->requester.empty())
+              require(std::any_of(next.party->members.begin(),next.party->members.end(),[&](const auto &m){return m.handle==countdown->requester && !m.leader;}));
+            next.party->countdown=std::move(countdown);
+          }
+          else next_social_poll=Clock::time_point{}; // Membership changed: fetch the real roster.
+          publish(std::move(next),version,session,expires,std::move(activity),session_subject,std::move(link));
+          continue;
+        }
         if (session.empty() || session_name != value || session_subject!=authorization->subject || Clock::now() >= expires) {
+          if(!session_subject.empty() && session_subject!=authorization->subject)next={};
           cleanup();
           auto response = call("POST","/v1/account/session",Json{{"screen_name",value}}.dump(),authorization->bearer);
           require(response.size() == 2); session = text(response,"token",128); session_name = value;
@@ -441,13 +527,21 @@ struct OnlineAccount::Impl {
           }
           // The same command ID survives an uncertain network result. A second
           // submission is a replay on the server, never another mutation.
-          auto consume=[&](const Json &r){if(path=="/v1/party/commands"){parse_party(r,next);next.party_message.clear();}else social(r,next);};
-          try { consume(call("POST",path,cmd->dump(),session)); }
+          auto consume=[&](const Json &r){if(path=="/v1/party/commands"){
+            auto parsed=next;parse_party(r,parsed);
+            if(cmd->at("action")=="join_friend")require(parsed.party && std::any_of(parsed.party->members.begin(),parsed.party->members.end(),
+                [&](const auto &member){return member.handle==cmd->at("target_context").get<std::string>();}));
+            parsed.party_message.clear();next=std::move(parsed);
+          }else if(path=="/v1/friends/commands")parse_friends(r,next);else social(r,next);};
+          const auto request_path=path=="/v1/party/commands"?path+"?countdown=1&privacy=1":
+            path=="/v1/friends/commands"?path+"?party=1":path;
+          try { consume(call("POST",request_path,cmd->dump(),session)); }
           catch (const HttpError &) { throw; }
           catch (const std::exception &) {
             if (cancelled.stop_requested()) throw;
-            consume(call("POST",path,cmd->dump(),session));
+            consume(call("POST",request_path,cmd->dump(),session));
           }
+          if(path=="/v1/party/commands"){next.party_command_successful=true;party_command_acknowledged=true;}
           if(activity) {
             if(issuer) {
               require(next.party && next.party->leader && next.party->members.size()<16);
@@ -463,9 +557,17 @@ struct OnlineAccount::Impl {
             activity->successful=true;
           }
         } else social(call("GET","/v1/clans?presence=1",{},session),next);
-        if(cmd && path=="/v1/party/commands")social(call("GET","/v1/clans?presence=1",{},session),next);
+        if(cmd && (path=="/v1/party/commands" || path=="/v1/friends/commands"))social(call("GET","/v1/clans?presence=1",{},session),next);
+        if(!cmd || path!="/v1/friends/commands") {
+          try { parse_friends(call("GET","/v1/friends?party=1",{},session),next); }
+          catch(...) {
+            if(cancelled.stop_requested() || session.empty())throw;
+            next.friends_message="Friends are temporarily unavailable. Try again shortly.";
+            next.friends_available=false;next.friends.clear();next.friend_search.reset();
+          }
+        }
         if(options.enable_parties && (!cmd || path!="/v1/party/commands")) {
-          try {parse_party(call("GET","/v1/party?local_players=1&appearance=1",{},session),next);next.party_message.clear();}
+          try {parse_party(call("GET","/v1/party?local_players=1&appearance=1&postgame=1&countdown=1&privacy=1",{},session),next);next.party_message.clear();}
           catch(const HttpError &e){if(session.empty())throw;next.party_message=e.what();}
         }
         if(link &&
@@ -485,14 +587,26 @@ struct OnlineAccount::Impl {
           } catch (...) {if(session.empty())throw;}
         }
         next.authenticated = true; next.busy = false;
-        if (cmd || !was_authenticated) next.message = cmd ? (path=="/v1/party/commands" ? "Party updated." : "Clan updated.") : "ONLINE connected.";
+        if (cmd || !was_authenticated) next.message = cmd ? (path=="/v1/party/commands" ? "Party updated." : path=="/v1/friends/commands" ? "Friends updated." : "Clan updated.") : "ONLINE connected.";
       } catch (const std::exception &e) {
         next.busy = false; next.message = e.what();
         if(activity || (cmd && cmd->value("action","")=="join_activity"))
           next.message="Discord party operation failed. Refresh ONLINE and try again.";
         if (next.message.size() > 256) next.message = "ONLINE connection failed. Retry shortly.";
-        if(cmd && path=="/v1/party/commands")next.party_message=next.message;
-      } catch (...) { next.busy = false; next.message = "ONLINE connection failed. Retry shortly."; }
+        if(cmd && path=="/v1/party/commands"){
+          next.party_message=next.message;
+          if(!party_command_acknowledged)next.party_command_successful=false;
+        }
+        if(cmd && path=="/v1/friends/commands")next.friends_message=next.message;
+      } catch (...) { next.busy = false; next.message = "ONLINE connection failed. Retry shortly.";
+        if(cmd && path=="/v1/party/commands" && !party_command_acknowledged)next.party_command_successful=false;
+      }
+      // A full social refresh consumes three account-authorized reads. Keep
+      // it separate from the100/500ms countdown lane and leave command room
+      // inside the120/minute service budget. Default20s polling is unchanged.
+      const auto social_interval=next.party && next.party->countdown_supported?
+        std::max(options.poll_interval,std::chrono::milliseconds(2000)):options.poll_interval;
+      next_social_poll=Clock::now()+social_interval;
       if (!cancelled.stop_requested()) publish(std::move(next),version,session,expires,std::move(activity),session_subject,std::move(link));
     }
     cleanup();
@@ -566,6 +680,8 @@ std::uint64_t OnlineAccount::Impl::party_command(OnlinePartyCommand c,unsigned a
   if(activity==1 && (c.value.empty() || c.value.size()>20 || !std::all_of(c.value.begin(),c.value.end(),[](unsigned char v){return v>='0' && v<='9';})))return 0;
   if(activity==2 && state.party)return 0;
   Json body{{"request_id",request_id()},{"action",c.action}};
+  if(c.action!="privacy" && (c.privacy || c.privacy_revision || !c.privacy_context.empty()))return 0;
+  if(c.action!="join_friend" && !c.join_context.empty())return 0;
   if(c.action=="join_activity") {
     if(c.version || !c.playlist.empty() || !c.revision.empty() || c.value.size()!=48 ||
        !c.value.starts_with("h2p1_") ||
@@ -577,11 +693,25 @@ std::uint64_t OnlineAccount::Impl::party_command(OnlinePartyCommand c,unsigned a
   else if(c.action=="invite")body["username"]=c.value;
   else if(c.action=="invite_discord")body["discord_id"]=c.value;
   else if(c.action=="invite_steam")body["steam_id"]=c.value;
-  else if(c.action=="invite_member")body["target"]=c.value;
+  else if(c.action=="invite_member" || c.action=="invite_friend" || c.action=="join_friend")body["target"]=c.value;
   else if(c.action=="accept" || c.action=="decline" || c.action=="block" || c.action=="cancel" ||
           c.action=="remove" || c.action=="transfer")body["target"]=c.value;
-  else if(c.action=="ready"){body["playlist_id"]=c.playlist;body["revision"]=c.revision;}
-  if(c.action!="create" && c.action!="decline" && c.action!="block" && c.action!="join_activity") {
+  else if(c.action=="ready" || c.action=="countdown_start"){body["playlist_id"]=c.playlist;body["revision"]=c.revision;}
+  else if(c.action=="privacy") {
+    if(!state.party || !state.party->leader || !state.party->privacy || !c.privacy || *c.privacy>2 ||
+       !c.privacy_revision || c.privacy_revision!=state.party->privacy->revision ||
+       c.privacy_context!=state.party->privacy->context || !c.value.empty() ||
+       !c.playlist.empty() || !c.revision.empty())return 0;
+    body["privacy"]=*c.privacy;body["privacy_revision"]=c.privacy_revision;body["privacy_context"]=c.privacy_context;
+  }
+  if(c.action=="join_friend") {
+    if(state.party || c.version || c.value.empty() || !c.playlist.empty() || !c.revision.empty())return 0;
+    const auto target=std::find_if(state.friends.begin(),state.friends.end(),[&](const auto &f){return f.id==c.value;});
+    if(target==state.friends.end() || target->state!="friend" || target->party_joinable!=true ||
+       c.join_context.empty() || c.join_context!=target->party_context)return 0;
+    body["target_context"]=c.join_context;
+  }
+  if(c.action!="create" && c.action!="decline" && c.action!="block" && c.action!="join_activity" && c.action!="join_friend") {
     const auto version=c.version ? c.version : state.party ? state.party->version : 0;
     if(!version)return 0;
     body["version"]=version;
@@ -589,6 +719,7 @@ std::uint64_t OnlineAccount::Impl::party_command(OnlinePartyCommand c,unsigned a
   command=std::move(body);command_path="/v1/party/commands";
   command_subject=service_subject;
   pending=true;state.busy=true;state.message="Updating party...";
+  ++state.party_command_serial;state.party_command_successful.reset();
   ++generation;
   if(activity) {
     queued_discord_operation=++next_discord_operation;queued_discord_issuer=activity==1;
@@ -597,12 +728,22 @@ std::uint64_t OnlineAccount::Impl::party_command(OnlinePartyCommand c,unsigned a
   }
   // Target-specific invitations do not change the shared party capability.
   // Structural mutations revoke it immediately, before their HTTP response.
-  if(c.action!="invite" && c.action!="invite_discord" && c.action!="invite_steam" && c.action!="invite_member" && c.action!="cancel" && c.action!="decline" && c.action!="block") {
+  if(c.action!="invite" && c.action!="invite_discord" && c.action!="invite_steam" && c.action!="invite_member" && c.action!="invite_friend" && c.action!="cancel" && c.action!="decline" && c.action!="block" && c.action!="countdown_start" && c.action!="countdown_cancel" && c.action!="countdown_request" && c.action!="privacy") {
     party_link.reset();party_link_subject.clear();discord_result.link.reset();
   }
   ++state.revision;wake.notify_all();return activity?queued_discord_operation:1;
 }
 bool OnlineAccount::party_command(OnlinePartyCommand c) {return impl_->party_command(std::move(c))!=0;}
+bool OnlineAccount::friend_command(const std::string &action,const std::string &value) {
+  std::lock_guard lock(impl_->mutex);
+  if(impl_->options.profile_only || !impl_->active || !impl_->state.authenticated || impl_->state.busy)return false;
+  if(action!="search" && action!="request" && action!="accept" && action!="decline" && action!="cancel" && action!="remove" && action!="block" && action!="unblock")return false;
+  impl_->command=Json{{"request_id",request_id()},{"action",action},{action=="search"?"tag":"target",value}};
+  impl_->command_path="/v1/friends/commands";impl_->command_subject=impl_->service_subject;
+  impl_->pending=true;impl_->state.busy=true;impl_->state.friends_message=action=="search"?"Searching players...":"Updating friends...";
+  if(action=="search")impl_->state.friend_search.reset();
+  ++impl_->generation;++impl_->state.revision;impl_->wake.notify_all();return true;
+}
 void OnlineAccount::refresh_steam_friends() {
   std::lock_guard lock(impl_->mutex);
   if(!impl_->active || !impl_->state.authenticated || !impl_->login->uses_steam() || impl_->options.profile_only)return;

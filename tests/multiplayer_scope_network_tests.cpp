@@ -16,7 +16,7 @@ int main(int argc,char **argv) {
     check(content.weapons.at(rules.weapon).smg.has_value(),"Actual stock SMG source manager required");
     MultiplayerMatch match(content,0,cache.spawns(),rules);
     match.join("Local Host");LanHost host(match,0,789);
-    LanClient client("127.0.0.1:"+std::to_string(host.port()),789,1);
+    LanClient client(host.join_address(),789,1);
     std::array<Controls,16> controls{};std::array<Controls,1> local{};
     for(unsigned i=0;i<20 && !client.ready();++i) {
       client.send(local);host.receive(controls);host.broadcast();client.receive();

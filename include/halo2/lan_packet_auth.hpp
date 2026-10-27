@@ -10,6 +10,7 @@ namespace halo2 {
 class LanPacketAuth {
 public:
   using Key=std::array<unsigned char,32>;
+  using Context=std::array<unsigned char,24>;
   // Largest frame overhead (LNA1); established sessions use 29 bytes (LNA2).
   static constexpr std::size_t overhead=77;
   static constexpr std::size_t compact_overhead=29;
@@ -22,7 +23,8 @@ public:
   LanPacketAuth();~LanPacketAuth();
   const Key &public_key()const;
   static bool packet(std::span<const std::byte>);
-  void bind(Session &,const Key &)const;
+  // Expected keys must come from admission or an independent host-key exchange.
+  void bind(Session &,const Key &,bool host,const Context &)const;
   std::vector<std::byte> seal(std::span<const std::byte>,Session &,bool host)const;
   bool open(std::vector<std::byte> &,Session &,bool host)const;
 private:

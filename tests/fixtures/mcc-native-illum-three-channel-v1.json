@@ -1,0 +1,30 @@
+{
+  "schema": "H2_MCC_NATIVE_ILLUM_THREE_CHANNEL_REGRESSION_V1",
+  "fixture_schema": "H2_MCC_NATIVE_ILLUM_THREE_CHANNEL_FIXTURE_V1",
+  "scope": "Literal paired shared light setup; translated native test allocations; no live/GPU draw claim",
+  "compressed_file": "mcc-native-illum-three-channel-v1.json.zlib",
+  "compressed_bytes": 12115,
+  "compressed_sha256": "4d162d6844413b974fd36481700fc9858968d3e7dc71e28981bb94174763b3d8",
+  "decoded_bytes": 187920,
+  "decoded_sha256": "4fe9188d0bc6d8b14b456896fd2dae8e8a3d1f4fc2d4475b89d6994895f9585c",
+  "source_map_sha256": {
+    "04a_gasgiant": "62a047349a8da01b03b4144ccbc96e9076632d21fbedc276f748080c987e5e7e",
+    "04b_floodlab": "e4a052be795e35619a34c9e0db7a783f57b89ac3b22e46ca6127244cbd63e9af",
+    "05a_deltaapproach": "deaf1236c75e36ed69e81b0d7ffc6ed6d987f35ce1cab4c517e0785310a47b44",
+    "05b_deltatowers": "63f709fa8e1790e673dba14380ed2814aff35d88af60d66b53e1262b337780fb",
+    "06a_sentinelwalls": "4da909055cbf4774fdd94014a4c055c8057fa2c9190ce4633e6b9e12f494665c",
+    "06b_floodzone": "a598d04b3197e884c392e3552f90ebfbb25d3ac7391ad2ebeaada2751355d509",
+    "07a_highcharity": "daa9120115881e82c5464d698f09f6446cfddf0023ea7357329d03aa2bf6d7c7",
+    "07b_forerunnership": "3a0e239e4aa9fbceec4af05098e737f206abc58b6cef5151fd4f49adec12b2ac",
+    "ascension": "04cb69156ed247e12e55e46cbf2364ce4dfdde8b1d7bf29c902f5ed0839464e9",
+    "needle": "bdf79ad0880e0ded968745bc102dcadaeb2ac690dd0eab42eb994f6f4f1d5fb7"
+  },
+  "native_source_libraries": {
+    "04a_gasgiant": "2d486204932531c726ea6db76d9f4a2e367a470cc9be9ae8c9c7d03da8dff9aa"
+  },
+  "pc_geometry_owners": 1,
+  "paired_original_fixtures": 9,
+  "exporter": "tools/export_mcc_native_illum_three_channel_fixture.py",
+  "exporter_sha256": "da6e4313a8f8d10626018bca58a2c75abd3641b444800ac922957d42693de3b6",
+  "retention_reason": "Required portable exact shared-source metadata/curve regression fixture; no cache, texture pixels, shader instruction program or object code included."
+}

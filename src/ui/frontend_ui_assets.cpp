@@ -3,12 +3,15 @@
 #include "halo2/frontend_font_sampling.hpp"
 #include "halo2/texture.hpp"
 #include "halo2/ui_dds.hpp"
+#include <nlohmann/json.hpp>
+#include <openssl/evp.h>
 #include <algorithm>
 #include <bit>
 #include <charconv>
 #include <cmath>
 #include <fstream>
 #include <optional>
+#include <set>
 #include <sstream>
 #include <string_view>
 
@@ -308,17 +311,76 @@ FrontendUiAssetPack load_ui_asset_library(const std::map<std::uint32_t,UiImage> 
   }
   return result;
 }
+namespace {
+void custom_rank_assets(const FrontendContent &content,FrontendUiAssetPack &result) {
+  if(content.source_fonts.filename()!="h2_fonts")return;
+  const auto directory=content.source_fonts.parent_path().parent_path()/"presentation/custom-ranks";
+  const auto manifest=directory/"manifest.json";
+  if(!std::filesystem::exists(manifest))return;
+  const auto raw=read_file(manifest,64*1024);
+  const auto metadata=nlohmann::json::parse(reinterpret_cast<const char*>(raw.data()),
+                                          reinterpret_cast<const char*>(raw.data()+raw.size()));
+  if(metadata.at("schema")!="H2_PORT_CUSTOM_RANKS_V1" || metadata.at("complete")!=true ||
+      metadata.at("original_logical_geometry")!=true || metadata.at("pages").size()!=14)
+    throw FormatError("Invalid custom celestial rank bank");
+  const auto root=std::filesystem::canonical(directory);
+  std::set<std::pair<std::string,unsigned>> seen;
+  std::size_t total{};
+  for(const auto &page:metadata.at("pages")) {
+    const auto name=page.at("name").get<std::string>();
+    const auto frame=page.at("frame").get<unsigned>();
+    if((name!="ui\\global_bitmaps\\rank_icons" && name!="ui\\global_bitmaps\\rank_icons_sm") ||
+        frame<43 || frame>=50 || !seen.emplace(name,frame).second)
+      throw FormatError("Custom artwork cannot replace a numbered rank slot");
+    const auto logical=page.at("logical").get<std::array<unsigned,2>>();
+    const auto physical=page.at("physical").get<std::array<unsigned,2>>();
+    const UiImage *owner{};
+    for(const auto &[datum,image]:content.images)if(image.name==name) {
+      if(owner)throw FormatError("Ambiguous original custom-rank bank");
+      owner=&image;
+    }
+    if(!owner)continue;
+    if(owner->images.size()!=50 || owner->images[frame].width!=logical[0] ||
+        owner->images[frame].height!=logical[1])
+      throw FormatError("Custom celestial rank changes original logical geometry");
+    const auto relative=page.at("path").get<std::string>();
+    if(!relative.starts_with("bitmaps/") || !relative.ends_with(".dds"))
+      throw FormatError("Invalid custom celestial rank texture path");
+    const auto bytes=read_file(contained_file(root,relative),max_dds_bytes);
+    if(bytes.size()>max_pack_bytes-total)throw FormatError("Custom rank bank exceeds its byte budget");
+    total+=bytes.size();
+    std::array<unsigned char,32> digest{};unsigned size{};
+    if(bytes.size()!=page.at("bytes").get<std::size_t>() ||
+        EVP_Digest(bytes.data(),bytes.size(),digest.data(),&size,EVP_sha256(),nullptr)!=1 || size!=digest.size())
+      throw FormatError("Custom celestial rank texture identity differs");
+    constexpr char hex[]="0123456789abcdef";std::string hash;
+    for(auto value:digest){hash+=hex[value>>4];hash+=hex[value&15];}
+    if(hash!=page.at("sha256").get<std::string>())throw FormatError("Custom celestial rank texture hash differs");
+    auto texture=read_ui_dds_texture(Bytes(bytes));
+    if(texture.width!=physical[0] || texture.height!=physical[1] || texture.layers!=1 || texture.depth ||
+        std::uint64_t(texture.width)*logical[1]!=std::uint64_t(texture.height)*logical[0])
+      throw FormatError("Custom celestial rank changes original aspect ratio");
+    auto found=result.find(name);
+    if(found==result.end())found=result.emplace(name,owner->images).first;
+    if(found->second.size()!=50)throw FormatError("Custom celestial rank bank has incompatible frame count");
+    found->second[frame]=std::move(texture);
+  }
+}
+}
 FrontendUiAssetPack load_frontend_ui_assets(const FrontendContent &content,
                                            const std::filesystem::path &directory) {
-  if(content.source_fonts.filename()=="h2_fonts" || !is_mcc_classic_menu_pack(directory))
-    return load_ui_asset_library(content.images,directory,"pack.tsv");
-  const auto *manifest=content.source_fonts.empty()?"pack.tsv":
-      content.gameplay_overlay?"pause.tsv":"vista.tsv";
   FrontendUiAssetPack result;
-  if(content.source_fonts.empty())
-    result=load_ui_asset_library(content.images,hud_menu_asset_directory(directory),"pack.tsv");
-  auto sampled=load_ui_asset_library(content.images,directory,manifest);
-  for(auto &[name,pages]:sampled)result.insert_or_assign(name,std::move(pages));
+  if(content.source_fonts.filename()=="h2_fonts" || !is_mcc_classic_menu_pack(directory))
+    result=load_ui_asset_library(content.images,directory,"pack.tsv");
+  else {
+    const auto *manifest=content.source_fonts.empty()?"pack.tsv":
+        content.gameplay_overlay?"pause.tsv":"vista.tsv";
+    if(content.source_fonts.empty())
+      result=load_ui_asset_library(content.images,hud_menu_asset_directory(directory),"pack.tsv");
+    auto sampled=load_ui_asset_library(content.images,directory,manifest);
+    for(auto &[name,pages]:sampled)result.insert_or_assign(name,std::move(pages));
+  }
+  custom_rank_assets(content,result);
   return result;
 }
 } // namespace halo2

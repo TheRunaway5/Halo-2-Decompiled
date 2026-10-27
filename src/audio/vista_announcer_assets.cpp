@@ -29,11 +29,18 @@ VistaAnnouncerResponses load_vista_announcer_responses(const Cache& cache){
   load(0x98,out.general);load(0xa8,out.slayer);load(0xc8,out.king);return out;
 }
 VistaAnnouncerAssets open_vista_announcer_assets(const std::filesystem::path& maps,
-    const std::string& scenario,std::shared_ptr<const OriginalData> constants){
+    const std::string& scenario,std::shared_ptr<const OriginalData> constants,
+    std::optional<std::filesystem::path> selected_cache_path){
   if(scenario.empty() || !std::filesystem::is_directory(maps))
     throw FormatError("Vista announcer requires actual PC maps and selected scenario");
   std::optional<std::filesystem::path> selected;
-  for(const auto& item:std::filesystem::directory_iterator(maps)){
+  if(selected_cache_path) {
+    // Cache authenticates this exact map/shared owner before metadata import.
+    // A supplied owner never falls back to the conventional directory scan.
+    if(!std::filesystem::is_regular_file(*selected_cache_path))
+      throw FormatError("Actual selected PC announcer cache file is absent");
+    selected=std::move(selected_cache_path);
+  } else for(const auto& item:std::filesystem::directory_iterator(maps)){
     if(!item.is_regular_file() || item.path().extension()!=".map")continue;
     std::array<std::byte,2048> header{};std::ifstream file(item.path(),std::ios::binary);
     // MCC's authenticated v13 header is896 bytes; its scenario field starts

@@ -2,6 +2,7 @@
 #include "halo2/menu_world_vertex_source.hpp"
 #include "halo2/menu_world_triangle_storage.hpp"
 #include "halo2/world_material_uniform.hpp"
+#include "halo2/native_fragment_kernel.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -191,7 +192,8 @@ struct MenuWorldNativeDraw::Impl {
   VkPhysicalDeviceMemoryProperties memory_properties{};
   VkDescriptorSetLayout draw_layout{};
   VkPipelineLayout layout{};
-  VkShaderModule geometry_shader{},fragment_shader{};
+  VkShaderModule geometry_shader{};
+  std::map<std::string_view,VkShaderModule> fragment_modules;
   VkDeviceSize vertex_stride{},fragment_stride{};
   std::map<std::vector<std::uint32_t>,VkShaderModule> vertex_modules;
   std::map<std::vector<std::uint32_t>,VkPipeline> pipelines;
@@ -209,10 +211,11 @@ struct MenuWorldNativeDraw::Impl {
     for(const auto &[key,module]:vertex_modules)vkDestroyShaderModule(context.device,module,nullptr);
     vertex_modules.clear();
     if(geometry_shader)vkDestroyShaderModule(context.device,geometry_shader,nullptr);
-    if(fragment_shader)vkDestroyShaderModule(context.device,fragment_shader,nullptr);
+    for(const auto &[path,handle]:fragment_modules)vkDestroyShaderModule(context.device,handle,nullptr);
+    fragment_modules.clear();
     if(layout)vkDestroyPipelineLayout(context.device,layout,nullptr);
     if(draw_layout)vkDestroyDescriptorSetLayout(context.device,draw_layout,nullptr);
-    geometry_shader=fragment_shader=VK_NULL_HANDLE;layout=VK_NULL_HANDLE;draw_layout=VK_NULL_HANDLE;
+    geometry_shader=VK_NULL_HANDLE;layout=VK_NULL_HANDLE;draw_layout=VK_NULL_HANDLE;
   }
   VkShaderModule module(std::span<const std::uint32_t> words) {
     if(words.size()<5 || words[0]!=0x07230203u)
@@ -263,7 +266,6 @@ struct MenuWorldNativeDraw::Impl {
     create.setLayoutCount=2;create.pSetLayouts=sets;create.pushConstantRangeCount=1;create.pPushConstantRanges=&push;
     check(vkCreatePipelineLayout(context.device,&create,nullptr,&layout),"create raw world pipeline layout");
     if(!context.triangle_vertices)geometry_shader=module(shader(context.shader_directory/"menu_world.geom.spv"));
-    fragment_shader=module(shader(context.shader_directory/"menu_world.frag.spv"));
   }
   std::unique_ptr<Buffer> buffer(VkDeviceSize size,VkBufferUsageFlags usage=VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT) {
     auto result=std::make_unique<Buffer>(context.device);result->size=size;
@@ -297,6 +299,7 @@ struct MenuWorldNativeDraw::Impl {
     check(vkFlushMappedMemoryRanges(context.device,1,&range),"flush raw world uniforms");
   }
   void validate(const MenuWorldNativeDrawInput &input) const {
+    (void)native_fragment_kernel_path("menu",input.fragment_program);
     if(input.w_clip_mode!=MenuWorldWClipMode::cull && input.w_clip_mode!=MenuWorldWClipMode::clamp)
       throw FormatError("raw world draw has an unadmitted source W clip mode");
     if(input.w_clip_mode==MenuWorldWClipMode::clamp && input.fragment.clip_range[2]>input.fragment.clip_range[3])
@@ -310,9 +313,9 @@ struct MenuWorldNativeDraw::Impl {
         input.vertex_shader->triangle_spirv[0]!=0x07230203u||input.vertex_shader->triangle_spirv[1]!=0x00010600u||input.vertex_shader->triangle_spirv[4]))
       throw FormatError("raw world triangle vertex catalog is absent or incompatible");
     if(!input.source.external_attribute_registers().empty()) {
-      if(input.vertex_shader->abi!=menu_world_vertex_attribute_catalog_abi)
-        throw FormatError("raw world draw constant attributes require ABI3");
-      const auto reads=menu_world_vertex_input_components(input.source.program(),input.source.declaration().class_index>=2);
+      if(input.vertex_shader->abi!=menu_world_vertex_attribute_catalog_abi && input.vertex_shader->abi!=menu_world_renderer_vertex_catalog_abi)
+        throw FormatError("raw world draw constant attributes require their native attribute ABI");
+      const auto& reads=menu_world_vertex_metadata_lookup(input.source.program_bytes(),input.source.declaration()).consumed_input_components;
       for(const auto reg:input.source.external_attribute_registers())
         if((input.vertex_attribute_components[reg]&reads[reg])!=reads[reg])
           throw FormatError("raw world draw consumes unbound external attribute components");
@@ -376,13 +379,22 @@ struct MenuWorldNativeDraw::Impl {
     if(draw.topology!=VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST || draw.index_type!=VK_INDEX_TYPE_UINT16 ||
         !draw.index_count || !draw.indices.buffer || draw.vertex_buffers.empty())
       throw FormatError("raw world draw is not a nonempty source-ordered ushort triangle list");
-    const auto default_texture_w=menu_world_vertex_default_texture_w_mask(
-        decode_vertex_program(input.source.program_bytes()));
+    const auto default_texture_w=menu_world_vertex_metadata_lookup(
+        input.source.program_bytes(),input.source.declaration()).default_texture_w_mask;
     const auto state=fixed_state(input);auto identity=key(draw,*input.vertex_shader,state);
     identity.push_back(default_texture_w);
     identity.push_back(std::uint32_t(input.w_clip_mode));
     identity.push_back(std::uint32_t(input.fog_alpha_bound));
+    const auto fragment_path=native_fragment_kernel_path("menu",input.fragment_program);
+    for(unsigned i=0;i<60;++i)
+      identity.push_back((i>=10 && i<26) || i==43 || i==44?0:input.fragment_program[i]);
     if(const auto found=pipelines.find(identity);found!=pipelines.end())return found->second;
+    auto fragment=fragment_modules.find(fragment_path);
+    if(fragment==fragment_modules.end()) {
+      const auto handle=module(shader(context.shader_directory/fragment_path));
+      try {fragment=fragment_modules.emplace(fragment_path,handle).first;}
+      catch(...) {vkDestroyShaderModule(context.device,handle,nullptr);throw;}
+    }
     const auto selected_vertex=context.triangle_vertices?input.vertex_shader->triangle_spirv:input.vertex_shader->spirv;
     std::vector<std::uint32_t> words(selected_vertex.begin(),selected_vertex.end());
     auto found=vertex_modules.find(words);
@@ -400,7 +412,7 @@ struct MenuWorldNativeDraw::Impl {
     const VkPipelineShaderStageCreateInfo stages[]{
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_VERTEX_BIT,found->second,"main",nullptr},
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_GEOMETRY_BIT,geometry_shader,"main",nullptr},
-        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_FRAGMENT_BIT,fragment_shader,"main",&projection}};
+        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_FRAGMENT_BIT,fragment->second,"main",&projection}};
     VkPipelineVertexInputStateCreateInfo vertex{VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
     vertex.vertexBindingDescriptionCount=context.triangle_vertices?0:std::uint32_t(draw.vertex_bindings.size());vertex.pVertexBindingDescriptions=draw.vertex_bindings.data();
     vertex.vertexAttributeDescriptionCount=context.triangle_vertices?0:std::uint32_t(draw.vertex_attributes.size());vertex.pVertexAttributeDescriptions=draw.vertex_attributes.data();
@@ -464,7 +476,8 @@ struct MenuWorldNativeDraw::Impl {
           input.vertex_attributes.data(),sizeof(input.vertex_attributes));
       std::memcpy(static_cast<std::byte *>(next->fragment->mapped)+i*fragment_stride,&input.fragment,sizeof(input.fragment));
       std::array<VkDescriptorBufferInfo,4> buffers{{
-          {next->vertex->handle,i*vertex_stride,input.vertex_shader->abi==menu_world_vertex_attribute_catalog_abi?
+          {next->vertex->handle,i*vertex_stride,(input.vertex_shader->abi==menu_world_vertex_attribute_catalog_abi ||
+              input.vertex_shader->abi==menu_world_renderer_vertex_catalog_abi)?
               sizeof(MenuWorldVertexAttributeUniforms):sizeof(MenuWorldVertexUniforms)},
           {next->fragment->handle,i*fragment_stride,sizeof(MenuWorldFragmentUniforms)}}};
       if(context.triangle_vertices) {

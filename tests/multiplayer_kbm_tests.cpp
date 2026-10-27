@@ -151,6 +151,35 @@ int main() {
         "Released vehicle secondary trigger remained held");
     queue.reset(adapter);
 
+    // Vehicle evasion uses the same jump modifier and movement axes as normal
+    // gameplay. Exercise the real SDL adapter with each complete chord so an
+    // evasion owner can distinguish all four requested directions.
+    for(const auto direction:{std::array<int,3>{SDL_SCANCODE_W,1,0},
+                              std::array<int,3>{SDL_SCANCODE_S,-1,0},
+                              std::array<int,3>{SDL_SCANCODE_A,0,-1},
+                              std::array<int,3>{SDL_SCANCODE_D,0,1}}) {
+      const auto scan=SDL_Scancode(direction[0]);
+      queue.key(scan,true);queue.key(SDL_SCANCODE_SPACE,true);queue.drain(adapter);
+      for(unsigned tick=0;tick<3;++tick) {
+        const auto controls=adapter.consume().gameplay_controls(false,true,false);
+        check(controls.jump && controls.forward==direction[1] && controls.right==direction[2],
+            "Space plus vehicle direction chord lost its modifier or axis");
+      }
+      queue.key(SDL_SCANCODE_SPACE,false);queue.drain(adapter);
+      auto controls=adapter.consume().gameplay_controls(false,true,false);
+      check(!controls.jump && controls.forward==direction[1] && controls.right==direction[2],
+          "Releasing vehicle evasion modifier released movement or retained jump");
+      queue.key(scan,false);queue.drain(adapter);
+      check(neutral(adapter.consume()),"Released vehicle evasion chord replayed");
+
+      adapter.suspend(1000);
+      queue.key(scan,true);queue.key(SDL_SCANCODE_SPACE,true);
+      queue.key(SDL_SCANCODE_SPACE,false);queue.key(scan,false);queue.drain(adapter);
+      check(neutral(adapter.consume()),"Suspended vehicle evasion chord reached gameplay");
+      adapter.resume(2000);
+      check(neutral(adapter.consume()),"Suspended vehicle evasion chord replayed after resume");
+    }
+
     // Pin observation time relative to the timestamp delivered by SDL. The
     // authored 233ms boundary is tested at the gameplay admission seam too.
     queue.key(SDL_SCANCODE_E,true);queue.drain(adapter);

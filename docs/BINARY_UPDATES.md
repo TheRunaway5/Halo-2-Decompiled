@@ -1,9 +1,21 @@
 # Binary builds and launcher updates
 
-Run `./build-linux.sh` from a clone after installing the dependencies listed
+Run `./build-linux.sh` from a Linux x86_64 clone after installing the dependencies listed
 in [README.md](../README.md). The script resolves its repository from its own
 location. `HALO2_BUILD_DIR`, `HALO2_PYTHON` and `CMAKE_BUILD_PARALLEL_LEVEL`
-configure the build directory, interpreter and job count.
+configure the Linux build directory, interpreter and job count. The default
+profile builds both Linux and native Windows x86_64 Vulkan executables.
+`--platform linux` and `--platform windows` select one platform; Windows uses
+`HALO2_WINDOWS_BUILD_DIR` (default: the Linux build directory plus `-windows`)
+and `HALO2_WINDOWS_SDK` (default: `.tools/windows-sdk/mingw64`).
+The pinned Windows SDK is prepared automatically before compilation.
+
+`cmake --preset desktop` and `cmake --build --preset desktop` select the same
+platform pair. The default Linux CMake `ALL` build also builds `halo2_windows`;
+set `HALO2_BUILD_WINDOWS=OFF` to disable that target. Focused validation excludes
+it automatically.
+The script and presets enable local output staging even when an older build
+cache disabled it. Staging does not change launcher runtime selections.
 
 Successful Linux x86_64 links stage these files without changing the original
 build outputs or their compiled shader bindings:
@@ -22,8 +34,21 @@ These are local binaries; they still use the original runtime's shader and
 library bindings. Publishing a downloadable update requires a relocatable
 release package.
 
-`linux-arm64`, `windows-x86_64`, `windows-arm64` and `macos-arm64` are reserved
-platform identifiers. Their builds and output staging are skipped for now.
+Windows x86_64 outputs use the corresponding `.exe` names under
+`dist/builds/windows-x86_64/`. The build profile packages the full DLL import
+closure, executable-bound Vulkan shader bank, tag catalogs and license files
+there. `windows-package.json` records package contents and system-provided DLLs.
+The Vulkan loader comes from the installed Windows graphics driver. The EOS
+online SDK additionally requires the
+[Microsoft Visual C++ v14 x64 Redistributable](https://aka.ms/vc14/vc_redist.x64.exe).
+The manifest lists those prerequisite DLLs separately from bundled DLLs;
+see [Microsoft's supported runtimes](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist).
+Use
+`Run-Halo2.cmd` with the native engine arguments and a prepared MCC cache.
+Windows launcher setup needs Windows Python and source setup resources.
+
+`linux-arm64`, `windows-arm64` and `macos-arm64` remain reserved platform
+identifiers whose local output staging is skipped.
 Disposable test builds default `HALO2_STAGE_BUILD_OUTPUT` to `OFF`, preventing
 private validation binaries from accumulating in `dist/`.
 

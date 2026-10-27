@@ -30,6 +30,19 @@ def elf(payload=b"compiled shader directory: /existing/native/shaders"):
     return bytes(header)+program+payload
 
 
+def pe(payload=b"native Windows Vulkan executable"):
+    header = bytearray(64)
+    header[:2] = b"MZ"
+    struct.pack_into("<I", header, 60, 64)
+    image = bytearray(136)
+    image[:4] = b"PE\0\0"
+    struct.pack_into("<H", image, 4, 0x8664)
+    struct.pack_into("<H", image, 20, 112)
+    struct.pack_into("<H", image, 22, 2)
+    struct.pack_into("<H", image, 24, 0x20b)
+    return bytes(header + image) + payload
+
+
 class StageBuildOutputTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix="build-stage-", dir=os.environ.get("HALO2_TEST_SCRATCH"))
@@ -78,6 +91,21 @@ class StageBuildOutputTests(unittest.TestCase):
             self.assertEqual(row["source"], str(source))
             self.assertEqual(row["path"], staging.OUTPUTS[target])
         self.assertNotEqual((self.out/"Halo2-Launcher").read_bytes(), (self.out/"onboarding/Halo2-Launcher").read_bytes())
+        self.assert_no_temporaries()
+
+    def test_windows_pe_stages_separately_and_rejects_linux_binary(self):
+        source = self.build / "halo2_native.exe"
+        source.write_bytes(pe())
+        result = staging.stage(self.root, source, "halo2_native", "windows-x86_64")
+        output = self.root / "dist/builds/windows-x86_64"
+        self.assertEqual((output / "halo2_native.exe").read_bytes(), pe())
+        self.assertEqual(result["platform"], "windows-x86_64")
+        self.assertEqual(json.loads((output / staging.MANIFEST).read_text())["platform"], "windows-x86_64")
+        self.assertFalse(self.out.exists())
+        source.write_bytes(elf())
+        with self.assertRaises(staging.StageError):
+            staging.stage(self.root, source, "halo2_native", "windows-x86_64")
+        self.assertEqual((output / "halo2_native.exe").read_bytes(), pe())
         self.assert_no_temporaries()
 
     def test_identical_content_is_not_recopied_or_manifest_rewritten(self):
@@ -136,7 +164,7 @@ class StageBuildOutputTests(unittest.TestCase):
         self.assert_no_temporaries()
 
     def test_unsupported_platforms_skip_even_missing_source_and_root(self):
-        for platform in ["linux-arm64", "windows-x86_64", "windows-arm64", "macos-arm64"]:
+        for platform in ["linux-arm64", "windows-arm64", "macos-arm64"]:
             result = staging.stage(self.base/"absent", self.base/"not-present.exe", "halo2_native", platform)
             self.assertEqual(result["status"], "skipped")
             self.assertFalse((self.base/"absent").exists())

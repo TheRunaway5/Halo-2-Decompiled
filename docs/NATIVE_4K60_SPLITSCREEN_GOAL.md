@@ -362,6 +362,441 @@ longer matches the retail maps, last edited 2026-10-16.
      owners is thin (`B37A0`, `C0910`, `1D6FB0`: none; `BDA50`: one note), so
      native replicas here are new decompilation work gated by the digest,
      not assembly of existing native pieces. Payoff bound: ≈1.5 ms/frame.
+   - Nested-owner census (`HALO2_NESTED_OWNER_CENSUS=<hex>`, hooked at the
+     `Impl::required` dispatch boundary): `BDA50`, `B37A0`, `D8330` reach it
+     (not in this unit's static switch); `10DD10` and `BE4A0` are static
+     cases and need a PC-cursor hook instead. `BDA50` measured 3.9 µs/call,
+     ≈32 calls/tick ≈ 0.13 ms/tick: ~4% of `B8F40`. The object update's
+     cost is not in the per-object body dispatch; `10DD10` (3.45% inclusive
+     in the sampler, the largest `B8F40` descendant) is the next to cost.
+
+## Lazy single-LOD object posing (2026-10-25)
+
+`SourceObjectGeometry::select()` chooses a LOD from metric, history and
+policy alone and then builds the view from that one LOD bank; every caller
+nevertheless posed all six LOD banks first (`pose_world_nodes`, dynamic
+objects once per **view**; vehicles' `pose_world` once per frame), so ≥5/6 of
+the ≈6.4% CPU skinning in the profile was for LODs never drawn.
+
+- [x] `SourceObjectGeometry::choose_lod` (the same LOD decision `select()`
+      makes, shared through `lod_choice`), `pose_world_lod` (one LOD bank,
+      WORLD records or deferred local records + palette), `ViewDraw::ordinals`
+      and `view_skin` (a renderer-deformed `ModelSkinGeometry` for a deferred
+      bank); per-LOD palette/deferred state travels with the presentation
+      exchange. `SourceDynamicObjectDraw::skins` → `ModelObjectDraw::
+      deferred_skins` (the renderer already consumed that field; no producer
+      had used it).
+- [x] Dynamic objects (`SourceDynamicObjectScene::draw_view`): choose LOD →
+      pose only that bank through the original CPU kernel. Internal phase
+      timers: `host_view{0..3}_objects_ms` −0.32/−0.33/−0.22/−0.25 ms
+      (≈ −1.1 ms/frame), renderer phases unchanged; frames byte-identical.
+      `HALO2_REFERENCE_OBJECT_LOD_SKINS=1` restores six-LOD posing.
+- [x] Measured and rejected as default: deferring the chosen bank to the GPU
+      (`HALO2_GPU_OBJECT_SKINS=1`). Host `objects_ms` −0.54 ms but renderer
+      `geometry_plan_ms` +0.87 and `pack_ms` +1.02 ms — per-submission plan/
+      pack work exceeds the small objects' skins. Kept selectable; the GPU
+      route stays right for large banks (units), not for ~100 small ones.
+- [x] Vehicles: the PRT six-LOD `pose_world` now poses the chosen LOD only
+      (`vehicle_frame_poses` still caches per (handle, LOD) across views).
+      A/B, three interleaved pairs: main-thread CPU 34.6 → 33.7 ms/frame
+      (−0.9 ms); `host_view{0..3}_objects_ms` −0.43/−0.27/−0.24/−0.27 ms;
+      frames byte-identical. Same `HALO2_REFERENCE_OBJECT_LOD_SKINS` switch.
+- Also measured and rejected: `MALLOC_TRIM_THRESHOLD_=1GiB` (B +1.5 ms);
+  `__default_morecore` 3% is not trim regrowth.
+
+## Native seat-candidate sphere (2026-10-25)
+
+Profile of the current binary showed `MultiplayerMatch::state()` at 7.9% of
+the frame, 5.5% of it in `MultiplayerObjectRuntime::vehicle_seat_target` →
+translated `CB3D0` (seat selector, ~65 µs/call, 40 calls/frame = 4 units ×
+every visible vehicle). The original (`153BA0`) gathers candidates with the
+`BD080` objects-in-sphere query (pass 1: radius = unit bound radius (+3C) +
+`[46A240]` + `[46A0E4]`, mask `FFFFEBCB`) and runs `153F20 → CB3D0` only on
+those; the native replica in `native_vehicle_interaction.cpp` ran the
+selector for every vehicle on the map. `CB3D0` is pure (store census: 22.4 M
+stores over 24,000 live calls, all on the emulated stack plus the two
+native out-words), so skipping calls cannot change simulation state.
+
+- [x] `seat_candidate_in_sphere` (`multiplayer_object_runtime.cpp`): BD080's
+      own admission test, `(radius + object radius)² ≥ (dz²+dy²)+dx²` in its
+      accumulation order (NaN rejects, like `comiss/jb`), on the bodies' own
+      `+30/+3C` words and the live image constants. BD080's cluster walk can
+      only remove objects, so this admits a superset of the original
+      candidates and never fewer. `HALO2_REFERENCE_SEAT_CANDIDATES=1` restores
+      the unfiltered route.
+- [x] Oracle (`HALO2_SEAT_CANDIDATE_ORACLE=1`): runs the selector for every
+      pair anyway and calls the translated `BD080` with the pass-1 arguments
+      (64-slot buffer at `0x6004A100`), checking `accepted ⇒ in sphere` and
+      `BD080 members ⊆ sphere`. Scripted 4p runs: Coagulation 26,400 pairs,
+      Headlong 31,200 pairs, 0 violations — and 100% of those pairs were
+      outside the sphere (`bd080_members=0`), i.e. every selector call in
+      those workloads was for a vehicle the original would never consider.
+      Positive case via the real vehicle-entry suites
+      (`player_external_forces_tu15_tests … -hit_2`, run with the MCC map):
+      Warthog 4,584 pairs, Gauss Warthog 4,584, Ghost 2,741, Spectre 4,440,
+      Scorpion 7,196, Wraith 6,860, Banshee 4,294 — every entry succeeds,
+      235 selector acceptances, `accepted_outside_sphere=0` in every run;
+      `BD080 members ⊆ sphere` for 1,329 of 1,330 member pairs. The one
+      exception (Banshee, not accepted by `CB3D0`): unit r=0.44 at
+      (94.75,−176.85,1.54), vehicle r=1.4 at (96.15,−180.85,4.65),
+      d=5.2577 vs reach=5.24 with live constants `46A240=0.4`, `46A0E4=3.0`
+      (`45695C=FLT_MAX` is only `CB3D0`'s best-distance initializer). That
+      18 mm is the sampling skew the native prompt already had: `BD080`
+      tests the object's cluster-node cached centre (written by the object
+      update before physics moves the body) while the native prompt evaluates
+      after the tick on the body's `+30`. It can flip a prompt only if a
+      vehicle moves more than (query radius − seat reach) within one tick.
+      About half of the in-sphere pairs are not `BD080` members (its cluster
+      walk prunes them): that is the stage-2 native `BD080` saving.
+- Measured: main-thread CPU 37.8 → 34.7 ms/frame (−2.1 ms, three interleaved
+  pairs), `host_state_projection_ms` 2.8 → 0.8 ms; frames byte-identical to
+  the baseline binary.
+- Next in this family: native `BD080`/`14D0E0` (cluster objects-in-sphere)
+  kernel with a result-list oracle — removes the remaining superset slack and
+  is also called from the object update (`10E630 → BD080`).
+
+## Smaller exact wins (2026-10-25)
+
+- [x] First-person deferred skin geometry now marks `arithmetic_admitted`
+      (its records are the unmodified local bank `model_skin_world_pose`
+      admitted with that palette; `select_indexed` only filters). The
+      renderer's `geometry_valid` stops re-running the admission per
+      submission: `geometry_plan_ms` 1.75 → 1.41 ms, frames identical.
+- [x] Shadow-mode `40E80`: the native kernel now reads the context pointer
+      (`4CD3A0`), its mode word (`+2A78`) and the EAX layer selector, so it
+      serves secondary contexts; the shadow roots' call is hooked
+      (`secondary_commands`). No measured workload reaches that branch
+      (`hook_calls=0`), so it stays behind `HALO2_NATIVE_SHADOW_COMMANDS=1`
+      until the record oracle sees it on live data. The 1.9% of translated
+      `40E80` in the profile is the main view's translated **remainder**:
+      `41C70→41C10→41970` object-queue scheduling (1.19%) + nested dispatches
+      (0.49%); `44AB0` over hidden units is 0.07%.
+
+## Sub-page region index (2026-10-25)
+
+`HALO2_LOCATE_CENSUS=1` (new, prints at exit) showed 60 M slow-path
+`locate` calls per 300 frames (≈200k/frame); 34 M of them were `std::map`
+walks for the executable image's globals, because the image is mounted as
+thousands of tiny owner regions (4–164 bytes) that neither page index could
+name. `small_pages_` now lists, per 4 KiB page, the regions that cover it
+only partly (sorted by base, same map iterators); `locate()`/`try_read_view`
+consult it before the map, which stays the fallback. Map-path hits for
+`0x400000`: 26.7 M → 104 k. Frames byte-identical. A/B on a loaded host
+(load 7–9): all three pairs faster (−3.0/−0.5/−1.4 ms), `host_match_step_ms`
+9.83 → 8.67 ms; re-measure on a quiet host before quoting more than ≈ −1 ms.
+Then two more exact changes in the same family:
+- `SourceRuntimeMemory::view()`/`mutable_view()` take the direct page when
+  one exists (every native `word()` helper reads through `view`): census
+  60.5 M → 37.3 M slow-path calls per 300 frames, physical namespace
+  `0x82D00000` 16.4 M → 0.14 M. Frames identical.
+- The host-physical write guard no longer takes a mutex and walks a
+  `std::set` per upper-half write: `PhysicalProtection` mirrors its
+  read-only set in an atomic per-page bitmap, changed one page at a time by
+  the three writers under the existing mutex (`release`, `protect`,
+  `commit_ownership`), so the guard is one or two acquire loads. Spanning
+  and empty writes keep the checked set. `protect()` can run from the audio
+  thread, which is why bits flip individually (no clear-then-set window).
+  Frames identical; A/B pending a quiet host (the first attempt ran at load
+  12–21 and is not quotable).
+What remains on the slow path (~120k/frame) are the tiny image-global
+regions themselves: `read()` is already one lookup + commit check + copy
+there, and `write()`'s second `locate` after the policies is required.
+
+## Status 2026-10-26 (blocked on the shared tree)
+
+- Overlap A/B, one clean pair (load ≈2): main-thread CPU **29.5 ms with the
+  overlap vs 33.1 ms synchronous** (−3.6 ms); the other pairs ran at load
+  7–16 and are not quotable. `host_pre_render_ms` is inflated under overlap
+  (`now` is the ahead tick's stamp); cpumon CPU time is the metric.
+- Banded BSP frustum cull (`source_bsp_frustum_cull` on the pool, exact by
+  construction: per-unit records + pre-allocated disjoint mask words,
+  serial fallback when spans overlap or any precondition fails). The walk now
+  takes an explicit `SourceBspFrustumCullExecution`; `retail_source_bsp_ranges`
+  runs the recorded-original fixture corpus through `banded` and `serial` and
+  both reproduce the recorded unit records and arena. Integration frame
+  parity not yet taken → opt-in `HALO2_NATIVE_BANDED_CULL=1` until then.
+- Every 4p run of the current tree aborts at ~4.8 s with "Native FP look
+  input differs from its actual remote unit" from the other session's new
+  untracked `src/gameplay/animation/source_first_person_context_tu15.cpp`
+  (included by their `cmake/NativeFirstPersonContextTu15.cmake`), in free
+  and scripted runs, with and without the overlap, and with direct pages
+  disabled; `halo2_native_prev3` (built before that file) runs. Re-run when
+  their tree works: parity for the banded cull (then default it on),
+  cumulative A/B vs `prev3`, a fresh profile with a kept binary.
+
+## GPU skin admission: static per-model summary (2026-10-26)
+
+`model_skin_gpu_arithmetic_admitted` (2.0% self; after the first-person
+flag, 0.82% remains on the local players' direct body/gun poses) re-derived
+every vertex's attribute/weight gates each frame although vertices and
+bindings are immutable after load. `ModelSkinAdmissionStatic` +
+`model_skin_gpu_admission_static()` hold that part once; `model_skin_gpu_
+arithmetic_admitted(summary, palette)` decides exactly as the full predicate
+(same palette-row loop, same per-vertex combination; the admission corpus
+test now asserts equality with the frozen reference on every case).
+`model_skin_world_pose` uses a cache keyed by model identity/checksum/bank
+storage behind `HALO2_NATIVE_SKIN_ADMISSION_CACHE=1` (opt-in until a frame
+parity capture exists); `HALO2_VERIFY_SKIN_ADMISSION=1` evaluates both and
+throws on disagreement.
+Lesson recorded: `HALO2_REFERENCE_SCALAR_SKINNING`/`HALO2_VERIFY_SIMD_SKINNING`
+are toggled with `setenv` at run time by the skin diagnostics tests, so they
+must be read per pose — the earlier hoist into statics broke
+`native_model_skin_handoff` and is reverted. (That suite currently also
+cannot relink: the other session's regenerated
+`physics_phantom_force_tu15_generated.cpp` references
+`native_lift_scalar_*_tu15` symbols not yet linked into it.)
+
+## Added 2026-10-26 (evening)
+
+- Unit tests: `native_overlap_run` semantics (thread placement, SSE/x87
+  sticky-flag merge, errno rules, exception priority, pool use from the job)
+  in `native_parallel_tests`; the sub-page region index (`small_region_index`
+  in `source_runtime_memory_tests`); the lock-free physical write guard
+  (`physics_physical_storage_tests`). All pass.
+- Pool wake: `native_parallel_for` wakes `min(count−1, workers)` workers with
+  `notify_one` instead of broadcasting to all seven (`pthread_cond_broadcast`
+  was 0.83% self); results unchanged.
+- Overlap accounting: ticked-ahead frames stamp `now` at the iteration top so
+  `host_pre_render_ms` measures this frame's preparation.
+- Shared tree: links again, but every run aborts at startup on a region
+  overlap at `0x4C6858` mounted by the other session's edit of
+  `native_tu15_world_memory.cpp` (16:45) — still unusable for parity/A/B.
+
+## Frame map from prof-seat, by direct callee (2026-10-26)
+
+Measured with a full-depth callee query over the kept profile (the earlier
+`children.py` numbers were leaf-distance limited, which made teardown look
+dominant). Percent of samples; the tick (`MultiplayerMatch::step`) is 22.1%
+against 8.8 ms, so 1% ≈ 0.4 ms/frame on that run.
+
+| Block | % | Notes |
+|---|---|---|
+| `MultiplayerMatch::step` | 22.1 | tick: B8F40 3.1 ms, B9090 2.0, 168CA1 1.3 |
+| `Renderer::Impl::draw` | 15.3 | now overlapped on the render thread |
+| `SourceBspEffectLights::draw` (inclusive) | 11.4 | main cull 1.7, model draws 2.6, main commands native 2.6, translated 1.2, lights 1.1 |
+| cross-unit dispatch glue (self) | ≈3.4 | `State::required` 0.7, `required_entry` 0.7, `services()` 0.4, unit dispatchers ≈1.4 |
+| `SourceDynamicObjectScene::draw_view` | 3.1 | pose_world_nodes 1.1 (pre lazy-LOD) |
+| `ModelFramePoseCache::update` | 2.6 | vehicle CPU poses (pre lazy PRT) |
+| `MultiplayerHud::animate` | 1.8 | `animate_forward_constants` 1.4 (self-heavy) + 8 KB constant memcpy per material |
+| `MultiplayerMatch::state()` | 2.3 | 0.9 of it was `find_unowned_range` walking the whole region map |
+| translated owners called from the frame loop | 5.8 | 40E80 remainder 1.9 (41C70 1.2), 22830 per-view reset 1.4 (all in `write()`, pre sub-page index), 3D2B0 1.1, 333F0 0.4, 177830 0.4 |
+
+Exact native fixes taken from it (no gameplay semantics involved):
+
+- `SourceRuntimeMemory::find_unowned_range` starts at `upper_bound(candidate)`
+  instead of walking every region below it (owner regions are disjoint, so the
+  answer is unchanged; `gap_query_matches_full_walk` compares >1000 queries
+  against a full walk). Removes ≈0.35 ms/frame from `state()`.
+- `PhysicsLiveWorldTu15::Impl::services()` returns one built table instead of
+  constructing six `std::function`s per cross-unit call. All callbacks capture
+  only the owner; the only by-value field is the main-thread id, which keys
+  the rebuild. **Lesson:** the table must be declared first in `Impl` —
+  translated teardown dispatches while later members are destroyed, and a
+  destroyed mutex/vector under it corrupted the heap (both live-world suites
+  aborted at exit until the members moved to the top).
+
+Remaining dispatch glue (≈1.3 ms/frame) is structural: each unit dispatcher
+builds a `LiveState` and `FpScope` per call and `State::required` saves and
+reloads the full register file around every cross-unit call.
+
+## Next structural step (proposed): split the per-view loop into phases
+
+The per-view loop (≈18 ms at 4p/4K) interleaves translated work that must run
+one view at a time on the single source bank (shadow main user/location/fog/
+camera, 22830 per-view reset, main cull/commands, shadow selection, model
+builds, lens/particle views, the first-person chain) with native consumers that
+only read captured inputs (`replica_world_nodes` copies, completed render nodes,
+per-view HUD state): object/vehicle/prop posing (`objects_ms` ≈4.4 ms), HUD
+animation (≈1.1 ms), static-world merge, lens draw assembly. Keeping gameplay,
+latency and output identical, the loop can run phase A (translated, views in
+order) and then phase B (native consumers) on the pool, one view per worker:
+≈5–6 ms of main-thread time moves off the critical path, more than any single
+remaining kernel. Entanglements to resolve first:
+
+- `source.memory().view(...)` reads inside phase-B code (one in the objects
+  phase today: damage flags at the item body) must be captured in phase A.
+- The first-person chain (`prepare_first_person_models`, 168CA1/168DED) is the
+  other session's active area; phase B must not touch it until they land.
+- `hud_continuity`/`pose_continuity` assert the owner thread: phase B either
+  runs HUD on the main thread or the continuity owners learn worker tokens.
+- Lens/particle per-view calls (`render_model_view` at the end of each view)
+  stay in phase A; their native draw assembly can move.
+
+Validation is the existing parity harness (byte-identical frames) plus the
+`HALO2_REFERENCE_SERIAL_NATIVE=1` switch, which already serializes the pool.
+
+## Structural step: render overlap — implemented 2026-10-25
+
+Built as designed below, with one correction found by the networked C++
+driver: the previous iteration's authority frame must close at the very
+start of `advance` (the old iteration boundary) because `authority.service()`
+runs before `begin_frame()` and rejects service while a frame is open.
+- `native_overlap_run(job, overlap)` (`native_parallel.cpp`): persistent
+  thread; the job inherits the caller's SSE/x87 control and errno, its sticky
+  flags and errno change are carried back, exceptions rethrown (job first).
+- `Renderer::draw(..., overlap)`: runs `Impl::draw` through it when given.
+- Frame loop: the tick block is `advance(timing)` returning
+  proceed/skip/stop; hoisted outputs (`now`, `measured_at` + timing lambdas,
+  `audio_elapsed`, `elapsed`, `blend`, `animation_blend`, `pose_tick`,
+  `host_tick_begin`, `source_frame`); `pending_timing` adopted by the next
+  iteration; `captured_frame` snapshot; `overlap_allowed` = no
+  `HALO2_REFERENCE_SYNC_RENDER`, no `online_match`, no live client, none of
+  the 45 `MultiplayerOptions` observers; the choice is run-constant and is
+  printed once ("Render overlap: enabled/disabled").
+- Verified: frame parity vs the pre-session binary byte-identical with the
+  overlap on (two runs, three configurations) and with
+  `HALO2_REFERENCE_SYNC_RENDER=1` (the converted loop in the original order);
+  free 4p runs exit cleanly; `multiplayer_engines_world_tu15_tests` (C++
+  frame-loop driver with LAN options → synchronous path) passes 39/39. The
+  19 Python-driven online suites cannot run here (`No module named
+  'aiohttp'`, pre-existing). A/B against `HALO2_REFERENCE_SYNC_RENDER=1`
+  pending a quiet host.
+
+### Design (as approved)
+
+Decisions taken with the user: overlap `Renderer::draw` with the next tick —
+yes; run the tick a frame ahead with added input latency — no.
+
+`Renderer::draw` is 15.8% (≈5.3 ms), native, never touches the emulated world
+(`renderer.cpp` has no `run_actual`/`call_actual`/`live_world`). Overlapping
+it with the **next frame's tick** changes no gameplay and adds no latency: the
+tick starts earlier, frame N is presented at the same moment.
+
+Design (no container hoisting): `Renderer::draw(..., overlap)` runs the
+existing draw body on a persistent render thread and executes `overlap()` on
+the calling thread, then joins and returns/rethrows as today. The caller
+passes the next frame's tick block as `overlap`, so every renderer input is
+still an iteration local that is alive. Required runtime edits
+(`multiplayer_runtime.cpp`, frame loop 3257–7172):
+1. Wrap 3258–4130 (housekeeping, online handoff, input, step, projection,
+   post-step, `measure(timing.input_ms)`) in
+   `auto advance=[&](MultiplayerFrameTiming &timing)->Advance{…}` defined
+   at the top of the iteration. Outer-loop control inside becomes return
+   codes: `stop` for the breaks at 3269, 3299, 3336, 3345, 3350, 3640, 4038;
+   `skip` for the continues at 3309, 3327, 3542, 3551, 4039, 4105, 4114
+   (all other breaks/continues there are inner loops — classified by brace
+   depth, keep them).
+2. Hoist the block's outputs consumed by preparation to before the loop and
+   turn their declarations into assignments: `now`, `measured_at` (+ the
+   `measure`/`host_stamp`/`host_returned` lambdas defined before the loop
+   over it), `audio_elapsed`, `elapsed`, `blend`, `animation_blend`,
+   `pose_tick`, `source_frame`, `host_tick_begin`, `phase`.
+3. Iteration top: `if(!ticked_ahead){switch(advance(timing)){stop:break;
+   skip:continue;}} else {timing=std::move(pending_timing); ticked_ahead=
+   false; if(skip_next){skip_next=false;continue;}}`.
+4. At the draw: `const bool captured=capture;` (post-draw must not read
+   per-tick values after the overlap), then
+   `renderer.draw(..., overlap_allowed?[&]{pending_timing={}; pending_timing
+   .frame=frames+1; pending_timing.views=…; const auto saved=measured_at;
+   const auto r=advance(pending_timing); measured_at=saved; ticked_ahead=
+   true; skip_next=(r==skip); stop_next=(r==stop);}:nullptr)`; after the
+   draw, honour `stop_next` by leaving the loop after the post-draw block.
+5. `overlap_allowed` = no `options.online_match`, no frame/render observers
+   (`frame_observer`, `completed_*`, `shadow_*`, `reference_*` observers),
+   not `HALO2_REFERENCE_SYNC_RENDER=1`; every test/harness path then keeps
+   today's synchronous order exactly.
+Preconditions found while scoping (must hold, or be arranged, first):
+- **Authority frame lifecycle (blocker):** each iteration holds
+  `source_frame = authority.begin_frame()` (RAII; `~Frame()` = `finish()`),
+  and the authority rejects nested frames. An overlapped tick N+1 calls
+  `begin_frame()` while iteration N's frame is still open, so frame N must be
+  finished before the overlapped draw starts, and the post-draw world access
+  (`source_lens_queries->finish` via `render_model_view`) must be confirmed
+  legal outside a frame — or moved before the finish. Resolve from
+  `multiplayer_runtime_authority.cpp` (the other session's design) before
+  writing code. `source_frame` is otherwise unused by preparation.
+- The renderer's presentation-copy worker compares `result.executor` with
+  `this_thread` (`renderer.cpp:6148`): the overlap must be a run-constant
+  choice (never alternate sync/async between frames).
+- The frame loop already carries the authority/handoff continuity guards:
+  `pose_continuity.mutating()` and `hud_continuity->mutating()` assert the
+  owner thread (the tick stays on the main thread — fine);
+  `material_continuity->mutating()` requires `quiet()` — no live borrowers —
+  so the renderer must hold **no** material/pose/HUD continuity borrow across
+  `draw`, and `draw` must make no thread-bound continuity call
+  (`owns_snapshot` compares `this_thread` with the executor). See the grep
+  result recorded below this section before implementing.
+- The renderer's `renderer_executor` thread checks live only in lens/particle
+  preparation (`prepare_lens_query_retirement`, `prepare_particle_views`,
+  `particle_view_inputs`, `lens_query_retirement_ready`), none reached from
+  `Impl::draw` — the hop itself is clean.
+- Expected: main-thread CPU −min(render, tick) ≈ −5.3 ms/frame; frames
+  byte-identical (same inputs, same code, default FP environment on the
+  render thread equals the main thread's ambient one — verify with parity).
+
+## Open leads (2026-10-25, cost order, from `prof-seat`)
+
+0. Main `40E80` translated remainder (1.9%): `41C70→41C10→41970` =
+   per-object render-model **attachment scheduling** (`41C10` walks children
+   `+0x10`/siblings `+0xC`; `41970` allocates a 0x1CA0 frame via `32A660`,
+   scans the model's attachment list at `model+0x98` for `'lens'`, `'MGS2'`,
+   `'tdtl'` tags, resolves markers with `BAD60`, transforms with `C0700`
+   (0.45% — most of it), tests owner/view with `3E9B0` (`158290`, `BCFB0`),
+   sets context byte `0x56E197`, writes its records for the lens/light-volume
+   consumers; `D7230` dispatches per-attachment-type callbacks, 0.09%). A
+   native replica is ≈300 lines across five owners plus the record consumer
+   for ≈0.35 ms — smallest payoff per effort on this list.
+1. Shadow-mode `40E80` (secondary context): entered natively per shadow root at
+   `source_live_shadow_roots_tu15.cpp:164` (`world.run_actual(0x40e80u,a)`,
+   overlays `4C6838=1`, `4C6834=0x14`; banks 1/2 at `4CE280/4CE298`, secondary
+   context `5598F8`). Wire a `commands` hook like the main view's and let
+   `main_commands_native` serve mode≠0 under the existing record oracle; the
+   builder is `source_live_shadow_root_frames_tu15` (declared in
+   `source_live_shadow_selection_tu15.hpp:64`).
+2. `PhysicsLiveWorldTu15::Impl::build_render_model` (1.8%, native, under
+   `source_live_model_draws_tu15`): breakdown not yet taken.
+3. `model_skin_gpu_arithmetic_admitted` (2.0% self): per-model-static vertex
+   and binding exponents can be precomputed once; only palette rows vary per
+   frame. Same predicate, exact.
+4. Tick: `B8F40 → BE4A0 → BE850 → 10DD10 → DF880` (4.6%) and the first-person
+   chain `168CA1/168DED` (6.5%, in `source_run_sandbox_special_tu15`), both
+   decompile work gated by the per-tick digest; the tick-on-its-own-core
+   option still needs the latency decision.
+Retained for profile symbolization: `build-perf-4k60/halo2_native_prof2`
+(copy of the profiled binary, ~200 MB; delete when `prof-seat` is no longer
+needed).
+
+## Reading the frame timings
+
+`host_input_ms` is measured by `measure(timing.input_ms)` from the frame's
+first `measured_at`, so it **contains** the nested `host_match_step_ms`,
+`host_state_projection_ms` and `host_post_step_ms` (≈8.5 + 2.9 + 2.0 of its
+≈12.4 ms). It is not a separate input cost. The main-thread frame at 4p/4K
+(2026-10-25, 37.7 ms) decomposes as: tick ≈8.5, state projection ≈2.9,
+post-step ≈2.0, common ≈1.9, per-view preparation ≈18 (camera_lighting 7.1,
+objects 4.4, model_collection 4.2, body + first person ≈2.7), renderer ≈5.9.
+Per-view preparation is the largest block and the one that scales with
+player count.
+
+## Where the goal stands (2026-10-25)
+
+Measured on a quiet host against the pre-session binary: main-thread CPU
+49.0 → 37.4 ms/frame (−24%), 20.4 → 26.6 FPS at 4p/3840×2160; with the
+2026-10-25 seat-candidate sphere (−2.1) and lazy LOD posing (−0.9) the
+same workload runs at ≈33.6 ms/frame main-thread CPU. Target 16.7 ms.
+Frames byte-identical throughout; every native kernel has a record or
+digest oracle that compared it against the translated route on live data.
+
+Landed: direct-page memory fast paths; GPU skinning default; native main
+cull (`44E80` corridor); native main commands (`40E80`, whole `44AB0`
+traversal, BSP and model units); exact fork-join pool with six uses (two
+LOD skinning paths, motion-sensor compositing, per-view BSP merge,
+per-view material upload, banded skin-plan scan); 4p Warlock fix.
+
+Remaining translated owners, per frame at 60 Hz, each now measured:
+Vulkan renderer ≈5.3 ms (native but order-dependent; no exact split found
+beyond the two landed), tick `B8F40` object update ≈1.5 ms (fresh
+decompilation of per-type owners, digest-gated), tick `168CA1` first person
+≈0.67 ms, `1CC8D0` ≈0.4 ms, `179CD0` effects ≈0.33 ms, Havok `B9090` ≈1.0 ms
+(stays translated by rule). `3D2B0` runs 0×, `C35D0` writes nothing
+persistent. No single remaining owner is a 4K60 unlock; they are each
+small and each is new decompile work with its oracle already in place.
+
+The one structural change left is running the gameplay tick concurrently
+with presentation (its own core, dirty-page snapshot of the bank). That
+adds up to one frame of input latency and is a user decision, not a
+measurement. Until then, further gains are incremental native kernels in
+the order above.
 
 ## Notes
 

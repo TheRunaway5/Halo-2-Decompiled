@@ -47,6 +47,7 @@
 namespace halo2 {
 namespace {
 constexpr auto type_runtime_owner="native TU1.5 cold complete 1E7690 object-type runtime flags";
+constexpr auto animation_mask_scratch_owner="native TU1.5 animation node-mask intersection scratch";
 template<std::size_t N>auto encode(const std::array<std::uint32_t,N>& words) {
     std::array<std::byte,N*4> bytes{};
     for(std::size_t i=0;i<N;++i)for(unsigned j=0;j<4;++j)bytes[i*4+j]=std::byte(words[i]>>(j*8));
@@ -156,6 +157,14 @@ void native_tu15_validate_type_runtime_restore(const SourceRuntimeMemory& curren
         owner->access!=SourceRuntimeMemory::Access::ReadWrite ||
         owner->owner!=type_runtime_owner || owner->page_bytes || !owner->committed.empty())
         throw FormatError("TU1.5 authority lacks its complete object-type runtime owner");
+    // Keep required native workspace topology across recovery. Its live bytes
+    // belong to the actual mask-producing callers and must not be reset here.
+    const auto masks=std::ranges::find(incoming.regions,0x56e060u,
+        &SourceRuntimeMemory::CheckpointRegion::address);
+    if(masks==incoming.regions.end() || masks->bytes.size()!=32u ||
+        masks->access!=SourceRuntimeMemory::Access::ReadWrite ||
+        masks->owner!=animation_mask_scratch_owner || masks->page_bytes || !masks->committed.empty())
+        throw FormatError("TU1.5 authority lacks its complete animation node-mask intersection scratch owner");
 }
 SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount& tick) {
     if(tick.address<0x60000000u || tick.address>0xfffffffcu || tick.owner.empty())
@@ -183,6 +192,11 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
     mount_native_tu15_scalar_state_data(memory);
     mount_native_tu15_object_storage_data(memory);
     mount_native_tu15_aux_object_state_data(memory);
+    // Exact loader-zeroed .data tail56E060..56E07F. Native1CF315/1CF517
+    // and283A6C copy eight DWORDs here before284090 intersects the masks.
+    // The native callers produce every live mask; this is only their scratch.
+    memory.mount(0x56e060u,std::array<std::byte,32>{},SourceRuntimeMemory::Access::ReadWrite,
+        animation_mask_scratch_owner);
     mount_native_tu15_renderer_startup_data(memory);
     mount_native_tu15_renderer_request_data(memory);
     // Reuse the existing typed target-storage prefix; resources stay cold
@@ -580,6 +594,62 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
         "native TU1.5 cold cached-render-state activation scratch bank");
     memory.mount(0x515edcu,std::array<std::byte,1>{},SourceRuntimeMemory::Access::ReadWrite,
         "native TU1.5 cold cached-render-state activation byte");
+    // Exact original229EF0 ordinary-view array. Its inherited F4..117
+    // tails contain authored0.75/0.4 words; complete229A90 updates only its
+    // header/camera/rectangle fields and preserves the current tail.
+    memory.mount(0x48ba28u,encode(std::array<std::uint32_t,280>{
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x3f400000u,0x3ecccccdu,
+        0x00000000u,0x3f400000u,0x3ecccccdu,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x3f400000u,0x3ecccccdu,0x00000000u,0x3f400000u,
+        0x3ecccccdu,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x3f400000u,0x3ecccccdu,0x00000000u,0x3f400000u,0x3ecccccdu,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,0x00000000u,
+        0x3f400000u,0x3ecccccdu,0x00000000u,0x3f400000u,0x3ecccccdu,0x00000000u,0x00000000u,0x00000000u,
+    }),SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 authored four complete ordinary view records");
+    // Exact original loader-zeroed25800 view clone and its following flag.
+    // Only full25800 owns its first-clone bit; never clear it per native frame.
+    memory.mount(0x56ebb0u,std::array<std::byte,0x11c>{},SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 cold complete texture-camera view clone and flags");
+    // Original two-record submitted-frame stack and its authoredNONE depth.
+    // Only full2B9F0/13C00 mutates this depth. These are loader/startup bytes,
+    // not prepopulated camera, visibility or GPU backend results.
+    memory.mount(0x4918f0u,std::array<std::byte,0x530>{},SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 cold two-record source submitting-frame stack");
+    memory.mount(0x47357cu,encode(std::array{0xffffffffu}),SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 authoredNONE source submitting-frame depth");
+    memory.mount(0x4c6858u,std::array<std::byte,4>{},SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 cold original2B9F0 submitted-view serial");
+    memory.mount(0x4c6870u,std::array<std::byte,0x24>{},SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 cold source current viewport and four retained cluster-leaf pairs");
     // Whole3FD60 bounds eight cached special banks after scratch bank0;
     // 44AB0/44B2A selects them with stride408. Keep the complete nine-bank
     // loader-zeroed extent and the separate32-short fallback list. Original
@@ -1889,6 +1959,8 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
         "native TU1.5 authored 1DF686 physical shape construction scale operand");
     share_immutable_word(memory,0x46a160u,0x37800080u,
         "native TU1.5 authored 1709D7 random high-word normalization operand");
+    share_immutable_word(memory,0x46a304u,0xbeaaaaabu,
+        "native TU1.5 authored 20BBDF squad spawn-probability correction operand");
     memory.mount(0x46e468u,std::array{std::byte{1}},SourceRuntimeMemory::Access::ReadWrite,
         "native TU1.5 authored 2EF634 physical world update policy");
     memory.mount(0x46e4f4u,encode(std::array{0x173fu}),SourceRuntimeMemory::Access::ReadWrite,

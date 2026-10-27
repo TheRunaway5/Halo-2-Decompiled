@@ -91,7 +91,7 @@ struct Authority {
  std::atomic_bool observers_started{},ready{};std::atomic_uint32_t vehicle{null_datum},stimulus_ticks{};
  std::atomic_uint64_t drive_begin_tick{std::numeric_limits<std::uint64_t>::max()};
  std::mutex mutex;std::vector<MultiplayerState> history;std::exception_ptr error;
- unsigned port{},neutral_prefix_ticks{},observer_setup_ticks{};float causal_response{};std::jthread worker;
+ std::string join_address;unsigned port{},neutral_prefix_ticks{},observer_setup_ticks{};float causal_response{};std::jthread worker;
  Authority(MultiplayerOptions options,std::size_t placement,std::filesystem::path output) {
   std::promise<void> startup;auto future=startup.get_future();
   worker=std::jthread([this,options,placement,output,startup=std::move(startup)](std::stop_token stop)mutable {
@@ -116,7 +116,7 @@ struct Authority {
         neutral.match.configure_replicated_first_person(definition);
       }
     LanHost transport(world.match,0,multiplayer_fingerprint(options.map,world.cache->shared_directory(),options.bsp,world.network_starting_weapon_identity(),options.gameplay_xbe),options.variant);
-    port=transport.port();
+    port=transport.port();join_address=transport.join_address();
     test::LivePhysicsEntryCaptureTu15 controller(output/"original-live-unit-input-capture"),object_frame(output/"original-live-object-capture"),solve(output/"original-live-world-capture"),look_animation(output/"original-live-look-animation-capture"),look_rotation(output/"original-live-look-rotation-capture"),body_phase(output/"original-live-body-capture"),unit_view_reset(output/"original-unit-view-reset-capture");
     SourcePhysicsEntryObserverBinding observation(world.source_objects->memory(),[&](bool entering,std::uint32_t entry,const auto &abi) {
       if(entry==0x158690u && std::getenv("HALO2_TU15_UNIT_VIEW_RESET_CAPTURE")) {unit_view_reset.observe(entering,abi,world.source_objects->memory(),entry);return;}
@@ -229,7 +229,7 @@ int main(int argc,char **argv) {
   report["stage"]="construct actual source authority, roster and authored vehicle";
   Authority authority(host_options,index,output);
   MultiplayerOptions client=host_options;client.source_object_world=false;client.source_object_savegame_directory.clear();client.native_spawn_inputs.clear();client.campaign_spawn_input={};
-  client.join="127.0.0.1:"+std::to_string(authority.port);client.local_players=2;client.width=960;client.height=540;client.mute=true;
+  client.join=authority.join_address;client.local_players=2;client.width=960;client.height=540;client.mute=true;
   client.prepared_world=std::make_shared<MultiplayerPreparedWorld>(client);
   SDL_SetMainReady();client.desktop=std::make_shared<DesktopSession>();auto *window=client.desktop->window(960,540,false);
   SDL_SetWindowTitle(window,"TU1.5 class3 physics: two live multiplayer views");

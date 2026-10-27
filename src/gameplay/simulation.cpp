@@ -2,6 +2,7 @@
 #include "halo2/simulation.hpp"
 #include "halo2/multiplayer.hpp"
 #include "halo2/multiplayer_snapshot_origin.hpp"
+#include "halo2/nonhost_movement_prediction.hpp"
 #include "halo2/source_script_sound_admission_tu15.hpp"
 #include "halo2/frontend_model_lighting.hpp"
 #include "halo2/render_interpolation.hpp"
@@ -18,6 +19,7 @@
 #include "halo2/script_clock_builtin.hpp"
 #include "halo2/source_script_rumble_tu15.hpp"
 #include "halo2/source_campaign_cinematic_tu15.hpp"
+#include "halo2/source_texture_camera_producer_tu15.hpp"
 #include "halo2/source_scripted_sound_point_tu15.hpp"
 #include "halo2/source_campaign_lighting_tu15.hpp"
 #include "halo2/source_campaign_camera_tu15.hpp"
@@ -984,71 +986,13 @@ void Simulation::update_command(Unit &actor) {
 void Simulation::move_unit(Unit &u, Vec3 desired, bool jump, bool crouch,
                            bool player_control) {
   if(source_physics_movement_ && u.source_datum!=null_datum)return;
-  const bool landing_enabled=content_.original_data && content_.original_data->unit_locomotion_deadzone_bits;
-  if(landing_enabled) {
-    const float magnitude=desired.x*desired.x+desired.y*desired.y+desired.z*desired.z;
-    advance_source_landing(u.landing,magnitude>std::bit_cast<float>(*content_.original_data->unit_locomotion_deadzone_bits));
-  }
-  const auto move_and_land=[&] {
-    const bool supported=u.body.grounded;
-    collision().move(u.body,tick_seconds);
-    // Explicit native capsule-contact adaptation of DEFC0's incoming impact
-    // operand. The retained timer and authored thresholds are E5960's rules.
-    if(landing_enabled && !supported && u.body.grounded && u.body.landing_speed>0) {
-      bool force_hard=false;
-      begin_source_landing(u.landing,u.definition.landing,u.body.landing_speed,30,force_hard);
-    }
-  };
-  const float proposed =
-      u.crouch + crouch_delta(u.crouch, tick_seconds,
-                              u.definition.crouch_velocity, crouch, false);
-  const float height =
-      capsule_segment_height(u.definition.height, u.definition.crouch_height,
-                             u.body.radius, proposed,
-                             (u.definition.physics_flags & 2) != 0) +
-      2 * u.body.radius;
-  if (proposed >= u.crouch ||
-      !collision().overlaps(u.body.position, height, u.body.radius)) {
-    u.crouch = proposed;
-    u.body.height = std::max(2 * u.body.radius, height);
-  }
-  if (player_control && !(u.definition.physics_flags & 8)) {
-    const auto intent = movement_intent(content_.movement, desired, u.crouch,
-                                        false, !u.body.grounded);
-    if (jump_gate(u.jump, jump, true, !u.body.grounded, u.landing.kind==1, u.body.grounded,
-                  tick_seconds, 30)) {
-      u.body.velocity = jump_impulse(u.body.velocity, {0, 0, 1}, {},
-                                     u.definition.jump_velocity);
-      u.body.grounded = false;
-    }
-    WalkingInput input;
-    input.input = intent.velocity;
-    input.current = u.body.velocity;
-    input.facing = input.basis = direction(u.yaw);
-    input.normal = u.body.support_normal;
-    input.slope = u.definition.slope;
-    input.acceleration = intent.acceleration;
-    input.air_acceleration = intent.air_acceleration;
-    input.gravity = retail_gravity;
-    input.dt = tick_seconds;
-    input.flags = 8 | (u.body.grounded ? 0 : 4);
-    u.body.velocity = walking_velocity(input).velocity;
-    move_and_land();
-    return;
-  }
-  const auto delta = desired - Vec3{u.body.velocity.x, u.body.velocity.y, 0};
-  const auto acceleration =
-      u.body.grounded ? (u.crouch > .5f ? content_.movement.crouch_acceleration
-                                        : content_.movement.acceleration)
-                      : content_.movement.air_acceleration;
-  const auto change =
-      normalized(delta) * std::min(length(delta), acceleration * tick_seconds);
-  u.body.velocity.x += change.x;
-  u.body.velocity.y += change.y;
-  if (jump && u.body.grounded)
-    u.body.velocity.z = u.definition.jump_velocity;
-  u.body.velocity.z -= retail_gravity * tick_seconds;
-  move_and_land();
+  // One native mover, shared with non-host movement prediction.
+  const auto definition=native_motion_definition(content_.movement,u.definition,
+      content_.original_data?content_.original_data->unit_locomotion_deadzone_bits:std::nullopt);
+  NonHostBipedMotion motion;
+  motion.body=u.body;motion.crouch=u.crouch;motion.yaw=u.yaw;motion.jump=u.jump;motion.landing=u.landing;
+  step_native_unit_motion(motion,definition,collision(),desired,jump,crouch,player_control);
+  u.body=motion.body;u.crouch=motion.crouch;u.jump=motion.jump;u.landing=motion.landing;
 }
 float Simulation::player_damage_scale(const DamageOwner& owner,std::uint32_t victim)const {
   if(!multiplayer_weapon_steps_)return 1.f;
@@ -2405,6 +2349,23 @@ ScriptValue Simulation::host(const std::string &name,
     if(!source_campaign_)throw FormatError("Cinematic shadow control requires its retained TU1.5 world");
     source_cinematic_shadow_control_tu15(source_campaign_->objects().tu15_world(),
         args[0].truth(),args[1].bits,args[2].bits,float(args[3].number()));
+    return {};
+  }
+  if(name=="texture_camera_set_object_marker" || name=="texture_camera_off") {
+    arity(name=="texture_camera_off"?0:3);
+    if(!source_campaign_)throw FormatError("Texture camera action requires its actual TU1.5 campaign world");
+    auto &world=source_campaign_->objects().tu15_world();
+    if(name=="texture_camera_off")source_texture_camera_off_tu15(world);
+    else {
+      if(args[0].type!=50 || args[1].type!=11 || args[2].type!=6)
+        throw FormatError("Texture camera action lost its resolved object/SID/REAL input types");
+      // ScriptVm converts authored object-name subtypes to a full handle.
+      // Preserve its existing local-player alias, then validate the actual
+      // native generation. NONE remains the original255E0 clearing branch.
+      const auto object=args[0].bits==0?player_.source_datum:args[0].bits;
+      if(object!=null_datum)(void)world.source_object_body(object);
+      source_texture_camera_set_object_marker_tu15(world,object,args[1].bits,args[2].bits);
+    }
     return {};
   }
   if(name=="object_uses_cinematic_lighting") {

@@ -50,7 +50,7 @@ int main(int argc,char **argv){try {
   const auto weapon=cache.load_content(0,true).weapons.at(cache.slayer_starting_weapon(5));
   const auto throw_clip=cache.load_unit_weapon_action(weapon.first_person_animation,
       0x030000d9,0x030000d9,0x030000d9,0x0d000021);
-  std::unique_ptr<Host> host;if(lan){host=std::make_unique<Host>(o);o.join="127.0.0.1:"+std::to_string(host->host.port());}
+  std::unique_ptr<Host> host;if(lan){host=std::make_unique<Host>(o);o.join=host->host.join_address();}
   o.desktop=std::make_shared<DesktopSession>();auto *window=o.desktop->window(o.width,o.height,false);
   const auto window_id=SDL_GetWindowID(window);SDL_FlushEvents(SDL_FIRSTEVENT,SDL_LASTEVENT);
   unsigned pulses{},fp_throws{},body_throws{};bool prepared{},released{},detonated{},debit{};

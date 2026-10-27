@@ -25,7 +25,7 @@ def sha(path):
 
 def verify(bank, source):
     manifest = bank / 'manifest.json'
-    if manifest.is_symlink() or manifest.stat().st_size > 65536:
+    if manifest.is_symlink() or not manifest.is_file() or manifest.stat().st_size > 65536:
         raise ValueError('Invalid playback manifest owner/extent')
     row = json.loads(manifest.read_text())
     expected = json.loads((ROOT / 'resources/movie-manifest.json').read_text())['files']['intro_60.mp4']
@@ -58,7 +58,12 @@ def frame_hashes(path, output):
 
 def stage(bank, destination, source):
     row = verify(bank, source)
-    if destination.exists():
+    # Ninja creates declared output directories before invoking the rule.
+    # An empty directory is not a pre-existing bank and contains no owner to
+    # preserve. Nonempty banks retain the strict identity/refusal behavior.
+    empty_output = (destination.is_dir() and not destination.is_symlink()
+                    and not any(destination.iterdir()))
+    if destination.exists() and not empty_output:
         if verify(destination, source) == row:
             return
         raise ValueError('Preserve the existing playback bank; select a new output directory')
@@ -69,6 +74,10 @@ def stage(bank, destination, source):
         shutil.copy2(bank / VIDEO, staging / VIDEO)
         shutil.copy2(bank / 'manifest.json', staging / 'manifest.json')
         verify(staging, source)
+        if empty_output:
+            # rmdir refuses a concurrent writer or replacement; never remove
+            # a nonempty directory to publish these rebuildable files.
+            destination.rmdir()
         staging.rename(destination)
 
 

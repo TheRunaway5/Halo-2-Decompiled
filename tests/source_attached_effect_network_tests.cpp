@@ -16,7 +16,7 @@ int main(int argc,char **argv)try {
   MultiplayerPreparedWorld world(options);const auto player=world.match.join("Effect authority");
   const auto initial=world.match.state();world.source_objects->set_local_player(initial.players[player].source_player,0);
   world.source_objects->publish_native_observer_position(0,initial.players[player].position+Vec3{0,0,.6f});
-  LanHost host(world.match,0,0x17c370);const auto address="127.0.0.1:"+std::to_string(host.port());
+  LanHost host(world.match,0,0x17c370);const auto address=host.join_address();
   LanClient first(address,0x17c370,1);
   std::array<Controls,multiplayer_capacity> controls{};std::array<Controls,4> neutral{};
   const auto join=[&](LanClient &client,unsigned count) {

@@ -1,5 +1,5 @@
 #include "halo2/source_live_shadow_phase_inputs_tu15.hpp"
-#include "halo2/menu_world_vertex_source.hpp"
+#include "halo2/menu_world_vertex_catalog.hpp"
 #include "halo2/source_tag_metadata.hpp"
 #include "halo2/source_view_projection.hpp"
 #include <vulkan/vulkan_core.h>
@@ -130,14 +130,11 @@ const SourceShadowScenePhaseInput& SourceLiveShadowPhaseInputsTu15::phase(
        actual.implementation_record()!=pass.implementation_record())
         throw FormatError("live shadow phase selected pass differs from its immutable cache owner");
     selected_states(cache,actual);completed_program(completed);
-    const auto program=decode_vertex_program(cache.load_vertex_shader_code(actual.vertex_shader(),vertex_class));
-    //Use the same original raw code-generation helpers/catalog read-set,
-    //including conservative c50..169 palette-relative dependencies. This
-    //does not reconstruct constants or select a class from a program name.
-    const auto source=vertex_class<2?menu_world_vertex_source(program):menu_world_skinned_vertex_source(program);
+    const auto bytes=cache.load_vertex_shader_code(actual.vertex_shader(),vertex_class);
     const auto declaration=cache.load_source_vertex_declaration(actual.vertex_shader(),vertex_class);
     if(declaration.class_index!=vertex_class || declaration.semantics.empty())
         throw FormatError("live shadow selected vertex class lacks its authored declaration");
+    const auto& source=menu_world_vertex_metadata_lookup(bytes,declaration);
     for(unsigned reg:source.consumed_inputs)if(reg>=declaration.semantics.size())
         throw FormatError("live shadow selected program requires an unowned constant attribute");
     for(unsigned index:source.consumed_constants)

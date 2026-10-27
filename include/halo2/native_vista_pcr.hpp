@@ -58,7 +58,8 @@ public:
   // Explicit native ONLINE identity adapter. Retained keys are authenticated
   // random room identities, not Windows/Xbox Live account metadata.
   NativeVistaPcr(VistaPcrConsumedSnapshot,std::vector<OnlineAdmission>,
-      const FrontendContent&,VistaLoadingFloatingPoint);
+      const FrontendContent&,VistaLoadingFloatingPoint,
+      std::function<std::optional<std::uint16_t>()> current_presence = {});
   NativeVistaPcr(const NativeVistaPcr&)=delete;
   NativeVistaPcr& operator=(const NativeVistaPcr&)=delete;
   const VistaPcrConsumedSnapshot& source() const noexcept{return source_;}
@@ -76,6 +77,8 @@ public:
 private:
   const NativeVistaSession* session_{};
   std::vector<OnlineAdmission> online_roster_;
+  std::function<std::optional<std::uint16_t>()> online_presence_;
+  std::optional<std::uint16_t> appearance_presence_;
   const FrontendContent& content_;
   NativeVistaPcrServices services_;
   VistaPcrConsumedSnapshot source_;

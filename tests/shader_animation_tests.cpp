@@ -1,5 +1,6 @@
 #include "halo2/cache.hpp"
 #include "halo2/model.hpp"
+#include "halo2/object_lighting.hpp"
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -101,10 +102,53 @@ int main(int argc, char **argv) {
       }
     }
     check(cases == 693);
+    Cache lockout(std::filesystem::path(argv[1])/"lockout.map");
+    // TU1.5 16F40 and 17530 share template bitmap slots. Elite detail slot1
+    // remaps to material bitmap3; body armor starts with burned frame1.
+    // Its authored frame animation must reach the same slot and select the
+    // normal image for an undamaged owner, independently of shader LOD.
+    unsigned elite_passes{};
+    for(const auto leaf:{"head","helmet","arms","torso","legs"}) {
+      const auto name=std::string("objects\\characters\\elite\\shaders\\")+leaf;
+      const auto tag=lockout.query_tag({.group=tag_groups::shader,.name=name});
+      check(bool(tag));
+      for(unsigned lod:{0u,1u}) {
+        auto material=lockout.load_material(tag->datum);material.selected_shader_lod=lod;
+        check(prepare_dynamic_material(lockout,material,{},true));
+        const auto &pass=material.passes.at(material.forward_pass_index);
+        const auto binding=std::find_if(pass.textures.begin(),pass.textures.end(),
+            [](const auto &v){return !v.external && v.stage==1;});
+        check(binding!=pass.textures.end());
+        const auto remap=std::find_if(pass.bitmap_remaps.begin(),pass.bitmap_remaps.end(),
+            [&](const auto &v){return (v.destination&255)==binding->parameter;});
+        check(remap!=pass.bitmap_remaps.end() && remap->source!=binding->parameter);
+        const auto &bitmap=material.bitmaps.at(remap->source);
+        check(bitmap.index==(std::string_view(leaf)=="head"?0u:1u) && lockout.bitmap_count(bitmap.datum)==2);
+        check(material.animated_textures[1].size()==2 && material.texture_frames[1]==bitmap.index);
+        // TU1.5 17530 evaluates elite_burnt inversely: input1 selects the
+        // normal frame0; input0 selects the authored burned frame1.
+        const auto healthy=[](std::uint32_t id){return id==0x0b001a0au?1.f:0.f;};
+        check(animate_material_bitmaps(material,0,healthy)==(bitmap.index!=0));
+        check(material.texture_frames[1]==0);
+        const auto neutral=sample_object_texture(material.animated_textures[1][0],{0,0});
+        check(neutral && (*neutral>>24)==255);
+        for(unsigned shift:{0u,8u,16u})check(std::abs(int((*neutral>>shift)&255)-128)<=8);
+        const auto normal=material.texture_frames;
+        check(!animate_material_bitmaps(material,0,healthy));
+        check(material.texture_frames==normal);
+        if(std::string_view(leaf)!="head") {
+          check(animate_material_bitmaps(material,0,[](std::uint32_t){return 0.f;}));
+          check(material.texture_frames[1]==1);
+          check(animate_material_bitmaps(material,0,healthy));
+          check(material.texture_frames==normal);
+        }
+        ++elite_passes;
+      }
+    }
+    check(elite_passes==10);
     // World owners share authored materials but require independent animated
     // constants. An on/off/on sequence must not mutate the resident pass or
     // leave the next owner's sword blade combiner disabled.
-    Cache lockout(std::filesystem::path(argv[1])/"lockout.map");
     std::vector<Material> sword_materials;
     for(const auto datum:{0xe2de0169u,0xe2e80173u})sword_materials.push_back(lockout.load_material(datum));unsigned blades{};
     for(const auto &m:sword_materials) {
@@ -134,8 +178,8 @@ int main(int argc, char **argv) {
       output.close();
       check(bool(output));
     }
-    std::cout << "Retail carrier shader passes: " << cases
-              << " animated samples passed\n";
+    std::cout << cases << " carrier animation samples and " << elite_passes
+              << " Elite detail animation passes verified\n";
     return 0;
   } catch (const std::exception &e) {
     std::cerr << e.what() << '\n';

@@ -4,6 +4,8 @@
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/multiplayer_scoreboard.hpp"
 #include "halo2/desktop_session.hpp"
+#include "halo2/gameplay_font_source.hpp"
+#include "halo2/source_game_variant.hpp"
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -17,15 +19,50 @@ void place(MultiplayerMatch& match,unsigned id,Vec3 position) {
   Spawn spawn;spawn.position=position;
   test::place_player(match,id,spawn);
 }
+void score_format_matrix(const Cache &cache) {
+  const std::array<unsigned,1> ids{0};unsigned cases{};
+  for(unsigned engine=0;engine<7;++engine) {
+    UiVariant variant;variant.engine=engine;
+    const auto type=source_game_variant_type(source_game_variant(variant));
+    Mesh mesh;MultiplayerScoreboard board(cache,gameplay_font_directory(cache),mesh,variant);
+    check(board.available(),"Mode scoreboard providers unavailable");
+    for(unsigned tick=0;tick<8;++tick)board.step(0,true);
+    for(bool teams:{false,true})for(bool finished:{false,true}) {
+      MultiplayerState state;state.tick=100;state.source_engine=type;state.team_mode=teams;
+      state.finished=state.results_finalized=finished;state.retained_team_mask=1;
+      state.team_scores[0]=65;state.team_total_scores[0]=125;
+      auto &player=state.players[0];player.connected=true;player.name="Mode score";
+      player.source_player=0x10000;player.source_unit=0x10001;
+      player.source_flags=1;player.source_membership=0;player.score=65;player.total_score=125;
+      const auto draw=board.draw(state,ids,0,640,480);
+      check(draw.layout.status==FullScoreboardStatus::Ready && draw.layout.rows.size()==1,
+          "Mode scoreboard omitted its actual adapter row");
+      const bool timed=type==3 || type==4 || type==8;
+      const std::u16string expected=timed?(finished?u"2:05":u"1:05"):(finished?u"125":u"65");
+      if(draw.layout.rows.front().widgets[4].text!=expected)
+        throw FormatError("Mode scoreboard score format differs from TU1.5: source type="+
+            std::to_string(type)+" team="+std::to_string(teams)+" finished="+std::to_string(finished));
+      if(teams)check(draw.layout.team_rows.size()==1 && draw.layout.team_rows.front().widgets[3].text==expected,
+          "Mode scoreboard team score format differs from TU1.5");
+      ++cases;
+    }
+  }
+  std::cout<<"PASS "<<cases<<" native mode scoreboard active/final FFA/team score-format cases\n";
+}
 }
 int main(int argc,char**argv)try {
-  check(argc==4,"Supply original MAP SHARED_MAPS UPDATE_XBE");
-  if(!std::getenv("DISPLAY") || !std::filesystem::exists(argv[1]) || !std::filesystem::exists(argv[3]))return 77;
+  check(argc==4,"Supply MAP SHARED_MAPS UPDATE_XBE|native-mcc");
+  const bool native_mcc=std::string_view(argv[3])=="native-mcc";
+  const bool formats_only=std::getenv("HALO2_SCOREBOARD_FORMAT_MATRIX")!=nullptr;
+  if((!formats_only && !std::getenv("DISPLAY")) || !std::filesystem::exists(argv[1]) ||
+      (!native_mcc && !std::filesystem::exists(argv[3])))return 77;
   SDL_SetMainReady();MultiplayerOptions options;
-  options.map=argv[1];options.shared_maps=argv[2];options.gameplay_xbe=argv[3];
+  options.map=argv[1];options.shared_maps=argv[2];if(!native_mcc)options.gameplay_xbe=argv[3];
   options.width=640;options.height=480;options.starting_weapon=5;options.mute=true;
   options.validation=std::getenv("HALO2_DEATH_VALIDATION");
-  Cache cache(options.map,options.shared_maps,OriginalData::load_xbe(options.gameplay_xbe));
+  Cache cache(options.map,options.shared_maps,native_mcc?nullptr:OriginalData::load_xbe(options.gameplay_xbe));
+  check(!native_mcc || cache.is_mcc(),"native-mcc requires the prepared imported MCC cache");
+  if(formats_only){score_format_matrix(cache);return 0;}
   auto content=cache.load_content(0,true);
   // Explicit native debug arena. Actual stock SMG damage, authority, death,
   // countdown, source-slot respawn and the ordinary renderer remain live.
@@ -35,7 +72,7 @@ int main(int argc,char**argv)try {
   MultiplayerMatch match(content,0,cache.spawns(),rules);match.join("Shooter");
   for(unsigned n=0;n<100;++n)match.step({});
   LanHost host(match,0,multiplayer_fingerprint(options.map,cache.shared_directory(),0,rules.weapon,options.gameplay_xbe));
-  options.join="127.0.0.1:"+std::to_string(host.port());
+  options.join=host.join_address();
   std::atomic<bool> advance{};std::exception_ptr failure;
   std::jthread worker([&](std::stop_token stop) {
     try {

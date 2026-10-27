@@ -1,4 +1,7 @@
 #include "halo2/frontend.hpp"
+#include "halo2/frontend_lobby_game.hpp"
+#include "ui/mcc_frontend_string_ids.hpp"
+#include "ui/frontend_og_matchmaking_layout.hpp"
 #include <algorithm>
 
 namespace halo2 {
@@ -92,13 +95,12 @@ void MenuState::populate_online_party(MenuFrame &f) const {
   if(f.screen==31 && f.context==invite_context) {
     f.title="INVITE TO PARTY";
     if(party_invite_tab_==0) {
-      f.description=account_.steam_friends_message;
-      for(unsigned i=0;i<account_.steam_friends.size();++i) {
-        const auto &p=account_.steam_friends[i];
-        f.entries.push_back({p.name+(p.halo_online?" - Halo ONLINE":!p.registered?" - Not signed into Halo":" - Steam Online"),-36,int(i)});
+      f.description=account_.friends_message;
+      for(unsigned i=0;i<account_.friends.size();++i) {
+        const auto &p=account_.friends[i];
+        if(p.state=="friend")f.entries.push_back({p.name+(p.presence=="playing"?" - In match":p.presence=="offline"?" - Offline":" - ONLINE"),-36,int(i)});
       }
-      if(account_.steam_friends.empty())f.entries.push_back({account_.steam_friends_state=="loading"?"Loading Steam friends...":"No visible online Steam friends",-82,0});
-      f.entries.push_back({"Refresh Steam Friends",-36,-1});
+      if(f.entries.empty())f.entries.push_back({"No friends added yet",-82,0});
     } else {
       f.description=account_.clan?"Select an online clan member to invite.":"Join a clan to invite its members.";
       if(account_.clan)for(unsigned i=0;i<account_.clan->members.size();++i) {
@@ -108,13 +110,24 @@ void MenuState::populate_online_party(MenuFrame &f) const {
       }
       if(f.entries.empty())f.entries.push_back({"No available online clan members",-82,0});
     }
-    f.entries.push_back({"Search Discord Username",167,9});
+    f.entries.push_back({"Invite by Friend Tag",167,9});
     f.entries.push_back({"Back",-5,0});return;
   }
   if(f.screen==14) {
-    f.title="ONLINE PARTY";
-    if(account_.party)f.entries={{"Playlists",219,0},{"Party Options",216,0}};
-    else f.entries={{"Create Party",-33,0},{"Party Invitations",26,2}};
+    const auto &screen=content_.screen(14);
+    const auto &pane=screen.panes.at(2);
+    const bool original=detail::mcc_frontend_content(content_);
+    f.title=original?detail::og_matchmaking_layout::original_string(14,
+        detail::og_matchmaking_layout::data().at("original").at("screens").at("14").at("header")):content_.localized(screen,screen.header);
+    if(account_.party) {
+      if(pane.buttons.size()<2)throw FormatError("Matchmaking lobby has no authored Start/Game Setup buttons");
+      //250FB3 choice1 opens the original squad-settings screen23. Its
+      // matchmaking row then reaches the authenticated playlist adapter.
+      const auto label=[&](unsigned i){return original?detail::og_matchmaking_layout::original_string(14,
+          detail::og_matchmaking_layout::data().at("original").at("screens").at("14").at("panes").at(2).at("buttons").at(i).at("text").at("string")):
+          content_.localized(screen,pane.buttons[i].text.string);};
+      f.entries={{label(0),-17,0},{label(1),23,0}};
+    } else f.entries={{"Create Party",-33,0},{"Party Invitations",26,2}};
   } else if(f.screen==26) {
     f.title="ONLINE";
     if(account_.party) {
@@ -167,20 +180,41 @@ void MenuState::populate_online_party(MenuFrame &f) const {
 std::string MenuState::online_party_text(const MenuFrame &f,unsigned i) const {
   if(f.screen==31 && f.context==invite_context)return i==0?f.description:std::string{};
   if(f.screen==14) {
-    if(i==0)return account_.busy?"Updating party...":!account_.party_message.empty()?account_.party_message:
-        !account_.party?account_.message:voice_party_ && voice_.revision>1?voice_.message:"Choose a playlist together.";
-    if(i==2)return "ONLINE PARTY";
-    if(i==3) {
-      const auto p=std::find_if(matchmaking_.playlists.begin(),matchmaking_.playlists.end(),[&](const auto &p){return p.id==selected_playlist_;});
-      return p==matchmaking_.playlists.end()?"Select a playlist":p->name;
+    const auto &screen=content_.screen(14);const auto &pane=screen.panes.at(2);
+    const bool original=detail::mcc_frontend_content(content_);
+    const auto localized=[&](std::uint32_t sid){return original?detail::og_matchmaking_layout::original_string(14,sid):detail::frontend_compiled_localized(content_,screen,sid);};
+    const auto authored=[&](unsigned index){return original?detail::og_matchmaking_layout::original_text(14,2,index):content_.localized(screen,pane.texts.at(index).string);};
+    if(i==0 && online_lobby_countdown_>=0) {
+      const auto view=lobby_view();
+      if(view) {
+        const auto policy=frontend_lobby_presentation(view->input);
+        if(policy.status_string)return expand(localized(*policy.status_string));
+      }
     }
-    if(i==43 && account_.party)for(const auto &m:account_.party->members)if(m.leader)return m.name;
-    if(i==44)return account_.party?std::to_string(online_party_members().size())+" / 16":"";
-    // Use the authored empty detail fields in the left panel. The original
-    // help field47 occupies the right roster and collides with a full party.
-    if(i==4)return "\xee\x84\x83 PARTY MEMBERS";
-    if(i==5)return "\xee\x84\x82 PARTY OPTIONS";
-    if(i==6)return "V: hold to talk";
+    if(i==0 && online_lobby_matchmaking_ && account_.party && !account_.party->countdown_supported &&
+        !selected_playlist_.empty())return online_lobby_start_error();
+    if(i==0)return account_.party_message; // Real service errors; no invented authored idle/voice status.
+    if(i==1 || i==2 || i==3 || i==48)return expand(authored(i));
+    if(i==10) {
+      if(const auto view=lobby_view())if(const auto id=frontend_lobby_presentation(view->input).privacy_string)return localized(*id);
+      return {};
+    }
+    if(i==43 && account_.party)for(const auto &m:account_.party->members)if(m.leader) {
+      auto text=authored(i);
+      if(const auto token=text.find("\xee\x90\x96");token!=std::string::npos)text.replace(token,3,m.name);
+      return text;
+    }
+    if(i==44 && account_.party)return expand(authored(i));
+    if(i==45 && has_online_prior_stats()) {
+      return authored(45);
+    }
+    if(i==47) {
+      const auto view=lobby_view();
+      if(view) {
+        const auto help=frontend_lobby_help(2,view->protocol,view->machines,view->input.party_privacy,6);
+        if(help.visible)return localized(help.string_id);
+      }
+    }
     return {};
   }
   if(f.screen==26) {
@@ -193,6 +227,28 @@ std::string MenuState::online_party_text(const MenuFrame &f,unsigned i) const {
     return {};
   }
   return i==0?account_.party_message.empty()?account_.message:account_.party_message:"";
+}
+void MenuState::update_online_privacy() {
+  if(!online_privacy_pending_)return;
+  const auto pending=*online_privacy_pending_;
+  const bool current=frame().screen==25 && frame().instance==pending.frame_instance;
+  if(!account_.party || !account_.party->privacy || account_.party->privacy->context!=pending.context) {
+    online_privacy_pending_.reset();
+    if(current)unavailable("The party changed before its privacy update was acknowledged.");
+    return;
+  }
+  if(!pending.command_serial) {
+    if(!current)online_privacy_pending_.reset();
+    return;
+  }
+  if(account_.busy || (account_.party_command_serial==pending.command_serial && !account_.party_command_successful))return;
+  const auto &ack=*account_.party->privacy;
+  const bool accepted=account_.party_command_serial==pending.command_serial && account_.party_command_successful==true &&
+      ack.mode==pending.mode && ack.revision>pending.revision;
+  online_privacy_pending_.reset();
+  if(!current)return;
+  if(accepted)back(); // Source2BF022 closes channel3 after its actual mutation.
+  else unavailable(account_.party_message.empty()?"The party privacy update was not accepted. Try again.":account_.party_message);
 }
 std::string MenuState::online_party_column(const MenuFrame &f,unsigned row,unsigned column) const {
   const auto members=online_party_members();
@@ -216,25 +272,74 @@ void MenuState::party_command(OnlinePartyCommand command) {
   }
   ++revision;
 }
+void MenuState::update_online_lobby_leave() {
+  if(!online_lobby_leave_pending_ || account_.busy)return;
+  if(account_.party) {
+    // A refused mutation leaves the actual party and its confirmation intact.
+    if(!account_.party_message.empty())online_lobby_leave_pending_=false;
+    return;
+  }
+  // 25132E/251345 ->199E3C ->199E2E leaves both A and B; profile/login
+  // remains signed in. Wait for the accepted-party reply before disposing UI.
+  online_lobby_leave_pending_=false;
+  if(online_matchmaking_)online_matchmaking_->sign_out();
+  matchmaking_active_=quickmatch_pending_=false;matchmaking_={};
+  selected_playlist_.clear();online_lobby_matchmaking_=online_lobby_playlist_pending_=false;
+  online_lobby_countdown_party_.clear();cancel_online_lobby_countdown();
+  reset_online_matchmaking_progress();launch.reset();
+  while(stack_.size()>1 && frame().screen!=6)stack_.pop_back();
+  ++revision;
+}
+std::string MenuState::online_lobby_start_error() const {
+  if(!online_account_ || !account_.authenticated)return "Sign in to ONLINE before starting matchmaking.";
+  if(!account_.party)return "Create or join a party before starting matchmaking.";
+  if(!account_.party->leader)return "Only the party leader can start matchmaking.";
+  if(!online_lobby_matchmaking_ || selected_playlist_.empty())return "Choose a matchmaking playlist in Game Setup first.";
+  if(!online_matchmaking_)return "No matchmaking service is configured.";
+  if(!account_.party->countdown_supported)
+    return "This ONLINE service does not support the shared lobby countdown. Update the server before starting matchmaking.";
+  if(account_.busy)return "Wait for the current ONLINE operation to finish, then start matchmaking.";
+  const auto playlist=std::find_if(matchmaking_.playlists.begin(),matchmaking_.playlists.end(),
+      [&](const auto&p){return p.id==selected_playlist_;});
+  if(playlist==matchmaking_.playlists.end() || !playlist->eligible)
+    return "The selected playlist is unavailable. Choose a playlist in Game Setup.";
+  if(!std::all_of(account_.party->members.begin(),account_.party->members.end(),
+      [&](const auto&m){return m.ready_playlist==playlist->id;}))
+    return "Every party member must select this playlist before matchmaking can start.";
+  return {};
+}
 bool MenuState::accept_online_party() {
   const auto f=frame();if(!online_party_screen(f))return false;
   if(f.entries.empty() || f.selected>=f.entries.size())return true;
   const auto entry=f.entries[f.selected];
   if(f.screen==216 && entry.destination==31 && entry.value==int(invite_context)) {
     party_invite_tab_=0;
-    if(online_account_)online_account_->refresh_steam_friends();
     update_online_account();open(31,invite_context);return true;
   }
   if(f.context==invite_context && (entry.destination==-36 || entry.destination==-37)) {
-    if(entry.value==-1){if(online_account_)online_account_->refresh_steam_friends();update_online_account();return true;}
     const auto i=unsigned(entry.value);
     if(!account_.party || !account_.party->leader || account_.busy)return true;
-    if(entry.destination==-36 && i<account_.steam_friends.size()) {
-      const auto &p=account_.steam_friends[i];
-      if(!p.registered){unavailable("This Steam friend needs to sign into Halo ONLINE before receiving an invitation.");return true;}
-      party_command({"invite_steam",p.id});
+    if(entry.destination==-36 && i<account_.friends.size()) {
+      const auto &p=account_.friends[i];
+      if(p.state!="friend")return true;
+      party_command({"invite_friend",p.id});
     } else if(entry.destination==-37 && account_.clan && i<account_.clan->members.size())
       party_command({"invite_member",account_.clan->members[i].id});
+    return true;
+  }
+  // 250B1E consumes A/Start before the focused button while the countdown
+  // runs, so even Game Setup focus shortens it through25106C/19A78E.
+  if(f.screen==14 && (online_lobby_countdown_>=0 || entry.destination==-17)) {
+    // 0x25106C ->0x19A78E(controller,10,3).
+    if(const auto error=online_lobby_start_error();!error.empty()) {
+      pending_ui_sounds_.push_back(FrontendUiSound::Error);unavailable(error);return true;
+    }
+    const auto playlist=std::find_if(matchmaking_.playlists.begin(),matchmaking_.playlists.end(),
+        [&](const auto&p){return p.id==selected_playlist_;});
+    if(!online_account_->party_command({"countdown_start",{},playlist->id,playlist->revision})) {
+      pending_ui_sounds_.push_back(FrontendUiSound::Error);
+      unavailable("The ONLINE operation changed before Start Game was accepted. Wait for it to finish, then try again.");
+    } else update_online_account();
     return true;
   }
   if(f.screen==14 && entry.destination>0){if(!account_.party || account_.party->leader)open(unsigned(entry.destination),unsigned(entry.value));return true;}

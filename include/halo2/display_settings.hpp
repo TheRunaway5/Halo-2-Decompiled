@@ -9,6 +9,11 @@ inline constexpr unsigned default_field_of_view=78;
 inline constexpr unsigned default_vehicle_field_of_view=70;
 // Native contexts reuse the imported numeric-choice pane without adding retail IDs.
 inline constexpr unsigned video_fov_context=2, video_vehicle_fov_context=3;
+inline constexpr unsigned video_path_tracing_context=3, video_path_tracing_samples_context=4,
+    video_path_tracing_bounces_context=5;
+constexpr bool valid_path_tracing_quality(unsigned samples,unsigned bounces) {
+    return samples>=1 && samples<=2 && bounces>=1 && bounces<=2;
+}
 constexpr bool valid_field_of_view(unsigned degrees) {
     return degrees>=minimum_field_of_view && degrees<=maximum_field_of_view;
 }
@@ -25,6 +30,7 @@ struct DisplaySettings {
     unsigned field_of_view=default_field_of_view, vehicle_field_of_view=default_vehicle_field_of_view;
     unsigned volume=10, subtitles=0, speakers=4;
     pstencil::GraphicsMode graphics_mode=pstencil::GraphicsMode::Original;
+    unsigned path_tracing_samples=1, path_tracing_bounces=1;
     bool operator==(const DisplaySettings &) const = default;
 };
 // PC590B26: High/Medium share the object policy. Low caps ordinary geometry

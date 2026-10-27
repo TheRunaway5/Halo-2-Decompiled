@@ -103,7 +103,7 @@ int main(int argc,char **argv)try {
     // it is unnecessary for Banshee fire and requires a separate client owner.
     Json authority={{"grenade_definitions",Json::array()},{"detonations",Json::array()},
         {"source_light_births",Json::array()},{"projectile_lenses",Json::array()}};
-    std::promise<unsigned> bound;auto port=bound.get_future();std::exception_ptr server_error;
+    std::promise<std::string> bound;auto port=bound.get_future();std::exception_ptr server_error;
     std::jthread server([&](std::stop_token stop) {
         bool ready=false;
         try {
@@ -118,7 +118,7 @@ int main(int argc,char **argv)try {
                 if(!before&&light.light!=null_datum&&authority["source_light_births"].size()<128)
                     authority["source_light_births"].push_back({{"tick",light.source_tick},{"definition",light.definition},{"light",light.light}});
             });
-            bound.set_value(host.port());ready=true;
+            bound.set_value(host.join_address());ready=true;
             std::array<Controls,multiplayer_capacity> input{};
             std::uint64_t serial{};std::set<std::uint32_t> projectiles;
             std::optional<unsigned> placed,seated;bool airborne=false;std::set<unsigned> inspected_projectiles;
@@ -317,7 +317,7 @@ int main(int argc,char **argv)try {
             if(!ready)bound.set_exception(server_error);
         }
     });
-    options.join="127.0.0.1:"+std::to_string(port.get());
+    options.join=port.get();
     if(server_only) {
         std::ofstream(report_path.string()+".ready.json")<<Json{{"join",options.join},{"declared_typed_seat_request",declared_seat}}.dump();
         const auto deadline=std::chrono::steady_clock::now()+std::chrono::minutes(10);

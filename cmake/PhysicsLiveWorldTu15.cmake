@@ -1,5 +1,125 @@
 # Same retained bank and native resource owners for the TU1.5 live world.
+# Keep new strict-FP owners in a small library: adding a per-source flag to
+# halo2_systems changes its shared flags file and rebuilds unrelated systems.
+add_library(halo2_native_constraint_solver STATIC
+    src/physics/native_tu15_constraint_solver.cpp
+    src/physics/native_tu15_constraint_solver_rows.cpp
+    src/physics/native_tu15_constraint_solver_initializer.cpp
+    src/physics/native_tu15_constraint_custom_schema.cpp
+    src/physics/native_tu15_constraint_clock.cpp)
+target_include_directories(halo2_native_constraint_solver PUBLIC include)
+target_compile_features(halo2_native_constraint_solver PUBLIC cxx_std_20)
+if(MSVC)
+    target_compile_options(halo2_native_constraint_solver PRIVATE /fp:strict)
+else()
+    target_compile_options(halo2_native_constraint_solver PRIVATE
+        -fno-fast-math -ffp-contract=off -frounding-math)
+    if(HALO2_SANITIZERS)
+        target_compile_options(halo2_native_constraint_solver PRIVATE
+            -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(halo2_native_constraint_solver PUBLIC -fsanitize=address,undefined)
+    endif()
+endif()
+target_link_libraries(halo2_systems PUBLIC halo2_native_constraint_solver)
+add_library(halo2_native_array_reserve STATIC src/physics/native_tu15_array_reserve.cpp)
+target_include_directories(halo2_native_array_reserve PUBLIC include)
+target_compile_features(halo2_native_array_reserve PUBLIC cxx_std_20)
+if(HALO2_SANITIZERS AND NOT MSVC)
+    target_compile_options(halo2_native_array_reserve PRIVATE
+        -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(halo2_native_array_reserve PUBLIC -fsanitize=address,undefined)
+endif()
+target_link_libraries(halo2_systems PUBLIC halo2_native_array_reserve)
+add_library(halo2_native_island_agents STATIC src/physics/native_tu15_island_agent_phase.cpp
+    src/physics/native_tu15_island_contact_advance.cpp)
+target_include_directories(halo2_native_island_agents PUBLIC include)
+target_compile_features(halo2_native_island_agents PUBLIC cxx_std_20)
+if(MSVC)
+    target_compile_options(halo2_native_island_agents PRIVATE /fp:strict)
+else()
+    target_compile_options(halo2_native_island_agents PRIVATE
+        -fno-fast-math -ffp-contract=off -frounding-math)
+    if(HALO2_SANITIZERS)
+        target_compile_options(halo2_native_island_agents PRIVATE
+            -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(halo2_native_island_agents PUBLIC -fsanitize=address,undefined)
+    endif()
+endif()
+target_link_libraries(halo2_systems PUBLIC halo2_native_island_agents)
+add_library(halo2_native_shape_bounds STATIC src/physics/native_tu15_geometry.cpp
+    src/physics/native_tu15_shape_bounds.cpp src/physics/native_tu15_centered_shape_bounds.cpp
+    src/physics/native_tu15_compound_shape_bounds.cpp)
+target_include_directories(halo2_native_shape_bounds PUBLIC include)
+target_compile_features(halo2_native_shape_bounds PUBLIC cxx_std_20)
+if(MSVC)
+    target_compile_options(halo2_native_shape_bounds PRIVATE /fp:strict)
+else()
+    target_compile_options(halo2_native_shape_bounds PRIVATE
+        -fno-fast-math -ffp-contract=off -frounding-math)
+    if(HALO2_SANITIZERS)
+        target_compile_options(halo2_native_shape_bounds PRIVATE
+            -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(halo2_native_shape_bounds PUBLIC -fsanitize=address,undefined)
+    endif()
+endif()
+target_link_libraries(halo2_systems PUBLIC halo2_native_shape_bounds)
 target_sources(halo2_systems PRIVATE src/physics/physics_live_world_tu15.cpp src/runtime/source_runtime_cache_tags_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/physics/native_tu15_physics_frame.cpp
+    src/physics/native_tu15_physics_frame_residuals.cpp src/physics/native_tu15_motion_forces.cpp
+    src/physics/native_tu15_motion_pose.cpp src/physics/native_tu15_island_deactivation.cpp
+    src/physics/native_tu15_body_deactivation_policy.cpp src/physics/native_tu15_island_transition.cpp
+    src/physics/native_tu15_kinematic_motion.cpp
+    src/physics/native_tu15_array_growth.cpp src/physics/native_tu15_array_allocator.cpp
+    src/physics/native_tu15_world_collision.cpp
+    src/physics/native_tu15_world_collision_listeners.cpp
+    src/physics/native_tu15_constraint_step.cpp src/physics/native_tu15_constraint_step_residuals.cpp
+    src/physics/native_tu15_dynamic_accumulator.cpp
+    src/physics/native_tu15_island_collision.cpp
+    src/physics/native_tu15_motion_commit.cpp
+    src/physics/native_tu15_broad_phase.cpp
+    src/physics/native_tu15_island_integration.cpp src/physics/native_tu15_world_integration.cpp
+    src/physics/native_tu15_world_integration_residuals.cpp)
+if(BUILD_TESTING)
+    add_executable(native_tu15_constraint_residuals_tests EXCLUDE_FROM_ALL
+        tests/native_tu15_constraint_residuals_tests.cpp)
+    target_link_libraries(native_tu15_constraint_residuals_tests PRIVATE halo2_systems)
+    add_test(NAME native_constraint_binding_model_tu15 COMMAND native_tu15_constraint_residuals_tests)
+    set_tests_properties(native_constraint_binding_model_tu15 PROPERTIES TIMEOUT 30)
+endif()
+if(MSVC)
+    set_source_files_properties(src/physics/native_tu15_physics_frame.cpp
+        src/physics/native_tu15_physics_frame_residuals.cpp src/physics/native_tu15_motion_forces.cpp
+    src/physics/native_tu15_motion_pose.cpp src/physics/native_tu15_island_deactivation.cpp
+    src/physics/native_tu15_body_deactivation_policy.cpp src/physics/native_tu15_island_transition.cpp
+    src/physics/native_tu15_kinematic_motion.cpp
+    src/physics/native_tu15_array_growth.cpp src/physics/native_tu15_array_allocator.cpp
+    src/physics/native_tu15_world_collision.cpp src/physics/native_tu15_world_collision_listeners.cpp
+    src/physics/native_tu15_constraint_step.cpp src/physics/native_tu15_constraint_step_residuals.cpp
+    src/physics/native_tu15_dynamic_accumulator.cpp src/physics/native_tu15_island_collision.cpp
+    src/physics/native_tu15_motion_commit.cpp src/physics/native_tu15_broad_phase.cpp PROPERTIES
+        COMPILE_OPTIONS "/fp:strict")
+else()
+    set_source_files_properties(src/physics/native_tu15_physics_frame.cpp
+        src/physics/native_tu15_physics_frame_residuals.cpp src/physics/native_tu15_motion_forces.cpp
+    src/physics/native_tu15_motion_pose.cpp src/physics/native_tu15_island_deactivation.cpp
+    src/physics/native_tu15_body_deactivation_policy.cpp src/physics/native_tu15_island_transition.cpp
+    src/physics/native_tu15_kinematic_motion.cpp
+    src/physics/native_tu15_array_growth.cpp src/physics/native_tu15_array_allocator.cpp
+    src/physics/native_tu15_world_collision.cpp src/physics/native_tu15_world_collision_listeners.cpp
+    src/physics/native_tu15_constraint_step.cpp src/physics/native_tu15_constraint_step_residuals.cpp
+    src/physics/native_tu15_dynamic_accumulator.cpp src/physics/native_tu15_island_collision.cpp
+    src/physics/native_tu15_motion_commit.cpp src/physics/native_tu15_broad_phase.cpp PROPERTIES
+        COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
+endif()
+if(MSVC)
+    set_source_files_properties(src/physics/native_tu15_island_integration.cpp
+        src/physics/native_tu15_world_integration.cpp src/physics/native_tu15_world_integration_residuals.cpp
+        PROPERTIES COMPILE_OPTIONS "/fp:strict")
+else()
+    set_source_files_properties(src/physics/native_tu15_island_integration.cpp
+        src/physics/native_tu15_world_integration.cpp src/physics/native_tu15_world_integration_residuals.cpp PROPERTIES
+        COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
+endif()
 include("${CMAKE_CURRENT_LIST_DIR}/DamageModelChildrenTu15.cmake")
 target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/world/source_teleporter_tu15_generated.cpp)
 if(MSVC)
@@ -41,11 +161,20 @@ target_sources(halo2_systems PRIVATE src/audio/source_sound_range_selection_tu15
 target_sources(halo2_systems PRIVATE src/audio/source_sound_chunk_readiness_tu15_generated.cpp)
 # Native sound manager kernels; same strict floating-point model as the
 # routines they replace.
-target_sources(halo2_systems PRIVATE src/audio/native_tu15_sound_manager.cpp)
+set(HALO2_NATIVE_SOUND_KERNELS src/audio/native_tu15_sound_manager.cpp
+    src/audio/native_tu15_sound_kernels_gain.cpp src/audio/native_tu15_sound_kernels_properties.cpp
+    src/audio/native_tu15_sound_kernels_listener.cpp src/audio/native_tu15_sound_kernels_resources.cpp
+    src/audio/native_tu15_sound_kernels_startup.cpp src/audio/native_tu15_sound_kernels_object_loop.cpp
+    src/audio/native_tu15_sound_kernels_object_loop_frame.cpp src/audio/native_tu15_sound_kernels_object_loop_update.cpp
+    src/audio/native_tu15_sound_kernels_object_loop_sources.cpp
+    src/audio/native_tu15_sound_kernels_campaign_audio.cpp src/audio/native_tu15_sound_kernels_campaign_playback.cpp
+    src/audio/native_tu15_sound_kernels_campaign_mix.cpp src/audio/native_tu15_sound_kernels_campaign_channels.cpp
+    src/audio/native_tu15_sound_kernels_unit_speech.cpp)
+target_sources(halo2_systems PRIVATE ${HALO2_NATIVE_SOUND_KERNELS})
 if(MSVC)
-    set_source_files_properties(src/audio/native_tu15_sound_manager.cpp PROPERTIES COMPILE_OPTIONS "/fp:strict")
+    set_source_files_properties(${HALO2_NATIVE_SOUND_KERNELS} PROPERTIES COMPILE_OPTIONS "/fp:strict")
 else()
-    set_source_files_properties(src/audio/native_tu15_sound_manager.cpp PROPERTIES
+    set_source_files_properties(${HALO2_NATIVE_SOUND_KERNELS} PROPERTIES
         COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
 endif()
 if(MSVC)
@@ -68,6 +197,71 @@ else()
         PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
 endif()
 if(BUILD_TESTING)
+    add_executable(native_tu15_physics_frame_tests tests/native_tu15_physics_frame_tests.cpp)
+    target_link_libraries(native_tu15_physics_frame_tests PRIVATE halo2_systems)
+    add_test(NAME native_physics_frame_model_tu15 COMMAND native_tu15_physics_frame_tests)
+    add_executable(native_tu15_world_residuals_tests tests/native_tu15_world_residuals_tests.cpp)
+    target_link_libraries(native_tu15_world_residuals_tests PRIVATE halo2_systems)
+    add_test(NAME native_world_residuals_model_tu15 COMMAND native_tu15_world_residuals_tests)
+    foreach(owner IN ITEMS island world)
+        add_executable(native_tu15_${owner}_integration_tests tests/native_tu15_${owner}_integration_tests.cpp)
+        target_link_libraries(native_tu15_${owner}_integration_tests PRIVATE halo2_systems)
+        string(TOUPPER "${owner}" owner_upper)
+        set(HALO2_NATIVE_${owner_upper}_INTEGRATION_TU15_FIXTURE "" CACHE FILEPATH
+            "Independently executed English TU1.5 ${owner} integration comparison fixture")
+        if(HALO2_NATIVE_${owner_upper}_INTEGRATION_TU15_FIXTURE)
+            add_test(NAME native_${owner}_integration_original_tu15 COMMAND native_tu15_${owner}_integration_tests
+                "${HALO2_NATIVE_${owner_upper}_INTEGRATION_TU15_FIXTURE}")
+        endif()
+    endforeach()
+    foreach(owner IN ITEMS body_deactivation_policy island_transition kinematic_motion)
+        add_executable(native_tu15_${owner}_tests tests/native_tu15_${owner}_tests.cpp)
+        target_link_libraries(native_tu15_${owner}_tests PRIVATE halo2_systems)
+        string(TOUPPER "${owner}" owner_upper)
+        set(HALO2_NATIVE_${owner_upper}_TU15_FIXTURE "" CACHE FILEPATH
+            "Independently executed English TU1.5 ${owner} comparison fixture")
+        if(HALO2_NATIVE_${owner_upper}_TU15_FIXTURE)
+            add_test(NAME native_${owner}_original_tu15 COMMAND native_tu15_${owner}_tests
+                "${HALO2_NATIVE_${owner_upper}_TU15_FIXTURE}")
+        endif()
+    endforeach()
+    add_test(NAME native_island_transition_model_tu15 COMMAND native_tu15_island_transition_tests)
+    add_executable(native_tu15_island_deactivation_tests tests/native_tu15_island_deactivation_tests.cpp)
+    target_link_libraries(native_tu15_island_deactivation_tests PRIVATE halo2_systems)
+    set(HALO2_NATIVE_ISLAND_DEACTIVATION_TU15_FIXTURE "" CACHE FILEPATH
+        "Independently executed English TU1.5 island deactivation fixture")
+    if(HALO2_NATIVE_ISLAND_DEACTIVATION_TU15_FIXTURE)
+        add_test(NAME native_island_deactivation_original_tu15 COMMAND native_tu15_island_deactivation_tests
+            "${HALO2_NATIVE_ISLAND_DEACTIVATION_TU15_FIXTURE}")
+    endif()
+    add_executable(native_tu15_motion_pose_tests tests/native_tu15_motion_pose_tests.cpp)
+    target_link_libraries(native_tu15_motion_pose_tests PRIVATE halo2_systems)
+    set(HALO2_NATIVE_MOTION_POSE_TU15_FIXTURE "" CACHE FILEPATH
+        "Independently executed English TU1.5 pose comparison fixture")
+    if(HALO2_NATIVE_MOTION_POSE_TU15_FIXTURE)
+        add_test(NAME native_motion_pose_original_tu15 COMMAND native_tu15_motion_pose_tests
+            "${HALO2_NATIVE_MOTION_POSE_TU15_FIXTURE}")
+    endif()
+    add_executable(native_tu15_motion_forces_tests tests/native_tu15_motion_forces_tests.cpp)
+    target_link_libraries(native_tu15_motion_forces_tests PRIVATE halo2_systems)
+    set(HALO2_NATIVE_MOTION_FORCES_TU15_FIXTURE "" CACHE FILEPATH
+        "Independently executed English TU1.5 motion-force comparison fixture")
+    if(HALO2_NATIVE_MOTION_FORCES_TU15_FIXTURE)
+        add_test(NAME native_motion_forces_original_tu15 COMMAND native_tu15_motion_forces_tests
+            "${HALO2_NATIVE_MOTION_FORCES_TU15_FIXTURE}")
+    endif()
+    set(HALO2_NATIVE_PHYSICS_FRAME_TU15_FIXTURE "" CACHE FILEPATH
+        "Independently executed English TU1.5 physics-frame comparison fixture")
+    if(HALO2_NATIVE_PHYSICS_FRAME_TU15_FIXTURE)
+        add_test(NAME native_physics_frame_original_tu15 COMMAND native_tu15_physics_frame_tests
+            --oracle-fixture "${HALO2_NATIVE_PHYSICS_FRAME_TU15_FIXTURE}")
+    endif()
+    if(UNIX AND NOT APPLE)
+        add_test(NAME native_source_multiplayer_event_boundary_tu15 COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/tools/test_source_multiplayer_event_boundary_tu15.py
+            --report-output "@HALO2_TEST_SCRATCH@/native-announcer-caller.json")
+        set_tests_properties(native_source_multiplayer_event_boundary_tu15 PROPERTIES TIMEOUT 60)
+    endif()
     foreach(sound_owner IN ITEMS gain random_scalar properties random_short range_selection permutation binding chunk_readiness)
         if(sound_owner STREQUAL "random_scalar")
             set(sound_owner_argument "random-scalar")
@@ -129,15 +323,42 @@ if(BUILD_TESTING)
     set_tests_properties(original_tu15_sound_scalar PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)
     # Native sound manager kernels against the lifted routines they replace.
     add_executable(native_tu15_sound_manager_tests EXCLUDE_FROM_ALL tests/native_tu15_sound_manager_tests.cpp
-        src/audio/native_tu15_sound_manager.cpp src/audio/source_sound_random_short_tu15_generated.cpp
+        ${HALO2_NATIVE_SOUND_KERNELS} src/audio/source_sound_random_short_tu15_generated.cpp
         src/audio/source_sound_random_scalar_tu15_generated.cpp src/audio/source_sound_scalar_tu15_generated.cpp
-        src/audio/source_sound_range_selection_tu15_generated.cpp src/audio/source_sound_permutation_tu15_generated.cpp)
-    target_include_directories(native_tu15_sound_manager_tests PRIVATE include src)
+        src/audio/source_sound_range_selection_tu15_generated.cpp src/audio/source_sound_permutation_tu15_generated.cpp
+        src/audio/source_sound_sdk_tu15_generated.cpp src/audio/source_object_loop_audio_tu15_generated.cpp
+        src/campaign/source_campaign_audio_tu15_generated.cpp)
+    target_include_directories(native_tu15_sound_manager_tests PRIVATE include src tests)
     if(NOT MSVC)
         target_compile_options(native_tu15_sound_manager_tests PRIVATE -fno-fast-math -ffp-contract=off -frounding-math)
     endif()
     add_test(NAME native_tu15_sound_manager COMMAND native_tu15_sound_manager_tests)
     set_tests_properties(native_tu15_sound_manager PROPERTIES TIMEOUT 120)
+    # Each further kernel group: its differential test against its lifted owners.
+    function(halo2_native_sound_group_test group)
+        set(lifted)
+        foreach(owner IN LISTS ARGN)
+            list(APPEND lifted src/audio/source_sound_${owner}_tu15_generated.cpp)
+        endforeach()
+        add_executable(native_tu15_sound_${group}_tests EXCLUDE_FROM_ALL tests/native_tu15_sound_${group}_tests.cpp
+            ${HALO2_NATIVE_SOUND_KERNELS} ${lifted} src/audio/source_object_loop_audio_tu15_generated.cpp
+            src/campaign/source_campaign_audio_tu15_generated.cpp)
+        target_include_directories(native_tu15_sound_${group}_tests PRIVATE include src tests)
+        if(NOT MSVC)
+            target_compile_options(native_tu15_sound_${group}_tests PRIVATE -fno-fast-math -ffp-contract=off -frounding-math)
+        endif()
+        # Coverage checks read the lifted sources relative to the repository.
+        add_test(NAME native_tu15_sound_${group} COMMAND native_tu15_sound_${group}_tests
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+        set_tests_properties(native_tu15_sound_${group} PROPERTIES TIMEOUT 300)
+    endfunction()
+    halo2_native_sound_group_test(resources binding cache_query chunk_readiness)
+    halo2_native_sound_group_test(gain gain)
+    halo2_native_sound_group_test(properties properties)
+    halo2_native_sound_group_test(listener listener_selection)
+    halo2_native_sound_group_test(object_loop_update listener_selection gain)
+    halo2_native_sound_group_test(object_loop_sources listener_selection)
+    halo2_native_sound_group_test(object_loop_frame listener_selection gain)
     add_executable(source_sound_cache_query_tu15_tests EXCLUDE_FROM_ALL
         tests/source_sound_cache_query_tu15_tests.cpp src/audio/source_sound_cache_query_tu15_generated.cpp)
     target_include_directories(source_sound_cache_query_tu15_tests PRIVATE include src)
@@ -272,6 +493,7 @@ target_link_libraries(halo2_systems PRIVATE OpenSSL::Crypto)
 include(cmake/NativeTranslationUnits.cmake)
 halo2_partition_native_translation(halo2_physics_world_runtime src/physics/physics_live_support_tu15_generated.cpp 32)
 target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/units/source_unit_view_reset_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/units/source_unit_animation_cancel_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/audio/source_sound_duration_tu15.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/audio/mcc_sound_duration_tu15.cpp)
 add_library(halo2_script_sound_clock_tu15 STATIC src/campaign/scripting/source_script_sound_clock_tu15.cpp)
@@ -306,6 +528,11 @@ if(BUILD_TESTING)
   add_executable(mcc_sound_variation_provider_tests tests/mcc_sound_variation_provider_tests.cpp)
   target_link_libraries(mcc_sound_variation_provider_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
   set(HALO2_MCC_NATIVE_SOUND_MAP "" CACHE FILEPATH "Optional owned MCC map for converted native sound metadata validation")
+  add_executable(mcc_sound_metadata_publication_tests tests/mcc_sound_metadata_publication_tests.cpp)
+  target_link_libraries(mcc_sound_metadata_publication_tests PRIVATE halo2_cache nlohmann_json::nlohmann_json)
+  add_test(NAME mcc_sound_metadata_publication_mcc_only
+      COMMAND mcc_sound_metadata_publication_tests "${HALO2_MCC_NATIVE_SOUND_MAP}")
+  set_tests_properties(mcc_sound_metadata_publication_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
   add_test(NAME mcc_sound_variation_provider_mcc_only
       COMMAND mcc_sound_variation_provider_tests "${HALO2_MCC_NATIVE_SOUND_MAP}")
   set_tests_properties(mcc_sound_variation_provider_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
@@ -497,6 +724,10 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
 endif()
 target_sources(halo2_physics_world_runtime PRIVATE src/campaign/source_campaign_camera_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/rendering/world/source_texture_camera_producer_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/rendering/world/source_texture_camera_frame_capture_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/campaign/source_texture_camera_original_view_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/campaign/source_texture_camera_frame_tu15.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/campaign/source_campaign_screen_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/campaign/source_campaign_dof_recipe_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/animation/source_animation_composition_tu15_generated.cpp)
@@ -930,6 +1161,14 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/particle_effect_color_tu15_original.json")
     set_tests_properties(original_tu15_particle_effect_color PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(capture_source_melee_contact tools/capture_source_melee_contact.cpp)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_sources(capture_source_melee_contact PRIVATE
+            tools/capture_sword_movement_tu15.cpp tools/sword_online_socket_fixture.cpp)
+        target_compile_definitions(capture_source_melee_contact PRIVATE HALO2_SWORD_SOCKET_FIXTURE)
+        target_link_libraries(capture_source_melee_contact PRIVATE halo2_online_matchmaking)
+        target_link_options(capture_source_melee_contact PRIVATE
+            "-Wl,--wrap=_ZN5halo231source_run_sandbox_special_tu15ERNS_26SourcePhysicsContactMemoryEjRNS_30SourcePhysicsContactRuntimeAbiENS_33SourcePhysicsFactoryFloatingPointERKNS_35SourcePhysicsContactRuntimeServicesERKSt8functionIFvRKNS_31SourcePhysicsContactRecordStoreEEE")
+    endif()
     add_executable(capture_source_locomotion_tu15 tools/capture_source_locomotion_tu15.cpp)
     add_executable(capture_source_dual_animation_tu15 tools/capture_source_dual_animation_tu15.cpp)
     target_link_libraries(capture_source_dual_animation_tu15 PRIVATE halo2_systems)
@@ -996,6 +1235,117 @@ if(BUILD_TESTING)
         set_tests_properties(native_tu15_${species}_locomotion PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
     endforeach()
     target_link_libraries(capture_source_melee_contact PRIVATE halo2_systems)
+    set(HALO2_MCC_SWORD_LUNGE_MAP "" CACHE FILEPATH
+        "Prepared MCC map for native TU1.5 sword lunge contact and lethal damage acceptance")
+    if(NOT "${HALO2_MCC_SWORD_LUNGE_MAP}" STREQUAL "" AND
+       (NOT IS_ABSOLUTE "${HALO2_MCC_SWORD_LUNGE_MAP}" OR
+        NOT EXISTS "${HALO2_MCC_SWORD_LUNGE_MAP}" OR
+        IS_DIRECTORY "${HALO2_MCC_SWORD_LUNGE_MAP}"))
+        message(FATAL_ERROR "HALO2_MCC_SWORD_LUNGE_MAP requires an existing absolute prepared MCC map")
+    endif()
+    get_filename_component(HALO2_MCC_SWORD_LUNGE_MAPS "${HALO2_MCC_SWORD_LUNGE_MAP}" DIRECTORY)
+    if(NOT "${HALO2_MCC_SWORD_LUNGE_MAP}" STREQUAL "")
+        add_test(NAME native_mcc_sword_lunge_timing_metadata COMMAND mcc_first_person_binding_tests
+            "${HALO2_MCC_SWORD_LUNGE_MAP}" "${CMAKE_CURRENT_BINARY_DIR}/mcc-sword-lunge-timing.json")
+        set_tests_properties(native_mcc_sword_lunge_timing_metadata PROPERTIES TIMEOUT 120)
+    endif()
+    add_test(NAME native_mcc_sword_lunge_damage COMMAND capture_source_melee_contact
+        "${HALO2_MCC_SWORD_LUNGE_MAP}" "${HALO2_MCC_SWORD_LUNGE_MAPS}" native-mcc
+        "@HALO2_TEST_SCRATCH@/source-mcc-sword-lunge" lunge)
+    set_tests_properties(native_mcc_sword_lunge_damage PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77)
+    foreach(sword_network_case IN ITEMS lunge-host lunge-client sword-close-host sword-close-client)
+        add_test(NAME native_mcc_sword_${sword_network_case}_damage COMMAND capture_source_melee_contact
+            "${HALO2_MCC_SWORD_LUNGE_MAP}" "${HALO2_MCC_SWORD_LUNGE_MAPS}" native-mcc
+            "@HALO2_TEST_SCRATCH@/source-mcc-sword-${sword_network_case}" "${sword_network_case}")
+        set_tests_properties(native_mcc_sword_${sword_network_case}_damage PROPERTIES
+            TIMEOUT 180 SKIP_RETURN_CODE 77 ENVIRONMENT "H2_NET_PROFILE=complete")
+    endforeach()
+    foreach(sword_attacker IN ITEMS host client)
+        add_test(NAME native_mcc_sword_primary-intent-${sword_attacker}_input COMMAND capture_source_melee_contact
+            "${HALO2_MCC_SWORD_LUNGE_MAP}" "${HALO2_MCC_SWORD_LUNGE_MAPS}" native-mcc
+            "@HALO2_TEST_SCRATCH@/source-mcc-sword-primary-intent-${sword_attacker}" "sword-flight-swap-${sword_attacker}")
+        set_tests_properties(native_mcc_sword_primary-intent-${sword_attacker}_input PROPERTIES
+            TIMEOUT 180 SKIP_RETURN_CODE 77
+            ENVIRONMENT "H2_NET_PROFILE=complete;HALO2_SWORD_PRIMARY_INTENT_PROBE=1")
+        if(NOT "${HALO2_MCC_SWORD_LUNGE_MAP}" STREQUAL "" AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND
+           CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+            add_test(NAME native_mcc_sword_online-socket-${sword_attacker}_damage
+                COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_sword_online_socket_tu15.py"
+                --binary "$<TARGET_FILE:capture_source_melee_contact>" --map "${HALO2_MCC_SWORD_LUNGE_MAP}"
+                --mode "lunge-${sword_attacker}" --report-output "@HALO2_TEST_SCRATCH@/online-sword.json")
+            set_tests_properties(native_mcc_sword_online-socket-${sword_attacker}_damage PROPERTIES
+                TIMEOUT 300 ENVIRONMENT "H2_NET_PROFILE=complete")
+            foreach(sword_socket_sequence IN ITEMS cancel-neutral cancel-jump cancel-switch flight-swap)
+                add_test(NAME native_mcc_sword_online-socket-${sword_socket_sequence}-${sword_attacker}_input
+                    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_sword_online_socket_tu15.py"
+                    --binary "$<TARGET_FILE:capture_source_melee_contact>" --map "${HALO2_MCC_SWORD_LUNGE_MAP}"
+                    --mode "sword-${sword_socket_sequence}-${sword_attacker}" --report-output "@HALO2_TEST_SCRATCH@/online-sword.json")
+                set_tests_properties(native_mcc_sword_online-socket-${sword_socket_sequence}-${sword_attacker}_input PROPERTIES
+                    TIMEOUT 300 ENVIRONMENT "H2_NET_PROFILE=complete")
+            endforeach()
+        endif()
+        add_test(NAME native_mcc_sword_lunge-${sword_attacker}_held_damage COMMAND capture_source_melee_contact
+            "${HALO2_MCC_SWORD_LUNGE_MAP}" "${HALO2_MCC_SWORD_LUNGE_MAPS}" native-mcc
+            "@HALO2_TEST_SCRATCH@/source-mcc-sword-lunge-${sword_attacker}-held" "lunge-${sword_attacker}")
+        set_tests_properties(native_mcc_sword_lunge-${sword_attacker}_held_damage PROPERTIES
+            TIMEOUT 180 SKIP_RETURN_CODE 77
+            ENVIRONMENT "H2_NET_PROFILE=complete;HALO2_SWORD_TRIGGER_TICKS=6")
+    endforeach()
+    foreach(sword_sequence IN ITEMS cancel-neutral cancel-jump cancel-reattack cancel-switch flight-swap)
+        foreach(sword_attacker IN ITEMS host client)
+            add_test(NAME native_mcc_sword_${sword_sequence}-${sword_attacker}_input COMMAND capture_source_melee_contact
+                "${HALO2_MCC_SWORD_LUNGE_MAP}" "${HALO2_MCC_SWORD_LUNGE_MAPS}" native-mcc
+                "@HALO2_TEST_SCRATCH@/source-mcc-sword-${sword_sequence}-${sword_attacker}" "sword-${sword_sequence}-${sword_attacker}")
+            set_tests_properties(native_mcc_sword_${sword_sequence}-${sword_attacker}_input PROPERTIES
+                TIMEOUT 180 SKIP_RETURN_CODE 77 ENVIRONMENT "H2_NET_PROFILE=complete")
+        endforeach()
+    endforeach()
+    foreach(sword_distance IN ITEMS near far)
+        set(sword_rapid_firearm smg)
+        if(sword_distance STREQUAL "far")
+            set(sword_rapid_firearm battle-rifle)
+        endif()
+        foreach(sword_sequence IN ITEMS y-rt y-then-rt held-rt-y x-y-b-rt x-y-b-rt-same y-b y-release-rt x-y-b-then-rt)
+            foreach(sword_attacker IN ITEMS host client)
+                add_test(NAME native_mcc_sword_rapid-${sword_distance}-${sword_sequence}-${sword_attacker}_input
+                    COMMAND capture_source_melee_contact "${HALO2_MCC_SWORD_LUNGE_MAP}"
+                    "${HALO2_MCC_SWORD_LUNGE_MAPS}" native-mcc
+                    "@HALO2_TEST_SCRATCH@/source-mcc-sword-rapid-${sword_distance}-${sword_sequence}-${sword_attacker}"
+                    "sword-rapid-${sword_distance}-${sword_attacker}")
+                set_tests_properties(native_mcc_sword_rapid-${sword_distance}-${sword_sequence}-${sword_attacker}_input PROPERTIES
+                    TIMEOUT 180 SKIP_RETURN_CODE 77
+                    ENVIRONMENT "H2_NET_PROFILE=complete;HALO2_SWORD_RAPID_SEQUENCE=${sword_sequence};HALO2_SWORD_RAPID_FIREARM=${sword_rapid_firearm}")
+                if(NOT "${HALO2_MCC_SWORD_LUNGE_MAP}" STREQUAL "" AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND
+                   CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND
+                   (sword_sequence STREQUAL "x-y-b-rt" OR sword_sequence STREQUAL "y-release-rt"))
+                    add_test(NAME native_mcc_sword_online-socket-rapid-${sword_distance}-${sword_sequence}-${sword_attacker}_input
+                        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_sword_online_socket_tu15.py"
+                        --binary "$<TARGET_FILE:capture_source_melee_contact>" --map "${HALO2_MCC_SWORD_LUNGE_MAP}"
+                        --mode "sword-rapid-${sword_distance}-${sword_attacker}" --report-output "@HALO2_TEST_SCRATCH@/online-sword.json")
+                    set_tests_properties(native_mcc_sword_online-socket-rapid-${sword_distance}-${sword_sequence}-${sword_attacker}_input PROPERTIES
+                        TIMEOUT 300
+                        ENVIRONMENT "H2_NET_PROFILE=complete;HALO2_SWORD_RAPID_SEQUENCE=${sword_sequence};HALO2_SWORD_RAPID_FIREARM=${sword_rapid_firearm}")
+                endif()
+            endforeach()
+        endforeach()
+    endforeach()
+    add_test(NAME native_mcc_sword_cancel-jump-client_elite_input COMMAND capture_source_melee_contact
+        "${HALO2_MCC_SWORD_LUNGE_MAP}" "${HALO2_MCC_SWORD_LUNGE_MAPS}" native-mcc
+        "@HALO2_TEST_SCRATCH@/source-mcc-sword-cancel-jump-client-elite" sword-cancel-jump-client)
+    set_tests_properties(native_mcc_sword_cancel-jump-client_elite_input PROPERTIES
+        TIMEOUT 180 SKIP_RETURN_CODE 77 ENVIRONMENT "H2_NET_PROFILE=complete;HALO2_SWORD_REPRESENTATION=3")
+    foreach(sword_attacker IN ITEMS host client)
+        add_test(NAME native_mcc_sword_lunge-${sword_attacker}_airborne_damage COMMAND capture_source_melee_contact
+            "${HALO2_MCC_SWORD_LUNGE_MAP}" "${HALO2_MCC_SWORD_LUNGE_MAPS}" native-mcc
+            "@HALO2_TEST_SCRATCH@/source-mcc-sword-lunge-${sword_attacker}-airborne" "lunge-${sword_attacker}")
+        set_tests_properties(native_mcc_sword_lunge-${sword_attacker}_airborne_damage PROPERTIES
+            TIMEOUT 180 SKIP_RETURN_CODE 77 ENVIRONMENT "H2_NET_PROFILE=complete;HALO2_SWORD_JUMP_BEFORE_ATTACK=1")
+        add_test(NAME native_mcc_sword_cancel-neutral-${sword_attacker}_airborne_input COMMAND capture_source_melee_contact
+            "${HALO2_MCC_SWORD_LUNGE_MAP}" "${HALO2_MCC_SWORD_LUNGE_MAPS}" native-mcc
+            "@HALO2_TEST_SCRATCH@/source-mcc-sword-cancel-neutral-${sword_attacker}-airborne" "sword-cancel-neutral-${sword_attacker}")
+        set_tests_properties(native_mcc_sword_cancel-neutral-${sword_attacker}_airborne_input PROPERTIES
+            TIMEOUT 180 SKIP_RETURN_CODE 77 ENVIRONMENT "H2_NET_PROFILE=complete;HALO2_SWORD_JUMP_BEFORE_ATTACK=1")
+    endforeach()
     add_test(NAME native_tu15_plasma_decal_lifecycle COMMAND capture_source_melee_contact
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map"
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps"
@@ -1141,6 +1491,9 @@ if(BUILD_TESTING)
 endif()
 target_sources(halo2_physics_world_runtime PRIVATE src/rendering/effects/source_effect_world_locations.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/gameplay/objects/source_effect_replica_readback_tu15.cpp)
+# Effect readback calls the systems-owned SourceRuntimeMemory implementation.
+# Declare its owner so CMake rescans the complete static dependency cycle.
+target_link_libraries(halo2_physics_world_runtime PRIVATE halo2_systems)
 target_link_libraries(halo2_physics_world_runtime PUBLIC halo2_raw_datum_pool_identity halo2_mcc_sound_tag_layout halo2_cache)
 target_sources(halo2_systems PRIVATE src/gameplay/weapons/source_projectile_presentation.cpp)
 target_sources(halo2_systems PRIVATE src/gameplay/units/source_combat_attachments.cpp)

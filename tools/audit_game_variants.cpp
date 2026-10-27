@@ -69,7 +69,7 @@ Runtime run(const Cache &cache,const LevelContent &content,const UiVariant &vari
     // The same native transport used by the runtime; ephemeral loopback port.
     LanHost host(match,0,0x76617269616e74u);
     const std::array<std::int8_t,2> selections{1,0};
-    LanClient client("127.0.0.1:"+std::to_string(host.port()),0x76617269616e74u,2,
+    LanClient client(host.join_address(),0x76617269616e74u,2,
         rules.team_mode ? std::span<const std::int8_t>(selections) : std::span<const std::int8_t>{});
     std::array<Controls,2> inputs{};
     for (unsigned attempt=0;attempt<100 && !client.ready();++attempt) {

@@ -37,12 +37,18 @@ enum class SourceExecutionCallKind:std::uint8_t {
     RenderVisibility,WeatherView,BuildWorldModel,FirstPersonModels,AdvanceAudio,
     TakeSounds,TakePropEvents,TakeGrenadeEvents,DepartPlayer,WriteSourceCallInput,
     PrepareSourceCall,RunSourceCall,RunActualSourceCall,CallSource,CallActualSource,LiveModelDraws,
-    RenderAttachments,RenderGeometry,MatchState,PlayerCamera,LensQuery,LensQueryFinish,LensDraw,ParticleCollision
+    RenderAttachments,RenderGeometry,MatchState,PlayerCamera,LensQuery,LensQueryFinish,LensDraw,ParticleCollision,ObjectLoopEmitters,
+    AdmittedCamera=31,
+    // MatchStep with the producer's rewind mode and remote displayed views
+    // (lag-compensated hitscan, NETCODE_ENHANCED_GOAL item 2).
+    MatchStepViews=32
 };
+inline constexpr SourceExecutionCallKind source_execution_call_kind_last=SourceExecutionCallKind::MatchStepViews;
 constexpr bool source_execution_call_has_result(SourceExecutionCallKind kind)noexcept {
     return (kind>=SourceExecutionCallKind::PrepareSourceCall&&kind<=SourceExecutionCallKind::RenderGeometry)||
         kind==SourceExecutionCallKind::MatchState||kind==SourceExecutionCallKind::PlayerCamera||
-        kind==SourceExecutionCallKind::LensQuery||kind==SourceExecutionCallKind::LensDraw||kind==SourceExecutionCallKind::ParticleCollision;
+        kind==SourceExecutionCallKind::LensQuery||kind==SourceExecutionCallKind::LensDraw||kind==SourceExecutionCallKind::ParticleCollision||
+        kind==SourceExecutionCallKind::ObjectLoopEmitters||kind==SourceExecutionCallKind::AdmittedCamera;
 }
 struct SourceExecutionCall {
     SourceExecutionCallKind kind{};

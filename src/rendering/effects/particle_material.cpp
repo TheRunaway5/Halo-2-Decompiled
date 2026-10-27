@@ -72,7 +72,7 @@ ParticleMaterial Cache::load_particle_material(std::uint32_t datum,unsigned laye
   if(implementation>=impl.count)throw FormatError("original particle pass implementation missing");
   const auto i=impl.offset+implementation*306;
   auto &pass=result.pass;
-  pass.name=spas.name;pass.template_pass=selected;pass.implementation=implementation;
+  pass.name=shader_semantic_name(spas);pass.template_pass=selected;pass.implementation=implementation;
   pass.vertex_shader=find(result.vertex.vertex_datum,"vrtx").name;
   pass.vertex_code=result.vertex.program;
   pass.bitmap_remaps=remaps(mapping,maps);

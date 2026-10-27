@@ -15,10 +15,57 @@
 #include <sched.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#elif defined(_WIN32)
+#include <fcntl.h>
+#include <io.h>
 #endif
 
 namespace halo2 {
 namespace {
+#if defined(__linux__) || defined(__APPLE__) || defined(_WIN32)
+int open_native_file(const std::filesystem::path& path,bool writing) {
+#ifdef _WIN32
+  const auto file=CreateFileW(path.c_str(),writing?(GENERIC_READ|GENERIC_WRITE):GENERIC_READ,
+      FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,writing?OPEN_ALWAYS:OPEN_EXISTING,
+      FILE_ATTRIBUTE_NORMAL,nullptr);
+  if(file==INVALID_HANDLE_VALUE){errno=EIO;return -1;}
+  const auto descriptor=::_open_osfhandle(reinterpret_cast<std::intptr_t>(file),
+      (writing?_O_RDWR:_O_RDONLY)|_O_BINARY|_O_NOINHERIT);
+  if(descriptor<0)CloseHandle(file);
+  return descriptor;
+#else
+  return ::open(path.c_str(),(writing?(O_RDWR|O_CREAT):O_RDONLY)|O_CLOEXEC,0600);
+#endif
+}
+void close_native_file(int descriptor) {
+#ifdef _WIN32
+  ::_close(descriptor);
+#else
+  ::close(descriptor);
+#endif
+}
+std::int64_t seek_native_file(int descriptor,std::int64_t offset,int origin) {
+#ifdef _WIN32
+  return ::_lseeki64(descriptor,offset,origin);
+#else
+  return ::lseek(descriptor,offset,origin);
+#endif
+}
+bool resize_native_file(int descriptor,std::int64_t extent) {
+#ifdef _WIN32
+  return ::_chsize_s(descriptor,extent)==0;
+#else
+  return ::ftruncate(descriptor,extent)==0;
+#endif
+}
+std::int64_t read_native_file(int descriptor,std::span<std::byte> bytes) {
+#ifdef _WIN32
+  return ::_read(descriptor,bytes.data(),unsigned(bytes.size()));
+#else
+  return ::read(descriptor,bytes.data(),bytes.size());
+#endif
+}
+#endif
 std::uint32_t word(const SourcePhysicsContactMemory &m, std::uint32_t p) {
   std::array<std::byte,4> raw;
   m.read(p, raw);
@@ -81,14 +128,14 @@ struct SourceDeathStartupNative::Impl {
        physical(m),scratch(m,config.worker_stack_address) {
     require(!config.savegame_directory.empty() && config.worker_stack_address,
             "Native startup needs explicit file and private-stack owners");
-#if !defined(__linux__) && !defined(__APPLE__)
+#if !defined(__linux__) && !defined(__APPLE__) && !defined(_WIN32)
     throw std::runtime_error("Native death startup platform is unavailable");
 #endif
   }
   ~Impl() {
     try { stop(); } catch (...) {}
-#if defined(__linux__) || defined(__APPLE__)
-    for (auto [alias,fd]:files) ::close(fd);
+#if defined(__linux__) || defined(__APPLE__) || defined(_WIN32)
+    for (auto [alias,fd]:files) close_native_file(fd);
 #endif
     if (worker_stack) {
       try { shared.bank.release(worker_stack); } catch (...) {}
@@ -116,11 +163,11 @@ struct SourceDeathStartupNative::Impl {
   void bind_cache_files(const std::array<std::filesystem::path,4> &paths) {
     check_worker();
     require(!cache_files_bound,"Native imported cache files are already mounted");
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(__linux__) || defined(__APPLE__) || defined(_WIN32)
     std::array<int,4> opened{-1,-1,-1,-1};
     try {
       for(unsigned i=0;i<opened.size();++i) {
-        opened[i]=::open(paths[i].c_str(),O_RDONLY|O_CLOEXEC);
+        opened[i]=open_native_file(paths[i],false);
         if(opened[i]<0)throw std::system_error(errno,std::generic_category(),
             "Native imported cache open: "+paths[i].string());
       }
@@ -138,7 +185,7 @@ struct SourceDeathStartupNative::Impl {
       }
       put(shared,0x5627b0u,3u);cache_files_bound=true;
     } catch(...) {
-      for(auto fd:opened)if(fd>=0)::close(fd);
+      for(auto fd:opened)if(fd>=0)close_native_file(fd);
       throw;
     }
 #else
@@ -182,6 +229,12 @@ struct SourceDeathStartupNative::Impl {
       if(config.schedule.before_main_yield)config.schedule.before_main_yield();
 #if defined(__linux__) || defined(__APPLE__)
       if(::sched_yield()!=0)throw std::system_error(errno,std::generic_category(),"Native source yield");
+#elif defined(_WIN32)
+      using Yield=LONG (NTAPI*)();
+      static const auto yield=reinterpret_cast<Yield>(GetProcAddress(GetModuleHandleW(L"ntdll.dll"),"NtYieldExecution"));
+      if(!yield)throw std::runtime_error("Native Windows kernel-yield entry point unavailable");
+      const auto status=std::uint32_t(yield());
+      check_worker();finish(0,status);return true;
 #else
       throw std::runtime_error("Native source kernel-yield status owner unavailable");
 #endif
@@ -248,7 +301,7 @@ struct SourceDeathStartupNative::Impl {
     case 0x2d83f6: {
       require(arg(0)==worker && arg(1)==1 && native_worker,
               "Original async priority request differs");
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(__linux__) || defined(__APPLE__) || defined(_WIN32)
       // Named native priority policy with the real host success/failure BOOL;
       // the original12226A caller consumes no BOOL or last-error value.
       const auto result=native_startup_resources::raise_worker_priority(native_worker);
@@ -303,12 +356,12 @@ struct SourceDeathStartupNative::Impl {
       const auto name=string(shared,arg(0));
       require(name=="n:\\savegame0.bin" || name=="n:\\savegame1.bin",
               "Reached source file namespace owner unavailable");
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(__linux__) || defined(__APPLE__) || defined(_WIN32)
       const auto path=config.savegame_directory/name.substr(3);
-      const auto fd=::open(path.c_str(),O_RDWR|O_CREAT|O_CLOEXEC,0600);
+      const auto fd=open_native_file(path,true);
       if(fd<0){finish(28,0xffffffffu);return true;}
       const auto alias=next_file++;
-      try { files.emplace(alias,fd); } catch (...) { ::close(fd);throw; }
+      try { files.emplace(alias,fd); } catch (...) { close_native_file(fd);throw; }
       finish(28,alias);return true;
 #else
       throw std::runtime_error("Native source file opening unavailable");
@@ -318,8 +371,8 @@ struct SourceDeathStartupNative::Impl {
       const auto found=files.find(arg(0));
       require(found!=files.end() && arg(2) && word(shared,arg(2))==0 && arg(3)==0,
               "Reached startup seek owner unavailable");
-#if defined(__linux__) || defined(__APPLE__)
-      const auto offset=::lseek(found->second,arg(1),SEEK_SET);
+#if defined(__linux__) || defined(__APPLE__) || defined(_WIN32)
+      const auto offset=seek_native_file(found->second,arg(1),SEEK_SET);
       require(offset<=UINT32_MAX,"Native source file position exceeds reached ABI");
       finish(16,offset<0?0xffffffffu:std::uint32_t(offset));return true;
 #else
@@ -328,9 +381,9 @@ struct SourceDeathStartupNative::Impl {
     }
     case 0x2d8844: {
       const auto found=files.find(arg(0));require(found!=files.end(),"Reached startup file extent owner unavailable");
-#if defined(__linux__) || defined(__APPLE__)
-      const auto position=::lseek(found->second,0,SEEK_CUR);
-      const auto ok=position>=0 && ::ftruncate(found->second,position)==0;
+#if defined(__linux__) || defined(__APPLE__) || defined(_WIN32)
+      const auto position=seek_native_file(found->second,0,SEEK_CUR);
+      const auto ok=position>=0 && resize_native_file(found->second,position);
       finish(4,std::uint32_t(ok));return true;
 #else
       throw std::runtime_error("Native source file extent operation unavailable");
@@ -340,14 +393,14 @@ struct SourceDeathStartupNative::Impl {
       const auto found=files.find(arg(0));
       require(found!=files.end() && arg(3) && arg(4)==0,
               "Reached synchronous ReadFile owner unavailable");
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(__linux__) || defined(__APPLE__) || defined(_WIN32)
       const auto destination=arg(1),count=arg(2),read_cell=arg(3);
       // Validate actual retained backing before advancing the real file.
       {std::lock_guard lock(shared.mutex);
         shared.bank.mutable_view(destination,count);shared.bank.mutable_view(read_cell,4);}
       std::vector<std::byte> bytes(count);
-      ssize_t n;
-      do { n=::read(found->second,bytes.data(),bytes.size()); } while(n<0 && errno==EINTR);
+      std::int64_t n;
+      do { n=read_native_file(found->second,bytes); } while(n<0 && errno==EINTR);
       if(n>=0)shared.write(destination,std::span(bytes).first(std::size_t(n)));
       put(shared,read_cell,n<0?0u:std::uint32_t(n));
       finish(20,n<0?0u:1u);return true;

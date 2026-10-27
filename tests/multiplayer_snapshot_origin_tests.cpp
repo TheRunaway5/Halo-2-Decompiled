@@ -297,9 +297,12 @@ int main(int argc,char **argv)try {
     const auto early_bound=presentation.bind(early_presentation,early_proof);
     check(early_bound.cut().seal==early_cut.seal,"Origin proof did not retain its exact native cut");
 
+    // Pump the real connection after expensive local native-cut fixtures;
+    // an idle timeout must not replace the couch in this receipt test.
+    couch.send(local);host.receive(controls);couch.receive();
     auto other=std::make_unique<LanClient>(std::make_shared<Endpoint>(bus,5),0,fingerprint);Controls neutral{};
     for(unsigned i=0;i<32&&!other->ready();++i){other->send(std::span(&neutral,1));host.receive(controls);other->receive();}
-    check(other->ready(),"Same-tick late join failed");other->bind_continuity(context,5,roster);
+    check(other->ready() && host.peers()==2,"Same-tick late join lost an admitted peer");other->bind_continuity(context,5,roster);
     host.broadcast();const auto genuine=bus->queues[1];bus->queues[1].clear();
     check(!genuine.empty() && !first_packets.empty(),"Missing body/sequence mismatch controls");
     const auto late_cut=native_cut(2);const auto late_host=host.checkpoint(binding);

@@ -5,6 +5,7 @@ from time import monotonic
 from aiohttp import web
 from .protocol import fields, identifier, require
 from .player_statistics import initialize, enqueue, totals
+from .friend_tags import tag
 
 FORMAT = "halo2-profile-appearance-v1"
 
@@ -43,7 +44,7 @@ class PlayerProfiles:
         row = self.db.execute("SELECT p.screen_name,p.joined_at,c.appearance,c.service_tag,c.updated_at,c.revision "
             "FROM player_profiles p LEFT JOIN player_customization c ON c.player=p.player WHERE p.player=?", (who,)).fetchone()
         require(row is not None, "Player profile not found", 404)
-        return dict(screen_name=row[0], joined_at=row[1], appearance=decoded(row[2]),
+        return dict(screen_name=row[0], friend_tag=tag(self.db,who), joined_at=row[1], appearance=decoded(row[2]),
                     service_tag=row[3], updated_at=row[4], revision=row[5] or 0,
                     statistics=self.statistics(who))
 

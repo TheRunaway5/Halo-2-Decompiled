@@ -18,6 +18,7 @@ namespace {
 struct PcCache {
   std::filesystem::path source;
   std::vector<std::byte> storage;
+  std::shared_ptr<const Cache> native_owner;
   Bytes bytes;
   std::size_t index{};
   bool mcc{};
@@ -25,9 +26,10 @@ struct PcCache {
   struct Tag {
     std::string group, name;
     std::size_t offset{}, size{};
+    bool resident{};
   };
-  std::map<std::uint32_t, Tag> tags;
-  explicit PcCache(const std::filesystem::path &path) : source(path),bytes(storage) {
+  mutable std::map<std::uint32_t, Tag> tags;
+  explicit PcCache(const std::filesystem::path &path,bool gameplay=false) : source(path),bytes(storage) {
     std::ifstream file(path, std::ios::binary | std::ios::ate);
     const auto size = file.tellg();
     if (!file || size < 2048 || size > 512 * 1024 * 1024)
@@ -38,6 +40,31 @@ struct PcCache {
       throw FormatError("incomplete Vista mainmenu cache");
     bytes = Bytes(storage);
     mcc=bytes.u32(4)==13;
+    if(mcc&&gameplay) {
+      // Gameplay directories retain unloaded references to shared.map. The
+      // ordinary Cache owner performs the exact full-salt/group/name join,
+      // overlap checks and bounded metadata flattening. Borrow its immutable
+      // resident bytes instead of guessing another map or a pointer base.
+      native_owner=std::make_shared<const Cache>(path);
+      if(!native_owner->is_mcc())throw FormatError("MCC gameplay UI lost its cache owner");
+      if(native_owner->source_runtime_cache_bytes().size()>512ull*1024*1024)
+        throw FormatError("Excessive MCC gameplay UI cache");
+      storage.clear();storage.shrink_to_fit();
+      bytes=Bytes(native_owner->source_runtime_cache_bytes());index=bytes.u32(16);
+      bytes.require(index,32);
+      for(const auto &t:native_owner->tags()) {
+        if(t.datum==null_datum)continue;
+        Tag item{t.group,t.name,0,t.size};
+        item.resident=t.address!=0;
+        if(t.address&&t.size&&t.group!="sbsp"&&t.group!="ltmp") {
+          const auto payload=native_owner->tag_payload({t.datum});
+          item.offset=owned_offset(payload);item.size=payload.size();
+        }
+        if(!tags.emplace(t.datum,std::move(item)).second)
+          throw FormatError("Duplicate MCC gameplay UI tag identity");
+      }
+      return;
+    }
     if(mcc) {
       storage=decode_mcc_cache(storage);
       bytes=Bytes(storage);
@@ -80,11 +107,21 @@ struct PcCache {
         throw FormatError("duplicate Vista tag datum");
     }
   }
+  std::size_t owned_offset(std::span<const std::byte> payload) const {
+    const auto owner=native_owner->source_runtime_cache_bytes();
+    const auto base=reinterpret_cast<std::uintptr_t>(owner.data());
+    const auto at=reinterpret_cast<std::uintptr_t>(payload.data());
+    if(at<base||at-base>owner.size()||payload.size()>owner.size()-(at-base))
+      throw FormatError("MCC gameplay UI metadata escaped its immutable cache owner");
+    return at-base;
+  }
   std::size_t pointer(std::uint32_t address, std::size_t size) const {
+    if(native_owner)return owned_offset(native_owner->read_tag_bytes(address,size));
     return TagAddressSpace(bytes,magic).offset(address,size);
   }
   std::vector<std::byte> resource(std::uint32_t pointer,std::uint32_t size) const {
     if(!size || size>128*1024*1024)throw FormatError("invalid Vista UI resource size");
+    if(native_owner)return native_owner->load_source_runtime_resource(pointer,size);
     // The same source file-selector encoding used by Cache::raw_data.
     const auto location=pointer>>30,offset=pointer&0x3fffffffu;
     if(!location) {
@@ -101,6 +138,18 @@ struct PcCache {
   }
   const Tag &tag(std::uint32_t datum, const char *group) const {
     const auto it = tags.find(datum);
+    if(native_owner&&it!=tags.end()&&it->second.group==group&&
+        !it->second.offset&&it->second.resident) {
+      // Resolve an actually requested zero-sized alias through the Cache's
+      // exact same-address/group allocation proof. Unused shader placeholders
+      // are not forced to acquire a nonexistent payload during inventory.
+      try {
+        const auto payload=native_owner->tag_payload({datum});
+        it->second.offset=owned_offset(payload);it->second.size=payload.size();
+      } catch(const FormatError &error) {
+        throw FormatError(std::string("MCC gameplay UI requires ")+group+" "+it->second.name+": "+error.what());
+      }
+    }
     if (it == tags.end() || it->second.group != group || !it->second.offset)
       throw FormatError(std::string("invalid source-local PC resource reference: ")+group+
           " datum "+std::to_string(datum));
@@ -284,7 +333,7 @@ std::shared_ptr<const VistaLobbyMetadata> lobby_metadata(const PcCache& cache,
 } // namespace
 static std::shared_ptr<FrontendContent>
 load_vista_ui(const std::filesystem::path &map, bool gameplay) {
-  PcCache cache(map);
+  PcCache cache(map,gameplay);
   const auto &b = cache.bytes;
   auto out = std::make_shared<FrontendContent>();
   // The original PC source32 widget bank admits only its genuine v8 layout.
@@ -300,12 +349,33 @@ load_vista_ui(const std::filesystem::path &map, bool gameplay) {
     const auto count=b.u32(48),size=b.u32(56),indices=b.u32(60),strings=b.u32(52);
     if(count>1000000)throw FormatError("excessive MCC settings identifier table");
     b.require(indices,std::size_t(count)*4);b.require(strings,size);
-    for(const auto& row:detail::mcc_pc_frontend_string_identifiers) {
-      const auto index=StringId{row.mcc_id}.index();
-      if(index>=count)throw FormatError("MCC settings identifier outside table");
-      const auto offset=b.u32(indices+std::size_t(index)*4);
-      if(offset>=size || b.string(strings+offset,size-offset)!=row.name)
-        throw FormatError("MCC settings identifier namespace differs from its named profile");
+    if(gameplay) {
+      // A gameplay cache omits incidental mainmenu symbols and retains its
+      // own indices. Resolve compiled PC symbols by their exact unique names;
+      // do not rewrite any authored widget/locale ID or borrow another cache.
+      std::map<std::string,std::optional<std::uint32_t>> names;
+      for(std::uint32_t index=0;index<count;++index) {
+        const auto offset=b.u32(indices+std::size_t(index)*4);
+        if(offset>=size)continue; // Undefined slots cannot become bindings.
+        const auto name=b.string(strings+offset,size-offset);if(name.empty())continue;
+        const auto [entry,inserted]=names.emplace(name,index);
+        if(!inserted)entry->second.reset();
+      }
+      auto bindings=std::make_shared<std::map<std::uint32_t,std::uint32_t>>();
+      for(const auto &row:detail::mcc_pc_frontend_string_identifiers) {
+        const auto found=names.find(std::string(row.name));if(found==names.end())continue;
+        if(!found->second)throw FormatError("Ambiguous MCC gameplay settings identifier: "+std::string(row.name));
+        bindings->emplace(row.original_index,(row.mcc_id&0xff000000u)|*found->second);
+      }
+      out->pc_string_ids=std::move(bindings);
+    } else {
+      for(const auto& row:detail::mcc_pc_frontend_string_identifiers) {
+        const auto index=StringId{row.mcc_id}.index();
+        if(index>=count)throw FormatError("MCC settings identifier outside table");
+        const auto offset=b.u32(indices+std::size_t(index)*4);
+        if(offset>=size || b.string(strings+offset,size-offset)!=row.name)
+          throw FormatError("MCC settings identifier namespace differs from its named profile");
+      }
     }
   }
   std::vector<std::pair<std::uint32_t, std::string>> locale;
@@ -361,13 +431,22 @@ load_vista_ui(const std::filesystem::path &map, bool gameplay) {
              indices = b.u32(loc + 8), strings = b.u32(loc + 12);
   if (count > 65536 || size > 16 * 1024 * 1024)
     throw FormatError("excessive Vista locale");
-  b.require(indices, std::size_t(count) * 8);
-  b.require(strings, size);
+  std::vector<std::byte> owned_indices,owned_strings;
+  if(cache.native_owner) {
+    // Shared matg locale words are encoded source file selectors, not file
+    // offsets or metadata pointers. Keep the Cache's admitted resource I/O
+    // owner (including compressed MCC shared files) for both allocations.
+    if(count)owned_indices=cache.resource(indices,count*8);
+    if(size)owned_strings=cache.resource(strings,size);
+  }
+  const Bytes locale_indices=cache.native_owner?Bytes(owned_indices):Bytes(b.slice(indices,std::size_t(count)*8));
+  const Bytes locale_strings=cache.native_owner?Bytes(owned_strings):Bytes(b.slice(strings,size));
   for (unsigned i = 0; i < count; ++i) {
-    const auto p = indices + i * 8, offset = b.u32(p + 4);
+    const auto p = std::size_t(i) * 8;
+    const auto offset = locale_indices.u32(p + 4);
     if (offset >= size)
       throw FormatError("invalid Vista locale offset");
-    locale.emplace_back(b.u32(p), b.string(strings + offset, size - offset));
+    locale.emplace_back(locale_indices.u32(p), locale_strings.string(offset, size - offset));
     out->global_strings.insert(locale.back());
   }
   auto string_list = [&](std::uint32_t datum) {
@@ -536,8 +615,8 @@ load_vista_ui(const std::filesystem::path &map, bool gameplay) {
       263,267,268,269,271,272,273,274,276,285,290,293,294,295};
   const auto &selected=gameplay?game_selected:shell_selected;
   for (const auto &[datum, tag] : cache.tags)
-    if (tag.group == "wgit" && tag.offset) {
-      const auto p = tag.offset;
+    if (tag.group == "wgit" && (tag.offset || (cache.native_owner&&tag.resident))) {
+      const auto p = cache.tag(datum,"wgit").offset;
       const auto id = b.u16(p + 4);
       if (!selected.contains(id))
         continue;

@@ -52,11 +52,14 @@ bool unavailable_control(std::u16string_view text) {
   });
 }
 float measure(std::u16string_view chars,const RetailFont &font,float origin,float right) {
-  float width=0; unsigned previous=0,admitted=0;
+  float width=0; unsigned previous=0,admitted=0,characters=0;
   for (const auto c:chars) {
     if (c==u'\n') continue; //142080 ignores LF; CR is the line separator.
     if (const auto it=font.glyphs.find(c);it!=font.glyphs.end()) {
-      const auto k=font.kerning.find({c,previous});
+      //141A20/1421E0 pass iterator.previous in EDI and current in EBX
+      // to124F60.142080's initial two-kind state keeps previous=0
+      // for the first two ordinary characters of each line.
+      const auto k=font.kerning.find({characters==1?0u:previous,c});
       const float kern=k==font.kerning.end() ? 0.f : float(k->second);
       const float endpoint=origin+float(it->second.advance)+float(it->second.bearing_x)+kern+width;
       //141A20 with wrap flag0 scans the whole line but does not accumulate an
@@ -67,7 +70,7 @@ float measure(std::u16string_view chars,const RetailFont &font,float origin,floa
         ++admitted;
       }
     }
-    previous=c;
+    previous=c;++characters;
   }
   return width;
 }
@@ -103,13 +106,13 @@ void text(UiDraw &draw,const FullScoreboardWidget &w,const RetailFont &font,
       x=((float(bounds.right)-line_left)-measure(chars,font,x,float(bounds.right)))*.5f+line_left;
     const float baseline=float((font.ascent+font.descent+font.leading)*int(line)+font.ascent)+float(bounds.top);
     if (baseline>=float(bounds.bottom)) break; //141BC0 strict baseline gate
-    unsigned previous=0;
+    unsigned previous=0,characters=0;
     for (const auto c:chars) {
       if (c==u'\n') continue;
       const auto it=font.glyphs.find(c);
-      if (it==font.glyphs.end()) { previous=c;continue; }
+      if (it==font.glyphs.end()) { previous=c;++characters;continue; }
       const auto &g=it->second;
-      const auto k=font.kerning.find({c,previous});
+      const auto k=font.kerning.find({characters==1?0u:previous,c});
       const float kern=k==font.kerning.end() ? 0.f : float(k->second);
       const float gx=x+float(g.bearing_x)+kern,gy=baseline-float(g.bearing_y);
       const float l=std::max(left,gx),r=std::min(right,gx+float(g.width)),
@@ -126,7 +129,7 @@ void text(UiDraw &draw,const FullScoreboardWidget &w,const RetailFont &font,
             frontend_text_texture_color(c) ? foreground|0xffffffu : foreground),uv[0],uv[1],uv[2],uv[3],true);
       }
       x=float(g.advance)+x+float(g.bearing_x)+kern;
-      previous=c;
+      previous=c;++characters;
     }
     if (end==std::u16string::npos) break;
     start=end+1; ++line;

@@ -1,5 +1,8 @@
 #include "halo2/source_runtime_memory.hpp"
 #include "halo2/source_runtime_write_protection.hpp"
+#include <vector>
+#include <map>
+#include <cstdio>
 #include <algorithm>
 #include <cstring>
 #include <limits>
@@ -20,7 +23,7 @@ SourceRuntimeMemory::SourceRuntimeMemory(SourceRuntimeMemory &&other) {
   source_runtime_validate_topology(*this,0,0);source_runtime_validate_topology(other,0,0);
   source_runtime_observe_topology(*this,0,0);source_runtime_observe_topology(other,0,0);
   regions_=std::move(other.regions_);native_regions_=std::move(other.native_regions_);
-  source_pages_=std::move(other.source_pages_);direct_index_=std::move(other.direct_index_);
+  source_pages_=std::move(other.source_pages_);small_pages_=std::move(other.small_pages_);direct_index_=std::move(other.direct_index_);
   publish_direct_index();other.publish_direct_index();
 }
 SourceRuntimeMemory &SourceRuntimeMemory::operator=(SourceRuntimeMemory &&other) {
@@ -28,7 +31,7 @@ SourceRuntimeMemory &SourceRuntimeMemory::operator=(SourceRuntimeMemory &&other)
   source_runtime_validate_topology(*this,0,0);source_runtime_validate_topology(other,0,0);
   source_runtime_observe_topology(*this,0,0);source_runtime_observe_topology(other,0,0);
   regions_=std::move(other.regions_);native_regions_=std::move(other.native_regions_);
-  source_pages_=std::move(other.source_pages_);direct_index_=std::move(other.direct_index_);
+  source_pages_=std::move(other.source_pages_);small_pages_=std::move(other.small_pages_);direct_index_=std::move(other.direct_index_);
   publish_direct_index();other.publish_direct_index();
   return *this;
 }
@@ -37,7 +40,7 @@ void SourceRuntimeMemory::swap_backing(SourceRuntimeMemory &other) {
   source_runtime_validate_topology(*this,0,0);source_runtime_validate_topology(other,0,0);
   source_runtime_observe_topology(*this,0,0);source_runtime_observe_topology(other,0,0);
   regions_.swap(other.regions_);native_regions_.swap(other.native_regions_);
-  source_pages_.swap(other.source_pages_);direct_index_.swap(other.direct_index_);
+  source_pages_.swap(other.source_pages_);small_pages_.swap(other.small_pages_);direct_index_.swap(other.direct_index_);
   publish_direct_index();other.publish_direct_index();
 }
 namespace {
@@ -327,29 +330,83 @@ void SourceRuntimeMemory::restore(const Checkpoint &saved) {
   replacement.rebuild_native_index();
   source_runtime_observe_topology(*this,0,0);
   regions_.swap(replacement.regions_);native_regions_.swap(replacement.native_regions_);
-  source_pages_.swap(replacement.source_pages_);direct_index_.swap(replacement.direct_index_);
+  source_pages_.swap(replacement.source_pages_);small_pages_.swap(replacement.small_pages_);direct_index_.swap(replacement.direct_index_);
   publish_direct_index();replacement.publish_direct_index();
 }
 void SourceRuntimeMemory::index_source_region(Position found) {
-  const auto first=(std::uint64_t(found->first)+4095)&~std::uint64_t{4095};
-  const auto limit=(std::uint64_t(found->first)+found->second.storage().size())&~std::uint64_t{4095};
-  if(first>=limit)return;
-  if(!source_pages_)source_pages_=std::make_unique<SourcePageIndex>();
-  for(auto page=first>>12;page<limit>>12;++page) {
-    auto &block=(*source_pages_)[page>>10];
-    if(!block)block=std::make_unique<SourcePageBlock>();
-    (*block)[page&1023]=found;
+  const auto base=std::uint64_t(found->first),size=found->second.storage().size();
+  const auto first=(base+4095)&~std::uint64_t{4095};
+  const auto limit=(base+size)&~std::uint64_t{4095};
+  if(first<limit) {
+    if(!source_pages_)source_pages_=std::make_unique<SourcePageIndex>();
+    for(auto page=first>>12;page<limit>>12;++page) {
+      auto &block=(*source_pages_)[page>>10];
+      if(!block)block=std::make_unique<SourcePageBlock>();
+      (*block)[page&1023]=found;
+    }
   }
-  refresh_direct_region(found);
+  // Pages this region covers only partly.
+  for(auto page=base>>12;page<=(base+size-1)>>12;++page) {
+    if(first<limit && page>=(first>>12) && page<(limit>>12))continue;
+    if(!small_pages_)small_pages_=std::make_unique<SourceSmallIndex>();
+    auto &block=(*small_pages_)[page>>10];
+    if(!block)block=std::make_unique<SourceSmallBlock>();
+    auto &entries=(*block)[page&1023];
+    const auto at=std::upper_bound(entries.begin(),entries.end(),found->first,
+        [](std::uint32_t b,const SourceSmallEntry &e){return b<e.base;});
+    entries.insert(at,SourceSmallEntry{found->first,found});
+  }
+  if(first<limit)refresh_direct_region(found);
 }
 void SourceRuntimeMemory::unindex_source_region(Position found) noexcept {
+  const auto base=std::uint64_t(found->first),size=found->second.storage().size();
+  if(small_pages_)
+    for(auto page=base>>12;page<=(base+size-1)>>12;++page)
+      if(auto &block=(*small_pages_)[page>>10])
+        std::erase_if((*block)[page&1023],[&](const SourceSmallEntry &e){return e.found==found;});
   if(!source_pages_)return;
-  const auto first=(std::uint64_t(found->first)+4095)&~std::uint64_t{4095};
-  const auto limit=(std::uint64_t(found->first)+found->second.storage().size())&~std::uint64_t{4095};
+  const auto first=(base+4095)&~std::uint64_t{4095};
+  const auto limit=(base+size)&~std::uint64_t{4095};
   for(auto page=first>>12;page<limit>>12;++page) {
     if(auto &block=(*source_pages_)[page>>10])(*block)[page&1023]=Position{};
     if(direct_index_)if(auto &block=direct_index_->blocks[page>>10])(*block)[page&1023]={};
   }
+}
+std::uint64_t SourceRuntimeMemory::restore_storage_overhead(const Checkpoint &saved) {
+  validate_checkpoint(saved);
+  std::array<bool,1024> full{},partial{};std::uint64_t edges{};
+  for(const auto &region:saved.regions) {
+    const auto base=std::uint64_t(region.address),size=std::uint64_t(region.bytes.size());
+    const auto first=(base+4095)&~std::uint64_t{4095},limit=(base+size)&~std::uint64_t{4095};
+    if(first<limit)for(auto block=(first>>22);block<=((limit-1)>>22);++block)full[block]=true;
+    const auto begin=base>>12,last=(base+size-1)>>12;
+    for(auto page:std::array{begin,last}) {
+      if(first<limit&&page>=(first>>12)&&page<(limit>>12))continue;
+      // A single partial page is deliberately counted twice for growth slack.
+      partial[page>>10]=true;++edges;
+    }
+  }
+  std::uint64_t bytes=sizeof(SourcePageIndex)+sizeof(SourceSmallIndex)+sizeof(SourceDirectPageIndex);
+  for(unsigned block=0;block<1024;++block){
+    if(full[block])bytes+=sizeof(SourcePageBlock)+sizeof(SourceDirectPageIndex::Block);
+    if(partial[block])bytes+=sizeof(SourceSmallBlock);
+  }
+  // Two red-black maps, shared snapshot/backing objects/control nodes, and
+  // one page of alignment slack for mapped snapshot storage.
+  bytes+=saved.regions.size()*(sizeof(Region)+sizeof(SourceRuntimeSnapshotBytes)+sizeof(SourceRuntimeMemoryBacking)+512+4096);
+  bytes+=2*edges*sizeof(SourceSmallEntry);return bytes;
+}
+SourceRuntimeMemory::Position SourceRuntimeMemory::small_lookup(std::uint32_t p) const noexcept {
+  if(!small_pages_)return {};
+  const auto &block=(*small_pages_)[p>>22];
+  if(!block)return {};
+  const auto &entries=(*block)[(p>>12)&1023];
+  auto at=std::upper_bound(entries.begin(),entries.end(),p,
+      [](std::uint32_t a,const SourceSmallEntry &e){return a<e.base;});
+  if(at==entries.begin())return {};
+  --at;
+  if(std::uint64_t(p)-at->base>=at->found->second.storage().size())return {};
+  return at->found;
 }
 void SourceRuntimeMemory::publish_direct_index() noexcept {
   direct_pages_=direct_pages_enabled?direct_index_.get():nullptr;
@@ -378,12 +435,42 @@ void SourceRuntimeMemory::refresh_direct_region(Position found) {
         SourceDirectPageIndex::Page{bytes+offset,writable}:SourceDirectPageIndex::Page{};
   }
 }
+namespace {
+// HALO2_LOCATE_CENSUS=1: which 1MiB regions still reach the slow locate path
+// (direct page index missed), fast page-table hits vs region-map lookups.
+struct LocateCensus {
+  const bool enabled=[]{const auto *p=std::getenv("HALO2_LOCATE_CENSUS");return p && *p;}();
+  std::map<std::uint32_t,std::pair<std::uint64_t,std::uint64_t>> regions;
+  ~LocateCensus() {
+    if(!enabled || regions.empty())return;
+    std::vector<std::pair<std::uint32_t,std::pair<std::uint64_t,std::uint64_t>>> top(regions.begin(),regions.end());
+    std::sort(top.begin(),top.end(),[](const auto &a,const auto &b){return a.second.first+a.second.second>b.second.first+b.second.second;});
+    std::uint64_t total=0;for(const auto &r:top)total+=r.second.first+r.second.second;
+    std::fprintf(stderr,"Locate census: total=%llu\n",(unsigned long long)total);
+    for(std::size_t i=0;i<top.size() && i<16;++i)
+      std::fprintf(stderr,"  region %08x: table=%llu map=%llu\n",top[i].first<<20,(unsigned long long)top[i].second.first,(unsigned long long)top[i].second.second);
+  }
+} locate_census;
+}
 SourceRuntimeMemory::Position
 SourceRuntimeMemory::locate(std::uint32_t p) const {
   if(source_pages_)
     if(const auto &block=(*source_pages_)[p>>22])
-      if(const auto found=(*block)[(p>>12)&1023];found!=Position{})return found;
+      if(const auto found=(*block)[(p>>12)&1023];found!=Position{}){if(locate_census.enabled)++locate_census.regions[p>>20].first;return found;}
+  if(const auto small=small_lookup(p);small!=Position{}){if(locate_census.enabled)++locate_census.regions[p>>20].first;return small;}
+  if(locate_census.enabled)++locate_census.regions[p>>20].second;
   auto found = regions_.upper_bound(p);
+  if(locate_census.enabled && found!=regions_.begin()) {
+    // Describe the enclosing region of the first few map-path addresses per 1MiB.
+    static std::map<std::uint32_t,unsigned> shown;
+    if(shown[p>>20]++<1) {
+      auto it=std::prev(found);const auto &r=it->second;
+      std::size_t committed=0;for(const auto c:r.committed)committed+=c?1:0;
+      std::fprintf(stderr,"Locate map-path %08x: region %08x size=%zu access=%d page_bytes=%zu committed=%zu/%zu shared=%d guard=%d owner=%s\n",
+        p,it->first,r.storage().size(),int(r.access),std::size_t(r.page_bytes),committed,r.committed.size(),int(bool(r.shared)),
+        int(r.shared && r.shared->write_guard_),r.owner.c_str());
+    }
+  }
   if (found == regions_.begin())
     missing(p);
   --found;
@@ -429,8 +516,17 @@ std::optional<std::uint32_t> SourceRuntimeMemory::find_unowned_range(
   };
   auto at = align(first);
   if (at >= limit || bytes > limit - at) return std::nullopt;
-  for (const auto &[address, region] : regions_) {
-    const auto region_end = std::uint64_t(address) + region.storage().size();
+  // Owner regions are disjoint (mount rejects overlap), so the first region
+  // whose end lies past the candidate is either the one containing it or the
+  // first one above it; regions below the candidate cannot change the answer.
+  auto it = regions_.upper_bound(std::uint32_t(std::min<std::uint64_t>(at, 0xffffffffu)));
+  if (it != regions_.begin()) {
+    const auto previous = std::prev(it);
+    if (std::uint64_t(previous->first) + previous->second.storage().size() > at) it = previous;
+  }
+  for (; it != regions_.end(); ++it) {
+    const auto address = it->first;
+    const auto region_end = std::uint64_t(address) + it->second.storage().size();
     if (region_end <= at) continue;
     if (std::uint64_t(address) >= at + bytes) return std::uint32_t(at);
     at = align(region_end);
@@ -486,6 +582,7 @@ std::optional<std::span<const std::byte>> SourceRuntimeMemory::try_read_view(
   Position found{};
   if(source_pages_)
     if(const auto &block=(*source_pages_)[p>>22])found=(*block)[(p>>12)&1023];
+  if(found==Position{})found=small_lookup(p);
   if(found==Position{}) {
     found=regions_.upper_bound(p);
     if(found==regions_.begin())return std::nullopt;
@@ -542,6 +639,9 @@ void SourceRuntimeMemory::write(std::uint32_t p,
 }
 std::span<const std::byte> SourceRuntimeMemory::view(std::uint32_t p,
                                                      std::size_t n) const {
+  // A complete committed direct page already proves the extent, single
+  // owner and commitment the checked route validates for this span.
+  if(const auto *page=direct_page(p,n))return {page->bytes+(p&4095u),n};
   const auto limit=end(p,n);
   const auto found = locate(p);
   const auto offset = std::size_t(p - found->first);
@@ -552,6 +652,12 @@ std::span<const std::byte> SourceRuntimeMemory::view(std::uint32_t p,
 }
 std::span<std::byte> SourceRuntimeMemory::mutable_view(std::uint32_t p,
                                                        std::size_t n) {
+  // As write(): a writable direct page proves ReadWrite access and the
+  // absent backing guard; registry guards and observers still run first.
+  if(const auto *page=direct_page(p,n); page && page->writable) {
+    source_runtime_validate_write(*this,p,n);
+    if(const auto *after=direct_page(p,n); after && after->writable)return {after->bytes+(p&4095u),n};
+  }
   const auto bytes = view(p, n);
   const auto found = locate(p);
   if (found->second.access != Access::ReadWrite)

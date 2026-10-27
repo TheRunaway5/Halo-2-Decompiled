@@ -6,6 +6,7 @@
 #include "halo2/source_game_variant.hpp"
 #include "halo2/texture.hpp"
 #include "ui/mcc_frontend_string_ids.hpp"
+#include "ui/frontend_og_matchmaking_layout.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -527,7 +528,8 @@ FrontendContent Cache::load_frontend() const {
         (t.name.starts_with("ui\\code_global_bitmaps\\") ||
          t.name.starts_with("ui\\global_bitmaps\\emblems\\") ||
          t.name == "ui\\list_skins\\matchmaking\\player_in" ||
-         t.name == "ui\\list_skins\\matchmaking\\item_background"))
+         t.name == "ui\\list_skins\\matchmaking\\item_background" ||
+         (is_mcc() && detail::og_matchmaking_layout::bitmap_required(t.name))))
       image_ref(t.datum);
   for (auto datum : requested_images) {
     const auto p = offset(datum, "bitm", 76);

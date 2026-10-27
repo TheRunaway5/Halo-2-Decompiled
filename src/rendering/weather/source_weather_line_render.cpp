@@ -1,4 +1,5 @@
 #include "halo2/source_weather_line_render.hpp"
+#include "halo2/native_weather_vertex.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -10,17 +11,11 @@ namespace halo2 {
 namespace {
 void check(VkResult r){if(r!=VK_SUCCESS)throw FormatError("weather line Vulkan failure: "+std::to_string(r));}
 struct VertexUniform {
-    std::array<VertexInstruction,136> instructions{};
     std::array<ShaderVector,12> camera{};
     std::array<std::uint32_t,4> flags{};
     ShaderVector clip{},surface{},depth{};
 };
-static_assert(sizeof(VertexUniform)==2432);
-std::uint64_t fingerprint(std::span<const std::byte> bytes) {
-    std::uint64_t h=14695981039346656037ull;
-    for(auto b:bytes)h=(h^std::to_integer<unsigned>(b))*1099511628211ull;
-    return h;
-}
+static_assert(sizeof(VertexUniform)==256);
 
 }
 struct SourceWeatherLineRender::Impl {
@@ -40,9 +35,8 @@ struct SourceWeatherLineRender::Impl {
             vkGetPhysicalDeviceProperties(context.physical,&properties);
             const VkDescriptorSetLayoutBinding bindings[]{
                 {0,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,nullptr},
-                {1,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1,VK_SHADER_STAGE_FRAGMENT_BIT,nullptr},
             };
-            VkDescriptorSetLayoutCreateInfo si{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};si.bindingCount=2;si.pBindings=bindings;
+            VkDescriptorSetLayoutCreateInfo si{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};si.bindingCount=1;si.pBindings=bindings;
             check(vkCreateDescriptorSetLayout(context.device,&si,nullptr,&descriptor_layout));
             VkPipelineLayoutCreateInfo li{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};li.setLayoutCount=1;li.pSetLayouts=&descriptor_layout;
             check(vkCreatePipelineLayout(context.device,&li,nullptr,&layout));
@@ -103,10 +97,8 @@ struct SourceWeatherLineRender::Impl {
     void prepare(const SourceWeatherLinePacket &p) {
         // All source admission checks precede destruction/mutation of queued
         // bindings. Caller synchronization remains mandatory for valid input.
-        if(fingerprint(p.vertex_program)!=0x695a03e50e8dba7dull)
-            throw FormatError("weather line program differs from original VS22/class0");
-        const auto program=decode_vertex_program(p.vertex_program);
-        if(program.count!=9||p.pixel.words!=source_weather_pixel_program(true).words)throw FormatError("unsupported weather line program/39780 pixel definition");
+        native_weather::admit_point(p.vertex_program);
+        if(p.pixel.words!=source_weather_pixel_program(true).words)throw FormatError("unsupported weather line39780 pixel definition");
         if(p.raster.stencil_enabled)throw FormatError("weather rain requires explicit stencil-disabled state");
         if(p.vertices.size()%2)throw FormatError("weather rain requires complete immediate line pairs");
         if(!std::isfinite(p.raster.line_width) || p.raster.line_width<=0 ||
@@ -132,19 +124,18 @@ struct SourceWeatherLineRender::Impl {
         for(const auto &point:p.vertices)for(float v:point.position)if(!std::isfinite(v))throw FormatError("nonfinite immediate weather input");
         clear();if(p.vertices.empty())return;
         try {
-            VertexUniform v;v.instructions=program.instructions;v.camera=p.camera;v.flags={p.raster.depth_clipping,0,0,program.count};v.clip=p.raster.clip_range;v.surface=p.raster.surface;v.depth={p.raster.depth_factor,p.raster.depth_offset,0,0};
+            VertexUniform v;v.camera=p.camera;v.flags={p.raster.depth_clipping,0,0,0};v.clip=p.raster.clip_range;v.surface=p.raster.surface;v.depth={p.raster.depth_factor,p.raster.depth_offset,0,0};
             buffers[0]=buffer(sizeof(v),VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,&v);
-            buffers[1]=buffer(sizeof(p.pixel.words),VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,p.pixel.words.data());
             buffers[2]=buffer(p.vertices.size_bytes(),VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,p.vertices.data());
-            const VkDescriptorPoolSize sizes[]{{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,2}};
+            const VkDescriptorPoolSize sizes[]{{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1}};
             VkDescriptorPoolCreateInfo ci{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};ci.maxSets=1;ci.poolSizeCount=1;ci.pPoolSizes=sizes;
             check(vkCreateDescriptorPool(context.device,&ci,nullptr,&descriptor_pool));
             VkDescriptorSetAllocateInfo ai{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};ai.descriptorPool=descriptor_pool;ai.descriptorSetCount=1;ai.pSetLayouts=&descriptor_layout;
             check(vkAllocateDescriptorSets(context.device,&ai,&descriptor));
-            const VkDescriptorBufferInfo bi[]{{buffers[0].handle,0,sizeof(v)},{buffers[1].handle,0,sizeof(p.pixel.words)}};
-            VkWriteDescriptorSet w[2]{};
-            for(unsigned i=0;i<2;++i){w[i].sType=VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;w[i].dstSet=descriptor;w[i].dstBinding=i;w[i].descriptorCount=1;w[i].descriptorType=VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;w[i].pBufferInfo=&bi[i];}
-            vkUpdateDescriptorSets(context.device,2,w,0,nullptr);current=pipeline(p.raster.color_write_mask,p.raster.depth_clamp);count=p.vertices.size();prepared_surface={unsigned(p.raster.surface[0]),unsigned(p.raster.surface[1])};line_width=p.raster.line_width;
+            const VkDescriptorBufferInfo bi{buffers[0].handle,0,sizeof(v)};
+            VkWriteDescriptorSet w{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+            w.dstSet=descriptor;w.dstBinding=0;w.descriptorCount=1;w.descriptorType=VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;w.pBufferInfo=&bi;
+            vkUpdateDescriptorSets(context.device,1,&w,0,nullptr);current=pipeline(p.raster.color_write_mask,p.raster.depth_clamp);count=p.vertices.size();prepared_surface={unsigned(p.raster.surface[0]),unsigned(p.raster.surface[1])};line_width=p.raster.line_width;
         }catch(...){clear();throw;}
     }
     void record(VkCommandBuffer cmd,VkViewport viewport,VkRect2D scissor)const {

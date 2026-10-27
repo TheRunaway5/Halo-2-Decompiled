@@ -6,7 +6,9 @@
 namespace halo2 {
 // Supplied PC image33119398...09f109. The PC45B33D initializer, all112
 // descriptors and63A8C2/63AA54 writes/reads independently agree with the native
-// source representation for default Slayer and its admitted23 parameters.
+// source representation for default Slayer and its admitted parameters.
+// Original63A8C2/63AA54 round-count controls additionally verify parameter0;
+// multi-round matches preserve it through the same complete-buffer bridge.
 // Reconstruct and compare all304 bytes so unknown Xbox variant fields cannot
 // silently enter this PC bridge. Localized title production remains external.
 struct VistaPcrPcVariant { std::array<std::byte,0x130> bytes{}; };

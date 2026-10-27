@@ -20,7 +20,7 @@ using namespace halo2;
 namespace {
 void check(bool value,const char *message){if(!value)throw FormatError(message);}
 struct Host {
-  unsigned port{},owner{};std::uint32_t sound{};
+  std::string join_address;unsigned port{},owner{};std::uint32_t sound{};
   bool observed_location_split{}; // Worker-owned until finish() joins it.
   struct Impulse {std::uint32_t tick;};
   std::vector<Impulse> impulses; // Worker-owned until finish() joins it.
@@ -42,7 +42,7 @@ struct Host {
       std::uint32_t effect_primary=0x12345678u,effect_auxiliary=0x12345678u;
       NativeMuzzleEffects effects(cache,SourceEffectRandom{effect_primary,effect_auxiliary});
       std::uint64_t effect_serial{};
-      loaded.set_value({host.port(),local,firing_sound});published=true;
+      join_address=host.join_address();loaded.set_value({host.port(),local,firing_sound});published=true;
       std::array<Controls,multiplayer_capacity> controls{};
       std::optional<std::uint32_t> prejoin_last,postjoin_start,release_tick;
       auto next=std::chrono::steady_clock::now();
@@ -121,7 +121,7 @@ int main(int argc,char **argv){try {
   MultiplayerOptions options;options.map=argv[1];options.shared_maps=argv[2];options.gameplay_xbe=argv[3];
   options.width=640;options.height=480;options.starting_weapon=5;options.mute=false;
   Host host(options);host.wait_prejoin();
-  options.join="127.0.0.1:"+std::to_string(host.port);
+  options.join=host.join_address;
   options.desktop=std::make_shared<DesktopSession>();auto *window=options.desktop->window(640,480,false);
   SDL_RaiseWindow(window);check(SDL_SetWindowInputFocus(window)==0,"Could not focus late-join test window");
   SDL_PumpEvents();check(SDL_GetKeyboardFocus()==window,"Late-join window lacks actual OS focus");

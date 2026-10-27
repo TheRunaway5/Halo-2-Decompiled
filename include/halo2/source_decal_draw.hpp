@@ -5,6 +5,7 @@
 #include <memory>
 
 namespace halo2 {
+struct SourceDecalFrameTu15;
 struct SourceDecalLayerState {
     PixelProgram pixel;
     std::uint32_t source_blend{},destination_blend{},blend_equation=0x8006;
@@ -32,6 +33,11 @@ public:
     explicit SourceDecalScene(const Cache &);
     ~SourceDecalScene();
     std::vector<SourceDecalDraw> draw(SourceRuntimeMemory &,
+        const SourceBspAdmission &,const std::array<ShaderVector,192> &,
+        ShaderVector viewport,ShaderVector clip_range) const;
+    // Owning completed readback; primary suppression is local to this view.
+    // Authority render stamps are never copied into a peer's view context.
+    std::vector<SourceDecalDraw> draw(const SourceDecalFrameTu15 &,
         const SourceBspAdmission &,const std::array<ShaderVector,192> &,
         ShaderVector viewport,ShaderVector clip_range) const;
     bool active() const;

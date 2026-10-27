@@ -13,6 +13,7 @@ import subprocess
 
 import numpy as np
 from PIL import Image, ImageDraw
+from qualify_frontend_runtime import intro_capture_witness
 
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
@@ -34,9 +35,11 @@ for name,width,height,resize in cases:
     if hashlib.sha256(binary.read_bytes()).hexdigest() != binary_sha256:
         raise RuntimeError('frontend runtime changed between display captures')
     target = output / f'{name}.ppm'
+    # Count proof frames only after the live new-map overlay clears. The
+    # frozen camera/animation sample is independent of that source clock.
     command = [str(binary),'--menu','--skip-intro','--menu-tick',str(args.tick),
                '--freeze-menu','--frames','8' if resize else '3','--viewport',str(width),str(height),
-               '--hidden','--mute','--validation','--screenshot',str(target)]
+               '--menu-wait-intro-clear','--hidden','--mute','--validation','--screenshot',str(target)]
     if resize:
         command.append('--resize-test')
     result = subprocess.run(command,cwd=ROOT,env=environment,capture_output=True,text=True,timeout=120)
@@ -46,6 +49,7 @@ for name,width,height,resize in cases:
     (output / f'{name}.log').write_text(log)
     if result.returncode:
         raise RuntimeError(f'{name} frontend capture failed: {result.returncode}')
+    intro_clear = intro_capture_witness(log, 8 if resize else 3)
     image = Image.open(target).convert('RGB')
     if resize:
         width,height = 1000,600
@@ -60,15 +64,19 @@ for name,width,height,resize in cases:
     border = np.ones((height,width),dtype=bool)
     border[y:y+h,x:x+w] = False
     count = int(np.count_nonzero(pixels[border]))
+    visible = int(np.count_nonzero(pixels[y:y+h,x:x+w]))
     validation_error = 'Validation Error' in log or 'VUID-' in log
     check = {'aspect':name,'binary_sha256':binary_sha256,'size':[width,height],'viewport':[float(vx),float(vy),float(vw),float(vh)],
              'scissor':[x,y,w,h],'border_pixels':int(border.sum()),'nonblack_border_channels':count,
-             'validation_error':validation_error,'return_code':result.returncode}
+             'nonblack_viewport_channels':visible,'waited_for_map_intro_clear':True,
+             'validation_error':validation_error,'return_code':result.returncode,
+             'intro_clear':intro_clear}
     checks.append(check)
     print(json.dumps(check),flush=True)
 report = {'binary_sha256':binary_sha256,
           'scope':'real native frames, fixed camera/animation, centered source 4:3 menu viewport',
-          'checks':checks,'passed':all(not c['nonblack_border_channels'] and not c['validation_error'] for c in checks),
+          'checks':checks,'passed':all(not c['nonblack_border_channels'] and
+              c['nonblack_viewport_channels'] > 0 and not c['validation_error'] for c in checks),
           'matched_original_pixels':False,'extended_scene_aspect_support':False,
           'all_frontend_layout_flow_verified':False}
 (output / 'validation.json').write_text(json.dumps(report,indent=2)+'\n')

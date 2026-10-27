@@ -74,6 +74,12 @@ void real(const char *xbe,const char *map){
     auto bad=dirty;bad.version=1;rejects([&]{b.prepare_authority(bad,17);});
     bad=dirty;bad.definition_binding[0]^=std::byte{1};rejects([&]{b.prepare_authority(bad,17);});
     bad=dirty;bad.state.groups.pop_back();rejects([&]{b.prepare_authority(bad,17);});
+    bad=dirty;bad.triangles.clear();
+    bool preflight_rejected{};
+    try{b.prepare_authority(bad,17);}catch(const FormatError &e){
+        preflight_rejected=std::string_view(e.what()).find("admitted triangle budget")!=std::string_view::npos;
+    }
+    check(preflight_rejected,"Device generated collision allocated before checking the admitted triangle extent");
     bad=dirty;bad.triangles[0].a.x+=.125f;rejects([&]{b.prepare_authority(bad,17);});
     bad=dirty;std::reverse(bad.triangles.begin(),bad.triangles.end());rejects([&]{b.prepare_authority(bad,17);});
     bad=dirty;bad.collision_poses.at(gate).created_tick=18;rejects([&]{b.prepare_authority(bad,17);});

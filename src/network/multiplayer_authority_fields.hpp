@@ -10,7 +10,8 @@
  X(first_person_views) X(first_person_clock_origins) \
  X(replicated_fp_views) X(replicated_fp_origins) \
  X(weapon_effect_events) X(weapon_effect_journal) X(weapon_effect_serial) \
- X(source_engine_events) X(source_engine_event_serial) \
+ X(source_engine_events) X(source_engine_event_serial) X(source_gameplay_fade) \
+ X(physics_impulses) X(physics_impulse_serial) \
  X(infection_zombies) X(infection_started) X(infection_start_tick) \
  X(defusal) X(defusal_bomb) X(defusal_definition) \
  X(finished) X(results_finalized) X(end_stats) X(retained_stats) \

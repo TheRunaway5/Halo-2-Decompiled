@@ -1,5 +1,5 @@
 #include "halo2/effect_light_draw.hpp"
-#include "halo2/menu_world_vertex_source.hpp"
+#include "halo2/menu_world_vertex_catalog.hpp"
 #include <algorithm>
 #include <cstring>
 
@@ -67,7 +67,7 @@ EffectLightRawDraw source_effect_light_raw_draw(unsigned slot,const Material &ma
         for(const auto&r:compiled.vertex_externs)if(!(r.destination&16u) && r.source==3 &&
             ((r.destination>>5)&31u)==4)
             attribute_components[r.destination&15u]|=7u;
-        const auto reads=menu_world_vertex_input_components(source.program(),source.declaration().class_index>=2);
+        const auto& reads=menu_world_vertex_metadata_lookup(source.program_bytes(),source.declaration()).consumed_input_components;
         for(const auto reg:source.external_attribute_registers()) {
             // RGB comes from the selected authored remaps. Alpha is already
             // present in the complete owned per-pass bank, including lanes a

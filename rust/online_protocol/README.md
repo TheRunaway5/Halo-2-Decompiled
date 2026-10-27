@@ -59,9 +59,12 @@ An agreement certificate still cannot supply native preparation or authorize
 activation without the separate all-survivor and native-owner checks.
 
 `lan_auth` owns ephemeral X25519 keys, HMAC-SHA256 packet authentication and
-the 1,024-packet replay window for established raw-LAN traffic. Public keys are
-fixed for each endpoint admission; discovery supplies no external server
-identity. The pinned `x25519-dalek`, `hmac`, `getrandom` and `sha2` dependencies
+the 1,024-packet replay window for raw-LAN traffic. Protocol107 requires the
+host key from an independent trusted exchange before any first frame, query
+fragment or rejection can be accepted. Its KDF binds role-ordered keys,
+protocol, nonce, content identity and declared destination. Discovery and
+first datagrams cannot select a host identity. See [raw LAN host keys](../../multiplayer/docs/raw-lan-host-keys.md).
+The pinned `x25519-dalek`, `hmac`, `getrandom` and `sha2` dependencies
 are recorded in each consumer's Cargo lock. C++ owns socket I/O only.
 
 `security_policy` owns network replay capability admission, exact Steam

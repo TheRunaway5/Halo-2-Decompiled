@@ -13,6 +13,7 @@ pub struct Limits {
     pub allocated_bytes: u64,
     pub container_elements: u64,
     pub fixed_native_bytes: u64,
+    pub working_bytes: u64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -320,6 +321,61 @@ fn tree(raw: &[u8], budget: &mut Budget) -> Result<(Vec<Node>, usize), Error> {
 
 /// The checksum is an owned expected value. The existing vetted SHA-256 consumer
 /// must compare it to `raw()` before native materialization; it is not a credential.
+fn budget(limits: Limits, retained: u64) -> Result<Budget, Error> {
+    let fixed = limits
+        .fixed_native_bytes
+        .saturating_add(size_of::<Archive>() as u64);
+    let additive = limits
+        .encoded_bytes
+        .max(retained)
+        .saturating_add(limits.decoded_bytes)
+        .saturating_add(limits.allocated_bytes)
+        .saturating_add(fixed);
+    let mut result = Budget {
+        limit: if limits.working_bytes == 0 {
+            additive
+        } else {
+            limits.working_bytes
+        },
+        used: 0,
+        peak: 0,
+        native_left: limits.allocated_bytes,
+        elements_left: limits.container_elements,
+        native_claimed: 0,
+    };
+    result.charge(retained.checked_add(fixed).ok_or(Error::Budget)?)?;
+    Ok(result)
+}
+
+fn finish(raw: Vec<u8>, hash: [u8; 32], mut budget: Budget) -> Result<Archive, Error> {
+    let (nodes, deepest) = tree(&raw, &mut budget)?;
+    Ok(Archive {
+        raw,
+        nodes,
+        hash,
+        deepest,
+        budget: Mutex::new(budget),
+    })
+}
+
+/// Canonical bytes from the independently bounded delta owner. The caller's
+/// backing and the owned Rust copy are both charged while parsing/materializing.
+pub fn decode_raw(bytes: &[u8], hash: [u8; 32], limits: Limits) -> Result<Archive, Error> {
+    if bytes.is_empty() || bytes.len() as u64 > limits.decoded_bytes {
+        return Err(Error::Extent);
+    }
+    let mut budget = budget(limits, bytes.len() as u64)?;
+    budget.charge(bytes.len() as u64)?;
+    let mut raw = Vec::new();
+    raw.try_reserve_exact(bytes.len())
+        .map_err(|_| Error::Allocation)?;
+    if raw.capacity() > bytes.len() {
+        budget.charge((raw.capacity() - bytes.len()) as u64)?;
+    }
+    raw.extend_from_slice(bytes);
+    finish(raw, hash, budget)
+}
+
 pub fn decode(bytes: &[u8], limits: Limits) -> Result<Archive, Error> {
     if bytes.len() < 64 || bytes.len() as u64 > limits.encoded_bytes {
         return Err(Error::Envelope);
@@ -334,29 +390,14 @@ pub fn decode(bytes: &[u8], limits: Limits) -> Result<Archive, Error> {
     if raw_size > limits.decoded_bytes || compressed_size != (bytes.len() - 64) as u64 {
         return Err(Error::Extent);
     }
+    if compressed_size == 0 || raw_size > compressed_size.saturating_mul(2048).saturating_add(65536)
+    {
+        return Err(Error::Extent);
+    }
     let hash = bytes[envelope.range(32)?]
         .try_into()
         .map_err(|_| Error::Extent)?;
-    let fixed = limits
-        .fixed_native_bytes
-        .saturating_add(size_of::<Archive>() as u64);
-    let mut budget = Budget {
-        limit: limits
-            .encoded_bytes
-            .saturating_add(limits.decoded_bytes)
-            .saturating_add(limits.allocated_bytes)
-            .saturating_add(fixed),
-        used: 0,
-        peak: 0,
-        native_left: limits.allocated_bytes,
-        elements_left: limits.container_elements,
-        native_claimed: 0,
-    };
-    budget.charge(
-        (bytes.len() as u64)
-            .checked_add(fixed)
-            .ok_or(Error::Budget)?,
-    )?;
+    let mut budget = budget(limits, bytes.len() as u64)?;
     let size = usize::try_from(raw_size).map_err(|_| Error::Extent)?;
     budget.charge(raw_size)?;
     let mut raw = Vec::new();
@@ -381,19 +422,51 @@ pub fn decode(bytes: &[u8], limits: Limits) -> Result<Archive, Error> {
     if status != TINFLStatus::Done || consumed != bytes.len() - 64 || written != size {
         return Err(Error::Compression);
     }
-    let (nodes, deepest) = tree(&raw, &mut budget)?;
-    Ok(Archive {
-        raw,
-        nodes,
-        hash,
-        deepest,
-        budget: Mutex::new(budget),
-    })
+    finish(raw, hash, budget)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn raw_images_share_the_grammar_and_cumulative_materialization_budget() {
+        let raw = [13, 0, 0, 0, 0];
+        let hash = [0x15; 32];
+        let archive = decode_raw(&raw, hash, limits()).expect("Canonical root");
+        assert_eq!(archive.raw(), raw);
+        assert_eq!(archive.hash(), hash);
+        assert_eq!(archive.len(), 1);
+        let mut bounded = limits();
+        bounded.working_bytes = raw.len() as u64;
+        assert!(decode_raw(&raw, hash, bounded).is_err());
+        bounded = limits();
+        bounded.decoded_bytes = raw.len() as u64 - 1;
+        assert!(decode_raw(&raw, hash, bounded).is_err());
+    }
+    #[test]
+    fn explicit_working_budget_reserves_metadata_without_relaxing_components() {
+        let mut raw = vec![13, 1, 0, 0, 0, 0, 0];
+        for _ in 0..1000 {
+            raw.extend_from_slice(&[11, 1]);
+        }
+        raw.extend_from_slice(&[0, 1]);
+        let mut l = limits();
+        l.encoded_bytes = 1;
+        l.decoded_bytes = raw.len() as u64;
+        l.allocated_bytes = 0;
+        l.fixed_native_bytes = 0;
+        l.working_bytes = 1 << 20;
+        let parsed = decode_raw(&raw, [0; 32], l).expect("Explicit metadata reservation");
+        assert!(parsed.stats().unwrap().metadata_bytes > 2 * raw.len() as u64);
+        assert!(!parsed.claim_native(1, 1, false));
+        let mut additive = l;
+        additive.working_bytes = 0;
+        assert!(decode_raw(&raw, [0; 32], additive).is_err());
+        l.decoded_bytes -= 1;
+        assert!(decode_raw(&raw, [0; 32], l).is_err());
+        l.decoded_bytes += 1;
+        assert!(decode(&frame(&raw), l).is_err());
+    }
     fn limits() -> Limits {
         Limits {
             encoded_bytes: 1 << 20,
@@ -401,6 +474,7 @@ mod tests {
             allocated_bytes: 16 << 20,
             container_elements: 1_000_000,
             fixed_native_bytes: 128,
+            working_bytes: 0,
         }
     }
     fn record(value: &[u8]) -> Vec<u8> {

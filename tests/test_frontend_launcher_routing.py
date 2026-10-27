@@ -14,6 +14,7 @@ sys.path.insert(0,str(R/'tests'))
 import frontend_runtime_selection as selection
 import native_gameplay_test as admission
 import test_frontend_capability as fixtures
+from helpers.native_renderer_admission_fixture import install_renderer_admission_fixture
 
 LAUNCHER=None
 SHADERS=('world.vert.spv','world.frag.spv','world_emblem.geom.spv','world_emblem.frag.spv',
@@ -34,6 +35,7 @@ class FrontendLauncherRoutingTests(unittest.TestCase):
         for name in ('native_gameplay_test.py','frontend_runtime_selection.py','packaged_shader_defaults.py',
                      'native_renderer_shaders.py'):
             shutil.copyfile(R/'tools'/name,tools/name)
+        install_renderer_admission_fixture(R, tools/'native_renderer_shaders.py')
         for name in ('lockout.map','single_player_shared.map'):(self.maps/name).write_bytes(b'synthetic MCC metadata')
         for name in ('bitmap-resources.json','tag-conversion.json','loading/mcc-loading-assets.json'):
             path=self.cache/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text('{}')

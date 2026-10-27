@@ -79,7 +79,7 @@ int main(int argc,char **argv)try{
   }
   constexpr std::uint64_t fingerprint=0x15de000332u;
   LanHost host(match,0,fingerprint,variant);
-  LanClient peer("127.0.0.1:"+std::to_string(host.port()),fingerprint,1);
+  LanClient peer(host.join_address(),fingerprint,1);
   std::array<Controls,16> controls{};Controls remote{};
   const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(8);
   while(!peer.ready() && std::chrono::steady_clock::now()<deadline){

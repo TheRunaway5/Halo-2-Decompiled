@@ -1,6 +1,7 @@
 #include "halo2/native_vista_announcer.hpp"
 #include "halo2/cache.hpp"
 #include <algorithm>
+#include <nlohmann/json.hpp>
 #include <cmath>
 #include <cstdlib>
 #include <exception>
@@ -218,6 +219,66 @@ void orphan(const NativeVistaAnnouncerConfiguration& config){
 }
 }
 int main(int argc,char** argv){try{
+  if(argc==6 && std::string_view(argv[1])=="--selected-owner-only") {
+    need(std::getenv("HALO2_TEST_SCRATCH"),"Selected-owner component requires owned scratch");
+    const std::filesystem::path custom=argv[2],custom_shared=argv[3],stock=argv[4],stock_shared=argv[5];
+    need(custom.is_absolute() && custom_shared.is_absolute() && stock.is_absolute() && stock_shared.is_absolute(),
+         "Selected-owner component requires exact absolute inputs");
+    Cache selected(custom,custom_shared),conventional(stock,stock_shared);
+    need(selected.is_mcc() && selected.is_custom_mcc() && conventional.is_mcc() &&
+         custom.parent_path()!=custom_shared && stock.parent_path()==stock_shared &&
+         custom_shared!=stock_shared,"Selected-owner component lost actual mod/stock ownership");
+    const auto responses=load_vista_announcer_responses(selected);
+    need(!responses.general.empty() && !responses.slayer.empty(),"Actual selected matg/mulg response banks are empty");
+    nlohmann::json cases=nlohmann::json::array();
+    const auto pass=[&](const char* name){cases.push_back({{"name",name},{"passed",true}});};
+    const auto equal_responses=[](const auto& a,const auto& b){
+      return a.general==b.general && a.slayer==b.slayer && a.king==b.king;
+    };
+    {
+      const auto assets=open_vista_announcer_assets(custom_shared,selected.scenario(),selected.original_data(),custom);
+      need(assets.path==custom && assets.cache && assets.cache->path()==custom &&
+           assets.cache->shared_directory()==custom_shared && assets.cache->is_mcc() &&
+           assets.cache->is_custom_mcc() && assets.cache->scenario()==selected.scenario() &&
+           equal_responses(assets.responses,responses),"Explicit custom announcer lost its exact Cache/response owners");
+      pass("explicit-custom-cache-and-responses");
+    }
+    {
+      NativeVistaAnnouncerConfiguration config{custom_shared,selected.scenario(),selected.original_data(),
+        0,30,{0x027f,0x1f80},true,0x5821b36d,{SdlSoundPlatformConfiguration::Delivery::Manual,256,{}}};
+      config.source_tu15=true;config.selected_cache_path=custom;
+      auto owner=Announcer::open(config);
+      need(owner->assets().path==custom && owner->assets().cache->path()==custom &&
+           owner->assets().cache->shared_directory()==custom_shared && owner->audio_cache().is_mcc() &&
+           &owner->audio_cache()==owner->assets().cache.get() &&
+           equal_responses(owner->assets().responses,responses),"Native configuration failed to forward selected Cache owner");
+      owner->stop();pass("native-configuration-forwarding-and-sound-namespace");
+    }
+    const auto explicit_stock=open_vista_announcer_assets(stock_shared,conventional.scenario(),conventional.original_data(),stock);
+    const auto legacy_stock=open_vista_announcer_assets(stock_shared,conventional.scenario(),conventional.original_data());
+    need(explicit_stock.path==stock && legacy_stock.path==stock &&
+         equal_responses(explicit_stock.responses,legacy_stock.responses),"Conventional directory scan changed response owners");
+    pass("explicit-stock-cache-and-responses");pass("unchanged-conventional-directory-scan");
+    const auto missing=std::filesystem::path(std::getenv("HALO2_TEST_SCRATCH"))/"absent-announcer.map";
+    need(!std::filesystem::exists(missing),"Missing-owner negative unexpectedly exists");
+    // The legacy stock scenario above is resolvable: these must not select it.
+    rejects([&]{(void)open_vista_announcer_assets(stock_shared,conventional.scenario(),{},missing);},
+            "Explicit missing map fell back to a stock owner");pass("missing-explicit-owner-no-fallback");
+    rejects([&]{(void)open_vista_announcer_assets(stock_shared,conventional.scenario(),{},stock_shared);},
+            "Explicit directory fell back to a stock owner");pass("directory-explicit-owner-no-fallback");
+    rejects([&]{(void)open_vista_announcer_assets(stock_shared,conventional.scenario(),{},std::filesystem::path{});},
+            "Explicit empty path fell back to a stock owner");pass("empty-explicit-owner-no-fallback");
+    need(selected.scenario()!=conventional.scenario(),"Scenario mismatch negative lost its distinct actual scenarios");
+    rejects([&]{(void)open_vista_announcer_assets(custom_shared,conventional.scenario(),selected.original_data(),custom);},
+            "Explicit map admitted a mismatched scenario");pass("actual-scenario-mismatch");
+    rejects([&]{(void)open_vista_announcer_assets(stock_shared,selected.scenario(),selected.original_data(),custom);},
+            "Explicit custom map admitted an unrelated prepared shared owner");pass("actual-prepared-shared-owner-mismatch");
+    std::cout<<nlohmann::json{{"schema","HALO2_ANNOUNCER_SELECTED_CACHE_OWNER_COMPONENT_V1"},{"passed",true},
+      {"scope","Actual prepared MCC Cache/matg/mulg and muted manual NativeVistaAnnouncer construction; no GPU or playback parity claim"},
+      {"custom_map",custom.string()},{"custom_shared",custom_shared.string()},{"scenario",selected.scenario()},
+      {"response_counts",{responses.general.size(),responses.slayer.size(),responses.king.size()}},{"cases",cases}}.dump()<<'\n';
+    return 0;
+  }
   need(argc==3 && std::string_view(argv[1])=="--mcc","Supply --mcc ABSOLUTE_IMPORTED_LOCKOUT_MAP");
   const std::filesystem::path map=argv[2];
   need(map.is_absolute() && std::filesystem::is_regular_file(map),"Explicit MCC map must exist at its absolute imported path");

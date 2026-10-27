@@ -1,9 +1,11 @@
 #include "halo2/multiplayer_runtime_authority.hpp"
+#include "halo2/system_link_state.hpp"
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/source_authority_publisher.hpp"
 #include "halo2/source_authority_receiver.hpp"
 #include "halo2/source_peer_host_takeover.hpp"
 #include "halo2/peer_common_cut.hpp"
+#include "halo2/source_admitted_camera.hpp"
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
@@ -79,6 +81,7 @@ struct MultiplayerRuntimeAuthority::Impl {
     std::unique_ptr<SourceMatchAuthority> authority,pending_authority;
     std::unique_ptr<SourceAuthorityReplayWorker> receiver;
     std::unique_ptr<SourceAuthorityPublisher> publisher;
+    std::shared_ptr<SourceAdmittedCameraBank> admitted_cameras;
     std::shared_ptr<PeerSnapshotCandidate> snapshot_module;
     std::optional<PeerSnapshotToken> snapshot_round;
     std::optional<SourceAuthorityPublisherGroupCut> snapshot_group;
@@ -98,6 +101,7 @@ struct MultiplayerRuntimeAuthority::Impl {
     std::optional<OnlineMatchSession::MigrationPreparationRequest> preparation_retirement;
     std::shared_ptr<SourcePeerHostTakeover::NativeImport> native_import;
     std::shared_ptr<const NativeCutPin> pending_native;
+    std::shared_ptr<const SourceAuthorityEndpoint> terminal_displayed;
     std::optional<std::future<SourceAuthorityRetainedWorld>> common_export;
     std::optional<SourceAuthorityHostProof> export_proof;
     std::optional<PeerCommonCut> common_round,export_round;
@@ -107,7 +111,7 @@ struct MultiplayerRuntimeAuthority::Impl {
     std::vector<unsigned> shadow_targets;
     Clock::time_point capture_retry{};
     Clock::time_point receiver_retry{};
-    std::string admission_error,receiver_error,publication_error,preparation_error;
+    std::string admission_error,receiver_error,terminal_error,publication_error,preparation_error;
     bool frame{},committing{},continuing_input{},recovery_enabled{},restart_receiver{},recovery_preparation{};
     std::optional<std::uint64_t> continued_input_tick;
     std::array<Controls,4> continued_input;
@@ -267,6 +271,7 @@ struct MultiplayerRuntimeAuthority::Impl {
         if(native_import&&obsolete(SourcePeerHostTakeover::imported_cut(*native_import).context))native_import.reset();
         if(imported_pair&&obsolete(imported_pair->native->cut().context))imported_pair.reset();
         if(pending_native&&obsolete(pending_native->cut().context))pending_native.reset();
+        if(terminal_displayed&&obsolete(terminal_displayed->world().cut.context))terminal_displayed.reset();
         if(pending_pair&&obsolete(pending_pair->native->cut().context))pending_pair.reset();
         if(committed_pair&&obsolete(committed_pair->native->cut().context))committed_pair.reset();
         if(retire_round)common_round.reset();
@@ -496,7 +501,9 @@ struct MultiplayerRuntimeAuthority::Impl {
             common_publication(state);state=publisher->state();
             if(online->snapshot_candidates_enabled())candidate_publication(state);
             else if(!state.held_group&&!state.tracking_replay&&!state.encoding&&!state.awaiting_validation&&Clock::now()>=capture_retry){
-                capture_retry=Clock::now()+std::chrono::seconds(3);publisher->capture();state=publisher->state();
+                capture_retry=Clock::now()+std::chrono::seconds(3);
+                if(publisher->capture()&&admitted_cameras&&!admitted_cameras->active())admitted_cameras->activate();
+                state=publisher->state();
             }
             diagnostic(publication_error,"Source shadow publication unavailable: ",state.error);
         }catch(const std::exception &e){
@@ -510,7 +517,7 @@ bool MultiplayerRuntimeAuthority::recovery_preparation_enabled(
     const std::shared_ptr<OnlineMatchSession> &online,RecoveryPreparation preparation){
     if(!online)return false;
     switch(preparation){
-    case RecoveryPreparation::Automatic:return online->continuity().has_value();
+    case RecoveryPreparation::Automatic:return online->continuity().has_value()||online->terminal_recovery_enabled();
     case RecoveryPreparation::PreparationOnly:return true;
     }
     return false;
@@ -549,6 +556,13 @@ MultiplayerPreparedWorld &MultiplayerRuntimeAuthority::world(){impl_->own();retu
 MultiplayerMatch &MultiplayerRuntimeAuthority::match(){return world().match;}
 LanHost *MultiplayerRuntimeAuthority::host(){impl_->own();return impl_->host();}
 LanClient *MultiplayerRuntimeAuthority::client(){impl_->own();return impl_->client();}
+std::pair<std::unique_ptr<LanHost>,std::unique_ptr<LanClient>> MultiplayerRuntimeAuthority::release_system_link(){
+    auto& s=*impl_;s.quiescent();need(!s.online&&!s.active&&!s.pending&&!s.receiver);
+    if(s.initial_host)need(s.initial_host->system_link_state().phase==SystemLinkPhase::postgame);
+    else {need(bool(s.initial_client));const auto state=s.initial_client->system_link_state();
+      need(state && (state->phase==SystemLinkPhase::postgame || (state->phase==SystemLinkPhase::lobby && !s.initial_client->ready())));}
+    return {std::move(s.initial_host),std::move(s.initial_client)};
+}
 void MultiplayerRuntimeAuthority::admit_players(){
     auto &s=*impl_;s.own();if(!s.authority||s.online->phase()!=OnlineMatchSession::Phase::Running)return;
     const auto context=s.online->authority_context();
@@ -559,8 +573,56 @@ void MultiplayerRuntimeAuthority::admit_players(){
         slots.push_back(p.slot);
     }
     try{const auto players=s.authority->player_admissions(slots);
+        if(s.online->terminal_recovery_enabled()&&!s.admitted_cameras){
+            need(s.world().match.original_data());
+            AcceptedSourcePlayers accepted;accepted.context=*context;accepted.players=players;
+            auto cameras=std::make_shared<SourceAdmittedCameraBank>(s.world().match,*s.world().source_objects,
+                *s.world().match.original_data(),accepted,s.online->roster());
+            s.host()->bind_admitted_cameras(cameras);s.admitted_cameras=std::move(cameras);
+        }
         if(s.online->publish_source_players(*context,players))s.published_context=context;
     }catch(const std::exception &e){diagnostic(s.admission_error,"Source player admission unavailable: ",e.what());}
+}
+bool MultiplayerRuntimeAuthority::terminal_bootstrap_ready()const{
+    auto &s=*impl_;s.quiescent();
+    if(!s.online||!s.online->terminal_recovery_enabled())return true;
+    if(s.online->phase()!=OnlineMatchSession::Phase::Running)return false;
+    const auto context=s.online->authority_context();const auto admitted=s.online->source_players();
+    if(!context||!admitted||admitted->context!=*context)return false;
+    const auto recipients=std::uint16_t(context->peers&~(1u<<s.online->self()));
+    if(!recipients)return true;
+    if(s.host()) {
+        if(!s.publisher)return false;
+        const auto state=s.publisher->state();
+        return state.host_ready&&state.group_ready&&state.group_ready->context==*context&&
+            state.group_ready->recipients==recipients&&state.group_ready->seal.tick==s.world().match.simulation().ticks();
+    }
+    if(!s.client()||!s.receiver)return false;
+    const auto endpoint=s.receiver->state().endpoint;
+    // A copied real validation boundary survives ongoing tick0 heartbeat
+    // replay. Mutable ready may already be cleared for its next native phase.
+    // The caller separately matches the exact received body/sequence receipt.
+    return endpoint&&endpoint->world().cut.peer==s.online->self()&&endpoint->world().cut.context==*context&&
+        same_cut(endpoint->proof().cut(),endpoint->world().cut)&&endpoint->world().cut.seal.tick==0&&
+        endpoint->world().checkpoint.match.simulation.ticks==0&&s.world().match.simulation().ticks()==0;
+}
+std::shared_ptr<const SourceAuthorityEndpoint> MultiplayerRuntimeAuthority::terminal_endpoint()const{
+    auto &s=*impl_;s.own();
+    if(!s.online||!s.online->terminal_recovery_enabled()||!s.receiver||!s.client())return {};
+    auto endpoint=s.receiver->state().endpoint;
+    if(!endpoint||s.online->authority_context()!=endpoint->world().cut.context)return {};
+    return endpoint;
+}
+void MultiplayerRuntimeAuthority::adopt_terminal_endpoint(const std::shared_ptr<const SourceAuthorityEndpoint> &endpoint,
+    const MultiplayerSnapshotOrigin &origin){
+    auto &s=*impl_;s.own();
+    need(s.online&&s.online->terminal_recovery_enabled()&&s.client()&&endpoint&&
+        endpoint->world().cut.peer==s.online->self()&&s.online->authority_context()==endpoint->world().cut.context);
+    const auto proof=endpoint->proof().prove_snapshot(*s.client(),origin);need(proof.matches(origin));
+    s.terminal_displayed=endpoint;
+}
+SourceAdmittedCameraBank *MultiplayerRuntimeAuthority::admitted_cameras(){
+    auto &s=*impl_;s.own();return s.admitted_cameras&&s.admitted_cameras->active()?s.admitted_cameras.get():nullptr;
 }
 void MultiplayerRuntimeAuthority::service(){
     auto &s=*impl_;s.quiescent();if(s.active&&s.active->publication_held())return;
@@ -584,7 +646,10 @@ void MultiplayerRuntimeAuthority::receive(){
             s.client()->bind_continuity(*context,s.online->self(),s.online->roster());s.client_context=context;
         }catch(const std::exception &e){diagnostic(s.receiver_error,"Source client continuity unavailable: ",e.what());}
     }
-    if(s.receiver)diagnostic(s.receiver_error,"Source shadow unavailable: ",s.receiver->state().error);
+    if(s.receiver){const auto state=s.receiver->state();
+        diagnostic(s.receiver_error,"Source shadow unavailable: ",state.error);
+        diagnostic(s.terminal_error,"Optional terminal pin unavailable: ",state.endpoint_error);
+    }
 }
 void MultiplayerRuntimeAuthority::suspend_publication(){auto &s=*impl_;s.quiescent();if(s.publisher)s.publisher->cancel();}
 struct MultiplayerRuntimeAuthority::Frame::Impl {
@@ -905,6 +970,12 @@ MultiplayerPreparedWorld &MultiplayerRuntimeAuthority::common_prospective_target
 MultiplayerRuntimeAuthority::RecoveryEligibility MultiplayerRuntimeAuthority::recovery_eligibility()const{
     auto &s=*impl_;s.quiescent();
     if(s.preparation_retiring()||!s.online||!s.client())return RecoveryEligibility::Unavailable;
+    if(s.online->terminal_recovery_enabled()) {
+        const auto terminal=s.online->terminal_observation();
+        if(!terminal||s.online->authority_context()!=terminal->context()||s.common_used||s.committed_pair||s.pending_pair)
+            return RecoveryEligibility::Unavailable;
+        return s.terminal_displayed?RecoveryEligibility::LegacyDrain:RecoveryEligibility::Unavailable;
+    }
     const auto migration=s.online->peer_migration();
     if(!migration||!migration->decision)return RecoveryEligibility::Unavailable;
     const auto common=s.online->common_cut();
@@ -917,6 +988,16 @@ MultiplayerRuntimeAuthority::RecoveryEligibility MultiplayerRuntimeAuthority::re
 }
 std::shared_ptr<const SourceAuthorityRetainedWorld> MultiplayerRuntimeAuthority::recover(){
     auto &s=*impl_;s.quiescent();if(s.preparation_retiring()||!s.retirement_boundary())return {};
+    if(s.online&&s.online->terminal_recovery_enabled()){
+        const auto terminal=s.online->terminal_observation();
+        if(!terminal||!s.terminal_displayed||s.online->authority_context()!=terminal->context()||
+            s.terminal_displayed->world().cut.context!=terminal->context())return {};
+        // Preserve the actual displayed pair. Draining to a newer mutable
+        // replay endpoint would also violate exact displayed-state equality.
+        s.retained=std::shared_ptr<const SourceAuthorityRetainedWorld>(s.terminal_displayed,&s.terminal_displayed->world());
+        if(s.receiver){s.receiver->cancel();if(!s.receiver->stopped())return {};s.receiver.reset();}
+        return s.retained;
+    }
     const auto migration=s.online?s.online->peer_migration():std::nullopt;
     const auto common=s.online?s.online->common_cut():std::nullopt;
     if(s.common_used||s.committed_pair||s.pending_pair||(common&&(common->pending||common->committed))){

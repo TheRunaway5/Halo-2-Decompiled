@@ -1,0 +1,7244 @@
+{
+  "schema": "H2_MATCHMAKING_ROSTER_TU15_ORIGINAL_V1",
+  "original_tu15_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "routine": "0x25780b",
+  "cases": [
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "empty"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 0,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "empty"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 1,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "empty",
+        "empty",
+        "empty",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "empty"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 2,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": true,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "matched",
+        "matched",
+        "matched",
+        "matched"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": false,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 1,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 2,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": null,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": 4,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 0,
+      "maximum": 8,
+      "use_party": false,
+      "rows": []
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 1,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 2,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 3,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 4,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 7,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": null,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": 4,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    },
+    {
+      "pane": 3,
+      "ranked": true,
+      "party_players": 4,
+      "game_players": 8,
+      "maximum": 8,
+      "use_party": false,
+      "rows": [
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player",
+        "player"
+      ]
+    }
+  ]
+}

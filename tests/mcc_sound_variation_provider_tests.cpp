@@ -1,5 +1,8 @@
 #include "halo2/mcc_sound_variation_provider.hpp"
+#include "halo2/mcc_sound_metadata_publication.hpp"
 #include "halo2/mcc_sound_vanilla_reference.hpp"
+#include "halo2/mcc_sound_class_reference.hpp"
+#include "halo2/mcc_sound_timing_reference.hpp"
 #include "halo2/source_runtime_memory.hpp"
 #include "halo2/audio.hpp"
 #include "audio/mcc_sound_variation_provider_internal.hpp"
@@ -16,6 +19,15 @@ namespace {
 void need(bool yes,const char* why){if(!yes)throw FormatError(why);}
 std::array<std::byte,4> encoded(std::uint32_t n){
     return {std::byte(n),std::byte(n>>8),std::byte(n>>16),std::byte(n>>24)};
+}
+void same_definition(const SoundVariationDefinition &a,const SoundVariationDefinition &b) {
+    need(a.datum==b.datum && a.sound==b.sound && a.playback==b.playback && a.sound_class==b.sound_class &&
+        a.range==b.range && a.scale==b.scale && a.permutations==b.permutations && a.used==b.used &&
+        a.sample_rate_index==b.sample_rate_index && a.pitch_ranges.size()==b.pitch_ranges.size(),
+        "Immutable canonical sound publication differs from the actual converted provider");
+    for(unsigned n=0;n<a.pitch_ranges.size();++n)
+        need(a.pitch_ranges[n].interval==b.pitch_ranges[n].interval && a.pitch_ranges[n].permutations==b.pitch_ranges[n].permutations,
+            "Immutable canonical sound pitch interval differs from the actual converted provider");
 }
 struct CountedMemory final:SourcePhysicsContactMemory {
     SourceRuntimeMemory bank;
@@ -71,9 +83,11 @@ struct Fixture {
 int main(int argc,char**argv)try{
     if(argc==1 || (argc>1 && (!*argv[1] || !std::filesystem::is_regular_file(argv[1]))))return 77;
     if(argc!=2&&argc!=3)return 2;
-    const Cache cache(argv[1]);Fixture f(cache);auto provider=f.provider();
+    const auto cache_owner=std::make_shared<const Cache>(argv[1]);const auto &cache=*cache_owner;
+    Fixture f(cache);auto provider=f.provider();
+    const auto publication=MccSoundMetadataPublication::create(cache_owner);
     nlohmann::json report{{"map",cache.name()},{"scope","Actual MCC canonical delivery/native metadata parser and epoch controls; explicit publication fixture, not original gameplay or Audio admission."}};
-    unsigned assertions{},loaded{},unsupported{},empty{},corrected{},class_matches{},pcm_order{},pcm_pairs{};
+    unsigned assertions{},loaded{},unsupported{},empty{},corrected{},class_matches{},pcm_order{},pcm_pairs{},immutable_matches{},lift_pitches{},permutation_time_witnesses{};
     std::set<unsigned> decoded_codecs;
     report["pcm_cases"]=nlohmann::json::array();
     report["count32_cases"]=nlohmann::json::array();
@@ -101,6 +115,23 @@ int main(int argc,char**argv)try{
     const auto rawg=cache.read_tag_bytes(globals->address,0xc8);const Bytes rawsg(cache.read_tag_bytes(Bytes(rawg).u32(0xc4),0x2c));
     const auto* legacy=cache.find_tag({rawsg.u32(12)},TagGroup{"sncl"});need(legacy,"No actual Legacy sncl owner");
     const Bytes rawclass(cache.read_tag_bytes(legacy->address,8));
+    const auto raw_classes=cache.read_tag_bytes(rawclass.u32(4),std::size_t(rawclass.u32(0))*0x78u);
+    auto expected_classes=project_mcc_sound_class_records(raw_classes);
+    MccSoundRuntimeSource class_source;class_source.tags=cache.tags();
+    class_source.read=[&](auto at,auto size){return cache.read_tag_bytes(at,size);};
+    const auto class_reference=project_mcc_sound_class_reference(class_source,legacy->handle(),expected_classes);
+    need(class_reference.status!=MccSoundClassReferenceStatus::CandidateMismatch,
+         "Actual Legacy class bank differs from its complete authenticated projection");
+    if(class_reference.status!=MccSoundClassReferenceStatus::UnrecognizedSource) {
+        need(class_reference.owner==legacy->handle() && class_reference.native_records.size()==expected_classes.size(),
+             "Authenticated class projection changed its complete Legacy owner");
+        expected_classes=class_reference.native_records;
+    }
+    report["legacy_class_owner"]=legacy->datum;
+    report["legacy_class_source_sha256"]=class_reference.source_bank_sha256;
+    report["legacy_class_restored_words"]=class_reference.changed_words;
+    const auto timing=build_mcc_sound_timing_reference(cache,*f.sound,
+        [&](auto at,auto size){return f.delivery.runtime_address(at,size);});
     std::optional<TagHandle> selected,persistent;
     for(const auto& s:f.sound->sounds){
         const Bytes header(f.memory->bank.view(s.native_root,20));need(header.u16(0)==s.native_flags,"Canonical native flags differ");
@@ -118,10 +149,18 @@ int main(int argc,char**argv)try{
             }
         }();
         if(!d)continue;
+        same_definition(*d,publication.load(cache,s.sound));++immutable_matches;
+        const auto *identity=cache.find_tag(s.sound,TagGroup{"snd!"});need(identity,"Immutable comparison lost its sound identity");
+        if(identity->name.find("midship_grav_lift")!=std::string::npos || identity->name.find("midship_activate_lift")!=std::string::npos)
+            for(unsigned pitch=0;pitch<d->pitch_ranges.size();++pitch) {
+                same_definition(provider.load(cache,s.sound,pitch),publication.load(cache,s.sound,pitch));++lift_pitches;
+            }
         ++loaded;if(!selected)selected=s.sound;
         need(d->datum==s.sound.value&&Bytes(d->sound).u16(0)==s.native_flags,"Provider lost native full-salt header");
-        need(std::ranges::equal(d->sound_class,cache.read_tag_bytes(rawclass.u32(4)+unsigned(std::to_integer<std::uint8_t>(d->sound[2]))*0x78u,92)),
-             "Provider selected raw Remastered instead of actual Legacy class");++class_matches;
+        const auto class_index=unsigned(std::to_integer<std::uint8_t>(d->sound[2]));
+        need(class_index<rawclass.u32(0) && std::ranges::equal(d->sound_class,
+             std::span(expected_classes).subspan(std::size_t(class_index)*92,92)),
+             "Provider differs from the exact authenticated projected Legacy class");++class_matches;
         const auto& gestalt=cache.mcc_sound_gestalt_owner(s.sound);const Bytes rawroot(cache.read_tag_bytes(gestalt.address,0x78));
         const auto* rawtag=cache.find_tag(s.sound,TagGroup{"snd!"});need(rawtag,"Missing raw sound owner");
         const Bytes raws(cache.read_tag_bytes(rawtag->address,20));
@@ -130,8 +169,19 @@ int main(int argc,char**argv)try{
         need(range.u16(10)==d->permutations.size(),"Native/Cache relative permutation counts differ");
         for(unsigned n=0;n<d->permutations.size();++n){
             const auto raw=cache.read_tag_bytes(rawroot.u32(0x34)+(unsigned(range.u16(8))+n)*16u,16);
-            need(std::ranges::equal(std::span(d->permutations[n]).subspan(2,6),raw.subspan(2,6)),
-                 "Native/Cache relative permutation chance/gain order differs");++pcm_order;
+            need(std::ranges::equal(std::span(d->permutations[n]).subspan(2,4),raw.subspan(2,4)),
+                 "Native/Cache relative permutation chance/gain/dialogue order differs");
+            const auto references=timing.permutation_references();
+            const auto reference=std::ranges::find_if(references,[&](const auto& value){return
+                value.sound==s.sound && value.relative_pitch==0 && value.relative_permutation==n;});
+            if(reference!=references.end()) {
+                need(reference->expected_native_permutation==d->permutations[n] &&
+                     Bytes(d->permutations[n]).u16(6)==reference->original_ms,
+                     "Provider permutation differs from its complete authenticated TU1.5 timing row");
+                ++permutation_time_witnesses;
+            } else need(Bytes(d->permutations[n]).u16(6)==Bytes(raw).u16(6),
+                "Provider changed permutation milliseconds without an authenticated original witness");
+            ++pcm_order;
         }
         if(d->permutations.size()>1&&!d->used.empty()&&!persistent)persistent=s.sound;
         if(d->permutations.size()==32){
@@ -236,8 +286,10 @@ int main(int argc,char**argv)try{
     f.owner->invalidate();f.owner.reset();reject([&]{fresh.require_current(cache);},"Outlived producer provider remained current",true);
     need(f.memory->writes==0,"Read-only provider wrote source metadata");
     report["native_sound_roots"]=f.sound->sounds.size();report["loaded_pitch0_definitions"]=loaded;
+    report["immutable_publication_exact_definitions"]=immutable_matches;report["immutable_lift_pitch_matches"]=lift_pitches;
     report["native_flag_corrections_verified"]=corrected;report["legacy_class_rows_exact"]=class_matches;
     report["relative_permutation_metadata_order_exact"]=pcm_order;report["unsupported_count_definitions"]=unsupported;
+    report["authenticated_permutation_time_rows_exact"]=permutation_time_witnesses;
     report["actual_dat_pcm_permutation_pairs_exact"]=pcm_pairs;
     report["empty_pitch_definitions"]=empty;report["assertions"]=assertions;report["source_writes"]=f.memory->writes.load();
     report["state_scope"]="Range last/forced/used copied at load, not a continuing alias or World selection/RNG writeback.";

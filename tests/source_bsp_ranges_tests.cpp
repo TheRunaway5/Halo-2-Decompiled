@@ -271,6 +271,14 @@ int main(int argc,char **argv) {try {
         std::vector<SourceCullDrawUnit> expected;for(const auto &unit:c.units)expected.push_back(unit.after);
         equal_units(units,expected,label);equal_arena(arena,c.after,label+" post44720 arena");
         equal_arena(arena,c.final,label+" post4DAA0 retained arena");
+        // Banded and explicitly serial execution leave the same recorded
+        // original records and arena as the automatic walk.
+        for(const auto execution:{SourceBspFrustumCullExecution::banded,SourceBspFrustumCullExecution::serial}) {
+            auto again=input_units(c);auto again_arena=c.before;
+            source_bsp_frustum_cull(again,banks,again_arena,c.context,c.visibility,c.associations,execution);
+            equal_units(again,expected,label+(execution==SourceBspFrustumCullExecution::banded?" banded":" serial"));
+            equal_arena(again_arena,c.after,label+(execution==SourceBspFrustumCullExecution::banded?" banded arena":" serial arena"));
+        }
         for(unsigned i=0;i<units.size();++i) {
             const auto &unit=c.units[i];const auto &g=native.at(unit.key);std::span<const std::uint32_t> mask;
             if(units[i].words[5]) {

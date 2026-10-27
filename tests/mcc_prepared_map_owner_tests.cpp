@@ -118,10 +118,37 @@ struct Fixture {
             explicit_root ? std::optional<fs::path>(root) : std::nullopt);
     }
 };
+
+void separator_contract_tests(const fs::path& scratch) {
+    Fixture f(scratch/"separator-contract");f.indexed();
+    const std::string owner="halo2/h2_maps_win64_dx11/lockout.map";
+    const auto generic_root=fs::path(f.root.generic_string());
+    const auto generic_map=fs::path((f.root/owner).generic_string());
+    const auto generic_shared=fs::path((f.root/"halo2/h2_maps_win64_dx11").generic_string());
+    const auto result=admit_mcc_prepared_map_owner(generic_map,generic_shared,
+        bytes(f.encoded.at(owner)),generic_root);
+    check(result && result->indexed && result->binding &&
+        result->binding->map_relative==owner,"Generic absolute paths lost prepared admission");
+    unsigned aliases=0;
+    for(const auto* name:{"halo2/./h2_maps_win64_dx11/lockout.map",
+                          "halo2/Mods/../h2_maps_win64_dx11/lockout.map",
+                          "halo2//h2_maps_win64_dx11/lockout.map"}) {
+        rejected([&]{admit_mcc_prepared_map_owner(generic_root/name,generic_shared,
+            bytes(f.encoded.at(owner)),generic_root);},"Aliased generic absolute map admitted");
+        ++aliases;
+    }
+    rejected([&]{admit_mcc_prepared_map_owner(generic_map,generic_shared,
+        bytes(f.encoded.at(owner)),generic_root/".");},"Aliased explicit prepared root admitted");
+    ++aliases;
+    std::cout<<"Prepared separator owner contract: "<<Json{{"generic_map",generic_map.string()},
+        {"preferred_cache_root",result->cache_root.string()},{"positive_forms",1},
+        {"rejected_dot_dotdot_repeated_separator_forms",aliases}}.dump()<<'\n';
+}
 }
 
 int main(int argc, char** argv) try {
-    check(argc == 2, "Supply the owned authentic shipped scalar fixture through the Python driver");
+    const bool separator_only=argc==3 && std::string_view(argv[2])=="--separator-contract";
+    check(argc == 2 || separator_only, "Supply the owned authentic shipped scalar fixture through the Python driver");
     const auto* scratch_parent = std::getenv("HALO2_TEST_SCRATCH");
     check(scratch_parent && fs::is_directory(scratch_parent), "Scalar input requires owned scratch");
     const auto scalar_path = fs::canonical(argv[1]), scratch = fs::canonical(scratch_parent);
@@ -132,6 +159,8 @@ int main(int argc, char** argv) try {
     scalar_fixture.assign(std::istreambuf_iterator<char>(scalar_input), {});
     check(hash(scalar_fixture) == "1261274f49fbf8f8fd36e9a56f9b7a701a2bad1c5d84be168c69826a62484118", "Shipped scalar fixture fingerprint differs");
     Temporary temporary;
+    separator_contract_tests(temporary.root);
+    if(separator_only)return 0;
     {
         Fixture f(temporary.root / "legacy"); f.save();
         const auto a = f.admit(); check(a && a->binding && !a->indexed, "Legacy stock projection absent");

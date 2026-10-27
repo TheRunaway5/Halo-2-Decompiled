@@ -1,0 +1,433 @@
+{
+  "schema": "H2_MCC_NATIVE_WORLD_COOKED_REGRESSION_V1",
+  "fixture_schema": "H2_MCC_NATIVE_WORLD_COOKED_FIXTURE_V1",
+  "scope": "Literal data admission component fixture; translated native test allocations; no live/GPU draw claim",
+  "compressed_file": "mcc-native-world-cooked-v1.json.zlib",
+  "compressed_bytes": 63116,
+  "compressed_sha256": "6973e70c31d856c94cbcbed10f84cf325c04bf03d1e1155e48b49b971d47bbe6",
+  "decoded_bytes": 883753,
+  "decoded_sha256": "c05dde1c7c30e199cd4dd36dcf3b64ad373813be8af1e22a8eb21188d4962de2",
+  "source_map_sha256": {
+    "needle": "bdf79ad0880e0ded968745bc102dcadaeb2ac690dd0eab42eb994f6f4f1d5fb7",
+    "street_sweeper": "a607587a4d4cf64a5fc52471810d292fbefaff06cd1aae09ee7fc24cacab67e6",
+    "01b_spacestation": "5714f6a2231ad1359d0796ef35720a6cccc421527b3adb071e3f6de24ffeb6d0",
+    "01a_tutorial": "cb13d40bc55d503ba311984a38f91938e72b4daa7a0bbc927be38506a8104073",
+    "03a_oldmombasa": "395ad7bccefdb3d50950dc911e8adeee770a75e6ad109c3979d6a641fd648475",
+    "03b_newmombasa": "f9c2f526ca8b5213c11a4be0fb4886ea64d741b3938ee01d1b98540c3e82d073",
+    "07a_highcharity": "daa9120115881e82c5464d698f09f6446cfddf0023ea7357329d03aa2bf6d7c7",
+    "07b_forerunnership": "3a0e239e4aa9fbceec4af05098e737f206abc58b6cef5151fd4f49adec12b2ac",
+    "00a_introduction": "e9bd27f0699e03d81740aea898a0bb295cea785dd3884a8a660227e1d4bf3421",
+    "dune": "5ea54b1f229f3bde277320c2308fc3bf85ed813aad8a4a653699a136e5d0db3b",
+    "headlong": "dba62b65f25146f492258d21beac93d8f97f142a59a4c4ef18f48803f46b9a5c",
+    "05a_deltaapproach": "deaf1236c75e36ed69e81b0d7ffc6ed6d987f35ce1cab4c517e0785310a47b44"
+  },
+  "native_source_libraries": {
+    "01b_spacestation": "db415f7973f0cc7a966148db98fd2837c8dfd3c4c320e534eec00ae7e11beb41",
+    "03a_oldmombasa": "a249dafbf4bf99413cc4470c65e83e66ba1c1c94d8fc5bf4deffb4870e53f519",
+    "03b_newmombasa": "fb031f9ef910595180983caa9d29843d0c47c52a63bb7968781e474b11b5fd2a",
+    "05a_deltaapproach": "473cef43ccbcbf7a598821bf1083b556a786018bbe5a2b74ca1b85a066e699e0",
+    "dune": "d4ba6bf2e48b7f27be3059b7eb90dd8ca12e093330450d44dafcb4b0f66f56e8"
+  },
+  "exporter": "tools/export_mcc_native_world_cooked_fixture.py",
+  "exporter_sha256": "50664ef464fe55fd2a75a4c0dd47e5a7f4c7560f671da49b7f799553bb409664",
+  "pc_geometry_owners": 31,
+  "paired_original_fixtures": 26,
+  "profiles": [
+    "shaders\\shader_templates\\opaque\\decal_simple",
+    "shaders\\shader_templates\\opaque\\overlay",
+    "shaders\\shader_templates\\opaque\\tex_alpha_test",
+    "shaders\\shader_templates\\opaque\\tex_bump_alpha_test",
+    "shaders\\shader_templates\\opaque\\tex_bump_alpha_test_single_pass",
+    "shaders\\shader_templates\\opaque\\tex_bump_detail_keep",
+    "shaders\\shader_templates\\opaque\\tex_bump_env_alpha_test_combined",
+    "shaders\\shader_templates\\opaque\\tex_bump_env_combined",
+    "shaders\\shader_templates\\opaque\\tex_bump_env_illum_combined",
+    "shaders\\shader_templates\\opaque\\tex_bump_illum",
+    "shaders\\shader_templates\\transparent\\one_alpha_env",
+    "shaders\\shader_templates\\transparent\\one_alpha_env_illum",
+    "shaders\\shader_templates\\water\\water_edge_blend"
+  ],
+  "pc_owners": [
+    {
+      "map": "needle",
+      "datum": 4157472859,
+      "shader": "scenarios\\shaders\\forerunner\\industrial\\lights\\light_bands_yellow",
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_illum",
+      "source_stem_graph_sha256": "6033c614dabcd681540eb76a304472589e07e07f734e07dff4b150a880315db8",
+      "native_template_sha256": "ab34b013d44c7ca18226b5b1ffb8bebe61f38f8467e48974054963cd78e1e0da"
+    },
+    {
+      "map": "needle",
+      "datum": 4158980210,
+      "shader": "scenarios\\shaders\\multi\\needle\\light_shapes_ltred",
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_illum",
+      "source_stem_graph_sha256": "6033c614dabcd681540eb76a304472589e07e07f734e07dff4b150a880315db8",
+      "native_template_sha256": "ab34b013d44c7ca18226b5b1ffb8bebe61f38f8467e48974054963cd78e1e0da"
+    },
+    {
+      "map": "needle",
+      "datum": 4159832191,
+      "shader": "scenarios\\shaders\\forerunner\\industrial\\metals\\panels_vertical_outdoor",
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_env_combined",
+      "source_stem_graph_sha256": "fc39615c245274f28ef204eabd724e5ee62fa559311de95428d901e6102b4d2d",
+      "native_template_sha256": "c77b2324b1834fac599a61f428fb3225f83a81310c44654f0ab8eca5d77596ac"
+    },
+    {
+      "map": "needle",
+      "datum": 4161077393,
+      "shader": "scenarios\\shaders\\forerunner\\industrial\\metals\\panel_m",
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_env_combined",
+      "source_stem_graph_sha256": "fc39615c245274f28ef204eabd724e5ee62fa559311de95428d901e6102b4d2d",
+      "native_template_sha256": "c77b2324b1834fac599a61f428fb3225f83a81310c44654f0ab8eca5d77596ac"
+    },
+    {
+      "map": "needle",
+      "datum": 4161274004,
+      "shader": "scenarios\\shaders\\forerunner\\industrial\\metals\\panel_k",
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_env_combined",
+      "source_stem_graph_sha256": "fc39615c245274f28ef204eabd724e5ee62fa559311de95428d901e6102b4d2d",
+      "native_template_sha256": "c77b2324b1834fac599a61f428fb3225f83a81310c44654f0ab8eca5d77596ac"
+    },
+    {
+      "map": "needle",
+      "datum": 4161601687,
+      "shader": "scenarios\\shaders\\forerunner\\industrial\\metals\\panel_x_shape",
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_env_combined",
+      "source_stem_graph_sha256": "fc39615c245274f28ef204eabd724e5ee62fa559311de95428d901e6102b4d2d",
+      "native_template_sha256": "c77b2324b1834fac599a61f428fb3225f83a81310c44654f0ab8eca5d77596ac"
+    },
+    {
+      "map": "needle",
+      "datum": 4162060446,
+      "shader": "scenarios\\shaders\\forerunner\\industrial\\metals\\panel_e",
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_env_combined",
+      "source_stem_graph_sha256": "fc39615c245274f28ef204eabd724e5ee62fa559311de95428d901e6102b4d2d",
+      "native_template_sha256": "c77b2324b1834fac599a61f428fb3225f83a81310c44654f0ab8eca5d77596ac"
+    },
+    {
+      "map": "needle",
+      "datum": 4162257057,
+      "shader": "scenarios\\shaders\\multi\\needle\\light_shapes_ltblue",
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_illum",
+      "source_stem_graph_sha256": "6033c614dabcd681540eb76a304472589e07e07f734e07dff4b150a880315db8",
+      "native_template_sha256": "ab34b013d44c7ca18226b5b1ffb8bebe61f38f8467e48974054963cd78e1e0da"
+    },
+    {
+      "map": "needle",
+      "datum": 4162388131,
+      "shader": "scenarios\\shaders\\multi\\needle\\circuits_techglow",
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_env_illum_combined",
+      "source_stem_graph_sha256": "cc4eab7080ef382122d096bac65d9832d67dbcc3020628c1ac4e24ccbd1eff74",
+      "native_template_sha256": "a164dab1659160b3d7b337aa7547a84c55b5339ff599c64faf7cde2a0e77bd34"
+    },
+    {
+      "map": "needle",
+      "datum": 4165861590,
+      "shader": "scenarios\\shaders\\multi\\zanzibar\\blending_for_infinite_water_plane",
+      "template": "shaders\\shader_templates\\water\\water_edge_blend",
+      "source_stem_graph_sha256": "ecb806d30ee389aa592af0b094e5d96405d6ff7746cf90f01b71e9c2448d656d",
+      "native_template_sha256": "af55b5715b9e364157f45d541c14b911b0e2be8eff2a49cb46072773442bd74e"
+    },
+    {
+      "map": "needle",
+      "datum": 4166189275,
+      "shader": "scenarios\\shaders\\nature\\trees\\palm_frond_a",
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_alpha_test_single_pass",
+      "source_stem_graph_sha256": "73cd25eba779c27744b35cc436931be2fc3fa80586f5dc23c47333ac66eb4f6a",
+      "native_template_sha256": "6a1eae4702501a1ba32a23d2a206b145fcf688406e0c31ae3d5b1699ebb21e19"
+    },
+    {
+      "map": "needle",
+      "datum": 4166385886,
+      "shader": "scenarios\\shaders\\multi\\needle\\light_beacon_small_red",
+      "template": "shaders\\shader_templates\\transparent\\one_alpha_env_illum",
+      "source_stem_graph_sha256": "8b134e356f72f15d1163e6d553037b195d9f081acbea6f012d8e06913b3a7b4e",
+      "native_template_sha256": "ffbc8f0460d8beaf3e5349ba896d63d42fb7bbbccd7b18b9735ba19ccce06bec"
+    },
+    {
+      "map": "street_sweeper",
+      "datum": 4165140582,
+      "shader": "scenarios\\shaders\\multi\\turf\\light_long_a",
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_illum",
+      "source_stem_graph_sha256": "6033c614dabcd681540eb76a304472589e07e07f734e07dff4b150a880315db8",
+      "native_template_sha256": "ab34b013d44c7ca18226b5b1ffb8bebe61f38f8467e48974054963cd78e1e0da"
+    },
+    {
+      "map": "street_sweeper",
+      "datum": 4166844544,
+      "shader": "scenarios\\shaders\\multi\\zanzibar\\spindle_grate",
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_alpha_test",
+      "source_stem_graph_sha256": "8b81a664abf0bd8b959d6fe5a96b2310a08a005496bbb31229b6993204e60c22",
+      "native_template_sha256": "d589aad71ff961ad18e5e7fc5d751968dc7c7d88c16f8075a805f24463ea6a2e"
+    },
+    {
+      "map": "street_sweeper",
+      "datum": 4169007265,
+      "shader": "scenarios\\shaders\\human\\urban\\metals\\fence_chainlink_a",
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_env_alpha_test_combined",
+      "source_stem_graph_sha256": "457c9e041ba1e1f747ea30d229bd6c54d222b96286dbb1e442a0eb479ac4ba5b",
+      "native_template_sha256": "53c91fdcb94217673e2aeeb595968a4fad39560c30c8bb9c33105b78a2047235"
+    },
+    {
+      "map": "street_sweeper",
+      "datum": 4173660390,
+      "shader": "scenarios\\shaders\\multi\\zanzibar\\zanzibar_glass",
+      "template": "shaders\\shader_templates\\transparent\\one_alpha_env",
+      "source_stem_graph_sha256": "1317d116deb4234643177e00ed3278709f9065f0d729c7fbb1295c17d8ee2451",
+      "native_template_sha256": "d479aa235a2c9b8b59dabd9e1e4eacf4c6b593f3861d83e513678a0099fce3c2"
+    },
+    {
+      "map": "street_sweeper",
+      "datum": 4176150795,
+      "shader": "scenarios\\shaders\\multi\\street_sweeper\\atrium_window_glass",
+      "template": "shaders\\shader_templates\\transparent\\one_alpha_env",
+      "source_stem_graph_sha256": "1317d116deb4234643177e00ed3278709f9065f0d729c7fbb1295c17d8ee2451",
+      "native_template_sha256": "d479aa235a2c9b8b59dabd9e1e4eacf4c6b593f3861d83e513678a0099fce3c2"
+    },
+    {
+      "map": "street_sweeper",
+      "datum": 4176281869,
+      "shader": "scenarios\\shaders\\human\\urban\\metals\\grate_railing_a",
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_alpha_test_single_pass",
+      "source_stem_graph_sha256": "73cd25eba779c27744b35cc436931be2fc3fa80586f5dc23c47333ac66eb4f6a",
+      "native_template_sha256": "6a1eae4702501a1ba32a23d2a206b145fcf688406e0c31ae3d5b1699ebb21e19"
+    },
+    {
+      "map": "street_sweeper",
+      "datum": 4176675091,
+      "shader": "scenarios\\shaders\\multi\\zanzibar\\basic_concrete_painted",
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_detail_keep",
+      "source_stem_graph_sha256": "787114e8673a6cdbc981c8ad11f778ab3829fcd4104392a093171448d56097a9",
+      "native_template_sha256": "d1cbfbfe916f16eca32a4cf7d58233aab5f18fb8fdd7fcd2331713980a148975"
+    },
+    {
+      "map": "street_sweeper",
+      "datum": 4177461535,
+      "shader": "scenarios\\shaders\\multi\\street_sweeper\\street_sweeper_ground_road",
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_detail_keep",
+      "source_stem_graph_sha256": "787114e8673a6cdbc981c8ad11f778ab3829fcd4104392a093171448d56097a9",
+      "native_template_sha256": "d1cbfbfe916f16eca32a4cf7d58233aab5f18fb8fdd7fcd2331713980a148975"
+    },
+    {
+      "map": "street_sweeper",
+      "datum": 4178313516,
+      "shader": "scenarios\\shaders\\solo\\earthcity\\base_roadsign_decal",
+      "template": "shaders\\shader_templates\\opaque\\overlay",
+      "source_stem_graph_sha256": "b402a5c1d2a820f6e26bbbc25fd04f9a4a8f19b353b4dbb6ade0b1e4cb3257c1",
+      "native_template_sha256": "0d72f1cc54a7aca47c244e6b84690c2987583ace20978df157ca27d32a8cf68c"
+    },
+    {
+      "map": "street_sweeper",
+      "datum": 4178444590,
+      "shader": "scenarios\\shaders\\multi\\street_sweeper\\decal_movie_posters_01",
+      "template": "shaders\\shader_templates\\opaque\\tex_alpha_test",
+      "source_stem_graph_sha256": "5f6bcafefc2375b87315eff9ecf72c50032f907a440d9df88e3d8ac9217808fa",
+      "native_template_sha256": "e118d9ba5fc14ead737518e09dbbe2ca3553c694a542d4cf4771c1d6fdd0273e"
+    },
+    {
+      "map": "street_sweeper",
+      "datum": 4178641201,
+      "shader": "scenarios\\shaders\\multi\\street_sweeper\\white_stripe_01",
+      "template": "shaders\\shader_templates\\opaque\\decal_simple",
+      "source_stem_graph_sha256": "2ea8b34a9d27ccb0a42fe9de80d51f5e177c917b80fb84c7bde6e981caec025d",
+      "native_template_sha256": "b4a745318615a56714ca6017187a50e5599a702ca68aec9771a2eb61f1738a35"
+    },
+    {
+      "map": "street_sweeper",
+      "datum": 4178903349,
+      "shader": "scenarios\\shaders\\multi\\street_sweeper\\yellow_stripe_01",
+      "template": "shaders\\shader_templates\\opaque\\decal_simple",
+      "source_stem_graph_sha256": "2ea8b34a9d27ccb0a42fe9de80d51f5e177c917b80fb84c7bde6e981caec025d",
+      "native_template_sha256": "b4a745318615a56714ca6017187a50e5599a702ca68aec9771a2eb61f1738a35"
+    },
+    {
+      "map": "street_sweeper",
+      "datum": 4179493181,
+      "shader": "scenarios\\shaders\\solo\\earthcity\\grime_window",
+      "template": "shaders\\shader_templates\\opaque\\overlay",
+      "source_stem_graph_sha256": "b402a5c1d2a820f6e26bbbc25fd04f9a4a8f19b353b4dbb6ade0b1e4cb3257c1",
+      "native_template_sha256": "0d72f1cc54a7aca47c244e6b84690c2987583ace20978df157ca27d32a8cf68c"
+    },
+    {
+      "map": "street_sweeper",
+      "datum": 4179624255,
+      "shader": "scenarios\\shaders\\multi\\street_sweeper\\decal_p1_blue",
+      "template": "shaders\\shader_templates\\opaque\\overlay",
+      "source_stem_graph_sha256": "b402a5c1d2a820f6e26bbbc25fd04f9a4a8f19b353b4dbb6ade0b1e4cb3257c1",
+      "native_template_sha256": "0d72f1cc54a7aca47c244e6b84690c2987583ace20978df157ca27d32a8cf68c"
+    },
+    {
+      "map": "street_sweeper",
+      "datum": 4179755329,
+      "shader": "scenarios\\shaders\\multi\\street_sweeper\\decal_numbers",
+      "template": "shaders\\shader_templates\\opaque\\overlay",
+      "source_stem_graph_sha256": "b402a5c1d2a820f6e26bbbc25fd04f9a4a8f19b353b4dbb6ade0b1e4cb3257c1",
+      "native_template_sha256": "0d72f1cc54a7aca47c244e6b84690c2987583ace20978df157ca27d32a8cf68c"
+    },
+    {
+      "map": "street_sweeper",
+      "datum": 4179886403,
+      "shader": "scenarios\\shaders\\nature\\trees\\palm_frond_a",
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_alpha_test_single_pass",
+      "source_stem_graph_sha256": "73cd25eba779c27744b35cc436931be2fc3fa80586f5dc23c47333ac66eb4f6a",
+      "native_template_sha256": "6a1eae4702501a1ba32a23d2a206b145fcf688406e0c31ae3d5b1699ebb21e19"
+    },
+    {
+      "map": "street_sweeper",
+      "datum": 4180083014,
+      "shader": "scenarios\\shaders\\multi\\street_sweeper\\light_small",
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_illum",
+      "source_stem_graph_sha256": "6033c614dabcd681540eb76a304472589e07e07f734e07dff4b150a880315db8",
+      "native_template_sha256": "ab34b013d44c7ca18226b5b1ffb8bebe61f38f8467e48974054963cd78e1e0da"
+    },
+    {
+      "map": "street_sweeper",
+      "datum": 4180345162,
+      "shader": "scenarios\\shaders\\nature\\trees\\plant_citytree_leaf",
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_alpha_test_single_pass",
+      "source_stem_graph_sha256": "73cd25eba779c27744b35cc436931be2fc3fa80586f5dc23c47333ac66eb4f6a",
+      "native_template_sha256": "6a1eae4702501a1ba32a23d2a206b145fcf688406e0c31ae3d5b1699ebb21e19"
+    },
+    {
+      "map": "street_sweeper",
+      "datum": 4180541773,
+      "shader": "scenarios\\shaders\\human\\urban\\metals\\concrete_rebar",
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_env_combined",
+      "source_stem_graph_sha256": "fc39615c245274f28ef204eabd724e5ee62fa559311de95428d901e6102b4d2d",
+      "native_template_sha256": "c77b2324b1834fac599a61f428fb3225f83a81310c44654f0ab8eca5d77596ac"
+    }
+  ],
+  "paired_originals": [
+    {
+      "map": "01b_spacestation",
+      "shader": "objects\\cinematics\\human\\inamberclad\\shaders\\inamberclad_numbers",
+      "original_shader_payload_sha256": "57b6f1e5dd5cac22ae7547b14596b705da18994135c4943207d5bb7aec0b2ec7"
+    },
+    {
+      "map": "01b_spacestation",
+      "shader": "objects\\gear\\human\\military\\shaders\\military_decals_6",
+      "original_shader_payload_sha256": "b366be4096b816dc9ba4cff85a4d1b49d95ea9002b4b4c96e9ed283eb9d4d168"
+    },
+    {
+      "map": "01b_spacestation",
+      "shader": "scenarios\\shaders\\nature\\trees\\alder_leaf",
+      "original_shader_payload_sha256": "43557f5cd099ebc213289c3515774c17cfceb17b7a90e8ee5d1f17f880dd1ff7"
+    },
+    {
+      "map": "01a_tutorial",
+      "shader": "scenarios\\shaders\\nature\\trees\\alder_leaf",
+      "original_shader_payload_sha256": "6174a213fa80086cc228f5e06464463c1e7311b5bc01d8eb43d737cd7721e989"
+    },
+    {
+      "map": "03a_oldmombasa",
+      "shader": "scenarios\\shaders\\human\\urban\\metals\\girders_a_rusty",
+      "original_shader_payload_sha256": "ef1c39450608ed15e319d85417e582cda6c3d7088e947cd24e51b46c07e3f660"
+    },
+    {
+      "map": "03b_newmombasa",
+      "shader": "scenarios\\shaders\\human\\urban\\metals\\girders_a_rusty",
+      "original_shader_payload_sha256": "b1fed8423fbff4d39c25d6bbc54d9c45af6a9a1cbdac1fe36c690efa8c10c14a"
+    },
+    {
+      "map": "01b_spacestation",
+      "shader": "objects\\characters\\elite\\shaders\\teeth",
+      "original_shader_payload_sha256": "67f1ab2dc65976c9e454790ef2610e01bd0e2a9e6ec24c69f28b2cfa6d1e81d5"
+    },
+    {
+      "map": "01b_spacestation",
+      "shader": "objects\\characters\\lord_hood\\shaders\\medals_lord_hood",
+      "original_shader_payload_sha256": "088689d526491cb9f1fd6f7873e95a56fab1c0cf4045853d4346ae4c4cf76be2"
+    },
+    {
+      "map": "07a_highcharity",
+      "shader": "scenarios\\objects\\nature\\lilypads\\shaders\\lilypads",
+      "original_shader_payload_sha256": "ebd4c82ae3faeb4bcc48cad1a61f7deda9f44029e674ad2366bc079809f0ab54"
+    },
+    {
+      "map": "07b_forerunnership",
+      "shader": "scenarios\\objects\\nature\\lilypads\\shaders\\lilypads",
+      "original_shader_payload_sha256": "0c826f8b8bf66a49a585e9a03aaf56862a142cc6e0080f8ad4254917817e5a7e"
+    },
+    {
+      "map": "01b_spacestation",
+      "shader": "incompetent\\shaders\\generic_grey",
+      "original_shader_payload_sha256": "0bd45226918d78bd0fede5d6b29569d3be6aadce7dad3bf329766ccee3b5482d"
+    },
+    {
+      "map": "01b_spacestation",
+      "shader": "objects\\cinematics\\human\\medals\\shaders\\medal_case",
+      "original_shader_payload_sha256": "0a6449146a7e18d76fdb2c03a91bdd1264296c8a51da239316fb01c8dd281e37"
+    },
+    {
+      "map": "01b_spacestation",
+      "shader": "scenarios\\shaders\\covenant\\military\\metals\\strip_a_blue_lit",
+      "original_shader_payload_sha256": "52fc6eddf131c5032cb4fca5e479a54b9e9e3476026e968fe935286479e0ab43"
+    },
+    {
+      "map": "01b_spacestation",
+      "shader": "scenarios\\shaders\\covenant\\military\\metals\\strip_a_purple_lit",
+      "original_shader_payload_sha256": "460fe5e0a62a2a5dbb4f936b98a7d7f939d5796e1e98c23286db5bbfe9257282"
+    },
+    {
+      "map": "01b_spacestation",
+      "shader": "objects\\cinematics\\human\\cigar\\shaders\\johnson_cigar",
+      "original_shader_payload_sha256": "89e001ba4397de92976c147134b1a8d4fcc3ad05d0f5db16cbaea681b7c33c94"
+    },
+    {
+      "map": "01b_spacestation",
+      "shader": "objects\\weapons\\rifle\\shotgun\\shaders\\shotgun_light",
+      "original_shader_payload_sha256": "e8fd6179b75632601d6fbc584f6b938bee686ded3eb4f4e214649310ba175f9f"
+    },
+    {
+      "map": "03a_oldmombasa",
+      "shader": "objects\\characters\\bugger\\shaders\\bugger_antennae",
+      "original_shader_payload_sha256": "2c562da7032e891197b9f5fd5c173b149d81cdf170645988dc83eb912ff13800"
+    },
+    {
+      "map": "03a_oldmombasa",
+      "shader": "objects\\characters\\jackal\\shaders\\jackal_eyes",
+      "original_shader_payload_sha256": "a441be533aa22f8405422d85516da9b8f8b7f25b1f2633c47c0a4269ff600178"
+    },
+    {
+      "map": "00a_introduction",
+      "shader": "objects\\weapons\\grenade\\plasma_grenade\\shaders\\pg_decal",
+      "original_shader_payload_sha256": "070be51f8c797a5cbcf21080575df0cdd858b9b38303ad53a9c03f463c4e1334"
+    },
+    {
+      "map": "01a_tutorial",
+      "shader": "objects\\weapons\\grenade\\plasma_grenade\\shaders\\pg_decal",
+      "original_shader_payload_sha256": "43580d78887548a3ce3a63b93384385c3999bc2b21f0d2b1406c0f4147838438"
+    },
+    {
+      "map": "dune",
+      "shader": "scenarios\\shaders\\solo\\earthcity\\blending_for_infinite_water_plane",
+      "original_shader_payload_sha256": "0b340dc236d1c48eecc873729dbec2a56e777cc70882126d529df048bfcab56e"
+    },
+    {
+      "map": "03a_oldmombasa",
+      "shader": "scenarios\\shaders\\solo\\earthcity\\blending_for_infinite_water_plane",
+      "original_shader_payload_sha256": "0b954132c80952d749cb3c65b4779099b6c7df4fcf8dcc02c35be7c359c879aa"
+    },
+    {
+      "map": "03b_newmombasa",
+      "shader": "scenarios\\shaders\\solo\\earthcity\\blastmark_lg",
+      "original_shader_payload_sha256": "493ca7e7f810425934e0ad3e627f2a26993fb2a0cc58ac8df59d27c132572abd"
+    },
+    {
+      "map": "headlong",
+      "shader": "scenarios\\shaders\\multi\\headlong\\blue_signs",
+      "original_shader_payload_sha256": "53ce342d58aa57f47fd74246b85cf96a77cb8d00441887aaebd6479363022ee3"
+    },
+    {
+      "map": "05a_deltaapproach",
+      "shader": "scenarios\\shaders\\solo\\earthcity\\foundation_panels_a",
+      "original_shader_payload_sha256": "de61cdc796954a7bd65fefbf7f87dd0317e1e36366ec495be2dc562f3d014d96"
+    },
+    {
+      "map": "03b_newmombasa",
+      "shader": "scenarios\\shaders\\multi\\cyclotron\\blue_concrete_painted",
+      "original_shader_payload_sha256": "2f29dda9dfedf8564712346284b4114253a135afde04669367e251e851c77395"
+    }
+  ],
+  "excluded_paired_census_rows": 45
+}

@@ -65,6 +65,8 @@ struct FullScoreboardLabels {
   // branch. Titles/Name/Wins/Score are not invented in this module.
   std::u16string_view title, name, wins, score;
 };
+// Original15BB50 decimal/time selection; callers own the output capacity.
+std::u16string full_scoreboard_score_text(std::int32_t score,std::int32_t display_mode);
 struct FullScoreboardRow {
   std::uint32_t datum{};
   std::uint8_t encoded_rank{};

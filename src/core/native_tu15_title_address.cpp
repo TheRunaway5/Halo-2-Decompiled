@@ -7,6 +7,8 @@
 #include <system_error>
 #if defined(__APPLE__)
 #include "macos/native_network_observation.hpp"
+#elif defined(_WIN32)
+#include "platform/windows_network_observation.hpp"
 #endif
 #if defined(__linux__) && defined(HALO2_NATIVE_NETWORK_MANAGER)
 #include <NetworkManager.h>
@@ -93,6 +95,8 @@ NativeTitleAddressObservation observe_native_title_address(std::string_view pref
     return out;
 #elif defined(__APPLE__)
     return macos_network::observe_title_address(preferred);
+#elif defined(_WIN32)
+    return windows_network::observe_title_address(preferred);
 #else
     throw std::runtime_error("Native title-address platform/assignment provider is unavailable");
 #endif

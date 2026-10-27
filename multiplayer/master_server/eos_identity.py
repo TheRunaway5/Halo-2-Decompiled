@@ -159,6 +159,9 @@ class EosIdentity:
             if old is None:
                 db.execute('INSERT INTO eos_players VALUES(?,?)',(who,puid))
                 enqueue(db,who)
+            cloud=getattr(self.directory,'friend_cloud',None)
+            if cloud:
+                cloud.enqueue(who);cloud.wake.set()
 
     async def close(self,_):
         process,self.process=self.process,None

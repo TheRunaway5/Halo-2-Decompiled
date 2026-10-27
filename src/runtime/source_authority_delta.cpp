@@ -16,7 +16,15 @@ constexpr std::array<std::byte,8> delta_magic{std::byte{'H'},std::byte{'2'},std:
 void need(bool ok){if(!ok)throw std::invalid_argument("Invalid authority archive delta or admitted budget");}
 void limits_ok(AuthorityDeltaLimits l){need(l.encoded_bytes>=delta_header&&l.encoded_bytes<=512ull*1024*1024&&
     l.decoded_bytes&&l.decoded_bytes<=1024ull*1024*1024&&l.patch_bytes>=8&&l.patch_bytes<=1024ull*1024*1024&&
-    l.commands&&l.commands<=1'000'000);}
+    l.commands&&l.commands<=1'000'000&&l.working_bytes);}
+void budget(AuthorityDeltaLimits l,std::initializer_list<std::uint64_t> parts){
+    auto left=l.working_bytes;for(auto part:parts){need(part<=left);left-=part;}
+}
+// Generous enough for zero-filled native banks (and valid deflate's maximum
+// expansion), but rejects a tiny forged stream's huge declaration preallocation.
+void expansion(std::uint64_t raw,std::uint64_t compressed){
+    need(compressed&&compressed<=UINT64_MAX/2048&&raw<=compressed*2048+65536);
+}
 void put(Bytes &p,std::uint64_t v,unsigned n){for(unsigned i=0;i<n;++i)p.push_back(std::byte(v>>(8*i)));}
 void append(Bytes &p,std::span<const std::byte> v){p.insert(p.end(),v.begin(),v.end());}
 struct Reader {
@@ -80,16 +88,21 @@ struct AuthorityArchiveImage::Data {Bytes raw;AuthorityArchiveDigest digest;};
 AuthorityArchiveImage::AuthorityArchiveImage(std::shared_ptr<const Data> data):data_(std::move(data)){}
 AuthorityArchiveDigest AuthorityArchiveImage::digest()const{need(bool(data_));return data_->digest;}
 std::uint64_t AuthorityArchiveImage::decoded_size()const{need(bool(data_));return data_->raw.size();}
+std::span<const std::byte> AuthorityArchiveImage::raw()const{need(bool(data_));return data_->raw;}
 AuthorityArchiveImage AuthorityArchiveImage::read(std::span<const std::byte> encoded,AuthorityDeltaLimits limits){
     limits_ok(limits);need(encoded.size()>=source_header&&encoded.size()<=limits.encoded_bytes);Reader r{encoded};
     need(std::ranges::equal(r.raw(8),source_magic)&&r.get(4)==1&&r.get(4)==0);
     const auto size=r.get(8),compressed=r.get(8);const auto expected=r.digest();
     need(size&&size<=limits.decoded_bytes&&compressed==encoded.size()-source_header);
+    expansion(size,compressed);
+    budget(limits,{encoded.size(),size,128*1024});
     auto data=std::make_shared<Data>();data->raw=expand(r.raw(compressed),size);data->digest=hash(data->raw);
     need(r.done()&&data->digest==expected);return AuthorityArchiveImage(std::move(data));
 }
 Bytes AuthorityArchiveImage::encode(AuthorityDeltaLimits limits)const{
-    limits_ok(limits);need(bool(data_)&&data_->raw.size()<=limits.decoded_bytes);auto compressed=compress(data_->raw,limits.encoded_bytes-source_header);
+    limits_ok(limits);need(bool(data_)&&data_->raw.size()<=limits.decoded_bytes);
+    budget(limits,{data_->raw.size(),limits.encoded_bytes,limits.encoded_bytes,128*1024});
+    auto compressed=compress(data_->raw,limits.encoded_bytes-source_header);
     Bytes result;append(result,source_magic);put(result,1,4);put(result,0,4);put(result,data_->raw.size(),8);
     put(result,compressed.size(),8);append(result,data_->digest);append(result,compressed);return result;
 }
@@ -107,6 +120,8 @@ AuthorityArchiveImage apply_authority_delta(const AuthorityArchiveImage &base,st
     const auto base_digest=r.digest(),next_digest=r.digest(),patch_digest=r.digest();
     need(base_size==base.decoded_size()&&base_size<=limits.decoded_bytes&&base_digest==base.digest()&&
         next_size&&next_size<=limits.decoded_bytes&&patch_size>=8&&patch_size<=limits.patch_bytes&&compressed_size==encoded.size()-delta_header);
+    expansion(patch_size,compressed_size);
+    budget(limits,{encoded.size(),base_size,patch_size,next_size,128*1024});
     const auto raw=expand(r.raw(compressed_size),patch_size);need(r.done()&&hash(raw)==patch_digest);Reader commands{raw};
     const auto count=commands.get(8);need(count&&count<=limits.commands&&count<=(raw.size()-8)/10);
     auto result=std::make_shared<AuthorityArchiveImage::Data>();result->raw.reserve(std::size_t(next_size));

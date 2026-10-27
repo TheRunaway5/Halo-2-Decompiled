@@ -195,11 +195,36 @@ SourceObjectGeometry::Stats SourceObjectGeometry::prepare(const Cache&cache,cons
 }
 void SourceObjectGeometry::pose_world(const std::function<std::vector<Vertex>(const RenderModel&)>&pose){
     invalidate_views();
-    for(auto&g:lods){g.vertices=pose(g.model);
+    for(auto&g:lods){g.vertices=pose(g.model);g.palette.clear();g.deferred=false;
         if(g.vertices.size()!=g.model.mesh.vertices.size())throw FormatError("resident WORLD pose changed source vertex order");
         if(!g.vertex_materials.empty())
             for(unsigned i=0;i<g.vertices.size();++i)g.vertices[i].material=g.vertex_materials.at(i);
     }
+}
+void SourceObjectGeometry::pose_world_lod(unsigned lod,const std::function<ModelSkinWorldPose(const RenderModel&)>&pose){
+    invalidate_views();
+    auto&g=lods.at(lod);auto posed=pose(g.model);
+    if(posed.vertices.size()!=g.model.mesh.vertices.size())throw FormatError("resident WORLD pose changed source vertex order");
+    g.vertices=std::move(posed.vertices);g.palette=std::move(posed.palette);g.deferred=posed.gpu;
+    if(!g.vertex_materials.empty())
+        for(unsigned i=0;i<g.vertices.size();++i)g.vertices[i].material=g.vertex_materials.at(i);
+}
+std::shared_ptr<ModelSkinGeometry> SourceObjectGeometry::view_skin(unsigned view_index,std::uint32_t owner,
+    std::uint32_t definition,std::uint32_t render_model)const{
+    const auto &retained=view_selection.at(view_index);const auto &draw=views.at(view_index);
+    if(!retained.valid)return nullptr;
+    const auto &g=lods.at(retained.lod);
+    if(!g.deferred || draw.vertices.empty())return nullptr;
+    if(draw.ordinals.size()!=draw.vertices.size())throw FormatError("deferred object view lacks its source ordinals");
+    auto gpu=std::make_shared<ModelSkinGeometry>();
+    gpu->owner=owner;gpu->definition=definition;gpu->render_model=render_model;gpu->lod=retained.lod;
+    gpu->vertices=draw.vertices;gpu->source_vertices=draw.ordinals;gpu->palette=g.palette;
+    gpu->bindings.reserve(draw.ordinals.size());
+    for(const auto ordinal:draw.ordinals)gpu->bindings.push_back(g.model.skin.at(ordinal));
+    // model_skin_world_pose admitted the whole local bank with this palette;
+    // select() only filtered records and assigned materials.
+    gpu->arithmetic_admitted=true;
+    return gpu;
 }
 void SourceObjectGeometry::pose_world_nodes(std::span<const Transform> nodes){
     std::array<std::vector<Vertex>,6> posed;
@@ -293,18 +318,28 @@ SourceObjectViewSelection SourceObjectGeometry::select(std::size_t object,std::u
     float radius,const SourceObjectViewLod&view){
     return select(object,handle,center,radius,view,previous_lod);
 }
-SourceObjectViewSelection SourceObjectGeometry::select(std::size_t object,std::uint32_t handle,Vec3 center,
-    float radius,const SourceObjectViewLod&view,std::array<std::int8_t,4>&owner_previous_lod){
+SourceObjectGeometry::LodChoice SourceObjectGeometry::lod_choice(std::size_t object,std::uint32_t handle,Vec3 center,
+    float radius,const SourceObjectViewLod&view,const std::array<std::int8_t,4>&owner_previous_lod)const{
     if(view.view_index>=owner_previous_lod.size() || !view.input)
         throw FormatError("source object view requires a valid player bank and explicit distance producer");
-    const auto input=view.input(object,handle,center,radius);
+    LodChoice out;out.input=view.input(object,handle,center,radius);
+    const auto &input=out.input;
     if(!std::isfinite(input.draw_metric) || input.draw_metric<0 || !std::isfinite(radius) || radius<0)
         throw FormatError("source object view distance/sphere is invalid");
     float metric=input.draw_metric;
     if(view.source_4ba019)metric*=.3f;
     if(input.control_flags&4u)metric*=1.7f;
-    const auto choice=source_geometry_lod_choice(lod_definition,metric,owner_previous_lod[view.view_index]);
-    const auto lod=unsigned(source_geometry_lod_cap(choice,view.detail_policy.value_or(source_geometry_lod_policy(view.local_players)),input.object_flags,bool(prt)));
+    out.choice=source_geometry_lod_choice(lod_definition,metric,owner_previous_lod[view.view_index]);
+    out.lod=unsigned(source_geometry_lod_cap(out.choice,view.detail_policy.value_or(source_geometry_lod_policy(view.local_players)),input.object_flags,bool(prt)));
+    return out;
+}
+unsigned SourceObjectGeometry::choose_lod(std::size_t object,std::uint32_t handle,Vec3 center,float radius,
+    const SourceObjectViewLod&view,const std::array<std::int8_t,4>&owner_previous_lod)const{
+    return lod_choice(object,handle,center,radius,view,owner_previous_lod).lod;
+}
+SourceObjectViewSelection SourceObjectGeometry::select(std::size_t object,std::uint32_t handle,Vec3 center,
+    float radius,const SourceObjectViewLod&view,std::array<std::int8_t,4>&owner_previous_lod){
+    const auto [input,choice,lod]=lod_choice(object,handle,center,radius,view,owner_previous_lod);
     auto &draw=views[view.view_index];
     auto &retained=view_selection[view.view_index];
     const auto &geometry=lods[lod];
@@ -334,7 +369,7 @@ SourceObjectViewSelection SourceObjectGeometry::select(std::size_t object,std::u
         ViewDraw previous;
         if(reuse)previous=draw;
         retained.valid=false;
-        draw.vertices.clear();draw.ordinary_lighting=false;
+        draw.vertices.clear();draw.ordinals.clear();draw.ordinary_lighting=false;
         if(!view.shader) {draw=active_draw(lod);}
         else if(!geometry.vertices.empty()) {
             draw.vertices.reserve(geometry.vertices.size());
@@ -345,6 +380,7 @@ SourceObjectViewSelection SourceObjectGeometry::select(std::size_t object,std::u
                     const auto &part=parts[lod].at(part_index);
                     auto vertex=geometry.vertices[i];vertex.material=part.materials.at(shader_lod);
                     draw.vertices.push_back(vertex);draw.ordinary_lighting=draw.ordinary_lighting || part.ordinary.at(shader_lod);
+                    if(geometry.deferred)draw.ordinals.push_back(std::uint32_t(i));
                 }
             } else for(const auto &run:active_runs(lod)) {
                 const auto shader_lod=selected.at(run.part);if(shader_lod==0xffffffffu)continue;
@@ -352,6 +388,7 @@ SourceObjectViewSelection SourceObjectGeometry::select(std::size_t object,std::u
                 const auto first=draw.vertices.size();const auto source=std::span{geometry.vertices}.subspan(run.first,run.count);
                 draw.vertices.insert(draw.vertices.end(),source.begin(),source.end());
                 for(std::size_t i=first;i<draw.vertices.size();++i)draw.vertices[i].material=material;
+                if(geometry.deferred)for(std::size_t i=run.first;i<run.first+run.count;++i)draw.ordinals.push_back(std::uint32_t(i));
                 draw.ordinary_lighting=draw.ordinary_lighting || part.ordinary.at(shader_lod);
             }
         }

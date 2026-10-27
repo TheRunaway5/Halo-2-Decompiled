@@ -31,6 +31,9 @@ struct Semaphore final:Object {
   std::int32_t count;
   const std::int32_t limit;
 };
+// Authority decoding reserves512 bytes per record before native construction.
+static_assert(sizeof(Mutex)+sizeof(NativeSynchronization::ObjectCheckpoint)+256<=512);
+static_assert(sizeof(Semaphore)+sizeof(NativeSynchronization::ObjectCheckpoint)+256<=512);
 std::error_code error(std::errc value) {return std::make_error_code(value);}
 NativeSynchronizationWait failed(std::errc value) {
   return {NativeSynchronizationWaitState::Failed,error(value)};

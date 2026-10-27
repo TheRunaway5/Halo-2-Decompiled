@@ -102,7 +102,7 @@ def spirv_contract(data, semantics, abi=ABI, triangle=False):
     if pointer not in pointers or pointers[pointer][0] != 2:
         raise ValueError('compiled catalog uniform pointer type is invalid')
     block = pointers[pointer][1]
-    expected_offsets = [0, 3072, 3088, 3096] + ([3104] if abi == 3 else [])
+    expected_offsets = [0, 3072, 3088, 3096] + ([3104] if abi in (3, 4) else [])
     if decorations.get((block, 2)) != () or [offsets.get((block, i)) for i in range(len(expected_offsets))] != expected_offsets:
         raise ValueError('compiled catalog changed compact std140 member offsets')
     def vector(type_id, size):
@@ -118,7 +118,7 @@ def spirv_contract(data, semantics, abi=ABI, triangle=False):
         raise ValueError('compiled catalog c192 bank type/stride differs')
     if not vector(clip, 4) or not vector(fog, 2) or not vector(surface, 2):
         raise ValueError('compiled catalog compact clip/fog/surface types differ')
-    if abi == 3:
+    if abi in (3, 4):
         attributes = members[1][4]
         attribute_type = types.get(attributes)
         if not attribute_type or attribute_type[0] != 28 or not vector(attribute_type[1][0], 4) or constants.get(attribute_type[1][1]) != 16 or decorations.get((attributes, 6)) != (16,):
@@ -191,7 +191,7 @@ def main():
     entries, abis = [], set()
     for path, _, manifest in manifests:
         abi = manifest.get('abi')
-        if manifest.get('schema') not in (SCHEMA, PORT_SCHEMA) or abi not in (ABI, 3) or manifest.get('target') != 'vulkan1.3':
+        if manifest.get('schema') not in (SCHEMA, PORT_SCHEMA) or abi not in (ABI, 3, 4) or manifest.get('target') != 'vulkan1.3':
             raise ValueError('native catalog generator schema/ABI/target differs')
         rows = manifest.get('entries')
         if not isinstance(rows, list) or not rows:
@@ -210,16 +210,23 @@ def main():
     header = ['#pragma once', '#include "halo2/menu_world_vertex_catalog.hpp"', '#include <array>',
               'namespace halo2::generated_menu_world_vertex_catalog {',
               'static_assert(menu_world_vertex_catalog_abi==2);',
-              *(['static_assert(menu_world_vertex_attribute_catalog_abi==3);'] if 3 in abis else [])]
+              *(['static_assert(menu_world_vertex_attribute_catalog_abi==3);'] if 3 in abis else []),
+              *(['static_assert(menu_world_renderer_vertex_catalog_abi==4);'] if 4 in abis else [])]
     for index, (entry, source_manifest, directory, abi) in enumerate(entries):
         if entry.get('class_index') not in range(7):
             raise ValueError('catalog entry is not actual class0..6')
         semantics = integers(entry['semantics'], 0, 65535, 'declaration')
         if not semantics or len(semantics) > 16 or any(x not in (0, 1, 2, 3, 4, 5, 6) for x in semantics):
             raise ValueError('catalog declaration has unsupported raw semantic')
-        inputs = integers(entry['consumed_inputs'], 0, 15 if abi == 3 else len(semantics) - 1, 'consumed inputs')
-        if any(x >= len(semantics) and x not in (10, 11) for x in inputs):
+        inputs = integers(entry['consumed_inputs'], 0, 15 if abi in (3, 4) else len(semantics) - 1, 'consumed inputs')
+        if abi != 4 and any(x >= len(semantics) and x not in (10, 11) for x in inputs):
             raise ValueError('catalog constant attribute input is outside the admitted V10/V11 corridor')
+        lane_components = integers(entry['consumed_input_components'], 0, 15, 'input lane components')
+        if len(lane_components) != 16 or any(mask and index not in inputs for index, mask in enumerate(lane_components)):
+            raise ValueError('catalog input lane metadata differs from its register owners')
+        default_w = entry['default_texture_w_mask']
+        if type(default_w) is not int or not 0 <= default_w <= 15:
+            raise ValueError('catalog default texture W metadata is invalid')
         constants = integers(entry['consumed_constants'], 0, 191, 'consumed constants')
         if inputs != sorted(set(inputs)) or constants != sorted(set(constants)):
             raise ValueError('catalog consumed sets are not canonical')
@@ -275,7 +282,8 @@ def main():
         p = f'entry_{i}'
         header.append(f'  {{{record["abi"]},{record["class_index"]},"{record["program_sha256"]}",{record["program_bytes"]},{p}_semantics,{p}_spirv,{p}_inputs,{p}_constants,'
                       f'"{record["source_sha256"]}","{record["spirv_sha256"]}"'
-                      +(f',1,{p}_triangle_spirv,"{record["triangle_source_sha256"]}","{record["triangle_spirv_sha256"]}"' if args.triangle_vertices else '')+'},')
+                      +(f',1,{p}_triangle_spirv,"{record["triangle_source_sha256"]}","{record["triangle_spirv_sha256"]}"' if args.triangle_vertices else ',0,{},"",""')+
+                      ',{{'+','.join(str(value)+'u' for value in record['consumed_input_components'])+'}},'+str(record['default_texture_w_mask'])+'u},')
     header += ['}};', '} // namespace halo2::generated_menu_world_vertex_catalog', '']
     header_bytes = '\n'.join(header).encode()
     source_manifest = manifests[0][2]

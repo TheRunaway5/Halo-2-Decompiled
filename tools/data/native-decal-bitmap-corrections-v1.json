@@ -1,0 +1,960 @@
+{
+  "schema": "H2_MCC_DECAL_BITMAP_DELTA_V1",
+  "full_graphics_parity": false,
+  "profiles": [
+    {
+      "profile_id": "ice",
+      "profile": {
+        "tag": "effects\\decals\\bullet_holes\\bitmaps\\ice",
+        "encoding": "rgba8",
+        "format": 11,
+        "width": 256,
+        "height": 256,
+        "mip_count": 3,
+        "pixel_bytes": 344064,
+        "donor_sha256": "108a94fd06794d987f8141e1a1dd31fee3027129f8f6a2e7853ef23a8c2ceb4f",
+        "target_sha256": "0086fa5d1fc3aa8999c89db393efeb4a6e50491331ab7683e5c1ba80396d776d"
+      },
+      "mips": [
+        {
+          "width": 256,
+          "height": 256,
+          "depth": 1,
+          "offset": 0,
+          "size": 262144
+        },
+        {
+          "width": 128,
+          "height": 128,
+          "depth": 1,
+          "offset": 262144,
+          "size": 65536
+        },
+        {
+          "width": 64,
+          "height": 64,
+          "depth": 1,
+          "offset": 327680,
+          "size": 16384
+        }
+      ],
+      "donor_mip_sha256": [
+        "1344656d87831e9a50c22a7b725b111d3924d5cda0e75a37f12caf6ce2317e0a",
+        "ec8a999db642c2a35e0cee52720536ba34e0771113c87a1b5c9312dc25e2b11a",
+        "7adf004dd2a44d521e8b98c2937626d014d7644d75c48108d7ae64f487ac58b0"
+      ],
+      "target_mip_sha256": [
+        "1874219748f758f5d40ff3c5ba804e6ed481e1f1d101b30c01074b604432e151",
+        "69962bc066131803b270dd886135f8617401053271434b076e57f5d1de00c617",
+        "c47e0ba7b462f80ca73c8d7c795b80f688a4ccdc47aef185aad39d835674a4c3"
+      ],
+      "reference": {
+        "map": "03a_oldmombasa.map",
+        "original_map_sha256": "7ea355ef79f13be83fe78546c0fd3b1009ef71c0dd2257b24996420d856f78f4",
+        "datum": 4171568753,
+        "address": 2157457120,
+        "tag_size": 468,
+        "descriptor_sha256": "ce5f0784254afea3a21753ba60ebadde1f1b1debe72d5a1759cb0b82fb468261",
+        "resource_sha256": "e238c347595f95fdb6dcffaf4fadc708b6bc01e06aa7a898421f92125a5e88d7",
+        "original_format": 3,
+        "original_swizzled": true,
+        "decoder": "Exact L8A8 to RGBA expansion and rectangular Morton addressing; no resampling"
+      },
+      "delta_offset": 0,
+      "delta_bytes": 592,
+      "delta_sha256": "2fb5c9dc9ce233afb1f845fa6294b4e6c57b0cc5d77b3c7361386b3468ab22d0"
+    },
+    {
+      "profile_id": "impact_scratch",
+      "profile": {
+        "tag": "effects\\decals\\bullet_holes\\bitmaps\\impact_scratch",
+        "encoding": "rgba8",
+        "format": 11,
+        "width": 128,
+        "height": 64,
+        "mip_count": 3,
+        "pixel_bytes": 43008,
+        "donor_sha256": "a5ef5892a4d4832a9e1a1ad07206105826202d6f9510cb7442840234855eb499",
+        "target_sha256": "19a4474c67c55c34e67f84ba1649c3dbda016aaeaf8c01fc1f20a1f0f9585e3f"
+      },
+      "mips": [
+        {
+          "width": 128,
+          "height": 64,
+          "depth": 1,
+          "offset": 0,
+          "size": 32768
+        },
+        {
+          "width": 64,
+          "height": 32,
+          "depth": 1,
+          "offset": 32768,
+          "size": 8192
+        },
+        {
+          "width": 32,
+          "height": 16,
+          "depth": 1,
+          "offset": 40960,
+          "size": 2048
+        }
+      ],
+      "donor_mip_sha256": [
+        "7a94c51ea92cf7b8a2bd51eb67a4b7da0d07e68807550fc0659001747cffb226",
+        "60dda5d42def4dc73e42556cd3a7b382fb85ac355d2062be2734b11c92e71359",
+        "df3a250efb59c83cb1bfdfba633863acf44952d70847384c4753118ac869e02e"
+      ],
+      "target_mip_sha256": [
+        "309a8ab9729ad8a7d0d575e7c8e64930465d987cfbcf48ab7e9133ddd82aad65",
+        "0acbb626e749050abdf8741ad1bb8ca4f8fc92855666cc2dd02af484894aeb26",
+        "d3c20f11123dfc2b5e582f3742f722f404a3cb3eead6aa661b5556293c4843a6"
+      ],
+      "reference": {
+        "map": "lockout.map",
+        "original_map_sha256": "14c54046f259842bdac765526e7fe2d991369502041647f47db409ce845987a9",
+        "datum": 3816882700,
+        "address": 2149355408,
+        "tag_size": 376,
+        "descriptor_sha256": "260c4e6ccee992e80ca3ab9561a00a1920a3cdecdf0544024a49bd43f1cae4ba",
+        "resource_sha256": "2cf8bc92c53854f17f42bab0b6b0a3cc883137ca9a06d1bee33cf7cb02b659ac",
+        "original_format": 3,
+        "original_swizzled": true,
+        "decoder": "Exact L8A8 to RGBA expansion and rectangular Morton addressing; no resampling"
+      },
+      "delta_offset": 592,
+      "delta_bytes": 149,
+      "delta_sha256": "cc7df93102bae873c8438fdc8c195acf53fdc87c17a9483fbb048f87b811c747"
+    },
+    {
+      "profile_id": "metal",
+      "profile": {
+        "tag": "effects\\decals\\bullet_holes\\bitmaps\\metal",
+        "encoding": "rgba8",
+        "format": 11,
+        "width": 128,
+        "height": 128,
+        "mip_count": 3,
+        "pixel_bytes": 86016,
+        "donor_sha256": "7560b2af78678cef249af15f21a27d4af39e4f932ab2b91cbfd9b6a191cea5a3",
+        "target_sha256": "173eec9966da79ea28a65dad355f169bb5301131e266618f68fdbb7908e3ae05"
+      },
+      "mips": [
+        {
+          "width": 128,
+          "height": 128,
+          "depth": 1,
+          "offset": 0,
+          "size": 65536
+        },
+        {
+          "width": 64,
+          "height": 64,
+          "depth": 1,
+          "offset": 65536,
+          "size": 16384
+        },
+        {
+          "width": 32,
+          "height": 32,
+          "depth": 1,
+          "offset": 81920,
+          "size": 4096
+        }
+      ],
+      "donor_mip_sha256": [
+        "8cbec8be58b9edf1f0ae2a83a28742bf97a364a415f483e1409de7d44ca056e1",
+        "0adb416aedbac010a8d1818fe2aaee86b3e43d2f881edc506c98b3e3e16a7017",
+        "9872404d9c0042d24dcc14ead147255c30c11b27de31f46421c7dc9a74d6cfa4"
+      ],
+      "target_mip_sha256": [
+        "03ca5b070cb8ac92cebdc5783820278311d993df0925cc8ece8db24885007fea",
+        "6ebeb247db65395fbf33170f2ea581f1bcd8217db90f5f8fff326c1c4d036617",
+        "1f9dbe8944796e33d9de9aa622d98c4cd561565becf0fe21724fe97ba31a459b"
+      ],
+      "reference": {
+        "map": "lockout.map",
+        "original_map_sha256": "14c54046f259842bdac765526e7fe2d991369502041647f47db409ce845987a9",
+        "datum": 3789946993,
+        "address": 2149078348,
+        "tag_size": 560,
+        "descriptor_sha256": "b94fd0fd5d6da7fcb3ca7c5ed217bc7a96d2fe10f3ad50567571ef1bb7b084e6",
+        "resource_sha256": "fd4d8d15d177573dacb4fdfdf93724a51a67020a7307cda5754ae083a815e267",
+        "original_format": 3,
+        "original_swizzled": true,
+        "decoder": "Exact L8A8 to RGBA expansion and rectangular Morton addressing; no resampling"
+      },
+      "delta_offset": 741,
+      "delta_bytes": 693,
+      "delta_sha256": "cdd8f6d9420c2f393156a0a6c08ee01bec624fd54f7bf01fb22f894a67552a52"
+    },
+    {
+      "profile_id": "stone",
+      "profile": {
+        "tag": "effects\\decals\\bullet_holes\\bitmaps\\stone",
+        "encoding": "rgba8",
+        "format": 11,
+        "width": 128,
+        "height": 128,
+        "mip_count": 3,
+        "pixel_bytes": 86016,
+        "donor_sha256": "5e558a50bbcb69d44acc686b9d1d1938c83a50bfbce8c1cdf281cdd90e197b8d",
+        "target_sha256": "8ee1536d706755aa8ef64fce9d9ac3dcb63ca59caf7d219a1efcbc5aabe21cdc"
+      },
+      "mips": [
+        {
+          "width": 128,
+          "height": 128,
+          "depth": 1,
+          "offset": 0,
+          "size": 65536
+        },
+        {
+          "width": 64,
+          "height": 64,
+          "depth": 1,
+          "offset": 65536,
+          "size": 16384
+        },
+        {
+          "width": 32,
+          "height": 32,
+          "depth": 1,
+          "offset": 81920,
+          "size": 4096
+        }
+      ],
+      "donor_mip_sha256": [
+        "d1383138969f01c3b9e2cee04dd15036cfec702e35a38af5b962a82e47984731",
+        "706aa0be8ef29d8c0d4326e5d4de21e61792faea1af7c335133de6cb6809805c",
+        "542dc128cfb682011583a9f74375a50af644fd3a096f8d3a5c2aaf07deb1fb30"
+      ],
+      "target_mip_sha256": [
+        "d1383138969f01c3b9e2cee04dd15036cfec702e35a38af5b962a82e47984731",
+        "1d4077ea74fefb2e7d42f8dbf8278f4c2f912e2e0b9ca71053979e0efb9364de",
+        "542dc128cfb682011583a9f74375a50af644fd3a096f8d3a5c2aaf07deb1fb30"
+      ],
+      "reference": {
+        "map": "lockout.map",
+        "original_map_sha256": "14c54046f259842bdac765526e7fe2d991369502041647f47db409ce845987a9",
+        "datum": 3795845323,
+        "address": 2149141296,
+        "tag_size": 560,
+        "descriptor_sha256": "0246f8d7f6de95ea5fbaca071540609c315132c3c943cab7b5cc36d800fe43f6",
+        "resource_sha256": "15f2c5fce39f410f055e142871297a35fa458cae52c57a16f370e7c24978f1dc",
+        "original_format": 3,
+        "original_swizzled": true,
+        "decoder": "Exact L8A8 to RGBA expansion and rectangular Morton addressing; no resampling"
+      },
+      "delta_offset": 1434,
+      "delta_bytes": 111,
+      "delta_sha256": "bc298d85c8d293c5bf5220735676167abc2e2f69dcc7b3fdab04738cb1063c2a"
+    }
+  ],
+  "owners": [
+    {
+      "map": "00a_introduction.map",
+      "source_map_sha256": "f6916833eedc5efba6250ff2bfd0d0547318572901776069ca043c0c8b4329b8",
+      "profile_id": "metal",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\metal",
+      "datum": 3890939509,
+      "address": 10965668,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "92066f6b0ca7780c6174e397a5774c2bfa24113e6a10558527576a6abf0e6a29"
+    },
+    {
+      "map": "00a_introduction.map",
+      "source_map_sha256": "f6916833eedc5efba6250ff2bfd0d0547318572901776069ca043c0c8b4329b8",
+      "profile_id": "stone",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\stone",
+      "datum": 3894609581,
+      "address": 11014976,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "5b1670967108b87ba031420dff22811249a50a5d7b5ebe5237eec3e32d354e6a"
+    },
+    {
+      "map": "01a_tutorial.map",
+      "source_map_sha256": "f71460e42eb43ea1d74a67af2589e8bccea645f62d921a430f94e946ac4bf08e",
+      "profile_id": "metal",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\metal",
+      "datum": 3856991343,
+      "address": 7834452,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "578a8e149721d178e3010a522a2012ab35441bdfd10a5efd0d1d7767d342ffc0"
+    },
+    {
+      "map": "01a_tutorial.map",
+      "source_map_sha256": "f71460e42eb43ea1d74a67af2589e8bccea645f62d921a430f94e946ac4bf08e",
+      "profile_id": "stone",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\stone",
+      "datum": 3861120174,
+      "address": 7884736,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "52e1828ea94ce65641bf53039be76b88229e60f3bc6356a13be362b5306db371"
+    },
+    {
+      "map": "01b_spacestation.map",
+      "source_map_sha256": "06fe3555d4301c18a5b0f7379f5ddd6714626a3134462a14ce80a609bc7bf2bb",
+      "profile_id": "metal",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\metal",
+      "datum": 3832021746,
+      "address": 5814184,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "8e79fa147d2befdcf7db3156226c978362654a8eda196cd663eaa70f9c404a3b"
+    },
+    {
+      "map": "01b_spacestation.map",
+      "source_map_sha256": "06fe3555d4301c18a5b0f7379f5ddd6714626a3134462a14ce80a609bc7bf2bb",
+      "profile_id": "stone",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\stone",
+      "datum": 3836019503,
+      "address": 5864964,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "ed58787e1fc7a1ef300739523d03246732384116245b14590b3adf753370a9bf"
+    },
+    {
+      "map": "01b_spacestation.map",
+      "source_map_sha256": "06fe3555d4301c18a5b0f7379f5ddd6714626a3134462a14ce80a609bc7bf2bb",
+      "profile_id": "impact_scratch",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\impact_scratch",
+      "datum": 4261354442,
+      "address": 20353292,
+      "tag_size": 432,
+      "frame": 0,
+      "descriptor_sha256": "c4bf84f5f739a2cab57853d5d3f1304f6e38873ef39cf9fdaf5ac6ddba0e8662"
+    },
+    {
+      "map": "03a_oldmombasa.map",
+      "source_map_sha256": "395ad7bccefdb3d50950dc911e8adeee770a75e6ad109c3979d6a641fd648475",
+      "profile_id": "metal",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\metal",
+      "datum": 4105245308,
+      "address": 18193288,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "def09f01500ad9b49d34c52945f3e36d98efa0b842d571573ec3d8bc5d103cd1"
+    },
+    {
+      "map": "03a_oldmombasa.map",
+      "source_map_sha256": "395ad7bccefdb3d50950dc911e8adeee770a75e6ad109c3979d6a641fd648475",
+      "profile_id": "stone",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\stone",
+      "datum": 4107932325,
+      "address": 18225888,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "5f0768fec5e01750f0ea1cfbc8a91601b40253d40fbc37b72503fbdd559d0df5"
+    },
+    {
+      "map": "03a_oldmombasa.map",
+      "source_map_sha256": "395ad7bccefdb3d50950dc911e8adeee770a75e6ad109c3979d6a641fd648475",
+      "profile_id": "ice",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\ice",
+      "datum": 4127527888,
+      "address": 18440852,
+      "tag_size": 524,
+      "frame": 0,
+      "descriptor_sha256": "f092eb7a70e06d810655b6f1426d3d3af3e5c963bb5461c84f164de864f1a05f"
+    },
+    {
+      "map": "03a_oldmombasa.map",
+      "source_map_sha256": "395ad7bccefdb3d50950dc911e8adeee770a75e6ad109c3979d6a641fd648475",
+      "profile_id": "impact_scratch",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\impact_scratch",
+      "datum": 4222818686,
+      "address": 20338720,
+      "tag_size": 432,
+      "frame": 0,
+      "descriptor_sha256": "d9f8c0a36b4da9c196b44bf42ea814912524d3c0101bca4123046af2f7098160"
+    },
+    {
+      "map": "03b_newmombasa.map",
+      "source_map_sha256": "9ddd648b3c80aeb0b8823f07d91d88f71c62b53fcbcd93376af0c200075068c2",
+      "profile_id": "metal",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\metal",
+      "datum": 4128773206,
+      "address": 18115232,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "9047dd9a304e97f8ce264cedeeb0146063d9e2091ce829856fa6c8d4c1156d93"
+    },
+    {
+      "map": "03b_newmombasa.map",
+      "source_map_sha256": "9ddd648b3c80aeb0b8823f07d91d88f71c62b53fcbcd93376af0c200075068c2",
+      "profile_id": "stone",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\stone",
+      "datum": 4131591297,
+      "address": 18157096,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "9bd14b4c45a2119da5feaf6a5f94fcf4a67aa9a79ea3fe353e77d73ce9aa9480"
+    },
+    {
+      "map": "03b_newmombasa.map",
+      "source_map_sha256": "9ddd648b3c80aeb0b8823f07d91d88f71c62b53fcbcd93376af0c200075068c2",
+      "profile_id": "ice",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\ice",
+      "datum": 4162721372,
+      "address": 18649944,
+      "tag_size": 524,
+      "frame": 0,
+      "descriptor_sha256": "63c40e3a0a02b8782b22a2a9665dc42d68ea38ffffdd24bc593da7349d055c32"
+    },
+    {
+      "map": "03b_newmombasa.map",
+      "source_map_sha256": "9ddd648b3c80aeb0b8823f07d91d88f71c62b53fcbcd93376af0c200075068c2",
+      "profile_id": "impact_scratch",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\impact_scratch",
+      "datum": 4269808830,
+      "address": 20683120,
+      "tag_size": 432,
+      "frame": 0,
+      "descriptor_sha256": "c4d276ef196800941dabba903c70241153fa8afc9a0bbbb7d52bd3879b4d12b0"
+    },
+    {
+      "map": "04a_gasgiant.map",
+      "source_map_sha256": "62a047349a8da01b03b4144ccbc96e9076632d21fbedc276f748080c987e5e7e",
+      "profile_id": "metal",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\metal",
+      "datum": 3986688876,
+      "address": 15422016,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "d51f5e45dcedeba7d457a07af00ed8d98973f3572b7e385ceefd403b83d2876c"
+    },
+    {
+      "map": "04a_gasgiant.map",
+      "source_map_sha256": "62a047349a8da01b03b4144ccbc96e9076632d21fbedc276f748080c987e5e7e",
+      "profile_id": "stone",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\stone",
+      "datum": 3990621096,
+      "address": 15473408,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "0b11702d2cf6ca856b58685bd784ca0a3b82fa0e983df06304ac903616f4719d"
+    },
+    {
+      "map": "04a_gasgiant.map",
+      "source_map_sha256": "62a047349a8da01b03b4144ccbc96e9076632d21fbedc276f748080c987e5e7e",
+      "profile_id": "ice",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\ice",
+      "datum": 4026600909,
+      "address": 16161024,
+      "tag_size": 524,
+      "frame": 0,
+      "descriptor_sha256": "94bbc558a3c2a4c15d657621dba876cb7d58b58557f7ba62a1aae2bb0daf5321"
+    },
+    {
+      "map": "04a_gasgiant.map",
+      "source_map_sha256": "62a047349a8da01b03b4144ccbc96e9076632d21fbedc276f748080c987e5e7e",
+      "profile_id": "impact_scratch",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\impact_scratch",
+      "datum": 4053995375,
+      "address": 16520864,
+      "tag_size": 432,
+      "frame": 0,
+      "descriptor_sha256": "d988b4f18e1f6eefef8a9497ceb3f3241cb6dcb7b8b9ebc1fd2e5e9fe862c251"
+    },
+    {
+      "map": "04b_floodlab.map",
+      "source_map_sha256": "e4a052be795e35619a34c9e0db7a783f57b89ac3b22e46ca6127244cbd63e9af",
+      "profile_id": "ice",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\ice",
+      "datum": 4036234848,
+      "address": 15092380,
+      "tag_size": 524,
+      "frame": 0,
+      "descriptor_sha256": "e8e851b54e8a7dfa767d2d9dfb8cbc9e594342a588fc1c185816395f0da1ac54"
+    },
+    {
+      "map": "04b_floodlab.map",
+      "source_map_sha256": "e4a052be795e35619a34c9e0db7a783f57b89ac3b22e46ca6127244cbd63e9af",
+      "profile_id": "impact_scratch",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\impact_scratch",
+      "datum": 4056223633,
+      "address": 15344660,
+      "tag_size": 432,
+      "frame": 0,
+      "descriptor_sha256": "11f49817df72bc6c327ce65fe74f4876c2a1453def894b7c2665ae61fcb8c733"
+    },
+    {
+      "map": "04b_floodlab.map",
+      "source_map_sha256": "e4a052be795e35619a34c9e0db7a783f57b89ac3b22e46ca6127244cbd63e9af",
+      "profile_id": "metal",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\metal",
+      "datum": 4069265496,
+      "address": 15597692,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "3b57fb3af4b429766b059bb6c3790c692aeb41eb400b5d0339f0089822626471"
+    },
+    {
+      "map": "04b_floodlab.map",
+      "source_map_sha256": "e4a052be795e35619a34c9e0db7a783f57b89ac3b22e46ca6127244cbd63e9af",
+      "profile_id": "stone",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\stone",
+      "datum": 4071428217,
+      "address": 15621792,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "8fc49326cc65add1cd49f0c80cddabb7410a13194261720057f3b86af68f8145"
+    },
+    {
+      "map": "05a_deltaapproach.map",
+      "source_map_sha256": "deaf1236c75e36ed69e81b0d7ffc6ed6d987f35ce1cab4c517e0785310a47b44",
+      "profile_id": "metal",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\metal",
+      "datum": 4078440676,
+      "address": 16306160,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "190623c0424729033fc2cfc77716c28188ef11927b5b4f0e18ee7248600c6971"
+    },
+    {
+      "map": "05a_deltaapproach.map",
+      "source_map_sha256": "deaf1236c75e36ed69e81b0d7ffc6ed6d987f35ce1cab4c517e0785310a47b44",
+      "profile_id": "stone",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\stone",
+      "datum": 4080603397,
+      "address": 16335120,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "13d6a667f72e878a6a9f87b956c48211bc448433675599718119e11bb142e1cc"
+    },
+    {
+      "map": "05a_deltaapproach.map",
+      "source_map_sha256": "deaf1236c75e36ed69e81b0d7ffc6ed6d987f35ce1cab4c517e0785310a47b44",
+      "profile_id": "ice",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\ice",
+      "datum": 4101116478,
+      "address": 16555976,
+      "tag_size": 524,
+      "frame": 0,
+      "descriptor_sha256": "99e55b7e8e25bf3190e0fc1ef04de45f9effd5ad6be093d345d6605e0f675596"
+    },
+    {
+      "map": "05a_deltaapproach.map",
+      "source_map_sha256": "deaf1236c75e36ed69e81b0d7ffc6ed6d987f35ce1cab4c517e0785310a47b44",
+      "profile_id": "impact_scratch",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\impact_scratch",
+      "datum": 4200732718,
+      "address": 18478492,
+      "tag_size": 432,
+      "frame": 0,
+      "descriptor_sha256": "23edce69a80316fd7c3f21176ca66d2914ce7072a8e5a4e803ea56b835f90776"
+    },
+    {
+      "map": "05b_deltatowers.map",
+      "source_map_sha256": "63f709fa8e1790e673dba14380ed2814aff35d88af60d66b53e1262b337780fb",
+      "profile_id": "ice",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\ice",
+      "datum": 4084273657,
+      "address": 17092340,
+      "tag_size": 524,
+      "frame": 0,
+      "descriptor_sha256": "ab877e491322b47fe25169253e570b90dc0b5cfd8f0c491e818c7cbf17fca23f"
+    },
+    {
+      "map": "05b_deltatowers.map",
+      "source_map_sha256": "63f709fa8e1790e673dba14380ed2814aff35d88af60d66b53e1262b337780fb",
+      "profile_id": "metal",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\metal",
+      "datum": 4097249983,
+      "address": 17310772,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "9866ef753224cb906648d05c31a6d28ed1b7ce7c3ef9c458fccb1cf77bd64ed2"
+    },
+    {
+      "map": "05b_deltatowers.map",
+      "source_map_sha256": "63f709fa8e1790e673dba14380ed2814aff35d88af60d66b53e1262b337780fb",
+      "profile_id": "stone",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\stone",
+      "datum": 4099347167,
+      "address": 17335308,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "3c06d2e801c43ee6f92506008e9e1acb9003707da2bddd7a4afee124a486e3eb"
+    },
+    {
+      "map": "05b_deltatowers.map",
+      "source_map_sha256": "63f709fa8e1790e673dba14380ed2814aff35d88af60d66b53e1262b337780fb",
+      "profile_id": "impact_scratch",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\impact_scratch",
+      "datum": 4124316764,
+      "address": 17546892,
+      "tag_size": 432,
+      "frame": 0,
+      "descriptor_sha256": "644e65878ece3c695c11794ffdb97925a804d2c3a5524fac2e189b7b85c3d18b"
+    },
+    {
+      "map": "06a_sentinelwalls.map",
+      "source_map_sha256": "8c992ac2aa7ef60748115c7abdd80062ee8a579cd99bef21f50496556e0bdb68",
+      "profile_id": "metal",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\metal",
+      "datum": 4058976375,
+      "address": 16311484,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "ec630c423ef6b083c3749bb3e502f573ed8c19661593cafb51bf30885d9dfb9c"
+    },
+    {
+      "map": "06a_sentinelwalls.map",
+      "source_map_sha256": "8c992ac2aa7ef60748115c7abdd80062ee8a579cd99bef21f50496556e0bdb68",
+      "profile_id": "stone",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\stone",
+      "datum": 4062253225,
+      "address": 16358440,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "9cc3d7b13be65059bf49a15e6c9f0136a4463f2c693be308e33245cb3cb98cd3"
+    },
+    {
+      "map": "06a_sentinelwalls.map",
+      "source_map_sha256": "8c992ac2aa7ef60748115c7abdd80062ee8a579cd99bef21f50496556e0bdb68",
+      "profile_id": "ice",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\ice",
+      "datum": 4150727986,
+      "address": 19243412,
+      "tag_size": 524,
+      "frame": 0,
+      "descriptor_sha256": "baaf2507777bdc3bce96f0403c59747fee95e14840d0e4115266a9182c41ed5b"
+    },
+    {
+      "map": "06a_sentinelwalls.map",
+      "source_map_sha256": "8c992ac2aa7ef60748115c7abdd80062ee8a579cd99bef21f50496556e0bdb68",
+      "profile_id": "impact_scratch",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\impact_scratch",
+      "datum": 4170782308,
+      "address": 19638700,
+      "tag_size": 432,
+      "frame": 0,
+      "descriptor_sha256": "a25c950b97dcb61888524fd1e482b2251dc5ad13de67b3ccb9656768a00c6415"
+    },
+    {
+      "map": "06b_floodzone.map",
+      "source_map_sha256": "a598d04b3197e884c392e3552f90ebfbb25d3ac7391ad2ebeaada2751355d509",
+      "profile_id": "metal",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\metal",
+      "datum": 4101444351,
+      "address": 18514048,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "5fd9f128aa77f0a5a6ec68a4914fe51d90b9de9902b757c27aa2468881f8a893"
+    },
+    {
+      "map": "06b_floodzone.map",
+      "source_map_sha256": "a598d04b3197e884c392e3552f90ebfbb25d3ac7391ad2ebeaada2751355d509",
+      "profile_id": "stone",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\stone",
+      "datum": 4103213850,
+      "address": 18535804,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "92e36d2132c67642e62c3325483bd75151fcdabc482e89c760cab0a7b04d5738"
+    },
+    {
+      "map": "06b_floodzone.map",
+      "source_map_sha256": "a598d04b3197e884c392e3552f90ebfbb25d3ac7391ad2ebeaada2751355d509",
+      "profile_id": "ice",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\ice",
+      "datum": 4121760821,
+      "address": 18757524,
+      "tag_size": 524,
+      "frame": 0,
+      "descriptor_sha256": "1cac44e9da9656e670b163b37b64a954cc00ae2240aa5b4b912e2689b2fd0f9f"
+    },
+    {
+      "map": "06b_floodzone.map",
+      "source_map_sha256": "a598d04b3197e884c392e3552f90ebfbb25d3ac7391ad2ebeaada2751355d509",
+      "profile_id": "impact_scratch",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\impact_scratch",
+      "datum": 4163376816,
+      "address": 19588392,
+      "tag_size": 432,
+      "frame": 0,
+      "descriptor_sha256": "08c7fc7affac04f7fe1de52ed6ee63598f19327b86571b91dc1e17886150f594"
+    },
+    {
+      "map": "07a_highcharity.map",
+      "source_map_sha256": "f883bc4592839329f5e12618413e202298f139d01a6758764d28ded95e4b0569",
+      "profile_id": "metal",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\metal",
+      "datum": 3961326177,
+      "address": 14895536,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "2827ca5584811eeb448da01b977ac5fe90e33bc0cefce265052d5f60f04c13f6"
+    },
+    {
+      "map": "07a_highcharity.map",
+      "source_map_sha256": "f883bc4592839329f5e12618413e202298f139d01a6758764d28ded95e4b0569",
+      "profile_id": "stone",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\stone",
+      "datum": 3964275342,
+      "address": 14940428,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "cb8eb88028c776aa62cf26a54e1b602f6abda6e6529f25454f0d735e72cf51eb"
+    },
+    {
+      "map": "07a_highcharity.map",
+      "source_map_sha256": "f883bc4592839329f5e12618413e202298f139d01a6758764d28ded95e4b0569",
+      "profile_id": "ice",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\ice",
+      "datum": 4140766482,
+      "address": 21415872,
+      "tag_size": 524,
+      "frame": 0,
+      "descriptor_sha256": "659e54b955f7b287f3f645e42e5f3d838d7ff1d3cc96a67274289ccdbafaaea4"
+    },
+    {
+      "map": "07a_highcharity.map",
+      "source_map_sha256": "f883bc4592839329f5e12618413e202298f139d01a6758764d28ded95e4b0569",
+      "profile_id": "impact_scratch",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\impact_scratch",
+      "datum": 4196472932,
+      "address": 22366928,
+      "tag_size": 432,
+      "frame": 0,
+      "descriptor_sha256": "f1c11475c45c0f4abf5b7d7ab5dfcb2644e856efb168d3970bd40151001feb81"
+    },
+    {
+      "map": "07b_forerunnership.map",
+      "source_map_sha256": "3a0e239e4aa9fbceec4af05098e737f206abc58b6cef5151fd4f49adec12b2ac",
+      "profile_id": "metal",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\metal",
+      "datum": 4020964728,
+      "address": 17953348,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "cc1af633ef4405957e0a2c05e8df062cb526c736ab22b57cd35b7a344339b7b5"
+    },
+    {
+      "map": "07b_forerunnership.map",
+      "source_map_sha256": "3a0e239e4aa9fbceec4af05098e737f206abc58b6cef5151fd4f49adec12b2ac",
+      "profile_id": "stone",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\stone",
+      "datum": 4023848356,
+      "address": 17994228,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "a587bb8cb86c0bbaa4c050467066db15db9a97cbf6111f3b03342a1b6f4252a0"
+    },
+    {
+      "map": "07b_forerunnership.map",
+      "source_map_sha256": "3a0e239e4aa9fbceec4af05098e737f206abc58b6cef5151fd4f49adec12b2ac",
+      "profile_id": "ice",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\ice",
+      "datum": 4036365923,
+      "address": 18111720,
+      "tag_size": 524,
+      "frame": 0,
+      "descriptor_sha256": "f473c45dd422b9de2122c1ff41ef77a8c2efb71a708dcccf74a6c159338b0193"
+    },
+    {
+      "map": "07b_forerunnership.map",
+      "source_map_sha256": "3a0e239e4aa9fbceec4af05098e737f206abc58b6cef5151fd4f49adec12b2ac",
+      "profile_id": "impact_scratch",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\impact_scratch",
+      "datum": 4061138909,
+      "address": 18337444,
+      "tag_size": 432,
+      "frame": 0,
+      "descriptor_sha256": "6b44b1361ca6213659669e51780451c8c71f982ea6b2d04f845c297d2af08b1e"
+    },
+    {
+      "map": "08a_deltacliffs.map",
+      "source_map_sha256": "7d72d4858d40c953744621c6ce0fffe3449fba2a920b50a80b5bdcbeb9e80594",
+      "profile_id": "ice",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\ice",
+      "datum": 4060876760,
+      "address": 18264644,
+      "tag_size": 524,
+      "frame": 0,
+      "descriptor_sha256": "9574700572abeb35ffea52e6c22e841f75535620ac7ba820d4d99dc435d5fb87"
+    },
+    {
+      "map": "08a_deltacliffs.map",
+      "source_map_sha256": "7d72d4858d40c953744621c6ce0fffe3449fba2a920b50a80b5bdcbeb9e80594",
+      "profile_id": "metal",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\metal",
+      "datum": 4131918868,
+      "address": 19586440,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "efcb0ece7d124dfe300c498070eac6ea5e3c980031845d2fba99b607b22f2eaa"
+    },
+    {
+      "map": "08a_deltacliffs.map",
+      "source_map_sha256": "7d72d4858d40c953744621c6ce0fffe3449fba2a920b50a80b5bdcbeb9e80594",
+      "profile_id": "stone",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\stone",
+      "datum": 4134081589,
+      "address": 19611132,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "0e735f0582d5f0649b584baea5a74b7222f13039e497215735ef373aac3cefa2"
+    },
+    {
+      "map": "08a_deltacliffs.map",
+      "source_map_sha256": "7d72d4858d40c953744621c6ce0fffe3449fba2a920b50a80b5bdcbeb9e80594",
+      "profile_id": "impact_scratch",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\impact_scratch",
+      "datum": 4153349467,
+      "address": 19932464,
+      "tag_size": 432,
+      "frame": 0,
+      "descriptor_sha256": "1319f76ecc08bd97786f7953e7ab1ef6d5ef139c1183ac6e5626d75d4d4ab373"
+    },
+    {
+      "map": "08b_deltacontrol.map",
+      "source_map_sha256": "4844a2ea86949fe33b051d86f7410e83f4f3c63d58b5e4aac140b8f7b55c680f",
+      "profile_id": "ice",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\ice",
+      "datum": 4132574427,
+      "address": 20293620,
+      "tag_size": 524,
+      "frame": 0,
+      "descriptor_sha256": "a61f9f15be3b39852fd53ecc0ed6bd19a6b0dc613de076ba9ea1b083566a73aa"
+    },
+    {
+      "map": "08b_deltacontrol.map",
+      "source_map_sha256": "4844a2ea86949fe33b051d86f7410e83f4f3c63d58b5e4aac140b8f7b55c680f",
+      "profile_id": "metal",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\metal",
+      "datum": 4186642452,
+      "address": 21259240,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "e4ef350a7bac4cbe0f9052a24ee9ad67f4073fb8bcf5c1277518bad26c1d6082"
+    },
+    {
+      "map": "08b_deltacontrol.map",
+      "source_map_sha256": "4844a2ea86949fe33b051d86f7410e83f4f3c63d58b5e4aac140b8f7b55c680f",
+      "profile_id": "stone",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\stone",
+      "datum": 4188805173,
+      "address": 21284128,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "aa1087e6e8f3be60e01c7b014c8f4e235d8e57b9b10ed92b5767e9ece2dd6e33"
+    },
+    {
+      "map": "08b_deltacontrol.map",
+      "source_map_sha256": "4844a2ea86949fe33b051d86f7410e83f4f3c63d58b5e4aac140b8f7b55c680f",
+      "profile_id": "impact_scratch",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\impact_scratch",
+      "datum": 4201978110,
+      "address": 21685448,
+      "tag_size": 432,
+      "frame": 0,
+      "descriptor_sha256": "2fa1239481a30469eaaa61cff9c25e5df7560d3b95c18731ed81565a9057c6d6"
+    },
+    {
+      "map": "shared.map",
+      "source_map_sha256": "fafaceef449ec05fcf7a1e35a9164788813a41eb082ff5353932c94a9bbf888f",
+      "profile_id": "metal",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\metal",
+      "datum": 3866314598,
+      "address": 12175412,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "16f69195cc5d03df6d7ec30f371187209d3f02b9e08a9a8bab11599f18e06bf4"
+    },
+    {
+      "map": "shared.map",
+      "source_map_sha256": "fafaceef449ec05fcf7a1e35a9164788813a41eb082ff5353932c94a9bbf888f",
+      "profile_id": "stone",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\stone",
+      "datum": 3869788059,
+      "address": 12238408,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "3eea213d7a8303414dfacf75d3512df50e23af3ff8e09870b342936f06fe3434"
+    },
+    {
+      "map": "shared.map",
+      "source_map_sha256": "fafaceef449ec05fcf7a1e35a9164788813a41eb082ff5353932c94a9bbf888f",
+      "profile_id": "impact_scratch",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\impact_scratch",
+      "datum": 3986706067,
+      "address": 14506748,
+      "tag_size": 432,
+      "frame": 0,
+      "descriptor_sha256": "17337617626328cfb844775cffa8fa2c80ec574d76723361b92cbc1f5320504c"
+    },
+    {
+      "map": "shared.map",
+      "source_map_sha256": "fafaceef449ec05fcf7a1e35a9164788813a41eb082ff5353932c94a9bbf888f",
+      "profile_id": "ice",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\ice",
+      "datum": 4143273959,
+      "address": 19529136,
+      "tag_size": 524,
+      "frame": 0,
+      "descriptor_sha256": "cbc4cf30519af05231d870624fce5e6935796e136c97ef3ce79c68f47a7bfbe8"
+    },
+    {
+      "map": "single_player_shared.map",
+      "source_map_sha256": "2c412dd6b8cf025ee82132216347a52ed1d3877b023b8317eef46eb6de6b4573",
+      "profile_id": "metal",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\metal",
+      "datum": 4148040969,
+      "address": 24267712,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "ae6582ed11e0e3520f26e6c49abbbcb217236f8a93f69c4c7b2cd56b76233f9d"
+    },
+    {
+      "map": "single_player_shared.map",
+      "source_map_sha256": "2c412dd6b8cf025ee82132216347a52ed1d3877b023b8317eef46eb6de6b4573",
+      "profile_id": "stone",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\stone",
+      "datum": 4151383356,
+      "address": 24316216,
+      "tag_size": 616,
+      "frame": 0,
+      "descriptor_sha256": "62565f005d4511825bf98898bf8dfbc3ca6bcd98fa0451852b1e347d1c3b35fd"
+    },
+    {
+      "map": "single_player_shared.map",
+      "source_map_sha256": "2c412dd6b8cf025ee82132216347a52ed1d3877b023b8317eef46eb6de6b4573",
+      "profile_id": "ice",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\ice",
+      "datum": 4236122697,
+      "address": 26049636,
+      "tag_size": 524,
+      "frame": 0,
+      "descriptor_sha256": "5b2caf6a60c6e72a2df4af3754cadee32f16463ff86987498755e1653cf85d12"
+    },
+    {
+      "map": "single_player_shared.map",
+      "source_map_sha256": "2c412dd6b8cf025ee82132216347a52ed1d3877b023b8317eef46eb6de6b4573",
+      "profile_id": "impact_scratch",
+      "tag": "effects\\decals\\bullet_holes\\bitmaps\\impact_scratch",
+      "datum": 4269612104,
+      "address": 26733920,
+      "tag_size": 432,
+      "frame": 0,
+      "descriptor_sha256": "fb6d68b58280038c4aa22623a2fb96f335041a6e7aa01ec7a78fa6aa2f540291"
+    }
+  ],
+  "delta_bytes": 1545,
+  "delta_sha256": "455b6f158749179fa7874ea244741317a054ac45d4ba0027ffbe40581aa4ffca",
+  "provenance": {
+    "census_sha256": "2d125b08228d93d18b1f162d431d111d4ec83dee1aea4d9bf7b5b980ea5ac120",
+    "generation_tool_sha256": "0a5c35e08c944c6abb767cd1e7e8fbefb47ef6c95b1e2cc63c686c8af6a1bec9",
+    "original_executable_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+    "original_runtime_input": false,
+    "prepared_assets_modified": false,
+    "source_preparation_sha256": "c71b40b6e3c10225a71c35c3f9263148210f61732cafe574b752def1107c5ba0"
+  },
+  "scope": "Four exact original decal bitmap mip chains, shared by five decal definitions; other bitmap/shader owners unchanged"
+}

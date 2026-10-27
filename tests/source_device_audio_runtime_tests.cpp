@@ -56,7 +56,7 @@ int main(int argc,char **argv){try{
     if(const auto *artwork=std::getenv("HALO2_TEST_HUD_UI_ASSETS"))o.ui_assets=artwork;
     o.validation=std::getenv("HALO2_ANIMATION_VALIDATION");
     const bool late=std::getenv("HALO2_TEST_DEVICE_LATE");Host host(o,late);
-    o.join="127.0.0.1:"+std::to_string(host.host.port());
+    o.join=host.host.join_address();
     o.desktop=std::make_shared<DesktopSession>();o.desktop->window(o.width,o.height,false);
     using Identity=std::pair<std::uint32_t,std::uint32_t>;
     std::map<Identity,std::set<std::uint64_t>> voices;

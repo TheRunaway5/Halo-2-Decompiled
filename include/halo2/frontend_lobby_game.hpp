@@ -56,10 +56,11 @@ inline std::optional<int> frontend_lobby_parameter_default(unsigned engine,
 // Original25092C uses the first matching sily option and title+separator+value.
 // Original2501C0 fills only the first five category entries; other authored rows
 // remain empty. Current values are supplied by the caller's selected variant.
-inline std::array<std::optional<std::string>, 5> frontend_lobby_quick_options(
+template<std::size_t Count>
+inline std::array<std::optional<std::string>,Count> frontend_variant_quick_options(
     const FrontendContent &content, unsigned engine,
     const std::map<unsigned, int> &values, std::string_view separator) {
-  std::array<std::optional<std::string>, 5> result;
+  std::array<std::optional<std::string>,Count> result;
   const auto type = frontend_lobby_variant_type(engine);
   const auto category = type ? frontend_lobby_quick_category(*type) : std::nullopt;
   if (!category) return result;
@@ -79,6 +80,15 @@ inline std::array<std::optional<std::string>, 5> frontend_lobby_quick_options(
         (choice != parameter->second.choices.end() ? choice->label : std::string{});
   }
   return result;
+}
+inline std::array<std::optional<std::string>,5> frontend_lobby_quick_options(
+    const FrontendContent &content,unsigned engine,const std::map<unsigned,int>& values,std::string_view separator) {
+  return frontend_variant_quick_options<5>(content,engine,values,separator);
+}
+// TU1.5 2580B2 uses the same256C3A title/value formatter for six rows.
+inline std::array<std::optional<std::string>,6> frontend_matchmaking_quick_options(
+    const FrontendContent &content,unsigned engine,const std::map<unsigned,int>& values,std::string_view separator) {
+  return frontend_variant_quick_options<6>(content,engine,values,separator);
 }
 struct FrontendLobbyHelp {
   std::optional<unsigned> text_index;

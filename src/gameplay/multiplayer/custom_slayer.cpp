@@ -17,6 +17,13 @@ namespace {
 constexpr const char *defusal_layout_file="bomb-defusal-sites-v1.json";
 std::filesystem::path bundled_tag_path(const std::filesystem::path &name) {
   if(const auto contents=macos_bundle_contents();!contents.empty())return contents/"Resources/data/tags"/name;
+#ifdef _WIN32
+  if(char* base=SDL_GetBasePath()) {
+    const auto directory=std::filesystem::u8path(base)/"data/tags";
+    SDL_free(base);
+    if(std::filesystem::is_directory(directory))return directory/name;
+  }
+#endif
 #ifdef __linux__
   std::array<char,4096> path{};const auto count=readlink("/proc/self/exe",path.data(),path.size()-1);
   if(count>0) {

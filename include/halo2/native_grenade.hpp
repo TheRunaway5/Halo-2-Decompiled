@@ -135,6 +135,8 @@ public:
   PreparedAuthority prepare_authority(const AuthorityCheckpoint &,std::span<const Unit> incoming_units,bool qualified_source_world=false);
   bool commit_authority(PreparedAuthority &&) noexcept;
 private:
+  struct AuthorityRestore {};
+  NativeGrenadeSandbox(const NativeGrenadeSandbox &,AuthorityRestore);
   mutable NativeAuthorityBoundary authority_;
   std::uint32_t initial_unit_;
   NativeGrenadeConstants constants_;

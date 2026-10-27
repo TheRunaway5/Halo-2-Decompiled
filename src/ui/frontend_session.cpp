@@ -157,21 +157,23 @@ MenuState &FrontendSession::enter(FrontendOptions::Entry entry,
     if(report)throw FormatError("Lobby entry cannot consume a report owner");
     state().ui_clock(ui_clock());
     state().open_vista_lobby();
+  } else if(entry==FrontendOptions::Entry::system_link_browser) {
+    if(report)throw FormatError("System Link browser cannot consume a report owner");
+    state().leave_system_link_lobby();
   } else if(entry==FrontendOptions::Entry::online_return) {
     if(report)throw FormatError("ONLINE return cannot consume a report owner");
-    state().return_online();
+    state().return_online_lobby();
   } else throw FormatError("Unsupported retained frontend factory");
   return state();
 }
 void MenuState::clear_runtime_adapters() noexcept {
   if (online_voice_) online_voice_->leave();
   // Join the audio worker before this invocation's SDL/window owner can die.
-  online_voice_.reset(); voice_={};
-  if (online_account_) online_account_->sign_out();
-  account_ = {}; account_name_.clear();
+  online_voice_.reset(); voice_={};voice_party_=false;
+  // Account/party and queue workers belong to the retained FrontendSession,
+  // not this SDL/renderer invocation. Signing them out here loses accepted
+  // party/host state between a completed report and its pregame lobby.
   pending_ui_sounds_.clear();
-  if (online_matchmaking_) online_matchmaking_->sign_out();
-  matchmaking_active_ = quickmatch_pending_ = false;
   pc_display_adapter_ = nullptr;
   pc_video_adapter_ = nullptr;
   pc_video_query_ = nullptr;

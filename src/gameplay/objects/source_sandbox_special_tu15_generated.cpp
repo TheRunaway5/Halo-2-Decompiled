@@ -2,6 +2,7 @@
 // Complete authenticated bodies compile to native arithmetic and static calls.
 #include "physics/runtime/physics_world_runtime_internal.hpp"
 #include "halo2/source_sandbox_special_tu15.hpp"
+#include "halo2/source_first_person_action_tu15.hpp"
 #include "halo2/source_projectile_effect_observer.hpp"
 namespace halo2 {
 namespace {
@@ -8411,6 +8412,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_16a4dd(WorldState &s) {
+SourceFirstPersonCompositionObserverTu15::entry(s.memory,s.save());
 if(s.services.instruction){s.services.instruction(0x16a4ddu);} s.push(0x16a4ddu,s.reg(5,4,0));
 if(s.services.instruction){s.services.instruction(0x16a4deu);} s.set(5,s.reg(4,4,0),4,0);
 if(s.services.instruction){s.services.instruction(0x16a4e0u);} s.set(4,s.flags.minus(s.reg(4,4,0),selected(0x78u,s.image),4),4,0);

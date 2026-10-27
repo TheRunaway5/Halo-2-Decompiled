@@ -17,6 +17,7 @@ class LanClient;
 class SourceAuthorityReplayWorker;
 class SourcePeerHostTakeover;
 class SourceLensPresentationHandoffTu15;
+class SourceAdmittedCameraBank;
 struct SourceAuthorityRetainedWorld;
 
 // Executor-local lifetime of the live Match, transport role and native shadow
@@ -88,6 +89,9 @@ public:
     MultiplayerMatch &match();
     LanHost *host();
     LanClient *client();
+    // Quiescent ordinary raw-LAN handoff only; migration and ONLINE owners
+    // cannot export their transports through this session-return boundary.
+    std::pair<std::unique_ptr<LanHost>,std::unique_ptr<LanClient>> release_system_link();
     // Service publication/receiver status between frames. A false outer gate
     // defers this service without advancing its retained context; retry after
     // the outer owners can retire. Admission may also run after native hello
@@ -95,6 +99,13 @@ public:
     void service();
     void receive();
     void admit_players();
+    // Opt-in terminal recovery admission only: true after this exact current
+    // generation's genuine paired initial cut was independently validated.
+    // Does not tick a world, set a Live-ready flag or elect a successor host.
+    bool terminal_bootstrap_ready()const;
+    // Only the opt-in tick0-admitted numeric bank. Null before the initial cut
+    // starts its authentic execution journal or for ordinary default gameplay.
+    SourceAdmittedCameraBank *admitted_cameras();
     void suspend_publication();
     class Frame {
     public:
@@ -156,6 +167,12 @@ public:
         std::shared_ptr<const SourceAuthorityRetainedWorld> retained_;
     };
     std::shared_ptr<const NativeCutPin> pending_native_cut()const;
+    // Terminal qualification: latest independently replayed owning endpoint.
+    // Adoption requires its exact authenticated snapshot receipt, never tick
+    // equality. Retaining it does not elect, promote, or stop the live worker.
+    std::shared_ptr<const SourceAuthorityEndpoint> terminal_endpoint()const;
+    void adopt_terminal_endpoint(const std::shared_ptr<const SourceAuthorityEndpoint> &,
+        const MultiplayerSnapshotOrigin &);
     // Completed-frame association requires the privately bound foreground
     // checkpoint for this exact stored native pin. Both owners are retained
     // before publishing association. Commit/Apply/Release concern recovery-pin

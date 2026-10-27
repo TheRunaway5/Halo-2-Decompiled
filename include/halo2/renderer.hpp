@@ -3,6 +3,9 @@
 #include "halo2/pstencil/lightmap.hpp"
 #include "halo2/pstencil/point_caster.hpp"
 #include "halo2/renderer_device_lease.hpp"
+#include "halo2/source_texture_camera_frame_tu15.hpp"
+#include "halo2/source_scene_copy.hpp"
+#include "halo2/source_view_projection.hpp"
 #include "halo2/renderer_palette.hpp"
 #include "halo2/renderer_constant_mode.hpp"
 #include "halo2/renderer_depth_mode.hpp"
@@ -19,6 +22,7 @@
 #include "halo2/cache.hpp"
 #include "halo2/appearance.hpp"
 #include "halo2/display_settings.hpp"
+#include "halo2/path_tracing/scene.hpp"
 #include "halo2/scene.hpp"
 #include "halo2/cinematic_crossfade.hpp"
 #include "halo2/bsp_atmosphere.hpp"
@@ -116,6 +120,8 @@ struct RendererCompletedMaterialUpload {
     std::array<std::uint32_t,4> wanted_frames{},bound_frames{};
     std::array<ShaderTextureState,4> texture_states{};
     std::array<RendererObservedMaterialPage,4> cached_material_pages{};
+    std::optional<unsigned> native_world_kernel;
+    unsigned uploaded_vertex_instruction_words{};
     bool baked_lightmap{},accumulation{},scope{};
     std::array<bool,2> water_targets{};
     // Borrowed only during the synchronous callback, after actual per-view
@@ -202,6 +208,21 @@ struct RendererObservedBspDraw {
     const SourceBspResidentPart* resident_part{};
     std::span<const Vertex> source_vertices; // Proven source-resident uploaded atlas range.
 };
+// Actual generic vkCmdDraw facts. This carries no BSP token or authored
+// object identity claim. object_index is NONE for unowned dynamic geometry.
+struct RendererObservedGeometryDraw {
+    std::uint64_t serial{},pipeline_handle{},vertex_buffer{};
+    std::array<std::uint32_t,2> source_material{};
+    unsigned material_slot{},parent_material{};
+    std::uint32_t first{},count{},dynamic_offset{};
+    std::size_t object_index=static_cast<std::size_t>(-1);
+    bool owner_constants{};
+    const RendererObservedPipeline *pipeline{};
+    const RendererObservedDescriptor *descriptor{};
+    std::span<const std::byte> camera_push,material_uniform,vertex_bank_uniform;
+    std::array<float,6> viewport{};
+    std::array<std::int64_t,4> scissor{};
+};
 // A clipped model viewport, ordered amongst the UI's textured triangles.
 struct ModelView {
     Camera camera;
@@ -234,6 +255,10 @@ struct ModelView {
     std::span<const WaterFrame> water;
     std::span<const Vertex> water_reflection_background;
     Camera water_reflection_camera;
+    // Exact3BCF0 completed reflection bank. The raw submitting camera keeps
+    // its original pose; source.reflection owns the corresponding12F80 c0..6.
+    // Procedural reflection clip transforms consume these source rows too.
+    std::optional<SourceViewProjectionBank> water_reflection_source_rendering;
     float effect_time{};
     PlayerScreenFlash screen_flash;
     std::optional<std::size_t> screen_flash_after_ui_vertex;
@@ -278,14 +303,19 @@ struct ModelView {
     // One view supplies one ordered representation; mixing both would lose
     // the source interleaving and is rejected.
     std::span<const EffectLightRawDraw> raw_effect_lights;
+    // Completed occupied emitter bank, independent of camera/receiver culling.
+    // RT secondary rays consume these actual source positions/colors/radii.
+    std::span<const path_tracing::Light> path_tracing_lights;
+    Vec3 path_tracing_environment; // Selected source sky's outdoor ambient.
     // Original 2B0BAA/2C560 UI cameras use near/far 0.015625/1024.
     // Other views retain their existing projection planes when unset.
     std::optional<Vec2> projection_clip_planes;
     // Admitted captured132D0 initialization, distinct from native defaults.
     // Only target0 RGBA+depth+stencil initialization is currently supported.
     std::optional<SourceViewClearState> source_view_clear;
-    // PC UI model widgets supply their separately truncated physical bounds.
-    // Keeping those words avoids a second native canvas projection/rounding.
+    // PC UI widgets and the native texture-camera target owner supply their
+    // separately truncated physical bounds. Keeping those words avoids a
+    // second native canvas projection/rounding.
     std::optional<std::array<std::int32_t,4>> source_ui_viewport;
     // Completed retained decal cache pages, in original layer/cluster order.
     std::span<const SourceDecalDraw> source_decals;
@@ -300,12 +330,30 @@ struct ModelView {
     std::function<void(const RendererCompletedMaterialUpload&)> completed_material_upload_observer;
     std::function<void(const RendererObservedBspDraw&)> completed_bsp_draw_observer;
     std::function<void(const RendererObservedObjectDraw&)> completed_object_draw_observer;
+    // Opt-in actual command/upload facts, including unowned dynamic geometry.
+    std::function<void(const RendererObservedGeometryDraw&)> completed_geometry_draw_observer;
     std::span<const pstencil::LightmapCaster> pstencil_lightmap_casters;
     std::span<const pstencil::PointCaster> pstencil_point_casters;
     bool pstencil_native_point_casters=false;
     // Exact configured4922F8 clip/effect distance, independent of the
     // submitted camera far in projection_clip_planes (491E7C).
     std::optional<float> source_w_distance;
+    // Empty in ordinary play. Delivered after this view's actual GPU skin
+    // submission and optional completed readback, without changing admission.
+    std::function<void(const ModelSkinGpuOwnerObservation&)> model_skin_gpu_owner_observer;
+};
+// Optional Path Tracing ownership only. Borrowed original assets and shared
+// scene/presentation resources are excluded from these lifecycle diagnostics.
+struct RendererPathTracingResources {
+    std::size_t views{},cpu_bytes{},gpu_bytes{};
+    bool operator==(const RendererPathTracingResources&)const=default;
+};
+// Completed source scene work is recorded before the ordinary view. The
+// copy observer reports commanded ownership, not GPU completion/Xbox pixels.
+struct RendererTextureCameraSubmissionTu15 {
+    const SourceTextureCameraFrameTu15 *source{};
+    const ModelView *scene{};
+    std::function<void(unsigned,std::uint64_t,std::uint64_t)> copied;
 };
 // SDL owns the platform window/input; only this module knows Vulkan handles.
 class Renderer {
@@ -329,6 +377,21 @@ public:
     bool can_skin_models() const noexcept;
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
+    // Real native1DE30 allocation/retirement. Optional20 is an explicitly
+    // declared native resource, not an authored20 script/timeline claim.
+    SourceTextureCameraNativeTargetsTu15 prepare_texture_camera_targets(
+        const SourceTextureCameraInputsTu15 &,const SourceSceneCopyContext &,
+        std::array<std::int32_t,2> source_coordinate_extent,
+        const std::optional<SourceSceneCopyContext> &target20 = {});
+    // Complete descriptor/target epochs after same-device residency changes,
+    // only when the exact native18/20 images and pending CPU request survive.
+    void renew_texture_camera_frame(SourceTextureCameraFrameTu15 &);
+    // Explicit additional camera production. Existing ordinary draw ABI and
+    // immutable all-map/reference drivers remain unchanged.
+    bool draw_texture_camera(const Camera &,const RendererTextureCameraSubmissionTu15 &,
+        std::span<const ModelView> ordinary_views,const std::filesystem::path &screenshot = {},
+        bool reticle=false,ScreenEffects effects={},std::span<const Vertex> ui={},
+        std::span<const UiBackdrop> backdrops={},const std::function<void()> *overlap=nullptr);
     bool draw(const Camera& camera, const std::filesystem::path& screenshot = {},
               std::span<const Vertex> debug = {}, bool reticle = false,
               std::span<const Vertex> first_person = {}, ScreenEffects effects = {},
@@ -342,11 +405,23 @@ public:
               bool ui_full_surface_bounds = false,
               // Synchronous numeric diagnostics, consumed only by the existing
               // timing-file writer. Never retained after draw or used to render.
-              const RendererHostPreparationTiming *host_preparation = nullptr);
+              const RendererHostPreparationTiming *host_preparation = nullptr,
+              // When set, this draw runs on the renderer's own thread while
+              // *overlap runs on the calling thread; draw returns after both.
+              // Every borrowed input must stay valid until it returns.
+              const std::function<void()> *overlap = nullptr);
     // Isolated loading submission: only resident loading image descriptors,
     // supplied original triangles/constants, and frame synchronization are used.
     // No CPU world/cache/view owner participates.
     bool draw_loading(unsigned resident_material_base,std::span<const Material>,
+                      std::span<const Vertex>,const std::filesystem::path& screenshot = {});
+    // Original Xbox universal map-wait text over its full black clear. The
+    // resident atlas is admitted MCC font3; no retired CPU scene participates.
+    bool draw_source_loading_wait(unsigned resident_font_material,
+                      std::span<const Vertex>,const std::filesystem::path& screenshot = {});
+    // Original screen231 network transition dialog over the same black clear.
+    // The contiguous bank holds only its admitted "network-transition/" UI owners.
+    bool draw_network_transition(unsigned resident_material_base,unsigned materials,
                       std::span<const Vertex>,const std::filesystem::path& screenshot = {});
     // Called on the UI owner before transferring graphics to the loader.
     void prepare_loading();
@@ -357,6 +432,12 @@ public:
     std::string validate_display_settings(const DisplaySettings &) const;
     const DisplaySettings& display_settings() const;
     void display_settings(DisplaySettings);
+    // Borrow current source assets without copying geometry or material banks.
+    // The Mesh must outlive this renderer's world draws, or be rebound before
+    // the next one. Keep the Mesh object at a stable address; edits to its
+    // current material bank remain visible to Path Tracing on demand.
+    void path_tracing_source(const Mesh&);
+    RendererPathTracingResources path_tracing_resources()const;
     // The desktop session outlives every renderer using its preferences.
     void share_display_settings(DisplaySettings&);
     // Opt-in read-only profiling; disabled draws do not read the host clock.

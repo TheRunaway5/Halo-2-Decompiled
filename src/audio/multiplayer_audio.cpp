@@ -5,6 +5,7 @@
 #include "halo2/sound_spatial.hpp"
 #include "halo2/sound_fade.hpp"
 #include "halo2/mcc_sound_variation_provider.hpp"
+#include "halo2/mcc_sound_metadata_publication.hpp"
 #include "halo2/mcc_script_sound_world_access.hpp"
 #include "halo2/effect_audio_auxiliary.hpp"
 #include "halo2/source_tag_metadata.hpp"
@@ -276,6 +277,7 @@ struct MultiplayerAudio::State {
   std::vector<std::shared_ptr<ScriptVoiceRecord>> script_retirements;
   std::vector<std::shared_ptr<SourceScriptSoundClockNative64Tu15>> script_clocks;
   std::optional<MccSoundVariationProvider> native_metadata;
+  std::optional<MccSoundMetadataPublication> loop_metadata;
   unsigned play_depth=0,completion_depth=0,operation_depth=0,object_loop_depth=0;
   std::weak_ptr<Core> self;
   const std::thread::id executor=std::this_thread::get_id();
@@ -391,10 +393,14 @@ struct MultiplayerAudio::State {
   void destroy_voice(const Voice&voice){
     if(voice.playback)platform.destroy_voice(*voice.playback);else platform.destroy_voice(voice.id);
   }
-  void metadata_current()const{if(native_metadata)native_metadata->require_current(cache);}
+  void metadata_current()const{
+    if(native_metadata)native_metadata->require_current(cache);
+    else if(loop_metadata)loop_metadata->require_owner(cache_owner);
+  }
   SoundVariationDefinition definition(std::uint32_t sound,unsigned pitch=0)const{
-    return native_metadata?native_metadata->load(cache,TagHandle{sound},pitch):
-        cache.load_sound_variation(sound,pitch);
+    if(native_metadata)return native_metadata->load(cache,TagHandle{sound},pitch);
+    if(loop_metadata)return loop_metadata->load(cache,TagHandle{sound},pitch);
+    return cache.load_sound_variation(sound,pitch);
   }
   void drain_script_cancellations(){
     merge_script_cancellations();
@@ -737,7 +743,22 @@ void MultiplayerAudio::bind_native_sound_metadata(const MccSoundVariationProvide
   // Allocate before invalidating old clocks or changing cached definitions.
   const auto provider=input;auto epoch=std::make_shared<ScriptAudioEpoch>();
   state->close_script_bindings();state->banks.clear();
-  state->native_metadata=provider;state->script_epoch=std::move(epoch);state->script_bound.store(true);
+  state->native_metadata=provider;state->loop_metadata.reset();state->script_epoch=std::move(epoch);state->script_bound.store(true);
+}
+void MultiplayerAudio::bind_native_loop_metadata(const MccSoundMetadataPublication &input){
+  auto state=state_->core;State::Core::Mutation mutation(*state);state->script_producer();state->script_thread();
+  input.require_owner(state->cache_owner);
+  using Status=MultiplayerPreparedScriptImpulseTu15::Impl::Status;
+  if(state->closing || state->play_depth || state->completion_depth ||
+     !state->voices.empty() || !state->ambience.empty() || !state->object_loops.empty() ||
+     !state->phased_loops.owners.empty() || !state->phased_loops.synchronization.empty() || !state->retired.empty() ||
+     !state->script_retirements.empty() ||
+     std::ranges::any_of(state->script_preparations,[](const auto &p){return p->status.load()!=Status::Consumed;}))
+    throw FormatError("Immutable native loop metadata binding requires quiescent Audio");
+  const auto publication=input;auto epoch=std::make_shared<ScriptAudioEpoch>();
+  state->close_script_bindings();state->banks.clear();
+  state->native_metadata.reset();state->loop_metadata=publication;
+  state->script_epoch=std::move(epoch);state->script_bound.store(true);
 }
 void MultiplayerAudio::prepare(std::uint32_t sound){auto state=state_->core;State::Core::Mutation mutation(*state);state->script_producer();if(sound!=none && state->classic_sound(sound))(void)state->bank(sound);}
 namespace {
@@ -842,7 +863,7 @@ void MultiplayerAudio::loop_packet_fade(const VoiceReceipt& receipt,float second
 void MultiplayerAudio::object_loop_request(const SourceLoopSoundRequestTu15& input) {
   const auto state=state_->core;State::Core::Mutation mutation(*state);state->metadata_current();
   State::Core::Phase phase(state->object_loop_depth);
-  if(state->cache.is_mcc() && !state->native_metadata)
+  if(state->cache.is_mcc() && !state->native_metadata && !state->loop_metadata)
     throw FormatError("Object loop policy requires its actual converted native metadata owner");
   const auto& args=input.arguments;
   if(args[0]==none)return;
@@ -1481,6 +1502,7 @@ struct MultiplayerAudio::ContinuationSnapshot {
     std::array<float,sound_class_count> class_gain{};
     float master{};std::uint64_t next_packet{};bool paused{},script_bound{};
     std::optional<MccSoundVariationProvider> native_metadata;
+    std::optional<MccSoundMetadataPublication> loop_metadata;
     std::shared_ptr<ScriptAudioEpoch> script_epoch;
     decltype(Core::script_preparations) preparations;
     decltype(Core::script_closers) closers;
@@ -1714,7 +1736,7 @@ MultiplayerAudio::Checkpoint MultiplayerAudio::checkpoint()const{
   for(const auto&p:c->script_preparations)image->preparations.push_back({p,p->status.load(),p->clock,p->admission,p->sound,p->selection});
   auto&v=image->values;v.banks=c->banks;v.voices=c->voices;v.ambience=c->ambience;v.object_loops=c->object_loops;v.phased_loops=c->phased_loops;v.retired=c->retired;
   v.listeners=c->listeners;v.random=c->random;v.class_gain=c->class_gain;v.master=c->master;v.next_packet=c->next_packet;
-  v.paused=c->paused;v.script_bound=c->script_bound.load();v.native_metadata=c->native_metadata;v.script_epoch=c->script_epoch;
+  v.paused=c->paused;v.script_bound=c->script_bound.load();v.native_metadata=c->native_metadata;v.loop_metadata=c->loop_metadata;v.script_epoch=c->script_epoch;
   v.clocks=c->script_clocks;
   v.retirements=c->script_retirements;
   image->platform=c->platform.checkpoint();
@@ -1783,6 +1805,12 @@ MultiplayerAudio::PreparedReplacement MultiplayerAudio::prepare_restore(const Ch
   if(target)target_metadata=MccSoundVariationProvider::binding_provider(*target,source->cache);
   else if(source->values.native_metadata || c->native_metadata)
     throw FormatError("Native Audio replacement requires its genuine target metadata binding");
+  if(!target) {
+    if(bool(source->values.loop_metadata)!=bool(c->loop_metadata) ||
+        (c->loop_metadata && !c->loop_metadata->same_owner(*source->values.loop_metadata)))
+      throw FormatError("Native Audio replacement changed its immutable sound publication owner");
+    if(source->values.loop_metadata)source->values.loop_metadata->require_owner(source->cache);
+  }
   if(source->auxiliary!=c->shared_variation_random ||
       (source->auxiliary && (!auxiliary || !source->auxiliary_value ||
         !auxiliary->ready(source->auxiliary,*source->auxiliary_value))) ||
@@ -1807,6 +1835,7 @@ MultiplayerAudio::PreparedReplacement MultiplayerAudio::prepare_restore(const Ch
       bank.definition=std::move(definition);
     }
     out->values.native_metadata=std::move(target_metadata);
+    out->values.loop_metadata.reset();
   }
   out->values.cancellation=std::make_shared<ScriptCancellationDomain>(ScriptCancellationDomain::Life::Prospective);
   out->values.preparations.clear();out->values.closers.clear();out->values.retirements.clear();
@@ -1988,7 +2017,7 @@ bool MultiplayerAudio::commit(PreparedReplacement&p,HeldPublication&h)noexcept{
   c->banks.swap(v.banks);c->voices.swap(v.voices);c->ambience.swap(v.ambience);c->object_loops.swap(v.object_loops);std::swap(c->phased_loops,v.phased_loops);c->retired.swap(v.retired);
   c->listeners.swap(v.listeners);std::swap(c->random.seed,v.random.seed);c->random.stores.swap(v.random.stores);
   std::swap(c->class_gain,v.class_gain);std::swap(c->master,v.master);std::swap(c->next_packet,v.next_packet);
-  std::swap(c->paused,v.paused);c->native_metadata.swap(v.native_metadata);c->script_epoch.swap(v.script_epoch);
+  std::swap(c->paused,v.paused);c->native_metadata.swap(v.native_metadata);c->loop_metadata.swap(v.loop_metadata);c->script_epoch.swap(v.script_epoch);
   c->script_preparations.swap(v.preparations);c->script_closers.swap(v.closers);c->script_retirements.swap(v.retirements);
   c->script_clocks.swap(v.clocks);v.script_bound=c->script_bound.exchange(v.script_bound);
   c->cancellation->life.store(ScriptCancellationDomain::Life::Retired);

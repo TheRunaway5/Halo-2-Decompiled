@@ -67,6 +67,16 @@ for name in ''' + repr(REQUIRED) + ''':
 (root/'assets/mcc-source.tsv').write_text('H2_MCC_ASSET_SOURCE_V1\\ncache\\tassets/imported/mcc-fixture\\n')
 ''')
     (tools / 'native_gameplay_test.py').write_text('raise SystemExit(1) # No synthetic gameplay/frontend admission.\n')
+    # Admission is a controlled child status in this storage/argv fixture.
+    # Real Vulkan package bytes and rejection cases have their own tests.
+    # It must also remain read-only while the application is sealed.
+    (tools / 'native_renderer_shaders.py').write_text('''import pathlib,sys
+resources=pathlib.Path(__file__).resolve().parents[1]
+assert '--verify-aot-package' in sys.argv and '--quiet' in sys.argv
+assert pathlib.Path(sys.argv[sys.argv.index('--directory')+1]) == resources/'shaders'
+assert pathlib.Path(sys.argv[sys.argv.index('--executable')+1]) == resources.parent/'MacOS/halo2_native'
+raise SystemExit(0)
+''')
     (tools / 'launcher_ui.py').write_text('''import json,pathlib,sys
 root=pathlib.Path(sys.argv[sys.argv.index('--root')+1])
 (root/'home-call.json').write_text(json.dumps(sys.argv[1:]))

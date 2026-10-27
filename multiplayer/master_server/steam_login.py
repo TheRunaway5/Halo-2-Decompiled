@@ -315,7 +315,7 @@ class SteamLogin:
                 # A public alias is allocated at first login, before any play.
                 # Actual history, customization and EOS bindings still block
                 # adoption through their own player foreign keys below.
-                if table in ("player_profiles", "player_identities", "history_players"):
+                if table in ("player_profiles", "player_identities", "history_players", "player_friend_tags", "friend_cloud_outbox"):
                     continue
                 quoted = '"' + table.replace('"', '""') + '"'
                 for fk in self.db.execute("PRAGMA foreign_key_list(" + quoted + ")").fetchall():
@@ -328,6 +328,8 @@ class SteamLogin:
             if discord:
                 target = discord[0]
                 if old:
+                    self.db.execute("DELETE FROM friend_cloud_outbox WHERE player=?", (old,))
+                    self.db.execute("DELETE FROM player_friend_tags WHERE player=?", (old,))
                     self.db.execute("DELETE FROM history_players WHERE player=?", (old,))
                     self.db.execute("DELETE FROM player_identities WHERE player=?", (old,))
                     self.db.execute("DELETE FROM player_profiles WHERE player=?", (old,))
@@ -343,6 +345,8 @@ class SteamLogin:
                 self.db.execute("UPDATE player_profiles SET discord_username='' WHERE discord_username=? AND player!=?", (social.username,target))
                 self.db.execute("UPDATE player_profiles SET discord_username=? WHERE player=?", (social.username,target))
                 self.db.execute("INSERT INTO player_identities VALUES('discord',?,?)", (social.subject,target))
+            from .friend_tags import assign
+            assign(self.db,target)
         if old and discord:
             self.directory.clans.sessions = {k: s for k, s in self.directory.clans.sessions.items() if s.player != old}
         self.directory.voice_blocks.subjects.clear()

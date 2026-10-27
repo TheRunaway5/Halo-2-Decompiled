@@ -1,5 +1,6 @@
 """Exercise automatic configuration and stale-cache recovery with real CMake."""
 from pathlib import Path
+import os
 import shutil
 import sys
 import tempfile
@@ -7,7 +8,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from build_runtime import build_runtime
+from build_runtime import build_runtime, main
 
 
 @unittest.skipUnless(shutil.which("cmake") and shutil.which("ninja"), "CMake and Ninja required")
@@ -32,7 +33,7 @@ class RuntimeBuildTests(unittest.TestCase):
         )
 
     def run_build(self):
-        build_runtime(self.root, progress=self.messages.append)
+        build_runtime(self.root, progress=self.messages.append, platform="linux")
 
     def test_fresh_checkout_configures_and_builds_both_launchers(self):
         self.run_build()
@@ -108,11 +109,51 @@ class RuntimeBuildTests(unittest.TestCase):
         self.assertTrue((self.root / "build/keep-me").is_file())
         self.assertFalse((self.root / "build.previous").exists())
 
+    def test_default_profile_builds_both_platforms_and_packages_windows(self):
+        (self.root / "tools/windows").mkdir(parents=True)
+        (self.root / "cmake/windows").mkdir(parents=True)
+        (self.root / "cmake/windows/MinGW.cmake").write_text("# fixture toolchain\n")
+        (self.root / "tools/windows/prepare_sdk.py").write_text(
+            "import pathlib, sys\npathlib.Path(sys.argv[sys.argv.index('--sdk')+1]).mkdir(parents=True, exist_ok=True)\n")
+        (self.root / "tools/windows/package_runtime.py").write_text(
+            "import pathlib, sys\npathlib.Path(sys.argv[sys.argv.index('--build-dir')+1], 'packaged').touch()\n")
+        # This fixture owns its complete fake project; exercise the ordinary
+        # deliverable profile even when the CTest runner itself owns scratch.
+        with patch.dict(os.environ):
+            os.environ.pop("HALO2_TEST_SCRATCH", None)
+            build_runtime(self.root, progress=self.messages.append)
+        self.assertTrue((self.root / "build/engine-compiled").is_file())
+        self.assertTrue((self.root / "build-windows/engine-compiled").is_file())
+        self.assertTrue((self.root / "build-windows/packaged").is_file())
+        self.assertIn("HALO2_BUILD_WINDOWS:UNINITIALIZED=ON", (self.root / "build/CMakeCache.txt").read_text())
+        self.assertIn("HALO2_STAGE_BUILD_OUTPUT:UNINITIALIZED=ON", (self.root / "build/CMakeCache.txt").read_text())
+        windows_cache = (self.root / "build-windows/CMakeCache.txt").read_text()
+        self.assertIn("cmake/windows/MinGW.cmake", windows_cache)
+        self.assertIn("HALO2_BUILD_WINDOWS:UNINITIALIZED=OFF", windows_cache)
+        self.assertIn("HALO2_STAGE_BUILD_OUTPUT:UNINITIALIZED=ON", windows_cache)
+
+    def test_scratch_configuration_excludes_companion_even_with_cached_option_on(self):
+        module = Path(__file__).resolve().parents[1] / "cmake/windows/DualBuild.cmake"
+        with (self.root / "CMakeLists.txt").open("a") as stream:
+            stream.write('set(HALO2_BUILD_WINDOWS ON CACHE BOOL "fixture" FORCE)\n')
+            stream.write(f'include("{module.as_posix()}")\n')
+            stream.write('if(TARGET halo2_windows)\nmessage(FATAL_ERROR "scratch companion escaped")\nendif()\n')
+        with patch.dict(os.environ, {"HALO2_TEST_SCRATCH": str(self.root)}):
+            self.run_build()
+        self.assertTrue((self.root / "build/engine-compiled").is_file())
+
+    def test_cached_companion_skips_writes_when_run_under_test_scratch(self):
+        with patch.dict(os.environ, {"HALO2_TEST_SCRATCH": str(self.root)}), patch("sys.argv", [
+                "build_runtime.py", "--root", str(self.root), "--platform", "windows", "--no-gui", "--companion"]):
+            self.assertEqual(main(), 0)
+        self.assertFalse((self.root / "build").exists())
+        self.assertFalse((self.root / ".tools").exists())
+
     def test_source_directory_cannot_be_replaced_by_a_build(self):
         for directory in (self.root, self.root.parent):
             with self.subTest(directory=directory):
                 with self.assertRaisesRegex(RuntimeError, "separate build directory"):
-                    build_runtime(self.root, directory, self.messages.append)
+                    build_runtime(self.root, directory, self.messages.append, platform="linux")
                 self.assertTrue((self.root / "CMakeLists.txt").is_file())
 
 

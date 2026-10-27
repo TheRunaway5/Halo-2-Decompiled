@@ -43,7 +43,8 @@ public:
     // Actual camera/frustum/collector inputs before ordinary main collection.
     // Does not run40E80, request effects or produce particle commands.
     void prepare_view(PhysicsLiveWorldTu15 &,const SourcePortalVisibilitySet &,
-        const MuzzleEffectView &,unsigned local_view,float projection_angle,float lighting_scale);
+        const MuzzleEffectView &,unsigned local_view,float projection_angle,float lighting_scale,
+        std::optional<std::int32_t> actual_local_user = {});
     std::vector<ParticleDraw> draw(PhysicsLiveWorldTu15 &,
         const SourcePortalVisibilitySet &,const MuzzleEffectView &,
         unsigned local_view,float projection_angle,float lighting_scale,

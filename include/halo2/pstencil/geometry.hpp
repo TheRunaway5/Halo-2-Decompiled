@@ -13,7 +13,11 @@ static_assert(sizeof(ShadowVertex)==20);
 // adapter executes the authored program's actual position/skin prefix. It
 // neither chooses a pose nor welds unrelated source vertices.
 std::vector<Vec3> world_positions(const MenuWorldSourceBinding&);
+// Offline arithmetic-reference boundary reconstruction; test-only linkage.
 VertexProgram position_prefix(const VertexProgram&);
+// Complete source identity selects a fixed AOT C++ prefix function. This is
+// the production CPU-side position conduit; it never executes program words.
+void execute_native_position_prefix(const VertexProgram&,VertexProgramState&);
 // Current raw geometry lowered to the existing world-class material conduit.
 // Basis skinning retains the same descending influence/rounded arithmetic as
 // the source model renderer, with the source program's exact posed positions.

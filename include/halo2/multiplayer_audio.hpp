@@ -12,6 +12,7 @@
 
 namespace halo2 {
 class MccSoundVariationProvider;
+class MccSoundMetadataPublication;
 class MccScriptSoundWorldAccess;
 class NativeVistaAnnouncer;
 class NativeUnitDamageAudio;
@@ -227,6 +228,9 @@ public:
   // callers create a fresh clock afterward. Stop Audio before World restore.
   // The raw Cache continues to own DAT/PCM. A stale provider never falls back.
   void bind_native_sound_metadata(const MccSoundVariationProvider&);
+  // Joined clients own converted immutable PCM metadata without a local
+  // World. This quiescent binding grants no script or native timing lease.
+  void bind_native_loop_metadata(const MccSoundMetadataPublication&);
   void prepare(std::uint32_t sound);
   void first_person(unsigned view,const FirstPersonViewBinding &,
                     const FirstPersonAnimationEvent &);

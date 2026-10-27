@@ -5,6 +5,12 @@ namespace halo2 {
 namespace {
 constexpr unsigned friend_context=43;
 constexpr unsigned activity_context=44;
+constexpr unsigned search_context=46;
+bool party_join_blocked(OnlineMatchmakingStatus status) {
+  return status==OnlineMatchmakingStatus::Joining || status==OnlineMatchmakingStatus::Searching ||
+      status==OnlineMatchmakingStatus::CheckingConnections || status==OnlineMatchmakingStatus::AwaitingTransport ||
+      status==OnlineMatchmakingStatus::Loading;
+}
 const char *presence(DiscordFriendPresence value) {
   switch(value) {
   case DiscordFriendPresence::Playing:return "Playing Halo 2";
@@ -22,9 +28,103 @@ void MenuState::set_discord_social(std::shared_ptr<DiscordFriends> social) {
 }
 bool MenuState::online_friends_screen(const MenuFrame &f) const {
   return (f.screen==26 && f.context==0) || ((f.screen==216 || f.screen==31) && f.context==friend_context) ||
-      (f.screen==31 && f.context==activity_context);
+      (f.screen==31 && (f.context==activity_context || f.context==search_context));
+}
+bool MenuState::native_friends() const {
+  return account_.friends_available || (discord_login_ && discord_login_->uses_steam());
+}
+bool MenuState::online_friends_available() const {
+  return online_identity().has_value() &&
+      ((account_.authenticated && account_.friends_available) ||
+       (friends_.available && friends_.enabled && friends_.ready));
+}
+void MenuState::update_online_friend_join() {
+  if(!friend_join_serial_)return;
+  if(!account_.authenticated || frame().screen!=31 || frame().context!=friend_context ||
+     account_.party_command_serial!=friend_join_serial_) {friend_join_serial_=0;return;}
+  if(account_.busy || !account_.party_command_successful.has_value())return;
+  const bool accepted=account_.party_command_successful==true && account_.party.has_value();
+  friend_join_serial_=0;
+  if(!accepted)unavailable(account_.party_message.empty()?"The party join was not accepted. Refresh Friends and try again.":account_.party_message);
+}
+void MenuState::populate_native_friends(MenuFrame &f) const {
+  f.title=f.screen==26?"ONLINE":f.screen==31?"FRIEND OPTIONS":"FRIENDS OPTIONS";
+  f.description=account_.friend_tag.empty()?account_.friends_message:"Your friend tag: "+account_.friend_tag;
+  if(!account_.friends_message.empty() && !account_.friend_tag.empty())f.description+="\n"+account_.friends_message;
+  if(f.screen==26 || f.screen==216) {
+    f.entries.push_back({"Find Player by Friend Tag",167,11});
+    for(unsigned i=0;i<account_.friends.size();++i) {
+      const auto &row=account_.friends[i];
+      if((row.state=="blocked")!=(f.screen==216))continue;
+      f.entries.push_back({(row.state=="incoming"?"Request: ":row.state=="outgoing"?"Pending: ":row.state=="blocked"?"Blocked: ":"")+row.name,31,int(i)});
+    }
+    if(f.screen==26 && f.entries.size()==1)f.entries.push_back({account_.friends_available?"No friends added yet":"Friends are unavailable",-82,0});
+    if(f.screen==216){f.entries.push_back({"Party Members",26,2});f.entries.push_back({"Back",-5,0});}
+    return;
+  }
+  const OnlineFriend *row=nullptr;
+  if(f.context==search_context && account_.friend_search)row=&*account_.friend_search;
+  else for(const auto &r:account_.friends)if(r.id==friend_target_){row=&r;break;}
+  if(row) {
+    f.description=row->tag+"\n"+(row->presence=="playing"?"Playing Halo 2":row->presence=="online"?"ONLINE":"Offline");
+    if(!account_.friends_message.empty())f.description+="\n"+account_.friends_message;
+    const auto relation=std::find_if(account_.friends.begin(),account_.friends.end(),[&](const auto &r){return r.id==row->id;});
+    const auto state=relation==account_.friends.end()?std::string{}:relation->state;
+    if(state.empty())f.entries.push_back({"Send Friend Request",-83,0});
+    if(state=="incoming"){f.entries.push_back({"Accept Friend Request",-83,1});f.entries.push_back({"Decline Friend Request",-83,2});}
+    if(state=="outgoing")f.entries.push_back({"Cancel Friend Request",-83,3});
+    if(state=="friend") {
+      if(account_.party && account_.party->leader)f.entries.push_back({"Invite To Party",-83,7});
+      // Original2B55AE/19A250: this game-owned friend list supplies same-title
+      // identity and observed online/joinable state. Do not offer joining in
+      // the source joining/search/transfer interval or with an accepted party
+      // that has not completed its existing explicit Leave action.
+      if(f.context==friend_context && !account_.busy && !account_.party && !launch && !party_join_blocked(matchmaking_.status) &&
+         row->presence!="offline" && row->party_joinable==true && !row->party_context.empty())
+        f.entries.push_back({"Join Party",-83,8}); // Actual31 UNIC,0A0002A8.
+      f.entries.push_back({"Remove Friend",-83,4});
+    }
+    f.entries.push_back({state=="blocked"?"Unblock Player":"Block Player",-83,state=="blocked"?6:5});
+  }
+  f.entries.push_back({"Back",-5,0});
+}
+bool MenuState::accept_native_friends() {
+  const auto f=frame();if(f.entries.empty() || f.selected>=f.entries.size())return true;
+  const auto entry=f.entries[f.selected];
+  if(entry.destination==167){keyboard_text.clear();open(167,11);return true;}
+  if(entry.destination==-5){back();return true;}
+  if(entry.destination==26){open(26,unsigned(entry.value));return true;}
+  if(entry.destination==31) {
+    const auto i=unsigned(entry.value);if(i>=account_.friends.size())return true;
+    friend_target_=account_.friends[i].id;open(31,friend_context);return true;
+  }
+  if(entry.destination!=-83 || !online_account_ || account_.busy)return true;
+  const auto target=f.context==search_context && account_.friend_search?account_.friend_search->id:friend_target_;
+  if(target.empty())return true;
+  if(entry.value==7){party_command({"invite_friend",target});return true;}
+  if(entry.value==8) {
+    const auto row=std::find_if(account_.friends.begin(),account_.friends.end(),[&](const auto &friend_){return friend_.id==target;});
+    if(f.context==friend_context && row!=account_.friends.end() && !account_.party && !launch &&
+       !party_join_blocked(matchmaking_.status) && row->presence!="offline" && row->party_joinable==true) {
+      OnlinePartyCommand command;command.action="join_friend";command.value=target;command.join_context=row->party_context;
+      if(online_account_->party_command(std::move(command))) {
+        // update_online_account's existing joined_party observer opens14 only
+        // after the real accepted membership arrives, including typed reply
+        // validation of the selected target context. Failure stays here.
+        friend_join_serial_=online_account_->snapshot().party_command_serial;
+        update_online_account();++revision;
+      } else unavailable("Refresh Friends before joining this party.");
+    }
+    return true;
+  }
+  constexpr const char *actions[]{"request","accept","decline","cancel","remove","block","unblock"};
+  if(entry.value>=0 && entry.value<=6 && online_account_->friend_command(actions[entry.value],target)) {
+    back();update_online_account();++revision;
+  }
+  return true;
 }
 void MenuState::populate_online_friends(MenuFrame &f) const {
+  if(native_friends() && f.context!=activity_context){populate_native_friends(f);return;}
   f.title=f.screen==26?"ONLINE":f.screen==31?"FRIEND OPTIONS":"FRIENDS OPTIONS";
   f.description=friends_.message;
   const std::string enable=discord_login_ && discord_login_->uses_steam()?"Link Discord Friends":"Enable Discord Friends";
@@ -77,6 +177,7 @@ void MenuState::populate_online_friends(MenuFrame &f) const {
 void MenuState::update_online_friends() {
   if(!discord_social_)return;
   discord_social_->presence(profile_name(),false);discord_social_->pump();
+  if(native_friends())return;
   const auto value=discord_social_->snapshot();
   if(value.revision==friends_.revision)return;
   const auto previous_friends=std::move(friends_);friends_=value;
@@ -107,6 +208,7 @@ void MenuState::update_online_friends() {
 }
 bool MenuState::accept_online_friends() {
   const auto f=frame();if(!online_friends_screen(f))return false;
+  if(native_friends() && f.context!=activity_context)return accept_native_friends();
   if(f.entries.empty() || f.selected>=f.entries.size())return true;
   const auto entry=f.entries[f.selected];
   if(entry.destination==-5){back();return true;}
@@ -146,6 +248,17 @@ bool MenuState::accept_online_friends() {
   update_online_friends();return true;
 }
 std::string MenuState::online_friends_text(const MenuFrame &f,unsigned index) const {
+  if(native_friends() && f.context!=activity_context) {
+    if(f.screen==26) {
+      const auto &s=content_.screens.at(26);const auto &pane=s.panes.at(0);
+      if(index==0 || index==1 || index==3)return content_.localized(s,pane.texts.at(index).string);
+      return index==2?(account_.friend_tag.empty()?"Halo friends":account_.friend_tag):"";
+    }
+    const OnlineFriend *row=nullptr;
+    if(f.context==search_context && account_.friend_search)row=&*account_.friend_search;
+    else for(const auto &r:account_.friends)if(r.id==friend_target_){row=&r;break;}
+    return row?(index==0?row->name:index==1?row->tag:""):index==0?account_.friends_message:"";
+  }
   if(f.screen==26) {
     const auto &s=content_.screens.at(26);const auto &pane=s.panes.at(0);
     if(index==0 || index==1 || index==3)return content_.localized(s,pane.texts.at(index).string);
@@ -167,6 +280,11 @@ std::string MenuState::online_friends_text(const MenuFrame &f,unsigned index) co
 }
 std::string MenuState::online_friends_column(const MenuFrame &f,unsigned row,unsigned column) const {
   if(f.screen!=26 || row>=f.entries.size() || f.entries[row].destination!=31 || column!=1)return {};
+  if(native_friends()) {
+    const auto i=unsigned(f.entries[row].value);if(i>=account_.friends.size())return {};
+    const auto &r=account_.friends[i];
+    return r.state=="incoming"?"Friend request":r.state=="outgoing"?"Pending":r.presence=="playing"?"Playing Halo 2":r.presence=="online"?"ONLINE":"Offline";
+  }
   const auto index=unsigned(f.entries[row].value);
   if(f.entries[row].value<0) {
     const auto invitation=unsigned(-f.entries[row].value-1);

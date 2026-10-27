@@ -250,7 +250,7 @@ int main(int argc,char **argv) {
         report["stage"]="admit the complete actual campaign state over loopback UDP";
         const auto fingerprint=multiplayer_fingerprint(options.map,world.cache->shared_directory(),options.bsp,world.network_starting_weapon_identity(),options.gameplay_xbe);
         LanHost host(world.match,0,fingerprint,options.variant);
-        LanClient peer("127.0.0.1:"+std::to_string(host.port()),fingerprint,1);
+        LanClient peer(host.join_address(),fingerprint,1);
         for(unsigned attempt=0;attempt<64 && !peer.ready();++attempt) {
             peer.send(std::span(controls).first(1));host.receive(controls);host.broadcast();peer.receive();
             if(!peer.ready())std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -307,7 +307,7 @@ int main(int argc,char **argv) {
         auto client_options=options;client_options.source_object_world=false;
         client_options.source_object_savegame_directory.clear();client_options.native_spawn_inputs.clear();
         client_options.campaign_spawn_input={};client_options.local_players=1;
-        client_options.join="127.0.0.1:"+std::to_string(host.port());
+        client_options.join=host.join_address();
         MultiplayerPreparedWorld client(client_options);
         client.match.replicate_devices(received.devices);
         client.match.replicate_source_scene(received.source_scene_roots,received.source_body_poses);

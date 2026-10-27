@@ -1,0 +1,842 @@
+{
+  "schema": "H2_MCC_BITMAP_DELTA_V7",
+  "profiles": [
+    {
+      "profile_id": "819b608178deb8ddbf1489679d1e3cfd5819074b295c33672f1f2fbd1f82cd18",
+      "profile": {
+        "tag": "scenarios\\skies\\multi\\halo\\coagulation\\bitmaps\\coag_moon2",
+        "encoding": "bc3",
+        "format": 16,
+        "width": 128,
+        "height": 128,
+        "mip_count": 6,
+        "pixel_bytes": 21840,
+        "registration": [
+          64,
+          64
+        ],
+        "donor_encoding": "rgba8",
+        "donor_format": 11,
+        "donor_width": 256,
+        "donor_height": 256,
+        "donor_mip_count": 9,
+        "donor_pixel_bytes": 349524,
+        "donor_registration": [
+          128,
+          128
+        ],
+        "donor_sha256": "d74ddaac62583669c1397b980c91245e9a7d0218e47a38bb0c5ae1a9a7d59fd6",
+        "target_sha256": "4a87c20160e2f5f5a75f727d56a74a8c42f4cad0a132dc55aed6407d301f9902"
+      },
+      "mips": [
+        {
+          "depth": 1,
+          "height": 128,
+          "offset": 0,
+          "size": 16384,
+          "width": 128
+        },
+        {
+          "depth": 1,
+          "height": 64,
+          "offset": 16384,
+          "size": 4096,
+          "width": 64
+        },
+        {
+          "depth": 1,
+          "height": 32,
+          "offset": 20480,
+          "size": 1024,
+          "width": 32
+        },
+        {
+          "depth": 1,
+          "height": 16,
+          "offset": 21504,
+          "size": 256,
+          "width": 16
+        },
+        {
+          "depth": 1,
+          "height": 8,
+          "offset": 21760,
+          "size": 64,
+          "width": 8
+        },
+        {
+          "depth": 1,
+          "height": 4,
+          "offset": 21824,
+          "size": 16,
+          "width": 4
+        }
+      ],
+      "donor_mips": [
+        {
+          "depth": 1,
+          "height": 256,
+          "offset": 0,
+          "size": 262144,
+          "width": 256
+        },
+        {
+          "depth": 1,
+          "height": 128,
+          "offset": 262144,
+          "size": 65536,
+          "width": 128
+        },
+        {
+          "depth": 1,
+          "height": 64,
+          "offset": 327680,
+          "size": 16384,
+          "width": 64
+        },
+        {
+          "depth": 1,
+          "height": 32,
+          "offset": 344064,
+          "size": 4096,
+          "width": 32
+        },
+        {
+          "depth": 1,
+          "height": 16,
+          "offset": 348160,
+          "size": 1024,
+          "width": 16
+        },
+        {
+          "depth": 1,
+          "height": 8,
+          "offset": 349184,
+          "size": 256,
+          "width": 8
+        },
+        {
+          "depth": 1,
+          "height": 4,
+          "offset": 349440,
+          "size": 64,
+          "width": 4
+        },
+        {
+          "depth": 1,
+          "height": 2,
+          "offset": 349504,
+          "size": 16,
+          "width": 2
+        },
+        {
+          "depth": 1,
+          "height": 1,
+          "offset": 349520,
+          "size": 4,
+          "width": 1
+        }
+      ],
+      "target_mip_sha256": [
+        "182fa1f9be0971851ea0abbf2371c5fbc5d3bd2dc58a4725cd766a04ff4e01d5",
+        "ba4ab65cafa851a8e74af66f7cc1f8475e1f3ffda7a4b7b2315e9027a942a38e",
+        "ca77f406400b157accbad341da7089192ef22987da08dd7ab2f312f5da57a708",
+        "9c11d04b1bf788bd46bad84d4d30407d36d82136252fba6b0331a44271ee3263",
+        "20c9d645d0b4e4f15da298210878dab8e0aca94436186881cb6c0c1dd626e686",
+        "4fe9feec60cc9874b8ccd80ca6ed54df4e5ac40be4ad59afb30f26393e4fd126"
+      ],
+      "donor_mip_sha256": [
+        "41cd73dab7bc144ef74f440e0fe88d1cb80fc9248eeb52c561dd3221e9070d5b",
+        "d440354f7beaaf19c795f4503b24d109cdc9299a7bb8f2c92a9a7f3be77af20f",
+        "e34acf36a2b35cf7e5d7000a29b324791d7813abfa27f13523cd82b7f8a8fda5",
+        "af0bb7e40b87e524ed78e1b58de4e752289eae448032c5d1f1212e0d7e1acce6",
+        "2c1fadfbb7efb08f32a485ee4fb819d5abec65862df0606228e7d71cf0351077",
+        "988492b2b299615ea2c04d3e7a79f940c38d782e2bd9709bb9788354f955cdbd",
+        "6b3b3265b5d31a0be0694a4ceb975ddfcc34c5d01372ac600163ea364135ecc5",
+        "f1329253666aefa105aa0706dad3c40ac537ceb463bd99796eb658845589f594",
+        "821e3ee1e9dd5aa8fd15a3588a8d046b75abf3154ac6b46d17590a4f3e26e0c3"
+      ],
+      "base_offset": 0,
+      "base_bytes": 21840,
+      "base_sha256": "9fcca9d6e6e5f1d8d9efc0f556fb3513d3423e263bc2d3ed491b02ff58a97d8e",
+      "delta_offset": 0,
+      "delta_bytes": 15226,
+      "delta_sha256": "d7f2d88d8c25cc0b19e639f75705e2f7befc2d5514877e2c1ddee8223ab18af9"
+    },
+    {
+      "profile_id": "bdec9c60293db59fa4f0e4e157fa073753afa347eb229c6c256fd4a6de8d8b84",
+      "profile": {
+        "tag": "scenarios\\skies\\solo\\alphamoon\\bitmaps\\ring_shard",
+        "encoding": "bc3",
+        "format": 16,
+        "width": 512,
+        "height": 512,
+        "mip_count": 8,
+        "pixel_bytes": 349520,
+        "registration": [
+          256,
+          256
+        ],
+        "donor_encoding": "rgba8",
+        "donor_format": 11,
+        "donor_width": 1024,
+        "donor_height": 1024,
+        "donor_mip_count": 11,
+        "donor_pixel_bytes": 5592404,
+        "donor_registration": [
+          512,
+          512
+        ],
+        "donor_sha256": "d0397a23221e48c6ae9ebe068d58a8b1df4340d0469907476448d36992d7b992",
+        "target_sha256": "d22b373282f7716acaae8fe00993da0e29a9bc70dacb80f513de10030523616e"
+      },
+      "mips": [
+        {
+          "depth": 1,
+          "height": 512,
+          "offset": 0,
+          "size": 262144,
+          "width": 512
+        },
+        {
+          "depth": 1,
+          "height": 256,
+          "offset": 262144,
+          "size": 65536,
+          "width": 256
+        },
+        {
+          "depth": 1,
+          "height": 128,
+          "offset": 327680,
+          "size": 16384,
+          "width": 128
+        },
+        {
+          "depth": 1,
+          "height": 64,
+          "offset": 344064,
+          "size": 4096,
+          "width": 64
+        },
+        {
+          "depth": 1,
+          "height": 32,
+          "offset": 348160,
+          "size": 1024,
+          "width": 32
+        },
+        {
+          "depth": 1,
+          "height": 16,
+          "offset": 349184,
+          "size": 256,
+          "width": 16
+        },
+        {
+          "depth": 1,
+          "height": 8,
+          "offset": 349440,
+          "size": 64,
+          "width": 8
+        },
+        {
+          "depth": 1,
+          "height": 4,
+          "offset": 349504,
+          "size": 16,
+          "width": 4
+        }
+      ],
+      "donor_mips": [
+        {
+          "depth": 1,
+          "height": 1024,
+          "offset": 0,
+          "size": 4194304,
+          "width": 1024
+        },
+        {
+          "depth": 1,
+          "height": 512,
+          "offset": 4194304,
+          "size": 1048576,
+          "width": 512
+        },
+        {
+          "depth": 1,
+          "height": 256,
+          "offset": 5242880,
+          "size": 262144,
+          "width": 256
+        },
+        {
+          "depth": 1,
+          "height": 128,
+          "offset": 5505024,
+          "size": 65536,
+          "width": 128
+        },
+        {
+          "depth": 1,
+          "height": 64,
+          "offset": 5570560,
+          "size": 16384,
+          "width": 64
+        },
+        {
+          "depth": 1,
+          "height": 32,
+          "offset": 5586944,
+          "size": 4096,
+          "width": 32
+        },
+        {
+          "depth": 1,
+          "height": 16,
+          "offset": 5591040,
+          "size": 1024,
+          "width": 16
+        },
+        {
+          "depth": 1,
+          "height": 8,
+          "offset": 5592064,
+          "size": 256,
+          "width": 8
+        },
+        {
+          "depth": 1,
+          "height": 4,
+          "offset": 5592320,
+          "size": 64,
+          "width": 4
+        },
+        {
+          "depth": 1,
+          "height": 2,
+          "offset": 5592384,
+          "size": 16,
+          "width": 2
+        },
+        {
+          "depth": 1,
+          "height": 1,
+          "offset": 5592400,
+          "size": 4,
+          "width": 1
+        }
+      ],
+      "target_mip_sha256": [
+        "217ba81b28c477f98634a5f6406f78e0cbc5f67bc9ec12c502f35ff608badab6",
+        "9b43a5964320268310112469ec5c50d6bae708deb585e47dca46537cee1518d6",
+        "d3a8b46326e4b2cf199c2d2a277bf36344159886aa21251054a30418334ebb3a",
+        "dbff8c8715b10a617cec5ba01945500dc54e86bada35bc75381c06e859f3dc5a",
+        "20d61b473344f27b65738c277e5c3bf9efc4daa7cbbc350904ab4d6141dfd539",
+        "a706728fc2d216988f203165e9f140e9ce1550d42efe36f00d37c84bd85394ed",
+        "d0880d68fd0ecb2b59cb5217cb583efb8434d2b14ed443270a8e6a5d1a8a438a",
+        "58c23ae0b97e0b481561bae78ab77e841d2d1279fc39d683711d38fb4599ccfb"
+      ],
+      "donor_mip_sha256": [
+        "c3d16bb0937727fd78f1e97858728b159b2317de65aa5cd65d315009d56314b3",
+        "01d0b7f17c8679ed5104440acf996e1fab0baab3c9accc686a10aff296a662f9",
+        "49621b2b5ae8337d7239c30f0d2da981f40466e0ec4650915275cb8ac7edb9cc",
+        "0b30be0a345da93e84fdc45e0047924dfabb25fa862633032de7135a0d924877",
+        "0c58fae4726c172a4f53d0957465c333c3264276cbf7af4d1093f91159bef873",
+        "42c7fc38590031ff6431eb2dd52b6811eac95ef637ac5ebd4b3f7f2602597dbe",
+        "d60e577739f1635804fb79add1a094aac0fcfeead8c6db4ec7c0f0da40cc63cf",
+        "89a43c103f0324fff14d791fe5226fb9df17782ffab357d6666e3163b75cd953",
+        "c72a18c10c861433c931f45e083524fa8d4074d5e5bef75067a266162327b195",
+        "1195f06366e51bdfb0332fe7138188774f20ea3b5f53f183719aacf83113b265",
+        "02ddfe927166509b332964231284c84ac9b337843277a69e1ee21e8350ea0a9f"
+      ],
+      "base_offset": 0,
+      "base_bytes": 349520,
+      "base_sha256": "691a09c6a2840421d62ff23944eb6bdf0bed6b0e4372792caff6da0b21817991",
+      "delta_offset": 15226,
+      "delta_bytes": 122063,
+      "delta_sha256": "fd2af0b7ee5b5e152b9ebc89ade1be3644320af43d3c6fd05e538b88a0deee0d"
+    },
+    {
+      "profile_id": "8ae36dc51f9a7157d0951022e864b987c2454a36a34236ce6c9d4641ad15244a",
+      "profile": {
+        "tag": "scenarios\\skies\\multi\\zanzibar\\bitmaps\\sky_dome",
+        "encoding": "bc1",
+        "format": 14,
+        "width": 512,
+        "height": 512,
+        "mip_count": 1,
+        "pixel_bytes": 131072,
+        "registration": [
+          256,
+          256
+        ],
+        "donor_encoding": "rgba8",
+        "donor_format": 10,
+        "donor_width": 2048,
+        "donor_height": 2048,
+        "donor_mip_count": 1,
+        "donor_pixel_bytes": 16777216,
+        "donor_registration": [
+          1024,
+          1024
+        ],
+        "donor_sha256": "32152440988eaebe185ad612922bf237d88203006b838781a07de04b9ebf5f30",
+        "target_sha256": "44423a0456444e3509378e1e7e31ae138e5440b48bd8fa28de84c928c8b60c3a"
+      },
+      "mips": [
+        {
+          "depth": 1,
+          "height": 512,
+          "offset": 0,
+          "size": 131072,
+          "width": 512
+        }
+      ],
+      "donor_mips": [
+        {
+          "depth": 1,
+          "height": 2048,
+          "offset": 0,
+          "size": 16777216,
+          "width": 2048
+        }
+      ],
+      "target_mip_sha256": [
+        "44423a0456444e3509378e1e7e31ae138e5440b48bd8fa28de84c928c8b60c3a"
+      ],
+      "donor_mip_sha256": [
+        "32152440988eaebe185ad612922bf237d88203006b838781a07de04b9ebf5f30"
+      ],
+      "base_offset": 0,
+      "base_bytes": 131072,
+      "base_sha256": "3fe4355b7943200396779e33109fc9f2b3ffe4115754e801b1eff29dda103fca",
+      "delta_offset": 137289,
+      "delta_bytes": 86684,
+      "delta_sha256": "6a56d66a8b190211d7a4d4a585741c7d3a823a5ad0546d16883619df3809c53f"
+    },
+    {
+      "profile_id": "ee16bdeb2a0abe297853fceb01b2d35aca7e7b3169f94965d74f3d879b80d20c",
+      "profile": {
+        "tag": "scenarios\\skies\\multi\\lockout\\bitmaps\\mountains_foreground",
+        "encoding": "bc3",
+        "format": 16,
+        "width": 1024,
+        "height": 256,
+        "mip_count": 1,
+        "pixel_bytes": 262144,
+        "registration": [
+          512,
+          128
+        ],
+        "donor_encoding": "rgba8",
+        "donor_format": 11,
+        "donor_width": 2048,
+        "donor_height": 512,
+        "donor_mip_count": 1,
+        "donor_pixel_bytes": 4194304,
+        "donor_registration": [
+          1024,
+          256
+        ],
+        "donor_sha256": "e59fd9ff34508a5d691ce822251b73d5abcd27777104b883056a40e9cc143817",
+        "target_sha256": "e22c952b88a699293fb1281242e5521ba091d53017f5a56a550754e77708e7e5"
+      },
+      "mips": [
+        {
+          "depth": 1,
+          "height": 256,
+          "offset": 0,
+          "size": 262144,
+          "width": 1024
+        }
+      ],
+      "donor_mips": [
+        {
+          "depth": 1,
+          "height": 512,
+          "offset": 0,
+          "size": 4194304,
+          "width": 2048
+        }
+      ],
+      "target_mip_sha256": [
+        "e22c952b88a699293fb1281242e5521ba091d53017f5a56a550754e77708e7e5"
+      ],
+      "donor_mip_sha256": [
+        "e59fd9ff34508a5d691ce822251b73d5abcd27777104b883056a40e9cc143817"
+      ],
+      "base_offset": 0,
+      "base_bytes": 262144,
+      "base_sha256": "17f871584c4f23c1c514cf85e48defd1b90ed898c937e7ae885f5ab1bfa4bf2c",
+      "delta_offset": 223973,
+      "delta_bytes": 170861,
+      "delta_sha256": "7ceff5695f47353587458bad363041c0c543589cbf65845d9348a56407b03d1c"
+    },
+    {
+      "profile_id": "48cee4e3bf7d3b95e000f89844dd4a0a735ebd298233ec96ff2d42daf0ff18e9",
+      "profile": {
+        "tag": "scenarios\\skies\\multi\\midship\\bitmaps\\earth_512_africa_midship",
+        "encoding": "bc3",
+        "format": 16,
+        "width": 512,
+        "height": 512,
+        "mip_count": 8,
+        "pixel_bytes": 349520,
+        "registration": [
+          256,
+          256
+        ],
+        "donor_encoding": "rgba8",
+        "donor_format": 11,
+        "donor_width": 1024,
+        "donor_height": 1024,
+        "donor_mip_count": 11,
+        "donor_pixel_bytes": 5592404,
+        "donor_registration": [
+          512,
+          512
+        ],
+        "donor_sha256": "3f6c69295acaab90d017eb56b726a4a879c7eeaacf30e7992ec35c2e5a5d267c",
+        "target_sha256": "51dffaa3180e25042287c795a89bb338b2b634fe6743707b286569d856bcac42"
+      },
+      "mips": [
+        {
+          "depth": 1,
+          "height": 512,
+          "offset": 0,
+          "size": 262144,
+          "width": 512
+        },
+        {
+          "depth": 1,
+          "height": 256,
+          "offset": 262144,
+          "size": 65536,
+          "width": 256
+        },
+        {
+          "depth": 1,
+          "height": 128,
+          "offset": 327680,
+          "size": 16384,
+          "width": 128
+        },
+        {
+          "depth": 1,
+          "height": 64,
+          "offset": 344064,
+          "size": 4096,
+          "width": 64
+        },
+        {
+          "depth": 1,
+          "height": 32,
+          "offset": 348160,
+          "size": 1024,
+          "width": 32
+        },
+        {
+          "depth": 1,
+          "height": 16,
+          "offset": 349184,
+          "size": 256,
+          "width": 16
+        },
+        {
+          "depth": 1,
+          "height": 8,
+          "offset": 349440,
+          "size": 64,
+          "width": 8
+        },
+        {
+          "depth": 1,
+          "height": 4,
+          "offset": 349504,
+          "size": 16,
+          "width": 4
+        }
+      ],
+      "donor_mips": [
+        {
+          "depth": 1,
+          "height": 1024,
+          "offset": 0,
+          "size": 4194304,
+          "width": 1024
+        },
+        {
+          "depth": 1,
+          "height": 512,
+          "offset": 4194304,
+          "size": 1048576,
+          "width": 512
+        },
+        {
+          "depth": 1,
+          "height": 256,
+          "offset": 5242880,
+          "size": 262144,
+          "width": 256
+        },
+        {
+          "depth": 1,
+          "height": 128,
+          "offset": 5505024,
+          "size": 65536,
+          "width": 128
+        },
+        {
+          "depth": 1,
+          "height": 64,
+          "offset": 5570560,
+          "size": 16384,
+          "width": 64
+        },
+        {
+          "depth": 1,
+          "height": 32,
+          "offset": 5586944,
+          "size": 4096,
+          "width": 32
+        },
+        {
+          "depth": 1,
+          "height": 16,
+          "offset": 5591040,
+          "size": 1024,
+          "width": 16
+        },
+        {
+          "depth": 1,
+          "height": 8,
+          "offset": 5592064,
+          "size": 256,
+          "width": 8
+        },
+        {
+          "depth": 1,
+          "height": 4,
+          "offset": 5592320,
+          "size": 64,
+          "width": 4
+        },
+        {
+          "depth": 1,
+          "height": 2,
+          "offset": 5592384,
+          "size": 16,
+          "width": 2
+        },
+        {
+          "depth": 1,
+          "height": 1,
+          "offset": 5592400,
+          "size": 4,
+          "width": 1
+        }
+      ],
+      "target_mip_sha256": [
+        "96ec92d9e4154047e3cc2a4db83e2c507b7f5a837a3119d7554e463e6c9ea924",
+        "bd03653dcd7979ea287da562a5377f9484f3555fc6b586c131949123ec36e87d",
+        "291b7ced9c66d66a2c52c7bcc767d05099c20a50b63c4a0e928ca5b638f62c40",
+        "0e02b237f4509254e626bcb2e455cca18ba9d8cbf0e5f704d18f641a5ef7e37b",
+        "ce1e50541d7155346521a81947e68af4e89232bf883d431348f9a68fe630932b",
+        "d0bb0e604f9cc897b8e3d1889ce3b776eaf837aac8541632d4b7b56cb8b57932",
+        "5a3655e275ddde9abca4f63a69933d76fdd361c30de1f60fe1f1c571c1d89002",
+        "9b53e4800cc79df3a77395013c9226ecfc4cd350e610aea3e35e694ef265c61a"
+      ],
+      "donor_mip_sha256": [
+        "8f715662cb8face1f0b81c07d4e79c571bc3ea617c822dc21d72b7df0c54bd92",
+        "8af1d0f6d2c25c702d91e867e8ee8b561ae60c54c0b2022a373b0f05440f3d6c",
+        "b2e8d29b8f32f580dd4223d43062c56782c5359905eed4d235e36e773e27e633",
+        "09e27ea34f54295971b33255e586de67d9bedf32ab2242dc0ec29e656c0ee18f",
+        "1690554386122ec4b8d430b58a900d35c5c20b5e09ce1b95b7d320401d917054",
+        "a7c5ec191b5a61cb9d53412eecf3907c5eb0e0446215d25c3f3454f59a8b0dc0",
+        "ac013e4034d7341d6e635da4fd8288e658ab7bc9db36aef0e1bde8321fc0be55",
+        "40e38e60bce2dcb9ebacc954fd23c3d0505e56d716618ff6b276974e7f1704da",
+        "c9bf49d683c28625916a481fdc279c6889dba98e0328d4f3e51f95a745c959b8",
+        "3adbb65d159c6043996a106df64a7c068d2175e5857e1a674d2d01442c98693d",
+        "07ab896bf4b19fe1761f5784656c1e4a38f686c27914f6a27092b9b722c8417e"
+      ],
+      "base_offset": 0,
+      "base_bytes": 349520,
+      "base_sha256": "c0eebf4acb24c99023588109cdbc95d67b74441394a2b26e38a48198f591acd0",
+      "delta_offset": 394834,
+      "delta_bytes": 167436,
+      "delta_sha256": "818a4459a919e935c526fb2b2bf605e8f5d30e25001706c43e9a519e2b68902d"
+    }
+  ],
+  "owners": [
+    {
+      "map": "beavercreek.map",
+      "tag": "scenarios\\skies\\multi\\halo\\coagulation\\bitmaps\\coag_moon2",
+      "frame": 0,
+      "profile_id": "819b608178deb8ddbf1489679d1e3cfd5819074b295c33672f1f2fbd1f82cd18",
+      "source_map_sha256": "c30bd1e015ad12c66eaa42243aef26245c45aafedfc9cc1caa9a265e727b210e",
+      "prepared_map_sha256": "c30bd1e015ad12c66eaa42243aef26245c45aafedfc9cc1caa9a265e727b210e",
+      "original_map": "assets/disc/maps/beavercreek.map",
+      "original_map_sha256": "35919a4a290911ab7cd11f1d72d07e191b44096e75e79ce3c3eb901703bf5c64",
+      "original_datum": 3784835107,
+      "datum": 3784900635,
+      "address": 52900548,
+      "tag_size": 248,
+      "descriptor_sha256": "9f30258170389d19b3dbc6b2360c91164a1509e47756637a9a28dff0803c5398"
+    },
+    {
+      "map": "burial_mounds.map",
+      "tag": "scenarios\\skies\\solo\\alphamoon\\bitmaps\\ring_shard",
+      "frame": 0,
+      "profile_id": "bdec9c60293db59fa4f0e4e157fa073753afa347eb229c6c256fd4a6de8d8b84",
+      "source_map_sha256": "c222eb7ddedc08f16b7d52889197df81c9b2b2a946b029982b2b97584ed17a24",
+      "prepared_map_sha256": "c222eb7ddedc08f16b7d52889197df81c9b2b2a946b029982b2b97584ed17a24",
+      "original_map": "assets/disc/maps/burial_mounds.map",
+      "original_map_sha256": "8b2a7ac4f7b13b9521202a602969e35fece2adc02424bc4f1dc47a7cadf01c67",
+      "original_datum": 3783720978,
+      "datum": 3783786508,
+      "address": 52889140,
+      "tag_size": 248,
+      "descriptor_sha256": "a17dc88dae47ce8c9355c621c6162df138695206612ed69e2f2bed98938cca56"
+    },
+    {
+      "map": "coagulation.map",
+      "tag": "scenarios\\skies\\multi\\halo\\coagulation\\bitmaps\\coag_moon2",
+      "frame": 0,
+      "profile_id": "819b608178deb8ddbf1489679d1e3cfd5819074b295c33672f1f2fbd1f82cd18",
+      "source_map_sha256": "a94c4fdac2dee6887e83a1f2555e914aa7ed974d5c466ebabcf013b08f2ef17d",
+      "prepared_map_sha256": "a94c4fdac2dee6887e83a1f2555e914aa7ed974d5c466ebabcf013b08f2ef17d",
+      "original_map": "assets/disc/maps/coagulation.map",
+      "original_map_sha256": "1de37727dbb9c51aa08e03bfea86c0641ad67250dba28c5dcb3ba3dadaaf93fa",
+      "original_datum": 3784835107,
+      "datum": 3784900635,
+      "address": 52904996,
+      "tag_size": 248,
+      "descriptor_sha256": "9f30258170389d19b3dbc6b2360c91164a1509e47756637a9a28dff0803c5398"
+    },
+    {
+      "map": "cyclotron.map",
+      "tag": "scenarios\\skies\\multi\\zanzibar\\bitmaps\\sky_dome",
+      "frame": 0,
+      "profile_id": "8ae36dc51f9a7157d0951022e864b987c2454a36a34236ce6c9d4641ad15244a",
+      "source_map_sha256": "ad350c598588bce43841a5a03740be978e04fe02b401879844bcb4a9ff7148ee",
+      "prepared_map_sha256": "ad350c598588bce43841a5a03740be978e04fe02b401879844bcb4a9ff7148ee",
+      "original_map": "assets/disc/maps/cyclotron.map",
+      "original_map_sha256": "50a264587112c3dd03e75ec1ac7c31e028383220ac77ac4b8a7e0dd65d6efb00",
+      "original_datum": 3783917589,
+      "datum": 3783983119,
+      "address": 52896060,
+      "tag_size": 248,
+      "descriptor_sha256": "809232aaad4ce21511f0c9bd0f3da92f27c3566e1957e4f357a414e394fa6142"
+    },
+    {
+      "map": "foundation.map",
+      "tag": "scenarios\\skies\\multi\\zanzibar\\bitmaps\\sky_dome",
+      "frame": 0,
+      "profile_id": "8ae36dc51f9a7157d0951022e864b987c2454a36a34236ce6c9d4641ad15244a",
+      "source_map_sha256": "7ac455c5a7f3655c0bd972e988ec2cb0dcf3e411169f65fab260494e15c2d456",
+      "prepared_map_sha256": "7ac455c5a7f3655c0bd972e988ec2cb0dcf3e411169f65fab260494e15c2d456",
+      "original_map": "assets/disc/maps/foundation.map",
+      "original_map_sha256": "b9ab45535f9929474133c0c5f0f4bc50cbd9e27a5b80fd31e6fa4c0716ed7b86",
+      "original_datum": 3783917589,
+      "datum": 3783983119,
+      "address": 52887728,
+      "tag_size": 248,
+      "descriptor_sha256": "809232aaad4ce21511f0c9bd0f3da92f27c3566e1957e4f357a414e394fa6142"
+    },
+    {
+      "map": "lockout.map",
+      "tag": "scenarios\\skies\\multi\\lockout\\bitmaps\\mountains_foreground",
+      "frame": 0,
+      "profile_id": "ee16bdeb2a0abe297853fceb01b2d35aca7e7b3169f94965d74f3d879b80d20c",
+      "source_map_sha256": "97d034dca2109adde65e56c0ab78ee56f72045b56bf9b3200f304d5e1ff4c61e",
+      "prepared_map_sha256": "97d034dca2109adde65e56c0ab78ee56f72045b56bf9b3200f304d5e1ff4c61e",
+      "original_map": "assets/disc/maps/lockout.map",
+      "original_map_sha256": "14c54046f259842bdac765526e7fe2d991369502041647f47db409ce845987a9",
+      "original_datum": 3783786515,
+      "datum": 3783917581,
+      "address": 52879876,
+      "tag_size": 248,
+      "descriptor_sha256": "3063d86d1daa12ac7abb693d766c63954e3ed759bea3e0b381f9d83fc943cd40"
+    },
+    {
+      "map": "midship.map",
+      "tag": "scenarios\\skies\\multi\\midship\\bitmaps\\earth_512_africa_midship",
+      "frame": 0,
+      "profile_id": "48cee4e3bf7d3b95e000f89844dd4a0a735ebd298233ec96ff2d42daf0ff18e9",
+      "source_map_sha256": "322cb810bfbfe02ab4e24acc8d58b7002a9c7ba1c680484447b64483e0a71156",
+      "prepared_map_sha256": "322cb810bfbfe02ab4e24acc8d58b7002a9c7ba1c680484447b64483e0a71156",
+      "original_map": "assets/disc/maps/midship.map",
+      "original_map_sha256": "4f0c7687711313efce9273e4cabe9f410d08a47a707dbe8354cdede957e5155f",
+      "original_datum": 3783524367,
+      "datum": 3783655433,
+      "address": 52877836,
+      "tag_size": 248,
+      "descriptor_sha256": "047ca7ffb83028c6a3bb18bb43419950029e2d40a6ba524193f0ee8950efb711"
+    },
+    {
+      "map": "waterworks.map",
+      "tag": "scenarios\\skies\\multi\\zanzibar\\bitmaps\\sky_dome",
+      "frame": 0,
+      "profile_id": "8ae36dc51f9a7157d0951022e864b987c2454a36a34236ce6c9d4641ad15244a",
+      "source_map_sha256": "ba90e7c53de84dfdbb09c01071f7ca6122fbe1d281ba62b7355ee1be45510bbe",
+      "prepared_map_sha256": "ba90e7c53de84dfdbb09c01071f7ca6122fbe1d281ba62b7355ee1be45510bbe",
+      "original_map": "assets/disc/maps/waterworks.map",
+      "original_map_sha256": "c5b81434f3b0d755c1208d8ac525e2a8a601d5f18f6447fc011cac83532fe6c1",
+      "original_datum": 3783917589,
+      "datum": 3783983119,
+      "address": 52922808,
+      "tag_size": 248,
+      "descriptor_sha256": "809232aaad4ce21511f0c9bd0f3da92f27c3566e1957e4f357a414e394fa6142"
+    },
+    {
+      "map": "zanzibar.map",
+      "tag": "scenarios\\skies\\multi\\zanzibar\\bitmaps\\sky_dome",
+      "frame": 0,
+      "profile_id": "8ae36dc51f9a7157d0951022e864b987c2454a36a34236ce6c9d4641ad15244a",
+      "source_map_sha256": "563bef8cc5f8f8cf28112eff44f4e1377e1f012b69f65e3e2e9a04484c497ca7",
+      "prepared_map_sha256": "a1914deef795b1a70f4b09092b87f0bf057c8d30bc860219609599c654aa0a78",
+      "original_map": "assets/disc/maps/zanzibar.map",
+      "original_map_sha256": "2000bfc26fa38929e3ae8792618465ca5a60cc6bbeb753426e9d3a99954bdafb",
+      "original_datum": 3783917589,
+      "datum": 3783983119,
+      "address": 52922952,
+      "tag_size": 248,
+      "descriptor_sha256": "809232aaad4ce21511f0c9bd0f3da92f27c3566e1957e4f357a414e394fa6142"
+    },
+    {
+      "map": "dune.map",
+      "tag": "scenarios\\skies\\multi\\zanzibar\\bitmaps\\sky_dome",
+      "frame": 0,
+      "profile_id": "8ae36dc51f9a7157d0951022e864b987c2454a36a34236ce6c9d4641ad15244a",
+      "source_map_sha256": "9ca3b5889c21a930b44c075ebf4a7ab7a846a48be551acd7cd9e43f868b3a321",
+      "prepared_map_sha256": "9ca3b5889c21a930b44c075ebf4a7ab7a846a48be551acd7cd9e43f868b3a321",
+      "original_map": "assets/map-pack/maps/dune.map",
+      "original_map_sha256": "740fff53eb0b0a1eeb80adc33c1c0d08ab9700debb6da59df5d6c23c8e401498",
+      "original_datum": 3783589904,
+      "datum": 3783655435,
+      "address": 52915360,
+      "tag_size": 248,
+      "descriptor_sha256": "5eb298af0d32b980ad893d7f7b4fdcee48ad93cd5c70195a321ba755c23a145f"
+    },
+    {
+      "map": "needle.map",
+      "tag": "scenarios\\skies\\multi\\zanzibar\\bitmaps\\sky_dome",
+      "frame": 0,
+      "profile_id": "8ae36dc51f9a7157d0951022e864b987c2454a36a34236ce6c9d4641ad15244a",
+      "source_map_sha256": "27d428e34a06ea84932fe8dd86a8e35f560d3ea1579727e7dde56555b08b2a90",
+      "prepared_map_sha256": "27d428e34a06ea84932fe8dd86a8e35f560d3ea1579727e7dde56555b08b2a90",
+      "original_map": "assets/map-pack/maps/dune.map",
+      "original_map_sha256": "740fff53eb0b0a1eeb80adc33c1c0d08ab9700debb6da59df5d6c23c8e401498",
+      "original_datum": 3783589904,
+      "datum": 3783655435,
+      "address": 52888488,
+      "tag_size": 248,
+      "descriptor_sha256": "5eb298af0d32b980ad893d7f7b4fdcee48ad93cd5c70195a321ba755c23a145f"
+    }
+  ],
+  "delta_bytes": 562270,
+  "delta_sha256": "7d9da9ecc2bd26d1c7fdaaa2ed40bed22a30e3501f5e7c42a8a2635793080ab3",
+  "full_graphics_parity": false,
+  "scope": "Exact original complete native BC1/BC3 sky texture chains for eleven independently authenticated local owners, including one proved PC sky material counterpart; all existing mips retained verbatim, no image resampling, recompression, shader execution or geometry conversion"
+}

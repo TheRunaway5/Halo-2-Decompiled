@@ -78,6 +78,23 @@ int main(int argc,char**argv)try{
        "class projection copied a callable before owning namespace/candidate");
  if(argc!=1){check(argc==3||argc==4,"usage: class-reference-test [--mcc MCC_MAP | --paired MCC_MAP ORIGINAL_MAP]");if(!*argv[2]||!std::filesystem::exists(argv[2])||(argc==4&&(!*argv[3]||!std::filesystem::exists(argv[3]))))return 77;check(std::string_view(argv[1])==(argc==3?"--mcc":"--paired"),"unknown class test mode");Cache cache(argv[2]);check(cache.is_mcc(),"actual donor is not MCC");const auto*g=cache.find_tag(cache.globals_tag(),tag_groups::globals);check(g!=nullptr,"actual globals absent");const auto sg=Bytes(cache.read_tag_bytes(g->address+0xc0,8)).u32(4);const auto handle=TagHandle{Bytes(cache.read_tag_bytes(sg,44)).u32(12)};const auto*owner=cache.find_tag(handle,TagGroup{"sncl"});check(owner!=nullptr,"actual Legacy source absent");const auto r=cache.read_tag_bytes(owner->address,8);const auto bank=cache.read_tag_bytes(Bytes(r).u32(4),54*120);const auto source_copy=std::vector(bank.begin(),bank.end());const auto pre=project_mcc_sound_class_records(bank);MccSoundRuntimeSource s;s.tags=cache.tags();s.read=[&](auto p,auto n){return cache.read_tag_bytes(p,n);};const auto actual=project_mcc_sound_class_reference(s,handle,pre);
  std::vector<std::byte>reference=original;if(argc==4){Cache reference_cache(argv[3]);check(!reference_cache.is_mcc(),"reference is not original");const Tag*original_tag{};for(const auto&t:reference_cache.tags())if(t.group=="sncl"&&t.address&&t.name=="sound\\sound_classes"){check(!original_tag,"ambiguous original class owner");original_tag=&t;}check(original_tag!=nullptr,"original classes absent");const auto rr=Bytes(reference_cache.read_tag_bytes(original_tag->address,8));check(rr.u32(0)==54,"original class count changed");const auto bytes=reference_cache.read_tag_bytes(rr.u32(4),54*92);reference.assign(bytes.begin(),bytes.end());check(reference==original,"original class authoring variant differs from proved fixture");}
- verify(actual,pre,reference);const auto again=project_mcc_sound_class_reference(s,handle,actual.native_records);check(again.status==MccSoundClassReferenceStatus::AlreadyEquivalent&&again.native_records==actual.native_records,"actual class result not idempotent");check(std::ranges::equal(bank,source_copy),"actual raw class/source extensions changed");std::cout<<"actual map="<<cache.name()<<" source_sha256="<<actual.source_bank_sha256<<" ";}
+ verify(actual,pre,reference);const auto again=project_mcc_sound_class_reference(s,handle,actual.native_records);check(again.status==MccSoundClassReferenceStatus::AlreadyEquivalent&&again.native_records==actual.native_records,"actual class result not idempotent");check(std::ranges::equal(bank,source_copy),"actual raw class/source extensions changed");
+ // Reconstruct this actual complete Cache namespace/route in owned fixture
+ // regions; coherent pointer/identity edits must remain unrecognized.
+ Fixture published;published.tags={*g,*owner};
+ for(const auto&t:cache.tags())if(t.handle()!=g->handle()&&t.handle()!=owner->handle())published.tags.push_back(t);
+ const auto descriptor=cache.read_tag_bytes(g->address+0xc0,8);
+ const auto route=cache.read_tag_bytes(sg,44);
+ published.regions={Region{g->address+0xc0,{descriptor.begin(),descriptor.end()}},
+   Region{sg,{route.begin(),route.end()}},Region{owner->address,{r.begin(),r.end()}},
+   Region{Bytes(r).u32(4),source_copy}};
+ positive(published,reference);
+ rejected(published,[](auto&x){x.tags[0].address+=16;x.regions[0].address+=16;});
+ rejected(published,[](auto&x){put(x.regions[0].bytes,4,x.regions[1].address+16);x.regions[1].address+=16;});
+ rejected(published,[](auto&x){x.tags[1].datum^=0x10000u;put(x.regions[1].bytes,12,x.tags[1].datum);});
+ rejected(published,[](auto&x){put(x.regions[2].bytes,4,x.regions[3].address+4);x.regions[3].address+=4;});
+ rejected(published,[](auto&x){x.regions[3].bytes[15*120+119]^=std::byte{1};});
+ rejected(published,[](auto&x){x.tags[0].size-=16;});
+ std::cout<<"actual map="<<cache.name()<<" source_sha256="<<actual.source_bank_sha256<<" ";}
  std::cout<<"PASS "<<checks<<" checks/"<<negatives<<" negatives;48words25namedrows70bytes; six complete MCC rows unresolved/untouched; no caller/source writes or reference runtime dependency\n";
 }catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}

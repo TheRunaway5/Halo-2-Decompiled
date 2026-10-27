@@ -21,4 +21,22 @@ if(BUILD_TESTING)
     add_test(NAME original_physics_vehicle_environment_state_tu15 COMMAND physics_vehicle_environment_state_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/sandbox-source/vehicle-environment-state-tu15-20261011/hardware-verified/u5-native.json)
     set_tests_properties(original_physics_vehicle_environment_state_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    set(HALO2_FIRST_PERSON_EFFECT_RETIREMENT_TU15_FIXTURE
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/first_person_effect_retirement_tu15.json"
+        CACHE FILEPATH "Original TU1.5 effect-retirement cases for the first-person dispatch seam")
+    add_test(NAME original_first_person_effect_retirement_tu15 COMMAND physics_vehicle_environment_state_tests
+        "${HALO2_FIRST_PERSON_EFFECT_RETIREMENT_TU15_FIXTURE}" first-person-dispatch)
+    set_tests_properties(original_first_person_effect_retirement_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    set(HALO2_FIRST_PERSON_VECTOR_PACK_TU15_FIXTURE
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/first_person_vector_pack_tu15.json"
+        CACHE FILEPATH "Original TU1.5 vector-packing cases for the first-person dispatch seam")
+    add_test(NAME original_first_person_vector_pack_tu15 COMMAND physics_vehicle_environment_state_tests
+        "${HALO2_FIRST_PERSON_VECTOR_PACK_TU15_FIXTURE}" first-person-vector-pack)
+    set_tests_properties(original_first_person_vector_pack_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    set(HALO2_FIRST_PERSON_PART_RETIREMENT_TU15_FIXTURE
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/first_person_part_retirement_tu15.json"
+        CACHE FILEPATH "Original TU1.5 effect-part release cases for the first-person dispatch seam")
+    add_test(NAME original_first_person_part_retirement_tu15 COMMAND physics_vehicle_environment_state_tests
+        "${HALO2_FIRST_PERSON_PART_RETIREMENT_TU15_FIXTURE}" first-person-part-retirement)
+    set_tests_properties(original_first_person_part_retirement_tu15 PROPERTIES SKIP_RETURN_CODE 77)
 endif()

@@ -165,6 +165,9 @@ def main():
         if mn=='fchs':return 's.fp.st(0)=-s.fp.st(0);'
         if mn=='fld':return f's.fp.push({xf(i,op[0])});'
         if mn in ('fst','fstp'):
+            if p in (0x208da8,0x208db3):
+                assert mn=='fstp' and op[0].type==3 and op[0].size==4
+                return f'vehicle_rate_publish_extended_reference(s,0x{p:x}u,{addr(i,op[0])});'
             value='s.fp.st(0)'
             if op[0].type==3:
                 assert op[0].size in (4,8)
@@ -183,6 +186,9 @@ def main():
         if mn=='fpatan':return 's.arctangent();'
         if mn=='fsqrt':return 's.fp.st(0)=root(s.fp.st(0));'
         if mn in ('fadd','fmul','fsub','fsubr','fdiv','fdivr','fsubp','fsubrp','fmulp','faddp'):
+            if p in (0x208da1,0x208da4,0x208dac,0x208daf):
+                assert mn=='fmul' and len(op)==1 and op[0].type==3 and op[0].size==4
+                return f'vehicle_rate_multiply_extended_reference(s,{addr(i,op[0])});'
             operation='add' if 'add' in mn else 'mul' if 'mul' in mn else 'sub' if 'sub' in mn else 'divide'
             popping=mn.endswith('p');reverse=mn in ('fdivr','fsubr','fsubrp')
             x,y=(get(i,op[0]),'s.fp.st(0)') if popping else ('s.fp.st(0)',xf(i,op[0]))

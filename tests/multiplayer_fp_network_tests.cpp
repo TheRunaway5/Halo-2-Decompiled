@@ -82,7 +82,7 @@ int main(int argc,char **argv) {
     });
     server.configure_replicated_first_person(definition);
     LanHost host(server,0,0x168866);Proxy proxy(host.port());
-    LanClient client("127.0.0.1:"+std::to_string(proxy.port()),0x168866,4);
+    LanClient client(host.join_address("127.0.0.1",proxy.port()),0x168866,4);
     std::array<Controls,16> commands{};std::array<Controls,4> local{};
     for(unsigned n=0;n<64 && !client.ready();++n) {
       client.send(local);proxy.pump();host.receive(commands);host.broadcast();

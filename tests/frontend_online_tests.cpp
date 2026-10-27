@@ -7,6 +7,7 @@
 #include "halo2/gameplay_font_source.hpp"
 #include "ui/mcc_frontend_string_ids.hpp"
 #include "ui/frontend_mcc_logical_layout.hpp"
+#include "ui/frontend_og_matchmaking_layout.hpp"
 #include "halo2/frontend_vista.hpp"
 #include "halo2/frontend_canvas.hpp"
 #include "halo2/desktop_session.hpp"
@@ -40,6 +41,12 @@ void matchmaking_progress_kernels() {
   check(matchmaking_start_countdown(9999).seconds==1 && !matchmaking_start_countdown(9999).ready,"Start countdown finished early");
   check(matchmaking_start_countdown(10000).seconds==0 && matchmaking_start_countdown(10000).ready &&
         matchmaking_start_countdown(0xffffffffu).ready,"Start countdown did not finish at 10000 ms");
+  check(matchmaking_published_start_countdown(6500).seconds==7 &&
+        !matchmaking_published_start_countdown(6500).ready &&
+        matchmaking_published_start_countdown(0).ready &&
+        matchmaking_published_start_countdown({}).seconds==matchmaking_countdown_none &&
+        !matchmaking_published_start_countdown({}).ready,
+        "A late countdown observer restarted the clock or launched without a published countdown");
   // 0x25142F, including pane3 only once B's countdown exists.
   check(matchmaking_progress_pane(U::searching,-1)==0 && matchmaking_progress_pane(U::waiting,-1)==1 &&
         matchmaking_progress_pane(U::joining,-1)==0 && matchmaking_progress_pane(U::starting,-1)==2 &&
@@ -54,7 +61,7 @@ void matchmaking_progress_kernels() {
         matchmaking_countdown_text(-1)==":--","Countdown token format differs");
   // 0x25217B and 0x251AFA.
   check(matchmaking_progress_cancel_allowed(1,0) && !matchmaking_progress_cancel_allowed(2,59999) &&
-        matchmaking_progress_cancel_allowed(3,60000) && matchmaking_progress_consumes_x(2) && !matchmaking_progress_consumes_x(1),
+        matchmaking_progress_cancel_allowed(3,60000) && matchmaking_progress_consumes_y(2) && !matchmaking_progress_consumes_y(1),
         "Cancel lock differs");
   // 0x2514FD pane3 order and 0x2517E2 team coloring.
   const std::vector<MatchmakingProgressPlayer> players{{1,10},{0,5},{1,30},{0,20}};
@@ -64,6 +71,62 @@ void matchmaking_progress_kernels() {
   check(matchmaking_progress_order(players,false,false)==std::vector<unsigned>{0,1,2,3},"Unsorted order changed");
   check(matchmaking_progress_team_colors(3,true) && !matchmaking_progress_team_colors(-1,true) &&
         !matchmaking_progress_team_colors(3,false),"Team color gate differs");
+  // 0x2514FD: ranked names remain in party A until pane3; filled game B
+  // seats show Matched Player and the remaining maximum slots stay blank.
+  using R=MatchmakingProgressRow;
+  check(matchmaking_progress_rows(1,true,1,3,4)==std::vector<R>{R::player,R::matched,R::matched,R::empty},
+        "Ranked waiting roster exposed game B or lost matched/blank slots");
+  check(matchmaking_progress_rows(2,true,2,3,4)==std::vector<R>{R::player,R::player,R::matched,R::empty},
+        "Ranked configuring roster lost party A");
+  check(matchmaking_progress_rows(1,false,1,3,4)==std::vector<R>{R::player,R::player,R::player,R::empty} &&
+        matchmaking_progress_rows(2,false,1,3,4)==std::vector<R>{R::player,R::player,R::player} &&
+        matchmaking_progress_rows(3,true,1,3,4)==std::vector<R>{R::player,R::player,R::player},
+        "Casual or countdown roster did not select game B");
+  check(matchmaking_progress_rows(0,false,2,3,{})==std::vector<R>{R::player,R::player},
+        "Search/join roster did not select party A");
+  // Expected rows come from unchanged original TU1.5 decision blocks, not
+  // a second implementation of the native selection rule.
+  std::ifstream roster_file(std::filesystem::path(__FILE__).parent_path()/"fixtures/matchmaking_roster_tu15_original.json");
+  check(bool(roster_file),"Missing original TU1.5 roster fixture");
+  nlohmann::json roster_fixture;roster_file>>roster_fixture;
+  check(roster_fixture.at("schema")=="H2_MATCHMAKING_ROSTER_TU15_ORIGINAL_V1" &&
+        roster_fixture.at("original_tu15_sha256")=="21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd" &&
+        roster_fixture.at("cases").size()==504,"Unexpected original TU1.5 roster fixture provenance");
+  for(const auto &c:roster_fixture.at("cases")) {
+    std::optional<unsigned> maximum;
+    if(!c.at("maximum").is_null())maximum=c.at("maximum").get<unsigned>();
+    const auto pane=c.at("pane").get<unsigned>();const auto ranked=c.at("ranked").get<bool>();
+    check(matchmaking_progress_uses_party(pane,ranked)==c.at("use_party").get<bool>(),
+          "Native roster source differs from original TU1.5");
+    const auto rows=matchmaking_progress_rows(pane,ranked,c.at("party_players").get<unsigned>(),c.at("game_players").get<unsigned>(),maximum);
+    std::vector<std::string> names;
+    for(const auto row:rows)names.push_back(row==R::player?"player":row==R::matched?"matched":"empty");
+    check(names==c.at("rows").get<std::vector<std::string>>(),"Native roster rows differ from original TU1.5");
+  }
+  // Lobby START GAME: 0x19A78E(10,3), 0x6E360 1000 ms steps, 0x250A8B beeps, 0x22D730.
+  check(matchmaking_lobby_countdown_press(-1)==10 && matchmaking_lobby_countdown_press(10)==9 &&
+        matchmaking_lobby_countdown_press(4)==3 && matchmaking_lobby_countdown_press(3)==3,"Lobby countdown press differs");
+  check(!matchmaking_lobby_countdown_due(5,999) && matchmaking_lobby_countdown_due(5,1000) && !matchmaking_lobby_countdown_due(0,5000),
+        "Lobby countdown step differs");
+  check(!matchmaking_lobby_countdown_beeps(5,4) && matchmaking_lobby_countdown_beeps(4,3) && matchmaking_lobby_countdown_beeps(1,0) &&
+        !matchmaking_lobby_countdown_beeps(2,2),"Lobby countdown beep stages differ");
+  check(matchmaking_lobby_countdown_text(10)=="0:10" && matchmaking_lobby_countdown_text(75)=="1:15" &&
+        matchmaking_lobby_countdown_text(-1)=="-:--","Lobby countdown token differs");
+  // PCR16 follower: a member who is not the leader follows the leader out of
+  // the report once it holds the room open and the leader does not.
+  OnlineParty party;party.members.resize(2);
+  party.members[0].leader=true;party.members[1].self=true;
+  check(online_party_follower(party) && !online_party_leader_left_postgame(party),"Unreported presence moved a party follower");
+  party.members[1].postgame=true;party.members[0].postgame=true;
+  check(!online_party_leader_left_postgame(party),"Follower left while the leader reviewed the report");
+  party.members[0].postgame=false;
+  check(online_party_leader_left_postgame(party),"Follower ignored the leader's Done");
+  party.members[1].postgame=false;
+  check(!online_party_leader_left_postgame(party),"Follower outside the report followed a stale room");
+  party.members[1].postgame=true;party.leader=true;party.members[0].leader=false;party.members[1].leader=true;
+  check(!online_party_follower(party) && !online_party_leader_left_postgame(party),"Party leader followed itself");
+  party.members.resize(1);party.leader=false;
+  check(!online_party_follower(party),"A one-member party has a follower");
 }
 void party_notifications() {
   OnlineAccountSnapshot before,after;
@@ -145,6 +208,11 @@ int main(int argc, char **argv) {
     std::string matchmaking_url, account_url, capture_prefix;
     unsigned callback_port=42103;
     bool party_run{}, gathering_run{}, party_render{}, rank_run{}, capture_validation=true;
+    if(const auto validation=std::getenv("H2_TEST_VK_VALIDATION")) {
+      check(std::string_view(validation)=="0" || std::string_view(validation)=="1",
+            "H2_TEST_VK_VALIDATION must be 0 or 1");
+      capture_validation=std::string_view(validation)=="1";
+    }
     std::shared_ptr<OnlineAccount> account;
     for (int i = 2; i < argc; ++i) {
       const std::string option(argv[i]);
@@ -204,10 +272,12 @@ int main(int argc, char **argv) {
           "Vista progress title bounds changed");
       }
     }
-    const auto logical_layout = detail::mcc_logical_layout::make_view(content);
-    const auto &native_layout = logical_layout ? logical_layout->content : content;
+    auto logical_layout = detail::mcc_logical_layout::make_view(content);
     const auto selected=selected_menu_assets.empty()?sampled:selected_menu_assets;
     const auto ui_assets = load_frontend_ui_assets(content, selected);
+    if(logical_layout)check(detail::og_matchmaking_layout::augment(*logical_layout,content,ui_assets),
+        "Selected cache did not admit its actual original matchmaking definitions");
+    const auto &native_layout = logical_layout ? logical_layout->content : content;
     // Provenance assertions always compare ONLINE against the Vista bank,
     // even when the surrounding shell has another selected menu pack.
     const auto vista_ui_assets = load_frontend_ui_assets(content, sampled);
@@ -254,6 +324,7 @@ int main(int argc, char **argv) {
     }
     bool sampled_online_font = false, sampled_online_bitmap = false;
     std::vector<bool> vista_fonts(mesh.materials.size()), vista_bitmaps(mesh.materials.size());
+    std::vector<bool> original_fonts(mesh.materials.size()), original_bitmaps(mesh.materials.size());
     if (!sampled.empty())
       for (std::size_t i = 0; i < mesh.materials.size(); ++i) {
         const auto &material = mesh.materials[i];
@@ -308,6 +379,13 @@ int main(int argc, char **argv) {
           if (image.name == material.name && std::any_of(image.images.begin(), image.images.end(), same))
             vista_bitmaps[i] = true;
       }
+      for(std::size_t i=0;i<mesh.materials.size();++i) {
+        const auto &material=mesh.materials[i];
+        const auto same=[&](const Texture&texture){return texture.width==material.diffuse.width &&
+          texture.height==material.diffuse.height && texture.format==material.diffuse.format && texture.pixels==material.diffuse.pixels;};
+        if(logical_layout)if(const auto bank=logical_layout->rasters.find(material.name);bank!=logical_layout->rasters.end() &&
+            material.name.ends_with("#tu15-logical-mcc"))original_bitmaps[i]=std::any_of(bank->second.begin(),bank->second.end(),same);
+      }
     }
     std::set<std::pair<unsigned,unsigned>> audited_panels;
     constexpr std::pair<unsigned,unsigned> viewports[]{
@@ -322,11 +400,14 @@ int main(int argc, char **argv) {
       if(vista_fonts.size()<mesh.materials.size()) {
         const auto count=vista_fonts.size();
         vista_fonts.resize(mesh.materials.size());vista_bitmaps.resize(mesh.materials.size());
+        original_fonts.resize(mesh.materials.size());original_bitmaps.resize(mesh.materials.size());
         for(auto i=count;i<mesh.materials.size();++i)for(std::size_t j=0;j<count;++j) {
           const auto &a=mesh.materials[i].diffuse,&b=mesh.materials[j].diffuse;
           if(a.width==b.width && a.height==b.height && a.format==b.format && a.pixels==b.pixels) {
             vista_fonts[i]=vista_fonts[i] || vista_fonts[j];
             vista_bitmaps[i]=vista_bitmaps[i] || vista_bitmaps[j];
+            original_fonts[i]=original_fonts[i] || original_fonts[j];
+            original_bitmaps[i]=original_bitmaps[i] || original_bitmaps[j];
           }
         }
       }
@@ -336,6 +417,24 @@ int main(int argc, char **argv) {
       const float surface_right=draw.full_surface_bounds?surface_left+surface.surface_width/surface.scale:640;
       const float surface_bottom=draw.full_surface_bounds?surface_top+surface.surface_height/surface.scale:480;
       bool font = false, bitmap = false;
+      const bool original_goal=cache.is_mcc() && detail::og_matchmaking_layout::goal_frame(state.frame(),&state);
+      // Source5 is a separate background submission. A non-goal dialog can
+      // occupy the foreground while this retained goal channel still owns
+      // the chrome; match the painter's ancestor walk and background gates.
+      const bool title_popup_backdrop=(state.frame().screen==10 || state.frame().screen==167) &&
+          std::any_of(state.stack().begin(),state.stack().end(),[](const auto&f){return f.screen==9;});
+      bool original_background=false;
+      if(cache.is_mcc() && !content.gameplay_overlay && !draw.full_surface_bounds && !title_popup_backdrop &&
+          state.frame().screen!=9 && state.frame().screen!=6 && content.screens.contains(5))
+        for(auto it=state.stack().rbegin();it!=state.stack().rend();++it) {
+          if(detail::og_matchmaking_layout::goal_frame(*it,&state)){original_background=true;break;}
+          if(!(content.screen(state.screen_layout(*it)).flags&(1|8|16)))break;
+        }
+      std::set<std::string> original_background_images;
+      if(original_background)
+        for(const auto &pane:detail::og_matchmaking_layout::data().at("original").at("background").at("panes"))
+          for(const auto &image:pane.at("bitmaps"))
+            original_background_images.insert(detail::og_matchmaking_layout::embedded_image_name(image.at("datum").get<std::string>()));
       std::set<std::string> missing;
       for (const auto &v : draw.vertices) {
         const auto &name = mesh.materials.at(v.material).name;
@@ -351,16 +450,29 @@ int main(int argc, char **argv) {
           check(name.find("rank_icons")==std::string::npos,"Social screen rendered an unowned placeholder rank");
         const auto &material=mesh.materials.at(v.material);
         if(material.ui_emblem_pass) {
-          check(std::any_of(content.emblem_shaders.begin(),content.emblem_shaders.end(),[&](const auto &shader){
+          const auto &shaders=content.emblem_shaders;
+          check(std::any_of(shaders.begin(),shaders.end(),[&](const auto &shader){
             return shader.second.name==name && shader.second.ui_emblem_pass;
           }),"ONLINE emblem does not belong to its selected native shader bank");
           check(material.forward_vertex==11 && material.forward_blend==1 &&
                 material.animated_textures[0].size()==32 && material.animated_textures[1].size()==64 &&
                 material.texture_frames[0]<32 && material.texture_frames[1]<64,
                 "ONLINE emblem lost its source pass or bounded foreground/background pages");
+          {
+            const auto &owner=shaders.at(detail::mcc_logical_layout::Codec::named(shaders,name));
+            for(unsigned stage=0;stage<2;++stage)for(unsigned page=0;page<owner.animated_textures[stage].size();++page) {
+              const auto &expected=owner.animated_textures[stage][page],&actual=material.animated_textures[stage][page];
+              check(expected.width==actual.width && expected.height==actual.height && expected.format==actual.format && expected.pixels==actual.pixels,
+                  "Actual goal emblem lost an admitted MCC animation page");
+            }
+            const Texture*selected[]{&material.diffuse,&material.detail};
+            for(unsigned stage=0;stage<2;++stage)check(selected[stage]->pixels==owner.animated_textures[stage].at(material.texture_frames[stage]).pixels,
+                "Actual goal emblem did not bind its admitted appearance-selected MCC page");
+          }
           bitmap=true; // The verified emblem pass samples the imported bitmap banks.
         } else if (name.starts_with("font/")) {
-          check(vista_fonts.at(v.material), "ONLINE text fell back from the selected imported font atlas");
+          check(vista_fonts.at(v.material),
+              "ONLINE text differs from its selected admitted MCC/imported font atlas");
           if(!std::isfinite(v.position.x) || !std::isfinite(v.position.y) ||
              v.position.x<surface_left-.001f || v.position.x>surface_right+.001f ||
              v.position.y<surface_top-.001f || v.position.y>surface_bottom+.001f)
@@ -371,7 +483,8 @@ int main(int argc, char **argv) {
           ++bounded_glyphs;
           font = true;
         } else if (name.starts_with("ui\\") && name.find("/native-") == std::string::npos) {
-          if (!vista_bitmaps.at(v.material)) missing.insert(name);
+          const bool original_owner=original_goal || original_background_images.contains(name);
+          if (!vista_bitmaps.at(v.material) && !(original_owner && original_bitmaps.at(v.material))) missing.insert(name);
           bitmap = true;
         }
       }
@@ -379,6 +492,14 @@ int main(int argc, char **argv) {
         std::string message="ONLINE bitmaps missing selected imported sampling:";
         for(const auto &name:missing)message+='\n'+name;
         throw std::runtime_error(message);
+      }
+      if(cache.is_mcc()) {
+        const auto ui=state.online_matchmaking_ui();
+        const bool expected=original_goal && state.online_friends_available() &&
+            ui!=MatchmakingProgressUi::starting && ui!=MatchmakingProgressUi::start_match;
+        const auto name=detail::og_matchmaking_layout::embedded_image_name("ui\\screens\\game_shell\\online_y_menu\\y_menu_compact");
+        const bool visible=std::any_of(draw.vertices.begin(),draw.vertices.end(),[&](const auto&vertex){return mesh.materials.at(vertex.material).name==name;});
+        check(visible==expected,"Actual collapsed Friends widget differs from its admitted capability/context/source-phase gates");
       }
       if(!font || (!bitmap && !state.party_invite_picker()))throw FormatError("ONLINE panel "+std::to_string(state.frame().screen)+
           " context "+std::to_string(state.frame().context)+" has imported font="+std::to_string(font)+
@@ -405,13 +526,18 @@ int main(int argc, char **argv) {
       }
       if(state.frame().screen==210 && content.vista && !state.frame().entries.empty() &&
           !state.frame().entries.front().label.empty()) {
-        const auto &pane=content.vista->screen(210).panes.at(state.online_matchmaking_pane());
+        const bool original=native_layout.original_matchmaking_layout;
+        const auto &layout=original?native_layout:*content.vista;
+        const auto &pane=layout.screen(210).panes.at(original?state.online_matchmaking_progress_pane():state.online_matchmaking_pane());
         const auto &list=pane.lists.at(0);
-        const auto &field=content.vista->skins.at(list.skin).texts.at(0);
-        const float left=320+.4f*(list.position.x+field.bounds.left);
-        const float right=320+.4f*(list.position.x+field.bounds.right);
-        const float top=240-.4f*(list.position.y+field.bounds.top);
-        const float bottom=240-.4f*(list.position.y+field.bounds.bottom);
+        const auto &skin=layout.skins.at(list.skin);
+        const auto &field=original?layout.skin_groups.at(skin.grids.front().skin).texts.front():skin.texts.at(0);
+        const auto group=original?skin.grids.front().position:Vec2{};
+        const float scale=original?1.f:.4f;
+        const float left=320+scale*(list.position.x+group.x+field.bounds.left);
+        const float right=320+scale*(list.position.x+group.x+field.bounds.right);
+        const float top=240-scale*(list.position.y+group.y+field.bounds.top);
+        const float bottom=240-scale*(list.position.y+group.y+field.bounds.bottom);
         float ink_top=bottom,ink_bottom=top;
         for(const auto &v:draw.vertices) {
           if(!mesh.materials.at(v.material).name.starts_with("font/") ||
@@ -420,7 +546,7 @@ int main(int argc, char **argv) {
           ink_top=std::min(ink_top,v.position.y);ink_bottom=std::max(ink_bottom,v.position.y);
         }
         if(ink_bottom-ink_top<4)
-          throw FormatError("Vista matchmaking roster clips the chosen screen name: ink="+
+          throw FormatError("Admitted source matchmaking roster clips the chosen screen name: ink="+
               std::to_string(ink_top)+","+std::to_string(ink_bottom)+"; box="+
               std::to_string(top)+","+std::to_string(bottom)+"; name="+state.frame().entries.front().label);
       }
@@ -470,18 +596,24 @@ int main(int argc, char **argv) {
             [&](const auto &t){return detail::frontend_compiled_string_id(content,0x0b000698)==t.string;});
         check(name!=skin.texts.end(),"Party roster name field is missing");
         const float left=320+grid.position.x+name->bounds.left;
+        const float right=320+grid.position.x+name->bounds.right;
         const float top=240-grid.position.y-name->bounds.top;
         const float bottom=240-grid.position.y-name->bounds.bottom-
             float(lobby->party_names->size()-1)*grid.step.y;
-        // Names now use source profile colors, including blue. Color alone
-        // cannot distinguish a legitimate name from the old help overlay.
-        check(state.online_party_text(state.frame(),47).empty(),
-              "ONLINE party still binds the obsolete help field over player names");
+        // 0x2508A8 shows original pane2 help only for an ONLINE session with
+        // at most one machine, including a machine with several couch seats.
+        const auto help=state.online_party_text(state.frame(),47);
+        check(!help.empty()==(lobby->protocol==2 && lobby->machines<=1),
+              "ONLINE party help differs from the original machine-count visibility gate");
+        if(!help.empty()) {
+          const auto &bounds=pane.texts.at(47).bounds;
+          check(320+bounds.right<=left || 320+bounds.left>=right ||
+                240-bounds.top>=bottom || 240-bounds.bottom<=top,
+                "Source ONLINE party help bounds overlap actual player names");
+        }
         for(const unsigned helper:{4u,5u,6u}) {
-          if(state.online_party_text(state.frame(),helper).empty())continue;
-          const auto &bounds=pane.texts.at(helper).bounds;
-          check(320+bounds.right<left || 240-bounds.top>bottom || 240-bounds.bottom<top,
-                "ONLINE party helper bounds overlap roster names");
+          check(state.online_party_text(state.frame(),helper).empty(),
+                "ONLINE party added text to an unauthored helper field");
         }
       }
       for(const auto [width,height]:viewports) {
@@ -537,7 +669,9 @@ int main(int argc, char **argv) {
     if (!account_url.empty()) {
       account_options.endpoint=account_url; account_options.allow_loopback_http=true;
       account_options.enable_parties=party_run;
-      account_options.poll_interval=captures.empty() ? std::chrono::milliseconds(250) : std::chrono::milliseconds(party_run?1500:1000);
+      // Each poll makes two requests against the service's 120/min social
+      // limit; the party run's matchmaking steps outlast its token bucket.
+      account_options.poll_interval=std::chrono::milliseconds(party_run?1500:captures.empty()?250:1000);
       account=std::make_shared<OnlineAccount>(login,account_options); menu.set_online_account(account);
     }
     menu.open(20); menu.accept();
@@ -571,23 +705,24 @@ int main(int argc, char **argv) {
       sample.open(186);
       sample.open(id);
       if (sample.frame().screen != id) continue;
-      const bool pc_progress=id==210 && content.vista && content.vista->screens.contains(210);
-      const auto first_pane=id==210 && !pc_progress?1u:0u;
-      const auto pane_count=pc_progress?3u:id==210?2u:unsigned(content.screen(id).panes.size());
+      const bool original_progress=id==210 && native_layout.original_matchmaking_layout;
+      const bool pc_progress=id==210 && !original_progress && content.vista && content.vista->screens.contains(210);
+      const auto first_pane=id==210 && !pc_progress && !original_progress?1u:0u;
+      const auto pane_count=original_progress?unsigned(native_layout.screen(210).panes.size()):pc_progress?3u:id==210?2u:unsigned(content.screen(id).panes.size());
       for (unsigned pane=first_pane;pane<pane_count;++pane) {
         try {
           for(const auto [width,height]:viewports) {
             const auto draw=painter.draw(sample,5,int(pane),10000,{width,height});
             audit_vista(sample,draw,{width,height});
-            if(cache.is_mcc() && pc_progress) {
+            if(cache.is_mcc() && (pc_progress || original_progress)) {
               unsigned rings=0;
-              const auto &source=content.vista->screen(210).panes.at(pane).scenes.at(0);
+              const auto &source=(original_progress?native_layout:*content.vista).screen(210).panes.at(pane).scenes.at(0);
               for(const auto &scene:draw.scenes) {
                 if(scene.definition->objects!=source.objects)continue;
                 ++rings;const auto &a=scene.definition->viewport, &b=source.viewport;
-                check(scene.vista_viewport && a.top==b.top && a.left==b.left &&
+                check(scene.vista_viewport==!original_progress && a.top==b.top && a.left==b.left &&
                     a.bottom==b.bottom && a.right==b.right,
-                    "Matchmaking ring uses a different canvas/anchor from its PC progress widgets");
+                    "Matchmaking ring uses a different canvas/anchor from its admitted source progress widgets");
               }
               check(rings==1,"Matchmaking pane lost its one authored spinning ring");
             }
@@ -596,6 +731,19 @@ int main(int argc, char **argv) {
         catch(const std::exception &e) { throw std::runtime_error("ONLINE screen "+
             std::to_string(id)+" pane "+std::to_string(pane)+": "+e.what()); }
         if(id==210) {
+          if(original_progress) {
+            // Pinned Xbox210 has subtitle enum0. 2369F4 ->259EC6 ->14C233
+            // maps that to SID0, absent from its actual shared key bank.
+            // B remains an event in25217B; a PC Cancel caption/hitbox must
+            // not be introduced into this original definition.
+            check(native_layout.screen(210).button_key==0,
+                "Original matchmaking subtitle changed from its authenticated empty enum");
+            for(float y=430;y<480;y+=2)for(float x=0;x<640;x+=2)
+              if(const auto hit=painter.pointer_hit(x,y))
+                check(hit->action!=FrontendPointerAction::Back,
+                    "Original matchmaking added an unauthored Cancel pointer caption");
+            sample.back();
+          } else {
           const auto &bounds=pc_progress?content.vista->header_bounds.at(3)
               :content.screen(id).panes.at(pane).texts.at(1).bounds;
           const float scale=pc_progress?.4f:1.f;
@@ -605,8 +753,13 @@ int main(int argc, char **argv) {
               if(const auto hit=painter.pointer_hit(x,y);hit && hit->action==FrontendPointerAction::Back)
                 cancel=hit;
           check(cancel.has_value(),"ONLINE queue Cancel prompt cannot be clicked with a mouse");
-          check(sample.activate_pointer(*cancel) && sample.frame().screen==186,
-                "ONLINE queue mouse Cancel did not return to ONLINE");
+          check(sample.activate_pointer(*cancel),"ONLINE queue mouse Cancel was not dispatched");
+          }
+          // TU1.5 0x25217B: Cancel asks with the leave-matchmaking dialog.
+          check(!sample.frame().entries.empty() && sample.frame().entries.front().destination==-16,
+                "ONLINE queue Cancel did not ask to leave matchmaking");
+          sample.select(0);sample.accept();
+          check(sample.frame().screen==186,"ONLINE queue mouse Cancel did not return to ONLINE");
           if(pane+1<pane_count)sample.open(id);
         }
       }
@@ -704,7 +857,7 @@ int main(int argc, char **argv) {
       menu.leave_local_controller(1);menu.leave_local_controller(3);menu.update_online_login();
       check(menu.local_players().size()==1,"Couch test left extra profiles in later tests");
     }
-    {
+    if(account_url.empty()) {
       const auto friends=std::make_shared<FriendsFixture>();menu.set_discord_social(friends);
       menu.open(26,0);capture("friends-enable");menu.accept();menu.update_online_login();
       check(friends->state.connecting,"Enable Friends did not request separate consent");capture("friends-connecting");
@@ -935,32 +1088,124 @@ int main(int argc, char **argv) {
     menu.back();
     check(menu.frame().screen == 186 && directory->snapshot().status == OnlineDirectoryStatus::Idle && directory->snapshot().servers.empty(), "Leaving browser retained directory work or cached servers");
     capture("online-service");
+    if(!party_run) {
     menu.select(0); menu.accept();
-    check(menu.frame().screen == 210 && !menu.launch, "Server discovery replaced the separate matchmaking route");
-    menu.accept();
+    check(menu.frame().screen == 14 && !menu.launch, "Unconfigured Quickmatch skipped its pregame lobby");
+    // Direct internal progress-screen coverage keeps an unavailable service
+    // honest; the user-facing Quickmatch route above remains lobby-first.
+    menu.return_online();menu.open(210);
     check(menu.frame().screen == 210 && !menu.launch && menu.online_matchmaking_text(menu.frame(), 5).find("configured") != std::string::npos, "Unconfigured matchmaking lacks an honest status");
     check(!has_logo(menu), "Title logo overlaps matchmaking status");
+    // TU1.5 0x25217B: Cancel opens leave dialog 0x8D; its Cancel keeps
+    // searching and Leave Matchmaking returns to the pregame lobby.
     menu.back();
+    check(!menu.frame().entries.empty() && menu.frame().entries.front().destination==-16 &&
+          menu.frame().title==content.dialogs.at(matchmaking_leave_dialog_local).title,"Queue Cancel did not ask to leave matchmaking");
+    menu.back();
+    check(menu.frame().screen==210,"Leave dialog Cancel abandoned the search screen");
+    }
+    // Leave Matchmaking itself is exercised by the queue run; leaving here
+    // would form the party that the party run creates explicitly later.
+    menu.return_online();
     if (!matchmaking_url.empty()) {
       OnlineMatchmakingOptions queue_options; queue_options.endpoint = matchmaking_url; queue_options.allow_loopback_http = true;
       queue_options.compatibility=gathering_run?"halo2-native-queue-v8":"halo2-native-queue-v7";
       queue_options.maps = {"lockout"}; queue_options.poll_interval = std::chrono::milliseconds(25);
       auto matchmaking = std::make_shared<OnlineMatchmaking>(login, queue_options);
       menu.set_online_matchmaking(matchmaking);
+      OnlineAccountOptions queue_account_options;queue_account_options.endpoint=matchmaking_url;
+      queue_account_options.allow_loopback_http=true;queue_account_options.enable_parties=true;
+      queue_account_options.poll_interval=std::chrono::milliseconds(25);
+      auto queue_account=std::make_shared<OnlineAccount>(login,queue_account_options);
+      menu.set_online_account(queue_account);menu.update_online_login();
+      const auto account_until=std::chrono::steady_clock::now()+std::chrono::seconds(8);
+      while(!queue_account->snapshot().authenticated && std::chrono::steady_clock::now()<account_until) {
+        menu.update_online_login();std::this_thread::sleep_for(std::chrono::milliseconds(5));
+      }
+      check(queue_account->snapshot().authenticated,"Matchmaking fixture's actual party service did not authenticate");
       unsigned queue_stage{};
+      std::uint32_t queue_clock{};
       auto wait_queue = [&](auto predicate) {
         ++queue_stage;
-        const auto until = std::chrono::steady_clock::now() + std::chrono::seconds(8);
-        while (!predicate(matchmaking->snapshot()) && std::chrono::steady_clock::now() < until) {
-          menu.update_online_matchmaking(); std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        const auto until = std::chrono::steady_clock::now() + std::chrono::seconds(20);
+        for(;;) {
+          menu.update_online_login();menu.update_online_matchmaking();
+          if(predicate(matchmaking->snapshot()))return;
+          if(std::chrono::steady_clock::now()>=until)break;
+          std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
-        menu.update_online_matchmaking();
-        if(!predicate(matchmaking->snapshot())) {
-          const auto state=matchmaking->snapshot();
-          throw FormatError("Native matchmaking stage "+std::to_string(queue_stage)+" timed out, status="+std::to_string(unsigned(state.status))+": "+state.message+" screen="+std::to_string(menu.frame().screen)+" "+menu.frame().description);
+        const auto state=matchmaking->snapshot();
+        const auto party=queue_account->snapshot();
+        nlohmann::json readiness={{"selected_hopper",menu.expand("\xee\x90\xba")},{"queue_playlist",state.playlist_id},{"account_message",party.message},
+          {"party_command_serial",party.party_command_serial},{"party_command_successful",party.party_command_successful?nlohmann::json(*party.party_command_successful):nlohmann::json(nullptr)},
+          {"catalog",nlohmann::json::array()},{"member_ready",nlohmann::json::array()}};
+        for(const auto&p:state.playlists)readiness["catalog"].push_back({{"id",p.id},{"name",p.name},{"revision",p.revision},{"eligible",p.eligible}});
+        if(party.party)for(const auto&m:party.party->members)readiness["member_ready"].push_back({{"self",m.self},{"ready_playlist",m.ready_playlist}});
+        throw FormatError("Native matchmaking stage "+std::to_string(queue_stage)+" timed out, status="+std::to_string(unsigned(state.status))+": "+state.message+" screen="+std::to_string(menu.frame().screen)+" "+menu.frame().description+
+            " party="+std::to_string(bool(party.party))+" busy="+std::to_string(party.busy)+" party_message="+party.party_message+" readiness="+readiness.dump());
+      };
+      auto start_lobby_search=[&] {
+        check(menu.frame().screen==14,"Search did not begin in the pregame lobby");
+        wait_queue([&](const auto &s){
+          const auto a=queue_account->snapshot();
+          if(s.status!=OnlineMatchmakingStatus::Ready || !a.party || a.busy)return false;
+          const auto self=std::find_if(a.party->members.begin(),a.party->members.end(),[](const auto &m){return m.self;});
+          // A hopper change can retain the preceding accepted consent until
+          // the account worker publishes the new ready response.
+          return self!=a.party->members.end() && std::any_of(s.playlists.begin(),s.playlists.end(),[&](const auto &p){
+            return p.id==self->ready_playlist && p.name==menu.expand("\xee\x90\xba");
+          });
+        });
+        check(matchmaking->snapshot().playlist_id.empty(),"Selecting a playlist enqueued before lobby START GAME");
+        const auto party=queue_account->snapshot().party;
+        const auto self=std::find_if(party->members.begin(),party->members.end(),[](const auto &m){return m.self;});
+        const auto catalog=matchmaking->snapshot().playlists;
+        const auto hopper=std::find_if(catalog.begin(),catalog.end(),[&](const auto &p){return self!=party->members.end() && p.id==self->ready_playlist;});
+        check(hopper!=catalog.end() && menu.expand("\xee\x90\xba")==hopper->name &&
+            menu.online_party_text(menu.frame(),1)==hopper->description &&
+            menu.online_party_text(menu.frame(),3).find(hopper->name)!=std::string::npos,
+            "Pregame hopper text did not bind its actual accepted playlist");
+        const auto lobby_draw=painter.draw(menu,5,-1,10000);
+        audit_vista(menu,lobby_draw);
+        for(const auto name:{"ui\\screens\\game_shell\\pregame_lobby\\matchmaking",
+                             "ui\\screens\\game_shell\\pregame_lobby\\matchmaking2"}) {
+          const bool original_lobby=cache.is_mcc() && detail::og_matchmaking_layout::goal_frame(menu.frame(),&menu);
+          const auto actual_name=original_lobby?detail::og_matchmaking_layout::embedded_image_name(name):std::string(name);
+          check(std::any_of(lobby_draw.vertices.begin(),lobby_draw.vertices.end(),[&](const auto &v){
+              return mesh.materials.at(v.material).name==actual_name &&
+                  (!original_lobby || original_bitmaps.at(v.material));}),
+              "Matchmaking lobby hid its authored matchmaking illustration");
         }
+        const auto start=std::find_if(menu.frame().entries.begin(),menu.frame().entries.end(),[](const auto &e){return e.destination==-17;});
+        check(start!=menu.frame().entries.end(),"Authenticated party lobby lost START GAME");
+        menu.select(unsigned(start-menu.frame().entries.begin()));menu.accept();
+        wait_queue([&](const auto &){return !queue_account->snapshot().busy && menu.online_lobby_countdown()>0;});
+        check(menu.online_lobby_countdown()<=10,"START GAME did not use the original published countdown");
+        while(menu.online_lobby_countdown()>3) {
+          const auto before=menu.online_lobby_countdown();menu.accept();
+          wait_queue([&](const auto &){return !queue_account->snapshot().busy && menu.online_lobby_countdown()<before;});
+        }
+        wait_queue([&](const auto &){return menu.frame().screen==210;});
+        check(menu.frame().screen==210,"Lobby countdown did not enter matchmaking at zero");
+      };
+      // TU1.5 0x25217B/0x252150: Cancel asks with dialog 0x8D (no remote
+      // party members); Leave Matchmaking returns to pregame lobby14 pane2.
+      auto leave_matchmaking=[&] {
+        check(menu.frame().screen==210,"Leave requested outside screen210");
+        menu.back();
+        const auto &leave=content.dialogs.at(matchmaking_leave_dialog_local);
+        check(menu.frame().screen==leave.screen && menu.frame().title==leave.title && menu.frame().entries.size()==2 &&
+              menu.frame().entries[0].destination==-16,"Cancel did not open the TU1.5 leave-matchmaking dialog");
+        menu.select(0);menu.accept();
+        // The pregame lobby keeps the queue client connected but not queued.
+        wait_queue([](const auto &s){return s.status==OnlineMatchmakingStatus::Ready || s.status==OnlineMatchmakingStatus::Idle;});
+        check(menu.frame().screen==14,"Leave Matchmaking did not return to the pregame lobby");
+        menu.return_online();
+        check(menu.frame().screen==186,"ONLINE menu lost after leaving matchmaking");
       };
       menu.select(0); menu.accept();
+      check(menu.frame().screen==14 && !menu.launch,"Quickmatch skipped the original pregame lobby");
+      start_lobby_search();
       wait_queue([](const auto &s) { return s.status == OnlineMatchmakingStatus::Searching; });
       check(matchmaking->snapshot().playlist_id == "ranked" && menu.frame().screen == 210 && !menu.launch, "Quickmatch did not use server default");
       auto check_ranks=[&](std::vector<unsigned> pages) {
@@ -970,7 +1215,9 @@ int main(int argc, char **argv) {
         std::vector<unsigned> icons;
         for(unsigned i=0;i<draw.vertices.size();i+=6) {
           const auto &material=mesh.materials.at(draw.vertices[i].material);
-          if(material.name!="ui\\global_bitmaps\\rank_icons_sm") {
+          const auto rank_bank=cache.is_mcc()?detail::og_matchmaking_layout::embedded_image_name("ui\\global_bitmaps\\rank_icons_sm"):
+              std::string("ui\\global_bitmaps\\rank_icons_sm");
+          if(material.name!=rank_bank) {
             suppressed.insert(suppressed.end(),draw.vertices.begin()+i,draw.vertices.begin()+i+6);
             continue;
           }
@@ -989,7 +1236,7 @@ int main(int argc, char **argv) {
               }
             }
           };
-          inspect(content);if(!matched && content.vista)inspect(*content.vista);
+          inspect(native_layout);if(!matched)inspect(content);if(!matched && content.vista)inspect(*content.vista);
           check(matched,"Rank artwork is not an admitted source page");
         }
         std::sort(found.begin(),found.end());std::sort(pages.begin(),pages.end());
@@ -1031,60 +1278,149 @@ int main(int argc, char **argv) {
       }
       check(!has_logo(menu), "Title logo overlaps Quickmatch"); private_identity(menu); capture("quickmatch-searching");
       if(gathering_run) {
-        wait_queue([](const auto &s){return s.status==OnlineMatchmakingStatus::Searching && s.gathering.has_value();});
-        check(menu.online_matchmaking_pane()==1 && menu.frame().entries.size()==1 &&
+        wait_queue([](const auto &s){return s.status==OnlineMatchmakingStatus::Searching && s.gathering && s.gathering->players.size()==2;});
+        check(menu.online_matchmaking_pane()==1 && menu.frame().entries.size()==8 &&
           menu.online_matchmaking_text(menu.frame(),0)=="Waiting for additional players...",
           "Actual gathering did not select the authored Vista waiting pane/title");
+        check(menu.frame().entries[0].label.find("Pilot")!=std::string::npos &&
+              menu.frame().entries[1].label=="Matched Player" &&
+              menu.frame().entries[1].value==matchmaking_matched_player_row &&
+              std::all_of(menu.frame().entries.begin()+2,menu.frame().entries.end(),[](const auto &e) {
+                return e.label.empty() && e.value==matchmaking_empty_player_row;
+              }),"Ranked actual gathering did not keep opponents anonymous and unfilled slots blank");
+        check(menu.online_matchmaking_player_appearance(0)==menu.profile_appearance(),
+          "Party A lost the selected profile's actual appearance");
+        for(unsigned row=1;row<menu.frame().entries.size();++row) {
+          check(!menu.online_matchmaking_rank(row),"A matched/blank slot fabricated a player's rank");
+          check(!menu.online_matchmaking_player_appearance(row),"A matched/blank slot disclosed or invented a player's emblem");
+        }
+        // TU1.5 257A11/257A86 select player_in page1/page0 on the
+        // source group bitmap1; placeholders have no speaker/emblem state.
+        const auto placeholder_draw=painter.draw(menu,5);
+        std::vector<unsigned> placeholder_pages;
+        std::vector<float> placeholder_top;
+        for(unsigned first=0;first<placeholder_draw.vertices.size();first+=6) {
+          const auto &material=mesh.materials.at(placeholder_draw.vertices[first].material);
+          const auto placeholder_bank=cache.is_mcc()?detail::og_matchmaking_layout::embedded_image_name("ui\\list_skins\\matchmaking\\player_in"):
+              std::string("ui\\list_skins\\matchmaking\\player_in");
+          if(material.name!=placeholder_bank)continue;
+          placeholder_top.push_back(placeholder_draw.vertices[first].position.y);
+          bool matched=false;
+          const auto inspect=[&](const FrontendContent &owner) {
+            for(const auto &[id,bank]:owner.images)if(bank.name==material.name)
+              for(unsigned page=0;page<bank.images.size();++page) {
+                const auto &image=bank.images[page];
+                if(!matched && image.width==material.diffuse.width && image.height==material.diffuse.height &&
+                    image.format==material.diffuse.format && image.pixels==material.diffuse.pixels) {
+                  placeholder_pages.push_back(page);matched=true;
+                }
+              }
+          };
+          inspect(native_layout);if(!matched)inspect(content);if(!matched && content.vista)inspect(*content.vista);
+          check(matched,"Matched/empty slot artwork is not an admitted source page");
+        }
+        std::sort(placeholder_pages.begin(),placeholder_pages.end());
+        check(placeholder_pages==std::vector<unsigned>{0,0,0,0,0,0,1},
+              "Actual ranked gathering did not draw six page0 blanks and one page1 matched slot");
+        if(native_layout.original_matchmaking_layout){
+          // Actual2BAFA4 unions all children, including the nested name group.
+          // A largest-single-child-height approximation compresses every row.
+          const auto &source_pane=native_layout.screen(210).panes.at(menu.online_matchmaking_progress_pane());
+          const auto &skin=native_layout.skins.at(source_pane.lists.front().skin);
+          const auto &group=skin.grids.front();
+          const auto &name=native_layout.skin_groups.at(group.skin).texts.front();
+          const auto &speaker=skin.bitmaps.front();
+          const float top=name.bounds.top+group.position.y;
+          const float bottom=speaker.position.y;
+          check(top==28 && bottom==6,"Original matchmaking roster child bounds lost authenticated22-pixel union");
+          std::sort(placeholder_top.begin(),placeholder_top.end());
+          check(placeholder_top.size()==7,"Original roster omitted a placeholder before pitch verification");
+          for(unsigned row=1;row<placeholder_top.size();++row)
+            check(std::abs(placeholder_top[row]-placeholder_top[row-1]-(top-bottom))<.001f,
+                "Actual original matchmaking rows do not advance by the complete child union");
+        }
+        if(rank_run)check_ranks({36});
         private_identity(menu);capture("quickmatch-waiting");
       }
-      menu.back();
-      wait_queue([](const auto &s) { return s.status == OnlineMatchmakingStatus::Idle; });
+      leave_matchmaking();
       menu.select(1); menu.accept();
       wait_queue([](const auto &s) { return s.status == OnlineMatchmakingStatus::Ready; });
-      check(menu.frame().title == "ONLINE PLAYLISTS" && menu.frame().entries.size() == 4, "Optimatch did not load authenticated playlists");
+      check(menu.frame().title == "CHOOSE MATCHMAKING PLAYLIST" && menu.frame().entries.size() == 4, "Optimatch did not load authenticated playlists");
       capture("playlists");
       for(unsigned row=2;row<4;++row) {
         menu.select(row);menu.accept();
-        check(menu.frame().screen==237 && menu.online_matchmaking_text(menu.frame(),0).find("Clan membership required")!=std::string::npos,
+        check(menu.frame().screen==219 && menu.online_matchmaking_text(menu.frame(),2).find("Clan membership required")!=std::string::npos,
           "Nonmember clan details lost the membership requirement");
         check(!has_logo(menu),"Title logo overlaps clan playlist details");private_identity(menu);
-        capture(row==2?"minor-clan-playlist":"major-clan-playlist");menu.back();
+        capture(row==2?"minor-clan-playlist":"major-clan-playlist");
       }
-      menu.select(1); menu.accept();
-      check(menu.frame().screen == 237 && menu.online_matchmaking_text(menu.frame(), 0).find("Casual") != std::string::npos, "Casual details missing");
-      check(menu.online_matchmaking_text(menu.frame(), 0).find("level") == std::string::npos, "Casual skill leaked into UI");
+      menu.select(1);
+      const auto casual_catalog=matchmaking->snapshot().playlists;
+      const auto casual=std::find_if(casual_catalog.begin(),casual_catalog.end(),[](const auto&p){return p.id=="casual";});
+      check(casual!=casual_catalog.end() && !casual->ranked && casual->eligible && menu.frame().screen==219 &&
+          menu.online_matchmaking_text(menu.frame(),1)==casual->name &&
+          menu.online_matchmaking_text(menu.frame(),2)==casual->description,
+          "Selected casual hopper lost its actual catalog name or description");
+      check(menu.online_matchmaking_text(menu.frame(), 2).find("level") == std::string::npos, "Casual skill leaked into UI");
       capture("playlist-details"); menu.accept();
+      check(menu.frame().screen==14 && !menu.launch,"Optimatch selection skipped the original pregame lobby");
+      start_lobby_search();
       wait_queue([](const auto &s) { return s.status == OnlineMatchmakingStatus::CheckingConnections; });
       if(rank_run)check_ranks({});
-      check(matchmaking->snapshot().playlist_id == "casual" && menu.frame().entries.size() == 2 && !menu.launch, "Selected playlist did not form a native roster");
+      check(matchmaking->snapshot().playlist_id == "casual" && menu.frame().entries.size() == 1 && !menu.launch, "Attempting to join did not retain party A's roster");
       check(menu.online_matchmaking_pane()==2 && menu.online_matchmaking_text(menu.frame(),0)=="Attempting to join a game...",
         "Native admitted match did not bind Vista's join pane/title");
-      check(menu.frame().entries[0].label.find("Pilot") != std::string::npos && menu.frame().entries[1].label.find("Pilot") != std::string::npos, "Chosen names missing from roster");
+      check(menu.frame().entries[0].label.find("Pilot") != std::string::npos, "Party A's chosen name is missing from join roster");
       check(!has_logo(menu), "Title logo overlaps match roster"); private_identity(menu); capture("match-checking-connections");
       wait_queue([](const auto &s) { return s.status == OnlineMatchmakingStatus::Loading; });
-      // TU1.5 c_session_state_start_match: every peer is ready, so B counts
-      // 10 s on screen210 pane3 before the game starts.
-      // The test's UI clock stays 0 until advanced, so the start clock is 0.
-      std::uint32_t queue_clock=0;
+      // B publishes one shared start clock after all peers become ready.
+      // Observers receive its remaining time; their own UI clocks cannot
+      // advance or restart that countdown.
       menu.update_online_matchmaking();
       check(!menu.launch && menu.online_matchmaking_ui()==MatchmakingProgressUi::start_match &&
-            menu.online_matchmaking_progress_pane()==3 && menu.online_matchmaking_countdown()==10,
-            "Ready match skipped the TU1.5 start countdown");
+            menu.online_matchmaking_progress_pane()==3 && menu.online_matchmaking_countdown()>0 &&
+            menu.online_matchmaking_countdown()<=10 && matchmaking->snapshot().start_countdown_supported,
+            "Ready match skipped the session-published TU1.5 start countdown");
+      check(menu.frame().entries.size()==2 &&
+            std::any_of(menu.frame().entries.begin(),menu.frame().entries.end(),[](const auto &e){return e.label=="Peer Pilot";}),
+            "Countdown pane3 did not reveal game B's admitted roster");
       {const auto sounds=menu.take_ui_sounds();
        check(std::count(sounds.begin(),sounds.end(),FrontendUiSound::MatchmakingAdvance)==1,"Entering pane3 did not request UI sound12 once");}
-      check(menu.online_matchmaking_text(menu.frame(),0).starts_with("Game starts in :10\n"),
+      check(menu.online_matchmaking_text(menu.frame(),0).starts_with("Game starts in "+matchmaking_countdown_text(menu.online_matchmaking_countdown())+"\n"),
             ("Pane3 lost its countdown: "+menu.online_matchmaking_text(menu.frame(),0)).c_str());
       check(menu.online_matchmaking_text(menu.frame(),0).find("Slayer")!=std::string::npos &&
             menu.online_matchmaking_text(menu.frame(),0).find("on ")!=std::string::npos,"Pane3 lost its variant/map lines");
+      if(detail::mcc_frontend_content(content)) {
+        const auto map=std::find_if(content.multiplayer_maps.begin(),content.multiplayer_maps.end(),
+            [](const auto&m){return m.scenario_path=="scenarios\\multi\\lockout\\lockout";});
+        check(map!=content.multiplayer_maps.end() && menu.online_matchmaking_map_bitmap()==map->bitmap,
+            "Matched Lockout preview lost its actual scenario-owned bitmap datum");
+        const auto settled=painter.draw(menu,5,-1,menu.frame().pane_created_clock+2000);
+        const auto alias="ui\\native_og_matchmaking\\map_previews\\"+map->scenario_path+"#og-matchmaking";
+        bool rendered=false;
+        for(const auto &vertex:settled.vertices) {
+          const auto &material=mesh.materials.at(vertex.material);
+          check(material.name!="ui\\global_bitmaps\\map_shots\\map_mp_zanzibar#og-matchmaking",
+              "Matched pane3 still submitted its unbound authored Zanzibar preview");
+          if(material.name==alias) {
+            check(material.diffuse.width==220 && material.diffuse.height==207,
+                "Actual matched map draw lost its authenticated original raster dimensions");rendered=true;
+          }
+        }
+        check(rendered,"Actual matched pane3 draw did not submit its exact Lockout source raster alias");
+      }
       private_identity(menu);capture("match-countdown");
       menu.back();
       check(menu.frame().screen==210 && menu.take_back_refused() && menu.take_ui_sounds()==std::vector{FrontendUiSound::Error} &&
             matchmaking->snapshot().status==OnlineMatchmakingStatus::Loading,
             "Found game accepted Cancel inside its one-minute lock");
-      menu.ui_clock(queue_clock+=9000);menu.update_online_matchmaking();
-      check(!menu.launch && menu.online_matchmaking_countdown()==1 && menu.online_matchmaking_text(menu.frame(),0).starts_with("Game starts in :01"),
-            "Countdown did not reach one second");
-      menu.ui_clock(queue_clock+=1000);menu.update_online_matchmaking();
+      menu.ui_clock(queue_clock+=50000);menu.update_online_matchmaking();
+      check(!menu.launch && menu.online_matchmaking_countdown()>0,
+            "Advancing the local UI clock released a session whose countdown was still running");
+      const auto countdown_end=std::chrono::steady_clock::now()+std::chrono::seconds(12);
+      while(!menu.launch && std::chrono::steady_clock::now()<countdown_end) {
+        menu.update_online_matchmaking();std::this_thread::sleep_for(std::chrono::milliseconds(5));
+      }
       check(menu.launch && menu.launch->online_match && menu.launch->map=="lockout.map" &&
           menu.launch->multiplayer && menu.launch->local_players==1 && menu.launch->variant.name=="Slayer" &&
           menu.online_matchmaking_ui()==MatchmakingProgressUi::have_fun,
@@ -1093,30 +1429,59 @@ int main(int argc, char **argv) {
       menu.launch.reset();
       menu.ui_clock(queue_clock+=60000);menu.update_online_matchmaking();
       check(!menu.launch,"A launched match was handed to gameplay twice");
-      menu.back(); menu.back(); menu.back();
-      wait_queue([](const auto &s) { return s.status == OnlineMatchmakingStatus::Idle; });
-      check(menu.frame().screen == 186, "Cancel failed to return to service menu");
+      leave_matchmaking();
       menu.select(2); menu.accept();
-      check(menu.frame().screen == 14, "Create Party failed to open native lobby");
+      check(menu.frame().screen == 14 && queue_account->snapshot().party, "Custom Game failed to reopen the accepted party lobby");
       capture("online-lobby");
-      // This fixture deliberately has no account/party service. Its lobby
-      // cannot pretend an accepted party exists; playlists remain accessible
-      // through the independent Optimatch route.
-      check(menu.frame().entries.front().label=="Create Party","Unavailable party service fabricated accepted membership");
-      menu.back();menu.select(0);menu.accept();menu.select(1);menu.accept();menu.select(0);menu.accept();menu.select(1);menu.accept();
+      check(menu.frame().entries.size()==2 && menu.frame().entries[1].destination==23,
+            "Accepted party lobby lost the original two-button Game Setup route");
+      menu.select(1);menu.accept();
+      check(menu.frame().screen==23 && menu.frame().entries.size()==3 && menu.frame().entries[0].value==9 &&
+            menu.frame().entries[1].value==6 && menu.frame().entries[2].value==7,
+            "ONLINE Game Setup lost its original squad-settings choices");
+      menu.select(0);menu.accept();
       wait_queue([](const auto &s) { return s.status == OnlineMatchmakingStatus::Ready; });
-      check(menu.frame().screen == 219 && menu.frame().title == "ONLINE PLAYLISTS", "Native lobby Playlists route did not reach queue catalog");
-      menu.back();menu.select(2);menu.accept();menu.back();menu.select(0);menu.accept();
-      check(menu.frame().screen == 6, "Leaving ONLINE lobby did not return to main menu");
-      menu.select(1); menu.accept();
-      check(menu.frame().screen == 20, "ONLINE account route changed");
+      check(menu.frame().screen == 237 && menu.frame().title == "CHOOSE MATCHMAKING PLAYLIST", "Native lobby Game Setup did not reach the original lobby playlist selector");
+      menu.return_online();
       menu.select(0); menu.accept();
-      menu.select(0); menu.accept();
+      start_lobby_search();
       wait_queue([](const auto &s) { return s.playlist_id == "casual" && s.match.has_value(); });
-      // This second search is cancelled while connection probes are pending.
       check(!menu.launch, "Quickmatch launched before connection admission");
-      menu.back();
-      wait_queue([](const auto &s) { return s.status == OnlineMatchmakingStatus::Idle; });
+      {
+        std::unique_ptr<CURL,decltype(&curl_easy_cleanup)> fault(curl_easy_init(),curl_easy_cleanup);
+        const auto url=matchmaking_url+"/fixture/fail-current-search";
+        curl_easy_setopt(fault.get(),CURLOPT_URL,url.c_str());curl_easy_setopt(fault.get(),CURLOPT_PROXY,"");
+        curl_easy_setopt(fault.get(),CURLOPT_POST,1L);curl_easy_setopt(fault.get(),CURLOPT_POSTFIELDS,"");
+        curl_easy_setopt(fault.get(),CURLOPT_TIMEOUT_MS,3000L);curl_easy_setopt(fault.get(),CURLOPT_WRITEFUNCTION,discard);
+        check(curl_easy_perform(fault.get())==CURLE_OK,"Could not deliver the deliberate room failure");
+        long status{};curl_easy_getinfo(fault.get(),CURLINFO_RESPONSE_CODE,&status);
+        check(status==200,"Room failure fixture rejected the current authenticated search");
+      }
+      wait_queue([&](const auto &){return menu.frame().title==content.dialogs.at(0xab).title &&
+        menu.frame().description==content.dialogs.at(0xab).message;});
+      check(!menu.launch && menu.online_matchmaking_countdown()==matchmaking_countdown_none,
+        "Search failure retained launch/countdown authority");
+      capture("matchmaking-search-failed");menu.back();
+      check(menu.frame().screen==14,"Search failure did not return to the original pregame lobby");
+      start_lobby_search();
+      bool content_rejected{};
+      menu.set_multiplayer_map_validator([&](const FrontendLaunch &){content_rejected=true;throw FormatError("Required cache content unavailable in admission control");});
+      wait_queue([&](const auto &){return menu.frame().title==content.dialogs.at(0xac).title &&
+        menu.frame().description==content.dialogs.at(0xac).message;});
+      check(content_rejected && !menu.launch && menu.online_matchmaking_countdown()==matchmaking_countdown_none,
+        "Actual content rejection did not clear launch/countdown authority");
+      capture("matchmaking-missing-content");menu.set_multiplayer_map_validator({});menu.back();
+      check(menu.frame().screen==14,"Missing content did not return to the original pregame lobby");
+      start_lobby_search();
+      wait_queue([](const auto &s){return s.playlist_id=="casual" && s.match.has_value();});
+      check(!menu.launch,"Fresh retry bypassed connection/start admission");
+      leave_matchmaking();
+      std::cout<<"PASS real room failure -> original AB -> fresh pregame retry; actual cache-admission rejection -> original AC -> fresh pregame retry/cancel\n";
+      // TU1.5 PCR Done (0x233792) returns party A to pregame lobby14 pane2.
+      menu.return_online_lobby();
+      check(menu.frame().screen==14 && menu.stack().size()>=2,"Postgame return skipped the pregame lobby");
+      menu.return_online();
+      menu.set_online_matchmaking({});menu.set_online_account(account);menu.update_online_login();
     }
     if(party_run) {
       const auto discard_old_sounds=menu.take_ui_sounds();
@@ -1144,8 +1509,10 @@ int main(int argc, char **argv) {
           return native_layout.images.at(b->datum).name;
         };
         const auto primary=background(0x1400069a);
-        const std::string box="ui\\list_skins\\matchmaking\\player_in";
-        const std::string blank="ui\\list_skins\\matchmaking\\item_background";
+        const auto box=cache.is_mcc()?detail::og_matchmaking_layout::embedded_image_name("ui\\list_skins\\matchmaking\\player_in"):
+            std::string("ui\\list_skins\\matchmaking\\player_in");
+        const auto blank=cache.is_mcc()?detail::og_matchmaking_layout::embedded_image_name("ui\\list_skins\\matchmaking\\item_background"):
+            std::string("ui\\list_skins\\matchmaking\\item_background");
         unsigned emblems{},stripes{},empty{},boxes{},speakers{};
         std::set<unsigned> banks;
         const auto speaker=native_layout.images.at(pane.bitmaps.at(21).datum).name;
@@ -1155,8 +1522,8 @@ int main(int argc, char **argv) {
           stripes+=m.name==primary;empty+=m.name==blank;boxes+=m.name==box;speakers+=m.name==speaker;
         }
         check(emblems==players && banks.size()==players,"Party rows omitted or shared profile emblem banks");
-        check(stripes==players && empty==16-players && boxes==16-players,
-              "Party rows lost occupied stripes, empty bars or the separate empty-slot square");
+        check(stripes==players && empty==0 && boxes==0,
+              "Pregame party rows differ from the actual occupied-player count");
         check(speakers<=players,"An empty party slot drew a speaker icon");
         if(party_render && std::getenv("DISPLAY") && std::getenv("HALO2_TEST_SCRATCH")) {
           auto *window=capture_desktop->window(640,480,true);
@@ -1202,16 +1569,22 @@ int main(int argc, char **argv) {
           std::cout<<"PASS native party roster pixels "<<path<<std::endl;
         }
       };
+      unsigned party_wait{};
       auto wait_party=[&](auto predicate) {
+        ++party_wait;
         const auto until=std::chrono::steady_clock::now()+std::chrono::seconds(15);
         while(!predicate(account->snapshot()) && std::chrono::steady_clock::now()<until){menu.update_online_login();std::this_thread::sleep_for(std::chrono::milliseconds(5));}
         menu.update_online_login();
-        if(!predicate(account->snapshot()))throw FormatError("Native party flow timed out: "+account->snapshot().party_message);
+        if(!predicate(account->snapshot()))
+          throw FormatError("Native party flow timed out at wait "+std::to_string(party_wait)+" on screen "+
+                            std::to_string(menu.frame().screen)+": "+account->snapshot().party_message+" / "+account->snapshot().message);
       };
       auto choose=[&](const std::string &label) {
         const auto &entries=menu.frame().entries;
         const auto it=std::find_if(entries.begin(),entries.end(),[&](const auto &e){return e.label==label;});
-        check(it!=entries.end(),"Party action missing");menu.select(unsigned(it-entries.begin()));menu.accept();
+        std::string present;for(const auto &e:entries)present+=" ["+e.label+"]";
+        check(it!=entries.end(),("Party action missing: "+label+" on screen "+std::to_string(menu.frame().screen)+present).c_str());
+        menu.select(unsigned(it-entries.begin()));menu.accept();
       };
       menu.select(2);menu.accept();
       wait_party([](const auto &s){return s.party && !s.busy;});
@@ -1237,33 +1610,76 @@ int main(int argc, char **argv) {
       menu.select(2);menu.accept();
       check(menu.frame().screen==14 && account->snapshot().party->leader,"Custom Game lost the retained leader lobby");
       (void)menu.take_ui_sounds();
-      choose("Party Options");capture("party-options");choose("Join Party Voice");
+      menu.auxiliary();capture("party-options");choose("Join Party Voice");
       const auto voice_until=std::chrono::steady_clock::now()+std::chrono::seconds(4);
-      while(menu.online_party_text(menu.frame(),0).find("connected")==std::string::npos && std::chrono::steady_clock::now()<voice_until){menu.update_online_login();std::this_thread::sleep_for(std::chrono::milliseconds(5));}
-      check(menu.online_party_text(menu.frame(),0).find("connected")!=std::string::npos,"Accepted party voice failed to connect");
+      const auto party_voice_joined=[&] {
+        menu.update_online_login();menu.auxiliary();
+        // This actual action exists only when OnlineVoice::snapshot.joined
+        // is true. Authored lobby status text0 is owned by countdown/errors;
+        // it must not be replaced with a synthetic voice connection message.
+        const bool joined=std::any_of(menu.frame().entries.begin(),menu.frame().entries.end(),
+            [](const auto &entry){return entry.destination==-34 && entry.value==1;});
+        menu.back();return joined;
+      };
+      bool joined=party_voice_joined();
+      while(!joined && std::chrono::steady_clock::now()<voice_until){std::this_thread::sleep_for(std::chrono::milliseconds(5));joined=party_voice_joined();}
+      check(joined,"Accepted party voice did not publish its actual joined-only microphone action");
       menu.voice_push_to_talk(true);capture("party-voice");menu.voice_push_to_talk(false);
-      choose("Party Options");choose("Mute Microphone");choose("Party Options");capture("party-voice-options");choose("Unmute Microphone");
-      choose("Party Options");choose("Invite Player");
-      check(menu.party_invite_picker() && menu.party_invite_tab()==0,"Invite Player did not open Steam friends tab");
-      capture("party-invite-steam-tab");
+      menu.auxiliary();choose("Mute Microphone");menu.auxiliary();capture("party-voice-options");choose("Unmute Microphone");
+      menu.auxiliary();choose("Invite Player");
+      check(menu.party_invite_picker() && menu.party_invite_tab()==0,"Invite Player did not open game friends tab");
+      capture("party-invite-friends-tab");
       const auto tab_revision=menu.revision;
       check(menu.activate_pointer({FrontendPointerAction::InviteTab,1,tab_revision}) && menu.party_invite_tab()==1,
             "Clan tab header did not switch invite source");
       check(!menu.activate_pointer({FrontendPointerAction::InviteTab,0,tab_revision}),"Stale invite-tab geometry changed source");
       capture("party-invite-clan-tab");
-      check(menu.switch_invite_tab(-1) && menu.party_invite_tab()==0,"Shoulder tab navigation did not return to Steam friends");
-      choose("Search Discord Username");
+      check(menu.switch_invite_tab(-1) && menu.party_invite_tab()==0,"Shoulder tab navigation did not return to game friends");
+      choose("Invite by Friend Tag");
       check(menu.frame().screen==167 && menu.frame().title=="INVITE TO PARTY","Party invitation reused clan/name keyboard purpose");
       capture("party-invite-entry");menu.back();
-      const auto discord_friend=std::make_shared<FriendsFixture>();
-      discord_friend->state.enabled=discord_friend->state.ready=true;
-      discord_friend->state.friends.push_back({"private-local-friend","Discord display name","peer_pilot",DiscordFriendKind::Friend,DiscordFriendPresence::Online});
-      menu.set_discord_social(discord_friend);menu.open(26,0);menu.select(0);menu.accept();
-      check(menu.frame().screen==31 && menu.frame().context==43,"Discord friend selection lost options");
-      capture("party-discord-friend-options");choose("Invite To Party");
+      {
+        const auto tags=std::getenv("H2_TEST_BLOCKED_FRIEND_TAGS");check(tags,"Missing owned blocked-player tags");
+        for(const auto &tag:nlohmann::json::parse(tags)) {
+          check(account->friend_command("search",tag.get<std::string>()),"Blocked-player fixture search denied");
+          wait_party([](const auto &s){return s.friend_search.has_value() && !s.busy;});
+          const auto target=account->snapshot().friend_search->id;
+          check(account->friend_command("block",target),"Blocked-player fixture command denied");
+          wait_party([&](const auto &s){return !s.busy && std::any_of(s.friends.begin(),s.friends.end(),[&](const auto &f){return f.id==target && f.state=="blocked";});});
+        }
+        menu.open(216,43);menu.select(2);
+        const auto selected=account->snapshot().friends.at(unsigned(menu.frame().entries.at(2).value)).id;
+        const auto revision=account->snapshot().revision;
+        wait_party([&](const auto &s){return s.revision>revision;});
+        const auto index=unsigned(menu.frame().entries.at(menu.frame().selected).value);
+        check(menu.frame().entries.at(menu.frame().selected).destination==31 &&
+              account->snapshot().friends.at(index).id==selected,
+              "Blocked-player refresh selected another account with the same display name");
+        menu.accept();
+        check(menu.frame().context==43 && menu.frame().entries.front().label=="Unblock Player",
+              "Blocked-player selection lost its account-specific action");
+        menu.back();menu.back();
+      }
+      menu.open(26,0);choose("Find Player by Friend Tag");
+      check(menu.frame().screen==167 && menu.frame().context==11,"Friend search did not open its keyboard");
+      menu.select(44);menu.accept();
+      const auto hash=std::find_if(menu.frame().entries.begin(),menu.frame().entries.end(),[](const auto &e){return e.label=="#";});
+      check(hash!=menu.frame().entries.end(),
+            "Controller keyboard cannot enter a friend tag's # separator");
+      menu.select(unsigned(hash-menu.frame().entries.begin()));menu.accept();
+      check(menu.keyboard_text=="#","Controller extra-symbol key did not enter the original # character");
+      menu.erase_text();menu.select(44);menu.accept();
+      const auto peer_tag=std::getenv("H2_TEST_PEER_FRIEND_TAG");check(peer_tag,"Missing owned peer friend tag");
+      menu.text(peer_tag);menu.commit_text();
+      wait_party([](const auto &s){return s.friend_search.has_value() && !s.busy;});
+      check(menu.frame().screen==31 && menu.frame().context==46,"Friend search lost its result dialog");
+      capture("party-friend-search");choose("Send Friend Request");
+      wait_party([](const auto &s){return !s.busy && std::any_of(s.friends.begin(),s.friends.end(),[](const auto &f){return f.state=="friend";});});
+      choose("Pilot");
+      check(menu.frame().screen==31 && menu.frame().context==43,"Native friend selection lost options");
+      capture("party-native-friend-options");choose("Invite To Party");
       wait_party([](const auto &s){return s.party && s.party->members.size()==2 && !s.busy;});
       check(menu.take_ui_sounds()==std::vector{FrontendUiSound::Advance},"Remote accepted member did not request one party join sound");
-      menu.set_discord_social({});
       check(menu.frame().screen==26 && menu.frame().context==2,"Invitation completion lost party members tab");
       check(account->snapshot().party->members[0].handle!=account->snapshot().party->members[1].handle &&
             account->snapshot().party->members[0].name==account->snapshot().party->members[1].name,"Duplicate chosen names changed party authority");
@@ -1273,7 +1689,86 @@ int main(int argc, char **argv) {
       check(account->snapshot().party->members[1].appearance->foreground==26 &&
             account->snapshot().party->members[1].appearance->colors[0]==8,
             "Remote party row lost the accepted member's saved emblem/color bytes");
-      verify_party_rows(2);capture("party-two-profile-lobby");menu.players();
+      verify_party_rows(2);capture("party-two-profile-lobby");
+      {
+        // TU1.5 party search. The member's Leave Matchmaking (0x252150)
+        // returns the party to pre-game and the leader's lobby shows 0xAD
+        // (0x250804). Lobby START GAME (0x25106C) then searches the retained
+        // hopper after its countdown, and the leader's own Leave Matchmaking
+        // asks with 0x8C and shows no notice to its canceller.
+        OnlineMatchmakingOptions party_queue;party_queue.endpoint=account_url;party_queue.allow_loopback_http=true;
+        party_queue.compatibility="halo2-native-queue-v7";party_queue.maps={"lockout"};
+        party_queue.poll_interval=std::chrono::milliseconds(25);
+        auto queue=std::make_shared<OnlineMatchmaking>(login,party_queue);menu.set_online_matchmaking(queue);
+        std::uint32_t party_clock=100000000;menu.ui_clock(party_clock);
+        auto pump=[&](auto predicate,const char *failure) {
+          const auto until=std::chrono::steady_clock::now()+std::chrono::seconds(20);
+          while(!predicate() && std::chrono::steady_clock::now()<until) {
+            menu.update_online_login();menu.update_online_matchmaking();
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+          }
+          check(predicate(),failure);
+        };
+        auto dialog_shown=[&](unsigned id) {
+          const auto &d=content.dialogs.at(id);const auto &f=menu.frame();
+          return f.screen==d.screen && f.title==d.title && f.description==d.message;
+        };
+        auto start_party_countdown=[&] {
+          const auto &entries=menu.frame().entries;
+          const auto start=std::find_if(entries.begin(),entries.end(),[](const auto &e){return e.destination==-17;});
+          check(menu.frame().screen==14 && start!=entries.end(),"Party lobby lost its source Start action");
+          const auto &screen=content.screen(14);
+          check(start->label==content.localized(screen,screen.panes.at(2).buttons.at(0).text.string),
+                "Party Start label differs from its authored locale bank");
+          menu.select(unsigned(start-entries.begin()));menu.accept();
+        };
+        menu.open(219);
+        pump([&]{return std::any_of(menu.frame().entries.begin(),menu.frame().entries.end(),
+                                    [](const auto &e){return e.label=="Party Search lab";});},"Party playlists did not load");
+        choose("Party Search lab");menu.select(0);menu.accept();
+        check(menu.frame().screen==14,"Party playlist skipped the original pregame lobby");
+        pump([&]{const auto s=account->snapshot();return s.party && !s.busy &&
+          std::all_of(s.party->members.begin(),s.party->members.end(),[](const auto &m){return m.ready_playlist=="party-search";});},
+             "Every party member must consent to the playlist before START GAME");
+        start_party_countdown();
+        pump([&]{return menu.frame().screen==210;},"Shared initial party countdown did not reach zero");
+        check(menu.frame().screen==210,"Initial party lobby countdown did not start search");
+        pump([&]{return queue->snapshot().status==OnlineMatchmakingStatus::Searching;},"Party leader search did not start");
+        pump([&]{return dialog_shown(0xad);},"Member Leave Matchmaking did not show the leader 0xAD");
+        check(menu.stack().size()>=2 && menu.stack()[menu.stack().size()-2].screen==14,"0xAD was not shown over the pregame lobby");
+        check(menu.frame().entries.size()==1,"0xAD is not a single-choice notice");
+        menu.accept();check(menu.frame().screen==14,"0xAD OK did not return to the lobby");
+        pump([&]{return queue->snapshot().status==OnlineMatchmakingStatus::Ready;},"A party-cancelled leader kept its queue intent");
+        start_party_countdown();
+        pump([&]{return !account->snapshot().busy && menu.online_lobby_countdown()>0;},"Shared countdown Start was not acknowledged");
+        check(menu.online_lobby_countdown()<=matchmaking_lobby_countdown_initial &&
+              menu.online_party_text(menu.frame(),0).find(matchmaking_lobby_countdown_text(menu.online_lobby_countdown()))!=std::string::npos,
+              "Lobby START GAME did not show the 10 s countdown");
+        const auto before_repeat=menu.online_lobby_countdown();start_party_countdown();
+        pump([&]{return !account->snapshot().busy && menu.online_lobby_countdown()<before_repeat;},"Repeated shared Start did not shorten the countdown");
+        (void)menu.take_ui_sounds();
+        pump([&]{return menu.frame().screen==210;},"Shared party countdown did not search at its published zero");
+        check(menu.frame().screen==210 && menu.online_lobby_countdown()<0,"Lobby countdown did not search at zero");
+        {const auto sounds=menu.take_ui_sounds();
+         check(std::count(sounds.begin(),sounds.end(),FrontendUiSound::PregameCountdown)==4,"Lobby countdown did not beep at stages 3..0");}
+        pump([&]{return queue->snapshot().status==OnlineMatchmakingStatus::Searching;},"Lobby START GAME did not search the retained hopper");
+        menu.back();
+        check(dialog_shown(matchmaking_leave_dialog_party) && menu.frame().entries.at(0).destination==-16,
+              "Party Leave Matchmaking did not ask with 0x8C");
+        check(menu.frame().selected==1,"0x8C did not focus its authored Cancel choice");
+        menu.select(0);menu.accept();check(menu.frame().screen==14,"Leave Matchmaking did not return the party to its lobby");
+        pump([&]{return queue->snapshot().status==OnlineMatchmakingStatus::Ready;},"Leave Matchmaking kept the party ticket");
+        for(unsigned i=0;i<20;++i){menu.update_online_login();menu.update_online_matchmaking();std::this_thread::sleep_for(std::chrono::milliseconds(10));}
+        check(menu.frame().screen==14,"The canceller was shown its own party-cancel notice");
+        // Closing the queue session withdraws every member's playlist consent
+        // (a new party version); later commands must see that version.
+        menu.set_online_matchmaking({});
+        wait_party([](const auto &s){return s.party && !s.busy && std::all_of(s.party->members.begin(),s.party->members.end(),
+                                                                          [](const auto &m){return m.ready_playlist.empty();});});
+        // Back on lobby14 asks to leave it (0x8B); re-enter it as Custom Game.
+        menu.return_online();menu.select(2);menu.accept();check(menu.frame().screen==14,"Custom Game lost the party lobby");
+      }
+      menu.players();
       if(!captures.empty()) {
         std::ofstream(captures/"request-full-party")<<"ready\n";
         for(unsigned i=0;i<14;++i) {
@@ -1332,6 +1827,37 @@ int main(int argc, char **argv) {
       menu.players();menu.select(1);menu.accept();choose("Leave Party");
       wait_party([](const auto &s){return !s.party && !s.busy;});
       menu.back();check(menu.frame().screen==186,"Party completion lost ONLINE parent");
+      // Original2B55AE ->2B5D3B/2B5EF9 joins the selected same-title friend's
+      // actual session. The service's real Open admission/context is required;
+      // neither display names nor an invitation synthesize this eligibility.
+      wait_party([](const auto &s){return !s.party && !s.busy && std::any_of(s.friends.begin(),s.friends.end(),
+          [](const auto &f){return f.state=="friend" && f.party_joinable==true && !f.party_context.empty();});});
+      const auto join_observation=account->snapshot();
+      const auto join_target=std::find_if(join_observation.friends.begin(),join_observation.friends.end(),
+          [](const auto &f){return f.party_joinable==true;});
+      check(join_target!=join_observation.friends.end(),"Observed Open target disappeared before selection");
+      const auto joined_context=join_target->party_context;
+      menu.open(26,0);choose("Pilot");
+      check(menu.frame().screen==31 && menu.frame().context==43,"Open friend join lost its actual friend selection");
+      capture("party-open-friend-options");
+      const auto join_serial=account->snapshot().party_command_serial;
+      choose("Join Party");
+      check(menu.frame().screen!=14 || (account->snapshot().party && account->snapshot().party_command_successful==true),
+            "Join Party opened a lobby before actual accepted membership");
+      wait_party([&](const auto &s){return s.party && !s.party->leader && s.party->members.size()==2 && !s.busy &&
+          s.party_command_serial>join_serial && s.party_command_successful==true;});
+      const auto accepted_join=account->snapshot();
+      check(menu.frame().screen==14 && accepted_join.party && std::any_of(accepted_join.party->members.begin(),accepted_join.party->members.end(),
+          [&](const auto &m){return m.handle==joined_context && m.leader;}),
+            "Open friend join did not enter the exact acknowledged target party");
+      capture("party-open-joined-lobby");
+      menu.open(26,0);choose("Pilot");
+      check(std::none_of(menu.frame().entries.begin(),menu.frame().entries.end(),[](const auto &e){return e.destination==-83 && e.value==8;}),
+            "Accepted party bypassed its existing Leave requirement before another join");
+      menu.back();menu.back();
+      menu.players();menu.select(1);menu.accept();choose("Leave Party");
+      wait_party([](const auto &s){return !s.party && !s.busy;});
+      menu.back();check(menu.frame().screen==186,"Open join/leave lost ONLINE parent");
     }
     if (account && !party_run) {
       auto wait_account = [&](auto predicate) {

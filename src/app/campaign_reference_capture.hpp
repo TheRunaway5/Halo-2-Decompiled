@@ -155,7 +155,12 @@ class Trace {
   std::uint64_t sequence_{};
 public:
   explicit Trace(const std::filesystem::path &path) {
-    Environment guard;owned_output(path);file_=std::fopen(path.c_str(),"wx");
+    Environment guard;owned_output(path);
+#ifdef _WIN32
+    file_=::_wfopen(path.c_str(),L"wbx");
+#else
+    file_=std::fopen(path.c_str(),"wx");
+#endif
     if(!file_)throw FormatError("Campaign reference trace could not be created");
   }
   ~Trace()noexcept {

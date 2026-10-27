@@ -7,6 +7,11 @@ behavior when explicitly needed.
 
 ## Disposable CMake validation
 
+Custom asset source staging defaults off when `HALO2_TEST_SCRATCH` is present,
+avoiding large artwork/map copies in component builds. Ordinary `data/tags`
+staging remains enabled. Deliverable engine qualification explicitly sets
+`HALO2_STAGE_CUSTOM_ASSETS=ON` and an owned `HALO2_CUSTOM_ASSET_ROOT`.
+
 ```bash
 python3 tools/run_tests.py --target movie_tests --filter '^frontend_movie_routing$'
 python3 tools/run_tests.py --sanitizers --target movie_tests --filter '^frontend_movie_routing$'
@@ -18,6 +23,12 @@ the build targets. Release builds and two jobs are the default to reduce the
 size of linked test programs. Use `--config Debug` when debugging requires
 symbols. Extra configure options use
 `--cmake-arg=-DOPTION=VALUE`.
+
+Frozen engine builds borrow their original asset trees. Pass
+`--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT=/absolute/original/checkout` for the
+frontend and Path Tracing fixture tests, so prepared MCC caches use their real
+owner path. The engine builder supplies this automatically; prepared-cache
+symlink admission remains strict.
 
 For launcher-only validation against an existing native runtime, pass
 `--cmake-arg=-DHALO2_BUILD_LAUNCHERS_WITH_NATIVE=OFF` and

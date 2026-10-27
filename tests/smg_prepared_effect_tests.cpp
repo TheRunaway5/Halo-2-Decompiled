@@ -119,7 +119,7 @@ int main(int argc,char **argv) {
           match=std::make_unique<MultiplayerMatch>(content,0,cache.spawns(),rules);
           if(mode) {
             host=std::make_unique<LanHost>(*match,0,0x107b50);
-            client=std::make_unique<LanClient>("127.0.0.1:"+std::to_string(host->port()),0x107b50,1);
+            client=std::make_unique<LanClient>(host->join_address(),0x107b50,1);
             std::array<Controls,multiplayer_capacity> controls{};
             for(unsigned i=0;i<64 && !client->ready();++i) {
               client->send(std::array<Controls,1>{});host->receive(controls);host->broadcast();client->receive();

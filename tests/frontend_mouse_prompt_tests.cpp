@@ -93,6 +93,31 @@ int main(int argc, char **argv) try {
   MenuState title(content);
   click(title, painter, Action::Accept);
   check(title.frame().screen == 10, "title PRESS START click failed");
+  MenuState guest_exit(content);
+  guest_exit.open(6);
+  check(guest_exit.signed_in_profile().empty() &&
+      guest_exit.frame().entries.size() == 6 &&
+      guest_exit.frame().entries.at(4).destination == 19 &&
+      guest_exit.frame().entries.back().label == "EXIT GAME",
+      "Exit Game must follow Settings as the final main-menu option");
+  guest_exit.move(-1);
+  check(guest_exit.frame().selected == 5 && !guest_exit.quit,
+      "keyboard/controller focus does not wrap to Exit Game");
+  guest_exit.move(1);
+  check(guest_exit.frame().selected == 0 && !guest_exit.quit,
+      "Exit Game focus does not wrap back to Campaign");
+  guest_exit.move(5);
+  guest_exit.accept();
+  check(guest_exit.quit && !guest_exit.launch && guest_exit.frame().screen == 6,
+      "Exit Game did not request shutdown from the unsigned main menu");
+  MenuState profile_exit(content);
+  create(profile_exit);
+  profile_exit.back();
+  check(profile_exit.frame().screen == 6 && !profile_exit.signed_in_profile().empty(),
+      "Exit Game mouse fixture did not sign in");
+  click(profile_exit, painter, Action::Entry, 5);
+  check(profile_exit.quit && !profile_exit.launch && profile_exit.frame().screen == 6,
+      "Exit Game click did not request shutdown from the signed-in main menu");
   MenuState state(content);
   create(state);
   state.select(1); state.accept();

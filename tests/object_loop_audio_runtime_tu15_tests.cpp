@@ -34,11 +34,30 @@ Entrance entrance(const Cache &cache,const LevelContent &content,const std::stri
     const std::map<std::string,std::string> paths{{"extra-rocks","\\extra_rocks"},{"skittery-bugs","\\skittery_bugs"},
         {"flies","\\monopoint_flies"},{"birds-insects","\\outdoor_birds_insects"},
         {"powerhaus","\\powerhaus"},{"under-glass","\\hq_under_glass"},
-        {"green-hum","\\green_hum"}};
+        {"green-hum","\\green_hum"},
+        {"lift","\\lockout_lift_tube\\lockout_lift_tube"}};
     for(const auto &placed:content.objects) {
       const auto tag=cache.query_tag({.handle=TagHandle{placed.definition}});
       if(!tag || (owner=="teleporter" ? !tag->name.ends_with("\\2way_teleporter") :
           owner=="sound-scenery"?placed.type!=10:!tag->name.ends_with(paths.at(owner))))continue;
+      if(owner=="lift") {
+        // The actual authored lower phantom hull is a declared birth-position
+        // input. Original contact, force, activation and loop controls still
+        // run normally; neither a lift result nor a sound request is supplied.
+        const auto object=cache.load_source_tag_metadata(placed.definition);
+        const Bytes object_root(object.bytes_at(object.source_address(),object.size()));
+        const auto model=cache.load_source_tag_metadata(object_root.u32(0x38));
+        const Bytes model_root(model.bytes_at(model.source_address(),model.size()));
+        const auto physics=cache.load_source_tag_metadata(model_root.u32(0x24));
+        const Bytes p(physics.bytes_at(physics.source_address(),physics.size()));
+        check(p.u32(0x70)==2 && p.u32(0x108)==2,"Original Lockout lower lift hull differs");
+        const Bytes hull(physics.bytes_at(p.u32(0x74),0x100));
+        Transform local;local.position={hull.f32(0x40),hull.f32(0x44),hull.f32(0x48)};
+        const auto basis=authored_basis(placed.rotation);
+        const auto root=source_object_transform(placed.position,basis.forward,basis.up,placed.scale,false);
+        const auto position=compose_transform(root,local).position;
+        return {{position,0},placed.position,placed.definition};
+      }
       const CollisionWorld terrain(content.collision);
       const auto audio_locations=cache.load_bsp_atmosphere(0);
       auto position=placed.position+Vec3{2,0,0};
@@ -103,7 +122,7 @@ int main(int argc,char **argv) {
     const std::string owner=argc==6?argv[5]:"warthog";
     check(owner=="warthog"||owner=="banshee"||owner=="teleporter"||owner=="sound-scenery"||
         owner=="extra-rocks"||owner=="skittery-bugs"||owner=="flies"||owner=="birds-insects"||
-        owner=="powerhaus"||owner=="under-glass"||owner=="green-hum","Unknown authored audio owner");
+        owner=="powerhaus"||owner=="under-glass"||owner=="green-hum"||owner=="lift","Unknown authored audio owner");
     const bool vehicle=owner=="warthog"||owner=="banshee";
     const std::string mode=argv[4];check(mode=="baseline"||mode=="source-frame"||mode=="listeners-and-source-frame"||mode=="selected-loop"||mode=="nonspatial-control"||mode=="native-views-frame"||mode=="native-views-empty"||mode=="native-views-far"||mode=="native-loop-packet"||mode=="native-loop-packet-converted"||mode=="native-object-loop"||mode=="native-object-loop-omit"||mode=="native-object-loop-retire"||mode=="native-object-loop-maneuvers","Unknown object-loop mode");
     const bool object_mode=mode.starts_with("native-object-loop");
@@ -198,7 +217,8 @@ int main(int argc,char **argv) {
     std::uint32_t control_loop=null_datum;
     std::vector<SourceLoopSoundRequestTu15> packet_requests;
     std::uint32_t packet_auxiliary=0x6d2b1943u;const auto packet_auxiliary_before=packet_auxiliary;
-    unsigned native_packets{},native_boost_sides{},native_contrail_sides{};double native_peak{};bool packet_mutation_rejected=false;
+    unsigned native_packets{},native_boost_sides{},native_contrail_sides{},native_lift_activation_packets{},lift_activation_requests{};
+    double native_peak{};bool packet_mutation_rejected=false;
     std::unique_ptr<MultiplayerAudio> packet_audio;
     std::optional<MccSoundVariationProvider> packet_metadata;
     struct PacketState {
@@ -219,6 +239,7 @@ int main(int argc,char **argv) {
               if(tag->name.find("\\banshee_boost_right\\")!=std::string::npos)native_boost_sides|=2u;
               if(tag->name.find("\\banshee_contrail_left\\")!=std::string::npos)native_contrail_sides|=1u;
               if(tag->name.find("\\banshee_contrail_right\\")!=std::string::npos)native_contrail_sides|=2u;
+              if(tag->name.find("\\midship_activate_lift\\")!=std::string::npos)++native_lift_activation_packets;
             }
             if(report["native_packets"].size()<128)report["native_packets"].push_back({
                 {"sound",event.sound},{"owner",event.owner},{"view",event.view},
@@ -294,6 +315,8 @@ int main(int argc,char **argv) {
             word(memory,record+16u)==target_object&&word(memory,record+12u)==args[0];
       }
       target_requests+=selected&&target_loops.contains(args[0]);
+      if(selected && tag && tag->name.ends_with("\\midship_activate_lift\\midship_activate_lift") &&
+          args[5]!=2 && Bytes(request.location).f32(4)>0)++lift_activation_requests;
       if(selected)check(request.emitter_owner==target_object,
           "Attached loop observer lost its actual source emitter identity");
       if(packet_audio && selected && target_loops.contains(args[0]))packet_requests.push_back(request);
@@ -323,6 +346,7 @@ int main(int argc,char **argv) {
     }
     std::array<Controls,multiplayer_capacity> commands{};
     const auto initial=world.match.state();const auto slot=world.local_slots.at(0);
+    const float initial_height=initial.players[slot].position.z;float peak_height=initial_height;
     commands[slot].yaw=initial.players[slot].yaw;commands[slot].pitch=initial.players[slot].pitch;
     const auto look=entry_point-(initial.players[slot].position+Vec3{0,0,world.content.player.camera_height});
     commands[slot].pitch=std::atan2(look.z,std::hypot(look.x,look.y));
@@ -337,6 +361,7 @@ int main(int argc,char **argv) {
       packet_requests.clear();
       select_target(tick);
       const auto current=world.match.state().players[slot];
+      peak_height=std::max(peak_height,current.position.z);
       native.publish_native_observer_position(0,current.position+Vec3{0,0,world.content.player.camera_height});
       if(mode=="nonspatial-control" && tick==120u) {
         const auto active=loops();
@@ -537,6 +562,8 @@ int main(int argc,char **argv) {
     report["native_loop_packet_peak"]=native_peak;report["native_loop_packet_submissions"]=native_packets;
     report["native_banshee_boost_sides"]=native_boost_sides;
     report["native_banshee_contrail_sides"]=native_contrail_sides;
+    if(owner=="lift")report["lift_activation"]={{"initial_height",initial_height},{"peak_height",peak_height},
+        {"positive_source_requests",lift_activation_requests},{"actual_native_packets",native_lift_activation_packets}};
     report["packet_output_did_not_advance_auxiliary_rng"]=packet_auxiliary==packet_auxiliary_before;
     report["completed_native_loop_scheduler_verified"]=false;
     report["target_original_request_count"]=target_requests;
@@ -554,6 +581,8 @@ int main(int argc,char **argv) {
     if(object_mode)report["passed"]=report["passed"].get<bool>()&&packet_mutation_rejected;
     if(mode=="native-object-loop-maneuvers")report["passed"]=report["passed"].get<bool>()&&
         report.value("native_metadata_restore_rejected_without_target",false)&&native_boost_sides==3u&&native_contrail_sides==3u;
+    if(owner=="lift" && packet_audio)report["passed"]=report["passed"].get<bool>()&&
+        peak_height>initial_height && lift_activation_requests>0 && native_lift_activation_packets>0;
     report["ordinary_object_loop_profile_verified"]=object_mode&&report["passed"].get<bool>();
     if(!report["passed"].get<bool>())report["error"]=mode=="native-object-loop-retire"?
         "Native object loop streams survived source-owner retirement":mode=="native-object-loop-maneuvers"&&native_boost_sides!=3u?

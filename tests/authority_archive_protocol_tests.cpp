@@ -88,6 +88,13 @@ int main()try{
         if(parsed)check(same(*parsed,ref.nodes),"Rust/C++ authority values differ");++compared;
     };
     const auto original=seed();compare(original);
+    std::array<std::byte,32> hash;hash.fill(std::byte{0x15});
+    auto canonical=parse_authority_archive_raw(original,hash,limits);
+    Reference reference{original};reference.value();
+    check(canonical&&same(*canonical,reference.nodes),"Raw canonical image changed archive grammar");
+    check(canonical->expected_hash()==hash,"Raw image lost its independent digest");
+    auto tight=limits;tight.working_bytes=original.size();
+    check(!parse_authority_archive_raw(original,hash,tight),"Raw parser skipped aggregate backing/metadata budget");
     for(unsigned n=1;n<original.size();++n)compare(Bytes(original.begin(),original.begin()+n));
     for(unsigned at=0;at<original.size();++at)for(unsigned byte=0;byte<256;++byte){auto changed=original;changed[at]=std::byte(byte);compare(changed);}
     auto trailing=original;trailing.push_back(std::byte{});compare(trailing);

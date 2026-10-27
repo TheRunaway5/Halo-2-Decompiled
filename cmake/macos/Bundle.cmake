@@ -49,5 +49,12 @@ function(halo2_macos_engine_bundle target)
         COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/data"
             "$<TARGET_BUNDLE_CONTENT_DIR:${target}>/Resources/data"
         VERBATIM)
+    if(HALO2_STAGE_CUSTOM_ASSETS)
+        add_custom_command(TARGET ${target} POST_BUILD
+            COMMAND ${Python3_EXECUTABLE} -B "${CMAKE_CURRENT_SOURCE_DIR}/tools/custom_assets.py"
+                --root "${CMAKE_CURRENT_BINARY_DIR}/custom-assets"
+                --destination "$<TARGET_BUNDLE_CONTENT_DIR:${target}>/Resources/custom-assets"
+            VERBATIM)
+    endif()
     halo2_macos_bundle(${target} "Halo 2" LICENSES ${HALO2_MACOS_ENGINE_LICENSES})
 endfunction()

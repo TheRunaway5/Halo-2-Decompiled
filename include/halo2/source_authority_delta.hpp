@@ -5,15 +5,21 @@
 #include <memory>
 #include <span>
 #include <vector>
+#include "halo2/authority_network_limits.hpp"
 
 namespace halo2 {
 using AuthorityArchiveDigest=std::array<std::byte,32>;
 struct AuthorityDeltaLimits {
     std::uint64_t encoded_bytes=64ull*1024*1024;
-    std::uint64_t decoded_bytes=1024ull*1024*1024;
-    std::uint64_t patch_bytes=1024ull*1024*1024;
+    std::uint64_t decoded_bytes=authority_network_decoded_bytes;
+    std::uint64_t patch_bytes=authority_network_decoded_bytes;
     std::uint64_t commands=1'000'000;
+    std::uint64_t working_bytes=4*authority_network_decoded_bytes;
 };
+inline AuthorityDeltaLimits source_authority_network_delta_limits(){
+    return {authority_network_encoded_bytes,authority_network_decoded_bytes,authority_network_decoded_bytes,
+        1'000'000,4*authority_network_decoded_bytes};
+}
 // Immutable canonical named-field archive bytes, before compression. This
 // owner validates the source-codec envelope/checksum, not the state schema or
 // the world. The executor still decodes and prepares every reconstructed cut.
@@ -24,6 +30,7 @@ public:
     static AuthorityArchiveImage read(std::span<const std::byte>,AuthorityDeltaLimits = {});
     AuthorityArchiveDigest digest()const;
     std::uint64_t decoded_size()const;
+    std::span<const std::byte> raw()const;
     std::vector<std::byte> encode(AuthorityDeltaLimits = {})const;
 private:
     struct Data;

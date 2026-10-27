@@ -243,6 +243,35 @@ class NativeMapOwnerTests(unittest.TestCase):
         with self.assertRaisesRegex(FormatError, "common dependency identity"):
             owners.resolve_binding(bad, index["maps"][0]["map"], f.snapshots[index["maps"][0]["map"]], f.banks)
 
+    def test_pc_corrected_input_requires_finite_source_and_final_fingerprints(self):
+        f = self.basic()
+        cairo = f.add_bank("01b_spacestation")
+        original = b"original PC metadata fixture"
+        target = b"source bitmap metadata correction fixture"
+        owner = f.add_map("h2_maps_win64_dx11/needle.map", original)
+        source = dict(map="needle", bytes=len(original), sha256=sha(original))
+        prepared = dict(map="needle", bytes=len(target), sha256=sha(target), source_sha256=sha(original),
+                        preparation_profile="H2_MCC_SKY_BITMAP_COW_V7", correction_report_sha256="c" * 64)
+        policy = dict(schema=owners.HUD_SCHEMA, source_map="01b_spacestation", maps=[source],
+                      source_canonical_sha256=cairo["canonical_sha256"], prepared_inputs=[prepared])
+        f.provenance["graphics_corrections"] = dict(changes=[dict(path=owner,
+            donor_sha256=sha(original), converted_sha256=sha(target))])
+        f.verified[owner] = dict(bytes=len(target), sha256=sha(target))
+        index = f.build(hud_bootstrap=encoded(policy))
+        self.assertEqual(owners.resolve_binding(index, owner, target, f.banks)["native_mode"],
+                         "authenticated-hud-bootstrap")
+        for field, value in (("source_sha256", "0" * 64), ("preparation_profile", "unproved"),
+                             ("correction_report_sha256", "invalid")):
+            changed = copy.deepcopy(policy)
+            changed["prepared_inputs"][0][field] = value
+            with self.assertRaisesRegex(FormatError, "unproved corrected"):
+                f.build(hud_bootstrap=encoded(changed))
+        other = b"another internally consistent graphics correction"
+        f.provenance["graphics_corrections"]["changes"][0]["converted_sha256"] = sha(other)
+        f.verified[owner] = dict(bytes=len(other), sha256=sha(other))
+        with self.assertRaisesRegex(FormatError, "exact input differs"):
+            f.build(hud_bootstrap=encoded(policy))
+
     def test_deterministic_projection_and_missing_final_extent_authority(self):
         f = self.basic()
         a = f.build()

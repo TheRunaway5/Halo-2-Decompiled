@@ -107,7 +107,7 @@ int main(int argc,char **argv)try {
     catch(const FormatError&){} // The preferred throw action is optional in the authored bank.
   }
   std::unique_ptr<Host> host;
-  if(mode=="lan"){host=std::make_unique<Host>(options);options.join="127.0.0.1:"+std::to_string(host->host.port());}
+  if(mode=="lan"){host=std::make_unique<Host>(options);options.join=host->host.join_address();}
   options.desktop=std::make_shared<DesktopSession>();auto *window=options.desktop->window(640,480,true);
   const auto window_id=SDL_GetWindowID(window);SDL_FlushEvents(SDL_FIRSTEVENT,SDL_LASTEVENT);
   SDL_Event focus{};focus.type=SDL_WINDOWEVENT;focus.window.windowID=window_id;

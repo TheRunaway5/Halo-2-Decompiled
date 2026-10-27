@@ -291,7 +291,7 @@ mod ffi {
         fn new_lan_endpoint() -> Result<Box<LanEndpoint>>;
         fn new_lan_session() -> Box<LanSession>;
         fn lan_public(endpoint: &LanEndpoint) -> [u8;32];
-        fn lan_bind(endpoint: &LanEndpoint, session: &mut LanSession, peer: &[u8;32]) -> Result<()>;
+        fn lan_bind(endpoint: &LanEndpoint, session: &mut LanSession, peer: &[u8;32], host: bool, context: &[u8;24]) -> Result<()>;
         fn lan_seal(endpoint: &LanEndpoint, session: &mut LanSession, host: bool, body: &[u8]) -> Result<Vec<u8>>;
         fn lan_open(endpoint: &LanEndpoint, session: &mut LanSession, host: bool, packet: &[u8]) -> Result<Vec<u8>>;
         fn lan_is_packet(packet: &[u8]) -> bool;
@@ -438,6 +438,7 @@ mod ffi {
         allocated_bytes: u64,
         container_elements: u64,
         fixed_native_bytes: u64,
+        working_bytes: u64,
     }
     struct ArchiveNode {
         valid: bool,
@@ -514,6 +515,24 @@ mod ffi {
         vehicle: NativeIntent,
         completed_vehicle: NativeIntent,
     }
+    struct NativeMotion {
+        present: bool,
+        grounded: bool,
+        crouching: bool,
+        baseline_age: u8,
+        position: [i32; 3],
+        velocity: [i16; 3],
+    }
+    struct NativeRedundantControl {
+        sequence: u32,
+        view: u8,
+        forward: f32,
+        right: f32,
+        yaw: f32,
+        pitch: f32,
+        flags: u16,
+        zoom: i16,
+    }
     struct NativeRequestFrame {
         status: DecodeStatus,
         kind: u8,
@@ -526,11 +545,17 @@ mod ffi {
         ack_latest: u32,
         ack_mask: u32,
         ack_flags: u8,
+        has_view: bool,
+        view_tick: u16,
+        view_fraction: u8,
+        motion: Vec<NativeMotion>,
+        redundant: Vec<NativeRedundantControl>,
     }
 
     extern "Rust" {
         type Archive;
         fn parse_authority_archive(packet: &[u8], limits: ArchiveLimits) -> Result<Box<Archive>>;
+        fn parse_authority_archive_raw(packet: &[u8], hash:[u8;32], limits: ArchiveLimits) -> Result<Box<Archive>>;
         fn archive_node(self: &Archive, index: usize) -> ArchiveNode;
         fn archive_name(self: &Archive, index: usize) -> &[u8];
         fn archive_data(self: &Archive, index: usize) -> &[u8];
@@ -814,12 +839,25 @@ fn parse_authority_archive(
             allocated_bytes: limits.allocated_bytes,
             container_elements: limits.container_elements,
             fixed_native_bytes: limits.fixed_native_bytes,
+            working_bytes: limits.working_bytes,
         };
         halo2_online_protocol::authority_archive::decode(packet, limits)
             .map(|inner| Box::new(Archive { inner }))
             .map_err(|e| e.to_string())
     })
     .unwrap_or_else(|_| Err("Authority archive parser failed".to_owned()))
+}
+
+fn parse_authority_archive_raw(packet:&[u8],hash:[u8;32],limits:ffi::ArchiveLimits)->Result<Box<Archive>,String>{
+    std::panic::catch_unwind(||{
+        let limits=halo2_online_protocol::authority_archive::Limits{
+            encoded_bytes:limits.encoded_bytes,decoded_bytes:limits.decoded_bytes,
+            allocated_bytes:limits.allocated_bytes,container_elements:limits.container_elements,
+            fixed_native_bytes:limits.fixed_native_bytes,working_bytes:limits.working_bytes,
+        };
+        halo2_online_protocol::authority_archive::decode_raw(packet,hash,limits)
+            .map(|inner|Box::new(Archive{inner})).map_err(|e|e.to_string())
+    }).unwrap_or_else(|_|Err("Authority archive parser failed".to_owned()))
 }
 
 fn empty(status: ffi::DecodeStatus) -> ffi::VoiceFrame {
@@ -915,6 +953,34 @@ fn empty_request(status: ffi::DecodeStatus) -> ffi::NativeRequestFrame {
         ack_latest: 0,
         ack_mask: 0,
         ack_flags: 0,
+        has_view: false,
+        view_tick: 0,
+        view_fraction: 0,
+        motion: Vec::new(),
+        redundant: Vec::new(),
+    }
+}
+
+fn native_motion(
+    value: Option<halo2_online_protocol::native_requests::MotionReport>,
+) -> ffi::NativeMotion {
+    match value {
+        Some(m) => ffi::NativeMotion {
+            present: true,
+            grounded: m.grounded,
+            crouching: m.crouching,
+            baseline_age: m.baseline_age,
+            position: m.position,
+            velocity: m.velocity,
+        },
+        None => ffi::NativeMotion {
+            present: false,
+            grounded: false,
+            crouching: false,
+            baseline_age: 0,
+            position: [0; 3],
+            velocity: [0; 3],
+        },
     }
 }
 
@@ -967,14 +1033,43 @@ fn parse_request(packet: &[u8], protocol: u16) -> ffi::NativeRequestFrame {
             sequence,
             controls,
             ack,
+            view,
+            motion,
+            redundant,
         } => {
             frame.kind = 2;
+            frame.motion = motion.into_iter().map(native_motion).collect();
+            frame.redundant = redundant
+                .into_iter()
+                .flat_map(|entry| {
+                    let sequence = entry.sequence;
+                    entry
+                        .controls
+                        .into_iter()
+                        .enumerate()
+                        .map(move |(view, c)| ffi::NativeRedundantControl {
+                            sequence,
+                            view: view as u8, // at most MAX_LOCAL_PLAYERS views
+                            forward: c.forward,
+                            right: c.right,
+                            yaw: c.yaw,
+                            pitch: c.pitch,
+                            flags: c.flags,
+                            zoom: c.zoom,
+                        })
+                })
+                .collect();
             frame.nonce = nonce;
             frame.cookie = cookie;
             frame.sequence = sequence;
             frame.ack_latest = ack.latest;
             frame.ack_mask = ack.mask;
             frame.ack_flags = ack.flags;
+            if let Some(view) = view {
+                frame.has_view = true;
+                frame.view_tick = view.tick;
+                frame.view_fraction = view.fraction;
+            }
             frame.controls = controls
                 .into_iter()
                 .map(|c| ffi::NativeControl {

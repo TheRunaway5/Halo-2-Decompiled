@@ -55,7 +55,11 @@ class ResultConsentHttpTests(unittest.IsolatedAsyncioTestCase):
                       'match_result_skill', 'carnage_reports'):
             self.assertEqual(db.execute('SELECT count(*) FROM ' + table).fetchone()[0], 0, table)
         self.assertEqual({r[0] for r in db.execute('SELECT xp FROM playlist_skill')}, {0})
-        self.assertNotEqual(room.phase, 'postgame')
+        # PCR presentation may complete with unanimous surviving owners. The
+        # immutable admitted electorate still guards every ledger/rank write.
+        if room.phase == 'postgame':
+            self.assertIs(room.result_recorded, False)
+            self.assertNotEqual(room.confirmations, room.admitted_owners)
 
     async def test_sole_host_cannot_persist_rank_after_unconfirmed_peers_leave(self):
         room, descriptors, connections, host = await self.running_three()

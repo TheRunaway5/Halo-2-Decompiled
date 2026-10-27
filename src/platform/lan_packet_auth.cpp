@@ -22,8 +22,8 @@ LanPacketAuth::LanPacketAuth():inner_(std::make_unique<Impl>()){}
 LanPacketAuth::~LanPacketAuth()=default;
 const LanPacketAuth::Key &LanPacketAuth::public_key()const{return inner_->public_key;}
 bool LanPacketAuth::packet(std::span<const std::byte> p){return online_protocol_bridge::lan_is_packet(slice(p));}
-void LanPacketAuth::bind(Session &s,const Key &peer)const{
-  try{online_protocol_bridge::lan_bind(*inner_->endpoint,*s.inner->session,peer);s.peer=peer;}
+void LanPacketAuth::bind(Session &s,const Key &peer,bool host,const Context &context)const{
+  try{online_protocol_bridge::lan_bind(*inner_->endpoint,*s.inner->session,peer,host,context);s.peer=peer;}
   catch(const rust::Error &){throw FormatError("Invalid LAN admission key");}
 }
 std::vector<std::byte> LanPacketAuth::seal(std::span<const std::byte> p,Session &s,bool host)const{
@@ -34,12 +34,6 @@ std::vector<std::byte> LanPacketAuth::seal(std::span<const std::byte> p,Session 
 bool LanPacketAuth::open(std::vector<std::byte> &p,Session &s,bool host)const{
   try{
     const auto result=online_protocol_bridge::lan_open(*inner_->endpoint,*s.inner->session,host,slice(p));
-    // Only full LNA1 frames carry the sender key; compact LNA2 frames are
-    // accepted solely on a session already pinned to that key.
-    if(std::to_integer<char>(p[3])=='1'){
-      Key peer;for(unsigned i=0;i<32;++i)peer[i]=std::to_integer<unsigned char>(p[13+i]);
-      s.peer=peer;
-    }
     p=copy(result);return true;
   }catch(const rust::Error &){return false;}
 }

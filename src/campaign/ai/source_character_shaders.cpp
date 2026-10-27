@@ -7,7 +7,8 @@
 namespace halo2 {
 SourceCharacterShaderInputs::SourceCharacterShaderInputs(const Cache& cache,std::uint32_t unit_definition)
   :bounds_(cache.load_object_shadow_definition(unit_definition)),
-   functions_(cache.load_object_functions(unit_definition)),tables_(cache.shader_function_tables()) {
+   functions_(cache.load_object_functions(unit_definition)),tables_(cache.shader_function_tables()),
+   names_(DamageFeedbackNames::from_cache(cache)) {
     const auto unit=cache.load_source_tag_metadata(unit_definition);
     // Character tags also reference the Sentinel Enforcer's vehicle body.
     // Its ordinary model passes use the same authored material owner; AI and
@@ -56,7 +57,7 @@ void SourceCharacterShaders::select(std::vector<Vertex>& vertices,const SourceMo
 ShaderInput SourceCharacterShaderInputs::input(const Unit& unit,float seconds)const {
     return [this,&unit,seconds](std::uint32_t name) {
         return damage_feedback_shader_input(unit.damage_feedback,unit.vitality.body,unit.vitality.shield,
-            unit.vitality.dead,functions_,*tables_,name,seconds);
+            unit.vitality.dead,functions_,*tables_,name,seconds,names_);
     };
 }
 ObjectLightQueryContext SourceCharacterShaderInputs::light_query_context(const Unit& unit)const {

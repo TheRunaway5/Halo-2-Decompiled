@@ -29,6 +29,9 @@ class VoiceBlocks:
         return self.subjects[who]
 
     def allowed(self, a, b):
+        friends = getattr(self.directory,"friends",None)
+        if friends and friends.blocked(a,b):
+            return False
         sa, sb = self.subject(a), self.subject(b)
         known = all(self.db.execute("SELECT 1 FROM players WHERE id=?", (who,)).fetchone() for who in (a, b))
         return (known and sb not in self.blocks.get(a, ()) and sa not in self.blocks.get(b, ()))

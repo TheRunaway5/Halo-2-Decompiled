@@ -7,8 +7,8 @@ pub fn new_lan_endpoint() -> Result<Box<LanEndpoint>, String> {
 }
 pub fn new_lan_session() -> Box<LanSession> { Box::new(LanSession(policy::Session::default())) }
 pub fn lan_public(endpoint: &LanEndpoint) -> [u8; 32] { endpoint.0.public() }
-pub fn lan_bind(endpoint: &LanEndpoint, session: &mut LanSession, peer: &[u8;32]) -> Result<(), String> {
-    endpoint.0.bind(&mut session.0, *peer).map_err(|e| e.to_string())
+pub fn lan_bind(endpoint: &LanEndpoint, session: &mut LanSession, peer: &[u8;32], host: bool, context: &[u8;24]) -> Result<(), String> {
+    endpoint.0.bind(&mut session.0, *peer, host, *context).map_err(|e| e.to_string())
 }
 pub fn lan_seal(endpoint: &LanEndpoint, session: &mut LanSession, host: bool, body: &[u8]) -> Result<Vec<u8>, String> {
     endpoint.0.seal(&mut session.0, host, body).map_err(|e| e.to_string())

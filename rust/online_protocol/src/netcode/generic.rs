@@ -568,15 +568,15 @@ pub(crate) mod tests {
                 }
                 player[3] += 0.01;
             }
-            if rng.next() % 50 == 0 {
+            if rng.next().is_multiple_of(50) {
                 self.score += 1;
             }
-            if rng.next() % 40 == 0 {
+            if rng.next().is_multiple_of(40) {
                 let handle = 0xE100_0000 | (rng.next() as u32 & 0xFFFF);
                 let at = (rng.next() as usize) % (self.objects.len() + 1);
                 self.objects.insert(at, (handle, [rng.unit(); 6]));
             }
-            if rng.next() % 45 == 0 && !self.objects.is_empty() {
+            if rng.next().is_multiple_of(45) && !self.objects.is_empty() {
                 let at = (rng.next() as usize) % self.objects.len();
                 self.objects.remove(at);
             }

@@ -4,6 +4,7 @@
 #include "halo2/source_weapon_animation_query_symbols_tu15.hpp"
 #include "halo2/source_effect_compiled_symbols_tu15.hpp"
 #include "halo2/death_cycle_runtime_tu15.hpp"
+#include "halo2/source_first_person_action_tu15.hpp"
 namespace halo2 {
 namespace {
 using namespace physics_world_runtime_detail;
@@ -10173,6 +10174,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_16b736(WorldState &s) {
+SourceFirstPersonActionObserverTu15::entry(s.memory,s.save(),s.services);
 if(s.services.instruction){s.services.instruction(0x16b736u);} s.push(0x16b736u,s.reg(5,4,0));
 if(s.services.instruction){s.services.instruction(0x16b737u);} s.set(5,s.reg(4,4,0),4,0);
 if(s.services.instruction){s.services.instruction(0x16b739u);} s.push(0x16b739u,s.reg(1,4,0));

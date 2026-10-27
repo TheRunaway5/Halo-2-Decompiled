@@ -8,7 +8,7 @@ struct SourceAuthorityRetainedWorld;
 // states. Finishing a match does not itself terminate the current runtime.
 enum class MultiplayerExitReason {
   headless_limit, frame_limit, captured_tick, window_quit, escape, session_world_close,
-  online_postgame, online_disconnected
+  online_postgame, online_disconnected, system_link_postgame, system_link_lobby
 };
 enum class MultiplayerOutcomeAuthority { local, host, client_snapshot };
 
@@ -29,6 +29,8 @@ struct MultiplayerOutcomeBanks {
 };
 struct MultiplayerRuntimeOutcome {
   MultiplayerExitReason reason{};
+  // Actual retained raw-LAN owner on a confirmed System Link return only.
+  std::shared_ptr<class SystemLinkSession> system_link_session;
   MultiplayerOutcomeAuthority authority{};
   // A client can terminate before receiving any host snapshot. Preserve that
   // absence rather than copying the runtime's local placeholder as host data.
@@ -37,6 +39,7 @@ struct MultiplayerRuntimeOutcome {
   // Present only for actual authoritative local/host matches. A client's
   // snapshot results_finalized flag does not create an authoritative bank.
   std::optional<MultiplayerOutcomeBanks> authoritative_banks;
+  std::optional<SourceGameplayFadePresentationTu15> local_gameplay_fade;
 };
 
 // Owns deep copies without interpreting, completing, remapping or publishing

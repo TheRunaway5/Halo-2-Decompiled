@@ -1,4 +1,6 @@
 #include "halo2/source_lens_draw_gpu.hpp"
+#include "halo2/native_fragment_kernel.hpp"
+#include "halo2/source_lens_program_tu15.hpp"
 #include <fstream>
 #include <map>
 #include <cstring>
@@ -36,7 +38,7 @@ struct SourceLensDrawGpu::Impl {
         check(vkCreatePipelineLayout(context.device,&li,nullptr,&layout));
         const auto vertex=shader(context.device,context.shader_directory/"source_lens_draw.vert.spv");VkShaderModule fragment{};
         try {
-            fragment=shader(context.device,context.shader_directory/"source_lens_draw.frag.spv");
+            fragment=shader(context.device,context.shader_directory/std::string(native_fragment_kernel_path("lens",source_lens_pixel_words)));
             std::array<VkPipelineShaderStageCreateInfo,2> stages{};
             for(auto &s:stages){s.sType=VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;s.pName="main";}
             stages[0].stage=VK_SHADER_STAGE_VERTEX_BIT;stages[0].module=vertex;

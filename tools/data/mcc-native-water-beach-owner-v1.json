@@ -1,0 +1,1228 @@
+{
+  "schema": "H2_MCC_NATIVE_WATER_BEACH_OWNER_V1",
+  "status": "source-qualified-extraction-only-not-published",
+  "tag": "scenarios\\bitmaps\\water\\water_earthcity_beach",
+  "original": {
+    "map": "assets/disc/maps/03a_oldmombasa.map",
+    "map_sha256": "7ea355ef79f13be83fe78546c0fd3b1009ef71c0dd2257b24996420d856f78f4",
+    "tag": {
+      "datum": 2160402042,
+      "group": "bitm",
+      "name": "scenarios\\bitmaps\\water\\water_earthcity_beach",
+      "address": 2158948620,
+      "size": 2048
+    },
+    "complete_metadata_sha256": "02f7365fea23ea58bea312a4ab884422d8c09e357c4d7e59f14752a9b3219b3f",
+    "root_metadata_hex": "000004000100000800000000000000000000003f000000009c090001bc0d0a000000000000000000000000000000000000000000040000000000010000000000000000001100000058f1ae80",
+    "frame_count": 17,
+    "frames": [
+      {
+        "frame": 0,
+        "metadata_hex": "6d746962800080000100000017000912400040000200050100000000005ef60a0036f60affffffffffffffffffffffffffffffff00a8000000280000000000000000000000000000000000007a1ec5800000000000000000000080400000000000890400800000000e0008000800010000000000",
+        "source_resource_pointer": 183918080,
+        "source_resource_bytes": 43008,
+        "complete_hardware_partitions": [
+          {
+            "slot": 0,
+            "source_pointer": 183918080,
+            "source_bytes": 43008,
+            "sha256": "f5c0a16bb9f6e50a5275694469ebd7920b7b31af53e9ff3afc5f11e121ca0c31"
+          },
+          {
+            "slot": 1,
+            "source_pointer": 183907840,
+            "source_bytes": 10240,
+            "sha256": "cae830c0eb05cfec5fd86e07a8f3606bf35062f69ed3510e31c91b218c93ba00",
+            "exact_highest_chain_64_32_suffix": true
+          },
+          {
+            "slot": 2,
+            "source_pointer": 4294967295,
+            "source_bytes": 0
+          }
+        ],
+        "software_low_detail": {
+          "source_shared_offset": 297216,
+          "source_bytes": 128,
+          "format": 14,
+          "width": 8,
+          "height": 8,
+          "depth": 1,
+          "sha256": "094fa61afe747a38374065267a8e363b4b3c3bbeb5e11e9a45ecf9623aa7cdb2"
+        },
+        "original_morton_sha256": "f5c0a16bb9f6e50a5275694469ebd7920b7b31af53e9ff3afc5f11e121ca0c31",
+        "linear_rg8_sha256": "ee59502c9d44b6666af68578c952ae99b8acb1a9dffc6ec0b7edd440d9ee85e8",
+        "decoded_rgba8_sha256": "3d4fe379622cc385f71d9171af6dec0de548bfd54d3801efa17d0c05faf14d64",
+        "mips": [
+          {
+            "width": 128,
+            "height": 128,
+            "rg8_offset": 0,
+            "rg8_bytes": 32768,
+            "original_morton_sha256": "76147033a2f81dbd656113e5231b094a5615bd911249b38d80a4ebf050080f8a",
+            "linear_rg8_sha256": "442b3f8dcd5f8de17811d0a2e2818ac5c609e5331290922468c9d09571d5bed5",
+            "decoded_rgba8_sha256": "c77c236c60ee1c3dc475ed33c49dfac68b8434281f9bbb25b6afb57d1ad683ac"
+          },
+          {
+            "width": 64,
+            "height": 64,
+            "rg8_offset": 32768,
+            "rg8_bytes": 8192,
+            "original_morton_sha256": "d1df49b96b7e0cee59046b6b1203eda3343db44b0d7bb832aa669e4158228492",
+            "linear_rg8_sha256": "56c1edc15bb9bf6f8e6346c184cac0812fe0485a2f122ae430ad7de3d34bdefa",
+            "decoded_rgba8_sha256": "3d280d8ab39f402872ceb5cbc41ddd87ecdcb19f379bce3445e404ca52a138cb"
+          },
+          {
+            "width": 32,
+            "height": 32,
+            "rg8_offset": 40960,
+            "rg8_bytes": 2048,
+            "original_morton_sha256": "d5de6fda191f62558e5586732e98d7ff2bbd169afec08ed0c429924dc8e4f25e",
+            "linear_rg8_sha256": "a1a5991813063f174b7d316b41e75a5d5695388ae8e86d1dc6eb62562bc2dfca",
+            "decoded_rgba8_sha256": "30b5af42a864a2ac1c26ed0664e318bbe0b5a918c3e1ff1ab3a340348495f43a"
+          }
+        ]
+      },
+      {
+        "frame": 1,
+        "metadata_hex": "6d746962800080000100000017000912400040000200050100a80000002ef70a0006f70affffffffffffffffffffffffffffffff00a8000000280000000000000000000000000000000000007a1ec5800000000000000000000080400000000080890400800000000e0008000800010000000000",
+        "source_resource_pointer": 183971328,
+        "source_resource_bytes": 43008,
+        "complete_hardware_partitions": [
+          {
+            "slot": 0,
+            "source_pointer": 183971328,
+            "source_bytes": 43008,
+            "sha256": "10c3d89f1f82766dcc7a14bf83ee4f7b5f11a3dcdafc4e92bf3a55297daca08a"
+          },
+          {
+            "slot": 1,
+            "source_pointer": 183961088,
+            "source_bytes": 10240,
+            "sha256": "53a88ccf712842f368b3acbad08aaeaf45528a1c5e6feb9adff52ceb251fb0d9",
+            "exact_highest_chain_64_32_suffix": true
+          },
+          {
+            "slot": 2,
+            "source_pointer": 4294967295,
+            "source_bytes": 0
+          }
+        ],
+        "software_low_detail": {
+          "source_shared_offset": 297344,
+          "source_bytes": 128,
+          "format": 14,
+          "width": 8,
+          "height": 8,
+          "depth": 1,
+          "sha256": "5e89722cc9094f974a1cf085462ead0a7b97f1e50a8a88edb346d7651c1f044f"
+        },
+        "original_morton_sha256": "10c3d89f1f82766dcc7a14bf83ee4f7b5f11a3dcdafc4e92bf3a55297daca08a",
+        "linear_rg8_sha256": "1d7c47c369458c46b87f1dbe252b20a1c4f82c6d70d57ca01f9f7b43b6e0a920",
+        "decoded_rgba8_sha256": "7f0db57754591d141aef0f31680c1f7dd94e3c75427476619ba7d7058bdb504a",
+        "mips": [
+          {
+            "width": 128,
+            "height": 128,
+            "rg8_offset": 0,
+            "rg8_bytes": 32768,
+            "original_morton_sha256": "c5c582b76bdf811eaf8a8d7785761648ae4d8d73ad0e4a6ba9b7c1441fe37e3f",
+            "linear_rg8_sha256": "3916656497012ad34c8fef72036d8d62ef3e4c34b710769a73d9fc9d0ac6049a",
+            "decoded_rgba8_sha256": "4abbde2666b211233945b76ba8625f8207dd0506baa189dda64c5cc4e1fc62a2"
+          },
+          {
+            "width": 64,
+            "height": 64,
+            "rg8_offset": 32768,
+            "rg8_bytes": 8192,
+            "original_morton_sha256": "eb90cf8352dfdc89912884a7efee4c4af6bc5472a682e3d3c8704b121270bf6f",
+            "linear_rg8_sha256": "1f27a467ebee9248db9ab4d0d760b589d54b1a796a8f120a7f9347cfe411193f",
+            "decoded_rgba8_sha256": "39bbf28fb379493d22fdc2467e64f25463f1abc07217ee64cf2f202092f2ca55"
+          },
+          {
+            "width": 32,
+            "height": 32,
+            "rg8_offset": 40960,
+            "rg8_bytes": 2048,
+            "original_morton_sha256": "bed8f2e633982d6b0790ef597543c51566e620acc0a817f7163f74dbf2b2a6cd",
+            "linear_rg8_sha256": "72c18e6f4401c2f52cfef3dca068b3380f57fa7bcb35a7f415ffed827cc6cb00",
+            "decoded_rgba8_sha256": "a09441426d9ec5618b3cd93a37adf1c0e0fcc98b02b639fd6e323cb81bfcc62c"
+          }
+        ]
+      },
+      {
+        "frame": 2,
+        "metadata_hex": "6d74696280008000010000001700091240004000020005010050010000fef70a00d6f70affffffffffffffffffffffffffffffff00a8000000280000000000000000000000000000000000007a1ec58000000000000000000000804000000000008a0400800000000e0008000800010000000000",
+        "source_resource_pointer": 184024576,
+        "source_resource_bytes": 43008,
+        "complete_hardware_partitions": [
+          {
+            "slot": 0,
+            "source_pointer": 184024576,
+            "source_bytes": 43008,
+            "sha256": "8d72b281972a745332ac6727e72951f87083bb4bfa1eb3fd415a764acb34c3d1"
+          },
+          {
+            "slot": 1,
+            "source_pointer": 184014336,
+            "source_bytes": 10240,
+            "sha256": "28011aa139a9e61611ea877d66ae3114a1f10ac1ae4d097b5e5ae2b9a9147f3e",
+            "exact_highest_chain_64_32_suffix": true
+          },
+          {
+            "slot": 2,
+            "source_pointer": 4294967295,
+            "source_bytes": 0
+          }
+        ],
+        "software_low_detail": {
+          "source_shared_offset": 297472,
+          "source_bytes": 128,
+          "format": 14,
+          "width": 8,
+          "height": 8,
+          "depth": 1,
+          "sha256": "0303a39f8f78789e7f0df37332c59a181a820dc3e6be1a5f93b73335e76582b6"
+        },
+        "original_morton_sha256": "8d72b281972a745332ac6727e72951f87083bb4bfa1eb3fd415a764acb34c3d1",
+        "linear_rg8_sha256": "ea3b813029441738bfe053c27cebd92c014153071ca6de9252b24be531abb1aa",
+        "decoded_rgba8_sha256": "e8ac1e2a1512cbf216b36233be1bb1b7c861fb413c18bbdc028a73bcf70f177a",
+        "mips": [
+          {
+            "width": 128,
+            "height": 128,
+            "rg8_offset": 0,
+            "rg8_bytes": 32768,
+            "original_morton_sha256": "0c4ce6d67d8bd6c39e44cc00d83f0cc877d7ccb5a8f6ebe333121753443e7121",
+            "linear_rg8_sha256": "415cb9e573d4d60b4949a0b66dffe38a35ed7c3e86d06539bf396d07751140de",
+            "decoded_rgba8_sha256": "9a1fabe4f54f582d464898fd2d2aa488b7373f19aceb6623b825ce17679c9e7e"
+          },
+          {
+            "width": 64,
+            "height": 64,
+            "rg8_offset": 32768,
+            "rg8_bytes": 8192,
+            "original_morton_sha256": "5067d288ffae344bc0080ab62cc8d7ef4e418ccc9744b633572709630c9fa432",
+            "linear_rg8_sha256": "9f25e99284dfab148939e224bc5061c8a055b2cc30b524f84bec5567e05d465a",
+            "decoded_rgba8_sha256": "e3e10d6f3c877e69a43fc81232ecdf5bd457850715669b33c2c863c4d63edcaf"
+          },
+          {
+            "width": 32,
+            "height": 32,
+            "rg8_offset": 40960,
+            "rg8_bytes": 2048,
+            "original_morton_sha256": "ef63aeed37519c178435fe9e504162e350fd7f2a73766fe348dfc3fc8622e2f8",
+            "linear_rg8_sha256": "f6d09f3807e344d74764b37c6e9a1e2edc6619c7bbdb046a2c65378314e7e1d5",
+            "decoded_rgba8_sha256": "d9eea327e1a021622462f431cbf5ef36144c9d7573b82b8d1da139b3c669fcef"
+          }
+        ]
+      },
+      {
+        "frame": 3,
+        "metadata_hex": "6d746962800080000100000017000912400040000200050100f8010000cef80a00a6f80affffffffffffffffffffffffffffffff00a8000000280000000000000000000000000000000000007a1ec58000000000000000000000804000000000808a0400800000000e0008000800010000000000",
+        "source_resource_pointer": 184077824,
+        "source_resource_bytes": 43008,
+        "complete_hardware_partitions": [
+          {
+            "slot": 0,
+            "source_pointer": 184077824,
+            "source_bytes": 43008,
+            "sha256": "c01b56d8d12ab39983c3b6eca34a566f10d35b291a5cf8ee7445cbb3f35910fa"
+          },
+          {
+            "slot": 1,
+            "source_pointer": 184067584,
+            "source_bytes": 10240,
+            "sha256": "42f823d0de23488d8312e997282b22672c7d582a4c458f3f56327e6eb1fa16fc",
+            "exact_highest_chain_64_32_suffix": true
+          },
+          {
+            "slot": 2,
+            "source_pointer": 4294967295,
+            "source_bytes": 0
+          }
+        ],
+        "software_low_detail": {
+          "source_shared_offset": 297600,
+          "source_bytes": 128,
+          "format": 14,
+          "width": 8,
+          "height": 8,
+          "depth": 1,
+          "sha256": "4802ea730441481e5838161932e2acaea05227f791f0d20baf13a33e3250f399"
+        },
+        "original_morton_sha256": "c01b56d8d12ab39983c3b6eca34a566f10d35b291a5cf8ee7445cbb3f35910fa",
+        "linear_rg8_sha256": "7f349be9a3adb03a4da5eaa9a63c657f3447f84b7edd6bba4d75e14238a7884b",
+        "decoded_rgba8_sha256": "f5f15ef7c01e45248c4a013004674c4d1fd4a499aac86cd15e2861309597a70f",
+        "mips": [
+          {
+            "width": 128,
+            "height": 128,
+            "rg8_offset": 0,
+            "rg8_bytes": 32768,
+            "original_morton_sha256": "8bb7b1901d80f93e4802fa517733c93f0c6e72a0523eaebb9db0ab7d4d9c2f20",
+            "linear_rg8_sha256": "5b5818ac064dfcba01a47409ee8cd96dd3317c02936747ed4fca89f7b0bff25d",
+            "decoded_rgba8_sha256": "20a38b765bc26c699d6c8b0ea89d0e0c4e15e27a27d4ad3d1fa98b6c7bb4e89c"
+          },
+          {
+            "width": 64,
+            "height": 64,
+            "rg8_offset": 32768,
+            "rg8_bytes": 8192,
+            "original_morton_sha256": "8efc1ae91501b5a5530345ee4f4475663e628e316a53c82ad1dabcb1f5228d00",
+            "linear_rg8_sha256": "c90bac8d172a6b00b7b8eb3fa1b9e0592f1cbe33063a53855bbb06404dbccda1",
+            "decoded_rgba8_sha256": "2090c4fbdfefbea9e9bc60d614e286b7bdf04e66a141af7e2782b038eea335eb"
+          },
+          {
+            "width": 32,
+            "height": 32,
+            "rg8_offset": 40960,
+            "rg8_bytes": 2048,
+            "original_morton_sha256": "d75953adf6c321eb8307d9a1eec41d267975cdd393762e040ea0604e694ea767",
+            "linear_rg8_sha256": "bbd94aace7bc05d9b0bbf4d530b79beca59b3beb6c6fb716d2cc3dcdfe3e231f",
+            "decoded_rgba8_sha256": "644c4b15b335690d7930ececf4de97da6f5836f3a15598111771702b1e4ab6bb"
+          }
+        ]
+      },
+      {
+        "frame": 4,
+        "metadata_hex": "6d746962800080000100000017000912400040000200050100a00200009ef90a0076f90affffffffffffffffffffffffffffffff00a8000000280000000000000000000000000000000000007a1ec58000000000000000000000804000000000008b0400800000000e0008000800010000000000",
+        "source_resource_pointer": 184131072,
+        "source_resource_bytes": 43008,
+        "complete_hardware_partitions": [
+          {
+            "slot": 0,
+            "source_pointer": 184131072,
+            "source_bytes": 43008,
+            "sha256": "c2b10d8c7fabb52f15cf2c82a8a1a69b0cfe6f7ff1fd6dfc3f51addacb05926f"
+          },
+          {
+            "slot": 1,
+            "source_pointer": 184120832,
+            "source_bytes": 10240,
+            "sha256": "f66f8ec81b0fb8d48ebe8e6e11f2e7fb2e58b2035484bfcb219ca724029a170e",
+            "exact_highest_chain_64_32_suffix": true
+          },
+          {
+            "slot": 2,
+            "source_pointer": 4294967295,
+            "source_bytes": 0
+          }
+        ],
+        "software_low_detail": {
+          "source_shared_offset": 297728,
+          "source_bytes": 128,
+          "format": 14,
+          "width": 8,
+          "height": 8,
+          "depth": 1,
+          "sha256": "3dc6bca159be55fb7a2b2a08a0f95b262b2316fa7fef5c3e8bf4f4e7b9680de0"
+        },
+        "original_morton_sha256": "c2b10d8c7fabb52f15cf2c82a8a1a69b0cfe6f7ff1fd6dfc3f51addacb05926f",
+        "linear_rg8_sha256": "32337ee4067eda3949957bee94259e984aeb3459fd38ab8e48210e250b43849f",
+        "decoded_rgba8_sha256": "48c5dc773f9f574a4d94c50d2289d47c0a513b4627520a0c73eab9cadc22d6f6",
+        "mips": [
+          {
+            "width": 128,
+            "height": 128,
+            "rg8_offset": 0,
+            "rg8_bytes": 32768,
+            "original_morton_sha256": "e27d0151eba537678dda28489fb5d42be338fd7086b59d1e967c5360cd648981",
+            "linear_rg8_sha256": "bc33e329a2cc55e12bf28660e6d07b8edea80540038b1c8a355d00a547c31e52",
+            "decoded_rgba8_sha256": "d537f2f605824ec24ac0eff951e47594f52cc33b647b6787207522eb51414072"
+          },
+          {
+            "width": 64,
+            "height": 64,
+            "rg8_offset": 32768,
+            "rg8_bytes": 8192,
+            "original_morton_sha256": "94bce6894a900a8de3d9d047a34e3231cea6ed9e728edce0315397cc4410d329",
+            "linear_rg8_sha256": "58fa122f69ae8fadb497689e093409a19880e01127451e93f931a4e0d72081c3",
+            "decoded_rgba8_sha256": "045aafb3289b19050263528e6b40a357bd544c680f59fc2e7f8b0b1224c1500d"
+          },
+          {
+            "width": 32,
+            "height": 32,
+            "rg8_offset": 40960,
+            "rg8_bytes": 2048,
+            "original_morton_sha256": "8d2ac7105a01c6e7776a27120b1f1e08d2f3e2ad1877aa07e003683ef6ca2d3e",
+            "linear_rg8_sha256": "df43e61dd46f210c76a869cc1a4c5c0f61c255dc02a02a7dbd0016d6d6220c27",
+            "decoded_rgba8_sha256": "4aed4270002686c82f8bb4e02908519bf18eabc782036238634d4fafe5f27cae"
+          }
+        ]
+      },
+      {
+        "frame": 5,
+        "metadata_hex": "6d746962800080000100000017000912400040000200050100480300006efa0a0046fa0affffffffffffffffffffffffffffffff00a8000000280000000000000000000000000000000000007a1ec58000000000000000000000804000000000808b0400800000000e0008000800010000000000",
+        "source_resource_pointer": 184184320,
+        "source_resource_bytes": 43008,
+        "complete_hardware_partitions": [
+          {
+            "slot": 0,
+            "source_pointer": 184184320,
+            "source_bytes": 43008,
+            "sha256": "cefe257a5b77dcea148db01e1bf3b65e3b21e00709f674cd45e5fb253614b027"
+          },
+          {
+            "slot": 1,
+            "source_pointer": 184174080,
+            "source_bytes": 10240,
+            "sha256": "df27178dfdf9c3aea711f47ecce7e1aae7fb9245c737fc71b83f19d8d0ab761a",
+            "exact_highest_chain_64_32_suffix": true
+          },
+          {
+            "slot": 2,
+            "source_pointer": 4294967295,
+            "source_bytes": 0
+          }
+        ],
+        "software_low_detail": {
+          "source_shared_offset": 297856,
+          "source_bytes": 128,
+          "format": 14,
+          "width": 8,
+          "height": 8,
+          "depth": 1,
+          "sha256": "aa84785db7f1f3d9ae3a241df12db6b319919c36d7544c20dcdbcaf0ae04cf78"
+        },
+        "original_morton_sha256": "cefe257a5b77dcea148db01e1bf3b65e3b21e00709f674cd45e5fb253614b027",
+        "linear_rg8_sha256": "e1e88131554322df04c5ba75c72e3f625322b44dd39e84f01fd30bf1084cb813",
+        "decoded_rgba8_sha256": "f44ba8bf326e31de4d61df53258e27983d0d20dffe93ec022ba5fedcfc4d3536",
+        "mips": [
+          {
+            "width": 128,
+            "height": 128,
+            "rg8_offset": 0,
+            "rg8_bytes": 32768,
+            "original_morton_sha256": "7652bdd0aacd25c55b88bd22760ae6932e9ff3408c7243d3f02905c2ef7031c9",
+            "linear_rg8_sha256": "8cefa04d2a9182cdd98d7be7fb58218302b3d888d6d00e019bf620438f6bc14c",
+            "decoded_rgba8_sha256": "c309914d5753ce29ac2cc4f64950f21e5adf232e92acc05a4908767b9781f269"
+          },
+          {
+            "width": 64,
+            "height": 64,
+            "rg8_offset": 32768,
+            "rg8_bytes": 8192,
+            "original_morton_sha256": "1a0d0fef840f1a1e4c5834a4c61d28fd98f26b7e2015e5911f51f7301b4cb112",
+            "linear_rg8_sha256": "321fcba91e769d26ac446e360df9732c26828c9ac460a78ecea3f093ff8e4c3f",
+            "decoded_rgba8_sha256": "618c99b04e43509290ce500a9b6ad2595909ed3f2482860907bd4a1834d0ab40"
+          },
+          {
+            "width": 32,
+            "height": 32,
+            "rg8_offset": 40960,
+            "rg8_bytes": 2048,
+            "original_morton_sha256": "c0b19d28a4a10fcd0d9d74873079f8a0059cd0fa32d79edaa3a7ec32ead7889d",
+            "linear_rg8_sha256": "5e7dc78ad7b436ebef4973b28237586ab8f884d133a88e03e7c8c05b497beb37",
+            "decoded_rgba8_sha256": "b7005de741f1b47a9405494561f871e589ccb391daf666338af6ef9cc25b9f2e"
+          }
+        ]
+      },
+      {
+        "frame": 6,
+        "metadata_hex": "6d746962800080000100000017000912400040000200050100f00300003efb0a0016fb0affffffffffffffffffffffffffffffff00a8000000280000000000000000000000000000000000007a1ec58000000000000000000000804000000000008c0400800000000e0008000800010000000000",
+        "source_resource_pointer": 184237568,
+        "source_resource_bytes": 43008,
+        "complete_hardware_partitions": [
+          {
+            "slot": 0,
+            "source_pointer": 184237568,
+            "source_bytes": 43008,
+            "sha256": "2d0af13fa1622af83d5d670a84b248eb759fbef017833d60e1b861e54c726d44"
+          },
+          {
+            "slot": 1,
+            "source_pointer": 184227328,
+            "source_bytes": 10240,
+            "sha256": "b0df9b82b9553e15bdd2b3ec6c88885cb06a5689585eef30b784e7d7565540eb",
+            "exact_highest_chain_64_32_suffix": true
+          },
+          {
+            "slot": 2,
+            "source_pointer": 4294967295,
+            "source_bytes": 0
+          }
+        ],
+        "software_low_detail": {
+          "source_shared_offset": 297984,
+          "source_bytes": 128,
+          "format": 14,
+          "width": 8,
+          "height": 8,
+          "depth": 1,
+          "sha256": "1a3d474f80f91cef8fec023b77694f9e75d9e39fce2d14d237d16e0098e3ad76"
+        },
+        "original_morton_sha256": "2d0af13fa1622af83d5d670a84b248eb759fbef017833d60e1b861e54c726d44",
+        "linear_rg8_sha256": "28ff0f5f812f11461a918981a6504798ce0c8e3fa170499ab9e855868c7303b0",
+        "decoded_rgba8_sha256": "890585b967878fad8f24018af766624f9543f92278b4ce1cc7a4be3e023c1ca5",
+        "mips": [
+          {
+            "width": 128,
+            "height": 128,
+            "rg8_offset": 0,
+            "rg8_bytes": 32768,
+            "original_morton_sha256": "ed288ea3e016b03725e1ddba7a888fe2d0893bf5999f79e3f41a7cd4868f9fe1",
+            "linear_rg8_sha256": "7888502b539d350653804c457c25e1f7c7f36875ec9da05d7b5d28bdf3d77d8e",
+            "decoded_rgba8_sha256": "42b2ba7c8718edf0a560926ade36f708dbbbafcca2283e9761dc20f5daea424c"
+          },
+          {
+            "width": 64,
+            "height": 64,
+            "rg8_offset": 32768,
+            "rg8_bytes": 8192,
+            "original_morton_sha256": "ff9e583a27f1845a3f3d9701dafdbacb7f14843e9ee74628b58d9de867af6af8",
+            "linear_rg8_sha256": "15476fae9276c3a13cd52a7570c6a9b021bb5fce1c388a3805c7034b7f122f3d",
+            "decoded_rgba8_sha256": "d827e240a159e44025a561bfe2bfa56b8af0e2566d8981ed1a15aae90e71f72e"
+          },
+          {
+            "width": 32,
+            "height": 32,
+            "rg8_offset": 40960,
+            "rg8_bytes": 2048,
+            "original_morton_sha256": "0ff73b73feee5ab91f7d7416fcc275f69f2373b8d763a214d3cd8fa7abc5e511",
+            "linear_rg8_sha256": "7f0274205904bba249415c50c7bf71bce9adc4be35842a2f6d101d99a0354dbb",
+            "decoded_rgba8_sha256": "5395834dcde9db8a1c8251dc7a0ab957fe480357b5bd681800355fd56011cd95"
+          }
+        ]
+      },
+      {
+        "frame": 7,
+        "metadata_hex": "6d746962800080000100000017000912400040000200050100980400000efc0a00e6fb0affffffffffffffffffffffffffffffff00a8000000280000000000000000000000000000000000007a1ec58000000000000000000000804000000000808c0400800000000e0008000800010000000000",
+        "source_resource_pointer": 184290816,
+        "source_resource_bytes": 43008,
+        "complete_hardware_partitions": [
+          {
+            "slot": 0,
+            "source_pointer": 184290816,
+            "source_bytes": 43008,
+            "sha256": "759dfb07ed5413eb9a0e59a5dee6efd3c244549a1cb12af6507aee97e8146491"
+          },
+          {
+            "slot": 1,
+            "source_pointer": 184280576,
+            "source_bytes": 10240,
+            "sha256": "ddce74e16c25d10d6ec695f98231b66fd18eb353208ec0c4d85fafb907319054",
+            "exact_highest_chain_64_32_suffix": true
+          },
+          {
+            "slot": 2,
+            "source_pointer": 4294967295,
+            "source_bytes": 0
+          }
+        ],
+        "software_low_detail": {
+          "source_shared_offset": 298112,
+          "source_bytes": 128,
+          "format": 14,
+          "width": 8,
+          "height": 8,
+          "depth": 1,
+          "sha256": "4930ed66f449441ffd5dbd25b2233ff8d7da690c75a4427134d5674605834157"
+        },
+        "original_morton_sha256": "759dfb07ed5413eb9a0e59a5dee6efd3c244549a1cb12af6507aee97e8146491",
+        "linear_rg8_sha256": "fd6a03dcaffd4d7452854ea7c3f4d29b785f0c89f1bccdd7f95c0dae36ec393d",
+        "decoded_rgba8_sha256": "5962e6709fae1caa2f0232a56271dc7ce29ad102e8b0d812f9c7e635c6fa5d29",
+        "mips": [
+          {
+            "width": 128,
+            "height": 128,
+            "rg8_offset": 0,
+            "rg8_bytes": 32768,
+            "original_morton_sha256": "81abe18c959dddd8de41b6d5c2f0681dbf0cb22bf9b1e0f6755ea63db5b1500e",
+            "linear_rg8_sha256": "6b1b7159bcac0b97180fcd5d7eee0b86402c4a631e727faf7d7e178853cd0255",
+            "decoded_rgba8_sha256": "240411f39e6602e5575afb175b8c7b0fbd8a15d6ec76d363d3138f9f6b6701b2"
+          },
+          {
+            "width": 64,
+            "height": 64,
+            "rg8_offset": 32768,
+            "rg8_bytes": 8192,
+            "original_morton_sha256": "ba85d4ae51c058191d1b909f23319d8094128ed1472ef878613ba15e0c1848be",
+            "linear_rg8_sha256": "6c36bc209a7399fb8f8cc746b2da1a3eabdf59bad6098b0816970b9df452aa5f",
+            "decoded_rgba8_sha256": "66fe4dcc8ff3017ddafc4fd2773842a5ec9ba8fcf3c45588d6badc67230c0aac"
+          },
+          {
+            "width": 32,
+            "height": 32,
+            "rg8_offset": 40960,
+            "rg8_bytes": 2048,
+            "original_morton_sha256": "87816f92baaa8d55dac9bf651af65f24085a8ddc6325f94ded733ef52d2c0b0e",
+            "linear_rg8_sha256": "3ed37ac27b7de3ccc6f2f6b69abbc2e279a55b442ce7b3f99d8ea81d66701d9b",
+            "decoded_rgba8_sha256": "8506c1e181e47872cfc8512bd300c9376a0d54eaf2c04ae63abcf7d52ff38667"
+          }
+        ]
+      },
+      {
+        "frame": 8,
+        "metadata_hex": "6d74696280008000010000001700091240004000020005010040050000defc0a00b6fc0affffffffffffffffffffffffffffffff00a8000000280000000000000000000000000000000000007a1ec58000000000000000000000804000000000008d0400800000000e0008000800010000000000",
+        "source_resource_pointer": 184344064,
+        "source_resource_bytes": 43008,
+        "complete_hardware_partitions": [
+          {
+            "slot": 0,
+            "source_pointer": 184344064,
+            "source_bytes": 43008,
+            "sha256": "ea7477351cecf2db250aa315bc9ce6cf56c9150d9503bc640699b2d67ae20b62"
+          },
+          {
+            "slot": 1,
+            "source_pointer": 184333824,
+            "source_bytes": 10240,
+            "sha256": "acb422f0ce1fabe9204978329d2557505dfed61afbc38bad5db93de4361a6a28",
+            "exact_highest_chain_64_32_suffix": true
+          },
+          {
+            "slot": 2,
+            "source_pointer": 4294967295,
+            "source_bytes": 0
+          }
+        ],
+        "software_low_detail": {
+          "source_shared_offset": 298240,
+          "source_bytes": 128,
+          "format": 14,
+          "width": 8,
+          "height": 8,
+          "depth": 1,
+          "sha256": "22bc09f3d834dcb819668674fe51f964d45d82c1857204c83afe0de60c5c255f"
+        },
+        "original_morton_sha256": "ea7477351cecf2db250aa315bc9ce6cf56c9150d9503bc640699b2d67ae20b62",
+        "linear_rg8_sha256": "2efae4a1523cc53f0c576b79da235d7154b81dd7b3b6dd9868ab00bb33d18ec3",
+        "decoded_rgba8_sha256": "f94ff51fc0b9949401b27f9c3a2fc02cbe8752d06a32297f9841645538657155",
+        "mips": [
+          {
+            "width": 128,
+            "height": 128,
+            "rg8_offset": 0,
+            "rg8_bytes": 32768,
+            "original_morton_sha256": "8b7304cb22453e93ac55b139d42b0d16e3ae0affb3659438d5ccf8ce7888835d",
+            "linear_rg8_sha256": "5a0ec3fe7a589a1e1776ae2e1edc2867be156a8ae559ab0a487a610188cd5143",
+            "decoded_rgba8_sha256": "25f59f8d7eca6af718266ac308230e66e58791f047ad3501d6bddd390f1bd0d9"
+          },
+          {
+            "width": 64,
+            "height": 64,
+            "rg8_offset": 32768,
+            "rg8_bytes": 8192,
+            "original_morton_sha256": "04559f14e9ee28cb127f3b97694ba45cfb7497e7e1e6580fe7e6f3cf388897dd",
+            "linear_rg8_sha256": "9c4a2953c62002f401a5ebb0aab93357dfaa1d6b35bb4f8aaec22815dc5010b8",
+            "decoded_rgba8_sha256": "a691612274e66ca58b715e75bd672fad9b9de77f418e876023ba6f0a146f5ced"
+          },
+          {
+            "width": 32,
+            "height": 32,
+            "rg8_offset": 40960,
+            "rg8_bytes": 2048,
+            "original_morton_sha256": "adc1ac2be04823aaa22f652c24ca540482e8ec7509e3392be9044d39b3191ec0",
+            "linear_rg8_sha256": "0f057c53ac4a60bb9e5124ad3256716f1618c49eeef13360ed30bdaf5c00ba1a",
+            "decoded_rgba8_sha256": "aa6416d1c1d9606856b43c713a2a9a8386a0c5ea14b4dd1fc92a8b037d9b9b7a"
+          }
+        ]
+      },
+      {
+        "frame": 9,
+        "metadata_hex": "6d746962800080000100000017000912400040000200050100e8050000aefd0a0086fd0affffffffffffffffffffffffffffffff00a8000000280000000000000000000000000000000000007a1ec58000000000000000000000804000000000808d0400800000000e0008000800010000000000",
+        "source_resource_pointer": 184397312,
+        "source_resource_bytes": 43008,
+        "complete_hardware_partitions": [
+          {
+            "slot": 0,
+            "source_pointer": 184397312,
+            "source_bytes": 43008,
+            "sha256": "5a0004847622e232887c50bd802f2534d96bf3f076c555586823f98055e86a77"
+          },
+          {
+            "slot": 1,
+            "source_pointer": 184387072,
+            "source_bytes": 10240,
+            "sha256": "51e651cbc0329032f5e6213f2e2ad447bad890f5ba3c1369c57f377de4210e00",
+            "exact_highest_chain_64_32_suffix": true
+          },
+          {
+            "slot": 2,
+            "source_pointer": 4294967295,
+            "source_bytes": 0
+          }
+        ],
+        "software_low_detail": {
+          "source_shared_offset": 298368,
+          "source_bytes": 128,
+          "format": 14,
+          "width": 8,
+          "height": 8,
+          "depth": 1,
+          "sha256": "dfc50f02dc279ff32a0f2d5cad805887781846d63c280cce29cf18d32c3a43cf"
+        },
+        "original_morton_sha256": "5a0004847622e232887c50bd802f2534d96bf3f076c555586823f98055e86a77",
+        "linear_rg8_sha256": "7eef3e15c79c9712d5bd4ef23b19bcb1c7fc1d5d25fad9e62227c5e503bd67cc",
+        "decoded_rgba8_sha256": "18495b554280fef5dcc6a2c11303db72e0a642e6a054549a63eb9f70327c5454",
+        "mips": [
+          {
+            "width": 128,
+            "height": 128,
+            "rg8_offset": 0,
+            "rg8_bytes": 32768,
+            "original_morton_sha256": "b4cd3a49b92c2fce9411621dd6ba584f254d67c4a1fcccfd33f6b8e8b48e9ba8",
+            "linear_rg8_sha256": "5050634b5723fe9742e04bca918f072bd9ff59f23a67948f886c6c07a62fe216",
+            "decoded_rgba8_sha256": "81e23cb1977aeb9ba89c488b8b82e73ad22043c64c78a4f7c453dfc0b8fe86f4"
+          },
+          {
+            "width": 64,
+            "height": 64,
+            "rg8_offset": 32768,
+            "rg8_bytes": 8192,
+            "original_morton_sha256": "e47a3e5e34d492bab4d993398f1b3ca317521bd91f8efc9f05261208515edd3e",
+            "linear_rg8_sha256": "7c311e81a0596c8c56fd801a7361bae67eeea2e6caf66ea67a8b99a01e3f5573",
+            "decoded_rgba8_sha256": "c6a50351cb6c63cb94bc18edb4a090a474d002aa4e2479137ded05d909705478"
+          },
+          {
+            "width": 32,
+            "height": 32,
+            "rg8_offset": 40960,
+            "rg8_bytes": 2048,
+            "original_morton_sha256": "9f418613272c2018efa9346f420676012f29d240bf3fb6d01ff7d547ff4a1031",
+            "linear_rg8_sha256": "43cf9c9f55aec5598b243a6806902da3dc619e7f5c9fbda03c75b183087fa46e",
+            "decoded_rgba8_sha256": "51cc3ed450f6d315322ceccc13ef2410135a3be64e727db17a202770e33c122f"
+          }
+        ]
+      },
+      {
+        "frame": 10,
+        "metadata_hex": "6d746962800080000100000017000912400040000200050100900600007efe0a0056fe0affffffffffffffffffffffffffffffff00a8000000280000000000000000000000000000000000007a1ec58000000000000000000000804000000000008e0400800000000e0008000800010000000000",
+        "source_resource_pointer": 184450560,
+        "source_resource_bytes": 43008,
+        "complete_hardware_partitions": [
+          {
+            "slot": 0,
+            "source_pointer": 184450560,
+            "source_bytes": 43008,
+            "sha256": "1393f6ea7a790d7bd30b1dfc344c832165a9b2cf4d92a56573d9023e5b91a293"
+          },
+          {
+            "slot": 1,
+            "source_pointer": 184440320,
+            "source_bytes": 10240,
+            "sha256": "ef307a8ea0840f56239a563ef3ef635d6779f358ee88022fa75ea02102d10042",
+            "exact_highest_chain_64_32_suffix": true
+          },
+          {
+            "slot": 2,
+            "source_pointer": 4294967295,
+            "source_bytes": 0
+          }
+        ],
+        "software_low_detail": {
+          "source_shared_offset": 298496,
+          "source_bytes": 128,
+          "format": 14,
+          "width": 8,
+          "height": 8,
+          "depth": 1,
+          "sha256": "a4757b3d5a452267125086ea6825e4f912b31c42928360947c54de7f15e51aa4"
+        },
+        "original_morton_sha256": "1393f6ea7a790d7bd30b1dfc344c832165a9b2cf4d92a56573d9023e5b91a293",
+        "linear_rg8_sha256": "6e97b7d65e3e77e45957e3ad46a5eadf075736e7bd02ce5c184ff47790b0b31c",
+        "decoded_rgba8_sha256": "02f55372417fd07be154f82298b575020afbd2b00ef96c432b7dd18459daea40",
+        "mips": [
+          {
+            "width": 128,
+            "height": 128,
+            "rg8_offset": 0,
+            "rg8_bytes": 32768,
+            "original_morton_sha256": "ae90a5377f9ff2b3485b471eae053d4bdce305a3a8b137e3b4b3eed9088e3415",
+            "linear_rg8_sha256": "ba73af0fd9ce91fa1ab19cb92180130c50700c61a32b1ad11e118411bdd655ad",
+            "decoded_rgba8_sha256": "8b660d9db77e125283e30785a90cbb76fcf16633628b4616dc5fb5bfb6fb41b7"
+          },
+          {
+            "width": 64,
+            "height": 64,
+            "rg8_offset": 32768,
+            "rg8_bytes": 8192,
+            "original_morton_sha256": "93da2bb71edf4d792191964b3f2ca02908a8f02e65b8192fcf4abad57bbaf84d",
+            "linear_rg8_sha256": "71f6da9def05df48dec01282b8fddb26432e660bce7c490c22ff8aed259f807f",
+            "decoded_rgba8_sha256": "0510d3fa69300e848786a3b0a2cde9d011925f871e02cd7642671506262da366"
+          },
+          {
+            "width": 32,
+            "height": 32,
+            "rg8_offset": 40960,
+            "rg8_bytes": 2048,
+            "original_morton_sha256": "d2f8756ea853af7a309a8282ad70b251391fcfcd9e71ce826b1b08c5e9d49d97",
+            "linear_rg8_sha256": "1ba31fec507b191d2822cd98ed3cda6c5f0d840daf3bb26e4183e753e8131643",
+            "decoded_rgba8_sha256": "5be760f4b1e00c3f3d5ad42fe1ebfb74584566dee1481c6be2ea98d42aabdaf1"
+          }
+        ]
+      },
+      {
+        "frame": 11,
+        "metadata_hex": "6d746962800080000100000017000912400040000200050100380700004eff0a0026ff0affffffffffffffffffffffffffffffff00a8000000280000000000000000000000000000000000007a1ec58000000000000000000000804000000000808e0400800000000e0008000800010000000000",
+        "source_resource_pointer": 184503808,
+        "source_resource_bytes": 43008,
+        "complete_hardware_partitions": [
+          {
+            "slot": 0,
+            "source_pointer": 184503808,
+            "source_bytes": 43008,
+            "sha256": "aa7e6b52b7278ad50551faec6ba733d68c2334cd4f54681def57e0642ceb6992"
+          },
+          {
+            "slot": 1,
+            "source_pointer": 184493568,
+            "source_bytes": 10240,
+            "sha256": "fc3778f62d9acfffb50d6999b8d58371488e6cabf3531735005f513a2190b418",
+            "exact_highest_chain_64_32_suffix": true
+          },
+          {
+            "slot": 2,
+            "source_pointer": 4294967295,
+            "source_bytes": 0
+          }
+        ],
+        "software_low_detail": {
+          "source_shared_offset": 298624,
+          "source_bytes": 128,
+          "format": 14,
+          "width": 8,
+          "height": 8,
+          "depth": 1,
+          "sha256": "721fa9dac82f8617b4252833d4a35ae470db52e99f6effe3254207de5c7659b0"
+        },
+        "original_morton_sha256": "aa7e6b52b7278ad50551faec6ba733d68c2334cd4f54681def57e0642ceb6992",
+        "linear_rg8_sha256": "4e5df2b36bcf4dc4ef0ec1afcd77545176ea914091d2a87c055930857eb37a49",
+        "decoded_rgba8_sha256": "a8fd8efaecbd397e4be658b0f8a3f65f82d048c704bb473474409e4302e5578c",
+        "mips": [
+          {
+            "width": 128,
+            "height": 128,
+            "rg8_offset": 0,
+            "rg8_bytes": 32768,
+            "original_morton_sha256": "0138b2a0b2d535ca9984b0e07cb57f5f63b3b30a9c889bcacbb3904d36d1db87",
+            "linear_rg8_sha256": "bdbcc0c95f3384d561fbbe1591a105e466d2db110a9da0be70a79df056b6d92a",
+            "decoded_rgba8_sha256": "e4ad5242da7c1acc5b19a7f163e05e94a6189516cc6573dfb0deb1f6c398dcdc"
+          },
+          {
+            "width": 64,
+            "height": 64,
+            "rg8_offset": 32768,
+            "rg8_bytes": 8192,
+            "original_morton_sha256": "8e3222d728d16ba751e3799777c93ea4b0f1491e41719fb5d0803fe6d396f0d1",
+            "linear_rg8_sha256": "67520db7841d0e66bcba8dc237de0c337908183dcae05ead1adf83e5415a79e3",
+            "decoded_rgba8_sha256": "47994e96d19e382aa2da84eeb10c6a8cc7f795ae16937d21b8b611584fdd0c79"
+          },
+          {
+            "width": 32,
+            "height": 32,
+            "rg8_offset": 40960,
+            "rg8_bytes": 2048,
+            "original_morton_sha256": "31c41049dde2244aa1c2c46a7c265893a888c9c5a6312593dce01c903875e317",
+            "linear_rg8_sha256": "959a65dee1810ec999a574ea1bb7988137cbfde8d7de05475721180597b1cbce",
+            "decoded_rgba8_sha256": "cb02d27a4fb75278ef1f6f2edfd0b3833cdcdbf33baf41024ebe05e725cb3e8b"
+          }
+        ]
+      },
+      {
+        "frame": 12,
+        "metadata_hex": "6d746962800080000100000017000912400040000200050100e00700001e000b00f6ff0affffffffffffffffffffffffffffffff00a8000000280000000000000000000000000000000000007a1ec58000000000000000000000804000000000008f0400800000000e0008000800010000000000",
+        "source_resource_pointer": 184557056,
+        "source_resource_bytes": 43008,
+        "complete_hardware_partitions": [
+          {
+            "slot": 0,
+            "source_pointer": 184557056,
+            "source_bytes": 43008,
+            "sha256": "a7ced54488997691a1682ec07ed66883ec7e45aead2567f01e014f11218a9629"
+          },
+          {
+            "slot": 1,
+            "source_pointer": 184546816,
+            "source_bytes": 10240,
+            "sha256": "7b1a469f0dee2b0118ff54139c84117719f9f02d569bab511fa15fa8006b7677",
+            "exact_highest_chain_64_32_suffix": true
+          },
+          {
+            "slot": 2,
+            "source_pointer": 4294967295,
+            "source_bytes": 0
+          }
+        ],
+        "software_low_detail": {
+          "source_shared_offset": 298752,
+          "source_bytes": 128,
+          "format": 14,
+          "width": 8,
+          "height": 8,
+          "depth": 1,
+          "sha256": "1ba24a9ed042dab31225a1180a0bcb1765bd415e1a9fe2b3c735d9c921751c8c"
+        },
+        "original_morton_sha256": "a7ced54488997691a1682ec07ed66883ec7e45aead2567f01e014f11218a9629",
+        "linear_rg8_sha256": "e6b95888b6a976532f2fa24aa0c106868f571189f881d225c9298f4a955f30cc",
+        "decoded_rgba8_sha256": "00ead0a4c7147780f5e65760f7a96a07998ee199ce7dd367d913a6641f7fa4d8",
+        "mips": [
+          {
+            "width": 128,
+            "height": 128,
+            "rg8_offset": 0,
+            "rg8_bytes": 32768,
+            "original_morton_sha256": "d9682e78526f9e5f3a94964f00a22aa9099b01bc40900e956b3df88d3df55f29",
+            "linear_rg8_sha256": "ce6f9133439cfbfc39240777514594de930ef5da31da641e35d8bb5e12a979a1",
+            "decoded_rgba8_sha256": "118e2a6f12674b298ec8301561af6896a5f3b62254d610283609128020df16fe"
+          },
+          {
+            "width": 64,
+            "height": 64,
+            "rg8_offset": 32768,
+            "rg8_bytes": 8192,
+            "original_morton_sha256": "11e3352edc0f94536e3021de895cd28fddf058647ac5fb8109708f8542efe8ad",
+            "linear_rg8_sha256": "10c745de22a7fc723272c0d9faf7116bd1125bf639fc8e8aea09f078df3d584e",
+            "decoded_rgba8_sha256": "78db23366d26e45dd8fcb99a679999370ae1c7480a8e124cf5347e60fceba54d"
+          },
+          {
+            "width": 32,
+            "height": 32,
+            "rg8_offset": 40960,
+            "rg8_bytes": 2048,
+            "original_morton_sha256": "208ea351ea49ddb2a672e4cc4f523c31f58d4380fe6422e26069887833ef0aee",
+            "linear_rg8_sha256": "0df47c4e7e81632bdfc1046c62f4572f7f73f2474bba93d59f53919004cc61aa",
+            "decoded_rgba8_sha256": "adcae4c88cd64c78d68d1a24d97c068600da6d4bb4f3850b48b90090e7d72461"
+          }
+        ]
+      },
+      {
+        "frame": 13,
+        "metadata_hex": "6d74696280008000010000001700091240004000020005010088080000ee000b00c6000bffffffffffffffffffffffffffffffff00a8000000280000000000000000000000000000000000007a1ec58000000000000000000000804000000000808f0400800000000e0008000800010000000000",
+        "source_resource_pointer": 184610304,
+        "source_resource_bytes": 43008,
+        "complete_hardware_partitions": [
+          {
+            "slot": 0,
+            "source_pointer": 184610304,
+            "source_bytes": 43008,
+            "sha256": "df1c6140a56d58574cc7476bf1eb0b0102a13130c4e7b00c6ce1a8e9beec7a49"
+          },
+          {
+            "slot": 1,
+            "source_pointer": 184600064,
+            "source_bytes": 10240,
+            "sha256": "c875f29a3df081649b87a7b97081b80725ba46d0c1e7da16a74af1a950267caa",
+            "exact_highest_chain_64_32_suffix": true
+          },
+          {
+            "slot": 2,
+            "source_pointer": 4294967295,
+            "source_bytes": 0
+          }
+        ],
+        "software_low_detail": {
+          "source_shared_offset": 298880,
+          "source_bytes": 128,
+          "format": 14,
+          "width": 8,
+          "height": 8,
+          "depth": 1,
+          "sha256": "9bf126a35add68f24e37cff9ad21208c45450fa88ff3ee133fbd7b7e0801aac9"
+        },
+        "original_morton_sha256": "df1c6140a56d58574cc7476bf1eb0b0102a13130c4e7b00c6ce1a8e9beec7a49",
+        "linear_rg8_sha256": "f97c1c2eb9b0dd6d194dcf676393f0797b943eadb0eca79b08de12f59b0a23ab",
+        "decoded_rgba8_sha256": "103a5ce98da94a6b07064ec7f77f8104c2e82326f48aa0ff0eded7e39e5b7ab2",
+        "mips": [
+          {
+            "width": 128,
+            "height": 128,
+            "rg8_offset": 0,
+            "rg8_bytes": 32768,
+            "original_morton_sha256": "4a1a026b7f4366bfa27648530daff6e4ff450282a2141b9d217d601d40b61bf7",
+            "linear_rg8_sha256": "0d1d822f020c7523fd2c68c703e986296cc00b4e111156b64091874a318e8b59",
+            "decoded_rgba8_sha256": "3e9caf4c3151eaf9e214520102e831ac3af95503f189e341ecd8f1885f05e7d3"
+          },
+          {
+            "width": 64,
+            "height": 64,
+            "rg8_offset": 32768,
+            "rg8_bytes": 8192,
+            "original_morton_sha256": "6f531664661e382252ecc89ccb97b07427e6964f5afdac882cea19541f5159f6",
+            "linear_rg8_sha256": "ed5eeb94c40d8a9b5b98a7f77a1c79170bd6b602d8be32a3b54756b8a4e04697",
+            "decoded_rgba8_sha256": "67a846764f6abedddd696982d51c210f40d03a274b4238148d8700912a0296e6"
+          },
+          {
+            "width": 32,
+            "height": 32,
+            "rg8_offset": 40960,
+            "rg8_bytes": 2048,
+            "original_morton_sha256": "60b6db68e7a5611a845820ec2fe844ff367643199f39eb1b8e37ba6a96a05c5c",
+            "linear_rg8_sha256": "a7955f667931b348cb5bea7b71fe5437bc88d00164a8a9139ccaea15343cf398",
+            "decoded_rgba8_sha256": "f6688f09b2e66b136514fa1bdd0e51e8f9a952b784fd941a4478cb332deb6a09"
+          }
+        ]
+      },
+      {
+        "frame": 14,
+        "metadata_hex": "6d74696280008000010000001700091240004000020005010030090000be010b0096010bffffffffffffffffffffffffffffffff00a8000000280000000000000000000000000000000000007a1ec5800000000000000000000080400000000000900400800000000e0008000800010000000000",
+        "source_resource_pointer": 184663552,
+        "source_resource_bytes": 43008,
+        "complete_hardware_partitions": [
+          {
+            "slot": 0,
+            "source_pointer": 184663552,
+            "source_bytes": 43008,
+            "sha256": "cb356db0b43b3b41066a678f9b9ca1459f1486ee7851cbbfaae264db96abdd23"
+          },
+          {
+            "slot": 1,
+            "source_pointer": 184653312,
+            "source_bytes": 10240,
+            "sha256": "220315bf0be13f50ab6ad1f7dfc12d905eda81554a73b0845069d62b85b71077",
+            "exact_highest_chain_64_32_suffix": true
+          },
+          {
+            "slot": 2,
+            "source_pointer": 4294967295,
+            "source_bytes": 0
+          }
+        ],
+        "software_low_detail": {
+          "source_shared_offset": 299008,
+          "source_bytes": 128,
+          "format": 14,
+          "width": 8,
+          "height": 8,
+          "depth": 1,
+          "sha256": "6115d890bf71ce4cfbc44071b3fd49201a667fc3499190107fd0069d76051811"
+        },
+        "original_morton_sha256": "cb356db0b43b3b41066a678f9b9ca1459f1486ee7851cbbfaae264db96abdd23",
+        "linear_rg8_sha256": "b5347068698448b3c38819734a0971c339c08da1ade1b404d9fb73731b8fe047",
+        "decoded_rgba8_sha256": "948c9acbe604cc8d4dc5523a59082ce82d202618483767b0a4cf0e2baa30286f",
+        "mips": [
+          {
+            "width": 128,
+            "height": 128,
+            "rg8_offset": 0,
+            "rg8_bytes": 32768,
+            "original_morton_sha256": "e62129dc42f24ff7ab927effaf82fb4c0956e4c4ba2b70042f57c0eaef202820",
+            "linear_rg8_sha256": "3f880542445a78dc0ecdfec1696f1cf7573f18e8c2745f3c193a602b83b81f04",
+            "decoded_rgba8_sha256": "9f4d63a7f1d55350d642ffa0b0af08f797b455af5a5efe18dd107d34f64e2009"
+          },
+          {
+            "width": 64,
+            "height": 64,
+            "rg8_offset": 32768,
+            "rg8_bytes": 8192,
+            "original_morton_sha256": "19a7255527951c683f3878d1ec9c21843bbcc079a55b7a4f87958933a89570d4",
+            "linear_rg8_sha256": "41c96364adc37e17087141777aa410c3c4a9e0575e08fa14211844fda10dbebb",
+            "decoded_rgba8_sha256": "c584ed19e6ba3dc766090f5119b805b8f0475754832f434dd20c7b263b0c5bce"
+          },
+          {
+            "width": 32,
+            "height": 32,
+            "rg8_offset": 40960,
+            "rg8_bytes": 2048,
+            "original_morton_sha256": "36e02a5cb7a9e502057f8f43fa24b89f8eb1aa539f8885886eef832db38402de",
+            "linear_rg8_sha256": "0d1cb0de422630a1f0099c28fdfb7418424bc4414ee03883b910b5d6a9f5f7ac",
+            "decoded_rgba8_sha256": "cb8f364e5a0cc8389d07fd8f569e4cf48cb8687f5de7d311021dfc4156691747"
+          }
+        ]
+      },
+      {
+        "frame": 15,
+        "metadata_hex": "6d746962800080000100000017000912400040000200050100d80900008e020b0066020bffffffffffffffffffffffffffffffff00a8000000280000000000000000000000000000000000007a1ec5800000000000000000000080400000000080900400800000000e0008000800010000000000",
+        "source_resource_pointer": 184716800,
+        "source_resource_bytes": 43008,
+        "complete_hardware_partitions": [
+          {
+            "slot": 0,
+            "source_pointer": 184716800,
+            "source_bytes": 43008,
+            "sha256": "face1ca4ba147d148bd83c9b8d989e9e78ce6e6ac3c40bbe65f8b549534932a0"
+          },
+          {
+            "slot": 1,
+            "source_pointer": 184706560,
+            "source_bytes": 10240,
+            "sha256": "085ae44e97ecfb26dce544d5e45d28aeb2cd614ff78c2020d98c4fe60d07e5d9",
+            "exact_highest_chain_64_32_suffix": true
+          },
+          {
+            "slot": 2,
+            "source_pointer": 4294967295,
+            "source_bytes": 0
+          }
+        ],
+        "software_low_detail": {
+          "source_shared_offset": 299136,
+          "source_bytes": 128,
+          "format": 14,
+          "width": 8,
+          "height": 8,
+          "depth": 1,
+          "sha256": "568a0c2bbc050a6a4ba49d646ca7c236ce1d2583ff8fa8ed96a8cce3eae8977d"
+        },
+        "original_morton_sha256": "face1ca4ba147d148bd83c9b8d989e9e78ce6e6ac3c40bbe65f8b549534932a0",
+        "linear_rg8_sha256": "6389469f6108bd2d30985fdf36db48f759b4191eb2355611a18428e886c71a45",
+        "decoded_rgba8_sha256": "616389f37876d1a306aa817709912b4b15ca3f5227d3ccc7007421eedf38d7ee",
+        "mips": [
+          {
+            "width": 128,
+            "height": 128,
+            "rg8_offset": 0,
+            "rg8_bytes": 32768,
+            "original_morton_sha256": "a8ff1edf730ebab694413cb5cc4365d641ade22ab5d896dbc6d4c06f7708bf7d",
+            "linear_rg8_sha256": "9bf0f5a89699d88eac64b5ade9074f671196aa2e3043994dc1faa21a08742ba7",
+            "decoded_rgba8_sha256": "f4e1c8ae80062e5e9a372f425acb56dc1350adae24bfc99057babe02299a1ec9"
+          },
+          {
+            "width": 64,
+            "height": 64,
+            "rg8_offset": 32768,
+            "rg8_bytes": 8192,
+            "original_morton_sha256": "2077b1fde05741815c0a9278b4487f315a9645c302db9d5c80f95a2c3bd7d90a",
+            "linear_rg8_sha256": "95e8da29e09250c3e5287e251fdda28065f1827b7692f471a05b3a43da5e5925",
+            "decoded_rgba8_sha256": "b4a825431f3ea71fa493ea1eb71e472af1740692086ff73bf9dcdc026b66a22f"
+          },
+          {
+            "width": 32,
+            "height": 32,
+            "rg8_offset": 40960,
+            "rg8_bytes": 2048,
+            "original_morton_sha256": "e80171d158594ef958bb4f4ffc47ba1efceea48986fb16aeb3c4f584d454c36b",
+            "linear_rg8_sha256": "42c2edf82075c7da8c2f16aa92f75c76a6e96eb3aa847bf7f0bba86ca6e35eb2",
+            "decoded_rgba8_sha256": "fd2c1ec475b7adb76b80ac93b26e6c72a9b7b550e459fadf70c8e64d6014b0d3"
+          }
+        ]
+      },
+      {
+        "frame": 16,
+        "metadata_hex": "6d746962800080000100000017000912400040000200050100800a00005e030b0036030bffffffffffffffffffffffffffffffff00a8000000280000000000000000000000000000000000007a1ec5800000000000000000000080400000000000910400800000000e0008000800010000000000",
+        "source_resource_pointer": 184770048,
+        "source_resource_bytes": 43008,
+        "complete_hardware_partitions": [
+          {
+            "slot": 0,
+            "source_pointer": 184770048,
+            "source_bytes": 43008,
+            "sha256": "80f666894f9916326d08709e320b8a39f28ec7ecaa7caf466545dd9c8a7c1541"
+          },
+          {
+            "slot": 1,
+            "source_pointer": 184759808,
+            "source_bytes": 10240,
+            "sha256": "408c6befc4acc9d1e935acc978b1ba0bbe11e517dca2a05fb0adcd8a6246e9f8",
+            "exact_highest_chain_64_32_suffix": true
+          },
+          {
+            "slot": 2,
+            "source_pointer": 4294967295,
+            "source_bytes": 0
+          }
+        ],
+        "software_low_detail": {
+          "source_shared_offset": 299264,
+          "source_bytes": 128,
+          "format": 14,
+          "width": 8,
+          "height": 8,
+          "depth": 1,
+          "sha256": "c0f9a40af844a5633364eda614212f8c9aafed4b1fb98547eee3d532d5a6e979"
+        },
+        "original_morton_sha256": "80f666894f9916326d08709e320b8a39f28ec7ecaa7caf466545dd9c8a7c1541",
+        "linear_rg8_sha256": "297b32ef43a2619d405d4f8b52b3ef36a9cb8006323d72806ef3485971c6aeb6",
+        "decoded_rgba8_sha256": "ca9e6b707a5936da6d190824cb7931ffc0969dd73fd945e4405b5c233c648b49",
+        "mips": [
+          {
+            "width": 128,
+            "height": 128,
+            "rg8_offset": 0,
+            "rg8_bytes": 32768,
+            "original_morton_sha256": "400fe27be150e14af5b098ea7b76b1a1f22737849d9f3a528a55ec8558fafaa2",
+            "linear_rg8_sha256": "44574ea379ae1a8dbd8bf21c479eb40a71bd97283c7c80ebc2e7498ae6ad971f",
+            "decoded_rgba8_sha256": "70087f6d3098e47809d438875fe613c6e84fa5162a1af44b0475986552278842"
+          },
+          {
+            "width": 64,
+            "height": 64,
+            "rg8_offset": 32768,
+            "rg8_bytes": 8192,
+            "original_morton_sha256": "322d8df1ae6b27b47bf7588f1c8ddb58f495adbf33153938d4945651fc68cc97",
+            "linear_rg8_sha256": "08ff886e93cf25dae55635cb12ae4a6690fd718aa25f45e3582714921246e8c4",
+            "decoded_rgba8_sha256": "2f4b81f95733f7dca4a7d2950255afe46eac1ca645462cbbfd38b344b246f246"
+          },
+          {
+            "width": 32,
+            "height": 32,
+            "rg8_offset": 40960,
+            "rg8_bytes": 2048,
+            "original_morton_sha256": "24ec04d2107cb83e574d182f7d79773a64625420c2a6aca6aad3184c9b45f120",
+            "linear_rg8_sha256": "dbaa26c0ef084348753b395a5972cf6f15993058504b29a997609722e06d60ee",
+            "decoded_rgba8_sha256": "f76f028db4c0dad0add31c3dfd3aee31d87d212654524e7b1f38958632450fdf"
+          }
+        ]
+      }
+    ]
+  },
+  "consuming_native_shader": {
+    "map": "03a_oldmombasa",
+    "name": "scenarios\\shaders\\solo\\earthcity\\water_beach_overlay",
+    "payload": "ddd34378a0b4329369a1d93ed9edb2b13065cc72ff9e379eb7020fa16126b6d8.bin",
+    "original_tag": {
+      "datum": 2160139894,
+      "group": "shad",
+      "name": "scenarios\\shaders\\solo\\earthcity\\water_beach_overlay",
+      "address": 2158946212,
+      "size": 820
+    },
+    "original_body_sha256": "cf2caacecca32e8a478ba9e873ab5d21e898892e8163109f18c505bf4a453b66",
+    "required_frames": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "scope": "Actual source compiled bitmap slot0 and complete predicted frame ownership"
+  },
+  "storage_projection": {
+    "format": 23,
+    "width": 128,
+    "height": 128,
+    "depth": 1,
+    "type": 0,
+    "frame_count": 17,
+    "mip_count": 3,
+    "original_flags": 4617,
+    "linear_flags": 4609,
+    "raw_rg8_bytes_per_frame": 43008,
+    "total_rg8_bytes": 731136,
+    "total_decoded_rgba8_bytes": 1462272,
+    "original_morton_pool_sha256": "881436a3309c5bc2be5ab093136a60517dd2493874a497e365e248ec4ffe965b",
+    "projected_linear_pool_sha256": "9cbf80c5217525ac8c445c8875fe792a1c75ef6b95a523d3612430c02fb4a420",
+    "synthesized_mips": false,
+    "resampling": false,
+    "numeric_tolerance": false
+  },
+  "future_private_writer": {
+    "status": "not-created-root-coordination-required",
+    "highest_detail_resource_bank_delta_bytes": 731272,
+    "resource_encoding": "Seventeen existing-format uncompressed MCC partitions: count1, signed-size-43008, complete linear G8B8 mip bytes",
+    "typed_owner": "Append one new bitm owner with17 actual frames; preserve every existing salted directory row and byte",
+    "metadata_requirements": [
+      "Source-authenticated76-byte original authoring root to80-byte MCC root projection",
+      "Complete17x116-byte original frame fields to17x168-byte MCC resource descriptors",
+      "Explicit root frame pointer and every per-frame full-salt datum relocation",
+      "Original frame order, registration, type23 and three literal mip extents retained",
+      "Only swizzle flag removed after lossless storage permutation; no authored field/value substitution",
+      "Separate original second hardware partitions and software low-detail descriptors must retain explicit source ownership; this highest-chain component test does not implement their MCC lifecycle",
+      "Independent Cache reopen: all17 decoded images and51 mip payloads exact",
+      "Full source/candidate map, textures.dat prefix, provenance and owner-index before/after pins"
+    ]
+  }
+}

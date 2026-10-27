@@ -38,7 +38,7 @@ class LinuxBuildScriptTests(unittest.TestCase):
         result = self.run_script(CMAKE_BUILD_PARALLEL_LEVEL="3")
         self.assertEqual(result.returncode, 0, result.stderr)
         receipt = json.loads(self.receipt.read_text())
-        self.assertEqual(receipt["argv"], ["--root", str(self.root), "--build-dir", str(self.root / "build"), "--no-gui"])
+        self.assertEqual(receipt["argv"], ["--root", str(self.root), "--build-dir", str(self.root / "build"), "--windows-build-dir", str(self.root / "build-windows"), "--no-gui"])
         self.assertEqual(receipt["jobs"], "3")
 
     def test_relative_and_absolute_build_overrides_and_option_forwarding(self):

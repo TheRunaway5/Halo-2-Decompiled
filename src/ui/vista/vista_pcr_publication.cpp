@@ -11,8 +11,8 @@ void size(std::span<std::byte> source) {
 void word(std::span<std::byte> source,std::size_t at,std::uint32_t value,unsigned width) {
   for(unsigned i=0;i<width;++i)source[at+i]=std::byte((value>>(i*8))&0xffu);
 }
-constexpr std::array<int,24> admitted_parameters{
-  1,2,3,4,5,6,7,8,9,10,17,18,29,30,15,90,89,88,76,91,23,25,26,94};
+constexpr std::array<int,25> admitted_parameters{
+  0,1,2,3,4,5,6,7,8,9,10,17,18,29,30,15,90,89,88,76,91,23,25,26,94};
 }
 VistaPcrPcVariant vista_pcr_slayer_variant(const SourceGameVariant& source) {
   if(source_game_variant_type(source)!=2)
@@ -49,7 +49,17 @@ VistaPcrPcVariant vista_pcr_objective_variant(const SourceGameVariant& source) {
 }
 VistaPcrPcVariant vista_pcr_multiplayer_variant(const SourceGameVariant& source) {
   const auto type=source_game_variant_type(source);
-  return type==1 || type==9?vista_pcr_objective_variant(source):vista_pcr_slayer_variant(source);
+  if(type==2)return vista_pcr_slayer_variant(source);
+  if(type==1 || type==9)return vista_pcr_objective_variant(source);
+  if((type!=3 && type!=4 && type!=7 && type!=8) || !source_game_variant_valid(source))
+    throw std::invalid_argument("PC PCR requires a valid ported original multiplayer family");
+  // 232D77 has explicit original Oddball/King/Juggernaut/Territories
+  // numeric getters. The already verified304-byte option schema is copied
+  // unchanged, as469DFD does; this does not reinterpret their mode unions.
+  VistaPcrPcVariant result;
+  std::transform(source.bytes.begin(),source.bytes.end(),result.bytes.begin(),
+      [](std::uint8_t value){return std::byte(value);});
+  return result;
 }
 void vista_pcr_write_player_result(std::span<std::byte> source,int player,
                                   std::int32_t score,std::int32_t placement) {
@@ -82,7 +92,8 @@ VistaPcrConsumedSnapshot vista_pcr_publish_consumed_snapshot(const VistaPcrPubli
   if(!input.engine_present)return out;
   if(!input.statistics)throw std::invalid_argument("Actual numeric PCR statistics required");
   const auto& variant=input.variant.bytes;
-  if((variant[0x44]!=std::byte{1} && variant[0x44]!=std::byte{2} && variant[0x44]!=std::byte{9}) || variant[0x45]!=std::byte{} ||
+  const auto type=std::to_integer<unsigned>(variant[0x44]);
+  if((type!=1 && type!=2 && type!=3 && type!=4 && type!=7 && type!=8 && type!=9) || variant[0x45]!=std::byte{} ||
      variant[0x46]!=std::byte{} || variant[0x47]!=std::byte{})
     throw std::invalid_argument("PC PCR native bridge requires an admitted original multiplayer variant");
   std::copy(variant.begin(),variant.end(),bank.begin()+0x20);

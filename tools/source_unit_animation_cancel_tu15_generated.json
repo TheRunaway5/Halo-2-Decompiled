@@ -1,0 +1,542 @@
+{
+  "additional_entries_sha256": "c00986373f7743a9a8b98b7c90d240256131ffffcb45c56abed13ae248ddf155",
+  "complete_native_entries": [
+    "00105420",
+    "00116790"
+  ],
+  "correspondence_sha256": "5b9c76351fbfd7220086709c3365656e522e8bcbd1a84ddad660ea9fc0cdf3e1",
+  "dispatch_targets": {},
+  "external_owners": {
+    "0010544c": {
+      "full_guest_abi": true,
+      "target": "0x10a980"
+    },
+    "0011683b": {
+      "full_guest_abi": true,
+      "target": "0xbc380"
+    },
+    "001168c8": {
+      "full_guest_abi": true,
+      "target": "0xbc380"
+    },
+    "001168e0": {
+      "full_guest_abi": true,
+      "target": "0x111d10"
+    },
+    "00116908": {
+      "full_guest_abi": true,
+      "target": "0x111b10"
+    }
+  },
+  "full_x87_environment_required": {},
+  "generated_cpp_sha256": "b088d53bb940b865eadfad208f2f9057cb8d7f3db21a98f62f5ea48cb9aee33c",
+  "generator_sha256": "c0597a34e620656c31182830b3bd6480ad8b9ed657360ee1c2e23e62962a9ad3",
+  "later_original_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "lowered_instructions": {
+    "00105420": {
+      "mnemonic": "push",
+      "source_bytes": "56"
+    },
+    "00105421": {
+      "mnemonic": "mov",
+      "source_bytes": "8b35d0cb4e00"
+    },
+    "00105427": {
+      "mnemonic": "mov",
+      "source_bytes": "8b7644"
+    },
+    "0010542a": {
+      "mnemonic": "mov",
+      "source_bytes": "8bca"
+    },
+    "0010542c": {
+      "mnemonic": "and",
+      "source_bytes": "81e1ffff0000"
+    },
+    "00105432": {
+      "mnemonic": "lea",
+      "source_bytes": "8d0c49"
+    },
+    "00105435": {
+      "mnemonic": "mov",
+      "source_bytes": "8b4c8e08"
+    },
+    "00105439": {
+      "mnemonic": "mov",
+      "source_bytes": "8bb178010000"
+    },
+    "0010543f": {
+      "mnemonic": "xor",
+      "source_bytes": "32c0"
+    },
+    "00105441": {
+      "mnemonic": "cmp",
+      "source_bytes": "83fe0a"
+    },
+    "00105444": {
+      "mnemonic": "pop",
+      "source_bytes": "5e"
+    },
+    "00105445": {
+      "mnemonic": "jne",
+      "source_bytes": "750c"
+    },
+    "00105447": {
+      "mnemonic": "push",
+      "source_bytes": "6a01"
+    },
+    "00105449": {
+      "mnemonic": "push",
+      "source_bytes": "6a00"
+    },
+    "0010544b": {
+      "mnemonic": "push",
+      "source_bytes": "52"
+    },
+    "0010544c": {
+      "mnemonic": "call",
+      "source_bytes": "e82f550000"
+    },
+    "00105451": {
+      "mnemonic": "mov",
+      "source_bytes": "b001"
+    },
+    "00105453": {
+      "mnemonic": "ret",
+      "source_bytes": "c3"
+    },
+    "00116790": {
+      "mnemonic": "push",
+      "source_bytes": "51"
+    },
+    "00116791": {
+      "mnemonic": "mov",
+      "source_bytes": "8b0dd0cb4e00"
+    },
+    "00116797": {
+      "mnemonic": "mov",
+      "source_bytes": "8b5144"
+    },
+    "0011679a": {
+      "mnemonic": "mov",
+      "source_bytes": "8bc7"
+    },
+    "0011679c": {
+      "mnemonic": "and",
+      "source_bytes": "25ffff0000"
+    },
+    "001167a1": {
+      "mnemonic": "lea",
+      "source_bytes": "8d0440"
+    },
+    "001167a4": {
+      "mnemonic": "mov",
+      "source_bytes": "8b4c8208"
+    },
+    "001167a8": {
+      "mnemonic": "movsx",
+      "source_bytes": "0fbf813e030000"
+    },
+    "001167af": {
+      "mnemonic": "push",
+      "source_bytes": "53"
+    },
+    "001167b0": {
+      "mnemonic": "add",
+      "source_bytes": "03c1"
+    },
+    "001167b2": {
+      "mnemonic": "mov",
+      "source_bytes": "8b88a4000000"
+    },
+    "001167b8": {
+      "mnemonic": "push",
+      "source_bytes": "55"
+    },
+    "001167b9": {
+      "mnemonic": "mov",
+      "source_bytes": "8b6c2410"
+    },
+    "001167bd": {
+      "mnemonic": "xor",
+      "source_bytes": "33db"
+    },
+    "001167bf": {
+      "mnemonic": "cmp",
+      "source_bytes": "3bcd"
+    },
+    "001167c1": {
+      "mnemonic": "push",
+      "source_bytes": "56"
+    },
+    "001167c2": {
+      "mnemonic": "jne",
+      "source_bytes": "0f8581000000"
+    },
+    "001167c8": {
+      "mnemonic": "xorps",
+      "source_bytes": "0f57c0"
+    },
+    "001167cb": {
+      "mnemonic": "or",
+      "source_bytes": "83c9ff"
+    },
+    "001167ce": {
+      "mnemonic": "mov",
+      "source_bytes": "89889c000000"
+    },
+    "001167d4": {
+      "mnemonic": "mov",
+      "source_bytes": "668988a0000000"
+    },
+    "001167db": {
+      "mnemonic": "mov",
+      "source_bytes": "668988a2000000"
+    },
+    "001167e2": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f1180b8000000"
+    },
+    "001167ea": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f1005d0a04600"
+    },
+    "001167f2": {
+      "mnemonic": "push",
+      "source_bytes": "6839b4883e"
+    },
+    "001167f7": {
+      "mnemonic": "mov",
+      "source_bytes": "8bf7"
+    },
+    "001167f9": {
+      "mnemonic": "mov",
+      "source_bytes": "8898ac000000"
+    },
+    "001167ff": {
+      "mnemonic": "mov",
+      "source_bytes": "8898ad000000"
+    },
+    "00116805": {
+      "mnemonic": "mov",
+      "source_bytes": "668998ae000000"
+    },
+    "0011680c": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f1180b4000000"
+    },
+    "00116814": {
+      "mnemonic": "mov",
+      "source_bytes": "668998b0000000"
+    },
+    "0011681b": {
+      "mnemonic": "mov",
+      "source_bytes": "668998b2000000"
+    },
+    "00116822": {
+      "mnemonic": "mov",
+      "source_bytes": "8988a4000000"
+    },
+    "00116828": {
+      "mnemonic": "mov",
+      "source_bytes": "8888a8000000"
+    },
+    "0011682e": {
+      "mnemonic": "mov",
+      "source_bytes": "8888a9000000"
+    },
+    "00116834": {
+      "mnemonic": "mov",
+      "source_bytes": "668988aa000000"
+    },
+    "0011683b": {
+      "mnemonic": "call",
+      "source_bytes": "e8405bfaff"
+    },
+    "00116840": {
+      "mnemonic": "pop",
+      "source_bytes": "5e"
+    },
+    "00116841": {
+      "mnemonic": "pop",
+      "source_bytes": "5d"
+    },
+    "00116842": {
+      "mnemonic": "mov",
+      "source_bytes": "b001"
+    },
+    "00116844": {
+      "mnemonic": "pop",
+      "source_bytes": "5b"
+    },
+    "00116845": {
+      "mnemonic": "pop",
+      "source_bytes": "59"
+    },
+    "00116846": {
+      "mnemonic": "ret",
+      "source_bytes": "c20400"
+    },
+    "00116849": {
+      "mnemonic": "cmp",
+      "source_bytes": "39a8c4000000"
+    },
+    "0011684f": {
+      "mnemonic": "jne",
+      "source_bytes": "0f8581000000"
+    },
+    "00116855": {
+      "mnemonic": "xorps",
+      "source_bytes": "0f57c0"
+    },
+    "00116858": {
+      "mnemonic": "or",
+      "source_bytes": "83c9ff"
+    },
+    "0011685b": {
+      "mnemonic": "mov",
+      "source_bytes": "8988bc000000"
+    },
+    "00116861": {
+      "mnemonic": "mov",
+      "source_bytes": "668988c0000000"
+    },
+    "00116868": {
+      "mnemonic": "mov",
+      "source_bytes": "668988c2000000"
+    },
+    "0011686f": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f1180d8000000"
+    },
+    "00116877": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f1005d0a04600"
+    },
+    "0011687f": {
+      "mnemonic": "push",
+      "source_bytes": "6839b4883e"
+    },
+    "00116884": {
+      "mnemonic": "mov",
+      "source_bytes": "8bf7"
+    },
+    "00116886": {
+      "mnemonic": "mov",
+      "source_bytes": "8898cc000000"
+    },
+    "0011688c": {
+      "mnemonic": "mov",
+      "source_bytes": "8898cd000000"
+    },
+    "00116892": {
+      "mnemonic": "mov",
+      "source_bytes": "668998ce000000"
+    },
+    "00116899": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f1180d4000000"
+    },
+    "001168a1": {
+      "mnemonic": "mov",
+      "source_bytes": "668998d0000000"
+    },
+    "001168a8": {
+      "mnemonic": "mov",
+      "source_bytes": "668998d2000000"
+    },
+    "001168af": {
+      "mnemonic": "mov",
+      "source_bytes": "8988c4000000"
+    },
+    "001168b5": {
+      "mnemonic": "mov",
+      "source_bytes": "8888c8000000"
+    },
+    "001168bb": {
+      "mnemonic": "mov",
+      "source_bytes": "8888c9000000"
+    },
+    "001168c1": {
+      "mnemonic": "mov",
+      "source_bytes": "668988ca000000"
+    },
+    "001168c8": {
+      "mnemonic": "call",
+      "source_bytes": "e8b35afaff"
+    },
+    "001168cd": {
+      "mnemonic": "pop",
+      "source_bytes": "5e"
+    },
+    "001168ce": {
+      "mnemonic": "pop",
+      "source_bytes": "5d"
+    },
+    "001168cf": {
+      "mnemonic": "mov",
+      "source_bytes": "b001"
+    },
+    "001168d1": {
+      "mnemonic": "pop",
+      "source_bytes": "5b"
+    },
+    "001168d2": {
+      "mnemonic": "pop",
+      "source_bytes": "59"
+    },
+    "001168d3": {
+      "mnemonic": "ret",
+      "source_bytes": "c20400"
+    },
+    "001168d6": {
+      "mnemonic": "lea",
+      "source_bytes": "8d542414"
+    },
+    "001168da": {
+      "mnemonic": "lea",
+      "source_bytes": "8d74240c"
+    },
+    "001168de": {
+      "mnemonic": "mov",
+      "source_bytes": "8bc7"
+    },
+    "001168e0": {
+      "mnemonic": "call",
+      "source_bytes": "e82bb4ffff"
+    },
+    "001168e5": {
+      "mnemonic": "test",
+      "source_bytes": "84c0"
+    },
+    "001168e7": {
+      "mnemonic": "je",
+      "source_bytes": "742d"
+    },
+    "001168e9": {
+      "mnemonic": "cmp",
+      "source_bytes": "396c2414"
+    },
+    "001168ed": {
+      "mnemonic": "jne",
+      "source_bytes": "7527"
+    },
+    "001168ef": {
+      "mnemonic": "push",
+      "source_bytes": "53"
+    },
+    "001168f0": {
+      "mnemonic": "push",
+      "source_bytes": "53"
+    },
+    "001168f1": {
+      "mnemonic": "push",
+      "source_bytes": "6801000007"
+    },
+    "001168f6": {
+      "mnemonic": "push",
+      "source_bytes": "6801010007"
+    },
+    "001168fb": {
+      "mnemonic": "push",
+      "source_bytes": "6801010007"
+    },
+    "00116900": {
+      "mnemonic": "push",
+      "source_bytes": "6801010007"
+    },
+    "00116905": {
+      "mnemonic": "push",
+      "source_bytes": "57"
+    },
+    "00116906": {
+      "mnemonic": "xor",
+      "source_bytes": "33c0"
+    },
+    "00116908": {
+      "mnemonic": "call",
+      "source_bytes": "e803b2ffff"
+    },
+    "0011690d": {
+      "mnemonic": "pop",
+      "source_bytes": "5e"
+    },
+    "0011690e": {
+      "mnemonic": "pop",
+      "source_bytes": "5d"
+    },
+    "0011690f": {
+      "mnemonic": "mov",
+      "source_bytes": "b001"
+    },
+    "00116911": {
+      "mnemonic": "pop",
+      "source_bytes": "5b"
+    },
+    "00116912": {
+      "mnemonic": "pop",
+      "source_bytes": "59"
+    },
+    "00116913": {
+      "mnemonic": "ret",
+      "source_bytes": "c20400"
+    },
+    "00116916": {
+      "mnemonic": "pop",
+      "source_bytes": "5e"
+    },
+    "00116917": {
+      "mnemonic": "pop",
+      "source_bytes": "5d"
+    },
+    "00116918": {
+      "mnemonic": "mov",
+      "source_bytes": "8ac3"
+    },
+    "0011691a": {
+      "mnemonic": "pop",
+      "source_bytes": "5b"
+    },
+    "0011691b": {
+      "mnemonic": "pop",
+      "source_bytes": "59"
+    },
+    "0011691c": {
+      "mnemonic": "ret",
+      "source_bytes": "c20400"
+    }
+  },
+  "native_model_lookup": null,
+  "original_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "production_opcode_decoder": false,
+  "production_original_code_execution": false,
+  "schema": 1,
+  "selected_addresses": {
+    "00105420": 1070112,
+    "00105451": 1070161,
+    "00116790": 1140624,
+    "00116840": 1140800,
+    "001168cd": 1140941,
+    "001168e5": 1140965,
+    "0011690d": 1141005
+  },
+  "reached_native_call": {
+    "site": "000eb0f8",
+    "target": "00116790",
+    "return": "000eb0fd",
+    "instruction_hex": "e893b60200"
+  },
+  "static_caller_closure": {
+    "site": "000eb137",
+    "target": "00105420",
+    "return": "000eb13c",
+    "instruction_hex": "e8e4a20100"
+  },
+  "existing_native_callees": [
+    "000bc380",
+    "0010a980",
+    "00111b10",
+    "00111d10"
+  ],
+  "boundary": "Complete English TU1.5 static native body; external owners retain the actual source ABI. No runtime opcode decoder or emulation."
+}

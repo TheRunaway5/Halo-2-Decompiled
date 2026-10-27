@@ -41,6 +41,8 @@ def initialize(db):
         # Existing accounts have no registration timestamp. NULL is honest;
         # migration time and earliest retained match are not their join date.
         db.execute("ALTER TABLE player_profiles ADD COLUMN joined_at INTEGER")
+    from .friend_tags import initialize as initialize_tags
+    initialize_tags(db)
 
 
 def player(db, owner, name, username="", *, now=None):
@@ -69,6 +71,8 @@ def player(db, owner, name, username="", *, now=None):
                    "discord_username=CASE WHEN excluded.discord_username!='' THEN excluded.discord_username ELSE player_profiles.discord_username END, "
                    "steam_name=CASE WHEN excluded.steam_name!='' THEN excluded.steam_name ELSE player_profiles.steam_name END",
                    (value, name, discord_name, steam_name, joined))
+        from .friend_tags import assign
+        assign(db, value)
     return value
 
 

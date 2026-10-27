@@ -3,6 +3,8 @@
 #include "runtime/source_runtime_page_copy.hpp"
 #include "runtime/source_runtime_host_physical_pages.hpp"
 #include <algorithm>
+#include <atomic>
+#include <array>
 #include <cerrno>
 #include <stdexcept>
 #include <system_error>
@@ -22,6 +24,39 @@ constexpr auto allocation_owner="actual host physical allocation pages";
 struct PhysicalProtection {
   std::mutex mutex;
   std::set<std::uint32_t> read_only;
+  // Lock-free mirror of read_only for the per-write guard: one bit per
+  // upper-half 4KiB page (allocate() publishes only upper-half tokens).
+  // Writers hold mutex and change one page bit at a time, so the guard's
+  // acquire loads see each page either before or after its change; it never
+  // takes the mutex for a write that starts inside the namespace.
+  std::unique_ptr<std::array<std::atomic<std::uint64_t>,8192>> bits=
+      std::make_unique<std::array<std::atomic<std::uint64_t>,8192>>();
+  void mark(std::uint32_t address,bool on) noexcept {
+    if(address<0x80000000u)return;
+    const auto index=(address-0x80000000u)>>12;const auto bit=std::uint64_t{1}<<(index&63);
+    if(on)(*bits)[index>>6].fetch_or(bit,std::memory_order_release);
+    else (*bits)[index>>6].fetch_and(~bit,std::memory_order_release);
+  }
+  // Any read-only page overlapping [first,end); first>=0x80000000, end>first.
+  bool protected_in(std::uint64_t first,std::uint64_t end) const noexcept {
+    for(auto index=(first-0x80000000ull)>>12,last=(end-1-0x80000000ull)>>12;index<=last;++index)
+      if((*bits)[index>>6].load(std::memory_order_acquire)&(std::uint64_t{1}<<(index&63)))return true;
+    return false;
+  }
+  void erase_range(std::set<std::uint32_t>::iterator first,std::set<std::uint32_t>::iterator last) noexcept {
+    for(auto at=first;at!=last;++at)mark(*at,false);
+    read_only.erase(first,last);
+  }
+  // Swap in next, changing exactly the pages that differ.
+  void replace(std::set<std::uint32_t> &next) noexcept {
+    auto a=read_only.begin();auto b=next.begin();
+    while(a!=read_only.end() || b!=next.end()) {
+      if(b==next.end() || (a!=read_only.end() && *a<*b)){mark(*a,false);++a;}
+      else if(a==read_only.end() || *b<*a){mark(*b,true);++b;}
+      else{++a;++b;}
+    }
+    read_only.swap(next);
+  }
 };
 struct StagedPhysicalProtection {
   std::set<std::uint32_t> read_only;
@@ -63,6 +98,13 @@ SourceRuntimeHostPhysicalMemory::SourceRuntimeHostPhysicalMemory(SourceRuntimeMe
       // that boundary cannot intersect any physical protection row. Keep
       // spanning writes, native aliases and every physical write checked.
       if(!all_ranges && end<=0x80000000ull)return;
+      // A non-empty write starting inside the namespace reads the page
+      // mirror; spanning and empty writes keep the checked set under the mutex.
+      if(address>=0x80000000u && bytes) {
+        if(state->protected_in(address,end))
+          throw std::runtime_error("Original runtime write to read-only physical page");
+        return;
+      }
       std::lock_guard lock(state->mutex);
       const auto first=state->read_only.lower_bound(address&~(page-1));
       if(first!=state->read_only.end() && *first<end)
@@ -125,7 +167,7 @@ void SourceRuntimeHostPhysicalMemory::release(std::uint32_t address) {
   memory_.release(address);
   const auto first=state->read_only.lower_bound(address);
   auto last=first;while(last!=state->read_only.end() && *last<end)++last;
-  state->read_only.erase(first,last);
+  state->erase_range(first,last);
   allocations_.erase(found);
 }
 void SourceRuntimeHostPhysicalMemory::protect(std::uint32_t address,
@@ -157,7 +199,7 @@ void SourceRuntimeHostPhysicalMemory::protect(std::uint32_t address,
   }
   source_runtime_detail::physical_pages::protect_range(found->second.backing->bytes(),
       found->first,protected_begin,protected_end,protection==2,state->read_only,next);
-  state->read_only.swap(next);
+  state->replace(next);
 }
 struct SourceRuntimeHostPhysicalMemory::PreparedOwnership::Impl {
   const SourceRuntimeHostPhysicalMemory *owner;
@@ -248,7 +290,7 @@ SourceRuntimeHostPhysicalMemory::PreparedOwnership SourceRuntimeHostPhysicalMemo
 bool SourceRuntimeHostPhysicalMemory::commit_ownership(PreparedOwnership &&prepared) noexcept {
   if(!prepared.for_owner(*this) || !prepared.matches_memory(memory_))return false;
   allocations_.swap(prepared.impl_->allocations);
-  prepared.impl_->protection->read_only.swap(prepared.impl_->read_only);
+  prepared.impl_->protection->replace(prepared.impl_->read_only);
   prepared.impl_->staged_protection->active=false;
   prepared.impl_->staged_protection->read_only.clear();
   prepared.impl_.reset();return true;

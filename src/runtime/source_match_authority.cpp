@@ -163,7 +163,8 @@ SourceMatchAuthority::Prepared SourceMatchAuthority::prepare(const Checkpoint &s
   n.world.emplace(world_.prepare_authority(saved.world));
   validate_pair(saved.match,n.world->replacement_memory(),match_,match_.first_person_players_);
   if(!roster.empty())validate_source_players(saved.match,n.world->replacement_memory(),roster,true);
-  n.match.emplace(match_.prepare_authority(saved.match,binding,&n.world->replacement_memory()));return p;
+  const auto native_caller=n.world->replacement_caller();
+  n.match.emplace(match_.prepare_authority(saved.match,binding,&n.world->replacement_memory(),&native_caller));return p;
 }
 SourceMatchAuthority::Prepared SourceMatchAuthority::prepare_with_local_views(const Checkpoint &saved,
     AuthorityDigest binding,std::span<const LocalPlayerAdmission> admitted,SourceMatchAuthority &workspace) {

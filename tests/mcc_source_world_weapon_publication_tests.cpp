@@ -126,6 +126,19 @@ int main(int argc,char** argv) {
         if(!equipped)throw FormatError("Actual map battle rifle pickup did not complete through original commands");
         report["source_weapon_prompt_checks"]=prompt_checks;report["source_weapon_prompt_mismatches"]=prompt_mismatches;
         if(!prompt_checks||prompt_mismatches)throw FormatError("Completed original weapon target differs from native action prompt");
+        // The weapon stowed by the pickup stays in the inventory: it is not a
+        // loose world weapon (Halo 2 draws no backpack weapon).
+        world.match.step(neutral);state=world.match.state();
+        const auto equipment=source.tu15_world().player_equipment(state.players[0].source_unit);
+        unsigned stowed{};
+        for(const auto weapon:equipment.weapons)if(weapon!=null_datum && weapon!=state.players[0].source_weapon) {
+            ++stowed;
+            if(std::ranges::any_of(state.world_weapons,[&](const auto& item){return item.handle==weapon;}) ||
+                std::ranges::any_of(state.source_body_poses,[&](const auto& pose){return pose.object==weapon;}))
+                throw FormatError("Stowed inventory weapon was published as a loose world weapon");
+        }
+        report["stowed_inventory_weapons"]=stowed;
+        if(!stowed)throw FormatError("Pickup left no stowed inventory weapon to check");
         report["passed"]=true;
     }catch(const std::exception& error){report["runtime_error"]=error.what();}
     std::ofstream output(argv[3]);output<<report.dump(2)<<'\n';

@@ -1,5 +1,6 @@
 #include "halo2/frontend.hpp"
 #include "halo2/multiplayer.hpp"
+#include "../src/ui/frontend_multiplayer_rules.hpp"
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <array>
@@ -34,6 +35,39 @@ int main(int argc,char** argv)try {
   Cache cache(maps/"mainmenu.map");auto content=cache.load_frontend();
   nlohmann::json fixture;std::ifstream(argv[2])>>fixture;unsigned starts{};
   unsigned edited_starts{};std::array<bool,10> edited_engines{};
+  unsigned stock_admissions{};bool checked_two_round_slayer{};
+  for(const auto& preset:fixture.at("variants")) {
+    UiVariant stock{preset.at("name").get<std::string>(),preset.at("frontend_engine").get<unsigned>(),{}};
+    for(const auto &write:preset.at("writes"))stock.values.append(write[0].get<unsigned>(),write[1].get<int>());
+    const auto source=source_game_variant(stock);const auto raw=preset.at("raw").get<std::string>();
+    need(raw.size()==source.bytes.size()*2,"Incomplete original stock admission buffer");
+    for(unsigned n=0;n<source.bytes.size();++n)
+      need(source.bytes[n]==std::stoul(raw.substr(n*2,2),nullptr,16),"Stock admission changed an original option byte");
+    const auto rules=detail::frontend_multiplayer_rules(stock);
+    need(rules.requires_source_engine&&rules.source_engine==preset.at("source_type").get<int>(),
+        "Stock frontend admission selected a bounded engine instead of its recovered original owner");
+    ++stock_admissions;
+    if(stock.engine==0&&!checked_two_round_slayer) {
+      auto two_round=stock;two_round.values.set(0,1);
+      need(source_game_variant_valid(source_game_variant(two_round)),"Original two-round Slayer buffer was not valid");
+      need(detail::frontend_multiplayer_rules(two_round).requires_source_engine,
+          "Source-valid two-round Slayer lost its original frontend engine owner");
+      bool bounded_rejected{};try{(void)slayer_rules(two_round,true);}catch(const FormatError&){bounded_rejected=true;}
+      need(bounded_rejected,"Stock routing fix relaxed the separate bounded adapter globally");checked_two_round_slayer=true;
+    }
+  }
+  need(stock_admissions==39&&checked_two_round_slayer,"Stock admission lost original39-preset/Slayer-round coverage");
+  bool fiesta{},infection{},defusal{};
+  for(const auto &custom:content.bundled_variants) {
+    const auto kind=custom_slayer(custom);const bool bomb=bomb_defusal_variant(custom);
+    if(kind==CustomSlayer::none&&!bomb)continue;
+    const auto rules=detail::frontend_multiplayer_rules(custom);
+    need(!rules.requires_source_engine&&rules.custom==kind&&rules.defusal.has_value()==bomb,
+        "Stock admission routing stole an existing native custom rules owner");
+    fiesta|=kind==CustomSlayer::fiesta;infection|=kind==CustomSlayer::infection;defusal|=bomb;
+  }
+  need(fiesta&&infection&&defusal,"Native custom admission boundary lost Fiesta/Infection/Defusal fixtures");
+  std::cout<<"PASS exact39 original stock buffers, two-round Slayer source admission and native custom boundaries\n";
   for(const auto& preset:fixture.at("variants")) {
     const auto type=preset.at("source_type").get<unsigned>();if(type!=1 && type!=9)continue;
     const auto name=preset.at("name").get<std::string>();

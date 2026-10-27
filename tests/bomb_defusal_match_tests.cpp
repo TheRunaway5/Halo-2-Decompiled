@@ -71,7 +71,7 @@ void transport() {
   check(rejected && f.match->available_player_slots()==available,"Ninth attacker was admitted or consumed a player slot");
   for(unsigned i=0;i<5;++i)f.match->join("Big Team Blue "+std::to_string(i),1);
   LanHost host(*f.match,0,0x44454655);
-  std::array<std::int8_t,1> teams{1};LanClient client("127.0.0.1:"+std::to_string(host.port()),0x44454655,1,teams);
+  std::array<std::int8_t,1> teams{1};LanClient client(host.join_address(),0x44454655,1,teams);
   std::array<Controls,1> local{};
   for(unsigned n=0;n<100 && !client.ready();++n){client.send(local);host.receive(f.controls);host.broadcast();client.receive();}
   check(client.ready() && client.error().empty(),"Defusal client failed actual native UDP admission");

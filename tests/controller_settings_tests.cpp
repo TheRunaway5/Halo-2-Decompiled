@@ -37,6 +37,17 @@ int main(int argc, char **argv) {
   s.hardware[9] = 1;
   c.buttons = 3;
   check(controller_input(s, c).melee && !controller_input(s, c).zoom);
+  // TU1.5 127710 writes the sixth digital held counter at processed+1D;
+  // 15E70D reads that Back counter directly, outside gameplay remapping.
+  for(unsigned sticks=0;sticks<4;++sticks)for(unsigned buttons=0;buttons<4;++buttons) {
+    ControllerSettings settings;settings.sticks=sticks;settings.buttons=buttons;
+    for(unsigned hardware=0;hardware<24;++hardware) {
+      ControllerSample sample;sample.hardware[hardware]=1;
+      if(controller_input(sample,settings).scoreboard!=(hardware==7))
+        throw std::runtime_error("TU1.5 Back scoreboard hold missing or remapped");
+    }
+    check(!controller_input({},settings).scoreboard);
+  }
   a = {};
   a.look_pitch = 1;
   a.look_yaw = 1;
@@ -102,6 +113,6 @@ int main(int argc, char **argv) {
         }
       }
   }
-  std::cout << "Controller layouts, sensitivity, inversion and tag-driven "
+  std::cout << "Controller layouts, fixed Back scoreboard hold, sensitivity, inversion and tag-driven "
                "auto-centering passed\n";
 }

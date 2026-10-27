@@ -109,6 +109,48 @@ struct Fixture {
     }
 };
 
+void separator_contract_tests(const fs::path& scratch) {
+    auto root=scratch/"separator-contract";
+    root.make_preferred();
+    Fixture f(root);
+    const std::string owner="halo2/h2_maps_win64_dx11/lockout.map";
+    const auto bank=f.bank("native-shaders/nested/lockout","lockout","separator contract");
+    f.map(owner,"separator contract encoded map",&bank,true);
+    const auto raw=f.index.dump(), expected=sha(raw);
+    std::vector<MccNativeMetadataSnapshot> snapshots;
+    for(const auto& [name,value]:f.metadata)snapshots.push_back({name,bytes(value)});
+    const auto shared=root/"halo2/h2_maps_win64_dx11";
+    const auto mixed_map=root/owner;
+    const auto resolve=[&](const fs::path& map) {
+        return resolve_mcc_native_map_binding({root,raw,expected},map,shared,
+            bytes(f.encoded_maps.at(owner)),snapshots);
+    };
+    const auto mixed=resolve(mixed_map);
+    auto preferred_map=mixed_map;preferred_map.make_preferred();
+    const auto preferred=resolve(preferred_map);
+    require(mixed && preferred && mixed->library_sha256==preferred->library_sha256 &&
+        mixed->map_relative==owner,"forward manifest components lost the exact Windows owner");
+    unsigned rejected_aliases=0;
+    for(const auto* alias:{"halo2/./h2_maps_win64_dx11/lockout.map",
+                          "halo2/Mods/../h2_maps_win64_dx11/lockout.map",
+                          "halo2//h2_maps_win64_dx11/lockout.map"}) {
+        rejected([&]{resolve(root/alias);},"aliased absolute path passed separator admission");
+        ++rejected_aliases;
+    }
+    for(const auto* alias:{"halo2/./h2_maps_win64_dx11/lockout.map",
+                          "halo2/Mods/../h2_maps_win64_dx11/lockout.map",
+                          "halo2//h2_maps_win64_dx11/lockout.map"}) {
+        auto aliased=f.index;aliased["maps"][0]["map"]=alias;
+        const auto encoded=aliased.dump(), digest=sha(encoded);
+        rejected([&]{resolve_mcc_native_map_binding({root,encoded,digest},mixed_map,shared,
+            bytes(f.encoded_maps.at(owner)),snapshots);},"aliased manifest path passed separator admission");
+        ++rejected_aliases;
+    }
+    std::cout<<"Separator owner contract: "<<Json{{"mixed_map",mixed_map.string()},
+        {"preferred_map",preferred_map.string()},{"manifest_library","native-shaders/nested/lockout/library.json"},
+        {"positive_forms",2},{"rejected_dot_dotdot_repeated_separator_forms",rejected_aliases}}.dump()<<'\n';
+}
+
 void contract_tests(const fs::path& scratch) {
     Fixture f(scratch / "positive");
     const std::string stock = "halo2/h2_maps_win64_dx11/lockout.map";
@@ -363,8 +405,11 @@ int main(int argc, char** argv) try {
         producer_fixture(argv[2]);
         return 0;
     }
-    require(argc == 1, "Unknown contract test arguments");
+    const bool separator_only=argc==2 && std::string_view(argv[1])=="--separator-contract";
+    require(argc == 1 || separator_only, "Unknown contract test arguments");
     OwnedTemporaryDirectory temporary;
+    separator_contract_tests(temporary.path);
+    if(separator_only)return 0;
     contract_tests(temporary.path);
     std::cout << "Exact map-owner snapshot/path/metadata contract passed\n";
     return 0;

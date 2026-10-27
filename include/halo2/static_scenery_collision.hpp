@@ -20,6 +20,10 @@ std::shared_ptr<const StaticSceneryCollisionDefinition> load_static_scenery_coll
 // This does not implement Havok broadphase, motion, contact or shape dispatch.
 std::vector<CollisionTriangle> model_collision_triangles(const ModelCollision&,
     std::span<const Transform>,std::span<const std::uint8_t>,std::size_t placement);
+// Same posed polygon/fan/degeneracy traversal without an output allocation.
+// Reject before generating a triangle bank larger than its admitted input.
+std::size_t model_collision_triangle_count(const ModelCollision&,
+    std::span<const Transform>,std::span<const std::uint8_t>,std::size_t maximum);
 class StaticSceneryCollision {
 public:
   explicit StaticSceneryCollision(const LevelContent&);

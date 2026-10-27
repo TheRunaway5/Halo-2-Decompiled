@@ -38,7 +38,7 @@ int main(int argc,char** argv){try {
             for(auto& attribute:state.attributes)for(auto& value:attribute)value=real(row);
             ShaderVector expected;for(auto& value:expected)value=real(row);
             const auto program=decode_vertex_program(cache.load_vertex_shader_code(tag->datum,bank.classification));
-            execute_vertex_program(pstencil::position_prefix(program),state);
+            pstencil::execute_native_position_prefix(program,state);
             for(unsigned axis=0;axis<3;++axis) {
                 require(std::bit_cast<std::uint32_t>(state.outputs[9][axis])==std::bit_cast<std::uint32_t>(expected[axis]),
                     "pStencil position prefix differs from retained original posed world position");++words;

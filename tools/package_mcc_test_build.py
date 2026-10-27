@@ -15,8 +15,8 @@ import zipfile
 
 from mcc_movies import _cancellation, _publish_new
 from installation_paths import resource_root
-from controller_prompt_assets import install as install_controller_prompts
-from native_variant_assets import source_bundle as variant_sources, install as install_variants
+from native_variant_assets import source_bundle as variant_sources
+from custom_assets import inventory as custom_asset_inventory, install as install_custom_assets
 import mcc_presentation
 from mcc_ui_layout import SOURCE as UI_LAYOUT_SOURCE, source_profile as verify_ui_layout
 from mcc_loading_presentation import (bundled_ambience, AMBIENCE, TONE,
@@ -137,8 +137,10 @@ def packaged_frontend(stage, qualified, shader_relocation):
     report["runtime"] = dict(path=PACKAGE_RUNTIME, sha256=sha(stage / PACKAGE_RUNTIME),
         payload=dict(path=PACKAGE_PAYLOAD, sha256=sha(stage / PACKAGE_PAYLOAD)),
         loader=dict(path=PACKAGE_LOADER, sha256=sha(stage / PACKAGE_LOADER)))
-    report["shaders"] = dict(binding="packaged-compiled-default", directory=PACKAGE_SHADERS,
-        compiled_default=shader_relocation["compiled_default"], files=report["shaders"]["files"])
+    # Preserve the compact AOT package pin as well as legacy inline inventories.
+    # The module bank is revalidated against the relocated payload below.
+    report["shaders"] = dict(report["shaders"], binding="packaged-compiled-default",
+        directory=PACKAGE_SHADERS, compiled_default=shader_relocation["compiled_default"])
     report["packaging"] = dict(source_capability_sha256=qualified["source_capability_sha256"],
         source_runtime_sha256=qualified["report"]["runtime"]["sha256"],
         strip_debug_only=True, relocation=shader_relocation,
@@ -296,7 +298,8 @@ def _assemble(root, runtime, launchers, output, shader_directory, shaders, stage
     presentation = presentation if presentation is not None else dict(mcc_loading_converter=converter_dependencies(root))
     decoder_source = presentation.get("mcc_loading_converter")
     stage.mkdir(parents=True)
-    variants = install_variants(root, stage)
+    custom_assets = install_custom_assets(root, stage)
+    variants = custom_assets['groups']['native_variants']
     (stage / "assets/imported").mkdir(parents=True)
     (stage / "bin").mkdir()
     executable_sources = [runtime, launchers / "Halo2-Launcher", launchers / "Halo2-Title-Launcher"]
@@ -330,7 +333,7 @@ def _assemble(root, runtime, launchers, output, shader_directory, shaders, stage
     shutil.copytree(shader_directory, stage / "bin/shaders")
     if (runtime.parent / "upscalers").is_dir():
         shutil.copytree(runtime.parent / "upscalers", stage / "bin/upscalers")
-    if shader_inventory(stage / "bin/shaders") != shaders:
+    if shader_inventory(stage / "bin/shaders", executable=packaged_runtime) != shaders:
         raise RuntimeError("Packaged shader bytes differ from the existing bank")
     for source in (root / "tools").glob("*.py"):
         if not source.is_symlink():
@@ -342,7 +345,8 @@ def _assemble(root, runtime, launchers, output, shader_directory, shaders, stage
     for source in (root / "tools/reference").glob("*.tsv"):
         if not source.is_symlink():
             copy(source, stage / "tools/reference" / source.name)
-    shutil.copytree(root / "tools/data", stage / "tools/data", ignore=shutil.ignore_patterns("__pycache__", ".git"))
+    shutil.copytree(root / "tools/data", stage / "tools/data", dirs_exist_ok=True,
+                    ignore=shutil.ignore_patterns("__pycache__", ".git"))
     verify_ui_layout(root)
     copy(root / UI_LAYOUT_SOURCE, stage / UI_LAYOUT_SOURCE)
     copy(root / "resources/launcher.svg", stage / "resources/launcher.svg")
@@ -356,11 +360,7 @@ def _assemble(root, runtime, launchers, output, shader_directory, shaders, stage
             copy(root / name, stage / name)
     packaged_presentation = (copy_presentation_sources(root, stage, presentation)
                              if decoder_source is None else {})
-    packaged_presentation['controller_prompts']=install_controller_prompts(root,stage)
-    custom = root / "assets/native-loading-custom"
-    if custom.is_dir():
-        shutil.copytree(custom, stage / "assets/native-loading-custom")
-
+    packaged_presentation['controller_prompts'] = custom_assets['groups']['controller_prompts']
     # Ship the interpreter, Tk and Pillow used by onboarding. No compiler,
     # development checkout, local cache or credentials. Loading media is
     # imported only from the user's MCC installation during setup.
@@ -436,6 +436,7 @@ def _assemble(root, runtime, launchers, output, shader_directory, shaders, stage
         "shared_libraries": {name: sha(stage / "lib" / name) for name in sorted(library_sources)},
         **packaged_presentation,
         "bundled_native_variants": variants,
+        "bundled_custom_assets": custom_assets,
         "runtime_adjacent_data": runtime_data,
     }
     if frontend_owner:
@@ -464,6 +465,7 @@ def _assemble(root, runtime, launchers, output, shader_directory, shaders, stage
         "First launch detects your installed Halo MCC and copies Halo 2 content to assets/imported.\n"
         "If detection fails, select your MCC installation or its halo2 folder.\n"
         "Allow space for the Halo 2 data plus decoded resources. No Xbox ISO, TU patch or Vista bank is needed.\n"
+        "Custom button maps, UI masters, celestial ranks, compiled custom maps and game modes are included.\n"
         + presentation_text
         + ("Play opens the qualified MCC title screen and menus after setup.\n"
            "Native offline routes retain the supplied validation's limits. Complete gameplay,\n"
@@ -491,11 +493,16 @@ def package(root, runtime, launchers, output, shader_directory=None, *, frontend
         raise ValueError("Refusing to replace an existing ZIP")
     output = output.absolute()
     shader_directory = Path(shader_directory or runtime.parent / "shaders").resolve(strict=True)
-    shaders = shader_inventory(shader_directory)
+    shaders = shader_inventory(shader_directory, executable=runtime)
     frontend = qualified_frontend(runtime, frontend_cache) if frontend_cache is not None else None
-    if frontend and (Path(frontend["report"]["shaders"]["directory"]) != shader_directory or
-                     frontend["report"]["shaders"]["files"] != shaders):
-        raise ValueError("Package shaders differ from the qualified frontend owner")
+    if frontend:
+        declaration = frontend['report']['shaders']
+        from native_renderer_shaders import AOT_PROFILE, validate_native_package
+        qualified_files = (validate_native_package(shader_directory, executable=runtime,
+            expected_sha256=declaration['package']['sha256'])['files']
+            if declaration.get('profile') == AOT_PROFILE else declaration['files'])
+        if Path(declaration['directory']) != shader_directory or qualified_files != shaders:
+            raise ValueError("Package shaders differ from the qualified frontend owner")
     requirements = mcc_presentation.requirements(root, runtime=runtime)
     if requirements['family'] == mcc_presentation.AUTHORED and frontend is None:
         # Without the qualified packaged sidecar, first setup would correctly
@@ -503,6 +510,7 @@ def package(root, runtime, launchers, output, shader_directory=None, *, frontend
         raise ValueError('Authored frontend packaging requires its qualified --frontend-cache')
     presentation = presentation_sources(root, requirements)
     variants = variant_sources(root)
+    custom_assets = custom_asset_inventory(root)
     output.parent.mkdir(parents=True, exist_ok=True)
     # Only the complete requested ZIP persists. The private stage is removed
     # on success, failure and cancellation.
@@ -515,6 +523,8 @@ def package(root, runtime, launchers, output, shader_directory=None, *, frontend
             raise ValueError("Presentation sources changed during packaging")
         if variant_sources(root) != variants:
             raise ValueError("Bundled multiplayer definitions changed during packaging")
+        if custom_asset_inventory(root) != custom_assets:
+            raise ValueError("Bundled custom assets changed during packaging")
         mcc_presentation.recheck(requirements)
         if frontend:
             final = qualified_frontend(runtime, frontend_cache)

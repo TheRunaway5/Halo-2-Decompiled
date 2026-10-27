@@ -18,6 +18,12 @@ VistaPcrInitialFocus vista_pcr_initial_focus(const VistaPcrResults& bank) {
   const auto count=bank.team_count?bank.team_count:bank.player_count;
   return {pane,count?0u:0xffffffffu};
 }
+unsigned vista_pcr_tab_step(unsigned pane,int direction,bool teams) {
+  if(pane>=6)throw FormatError("PCR tab focus outside its six authored children");
+  if(!direction)return pane;
+  do {pane=direction>0?(pane+1)%6:(pane+5)%6;} while(!teams && !pane);
+  return pane;
+}
 std::uint32_t vista_pcr_session_identity_slot(std::span<const std::byte> session,
     bool enabled,std::uint32_t manager,const std::array<std::byte,8>& identity) {
   //5AD782 does not consume the session unless the outer owner admits it.

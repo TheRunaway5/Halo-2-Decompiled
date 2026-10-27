@@ -12,6 +12,9 @@
 #include "halo2/first_person_dual.hpp"
 #include "halo2/frontend_model_primary.hpp"
 #include <algorithm>
+#include <memory>
+#include <unordered_map>
+#include <mutex>
 #include <functional>
 #include <cstdlib>
 #include "rendering/models/model_skin_vertices.hpp"
@@ -295,16 +298,54 @@ std::vector<std::array<float,12>> model_skin_world_palette(const RenderModel &mo
   for(std::size_t i=0;i<mapping.size();++i)mapping[i]=int(i);
   return skin_palette(model,std::vector<Transform>(nodes.begin(),nodes.end()),mapping);
 }
+namespace {
+// HALO2_NATIVE_SKIN_ADMISSION_CACHE=1: keep each resident model's
+// palette-independent admission summary (opt-in until a byte-identical frame
+// capture is recorded); HALO2_VERIFY_SKIN_ADMISSION=1 also evaluates the full
+// predicate and rejects any disagreement. The key covers the model's identity
+// and bank storage; vertices and bindings are immutable after load.
+struct SkinAdmissionCacheEntry {
+  std::uint32_t checksum{};const void *vertices{},*skin{};std::size_t count{};
+  std::shared_ptr<const ModelSkinAdmissionStatic> summary;
+};
+std::mutex skin_admission_mutex;
+std::unordered_map<const RenderModel*,SkinAdmissionCacheEntry> skin_admission_cache;
+bool model_skin_arithmetic_admitted_cached(const RenderModel &model,std::span<const Vertex> vertices,
+    std::span<const std::array<float,12>> palette) {
+  static const bool cached=[]{const auto *p=std::getenv("HALO2_NATIVE_SKIN_ADMISSION_CACHE");return p && *p;}();
+  static const bool verify=[]{const auto *p=std::getenv("HALO2_VERIFY_SKIN_ADMISSION");return p && *p;}();
+  if(!cached)return model_skin_gpu_arithmetic_admitted(vertices,model.skin,palette);
+  std::shared_ptr<const ModelSkinAdmissionStatic> summary;
+  {
+    std::lock_guard lock(skin_admission_mutex);
+    auto &entry=skin_admission_cache[&model];
+    if(!entry.summary || entry.checksum!=model.checksum || entry.vertices!=model.mesh.vertices.data() ||
+       entry.skin!=model.skin.data() || entry.count!=model.mesh.vertices.size()) {
+      entry={model.checksum,model.mesh.vertices.data(),model.skin.data(),model.mesh.vertices.size(),
+             std::make_shared<const ModelSkinAdmissionStatic>(model_skin_gpu_admission_static(model.mesh.vertices,model.skin))};
+    }
+    summary=entry.summary;
+  }
+  // The local records are an unmodified copy of the model bank.
+  const bool admitted=vertices.size()==model.mesh.vertices.size() && model_skin_gpu_arithmetic_admitted(*summary,palette);
+  if(verify && admitted!=model_skin_gpu_arithmetic_admitted(vertices,model.skin,palette))
+    throw FormatError("Cached skin admission summary differs from the full arithmetic predicate");
+  return admitted;
+}
+}
 ModelSkinWorldPose model_skin_world_pose(const RenderModel &model,
     std::span<const Transform> nodes,bool allow_gpu) {
   ModelSkinWorldPose result;
   result.palette=model_skin_world_palette(model,nodes);
   result.vertices=model.mesh.vertices;
-  const auto *scalar=std::getenv("HALO2_REFERENCE_SCALAR_SKINNING");
-  const auto *verify=std::getenv("HALO2_VERIFY_SIMD_SKINNING");
-  result.gpu=allow_gpu && !(scalar && *scalar) && !(verify && *verify) &&
+  // Diagnostics toggle these at run time (model_skin_handoff_tests); read
+  // them on every pose.
+  const auto *scalar_switch=std::getenv("HALO2_REFERENCE_SCALAR_SKINNING");
+  const auto *verify_switch=std::getenv("HALO2_VERIFY_SIMD_SKINNING");
+  const bool scalar=scalar_switch && *scalar_switch,verify=verify_switch && *verify_switch;
+  result.gpu=allow_gpu && !scalar && !verify &&
       model_skin_gpu_host_effects_admitted() &&
-      model_skin_gpu_arithmetic_admitted(result.vertices,model.skin,result.palette);
+      model_skin_arithmetic_admitted_cached(model,result.vertices,result.palette);
   if(!result.gpu)finish_skin(model,result.vertices,result.palette);
   return result;
 }

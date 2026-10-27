@@ -1,5 +1,19 @@
 # Local HUD, menu and prompt artwork
 
+Current custom-content policy, 2026-10-25: source builds and onboarding packages
+include all authored `resources/ui-menu-masters` SVG/DDS files and both custom
+Xbox/PlayStation button banks. Setup selects the existing custom moon, eclipse,
+sun, comet and Halo-ring DDS pages in both rank banks. Ordinary rank pages keep
+their MCC owner. The original logical sizes, registration and bitmap slot
+identities remain unchanged. Other unfinished UI masters are delivered as
+sources rather than automatically replacing imported menu artwork. This policy
+supersedes the custom-art exclusions in the historical records below. Stock
+assets and fonts still come from the user's MCC installation.
+
+`tools/custom_assets.py` supplies the shared build/package inventory;
+`tools/custom_ui_assets.py` authenticates the masters and prepares the selected
+rank textures. See [asset setup](ASSET_SETUP.md) for custom maps and game modes.
+
 Later controller-prompt update, 2026-10-21: the user's requested revised Xbox
 and matching PlayStation SVG controls are port-owned artwork. Onboarding now
 installs both raster banks into the vanilla cache's `presentation/prompts-xbox`

@@ -18,7 +18,7 @@ using SourceShadowDrawUpload=SourceWorldDrawUpload;
 // Frame-fence-owned storage for the explicit Renderer shadow hook. Each
 // repeated slot/root/view gets an independent descriptor and UBO slice.
 // upload() is legal only after all previous uses have completed. Pipelines
-// reuse the production world_prt.vert/world.frag authored program lowering.
+// select complete source identities from the compiled native VS/FS catalogs.
 class SourceShadowDrawStorage {
 public:
     explicit SourceShadowDrawStorage(SourceShadowDrawStorageContext);

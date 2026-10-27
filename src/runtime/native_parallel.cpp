@@ -119,7 +119,9 @@ public:
             job_.errors.assign(count,nullptr);job_.errno_values.assign(count,0);job_.errno_changed.assign(count,0);
             ++generation_;
         }
-        wake_.notify_all();
+        // Wake only as many workers as there are tasks beyond the caller's
+        // own; the job completes on the caller either way, exactly as before.
+        for(std::size_t n=0,wakes=std::min<std::size_t>(count-1,threads_.size());n<wakes;++n)wake_.notify_one();
         // The caller takes tasks too; its own sticky flags accumulate in place.
         inside_task=true;
         for(std::size_t index;(index=job_.next.fetch_add(1,std::memory_order_relaxed))<count;) {
@@ -139,6 +141,65 @@ public:
     }
 };
 Pool& pool(){static Pool shared;return shared;}
+}
+namespace {
+class OverlapThread {
+    std::mutex mutex_;
+    std::condition_variable wake_,done_;
+    const std::function<void()>* job_{};
+    bool pending_{},finished_{},stopping_{};
+    unsigned control_sse_{};std::uint16_t control_x87_{};int errno_before_{};
+    unsigned sse_flags_{};std::uint16_t x87_flags_{};int errno_after_{};bool errno_changed_{};
+    std::exception_ptr error_;
+    std::thread thread_;
+    void work() {
+        for(;;) {
+            std::unique_lock lock(mutex_);
+            wake_.wait(lock,[&]{return stopping_ || pending_;});
+            if(stopping_)return;
+            pending_=false;
+            const auto *job=job_;const auto csr=control_sse_;const auto cw=control_x87_;const int before=errno_before_;
+            lock.unlock();
+            set_sse_csr(csr);set_x87_control(cw);clear_x87_flags();errno=before;
+            std::exception_ptr error;
+            try{(*job)();}catch(...){error=std::current_exception();}
+            const auto flags=sse_csr()&0x3fu;const auto status=std::uint16_t(x87_status()&0x3fu);const int after=errno;
+            lock.lock();
+            sse_flags_=flags;x87_flags_=status;errno_after_=after;errno_changed_=after!=before;error_=error;finished_=true;
+            lock.unlock();
+            done_.notify_all();
+        }
+    }
+public:
+    OverlapThread():thread_([this]{work();}){}
+    ~OverlapThread(){{std::lock_guard lock(mutex_);stopping_=true;}wake_.notify_all();thread_.join();}
+    void run(const std::function<void()>& job,const std::function<void()>& overlap) {
+        {
+            std::lock_guard lock(mutex_);
+            job_=&job;control_sse_=sse_csr()&~0x3fu;control_x87_=x87_control();errno_before_=errno;
+            pending_=true;finished_=false;error_=nullptr;
+        }
+        wake_.notify_one();
+        const int before_overlap=errno;
+        std::exception_ptr overlap_error;
+        try{overlap();}catch(...){overlap_error=std::current_exception();}
+        const bool overlap_changed=errno!=before_overlap;
+        {
+            std::unique_lock lock(mutex_);
+            done_.wait(lock,[&]{return finished_;});
+        }
+        if(sse_flags_)set_sse_csr(sse_csr()|sse_flags_);
+        if(x87_flags_&~x87_status())raise_x87_flags(x87_flags_);
+        if(errno_changed_ && !overlap_changed)errno=errno_after_;
+        if(error_)std::rethrow_exception(error_);
+        if(overlap_error)std::rethrow_exception(overlap_error);
+    }
+};
+}
+void native_overlap_run(const std::function<void()>& job,const std::function<void()>& overlap) {
+    if(reference_serial || !host_fp_state){job();overlap();return;}
+    static OverlapThread shared;
+    shared.run(job,overlap);
 }
 unsigned native_parallel_workers()noexcept {
     return reference_serial || !host_fp_state?0u:pool().workers();

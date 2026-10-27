@@ -45,7 +45,7 @@ int main(int argc,char** argv)try {
       check(match.source_engine_owned(),"Engine network selected a bounded authority");
       const auto fingerprint=0x7475313500000000ull+index;
       LanHost host(match,0,fingerprint,options.variant);
-      const auto address="127.0.0.1:"+std::to_string(host.port());
+      const auto address=host.join_address();
       std::array<Controls,multiplayer_capacity> controls{};
       for(const auto slot:prepared.local_slots){controls[slot].yaw=match.unit(slot).yaw;controls[slot].pitch=match.unit(slot).pitch;}
       const std::array<std::int8_t,1> selected_team{0};
